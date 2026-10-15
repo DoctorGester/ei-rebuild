@@ -59,10 +59,13 @@ add_executable(ei_vectors
     ${EI_REPLAY_SOURCES}
     tests/vectors/hook_stub.cpp
     src/game/core_maths.cpp
+    src/game/game_buffer.cpp
     src/game/maths.cpp
     src/game/matrix_math.cpp
+    src/game/net_coder.cpp
     src/game/quaternion.cpp
     src/game/random.cpp
+    src/game/script_parse.cpp
     src/game/unit_hit_location.cpp
     src/game/unit_params_protection.cpp
     src/game/unit_params_skill.cpp

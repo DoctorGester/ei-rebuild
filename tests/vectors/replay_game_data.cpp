@@ -1,6 +1,7 @@
 // ei_vectors.exe's stand-in for game.exe's data at fixed addresses (src/game/game_data.h): an image of
-// the range the formulas read (game.exe's .rdata and .data), zero until a check writes it. Each record
-// starts from zeros again: ResetGameData clears what the last one was handed.
+// game.exe (code, .rdata and .data; code holds a few addresses read as data, such as the script
+// keyword table's), zero until a check writes it. Each record starts from zeros again: ResetGameData
+// clears what the last one was handed, then writes back what the fixtures kept.
 #include "vectors.h"
 
 #include "game/game_data.h"
@@ -12,8 +13,8 @@
 
 namespace {
 
-constexpr std::uintptr_t kImageBegin = 0x00730000;
-constexpr std::uintptr_t kImageEnd = 0x007D0000;
+constexpr std::uintptr_t kImageBegin = 0x00401000;
+constexpr std::uintptr_t kImageEnd = 0x007D7000;
 
 unsigned char g_image[kImageEnd - kImageBegin];
 
@@ -22,6 +23,12 @@ struct Handed {
     std::size_t size;
 };
 std::vector<Handed> g_handed;   // what ResetGameData clears
+
+struct Kept {
+    std::uintptr_t address;
+    std::vector<unsigned char> bytes;
+};
+std::vector<Kept> g_kept;   // what the fixtures wrote
 
 } // namespace
 
@@ -44,5 +51,14 @@ void* ei::ReplayGameData(std::uintptr_t address, std::size_t size) {
 
 void ei::vectors::ResetGameData() {
     for (const Handed& h : g_handed) std::memset(g_image + (h.address - kImageBegin), 0, h.size);
+    g_handed.clear();
+    for (const Kept& k : g_kept) std::memcpy(g_image + (k.address - kImageBegin), k.bytes.data(), k.bytes.size());
+}
+
+void ei::vectors::KeepGameData() {
+    for (const Handed& h : g_handed) {
+        const unsigned char* at = g_image + (h.address - kImageBegin);
+        g_kept.push_back({h.address, std::vector<unsigned char>(at, at + h.size)});
+    }
     g_handed.clear();
 }

@@ -139,7 +139,7 @@ def recorders():
                 end += 1
             return text[start.end():end]
 
-        for m in re.finditer(r'\bEI_RECORD\(\s*0x([0-9A-Fa-f]{8})\s*,\s*(\w+)\s*,', text):
+        for m in re.finditer(r'\bEI_RECORD(?:_OURS)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*(\w+)\s*,', text):
             words = re.findall(r'\w+', body(m.group(2)))
             used = [w for w in words if w in names]
             if not used:   # a shared helper that names the sampler itself

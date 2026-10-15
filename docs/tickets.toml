@@ -734,7 +734,7 @@ done = "2026-10-15"
 id = "SV4b"
 title = "Function vectors: parsers and the LZ coder"
 group = "verification"
-status = "running"
+status = "review"
 depends = ["SV4"]
 note = "SV4 families with buffer inputs: the script parser (script_parse*.cpp) and the LZ coder. Payloads need variable-size input/output (the .vec format is fixed-size per function: add a length-prefixed variant or cap the buffer), and the replay must build the parser's objects outside the game."
 started = "2026-10-15"
@@ -876,6 +876,16 @@ status = "queued"
 size = 2
 depends = ["SV5"]
 note = "The coverage list's largest uncovered area is network play: net_messages.cpp (117 functions), net_client_handlers, net_link, net_lobby, net_connection, ui_connect_screen, player_server_handlers, world_game's multiplayer zone switch and ServerSession. The harness starts only the lobby (standalone-verification.md, 'Multiplayer is not covered'). A second game joining the first (harness_net.h gives each game its own port) would reach them; then golden runs for both clients."
+
+[[ticket]]
+id = "SV4b1"
+title = "Function vectors: the script loader (CScript::Load*)"
+group = "verification"
+status = "queued"
+size = 0.5
+depends = ["SV4b"]
+files = ["src/game/script_parse.cpp", "tests/vectors/record_script.cpp", "tests/vectors/replay_script.cpp"]
+note = "SV4b covers the lexer (ClassifyToken, Tokenize, ApplyDefines, FunctionSignature, KeywordName). Still missing: CScript::Load / LoadFunction / LoadCommands and ExpectLexeme. The replay has to build a CScript and its CArrays (MFC CArray in tests/vectors/replay_mfc.cpp) outside the game, and the record must capture the script's tables after loading (hash). Also re-record KeywordName (1 distinct call) and Tokenize sources of 1-16 KB (none recorded) from more scenarios."
 
 # ---------------------------------------------------------------- harness and suite
 

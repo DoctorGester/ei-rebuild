@@ -2,6 +2,8 @@
 // buffer view's slots. See net_coder.h and docs/notes/network.md.
 #include "net_coder.h"
 
+#include "game_data.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -10,14 +12,16 @@
 
 namespace {
 
-// Tables filled at startup by 0042FAE0 (code bits and bit counts, indexed by value). Read from the
-// game's memory.
-const std::uint32_t* LengthCodes() { return reinterpret_cast<const std::uint32_t*>(0x0079B844); }
-const std::uint32_t* LengthBits() { return reinterpret_cast<const std::uint32_t*>(0x0079B7BC); }
-const std::uint32_t* OffsetCodes() { return reinterpret_cast<const std::uint32_t*>(0x0079B738); }
-const std::uint32_t* OffsetBits() { return reinterpret_cast<const std::uint32_t*>(0x0079B6B0); }
-// 0078DB24: (1 << n) - 1 for n = 0..
-const std::uint32_t* BitMasks() { return reinterpret_cast<const std::uint32_t*>(0x0078DB24); }
+// Tables filled at startup by 0042FAE0 (code bits and bit counts, indexed by value): the lengths' by
+// length 1..0x22, the offsets' by distance bucket 0..0x21. In the game's memory (ei::GameData).
+using LengthTable = std::uint32_t[0x23];
+using OffsetTable = std::uint32_t[0x22];
+LengthTable& LengthCodes() { return ei::GameData<LengthTable>(0x0079B844); }
+LengthTable& LengthBits() { return ei::GameData<LengthTable>(0x0079B7BC); }
+OffsetTable& OffsetCodes() { return ei::GameData<OffsetTable>(0x0079B738); }
+OffsetTable& OffsetBits() { return ei::GameData<OffsetTable>(0x0079B6B0); }
+// 0078DB24: (1 << n) - 1 for n = 0..32.
+const std::uint32_t* BitMasks() { return ei::GameData<const std::uint32_t[33]>(0x0078DB24); }
 
 // The compressor looks for matches at most this far back (in the hash chains' distances).
 constexpr std::int32_t kMaxDistance = 0x31E;
@@ -132,8 +136,8 @@ EI_REPLACE(0x0041D960, CoderEndOutput);
 // buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (0079B738 / 0079B6B0). It runs
 // before the hooks are installed; the rewrite is for the standalone build.
 void __cdecl InitCodeTables() {
-    auto* lengthCodes = reinterpret_cast<std::int32_t*>(0x0079B844);
-    auto* lengthBits = reinterpret_cast<std::int32_t*>(0x0079B7BC);
+    LengthTable& lengthCodes = LengthCodes();
+    LengthTable& lengthBits = LengthBits();
     for (int length = 1; length <= 0x22; ++length) {
         int j = length - 1;
         lengthCodes[length] = 0;
@@ -166,8 +170,8 @@ void __cdecl InitCodeTables() {
             lengthCodes[length] = 64 * j - 0x461;
         }
     }
-    auto* offsetCodes = reinterpret_cast<std::int32_t*>(0x0079B738);
-    auto* offsetBits = reinterpret_cast<std::int32_t*>(0x0079B6B0);
+    OffsetTable& offsetCodes = OffsetCodes();
+    OffsetTable& offsetBits = OffsetBits();
     for (int k = 0; k < 0x22; ++k) {
         int v = 16 * k - 0x5C;
         int high = 0x1C + 32 * k;

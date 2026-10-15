@@ -178,7 +178,7 @@ def registrations():
         rel = os.path.relpath(path, ROOT)
         for m in re.finditer(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
-        for m in re.finditer(r'EI_(?:VERIFY|RECORD)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
+        for m in re.finditer(r'EI_(?:VERIFY|RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))

@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 struct AnimationSteps;
@@ -434,9 +435,7 @@ inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* out, const mf
 inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, const mfc::CString* left, const char* right) {
     return ::new (out) mfc::CString(*left + right);
 }
-// 006FD4DE: CString(const char*, int count) (RET 8, returns this). 006FE1D3: CString::TrimLeft(char) (RET 4, no result).
-__declspec(naked) inline void* __fastcall CStringConstructCountOriginal(void* /*string*/, void*, const char* /*text*/,
-                                                                        int /*count*/) EI_ORIGINAL(0x006FD4DE)
+// 006FE1D3: CString::TrimLeft(char) (RET 4, no result).
 __declspec(naked) inline void __fastcall CStringTrimLeftCharOriginal(void* /*string*/, void*, char /*c*/)
     EI_ORIGINAL(0x006FE1D3)
 // Instances of std::list<int> on the node pool (the list's head node is at +0): 004049D0 end() (RET 4: out; *out = the head
@@ -531,8 +530,8 @@ __declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, 
 
 // C3m. 004DBF50 (rewritten as SplitWords; ECX text, EDX array, separator on the stack): splits at the separator.
 __declspec(naked) inline void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
-// C3m. 006E9180: CRT strncmp (plain RET, EAX: <0, 0, >0).
-__declspec(naked) inline int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
+// C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
+inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }
 // C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).
 __declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)

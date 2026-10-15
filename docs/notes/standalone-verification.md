@@ -454,6 +454,49 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
   SkillWithBonus (2), WeaponSkillBonus (3). Corrupted copies (one bit in a SkillPrice, SchoolPrice,
   WeaponSkillBonus, ProtectionBlock and PushMatrix result) fail.
 
+**SV4b (2026-10-15): variable-size records; the LZ coder and the script lexer.**
+- Format: payload size 0 in the file header means each record is its header, a u32 size and that many
+  bytes, written with `Writer` and read with `Reader` (vectors.h; `Sampler::OfferBytes`,
+  `EI_VECTOR_CHECK_BYTES`). A check must read its payload to the end. Large state is compared by
+  `HashBytes`. vectors.py reads, merges and shows both kinds.
+- Fixtures: a function name starting with '@' is a fixture. Its files replay first and the game data
+  it writes stays for the other checks (KeepGameData; ResetGameData restores it). After a failed
+  fixture ei_vectors stops. The stand-in now covers 00401000-007D7000, which includes code immediates
+  such as ClassifyToken's keyword table operand at 004CF69B.
+- Calls from our own code: callers of CoderState::Compress / Decompress are rewritten, so the original
+  is never called at its address. `EI_RECORD_OURS` (hook.h) also patches our replacement's body (after
+  the incremental-link jump stubs) with a jump to the recorder in record mode. It refuses when another
+  address shares that body.
+- `crt`: the game sets a locale (cp1251). The fixture "@GameCrtCtype" holds isdigit, isspace and tolower
+  for 0..255; ei_vectors' gamecrt answers from it (tests/vectors/replay_crt.cpp, with operator new,
+  malloc, strncpy, strncmp and strnicmp; src/lib/crt.cpp leaves those forwarders out under
+  EI_VECTORS_REPLAY). **Finding**: isdigit / isspace of a negative char (the lexer passes signed chars
+  >= 0x80) read heap memory before the locale's table, so in the game the answers differ from run to
+  run. Ours calls the same CRT and does the same. A record whose input has such bytes therefore carries
+  the answers given at the call (crt::NegativeClasses).
+- MFC in the replay: tests/vectors/replay_mfc.cpp is MFC 4.2's CString (refcounted data, the nil string)
+  and CPlex on the replay heap. src/lib/mfc.cpp leaves those forwarders out under EI_VECTORS_REPLAY.
+  registry.cpp's ConstructString now uses the new `CString(const char*, int)`.
+- `coder` (net_coder.cpp, game_buffer.cpp): the fixture "@CoderTables" is InitCodeTables' output,
+  compared from index 1 (the game's index 0 is the static data's), plus the bit masks at 0078DB24.
+  The tables and masks now read through GameData. CoderState::Compress and Decompress (8 per size
+  bucket: up to 64 B, 1 KB, 16 KB) record the input, the written bytes, the scalars, the 10 KB match
+  tables (before; after as a hash) and the buffers' cursors. The replay builds a GameBuffer subclass
+  that seeks like GrowingBuffer or BufferView, as recorded.
+- `script` (script_parse.cpp): the fixture "@ScriptKeywords" holds the keyword table, quote, comment
+  markers and the "None" / "Unknown command" texts. The replay builds the table in the stand-in. Then
+  ClassifyToken (128 per bucket: number, string, none, keyword), FunctionSignature, KeywordName,
+  CScript::Tokenize (whole source; token count, list hash and per-token hashes, or the error code,
+  line and text) and ApplyDefines. In the replay, ClassifyAt / SignatureAt / KeywordNameAt call ours
+  directly; in the game they stay naked forwarders.
+- Recorded from 16 vanilla scenarios (script_*, world_load, saves, units, combat, lobby, menus, items,
+  ...): 10 new files, 520 KB (Compress 283 KB), all replay the same at 007F. KeywordName has one
+  distinct call. Tokenize has 8 sources up to 55 KB and no 1-16 KB one. Corrupted copies (one bit in a
+  Compress / Decompress output, a ClassifyToken id, a Tokenize hash, an ApplyDefines line, a
+  FunctionSignature, the coder tables, a keyword record's length, isspace('a')) fail.
+- Not covered: CScript::Load / LoadFunction / LoadCommands (they need a CScript and its CArrays built
+  outside the game), ExpectLexeme (SV4b1).
+
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
 run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the

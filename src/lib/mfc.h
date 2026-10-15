@@ -20,6 +20,7 @@ class CString {
 public:
     CString();                                    // inline in MFC: m_pchData = afxEmptyString
     CString(const char* s);                       // 007009DE
+    CString(const char* s, int length);           // 006FD4DE (the first `length` characters)
     CString(const CString& s);                    // 007006E5
     ~CString();                                   // 00700970
     const CString& operator=(const char* s);      // 00700AF9

@@ -24,8 +24,10 @@ int __cdecl toupper(int c);                     // 006E91C0
 int __cdecl strnicmp(const char* a, const char* b, std::size_t n); // 006FA1A0
 int __cdecl stricmp(const char* a, const char* b);                 // 006F2230
 char* __cdecl strncpy(char* dst, const char* src, std::size_t n);  // 006E7E80
+int __cdecl strncmp(const char* a, const char* b, std::size_t n);  // 006E9180
 int __cdecl isalpha(int c);                                        // 006E92FB
 int __cdecl isdigit(int c);                                        // 006E9379
+int __cdecl isspace(int c);                                        // 006E93CE
 int __cdecl isprint(int c);                                        // 006E944C
 int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
 int __cdecl sscanf(const char* text, const char* format, ...);     // 006EAEEC
@@ -34,7 +36,8 @@ int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
 
 // A table of the game CRT's own tolower (006EBA53) for every byte, for the CRT's current LC_CTYPE
-// locale (rebuilt when its locale handle or code page changes). strnicmp sends every upper-case
+// locale (rebuilt when its locale handle or code page changes; in ei_vectors, from the recorded
+// character classes, tests/vectors/replay_crt.cpp). strnicmp sends every upper-case
 // byte through LCMapStringW under the game's locale; callers that compare many names use this
 // instead (docs/notes/script.md, PF1; docs/notes/units.md, PF1a).
 const int* CaseFoldTable();
@@ -92,6 +95,19 @@ double __cdecl ceil(double value);
 // nonzero to have the allocation tried again); returns the previous one.
 using NewHandler = int(__cdecl*)(std::size_t);
 NewHandler __cdecl set_new_handler(NewHandler handler);
+
+#ifdef EI_VECTORS_REPLAY
+// ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc, free,
+// tolower, isdigit, isspace, strncpy, strncmp, strnicmp and CaseFoldTable itself: the allocations on
+// its own heap, the character functions from the game CRT's answers as recorded (tests/vectors/
+// crt_vectors.h). Every other function here must not be called there.
+struct ReplayCtype {
+    int digit[256];   // isdigit(c) for c = 0..255
+    int space[256];   // isspace(c)
+    int lower[256];   // tolower(c)
+};
+void SetReplayCtype(const ReplayCtype& ctype);
+#endif
 
 } // namespace gamecrt
 

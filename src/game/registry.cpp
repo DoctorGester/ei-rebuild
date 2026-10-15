@@ -19,7 +19,7 @@ const char* const kWrongType = game::Text(0x00796044);     // "CFileRegistry::Fi
 // 006FD2F0 _strnicmp (the CRT's locale-aware one).
 __declspec(naked) int __cdecl StrNICmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006FD2F0)
 // 006FD4DE CString::CString(LPCTSTR, int) on raw storage.
-void __fastcall ConstructString(void* a0, void*, const char* a2, int a3) { CStringConstructCountOriginal(a0, nullptr, a2, a3); }
+void __fastcall ConstructString(void* a0, void*, const char* a2, int a3) { new (a0) mfc::CString(a2, a3); }
 // _ftol (006E853C) of a float: FLD, then the game's _ftol (truncates).
 __declspec(naked) int __fastcall FloatToInt(const float*) {
     __asm {

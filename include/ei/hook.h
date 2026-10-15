@@ -23,6 +23,7 @@ struct HookEntry {
     void** original = nullptr; // receives the trampoline (original function) address
     bool verify = false;      // verification wrapper: takes precedence over a plain replacement
     bool record = false;      // vector recorder (EI_RECORD): installed only in record mode, then alone
+    bool recordOurs = false;  // EI_RECORD_OURS: our replacement's own entry leads to the recorder too
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -39,10 +40,12 @@ struct HookRegistrar {
 // at its address; otherwise it is not installed.
 struct RecordRegistrar {
     HookRegistrar registrar;
-    RecordRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original)
+    RecordRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original,
+                    bool ours = false)
         : registrar(address, recorder, name, stolen, original) {
         registrar.entry.verify = false;
         registrar.entry.record = true;
+        registrar.entry.recordOurs = ours;
     }
 };
 
@@ -111,6 +114,12 @@ void InstallHooksAtWinMain();
 // Verification build only (tests/vectors/record_*.cpp): in record mode route `addr` to `recorder`,
 // which calls the original through `orig` (stolen bytes as for EI_VERIFY).
 #define EI_RECORD(addr, recorder, stolen, orig)     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
+
+// EI_RECORD for a function whose callers are rewritten (they call our replacement directly, never the
+// address): in record mode our replacement's entry also jumps to the recorder, so their calls run the
+// original and are recorded too. Only for replacements of at least 5 bytes not shared with another
+// function.
+#define EI_RECORD_OURS(addr, recorder, stolen, orig)     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig), true)
 
 // Verification build only: run `fn` (void()) once when the hooks have been installed.
 #define EI_STARTUP_CHECK(fn) static ::ei::StartupCheckRegistrar EI_CAT(ei_startup_, __LINE__)(&fn, #fn)
