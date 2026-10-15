@@ -2966,7 +2966,6 @@ timed1288891 # D68DD022
 missile0 # 74FDFBC1
 missile1 # 86C06CC1
 aievents tick 50
-script #gobject 3656F9F8
 client tick 49
 client ticksRun 17
 client objects 768

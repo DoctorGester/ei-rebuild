@@ -1509,3 +1509,8 @@ unit statistics: 81 goldens differed from main's only in `script #gobject` (and 
 hero_death, movement, ui_screens and world_load (Rebirth) already matched. SAVES_KNOWN's three SV7b1 entries on main
 (seenCorpses, render_movie_present's "Peasans", Rebirth ui_widescreen_more's group 5 [1901, 1913]) are dropped: id
 order settles each.
+
+**After SV7d1 / SV7d2 (third merge of main).** Recorded again from two fresh plain `--no-hooks` runs, so the saves carry
+SV7d2's plain path cell words: all 85 goldens of saving scenarios differed from main's only in their saves (mission.sav's
+script globals in 83, seenCorpses in 4); the digests were already the id order's. SAVES_KNOWN is empty now (main had
+removed SV7d1's and SV7d2's entries, this branch the three SV7b1 ones).

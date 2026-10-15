@@ -2,11 +2,11 @@
   "scenario": "levers",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "60405459",
+  "commit": "8243b613",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 2,
-  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); with SV7b3's zeroed statistics and SV7d's decoded saves",
+  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); with SV7b3's zeroed statistics and SV7d / SV7d2's decoded saves",
   "saves": "6 decoded saves (tools/savefile.py), the same in 2 runs"
 }
