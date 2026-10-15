@@ -8,12 +8,14 @@
 // - the game state handler stores the state it read (unless +0x84 is set) and keeps the old one
 //   at the player's +0x104; the login handler leaves state 2; the timed object handlers leave the
 //   object filed / gone.
+#include "game_state_message.h"
 #include "verify.h"
 
 #include "../../src/game/net_classes.h"
 #include "../../src/game/net_messages.h"
 #include "../../src/game/party.h"
 #include "../../src/game/player_client.h"
+#include "../../src/game/ui.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 
@@ -109,6 +111,8 @@ int __fastcall OnGameStateVerify(CPlayerClient* self) {
                     player->sessionKind100_ == (keyOnly ? before : state);
     ei::verify::Check("CPlayerClient::OnGameState state", true, ok, "client %p: state %d (was %d), stored %d", self, state,
                       before, player->sessionKind100_);
+    ++game_state_message::g_count;
+    game_state_message::g_tickAfter = UiClientWorld()->tick_;
     return result;
 }
 
@@ -148,6 +152,11 @@ void __fastcall NotifyUnitChangedVerify(CPlayerClient* self, void*, CUnit* unit)
 }
 
 } // namespace
+
+namespace game_state_message {
+int g_count = 0;
+int g_tickAfter = 0;
+} // namespace game_state_message
 
 EI_VERIFY(0x00667DA0, OnLoginAcceptedVerify, 0, s_unused);
 EI_VERIFY(0x00667DE0, OnDisconnectExactVerify, 0, s_unused);
