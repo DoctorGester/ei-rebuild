@@ -16,6 +16,12 @@ EI_REPLACE(0x00573080, Exits::SetSize);
 EI_REPLACE(0x00460670, Exits::DestructElements);
 EI_REPLACE(0x004607B0, ZoneRecords::DestructElements);
 
+// The destructors of two global arrays of plain elements, which only exit functions call (S3c):
+// the sector spiral's radius tree keys (CArray<float>, 007C2FD8; the exit function 005BF860) and
+// the path smoother's node pool (007C3038; 005C4480). The vtable back, the storage freed.
+EI_REPLACE(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
+EI_REPLACE(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
+
 // Script groups and quest objectives.
 EI_REPLACE(0x004C3980, Groups::SetSize);
 EI_REPLACE(0x004CC980, Groups::DestructElements);

@@ -367,6 +367,27 @@ WSAStartup thunk 006E6106; S11 hashtables 004DC830, 0066B320; S12 STLport 00455E
 005E0A90. The world constructors also call GridAllocate 00572820 / 005728D0, CStringArray 006FE925 and
 CString::operator= 00700AF9 at their addresses.
 
+**S3c (2026-10-15).** The game-side callees of the exit functions. The worlds' destructors (00561B00,
+0058AAD0) were S13a's. The five database destructors (src/game/database_destruct.cpp): the map
+database 0045E6F0 (the maps' array through gamearrays::ZoneRecords, then the allods': each allod's
+CDWordArray of map indices and its six CStrings from the last; AllodRecord now declares them), the
+spell tables 00684390 (SpellDatabase::Reset now calls it, then Construct), quests 006ADF40, prints
+006D00E0 and acks 006D70B0 (each table's index hash_map::Destroy, then its records through the
+record_vectors.h policy, last member first). Library instantiations nobody forwarded, registered
+where their families live: ~vector of pointers 0056E800 (the eleven frame lists) / 0069BE20 (the
+item stock's candidates) as Vector4::DestroyBase (stlp_vector.cpp: ~vector with ~_Vector_base
+inlined); ~list 004584E0 (the protection check list, bytes) / 004F0520 (the DirectDraw drivers:
+description, then name) as stlp::ListAbi<T>::Destruct (static_lists.cpp); the CArray destructors
+005BF870 (the spiral radius tree's keys, CArray<float>) / 005C4490 (the path smoother's node pool,
+vtable 0073FE34, SmoothNodeArrayClass in game_arrays.h) as ArrayHeader<Class>::Destruct
+(game_arrays.cpp). The six without a Ghidra function have rows in extra_function_sizes.csv. Checks
+(ours only, tests/verify/verify_exit_destructors.cpp, the vectors in verify_stlp_vector.cpp): the
+shape before; after, the indexes' counts zero, the arrays' vtables back, a list's sentinel on top
+of its free list. They run at exit, after harness_report.txt: their counts are in ei_hook.log.
+Left (S3d): the MFC internals 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48 (CThreadLocal /
+CProcessLocal destructors, jmps to 0070CA59 / 0070CAD2) and 0070E181 (AfxDeleteObject of the
+handle at +0x50 of 007C90C8).
+
 **S9 (2026-10-15).** STLport `list<T>` (src/lib/stlp_list.h, stlp_list.cpp): one body per member,
 `ListAbi<T, Policy>` shims with the instantiations' calling conventions, the element copy / destroy
 as a policy (plain bytes, or the holder policies in stlp_list_refs.h: Share + Destroy, counted +

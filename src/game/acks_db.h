@@ -107,6 +107,9 @@ struct AckDatabase {
     // 006D7220 (database_construct.cpp; the static initialiser 006D7080). The three tables empty,
     // each index with 100 buckets (193). Returns this.
     AckDatabase* Construct();
+    // 006D70B0 (database_destruct.cpp, S3c; the exit function 006D70A0). The tables from the
+    // last: the index's nodes and buckets, then the records and their storage.
+    void Destruct();
 
     AckTable<UnitAcks> units;       // +0x00
     AckTable<ModelAcks> models;     // +0x20

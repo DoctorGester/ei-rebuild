@@ -1608,6 +1608,14 @@ size = 1
 files = ["src/lib/mfc_gdi.h", "src/lib/mfc_gdi.cpp"]
 note = "S8 left these: CDC::FromHandle 00708D79, CDC::SelectObject(CPen*) 00708F5A, CGdiObject::Attach 0070A075 / DeleteObject 0070A0CC, CPen(style, width, colour) 0070A0E2, CFont::CreatePointFont 0070BBE5 (+ CreatePointFontIndirect 0070BC2A), and the CDC vtable slots the interface calls (10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText). They need MFC's handle maps (afxMapHDC 00708D07, afxMapHGDIOBJ 00709FEE, CHandleMap::FromHandle 0070367C, CGdiObject::FromHandle 0070A060, Detach 0070A0A2, AfxThrowResourceException 0070A29E): the hook build keeps the original's maps (module thread state), the image needs its own. Also unported from S8's families: AfxMessageBox(UINT) 0070ACCC (needs CString::LoadString 00702B0E), CFile slots 4-6 GetFileName / GetFileTitle / GetFilePath (00702C31 / 00702CB3 / 00702D35), CFileException / CArchiveException GetErrorMessage and ReportError (vtable slots). standalone.md S8."
 
+[[ticket]]
+id = "S3d"
+title = "Standalone library: MFC thread and process locals the exit functions destroy"
+group = "standalone"
+size = 1
+files = ["src/lib/mfc_window.cpp"]
+note = "S3c left the MFC internals among the exit functions' callees (standalone check: 'exit function's callee ... has no code yet'): CThreadLocal<T>::~CThreadLocal 0070CC2D (007C90C0) / 0070D5F9 (007CAA84), each a jmp to CThreadLocalObject::~CThreadLocalObject 0070CA59 (frees its slot through CThreadSlotData::FreeSlot 0070C71F when _afxThreadData 007C9084 is set: the thread data list's values deleted through slot 0, the slot's in-use bit cleared, under the critical section at +0x1C); CProcessLocal<T>::~CProcessLocal 0070CE77 (007C90BC) / 0070D61F (007CAA88) / 0070DC48 (007CAA8C), jmps to CProcessLocalObject::~CProcessLocalObject 0070CAD2 (the object deleted through slot 0 with 1); 0070E181 on 007C90C8 (AfxDeleteObject 0070AA54 of the GDI handle at +0x50; its constructor 0070D1AA is a static-initialiser call target with no code either). Port with the MFC module / thread state the image needs anyway (S8a's handle maps hang off it), or as plain bodies over the original's state in the hook build; sizes in config/extra_function_sizes.csv. docs/notes/standalone.md S3c."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

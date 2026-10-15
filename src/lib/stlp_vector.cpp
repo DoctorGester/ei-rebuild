@@ -96,7 +96,9 @@ EI_REPLACE(0x00619750, stlp::AllocProxyConstruct);
 EI_REPLACE(0x00421EB0, stlp::VectorGetAllocator);
 EI_REPLACE(0x00438CC0, stlp::VectorGetAllocator);
 
-// ~_Vector_base(): 31 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288 bytes: 1).
+// ~_Vector_base(): 31 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288 bytes: 1),
+// and two ~vector() of pointers with it inlined (0056E800, 0069BE20: only exit functions call them,
+// on the frame lists 007AF508..007AF5A8 (world.h) and the item stock's candidates 007C8650; S3c).
 EI_REPLACE(0x0040C720, Vector1::DestroyBase);
 EI_REPLACE(0x0040C770, Vector1::DestroyBase);
 EI_REPLACE(0x00425040, Vector1::DestroyBase);
@@ -125,6 +127,8 @@ EI_REPLACE(0x005F9880, Vector4::DestroyBase);
 EI_REPLACE(0x00609F50, Vector4::DestroyBase);
 EI_REPLACE(0x006BC4D0, Vector4::DestroyBase);
 EI_REPLACE(0x006BC510, Vector4::DestroyBase);
+EI_REPLACE(0x0056E800, Vector4::DestroyBase);
+EI_REPLACE(0x0069BE20, Vector4::DestroyBase);
 EI_REPLACE(0x0056F590, Vector12::DestroyBase);
 EI_REPLACE(0x0053B600, Vector96::DestroyBase);
 EI_REPLACE(0x0053B460, Vector288::DestroyBase);

@@ -452,6 +452,8 @@ EI_VERIFY(0x005F9880, Free4<0x005F9880>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x00609F50, Free4<0x00609F50>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x006BC4D0, Free4<0x006BC4D0>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x006BC510, Free4<0x006BC510>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x0056E800, Free4<0x0056E800>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x0069BE20, Free4<0x0069BE20>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x0056F590, Free12<0x0056F590>::DestroyBase, 5, Free12<0x0056F590>::original);
 EI_VERIFY(0x0053B600, Free96<0x0053B600>::DestroyBase, 5, Free96<0x0053B600>::original);
 EI_VERIFY(0x0053B460, Free288<0x0053B460>::DestroyBase, 5, Free288<0x0053B460>::original);

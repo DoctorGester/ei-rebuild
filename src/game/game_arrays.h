@@ -104,6 +104,11 @@ struct ObjectPtrArrayBaseClass {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073FABC); }
 };
 
+// The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool; 007C3038).
+struct SmoothNodeArrayClass {
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FE34); }
+};
+
 // The vtable 004C3B20 restores (CArray<ScriptGroup>).
 struct GroupArrayClass {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D310); }

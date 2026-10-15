@@ -19,12 +19,13 @@ int __fastcall TextKeyFromName(const char* name);
 // 004613A0. Text keys are 1000000000..1999999999. __fastcall (id in ECX).
 BOOL __fastcall IsTextKey(int id);
 
-// One "#allod" entry of map.txt (0x2C bytes). Only the name is used here.
+// One "#allod" entry of map.txt (0x2C bytes; constructed by 00460720).
 struct AllodRecord {
-    char* name;   // CString
-    std::uint8_t unused_4[0x2C - 4];
+    char* name;               // CString: the "#allod" line's second word
+    char* otherNames[5];      // +0x04 CStrings: one word on each of the next five lines
+    mfc::CArray<int> maps;    // +0x18 CDWordArray (vtable 0073C3D0): the indices of its maps
 };
-static_assert(sizeof(AllodRecord) == 0x2C);
+static_assert(offsetof(AllodRecord, maps) == 0x18 && sizeof(AllodRecord) == 0x2C);
 
 // One "#exit" of a map entry (0x3C bytes; map_database.h has the loader's view).
 struct MapExit {
@@ -91,6 +92,10 @@ struct CMapDatabase {
     // It runs from the static initialiser 0045E6C0 on the database at 0079BF00, before the hooks
     // are installed, so the hook on it never fires. Returns this.
     CMapDatabase* Construct();
+    // 0045E6F0 (database_destruct.cpp, S3c; the exit function 0045E6E0). The maps' array (its
+    // vtable back, each record's destructor 00460970, the storage freed), then the allods' (each
+    // allod's map indices freed, its six strings from the last), as the compiler wrote it.
+    void Destruct();
     static constexpr std::uintptr_t kAllodArrayVtable = std::uintptr_t(0x0073C3DC);
     static constexpr std::uintptr_t kMapArrayVtable = std::uintptr_t(0x0073C3E8);
 
