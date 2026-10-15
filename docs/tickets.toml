@@ -797,7 +797,7 @@ started = "2026-10-15"
 id = "SV3d"
 title = "Re-record the suite's goldens after SV1b, SV1i and SV2a"
 group = "verification"
-status = "running"
+status = "review"
 size = 0.5
 model = "opus"
 note = "SV1i (2026-10-15) dropped speed 10 from 77 scenarios: 29 goldens on main now fail run_all --golden (camera, console, hero_death, items, levers, objects_more, party_records, render_movie, render_movie_present, render_scene, render_terrain, sandbox_actions, script_copy, script_parse, script_quest, spells_cast, ui_battle_spells, ui_container_input, ui_help, ui_objectives, ui_order_move, ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, unit_create, world_load). SV1b's repeatable heap should let many of SV3's 46 non-repeating runs repeat now. Wait for SV2a (digest fields) to land, then run SV3's recipe (two original runs, two of ours, golden.py record) over the whole suite and report coverage."
@@ -836,6 +836,56 @@ group = "verification"
 status = "queued"
 depends = ["SV2a"]
 note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread."
+
+[[ticket]]
+id = "SV3e"
+title = "Script: RunCommands keeps the instance as a stored run's kill flag"
+group = "verification"
+status = "queued"
+size = 0.25
+files = ["src/game/script_exec_run.cpp"]
+note = "From SV3d (digest 2's script group): a run that CScript::RunCommands (004BC420) stores after Execute returns unfinished has killFlag = the instance in ours (script run#.instance -2 or an instance index in the digest), null in the original (-1): 004BC420 clears its local run's kill flag (local_b0 = 0) before copying it into runs_. So a stored run's KillScript would write through a stale pointer in ours instead of FatalError. Clear run->killFlag before RunAssign in script_exec_run.cpp, check that the verify wrapper sees it. Blocks the goldens of frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_hud (both installs), world_client, zone_base_bz1g, ui_mp_host."
+
+[[ticket]]
+id = "SV3f"
+title = "Client unit orientation differs from the original by an ulp"
+group = "verification"
+status = "queued"
+size = 0.5
+note = "From SV3d: digest 2's cunit rot (the client world's unit orientation quaternion) differs by 1-2 ulps between ours and the original, which repeat each: cunit2 (unmoco2, main menu) rot.w/x/y/z in ui_main_menu @220, ui_hero_stats @500 (ui_hero_screen @620 by more, 0.72510165 against 0.725037515: probably a frame later), cunit187 (unmoog1) rot.w in ui_container_input / ui_widescreen* @60, cunit1000011214 (hero) rot.z in script_exec @560. Find the client-side rotation rewrite whose float maths differ (rule 7; golden.py diff with --records to see the first record and the units) and fix it, or explain. Blocks those scenarios' goldens (ui_main_menu, ui_hero_screen and ui_hero_stats keep their digest-1 goldens meanwhile)."
+
+[[ticket]]
+id = "SV3g"
+title = "ui_widescreen*: client unit 129 has flag 0x400 in ours"
+group = "verification"
+status = "queued"
+size = 0.25
+note = "From SV3d: in ui_widescreen, ui_widescreen_hud, ui_widescreen_more and ui_widescreen_screens (vanilla, with hooks) the main menu world's client unit cunit129 (unanwibo) has flags 0x4A2 in ours and 0xA2 in the original at world update 60 (both repeat). Find which rewrite sets 0x400 on a client object and why it differs. Blocks those four goldens with SV3f."
+
+[[ticket]]
+id = "SV3h"
+title = "render_present_cpuwindows: the original's unmoco2 hit points are another NaN"
+group = "verification"
+status = "queued"
+size = 0.25
+depends = ["SV3a"]
+note = "From SV3d: after SV3a (unmoco2's hit points as the original's), render_present_cpuwindows (vanilla) still differs at the first record: obj2 hp nan:0xFFFFFF0A in the original (in both runs), nan:0xFFC00000 in ours. Other scenarios agree on 0xFFC00000; cunit2's packed vitals now agree everywhere. Find where the original's value comes from on that path (CPU windows) and match it, or add a KNOWN entry."
+
+[[ticket]]
+id = "SV3i"
+title = "zone_gz3g (vanilla): script group VSS#i#val differs between our runs"
+group = "verification"
+status = "queued"
+size = 0.5
+note = "From SV3d: zone_gz3g vanilla with our hooks: script gobject.VSS#i#val is 3353 in one run and 3357 in another at world update 60 (65 script fields follow: instance variables), the original's runs agree there. Like SV2b (Rebirth's zone1) but on vanilla: an address-ordered script group, so an allocation of ours still moves between runs. Maybe the same cause as SV2b."
+
+[[ticket]]
+id = "SV3j"
+title = "sound and zone_gz2g_traps: ours draws rand() apart from the original"
+group = "verification"
+status = "queued"
+size = 0.5
+note = "From SV3d: the original repeats, ours differs from it in crt.rand: sound (ours repeats; console line 32 an extra 'Unit 1000012714 was attacked by 1000011214' line, digests part at update 100 in crt.rand; SV1b saw a FindAnimation pick one frame earlier in ours at 272), zone_gz2g_traps (@120 crt.rand; ours' own runs part at 80 in isaac.count, maybe SV1j), models (@100 crt.rand, ours alternates between the original's value and another). Use randtrace on both sides after SV1j lands."
 
 # ---------------------------------------------------------------- harness and suite
 

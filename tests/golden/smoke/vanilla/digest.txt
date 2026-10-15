@@ -1,6 +1,6 @@
-# ei state digest 1; hooks off; install vanilla; every 20 world updates
-# compact (tools/golden.py): objects as hashes of their fields; left out:  updateCountdown$
-@ 0 update 20 frame 3 tick 20 zone - hash DB516A8A n 54
+# ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
+# compact (tools/golden.py): objects as hashes of their fields
+@ 0 update 20 frame 3 tick 20 zone - hash 8F685F5D n 68
 + world world
 world tick 20
 world updates 20
@@ -144,122 +144,208 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFC00000
-obj2 maxHp 1.0
 obj2 #ai 9BF9CB43
 obj2 #place 784FE175
-obj2 #unit B6DA58B1
-obj2 #vitals 4630349F
+obj2 #unit 807D16EC
+obj2 #vitals 24C0D5BB
 + obj3 82 nafltr59
-obj3 # 3C14CC9A
+obj3 # 85B0C8E0
 + obj4 82 nafltr59
-obj4 # 5DA0C324
+obj4 # 0580918E
 + obj5 82 nafltr59
-obj5 # B0EEFA85
+obj5 # BFF09181
 + obj6 82 nafltr59
-obj6 # 869BFF60
+obj6 # AD662917
 + obj7 82 nafltr59
-obj7 # 03959E04
+obj7 # E8C41297
 + obj8 82 nafltr59
-obj8 # D094C32D
+obj8 # 6A2302B0
 + obj9 82 nafltr59
-obj9 # 514C47F0
+obj9 # 7A827A09
 + obj129 80 unanwibo ""
 obj129 #ai 64B653C3
 obj129 #place 2CCB30EA
-obj129 #unit 41FF3B4C
+obj129 #unit 8A162422
 obj129 #vitals 9438E29B
 + obj132 84 stst9
-obj132 # AEB81700
+obj132 # 1C6F0FA9
 + obj148 80 unanwiwo ""
 obj148 #ai 1F975E2B
 obj148 #place 5A9B8228
-obj148 #unit 7B5B3D14
+obj148 #unit 9A061797
 obj148 #vitals F38E5BC2
 + obj150 82 nafltr59
-obj150 # 5EE0F58B
+obj150 # A117EB5B
 + obj160 82 nafltr76
-obj160 # 9C2FCC83
+obj160 # 3E912C6E
 + obj163 82 nafltr59
-obj163 # 611ED443
+obj163 # 3093E005
 + obj172 82 naflbu6
-obj172 # BE58ADB4
+obj172 # 5AC59A0C
 + obj173 82 naflbu6
-obj173 # F6355FE1
+obj173 # 156C3AEB
 + obj177 83 nast7
-obj177 # 73C27635
+obj177 # 68F6799B
 + obj181 83 nast7
-obj181 # 6183B2B7
+obj181 # 3B7934FF
 + obj182 82 naflbu6
-obj182 # 709440B4
+obj182 # 3DBCFE8D
 + obj183 82 naflbu6
-obj183 # C83FB7BD
+obj183 # 67A5BF69
 + obj187 80 unmoog1 ""
 obj187 #ai 4E2837BF
 obj187 #place 98BB6A8D
-obj187 #unit 72A2B854
+obj187 #unit 463B07CF
 obj187 #vitals FF33FEF4
 + obj188 82 nafltr59
-obj188 # 674809ED
+obj188 # 81844D3C
 + obj189 82 nafltr59
-obj189 # D4DA0A49
+obj189 # 84BC5215
 + obj190 82 nafltr59
-obj190 # 695CC5F3
+obj190 # 1BBDAF8C
 + obj192 82 nafltr59
-obj192 # FE98CBD6
+obj192 # D473B9AA
 + obj194 82 nafltr59
-obj194 # 71F37F43
+obj194 # 39A2B068
 + obj195 82 nafltr59
-obj195 # 44F1FF38
+obj195 # CF11A69F
 + obj212 82 nafltr21
-obj212 # 78F4C4EC
+obj212 # 818FD1DE
 + obj213 82 nafltr21
-obj213 # AA38DE38
+obj213 # 2826E7DB
 + obj214 82 nafltr21
-obj214 # 45FCA9A0
+obj214 # 051A603A
 + obj215 82 nafltr59
-obj215 # 2CECA52B
+obj215 # 11D5F196
 + obj216 82 nafltr59
-obj216 # FF948EEC
+obj216 # 02221955
 + obj218 82 nafltr70
-obj218 # ADB6F6C6
+obj218 # 79C5EEBA
 + obj219 82 nafltr20
-obj219 # AC4BD185
+obj219 # 14D5CA55
 + obj220 82 nafltr59
-obj220 # 5AF759D6
+obj220 # 56073A03
 + obj221 84 stbr7
-obj221 # E94A6A2E
+obj221 # 7BCFC798
 + obj222 84 stst36
-obj222 # 04672C3F
+obj222 # AE8E01ED
 + obj228 84 stst146
-obj228 # 0D70C811
+obj228 # 3D28C1F9
 + obj231 84 stst149
-obj231 # 456D627C
+obj231 # 65542B34
 + obj232 82 nafltr59
-obj232 # 55C90AE1
+obj232 # 58530397
 + obj233 82 nafltr59
-obj233 # 167D9065
+obj233 # C0334A48
 + obj234 82 nafltr59
-obj234 # 50145E66
+obj234 # 8060ED76
 + obj235 82 nafltr59
-obj235 # 8AB46A3D
+obj235 # 4FB0C13E
 + obj237 82 nafltr59
-obj237 # 55CAC3B9
+obj237 # 74981FD0
 + obj241 82 nafltr59
-obj241 # C8398F7F
+obj241 # FAE4CFF6
 + obj242 84 stbuho3
-obj242 # FAE07148
+obj242 # DACDE7B9
 + obj243 84 stbr1
-obj243 # FEBFCE74
+obj243 # 3CE2E31C
 + obj250 82 naflbu6
-obj250 # 9EC18BE8
+obj250 # B4E1A9A6
 + obj253 87 stto8
-obj253 # 18D53602
+obj253 # 48DC1FAC
 + obj254 82 naflbu6
-obj254 # 1014455B
+obj254 # 680E30AF
 + obj255 82 naflbu6
-obj255 # E2598478
-@ 1 update 40 frame 7 tick 40 zone - hash 2A9C2568 n 54
+obj255 # 78CB1F87
++ timed156 75 CEffectPointLight
+timed156 # BE72529A
++ timed157 75 CEffectPointLight
+timed157 # 07066028
++ timed251 75 CEffectPointLight
+timed251 # C42E76C4
++ timed257 75 CEffectPointLight
+timed257 # 1DEC7753
++ timed259 75 CEffectPointLight
+timed259 # DC6D7850
++ timed260 75 CEffectPointLight
+timed260 # 72979814
++ missile0 spell 39
+missile0 # FEC14634
++ aievents events
+aievents tick 20
+aievents width 9
+aievents height 9
+aievents count 0
+aievents side0.count 0
+aievents side0.hash 0x811C9DC5
+aievents side1.count 0
+aievents side1.hash 0x811C9DC5
+aievents side2.count 0
+aievents side2.hash 0x811C9DC5
+aievents side3.count 0
+aievents side3.hash 0x811C9DC5
+aievents side4.count 0
+aievents side4.hash 0x811C9DC5
+aievents side5.count 0
+aievents side5.hash 0x811C9DC5
+aievents side6.count 0
+aievents side6.hash 0x811C9DC5
+aievents side7.count 0
+aievents side7.hash 0x811C9DC5
+aievents side8.count 0
+aievents side8.hash 0x811C9DC5
+aievents side9.count 0
+aievents side9.hash 0x811C9DC5
+aievents side10.count 0
+aievents side10.hash 0x811C9DC5
+aievents side11.count 0
+aievents side11.hash 0x811C9DC5
+aievents side12.count 0
+aievents side12.hash 0x811C9DC5
+aievents side13.count 0
+aievents side13.hash 0x811C9DC5
+aievents side14.count 0
+aievents side14.hash 0x811C9DC5
+aievents side15.count 0
+aievents side15.hash 0x811C9DC5
++ script script
+script gobject.i -1
+script #files 982697DF
+script #globals 33E544A3
+script #gobject 52F34D93
+script #instances 46BBAC38
+script #lightning 6A354D7C
+script #loaded B7FE1BB6
+script #nextFxId CC37E54D
+script #nextParticleId EA2DC23B
+script #run D19ED846
+script #runs 8F0E1077
++ client client
+client tick 20
+client paused 0
+client ticksRun 17
+client tickFraction 0.0
+client partyDanger 0
+client objects 51
+client units 4
+client synchronised 5
++ cunit2 80 unmoco2 ""
+cunit2 #place 05174B21
+cunit2 #unit CA7CD47D
+cunit2 #vitals E4AA905D
++ cunit129 80 unanwibo ""
+cunit129 #place F7787AC8
+cunit129 #unit BF865974
+cunit129 #vitals B073BCC9
++ cunit148 80 unanwiwo ""
+cunit148 #place 09D948A2
+cunit148 #unit 68E7CB98
+cunit148 #vitals C17C1FEE
++ cunit187 80 unmoog1 ""
+cunit187 #place C08C8AC9
+cunit187 #unit D3B5CFA9
+cunit187 #vitals 1DDF30F4
+@ 1 update 40 frame 7 tick 40 zone - hash 8D435A4F n 68
 world tick 40
 world updates 40
 random isaac.count 216
@@ -269,7 +355,7 @@ random isaac.c 0x00000013
 random isaac.results 0xA3299F22
 random isaac.memory 0xFA47C019
 random crt.rand 0x2958FEA0
-obj2 #vitals F041A4C4
+obj2 #vitals CC20B0F4
 obj129 #ai 3597AEE4
 obj129 #place 19A89350
 obj129 #vitals F7FE680B
@@ -277,3 +363,12 @@ obj148 #ai 43F8BC2A
 obj148 #place 2185E8DE
 obj148 #vitals E52E37E2
 obj187 #vitals 2A981FDE
+missile0 # 17F0952A
+aievents tick 40
+client tick 40
+client ticksRun 37
+cunit2 #place 85C53A26
+cunit129 #place 5CE4D826
+cunit148 #place 3647FDBC
+cunit148 #unit 37ED9B5D
+cunit187 #place 7D474624
