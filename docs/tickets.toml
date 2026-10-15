@@ -204,7 +204,7 @@ id = "R10b"
 title = "Products with a repeated factor in /fp:fast files: check the grouping against the original"
 group = "renderer"
 files = ["src/game/ai_motion.cpp", "src/lib/vecmath.h"]
-note = "R10a found /fp:fast regrouping a * b * d * d as (a * b) * (d * d) in terrain_lighting.cpp (one ulp off under chop, hidden by CheckNear); fixed with vecmath Product(). A grep for repeated factors in /fp:fast files found ai_motion.cpp:257 (x * inverse * inverse) and :259 (cubic * length * length); other hits are integer or under precise. Check their dumpbin against Ghidra, use Product() where regrouped, and consider a bit-for-bit check where a float feeds a truncation."
+note = "Closed 2026-10-15: folded into SV7d1a (the same /fp:fast regrouping family; SV7d1a is trying /fp:precise as the default, which removes it). ai_motion.cpp:257 and :259 are the sites to check if precise is not adopted."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -622,7 +622,7 @@ title = "Saved games differ byte for byte between runs of the original"
 group = "verification"
 size = 0.5
 files = ["tools/golden.py"]
-note = "Taken over by SV7d."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 [[ticket]]
 id = "SV3c"
@@ -674,7 +674,7 @@ id = "SV2c"
 title = "unit_create parted from its golden once in crt.rand"
 group = "verification"
 depends = ["SV2a"]
-note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread. SV2b: on the new harness heap unit_create (both installs) does not repeat in ours: crt.rand at update 80 / 140."
+note = "Moved to watch 2026-10-15: one parting under load in SV2a's era; not seen in today's main suites."
 
 [[ticket]]
 id = "SV5a"
@@ -737,7 +737,7 @@ id = "SV3g"
 title = "ui_widescreen*: client unit 129 has flag 0x400 in ours"
 group = "verification"
 size = 0.25
-note = "From SV3d: in ui_widescreen, ui_widescreen_hud, ui_widescreen_more and ui_widescreen_screens (vanilla, with hooks) the main menu world's client unit cunit129 (unanwibo) has flags 0x4A2 in ours and 0xA2 in the original at world update 60 (both repeat). Find which rewrite sets 0x400 on a client object and why it differs. Blocks those four goldens with SV3f."
+note = "Closed 2026-10-15: folded into SV7b8 (whose note lists cunit129 flags 0xA2 / 0x4A2 in the ui_widescreen* scenarios)."
 
 [[ticket]]
 id = "SV3h"
@@ -813,7 +813,7 @@ note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; 
 id = "SV2e"
 title = "script_copy: ours' CPlayerServer::Flush compresses to another size between runs"
 group = "verification"
-note = "From SV2b: script_copy vanilla with our hooks: the heap traces of two runs part at CMemoryStream::Resize from CodeStream / CompressTo in CPlayerServer::Flush (called from LeaveVerify): 1392 bytes in one run, 1408 in another (a third run matched the first), and every later block moves, so zone1's gobject.i differs at update 80. Something in the flushed stream is not the same between runs (an address of a block from the growable heap, a padding byte, real time); dump the stream before compression in two runs and diff."
+note = "Closed 2026-10-15: the flushed stream varying between runs is heap-address or unwritten-byte content; covered by SV7b2 (unwritten bytes, pointer keys) and SV7b5 (net replication by pointer). Reopen if script_copy still varies after those."
 
 [[ticket]]
 id = "SV2f"
@@ -877,7 +877,7 @@ title = "Heap-order holes: the original first on a game-heap copy (render, data,
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_figure_bone_lifetime.cpp", "tests/verify/verify_figure_mesh.cpp", "tests/verify/verify_models.cpp", "tests/verify/verify_link_figure.cpp", "tests/verify/verify_ground_decal.cpp", "tests/verify/verify_ground_print.cpp", "tests/verify/verify_effects_weather_draw.cpp", "tests/verify/verify_render_helper.cpp", "tests/verify/verify_ini_file.cpp", "tests/verify/verify_registry.cpp", "tests/verify/verify_item_constructor.cpp", "tests/verify/verify_item_parts.cpp", "tests/verify/verify_core_stream_chunks.cpp", "tests/verify/verify_acks_db.cpp", "tests/verify/verify_ai_area_lists.cpp", "tests/verify/verify_unit_client_models.cpp", "tests/verify/verify_unit_item_lists.cpp", "tests/verify/verify_world_client_maps.cpp", "tests/verify/verify_world_save.cpp", "tests/verify/verify_player_sources.cpp", "tests/verify/verify_object3d_figure_setup.cpp", "tests/verify/verify_unit_ai_sight.cpp", "tests/verify/verify_aligned_arrays.cpp", "tests/verify/verify_dib.cpp", "tests/verify/verify_device_object.cpp", "tests/verify/verify_magic_trap.cpp", "tests/verify/verify_console.cpp", "tests/verify/verify_text_keys.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -886,7 +886,7 @@ title = "Heap-order holes: UI checks that run the same object twice or restore a
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -895,7 +895,7 @@ title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the h
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -912,7 +912,7 @@ id = "SV2h1c"
 title = "Twin originals allocate outside the reservation heap"
 group = "verification"
 depends = ["SV2h1b"]
-note = "Superseded by SV7."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 [[ticket]]
 id = "SV7"
@@ -1277,7 +1277,7 @@ id = "T2d"
 title = "Goldens to record again after T2 scenario timing changes"
 group = "harness"
 size = 1
-note = "hero_death, sandbox_actions, spells_cast, levers and others whose scenario waits changed; world_client battle-window waitwindow idea (adds frames, loses ContinuePath) also open"
+note = "Closed 2026-10-15: every golden has been re-recorded several times since (SV7b1, SV7b3, SV7d), so the T2 timing changes are in."
 
 [[ticket]]
 id = "T2e"
