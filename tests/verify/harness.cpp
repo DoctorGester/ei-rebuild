@@ -54,7 +54,9 @@
 //                             script name <name> (as GetObjectByName) where the game's own picking
 //                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
 //                             +0x7C) around it. Fails when the unit is not drawn or always hidden
-//                             behind another object
+//                             behind another object. "#<id>" names a map object by id instead (a
+//                             lever, "clickunit #1889"): found by the battle screen's object pick
+//                             (005659D0), as waitunit does
 //   hudstate [minquick]       log the battle screen's pending action, the party's selection and
 //                             quick items, the quick item panel and the spell column; with
 //                             <minquick>, fail when the quick item panel shows fewer of its unit's
@@ -1275,7 +1277,8 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // the log and the error (null: nothing logged).
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
-    int id = HarnessObjectIdFromName(name);
+    const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
+    int id = byId ? std::atoi(name + 1) : HarnessObjectIdFromName(name);
     auto* world = reinterpret_cast<std::uint8_t*>(kClientWorld);
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
     if (!header) return label + ": no pick list (not in a game)";
@@ -1306,7 +1309,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     }
     for (const POINT& p : candidates) {
         int at[2] = {p.x, p.y};
-        void* hit = HarnessUnitAtPoint(world, nullptr, at);
+        void* hit = byId ? static_cast<void*>(HoverObjectAt(world, nullptr, at)) : HarnessUnitAtPoint(world, nullptr, at);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;
@@ -1389,6 +1392,13 @@ std::string HudState(const std::string& argument) {
         Log("harness: hudstate: quick panel unit %p, %d entries (%d own), highlight %d, regions %d %d %d %d %d %d %d %d",
             quickPanel->unit_, quickPanel->entryCount_, own, quickPanel->selected_, items[0], items[1], items[2],
             items[3], items[4], items[5], items[6], items[7]);
+        // The player's quest items in the top row: the id a lever's lock matches (SetScience).
+        for (int e = 0; e < quickPanel->entryCount_; ++e) {
+            const CHudQuickItems::Entry& entry = quickPanel->entries_[e];
+            if (!entry.own && entry.item && entry.item->type_ == 0x3009)
+                Log("harness: hudstate: quick panel entry %d: quest item id %u (object %d)", e,
+                    static_cast<CItemQuest*>(entry.item)->questItemId_, entry.id);
+        }
     }
     if (auto* spells = *reinterpret_cast<CHudSpellColumn**>(screen + 0x19C))
     {
