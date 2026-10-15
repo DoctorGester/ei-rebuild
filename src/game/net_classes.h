@@ -80,6 +80,8 @@ static_assert(sizeof(NetAddress) == 0x10);
 // The TCP link to the master server (0x40 bytes; constructor 00440C60, destructor 00440D40, tick
 // 00440DE0; net_socket_driver.cpp). The master request box (ui_screens.h) holds one.
 struct MasterLink {
+    // 0x00440C60 (net_socket_driver.cpp).
+    MasterLink* Construct(const void* address);
     enum State : std::int32_t { kClosed = 0, kConnecting = 1, kReceiving = 2, kDone = 3, kSending = 4 };
 
     GameBuffer out;              // +0x00 what is sent once connected
@@ -674,6 +676,10 @@ static_assert(sizeof(TradeRecordNode) == 0x160);
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
 class __declspec(novtable) ClientSession : public ClientBase {
 public:
+    // 0x0041E270 (net_client_handlers.cpp).
+    void StartParty(CRefObject* partner);
+    // 0x0041E0A0 (net_client_handlers.cpp).
+    void RecordTrade(const void* party);
     static constexpr std::uintptr_t kVtableAddress = 0x0073BDEC;
 
     // 0: 0041C8B0 deleting destructor (DeletingDestruct).
