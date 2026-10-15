@@ -380,6 +380,22 @@ time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash
 a float key, and the 350-odd hash members nothing of ours calls (reached only from other
 originals; dead in the standalone image unless the exe's data points at them).
 
+**S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
+game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
+(NewNode, FreeNode, RemoveAt, RemoveAll, AddTail / AddHead and RemoveHead by value, destructor with
+the vtable type), `ListHeader<Class>` constructors, `MapAbi<K, V>` (InitHashTable, GetAssocAt with
+HashKey `key >> 4` on the low dword, NewAssoc, operator[], RemoveAll, destructor), same element
+policies as S6. 104 addresses: CPlex::Create / FreeDataChain (006FE8EF / 006FE90F, no Ghidra
+functions: size rows added), 84 library-only, 20 game-element. Most library.csv names for these rows
+were wrong (AddTail / AddHead / ConstructElements labelled as constructors, destructors or
+GetAssocAt); each node size was read from its NewNode's CPlex::Create. FreeDataChain returns 0:
+the original leaves EAX as its caller had it, and AIPath::Reset (005C7D50) returns that EAX, which
+its twin check compares. Checks (tests/verify/verify_mfc_list.cpp): plain lists and maps against
+the original on a twin header (touched nodes saved and restored; a new block compared by position);
+the last node removed, RemoveAll, destructors, CPlex and the game-element lists ours only. The
+suite reaches 62 of the 104, 0 mismatches; the CMap rows (scene / model file loaders 00453B90-
+00477380) and the shared-object, AI-map and armour-spell lists are not reached. Left: S7a.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

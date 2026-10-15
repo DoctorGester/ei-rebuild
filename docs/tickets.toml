@@ -1563,10 +1563,11 @@ done = "2026-10-15"
 id = "S7"
 title = "Standalone library: MFC CList<T>, CMap<T>, CPlex"
 group = "standalone"
-status = "queued"
+status = "done"
 size = 1
 files = ["src/lib/mfc_list.h", "src/lib/mfc.h", "src/lib/containers.h"]
-note = "About 110 forwarded instantiations (NewNode, FreeNode, AddTail / AddHead, RemoveAt / RemoveHead / RemoveTail, RemoveAll, GetAssocAt, NewAssoc, InitHashTable, constructors / destructors) and CPlex. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+note = "Done: 104 rows (84 lib in mfc_list.*, 20 game in game_lists.*), suite reaches 62, 0 mismatches. Left: S7a (14 script / FaceGroup rows)."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S6a"
@@ -1870,6 +1871,15 @@ size = 1
 depends = ["S11"]
 files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
 note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp)."
+
+[[ticket]]
+id = "S7a"
+title = "Standalone library: the remaining script CList instantiations and CMap-element helpers"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/game/game_lists.h", "src/game/game_lists.cpp", "tests/verify/verify_mfc_list.cpp"]
+note = "Left by S7 (14 rows): script lists with game copy semantics: 004C69B0 ScriptDecl RemoveHead, 004C7A10 / 004C82B0 ScriptDefinition / ScriptRun RemoveHead (copy out), 004C7C90 ScriptDefinition AddHead, 004CDA30 / 004CD930 ScriptRun / ScriptDefinition NewNode (ConstructElements 004CECB0 / 004CEB80), 004C9210 ScriptObjectRef AddHead (zero, release old, set + addref), 004C9100 ScriptObjectRef RemoveTail (into the result, RET 4), 004C8CE0 / 004C8D80 ScriptGroup AddHead / AddTail (InitGroup then gamearrays::ObjectRefCopy), 004C8AF0 ScriptGroup RemoveTail (GroupGetAt-like copy, DestructBody); 004543E0 CMap destructor with owning values; 00454DB0 / 00454CE0 FaceGroup (0x18: CString + CDWordArray) ConstructElements and array destructor (vtable 0073C2BC). Also candidates: 006BE240 / 006BE210 / 006B90C0 (wave record Construct/DestructElements, string destroy). Use ListAbi with EachElements policies as in game_lists.h; ours-only checks."
 
 # ---------------------------------------------------------------- Lua
 
