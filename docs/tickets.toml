@@ -1413,7 +1413,7 @@ title = "Shrink the run data: work.db per-run counts and 4K BMPs in the referenc
 group = "harness"
 size = 1
 model = "sonnet"
-note = "2026-10-15 the project folder was 47 GB. build/live/work.db is 3.9 GB because run.counts averages 76 KB per run over 54k runs: keep counts only for each batch's latest runs (or compress them) and VACUUM. build/reference (13 GB, shared cache of the original's runs) and build/verify/runs (8.7 GB) are mostly 3840x2160 32-bit BMP shots, ~24 MB each (546 in the cache): store them compressed (PNG or zlib) and decode on compare. build/live/work.db.pre-wb10 (0.9 GB) is a migration backup the user may drop."
+note = "Merged. Pending: work.db VACUUM (python tools/work.py prune --vacuum, needs the user's OK: shared DB, blocks writers for seconds); pack build/reference/ui_widescreen*-rebirth after the scheduler restarts; work.db.pre-wb10 left for the user."
 
 [[ticket]]
 id = "X40a"
