@@ -289,3 +289,23 @@ links to it. The published artifact still reads build/tickets/tickets.json.
 
 Tested: tools/test_tickets.py (temporary toml, markdown, lock and WORK_DB: migration keeps every status and date,
 old-branch lines, set / add / note, start and done, the live board before and after migration).
+
+## WB11: shrinking the run data (2026-10-16)
+
+**run.counts** (JSON per function, 76 KB a run, 4.1 GB of the 4.2 GB database over 55k runs) is read once: the
+scheduler's summarise() adds a batch's counts up when the batch ends, and the summary text is stored in batch.summary.
+write_finish() now sets counts to NULL for the batch's runs in the same transaction; summarise() reads NULL as {}.
+`python tools/work.py prune` clears the counts of every finished batch of an older database (one short transaction
+per batch, then a passive WAL checkpoint; 55k runs in 7 s on the live database). That frees pages, not file size:
+`python tools/work.py prune --vacuum` runs VACUUM (the file drops to the ~120 MB of live data; VACUUM blocks every
+writer, workers' `work.py` calls wait in the 60 s busy timeout, while it copies the live data: seconds). Run it when
+no batch is starting or ending. build/live/work.db.pre-wb10 (0.9 GB) is the WB10 migration backup the user may drop.
+
+**Frames.** The harness's 4K frame captures (24 MB BMP each) are packed after a run: `tools/frame_store.py` stores
+`<name>.bmp.z` (the BMP's bytes XORed with the byte one pixel before, then zlib level 3; lossless, standard library;
+2.3x to 4.7x smaller) and removes the BMP. run() packs the run folder before the reference cache stores it, and
+compare_widescreen packs frames_diff. compare_frames.read_bmp (and so frame_preview), compare_frames' folder mode and
+run_all's --widescreen listing read either form (`frame_store.read_frame / frame_names / exists`), so
+`compare_frames.py <run>\frames\camp.bmp ...` works on a packed frame (it takes ~1 s to unpack). The harness itself
+still writes and reads plain BMPs inside a running game. `python tools/frame_store.py pack FOLDER...` packs a folder
+in place, `unpack FILE.bmp.z` writes the BMP back. Tested: tools/test_frame_store.py.
