@@ -222,6 +222,14 @@ struct UnitLevelRecord {
 };
 static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
+// unit_db_destroy.cpp (A-U11): the prototype, NPC and model records' destructors (0053EBC0,
+// 0053ED30, 0053EE70).
+namespace unitdb {
+void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
+void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
+void __fastcall DestroyModelRecord(UnitModelRecord* record);
+} // namespace unitdb
+
 // The model table (0x20 bytes, the database's +0x40): the records (an STLport vector) and a
 // hash_map<string, record*> from their names at +0x0C, as the prototype tables (unit_create.h).
 struct UnitModelTable {

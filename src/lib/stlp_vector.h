@@ -114,6 +114,14 @@ public:
         eos_ = start_ + n;
     }
 
+    // vector(const vector& x) (e.g. 004FDDB0): room for exactly x.size() elements (none when
+    // empty) holding copies of x's.
+    template <typename E>
+    void CopyConstruct(const vector& x) {
+        ConstructWithCapacity(x.size());
+        finish_ = UninitializedCopy<E>(x.start_, x.finish_, start_);
+    }
+
     // _M_allocate_and_copy(n, first, last) (e.g. 0069DB00): a block of n elements holding copies
     // of [first, last).
     template <typename E>
@@ -140,7 +148,8 @@ public:
     }
 
     // _M_fill_insert(pos, n, x) (e.g. 0040B150): n copies of x before pos, in place when the room
-    // allows (x copied first, as it may be an element), else through InsertOverflow.
+    // allows (x copied first by the policy, as it may be an element, and destroyed last), else
+    // through InsertOverflow.
     template <typename E>
     void FillInsert(T* pos, std::size_t n, const T& x) {
         if (n == 0) return;
@@ -148,7 +157,9 @@ public:
             InsertOverflow<E>(pos, x, n);
             return;
         }
-        T copy = x;
+        alignas(T) unsigned char storage[sizeof(T)];
+        T& copy = *reinterpret_cast<T*>(storage);
+        E::Construct(&copy, x);
         std::size_t after = static_cast<std::size_t>(finish_ - pos);
         T* oldFinish = finish_;
         if (after > n) {
@@ -163,6 +174,7 @@ public:
             finish_ += after;
             Fill<E>(pos, oldFinish, copy);
         }
+        E::Destroy(&copy);
     }
 
     // _M_range_insert(pos, first, last) (e.g. 0069ECD0): copies of [first, last) before pos.
@@ -243,6 +255,22 @@ public:
         } else {
             InsertOverflow<E>(finish_, x, 1);
         }
+    }
+
+    // push_back(T()) (e.g. 0064AB20): the default element made in place when there is room, else a
+    // temporary the policy makes, inserted through InsertOverflow and destroyed.
+    template <typename E>
+    void PushDefault() {
+        if (finish_ != eos_) {
+            E::Default(finish_);
+            ++finish_;
+            return;
+        }
+        alignas(T) unsigned char storage[sizeof(T)];
+        T* x = reinterpret_cast<T*>(storage);
+        E::Default(x);
+        InsertOverflow<E>(finish_, *x, 1);
+        E::Destroy(x);
     }
 
     // operator=(x) (e.g. 0064AF30).
@@ -332,6 +360,7 @@ struct AllocProxy {
 template <typename T, typename E = PlainElement<T>>
 struct VectorAbi {
     using Vector = vector<T>;
+    using Element = E;
 
     // ~_Vector_base() (e.g. 00405BF0).
     static void __fastcall DestroyBase(Vector* self) { self->FreeStorage(); }
@@ -388,6 +417,8 @@ struct VectorAbi {
     static void __fastcall Reserve(Vector* self, void*, std::size_t n) { self->template Reserve<E>(n); }
     // push_back(x) (e.g. 0069BD30; RET 4).
     static void __fastcall PushBack(Vector* self, void*, const T* x) { self->template PushBack<E>(*x); }
+    // push_back(T()) out of line (e.g. 0064AB20; plain RET).
+    static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
     // operator=(x) (e.g. 0064AF30; RET 4): returns this.
     static Vector* __fastcall Assign(Vector* self, void*, const Vector* x) {
         self->template AssignVector<E>(*x);

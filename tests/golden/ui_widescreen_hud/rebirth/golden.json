@@ -2,11 +2,11 @@
   "scenario": "ui_widescreen_hud",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "eb3af83e",
+  "commit": "5d15174f",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^script gobject\\.i$)",
+  "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50533 9fd5cd8dfac7e50f', orig2 'savea/mission.sav 50526 59475c10c5903dcb'"
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50980 8cae1d7f404e744e', orig2 'savea/mission.sav 50950 a2c919bf7f427c13'"
 }

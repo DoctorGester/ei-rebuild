@@ -22,6 +22,19 @@ struct CountedRefElement {
         RefPtrRelease(&old);
     }
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
+    // resize(n)'s element (e.g. 004200C0, 004AD700): a null pointer.
+    static void Default(RefPtr* p) { p->ptr = nullptr; }
+};
+
+// The owners' holders (the server's file chunks, 00421D90 / 00426CB0): copied by sharing
+// (RefPtr::Share: null for a detached object, a clone for a copy-on-share one), assigned by
+// RefPtr::ShareAssign (nothing when it already holds the object), destroyed by the owner's release
+// (RefPtr::Destroy, 00419D00: a still-shared object detached and shut down first).
+struct SharedRefElement {
+    static void Construct(RefPtr* to, const RefPtr& from) { to->Share(from.ptr); }
+    static void Assign(RefPtr& to, const RefPtr& from) { to.ShareAssign(from.ptr); }
+    static void Destroy(RefPtr* p) { p->Destroy(); }
+    static void Default(RefPtr* p) { p->ptr = nullptr; }
 };
 
 } // namespace stlp

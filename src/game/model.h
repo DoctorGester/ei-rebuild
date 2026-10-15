@@ -625,6 +625,8 @@ static_assert(sizeof(CLinkFigureLoader) == 0x34);
 struct PrintRecord {
     virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
 
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744264);
+
     stlp::string name;           // +0x04
     std::uint32_t values2[3];    // +0x10 chunk 2
     std::uint32_t values3[3];    // +0x1C chunk 3
@@ -635,6 +637,8 @@ static_assert(sizeof(PrintRecord) == 0x28);
 // The second record type of prints.db. vtable 00744268. 0x34 bytes.
 struct PrintRecord2 {
     virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
+
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744268);
 
     stlp::string name;           // +0x04
     std::uint32_t values2[3];    // +0x10 chunk 2

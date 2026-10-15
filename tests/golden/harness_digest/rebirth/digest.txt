@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash A53D3A33 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 02106945 n 172
 + world world
 world tick 20
 world updates 20
@@ -144,10 +144,11 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
+obj2 hp nan:0xFFFFFFE7
 obj2 #ai 713079FE
 obj2 #place 784FE175
 obj2 #unit 807D16EC
-obj2 #vitals 24C0D5BB
+obj2 #vitals E824DBAF
 + obj3 82 nafltr59
 obj3 # 85B0C8E0
 + obj4 82 nafltr59
@@ -518,10 +519,9 @@ aievents side14.hash 0x811C9DC5
 aievents side15.count 0
 aievents side15.hash 0x811C9DC5
 + script script
-script gobject.i -1
 script #files 982697DF
 script #globals 33E544A3
-script #gobject 52F34D93
+script #gobject DFB99406
 script #instances 46BBAC38
 script #lightning 6A354D7C
 script #loaded B7FE1BB6
@@ -557,7 +557,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash E15F3287 n 832
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 11AD3B3E n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -2547,11 +2547,10 @@ missile1 # 1D6520AE
 aievents tick 40
 aievents width 33
 aievents height 25
-script gobject.i 702
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 12887921
+script #gobject 7658611C
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40
@@ -2582,7 +2581,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place 49B2288E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 45 frame 8 tick 45 zone gz1g hash D3EEC192 n 832
+@ 2 update 45 frame 8 tick 45 zone gz1g hash 231CC82B n 832
 world tick 45
 world updates 45
 random isaac.count 104
@@ -2619,7 +2618,7 @@ cunit1804 #place 5655ED1A
 cunit1804 #unit 6AB726A0
 cunit1884 #place AE30F036
 cunit1000011214 #place ED722F93
-@ 3 update 50 frame 9 tick 50 zone gz1g hash 697DE688 n 832
+@ 3 update 50 frame 9 tick 50 zone gz1g hash 998FEF31 n 832
 world tick 50
 world updates 50
 random isaac.count 193
@@ -2652,7 +2651,7 @@ client ticksRun 22
 cunit699 #place CF311CCC
 cunit1804 #place 3B5F770A
 cunit1000011214 #place BBF2C4A2
-@ 4 update 55 frame 10 tick 55 zone gz1g hash F85B6ED9 n 832
+@ 4 update 55 frame 10 tick 55 zone gz1g hash 08A96760 n 832
 world tick 55
 world updates 55
 random isaac.count 57
@@ -2683,7 +2682,7 @@ client tick 55
 client ticksRun 27
 cunit1804 #place 5163E4D5
 cunit1000011214 #place A95B5B07
-@ 5 update 60 frame 11 tick 60 zone gz1g hash 1C039A53 n 832
+@ 5 update 60 frame 11 tick 60 zone gz1g hash ECF193EA n 832
 world tick 60
 world updates 60
 random isaac.count 232
@@ -2715,7 +2714,7 @@ client tick 60
 client ticksRun 32
 cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
-@ 6 update 65 frame 12 tick 65 zone gz1g hash E259D7B7 n 832
+@ 6 update 65 frame 12 tick 65 zone gz1g hash 12ABDE0E n 832
 world tick 65
 world updates 65
 random isaac.count 86
@@ -2746,7 +2745,7 @@ client tick 65
 client ticksRun 37
 cunit1804 #unit 618078DC
 cunit1000011214 #place FF01FC81
-@ 7 update 70 frame 13 tick 70 zone gz1g hash B2C45B91 n 832
+@ 7 update 70 frame 13 tick 70 zone gz1g hash 42365228 n 832
 world tick 70
 world updates 70
 random isaac.count 182
@@ -2777,7 +2776,7 @@ aievents tick 70
 client tick 70
 client ticksRun 42
 cunit1804 #place 450BFC7F
-@ 8 update 75 frame 14 tick 75 zone gz1g hash A9502F76 n 832
+@ 8 update 75 frame 14 tick 75 zone gz1g hash 59A226CF n 832
 world tick 75
 world updates 75
 random isaac.count 61
@@ -2807,7 +2806,7 @@ client tick 75
 client ticksRun 47
 cunit1804 #place 7B9BAA9D
 cunit1000011214 #place 0022D666
-@ 9 update 80 frame 15 tick 80 zone gz1g hash C410C516 n 832
+@ 9 update 80 frame 15 tick 80 zone gz1g hash 34E2CCAF n 832
 world tick 80
 world updates 80
 random isaac.count 228
@@ -2837,7 +2836,7 @@ client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1000011214 #place 8080375C
-@ 10 update 85 frame 16 tick 85 zone gz1g hash 01A145EC n 832
+@ 10 update 85 frame 16 tick 85 zone gz1g hash F1534C55 n 832
 world tick 85
 world updates 85
 random isaac.count 90
@@ -2867,7 +2866,7 @@ client tick 85
 client ticksRun 57
 cunit1804 #place 57B9100D
 cunit1000011214 #place 2DF71267
-@ 11 update 90 frame 17 tick 90 zone gz1g hash 256E46AE n 832
+@ 11 update 90 frame 17 tick 90 zone gz1g hash D59C4F17 n 832
 world tick 90
 world updates 90
 random isaac.count 222
@@ -2897,7 +2896,7 @@ client tick 90
 client ticksRun 62
 cunit1804 #place F8173446
 cunit1000011214 #place FC223A17
-@ 12 update 95 frame 18 tick 95 zone gz1g hash 586C6F03 n 832
+@ 12 update 95 frame 18 tick 95 zone gz1g hash A89E66BA n 832
 world tick 95
 world updates 95
 random isaac.count 115
@@ -2927,7 +2926,7 @@ client tick 95
 client ticksRun 67
 cunit1804 #place 4251B104
 cunit1000011214 #place A95B5B07
-@ 13 update 100 frame 19 tick 100 zone gz1g hash BC25605B n 832
+@ 13 update 100 frame 19 tick 100 zone gz1g hash 4CD769E2 n 832
 world tick 100
 world updates 100
 random isaac.count 228
@@ -2957,7 +2956,7 @@ client tick 100
 client ticksRun 72
 cunit1804 #place 0B0BC947
 cunit1000011214 #place 2DF71267
-@ 14 update 105 frame 20 tick 105 zone gz1g hash 29037201 n 832
+@ 14 update 105 frame 20 tick 105 zone gz1g hash D9F17BB8 n 832
 world tick 105
 world updates 105
 random isaac.count 90
@@ -2987,7 +2986,7 @@ client tick 105
 client ticksRun 77
 cunit1804 #place 0CFA23C5
 cunit1000011214 #place D2D43880
-@ 15 update 110 frame 21 tick 110 zone gz1g hash AA9CADBF n 832
+@ 15 update 110 frame 21 tick 110 zone gz1g hash 5A6EA406 n 832
 world tick 110
 world updates 110
 random isaac.count 14
@@ -3017,7 +3016,7 @@ client tick 110
 client ticksRun 82
 cunit1804 #place 501FF8D0
 cunit1000011214 #place FC223A17
-@ 16 update 115 frame 22 tick 115 zone gz1g hash A8E2EE2B n 832
+@ 16 update 115 frame 22 tick 115 zone gz1g hash 5810E792 n 832
 world tick 115
 world updates 115
 random isaac.count 124
@@ -3047,7 +3046,7 @@ client tick 115
 client ticksRun 87
 cunit1804 #place 5D944E41
 cunit1000011214 #place A95B5B07
-@ 17 update 120 frame 23 tick 120 zone gz1g hash 992C95D0 n 832
+@ 17 update 120 frame 23 tick 120 zone gz1g hash 69DE9C69 n 832
 world tick 120
 world updates 120
 random isaac.count 234
@@ -3078,7 +3077,7 @@ aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1000011214 #place FF01FC81
-@ 18 update 125 frame 24 tick 125 zone gz1g hash D2E88EE7 n 832
+@ 18 update 125 frame 24 tick 125 zone gz1g hash 221A875E n 832
 world tick 125
 world updates 125
 random isaac.count 84
@@ -3108,7 +3107,7 @@ aievents tick 125
 client tick 125
 client ticksRun 97
 cunit1000011214 #place 0022D666
-@ 19 update 130 frame 25 tick 130 zone gz1g hash 998B5135 n 832
+@ 19 update 130 frame 25 tick 130 zone gz1g hash 6979588C n 832
 world tick 130
 world updates 130
 random isaac.count 246
@@ -3137,7 +3136,7 @@ missile1 # D7319E90
 aievents tick 130
 client tick 130
 client ticksRun 102
-@ 20 update 135 frame 26 tick 135 zone gz1g hash 3AB028DE n 832
+@ 20 update 135 frame 26 tick 135 zone gz1g hash CA422167 n 832
 world tick 135
 world updates 135
 random isaac.count 75
@@ -3169,7 +3168,7 @@ aievents tick 135
 client tick 135
 client ticksRun 107
 cunit1000011214 #place FF01FC81
-@ 21 update 140 frame 27 tick 140 zone gz1g hash 39A4746F n 832
+@ 21 update 140 frame 27 tick 140 zone gz1g hash C9567DD6 n 832
 world tick 140
 world updates 140
 random isaac.count 172
@@ -3198,7 +3197,7 @@ missile1 # A0AF4C60
 aievents tick 140
 client tick 140
 client ticksRun 112
-@ 22 update 145 frame 28 tick 145 zone gz1g hash 59FB3952 n 832
+@ 22 update 145 frame 28 tick 145 zone gz1g hash A90930EB n 832
 world tick 145
 world updates 145
 random isaac.count 67
@@ -3230,7 +3229,7 @@ aievents tick 145
 client tick 145
 client ticksRun 117
 cunit1000011214 #place A95B5B07
-@ 23 update 150 frame 29 tick 150 zone gz1g hash 79BC508D n 832
+@ 23 update 150 frame 29 tick 150 zone gz1g hash 894E5934 n 832
 world tick 150
 world updates 150
 random isaac.count 161
@@ -3262,7 +3261,7 @@ aievents tick 150
 client tick 150
 client ticksRun 122
 cunit1000011214 #place FF01FC81
-@ 24 update 155 frame 30 tick 155 zone gz1g hash B6A00306 n 832
+@ 24 update 155 frame 30 tick 155 zone gz1g hash 46520ABF n 832
 world tick 155
 world updates 155
 random isaac.count 245
@@ -3294,7 +3293,7 @@ missile1 # 38C9333C
 aievents tick 155
 client tick 155
 client ticksRun 127
-@ 25 update 160 frame 31 tick 160 zone gz1g hash 2CC38820 n 832
+@ 25 update 160 frame 31 tick 160 zone gz1g hash DC318199 n 832
 world tick 160
 world updates 160
 random isaac.count 87
@@ -3326,7 +3325,7 @@ aievents tick 160
 client tick 160
 client ticksRun 132
 cunit1000011214 #place AA789D91
-@ 26 update 165 frame 32 tick 165 zone gz1g hash 5F50805C n 832
+@ 26 update 165 frame 32 tick 165 zone gz1g hash AFA289E5 n 832
 world tick 165
 world updates 165
 random isaac.count 55
@@ -3360,7 +3359,7 @@ client tick 165
 client ticksRun 137
 cunit1000011214 #place 8271C228
 cunit1000011214 #unit 92C96785
-@ 27 update 170 frame 33 tick 170 zone gz1g hash 53F594AA n 832
+@ 27 update 170 frame 33 tick 170 zone gz1g hash A3079D13 n 832
 world tick 170
 world updates 170
 random isaac.count 154
@@ -3392,7 +3391,7 @@ aievents tick 170
 client tick 170
 client ticksRun 142
 cunit1000011214 #place 079D7C7F
-@ 28 update 175 frame 34 tick 175 zone gz1g hash C906A608 n 832
+@ 28 update 175 frame 34 tick 175 zone gz1g hash 39F4AFB1 n 832
 world tick 175
 world updates 175
 random isaac.count 250
@@ -3423,7 +3422,7 @@ aievents tick 175
 client tick 175
 client ticksRun 147
 cunit1000011214 #place F793DC62
-@ 29 update 180 frame 35 tick 180 zone gz1g hash 47239126 n 832
+@ 29 update 180 frame 35 tick 180 zone gz1g hash B7D1989F n 832
 world tick 180
 world updates 180
 random isaac.count 158
@@ -3455,7 +3454,7 @@ client tick 180
 client ticksRun 152
 cunit1000011214 #place 3B48CC22
 cunit1000011214 #unit 958D97A3
-@ 30 update 185 frame 36 tick 185 zone gz1g hash 146E8712 n 832
+@ 30 update 185 frame 36 tick 185 zone gz1g hash E49C8EAB n 832
 world tick 185
 world updates 185
 random isaac.count 253
@@ -3488,7 +3487,7 @@ client tick 185
 client ticksRun 157
 cunit1000011214 #place 205834D7
 cunit1000011214 #unit 9D9202D2
-@ 31 update 190 frame 37 tick 190 zone gz1g hash C4E9FD1A n 832
+@ 31 update 190 frame 37 tick 190 zone gz1g hash 341BF4A3 n 832
 world tick 190
 world updates 190
 random isaac.count 100
@@ -3519,7 +3518,7 @@ aievents tick 190
 client tick 190
 client ticksRun 162
 cunit1000011214 #place DCB47AC2
-@ 32 update 195 frame 38 tick 195 zone gz1g hash AE4BE67C n 832
+@ 32 update 195 frame 38 tick 195 zone gz1g hash 5EB9EFC5 n 832
 world tick 195
 world updates 195
 random isaac.count 246
@@ -3551,7 +3550,7 @@ aievents tick 195
 client tick 195
 client ticksRun 167
 cunit1000011214 #place DDBCE07F
-@ 33 update 200 frame 39 tick 200 zone gz1g hash 6D8B2DC2 n 832
+@ 33 update 200 frame 39 tick 200 zone gz1g hash 9D79247B n 832
 world tick 200
 world updates 200
 random isaac.count 92
@@ -3582,7 +3581,7 @@ client tick 200
 client ticksRun 172
 cunit1000011214 #place 3D8DD038
 cunit1000011214 #unit C4113F8B
-@ 34 update 205 frame 40 tick 205 zone gz1g hash 3B728A1F n 832
+@ 34 update 205 frame 40 tick 205 zone gz1g hash CB8083A6 n 832
 world tick 205
 world updates 205
 random isaac.count 198
@@ -3613,7 +3612,7 @@ client tick 205
 client ticksRun 177
 cunit1000011214 #place F33D0084
 cunit1000011214 #unit 7B1FE819
-@ 35 update 210 frame 41 tick 210 zone gz1g hash DF9223D1 n 832
+@ 35 update 210 frame 41 tick 210 zone gz1g hash 2F602A68 n 832
 world tick 210
 world updates 210
 random isaac.count 54
@@ -3644,7 +3643,7 @@ client tick 210
 client ticksRun 182
 cunit1000011214 #place B53A948A
 cunit1000011214 #unit AA7AAD77
-@ 36 update 215 frame 42 tick 215 zone gz1g hash 0EBCB486 n 832
+@ 36 update 215 frame 42 tick 215 zone gz1g hash FE4EBD3F n 832
 world tick 215
 world updates 215
 random isaac.count 219
@@ -3675,7 +3674,7 @@ client tick 215
 client ticksRun 187
 cunit1000011214 #place BA441D5F
 cunit1000011214 #unit 9D9202D2
-@ 37 update 220 frame 43 tick 220 zone gz1g hash 7FFE9428 n 832
+@ 37 update 220 frame 43 tick 220 zone gz1g hash 8F0C9D91 n 832
 world tick 220
 world updates 220
 random isaac.count 94
@@ -3706,7 +3705,7 @@ client tick 220
 client ticksRun 192
 cunit1000011214 #place 8441EC36
 cunit1000011214 #unit BFB38C79
-@ 38 update 225 frame 44 tick 225 zone gz1g hash 9E6C775A n 832
+@ 38 update 225 frame 44 tick 225 zone gz1g hash 5FF7746A n 832
 world tick 225
 world updates 225
 random isaac.count 209
@@ -3739,7 +3738,7 @@ client tick 225
 client ticksRun 197
 cunit1000011214 #place CC516469
 cunit1000011214 #unit 9D9202D2
-@ 39 update 230 frame 45 tick 230 zone gz1g hash 2F414F48 n 832
+@ 39 update 230 frame 45 tick 230 zone gz1g hash EEDA4C78 n 832
 world tick 230
 world updates 230
 random isaac.count 102
@@ -3772,7 +3771,7 @@ client tick 230
 client ticksRun 202
 cunit1000011214 #place 7D78ED6A
 cunit1000011214 #unit 88D3C81B
-@ 40 update 235 frame 46 tick 235 zone gz1g hash EB80AF01 n 832
+@ 40 update 235 frame 46 tick 235 zone gz1g hash 2A1BAC31 n 832
 world tick 235
 world updates 235
 random isaac.count 195
@@ -3801,7 +3800,7 @@ aievents tick 235
 client tick 235
 client ticksRun 207
 cunit1000011214 #place 02FA929E
-@ 41 update 240 frame 47 tick 240 zone gz1g hash 28FDFCDB n 832
+@ 41 update 240 frame 47 tick 240 zone gz1g hash E966FFEB n 832
 world tick 240
 world updates 240
 random isaac.count 36
@@ -3830,7 +3829,7 @@ aievents tick 240
 client tick 240
 client ticksRun 212
 cunit1000011214 #place FF3BBA1F
-@ 42 update 240 frame 48 tick 240 zone gz1g hash 6FE0872D n 832
+@ 42 update 240 frame 48 tick 240 zone gz1g hash AE7B841D n 832
 random isaac.count 62
 random isaac.a 0x1B92F8C2
 random isaac.b 0x7FE43895

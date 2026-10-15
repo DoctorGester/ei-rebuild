@@ -77,7 +77,13 @@ Trace FileState(const std::string& path) {
     Trace state;
     const DWORD attributes = GetFileAttributesA(path.c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES) return {-1};
-    const HANDLE file = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+    // A scanner can hold a just-written file for a moment (seen once under load: ours read as empty).
+    HANDLE file = INVALID_HANDLE_VALUE;
+    for (int attempt = 0; attempt < 50; ++attempt) {
+        file = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+        if (file != INVALID_HANDLE_VALUE || GetLastError() != ERROR_SHARING_VIOLATION) break;
+        Sleep(10);
+    }
     if (file != INVALID_HANDLE_VALUE) {
         char buffer[256];
         DWORD got = 0;

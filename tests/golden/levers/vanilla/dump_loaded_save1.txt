@@ -1,9 +1,9 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump loaded_save1
 # compact (tools/golden.py): objects as hashes of their fields
-@ 9 update 185 frame 37 tick 126 zone gz1g hash C871602E n 791
+@ 8 update 160 frame 32 tick 101 zone gz1g hash 852131D8 n 791
 + world world
-world tick 126
-world updates 187
+world tick 101
+world updates 162
 world paused 0
 world timeBase 5.97222233
 world secondsPerTick 0.00111111114
@@ -121,20 +121,20 @@ world allied31 0x80000000
 world hostile31 0x00000000
 + random random
 random isaac.seeded 1
-random isaac.count 210
-random isaac.a 0xC67F89BF
-random isaac.b 0xD3F0B329
-random isaac.c 0x000000CB
-random isaac.results 0xE3455A5F
-random isaac.memory 0xB6ACB9C1
-random crt.rand 0xAC04B145
+random isaac.count 250
+random isaac.a 0x73AAFEF1
+random isaac.b 0x50BF9D49
+random isaac.c 0x000000B5
+random isaac.results 0xE61A8601
+random isaac.memory 0xC6D1ABB0
+random crt.rand 0x3B5134A0
 + player0 player
 player0 id 0
 player0 partyId 0
 player0 sessionKind 1
 player0 lastScreen 0
 player0 godMode 0
-player0 lastTick 125
+player0 lastTick 100
 player0 items 0
 player0 ids 0
 player0 units 1
@@ -148,7 +148,7 @@ player0 var.AnimPray 1.0
 player0 var.Said1 1.0
 player0 var.ZT1 1.0
 player0 var.b.bz2g.z0 1.0
-player0 var.gtime 6.1088891
+player0 var.gtime 6.08111143
 player0 var.z.gz1g_gz2g 1.0
 player0 var.z.gz2g_gz3g 1.0
 + obj299 84 stbr1
@@ -302,12 +302,12 @@ obj670 #vitals 2871DAC1
 obj699 #ai 0F79C16E
 obj699 #place 2FABAB77
 obj699 #unit 2F1EAF08
-obj699 #vitals 4EA2BFB3
+obj699 #vitals 6949D1B9
 + obj702 80 unhufe ""
 obj702 #ai 0F79C16E
 obj702 #place 643D63F8
 obj702 #unit B0CC1FED
-obj702 #vitals 4EA2BFB3
+obj702 #vitals 6949D1B9
 + obj708 84 stbuho6
 obj708 # 641EAEC5
 + obj709 84 stst14
@@ -1448,10 +1448,10 @@ obj1802 # C9A32C0B
 + obj1803 82 naflbu7
 obj1803 # 4CD09180
 + obj1804 80 unanwiwo ""
-obj1804 #ai 7E828408
+obj1804 #ai 97363B47
 obj1804 #place DA332DDE
 obj1804 #unit 226AA445
-obj1804 #vitals 51AD6265
+obj1804 #vitals 06E6A985
 + obj1825 84 stst19
 obj1825 # D1DDF6FA
 + obj1827 84 stst19
@@ -1530,14 +1530,14 @@ obj1881 # 2F1340D7
 obj1884 #ai 0F79C16E
 obj1884 #place 77A71CC9
 obj1884 #unit 58199F9E
-obj1884 #vitals 4EA2BFB3
+obj1884 #vitals 6949D1B9
 + obj1889 93 stga1
 obj1889 # A88924B6
 + obj1890 80 unanwibo ""
-obj1890 #ai 41A93032
-obj1890 #place 1AB9F86A
+obj1890 #ai C34B5EDA
+obj1890 #place C0A5B3FC
 obj1890 #unit D1F93FAB
-obj1890 #vitals 51AD6265
+obj1890 #vitals 06E6A985
 + obj1892 83 nast16
 obj1892 # 848778E9
 + obj1893 82 nafltr59
@@ -1674,15 +1674,15 @@ obj1935 #place 5EF325A6
 obj1935 #unit D88E038C
 obj1935 #vitals 5931010B
 + obj1936 80 unmoto ""
-obj1936 #ai 06330586
+obj1936 #ai 9DB8AA96
 obj1936 #place 680F4B97
 obj1936 #unit 45622072
-obj1936 #vitals 20EDB9AF
+obj1936 #vitals 7D26C2F0
 + obj1937 80 unmoto ""
-obj1937 #ai 0861464B
+obj1937 #ai AFEF173A
 obj1937 #place 3E9771A1
 obj1937 #unit 064D4EC2
-obj1937 #vitals 20EDB9AF
+obj1937 #vitals 7D26C2F0
 + obj1938 80 unanwiwo ""
 obj1938 #ai 07BFFC82
 obj1938 #place 7BDFD764
@@ -1850,13 +1850,13 @@ obj2008 # 4BF77D71
 obj1000011214 #ai DE1E58AD
 obj1000011214 #place 42E21D1A
 obj1000011214 #unit C933F75C
-obj1000011214 #vitals 246B522C
+obj1000011214 #vitals 09939681
 + missile0 spell 39
-missile0 # 035F2217
+missile0 # 5EFCDE1B
 + missile1 spell 39
-missile1 # 67E8ED12
+missile1 # 3A4B111E
 + aievents events
-aievents tick 126
+aievents tick 101
 aievents width 33
 aievents height 25
 aievents count 0
@@ -1893,11 +1893,10 @@ aievents side14.hash 0x811C9DC5
 aievents side15.count 0
 aievents side15.hash 0x811C9DC5
 + script script
-script gobject.i 702
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 12887921
+script #gobject 7658611C
 script #inst AA0C8751
 script #instances 9EC34A1E
 script #lightning 6A354D7C
@@ -1906,7 +1905,7 @@ script #nextFxId CC37E54D
 script #nextParticleId EA2DC23B
 script #runs F80920E1
 + client client
-client tick 125
+client tick 100
 client paused 1
 client ticksRun 3
 client tickFraction 0.0
@@ -1931,6 +1930,6 @@ cunit1884 #place A0547F59
 cunit1884 #unit 13B71E29
 cunit1884 #vitals C3E01DE4
 + cunit1000011214 80 unhuma ""
-cunit1000011214 #place 2F437BC5
+cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA

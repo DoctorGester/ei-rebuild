@@ -2,11 +2,11 @@
   "scenario": "render_movie",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "eb3af83e",
+  "commit": "5d15174f",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^script gobject\\.i$)",
+  "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50137 07e97f914f34f293', orig2 'savea/mission.sav 50406 c8f87e43f75a6f12'"
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50806 98e3f614128ed9e4', orig2 'savea/mission.sav 50810 4106aeaf66fc0277'"
 }

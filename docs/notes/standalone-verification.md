@@ -803,6 +803,41 @@ for frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_p
 zone_base_bz1g vanilla also shows SV3f's rotation ulp; ui_hud rebirth differs from the original from world update 40 in
 the script global gobject.i (702 in the original, 1884 in ours; both repeat), SV3k.
 
+## SV2b / SV3k: the harness heap in one reservation (2026-10-15)
+
+**Cause.** zone1's `i` is the loop variable of Rebirth's `Any(i, Peasans, ...)` / `Every(i, Peasans, ...)` over
+Peasans = {702, 1884, 699} (zone1.mob's script chunk, decoded as 004D8E10 does), a group kept in address order (004B2D80).
+The heap trace (below) showed the units in different segments of the CRT heap: 1884 (allocated first) in one, 699 and
+702 in a later one, and the later segment's place is wherever VirtualAlloc found room, which our renderer's and the
+driver's threads change between runs (0x2A45.. vs 0x2CF1../0x2E5F..; the original 0x20E1.. vs 0x2750.. every run).
+So which unit was last flipped between our runs. Further sources found by tracing zone_gz3g (SV3i): blocks other threads
+allocate (the sound thread's stream switch reads the registry through CFileRegistry; the CRT makes lock 0xB and runs
+__tzset, 006F8AA1, on the first file time any thread converts), and MFC's temporary handle objects
+(CHandleMap::FromHandle 0070367C from CDC::FromHandle(GetDC(..)) in 005F8340: whether the DC is in the temporary map
+already depends on the handle values Windows gives, and the idle cleanup frees them in hash order).
+
+**Fix** (tests/verify/harness_heap.cpp, both sides): the CRT heap is one fixed 256 MB reservation (HeapCreate with a
+maximum, so it never grows a segment) for the main thread's blocks below 0x7F000; larger blocks, other threads' blocks
+and blocks made inside CHandleMap::FromHandle come from a second, growable heap (frees and reallocs go by address). At
+the first message loop pass the harness takes every CRT lock once and runs __tzset on the main thread (SettleCrt).
+
+**Tool:** `EI_HARNESS_CLOCK=virtual,heaptrace` writes heaptrace.txt (every call on the CRT heap: op, size, blocks as
+reservation offsets, ten return addresses from a stack scan; `*` for other threads) until world update `EI_HEAPTRACE`
+(default 40), then every object's id, class and place. Two runs' traces are compared event by event (reservation
+events of the main thread only); callers resolve with ei_hook.map / config/functions.csv (tools/resolve_crash.py).
+
+**Effect.** The original's layout changed too, so every golden was recorded again (SV3's recipe, the 55 golden scenarios
+and zone_gz3g, both installs): the original repeated in 111 of 112 runs, ours in 109; **97 goldens** (vanilla 44, Rebirth
+53, was 64), ui_hud Rebirth among them. The six Rebirth scenarios of SV2b gave 702 in 12 of 12 runs. KNOWN: `script
+gobject.i` dropped; `obj2 hp` added (SV3h): unmoco2's hit points are the NaN its stats' stack leftovers give, which on
+this heap differ by scenario and install in the original (0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth) and repeat; ours keeps
+SV3a's 0xFFC00000. Not recorded: SV3f's rotation ulps (ui_main_menu both, ui_hero_screen, ui_hero_stats, ui_screens,
+ui_container_input, ui_widescreen_hud / _more vanilla) and SV3g's flag; gobject.i after a save is loaded, 702 in the
+original and 1884 in ours, both repeating (world_load, magic_traps vanilla; SV2d); script_copy vanilla, where ours'
+CPlayerServer::Flush (in LeaveVerify) compressed its stream to 1392 bytes in one run and 1408 in another, so every later
+block moved (SV2e); unit_create both (crt.rand between our runs, SV2c); zone_gz3g (SV3i: the original's VSS#i#val now
+differs between its runs in vanilla, ours from the original under Rebirth).
+
 ## SV6: no registration skipped unnoticed at hook install (2026-10-15)
 
 The hook build left 224 registrations out at install (smoke, vanilla), so those rewrites never ran there:
@@ -841,3 +876,19 @@ The scenario reaches CEffectTornado (Launch, Tick, Reset) on Rebirth only, and n
 ground at a random point (about 3 % of the 64-tick weather updates, 44 in the wait), so runs with 72 to 90 s waited
 launched one in about half the cases and the 150 s wait is what makes it likely. Vanilla did not launch one in any run.
 Shortening the wait would lose the coverage; no golden is recorded for it (the strikes differ between runs).
+
+## SV6b: rare under-load failures after SV6 (2026-10-15)
+
+- CPlayerClient::SendResume (0066B300) returns whatever its stream Write call leaves in EAX, and 004A53F0 leaves
+  the new position there (a void slot). Our MemoryStreamWriteHook and WriteVerify returned nothing, so the original
+  SendResume (and the original TakeExit / RequestZone / SendLeave04 tails, and any game caller using the slot's EAX)
+  returned leftovers of our code; in the verify build it was usually 1 by chance (the stream held only the resume
+  byte), hence one mismatch in a suite. Both now return position_, and WriteVerify checks the original's EAX
+  against it. CompareSend's message names what differs (header with size / position, bytes, results).
+- sound-vanilla: the second goblin (Snd2) killed the hero in the 2 s after the first one died (its hits roll
+  differently from run to run: the AI messages' order varies under load), twice in main suites. The scenario
+  removes Snd2 once Snd1 is dead. Nine repeats of sound + render_cursor_present (4 at once, other batches running)
+  passed.
+- Full verify suite (128 runs, 4 at once) passed; zone_gz15h_tornado-vanilla passed on its retry after the first
+  attempt crashed at startup inside AIL_waveOutOpen (the harness's MutedWaveOutOpen from CSoundManager::Open, main
+  thread, EIP 00007EBC, no module): not seen before in the board's history; on watch (SV6c).
