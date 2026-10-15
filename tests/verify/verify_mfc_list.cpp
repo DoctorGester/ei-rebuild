@@ -308,8 +308,9 @@ struct TwinConstructFixed {
 
 // ConstructElements helpers: the elements built from the same bytes (the twin in our memory, not
 // the game's heap, whose address order the game reads).
-template <std::uintptr_t Address, typename Abi>
+template <std::uintptr_t Address, typename AbiType>
 struct TwinConstructElements {
+    using Abi = AbiType;
     using T = typename Abi::Element;
     static inline void(__stdcall* original)(T*, int);
     static void __stdcall Run(T* elements, int count) {
@@ -891,6 +892,21 @@ ScriptGroup* __fastcall GroupRemoveTailCheck(gamelists::Groups::List* self, void
 
 using DefinitionArray = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
 using RunArray = ArrayAbi<ScriptRun, gamelists::RunElements>;
+using DefineArray = ArrayAbi<ScriptDefine, ScriptDefineElements>;
+
+// S6e's helpers, which no suite scenario reaches: each twin check run at start-up on filled elements
+// (0, 1, 3 and 7 of them), then the elements destroyed.
+template <typename Twin>
+void ConstructElementsStartup() {
+    using T = typename Twin::Abi::Element;
+    if (!Twin::original) return;
+    for (int count : {0, 1, 3, 7}) {
+        std::vector<std::uint32_t> buffer(static_cast<std::size_t>(count) * sizeof(T) / 4 + 1, 0xCDCDCDCDu);
+        auto* elements = reinterpret_cast<T*>(buffer.data());
+        Twin::Run(elements, count);
+        Twin::Abi::DestructElements(elements, count);
+    }
+}
 
 } // namespace
 
@@ -912,3 +928,18 @@ using E004CEB80 = TwinConstructElements<0x004CEB80, DefinitionArray>;
 EI_VERIFY(0x004CEB80, E004CEB80::Run, 5, E004CEB80::original);
 using E004CECB0 = TwinConstructElements<0x004CECB0, RunArray>;
 EI_VERIFY(0x004CECB0, E004CECB0::Run, 5, E004CECB0::original);
+using E004D6840 = TwinConstructElements<0x004D6840, DefineArray>;
+EI_VERIFY(0x004D6840, E004D6840::Run, 5, E004D6840::original);
+using E00479620 = TwinConstructElements<0x00479620, Plain4>;
+EI_VERIFY(0x00479620, E00479620::Run, 5, E00479620::original);
+using E00558EF0 = TwinConstructElements<0x00558EF0, Plain4>;
+EI_VERIFY(0x00558EF0, E00558EF0::Run, 5, E00558EF0::original);
+
+namespace {
+void ConstructElementsStartupCheck() {
+    ConstructElementsStartup<E004D6840>();
+    ConstructElementsStartup<E00479620>();
+    ConstructElementsStartup<E00558EF0>();
+}
+} // namespace
+EI_STARTUP_CHECK(ConstructElementsStartupCheck);

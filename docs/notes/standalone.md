@@ -1210,3 +1210,18 @@ the pool via `list::Destroy`, then the string's block); item_stock.cpp's `Recipe
 Verified ours only (verify_stlp_pair.cpp: the string block on top of its free list, the sentinel on top of
 the 0xC list unless the string's block shares it); reached by trader_stock (22 calls, 0 mismatches, both
 installs); items passes. The size row already existed (function_sizes.inc, 120).
+
+**S6e (2026-10-15).** The element helpers S6d's lists reach: 004D6840 (ConstructElements<ScriptDefine>:
+`ArrayAbi<ScriptDefine, ScriptDefineElements>` in game_lists.cpp), 00479620 and 00558EF0 (the zero fill,
+`Plain4` in mfc_list.cpp) and 004C59A0 (CArray<ScriptIfThen>'s constructor, `ArrayHeader<
+ScriptIfThenArrayClass>`). Twin checks per call (verify_mfc_list.cpp `TwinConstructElements`,
+verify_mfc_array.cpp `TwinConstruct`); no suite scenario calls them, so each also runs at start-up
+(0, 1, 3 and 7 elements filled with 0xCD, a filled header). Then the last MFC library rows our code
+forwarded to without a registration: 00475F20 (the scene loader's point block free: `ArrayFree1`),
+005FBD30 (the global map zone's destructor: the CStrings at +0xC, then +8), 005711E0 (the water levels'
+CArray<CArray<float>> destructor: `WaterLevels::Destruct<ClientMapArrayClass>`) and 0046F160 (a patrol
+element's scalar deleting destructor: `ScalarDelete<&DestroyPatrol>`); checked ours only, the last two
+(which no scenario reaches) also at start-up with their blocks allocated and freed in reverse order, so the
+game's heap is left as it was (goldens unchanged). After these,
+no MFC row of config/library.csv is forwarded to without a registration except operator new / delete
+(007005AF / 007005D8, the allocator, standalone only).
