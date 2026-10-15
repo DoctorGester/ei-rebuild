@@ -1717,12 +1717,13 @@ done = "2026-10-15"
 id = "S16"
 title = "Standalone: first boot to the main menu"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1.5
 model = "opus"
 depends = ["S1", "S2", "S3", "S4", "S5", "S6", "S6a", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"]
 files = ["src/standalone/*.cpp"]
 note = "Also needs S13a (world, terrain and sector destructors, database resets)."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S17"
