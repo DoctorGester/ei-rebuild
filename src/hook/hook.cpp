@@ -132,6 +132,38 @@ static bool HasRecorder(std::uintptr_t address) {
     return false;
 }
 
+// The body behind `code`'s incremental-link jump stubs (JMP rel32).
+static unsigned char* FollowJumpStubs(void* code) {
+    auto* p = static_cast<unsigned char*>(code);
+    for (int hops = 0; p[0] == 0xE9 && hops < 4; ++hops) p += 5 + *reinterpret_cast<const std::int32_t*>(p + 1);
+    return p;
+}
+
+// EI_RECORD_OURS in record mode: our replacement for the recorder's address starts with a JMP to the
+// recorder, so calls from our code (which never pass the game's address) run the original and are
+// recorded. Refused when another address's replacement has the same body (a folded function).
+static void RedirectOurs(const HookEntry* recorder) {
+    void* ours = PlainReplacement(recorder->address);
+    if (!ours) return;
+    unsigned char* body = FollowJumpStubs(ours);
+    for (HookEntry* h = g_hooks; h; h = h->next) {
+        if (h->address == recorder->address || h->verify || h->record || !h->replacement) continue;
+        if (FollowJumpStubs(h->replacement) == body) {
+            Log("recording %s: our replacement is shared with %s, our calls are not recorded", recorder->name, h->name);
+            return;
+        }
+    }
+    DWORD old = 0;
+    VirtualProtect(body, 5, PAGE_EXECUTE_READWRITE, &old);
+    body[0] = 0xE9;
+    std::int32_t rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(recorder->replacement) -
+                                                 (reinterpret_cast<std::uintptr_t>(body) + 5));
+    std::memcpy(body + 1, &rel, 4);
+    VirtualProtect(body, 5, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), body, 5);
+    Log("recording %s: our calls too (%p)", recorder->name, static_cast<void*>(body));
+}
+
 // Whether `code` (following incremental-link jump stubs) is MSVC's virtual-call thunk:
 // MOV EAX,[ECX] then JMP [EAX], JMP [EAX+disp8] or JMP [EAX+disp32].
 static bool IsVirtualCallThunk(const void* replacement) {
@@ -142,12 +174,23 @@ static bool IsVirtualCallThunk(const void* replacement) {
            (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0);
 }
 
-// The first entry registered for `address` whose replacement or wrapper is such a thunk.
+// Whether the thunk `replacement` has the same bytes as the original code at `original`
+// (5 with a disp8, 4 with [EAX], 8 with a disp32).
+static bool SameDispatch(const void* replacement, const unsigned char* original) {
+    const auto* code = static_cast<const unsigned char*>(replacement);
+    for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)
+        code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
+    const int size = code[3] == 0x20 ? 4 : code[3] == 0x60 ? 5 : 8;
+    return original && std::memcmp(code, original, size) == 0;
+}
+
+// The first entry registered for `address` whose replacement or wrapper is such a thunk
+// (EI_REPLACE_DISPATCH entries are meant to be).
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
     auto it = g_hooksByAddress.find(address);
     if (it == g_hooksByAddress.end()) return nullptr;
     for (const HookEntry* h : it->second)
-        if (IsVirtualCallThunk(h->replacement)) return h;
+        if (!h->dispatch && IsVirtualCallThunk(h->replacement)) return h;
     return nullptr;
 }
 
@@ -423,6 +466,11 @@ int InstallHooks() {
                 static_cast<unsigned>(h->address), thunk->name);
             continue;
         }
+        if (h->dispatch && !SameDispatch(h->replacement, orig)) {
+            Log("SKIP %s at %08X: its dispatch bytes differ from the original's", h->name,
+                static_cast<unsigned>(h->address));
+            continue;
+        }
         if (h->stolen > 0) {
             // In a patched function the stolen bytes may hold addon's JMP to its code: the
             // trampoline gets it re-targeted, so calling it still runs the patched original.
@@ -447,6 +495,7 @@ int InstallHooks() {
         Log(h->record ? "recording %s at %08X -> %p" : h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
             static_cast<unsigned>(h->address), h->replacement);
         g_installed.emplace_back(h->address, PlainReplacement(h->address));
+        if (h->recordOurs) RedirectOurs(h);
         ++installed;
     }
     text.Restore();

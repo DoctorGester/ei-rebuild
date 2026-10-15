@@ -7,35 +7,46 @@
 
 namespace mfc {
 
+// ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp): the
+// functions in the #ifndef blocks below. The other forwarders must not be called there.
+#ifndef EI_VECTORS_REPLAY
 // _afxPchNil: the shared empty-string data pointer.
 CString::CString() : data_(*reinterpret_cast<char**>(0x00796E48)) {}
 
 __declspec(naked) CString::CString(const char*) EI_ORIGINAL(0x007009DE)
+__declspec(naked) CString::CString(const char*, int) EI_ORIGINAL(0x006FD4DE)
 __declspec(naked) CString::CString(const CString&) EI_ORIGINAL(0x007006E5)
 __declspec(naked) CString::~CString() EI_ORIGINAL(0x00700970)
 __declspec(naked) const CString& CString::operator=(const char*) EI_ORIGINAL(0x00700AF9)
 __declspec(naked) const CString& CString::operator=(const CString&) EI_ORIGINAL(0x00700AA9)
+#endif
 
 __declspec(naked) void __cdecl CString::Format(const char*, ...) EI_ORIGINAL(0x006FDF5F)
 __declspec(naked) void CString::FormatV(const char*, va_list) EI_ORIGINAL(0x006FDC12)
+#ifndef EI_VECTORS_REPLAY
 __declspec(naked) CString CString::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) CString CString::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) CString CString::Mid(int) const EI_ORIGINAL(0x006FD9B4)
 __declspec(naked) CString CString::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
+#endif
 __declspec(naked) int CString::Remove(char) EI_ORIGINAL(0x006FD963)
 __declspec(naked) int CString::FindOneOf(const char*) const EI_ORIGINAL(0x00700ECC)
 __declspec(naked) int CString::ReverseFind(char) const EI_ORIGINAL(0x006FDBB7)
+#ifndef EI_VECTORS_REPLAY
 __declspec(naked) int CString::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 __declspec(naked) int CString::Find(const char*, int) const EI_ORIGINAL(0x006FDBE7)
 __declspec(naked) void CString::Empty() EI_ORIGINAL(0x007008FB)
+#endif
 __declspec(naked) char* CString::GetBufferSetLength(int) EI_ORIGINAL(0x00700E17)
 __declspec(naked) char* CString::GetBuffer(int) EI_ORIGINAL(0x00700DA0)
 __declspec(naked) void CString::ReleaseBuffer(int) EI_ORIGINAL(0x00700DEF)
 __declspec(naked) void CString::MakeUpper() EI_ORIGINAL(0x00700EFE)
 __declspec(naked) void CString::AssignChar(char) EI_ORIGINAL(0x006FD559)
 __declspec(naked) void CString::TrimRight(const char*) EI_ORIGINAL(0x006FE08A)
+#ifndef EI_VECTORS_REPLAY
 __declspec(naked) const CString& CString::operator+=(const CString&) EI_ORIGINAL(0x00700D88)
 __declspec(naked) const CString& CString::operator+=(const char*) EI_ORIGINAL(0x00700D4C)
+#endif
 
 __declspec(naked) CFile::CFile() EI_ORIGINAL(0x00701036)
 __declspec(naked) CFile::~CFile() EI_ORIGINAL(0x0070112B)
@@ -67,12 +78,14 @@ __declspec(naked) unsigned long CArchive::ReadCount() EI_ORIGINAL(0x00708B3D)
 __declspec(naked) void CArchive::WriteCount(unsigned long) EI_ORIGINAL(0x00708B0F)
 __declspec(naked) void CArchive::Flush() EI_ORIGINAL(0x007089D1)
 
+#ifndef EI_VECTORS_REPLAY
 __declspec(naked) CPlex* __stdcall PlexCreate(CPlex*&, unsigned, unsigned) EI_ORIGINAL(0x006FE8EF)
 __declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE90F)
 
 __declspec(naked) CString __stdcall operator+(const CString&, const char*) EI_ORIGINAL(0x00700C05)
 __declspec(naked) CString __stdcall operator+(const char*, const CString&) EI_ORIGINAL(0x00700C79)
 __declspec(naked) CString __stdcall operator+(const CString&, const CString&) EI_ORIGINAL(0x00700B9F)
+#endif
 
 // AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the destructor.
 __declspec(naked) ExceptionLink::ExceptionLink() EI_ORIGINAL(0x007020F1)

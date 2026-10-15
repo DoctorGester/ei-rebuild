@@ -29,6 +29,8 @@ rem compiled code (not in the debug build, whose code is unoptimised).
 set SHORTMAP=--map "%~dp0build\%CFG%\ei_hook.map"
 if /i "%CFG%"=="debug" set SHORTMAP=
 python "%~dp0tools\check_short_functions.py" %SHORTMAP% || exit /b 1
+rem The standalone image's static initialisers (src/standalone/static_init.cpp) against game.exe's.
+python "%~dp0tools\check_static_init.py" || exit /b 1
 rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
 "%~dp0build\%CFG%\ei_vectors.exe" || exit /b 1
 echo Built: %~dp0build\%CFG%

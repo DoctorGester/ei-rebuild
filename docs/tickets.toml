@@ -734,10 +734,11 @@ done = "2026-10-15"
 id = "SV4b"
 title = "Function vectors: parsers and the LZ coder"
 group = "verification"
-status = "running"
+status = "done"
 depends = ["SV4"]
 note = "SV4 families with buffer inputs: the script parser (script_parse*.cpp) and the LZ coder. Payloads need variable-size input/output (the .vec format is fixed-size per function: add a length-prefixed variant or cap the buffer), and the replay must build the parser's objects outside the game."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV4c"
@@ -879,6 +880,16 @@ status = "queued"
 size = 2
 depends = ["SV5"]
 note = "The coverage list's largest uncovered area is network play: net_messages.cpp (117 functions), net_client_handlers, net_link, net_lobby, net_connection, ui_connect_screen, player_server_handlers, world_game's multiplayer zone switch and ServerSession. The harness starts only the lobby (standalone-verification.md, 'Multiplayer is not covered'). A second game joining the first (harness_net.h gives each game its own port) would reach them; then golden runs for both clients."
+
+[[ticket]]
+id = "SV4b1"
+title = "Function vectors: the script loader (CScript::Load*)"
+group = "verification"
+status = "queued"
+size = 0.5
+depends = ["SV4b"]
+files = ["src/game/script_parse.cpp", "tests/vectors/record_script.cpp", "tests/vectors/replay_script.cpp"]
+note = "SV4b covers the lexer (ClassifyToken, Tokenize, ApplyDefines, FunctionSignature, KeywordName). Still missing: CScript::Load / LoadFunction / LoadCommands and ExpectLexeme. The replay has to build a CScript and its CArrays (MFC CArray in tests/vectors/replay_mfc.cpp) outside the game, and the record must capture the script's tables after loading (hash). Also re-record KeywordName (1 distinct call) and Tokenize sources of 1-16 KB (none recorded) from more scenarios."
 
 [[ticket]]
 id = "SV3e"
@@ -1470,11 +1481,12 @@ done = "2026-10-15"
 id = "S3"
 title = "Standalone: the 748 static initialisers, generated"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["tools/gen_static_init.py", "src/standalone/static_init.cpp"]
 note = "The .data list 00783004-00783BB0. A generator turns the 15 patterns (guarded atexit, stores, float folds, constructor + atexit) into C++ run in list order before WinMain in the standalone build; the 30 or so others by hand. Check: a verify-build start-up check evaluates the generated stores and float folds against what the original's initialisers left in memory at WinMain. No dependency."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S4"
@@ -1593,11 +1605,12 @@ note = "Sites that read the exe's code bytes (the camera call target 00457595, a
 id = "S15"
 title = "Harness: run_all --standalone"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 0.5
 depends = ["S1"]
 files = ["tools/launcher/launch.cpp", "tools/run_all.py", "tools/work.py"]
 note = "ei_launch starts ei_standalone.exe with the same environment, output folder and harness; work.py test passes it through; a boot scenario that reaches the main menu and exits."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S16"
@@ -1635,11 +1648,12 @@ note = "Generated definitions for the 3,601 data addresses, vtables as real virt
 id = "S1a"
 title = "Registrations the image skips or doubles"
 group = "standalone"
-status = "running"
+status = "done"
 size = 0.5
 files = ["src/game/effects.cpp", "src/game/map_spec.cpp", "src/game/ai_path.cpp"]
 note = "From S1's check run: three registrations through a virtual-call thunk are skipped in both builds (CEffect::DestroyEffect 00675D40, Spec::SpecRefresh 00469E00, Spec::SpecRemove 00469DE0): register non-virtual shims so the image (and the hook build) get them. Three addresses are registered twice with different functions (00558CA0 CountedRefDelete / AIRefDelete, 00558CC0 CallRecordDelete / AICallRecordDelete, 0054EAC0 PathConstructSteps / AIPath::ConstructSteps): keep one. No dependency. Where (the files field is a guess): map_spec.cpp, world_effect.cpp, ai_path_cells.cpp, combat_small_records.cpp, world_deleting_destructors.cpp."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S2a"
@@ -1649,6 +1663,22 @@ status = "later"
 size = 0.5
 files = ["src/game/short_functions.cpp", "tools/gen_short_functions.py"]
 note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis, reading the object as dwords (the vtable each sits in is named in the comment). Where the class is declared in src/game, register a member getter instead (EI_REPLACE_SHORT with a method) and drop the generic one; gen_short_functions.py then skips it as ported elsewhere only if the check accepts EI_REPLACE_SHORT on methods. Cleanup only, no effect on the image."
+
+[[ticket]]
+id = "S3a"
+title = "Standalone: the static initialisers' exit functions"
+group = "standalone"
+status = "queued"
+depends = ["S3"]
+note = "130 of the 311 functions the static initialisers register with atexit have no code in the image (the standalone check logs them: 'exit function ... has no code yet'). Patterns: 83 'mov ecx, obj; jmp dtor', guarded variants (test/or of a flag bit, then the same), 14 'free the buffer at [p]-4 if set' (operator delete), refcount releases, eh vector destructor iterator, a WSACleanup loop. Extend tools/gen_static_init.py (conditional branches) or port by hand like src/game/atexit_400.cpp; registered with EI_REPLACE they also run at exit in the hook build. docs/notes/standalone.md S3."
+
+[[ticket]]
+id = "S3b"
+title = "Standalone: constructors only the static initialisers call"
+group = "standalone"
+status = "queued"
+depends = ["S3"]
+note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3."
 
 # ---------------------------------------------------------------- Lua
 

@@ -61,8 +61,19 @@ Sampler::Sampler(const char* family, const char* function, std::uint32_t payload
 }
 
 void Sampler::Offer(const void* payload, std::uint16_t controlWord, unsigned bucket, bool dedupe) {
+    Keep(payload, payloadSize_, controlWord, bucket, dedupe);
+}
+
+void Sampler::OfferBytes(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket,
+                         bool dedupe) {
+    Keep(payload, size, controlWord, bucket, dedupe);
+}
+
+// A record: the RecordHeader, the byte count for a variable-size sampler, then the payload.
+void Sampler::Keep(const void* payload, std::uint32_t size, std::uint16_t controlWord, unsigned bucket, bool dedupe) {
     if (bucket >= buckets_) bucket = buckets_ - 1;
     RecordHeader header{controlWord, static_cast<std::uint8_t>(bucket), 0};
+    const bool variable = payloadSize_ == kVariableSize;
     AcquireSRWLockExclusive(&g_lock);
     if (!state_) {
         state_ = new State;
@@ -72,7 +83,9 @@ void Sampler::Offer(const void* payload, std::uint16_t controlWord, unsigned buc
     ++s.calls;
     bool fresh = true;
     if (dedupe) {
-        std::uint64_t h = Hash(payload, payloadSize_, Hash(&header, sizeof(header), 0xCBF29CE484222325ull));
+        std::uint64_t h = Hash(&header, sizeof(header), 0xCBF29CE484222325ull);
+        if (variable) h = Hash(&size, sizeof(size), h);
+        h = Hash(payload, size, h);
         if (s.seen.count(h))
             fresh = false;
         else if (s.seen.size() < kMaxRemembered)
@@ -84,9 +97,11 @@ void Sampler::Offer(const void* payload, std::uint16_t controlWord, unsigned buc
         std::size_t slot = b.kept.size();
         if (slot >= cap_) slot = static_cast<std::size_t>(s.Next() % b.offered);
         if (slot < cap_) {
-            std::vector<unsigned char> record(sizeof(header) + payloadSize_);
+            const std::size_t prefix = sizeof(header) + (variable ? sizeof(size) : 0);
+            std::vector<unsigned char> record(prefix + size);
             std::memcpy(record.data(), &header, sizeof(header));
-            std::memcpy(record.data() + sizeof(header), payload, payloadSize_);
+            if (variable) std::memcpy(record.data() + sizeof(header), &size, sizeof(size));
+            std::memcpy(record.data() + prefix, payload, size);
             if (slot == b.kept.size())
                 b.kept.push_back(std::move(record));
             else

@@ -9,6 +9,7 @@
 #include "game_strings.h"
 #include "script_parse.h"
 #include "script_addon.h"
+#include "game_data.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -28,17 +29,27 @@
 namespace scriptparse {
 
 int __cdecl IsDigit(int c) { return gamecrt::isdigit(c); }
-__declspec(naked) int __cdecl IsSpace(int) EI_ORIGINAL(0x006E93CE)
+int __cdecl IsSpace(int c) { return gamecrt::isspace(c); }
 int __cdecl Mbscmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 
-StringOps* StringOps::InitN(const char* a0, int a1) { return static_cast<StringOps*>(CStringConstructCountOriginal(this, nullptr, a0, a1)); }
+StringOps* StringOps::InitN(const char* text, int length) {
+    new (this) mfc::CString(text, length);
+    return this;
+}
 __declspec(naked) char* StringOps::LockBuffer() EI_ORIGINAL(0x00700E6A)
 __declspec(naked) void StringOps::UnlockBuffer() EI_ORIGINAL(0x00700E7C)
 
-// Through the original addresses (Rebirth patches the keyword lookups).
+// Through the original addresses (Rebirth patches the keyword lookups). ei_vectors has no game and
+// no Rebirth: ours.
+#ifndef EI_VECTORS_REPLAY
 __declspec(naked) void __fastcall ClassifyAt(const char*, int*, int*) EI_ORIGINAL(0x004CF600)
 __declspec(naked) const char* __fastcall SignatureAt(int, int) EI_ORIGINAL(0x004D0B10)
 __declspec(naked) const char* __fastcall KeywordNameAt(int) EI_ORIGINAL(0x004D0BA0)
+#else
+void __fastcall ClassifyAt(const char* text, int* id, int* rest) { ClassifyToken(text, id, rest); }
+const char* __fastcall SignatureAt(int id, int type) { return FunctionSignature(id, type); }
+const char* __fastcall KeywordNameAt(int id) { return KeywordName(id); }
+#endif
 
 } // namespace scriptparse
 
@@ -47,10 +58,10 @@ using namespace scriptparse;
 namespace {
 
 // Lexer constants (pointers and the quote character are data in game.exe).
-char QuoteChar() { return *reinterpret_cast<const char*>(0x0078BC98); }                     // '"'
-const char* CommentOpen() { return *reinterpret_cast<const char* const*>(0x0078BC8C); }     // "/*"
-const char* CommentClose() { return *reinterpret_cast<const char* const*>(0x0078BC90); }    // "*/"
-const char* LineComment() { return *reinterpret_cast<const char* const*>(0x0078BC94); }     // "//"
+char QuoteChar() { return ei::GameData<const char>(0x0078BC98); }                     // '"'
+const char* CommentOpen() { return ei::GameData<const char* const>(0x0078BC8C); }     // "/*"
+const char* CommentClose() { return ei::GameData<const char* const>(0x0078BC90); }    // "*/"
+const char* LineComment() { return ei::GameData<const char* const>(0x0078BC94); }     // "//"
 
 // Takes a node from the list's free chain, carving a block of `blockSize` nodes when it is empty
 // (CList::NewNode as the game inlines it). Shared by the token and define lists (16-byte nodes).
@@ -103,7 +114,7 @@ const ScriptKeyword* KeywordTable() {
     // rewrites that immediate to point at its extended table (and the other references the same
     // way). With the flag on, the extended table is ours (script_addon.cpp).
     if (scriptaddon::Enabled()) return scriptaddon::Table();
-    return *reinterpret_cast<const ScriptKeyword* const*>(0x004CF69B);
+    return ei::GameData<const ScriptKeyword* const>(0x004CF69B);
 }
 
 void __fastcall ClassifyToken(const char* text, int* id, int* rest) {

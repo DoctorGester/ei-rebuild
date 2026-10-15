@@ -23,7 +23,9 @@ struct HookEntry {
     void** original = nullptr; // receives the trampoline (original function) address
     bool verify = false;      // verification wrapper: takes precedence over a plain replacement
     bool record = false;      // vector recorder (EI_RECORD): installed only in record mode, then alone
-    bool shortFunction = false; // EI_REPLACE_SHORT: installed in the standalone image only
+    bool recordOurs = false;  // EI_RECORD_OURS: our replacement's own entry leads to the recorder too
+    bool shortFunction = false; // EI_REPLACE_SHORT / EI_REPLACE_DISPATCH: installed in the standalone image only
+    bool dispatch = false;      // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -40,10 +42,12 @@ struct HookRegistrar {
 // at its address; otherwise it is not installed.
 struct RecordRegistrar {
     HookRegistrar registrar;
-    RecordRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original)
+    RecordRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original,
+                    bool ours = false)
         : registrar(address, recorder, name, stolen, original) {
         registrar.entry.verify = false;
         registrar.entry.record = true;
+        registrar.entry.recordOurs = ours;
     }
 };
 
@@ -55,6 +59,19 @@ struct ShortRegistrar {
     ShortRegistrar(std::uintptr_t address, void* replacement, const char* name)
         : registrar(address, replacement, name) {
         registrar.entry.shortFunction = true;
+    }
+};
+
+// A game function that is itself a bare vtable dispatch (MOV EAX,[ECX]; JMP [EAX+n]) to another slot:
+// the replacement is compiled to the same bytes. The hook build leaves it to the original (an
+// identical jump); the standalone image jumps to the replacement, and the installer checks that its
+// dispatch bytes equal the original's.
+struct DispatchRegistrar {
+    HookRegistrar registrar;
+    DispatchRegistrar(std::uintptr_t address, void* replacement, const char* name)
+        : registrar(address, replacement, name) {
+        registrar.entry.shortFunction = true;
+        registrar.entry.dispatch = true;
     }
 };
 
@@ -118,6 +135,11 @@ void InstallHooksAtWinMain();
 #define EI_REPLACE_METHOD(addr, method) \
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
+// Register a method whose body is a tail call through the vtable, the same dispatch as the original's
+// own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar. Standalone image only.
+#define EI_REPLACE_DISPATCH(addr, method) \
+    static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
+
 // Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
 #define EI_REPLACE_SHORT(addr, fn) \
     static ::ei::ShortRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
@@ -134,6 +156,12 @@ void InstallHooksAtWinMain();
 // Verification build only (tests/vectors/record_*.cpp): in record mode route `addr` to `recorder`,
 // which calls the original through `orig` (stolen bytes as for EI_VERIFY).
 #define EI_RECORD(addr, recorder, stolen, orig)     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
+
+// EI_RECORD for a function whose callers are rewritten (they call our replacement directly, never the
+// address): in record mode our replacement's entry also jumps to the recorder, so their calls run the
+// original and are recorded too. Only for replacements of at least 5 bytes not shared with another
+// function.
+#define EI_RECORD_OURS(addr, recorder, stolen, orig)     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig), true)
 
 // Verification build only: run `fn` (void()) once when the hooks have been installed.
 #define EI_STARTUP_CHECK(fn) static ::ei::StartupCheckRegistrar EI_CAT(ei_startup_, __LINE__)(&fn, #fn)

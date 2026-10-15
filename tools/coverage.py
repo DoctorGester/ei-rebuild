@@ -82,7 +82,7 @@ def sources(pattern):
 def rewrites():
     """address -> (name, file) of every EI_REPLACE / EI_REPLACE_METHOD with a literal address."""
     found = {}
-    rx = re.compile(r'\bEI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*&?\s*([^)\s]+)\s*\)')
+    rx = re.compile(r'\bEI_REPLACE(?:_METHOD|_DISPATCH)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*&?\s*([^)\s]+)\s*\)')
     for path, text in sources('src/**/*.cpp'):
         for m in rx.finditer(text):
             found.setdefault(int(m.group(1), 16), (m.group(2), path))
@@ -139,7 +139,7 @@ def recorders():
                 end += 1
             return text[start.end():end]
 
-        for m in re.finditer(r'\bEI_RECORD\(\s*0x([0-9A-Fa-f]{8})\s*,\s*(\w+)\s*,', text):
+        for m in re.finditer(r'\bEI_RECORD(?:_OURS)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*(\w+)\s*,', text):
             words = re.findall(r'\w+', body(m.group(2)))
             used = [w for w in words if w in names]
             if not used:   # a shared helper that names the sampler itself

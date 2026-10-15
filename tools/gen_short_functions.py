@@ -81,7 +81,7 @@ def game_functions():
     return {int(r['address'], 16) for r in rows if r['kind'] == 'game'} - csv_addresses('library.csv') - csv_addresses('dead_code.csv')
 
 
-REGISTERED = re.compile(r'\b(?:EI_REPLACE(?:_METHOD)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
+REGISTERED = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)')
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
 

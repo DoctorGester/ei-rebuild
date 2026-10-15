@@ -38,6 +38,8 @@ add_library(ei_hook SHARED
     src/hook/profile.cpp
     src/hook/rebirth_hook.cpp
     src/hook/standalone.cpp
+    src/standalone/static_init.cpp
+    src/standalone/static_init_run.cpp
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)
@@ -65,10 +67,13 @@ add_executable(ei_vectors
     ${EI_REPLAY_SOURCES}
     tests/vectors/hook_stub.cpp
     src/game/core_maths.cpp
+    src/game/game_buffer.cpp
     src/game/maths.cpp
     src/game/matrix_math.cpp
+    src/game/net_coder.cpp
     src/game/quaternion.cpp
     src/game/random.cpp
+    src/game/script_parse.cpp
     src/game/unit_hit_location.cpp
     src/game/unit_params_protection.cpp
     src/game/unit_params_skill.cpp

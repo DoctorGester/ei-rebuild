@@ -23,16 +23,33 @@ HEADER = struct.Struct('<8I64s')   # magic, version, payloadSize, count, cap, re
 
 
 def read(path):
-    """(function, payload size, cap, [record bytes]) of a .vec file."""
+    """(function, payload size, cap, [record bytes]) of a .vec file. Payload size 0 (variable): a
+    record's 4-byte header is followed by the payload's byte count (uint32) and the bytes."""
     data = open(path, 'rb').read()
     magic, version, size, count, cap, _, _, _, name = HEADER.unpack_from(data)
     if magic != MAGIC or version != VERSION:
         raise SystemExit(f'{path}: not a version {VERSION} vector file')
-    stride = 4 + size
-    records = [data[HEADER.size + i * stride:HEADER.size + (i + 1) * stride] for i in range(count)]
-    if any(len(r) != stride for r in records):
+    records, at = [], HEADER.size
+    for _ in range(count):
+        if size:
+            stride = 4 + size
+        elif at + 8 <= len(data):
+            stride = 8 + struct.unpack_from('<I', data, at + 4)[0]
+        else:
+            raise SystemExit(f'{path}: shorter than its {count} records')
+        records.append(data[at:at + stride])
+        at += stride
+    if at > len(data):
         raise SystemExit(f'{path}: shorter than its {count} records')
     return name.split(b'\0', 1)[0].decode(), size, cap, records
+
+
+def shown(path):
+    """`path` relative to the checkout when it is inside it."""
+    try:
+        return os.path.relpath(path, ROOT)
+    except ValueError:   # another drive
+        return path
 
 
 def write(path, function, size, cap, records):
@@ -78,7 +95,7 @@ def merge(args):
             unique = by_bucket[bucket]
             kept += [unique[h] for h in sorted(unique)[:cap]]
         write(out, function, size, cap, kept)
-        print(f'{os.path.relpath(out, ROOT)}: {function}, {len(kept)} records '
+        print(f'{shown(out)}: {function}, {len(kept)} records '
               f'({len(records)} recorded, {sum(len(u) for u in by_bucket.values())} distinct)')
 
 
@@ -87,7 +104,8 @@ def show(args):
         function, size, cap, records = read(path)
         buckets = collections.Counter(r[2] for r in records)
         words = collections.Counter(struct.unpack_from('<H', r)[0] for r in records)
-        print(f'{path}: {function}, {len(records)} records of {size} bytes, cap {cap}; buckets '
+        shape = f'of {size} bytes' if size else f'of {min((len(r) - 8 for r in records), default=0)}-{max((len(r) - 8 for r in records), default=0)} bytes ({sum(len(r) for r in records)} in all)'
+        print(f'{path}: {function}, {len(records)} records {shape}, cap {cap}; buckets '
               + ', '.join(f'{b}: {n}' for b, n in sorted(buckets.items()))
               + '; control words ' + ', '.join(f'{w:04X}: {n}' for w, n in sorted(words.items())))
 
