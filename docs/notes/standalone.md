@@ -735,6 +735,19 @@ done: the objectives window's CString sort 0064F310 / 0064F9A0 / 0064FBD0 (its c
 strings and looks them up in the quest map 007C87B4, allocating on every call) and the save list's
 SaveEntry sort 00657DF0 / 00657F10 with copy_backward 00657D50 (its copies allocate CStringArrays).
 
+**S12b group 2.** STLport pair members (src/lib/stlp_pair.*, `PairAbi`), 10 addresses: the dword
+pairs' constructor 00407DE0 / 0040A9D0, pair<string, dword>(const string&, const dword&) 005729D0
+00689950 006BC140 0064F880 006A7710 (one body; 0064F880 is reached from the objectives window's
+quest sort, still the original's), pair<string, string>(const string&, const string&) 00445170
+(library.csv calls it the copy constructor), its destructor 00445040 (the second string first; the
+row's name is "unreviewed family") and scalar deleting destructor 004457F0. Checks
+(tests/verify/verify_stlp_pair.cpp): the dword pairs against the original into a scratch pair; the
+string pairs' constructors original first, its blocks back on their free lists (the last allocated
+first), then ours (same blocks, words, bytes, dword); the destructors ours only (the first string's
+pool block on top of its free list; 004457F0 starts with a CALL inside five bytes, so no trampoline).
+smoke, console, camera, combat, ui_objectives, ui_saveload, harness_digest with goldens: 14 the
+same, 0 mismatches; 0040A9D0, 00689950, 0064F880 and 004457F0 not reached.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

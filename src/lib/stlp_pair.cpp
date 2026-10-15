@@ -1,0 +1,55 @@
+// STLport pair constructors and destructors at their addresses (stlp_pair.h).
+#include "stlp_pair.h"
+
+#include "crt.h"
+
+#include "ei/hook.h"
+
+#include <new>
+
+namespace stlp {
+
+DwordPair* __fastcall PairAbi::ConstructDwords(DwordPair* self, void*, const std::uint32_t* first, const std::uint32_t* second) {
+    self->first = *first;
+    self->second = *second;
+    return self;
+}
+
+StringDwordPair* __fastcall PairAbi::ConstructStringDword(StringDwordPair* self, void*, const string* first,
+                                                          const std::uint32_t* second) {
+    new (&self->first) string(*first);
+    self->second = *second;
+    return self;
+}
+
+StringPair* __fastcall PairAbi::ConstructStrings(StringPair* self, void*, const string* first, const string* second) {
+    new (&self->first) string(*first);
+    new (&self->second) string(*second);
+    return self;
+}
+
+void __fastcall PairAbi::DestroyStrings(StringPair* self) {
+    self->second.~string();
+    self->first.~string();
+}
+
+StringPair* __fastcall PairAbi::DeletingDestructor(StringPair* self, void*, unsigned flags) {
+    DestroyStrings(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+
+} // namespace stlp
+
+using stlp::PairAbi;
+
+EI_REPLACE(0x00407DE0, PairAbi::ConstructDwords);
+EI_REPLACE(0x0040A9D0, PairAbi::ConstructDwords);
+EI_REPLACE(0x005729D0, PairAbi::ConstructStringDword);
+EI_REPLACE(0x00689950, PairAbi::ConstructStringDword);
+EI_REPLACE(0x006BC140, PairAbi::ConstructStringDword);
+EI_REPLACE(0x0064F880, PairAbi::ConstructStringDword);
+EI_REPLACE(0x006A7710, PairAbi::ConstructStringDword);
+EI_REPLACE(0x00445170, PairAbi::ConstructStrings);
+EI_REPLACE(0x00445040, PairAbi::DestroyStrings);
+EI_REPLACE(0x004457F0, PairAbi::DeletingDestructor);
