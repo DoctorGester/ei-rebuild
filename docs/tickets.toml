@@ -502,6 +502,14 @@ size = 0.4
 model = "sonnet"
 note = "From F3 (2026-10-15): CBattleScreen (ui.h) and CBattleScreenSetup (ui_camp.h) describe the same object twice (merge them); CUiMesh repeats CFigureMesh's layout up to +0x220 (derive); ui_window.cpp still writes raw SetDword offsets (+0xF4 and others); tests' unknown fields (verify_map_object ClientSound, verify_script_load LoadStream::unknown_04) that check_cleanup does not count. Groupings change here, so Opus if a signature moves."
 
+[[ticket]]
+id = "F3b"
+title = "Interface typed views after F3a"
+group = "fields"
+size = 0.3
+model = "sonnet"
+note = "From F3a (2026-10-16): the HUD reaches the message log as children_.data[9] (ui_battle_commands, ui_battle_setup, ui_hud_panels, ui_hud_top_panel) instead of CBattleScreen::messageLog_; the battle tests view CBattleScreen::party_ as a UiDwordArray; ui_briefing.h's party is still a UiDwordArray; CUiWindow repeats CTransformObject's first 0x54 bytes (derive if the vtable and constructor allow)."
+
 # ---------------------------------------------------------------- standalone verification
 
 [[ticket]]
