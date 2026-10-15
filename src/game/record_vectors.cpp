@@ -47,3 +47,9 @@ EI_REPLACE(0x006D26E0, PrintVector::ResizeDefault);           // 0x28
 EI_REPLACE(0x006D2830, Print2Vector::ResizeDefault);          // 0x34
 EI_REPLACE(0x006E4560, SpeechVector::ResizeDefault);          // 0x28
 EI_REPLACE(0x006E47F0, EnvironmentSpeechVector::ResizeDefault);   // 0x2C
+
+// The client's lobby queries (net_lobby.cpp).
+EI_REPLACE(0x004439C0, QueryVector::InsertOverflow);   // 0x2C
+EI_REPLACE(0x00443BF0, QueryVector::Assign);
+EI_REPLACE(0x004442B0, QueryVector::EraseRange);
+EI_REPLACE(0x00444090, QueryVector::ResizeDefault);

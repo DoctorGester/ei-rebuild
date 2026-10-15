@@ -165,6 +165,29 @@ struct EnvironmentSpeechText {
     static std::string Of(const acks::EnvironmentSpeech& r) { return SpeechOf(r.speech); }
 };
 
+// The lobby's queries: the address's bytes, the reply buffer's offsets, flags and bytes.
+struct QueryText {
+    static std::string Of(const net::Query& r) {
+        std::string text;
+        char byte[48];
+        const auto* address = reinterpret_cast<const std::uint8_t*>(&r.address);
+        for (std::size_t i = 0; i < sizeof(r.address); ++i) {
+            std::snprintf(byte, sizeof(byte), "%02X", address[i]);
+            text += byte;
+        }
+        const GameBuffer& b = r.reply;
+        std::snprintf(byte, sizeof(byte), "|%d,%d,%d,%u|", static_cast<int>(b.cur - b.begin),
+                      static_cast<int>(b.high - b.begin), static_cast<int>(b.end - b.begin), b.flags);
+        text += byte;
+        for (const std::uint8_t* p = b.begin; p && p < b.high; ++p) {
+            std::snprintf(byte, sizeof(byte), "%02X", *p);
+            text += byte;
+        }
+        return text;
+    }
+};
+
+template <std::uintptr_t A> using Queries = ModelCheck<A, QueryVector, QueryText>;
 template <std::uintptr_t A> using Prints = ModelCheck<A, PrintVector, PrintText<PrintRecord>>;
 template <std::uintptr_t A> using Prints2 = ModelCheck<A, Print2Vector, PrintText<PrintRecord2>>;
 template <std::uintptr_t A> using Speeches = ModelCheck<A, SpeechVector, SpeechText>;
@@ -228,3 +251,9 @@ EI_VERIFY(0x006D26E0, Prints<0x006D26E0>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006D2830, Prints2<0x006D2830>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006E4560, Speeches<0x006E4560>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006E47F0, EnvironmentSpeeches<0x006E47F0>::ResizeDefault, 0, s_unused);
+
+// The lobby's queries (the multiplayer server list).
+EI_VERIFY(0x004439C0, Queries<0x004439C0>::InsertOverflow, 0, s_unused);
+EI_VERIFY(0x00443BF0, Queries<0x00443BF0>::Assign, 0, s_unused);
+EI_VERIFY(0x004442B0, Queries<0x004442B0>::EraseRange, 0, s_unused);
+EI_VERIFY(0x00444090, Queries<0x00444090>::ResizeDefault, 0, s_unused);

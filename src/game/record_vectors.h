@@ -8,6 +8,7 @@
 #include "acks_db.h"
 #include "item_db.h"
 #include "model.h"
+#include "net_classes.h"
 #include "quest_records.h"
 #include "record_members.h"
 #include "unit_db.h"
@@ -269,6 +270,27 @@ struct EnvironmentSpeechElement {
 
 using SpeechVector = stlp::VectorAbi<SpeechRecord, SpeechElement>;
 using EnvironmentSpeechVector = stlp::VectorAbi<acks::EnvironmentSpeech, EnvironmentSpeechElement>;
+
+// ---- The client's lobby queries (net_classes.h; net_lobby.cpp's 004439C0 00443BF0 004442B0 00444090)
+
+// A query: the copy constructor 00444270, the copy loop's assignment (the address, then the
+// reply buffer's 004DAA80), the default of 00443770 (a zero address, an empty growing buffer) and
+// the destructor (the reply buffer's 004DA910).
+struct QueryElement {
+    using R = net::Query;
+    static void Construct(R* to, const R& from) { to->QueryCopy(&from); }
+    static void Assign(R& to, const R& from) {
+        to.address = from.address;
+        to.reply.AssignFrom(&from.reply);
+    }
+    static void Default(R* p) {
+        std::memset(&p->address, 0, sizeof(p->address));
+        p->reply.ConstructGrowing();
+    }
+    static void Destroy(R* p) { p->reply.DestructGrowing(); }
+};
+
+using QueryVector = stlp::VectorAbi<net::Query, QueryElement>;
 
 // ---- The quest database (quest_records.h) ------------------------------------------------------
 
