@@ -73,6 +73,10 @@ void __stdcall ThrowOsError(long osError, const char* fileName);                
 void __stdcall ThrowArchiveException(int cause, const char* fileName);             // 0070A835
 // AfxThrowNotSupportedException: MFC's one static CNotSupportedException (not auto-deleted).
 void __stdcall ThrowNotSupported();                                                // 006FE3A2
+// AfxThrowMemoryException: MFC's one static CMemoryException (not auto-deleted).
+__declspec(noreturn) void __stdcall ThrowMemoryException();                         // 006FE389
+// AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
+__declspec(noreturn) void __stdcall ThrowResourceException();                       // 0070A29E
 
 // GetRuntimeClass of the two exception classes (their CRuntimeClass in the exe's data).
 void* __fastcall FileExceptionRuntimeClass(const void* self);     // 0070CF4C
