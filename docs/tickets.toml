@@ -781,11 +781,12 @@ note = "From SV3: harness_saves/<save>/mission.sav (size and bytes) differs betw
 id = "SV3c"
 title = "Rebirth with the flags off parts from addon's code at world update 40"
 group = "verification"
-status = "running"
+status = "done"
 size = 0.5
 files = ["tools/golden.py"]
 note = "From SV3: EI_REBIRTH=FollowAddon=0 (flags off; the rewrites of what addon.dll patches are not installed) on the Rebirth install, against the Rebirth goldens (addon's code alone, which ours with the flags on matches): all five (console, harness_digest, items, script_parse, ui_help) differ from the first record after the new game, world update 40: isaac.count 172 against 169, three more ISAAC draws. Something ours runs with a flag off while addon.dll's patch is active elsewhere (a flag consulted outside the patched function, or an EI_Plugin feature). Find it with randtrace on both (set EI_HARNESS_CLOCK=virtual,randtrace) and golden.py diff; check with: set EI_REBIRTH=FollowAddon=0 & python tools\\work.py test <ID> --rebirth-only --golden console items."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV4d"
@@ -812,10 +813,11 @@ done = "2026-10-15"
 id = "SV1j"
 title = "Harness: a screen step's answer lands in the step's frame or the next by real time"
 group = "verification"
-status = "review"
+status = "done"
 model = "opus"
 note = "From SV1g: in ui_view_screen the screen 7 step's switch (which stops the playing sounds) ran inside the step at virtual 1001500 in most verify runs and one frame later (1001550) in plain runs, but not always either way; the sounds' ends then decide whether Terrain::PlayAmbience draws, and the traces part (also ui_trade_hold, trader_stock, ui_camp, ui_describe, ui_global_map_pick, world, spells_hero, script_exec, effects_bow, ui_quick_items). Find what real time the server's answer to GameRequestScreen (00578B00) waits on and make it land in a fixed frame on the virtual clock. The randtrace notes (clock frame time, sound stopped / ended by the game) show it."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV1k"
@@ -928,6 +930,14 @@ group = "verification"
 status = "queued"
 size = 0.5
 note = "From SV3d: the original repeats, ours differs from it in crt.rand: sound (ours repeats; console line 32 an extra 'Unit 1000012714 was attacked by 1000011214' line, digests part at update 100 in crt.rand; SV1b saw a FindAnimation pick one frame earlier in ours at 272), zone_gz2g_traps (@120 crt.rand; ours' own runs part at 80 in isaac.count, maybe SV1j), models (@100 crt.rand, ours alternates between the original's value and another). Use randtrace on both sides after SV1j lands."
+
+[[ticket]]
+id = "SV3c1"
+title = "Build check: no direct calls to rewrites of Rebirth-patched functions (rule 9)"
+group = "verification"
+status = "queued"
+size = 0.5
+note = "From SV3c: GameRender called our CWorldClient::Render directly, so flags off ran the vanilla terrain radius while addon's patched 00569E40 was due; a one-off scan found three more (fixed). Make it a check: capstone over ei_hook.dll .text, follow incremental-link thunks, call/jmp targets that are the replacement of an address in docs/rebirth-patched-functions.txt, callers named from ei_hook.map; allow verify wrappers, self-calls, the script parser/evaluator family (one flag) and calls the original inlines (ProcessRequest -> StartNewGame, CMMIOResource::Destroy -> CMappedResource::Destroy). The scratch version took 47 s (undecorating the whole map): undecorate only the target and caller symbols. Inlined calls stay unseen (a source grep for small patched functions covers those)."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1440,11 +1450,12 @@ note = "ei_standalone.exe linked at 0x200000 (fixed), reserving 0x400000-0x7D700
 id = "S2"
 title = "Standalone: the 201 unported functions under five bytes"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["src/game/short_functions.cpp", "include/ei/hook.h", "src/hook/hook.cpp", "tools/gen_short_functions.py"]
 note = "All 201 left are under 5 bytes (ret, xor eax,eax; ret, ret 4, ...); 154 are vtable slots. Port them (generated from their bytes where the pattern is plain), registered with a short-function flag: the hook build skips them as now, the standalone image stubs them (each has 5 bytes of room). Check: a tool compares each port's kind with the exe's bytes. No dependency. S1 found: the 67 rewritten short functions (and 83 registrations at starts the size table does not know) already get jumps in the image; this ticket is about the 201 with no rewrite."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S3"

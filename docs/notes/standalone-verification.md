@@ -327,8 +327,7 @@ party_records, render_movie, render_movie_present, render_scene, render_terrain,
 sandbox_actions, script_copy, script_parse, script_quest, smoke, spells_cast, ui_battle_spells, ui_container_input,
 ui_help, ui_hero_delete, ui_hero_screen, ui_hero_stats, ui_main_menu, ui_objectives, ui_options_bind, ui_order_move,
 ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, unit_create, world_load. Rebirth 5: console, harness_digest, items, script_parse, ui_help. Rebirth with the flags off
-(`set EI_REBIRTH=FollowAddon=0`): all five differ from the Rebirth golden at world update 40 (three more ISAAC draws;
-SV3c), so that configuration has no passing golden yet.
+(`set EI_REBIRTH=FollowAddon=0`): all ten Rebirth goldens hold too since SV3c (below).
 
 **Speed 10:** 28 of the 37 vanilla goldens' scenarios (and 4 of the 5 Rebirth ones) have `speed 10`, whose handling on the virtual clock SV1i
 changes; their goldens are recorded with the old handling and need recording again after SV1i (the same four suites
@@ -727,3 +726,24 @@ OnUnitLeft, SoundStreamRead, speech and attack-param groups).
 - Open: ui_base_dialogue (Smith has no topics, T2a), a hero attack on a removed target gives a
   PlayerMode::UpdateCombat mismatch (T2b), goldens to record again (T2d), rebirth_flags'
   `DistancePointPoint(3,4)` check prints 0 on a first run now and then (T2e, unchanged scenario).
+
+## SV3c: Rebirth with the flags off (2026-10-15)
+
+With `FollowAddon=0` every Rebirth golden parted at world update 40 (three ISAAC draws more). The random traces of the
+original and ours (flags off) parted in the new game's load: ours filled fewer terrain tiles (terrain FillTiles draws)
+before SaveParty drew. Cause: `GameRender` (00578910) called our `CWorldClient::Render` directly, so with the flag off
+our Render drew the terrain at the vanilla radius 100 while addon's patched 00569E40 (LandscapeDrawRadius, the starter
+setting) was what the original runs; the terrain view loads the sectors within the radius. Rule 9 again: a rewrite
+calling a Rebirth-patched function must go through its address.
+
+A scan of ei_hook.dll for direct calls to rewrites of the functions in docs/rebirth-patched-functions.txt (capstone over
+.text, incremental-link thunks followed, callers named from ei_hook.map) found three more, all now through their
+addresses: `CHudPortraits::OnMouseUp` -> 00638EF0 SelectUnit (FixSpellSelfCasting; `SelectUnitAt` moved to
+originals_ui.h), `CWorldServer::RemoveAllUnits` -> 005935C0 RemoveObject (FixRemoveMapObject), `GameSetUnitHeight` ->
+005C11D0 CSectorMap::Move (FixMoveObject). The other hits are verify wrappers, a function calling itself, the script
+parser / evaluator family (one flag, skipped or hooked together), and two calls the original inlines: ProcessRequest's
+StartNewGame (0057BD10's steps inlined in 0057C700) and CMMIOResource::Destroy's base destructor. Inlined calls are not
+seen by such a scan.
+
+Checked: flags off, the ten Rebirth goldens the same (console's random trace makes every draw of the original's in the
+same frame); flags on and vanilla, 19 goldens of 12 scenarios the same.

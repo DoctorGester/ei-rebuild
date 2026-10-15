@@ -15,7 +15,9 @@
 #include "sound.h"
 #include "terrain.h"
 #include "unit.h"
+#include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_world.h"
 
 #include <cmath>
 
@@ -139,7 +141,7 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     // FCOMP with TEST AH,0x40: nothing when the heights are equal or unordered.
     if (!(unit->position.z < z) && !(unit->position.z > z)) return;
     Vector3 target = {unit->position.x, unit->position.y, z};
-    world->Sectors()->Move(unit, &target);
+    SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
     unit->MarkChanged(2);
 }
 EI_REPLACE(0x00578760, GameSetUnitHeight);
@@ -189,7 +191,8 @@ EI_REPLACE(0x00578880, GameShowCameraPath);
 std::uint32_t GameCameraPathPlaying() { return WorldClient()->camera_->flags_ & CCamera::kPlaying; }
 EI_REPLACE(0x005788B0, GameCameraPathPlaying);
 
-int GameRender() { return WorldClient()->Render(); }
+// 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
+int GameRender() { return ClientRenderOriginal(WorldClient()); }
 EI_REPLACE(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { WorldClient()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
