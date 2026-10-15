@@ -110,11 +110,20 @@ struct FaceGroup {
     // 00474C50 (RET 4; S13, scene_loader.cpp; the compiler's operator=): the name, then the faces
     // (CDWordArray::Copy: SetSize to the source's, the indices copied).
     void Assign(const FaceGroup* from);
+    // 00454DB0 (ConstructElements, __stdcall RET 8; S7a): the zero fill, then each name empty and
+    // the faces' CDWordArray constructor.
+    static void __stdcall ConstructElements(FaceGroup* groups, int count);
+    // The destructor (inlined by 00454CE0; S7a): the faces emptied (SetSize 0) and the name emptied,
+    // then both destroyed.
+    void Destruct();
 
     mfc::CString name;        // +00
     mfc::CArray<std::uint32_t> faces;   // +04 CDWordArray of face indices
 };
 static_assert(sizeof(FaceGroup) == 0x18);
+// 00454CE0 (S7a): CArray<FaceGroup>'s destructor (vtable 0073C2BC): each group destroyed, the
+// storage freed.
+void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups);
 
 // Mesh (element of the caller's +0x544 array, 0x18C bytes, constructed by 004545C0).
 namespace mesh {
@@ -178,6 +187,10 @@ static_assert(sizeof(NodeFrame) == 40);
 // A node (the node:: offsets above). The loader fills the key arrays (their instantiations zero
 // new elements, the morph keys' construct them out of line); scene_skeleton.cpp names the rest.
 struct SceneNode {
+    // 004543E0 (S7a). The destructor: the arrays last to first (each its vtable back, then its
+    // storage freed; the morph keys' point blocks first), then the parent's and the node's names.
+    void Destruct();
+
     std::uint32_t unused_000;
     mfc::CString name;                  // +0x004
     mfc::CString parent;                // +0x008

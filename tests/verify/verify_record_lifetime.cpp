@@ -347,3 +347,45 @@ EI_VERIFY(0x0059B4F0, CollectionDeleteVerify<ArrayElementListDelete>, 0, s_unuse
 EI_VERIFY(0x005B1B30, CollectionDeleteVerify<BlockCostListDelete>, 0, s_unused);
 EI_VERIFY(0x005B1B50, CollectionDeleteVerify<AIMapListDelete>, 0, s_unused);
 EI_VERIFY(0x005BE070, CollectionDeleteVerify<WaypointListDelete>, 0, s_unused);
+
+// ---- The scene's face groups and nodes (S7a) ----------------------------------------------------
+//
+// Reached with every figure scene load (the loader's group records and its node array). The face
+// groups' ConstructElements against the original on a twin (it allocates nothing); the destructors
+// ours only.
+namespace {
+
+using scene::FaceGroup;
+using scene::FaceGroupArrayDestruct;
+using scene::SceneNode;
+
+void(__stdcall* s_groupsConstruct)(FaceGroup*, int);
+void __stdcall GroupsConstructVerify(FaceGroup* groups, int count) {
+    std::size_t bytes = static_cast<std::size_t>(count) * sizeof(FaceGroup);
+    auto* twin = static_cast<FaceGroup*>(gamecrt::operator_new(bytes ? bytes : 1));
+    std::memcpy(static_cast<void*>(twin), groups, bytes);
+    s_groupsConstruct(twin, count);
+    FaceGroup::ConstructElements(groups, count);
+    ei::verify::Check("FaceGroup ConstructElements", true, std::memcmp(twin, groups, bytes) == 0, "%d", count);
+    gamecrt::operator_delete(twin);
+}
+
+void __fastcall GroupArrayDestructVerify(mfc::CArray<FaceGroup>* groups) {
+    FaceGroupArrayDestruct(groups);
+    ei::verify::Check("CArray<FaceGroup> destructor", true,
+                      reinterpret_cast<std::uintptr_t>(groups->vtable) == 0x0073C2BC, "%p", static_cast<void*>(groups));
+}
+
+void __fastcall NodeDestructVerify(SceneNode* node) {
+    node->Destruct();
+    ei::verify::Check("SceneNode destructor", true,
+                      reinterpret_cast<std::uintptr_t>(node->rotationKeys.vtable) == 0x0073C1AC &&
+                          reinterpret_cast<std::uintptr_t>(node->children.vtable) == 0x0073C138,
+                      "%p", static_cast<void*>(node));
+}
+
+} // namespace
+
+EI_VERIFY(0x00454DB0, GroupsConstructVerify, 6, s_groupsConstruct);
+EI_VERIFY(0x00454CE0, GroupArrayDestructVerify, 0, s_unused);
+EI_VERIFY(0x004543E0, NodeDestructVerify, 0, s_unused);

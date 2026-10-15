@@ -13,6 +13,7 @@
 #include "world.h"
 
 #include "../lib/crt.h"
+#include "../lib/mfc_coll.h"
 #include "ei/hook.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -20,6 +21,7 @@
 #include "originals_render.h"
 
 #include <cstring>
+#include <new>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -594,6 +596,67 @@ void FaceGroup::Assign(const FaceGroup* from) {
     faces.Copy(from->faces);
 }
 EI_REPLACE_METHOD(0x00474C50, FaceGroup::Assign);
+
+// ---- Element constructors and destructors (S7a) --------------------------------------------------
+
+namespace {
+
+mfc::impl::CDWordArray* Dwords(mfc::CArray<std::uint32_t>* faces) {
+    return reinterpret_cast<mfc::impl::CDWordArray*>(faces);
+}
+
+// The arrays' vtables the destructors write back.
+constexpr std::uintptr_t kFaceGroupArrayVtable = std::uintptr_t(0x0073C2BC);
+constexpr std::uintptr_t kRotationKeysVtable = std::uintptr_t(0x0073C1AC);
+constexpr std::uintptr_t kPositionKeysVtable = std::uintptr_t(0x0073C1B8);
+constexpr std::uintptr_t kMorphKeysVtable = std::uintptr_t(0x0073C114);
+constexpr std::uintptr_t kNormalsVtable = std::uintptr_t(0x0073C120);
+constexpr std::uintptr_t kFramesVtable = std::uintptr_t(0x0073C12C);
+constexpr std::uintptr_t kChildrenVtable = std::uintptr_t(0x0073C138);
+
+template <typename A>
+void FreeArray(A& array, std::uintptr_t vtable) {
+    array.vtable = reinterpret_cast<void*>(vtable);
+    array.FreeData();
+}
+
+} // namespace
+
+void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
+    std::memset(static_cast<void*>(groups), 0, static_cast<std::size_t>(count) * sizeof(FaceGroup));
+    for (; count > 0; --count, ++groups) {
+        new (&groups->name) mfc::CString();
+        Dwords(&groups->faces)->Construct();
+    }
+}
+EI_REPLACE(0x00454DB0, FaceGroup::ConstructElements);
+
+void FaceGroup::Destruct() {
+    Dwords(&faces)->SetSize(0, -1);
+    name.Empty();
+    Dwords(&faces)->Destruct();
+    name.~CString();
+}
+
+void __fastcall FaceGroupArrayDestruct(mfc::CArray<FaceGroup>* groups) {
+    groups->vtable = reinterpret_cast<void*>(kFaceGroupArrayVtable);
+    if (!groups->data) return;
+    for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
+    gamecrt::operator_delete(groups->data);
+}
+EI_REPLACE(0x00454CE0, FaceGroupArrayDestruct);
+
+void SceneNode::Destruct() {
+    FreeArray(children, kChildrenVtable);
+    FreeArray(frames, kFramesVtable);
+    FreeArray(normals, kNormalsVtable);
+    FreeArray(morphKeys, kMorphKeysVtable);
+    FreeArray(positionKeys, kPositionKeysVtable);
+    FreeArray(rotationKeys, kRotationKeysVtable);
+    parent.~CString();
+    name.~CString();
+}
+EI_REPLACE_METHOD(0x004543E0, SceneNode::Destruct);
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 
