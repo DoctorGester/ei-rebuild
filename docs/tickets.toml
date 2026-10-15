@@ -2015,7 +2015,7 @@ group = "standalone"
 size = 1
 depends = ["S17"]
 files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
-note = "From S17. camera --standalone crashed once (batch 1235, run 33000, build at main 830d77a8; the retry passed; 0 in ~900 other standalone runs, 0 in hooked runs): C0000005 reading FF000094 in UnitOrderLess::Less (world_rules.cpp, Object3D(a)->attached at +0x94 with a = FF000000) under IntroSortByModel 005740D0 <- SortByModel <- CWorldClient::DrawPass <- Render, main thread, after 'key left; frames 5' (eax=esi=FF000000, ebx=edi=309CA954). An element read as FF000000 means the unguarded partition / linear insert ran off the frame list. Candidates: (1) an irreflexive comparison: Less ends with !(za >= zb) on viewPosition.z, so a NaN z (less(x, x) true) lets the unguarded scans run past either end; viewPosition is written only for objects in view (CollectVisible), never by the constructor (CObject3D::Construct 00515BD0 leaves +0x28), so an object listed only for its shadow before it was ever in view sorts on heap leftovers; in the image those come from the host heap, not the game's. Not confirmed: an S17 diagnostic (log NaN view z in SortByModel) saw none in 44 + 32 standalone runs, also with every image malloc filled with 0xFF. (2) memory overwritten under the list (another thread, the unlocked node allocator). Next: keep the NaN check as a verify-build check in SortByModel's wrapper (log the object and list), run the standalone suite repeatedly; if (1), give viewPosition a canonical start (zero in ours and in the original through a harness patch, as SV7b3) rather than changing the comparator."
+note = "S19: also seen on Rebirth standalone (units, first attempt)."
 
 [[ticket]]
 id = "S19"
@@ -2043,6 +2043,18 @@ size = 2
 model = "opus"
 files = ["src/hook", "tests/verify", "build.cmd", "tools/run_all.py"]
 note = "User 2026-10-15: finish the golden net (SV7 tail, SV7c, S20), Rebirth in the standalone (S19) and the remaining function vectors (SV4b1, SV4c), then retire the hook and verify builds: the standalone is the only product, checked by goldens and function vectors. Keep a slim harness that runs the original game only to record goldens (or freeze them). C13 and C15 run after this, on the standalone, with the goldens as the check (C13 changes what the verify wrappers see anyway). Then Phase 4 of docs/cleanup-plan.md."
+
+[[ticket]]
+id = "S19a"
+title = "Standalone on Rebirth: addon's multiplayer patches and EI_Plugin's NewMaster, Pause, Briefings"
+group = "standalone"
+note = "From S19: the image runs our code where hooked Rebirth runs keep the patched original (SKIP lines): addon's FixProcessLogin (00443080), MQClient (0041ECC0), MPSpeedControl (0063A560, 00648D70), PlayerNumbers (0066C180); EI_Plugin.asi (kept out of the image, EiPluginInit) with NewMaster (0041AA10, 0041ACA0, 00440DE0, 0061D0D0, 00632D70, and SaveToRegistry 0045C560's 42 NOPs: the image saves the master server name), Pause (0066FAC0, Pause=1) and Briefings (00592090). Multiplayer only: no golden reaches them (SV5d's two-client harness would). Reproduce each behind its flag (rebirth_patches.csv rows), declare EI_REBIRTH_IMPLEMENTS, verify in a Rebirth launch; EI_Plugin's own network thread / master-server link needs a decision (port or drop). Fixes / NPlayers: W4b."
+
+[[ticket]]
+id = "S19b"
+title = "Standalone on Rebirth: the mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch)"
+group = "standalone"
+note = "From S19: addon's mod loader looks in the selected mod's folders first (WinMain's loader and ~30 resource functions, the BinkOpen import, 0040ECD0 camera, 006BB3A0 stream; docs/notes/rebirth.md 'Resources and paths'). With the Standard mod it passes through, so every S19 run matched; the image ignores another mod's folders (IronMod's Res). Needs the standalone resource layer: read the starter's AddonPath / mod list and route OpenResource, the finds and the map paths through it behind the flags."
 
 # ---------------------------------------------------------------- Lua
 

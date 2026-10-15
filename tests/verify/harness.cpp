@@ -1944,9 +1944,9 @@ void RunSteps() {
         }
         Step s = g_steps[g_next++];
         // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
-        // itself, e.g. script error messages). Rebirth is recognised by its addon.dll.
+        // itself, e.g. script error messages). Rebirth is recognised by its addon.dll, or the standalone image's flags.
         if (s.verb == "vanilla" || s.verb == "rebirth") {
-            bool rebirth = GetModuleHandleA("addon.dll") != nullptr;
+            bool rebirth = starter::RebirthInstall();
             if ((s.verb == "rebirth") != rebirth) {
                 Log("harness: skipped (%s only): %s", s.verb.c_str(), s.argument.c_str());
                 continue;

@@ -1,46 +1,38 @@
-// ei_vectors.exe links our game sources without the hook framework: their EI_REPLACE registrations
-// install nothing here, but say where a forwarder (EI_ORIGINAL) to the same address goes on to.
+// ei_vectors.exe links our game sources without the hook framework and without game.exe: their
+// registrations install nothing, they only say which of our functions stands for an address. An
+// EI_ORIGINAL forwarder jumps to that function (ei_replay_dispatch), as the standalone image's jump at
+// the address would, or to a replay stand-in a check registered (ReplayStandIn) for code the replay
+// leaves out. An address with neither raises kMissingForwarder: a check that guards its call fails
+// naming the address, elsewhere the replay stops.
 #include "ei/hook.h"
 #include "vectors.h"
 
 #include <windows.h>
 
-#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <unordered_map>
 #include <vector>
 
 namespace ei {
 
 namespace {
+HookEntry* g_entries = nullptr;   // constant-initialised: safe for the registrars' static initialisers
 
-struct Target {
+struct StandIn {
     std::uintptr_t address;
-    void* to;
-    const char* name;
+    void* function;
 };
-
-// Filled during static initialisation (function-local: the registrars of other files run first).
-std::vector<Target>& Rewrites() {
-    static std::vector<Target> targets;
-    return targets;
+// Function-local: filled by the checks' static initialisers.
+std::vector<StandIn>& StandIns() {
+    static std::vector<StandIn> standIns;
+    return standIns;
 }
-std::vector<Target>& StandIns() {
-    static std::vector<Target> targets;
-    return targets;
 }
-
-const Target* Find(std::vector<Target>& targets, std::uintptr_t address) {
-    for (const Target& t : targets)
-        if (t.address == address) return &t;
-    return nullptr;
-}
-
-} // namespace
 
 HookRegistrar::HookRegistrar(std::uintptr_t address, void* replacement, const char* name)
-    : entry{address, replacement, name, nullptr} {
-    Rewrites().push_back({address, replacement, name});
+    : entry{address, replacement, name, g_entries} {
+    g_entries = &entry;
 }
 
 HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* name, int stolen, void** original)
@@ -52,33 +44,46 @@ bool Standalone() { return true; }
 
 } // namespace ei
 
-void ei::vectors::ReplayStandIn(std::uintptr_t address, void* function, const char* name) {
-    StandIns().push_back({address, function, name});
+void ei::vectors::ReplayStandIn(std::uintptr_t address, void* function, const char*) {
+    ei::StandIns().push_back({address, function});
 }
 
-// Where the forwarder to `address` goes: a stand-in first, then the rewrite.
-extern "C" void* __cdecl ei_replay_forward_target(std::uintptr_t address) {
-    if (const auto* t = ei::Find(ei::StandIns(), address)) return t->to;
-    if (const auto* t = ei::Find(ei::Rewrites(), address)) return t->to;
-    std::printf("ei_vectors: a forwarder to %08X was called; nothing in ei_vectors is registered there\n",
-                static_cast<unsigned>(address));
-    std::fflush(stdout);
-    // A check that guards its call (replay_path.cpp) fails naming the address; elsewhere the run ends.
+// Where the forwarder to `address` goes (called from ei_replay_dispatch with the caller's registers
+// saved): a stand-in first, then the replacement.
+extern "C" void* __cdecl ei_replay_lookup(std::uintptr_t address) {
+    for (const ei::StandIn& s : ei::StandIns())
+        if (s.address == address) return s.function;
+    static const std::unordered_map<std::uintptr_t, void*> table = [] {
+        std::unordered_map<std::uintptr_t, void*> t;
+        for (const ei::HookEntry* e = ei::g_entries; e; e = e->next) {
+            auto [at, added] = t.emplace(e->address, e->replacement);
+            if (!added && at->second != e->replacement) {
+                std::fprintf(stderr, "ei_vectors: two replacements for %08X\n", static_cast<unsigned>(e->address));
+                std::exit(3);
+            }
+        }
+        return t;
+    }();
+    const auto at = table.find(address);
+    if (at != table.end()) return at->second;
+    std::fprintf(stderr, "ei_vectors: game code %08X has no rewrite (an EI_ORIGINAL forwarder was called)\n",
+                 static_cast<unsigned>(address));
+    std::fflush(stderr);
     const ULONG_PTR info[2] = {0, address};
     RaiseException(ei::vectors::kMissingForwarder, EXCEPTION_NONCONTINUABLE, 2, info);
-    std::abort();
+    std::exit(3);
 }
 
-// Entered by a jump from a forwarder, which pushed its address over the caller's return address.
-// Every register (EAX too: some originals take arguments in it) and the stack are as at the
-// forwarder's entry when the target is reached.
-extern "C" __declspec(naked) void ei_replay_forward() {
+// EI_ORIGINAL's target in ei_vectors: [ESP] the address, [ESP+4] the caller's return address, the
+// arguments in their registers (EAX too: some originals take one there; ECX, EDX) and on the stack as
+// the forwarder received them. The target is reached with all of them as they were.
+extern "C" __declspec(naked) void ei_replay_dispatch() {
     __asm {
         push eax
         push ecx
         push edx
         push dword ptr [esp + 12]
-        call ei_replay_forward_target
+        call ei_replay_lookup
         add esp, 4
         mov [esp + 12], eax
         pop edx

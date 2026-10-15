@@ -552,8 +552,12 @@ class SchedTest(unittest.TestCase):
                                                'ei_standalone: the game returned 0\n', '')
         self.scenario('boot', 'waitmenu\nquit\n')
         wide = self.scenario('wide', 'render new\nresolution 800x600\nfullscreen 1\n')
-        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), [('boot', 'standalone')])
-        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', 'wide']), root=self.tmp), [('wide', 'standalone')])
+        both = [('boot', 'standalone'), ('boot', 'standalone-rebirth')]
+        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), both)
+        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--vanilla-only', 'wide']), root=self.tmp),
+                         [('wide', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--rebirth-only', 'wide']), root=self.tmp),
+                         [('wide', 'standalone-rebirth')])
         with self.assertRaises(SystemExit):
             run_all.plan(run_all.parse_args(['--standalone', '--no-hooks']), root=self.tmp)
         self.assertTrue(run_all.our_renderer(wide, 'standalone', True, environ={'EI_RENDER': 'new'}))
@@ -571,6 +575,21 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(cmd[cmd.index('--exe') + 1], os.path.join(run_all.run_dir(self.tmp), 'vanilla', 'game.exe'))
         self.assertEqual(env['EI_RENDER'], 'new,present')
         self.assertEqual(notes, ['ei_standalone: the game returned 0'])
+        # standalone-rebirth: run\rebirth's game.exe in ei_launch's default (Rebirth) game folder, the ini's flags
+        os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
+        with open(os.path.join(self.tmp, 'config', 'ei_rebirth_standalone.ini'), 'w') as f:
+            f.write('[Rebirth]\nDefault=0\nNivalRegistry=1\nWideScreen=1\nMaps=0\nNPlayers=7\n')
+        run_all.subprocess.run = fake_subprocess_run
+        try:
+            run_all.run('boot', 'standalone-rebirth', True, root=self.tmp, build=build, take_slot=False, game_env={})
+        finally:
+            run_all.subprocess.run = old_run
+        cmd, env = seen[1]
+        self.assertIn('--standalone', cmd)
+        self.assertNotIn('--game', cmd)
+        self.assertEqual(cmd[cmd.index('--exe') + 1], os.path.join(run_all.run_dir(self.tmp), 'rebirth', 'game.exe'))
+        self.assertEqual((env['EI_RENDER'], env['EI_REBIRTH']), ('new,present', 'NivalRegistry,WideScreen'))
+        self.assertEqual(run_all.GOLDEN_INSTALL['standalone-rebirth'], 'rebirth')
 
     def test_reference_cache(self):
         repo = os.path.join(self.tmp, 'repo')
