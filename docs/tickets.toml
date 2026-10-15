@@ -918,6 +918,15 @@ status = "done"
 note = "Found in SV2: work.py test SV2 <scenario> --clock virtual,randtrace ran without the random trace (work_sched.py never reads --clock; run_all.run takes clock=). Workaround: EI_HARNESS_CLOCK in the environment. Pass args.clock through the batch to run_all.run, or reject it visibly (WB7)."
 done = "2026-10-15"
 
+[[ticket]]
+id = "WB9"
+title = "Scheduler: smallest remaining work first, less the time waited"
+group = "harness"
+status = "done"
+files = ["tools/work_sched.py", "tools/test_work_sched.py"]
+note = "User 2026-10-15: workers should wait 3-5 min on average. Over the last 5 h a batch waited median 88 s, mean 185 s, p90 530 s for its first game; in FIFO a one-run batch waited for a whole suite ahead of it to start. batch_priority: queued expected seconds over the slots, less seconds waited. Alone runs still gather only for the earliest batch. Done in 9388af96."
+done = "2026-10-15"
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
