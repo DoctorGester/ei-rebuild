@@ -20,6 +20,7 @@ usage:
   python tools/savefile.py show FILE.sav [--key REGEX]    the decoded fields
   python tools/savefile.py diff A.sav B.sav [--fields N]  the first fields that differ
   python tools/savefile.py raw FILE.sav OUT               the plain data (decompressed)
+  python tools/savefile.py rules FILE.sav...              the fields left out while decoding these, with the reason
 """
 import argparse, re, struct, sys
 
@@ -579,7 +580,15 @@ def main():
     p = sub.add_parser('raw')
     p.add_argument('file')
     p.add_argument('out')
+    p = sub.add_parser('rules')
+    p.add_argument('files', nargs='+')
     args = ap.parse_args()
+    if args.command == 'rules':
+        for path in args.files:
+            decode(path)
+        for (field, rule), why in sorted(EXCLUDED.items()):
+            print(f'{field} ~{rule}: {why}')
+        return 0
     if args.command == 'raw':
         with open(args.file, 'rb') as f:
             magic, version, plain = read_frame(f.read())

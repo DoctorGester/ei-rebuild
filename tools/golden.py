@@ -54,9 +54,10 @@ usage:
       through `work.py test`) runs the games with the goldens' digest period and does this for every run.
 exit code: 0 the same, 1 a difference, 2 something missing
 """
-import argparse, datetime, glob, hashlib, json, os, re, shutil, struct, subprocess, sys, zlib
+import argparse, datetime, glob, gzip, hashlib, json, os, re, shutil, struct, subprocess, sys, zlib
 
 import run_all
+import savefile
 
 ROOT = run_all.ROOT
 GOLDEN = os.path.join(ROOT, 'tests', 'golden')
@@ -77,6 +78,7 @@ KNOWN = {
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'
+STORE = os.path.join(GOLDEN, 'saves')   # decoded saves by hash (store_save)
 # A unit's fields by group in a compact digest (the first prefix that matches; the rest are "unit").
 GROUPS = (('place', ('pos.', 'rot.', 'scale.', 'cell.', 'motion.', 'heightOffset')),
           ('vitals', ('hp', 'maxHp', 'mana', 'maxMana', 'regenTicks', 'effect', 'dead')),
@@ -431,26 +433,105 @@ def dumps(folder):
     return {os.path.basename(p)[5:-4]: p for p in sorted(glob.glob(os.path.join(folder, 'dump_*.txt')))}
 
 
-def saves(folder):
-    """The saved games in a run folder's harness_saves: ['<path> <size> <sha1>'] of every <save>\\*.sav, paths
-    relative to it. Left out: shot.sav (the save's thumbnail, a frame: the renderer's), and what else the game
-    keeps there (the portrait texture cache, keyboard.ini)."""
+def save_files(folder):
+    """{path relative to harness_saves: full path} of the saved games a run folder holds: every .sav but shot.sav
+    (the save's thumbnail, a frame: the renderer's); not what else the game keeps there (the portrait texture
+    cache, keyboard.ini). None when the folder has no harness_saves (a cached run of the original keeps none)."""
     base = os.path.join(folder, SAVES)
-    out = []
+    if not os.path.isdir(base):
+        return None
+    out = {}
     for top, _, files in os.walk(base):
         for f in files:
-            if not f.lower().endswith('.sav') or f.lower() == 'shot.sav':
-                continue
-            path = os.path.join(top, f)
-            with open(path, 'rb') as f:
-                data = f.read()
-            out.append(f'{os.path.relpath(path, base).replace(os.sep, "/")} {len(data)} {hashlib.sha1(data).hexdigest()[:16]}')
-    return sorted(out)
+            if f.lower().endswith('.sav') and f.lower() != 'shot.sav':
+                path = os.path.join(top, f)
+                out[os.path.relpath(path, base).replace(os.sep, '/')] = path
+    return dict(sorted(out.items()))
+
+
+def save_hash(lines):
+    return hashlib.sha1('\n'.join(lines).encode('utf-8')).hexdigest()[:16]
+
+
+def decoded_saves(folder):
+    """{save path: (hash, decoded lines)} of a run folder's saves (tools/savefile.py: field by field, keyed by
+    ids, the values that follow memory layout as rule tokens); a save that does not decode: (None, [error]).
+    None without harness_saves."""
+    files = save_files(folder)
+    if files is None:
+        return None
+    out = {}
+    for name, path in files.items():
+        try:
+            lines = savefile.lines(savefile.decode(path))
+        except savefile.DecodeError as e:
+            out[name] = (None, [f'does not decode: {e}'])
+            continue
+        out[name] = (save_hash(lines), lines)
+    return out
+
+
+def store_path(digest, store=None):
+    """A decoded save in the goldens' shared store (tests/golden/saves/<hash>.txt.gz: many goldens hold the same
+    save, e.g. the autosave on entering the first zone)."""
+    return os.path.join(store or STORE, f'{digest}.txt.gz')
+
+
+def store_save(digest, lines, store=None):
+    path = store_path(digest, store)
+    if not os.path.exists(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'wb') as f:   # mtime 0: the same save gives the same bytes
+            with gzip.GzipFile(fileobj=f, mode='wb', mtime=0, filename='') as z:
+                z.write(('\n'.join(lines) + '\n').encode('utf-8'))
+
+
+def stored_save(digest, store=None):
+    path = store_path(digest, store)
+    if not os.path.exists(path):
+        return None
+    with gzip.open(path, 'rt', encoding='utf-8') as f:
+        return f.read().splitlines()
 
 
 def golden_saves(folder):
+    """{save path: hash} of a golden's saves.txt, or None when it keeps no saves."""
     path = os.path.join(folder, 'saves.txt')
-    return read_lines(path, 'utf-8') if os.path.exists(path) else None
+    if not os.path.exists(path):
+        return None
+    return dict(line.split(' ', 1) for line in read_lines(path, 'utf-8') if line)
+
+
+def save_differences(expected, actual, name_a, name_b, fields=12, store=None):
+    """Two sets of decoded saves ({path: hash or (hash, lines)}): the lines that describe their differences (the
+    files, then per file the first fields that differ, in the first one's order)."""
+    out = []
+    if sorted(expected) != sorted(actual):
+        out.append(f'saves: {name_a} has {", ".join(sorted(expected)) or "none"}, {name_b} '
+                   f'{", ".join(sorted(actual)) or "none"}')
+    for name in sorted(set(expected) & set(actual)):
+        a, b = expected[name], actual[name]
+        hash_a, lines_a = a if isinstance(a, tuple) else (a, None)
+        hash_b, lines_b = b if isinstance(b, tuple) else (b, None)
+        if hash_a is None or hash_b is None:
+            for label, h, l in ((name_a, hash_a, lines_a), (name_b, hash_b, lines_b)):
+                if h is None:
+                    out.append(f'save {name}: {label}\'s {l[0] if l else "does not decode"}')
+            continue
+        if hash_a == hash_b:
+            continue
+        lines_a = lines_a or stored_save(hash_a, store)
+        lines_b = lines_b or stored_save(hash_b, store)
+        if lines_a is None or lines_b is None:
+            out.append(f'save {name}: differs (decoded {hash_a} in {name_a}, {hash_b} in {name_b}; '
+                       f'the store has no copy of {hash_a if lines_a is None else hash_b})')
+            continue
+        found = savefile.differences(lines_a, lines_b)
+        out.append(f'save {name}: {len(found)} fields differ; first:')
+        out += [f'  {key} {field}: {va} in {name_a}, {vb} in {name_b}' for key, field, va, vb in found[:fields]]
+        if len(found) > fields:
+            out.append(f'  ... {len(found) - fields} more')
+    return out
 
 
 def first_line_difference(what, expected, actual, name_a, name_b):
@@ -501,11 +582,13 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
         found = []
         if diff(dumps_a[name], path_b, name_a, name_b, ulps, 1, fields, left_out, out=found.append):
             lines += [f'dump {name}: ' + found[0]] + found[1:]
-    saves_a = golden_saves(a) if golden else saves(a)
-    if saves_a is not None and with_saves:
-        saves_b = saves(b)
-        if saves_a != saves_b:
-            lines.append(first_line_difference('saves', saves_a, saves_b, name_a, name_b))
+    if with_saves:
+        # The saves decoded field by field (tools/savefile.py); a run without harness_saves (a cached run of the
+        # original) has none to compare.
+        saves_a = golden_saves(a) if golden else decoded_saves(a)
+        saves_b = decoded_saves(b)
+        if saves_a is not None and saves_b is not None:
+            lines += save_differences(saves_a, saves_b, name_a, name_b, fields, store=os.path.join(os.path.dirname(os.path.dirname(a)), 'saves') if golden else STORE)
     return lines
 
 
@@ -590,22 +673,85 @@ def record(args):
         meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
                 'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
                 'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
-        # The saves' bytes only when every run wrote the same: a save also holds what the digest leaves out
-        # (values that follow heap addresses). The dumps after loading them compare them field by field.
-        files = saves(folders[0])
-        if files:
-            differ = next(((os.path.basename(os.path.dirname(f)), saves(f)) for f in folders[1:] if saves(f) != files), None)
-            if differ is None:
-                with open(os.path.join(target, 'saves.txt'), 'w', encoding='utf-8', newline='\n') as f:
-                    f.writelines(line + '\n' for line in files)
-            else:
-                meta['saves'] = 'not kept: ' + first_line_difference('saves', files, differ[1], 'the first run', differ[0])
+        keep_saves(target, folders, meta)
         with open(os.path.join(target, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
             json.dump(meta, f, indent=2)
             f.write('\n')
         recorded += 1
         print(f'{name} {args.install}: recorded in {shown_path(target)}')
     print(f'{recorded} of {len(names)} recorded')
+    return code
+
+
+def keep_saves(target, folders, meta):
+    """The golden's saves (saves.txt: each save's path and the hash of its decoded fields, the decoded text in
+    the shared store) when every run's saves decode to the same fields; else meta['saves'] says why not.
+    Returns the lines describing a difference ([] when kept)."""
+    first = decoded_saves(folders[0])
+    for name in ('saves.txt',):
+        if os.path.exists(os.path.join(target, name)):
+            os.remove(os.path.join(target, name))
+    meta.pop('saves', None)
+    if not first:
+        return []
+    problem = next(([f'{n}: {l[0]}'] for n, (h, l) in first.items() if h is None), [])
+    for other in folders[1:]:
+        if problem:
+            break
+        found = save_differences(first, decoded_saves(other) or {}, 'the first run',
+                                 os.path.basename(os.path.dirname(other)))
+        if found:
+            problem = found
+    if problem:
+        meta['saves'] = 'not kept: ' + problem[0] + ''.join(' / ' + line.strip() for line in problem[1:3])
+        return problem
+    for name, (digest, lines) in first.items():
+        store_save(digest, lines)
+    with open(os.path.join(target, 'saves.txt'), 'w', encoding='utf-8', newline='\n') as f:
+        f.writelines(f'{name} {digest}\n' for name, (digest, _) in first.items())
+    meta['saves'] = f'{len(first)} decoded saves (tools/savefile.py), the same in {len(folders)} runs'
+    return []
+
+
+def add_saves(args):
+    """Adds the decoded saves to existing goldens without recording them again: the runs (as for record) must
+    each match the golden (console, digest, dumps) and their saves must decode to the same fields."""
+    dirs = args.runs
+    names = args.scenarios or sorted(d[:-len(args.install) - 1] for d in os.listdir(dirs[0])
+                                     if d.endswith('-' + args.install))
+    code = 0
+    for name in names:
+        target = golden_folder(name, args.install)
+        meta_path = os.path.join(target, 'golden.json')
+        if not os.path.exists(meta_path):
+            continue
+        folders = [os.path.join(d, f'{name}-{args.install}') for d in dirs]
+        with open(meta_path, encoding='utf-8') as f:
+            meta = json.load(f)
+        problem = []
+        for folder in folders:
+            result, lines = compare_one(name, args.install, folder)
+            if result != 'SAME' and not (result == 'DIFFERS' and all(l.startswith(('save', '  ')) for l in lines)):
+                problem = [f'{folder}: {result} against the golden'] + lines
+                break
+        if not problem:
+            problem = keep_saves(target, folders, meta)
+            with open(meta_path, 'w', encoding='utf-8', newline='\n') as f:
+                json.dump(meta, f, indent=2)
+                f.write('\n')
+        if problem:
+            code = 2
+            print(f'{name} {args.install}: saves not kept: {problem[0]}')
+            for line in problem[1:8]:
+                print('  ' + line)
+        else:
+            print(f'{name} {args.install}: {meta["saves"]}')
+    used = set()
+    for path in glob.glob(os.path.join(GOLDEN, '*', '*', 'saves.txt')):
+        used.update((golden_saves(os.path.dirname(path)) or {}).values())
+    for path in glob.glob(os.path.join(STORE, '*.txt.gz')):
+        if os.path.basename(path)[:-7] not in used:
+            os.remove(path)   # no golden holds it any more
     return code
 
 
@@ -696,6 +842,10 @@ def main():
     p.add_argument('--runs', nargs='+')
     p.add_argument('--reason', required=True)
     p.add_argument('--fields', type=int, default=12)
+    p = sub.add_parser('saves')
+    p.add_argument('scenarios', nargs='*')
+    p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
+    p.add_argument('--runs', nargs='+', required=True)
     p = sub.add_parser('compare')
     p.add_argument('scenarios', nargs='+')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
@@ -713,7 +863,8 @@ def main():
             return 2
         label = lambda spec: os.path.basename(os.path.normpath(spec))
         return diff(a, b, label(args.a), label(args.b), args.ulps, args.records, args.fields, args.ignore)
-    return {'state': state, 'snapshot': snapshot, 'record': record, 'compare': compare}[args.command](args)
+    return {'state': state, 'snapshot': snapshot, 'record': record, 'compare': compare,
+            'saves': add_saves}[args.command](args)
 
 
 if __name__ == '__main__':
