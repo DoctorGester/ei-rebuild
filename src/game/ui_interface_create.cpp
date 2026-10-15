@@ -198,7 +198,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     }
     messageFlag_ = 0;
     fpsSurface_ = nullptr;
-    unknown_24 = 0;
+    fpsSpare_ = 0;
     fpsTime_ = gameapi::timeGetTime();
     fpsFrames_ = 0;
     disconnected_ = false;

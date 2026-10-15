@@ -7,7 +7,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 screen 7
 waitwindow 15 view

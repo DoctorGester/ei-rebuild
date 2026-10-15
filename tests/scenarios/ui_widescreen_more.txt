@@ -14,6 +14,8 @@
 # show it. The Save window pauses the world: what moved in save_moving / save_moving_later, captured
 # before it opened, is left out of its frame (run_all).
 deterministic
+# Its 4K captures beside 15 other games (on our renderer it no longer runs alone, R10) took 50-60 s.
+timeout 90
 resolution desktop
 widescreen 1
 rebirthflags WideScreen
@@ -43,7 +45,6 @@ wait 2000
 # The hero on zone1, the camera settled.
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20

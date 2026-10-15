@@ -18,8 +18,6 @@ struct AlignedArray {
 } // namespace
 
 float* __fastcall StripDirection(float* out, int index, int mode, const void* points);
-int __fastcall DrawTlTriangles(CTextureDevice* device, void*, TLVertex* vertices, int vertexCount,
-                               std::uint16_t* indices, int indexCount);
 int __fastcall DrawRibbon(CSceneRenderer* renderer, void*, const int* points, float width, int mode, float uLength,
                           float vStart, float vSize);
 
@@ -58,7 +56,7 @@ static void* s_drawTl;
 static int __fastcall DrawTlTrianglesVerify(CTextureDevice* device, void*, TLVertex* vertices, int vertexCount,
                                             std::uint16_t* indices, int indexCount) {
     int calls = device->drawCount_;
-    int result = DrawTlTriangles(device, nullptr, vertices, vertexCount, indices, indexCount);
+    int result = device->DrawTlTriangles(vertices, vertexCount, indices, indexCount);
     ei::verify::Check("DrawTlTriangles", calls + 1, device->drawCount_, "vertices %d indices %d", vertexCount,
                       indexCount);
     return result;

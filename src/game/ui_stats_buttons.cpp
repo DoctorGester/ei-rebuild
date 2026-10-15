@@ -113,10 +113,7 @@ void CHeroStatsPanel::Update() {
         holdTime_ = 0.0f;
     }
 }
-namespace {
-void __fastcall StatsPanelUpdate(CHeroStatsPanel* self, void*) { self->Update(); }
-} // namespace
-EI_REPLACE(0x00624A60, StatsPanelUpdate);
+EI_REPLACE_METHOD(0x00624A60, CHeroStatsPanel::Update);
 
 // --- 00624790: the left button (input slot 2) --------------------------------------------------------
 

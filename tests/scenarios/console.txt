@@ -75,7 +75,6 @@ console net time 0
 # In a game: script lines (arguments are joined back with single spaces), interface settings,
 # players' variables and money.
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 check IsEqual(Add(1, 2), 3)

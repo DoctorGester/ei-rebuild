@@ -10,13 +10,11 @@
 #   3) and makes the AI hear each other: the brain's delayed sounds (AIMemory, 005CC9D0) print
 #   "Unit N hear delayed sound: ..." (a hostility claim) or "Delayed sound: ..." (a call for help)
 #   on the console stream that "filter all" opens. The expect below matches both spellings.
-# The game runs ~5.5x faster (10 ms per world update).
 reject Script error
 waitmenu
 console thingamabob
 console filter all on
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)
@@ -49,6 +47,8 @@ waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @Attack(GetLeader(),GetObjectByName("Snd1"))
 waitfor 20 Not(IsAlive(GetObjectByName("Snd1")))
+# The death's own updates (OnUnitDied, DeathEffect, the AI's reset).
+wait 3000
 expect elayed sound
 check IsAlive(GetLeader())
 report

@@ -41,17 +41,17 @@ EI_REPLACE(0x00501C60, RendererSetBlend);
 // 004EB170 (thiscall on the device object, RET 4). The current material (material_, counted; the
 // old one released through its slot 0 when its count reaches 0); without a material stage 1's
 // colour and alpha operations are turned off. Returns 1.
-int __fastcall DeviceSetMaterial(CTextureDevice* device, void*, CDeviceMaterial* material) {
-    CDeviceMaterial* old = device->material_;
-    device->material_ = material;
+int CTextureDevice::SetMaterial(CDeviceMaterial* material) {
+    CDeviceMaterial* old = material_;
+    material_ = material;
     if (material) ++material->refCount;
     if (old) old->Release();
     if (!material) {
-        device::SetTextureStageState(device::D3D(device), 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-        device::SetTextureStageState(device::D3D(device), 1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+        device::SetTextureStageState(device::D3D(this), 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+        device::SetTextureStageState(device::D3D(this), 1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
         render::state::Stage(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
         render::state::Stage(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
     }
     return 1;
 }
-EI_REPLACE(0x004EB170, DeviceSetMaterial);
+EI_REPLACE_METHOD(0x004EB170, CTextureDevice::SetMaterial);

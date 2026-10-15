@@ -101,9 +101,9 @@ struct UiItemKinds {
 
 // The fields of an item prototype record (006A0110's result) the predicates read.
 struct ItemPrototypeRecord {
-    std::uint8_t unknown_00[0x10];
+    std::uint8_t unused_00[0x10];
     const char* materialClass_;      // +0x10 "none" for items without a material
-    std::uint8_t unknown_14[0x68 - 0x14];
+    std::uint8_t unused_14[0x68 - 0x14];
     bool buildable_;                 // +0x68
 };
 static_assert(offsetof(ItemPrototypeRecord, materialClass_) == 0x10);
@@ -233,7 +233,7 @@ public:
     float scale_;               // +0x184
     int count_;                 // +0x188 visible list size after the last rebuild
     bool tabsEnabled_;          // +0x18C
-    std::uint8_t unknown_18D[3];
+    std::uint8_t unused_18D[3];
     int hovered_;               // +0x190 -1
     union {
         int filter_;                // +0x194 0 items, 1 spells, 2 armour
@@ -267,9 +267,9 @@ public:
     void ShowPageTabs(int page, int unused);
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x1E0 - 0x148];
+    std::uint8_t unused_148[0x1E0 - 0x148];
     CUiItemStrip* itemStrip_;   // +0x1E0
-    std::uint8_t unknown_1E4[0x1EC - 0x1E4];
+    std::uint8_t unused_1E4[0x1EC - 0x1E4];
     CUiItemStrip* spellStrip_;  // +0x1EC
     CUiItemStrip* partStrip_;   // +0x1F0
 };
@@ -482,7 +482,7 @@ public:
     void RefreshHeroScroll();
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x164 - 0x148];
+    std::uint8_t unused_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
@@ -539,13 +539,13 @@ static_assert(sizeof(CMpHeroScreen) == 0x220);
 struct UnitSoundEntry {
     const char* name;              // +0x00
     const char* sound;             // +0x04 what the interface plays
-    std::uint8_t unknown_08[0x28 - 0x08];
+    std::uint8_t unused_08[0x28 - 0x08];
     std::uint32_t flags;           // +0x28 (the hero screen's voice takes entries with 0x2282 set)
 };
 static_assert(sizeof(UnitSoundEntry) == 0x2C);
 // A sound set (the map's value).
 struct UnitSoundBank {
-    std::uint8_t unknown_000[0x1AC];
+    std::uint8_t unused_000[0x1AC];
     stlp::vector<UnitSoundEntry> entries;   // +0x1AC
 };
 static_assert(offsetof(UnitSoundBank, entries) == 0x1AC);
@@ -714,16 +714,16 @@ public:
     int gameType_;                 // +0x19C the new game's type tab 0..3
     char boxText_[0x80];           // +0x1A0 the edit boxes' text (an address, a password)
     bool unlisted_;                // +0x220 the new game is not announced (1 from Create)
-    std::uint8_t unknown_221[3];
+    std::uint8_t unused_221[3];
     mfc::CString hostPassword_;    // +0x224 the new game's password
     mfc::CStringArray allodNames_; // +0x228 "lmp_allod_name %d" texts (the game type tabs)
     bool joining_;                 // +0x23C the client was asking a host last frame
-    std::uint8_t unknown_23D[3];
+    std::uint8_t unused_23D[3];
     mfc::CStringArray texts_;      // +0x240 "lmp_connection %d" texts (22)
-    int unknown_254;               // +0x254 0 from Create
+    int spare_;                    // +0x254 0 from Create; nothing else touches it
     int sortKey_;                  // +0x258 0 none; 1..8 the column pairs (odd ascending)
     bool newGameTips_;             // +0x25C the unlisted and password regions have their tips (DrawList; 0 from Create)
-    std::uint8_t unknown_25D[3];
+    std::uint8_t unused_25D[3];
 };
 static_assert(offsetof(CMpConnectScreen, refreshTimer_) == 0x164);
 static_assert(offsetof(CMpConnectScreen, selected_) == 0x174);
@@ -837,7 +837,7 @@ public:
     void OnClose();
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x164 - 0x148];
+    std::uint8_t unused_148[0x164 - 0x148];
     int hovered_;               // +0x164 region under the mouse, -1 for none
 };
 static_assert(offsetof(CEscMenu, hovered_) == 0x164);
@@ -851,7 +851,7 @@ struct TitleLine {
     void Destroy();
 
     bool scroll;                // +0 the first word is "#scroll"
-    std::uint8_t unknown_1[3];
+    std::uint8_t unused_1[3];
     float speed;                // +4 the second word (atof): the scroll speed, or the seconds shown
     const char* text;           // +8 CString: the fourth word (the header)
     const char* style;          // +0xC CString: the third word (the text file in the archive)
@@ -940,7 +940,7 @@ public:
     void OnMessageResult(int result);
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x164 - 0x148];
+    std::uint8_t unused_148[0x164 - 0x148];
     CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
@@ -952,7 +952,7 @@ public:
     CBinkVideo player_;         // +0x1D8 the movie player (constructor 005DB340)
     bool fromGame_;             // +0x1F4 opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished_;             // +0x1F5 the last line has gone (cleared by Build)
-    std::uint8_t unknown_1F6[2];
+    std::uint8_t unused_1F6[2];
     int savedDisplay_;          // +0x1F8 the renderer's (00500960) fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
@@ -1005,12 +1005,12 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
 
     int hovered_;                    // +0x164 the region under the mouse (-1 none)
-    std::uint8_t unknown_168[4];
+    std::uint8_t unused_168[4];
     bool rain_;                      // +0x16C
     bool daylight_;                  // +0x16D the hour was between 7 and 21 when the menu opened
-    std::uint8_t unknown_16E[2];
+    std::uint8_t unused_16E[2];
     float hour_;                     // +0x170 the time of day at the last update
-    std::uint8_t unknown_174[4];
+    std::uint8_t unused_174[4];
     float savedEdgeFade_;            // +0x178 the map edge fade before the menu
 };
 static_assert(offsetof(CMainMenu, hovered_) == 0x164);

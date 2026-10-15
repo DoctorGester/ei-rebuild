@@ -1,12 +1,11 @@
 # Unit AI modes: spawn wolves next to the hero and give them script modes (UMPatrol, UMGuard,
 # UMSentry, UMFollow, UMAggression), then wait for each to act. Exercises the brain tick
 # (AIBrain::Think), the modes' Evaluate/Enter/Execute, the move action and the mode lookups
-# (src/game/unit_ai*.cpp). The game runs ~5.5x faster (10 ms per world update).
+# (src/game/unit_ai*.cpp).
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))

@@ -1,12 +1,11 @@
 # Script effects (src/game/script_effects.cpp): point lights, particle sources, sound (FX) sources
 # and lightning bolts made by world script commands, then saved into a new slot through the escape
 # menu (the effect savers, against the original) and loaded back (the loaders, record / replay).
-# The creators' verify wrappers check every new effect. The game runs ~5.5x faster.
+# The creators' verify wrappers check every new effect.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitline 15 Saved savea
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
@@ -44,6 +43,8 @@ wait 500
 load save1
 waitwindow 30 battle
 waitfor 20 IsGreater(HP(GetLeader()),0)
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_save1
 check IsAlive(GetLeader())
 report
 quit

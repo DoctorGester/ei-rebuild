@@ -8,7 +8,6 @@
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 
@@ -51,7 +50,7 @@ reject Script error
 # Waiting commands: Sleep, WaitSegment, SleepUntil.
 console @GSSetVar(0,"zw.a",1) Sleep(200) GSSetVar(0,"zw.a",2)
 check IsEqual(GSGetVar(0,"zw.a"),1)
-waitfor 10 IsEqual(GSGetVar(0,"zw.a"),2)
+waitfor 20 IsEqual(GSGetVar(0,"zw.a"),2)
 console @WaitSegment(60) GSSetVar(0,"zw.b",1)
 waitfor 10 IsEqual(GSGetVar(0,"zw.b"),1)
 console @SleepUntil(IsGreater(GSGetVar(0,"zw.c"),0)) GSSetVar(0,"zw.d",1)

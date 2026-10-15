@@ -42,10 +42,7 @@ void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     int index = IndexIn(hero->weapons, static_cast<int>(hero->weaponCount), weapon);
     if (index >= 0) hero->weaponIndex = static_cast<std::uint32_t>(index);
 }
-namespace {
-void __fastcall EquipShowWeapon(CHeroEquipPanel* self, void*, CItem* weapon) { self->ShowWeapon(weapon); }
-} // namespace
-EI_REPLACE(0x006229E0, EquipShowWeapon);
+EI_REPLACE_METHOD(0x006229E0, CHeroEquipPanel::ShowWeapon);
 
 void CHeroEquipPanel::ShowArmour(CItem* item) {
     PartyUnitRecord* hero = ShownHero(owner_);
@@ -53,10 +50,7 @@ void CHeroEquipPanel::ShowArmour(CItem* item) {
     int index = IndexIn(hero->quickItems, static_cast<int>(hero->quickItemCount), item);
     if (index >= 0) selected_ = index;
 }
-namespace {
-void __fastcall EquipShowArmour(CHeroEquipPanel* self, void*, CItem* item) { self->ShowArmour(item); }
-} // namespace
-EI_REPLACE(0x00622A30, EquipShowArmour);
+EI_REPLACE_METHOD(0x00622A30, CHeroEquipPanel::ShowArmour);
 
 void CHeroQuickStrip::ShowEntry(CItem* item) {
     PartyUnitRecord* hero = ShownHero(owner_);
@@ -64,10 +58,7 @@ void CHeroQuickStrip::ShowEntry(CItem* item) {
     int index = IndexIn(hero->spells, static_cast<int>(hero->spellCount), item);
     if (index >= 0) selected_ = index;
 }
-namespace {
-void __fastcall QuickStripShowEntry(CHeroQuickStrip* self, void*, CItem* item) { self->ShowEntry(item); }
-} // namespace
-EI_REPLACE(0x00622BC0, QuickStripShowEntry);
+EI_REPLACE_METHOD(0x00622BC0, CHeroQuickStrip::ShowEntry);
 
 // --- 00622960: the equipment panel's right button --------------------------------------------------
 
@@ -113,10 +104,7 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     }
     return nullptr;
 }
-namespace {
-CItem* __fastcall EquipItemAt(CHeroEquipPanel* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
-} // namespace
-EI_REPLACE(0x00622860, EquipItemAt);
+EI_REPLACE_METHOD(0x00622860, CHeroEquipPanel::ItemAt);
 
 CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     *topic = 0;
@@ -128,9 +116,4 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     if (region >= static_cast<int>(hero->spellCount)) return nullptr;
     return static_cast<CItem*>(hero->spells[region]);
 }
-namespace {
-CItem* __fastcall QuickStripItemAt(CHeroQuickStrip* self, void*, int x, int y, int* topic) {
-    return self->ItemAt(x, y, topic);
-}
-} // namespace
-EI_REPLACE(0x00622D40, QuickStripItemAt);
+EI_REPLACE_METHOD(0x00622D40, CHeroQuickStrip::ItemAt);

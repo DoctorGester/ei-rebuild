@@ -275,7 +275,7 @@ Movies and software cursor (old device calls kept, behind `render::Presenting()`
 | 005DB3F0 `PlayMovie` (`bink_video.cpp`; fastcall name, frame time, 5 stack arguments, RET 0x14) | blocking player (callers 00458270, 0057A060, 004B89B8, 00602190, 00632940, 00634D20, 00634E60): own message loop (Esc / Space end or skip a frame), letterboxed blit to the primary | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through 004EF610 (else `render::Present` ends the sidecar frame); result 0 / 1 (1 with movies off), 00784751 set again |
 | 005DB9E0 `HolderFill`, 005E5640 `HolderBlt`, 005E6630 `CursorSaveBackground` | colour fill, Blt between holders, background copy under the device lock | not called |
 | 005DA400 `ShowLoadingMovie` (fastcall progress) | loading movie (progres*.bik per zone by 00595080; state 007C5550 / holder 007C551C / type 007C5554 / rect 007C5520) stretched over the primary | last frame blitted and presented as above |
-| 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | draws nothing (the renderer draws the cursor in each frame, so it does not move between frames: loading, movies) |
+| 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | without DirectDraw: the last frame presented again with the cursor moved (R9c2, section 9); with a DirectDraw device: nothing |
 
 005DA880 is dead (a thread procedure started only by 005DAD50, which has no caller); 005DA5AB / 005DB603 are catch
 blocks (fallback to 004EF7B0, only with 00784756 0). Kept: a failed Lock whose report says go on skips the copy and
@@ -467,7 +467,7 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   to the restored window. DXGI_STATUS_OCCLUDED counts as success.
 - Movies and the loading screen already reach `render::Present` through 004EF610 (R9a2). The software cursor:
   the cursor thread (005E5690) draws nothing without DirectDraw; the renderer draws the cursor in each frame, and the
-  movie players and 005DA400 hide it, so it does not move during movies and loading. Drawing it between frames needs
+  movie players and 005DA400 hide it, so it does not move during movies and loading (as in the original: R9c2 below). Drawing it between frames needs
   a present from another thread (follow-up).
 - The harness: `fullscreen 0|1` (starter: the registry's FullScreen), `focus off|on` (WM_ACTIVATE inactive through
   the game's window procedure and SW_SHOWMINNOACTIVE; SW_SHOWNOACTIVATE and WA_CLICKACTIVE), `windowsize <w> <h>`,
@@ -551,6 +551,160 @@ standalone exe change; vanilla and Rebirth runs keep the original's probes and v
   frames\<frame>.bmp as samecapture does). Scenario `render_present_shot`: Scroll Lock in the main menu and in the
   game at a frozen moment, then the recorder for a few frozen frames; file and frame must match.
 
+### R9c2: the software cursor between frames (done)
+
+What the original shows. The renderer's +4 bit 0 (read as "the software cursor bit" above) is the game's active flag
+(set by WinMain's activation, app_main.cpp), and the cursor runs in mode 2 with its thread whenever the options'
+FpsIndependentCursor (registry FPSIndependentCursor, options +0x80) is on (005DAEA0; mode 1 has no thread). The thread (005E5690) wakes every 41 ms
+and, when the image is shown (+0x0C) and 005E52E0 says the cursor moved or its frame stepped, puts the old place's
+background back on the primary and blits the composed cursor at the new place: the cursor moves at about 24 Hz
+whatever the frame rate, and on with no frames at all. It draws nothing while the image is hidden: every movie
+player (005DB3F0, 005DBA50, the titles 0062B7D0) and every loading screen step (005DA400) call 005E5270 0 first and
+show it again only at their end (005DB3F0, 005DA3C0, 005DBF70), so during movies and loading the original shows no
+cursor (Ghidra: 005E5690 tests +0x0C before any blit). Where it shows: long frames and work on the main thread
+outside the movie players and loading steps; the image, frame and hot spot are the frame draw's (005E52E0's
+rectangle: the position less the hot spot, clipped to the bounds, one step behind the mouse).
+
+The choice: a present from the cursor thread, not a hardware cursor. A hardware cursor (SetCursor with an HCURSOR
+made from the cursor picture) would need nothing from the renderer, but differs from what the game shows: it moves
+with the Windows cursor while the game holds its own still (005E67B0, the camera turned with the right button), it
+is not scaled with the frame in a larger window, the animated shapes would need a new HCURSOR per 125 ms frame, the
+gamma ramp would not apply to it and captures would not see it; the cursor would also have to leave the frame. A
+present from the cursor thread keeps the game's own model (the thread, its lock, 005E52E0, the mask) and draws
+exactly what a frame with the cursor there would show. Made safe against the main thread's sokol use as follows
+(`render_cursor.cpp`):
+- The cursor thread makes no sokol call. It records on a Direct3D 11 deferred context, with the raw objects of
+  sokol's pipelines (the window blit, `ei-window-blit`, that draws the cursor into the frame; the present,
+  `ei-present`, that draws the frame through the gamma ramp into the swap chain), and runs the list on the
+  immediate context with ExecuteCommandList(RestoreContextState TRUE): the context's state is put back, so sokol's
+  state cache stays right. The device's multithread protection (ID3D11Multithread) is on, so the list runs between
+  two of the main thread's calls. Its own resources per present: the cursor's part as an immutable texture and three
+  immutable constant buffers.
+- The swap chain is shared: the main thread's window present (in EndFrame, from the frame without its cursor kept
+  through DrawToWindow and Present) and the cursor thread's take turns under one lock (`BeginWindowPresent` ..
+  `EndWindowPresent`); at the end of each of its presents the main thread takes references to what the cursor
+  thread draws with (swap chain, back buffer view, ramp view, samplers, the two pipelines' shaders and states, the
+  client area and the frame's place) and drops them at the start of the next one (so ResizeBuffers holds no extra
+  reference). A lost device drops everything under the lock first (`DropCursorPresents`, R9c1's RecreateDevice).
+  Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present in mode 2) before the
+  present lock, in both threads.
+- The frame without its cursor: with the new renderer presenting itself, render::Cursor no longer adds the cursor
+  to the frame's commands but keeps it aside (`Frame::cursor`); EndFrame draws the frame, copies it (`KeepFrameForCursor`,
+  a GPU copy into a texture of the frame's size), then draws the cursor over it, so the frame, captures and
+  ReadFrame are as before. The cursor thread copies that frame into a work target, draws the cursor there with the
+  window blit (one texel a pixel, texels whose mask is set left out) and presents the work target as the main
+  thread presents its frame (black bars, gamma ramp, the vertical blank as the main thread's).
+- The cursor's picture: render::Cursor keeps the whole picture of the current shape with its mask as RGBA8
+  (all frames side by side; `CursorPicturePart`, under its own lock); the cursor thread cuts the frame shown
+  (`from_`) out of it, and presents nothing for a picture the main thread has not drawn yet.
+- When: `CursorBetweenFrames` presents only when nothing was presented on the game window for 40 ms (real time:
+  the harness's virtual clock does not reach the renderer); at the frame rates the game normally runs the frames
+  show the cursor themselves and the cursor thread presents nothing. The game side (`ui_cursor_frame.cpp`
+  `MoveBetweenFrames`) is the original's step: under the cursor's lock 005E52E0, then with the image shown and a
+  move the present, `drawn_` set to the new rectangle. In `present` on a DirectDraw device (dgVoodoo, turned on
+  late) nothing is drawn between frames, as before.
+- Verify build: every frame the cursor thread composes is read back and compared with the frame without its cursor
+  and the cursor's texels ("render: cursor between frames: N composed frames checked, M differed" /
+  "render: MISMATCH cursor between frames"); the last one is kept for the harness.
+
+Harness: `mouseglide <ms> <x0> <y0> <x1> <y1>` (the harness's mouse, what GetCursorPos reads, moved by a thread
+of its own in 10 ms steps, so it moves while the main thread is away), `stall <ms>` (the main thread away: one long
+frame), `cursormark`, `cursorcheck <name>|- <min> [max]` (presents by the cursor thread since the mark within
+min..max; with a name the last composed frame goes to frames\<name>.bmp, the checks must have found no
+difference and its rectangle must sit at the mouse less the image's hot spot within 24 pixels, the cursor
+trailing the mouse by up to two of the thread's steps; it also logs the moves handed over and why some were not
+presented: picture not drawn yet, no frame, a frame within 40 ms, outside the frame), and the starter step
+`fpscursor 0|1` (the answer to the FPSIndependentCursor registry value: the test machine's is 0, mode 1, no
+thread, and the original then shows the cursor only in frames). Scenario `render_cursor_present`: a long frame in
+the main menu and in the game while the mouse glides (at least 10 presents each, 28-29 seen on vanilla, Rebirth and
+native, every composed frame matching, the cursor at the mouse less the hot spot), the loading screen of a new game
+(logged only: the work before the first loading step is a long frame with the cursor still shown) and a movie (at
+most 2 presents: the moments before the player hides the cursor; 0 seen). It runs on `realtime`: on the virtual
+clock other threads see the main thread's clock plus the real time since it last moved and never go back, so after
+a movie or a load (real seconds without a move) the cursor thread's clock stands still until the main thread's
+frames catch up, and its 41 ms waits last that long (1.5 s of a 1.6 s stall were seen); a player's game has no such
+clock.
+
+### R10: harness runs of our code on our renderer; dgVoodoo for the original code only
+
+User's decision (2026-10-15): test runs of our code draw with our renderer, mainly because dgVoodoo runs that set a
+resolution must have the machine to themselves and serialised the suites.
+- `tools/run_all.py` `our_renderer()`: a run of our code (vanilla, Rebirth, with hooks) gets `EI_RENDER=new,present`
+  (run/vanilla and run/rebirth keep dgVoodoo's DLLs beside game.exe: the startup DirectX probe still goes through
+  them, PF3; nothing draws through them). dgVoodoo draws: the original code (`--no-hooks`, `--widescreen`'s
+  rebirth-nohooks and, see below, its hooked side; compare.py's original side), scenarios whose `render` step leaves out `present`
+  (`needs_old_device`: render_scene, render_terrain, render_movie, render_cpuwindows compare the old path's frame
+  with the new one), every hooked run with `--dgvoodoo` (run_all, compare.py), and a submitter's own `EI_RENDER`
+  without `present`. native as before.
+- Alone (`runs_alone`): only a dgVoodoo run with a `resolution` step. Our renderer changes no display mode (full
+  screen is a window over the monitor, R9c), so render_present_fullscreen / _window and ui_widescreen* run beside
+  others; work.py test stores that per run, the scheduler is unchanged. The minimise rerun (MINIMISED, SV1c) only
+  for dgVoodoo runs.
+- Reference cache (`reference_key`, `store_reference`, `reference_from_cache`): a passed run of the original code is
+  kept in `<main checkout>/build/reference/<scenario>-<install>/<key>/` (the run folder without harness_saves, plus
+  cached.json with run()'s results), the key being the scenario's last commit (`work.scenario_revs`, as WB6), the
+  install's files (run/<install>: names, sizes, times; dgVoodoo.conf by content), the tools of its `# prepare:`
+  lines, the clock override and the game's EI_* settings. A scenario with uncommitted edits is never cached.
+  `run()` copies a cached run into the run folder (a note "reference cache: <key> ..."; no time recorded) instead
+  of playing it; work.py test gives such a run alone = 0 and expected 1 s. Three keys kept per scenario and install.
+  `--fresh` (run_all, compare.py; compare.py always with `--runs` > 1) plays it again. Not in the key: the
+  harness itself (the verify build): after a harness change that alters what a reference run captures, `--fresh`.
+- The harness's `oldterrain` / `oldobjects` / `oldinterface on` are ignored with `present` (render.cpp
+  `OldPathSwitchable`, logged): render_scene and render_terrain on native turned the old path back on at
+  `world_again` with no device to draw into, and the new frame came out different (terrain darker, ~2.9% of the
+  pixels by up to 60; the old terrain path running beside the hand-over apparently changes what it hands over, not
+  looked into further: nothing turns it on under `present` now). With the
+  switches refused both pass on native and on our renderer (their old-path steps then do nothing).
+- The widescreen scenarios' 4K captures beside 15 other games took 45-60 s (alone 25-50 s): `timeout 90` in
+  ui_widescreen_hud / _more / _screens.
+- Plans never hold a run that would switch the real display (main's `switches_display`: `resolution WxH` with
+  `fullscreen 1`): such a scenario runs only on our renderer (left out without hooks, with `--dgvoodoo`, or with an
+  EI_RENDER without `present`). A scenario whose own `render` step says `new,present` is on our renderer whatever
+  else is set (the harness adds EI_RENDER's words to the step's).
+- A run of the original code never gets EI_RENDER (run_once drops it): with `present` the harness captured the new
+  renderer's frame, which nothing draws without our hooks (seen: empty reference frames).
+- `--widescreen` keeps its hooked side on dgVoodoo too (`wants_dgvoodoo`), so those 4 runs are still alone; only the
+  reference side comes from the cache. Cross-renderer frames (ours on our renderer against addon's on dgVoodoo, the
+  comparison's own masks) do not pass any useful tolerance: interface frames 0.2-0.6% of the pixels over 8
+  (largest 150-230: isolated pixels of the scene behind the panels, texture filtering, and the panels' edges),
+  menu 1.0% (largest 202), save 3.2% (229), world 20% (153: the sea's phase); at tolerance 64 still 0.15-0.97% for
+  menu / world / save / zt4. The same frames on dgVoodoo on both sides: 0-0.02% except load / options / save
+  (0.4-1.2%, already so on main). `EI_RENDER=new,present python tools\run_all.py --widescreen` still gives the
+  cross-renderer comparison on request. The per-frame comparisons (compare_frames.py, pure Python, 20-40 s per 4K
+  frame) now run 8 at once (`COMPARE_JOBS`): 33 frames in 64 s instead of ~6 minutes.
+- Timings (machine shared with other workers' batches): full suite (115 runs) 449 s with 6 alone runs (batch 139)
+  against 212 s with none (batch 149: everything of our code on our renderer); `--widescreen` 9.4 min (batch 143:
+  8 alone runs, 178 s of games, then ~6 min of serial comparisons) against an estimated ~4 min with the cache warm
+  (4 alone runs of ours, ~180 s; references copied, 0.1-0.5 s each; comparisons 64 s). Main's native suite: 91 runs
+  in 216 s, all passing with the `old*` fix.
+- Coverage moved: verify wrappers whose originals need DirectDraw run "ours only" without it (R9a2, R9b), and the
+  old path's draws are skipped under `present`; the default suite now exercises those comparisons only in the four
+  old-device scenarios. Run `--dgvoodoo` now and then (or before touching the old device path).
+- Seen once each in runs on our renderer and not on dgVoodoo: a one-record SectorData::Light mismatch
+  (ui_battle_commands vanilla twice, effects_bow rebirth; passed on the next runs): R10a.
+
+### R10a: the SectorData::Light mismatch was our ShadeSun, not the renderer (done)
+
+- Cause: `SectorData::ShadeSun` (006C36B0, terrain_lighting.cpp) computed the underwater loss
+  `falloff * absorption * depth * depth` as `(falloff * absorption) * (depth * depth)`: /fp:fast regrouped the
+  repeated factor (dumpbin of the object). The original multiplies left to right, and Light runs with chop rounding,
+  so the lit colour of underwater vertices came out one step off (seen bit for bit in every scenario with water:
+  ui_battle_commands, effects_bow, combat, effects, zone_gz3g). ShadeSun's wrapper compares with CheckNear, so it
+  passed; Light compares the colour bytes exactly, and `lit * 255` truncated crosses an integer only when it sits
+  within that step of one, which is why a single record failed in some runs and not in others. The original is
+  deterministic there; the renderer only changed which sectors were lit at which sun position. LightVertex's water
+  product (`absorption * depth * depth * dz * dz * falloff`) had the same regrouping (no byte flip seen).
+- Fix: `Product(a, b, ...)` in vecmath.h (precise section: left to right, returned unrounded as `double`); both
+  products use it. A first try that stored each partial product (RoundToFloat) broke Rebirth runs: the sun's
+  position z there was a denormal (0x1.30012p-129), so `z * z` stored as a float became 0 and `1 - z * z * loss`
+  came out 1.0 instead of the chopped 0.99999994. Partial products stay in the FPU, as in the original.
+- Verify: ShadeSun's wrapper adds "SectorData::ShadeSun bits" (the lit colour bit for bit); 0 mismatches after the
+  fix in vanilla and Rebirth. Light's wrapper logs both records in hex floats at a mismatch (R10's log).
+- Rate: before, Light mismatched in 3 of 7 R10 runs of the two scenarios early on and in 0 of 116 repeats here
+  (copies of ui_battle_commands / effects_bow, vanilla and Rebirth, and two full suites), while the bit check found
+  the one-step difference in every vanilla and Rebirth run with water it was tried on; after, 104 runs of the two
+  scenarios and a full suite (165 runs): 0 ShadeSun bit and 0 Light mismatches (127 million ShadeSun calls).
+
 ### Before R9a (reference)
 
 The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and
@@ -581,7 +735,8 @@ above; 3 is R9b):
    WM_ACTIVATE handling in 004EF610's place. The present's full-frame readback (33 MB at 3840x2160, staging copy kept
    between frames) is fine for the switch-over only.
 5. The cursor between frames: the hardware cursor needs nothing; the software cursor option draws only inside frames in
-   the switch-over, so it does not move during movies and loading.
+   the switch-over, so it does not move during movies and loading (R9c2: the cursor thread presents between frames;
+   during movies and loading the original hides it).
 
 Other open items: the fog colour and range come from the old device state (not game data yet); weather's old draw
 (`CRainSnow::DrawParticles`, split from the builders by A-S13) still runs next to the hand-over; GPU shadows; several steps (holders, saved pictures, interface

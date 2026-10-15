@@ -211,7 +211,7 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     for (int x = 670; x > 470; x -= 50) AddRegion()->CallSetRect(x, 550, x + 50, 600);
     for (int x = 670; x > 470; x -= 50) AddRegion()->CallSetRect(x, 500, x + 50, 550);
     ClearSceneObjects();
-    unknown_14C = 0;
+    shownCount_ = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
         regions_.data[i]->SetTip(0, 1, 0);
@@ -228,8 +228,8 @@ EI_REPLACE_METHOD(0x0063C800, CHudQuickItems::Construct);
 EI_REBIRTH_IMPLEMENTS(0x0063C800, ei::rebirth::Patch::WideScreen);
 
 void CHudQuickItems::AddItem(const char* model, const char* image) {
-    if (unknown_14C >= kMaxQuickItems) return;
-    const IconPlace at = IconAt(unknown_14C, 0x80);
+    if (shownCount_ >= kMaxQuickItems) return;
+    const IconPlace at = IconAt(shownCount_, 0x80);
     CopyImage(objects_.data[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
@@ -242,7 +242,7 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
     }
     SetOffsets(sprite, at.x, at.y + kIconSize);
     MakePlain(sprite);
-    ++unknown_14C;
+    ++shownCount_;
 }
 EI_REPLACE_METHOD(0x0063CAE0, CHudQuickItems::AddItem);
 EI_REBIRTH_IMPLEMENTS(0x0063CAE0, ei::rebirth::Patch::WideScreen);

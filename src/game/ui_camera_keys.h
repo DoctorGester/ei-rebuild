@@ -53,11 +53,11 @@ public:
     void** vtable_;
     CInterface3D* interface_;        // +0x04
     bool handled_;                   // +0x08 the input used the event
-    std::uint8_t unknown_09[3];
+    std::uint8_t unused_09[3];
     POINT pressScreen_;              // +0x0C where the right button went down (screen)
     POINT pressLayout_;              // +0x14 the same in layout coordinates
     bool turning_;                   // +0x1C the right button is held
-    std::uint8_t unknown_1D[3];
+    std::uint8_t unused_1D[3];
     float x_;                        // +0x20 right (+1) / left (-1)
     float y_;                        // +0x24 forward / back
     float z_;                        // +0x28 up / down

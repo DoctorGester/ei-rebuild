@@ -8,7 +8,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitfor 15 IsUnitBlocked(GetLeader())
 console @BlockUnit(GetLeader(),0)
@@ -39,12 +38,13 @@ check IsEnemy(GetObjectByName("BowWolf1"),0)
 waitunit 10 BowWolf1
 check Not(IsUnitBlocked(GetLeader()))
 clickunit BowWolf1
-wait 3000
+wait 10000
 clickunit BowWolf1
 waitfor 20 Not(IsAlive(GetObjectByName("BowWolf1")))
 # A click on the body: the hero searches it (OrderSearchBody, Loot).
 clickunit BowWolf1
-wait 1000
+# The hero walks to the body and loots it.
+wait 5500
 check IsAlive(GetLeader())
 report
 quit

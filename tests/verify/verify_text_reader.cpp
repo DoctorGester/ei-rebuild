@@ -55,7 +55,7 @@ BOOL Both(const char* name, CTextManager* self, Original original, Ours ours, Sa
 BOOL(__fastcall* s_open)(CTextManager*, void*, const char*);
 BOOL __fastcall OpenVerify(CTextManager* self, void*, const char* key) {
     return Both(
-        "TextOpen", self, [&] { return s_open(self, nullptr, key); }, [&] { return TextOpen(self, nullptr, key); },
+        "TextOpen", self, [&] { return s_open(self, nullptr, key); }, [&] { return self->Open(key); },
         [] { return true; });
 }
 
@@ -107,7 +107,7 @@ BOOL __fastcall ReadLineVerify(CTextManager* self, void*, mfc::CString* out, BOO
     mfc::CString scratch(*out);
     return Both(
         "TextReadLine", self, [&] { return s_readLine(self, nullptr, &scratch, advance); },
-        [&] { return TextReadLine(self, nullptr, out, advance); }, [&] { return SameText(scratch, *out); });
+        [&] { return self->ReadLine(out, advance); }, [&] { return SameText(scratch, *out); });
 }
 
 // 004DFB80: PUSH -1; PUSH 0x71B208 (7 bytes).
@@ -116,7 +116,7 @@ BOOL __fastcall ReadToHashVerify(CTextManager* self, void*, mfc::CString* out, B
     mfc::CString scratch(*out);
     return Both(
         "TextReadToHash", self, [&] { return s_readToHash(self, nullptr, &scratch, advance); },
-        [&] { return TextReadToHash(self, nullptr, out, advance); }, [&] { return SameText(scratch, *out); });
+        [&] { return self->ReadToHash(out, advance); }, [&] { return SameText(scratch, *out); });
 }
 
 // 004DFCB0: PUSH -1; PUSH 0x71B238 (7 bytes). The original fills a scratch array.
@@ -125,7 +125,7 @@ BOOL __fastcall SplitVerify(CTextManager* self, void*, console::CStringArray* wo
     console::CStringArray scratch;
     return Both(
         "TextSplit", self, [&] { return s_split(self, nullptr, &scratch, advance); },
-        [&] { return TextSplit(self, nullptr, words, advance); }, [&] { return SameWords(scratch, *words); });
+        [&] { return self->Split(words, advance); }, [&] { return SameWords(scratch, *words); });
 }
 
 // 004DF030: PUSH -1; PUSH 0x71B190 (7 bytes).
@@ -133,7 +133,7 @@ BOOL(__fastcall* s_findLine)(CTextManager*, void*, const char*);
 BOOL __fastcall FindLineVerify(CTextManager* self, void*, const char* key) {
     return Both(
         "TextFindLine", self, [&] { return s_findLine(self, nullptr, key); },
-        [&] { return TextFindLine(self, nullptr, key); }, [] { return true; });
+        [&] { return self->FindLine(key); }, [] { return true; });
 }
 
 } // namespace

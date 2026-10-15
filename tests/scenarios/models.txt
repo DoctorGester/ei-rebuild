@@ -3,12 +3,11 @@
 # loads zone1 and its figures (bounds, index buffers) and draws them (frustum clip test, viewport and
 # projection matrices). Spawning units of several different prototypes loads more figures. Script
 # SetWaterLevel drives the world's water level changes (TweenArray SetTarget / Tick, including the
-# removal of a finished entry). The game runs ~5.5x faster (10 ms per world update).
+# removal of a finished entry).
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)

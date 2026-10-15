@@ -3,13 +3,11 @@
 # (IntroSortByModel / FinalSortByModel, IntroSortByModelUse / FinalSortByModelUse), and the
 # interface picks the point under the cursor (PickSurface, PickGround). The scenario spawns wolves
 # in and out of view, hides, shows and removes them, moves and clicks the mouse over the scene and
-# walks the hero so objects enter and leave the view. The verify totals show what ran. The game
-# runs ~5.5x faster (10 ms per world update).
+# walks the hero so objects enter and leave the view. The verify totals show what ran.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)

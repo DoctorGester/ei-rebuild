@@ -245,16 +245,15 @@ EI_VERIFY(0x005FD440, Rgb565CopyVerify, 6, s_rgb565Copy);
 
 // 005FD240: SUB ESP,0xB4 (6). Only reads: both run, the results must be equal. A holder with no
 // DirectDraw surface (the switch-over, ticket R7): ours only, its result a colour (0x00RRGGBB).
-std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y);
 static std::uint32_t(__thiscall* s_pixelAt)(CUiSurface*, int, int);
 static std::uint32_t __fastcall PixelAtVerify(CUiSurface* self, void*, int x, int y) {
     if (MemoryOnly(self)) {
-        std::uint32_t actual = SurfacePixelAt(self, nullptr, x, y);
+        std::uint32_t actual = self->PixelAt(x, y);
         ei::verify::Check("CUiSurface::PixelAt", true, (actual >> 24) == 0, "memory only (%d, %d): %08X", x, y, actual);
         return actual;
     }
     std::uint32_t expected = s_pixelAt(self, x, y);
-    std::uint32_t actual = SurfacePixelAt(self, nullptr, x, y);
+    std::uint32_t actual = self->PixelAt(x, y);
     ei::verify::Check("CUiSurface::PixelAt", true, expected == actual, "(%d, %d): %06X, ours %06X", x, y, expected, actual);
     return expected;
 }

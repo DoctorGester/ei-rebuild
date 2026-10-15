@@ -35,10 +35,10 @@ void CBattleScreenSetup::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     GameCursor()->SetShape(kCursorArrow);
-    if (unknown_1C0 && BoxSelectThreshold() > 0 && !IsMultiplayerClient()) {
+    if (viewPressed_ && BoxSelectThreshold() > 0 && !IsMultiplayerClient()) {
         int threshold = BoxSelectThreshold();
-        if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) unknown_1C1 = true;
-        if (unknown_1C1) {
+        if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;
+        if (boxSelecting_) {
             CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
             if (panel->hoverUnit_) panel->hoverUnit_ = nullptr;
             selectionBox_.left = x < pressX_ ? x : pressX_;
@@ -70,14 +70,14 @@ void CBattleScreenSetup::OnLButtonDown(int buttons, int x, int y) {
         if (portraits_) portraits_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
         return;
     }
-    if (!unknown_1C0) {
+    if (!viewPressed_) {
         InputOf(this)->BaseLButtonDown(buttons, x, y);
         if (inputHandled_) return;
     }
-    unknown_1C0 = true;
+    viewPressed_ = true;
     pressX_ = x;
     pressY_ = y;
-    unknown_1C1 = false;
+    boxSelecting_ = false;
 }
 namespace {
 void __fastcall BattleScreenLButtonDown(void* input, void*, int buttons, int x, int y) {
@@ -107,11 +107,6 @@ void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
     out->Empty();
     name = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name;
     ReplaceChar(&name, ' ', '_');
-    if (TextOpen(texts, nullptr, mfc::CString(kUnitTextPrefix) + name)) TextReadLine(texts, nullptr, out, 1);
+    if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }
-namespace {
-void __fastcall BattleScreenUnitName(CBattleScreenSetup* self, void*, CUnit* unit, mfc::CString* out) {
-    self->UnitName(unit, out);
-}
-} // namespace
-EI_REPLACE(0x0063B920, BattleScreenUnitName);
+EI_REPLACE_METHOD(0x0063B920, CBattleScreenSetup::UnitName);

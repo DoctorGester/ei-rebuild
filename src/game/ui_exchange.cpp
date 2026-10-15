@@ -353,10 +353,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     AsContainer(this)->DrawContainer(pass);
     return 1;
 }
-namespace {
-BOOL __fastcall ExchangeDraw(CExchangeScreen* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x0062C9C0, ExchangeDraw);
+EI_REPLACE_METHOD(0x0062C9C0, CExchangeScreen::Draw);
 
 // --- 0062D100 / 0062D200: an item clicked in the strip or the grid (slots 42 / 43) -------------------
 

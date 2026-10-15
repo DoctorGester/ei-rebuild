@@ -215,7 +215,7 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
         auto* map = static_cast<CHudMap*>(map_);
         map->interface_->PlaySound(ClickSound(), 0);
         camera->SetHeading(0.0f);
-        map->unknown_1B0 = 0.5f;
+        map->northTime_ = 0.5f;
         return;
     }
     case kActionOrderKey:

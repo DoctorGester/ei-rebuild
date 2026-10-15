@@ -13,7 +13,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)
@@ -77,7 +76,8 @@ wait 2000
 console @AddUnitToServer("Wolf6","WolfTutor","Wolf6",Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),6),0)
 waitfor 10 IsAlive(GetObjectByName("Wolf6"))
 console @CastSpellPoint("acid_fog{ee1;ee1;ee1;ee1;ee1;ee1;ee1;ee1}",GetX(GetObjectByName("Wolf6")),GetY(GetObjectByName("Wolf6")),GetX(GetObjectByName("Wolf6")),GetY(GetObjectByName("Wolf6")))
-wait 2000
+# Long enough for the wall and the fog to end (their AI map footprints and occluders removed).
+wait 11000
 
 check IsAlive(GetLeader())
 report

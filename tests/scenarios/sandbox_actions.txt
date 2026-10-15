@@ -1,11 +1,10 @@
 # Sandbox actions: start a new game (hero on zone1), then move, take damage, heal, and fight a
 # spawned enemy, all through world script commands. Each "check" must print a nonzero value; each
-# "waitfor" waits until its condition holds. The game runs ~5.5x faster (10 ms per world update).
+# "waitfor" waits until its condition holds.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)
@@ -32,6 +31,8 @@ console @SetPlayer(GetObjectByName("Enemy1"),6)
 check IsEnemy(GetObjectByName("Enemy1"),0)
 console @Attack(GetLeader(),GetObjectByName("Enemy1"))
 waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))
+# The death's own updates (OnUnitDied, DeathEffect, the AI's reset).
+wait 3000
 check IsAlive(GetLeader())
 report
 quit

@@ -1,0 +1,64 @@
+  Activated!
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  a (b), c
+  1
+  Script error: Unexpected 'EndMarkerG'
+  1
+  1
+  1
+  Script error: Unexpected 'EndMarkerS'
+  script ran
+  1
+  1
+  Script error: Unexpected 'EndMarkerD'
+  1
+  Script error: Expected '('
+  Script error: Expected ','
+  Script error: Not enough parameters
+  6
+  Script error: Parameter of type float expected
+  Script error: Parameter of type string expected
+  Script error: Parameter of type object expected
+  Script error: Parameter of type group expected
+  Script error: Only global variables are allowed to be loop counters
+  Script error: Unexpected token 'NoSuchCommand'
+  Script error: Unexpected end of file
+  Script error: End of file before '*/'
+  Script error: End of file before '*/'
+  Script error: Wrong lexeme ,
+  Script error: Only one WorldScript() per file allowed
+  Script error: Unexpected 'Sleep'
+  Script error: Wrong lexeme x
+  Script error: Function returning float expected
+  Script error: In script !27!PTestE should be at least one condtion
+  Script error: expected if section
+  Script error: If section, ( expected
+  Script error: then expected after if
+  Script error: Expected ( after then
+  Script error: Duplicate script PTestD1
+  Script error: Multiple declaration of script !27!PTestM
+  Script error: Unknown parameter type
+  Script error: Duplicate variable name x
+  Script error: Expected , or ) after variable
+  Script error: Wrong lexeme float
+  Script error: Wrong lexeme 5
+  1

@@ -1269,7 +1269,4 @@ void CItemInfoPanel::Build(int x, int y) {
     using EmptyFn = void(__thiscall*)(void*);
     reinterpret_cast<EmptyFn>((*static_cast<void***>(list))[2])(list);
 }
-namespace {
-void __fastcall InfoPanelBuild(CItemInfoPanel* self, void*, int x, int y) { self->Build(x, y); }
-} // namespace
-EI_REPLACE(0x005EE440, InfoPanelBuild);
+EI_REPLACE_METHOD(0x005EE440, CItemInfoPanel::Build);

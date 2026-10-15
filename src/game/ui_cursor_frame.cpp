@@ -11,10 +11,12 @@
 // Also the cursor's draws straight to the primary surface (ticket R6): the cursor thread 005E5690
 // (redraws the cursor on the primary every 41 ms between frames), the background save 005E6630 and
 // the holder blit 005E5640 they use. With the new renderer presenting ("present") the cursor is drawn
-// only by the new renderer, in every frame it presents (render::Cursor above): the thread, the
-// background saves and the frame draw's old blits into the render target (which the new frame
-// overwrites at the present) are left out. Between frames (loading, movies) the cursor then does
-// not move; the movie players hide it anyway. The cursor's holders made in the switch-over have no
+// by the new renderer, in every frame it presents (render::Cursor above): the background saves and
+// the frame draw's old blits into the render target (which the new frame overwrites at the present)
+// are left out. Presenting by itself (no DirectDraw), the cursor thread moves the cursor between
+// frames as the original did on the primary, by presenting the last frame again
+// (render::CursorBetweenFrames, ticket R9c2); as in the original, not while the image is hidden (the
+// movie players and the loading screen hide it). The cursor's holders made in the switch-over have no
 // DirectDraw surface at all (ticket R7): the old path's draws need one (OldPathDraws).
 #include "ui_cursor.h"
 #include "device.h"
@@ -84,17 +86,33 @@ bool OldPathDraws(const CCursor* self) {
     return !render::Presenting() && self->under_->surface && self->target_->surface;
 }
 
+// The cursor thread's step in the switch-over without DirectDraw (R9c2): under the cursor's lock, the
+// position updated (005E52E0) and, when an image is shown and the cursor moved (or its frame
+// stepped), the last frame presented again with the cursor at its new rectangle
+// (render::CursorBetweenFrames; nothing while the main thread's frames come often enough); the drawn
+// rectangle follows as the original's blits made it.
+void MoveBetweenFrames(CCursor* self) {
+    gameapi::EnterCriticalSection(&self->lock_);
+    char moved = UpdatePosition(self);
+    if (self->imageShown_ != 0 && moved != 0) {
+        CursorImage* image = self->image_;
+        render::CursorBetweenFrames(image->holder, image->saved, ToRender(self->from_), ToRender(self->rect_));
+        self->drawn_ = self->rect_;
+    }
+    gameapi::LeaveCriticalSection(&self->lock_);
+}
+
 } // namespace
 
 // 005E5640 (thiscall on the destination holder, RET 0x14): Blt from `source`'s surface (rectangles,
 // flags, effects) under the device lock; Blt's result.
-long __fastcall HolderBlt(CDXSurface* self, void*, RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx) {
+long CDXSurface::Blt(RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx) {
     gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(self->surface, kBlt, to, source->surface, from, flags, fx);
+    long hr = ComCall(surface, kBlt, to, source->surface, from, flags, fx);
     gameapi::LeaveCriticalSection(DeviceLock());
     return hr;
 }
-EI_REPLACE(0x005E5640, HolderBlt);
+EI_REPLACE_METHOD(0x005E5640, CDXSurface::Blt);
 
 // 005E54A0.
 void __fastcall CursorDrawFrame(CCursor* self) {
@@ -137,7 +155,9 @@ EI_REPLACE(0x005E54A0, CursorDrawFrame);
 // there (after the vertical blank); overlapping, their union is composed in the composition surface
 // (the old background put back, the new one saved, the cursor combined in) and copied to the screen
 // in one blit. `drawn_` becomes the new rectangle. The cursor's lock is held while it draws. At the
-// end the event `stopped_` is set.
+// end the event `stopped_` is set. In the switch-over without DirectDraw each step is
+// MoveBetweenFrames (the new renderer presents instead of the blits); with "present" on a DirectDraw
+// device nothing is drawn between frames.
 void __fastcall CursorThread(CCursor* self) {
     if (!self->enabled_) return;
     RECT* drawn = &self->drawn_;
@@ -159,8 +179,12 @@ void __fastcall CursorThread(CCursor* self) {
         }
         last = now;
         if (!SoftwareCursor()) continue;
-        // With "present" the new renderer draws the cursor in its frames; nothing goes to the primary.
-        if (!OldPathDraws(self)) continue;
+        // With "present" nothing goes to the primary: the new renderer draws the cursor in its frames
+        // and, presenting by itself, between them (MoveBetweenFrames).
+        if (!OldPathDraws(self)) {
+            if (render::PresentsItself()) MoveBetweenFrames(self);
+            continue;
+        }
         gameapi::EnterCriticalSection(&self->lock_);
         char moved = UpdatePosition(self);
         if (self->imageShown_ == 0 || moved == 0 || !self->image_->holder->surface) {
@@ -227,17 +251,17 @@ EI_REPLACE(0x005E5690, CursorThread);
 // 005E6630 (thiscall, RET 4): the part of the drawn rectangle inside `bounds_` is copied from the
 // primary (`fromPrimary`) or the render target into the background surface, as the screen under the
 // cursor changed (the movie players after their blits to the primary).
-void __fastcall CursorSaveBackground(CCursor* self, void*, char fromPrimary) {
-    if (!self->enabled_) return;
+void CCursor::SaveBackground(char fromPrimary) {
+    if (!enabled_) return;
     RECT part;
-    if (!gameapi::IntersectRect(&part, &self->drawn_, &self->bounds_)) return;
+    if (!gameapi::IntersectRect(&part, &drawn_, &bounds_)) return;
     // With "present" nothing draws from the background (the thread and the frame draw's old blits
     // are left out).
-    if (!OldPathDraws(self)) return;
+    if (!OldPathDraws(this)) return;
     RECT local = Local(part);
-    CDXSurface* under = self->under_;
+    CDXSurface* under = under_;
     CDXSurface* screen = fromPrimary ? Primary(under) : RenderTarget(under);
     if (screen->surface == under->surface) return;
     LockedBlt(under, &local, screen, &part);
 }
-EI_REPLACE(0x005E6630, CursorSaveBackground);
+EI_REPLACE_METHOD(0x005E6630, CCursor::SaveBackground);

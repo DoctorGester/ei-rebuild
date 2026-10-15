@@ -126,10 +126,7 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     }
     return 1;
 }
-namespace {
-BOOL __fastcall FigureStripDraw(CUiItemStrip* self, void*, int pass) { return self->DrawFigures(pass); }
-} // namespace
-EI_REPLACE(0x00629AF0, FigureStripDraw);
+EI_REPLACE_METHOD(0x00629AF0, CUiItemStrip::DrawFigures);
 
 void CUiItemStrip::CountFigures() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
 EI_REPLACE_METHOD(0x00629AD0, CUiItemStrip::CountFigures);

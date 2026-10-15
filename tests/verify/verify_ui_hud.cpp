@@ -340,7 +340,7 @@ static void __fastcall MapMouseUpVerify(void* input, void*, int buttons, int x, 
     const int region = w->RegionAt(x, y);
     const int sliding = w->sliding_;
     const std::uint32_t direction = Bits(w->slideDirection_);
-    const std::uint32_t north = Bits(w->unknown_1B0);
+    const std::uint32_t north = Bits(w->northTime_);
     w->CHudMap::OnMouseUp(buttons, x, y);
     bool ok = CaptureReleased(captured, capture, w->interface_->mouseCapture_);
     const char* path = "not captured";
@@ -359,7 +359,7 @@ static void __fastcall MapMouseUpVerify(void* input, void*, int buttons, int x, 
     else
         ok = ok && w->sliding_ == sliding && Bits(w->slideDirection_) == direction;
     const bool toNorth = captured && view == 0 && region == 5;
-    ok = ok && Bits(w->unknown_1B0) == (toNorth ? 0x3F000000u : north);
+    ok = ok && Bits(w->northTime_) == (toNorth ? 0x3F000000u : north);
     ei::verify::Check("CHudMap::OnMouseUp", true, ok, "(%d,%d) region %d view %d %s", x, y, region, view, path);
 }
 EI_VERIFY(0x00645210, MapMouseUpVerify, 0, s_unused);

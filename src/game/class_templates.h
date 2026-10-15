@@ -34,6 +34,9 @@ struct ClassTemplate {
     // parties without variables, then both stocks' lists: SaveLists 0069BAC0 / LoadLists
     // 0069B5B0), field 6 flag38 (1 byte).
     void Serialize(ChunkArchive* ar);
+    // 004A6DC0 (__thiscall, RET 8; class_template_stock.cpp). Both stocks take the 8 base and 8 scroll
+    // levels (ItemStock::SetLevels).
+    void SetLevels(const float* base, const float* scroll);
 
     CParty* ItemsParty() { return reinterpret_cast<CParty*>(items); }
     CParty* SpellsParty() { return reinterpret_cast<CParty*>(spells); }
@@ -90,8 +93,6 @@ ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void*
 unsigned __fastcall ClassTemplatesQuestCompleted(void* manager);
 
 // class_template_stock.cpp (A-S4): the trader stock of a camp's constructor record.
-// 004A6DC0 (__thiscall, RET 8). Both stocks take the 8 base and 8 scroll levels (ItemStock::SetLevels).
-void __fastcall ClassTemplateSetLevels(ClassTemplate* t, void* edx, const float* base, const float* scroll);
 // 004A6DF0 (__thiscall). With flag +0x0C: the items party (+0x3C) is emptied and refilled from the
 // "allowed" stock (its class index type - 1; the "magic" stock's spells and modifiers, fresh
 // material units): 40-50 weapons, armors and quick items, 1-3 instructions of each, 20-50

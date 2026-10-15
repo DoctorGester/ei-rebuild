@@ -15,8 +15,6 @@
 
 namespace net {
 void* __fastcall ClientFindParty(ClientSession* self);
-void __fastcall ClientRecordTrade(ClientSession* self, void*, const void* party);
-void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner);
 void __fastcall ClientDropParty(ClientSession* self);
 void __fastcall ClientOnBinding(ClientSession* self, Message* message);
 void __fastcall ClientOnBindingGone(ClientSession* self, Message* message);
@@ -175,7 +173,7 @@ void __fastcall TradeGoneVerify(net::ClientSession* s, net::Message* m) {
 }
 void __fastcall RecordTradeVerify(net::ClientSession* s, void*, const void* party) {
     bool records = net::ClientFindParty(s) && s->party_.ptr;
-    net::ClientRecordTrade(s, nullptr, party);
+    s->RecordTrade(party);
     bool found = !records;
     if (records) {
         auto* ours = static_cast<PartyMessage*>(s->party_.ptr);
@@ -192,7 +190,7 @@ void __fastcall StartPartyVerify(net::ClientSession* s, void*, CRefObject* partn
     };
     auto* binding = static_cast<BindingMessage*>(s->binding_);
     bool starts = live(binding) && live(binding->PlayerRef().ptr);
-    net::ClientStartParty(s, nullptr, partner);
+    s->StartParty(partner);
     auto* party = static_cast<PartyMessage*>(s->party_.ptr);
     bool ok = !starts || (party && party->player_.ptr == binding->PlayerRef().ptr && party->partner_.ptr == partner);
     ei::verify::Check("ClientStartParty", true, ok, "");

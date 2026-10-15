@@ -42,13 +42,33 @@ target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)
 if(EI_VERIFY)
     file(GLOB EI_VERIFY_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
-    target_sources(ei_hook PRIVATE ${EI_VERIFY_SOURCES})
+    # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1).
+    file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
+    target_sources(ei_hook PRIVATE ${EI_VERIFY_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
 endif()
 # Hooks register themselves via static objects; keep them even if nothing references them.
 # /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
 target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
+
+# Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
+# the families' sources, their checks, and a stub for the hook registrations. build.cmd runs it.
+file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
+add_executable(ei_vectors
+    ${EI_REPLAY_SOURCES}
+    tests/vectors/hook_stub.cpp
+    src/game/core_maths.cpp
+    src/game/maths.cpp
+    src/game/matrix_math.cpp
+    src/game/quaternion.cpp
+    src/game/random.cpp
+    src/game/unit_stats.cpp
+    src/lib/rebirth.cpp
+    src/lib/crt.cpp
+    src/lib/mfc.cpp)
+target_include_directories(ei_vectors PRIVATE include src)
+target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data")
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).

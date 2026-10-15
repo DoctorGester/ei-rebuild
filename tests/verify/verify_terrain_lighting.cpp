@@ -1,11 +1,14 @@
 // Verify wrappers for the terrain vertex lighting (terrain_lighting.cpp). Every scenario reaches them:
 // each sector is lit once when it is first drawn (SectorData::Ensure with 4), and the point lights
 // relight their rectangle (006CAB50, with skipSun) when they move. Each runs both versions on the
-// same object, restoring what the first one changed before the second runs. The colour
-// bytes come from truncated floats: a value on a rounding edge may give a rare one-step mismatch.
+// same object, restoring what the first one changed before the second runs. The colour bytes come
+// from floats truncated after the lit colour times 255: a lit colour one step off shows in a byte
+// only when that product sits on an integer edge (R10a: our ShadeSun's regrouped water product gave
+// a one-record SectorData::Light mismatch in a few runs only), so ShadeSun is also checked bit for bit.
 #include "verify.h"
 
 #include "../../src/game/terrain_sector.h"
+#include "../../src/hook/log.h"
 
 #include <cstring>
 #include <vector>
@@ -42,7 +45,8 @@ EI_VERIFY(0x006C31C0, LightVertexVerify, 9, s_lightVertex);
 // ---- SectorData::ShadeSun ----------------------------------------------------------------------
 // 006C36B0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6 bytes). Writes the record's lit colour: ours
 // first, restored, then the original (its result stays). Both versions run the shadow test 006C92C0, which may load the sectors the ray
-// crosses (the second run then finds them cached; the vertices it reads are the same).
+// crosses (the second run then finds them cached; the vertices it reads are the same). Besides the
+// near check, "SectorData::ShadeSun bits" compares the three floats bit for bit (header comment).
 void(__fastcall* s_shadeSun)(SectorData*, void*, CLight*, const SectorPosition*, SectorVertex*, Terrain*, int);
 
 void __fastcall ShadeSunVerify(SectorData* self, void*, CLight* sun, const SectorPosition* position,
@@ -56,6 +60,9 @@ void __fastcall ShadeSunVerify(SectorData* self, void*, CLight* sun, const Secto
     ei::verify::CheckNear("SectorData::ShadeSun", record->lit.x, ours.x, "r, layer %d", layer);
     ei::verify::CheckNear("SectorData::ShadeSun", record->lit.y, ours.y, "g, layer %d", layer);
     ei::verify::CheckNear("SectorData::ShadeSun", record->lit.z, ours.z, "b, layer %d", layer);
+    bool same = std::memcmp(&record->lit, &ours, sizeof(ours)) == 0;
+    ei::verify::Check("SectorData::ShadeSun bits", true, same, "layer %d depth %a: original %a %a %a, ours %a %a %a",
+                      layer, record->depth, record->lit.x, record->lit.y, record->lit.z, ours.x, ours.y, ours.z);
 }
 EI_VERIFY(0x006C36B0, ShadeSunVerify, 6, s_shadeSun);
 
@@ -105,6 +112,14 @@ void __fastcall LightVerify(SectorData* self, void*, CLight* sun, Terrain* owner
     bool state = flagOriginal == self->hasSpecular && builtOriginal == self->built &&
                  stampOriginal == self->relightCountdown && sectorOriginal == owner->lightingSector &&
                  lxOriginal == owner->lightingX && lyOriginal == owner->lightingY;
+    if (first >= 0) {
+        const SectorVertex& a = original[first];
+        const SectorVertex& b = self->records.data[first];
+        ei::Log("SectorData::Light: %d record(s) differ; record %d original colour %08X specular %08X lit %a %a %a, "
+                "ours %08X %08X %a %a %a",
+                mismatches, first, a.colour, a.specular, a.lit.x, a.lit.y, a.lit.z, b.colour, b.specular, b.lit.x,
+                b.lit.y, b.lit.z);
+    }
     ei::verify::Check("SectorData::Light", 0, mismatches, "(%d, %d)-(%d, %d) skip %d: first record %d", x0, y0, x1, y1,
                       skipSun, first);
     ei::verify::Check("SectorData::Light", true, state, "flags / owner fields");

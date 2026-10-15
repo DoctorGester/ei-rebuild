@@ -50,7 +50,7 @@ constexpr int kBlock = 4;   // projected positions come in blocks of four
 
 // 004E86B0 (thiscall, RET 8): the bounds of TL vertices; with `outcodes` only of those whose
 // outcode is 0 (the clipper's output: on screen).
-int __fastcall DeviceBoundsOfVertices(CTextureDevice* device, void*, const lib::AlignedArray<TLVertex>* vertices,
+int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices,
                                       const std::uint8_t* outcodes) {
     ScreenBounds bounds;
     for (int i = 0; i < vertices->size; ++i) {
@@ -58,14 +58,13 @@ int __fastcall DeviceBoundsOfVertices(CTextureDevice* device, void*, const lib::
         const TLVertex& vertex = vertices->data[i];
         bounds.Include(vertex.x, vertex.y);
     }
-    return bounds.Store(device);
+    return bounds.Store(this);
 }
-EI_REPLACE(0x004E86B0, DeviceBoundsOfVertices);
+EI_REPLACE_METHOD(0x004E86B0, CTextureDevice::BoundsOfVertices);
 
 // 004E8900 (thiscall, RET 8): the same of projected positions, whole blocks of four at a time (a
 // size that is not a multiple of four reads to the end of its last block).
-int __fastcall DeviceBoundsOfProjected(CTextureDevice* device, void*,
-                                       const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
+int CTextureDevice::BoundsOfProjected(const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
                                        const std::uint8_t* outcodes) {
     ScreenBounds bounds;
     for (int i = 0; i < positions->size; i += kBlock) {
@@ -75,6 +74,6 @@ int __fastcall DeviceBoundsOfProjected(CTextureDevice* device, void*,
             bounds.Include(position.x, position.y);
         }
     }
-    return bounds.Store(device);
+    return bounds.Store(this);
 }
-EI_REPLACE(0x004E8900, DeviceBoundsOfProjected);
+EI_REPLACE_METHOD(0x004E8900, CTextureDevice::BoundsOfProjected);

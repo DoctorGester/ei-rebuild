@@ -6,6 +6,7 @@
 #include "lib/mfc.h"
 #include "originals_library.h"
 
+#include <bit>
 #include <cstring>
 
 std::uint32_t IsaacRandom::Next() {
@@ -16,6 +17,23 @@ std::uint32_t IsaacRandom::Next() {
     return results_[count_];
 }
 EI_REPLACE_METHOD(0x004667F0, IsaacRandom::Next);
+
+namespace {
+// The 2^-32 scale of Range (0073C468); its last bit is set (sic).
+constexpr double kRangeScale = std::bit_cast<double>(0x3DF0000000100000ull);
+
+// A zero-extended dword loaded with FILD qword (exact).
+double Unsigned(std::uint32_t value) {
+    volatile std::int64_t wide = value;
+    return static_cast<double>(wide);
+}
+} // namespace
+
+// 00488970 (moved here from effects.cpp so that the function vectors link it).
+float IsaacRandom::Range(float min, float max) {
+    return static_cast<float>(Unsigned(Next()) * (max - min) * kRangeScale + min);
+}
+EI_REPLACE_METHOD(0x00488970, IsaacRandom::Range);
 
 void IsaacRandom::Refill() {
     // One ISAAC step: mix a, produce memory and result words. `ind` reads memory_ at the byte

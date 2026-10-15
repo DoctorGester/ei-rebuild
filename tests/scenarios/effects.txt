@@ -3,12 +3,11 @@
 # UpdateOrbit; Nuke: UpdateDebris/TickNuke; Mushroom: TickMushroom; every script source:
 # ScaleSize each tick), wind changes for the rain layer (CRainSnow::SetWind), a resize, then
 # deletion. CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show
-# what ran. The game runs ~5.5x faster (10 ms per world update).
+# what ran.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 

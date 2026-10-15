@@ -116,13 +116,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     controller->Brain()->Walk(&target, run, 0);
 }
 
-namespace {
-void __fastcall MovePersonHook(CBriefingScreen* self, void*, CUnit* unit, float x, float y, float z, float dx, float dy,
-                               float dz, bool waited, bool immediate, int run) {
-    self->MovePerson(unit, x, y, z, dx, dy, dz, waited, immediate, run);
-}
-} // namespace
-EI_REPLACE(0x006089D0, MovePersonHook);
+EI_REPLACE_METHOD(0x006089D0, CBriefingScreen::MovePerson);
 
 // --- 00605DE0 -----------------------------------------------------------------------------------
 
@@ -138,7 +132,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
             for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
                 p->unit = p[1].unit;
                 p->name = p[1].name;
-                p->unknown_08 = p[1].unknown_08;
+                p->spareFlag = p[1].spareFlag;
             }
             --speakersEnd_;
             speakersEnd_->name.~CString();

@@ -121,10 +121,7 @@ void CHudSpellColumn::Click(int index) {
     int mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingSpellOnUnit : kPendingSpellAtPoint;
     owner_->SetPendingAction(mode, index, -1);
 }
-namespace {
-void __fastcall SpellColumnClick(CHudSpellColumn* self, void*, int index) { self->Click(index); }
-} // namespace
-EI_REPLACE(0x0063EC90, SpellColumnClick);
+EI_REPLACE_METHOD(0x0063EC90, CHudSpellColumn::Click);
 
 // --- 0063FB50: an action button ----------------------------------------------------------------
 
@@ -142,10 +139,7 @@ void CHudActionColumn::Select(int index) {
     int action = static_cast<int>(actions_.data[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }
-namespace {
-void __fastcall ActionColumnSelect(CHudActionColumn* self, void*, int index) { self->Select(index); }
-} // namespace
-EI_REPLACE(0x0063FB50, ActionColumnSelect);
+EI_REPLACE_METHOD(0x0063FB50, CHudActionColumn::Select);
 
 // --- 0063DD70: a quick item slot ---------------------------------------------------------------
 
@@ -168,10 +162,7 @@ void CHudQuickItems::Pick(int slot) {
         mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
     owner_->SetPendingAction(mode, slot, -1);
 }
-namespace {
-void __fastcall QuickItemsPick(CHudQuickItems* self, void*, int slot) { self->Pick(slot); }
-} // namespace
-EI_REPLACE(0x0063DD70, QuickItemsPick);
+EI_REPLACE_METHOD(0x0063DD70, CHudQuickItems::Pick);
 
 // --- 0063E020 / 0063EF60: a quick item or spell used at once ------------------------------------
 
@@ -188,10 +179,7 @@ void CHudQuickItems::UseNow(int slot) {
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
-namespace {
-void __fastcall QuickItemsUseNow(CHudQuickItems* self, void*, int slot) { self->UseNow(slot); }
-} // namespace
-EI_REPLACE(0x0063E020, QuickItemsUseNow);
+EI_REPLACE_METHOD(0x0063E020, CHudQuickItems::UseNow);
 
 void CHudSpellColumn::ClickAlternate(int index) {
     if (!unit_ || index < 0 || index >= count_) return;
@@ -202,7 +190,4 @@ void CHudSpellColumn::ClickAlternate(int index) {
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);
 }
-namespace {
-void __fastcall SpellColumnClickAlternate(CHudSpellColumn* self, void*, int index) { self->ClickAlternate(index); }
-} // namespace
-EI_REPLACE(0x0063EF60, SpellColumnClickAlternate);
+EI_REPLACE_METHOD(0x0063EF60, CHudSpellColumn::ClickAlternate);

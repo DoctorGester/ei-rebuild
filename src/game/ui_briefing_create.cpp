@@ -285,10 +285,7 @@ void CBriefingScreen::Create() {
     markPhase_ = 0.0f;
 }
 
-namespace {
-void __fastcall BriefingCreate(CBriefingScreen* self, void*) { self->Create(); }
-} // namespace
-EI_REPLACE(0x006024B0, BriefingCreate);
+EI_REPLACE_METHOD(0x006024B0, CBriefingScreen::Create);
 
 // --- 00604130: slot 24 --------------------------------------------------------------------------
 
@@ -402,7 +399,7 @@ void CBriefingScreen::MarkPeople() {
 
 void CBriefingScreen::LeaveIfExitOpen() {
     struct PartyRecords {
-        std::uint8_t unknown_00[0x30];
+        std::uint8_t unused_00[0x30];
         void* records;               // +0x30 the unit records (0x784 bytes each)
         int count;                   // +0x34
     };
@@ -426,7 +423,4 @@ void CBriefingScreen::LeaveIfExitOpen() {
     records.FreeData();
 }
 
-namespace {
-void __fastcall BriefingUpdate(CBriefingScreen* self, void*) { self->Update(); }
-} // namespace
-EI_REPLACE(0x00604130, BriefingUpdate);
+EI_REPLACE_METHOD(0x00604130, CBriefingScreen::Update);

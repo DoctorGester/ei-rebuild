@@ -16,8 +16,8 @@ constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 void CBattleScreenSetup::OnDeactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
-    unknown_1C0 = false;
-    unknown_1C1 = false;
+    viewPressed_ = false;
+    boxSelecting_ = false;
     static_cast<UiContainerInput*>(Input())->OnDeactivate();
 }
 namespace {
@@ -29,14 +29,14 @@ EI_REPLACE(0x00638A10, BattleScreenDeactivate);
 
 void CBattleScreenSetup::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
-    if (!unknown_1C0) {
+    if (!viewPressed_) {
         UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
         if (inputHandled_) return;
     }
-    unknown_1C0 = true;
+    viewPressed_ = true;
     pressX_ = x;
     pressY_ = y;
-    unknown_1C1 = false;
+    boxSelecting_ = false;
 }
 namespace {
 void __fastcall BattleScreenLeftDouble(void* input, void*, int buttons, int x, int y) {

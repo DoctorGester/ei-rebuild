@@ -15,6 +15,8 @@
 # 3840 x 2160 a point x is at layout x * 4/3 - 133.3 (the 4:3 part, 2880 pixels, in the middle; the
 # panels move by 134 layout units). Each step names the layout point it aims at.
 deterministic
+# Its 4K captures beside 15 other games (on our renderer it no longer runs alone, R10) took 45-60 s.
+timeout 90
 resolution desktop
 widescreen 1
 rebirthflags WideScreen
@@ -24,7 +26,6 @@ wait 6000
 # The hero on zone1, the camera settled.
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20

@@ -95,9 +95,4 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-namespace {
-void __fastcall InterfaceKeyDown(CInterface3D* self, void*, int key, int repeat, int flags) {
-    self->OnKeyDown(key, repeat, flags);
-}
-} // namespace
-EI_REPLACE(0x005F78C0, InterfaceKeyDown);
+EI_REPLACE_METHOD(0x005F78C0, CInterface3D::OnKeyDown);

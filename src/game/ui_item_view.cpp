@@ -492,10 +492,7 @@ BOOL CItemInfoPanel::Draw(int pass) {
     return 1;
 }
 
-namespace {
-BOOL __fastcall InfoPanelDraw(CItemInfoPanel* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x005EE5C0, InfoPanelDraw);
+EI_REPLACE_METHOD(0x005EE5C0, CItemInfoPanel::Draw);
 
 // --- 005ED7B0: a hero's face ------------------------------------------------------------------------
 
@@ -610,7 +607,7 @@ struct TextureSurface {
     void* vtable;
     int references;
     long result;                 // +0x08
-    std::uint8_t unknown_0C[4];
+    std::uint8_t unused_0C[4];
     void** surface;              // +0x10 IDirectDrawSurface7
 };
 
@@ -768,10 +765,4 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     return image != nullptr;
 }
 
-namespace {
-int __fastcall WindowCopyImage(CUiWindow* self, void*, CEngineObject* texture, const char* name, int imageWidth,
-                               int imageHeight, int width, int height, int x, int y, int unused1, int unused2) {
-    return self->CopyImage(texture, name, imageWidth, imageHeight, width, height, x, y, unused1, unused2);
-}
-} // namespace
-EI_REPLACE(0x005FFFB0, WindowCopyImage);
+EI_REPLACE_METHOD(0x005FFFB0, CUiWindow::CopyImage);

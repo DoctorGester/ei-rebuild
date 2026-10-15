@@ -11,7 +11,7 @@ namespace {
 void* s_unused;
 // The cursor's shape array (+0x68 data, +0x6C count).
 struct CursorShapes {
-    std::uint8_t unknown_00[0x68];
+    std::uint8_t unused_00[0x68];
     void** shapes;
     int count;
 };

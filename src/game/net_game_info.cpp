@@ -90,11 +90,7 @@ int GameInfoRecord::Read(GameBuffer* buffer) {
     return static_cast<int>((~buffer->flags >> 3) & 1);
 }
 
-namespace {
-void __fastcall WriteHook(const GameInfoRecord* self, void*, GameBuffer* buffer) { self->Write(buffer); }
-int __fastcall ReadHook(GameInfoRecord* self, void*, GameBuffer* buffer) { return self->Read(buffer); }
-} // namespace
-EI_REPLACE(0x00401000, WriteHook);
-EI_REPLACE(0x00401170, ReadHook);
+EI_REPLACE_METHOD(0x00401000, GameInfoRecord::Write);
+EI_REPLACE_METHOD(0x00401170, GameInfoRecord::Read);
 
 } // namespace net

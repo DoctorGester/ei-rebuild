@@ -9,7 +9,7 @@
 #include "device.h"        // device::WithoutDirectDraw
 
 #include "figure_mesh.h"   // CFigureMesh
-#include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer, DrawFigurePart(Plain)
+#include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer
 #include "spell.h"         // CLight
 #include "ui.h"            // GameDeviceLock, UiTextureManager
 #include "originals_engine.h"   // game::FatalError
@@ -224,9 +224,7 @@ int CSceneRenderer::DrawFigure(void* figure, const void* unknownA, const void* u
                                tagRECT* screen) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
-    return DrawFigurePartPlain(mesh->drawer_, nullptr, device_,
-                               reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB),
-                               reinterpret_cast<int>(material), alpha, screen);
+    return mesh->drawer_->DrawPlain(device_, reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB), reinterpret_cast<int>(material), alpha, screen);
 }
 int __fastcall RendererDrawFigureHook(CSceneRenderer* self, void*, void* figure, const void* unknownA,
                                       const void* unknownB, void* material, int alpha, tagRECT* screen) {
@@ -238,8 +236,7 @@ int CSceneRenderer::DrawFigureLit(void* figure, const void* lights, void* materi
                                   CTexture* textureA, CTexture* textureB) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
-    return DrawFigurePart(mesh->drawer_, nullptr, device_, static_cast<const FigureLights*>(lights),
-                          static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
+    return mesh->drawer_->DrawLit(device_, static_cast<const FigureLights*>(lights), static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
 }
 int __fastcall RendererDrawFigureLitHook(CSceneRenderer* self, void*, void* figure, const void* lights, void* material,
                                          int alpha, tagRECT* screen, CTexture* textureA, CTexture* textureB) {

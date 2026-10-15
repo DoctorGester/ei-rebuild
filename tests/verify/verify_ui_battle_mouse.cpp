@@ -25,14 +25,14 @@ struct MoveState {
 CHudUnitPanel* UnitPanel(CBattleScreenSetup* self) { return static_cast<CHudUnitPanel*>(self->unitPanel_); }
 
 MoveState Snapshot(CBattleScreenSetup* self) {
-    return MoveState{GameCursor()->shape_, self->inputHandled_ ? 1u : 0u, self->unknown_1C1 ? 1u : 0u,
+    return MoveState{GameCursor()->shape_, self->inputHandled_ ? 1u : 0u, self->boxSelecting_ ? 1u : 0u,
                      self->selectionBox_, self->unitPanel_ ? UnitPanel(self)->hoverUnit_ : nullptr};
 }
 
 void Restore(CBattleScreenSetup* self, const MoveState& s) {
     if (s.shape != -1) GameCursor()->SetShape(s.shape);
     self->inputHandled_ = s.handled != 0;
-    self->unknown_1C1 = s.dragging != 0;
+    self->boxSelecting_ = s.dragging != 0;
     self->selectionBox_ = s.box;
     if (self->unitPanel_) UnitPanel(self)->hoverUnit_ = s.hover;
 }
@@ -58,7 +58,7 @@ static void __fastcall BattleMouseMoveVerify(void* input, void*, int buttons, in
     ei::verify::Check("CBattleScreenSetup::OnMouseMove", expected, actual,
                       "(%d,%d) press %d drag %u->%u/%u shape %d->%d/%d handled %u/%u hover %p/%p box %d,%d-%d,%d / "
                       "%d,%d-%d,%d",
-                      x, y, self->unknown_1C0 ? 1 : 0, before.dragging, expected.dragging, actual.dragging,
+                      x, y, self->viewPressed_ ? 1 : 0, before.dragging, expected.dragging, actual.dragging,
                       before.shape, expected.shape, actual.shape, expected.handled, actual.handled, expected.hover,
                       actual.hover, expected.box.left, expected.box.top, expected.box.right, expected.box.bottom,
                       actual.box.left, actual.box.top, actual.box.right, actual.box.bottom);

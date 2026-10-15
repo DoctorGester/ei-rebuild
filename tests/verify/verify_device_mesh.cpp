@@ -4,22 +4,13 @@
 #include "mesh_capture.h"
 
 #include "../../src/game/clip.h"
+#include "../../src/game/texture.h"
 
 #include <cstdint>
 #include <cstring>
 
 class CTextureDevice;
 
-int __fastcall DeviceDrawMesh(CTextureDevice* device, void*, const void* positions, int blocks, int unused5, int colourCount,
-                              std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
-                              const void* corners, int cornerCount, int unused13, int unused14,
-                              std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
-                              int flags);
-int __fastcall DeviceDrawMesh2(CTextureDevice* device, void*, void* firstTexture, void* secondTexture, const void* positions,
-                               int blocks, int unused5, int colourCount, std::uint32_t* colours,
-                               std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,
-                               int cornerCount, int unused13, int unused14, std::uint16_t* indices, int indexCount,
-                               float uOffset, float vOffset, int alpha, int flags);
 
 namespace {
 
@@ -123,9 +114,7 @@ static int __fastcall DeviceDrawMeshVerify(CTextureDevice* device, void*, const 
                 corners, cornerCount, unused13, unused14, indices, indexCount, uOffset, vOffset, alpha, flags);
         if (meshcapture::Tap().mode == meshcapture::Mode::Skip) return meshcapture::Tap().result;
     }
-    int result = DeviceDrawMesh(device, nullptr, positions, blocks, unused5, colourCount, colours, speculars, uvs,
-                                unused10, corners, cornerCount, unused13, unused14, indices, indexCount, uOffset,
-                                vOffset, alpha, flags);
+    int result = device->DrawMeshBlocks(positions, blocks, unused5, colourCount, colours, speculars, uvs, unused10, corners, cornerCount, unused13, unused14, indices, indexCount, uOffset, vOffset, alpha, flags);
     bool ok = CheckCorners(result, colours, speculars, uvs, static_cast<const std::uint16_t*>(corners), cornerCount,
                            uOffset, vOffset, flags);
     ei::verify::Check("DeviceDrawMesh", true, ok, "result %d corners %d flags %x", result, cornerCount, flags);
@@ -146,9 +135,7 @@ static int __fastcall DeviceDrawMesh2Verify(CTextureDevice* device, void*, void*
                 flags);
         if (meshcapture::Tap().mode == meshcapture::Mode::Skip) return meshcapture::Tap().result;
     }
-    int result = DeviceDrawMesh2(device, nullptr, firstTexture, secondTexture, positions, blocks, unused5,
-                                 colourCount, colours, speculars, uvs, unused10, corners, cornerCount, unused13,
-                                 unused14, indices, indexCount, uOffset, vOffset, alpha, flags);
+    int result = device->DrawMeshBlocks2(firstTexture, secondTexture, positions, blocks, unused5, colourCount, colours, speculars, uvs, unused10, corners, cornerCount, unused13, unused14, indices, indexCount, uOffset, vOffset, alpha, flags);
     bool ok = CheckCorners(result, colours, speculars, uvs, static_cast<const std::uint16_t*>(corners), cornerCount,
                            uOffset, vOffset, flags);
     ei::verify::Check("DeviceDrawMesh2", true, ok, "result %d corners %d flags %x", result, cornerCount, flags);

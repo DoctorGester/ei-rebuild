@@ -81,6 +81,8 @@ static_assert(sizeof(CursorImage) == 0x20);
 
 class CCursor {
 public:
+    // 0x005E6630 (ui_cursor_frame.cpp).
+    void SaveBackground(char fromPrimary);
     // 005E5C40 (RET 0xC). Locks `from` of the image, `to` of the target surface (+0x64) and the
     // from-sized top left of the background copy (+0x60), and writes over `to`
     // (background & saved) | image per pixel (16 or 32 bits, by the image's bit depth).
@@ -137,7 +139,7 @@ public:
     CDirectInputMouse* mouse_;       // +0x08 polled for the motion (005E52E0)
     int imageShown_;                 // +0x0C an image is shown (005E5270)
     CursorImage* image_;             // +0x10
-    std::uint32_t unknown_14;        // +0x14 cleared by Init
+    std::uint32_t imageSpare_;       // +0x14 0 from Init and Shutdown (with image_); nothing reads it
     int shape_;                      // +0x18 the shape SetShape selected
     HANDLE stopped_;                 // +0x1C set when the cursor thread ends
     RECT drawn_;                     // +0x20 the rectangle drawn last
@@ -152,7 +154,7 @@ public:
     POINT motion_;                   // +0x88 the mouse motion summed by 005E52E0
     std::uint8_t held_;              // +0x90 the cursor stays at +0x80 (005E67B0 sets it)
     std::uint8_t enabled_;           // +0x91 the cursor exists (created)
-    std::uint8_t unknown_92[2];
+    std::uint8_t unused_92[2];
     DWORD frameTime_;                // +0x94 when the image's frame last stepped
     void* thread_;                   // +0x98 the drawing thread (a CWinThread), or null
     int stop_;                       // +0x9C asks the cursor thread to end

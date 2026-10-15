@@ -430,7 +430,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     case 5:     // "camera north"
         interface_->PlaySound(kSoundClick, 0);
         camera::TheCamera()->SetHeading(0.0f);
-        unknown_1B0 = 0.5f;
+        northTime_ = 0.5f;
         inputHandled_ = true;
         return;
     default:
@@ -942,7 +942,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         pendingAction_ = 0;
         for (int i = 0; i < kQuickSlots; ++i) {
             int slot = quick->regionItem_[i];
-            if (slot < 0 || slot >= quick->unknown_14C) continue;
+            if (slot < 0 || slot >= quick->shownCount_) continue;
             CEngineObject* sprite = quick->sceneObjects_.data[slot];
             SpriteSetScale(sprite, nullptr, i < 4 ? kScaleSmall : kScaleLarge);
             reinterpret_cast<CUiMesh*>(sprite)->colour_ = kSpriteOpaque;

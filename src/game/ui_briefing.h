@@ -35,7 +35,7 @@ struct BriefingMover {
     int state;                       // +0x20 kDone, kWalking or kTurning
     CEngineObject* person;           // +0x24 the client object
     bool waited;                     // +0x28 the dialogue waits for this one
-    std::uint8_t unknown_29[3];
+    std::uint8_t unused_29[3];
     float time;                      // +0x2C seconds on the way (Update gives up after 30)
 
     static constexpr int kDone = 0;
@@ -50,8 +50,8 @@ static_assert(offsetof(BriefingMover, time) == 0x2C);
 struct BriefingSpeaker {
     CUnit* unit;
     mfc::CString name;               // +0x04
-    bool unknown_08;
-    std::uint8_t unknown_09[3];
+    bool spareFlag;                  // +0x08 false when added; only copied with the entry (erase), never tested
+    std::uint8_t unused_09[3];
 };
 static_assert(sizeof(BriefingSpeaker) == 0xC);
 
@@ -72,7 +72,7 @@ static_assert(sizeof(BriefingShownItem) == 0x18);
 // 007C87D4, read by quest_database.cpp): its rewards as NextPhrase lists them.
 struct BriefingRecord {
     using NameList = stlp::vector<mfc::CString>;
-    std::uint8_t unknown_00[0x0C];
+    std::uint8_t unused_00[0x0C];
     float experience;                // +0x0C
     float gold;                      // +0x10
     NameList giveItems;              // +0x14 item names
@@ -81,7 +81,7 @@ struct BriefingRecord {
     NameList completeQuests;         // +0x38
     NameList availableZones;         // +0x44 variables raised to 1 (CWorldServer::CompleteBriefing)
     NameList completeZones;          // +0x50 variables set to 2
-    std::uint8_t unknown_5C[0x68 - 0x5C];   // +0x5C a string
+    std::uint8_t unused_5C[0x68 - 0x5C];   // +0x5C a string
     int specials;                    // +0x68 "brief_get_specials_<n>" when above 0
 };
 static_assert(offsetof(BriefingRecord, giveItems) == 0x14);
@@ -378,13 +378,13 @@ public:
 
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
-    std::uint8_t unknown_169[3];
+    std::uint8_t unused_169[3];
     int state_;                      // +0x16C dialogue state (above)
     console::CStringArray topics_;   // +0x170 the person's topics (names), "goodbye" last
     mfc::CString topic_;             // +0x184 the dialogue running
     int hoveredTopic_;               // +0x188 the topic row under the mouse, or -1
     bool briefingStarted_;           // +0x18C a dialogue started by itself (602C90)
-    std::uint8_t unknown_18D[3];
+    std::uint8_t unused_18D[3];
     UiDwordArray party_;             // +0x190 the party's units (CArray, SetSize 005EBDB0)
     CUnit* leader_;                  // +0x1A4 the unit the camera follows (the hero speaker)
     CUnit* person_;                  // +0x1A8 the person the dialogue is with
@@ -400,12 +400,12 @@ public:
     Vector3 personHomeDirection_;    // +0x234 and its facing
     BriefingMover* movers_;          // +0x240 the people walking to their places (list header)
     bool firstPhrase_;               // +0x244 set when the phrases start (the first one lasts a second longer)
-    std::uint8_t unknown_245[3];
+    std::uint8_t unused_245[3];
     mfc::CString dialogueText_;      // +0x248 the dialogue's text so far (shown whole when skipped)
     float phraseTime_;               // +0x24C time left of a phrase without a voice
     int voice_;                      // +0x250 the phrase's voice (sound id), -1 none
     CUnit* speaking_;                // +0x254 the speaker of the current phrase (NextPhrase), or null
-    std::uint8_t unknown_258[4];
+    std::uint8_t unused_258[4];
     CUiScrollText* text_;            // +0x25C the dialogue text
     CUiScrollbar* topicBar_;         // +0x260 the topic list's scroll bar
     int topicTop_;                   // +0x264 first topic row shown
@@ -415,7 +415,7 @@ public:
     bool immediate_;                 // +0x27C the dialogue's people are placed at once (006064E0's first argument)
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk
     bool autosave_;                  // +0x27E Create sets it unless loading or back from the camp
-    std::uint8_t unknown_27F;
+    std::uint8_t unused_27F;
     CUiWindow* chat_;                // +0x280 a network client's chat window (608D20), else null
     stlp::vector<int> people_;       // +0x284 ids of the local player's objects that are text keys (Create)
     float markPhase_;                // +0x290 Update adds the frame time, kept below 1

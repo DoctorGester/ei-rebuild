@@ -79,7 +79,7 @@ void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
     UiMeshVertex& vertex = sprite->vertices_[corner];
     vertex.position = static_cast<std::int16_t>(point);
     vertex.frame = static_cast<std::int16_t>(texel);
-    vertex.unknown_2 = 0;
+    vertex.normal = 0;
 }
 
 // The two triangles of the quad whose four corners start at `first`, appended to the indices.

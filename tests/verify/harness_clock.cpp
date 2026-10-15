@@ -106,26 +106,55 @@ bool IsMainLoopTime(const void* caller) {
     return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && OnMainThread();
 }
 
-// Real time (our own GetTickCount import) when the main thread last moved the clock.
-volatile DWORD g_realAtAdvance = 0;
-
-void Advance(DWORD ms) {
-    if (g_frozen || ms == 0) return;
-    g_now = g_now + ms;
-    g_realAtAdvance = GetTickCount();
-}
-
-// What other threads read: the virtual time plus the real time since the main thread last moved
-// it, never going back. They do not move the clock, but they see time pass while the main thread
+// What other threads read. They do not move the clock, but they see time pass while the main thread
 // stands still: the new-game load waits on one of them. PlayJingle / the calm music (sound_music.cpp,
 // WaitAndEndAfter) busy-wait with Sleep(0) on the main thread until the stream thread takes up the
 // next file, and the stream thread does so only when the music fader (on timeGetTime) has finished
 // fading out; on a clock that only the main thread moves that never happened. Nothing those threads
 // time touches game state (the music volume, the cursor's frame).
+//
+// Their clock runs at real time, and jumps ahead to the virtual time when that is further on: from
+// an anchor (their time and the real time it was taken at) moved by the main thread's advances to
+// max(their time then, the new virtual time). It used to be the virtual time plus the real time
+// since the main thread last moved it, never going back: after a long main-thread block (a load, a
+// movie) it was the block's real length ahead of the virtual time and stood still until the main
+// thread's frames caught up (SV1h: the cursor thread's 41 ms steps took 1.5 s), and while it stood
+// still the main thread's music waits waited too, for as long again; on a busy machine, whose
+// frames take more real time than they advance, it never caught up and every wait paid the whole
+// lead again (SV1f: sandbox_map 72-81 s against 17 s on real time).
+struct Anchor {
+    DWORD time;   // the other threads' time
+    DWORD real;   // our own GetTickCount import when it was taken
+};
+static_assert(sizeof(Anchor) == sizeof(LONGLONG));
+volatile LONGLONG g_anchor = 0;   // an Anchor, read and written whole
+Anchor ReadAnchor() {
+    const LONGLONG packed = InterlockedCompareExchange64(&g_anchor, 0, 0);
+    Anchor anchor;
+    std::memcpy(&anchor, &packed, sizeof(anchor));
+    return anchor;
+}
+void WriteAnchor(Anchor anchor) {
+    LONGLONG packed;
+    std::memcpy(&packed, &anchor, sizeof(packed));
+    InterlockedExchange64(&g_anchor, packed);
+}
+DWORD Later(DWORD a, DWORD b) { return static_cast<LONG>(a - b) > 0 ? a : b; }
+DWORD AnchoredNow(DWORD real) {
+    const Anchor anchor = ReadAnchor();
+    return g_frozen ? anchor.time : anchor.time + (real - anchor.real);
+}
+
+void Advance(DWORD ms) {
+    if (g_frozen || ms == 0) return;
+    g_now = g_now + ms;
+    const DWORD real = GetTickCount();
+    WriteAnchor({Later(AnchoredNow(real), g_now), real});
+}
+
 volatile LONG g_otherNow = 0;
 DWORD OtherThreadsNow() {
-    const DWORD now = g_now;
-    const DWORD candidate = g_frozen ? now : now + (GetTickCount() - g_realAtAdvance);
+    const DWORD candidate = AnchoredNow(GetTickCount());
     LONG seen = g_otherNow;
     while (static_cast<LONG>(candidate - static_cast<DWORD>(seen)) > 0) {
         LONG previous = InterlockedCompareExchange(&g_otherNow, static_cast<LONG>(candidate), seen);
@@ -614,7 +643,7 @@ void InstallVirtual(const unsigned* tickLength) {
     FindMainThreadOnce();
     g_virtual = true;
     g_tickLength = tickLength;
-    g_realAtAdvance = GetTickCount();
+    WriteAnchor({g_now, GetTickCount()});
     g_otherNow = static_cast<LONG>(g_now);
     PatchSlot(kTimeGetTimeSlot, &VirtualTimeGetTime, g_timeGetTime);
     PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
@@ -632,7 +661,11 @@ void InstallHeld() {
 
 void Freeze(bool on) {
     if (on == g_frozen) return;
-    if (!g_virtual && g_heldTimeGetTime.base) {
+    if (g_virtual) {
+        // The other threads' clock stands still while frozen and goes on from there.
+        const DWORD real = GetTickCount();
+        WriteAnchor({on ? AnchoredNow(real) : ReadAnchor().time, real});
+    } else if (g_heldTimeGetTime.base) {
         if (on) {
             g_heldTimeGetTime.Hold();
             g_heldTickCount.Hold();

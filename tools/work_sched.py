@@ -9,9 +9,9 @@ then run_all's summary, and returns run_all's exit code. Ctrl+C cancels the batc
 WORK_SCHED_IDLE seconds, default 120, with nothing to do) runs the batches on the machine's game
 slots, the same lock files run_all's machine_slot() takes, so a plain run_all beside it never
 collides:
-- batches in submission order: a batch takes every free slot until all its runs have started (its
-  --jobs is ignored: run_all needs it to share the machine, the scheduler shares it already); later
-  batches only fill the slots it cannot use (backfill);
+- batches smallest remaining work first, less the time they have waited (batch_priority, WB9): a batch
+  takes every free slot until all its runs have started (its --jobs is ignored: run_all needs it to share
+  the machine, the scheduler shares it already); the others only fill the slots it cannot use (backfill);
 - within a batch the longest expected first; its display-mode runs (alone) last, and only once it is
   the earliest batch with runs left: a later batch's alone run never stops the backfill;
 - an alone run waits until none of ours runs, holds the alone gate and every slot, and runs by itself;
@@ -214,16 +214,29 @@ def real_runner(batch, run, retries, on_attempt):
     attempts = iter(range(retries + 1))
     env = batch_env(batch)
     try:
-        clock = parse_batch_args(batch['args']).clock   # --clock, as run_all passes it (WB8)
+        args = parse_batch_args(batch['args'])     # --clock (WB8), --dgvoodoo and --fresh (R10), as run_all passes them
+        clock, dgvoodoo, fresh = args.clock, run_all.wants_dgvoodoo(args), args.fresh
     except (KeyError, IndexError, ValueError):
-        clock = None
+        clock, dgvoodoo, fresh = None, False, False
 
     def one(name, install, hooks, folder):
         on_attempt(next(attempts))
         return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
-                           clock=clock, game_env=env)
+                           clock=clock, game_env=env, dgvoodoo=dgvoodoo, fresh=fresh)
     return run_all.run_with_retries(run['scenario'], run['install'].split('-')[0], bool(run['hooks']), retries,
                                     os.path.basename(run['folder']), runner=one)
+
+
+PRIORITY_UNKNOWN = 60   # seconds a run with no timing counts for in batch_priority
+
+
+def batch_priority(batch, runs, slots, now=None):
+    """Lower runs first: the batch's queued work in machine seconds (expected seconds over the slots) less the
+    seconds it has waited. A one-run batch goes ahead of a full suite submitted just before it, and a big batch
+    still gets its turn once it has waited about as long as it will take (WB9)."""
+    work_left = sum(r['expected'] if r['expected'] is not None else PRIORITY_UNKNOWN for r in runs) / max(slots, 1)
+    waited = (now or time.time()) - datetime.datetime.fromisoformat(batch['submitted']).timestamp()
+    return (work_left - waited, batch['id'])
 
 
 def order_key(run):
@@ -316,7 +329,7 @@ class Scheduler:
                 self.db.execute("UPDATE run SET state = 'finished', seconds = ?, result = ?, failures = ?, counts = ?, notes = ? "
                                 "WHERE id = ?", (seconds, result, json.dumps(failures),
                                                  json.dumps({fn: list(c) for fn, c in counts.items()}), json.dumps(notes), run_id))
-            if result not in ('ERROR', 'NO REPORT', 'TIMEOUT'):
+            if result not in ('ERROR', 'NO REPORT', 'TIMEOUT') and not run_all.is_cached(notes):
                 try:
                     work.record_time(self.db, game['scenario'], game['install'], game['root'], seconds, game['batch'])
                 except Exception:
@@ -344,7 +357,10 @@ class Scheduler:
                                  "WHERE run.state = 'queued' AND batch.state IN ('queued', 'running')"):
             queued[r['batch']].append(r)
         busy = {g['folder'] for g in self.games.values()}   # never two games in one run folder
-        head = True        # the earliest batch with runs left: only it gathers the machine for an alone run
+        # Only the earliest batch with runs left gathers the machine for an alone run; plain runs go
+        # smallest remaining work first (batch_priority).
+        head = next((b['id'] for b in batches if queued[b['id']]), None)
+        batches = sorted(batches, key=lambda b: batch_priority(b, queued[b['id']], self.pool.count))
         for b in batches:
             args = self.batch_args(b)
             runs = sorted(queued[b['id']], key=order_key)
@@ -368,12 +384,11 @@ class Scheduler:
                 if self.start(b, r, args, [slot]):
                     busy.add(r['folder'])
             alone = [r for r in runs if r['alone'] and r['folder'] not in busy]
-            if head and alone and not plain:                 # its other runs have all started
+            if b['id'] == head and alone and not plain:     # its other runs have all started
                 if not self.pool.take_all() or self.games:
                     return True                              # nothing else starts until it has run
                 self.start(b, alone[0], args, list(self.pool.held))
                 return False
-            head = False
         return False
 
     def start(self, batch, run, args, slots):
@@ -558,22 +573,36 @@ def cmd_test(db, args):
     if not os.path.exists(os.path.join(build, 'ei_launch.exe')):
         sys.exit(f'work.py: {build}/ei_launch.exe is missing; build.cmd verify first')
     expected = work.expected_times(db, root, jobs, run_all.load_times())    # timing table, else run_times.json
+    env = run_all.game_environment()
+    if ra.golden:
+        # The digest the goldens were recorded with; the comparison runs here, after the batch, so the
+        # scheduler gets run_all's arguments without --golden.
+        env['EI_DIGEST'] = str(run_all.GOLDEN_PERIOD)
+        argv = [a for a in argv if a != '--golden']
     runs = []
     for name, install in jobs:
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
         if not os.path.exists(scenario):
             sys.exit(f'work.py: no scenario {name} ({scenario})')
-        runs.append({'scenario': name, 'install': install, 'hooks': run_all.uses_hooks(install, ra),
-                     'alone': run_all.sets_display_mode(scenario), 'expected': expected[(name, install)],
+        hooks = run_all.uses_hooks(install, ra)
+        # R10: only dgVoodoo runs that set a resolution are alone; a run of the original code the reference cache
+        # holds plays no game (it is copied in a moment) and is expected to take no time
+        cached = not ra.fresh and run_all.cached_reference(name, install.split('-')[0], hooks, root, ra.clock, env)
+        runs.append({'scenario': name, 'install': install, 'hooks': hooks,
+                     'alone': not cached and run_all.runs_alone(scenario, install.split('-')[0], hooks, run_all.wants_dgvoodoo(ra), env),
+                     'expected': 1 if cached else expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
-    env = run_all.game_environment()
     batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)
     ahead = db.execute("SELECT count(*) FROM batch WHERE id < ? AND state IN ('queued', 'running')", (batch,)).fetchone()[0]
     print(f'batch #{batch} ({args.id}): {len(runs)} runs, {ahead} batch(es) ahead (work.py status shows the queue)')
     ensure_scheduler()
     print(run_all.HEADER)
     sys.stdout.flush()
-    return wait(db, batch, root, build)
+    code = wait(db, batch, root, build)
+    if ra.golden and code != 130:
+        ok = run_all.golden_check(jobs, root=root, build=build)
+        code = code or (0 if ok else 1)
+    return code
 
 
 def wait(db, batch, root, build):

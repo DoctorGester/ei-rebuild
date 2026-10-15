@@ -67,8 +67,8 @@ struct BattleTargetQuery {
     BattleTargetQuery* Construct();
 
     int kind;                        // +0x00 1
-    int unknown_4;                   // +0x04 0
-    int unknown_8;                   // +0x08 0
+    int id;                          // +0x04 0 (laid out as a LockKey: kind the mask, then id, level)
+    int level;                       // +0x08 0
 };
 static_assert(sizeof(BattleTargetQuery) == 0xC);
 
@@ -291,7 +291,7 @@ public:
         IdVector without;
     };
 
-    int unknown_164;                 // +0x164 cleared by Create
+    int spare_;                      // +0x164 0 from Create; nothing in the screen's slots reads it
     std::uint8_t partyArray_[0x14];  // +0x168 the party units (CArray; SetSize 005EBDB0)
     // The pending action (CBattleScreen::pendingAction_ / pendingSlot_ / pendingItem_): what the
     // next click on the view does, its spell, quick item or action slot, and the item.
@@ -304,7 +304,7 @@ public:
     // key-down handler 0063A560 and cleared by the key-up one (0063B6D0); AttackUnit's order kind
     // is the first one set. Create clears them (a dword and a word).
     std::uint8_t orderKeys_[6];
-    std::uint8_t unknown_193;
+    std::uint8_t unused_193;
     CUiWindow* weaponBar_;           // +0x194
     CUiWindow* quickItems_;          // +0x198
     CUiWindow* spellColumn_;         // +0x19C
@@ -316,20 +316,20 @@ public:
     CUiWindow* movePanel_;           // +0x1B4
     CUiWindow* messageLog_;          // +0x1B8
     CUiWindow* topPanel_;            // +0x1BC
-    bool unknown_1C0;                // +0x1C0 the left button went down on the view (00638A40)
-    bool unknown_1C1;                // +0x1C1 a selection box is being dragged
-    std::uint8_t unknown_1C2[0x1C4 - 0x1C2];
+    bool viewPressed_;               // +0x1C0 the left button went down on the view (00638A40)
+    bool boxSelecting_;              // +0x1C1 a selection box is being dragged
+    std::uint8_t unused_1C2[0x1C4 - 0x1C2];
     int pressX_;                     // +0x1C4 where the button went down on the view (screen)
     int pressY_;                     // +0x1C8
     RECT selectionBox_;              // +0x1CC the box (passed to 005656A0)
     UiDwordArray heroes_;            // +0x1DC ids of the heroes shown (saved with the game)
     PersonTextMap personTexts_;      // +0x1F0 the "pers" texts by person
-    int unknown_1FC;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
+    int questSound_;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // +0x200 a hero id was added (new game)
-    std::uint8_t unknown_201[3];
-    // +0x204 the client's party ids last built (+0x210 = unknown_210 is its camera id, -1).
+    std::uint8_t unused_201[3];
+    // +0x204 the client's party ids last built (+0x210 = partyCamera_ is its camera id, -1).
     IdVector partyWithUnit_;         // +0x204
-    int unknown_210;                 // +0x210 -1
+    int partyCamera_;                // +0x210 -1
     IdVector partyWithout_;          // +0x214
     BattleTargetQuery targetQuery_;  // +0x220 passed to a hovered target's slot 42
     int portraitMode_;               // +0x22C 0
@@ -345,7 +345,7 @@ static_assert(offsetof(CBattleScreenSetup, topPanel_) == 0x1BC);
 static_assert(offsetof(CBattleScreenSetup, heroes_) == 0x1DC);
 static_assert(offsetof(CBattleScreenSetup, personTexts_) == 0x1F0);
 static_assert(offsetof(CBattleScreenSetup, hasHero_) == 0x200);
-static_assert(offsetof(CBattleScreenSetup, unknown_210) == 0x210);
+static_assert(offsetof(CBattleScreenSetup, partyCamera_) == 0x210);
 static_assert(offsetof(CBattleScreenSetup, portraitMode_) == 0x22C);
 
 // --- Global map -----------------------------------------------------------------------------
@@ -521,7 +521,7 @@ public:
     // hidden (0) through visible_.
     void ShowAllButZones(int visible);
 
-    std::uint8_t unknown_148[0x164 - 0x148];
+    std::uint8_t unused_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164
     int questCount_;                 // +0x168
     int linkCount_;                  // +0x16C
@@ -541,7 +541,7 @@ public:
     char* target_;                   // +0x1D8 CString
     bool found_;                     // +0x1DC a way reached the target
     bool beyondTarget_;              // +0x1DD the search goes on through the target zone itself
-    std::uint8_t unknown_1DE[2];
+    std::uint8_t unused_1DE[2];
     stlp::map<int, float> arrivals_; // +0x1E0 target exit -> time
     Quaternion turn_;                // +0x1EC the model's orientation (a quaternion)
     float angle_;                    // +0x1FC the model's turn about z (mod 007C8020)
@@ -554,16 +554,16 @@ public:
     int weatherTable_[18];           // +0x218 .. +0x25C
     int weatherIndex_;               // +0x260
     bool dragging_;                  // +0x264 the map is turned with the mouse
-    std::uint8_t unknown_265[3];
+    std::uint8_t unused_265[3];
     POINT dragStart_;                // +0x268 where the drag began (layout)
     float dragAngle_;                // +0x270 angle_ when the drag began
     char* shownName_;                // +0x274 CString: the zone or link whose tip is shown
     bool gipat_;                     // +0x278 the allod is gipat
-    std::uint8_t unknown_279[3];
+    std::uint8_t unused_279[3];
     int noCamp_;                     // +0x27C the player's "i.nocamp" (1: no camp button)
     float fog_[3];                   // +0x280 by allod
     bool autosave_;                  // +0x28C save "saveb" once built (arrived from a zone)
-    std::uint8_t unknown_28D[3];
+    std::uint8_t unused_28D[3];
     int windSound_;                  // +0x290
 };
 static_assert(offsetof(CGlobalMap, zoneCount_) == 0x164);
@@ -614,7 +614,7 @@ struct TradeRow {
     int price;                       // +0x0C experience
     int level;                       // +0x10
     bool learnable;                  // +0x14 set on the learnable list (not written in the others)
-    std::uint8_t unknown_15[3];
+    std::uint8_t unused_15[3];
 };
 static_assert(sizeof(TradeRow) == 0x18);
 
@@ -632,12 +632,12 @@ struct TradeRecord {
     std::uint8_t science;            // +0x00 stats +0x6C8
     std::uint8_t schools[6];         // +0x01 stats +0x6CB..
     std::uint8_t perks[36];          // +0x07 stats +0x6D3..
-    std::uint8_t unknown_2B;         // +0x2B not written
+    std::uint8_t padAfterPerks;      // +0x2B not written
     float experience;                // +0x2C stats +0x04
     float spentExperience;           // +0x30 stats +0x08
     float pendingExperience;         // +0x34 stats +0x700
     std::uint8_t bought;             // +0x38 0; 1 once something was bought on the panel
-    std::uint8_t unknown_39[3];      // not written
+    std::uint8_t padAfterBought[3];  // +0x39 not written
 };
 static_assert(sizeof(TradeRecord) == 0x3C);
 struct TradeRecords {
@@ -726,7 +726,7 @@ public:
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
-    std::uint8_t unknown_148[4];
+    std::uint8_t unused_148[4];
     CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)
     int recordIndex_;                // +0x150 the record 00626F10 fills
     int learnableTop_;               // +0x154 first learnable row shown
@@ -953,7 +953,7 @@ public:
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // +0x195 the spell constructor's pages are offered
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
-    std::uint8_t unknown_197;
+    std::uint8_t unused_197;
     ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
     // +0x19C the party's heroes (CArray, vtable 007402AC): a unit per party record, null for other
     // classes.
@@ -982,13 +982,13 @@ public:
     bool actionEnabled_;             // +0x210 the action button can be pressed
     bool actionShown_;               // +0x211
     bool deconstructing_;            // +0x212 the constructor takes an item apart
-    std::uint8_t unknown_213;
+    std::uint8_t unused_213;
     std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
     std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
     std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
     mfc::CStringArray pageTitles_;   // +0x240 the seven pages' titles and "quit"
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
-    std::uint8_t unknown_255[0x258 - 0x255];
+    std::uint8_t unused_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
     int turning_;                    // +0x25C 1 / 2 while a turn button is held (Update turns the hero)
 };
@@ -1064,7 +1064,7 @@ public:
     // (stored as float), the largest of the first six types (from 0).
     float PartArmour(int part);
 
-    std::uint8_t unknown_148[4];
+    std::uint8_t unused_148[4];
     CUiWindow* owner_;               // +0x14C
     int heroIndex_;                  // +0x150 passed to the owner's slot 50
     char* title_;                    // +0x154 CString
@@ -1105,7 +1105,7 @@ public:
     CItem* ItemAt(int x, int y, int* topic);
 
     bool body_;                      // +0x150 (mode_ 0; owner_ the camp or the hero screen)
-    std::uint8_t unknown_151[3];
+    std::uint8_t unused_151[3];
     int selected_;                   // +0x154 -1
 };
 static_assert(offsetof(CHeroEquipPanel, body_) == 0x150);
@@ -1135,7 +1135,7 @@ public:
     int buyKind_;                    // +0x158
     int sellKind_;                   // +0x15C
     char flag_;                      // +0x160
-    std::uint8_t unknown_161[3];
+    std::uint8_t unused_161[3];
 };
 static_assert(offsetof(CTradeGrid, bought_) == 0x150);
 static_assert(sizeof(CTradeGrid) == 0x164);

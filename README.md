@@ -83,7 +83,11 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   loaded. Starting a zone from the main menu crashes the game, so scenarios start with `newgame`
   and change zones from zone1 (`zone_gz2g_traps.txt`; zone list in `docs/notes/ui.md`, section 10).
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
-  `speed 10` runs the game about 5.5x faster.
+  `speed 10` runs the game about 5.5x faster on real time. On the virtual clock a frame is five
+  updates whatever their length, so it speeds nothing up: each frame only gets less virtual time,
+  and what waits on sound or the clock (speech, script timers) takes more frames (SV1f). No
+  scenario uses it since SV1i; a `wait <ms>` is 55 ms of game time per world update, so a scenario
+  that needs the world to do something waits for it (`waitfor`) or waits long enough at 55 ms.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
   `freeze` / `unfreeze` hold the game's clocks and camera around captures; `samecapture <a> <b>`
   requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two
@@ -102,11 +106,21 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
   by function, caller and thread, in `ei_hook.log`) and `randtrace` (every random draw with its frame
   and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
+  On the virtual clock the game's CRT heap also gives the same addresses every run, and units' update
+  countdowns come from their ids on both sides (`tests/verify/harness_heap.h`); `lfheap` keeps the
+  game's own heap and countdowns.
 - The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names
   the first world update and field where two runs differ, and `golden.py record` / `compare` keep and check
-  golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2).
+  golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2). The suite
+  checks them with `python tools\work.py test <ID> --golden` (any run_all arguments): the games run with the
+  goldens' digest and every run that has a golden is compared with it (SV3).
+- Function vectors (`tests/vectors/vectors.h`): with `EI_VECTORS=1` the verify build runs the original of
+  each function that has a recorder (`tests/vectors/record_<family>.cpp`) and writes a sample of its calls
+  to the run's `vectors/` folder; `python tools\vectors.py merge <run folders>` keeps them in
+  `tests/vectors/data`, and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
+  game (docs/notes/standalone-verification.md, SV4).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the
@@ -148,5 +162,10 @@ default 16; the whole suite takes about 2 minutes). Each run writes to its own f
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
-shared reading. A game that Windows gave the foreground and that lost it to a starting game is
-minimised by dgVoodoo, which can take its surfaces for good; a run that fails after that is run again. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
+shared reading. Runs of our code draw with our renderer (`EI_RENDER=new,present`, no display mode
+change, so none needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
+`--widescreen`'s reference, compare.py's original side), scenarios whose `render` step leaves out
+`present`, and everything with `--dgvoodoo` or `--widescreen` (its frames are compared with the original's). Passed runs of the original code are cached in
+`build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
+A game that Windows gave the foreground and that lost it to a starting game is
+minimised by dgVoodoo, which can take its surfaces for good; a dgVoodoo run that fails after that is run again. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.

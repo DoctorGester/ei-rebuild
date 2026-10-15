@@ -105,11 +105,6 @@ Vector3* __fastcall DivideVector(Vector3* out, const Vector3& v, float d) {
 }
 EI_REPLACE(0x00488940, DivideVector);
 
-float IsaacRandom::Range(float min, float max) {
-    return static_cast<float>(Unsigned(Next()) * (max - min) * kRandomScale + min);
-}
-EI_REPLACE_METHOD(0x00488970, IsaacRandom::Range);
-
 // --- Source setters -----------------------------------------------------------------------------
 
 void CParticleSource::ScaleSize(float factor) {

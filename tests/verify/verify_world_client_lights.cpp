@@ -28,7 +28,7 @@ bool NearPacked(std::uint32_t a, std::uint32_t b) {
 // What UpdateLighting writes, as far as it is not stack garbage (frameSun_'s fourth float).
 struct LightState {
     LightColour ambient, skyAmbient, sun;
-    int unknown6DC;
+    int lightingMark;
     float lastLit;
     float colour[3];
     Vector3 direction;
@@ -38,7 +38,7 @@ struct LightState {
         ambient = client->frameAmbient_;
         skyAmbient = client->skyAmbient_;
         sun = client->frameSun_;
-        unknown6DC = client->lightingMark_;
+        lightingMark = client->lightingMark_;
         lastLit = LastLitHour();
         std::memcpy(colour, display->sun_->color_, sizeof(colour));
         direction = display->sun_->direction_;
@@ -48,7 +48,7 @@ struct LightState {
         client->frameAmbient_ = ambient;
         client->skyAmbient_ = skyAmbient;
         client->frameSun_ = sun;
-        client->lightingMark_ = unknown6DC;
+        client->lightingMark_ = lightingMark;
         LastLitHour() = lastLit;
         std::memcpy(display->sun_->color_, colour, sizeof(colour));
         display->sun_->direction_ = direction;
@@ -80,7 +80,7 @@ static int __fastcall UpdateLightingVerify(CWorldClient* self) {
     ours.Take(self, display);
     bool ok = NearColour(theirs.ambient, ours.ambient) && NearColour(theirs.skyAmbient, ours.skyAmbient) &&
               Near(theirs.skyAmbient.a, ours.skyAmbient.a) && NearColour(theirs.sun, ours.sun) &&
-              theirs.unknown6DC == ours.unknown6DC && Near(theirs.lastLit, ours.lastLit) &&
+              theirs.lightingMark == ours.lightingMark && Near(theirs.lastLit, ours.lastLit) &&
               Near(theirs.colour[0], ours.colour[0]) && Near(theirs.colour[1], ours.colour[1]) &&
               Near(theirs.colour[2], ours.colour[2]) && Near(theirs.direction.x, ours.direction.x) &&
               Near(theirs.direction.y, ours.direction.y) && Near(theirs.direction.z, ours.direction.z) &&

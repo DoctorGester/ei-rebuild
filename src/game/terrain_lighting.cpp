@@ -62,14 +62,14 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
     Vector3 colour = record->materialColour;
     const SectorVertex& water = record[kVertices];
     if (hasWater && layer == 0 && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
-        float loss = RoundToFloat(WaterFalloff() * terrain->materials[water.waterMaterial].absorption * record->depth *
-                                  record->depth);
+        float absorption = terrain->materials[water.waterMaterial].absorption;
+        float loss = RoundToFloat(Product(WaterFalloff(), absorption, record->depth, record->depth));
         float dim = AtLeastZero(RoundToFloat(1.0f - loss));
         ambient.x = RoundToFloat(dim * ambient.x);
         ambient.y = RoundToFloat(dim * ambient.y);
         ambient.z = RoundToFloat(dim * ambient.z);
         float height = sun->position_.z;
-        attenuation = AtLeastZero(RoundToFloat(1.0f - height * height * loss));
+        attenuation = AtLeastZero(RoundToFloat(1.0 - Product(height, height, loss)));
         colour.x = Max(water.materialColour.x, record->materialColour.x);
         colour.y = Max(water.materialColour.y, record->materialColour.y);
         colour.z = Max(water.materialColour.z, record->materialColour.z);
@@ -106,9 +106,9 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
                              RoundToFloat(inverse * offset.z)};
         const SectorVertex& water = record[kVertices];
         if (layer == 0 && hasWater && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
-            float loss = terrain->materials[water.waterMaterial].absorption * record->depth * record->depth *
-                         direction.z * direction.z * WaterFalloff();
-            attenuation = AtLeastZero(RoundToFloat(1.0f - loss));
+            float absorption = terrain->materials[water.waterMaterial].absorption;
+            double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, WaterFalloff());
+            attenuation = AtLeastZero(RoundToFloat(1.0 - loss));
         }
         float source[4] = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
         float shaded[4];

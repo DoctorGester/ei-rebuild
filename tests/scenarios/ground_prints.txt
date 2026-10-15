@@ -3,18 +3,20 @@
 # 0056C750 on their first draw), two wolves bleed (a hit and a death: AddBloodPrint 0056CE90), the
 # hero walks through the dead wolf's blood (bloody footprints), then the game is saved (the prints'
 # Save slots) and loaded back (their Load slots). Blood and footprints tick and draw every frame.
-# The game runs ~5.5x faster.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitline 15 Saved savea
+# The level intro blocks the hero (a few updates in) until its speech ends; unblock it instead of
+# waiting.
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),6),GSGetVar(0,"hy"))
-wait 3000
+waitfor 20 IsGreater(GetX(GetLeader()),Add(GSGetVar(0,"hx"),5))
 
 # Two wolves next to the hero's way back: one hit, one killed.
 console @AddUnitToServer("PrintWolf1","WolfTutor","PrintWolf1",Add(GSGetVar(0,"hx"),3),Add(GSGetVar(0,"hy"),2),0)
@@ -24,7 +26,7 @@ console @InflictDamage(GetObjectByName("PrintWolf1"),5)
 console @InflictDamage(GetObjectByName("PrintWolf2"),100000)
 wait 2000
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"))
-wait 3000
+waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"hx"),1))
 
 # Escape menu, Save (as levers.txt): OK (region 0) saves into save1; then loaded back.
 key esc
@@ -37,6 +39,8 @@ console @AddUnitToServer("PrintMarker","WolfTutor","PrintMarker",Add(GetX(GetLea
 waitfor 5 IsAlive(GetObjectByName("PrintMarker"))
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("PrintMarker"))),IsGreater(HP(GetLeader()),0))
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_save1
 wait 1000
 report
 quit

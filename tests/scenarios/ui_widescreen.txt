@@ -56,7 +56,6 @@ wait 1500
 # The hero on zone1 with the battle screen's panels, the camera settled.
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20

@@ -2,13 +2,11 @@
 # loads zone1 (zone exits, the .mob objects through LoadMapObjects, ClearMapObjects on the way) and
 # autosaves into harness_saves\savea (SaveMapObjects). Then many units are created with
 # AddUnitToServer (one name twice: the old unit is removed first) and removed again, and the
-# autosave is loaded back (ClearMapObjects, SetZoneExits, the saved map objects). The game runs
-# ~5.5x faster (10 ms per world update).
+# autosave is loaded back (ClearMapObjects, SetZoneExits, the saved map objects).
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The new game autosaves to savea on its first interface frame; spawning before that puts the
 # wolves into the save and the load below would keep them (a race seen under Rebirth).
@@ -49,6 +47,8 @@ wait 1000
 # Load the new game's autosave: the spawned wolves are gone, the hero is back.
 load savea
 waitfor 20 Mul(Not(IsAlive(GetObjectByName("ZoneWolf3"))),IsGreater(HP(GetLeader()),0))
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_savea
 console @BlockUnit(GetLeader(),0)
 check Not(IsAlive(GetObjectByName("ZoneWolf1")))
 check Not(IsAlive(GetObjectByName("ZoneWolf8")))

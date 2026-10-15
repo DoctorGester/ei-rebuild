@@ -137,10 +137,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
         WindowDrawHeroPreviewOriginal(&window, nullptr, pass, previewModel_, turn_, kNewHeroDepth, 0);
     return 1;
 }
-namespace {
-BOOL __fastcall HeroScreenDraw(CMpHeroScreen* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x006159E0, HeroScreenDraw);
+EI_REPLACE_METHOD(0x006159E0, CMpHeroScreen::Draw);
 
 // --- 00617820: Update (slot 24) ----------------------------------------------------------------
 
@@ -177,10 +174,7 @@ void CMpHeroScreen::Update() {
     button->tint_[1] = shade;
     button->tint_[2] = shade;
 }
-namespace {
-void __fastcall HeroScreenUpdate(CMpHeroScreen* self, void*) { self->Update(); }
-} // namespace
-EI_REPLACE(0x00617820, HeroScreenUpdate);
+EI_REPLACE_METHOD(0x00617820, CMpHeroScreen::Update);
 
 // --- 00615850: Close (slot 26) -----------------------------------------------------------------
 
@@ -199,10 +193,7 @@ void CMpHeroScreen::Close() {
     InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
     if (records.data) gamecrt::operator_delete(records.data);
 }
-namespace {
-void __fastcall HeroScreenClose(CMpHeroScreen* self, void*) { self->Close(); }
-} // namespace
-EI_REPLACE(0x00615850, HeroScreenClose);
+EI_REPLACE_METHOD(0x00615850, CMpHeroScreen::Close);
 
 // --- 00615800: a voice entry's destructor -------------------------------------------------------
 
@@ -392,10 +383,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }
-namespace {
-void __fastcall HeroScreenMakePreview(CMpHeroScreen* self, void*, int flag) { self->MakePreview(flag); }
-} // namespace
-EI_REPLACE(0x00616E20, HeroScreenMakePreview);
+EI_REPLACE_METHOD(0x00616E20, CMpHeroScreen::MakePreview);
 
 // --- 00616910: a hero shown -------------------------------------------------------------------
 
@@ -426,7 +414,4 @@ void CMpHeroScreen::ShowHero(int index) {
     CallDrawHeroList();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-namespace {
-void __fastcall HeroScreenShowHero(CMpHeroScreen* self, void*, int index) { self->ShowHero(index); }
-} // namespace
-EI_REPLACE(0x00616910, HeroScreenShowHero);
+EI_REPLACE_METHOD(0x00616910, CMpHeroScreen::ShowHero);

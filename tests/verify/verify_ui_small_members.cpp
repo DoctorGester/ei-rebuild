@@ -53,7 +53,7 @@ EI_VERIFY(0x005F6080, PartyIdsConstructVerify, 0, s_unused);
 
 static BattleTargetQuery* __fastcall TargetQueryConstructVerify(BattleTargetQuery* self) {
     BattleTargetQuery* result = self->Construct();
-    bool ok = result == self && self->kind == 1 && self->unknown_4 == 0 && self->unknown_8 == 0;
+    bool ok = result == self && self->kind == 1 && self->id == 0 && self->level == 0;
     ei::verify::Check("BattleTargetQuery::Construct", true, ok, "");
     return result;
 }

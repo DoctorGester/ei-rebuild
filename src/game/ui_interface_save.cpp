@@ -93,17 +93,9 @@ void* CInterface3D::MessageText(void* out, int id, int value) {
     return out;
 }
 
-namespace {
-void* __fastcall InterfaceMessageText(CInterface3D* self, void*, void* out, int id, int value) {
-    return self->MessageText(out, id, value);
-}
-} // namespace
-EI_REPLACE(0x005F8C90, InterfaceMessageText);
+EI_REPLACE_METHOD(0x005F8C90, CInterface3D::MessageText);
 
-namespace {
-void __fastcall InterfaceLoadState(CInterface3D* self, void*, void* stream) { self->LoadState(stream); }
-} // namespace
-EI_REPLACE(0x005F8420, InterfaceLoadState);
+EI_REPLACE_METHOD(0x005F8420, CInterface3D::LoadState);
 
 // --- 005F85C0: the saved state written -----------------------------------------------------------
 

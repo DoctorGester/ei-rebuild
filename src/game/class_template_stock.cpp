@@ -128,11 +128,11 @@ ClassTemplate* ClassTemplate::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x004A6A70, ClassTemplate::DeletingDestruct);
 
-void __fastcall ClassTemplateSetLevels(ClassTemplate* t, void*, const float* base, const float* scroll) {
-    t->allowed.SetLevels(base, scroll);
-    t->magic.SetLevels(base, scroll);
+void ClassTemplate::SetLevels(const float* base, const float* scroll) {
+    allowed.SetLevels(base, scroll);
+    magic.SetLevels(base, scroll);
 }
-EI_REPLACE(0x004A6DC0, ClassTemplateSetLevels);
+EI_REPLACE_METHOD(0x004A6DC0, ClassTemplate::SetLevels);
 
 void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->flag0C) return;

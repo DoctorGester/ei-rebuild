@@ -16,7 +16,6 @@
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # Leave once zone1's intro script has started (it blocks the hero), so the moment is the same in
 # every run (ui_order_move.txt).

@@ -169,12 +169,12 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     mfc::CString header;
     console::CStringArray words;
     CTextManager* texts = GameTexts();
-    TextOpen(texts, nullptr, MapText());
+    texts->Open(MapText());
     header.Format(QuestHeader(), name);
-    if (TextFindLine(texts, nullptr, header)) {
+    if (texts->FindLine(header)) {
         TextNextLine(texts);
         TextNextLine(texts);
-        if (TextSplit(texts, nullptr, &words, 1) && words.GetSize() > 1) {
+        if (texts->Split(&words, 1) && words.GetSize() > 1) {
             for (int i = 1; i < words.GetSize(); i += 2) {
                 UiPointF place;
                 place.x = static_cast<float>(GameAtof(words[i - 1]));

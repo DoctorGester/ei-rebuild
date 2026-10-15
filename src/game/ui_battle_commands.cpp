@@ -301,10 +301,10 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
         {
             mfc::CString say(reinterpret_cast<const char*>(0x0079430C));   // "say "
             mfc::CString key = say + name;
-            found = TextOpen(texts, nullptr, key);
+            found = texts->Open(key);
         }
         if (found) {
-            TextReadToHash(texts, nullptr, &text, 1);
+            texts->ReadToHash(&text, 1);
             text.TrimRight(reinterpret_cast<const char*>(0x0078DD00));   // "\r\n"
             text += reinterpret_cast<const char*>(0x00784340);           // "\n"
             // Both go to the top panel's text and, unless its +0x160, the message log.
@@ -336,9 +336,4 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 }
-namespace {
-void __fastcall BattleScreenUnitSpeech(CBattleScreenSetup* self, void*, int id, unsigned event, char* extra) {
-    self->OnUnitSpeech(id, event, extra);
-}
-} // namespace
-EI_REPLACE(0x006366F0, BattleScreenUnitSpeech);
+EI_REPLACE_METHOD(0x006366F0, CBattleScreenSetup::OnUnitSpeech);

@@ -207,6 +207,30 @@ void Fill(const Rect& to, std::uint32_t colour);
 // out.
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
 
+// The software cursor between frames (the cursor thread 005E5690 in the switch-over without
+// DirectDraw; render_cursor.cpp, docs/notes/renderer.md section 9, R9c2). Called from the cursor
+// thread with the cursor's lock held: the last frame presented on the game window (as drawn before
+// its cursor) is presented again with the part `from` of the cursor image (holder and mask as for
+// Cursor; the image must have been drawn by Cursor before) at `to`. Only when the new renderer
+// presents itself and nothing was presented on the game window for 40 ms (the main thread's frames
+// show the cursor themselves); false when nothing was presented. Thread-safe: no sokol call, the
+// Direct3D 11 work recorded on a deferred context and run as one command list.
+bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& from, const Rect& to);
+// The cursor thread's presents so far, the last one's rectangle and, in the verify build, the
+// checks of the frame it composed (the last frame without its cursor, the cursor's texels where its
+// mask is clear) and how many differed.
+struct CursorPresentInfo {
+    std::uint32_t presents = 0;
+    std::uint32_t calls = 0;       // moves the cursor thread handed over
+    std::uint32_t refused[4] = {};   // not presented: picture not drawn yet, no frame, a frame within 40 ms, outside
+    Rect lastTo{0, 0, 0, 0};
+    int checks = 0, mismatches = 0;
+};
+CursorPresentInfo CursorPresents();
+// Verify build: the frame the cursor thread presented last (before the gamma ramp), as 24-bit BGR
+// rows from the top. False when there is none.
+bool ReadCursorPresent(int* width, int* height, std::vector<std::uint8_t>* bgr);
+
 // The old path clears the depth buffer to `z` in the middle of the frame (before the interface's
 // panels and 3D previews draw): `count` screen rectangles, or all of it when `rects` is null.
 void ClearDepth(float z, const Rect* rects, int count);

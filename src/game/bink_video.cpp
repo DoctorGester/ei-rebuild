@@ -145,57 +145,57 @@ unsigned SurfaceType(const CDXSurface* holder) {
 } // namespace
 
 // 005DBD80.
-unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
+unsigned CBinkVideo::Frame(char toPrimary) {
     if (!MoviesMode()) return 0;   // movies off
-    BinkHeader* bink = self->bink;
-    if (!bink) return 0;
-    if (BinkWait()(bink) == 0) {
-        BinkDoFrame()(bink);
+    BinkHeader* binkHandle = this->bink;
+    if (!binkHandle) return 0;
+    if (BinkWait()(binkHandle) == 0) {
+        BinkDoFrame()(binkHandle);
         // The new renderer gets the frame from a CPU buffer (BinkCopyToBuffer's 32-bit R, G, B, X
         // type); when it presents by itself the video's DirectDraw surface is not filled at all.
         if (render::Active()) {
             static std::vector<std::uint8_t> frame;
-            CopyFrame(bink, &frame);
-            render::MovieFrame(self, frame.data(), static_cast<int>(bink->width), static_cast<int>(bink->height));
+            CopyFrame(binkHandle, &frame);
+            render::MovieFrame(this, frame.data(), static_cast<int>(binkHandle->width), static_cast<int>(binkHandle->height));
         }
-        if (!OldPathDraws(self->holder)) {
-            BinkNextFrame()(bink);
+        if (!OldPathDraws(this->holder)) {
+            BinkNextFrame()(binkHandle);
         } else {
-            CDXSurface* holder = self->holder;
+            CDXSurface* surfaceHolder = this->holder;
             std::uint32_t desc[0x1F] = {};
             desc[0] = kDescSize;
             gameapi::EnterCriticalSection(DeviceLock());
-            long hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
+            long hr = ComCall(surfaceHolder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                               static_cast<void*>(nullptr));
-            holder->result = hr;
+            surfaceHolder->result = hr;
             if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E30C))) {   // "Can't lock surface"
                 // The original leaves the device lock held here.
                 return ErrorMessage(game::Text(0x0079234C)) & 0xFFFFFF00u;
             }
             // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
-            BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
-                               self->surfaceType);
-            holder = self->holder;
+            BinkCopyToBuffer()(binkHandle, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
+                               surfaceType);
+            surfaceHolder = this->holder;
             gameapi::LeaveCriticalSection(DeviceLock());
-            hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
-            holder->result = hr;
+            hr = ComCall(surfaceHolder->surface, kUnlock, static_cast<void*>(nullptr));
+            surfaceHolder->result = hr;
             if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E2F4)))   // "Can't unlock surface"
                 return ErrorMessage(game::Text(0x00792324)) & 0xFFFFFF00u;
-            BinkNextFrame()(bink);
+            BinkNextFrame()(binkHandle);
         }
     }
-    const BinkHeader* header = self->bink;
+    const BinkHeader* header = this->bink;
     RECT source{0, 0, static_cast<LONG>(header->width), static_cast<LONG>(header->height)};
-    CDXSurface* holder = self->holder;
-    CDXSurface* target = toPrimary ? holder->device->primary_ : holder->device->renderTarget_;
-    if (!device::SameSurface(target, holder)) {
-        if (render::Active()) render::MovieBlit(self, ToRender(self->to));
-        if (OldPathDraws(holder)) Blt(target, &self->to, holder, &source);
+    CDXSurface* surfaceHolder = this->holder;
+    CDXSurface* target = toPrimary ? surfaceHolder->device->primary_ : surfaceHolder->device->renderTarget_;
+    if (!device::SameSurface(target, surfaceHolder)) {
+        if (render::Active()) render::MovieBlit(this, ToRender(to));
+        if (OldPathDraws(surfaceHolder)) Blt(target, &to, surfaceHolder, &source);
     }
-    header = self->bink;
+    header = this->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
 }
-EI_REPLACE(0x005DBD80, BinkVideoFrame);
+EI_REPLACE_METHOD(0x005DBD80, CBinkVideo::Frame);
 
 // --- The movie players outside the frame (005DB3F0, 005DB9E0, 005DA400) -------------------------
 
@@ -265,17 +265,17 @@ bool CopyFrameToSurface(CDXSurface* const* holderAt, BinkHeader* bink, unsigned 
 
 // 005DB9E0 (thiscall on a surface holder, RET 8): a colour fill of `rect` with `colour`
 // (DDBLT_COLORFILL) under the device lock; returns Blt's result.
-long __fastcall HolderFill(CDXSurface* holder, void*, RECT* rect, std::uint32_t colour) {
+long CDXSurface::Fill(RECT* rect, std::uint32_t colour) {
     std::uint32_t fx[0x19] = {};   // DDBLTFX
     fx[0] = 100;
     fx[0x50 / 4] = colour;         // dwFillColor
     gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(holder->surface, kBlt, rect, static_cast<void*>(nullptr), static_cast<void*>(nullptr), kBltColourFill,
+    long hr = ComCall(surface, kBlt, rect, static_cast<void*>(nullptr), static_cast<void*>(nullptr), kBltColourFill,
                       static_cast<void*>(fx));
     gameapi::LeaveCriticalSection(DeviceLock());
     return hr;
 }
-EI_REPLACE(0x005DB9E0, HolderFill);
+EI_REPLACE_METHOD(0x005DB9E0, CDXSurface::Fill);
 
 // 005DB3F0 (fastcall: the file name, the time per frame in ms or 0 for the movie's own rate; then on
 // the stack: Esc / Space end it, Space jumps to the next frame (when they do not end it), fill the

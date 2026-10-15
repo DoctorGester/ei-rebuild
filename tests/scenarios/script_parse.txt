@@ -11,7 +11,6 @@
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 
 # Nesting, literals (negative, leading '.', keywords in any case), strings, objects and groups.

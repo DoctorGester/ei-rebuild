@@ -296,19 +296,19 @@ void CBattleScreenSetup::Create() {
     GameSetWeatherOriginal(GameAt(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
     GameAt(0x007AFEA5)->MarkInterfaceChanged();
     PartyArraySetSizeOriginal(partyArray_, nullptr, 0, -1);
-    unknown_1C0 = false;
-    unknown_1C1 = false;
+    viewPressed_ = false;
+    boxSelecting_ = false;
     std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word
-    unknown_1FC = 0;
+    questSound_ = 0;
 
     // The "pers <name>" texts: one line per person, by the person's text key.
     LoadPersonTexts(&personTexts_);
-    unknown_164 = 0;
+    spare_ = 0;
     if (IsMultiplayerClient()) {
         using SlotFn = void(__thiscall*)(CUiWindow*, int);
         reinterpret_cast<SlotFn>(vtable_[36])(this, 1);   // +0x90
     }
-    unknown_210 = -1;
+    partyCamera_ = -1;
 }
 
 // --- Drawing (slot 20, 00636020) ---------------------------------------------------------------
@@ -324,7 +324,7 @@ constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 
 BOOL CBattleScreenSetup::Draw(void* target) {
     MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
-    if (unknown_1C1) {   // the selection box, a dark rectangle with an outline (renderer slot 19)
+    if (boxSelecting_) {   // the selection box, a dark rectangle with an outline (renderer slot 19)
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
@@ -345,9 +345,6 @@ BOOL CBattleScreenSetup::Draw(void* target) {
     return 1;
 }
 
-namespace {
-void __fastcall BattleScreenCreate(CBattleScreenSetup* self, void*) { self->Create(); }
-} // namespace
-EI_REPLACE(0x00635250, BattleScreenCreate);
+EI_REPLACE_METHOD(0x00635250, CBattleScreenSetup::Create);
 EI_REPLACE_METHOD(0x00636020, CBattleScreenSetup::Draw);
 EI_REBIRTH_IMPLEMENTS(0x00636020, ei::rebirth::Patch::AddNewConsoleCommands);

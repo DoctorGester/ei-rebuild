@@ -34,14 +34,14 @@ constexpr const char* kMissingNumber = "0";        // 007856B8
 mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name) {
     CTextManager* texts = GameTexts();
     mfc::CString text;
-    if (TextOpen(texts, nullptr, mfc::CString(prefix) + name)) TextReadLine(texts, nullptr, &text, 1);
+    if (texts->Open(mfc::CString(prefix) + name)) texts->ReadLine(&text, 1);
     return new (out) mfc::CString(text);
 }
 
 // The display object (00500960): +0x14 the colour weather entries 0-3 set (the pick render of
 // 00630670 clears it while it draws).
 struct DisplayColours {
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unused_00[0x14];
     std::uint32_t colour;            // +0x14 ARGB
 };
 DisplayColours* Display() { return static_cast<DisplayColours*>(DisplayObject()); }
@@ -82,12 +82,12 @@ bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* n
     CTextManager* texts = GameTexts();
     mfc::CString key;
     console::CStringArray words;
-    TextOpen(texts, nullptr, kMapText);
+    texts->Open(kMapText);
     key.Format(format, name);
     bool found = false;
-    if (TextFindLine(texts, nullptr, key) && (!positionLine || TextFindLine(texts, nullptr, kPositionLine))) {
+    if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
         TextNextLine(texts);
-        if (TextSplit(texts, nullptr, &words, 1)) {
+        if (texts->Split(&words, 1)) {
             while (words.GetSize() < 3) words.SetAtGrow(words.GetSize(), kMissingNumber);
             out->x = static_cast<float>(GameAtof(words[0]));
             out->y = static_cast<float>(GameAtof(words[1]));

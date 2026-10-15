@@ -1,0 +1,12 @@
+{
+  "scenario": "levers",
+  "install": "vanilla",
+  "recorded": "2026-10-15",
+  "commit": "e1b2d7cf",
+  "digest_period": 20,
+  "left_out": " updateCountdown$",
+  "clear": "(?:^obj2 (hp|maxHp)$)",
+  "repeated_in": 4,
+  "reason": "SV3: first goldens of the suite; the original repeated in two runs and ours (hooks; Rebirth: flags following addon.dll) matched it in two",
+  "saves": "not kept: saves: differs from line 2: the first run 'save1/mission.sav 50426 fa2742043955b102', orig2 'save1/mission.sav 50678 f9dad3ae58d1f857'"
+}

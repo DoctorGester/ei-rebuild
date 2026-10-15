@@ -5,7 +5,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
@@ -19,7 +18,8 @@ waitfor 10 IsAlive(GetObjectByName("AiFoe"))
 console @SetPlayer(GetObjectByName("AiFoe"),6)
 console @UMClear(GetObjectByName("AiFoe"))
 console @UMAggression(GetObjectByName("AiFoe"))
-wait 4000
+# The chase and the fight take a few hundred world updates (55 ms each).
+wait 16000
 check IsAlive(GetLeader())
 report
 quit

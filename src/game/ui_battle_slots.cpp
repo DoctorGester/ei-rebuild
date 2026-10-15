@@ -32,11 +32,11 @@ constexpr int kMessageLogChild = 9;
 
 // The fields of the local player's block (LocalPlayerData) the screen saves.
 struct LocalPlayerBlock {
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     PartyUnitRecord* records;        // +0x30 the party's unit records (0x784 bytes each)
     int recordCount;                 // +0x34
-    std::uint8_t unknown_38[0x50 - 0x38];
-    int unknown_50;                  // +0x50 saved with the screen (Create reads it back and drops it)
+    std::uint8_t unused_38[0x50 - 0x38];
+    int savedWithScreen;             // +0x50 saved with the screen (Create reads it back and drops it)
 };
 LocalPlayerBlock* LocalPlayer() { return reinterpret_cast<LocalPlayerBlock*>(LocalPlayerData()); }
 
@@ -142,7 +142,7 @@ void CBattleScreenSetup::SaveState() {
     }
     stream->Write(&Map(map_)->zoom_, 4);
     stream->Write(&interface_->serverFlag_, 1);
-    stream->Write(&reinterpret_cast<const LocalPlayerBlock*>(LocalPlayerData())->unknown_50, 4);
+    stream->Write(&reinterpret_cast<const LocalPlayerBlock*>(LocalPlayerData())->savedWithScreen, 4);
     const char* text = TopPanel(topPanel_)->pageTexts_[0];
     stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
     stream->Write(&savedFlag_, 1);

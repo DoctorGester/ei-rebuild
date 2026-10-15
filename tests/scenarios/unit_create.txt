@@ -4,12 +4,11 @@
 # constructors, ApplyPrototype with BuildFromPrototype and the NPC statistics, the prototype name
 # lookups, the figures loaded and scaled), drawn with their shadows for a while, then killed or
 # removed from the server (the destructor bodies, the companions' destructors). The verify totals
-# in the report show what ran. The game runs ~5.5x faster (10 ms per world update).
+# in the report show what ran.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))

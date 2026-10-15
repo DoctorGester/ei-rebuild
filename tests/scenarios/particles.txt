@@ -4,12 +4,10 @@
 # and the particle pool (particle_tick.cpp) each world update; the camera and units use the
 # quaternion helpers (quaternion.cpp); the new game seeds the generator (IsaacRandom::Init).
 # CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show what ran.
-# The game runs ~5.5x faster (10 ms per world update).
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 

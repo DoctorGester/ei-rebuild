@@ -318,10 +318,7 @@ void CCampPages::DoAction() {
     }
     PlayerParty()->Money() -= cost_;
 }
-namespace {
-void __fastcall CampDoAction(CCampPages* self, void*) { self->DoAction(); }
-} // namespace
-EI_REPLACE(0x00611220, CampDoAction);
+EI_REPLACE_METHOD(0x00611220, CCampPages::DoAction);
 
 // --- 00611760: the second action button --------------------------------------------------------
 
@@ -352,7 +349,4 @@ void CCampPages::UndoAction() {
         break;
     }
 }
-namespace {
-void __fastcall CampUndoAction(CCampPages* self, void*) { self->UndoAction(); }
-} // namespace
-EI_REPLACE(0x00611760, CampUndoAction);
+EI_REPLACE_METHOD(0x00611760, CCampPages::UndoAction);

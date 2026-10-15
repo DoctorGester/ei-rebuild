@@ -81,10 +81,10 @@ struct AllodView {
     char* questMarker;               // +0x0C
     char* island;                    // +0x10 the island model
     char* armor;                     // +0x14
-    std::uint8_t unknown_18[4];
+    std::uint8_t unused_18[4];
     int* zones;                      // +0x1C indices into the map database's maps
     int zoneCount;                   // +0x20
-    std::uint8_t unknown_24[0x2C - 0x24];
+    std::uint8_t unused_24[0x2C - 0x24];
 };
 static_assert(sizeof(AllodView) == 0x2C);
 
@@ -635,10 +635,7 @@ void CGlobalMap::Create() {
     interface_->ShowHelp(0);
 }
 
-namespace {
-void __fastcall GlobalMapCreate(CGlobalMap* self, void*) { self->Create(); }
-} // namespace
-EI_REPLACE(0x0062D350, GlobalMapCreate);
+EI_REPLACE_METHOD(0x0062D350, CGlobalMap::Create);
 
 // --- Update (0062F050) -----------------------------------------------------------------------------
 
@@ -795,10 +792,7 @@ void CGlobalMap::Update() {
     CursorSetShapeOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, dragging_ ? 0x16 : 0);
 }
 
-namespace {
-void __fastcall GlobalMapUpdate(CGlobalMap* self, void*) { self->Update(); }
-} // namespace
-EI_REPLACE(0x0062F050, GlobalMapUpdate);
+EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);
 
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 

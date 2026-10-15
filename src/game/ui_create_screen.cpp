@@ -252,22 +252,11 @@ void CInterface3D::Activate(CUiWindow* window) {
     OpenOnTop(this, window);
 }
 
-namespace {
-void __fastcall InterfaceActivate(CInterface3D* self, void*, CUiWindow* window) { self->Activate(window); }
-} // namespace
-EI_REPLACE(0x005F71C0, InterfaceActivate);
+EI_REPLACE_METHOD(0x005F71C0, CInterface3D::Activate);
 
-namespace {
-void __fastcall InterfacePushWindow(CInterface3D* self, void*, CUiWindow* window, int a, int b) {
-    self->PushWindow(window, a, b);
-}
-} // namespace
-EI_REPLACE(0x005F7350, InterfacePushWindow);
+EI_REPLACE_METHOD(0x005F7350, CInterface3D::PushWindow);
 
-namespace {
-void __fastcall InterfaceCreateScreen(CInterface3D* self, void*, int id) { self->CreateScreen(id); }
-} // namespace
-EI_REPLACE(0x005F5BA0, InterfaceCreateScreen);
+EI_REPLACE_METHOD(0x005F5BA0, CInterface3D::CreateScreen);
 
 // --- 005F8A80: the message window ------------------------------------------------------------------
 
@@ -330,10 +319,7 @@ void CInterface3D::ShowMessage(int force) {
     PushWindow(window, 1, 0);
 }
 
-namespace {
-void __fastcall InterfaceShowMessage(CInterface3D* self, void*, int force) { self->ShowMessage(force); }
-} // namespace
-EI_REPLACE(0x005F8A80, InterfaceShowMessage);
+EI_REPLACE_METHOD(0x005F8A80, CInterface3D::ShowMessage);
 
 // --- 005F86F0: the help window -----------------------------------------------------------------------
 
@@ -412,10 +398,7 @@ void CInterface3D::OpenHelp(int flag) {
     PushWindow(window, 1, 0);
 }
 
-namespace {
-void __fastcall InterfaceOpenHelp(CInterface3D* self, void*, int flag) { self->OpenHelp(flag); }
-} // namespace
-EI_REPLACE(0x005F86F0, InterfaceOpenHelp);
+EI_REPLACE_METHOD(0x005F86F0, CInterface3D::OpenHelp);
 
 // --- Screens 8 and 9: constructors and screen 8's destructor body -----------------------------------
 
