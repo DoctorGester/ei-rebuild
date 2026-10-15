@@ -1363,3 +1363,9 @@ keep SV7d's decoded saves: the digests were the same as above, only the saves ch
 of the shared store replaced. golden.py SAVES_KNOWN's two SV7b1 entries (the Peasans order, ground_prints'
 `seenCorpses` order, which PartySync rebuilds from a ScriptGroup) are dropped: ours and the original now save the same
 order (SV7d5 settled).
+
+**Final check (after the merge).** `work.py test SV7b1 --golden --jobs 4`: every run passed but ui_mp_host (vanilla
+and Rebirth TIMEOUT; passed alone right after: it hosts on UDP 8888, which a game of another batch can hold, N0c); the
+56 goldens it reaches the same, saves included, with SAVES_KNOWN's SV7b1 entries gone (SV7d5 done). `--no-hooks
+--golden` with EI_HEAP_JITTER=1 over all 97: 96 the same; ui_battle_spells (vanilla) differed once in two units'
+hashes at update 180 and matched in two more seed-1 runs and a plain one.
