@@ -205,6 +205,9 @@ void __stdcall DestroyElements(void* array, std::size_t size, int count, Element
 // both builds.
 void* __fastcall NodeAllocate(std::size_t bytes);                               // 00405950
 void __fastcall NodeDeallocate(void* p, std::size_t bytes);                     // 00404D70
+// Copies that skip a null block: fastcall (0043B310) and stdcall (00426450, RET 8).
+void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes);             // 0043B310
+void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes);           // 00426450
 void* __fastcall NodeRefill(std::size_t bytes);                                 // 004060E0 (_S_refill)
 char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // 00406B70 (_S_chunk_alloc)
 

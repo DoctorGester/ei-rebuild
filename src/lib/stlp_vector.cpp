@@ -376,3 +376,4 @@ EI_REPLACE(0x0043D7F0, stlp::ConstructAt<std::uint32_t>);
 EI_REPLACE(0x0064B620, stlp::ConstructAt<std::uint32_t>);
 EI_REPLACE(0x0043B360, stlp::CopyTrivial<std::uint32_t>);
 EI_REPLACE(0x0043DC80, stlp::CopyElements<std::uint32_t>);
+EI_REPLACE(0x00571E30, stlp::CopyElements<std::uint32_t>);   // S16a: the client's drawn objects

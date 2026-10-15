@@ -646,6 +646,7 @@ EI_VERIFY(0x0043B530, Change2<0x0043B530>::InsertOverflow, 5, Change2<0x0043B530
 EI_VERIFY(0x00439DD0, Change8<0x00439DD0>::EraseRange, 5, Change8<0x00439DD0>::original);
 EI_VERIFY(0x0043B360, Helper4<0x0043B360>::CopyTrivial, 6, Helper4<0x0043B360>::original);
 EI_VERIFY(0x0043DC80, Helper4<0x0043DC80>::CopyElements, 6, Helper4<0x0043DC80>::original);
+EI_VERIFY(0x00571E30, Helper4<0x00571E30>::CopyElements, 6, Helper4<0x00571E30>::original);
 EI_VERIFY(0x0043D7E0, Helper2<0x0043D7E0>::ConstructAt, 0, s_unused);
 EI_VERIFY(0x0043D7F0, Helper4<0x0043D7F0>::ConstructAt, 0, s_unused);
 EI_VERIFY(0x0064B620, Helper4<0x0064B620>::ConstructAt, 0, s_unused);

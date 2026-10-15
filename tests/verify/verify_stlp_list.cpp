@@ -306,6 +306,7 @@ EI_VERIFY(0x004436C0, IteratorCheck<0x004436C0>::End, 6, IteratorCheck<0x004436C
 EI_VERIFY(0x0068C500, IteratorCheck<0x0068C500>::End, 6, IteratorCheck<0x0068C500>::original);
 EI_VERIFY(0x0069BE60, IteratorCheck<0x0069BE60>::End, 6, IteratorCheck<0x0069BE60>::original);
 EI_VERIFY(0x0069C2E0, IteratorCheck<0x0069C2E0>::End, 6, IteratorCheck<0x0069C2E0>::original);
+EI_VERIFY(0x00572AF0, IteratorCheck<0x00572AF0>::End, 6, IteratorCheck<0x00572AF0>::original);
 EI_VERIFY(0x00437F20, IteratorCheck<0x00437F20>::End, 6, IteratorCheck<0x00437F20>::original);
 EI_VERIFY(0x00438650, IteratorCheck<0x00438650>::End, 6, IteratorCheck<0x00438650>::original);
 EI_VERIFY(0x00438830, IteratorCheck<0x00438830>::End, 6, IteratorCheck<0x00438830>::original);

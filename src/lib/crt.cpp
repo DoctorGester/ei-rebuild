@@ -931,6 +931,14 @@ void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
 }
 EI_REPLACE(0x00404D70, libcrt::NodeDeallocate);
 
+void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes) {
+    if (p) NodeDeallocate(p, bytes);
+}
+EI_REPLACE(0x0043B310, libcrt::NodeDeallocateChecked);
+
+void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes) { NodeDeallocateChecked(p, bytes); }
+EI_REPLACE(0x00426450, libcrt::NodeDeallocateCheckedStd);
+
 namespace {
 // The onexit list, run last-registered first by exit (functions registered while it runs, too).
 std::mutex& ExitLock() {

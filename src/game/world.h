@@ -1143,12 +1143,16 @@ static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
-    std::uint32_t unused_00;
+    int classId;                          // +0x00 the object's class id (slot 12)
     unsigned objectId;                    // +0x04 the object, in the map object manager
     std::int32_t rect[4];                 // +0x08 RECT on the screen
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
+// 0056A370 (no Ghidra function; called through a mem_fun1 by the frame's draw pass, EAX 1 when
+// queued). An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40)
+// puts its class id, id and that rectangle (CObject3D::dirtyRect) at the end of `queued`.
+int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued);
 
 // The STLport vector<ScreenEntry> the pickers fill (CWorldClient + 0xF4). Its _M_insert_overflow
 // (00573350) is the instantiation's own (world_client_maps.cpp); push_back as the collectors inline

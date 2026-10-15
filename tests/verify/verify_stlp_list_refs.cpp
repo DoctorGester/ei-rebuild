@@ -72,6 +72,45 @@ template <std::uintptr_t A> using PlainInsert20 = PlainInsertCheck<A, PlainList2
 template <std::uintptr_t A> using PlainInsert28 = PlainInsertCheck<A, PlainList28>;
 template <std::uintptr_t A> using PlainInsert260 = PlainInsertCheck<A, PlainList260>;
 
+// Plain inserts checked ours first (SV2f): ours links its node in before `pos`, then the original
+// links one in after it, which is compared, unlinked and freed.
+template <std::uintptr_t A, typename Abi>
+struct PlainInsertOursFirst {
+    using List = typename Abi::List;
+    using Node = typename List::Node;
+    using T = decltype(Node::data);
+    using InsertFn = Node** (__fastcall*)(List*, void*, Node**, Node*, const T*);
+    using CreateFn = Node* (__fastcall*)(List*, void*, const T*);
+    static inline void* original = nullptr;
+
+    static Node** __fastcall Insert(List* self, void*, Node** out, Node* pos, const T* x) {
+        Node* prev = pos->prev;
+        T value;
+        std::memcpy(&value, x, sizeof(T));
+        Abi::Insert(self, nullptr, out, pos, x);
+        Node* ours = *out;
+        bool ok = LinkedBetween(ours, prev, pos) && std::memcmp(&ours->data, &value, sizeof(T)) == 0;
+        Node* theirs = nullptr;
+        reinterpret_cast<InsertFn>(original)(self, nullptr, &theirs, pos, &value);
+        ok = ok && LinkedBetween(theirs, ours, pos) && std::memcmp(&theirs->data, &ours->data, sizeof(T)) == 0;
+        ours->next = pos;
+        pos->prev = ours;
+        stlp::deallocate(theirs, sizeof(Node));
+        ei::verify::Report(Name<A>("stlp::list::insert"), ok, ok ? "" : "another node or other bytes");
+        return out;
+    }
+    static Node* __fastcall CreateNode(List* self, void*, const T* x) {
+        Node* ours = Abi::CreateNode(self, nullptr, x);
+        Node* theirs = reinterpret_cast<CreateFn>(original)(self, nullptr, x);
+        const bool ok = std::memcmp(&theirs->data, &ours->data, sizeof(T)) == 0;
+        stlp::deallocate(theirs, sizeof(Node));
+        ei::verify::Report(Name<A>("stlp::list::_M_create_node"), ok, ok ? "" : "other bytes");
+        return ours;
+    }
+};
+// The client's screen entries (24 bytes, 32-byte nodes).
+template <std::uintptr_t A> using ScreenEntryList = PlainInsertOursFirst<A, stlp::ListAbi<stlp::Opaque<24>>>;
+
 // What an element policy's copy must have done: Expect(x) before the copy, Holds(copy, x, expected)
 // after it.
 struct SharedRefCopy {
@@ -219,6 +258,34 @@ void __fastcall RemoveCountedVerify(stlp::list<RefPtr>* self, void*, const RefPt
     ei::verify::Report("stlp::list::remove 00427320", ok, ok ? "" : "a node holds the object or is unlinked");
 }
 
+// remove(value) of a HeldObject list: every node still linked both ways, none the object (unless
+// `value` is one of the elements).
+void __fastcall RemoveHeldVerify(stlp::list<CEngineObject*>* self, void*, CEngineObject* const* value) {
+    using Node = stlp::list<CEngineObject*>::Node;
+    bool aliased = false;
+    for (Node* n = self->head->next; n != self->head; n = n->next) aliased |= &n->data == value;
+    CEngineObject* object = *value;
+    stlp::ListRemoveHeld(self, nullptr, value);
+    bool ok = true;
+    Node* prev = self->head;
+    for (Node* n = self->head->next; ok; prev = n, n = n->next) {
+        ok = n->prev == prev && (n == self->head || aliased || n->data != object);
+        if (n == self->head) break;
+    }
+    ei::verify::Report("stlp::list::remove 00570400", ok, ok ? "" : "a node holds the object or is unlinked");
+}
+
+// for_each with the releasing functor: the nodes stay linked, the functor comes back (ours only:
+// the releases cannot run twice).
+char __stdcall ForEachReleaseVerify(stlp::list<CEngineObject*>::Node* first, stlp::list<CEngineObject*>::Node* last,
+                                    char f) {
+    const char result = stlp::ListForEachRelease(first, last, f);
+    bool ok = result == f;
+    for (stlp::list<CEngineObject*>::Node* n = first; ok && n != last; n = n->next) ok = n->next->prev == n;
+    ei::verify::Report("stlp::for_each 00571780", ok, ok ? "" : "a node unlinked or another functor");
+    return result;
+}
+
 } // namespace
 
 // insert(pos, x) of plain data: mov eax,[esp+0xC]; push eax (5 bytes).
@@ -231,6 +298,9 @@ EI_VERIFY(0x0069C3D0, PlainInsert4<0x0069C3D0>::Verify, 5, PlainInsert4<0x0069C3
 EI_VERIFY(0x00411630, PlainInsert16<0x00411630>::Verify, 5, PlainInsert16<0x00411630>::original);
 EI_VERIFY(0x00421AF0, PlainInsert16<0x00421AF0>::Verify, 5, PlainInsert16<0x00421AF0>::original);
 EI_VERIFY(0x00443800, PlainInsert28<0x00443800>::Verify, 5, PlainInsert28<0x00443800>::original);
+// S16a: mov eax,[esp+0xC]; push eax (5 bytes) / push ecx; mov eax,[0079B230] (6 bytes).
+EI_VERIFY(0x0056EAF0, ScreenEntryList<0x0056EAF0>::Insert, 5, ScreenEntryList<0x0056EAF0>::original);
+EI_VERIFY(0x0056F7C0, ScreenEntryList<0x0056F7C0>::CreateNode, 6, ScreenEntryList<0x0056F7C0>::original);
 EI_VERIFY(0x005392C0, PlainInsert20<0x005392C0>::Verify, 5, PlainInsert20<0x005392C0>::original);
 EI_VERIFY(0x00439C50, PlainInsert260<0x00439C50>::Verify, 5, PlainInsert260<0x00439C50>::original);
 
@@ -308,6 +378,7 @@ EI_VERIFY(0x00427200, CountedRefErase<0x00427200>::Clear, 0, s_unused);
 EI_VERIFY(0x005703C0, HeldObjectErase<0x005703C0>::Clear, 0, s_unused);
 EI_VERIFY(0x00573660, HeldObjectErase<0x00573660>::Clear, 0, s_unused);
 EI_VERIFY(0x00572270, HeldObjectErase<0x00572270>::Verify, 0, s_unused);
+EI_VERIFY(0x005755E0, HeldObjectErase<0x005755E0>::Verify, 0, s_unused);
 EI_VERIFY(0x00572E90, HeldObjectErase<0x00572E90>::Destruct, 0, s_unused);
 EI_VERIFY(0x0069BE70, HeldObjectErase<0x0069BE70>::Destruct, 0, s_unused);
 EI_VERIFY(0x00427360, CountedRefErase<0x00427360>::Clear, 0, s_unused);
@@ -322,3 +393,5 @@ EI_VERIFY(0x00427560, SharedEntryErase<0x00427560>::Clear, 0, s_unused);
 EI_VERIFY(0x00423370, CountedRefErase<0x00423370>::Destruct, 0, s_unused);
 EI_VERIFY(0x004235F0, CountedRefErase<0x004235F0>::Destruct, 0, s_unused);
 EI_VERIFY(0x00427320, RemoveCountedVerify, 0, s_unused);
+EI_VERIFY(0x00570400, RemoveHeldVerify, 0, s_unused);
+EI_VERIFY(0x00571780, ForEachReleaseVerify, 0, s_unused);
