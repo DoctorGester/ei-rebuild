@@ -124,6 +124,10 @@ comes from a bug we already hit.
    `config/rebirth_patches.csv`). Declare it with `EI_REBIRTH_IMPLEMENTS(addr, Patch::<name>)`: the
    function is then hooked in a Rebirth launch too, its wrapper comparing with the patched original.
    Flags are off by default; with a flag off the code must behave exactly as the original.
+   `tools/check_patched_calls.py` (build.cmd, both builds) scans ei_hook.dll for direct call / jmp sites of our
+   rewrite of any address in that list and fails on them; the reviewed exceptions (the script parser /
+   evaluator family behind one flag, calls the original inlines) are in `tools/check_patched_calls_allow.txt`.
+   It does not see calls the compiler inlined: for a small patched function, grep the sources for its name.
 10. **Keep the original's bugs** (leaks, odd messages) and note them under "Original bugs kept on
     purpose" in your notes file.
 
