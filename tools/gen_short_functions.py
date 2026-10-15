@@ -85,13 +85,14 @@ REGISTERED = re.compile(r'\b(?:EI_REPLACE(?:_METHOD|_DISPATCH)?|UI_(?:INPUT|WHEE
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 
 
-def ported_elsewhere():
-    """Addresses registered by a rewrite (not by EI_REPLACE_SHORT) anywhere in src/."""
+def ported_elsewhere(skip=()):
+    """Addresses registered by a rewrite (not by EI_REPLACE_SHORT) anywhere in src/ (but the files in `skip`)."""
     out = set()
+    skip = {os.path.abspath(p) for p in (OUT, *skip)}
     for d, _, names in os.walk(os.path.join(ROOT, 'src')):
         for n in names:
             p = os.path.join(d, n)
-            if n.endswith(('.cpp', '.h')) and os.path.abspath(p) != os.path.abspath(OUT):
+            if n.endswith(('.cpp', '.h')) and os.path.abspath(p) not in skip:
                 out |= {int(a, 16) for a in REGISTERED.findall(COMMENT.sub('', open(p, encoding='utf-8', errors='replace').read()))}
     return out
 

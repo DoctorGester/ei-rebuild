@@ -1672,10 +1672,11 @@ note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<
 id = "S3a"
 title = "Standalone: the static initialisers' exit functions"
 group = "standalone"
-status = "running"
+status = "done"
 depends = ["S3"]
 note = "130 of the 311 functions the static initialisers register with atexit have no code in the image (the standalone check logs them: 'exit function ... has no code yet'). Patterns: 83 'mov ecx, obj; jmp dtor', guarded variants (test/or of a flag bit, then the same), 14 'free the buffer at [p]-4 if set' (operator delete), refcount releases, eh vector destructor iterator, a WSACleanup loop. Extend tools/gen_static_init.py (conditional branches) or port by hand like src/game/atexit_400.cpp; registered with EI_REPLACE they also run at exit in the hook build. docs/notes/standalone.md S3."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S3b"
@@ -1694,6 +1695,14 @@ size = 0.5
 depends = ["S15"]
 files = ["tests/verify/harness.cpp", "tests/verify/harness_capture.cpp"]
 note = "The harness patches call sites inside the original code: frame capture (004580D7 in 00458010), held server update (00457314) and client segment (00457368), the 8 update countdown sites (0058D4FA...). The image has INT3 there, so in a standalone run they log 'unexpected code' and do nothing: capture fails, freeze and the virtual clock's countdowns are off. Hook our rewritten callers instead (or a hook point in them) so standalone runs capture and repeat like hooked ones; needed before S17's goldens."
+
+[[ticket]]
+id = "S3c"
+title = "Standalone: game-side destructors the exit functions call"
+group = "standalone"
+status = "queued"
+depends = ["S3a"]
+note = "Callees of the generated exit functions (src/standalone/static_exit.cpp) that no library ticket covers, as the standalone check logs them ('exit function's callee ... has no code yet'): compiler-generated destructors 00561B00 (CWorldClient), 0058AAD0 (CWorldServer), 0045E6F0 (map database), 00684390 (spell database), 006ADF40 (quest database), 006D00E0 (prints), 006D70B0 (acks), and the ones Ghidra has no function for: 0056E800 (x11), 004584E0, 004F0520, 005BF870, 005C4490, 0069BE20, 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48, 0070E181 (check first which are MFC/STLport internals for S4-S9). The matching constructors are S3b's. Port at the address with EI_REPLACE (sizes in config/extra_function_sizes.csv where Ghidra has none). docs/notes/standalone.md S3a."
 
 # ---------------------------------------------------------------- Lua
 

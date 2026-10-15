@@ -12,7 +12,7 @@ exe, how the first standalone exe gets around it, and what a switch from cp1251 
 | Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), 5 unported, 1,443 library: STLport 881, MFC 399, compiler-generated 49, CRT 37, import thunks and others 77 |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions (336 MFC: the `CArray` / `CList` / `CMap` deleting destructors and `Serialize` slots) |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3); their call targets lack 35, their exit functions 130 (S3a, S3b) |
+| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 35 (S3b), the exit functions' callees 47 (S4-S9, S3c) |
 | Reads of the exe's code bytes | the frame's camera call target (00457595), app_frame's CALL test, Rebirth detection (live bytes against the file) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 | Cleanup counts (no effect on the first exe) | C11 shims 1,034, `__asm` 221, `float_control` 114, raw addresses 1,025 |
@@ -115,6 +115,23 @@ are still INT3). tools/check_static_init.py (build.cmd) re-decodes game.exe: the
 helper that gets registered later changes the output: rerun the generator), and every address must be
 in its section. On 2026-10-15 the image lacks 35 call targets (library constructors for S4-S12, ten
 compiler-generated global constructors, MFC internals: S3b) and 130 of the 311 exit functions (S3a).
+
+**S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
+(src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
+(`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on
+one object, 16 operator delete of the block kept in the dword before a buffer (4 guarded), a counted
+pointer released (`Release`: count at +4, slot 0 with 1; one guarded), DeleteCriticalSection, the eh
+vector destructor iterator, the Sleep-while-busy loop before WSACleanup, and 004013D0 (`ret`, 175
+registrations, `EI_REPLACE_SHORT(Ret)`)). `ExitFunction(Do&, fn)` holds the bodies over the
+operations (`Code`, the executing half of `Run`, plus `NonZero` / `Release`); each `ExitXXXXXXXX` is
+registered with `EI_REPLACE`, so the hook build runs them at every normal exit. Their sizes go into
+config/extra_function_sizes.csv and function_sizes.inc (the generator writes them, the check compares).
+Library destructors stay at their addresses: the standalone check logs "exit function's callee ... has
+no code yet" (MFC CString x12, operator delete x16, CByteArray, CWnd x4, 006E6BF5 x8, 006FC502 /
+006FCEDC x8, the STLport vector / tree / hashtable ones: S4-S9) and the game-side compiler-generated
+destructors (S3c). Checked: check_static_init (the file and the sizes against game.exe's instructions),
+the standalone check (0 exit functions without code), smoke and ui_main_menu on both installs (129
+hooked; vanilla exits through all of them).
 
 ## 3. Runtime: MFC, STLport, CRT
 
