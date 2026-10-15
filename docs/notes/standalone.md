@@ -1058,3 +1058,10 @@ ANSI code page; file names (save names typed by the player) go to the ANSI file 
 Total 5-6 tickets. Byte-equality compares, hashing, copying and formatting (the large majority of
 string code) work unchanged on UTF-8. It cannot start before the port is complete: until then the
 original code reads the same strings.
+
+**S10c (2026-10-15).** 004AD640, the trader stock's recipe map pair destructor (pair<string, list<recipe*>>):
+`PairAbi::DestroyStringList` in src/lib/stlp_pair.cpp (the list's nodes in order and the sentinel back to
+the pool via `list::Destroy`, then the string's block); item_stock.cpp's `RecipePairDestroy` calls it.
+Verified ours only (verify_stlp_pair.cpp: the string block on top of its free list, the sentinel on top of
+the 0xC list unless the string's block shares it); reached by trader_stock (22 calls, 0 mismatches, both
+installs); items passes. The size row already existed (function_sizes.inc, 120).

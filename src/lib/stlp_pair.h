@@ -51,6 +51,9 @@ struct PairAbi {
     // inlined: a sentinel, then insert(end(), first, last) (0069D680), one node per element in order.
     static StringListPair* __fastcall ConstructStringList(StringListPair* self, void*, const string* first,
                                                           const list<void*>* second);
+    // ~pair() (004AD640; plain RET): the list's nodes and sentinel back to the pool (the nodes in
+    // order), then the string's block.
+    static void __fastcall DestroyStringList(StringListPair* self);
     // ~pair() (00445040; plain RET): the second string's block freed, then the first's.
     static void __fastcall DestroyStrings(StringPair* self);
     // The scalar deleting destructor (004457F0; RET 4): ~pair, then operator delete when bit 0 is set.

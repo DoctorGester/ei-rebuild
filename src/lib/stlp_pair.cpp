@@ -36,6 +36,11 @@ StringListPair* __fastcall PairAbi::ConstructStringList(StringListPair* self, vo
     return self;
 }
 
+void __fastcall PairAbi::DestroyStringList(StringListPair* self) {
+    self->second.Destroy();
+    self->first.~string();
+}
+
 void __fastcall PairAbi::DestroyStrings(StringPair* self) {
     self->second.~string();
     self->first.~string();
@@ -59,3 +64,4 @@ EI_REPLACE(0x006BC140, PairAbi::ConstructStringDword);
 EI_REPLACE(0x0064F880, PairAbi::ConstructStringDword);
 EI_REPLACE(0x006A7710, PairAbi::ConstructStringDword);
 EI_REPLACE(0x0069C1C0, PairAbi::ConstructStringList);
+EI_REPLACE(0x004AD640, PairAbi::DestroyStringList);
