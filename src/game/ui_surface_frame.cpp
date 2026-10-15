@@ -24,10 +24,7 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     gameapi::FrameRect(dc->hdc_, &frame, brush.Handle());
     brush.Destruct();
 }
-namespace {
-void __fastcall SurfaceFrameRect(CUiSurface* self, void*, const RECT* rect, COLORREF colour) { self->FrameRect(rect, colour); }
-} // namespace
-EI_REPLACE(0x005FDCB0, SurfaceFrameRect);
+EI_REPLACE_METHOD(0x005FDCB0, CUiSurface::FrameRect);
 
 __declspec(naked) void ui_gdi::GameDC::FillSolidRect(const RECT*, COLORREF) EI_ORIGINAL(0x0070BADA)
 

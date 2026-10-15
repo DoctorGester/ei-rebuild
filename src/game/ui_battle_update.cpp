@@ -668,12 +668,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     if (unknown_1FC > sound) sound = unknown_1FC;
     unknown_1FC = sound;
 }
-namespace {
-void __fastcall BattleScreenQuestVariable(CBattleScreenSetup* self, void*, const char* name, float value) {
-    self->OnQuestVariable(name, value);
-}
-} // namespace
-EI_REPLACE(0x006369D0, BattleScreenQuestVariable);
+EI_REPLACE_METHOD(0x006369D0, CBattleScreenSetup::OnQuestVariable);
 
 // --- 00637DC0: the selection's refresh --------------------------------------------------------
 

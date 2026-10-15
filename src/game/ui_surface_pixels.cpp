@@ -411,9 +411,8 @@ void __fastcall SurfaceCaptureScreen(CUiSurface* self, void*) { self->CaptureScr
 std::uint16_t* __fastcall SurfaceRgb565Copy(CUiSurface* self, void*, int width, int height) {
     return self->Rgb565Copy(width, height);
 }
-void __fastcall SurfaceGreyscale(CUiSurface* self, void*) { self->Greyscale(); }
 } // namespace
 EI_REPLACE(0x005FD7A0, SurfaceSwapContents);
 EI_REPLACE(0x005FD3D0, SurfaceCaptureScreen);
 EI_REPLACE(0x005FD440, SurfaceRgb565Copy);
-EI_REPLACE(0x005FE440, SurfaceGreyscale);
+EI_REPLACE_METHOD(0x005FE440, CUiSurface::Greyscale);

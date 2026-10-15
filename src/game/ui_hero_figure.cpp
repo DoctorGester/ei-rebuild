@@ -114,7 +114,4 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     if (mode_ == kModeNewHero) CallDrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-namespace {
-void __fastcall HeroScreenChooseFigure(CMpHeroScreen* self, void*, const char* prototype) { self->ChooseFigure(prototype); }
-} // namespace
-EI_REPLACE(0x00616AC0, HeroScreenChooseFigure);
+EI_REPLACE_METHOD(0x00616AC0, CMpHeroScreen::ChooseFigure);

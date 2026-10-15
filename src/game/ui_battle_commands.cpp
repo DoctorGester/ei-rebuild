@@ -336,9 +336,4 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 }
-namespace {
-void __fastcall BattleScreenUnitSpeech(CBattleScreenSetup* self, void*, int id, unsigned event, char* extra) {
-    self->OnUnitSpeech(id, event, extra);
-}
-} // namespace
-EI_REPLACE(0x006366F0, BattleScreenUnitSpeech);
+EI_REPLACE_METHOD(0x006366F0, CBattleScreenSetup::OnUnitSpeech);

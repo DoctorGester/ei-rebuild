@@ -450,10 +450,7 @@ void CHeroStatsPanel::Build() {
     heldRegion_ = -1;
     holdTime_ = 0.0f;
 }
-namespace {
-void __fastcall StatsBuild(CHeroStatsPanel* self, void*) { self->Build(); }
-} // namespace
-EI_REPLACE(0x00622DB0, StatsBuild);
+EI_REPLACE_METHOD(0x00622DB0, CHeroStatsPanel::Build);
 
 // --- 006270A0: the trade grid's Build ----------------------------------------------------------------
 
@@ -498,10 +495,7 @@ CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
     if (region - kGridCellsPerList < sold_->size) return sold_->data[region - kGridCellsPerList];
     return nullptr;
 }
-namespace {
-CItem* __fastcall TradeGridItemAt(CTradeGrid* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
-} // namespace
-EI_REPLACE(0x00627920, TradeGridItemAt);
+EI_REPLACE_METHOD(0x00627920, CTradeGrid::ItemAt);
 
 CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
     *topic = 0;
@@ -511,10 +505,7 @@ CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
     *topic = kTopicRepair;
     return region < items_->size ? items_->data[region] : nullptr;
 }
-namespace {
-CItem* __fastcall RepairGridItemAt(CRepairGrid* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
-} // namespace
-EI_REPLACE(0x00628060, RepairGridItemAt);
+EI_REPLACE_METHOD(0x00628060, CRepairGrid::ItemAt);
 
 // --- 006279E0: the repair grid's Build ---------------------------------------------------------------
 

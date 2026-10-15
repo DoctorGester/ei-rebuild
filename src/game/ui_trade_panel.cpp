@@ -539,10 +539,7 @@ void CTradePanel::Settle(int keep, int all) {
         RestoreRecordAt(this);
     TradePanelBuildListsOriginal(this);
 }
-namespace {
-void __fastcall TradeSettle(CTradePanel* self, void*, int keep, int all) { self->Settle(keep, all); }
-} // namespace
-EI_REPLACE(0x006255A0, TradeSettle);
+EI_REPLACE_METHOD(0x006255A0, CTradePanel::Settle);
 
 void CTradePanel::SelectHero(int index) {
     recordIndex_ = index;
@@ -550,10 +547,7 @@ void CTradePanel::SelectHero(int index) {
     learnableTop_ = 0;
     TradePanelBuildListsOriginal(this);
 }
-namespace {
-void __fastcall TradeSelectHero(CTradePanel* self, void*, int index) { self->SelectHero(index); }
-} // namespace
-EI_REPLACE(0x00625860, TradeSelectHero);
+EI_REPLACE_METHOD(0x00625860, CTradePanel::SelectHero);
 
 // --- 00626090: a price as text -------------------------------------------------------------------
 
