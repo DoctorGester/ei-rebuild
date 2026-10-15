@@ -1,0 +1,12 @@
+{
+  "scenario": "world_client",
+  "install": "rebirth",
+  "recorded": "2026-10-15",
+  "commit": "62a0c47e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^script gobject\\.i$)",
+  "repeated_in": 4,
+  "reason": "SV3e: stored script runs clear their kill flag (004BC420)",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50678 637a854e168df508', orig2 'savea/mission.sav 50490 5e9a8c0d6e5ddae6'"
+}

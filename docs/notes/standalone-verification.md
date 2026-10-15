@@ -674,3 +674,14 @@ Repeats: the original 87 of 106 passing runs, ours 98 of 114. Not recorded (by t
   (SV3j: sound, zone_gz2g_traps, models).
 - *Fail without our hooks:* rebirth_flags (vanilla), render_cursor_present (both: no cursor-thread presents without our
   renderer), render_device_lost, render_present_shot (both), render_present_window; render_present_fullscreen is not run.
+
+## SV3e: stored script runs clear their kill flag (2026-10-15)
+
+004BC420 sets its local run's kill flag to 0 after Execute returns unfinished, before the copy into the run list
+(`local_b0 = 0`); ours kept the instance (script_exec_run.cpp now clears it; the verify wrapper checks for null, ours only).
+The script group of digest 2 no longer differs in the nine scenarios: ours match the original wherever the original
+repeats. Recorded (SV3's recipe, 9 scenarios x 2 installs): ui_hud vanilla, world_client vanilla and rebirth.
+The others stay out for other causes: the SV1j family (isaac.count/standCooldown; crt.rand in the original's own runs)
+for frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_mp_host, zone_base_bz1g rebirth;
+zone_base_bz1g vanilla also shows SV3f's rotation ulp; ui_hud rebirth differs from the original from world update 40 in
+the script global gobject.i (702 in the original, 1884 in ours; both repeat), SV3k.
