@@ -2,6 +2,7 @@
 // docs/notes/items_spells.md ("Textures").
 #include "texture.h"
 
+#include "mod_folders.h"
 #include "world_data.h"   // the text resources' folder
 
 #include "ei/hook.h"
@@ -66,7 +67,12 @@ int CTextureManager::Create() {
     const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
     BOOL opened = AddArchive(folder + "textures.res");
     opened = AddArchive(folder + "redress.res") && opened ? 1 : 0;
-    return AddArchive(folder + "menus.res") && opened ? 1 : 0;
+    if (!AddArchive(folder + "menus.res") || !opened) return 0;
+    // Rebirth's ResOverride (006915EF): when all three opened, the mod's texture archives follow.
+    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
+        for (const std::string& path : modfolders::TextureArchives()) AddArchiveImpl(path.c_str());
+    }
+    return 1;
 }
 
 void CTextureManager::Destroy() {

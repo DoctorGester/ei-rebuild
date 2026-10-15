@@ -20,6 +20,7 @@
 #include "player_messages.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -2285,6 +2286,7 @@ void GameFlow::BuildZoneTable() {
     int more;
     {
         mfc::CString folder;
+        modfolders::SelectMaps(reinterpret_cast<const char*>(kQuestFilePattern), modfolders::MapsSite::ZoneTable);
         MapsFolderAt(&folder);
         mfc::CString pattern = folder + reinterpret_cast<const char*>(kQuestFilePattern);
         more = find.FindFile(pattern, 0);
