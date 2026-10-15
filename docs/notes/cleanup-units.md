@@ -520,4 +520,5 @@ builds found nothing else. 130 wrappers in 82 files.
   / world / combat / ui forwarders; those names (`PlayerMessage`, `FindWeapon`) are shorter than the address-named forwarders and
   their call sites would get less readable).
 - Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87,
-  check_signatures, check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors). Golden result below.
+  check_signatures, check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors). `work.py test C11 --golden --jobs 4`
+  on the merged tree: 128 runs, all PASS; 56 goldens the same, 0 differ.
