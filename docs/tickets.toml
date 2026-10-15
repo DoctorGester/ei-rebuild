@@ -1873,7 +1873,7 @@ title = "Standalone: the next stops after the zone (0069D9A0, 00657C60, 00424E40
 group = "standalone"
 depends = ["S16a"]
 files = ["src/game/item_stock.cpp", "src/game/ui_saveload.cpp", "src/game/originals_library.h"]
-note = "S16a's loop left three stops (docs/notes/standalone.md S16a): 0069D9A0 (ui_camp_deals: the item stock's vector<char*> allocate-and-copy, from item_stock.cpp AssignPointers), 00657C60 (ui_saveload_delete: SaveEntry's copy constructor, from CSaveLoadWindow::FillEntries), 00424E40 (ui_mp_host: the net strings' StringAllocateBlock, from net::StringEmpty). Grep main first (S12e / S12f work on STLport rows). Then run the scenarios not yet run standalone (work.py test S16b <names> --standalone --jobs 4; 32 of 98 sampled so far) and continue the loop."
+note = "S16a's loop left three stops (docs/notes/standalone.md S16a): 0069D9A0 (ui_camp_deals: the item stock's vector<char*> allocate-and-copy, from item_stock.cpp AssignPointers), 00657C60 (ui_saveload_delete: SaveEntry's copy constructor, from CSaveLoadWindow::FillEntries), 00424E40 (ui_mp_host: the net strings' StringAllocateBlock, from net::StringEmpty). Grep main first (S12e / S12f work on STLport rows). Then run the scenarios not yet run standalone (work.py test S16b <names> --standalone --jobs 4; 32 of 98 sampled so far) and continue the loop. S12g (2026-10-15) registered the three stops named here (0069D9A0, 00657C60, 00424E40) with the rest of the library forwarders; start from the suite run."
 
 # ---------------------------------------------------------------- Lua
 

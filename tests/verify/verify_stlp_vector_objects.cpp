@@ -114,6 +114,66 @@ struct SharedRefCheck {
     }
 };
 
+// S12g. _M_allocate_and_copy of strings (0053D7F0): a block of n strings, the range copied into its
+// start (each copy a block of its own; ours only, as the model checks).
+StringVector::Vector::value_type* __fastcall StringsAllocateVerify(StringVector::Vector* self, void*, std::size_t n,
+                                                                  const stlp::string* first, const stlp::string* last) {
+    std::vector<std::string> expected;
+    for (const stlp::string* p = first; p != last; ++p) expected.push_back(StringText::Of(*p));
+    stlp::string* block = StringVector::AllocateAndCopy(self, nullptr, n, first, last);
+    bool ok = expected.size() <= n && (n == 0 || block != nullptr);
+    for (std::size_t i = 0; ok && i < expected.size(); ++i)
+        ok = StringText::Of(block[i]) == expected[i] && block[i].data() != first[i].data();
+    char detail[64] = "";
+    if (!ok)
+        std::snprintf(detail, sizeof(detail), "%u of %u strings at %p", static_cast<unsigned>(expected.size()),
+                      static_cast<unsigned>(n), static_cast<void*>(block));
+    ei::verify::Report("stlp::vector<string>::_M_allocate_and_copy 0053D7F0", ok, detail);
+    return block;
+}
+
+// uninitialized_copy of counted references (0042AF80): the same pointers, one more reference per
+// copy (counted by object, as an object may come more than once).
+RefPtr* __fastcall CountedCopyVerify(const RefPtr* first, const RefPtr* last, RefPtr* result, const void* tag) {
+    std::vector<CRefObject*> sources;
+    std::map<CRefObject*, int> refs;
+    for (const RefPtr* p = first; p != last; ++p) {
+        sources.push_back(p->ptr);
+        if (p->ptr) refs.emplace(p->ptr, p->ptr->refs_).first->second += 1;
+    }
+    RefPtr* end = CountedRefVector::UninitializedCopy(first, last, result, tag);
+    bool ok = end == result + sources.size();
+    for (std::size_t i = 0; ok && i < sources.size(); ++i) ok = result[i].ptr == sources[i];
+    for (const auto& entry : refs) ok = ok && entry.first->refs_ == entry.second;
+    ei::verify::Report("stlp::uninitialized_copy(counted_ptr) 0042AF80", ok, ok ? "" : "other pointers or counts");
+    return end;
+}
+
+// uninitialized_copy of shared references (0042AE90): each copy shared as the policy does (null for
+// a null or detached source, a clone of a copy-on-share source, else the same object), marked
+// copy-on-share.
+RefPtr* __fastcall SharedCopyVerify(const RefPtr* first, const RefPtr* last, RefPtr* result, const void* tag) {
+    struct Expected {
+        CRefObject* object;
+        bool clone;
+    };
+    std::vector<Expected> expected;
+    for (const RefPtr* p = first; p != last; ++p) {
+        CRefObject* o = p->ptr;
+        if (!o || (o->flags7_ & CRefObject::kDetached)) expected.push_back({nullptr, false});
+        else expected.push_back({o, (o->flags6_ & CRefObject::kCopyOnShare) != 0});
+    }
+    RefPtr* end = SharedRefVector::UninitializedCopy(first, last, result, tag);
+    bool ok = end == result + expected.size();
+    for (std::size_t i = 0; ok && i < expected.size(); ++i) {
+        CRefObject* copy = result[i].ptr;
+        if (!expected[i].object) ok = copy == nullptr;
+        else ok = copy && (copy->flags6_ & CRefObject::kCopyOnShare) && (expected[i].clone ? copy != expected[i].object : copy == expected[i].object);
+    }
+    ei::verify::Report("stlp::uninitialized_copy(shared counted_ptr) 0042AE90", ok, ok ? "" : "another copy");
+    return end;
+}
+
 template <std::uintptr_t A> using CStrings = stlp_verify::ModelCheck<A, CStringVector, CStringText>;
 template <std::uintptr_t A> using Strings = stlp_verify::ModelCheck<A, StringVector, StringText>;
 
@@ -147,3 +207,8 @@ EI_VERIFY(0x004AD700, RefCheck<0x004AD700>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x004AD8D0, RefCheck<0x004AD8D0>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x00421D90, SharedRefCheck<0x00421D90>::EraseRange, 0, s_unused);
 EI_VERIFY(0x00426CB0, SharedRefCheck<0x00426CB0>::FillInsert, 0, s_unused);
+
+// S12g: ours only.
+EI_VERIFY(0x0053D7F0, StringsAllocateVerify, 0, s_unused);
+EI_VERIFY(0x0042AF80, CountedCopyVerify, 0, s_unused);
+EI_VERIFY(0x0042AE90, SharedCopyVerify, 0, s_unused);

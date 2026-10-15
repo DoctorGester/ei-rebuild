@@ -59,6 +59,9 @@ EI_REPLACE(0x00443BF0, QueryVector::Assign);
 EI_REPLACE(0x004442B0, QueryVector::EraseRange);
 EI_REPLACE(0x00444090, QueryVector::ResizeDefault);
 EI_REPLACE(0x0041F7F0, QueryVector::Destruct);   // ~vector (the client's queries)
+// S12g: _Construct(p) (a default query) and the copy loop of erase (__copy, RET 0xC).
+EI_REPLACE(0x00443E30, (stlp::ConstructDefaultAt<net::Query, QueryElement>));
+EI_REPLACE(0x00443FF0, (stlp::CopyAssignTagged<net::Query, QueryElement>));
 
 // The party manager's entries (resize(n), RET 4).
 EI_REPLACE(0x004ADAA0, PartyEntryVector::ResizeDefault);   // 0x14
@@ -83,6 +86,8 @@ EI_REPLACE(0x006578F0, SaveEntryVector::EraseRange);
 EI_REPLACE(0x006579C0, SaveEntryVector::InsertOverflow);       // 0x44
 EI_REPLACE(0x0061EC40, MpAddressVector::InsertOverflow);       // 0x2C
 EI_REPLACE(0x00629E60, TradeRowVector::InsertOverflow);        // 0x18
+// S12g: the save list's _Construct(p, x) (ECX p, EDX x).
+EI_REPLACE(0x00657C60, (stlp::ConstructCopyAt<SaveEntry, SaveEntryElement>));
 EI_REPLACE(0x0062A0B0, TradeRecordVector::InsertOverflow);     // 0x3C
 EI_REPLACE(0x00652930, OptionBindingVector::InsertOverflow);   // 0x18
 
