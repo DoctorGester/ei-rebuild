@@ -32,6 +32,9 @@ import os
 import struct
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import frame_store  # noqa: E402
+
 
 class Image:
     def __init__(self, width, height, rows):
@@ -41,8 +44,7 @@ class Image:
 
 
 def read_bmp(path):
-    with open(path, 'rb') as f:
-        data = f.read()
+    data = frame_store.read_frame(path)       # a .bmp, or the .bmp.z a run's frames are stored as (WB11)
     if len(data) < 54 or data[:2] != b'BM':
         raise ValueError(f'{path}: not a BMP file')
     offset, = struct.unpack_from('<I', data, 10)
@@ -264,8 +266,8 @@ def main():
         ap.error('--mask and --exclude need two files')
     if os.path.isdir(args.a) and os.path.isdir(args.b):
         da, db = frames_dir(args.a), frames_dir(args.b)
-        names_a = {n for n in os.listdir(da) if n.lower().endswith('.bmp')}
-        names_b = {n for n in os.listdir(db) if n.lower().endswith('.bmp')}
+        names_a = set(frame_store.frame_names(da))
+        names_b = set(frame_store.frame_names(db))
         result = 0
         for n in sorted(names_a ^ names_b):
             print(f'{n}: only in {da if n in names_a else db}')

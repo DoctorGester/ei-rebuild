@@ -70,7 +70,7 @@ A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scena
 """
 import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
-import prepare_scenario
+import frame_store, prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens']   # --widescreen without scenario names
@@ -298,6 +298,7 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
             return cached
     result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock,
                                                         game_env, dgvoodoo)
+    frame_store.pack_folder(os.path.join(build, 'runs', folder))      # WB11: 4K frames stored compressed
     if key and result == 'PASS':
         store_reference(name, install, key, os.path.join(build, 'runs', folder), (result, seconds, failures, counts, notes))
     return result, seconds, failures, counts, notes
@@ -617,7 +618,7 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
     ours, addons = (os.path.join(runs, f'{name}-{i}', 'frames') for i in ('rebirth', 'rebirth-nohooks'))
     diffs = os.path.join(runs, f'{name}-rebirth', 'frames_diff')
     os.makedirs(diffs, exist_ok=True)
-    frames = sorted(f[:-4] for f in os.listdir(ours) if f.endswith('.bmp')) if os.path.isdir(ours) else []
+    frames = [f[:-4] for f in frame_store.frame_names(ours)] if os.path.isdir(ours) else []
     if not frames:
         print('no frames to compare', file=out)
         return False
@@ -630,12 +631,12 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
                '--diff', os.path.join(diffs, frame + '.bmp')]
         later_a, later_b = os.path.join(ours, frame + '_later.bmp'), os.path.join(addons, frame + '_later.bmp')
         excludes = []
-        if os.path.exists(later_a) and os.path.exists(later_b):
+        if frame_store.exists(later_a) and frame_store.exists(later_b):
             excludes += ['--exclude', a, later_a, '--exclude', b, later_b]
         # A window that pauses the world (the Esc menu's): what moved in <f>_moving / <f>_moving_later,
         # captured before it opened, is left out of <f> too.
         moving = [os.path.join(d, frame + s) for d in (ours, addons) for s in ('_moving.bmp', '_moving_later.bmp')]
-        if all(os.path.exists(m) for m in moving):
+        if all(frame_store.exists(m) for m in moving):
             excludes += ['--exclude', moving[0], moving[1], '--exclude', moving[2], moving[3]]
         if excludes:
             cmd += excludes + ['--exclude-grow', '8']
@@ -648,6 +649,7 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
     for p in done:
         out.write(p.stdout + p.stderr)
         ok = p.returncode == 0 and ok
+    frame_store.pack_folder(diffs)
     out.flush()
     return ok
 
