@@ -150,3 +150,51 @@ purpose), the same console; Unit::ReadNetState 0 mismatches.
 
 Other wrappers that run an original after ours on live objects can do the same (the generators,
 or other shared state the original's run changes again); the plain-versus-verify trace finds them.
+
+## SV1g: other wrappers that take the verify build off course (2026-10-15)
+
+Tools (kept):
+- Every line of the random trace (`EI_HARNESS_CLOCK=virtual,randtrace`) carries the generator's
+  position (`#<n>`: ISAAC refills * 256 + index, rand()'s seed), and its notes now show every move of
+  the virtual clock (`clock frame time`, sleeps, timed waits) and every sound stopped or ended by the
+  game, so two runs show where their virtual times part.
+- `tools/randtrace.py A B` walks A's main-thread draws per generator and reports the first one B
+  draws in no frame or another frame (wrapper replays draw the same positions again, from other
+  callers, which it ignores); `--kept B [A]` lists original (game.exe) draws whose result stayed.
+- Bisection: copies of build\verify (`build\bisectN`, each with its own verified.txt), run through
+  `work.py test` with `EI_BUILD_DIR`, judged with randtrace.py. 00412720 (RefDestruct1Verify) must
+  stay a wrapper in every part: RefValueDeleteVerify (00412700 and its copies) calls its trampoline.
+
+Found and fixed: AIAttention::Choose (005D0030) and CanReach (005CF3C0). The wrappers ran the
+original on the live brain, then ours, without putting the generators back: the reach test's order
+check plans the attack, and BuildAttackSteps' blow height draws ISAAC, so every choice drew twice.
+unit_ai_fear's foe drew three blow heights where the plain build drew one (ISAAC frame 16), and
+magic_traps parted at rand frame 18. Both wrappers now save the generators, put them back after the
+original and check that ours ends where the original did. After the fix unit_ai_fear, magic_traps and
+sound made every draw of the plain build in the same frame (Choose: 0 mismatches).
+
+A full vanilla sweep (plain against verify, both with randtrace) after the fix, by the first difference:
+- The same draws in the same frames: camera, console, frames_basic, ground_prints, harness_digest,
+  hero_death, items, levers, net_lobby, party_records, the render_* scenarios, sandbox_actions,
+  script_copy / parse / quest, smoke, spells_cast, most ui_* screens, unit_ai_fear, watchdog_*,
+  world_load. ISAAC only: unit_create, zone_gz3g, ui_base_dialogue, magic_traps, terrain_water_load.
+- Frames ~105-111 (combat, combat_more, map_objects, models, movement, sandbox_map, spells, units,
+  unit_ai, ui_hud, ui_widescreen_more / _screens, world_client): the update-map countdown at world
+  update ~530-555 (CMapObject +0x174 from bits of the object's address), SV1b's heap question.
+- Terrain::PlayAmbience drawing in one build and not the other (ui_view_screen, ui_trade_hold(_restore),
+  trader_stock, ui_camp(_deals), ui_describe, ui_global_map_pick, world, world_client, spells_hero,
+  script_exec, effects_bow, render_device_lost, ui_quick_items): not a wrapper. In ui_view_screen the
+  `screen 7` step's switch (it stops the playing sounds) happened inside the step at 1001500 in the
+  verify build and one frame later at 1001550 in the plain one. The bisection over all wrappers did
+  not converge: a set of 22 effect wrappers turned it on, none of its halves or quarters did, and the
+  same 22 then ran like plain once. The frame the server's answer lands in depends on real time
+  (follow-up SV1j); the verify build's extra work only makes the early answer likelier.
+- Other early ones, not bisected: effects (frame 12), objects_more (CLightning::Start, 12), script_fx
+  (8), ui_mp_host (96, SaveParty), unit_create's rand (12: protection checks against the animation
+  pick order; the bisection blamed every part), zone_base_bz1g, zone_gz2g_traps. Several of these also
+  differ plain against plain (effects, trader_stock, ui_quick_items, effects_bow, zone_base_bz1g,
+  ui_base_dialogue, zone_gz2g_traps), so the trace needs repeat runs before a bisection.
+
+Not a divergence found yet, but one to keep in mind: CheckNear wrappers (Score, Distance2, ...) return
+the original's value in the verify build, so where ours differs by a few ULPs the verify build follows
+the original's numbers and the plain build ours.

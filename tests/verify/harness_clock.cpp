@@ -232,6 +232,7 @@ void __stdcall TimedStopSample(void* sample) {
     if (v.running && !v.stopped) {
         v.stopped = true;
         v.left = static_cast<LONG>(v.end - g_now) > 0 ? v.end - g_now : 0;
+        RandomNote("sound stopped at %lu: end %lu", g_now, v.end);
     }
     LeaveCriticalSection(&g_voiceLock);
 }
@@ -248,7 +249,10 @@ void __stdcall TimedResumeSample(void* sample) {
 void __stdcall TimedEndSample(void* sample) {
     g_ailEndSample(sample);
     EnterCriticalSection(&g_voiceLock);
-    VoiceOf(sample).running = false;
+    Voice& v = VoiceOf(sample);
+    if (v.running && !v.forever)
+        RandomNote("sound ended by the game at %lu: end %lu", g_now, v.end);
+    v.running = false;
     LeaveCriticalSection(&g_voiceLock);
 }
 
@@ -288,6 +292,9 @@ DWORD WINAPI VirtualTimeGetTime() {
     if (IsMainLoopTime(CallerOf(_ReturnAddress()))) {
         g_sleepsSinceFrame = 0;
         Advance(kUpdatesPerFrame * *g_tickLength);
+        // The random trace notes every move of the clock (here, sleeps, timed waits) and every sound
+        // stopped or ended, so two runs show where their virtual times part (SV1g).
+        RandomNote("clock frame time %lu", g_now);
         CallSampleEnds();
     }
     return g_now;
@@ -303,6 +310,7 @@ DWORD WINAPI VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThread
 // inside Miles' waveOutOpen, on both sides and on either clock; this guard is kept regardless.)
 void WINAPI VirtualSleep(DWORD ms) {
     if (!OnMainThread()) return g_sleep(ms);
+    if (ms) RandomNote("clock +%lu: sleep", ms);
     Advance(ms);
     g_sleep(++g_sleepsSinceFrame > 50 ? 1 : 0);
 }
@@ -310,6 +318,7 @@ DWORD WINAPI VirtualWaitForSingleObject(HANDLE object, DWORD ms) {
     if (!OnMainThread() || ms == 0 || ms == INFINITE) return g_waitForSingleObject(object, ms);
     DWORD result = g_waitForSingleObject(object, 0);
     if (result != WAIT_TIMEOUT) return result;
+    RandomNote("clock +%lu: wait timed out", ms);
     Advance(ms);
     return WAIT_TIMEOUT;
 }
