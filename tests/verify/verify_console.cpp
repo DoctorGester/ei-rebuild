@@ -12,6 +12,7 @@
 
 #include "../../src/game/acks_db.h"
 #include "../../src/game/console.h"
+#include "../../src/game/world.h"
 #include "../../src/game/world_glue.h"
 #include "../../src/lib/crt.h"
 
@@ -285,6 +286,31 @@ void __fastcall GiveVerify(CStringArray* args) {
     });
 }
 EI_VERIFY(0x005DF0F0, GiveVerify, 0, s_unused);
+
+// 005DF3A0 / 005DF490 (S16b; net_lobby's "server"): ours only. The usage alone without one
+// argument; otherwise the flow's request is 5 / 6 for that map ("Starting up a server" first).
+void JoinOrServerVerify(const char* name, Handler ours, CStringArray* args, int state, std::uintptr_t usage,
+                        std::uintptr_t first) {
+    bool one = args->GetSize() == 1;
+    std::string map = one ? Text((*args)[0]) : std::string();
+    OursOnly(name, ours, args, [&](const Captured& out) {
+        if (!one) return PrintedOnly(out, usage);
+        auto* flow = reinterpret_cast<GameFlow*>(0x007AFE20);
+        bool printed = first ? PrintedOnly(out, first) : out.lines.empty() && out.pending.empty();
+        return printed && flow->state_ == state && map == flow->requestTarget_;
+    });
+}
+void __fastcall JoinVerify(CStringArray* args) { JoinOrServerVerify("Join", &commands::Join, args, 5, 0x007927D4, 0); }
+EI_VERIFY(0x005DF3A0, JoinVerify, 0, s_unused);
+void __fastcall ServerVerify(CStringArray* args) {
+    JoinOrServerVerify("Server", &commands::HostServer, args, 6, 0x00792818, 0x00792800);
+}
+EI_VERIFY(0x005DF490, ServerVerify, 0, s_unused);
+// 005DF5A0: ours only, prints nothing.
+void __fastcall MemUsageVerify(CStringArray* args) {
+    OursOnly("MemUsage", &commands::MemUsage, args, [](const Captured& out) { return out.lines.empty() && out.pending.empty(); });
+}
+EI_VERIFY(0x005DF5A0, MemUsageVerify, 0, s_unused);
 
 // 005DF5B0: ours only; prints "Looting..." first.
 void __fastcall LootAllVerify(CStringArray* args) {

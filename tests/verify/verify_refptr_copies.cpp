@@ -281,6 +281,7 @@ EI_VERIFY(0x00439910, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0059B4B0, ReleaseVerify, 0, s_unused);   // A-W12 copy
 EI_VERIFY(0x0069FD50, ReleaseVerify, 0, s_unused);   // A-H24 copy
 EI_VERIFY(0x004A5D70, ReleaseVerify, 0, s_unused);   // S16a: counted_ptr<T>'s destructor
+EI_VERIFY(0x005B80D0, ReleaseVerify, 0, s_unused);   // S16b: the same at exit (007C2F64)
 
 // The pair releases: the 29-byte body of 004215A0 (identical in all four; only internal jumps)
 // copied to executable memory is the original; dry runs on a stand-in held at +4.
