@@ -181,6 +181,9 @@ struct ListAbi {
     static void __fastcall Destruct(List* self) { self->template Release<E>(); }
     // clear() (e.g. 00427100).
     static void __fastcall Clear(List* self) { self->template Clear<E>(); }
+    // _M_create_node(x) (e.g. 00482C30; RET 4): the list is not read; the node's links are left as
+    // the pool had them.
+    static Node* __fastcall CreateNode(List*, void*, const T* x) { return List::template CreateNode<E>(*x); }
     // insert(pos, x) (e.g. 00404A40; RET 0xC). The list is not read (0062C090 is called with any
     // ECX).
     static Node** __fastcall Insert(List*, void*, Node** out, Node* pos, const T* x) {
@@ -218,5 +221,13 @@ AnyList::Node** __fastcall ListBegin(const AnyList* self, void*, AnyList::Node**
 AnyList::Node** __fastcall ListEnd(const AnyList* self, void*, AnyList::Node** out);
 // distance(first, last, n) (e.g. 00429040; RET 8): ECX the count.
 void __fastcall ListDistance(int* n, void*, const AnyList::Node* first, const AnyList::Node* last);
+// The iterator's operator--() (004FB570): the node before; returns this.
+AnyList::Node** __fastcall ListIteratorDecrement(AnyList::Node** self);
+// The sentinel given back while a list's constructor unwinds (00482790, 004FB840; only exception
+// unwind funclets call them): a non-null node back to the pool as a block of NodeBytes.
+template <std::size_t NodeBytes>
+void __fastcall ListPutSentinel(OpaqueList<NodeBytes>* self) {
+    if (self->head) deallocate(self->head, NodeBytes);
+}
 
 } // namespace stlp
