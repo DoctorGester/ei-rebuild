@@ -3,7 +3,7 @@
 usage: python tools/test_run_all_timeout.py [-v]
 The real checks with a game are tests/scenarios/watchdog_*.txt ("# expect: TIMEOUT").
 """
-import os, subprocess, sys, tempfile, unittest
+import os, shutil, subprocess, sys, tempfile, unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -84,6 +84,34 @@ class Run(unittest.TestCase):
         self.assertEqual(self.run_scenario('quit\n', 0, 'RESULT: PASS\n')[0], 'PASS')
         self.assertEqual(self.run_scenario('quit\n', 1, 'FAILED: a check\nRESULT: FAIL\n')[0], 'FAIL')
         self.assertEqual(self.run_scenario('quit\n', 2, None)[0], 'NO REPORT')
+
+
+class Retries(unittest.TestCase):
+    """A retry empties the run folder; the failed attempt's log and report are kept beside it."""
+
+    def test_failed_attempt_is_kept(self):
+        with tempfile.TemporaryDirectory() as build:
+            folder = os.path.join(build, 'runs', 'x-vanilla')
+            os.makedirs(folder)
+            calls = []
+
+            def runner(name, install, hooks, folder_name):
+                calls.append(1)
+                if len(calls) == 1:
+                    with open(os.path.join(folder, 'ei_hook.log'), 'w') as f:
+                        f.write('first attempt\n')
+                    return 'FAIL', 1.0, ['a check'], {}, []
+                shutil.rmtree(folder)         # what run_once does
+                os.makedirs(folder)
+                return 'PASS', 1.0, [], {}, []
+
+            keep = lambda name, attempt: run_all.keep_attempt(name, attempt, build=build)
+            result, _, failures, _, _ = run_all.run_with_retries('x', 'vanilla', True, 1, 'x-vanilla', runner, keep)
+            self.assertEqual(result, 'PASS*')
+            self.assertIn('x-vanilla-attempt1', failures[0])
+            with open(os.path.join(build, 'runs', 'x-vanilla-attempt1', 'ei_hook.log')) as f:
+                self.assertEqual(f.read(), 'first attempt\n')
+            self.assertFalse(os.path.exists(os.path.join(folder, 'ei_hook.log')))
 
 
 if __name__ == '__main__':

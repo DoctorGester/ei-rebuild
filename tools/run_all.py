@@ -503,17 +503,42 @@ def console_of(folder, build=BUILD):
     return [l for l in lines if l.startswith('  ')]
 
 
-def run_with_retries(name, install, hooks, retries, folder=None, runner=run):
-    """run() again after a failure, up to retries times. runner: run() or a stand-in with its arguments."""
+ATTEMPT_FILES = ('ei_hook.log', 'harness_report.txt')
+
+
+def keep_attempt(folder, attempt, build=BUILD):
+    """Keep a failed attempt's log and report before the retry empties its run folder: they go to
+    <build>/runs/<folder>-attempt<attempt> (replaced). Returns that folder's name, or None when there was nothing."""
+    source = os.path.join(build, 'runs', folder)
+    kept = f'{folder}-attempt{attempt}'
+    target = os.path.join(build, 'runs', kept)
+    shutil.rmtree(target, ignore_errors=True)
+    copied = False
+    for name in ATTEMPT_FILES:
+        with contextlib.suppress(OSError):
+            os.makedirs(target, exist_ok=True)
+            shutil.copy2(os.path.join(source, name), os.path.join(target, name))
+            copied = True
+    return kept if copied else None
+
+
+def run_with_retries(name, install, hooks, retries, folder=None, runner=run, keep=None):
+    """run() again after a failure, up to retries times. runner: run() or a stand-in with its arguments.
+    keep(folder, attempt) -> the name of a folder that now holds the failed attempt's log and report (keep_attempt),
+    called before each retry (a retry empties the run folder); a retry that passes names it in its failures."""
     result, seconds, failures, counts, notes = runner(name, install, hooks, folder)
     first_failures = failures
-    for _ in range(retries):
+    first_log = None
+    for attempt in range(1, retries + 1):
         if result == 'PASS' or any(bad for _, bad in counts.values()):   # never retry away a mismatch
             break
+        kept = keep(folder or f'{name}-{install}', attempt) if keep else None
+        if attempt == 1:
+            first_log = kept
         result, seconds, failures, counts, notes = runner(name, install, hooks, folder)
         if result == 'PASS':
             result = 'PASS*'
-            failures = ['first run: ' + '; '.join(first_failures[:2])]
+            failures = ['first run: ' + '; '.join(first_failures[:2]) + (f' (log kept in runs/{first_log})' if first_log else '')]
     return result, seconds, failures, counts, notes
 
 
@@ -783,7 +808,8 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
         futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}',
-                               functools.partial(run, clock=args.clock, dgvoodoo=wants_dgvoodoo(args), fresh=args.fresh)): (n, i)
+                               functools.partial(run, clock=args.clock, dgvoodoo=wants_dgvoodoo(args), fresh=args.fresh),
+                               keep_attempt): (n, i)
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
