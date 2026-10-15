@@ -61,7 +61,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
         *texture = 1;
         *material = 0x15;
     } else {
-        parts.data[1].MakeUpper();
+        parts.data[1].MakeLower();
         bool found = false;
         for (const Entry& e : kTextures) {
             if (Is(parts.data[1], e.text)) {
@@ -74,7 +74,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             game::FatalError(game::Text(0x007844B4), static_cast<const char*>(parts.data[1]), name);   // unknown texture type
             *texture = 1;
         }
-        parts.data[2].MakeUpper();
+        parts.data[2].MakeLower();
         found = false;
         for (const Entry& e : kMaterials) {
             if (Is(parts.data[2], e.text)) {

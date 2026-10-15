@@ -111,6 +111,101 @@ void SetReplayCtype(const ReplayCtype& ctype);
 
 } // namespace gamecrt
 
+// The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
+// at its library address, so the forwarders above and the exe's remaining library code reach these
+// bodies; tests/verify/verify_crt.cpp compares them with the originals. MSVC 6 behaviour for the CRT
+// state in the exe's data, read as the originals read it: the LC_CTYPE locale handle and code page
+// (case changes go through LCMapStringW under a locale, as _tolower_lk does), the character class
+// table _pctype (a negative argument indexes the same bytes before it) and the lead-byte flags
+// _mbctype. Only the single-byte paths are ported (__mb_cur_max 1, __ismbcodepage 0: the game's
+// code page). In the standalone image that data holds the "C" locale.
+namespace libcrt {
+
+int __cdecl Strncmp(const char* a, const char* b, std::size_t n);              // 006E9180
+char* __cdecl Strncpy(char* to, const char* from, std::size_t n);               // 006E7E80
+void* __cdecl Memmove(void* to, const void* from, std::size_t n);               // 006E79A0
+int __cdecl Strcmp(const char* a, const char* b);                               // 006F07D0 (not registered)
+int __cdecl Stricmp(const char* a, const char* b);                              // 006F2230
+int __cdecl Strnicmp(const char* a, const char* b, std::size_t n);              // 006FA1A0
+int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b);             // 006E848B
+int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b);            // 006E8767
+unsigned char* __cdecl Mbsinc(const unsigned char* p);                          // 006E9947
+int __cdecl Ismbblead(unsigned c);                                              // 006E99F2
+int __cdecl Isleadbyte(int c);                                                  // 006E9A6C
+int __cdecl Tolower(int c);                                                     // 006EBA53
+int __cdecl Toupper(int c);                                                     // 006E91C0
+int __cdecl Isalpha(int c);                                                     // 006E92FB
+int __cdecl Isdigit(int c);                                                     // 006E9379
+int __cdecl Isspace(int c);                                                     // 006E93CE
+int __cdecl Isprint(int c);                                                     // 006E944C
+long __cdecl Atol(const char* text);                                            // 006E804D (not registered)
+int __cdecl Atoi(const char* text);                                             // 006E80D8
+char* __cdecl Itoa(int value, char* buffer, int radix);                         // 006E9B36
+void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, char* ext); // 006E8BEE
+// MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part
+// first): equal elements end up in the same order as in the game.
+void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
+
+// The plain string and memory functions, and the multibyte ones whose single-byte path is one of them.
+void* __cdecl Memcpy(void* to, const void* from, std::size_t n);                // 006EC3A0 (overlap as memmove)
+void* __cdecl Memset(void* to, int value, std::size_t n);                       // 006E9CE0
+char* __cdecl Strstr(const char* text, const char* part);                       // 006EAE30
+std::size_t __cdecl Wcslen(const wchar_t* text);                                // 006EC6D5
+unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c);           // 006EC6F2
+unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c);          // 006EC99C
+unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part); // 006ECAB3
+unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set); // 006EC789
+int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n); // 006ECD2B
+std::size_t __cdecl Mbclen(const unsigned char* c);                             // 006ECC98
+// _mbslwr: single bytes flagged upper case in _mbctype mapped through _mbcasemap; a lead byte and its
+// trail are left as they are (the original maps them with LCMapString; none under the game's code page).
+unsigned char* __cdecl Mbslwr(unsigned char* text);                             // 006EC8A8
+double __cdecl Floor(double value);                                             // 006E7F7E
+
+// rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the
+// game CRT's own (_tiddata::_holdrand, +0x14 of _getptd's block, which the harness and the verify
+// wrappers save and restore), in the standalone image a thread_local starting at 1.
+int __cdecl Rand();                                                             // 006E77F7
+void __cdecl Srand(unsigned seed);                                              // 006E77EA
+
+// Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
+// have no callers: the game calls the _CI forms.)
+double __cdecl Ceil(double value);                                              // 006E8B1F
+double __cdecl Modf(double value, double* whole);                               // 006EAD0B
+// _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
+unsigned __cdecl Controlfp(unsigned value, unsigned mask);                      // 006EBBB4
+
+// The compiler's array helpers, `eh vector constructor / destructor iterator`: the element's
+// constructor or destructor (thiscall, called as fastcall) on each of `count` elements of `size`
+// bytes, construction from the first, destruction from the last; when one throws, the elements done
+// so far (construction) or still left (destruction) are destroyed and the exception goes on.
+using ElementFunction = void(__fastcall*)(void* element, void* unused);
+void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
+                                 ElementFunction destroy);                      // 006E8693
+void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy); // 006E859F
+
+// The STLport node allocator (__node_alloc<true, 0>): its pool is the exe's data, so the same in
+// both builds.
+void* __fastcall NodeAllocate(std::size_t bytes);                               // 00405950
+void __fastcall NodeDeallocate(void* p, std::size_t bytes);                     // 00404D70
+void* __fastcall NodeRefill(std::size_t bytes);                                 // 004060E0 (_S_refill)
+char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // 00406B70 (_S_chunk_alloc)
+
+gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);         // 006E8D35
+
+// The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
+// heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
+void* __cdecl OperatorNew(std::size_t size);                                    // 007005AF
+void __cdecl OperatorDelete(void* p);                                           // 007005D8
+void* __cdecl Malloc(std::size_t size);                                         // 006EABD1
+void __cdecl Free(void* p);                                                     // 006EA8AD
+using ExitFunction = void(__cdecl*)();
+ExitFunction __cdecl OnExit(ExitFunction function);                             // 006E71FD
+int __cdecl AtExit(ExitFunction function);                                      // 006E727B
+void __cdecl Exit(int code);                                                    // 006E8DA7
+
+} // namespace libcrt
+
 namespace game {
 
 // 00480080. Reports a fatal error (printf-style) and normally exits the game.

@@ -16,6 +16,11 @@ namespace ei::rebirth_hook {
 // and with FollowAddon sets every flag to whether the patch is applied.
 void Detect(const std::vector<unsigned char>& file);
 
+// In the standalone image instead of Detect: no addon.dll and no EI_Plugin.asi (the host and Miles keep
+// them out), so the flags are ei_rebirth.ini's (and EI_REBIRTH's) alone; EI_Plugin's player count for
+// EiPluginNPlayers is the ini's [Rebirth] NPlayers (default 7, the plugin's). Logs the flags.
+void SettingsOnly(const char* iniPath);
+
 // True when addon.dll or EI_Plugin.asi patch this launch.
 bool RebirthLaunch();
 

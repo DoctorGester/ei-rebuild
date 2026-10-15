@@ -501,11 +501,11 @@ void CItemInfoPanel::DescribeItem() {
     }
 
     Texts* texts = TextManager();
-    // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', upper case.
+    // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     mfc::CString material;
     material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().At(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
     ReplaceChar(&material, ' ', '_');
-    material.MakeUpper();
+    material.MakeLower();
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
 
@@ -634,7 +634,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Head(name, kindText);
     // The material's type: "mattype_<NAME>".
     mfc::CString text = *reinterpret_cast<const mfc::CString*>(&material->soundName);
-    text.MakeUpper();
+    text.MakeLower();
     {
         mfc::CString key(game::Text(0x00792F64));   // "mattype_"
         key += text;
@@ -688,7 +688,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     const auto* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(record);
     const auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(record);
     mfc::CString text = head->materialClass;
-    text.MakeUpper();
+    text.MakeLower();
     {
         mfc::CString key(game::Text(0x00792F64));   // "mattype_"
         key += text;

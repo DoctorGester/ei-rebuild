@@ -176,7 +176,7 @@ def registrations():
         text = re.sub(r'//[^\n]*', blank, text)
         text = re.sub(r'__declspec\(\s*\w+\s*\)', blank, text)
         rel = os.path.relpath(path, ROOT)
-        for m in re.finditer(r'EI_REPLACE(?:_METHOD|_DISPATCH)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
+        for m in re.finditer(r'EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'EI_(?:VERIFY|RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))

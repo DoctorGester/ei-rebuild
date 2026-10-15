@@ -196,6 +196,7 @@
 #include "harness_clock.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
+#include "harness_hooks.h"
 #include "harness_starter.h"
 #include "harness_net.h"
 #include "ui_census.h"
@@ -1529,6 +1530,16 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+// The standalone image reached game code with no rewrite (src/hook/standalone.cpp, which ends the process
+// after this): the run fails naming the address.
+void EndRunOnMissingCode(const char* what) {
+    g_failures.push_back(std::string("standalone: ") + what + " (ei_hook.log)");
+    if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
+        WaitForSingleObject(writer, 3000);
+        CloseHandle(writer);
+    }
+}
+
 // A message box in a harness run is a failure nobody is there to close: the CRT's abort() ("abnormal
 // program termination", from game.exe's own CRT or Rebirth's), a pure virtual call, the game's error
 // box. user32's MessageBoxA / MessageBoxW are hot-patched (the CRT finds MessageBoxA through
@@ -2606,6 +2617,7 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
+        ei::SetMissingCodeHandler(&EndRunOnMissingCode);
         HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA));
         HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW));
         // A crash must end the run: no Windows Error Reporting dialog, which freezes every thread
@@ -2669,9 +2681,18 @@ struct Harness {
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
         if (g_clockTrace) clock::InstallTrace();
-        if (g_freezeUsed) RedirectCall(kFrameCameraUpdateCall, kCameraUpdate, reinterpret_cast<const void*>(&HeldCameraUpdate));
-        RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdate));
-        RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment));
+        // The main loop's calls (harness_hooks.h): in game.exe the original's CALLs unless only the
+        // hook points are wanted, and the rewritten loop's hook point for each one taken.
+        ei::mainloop::HarnessHooks& hooks = ei::mainloop::g_harnessHooks;
+        const bool hookPointsOnly = HookPointsOnly();
+        if (hookPointsOnly) Log("harness: the main loop and the frame step through the rewritten callers' hook points only");
+        if (g_freezeUsed && (hookPointsOnly || RedirectCall(kFrameCameraUpdateCall, kCameraUpdate,
+                                                            reinterpret_cast<const void*>(&HeldCameraUpdate))))
+            hooks.frameCameraUpdate = &HeldCameraUpdate;
+        if (hookPointsOnly || RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdate)))
+            hooks.serverUpdate = &HeldServerUpdate;
+        if (hookPointsOnly || RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment)))
+            hooks.clientSegment = &HeldClientSegment;
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();
@@ -2684,5 +2705,14 @@ struct Harness {
     }
 } g_harness;
 } // namespace
+
+bool HookPointsOnly() {
+    static const bool only = [] {
+        char value[8] = "";
+        return ei::Standalone() || (GetEnvironmentVariableA("EI_HARNESS_HOOK_POINTS", value, sizeof(value)) &&
+                                    value[0] == '1');
+    }();
+    return only;
+}
 
 } // namespace ei::verify

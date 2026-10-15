@@ -287,7 +287,7 @@ BOOL CTextManager::FindLine(const char* key) {
             if (keyWords.size <= 0) return 1;
             for (;;) {
                 word = lineWords.data[i];
-                word.MakeUpper();
+                word.MakeLower();
                 if (MbsCmp(word, keyWords.data[i]) != 0) break;
                 if (++i >= keyWords.size) return 1;
             }
