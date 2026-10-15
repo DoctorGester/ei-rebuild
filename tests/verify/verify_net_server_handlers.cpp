@@ -7,7 +7,8 @@
 //    the server of a network game; no scenario with a second client exists.
 //  - ServerSession::AnnounceToMaster (0041AA10): ours only (it sends a datagram and leaves nothing
 //    to read back; the session must be unchanged). Reached from the server's tick every
-//    announcement interval while a master host name is set (0079BED8); no scenario sets one.
+//    announcement interval while a master host name is set (0079BED8): net_second_master sets one
+//    (127.0.0.1) and hosts a public game, with NewMaster's copy to the second master.
 //  - ServerOnMemberChanged (0041BA20, S16c): ours only (it raises the message's version once).
 //    Reached when a party member message reaches the hosting server (net_lobby may).
 #include "verify.h"

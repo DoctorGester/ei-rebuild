@@ -1420,6 +1420,10 @@ a hooked run); it is checked by its scenario against addon.dll:
   archives and ignored ('-') archives, Maps' zone-table and quest sites. Caveat: a vanilla launch with these flags set by hand stays
   vanilla (the hook build never runs the layer).
 
+**S19c (2026-10-15).** NewMaster's second master server ported opt-in (rebirth.md, "EI_Plugin.asi"): `SecondMaster=` in
+ei_rebirth.ini (empty in `config/ei_rebirth_standalone.ini` and in every harness run: the game's own code). 00632D70,
+0041AA10 and 0061D0D0 are declared, so hooked Rebirth runs hook them too (the plugin's look-up of hat.gipath.org no longer runs).
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

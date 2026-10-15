@@ -179,12 +179,19 @@ S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
   (005924D1). The plugin formats the name from the caller's EBX; the client's only caller (00608851) holds the name there, so ours passes it.
 - **NewMaster**, the game's own code: `GameOptions::SaveToRegistry` 0045C560 does not save the Master Server Name (42 NOPs);
   `ServerSession::OnMasterImpl` 0041ACA0 takes answers from any address (2 NOPs at 0041ACB7); `MasterLinkTick` 00440DE0 leaves a master
-  link that closed before anything arrived as it is (the plugin's 10005490 at 00440F9F). Not reproduced: the plugin's second master server
-  (hat.gipath.org:28004), which needs the user's decision (port or drop): a thread resolving the name (gethostbyname, retried at most every
-  10 s; the main menu's click 00632D70 starts it and waits up to 300 ms; 006330A9), a copy of each announcement with 0xDEADBEEF, the player
-  count and the players' names sent there (0041AA10 at 0041ABDA), and in `CMpConnectScreen::MasterRequest` 0061D0D0 (0061D138) a
-  nonblocking TCP connect probe of the configured master (up to 1 s) that falls back to the second one. Without a resolved address the
-  announcement is the original's; the probe is not. Those three functions stay the original under Rebirth (SKIP) and vanilla in the image.
+  link that closed before anything arrived as it is (the plugin's 10005490 at 00440F9F).
+- **NewMaster's second master server** (S19c, the user's decision: opt-in; `src/game/net_second_master.cpp`). The plugin's is
+  hat.gipath.org:28004; ours is `[Rebirth] SecondMaster=host[:port]` of ei_rebirth.ini (or `SecondMaster=` in a spec), empty by default
+  and in harness runs: then the three functions are the game's own code (no thread, packet or probe), also in a Rebirth launch, where the
+  plugin's code no longer runs (they are declared, so hooked). With an address and the flag: the main menu's Multiplayer click (00632D70,
+  plugin 100051B0 at 006330A9) starts a look-up thread (gethostbyname, one at a time, at most every 10 s, until an address is known) and
+  waits up to 300 ms, then notes the address and "a.b.c.d:port"; each announcement (0041AA10, plugin 10004E20 at 0041ABDA, after the
+  normal send) goes again to it as the same bytes, EF BE AD DE, the number of bindings (a byte) and per binding the player's name as
+  (strlen + 1 as a byte, the name, 0); `CMpConnectScreen::MasterRequest` (0061D0D0, plugin 100052D0 at 0061D138) tries the parsed master
+  with a nonblocking TCP connect (select on writing every 10 ms, up to 1 s; the error-set select gets the emptied set, as in the plugin)
+  and, when it cannot be parsed or reached and the address is known, parses the "a.b.c.d:port" text instead (not tried). Not reproduced:
+  the click site's Test part (10001000) and its clearing of the Test script commands' list (+0x8B; empty with Test off). Checked offline:
+  `net_second_master` (127.0.0.1 only; `masterhost` sets the configured master) with a listener standing in for both masters.
 
 ## FPU precision
 
@@ -444,5 +451,5 @@ RefreshSkins for a non-hero is reached only if a scenario's non-hero client unit
 
 ### Remaining work
 
-WideScreen has no leftovers; NPlayers above 7 (AddPortrait's six sites); NewMaster's second master server (the user's decision,
-S19a). The mod-folder group runs in the standalone image only (hooked Rebirth launches keep addon's; S19b).
+WideScreen has no leftovers; NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the standalone image only
+(hooked Rebirth launches keep addon's; S19b).

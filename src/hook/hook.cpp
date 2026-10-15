@@ -445,6 +445,7 @@ int InstallHooks() {
         GetModuleFileNameA(self, ini, MAX_PATH);
         if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
         rebirth::LoadSettings(ini);
+        if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
         if (standalone) rebirth_hook::SettingsOnly(ini);
         else rebirth_hook::Detect(file);
         unsigned short cw;
