@@ -109,7 +109,7 @@ const char* __stdcall GameExitTarget(int index);
 // 00578AC0 (RET 4). Leaves through exit `exit`: with a live client session the flow switches the
 // multiplayer zone, otherwise the local client takes the exit.
 void __stdcall GameLeaveThroughExit(int exit);
-// 00578B00 (RET 4) / 00578B20. 007C7D94 set, then the local client's SendLeave04(value) / Rejoin.
+// 00578B00 (RET 4) / 00578B20. The interface's close-all flag (007C7D94, CInterface3D +0x44) set, then the local client's SendLeave04(value) / Rejoin.
 void __stdcall GameSendLeave04(int value);
 void GameRejoin();
 // 005793E0 (RET 4; the single-player start). The server's zone torn down, the client world's local

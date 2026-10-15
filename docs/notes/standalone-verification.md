@@ -189,6 +189,25 @@ A full vanilla sweep (plain against verify, both with randtrace) after the fix, 
   not converge: a set of 22 effect wrappers turned it on, none of its halves or quarters did, and the
   same 22 then ran like plain once. The frame the server's answer lands in depends on real time
   (follow-up SV1j); the verify build's extra work only makes the early answer likelier.
+
+## SV1j: a pending close-all and real window messages (2026-10-15)
+
+Not the server's answer: 00578B00 / 00578B20 set the interface's close-all flag (007C7D94 is
+CInterface3D +0x44, world_glue's `CloseAllRequested`) before the message goes out. The windows close,
+and the playing sounds stop (CBattleScreenSetup::Close -> CSoundManager::StopAll), at whichever comes
+first: the input dispatcher's first step (CloseAllPending 005F5AB0) for the next message WinMain's loop
+takes, or the next pass (the answer's CreateScreen -> Activate, else Draw). A step runs in the
+after-frame PeekMessageA, so whether a real message (Miles' WM_TIMER, WM_PAINT) waits right after it is
+real time; the verify build, slower, nearly always had one. The same holds for a click that asks for
+a screen. Stacks from the random trace's new caller list on "sound ended by the game" notes (the
+calls found by scanning the stack, game.exe addresses and ei_hook+offset; resolve with ei_hook.map).
+
+Harness fix (harness.cpp HoldMessagesForCloseAll): on the virtual clock, while the flag is set, the
+main loop's peeks report no message, so the next pass always does the close; after two frames
+(no pass took it up) messages pass again. After it ui_view_screen and ui_trade_hold, trader_stock,
+ui_camp, ui_camp_deals, ui_describe, ui_global_map_pick, world, world_client, spells_hero,
+script_exec, effects_bow, ui_quick_items, ui_trade_restore, render_device_lost make every draw in the
+same frame plain against verify and plain against plain (two runs each, vanilla).
 - Other early ones, not bisected: effects (frame 12), objects_more (CLightning::Start, 12), script_fx
   (8), ui_mp_host (96, SaveParty), unit_create's rand (12: protection checks against the animation
   pick order; the bisection blamed every part), zone_base_bz1g, zone_gz2g_traps. Several of these also
