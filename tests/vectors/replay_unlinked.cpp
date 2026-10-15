@@ -61,9 +61,7 @@ void DeltaField::Destruct() EI_UNLINKED("DeltaField::Destruct")
 mapspec::Behaviour* __fastcall mapspec::BehaviourConstruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourConstruct")
 void __fastcall mapspec::BehaviourDestruct(mapspec::Behaviour*) EI_UNLINKED("mapspec::BehaviourDestruct")
 
-// script_runtime_helpers.cpp's AI map and console helpers.
-bool CSectorMap::Add(CEngineObject*) EI_UNLINKED("CSectorMap::Add")
-bool CSectorMap::Remove(CEngineObject*) EI_UNLINKED("CSectorMap::Remove")
+// script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
 void CSectorMap::FindUnitsInRadius(const Vector3*, mfc::CTypedPtrList<CEngineObject>*, float)
     EI_UNLINKED("CSectorMap::FindUnitsInRadius")
 console::GameOStream& console::GameOStream::operator<<(double) EI_UNLINKED("console::GameOStream::operator<<(double)")

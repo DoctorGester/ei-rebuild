@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine_object.h"
+#include "game_data.h"
 #include "maths.h"
 #include "sector_map.h"
 #include "unit.h"
@@ -454,8 +455,8 @@ static_assert(sizeof(LocalSearch) == 0x80);
 
 // The direction steps 1..8 of the block searches and paths (00791108 / 0079112C; index 0 unused):
 // 1 = (0, -1), then clockwise towards -x as in PathCell::Step.
-inline const int* DirectionDx() { return reinterpret_cast<const int*>(0x00791108); }
-inline const int* DirectionDy() { return reinterpret_cast<const int*>(0x0079112C); }
+inline const int* DirectionDx() { return ei::GameData<const int[9]>(0x00791108); }
+inline const int* DirectionDy() { return ei::GameData<const int[9]>(0x0079112C); }
 
 // A block of a block search (24 bytes): open records wait in sorted doubly linked buckets; a
 // settled one moves to the search's `touched` chain (through `next`).
@@ -663,10 +664,11 @@ struct SmoothPool {
     SmoothNode* next;                   // the next free node
 };
 static_assert(sizeof(SmoothPool) == 0x1C);
-inline SmoothPool& SmoothNodePool() { return *reinterpret_cast<SmoothPool*>(0x007C3038); }
-inline const SmoothTable* SmoothTables() { return reinterpret_cast<const SmoothTable*>(0x007C3058); }
-// The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx].
-inline const int* DirectionSteps() { return reinterpret_cast<const int*>(0x00791988); }
+inline SmoothPool& SmoothNodePool() { return ei::GameData<SmoothPool>(0x007C3038); }
+inline const SmoothTable* SmoothTables() { return ei::GameData<const SmoothTable[81]>(0x007C3058); }
+// The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx], the
+// middle of the nine words at 00791978.
+inline const int* DirectionSteps() { return ei::GameData<const int[9]>(0x00791978) + 4; }
 // 005C3690 (thiscall on the array, RET 8; ai_path_smooth.cpp). The states of a cell the path crosses
 // in `direction` (1..8): seven moves for a straight step, nine for a diagonal one. Direction 0 (the
 // path's ends) gives the eight moves from the cell to its neighbours, or from the neighbours to it

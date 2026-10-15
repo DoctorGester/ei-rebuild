@@ -204,7 +204,8 @@ struct RegRecord {
 // Define a function body that forwards to original code not rewritten yet. Works for any calling
 // convention (including __thiscall methods) because it is a bare jump with the stack untouched.
 // ei_vectors.exe has no game.exe: there the jump goes to the replacement registered for `addr`, as in
-// the standalone image (tests/vectors/hook_stub.cpp; it stops on an address without one).
+// the standalone image, or to a replay stand-in (tests/vectors/hook_stub.cpp; an address with neither
+// raises an exception a guarded check reports, or ends the run).
 #ifdef EI_VECTORS_REPLAY
 extern "C" void ei_replay_dispatch();
 #define EI_ORIGINAL(addr) \

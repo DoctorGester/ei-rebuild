@@ -541,6 +541,30 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
 - Corrupted copies (one bit near the end, or in the middle, of a record of each loader file) fail.
   The exception is a LoadFunction input byte the call never reads.
 
+**SV4c (2026-10-15): the path searches on a saved AI map.**
+- Family `path` (tests/vectors/path_vectors.h): CAIMap::FindPath (EI_RECORD_OURS; it reaches
+  SnapTarget, the local searches and their join, PlanLongPath and the smoother), CAIMap::PlanLongPath
+  (region chain, block searches, legs, cells) and PathSmoother::Smooth. Fixtures: `@PathTables` (the
+  direction, height and spiral tables, the smoother's 81 transition tables, which ours rebuilds and
+  compares) and `@AIMap`, the map when a run first searches on it (cost and climb tables, cells, water,
+  marks, region grids; byte planes run-length coded; id = hash). A record holds its map's id and the
+  differences from it (LEB128 runs per byte plane, bytes run-length coded; Smooth only the cells),
+  the unit's fields and speeds, the arguments, the path before; then the result, the path after and
+  what the search changed in the marks. FindPath takes its map when the sector map's Remove (recorded
+  too) has taken the unit out. The replay builds the map, fresh searches, a unit whose GetClassId and
+  GetMoveSpeeds give the recorded values, and no-op sector map Add / Remove.
+- The harness patches call sites inside FindPath and PlanLongPath (SV7d2): a recorder now installs
+  when only bytes after its stolen ones are patched, those bytes counting as the original's for the
+  Rebirth check (hook.cpp). The SnapTarget verify wrapper ran ours on the marks the original had just
+  written, which leaves fewer reach marks than one run: ours now runs on the marks from before, and the
+  marks are compared (467 calls, 0 mismatches in combat).
+- Recorded from 14 vanilla scenarios (movement, units, unit_ai*, combat*, ui_order_move,
+  ui_battle_commands, sandbox_map, three zones). Maps are large (zone1 607 KB, gz3g 1.2 MB, the menu's
+  80 KB with different units each run), so `tools/path_vectors.py prune --keep` keeps zone1, one
+  256x256 and one menu map (888 KB). Kept: FindPath 72 (24 failed, 24 near, 24 planned), PlanLongPath
+  61, Smooth 52; 1.8 MB in all, every record the same at 007F. One bit of a FindPath result path, of a
+  PlanLongPath result and of a smoothed cell fails its record.
+
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
 run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the

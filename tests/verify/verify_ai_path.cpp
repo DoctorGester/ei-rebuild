@@ -4,6 +4,7 @@
 #include "../../src/game/ai_map.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -19,16 +20,26 @@ bool ListIsConsistent(const PathCellList& list) {
 }
 } // namespace
 
-// 005BAC10 writes `target`, and with sameRegion also the reachability marks, which it clears first
-// in the box it uses: running it twice is harmless. Original into a copy of the target, then ours.
+// 005BAC10 writes `target`, and with sameRegion also the reachability marks (clearing the box it
+// uses first). Original into a copy of the target, then ours on the marks as they were before: two
+// runs on the same marks leave fewer of them than one (the second finds the first's answers), and
+// the path vectors (SV4c) record the original FindPath around this call. The marks are compared.
 // PUSH EBP; MOV EBP,ESP; SUB ESP,0x84 (9 bytes).
 static bool(__fastcall* s_snapTarget)(CAIMap*, void*, CUnit*, Vector3*, bool, float);
 static bool __fastcall SnapTargetVerify(CAIMap* self, void*, CUnit* unit, Vector3* target, bool sameRegion,
                                         float minDistance) {
+    std::vector<std::int8_t> before, expectedMarks;
+    const std::size_t markCount = static_cast<std::size_t>(self->marks.width) * self->marks.height;
+    if (sameRegion) before.assign(self->marks.data, self->marks.data + markCount);
     Vector3 scratch = *target;
     bool expected = s_snapTarget(self, nullptr, unit, &scratch, sameRegion, minDistance);
+    if (sameRegion) {
+        expectedMarks.assign(self->marks.data, self->marks.data + markCount);
+        std::memcpy(self->marks.data, before.data(), markCount);
+    }
     bool actual = self->SnapTarget(unit, target, sameRegion, minDistance);
-    bool same = expected == actual && std::memcmp(&scratch, target, sizeof(scratch)) == 0;
+    bool same = expected == actual && std::memcmp(&scratch, target, sizeof(scratch)) == 0 &&
+                (!sameRegion || std::memcmp(self->marks.data, expectedMarks.data(), markCount) == 0);
     ei::verify::Check("CAIMap::SnapTarget", true, same, "region %d min %g: %d (%g,%g) vs %d (%g,%g)", sameRegion,
                       minDistance, expected, scratch.x, scratch.y, actual, target->x, target->y);
     return actual;

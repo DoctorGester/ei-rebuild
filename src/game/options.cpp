@@ -8,6 +8,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -498,10 +499,13 @@ void GameOptions::SaveToRegistry(const char* path) {
     key.SetDword(s.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(s.Bits(field::kDifficulty + 4)));
     s.Write(kDefaultValues);
     s.Write(kFogValues);
-    SetString(key, s.Key(field::kKeyNetwork), game::Text(0x00784B50), s.String(field::kMasterServerName));
+    // EI_Plugin's NewMaster NOPs these 42 bytes (0045D330): the Master Server Name is not saved.
+    if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
+        SetString(key, s.Key(field::kKeyNetwork), game::Text(0x00784B50), s.String(field::kMasterServerName));
     key.Close();
     key.Destruct();
 }
 EI_REPLACE_METHOD(0x0045C560, GameOptions::SaveToRegistry);
+EI_REBIRTH_IMPLEMENTS(0x0045C560, ei::rebirth::Patch::EiPluginNewMaster);
 
 } // namespace options

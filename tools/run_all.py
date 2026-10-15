@@ -617,7 +617,7 @@ def standalone_rebirth_flags(root=ROOT):
     with open(os.path.join(root, 'config', 'ei_rebirth_standalone.ini'), encoding='utf-8') as f:
         for text in f:
             m = re.match(r'\s*(\w+)\s*=\s*1\s*$', text)
-            if m and m.group(1) not in ('Default', 'FollowAddon', 'NPlayers'):
+            if m and m.group(1) not in ('Default', 'FollowAddon', 'NPlayers', 'Pause'):
                 names.append(m.group(1))
     return ','.join(names)
 

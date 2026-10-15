@@ -164,6 +164,11 @@ void CWorldServer::SetWeather(int weather, float strength) {
 
 void CWorld::SetPaused(std::uint8_t value) { paused_ = value; }
 
+void CWorld::SetServerPaused(std::uint8_t value) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) && ei::rebirth::PluginPause() == 3) return;
+    SetPaused(value);
+}
+
 BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     if (index < 0 || index >= exitCount_) return 0;
     *target = *reinterpret_cast<const mfc::CString*>(&exits_[index].target);
@@ -312,7 +317,8 @@ EI_REPLACE_METHOD(0x0058B6D0, CWorldServer::MarkPlayersDirty);
 EI_REPLACE_METHOD(0x0058CC70, CWorldServer::SetCave);
 EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetClimate);
 EI_REPLACE_METHOD(0x0058EE00, CWorldServer::SetWeather);
-EI_REPLACE_METHOD(0x005942C0, CWorld::SetPaused);
+EI_REPLACE_METHOD(0x005942C0, CWorld::SetServerPaused);
+EI_REBIRTH_IMPLEMENTS(0x005942C0, ei::rebirth::Patch::EiPluginPause);
 EI_REPLACE_METHOD(0x00566350, CWorld::SetPaused);   // byte-identical copy (the client's, message 0x60; A-W12)
 EI_REPLACE_METHOD(0x0058E4C0, CWorldServer::GetZoneExit);
 EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);

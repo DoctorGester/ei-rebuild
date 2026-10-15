@@ -226,7 +226,7 @@ EI_VERIFY(0x0058EE00, SetE4E8Verify, 8, s_setE4E8);
 // 005942C0: MOV AL,[ESP+4]; MOV [ECX+0x6C],AL (7 bytes).
 static void(__fastcall* s_set6C)(CWorldServer*, void*, std::uint8_t);
 static void __fastcall Set6CVerify(CWorldServer* self, void*, std::uint8_t value) {
-    CompareSetter("CWorld::SetPaused", self, [&] { self->SetPaused(value); }, [&] { s_set6C(self, nullptr, value); });
+    CompareSetter("CWorld::SetServerPaused", self, [&] { self->SetServerPaused(value); }, [&] { s_set6C(self, nullptr, value); });
 }
 EI_VERIFY(0x005942C0, Set6CVerify, 7, s_set6C);
 

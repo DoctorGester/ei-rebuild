@@ -491,7 +491,8 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 1:     // the normal speed
     case 2:     // the fast speed
         inputHandled_ = true;
-        if (IsNetworkClientOriginal()) return;
+        // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
+        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (GameIsPausedOriginal(GameGlueObject())) GameSetPausedOriginal(GameGlueObject(), nullptr, 0);
         fast_ = region - 1;
         UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;
@@ -507,6 +508,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     }
 }
 UI_INPUT_HANDLER(0x00648D70, CHudClock, OnMouseUp);
+EI_REBIRTH_IMPLEMENTS(0x00648D70, ei::rebirth::Patch::MPSpeedControl);
 
 void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
