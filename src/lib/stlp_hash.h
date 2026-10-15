@@ -198,6 +198,26 @@ public:
         return node->value;
     }
 
+    // insert_unique(obj) (0066B400): resize(count + 1), then the node with obj's key in its bucket
+    // (not inserted), else a copy of obj in a new node at the head of the bucket (inserted).
+    Node* InsertUnique(const Value& obj, bool& inserted) {
+        Resize(count_ + 1);
+        std::size_t b = BucketOf(Traits::KeyOf(obj));
+        Node* first = buckets_[b];
+        for (Node* cur = first; cur; cur = cur->next) {
+            if (Traits::Equal(Traits::KeyOf(cur->value), Traits::KeyOf(obj))) {
+                inserted = false;
+                return cur;
+            }
+        }
+        Node* node = NewNode(obj);
+        node->next = first;
+        buckets_[b] = node;
+        ++count_;
+        inserted = true;
+        return node;
+    }
+
     // begin() (e.g. 00404C30): the head of the first non-empty bucket, or null.
     Node* First() const {
         for (std::size_t b = 0; b < BucketCount(); ++b)
@@ -364,6 +384,19 @@ struct HashtableAbi {
     static void* __fastcall SubscriptKey(Table* self, void*, const Key* key) {
         Value obj(*key);
         return self->FindOrInsert(obj).mapped;
+    }
+    // pair<iterator, bool> (insert_unique's result): only the bool's byte is written after the iterator.
+    struct InsertResult {
+        Iterator it;
+        bool inserted;
+    };
+    // insert_unique(obj) (0066B400; RET 8): the result into *out; returns out.
+    static InsertResult* __fastcall InsertUnique(Table* self, void*, InsertResult* out, const Value* obj) {
+        bool inserted = false;
+        out->it.cur = self->InsertUnique(*obj, inserted);
+        out->it.table = self;
+        out->inserted = inserted;
+        return out;
     }
     // erase(key) (e.g. 006BCCD0; RET 4): the number erased.
     static std::size_t __fastcall EraseKey(Table* self, void*, const Key* key) { return self->EraseKey(*key); }

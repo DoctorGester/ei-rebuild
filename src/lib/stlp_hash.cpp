@@ -144,6 +144,13 @@ EI_REPLACE(0x005984A0, Map8::Destroy);
 EI_REPLACE(0x004DB8A0, Set4::Destroy);
 EI_REPLACE(0x00668B70, Set4::Destroy);
 
+// hash_set<int> of the client's party ids: insert_unique, its resize and _M_new_node (8-byte
+// nodes), clear.
+EI_REPLACE(0x0066B400, Set4::InsertUnique);
+EI_REPLACE(0x0066B900, Set4::Resize);
+EI_REPLACE(0x0066BAD0, Set4::NewNode);
+EI_REPLACE(0x0066BA70, Set4::Clear);
+
 // _M_new_node(obj) / _M_delete_node(n): 12-byte nodes.
 EI_REPLACE(0x00407420, Map8::NewNode);
 EI_REPLACE(0x004074F0, Map8::NewNode);

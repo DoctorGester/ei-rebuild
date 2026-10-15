@@ -443,6 +443,23 @@ struct HashCheck {
                           static_cast<unsigned>(after.count));
         ei::verify::Report(name, ok, detail);
     }
+    // insert_unique: the node's address with the bool in its low bit (nodes are dword-aligned).
+    using InsertResult = typename Abi::InsertResult;
+    static InsertResult* __fastcall InsertUnique(Table* self, void*, InsertResult* out, const Value* obj) {
+        InsertResult* result = nullptr;
+        CheckInsert(
+            Name<A>("stlp::hashtable::insert_unique"), self, obj->key,
+            [&] {
+                InsertResult theirs{};
+                bool returned = Original<decltype(&Abi::InsertUnique)>()(self, nullptr, &theirs, obj) == &theirs;
+                return returned && theirs.it.table == self ? Word(theirs.it.cur) | (theirs.inserted ? 1u : 0u) : 0u;
+            },
+            [&] {
+                result = Abi::InsertUnique(self, nullptr, out, obj);
+                return result == out && out->it.table == self ? Word(out->it.cur) | (out->inserted ? 1u : 0u) : 0u;
+            });
+        return result;
+    }
     static void* __fastcall SubscriptKey(Table* self, void*, const Key* key) {
         void* result = nullptr;
         CheckInsert(
@@ -780,6 +797,10 @@ EI_VERIFY(0x004A8B70, H8<0x004A8B70>::Destroy, 0, s_unused);
 EI_VERIFY(0x005984A0, H8<0x005984A0>::Destroy, 0, s_unused);
 EI_VERIFY(0x004DB8A0, H4<0x004DB8A0>::Destroy, 0, s_unused);
 EI_VERIFY(0x00668B70, H4<0x00668B70>::Destroy, 0, s_unused);
+EI_VERIFY(0x0066B400, H4<0x0066B400>::InsertUnique, 5, H4<0x0066B400>::original);
+EI_VERIFY(0x0066B900, H4<0x0066B900>::Resize, 6, H4<0x0066B900>::original);
+EI_VERIFY(0x0066BAD0, H4<0x0066BAD0>::NewNode, 6, H4<0x0066BAD0>::original);
+EI_VERIFY(0x0066BA70, H4<0x0066BA70>::Clear, 5, H4<0x0066BA70>::original);
 
 // String keys.
 EI_VERIFY(0x004298D0, HashFunctionCheck<0x004298D0>::String, 5, HashFunctionCheck<0x004298D0>::original);

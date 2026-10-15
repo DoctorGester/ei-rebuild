@@ -292,7 +292,11 @@ checked against the original: inserts undo the original's node (its string, then
 re-free operator[]'s temporaries on top; clear / erase(key) take the original's frees (each
 string, then its node) off their lists again, with the first word the free list overwrote. The
 checks snapshot only the bucket an insert or erase touches (whole-table copies made ui_mp_host
-time out). 169 of 201 reached, 0 mismatches.
+time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash_set<int>
+(insert_unique 0066B400 with its resize and `_M_new_node`, clear 0066BA70): 205 in all. Left
+(S11a): the 24 forwarded members whose values are CString, CParty, a list, a ref-counted handle or
+a float key, and the 350-odd hash members nothing of ours calls (reached only from other
+originals; dead in the standalone image unless the exe's data points at them).
 
 ## 3. Runtime: MFC, STLport, CRT
 
