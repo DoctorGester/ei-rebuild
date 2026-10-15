@@ -119,3 +119,18 @@ details.batch > summary .head::before { content: ''; align-self: center; border-
 details.batch[open] > summary .head::before { transform: rotate(90deg) }
 details.batch > .body { display: grid; gap: 10px; margin-top: 10px; min-width: 0 }
 .bwhat { color: var(--muted); min-width: 0 }
+
+/* History: fixed columns, so a failure list opening in its own row never moves them. */
+table.history { table-layout: fixed; min-width: 720px }
+table.history col.c-id { width: 64px } table.history col.c-ticket { width: 72px }
+table.history col.c-result { width: 260px } table.history col.c-when { width: 150px }
+table.history td { overflow-wrap: anywhere; padding-block: 6px }
+table.history .env { font-size: 11.5px; color: var(--muted) }
+table.history .when { display: grid; gap: 2px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums }
+table.history .when span { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap }
+table.history .when svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round }
+table.history tr.failrow td { border-top: 0; padding: 0 10px 8px 64px }
+table.history tr.failrow .failures { margin: 0 }
+.failtoggle { font: inherit; font-size: 12px; color: var(--watch); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px }
+.failtoggle::after { content: ' \25B8'; display: inline-block; transition: transform .15s }
+.failtoggle[aria-expanded="true"]::after { transform: rotate(90deg) }
