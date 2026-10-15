@@ -802,3 +802,26 @@ The others stay out for other causes: the SV1j family (isaac.count/standCooldown
 for frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_mp_host, zone_base_bz1g rebirth;
 zone_base_bz1g vanilla also shows SV3f's rotation ulp; ui_hud rebirth differs from the original from world update 40 in
 the script global gobject.i (702 in the original, 1884 in ours; both repeat), SV3k.
+
+## SV6: no registration skipped unnoticed at hook install (2026-10-15)
+
+The hook build left 224 registrations out at install (smoke, vanilla), so those rewrites never ran there:
+- 83 starts with no Ghidra function (spell effect Emit/Update/Tick slots 004889D0..00496840, reached through
+  tables; CPlayerServer 0066D7B0, 0066EAC0, 0066F1F0): sizes decoded with capstone (recursive descent within the gap,
+  two switch tables followed) and added to config/extra_function_sizes.csv and function_sizes.inc.
+- 64 functions under five bytes registered with EI_REPLACE / EI_VERIFY (RET, RET n, XOR EAX,EAX; RET, ...): game.exe
+  now gets their jump too when the bytes after them up to the fifth are NOP/INT3 padding on disk and in memory before
+  the next known function (InstallHooks, PaddingAfter). EI_REPLACE_SHORT ones stay the original's in the hook build.
+- 59 second registrations of one address: the EI_*_VERIFY macros of verify_player_messages.cpp and
+  verify_world_effect.cpp registered besides the EI_VERIFY line after each use (the macros now only define;
+  0066D490 had no line and got one), and 00669D50 had both an observer (verify_world_client.cpp, from before
+  OnGameState was ported) and OnGameStateVerify: the observer's counters moved into OnGameStateVerify
+  (game_state_message.h).
+- 9 the harness's own patches (the eight SV1b countdown sites in seven functions, the fixed ISAAC seed at 0049F660,
+  GameMain's redirected CALLs): expected.
+
+InstallHooks now classifies every SKIP. Expected: the harness patched the function (`ei::NoteHarnessPatch`, called by
+the harness's RedirectCall / JumpTo / JumpFrom / capture CALL / countdown sites; "the harness patches +0xN (...)"),
+a Rebirth site the rewrite does not implement, and, in a Rebirth launch only, a byte that differs outside every known
+site. Anything else (unknown start, short without padding, a second registration, thunk, dispatch, trampoline) is
+logged with " (unexpected)", counted, summed up in the log, and the harness report gets a FAILED line, so the run fails.

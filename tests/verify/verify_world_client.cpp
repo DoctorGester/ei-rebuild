@@ -1,5 +1,6 @@
 // Checks for the client's per-frame view code (src/game/world_client_view.cpp): the visible-object
 // collection, the draw list sorts and the cursor picking.
+#include "game_state_message.h"
 #include "verify.h"
 
 #include "../../src/game/world.h"
@@ -304,26 +305,10 @@ static int __fastcall CollectVisibleVerify(CWorldClient* self, void*, void* list
 }
 EI_VERIFY(0x0056A990, CollectVisibleVerify, 0, s_unused);
 
-// 00669D50 (not rewritten; no Ghidra function, reached through the client session's message table
-// at +0x1C): the server's game state message. Besides the state (+0x100 of the session's view) it
-// sets the client's tick to the server's (MOV [007AF61C], the client 007AF5B8 + 0x64). Observed
-// (the original runs) so that Segment's check knows the tick it started from. MOV EAX,FS:[0]
-// (6 bytes).
-static int s_stateMessages = 0;
-static int s_tickAfterStateMessage = 0;
-static int(__fastcall* s_stateMessage)(void*);
-static int __fastcall StateMessageObserver(void* session) {
-    int result = s_stateMessage(session);
-    ++s_stateMessages;
-    s_tickAfterStateMessage = *reinterpret_cast<const int*>(0x007AF61C);
-    return result;
-}
-EI_VERIFY(0x00669D50, StateMessageObserver, 6, s_stateMessage);
-
 // 005641F0 (CWorldClient::Segment, slot 6) runs the client's tick: ours only. It returns 1 (0 only
 // when the connection is gone), and the game time advances by one tick unless +0x6C is set. The
 // server's messages, handled before that point (the session update), may change both: the pause
-// message (00668CFF -> 00566350) sets +0x6C, the game state message (00669D50, observed above)
+// message (00668CFF -> 00566350) sets +0x6C, the game state message (00669D50, game_state_message.h)
 // sets the tick to the server's (one ahead or behind: the tick then moves by 2 or 0), and the
 // world message (00669010 -> 00567AB0) loads the client world, reading the tick from the stream
 // and zeroing the frame count (+0x6EC) that Segment increments first. So the pause flag is read
@@ -333,12 +318,12 @@ static int __fastcall SegmentVerify(CWorldClient* self, void*) {
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(self);
     int before = self->tick_;
     int framesBefore = *reinterpret_cast<const int*>(bytes + 0x6EC);
-    int messagesBefore = s_stateMessages;
+    int messagesBefore = game_state_message::g_count;
     int result = self->Segment();
     bool paused = bytes[0x6C] != 0;
     bool loaded = *reinterpret_cast<const int*>(bytes + 0x6EC) != framesBefore + 1;
-    bool synced = s_stateMessages != messagesBefore && reinterpret_cast<std::uintptr_t>(self) == 0x007AF5B8;
-    int start = synced ? s_tickAfterStateMessage : before;
+    bool synced = game_state_message::g_count != messagesBefore && reinterpret_cast<std::uintptr_t>(self) == 0x007AF5B8;
+    int start = synced ? game_state_message::g_tickAfter : before;
     int expected = start + (paused ? 0 : 1);
     bool ok = result == 0 || (result == 1 && (loaded || self->tick_ == expected));
     ei::verify::Check("CWorldClient::Segment", true, ok, "result %d, tick %d (from %d) -> %d%s%s", result, before, start,

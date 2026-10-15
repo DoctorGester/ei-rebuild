@@ -61,21 +61,20 @@ R CheckMessage(const char* name, CPlayerServer* self, bool compareResult, Ours o
 }
 } // namespace
 
+// The wrappers below; each is registered by the EI_VERIFY line after it (which the tools read).
 #define EI_MESSAGE_VERIFY(addr, stolen, label, Params, Args, call)                                 \
     static void(__fastcall* s_orig_##addr) Params;                                                  \
     static void __fastcall Verify_##addr Params {                                                   \
         CheckMessage<int>(label, self, false, [&] { self->call; return 0; },                         \
                           [&] { s_orig_##addr Args; return 0; });                                    \
-    }                                                                                               \
-    EI_VERIFY(addr, Verify_##addr, stolen, s_orig_##addr)
+    }
 
 #define EI_MESSAGE_VERIFY_INT(addr, stolen, label, Params, Args, call)                             \
     static int(__fastcall* s_orig_##addr) Params;                                                   \
     static int __fastcall Verify_##addr Params {                                                    \
         return CheckMessage<int>(label, self, true, [&] { return static_cast<int>(self->call); },    \
                                  [&] { return s_orig_##addr Args; });                                \
-    }                                                                                               \
-    EI_VERIFY(addr, Verify_##addr, stolen, s_orig_##addr)
+    }
 
 EI_MESSAGE_VERIFY(0x0066EE10, 5, "CPlayerServer::SetVariable", (CPlayerServer* self, void*, const char* n, std::uint32_t v),
                   (self, nullptr, n, v), SetVariable(n, v));
@@ -238,6 +237,7 @@ EI_MESSAGE_VERIFY(0x0066D490, 6, "CPlayerServer::SendPathMessage",
                    std::uint32_t limit),
                   (self, nullptr, unit, path, point, kind, flag, limit),
                   SendPathMessage(unit, path, point, kind, flag, limit));
+EI_VERIFY(0x0066D490, Verify_0x0066D490, 6, s_orig_0x0066D490);
 
 namespace {
 const char* (__fastcall* s_serverName)(CPlayerServer*);

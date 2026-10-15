@@ -88,6 +88,15 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
+// The harness (verify build) patches `size` bytes of game code at `address` (`what`, a string
+// literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:
+// their registrations are left out as expected, not as unexpected skips.
+void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what);
+// Registrations InstallHooks left out for a reason other than the harness's or another mod's patches
+// (an unknown function start, a second hook on one address, ...): their rewrites never run. The
+// harness fails a run with any (SV6).
+int UnexpectedSkips();
+
 // True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): no
 // game.exe code, only its headers and data laid out at kImageBase, into which InstallHooks writes the
 // jumps (plain replacements only). standalone.cpp.

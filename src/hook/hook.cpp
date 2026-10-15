@@ -227,6 +227,42 @@ static void* MakeTrampoline(std::uintptr_t address, int stolen) {
 // game.exe 1.06 (Russian, GOG / Rebirth starter\Engine copy): PE timestamp 2001-03-26 09:36:51.
 static constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;
 
+// The harness's patches of game code (NoteHarnessPatch). A fixed array: the harness may note one
+// before this file's dynamic initialisers have run.
+struct HarnessPatch {
+    std::uintptr_t address;
+    std::size_t size;
+    const char* what;
+};
+static HarnessPatch g_harnessPatches[32];
+static int g_harnessPatchCount = 0;
+
+void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what) {
+    if (g_harnessPatchCount < static_cast<int>(std::size(g_harnessPatches)))
+        g_harnessPatches[g_harnessPatchCount++] = {address, size, what};
+    else
+        Log("harness patch %08X (%s) not noted: the table is full", static_cast<unsigned>(address), what);
+}
+
+// The harness's patch overlapping [address, address + size), or nullptr.
+static const HarnessPatch* HarnessPatchIn(std::uintptr_t address, std::size_t size) {
+    for (int i = 0; i < g_harnessPatchCount; ++i) {
+        const HarnessPatch& p = g_harnessPatches[i];
+        if (p.address < address + size && address < p.address + p.size) return &p;
+    }
+    return nullptr;
+}
+
+static int g_unexpectedSkips = 0;
+int UnexpectedSkips() { return g_unexpectedSkips; }
+
+// Logs a registration InstallHooks leaves out. Expected: the harness's or another mod's patch is in
+// the function. Any other reason is a bug that leaves the rewrite unrun: counted for the harness.
+static void LogSkip(const HookEntry* h, bool expected, const char* why) {
+    Log("SKIP %s at %08X: %s%s", h->name, static_cast<unsigned>(h->address), why, expected ? "" : " (unexpected)");
+    if (!expected) ++g_unexpectedSkips;
+}
+
 static bool ReadExeFromDisk(std::vector<unsigned char>& out) {
     char path[MAX_PATH];
     if (Standalone()) strcpy_s(path, StandaloneExePath());
@@ -272,6 +308,16 @@ static std::uintptr_t RoomAt(std::uintptr_t address) {
     const FunctionSize* it = std::upper_bound(kFunctionSizes, end, address,
         [](std::uintptr_t a, const FunctionSize& f) { return a < f.address; });
     return it == end ? 16 : it->address - address;
+}
+
+// Whether the bytes of a function under five bytes, from its end to the fifth, are padding (NOP or
+// INT3) on disk and in memory, before the next known function: room for the jump, where nothing runs.
+static bool PaddingAfter(std::uintptr_t address, std::uint32_t size, const unsigned char* orig) {
+    if (RoomAt(address) < 5) return false;
+    const auto* live = reinterpret_cast<const unsigned char*>(address);
+    for (std::uint32_t i = size; i < 5; ++i)
+        if ((orig[i] != 0x90 && orig[i] != 0xCC) || live[i] != orig[i]) return false;
+    return true;
 }
 
 // The .text section has identical file and virtual layout (raw 0x1000 == VA 0x1000).
@@ -424,10 +470,12 @@ int InstallHooks() {
             if (*reinterpret_cast<const unsigned char*>(h->address) != 0xCC) patchedBefore.insert(h->address);
     TextUnprotect text(nt);
     int installed = 0, shortLeft = 0;
+    g_unexpectedSkips = 0;
+    std::unordered_map<std::uintptr_t, const char*> hookedBy;   // address -> the entry installed there
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (IsDisabled(h->address)) continue;
         if (patchedBefore.count(h->address)) {
-            Log("SKIP %s at %08X: patched before the hooks (the harness)", h->name, static_cast<unsigned>(h->address));
+            LogSkip(h, true, "patched before the hooks (the harness)");
             continue;
         }
         if (h->shortFunction && !standalone) {
@@ -454,19 +502,35 @@ int InstallHooks() {
             wrapper = false;
         }
         if (!h->record && h->verify != wrapper) continue;
+        // One hook per address: a second registration of the same kind (two verify wrappers, a macro
+        // that registers besides an EI_VERIFY line) would never run.
+        if (auto first = hookedBy.find(h->address); first != hookedBy.end()) {
+            std::snprintf(why, sizeof(why), "a second registration (%s is installed there)", first->second);
+            LogSkip(h, false, why);
+            continue;
+        }
         // The standalone image has no original code to keep: a short function, or a start the size
-        // table does not know, gets its jump when the next known function leaves room for it.
-        if (!orig || (size < 5 && !(standalone && RoomAt(h->address) >= 5))) {
-            Log("SKIP %s at %08X: not a known function start", h->name, static_cast<unsigned>(h->address));
+        // table does not know, gets its jump when the next known function leaves room for it. In
+        // game.exe a function under five bytes gets it when padding follows it up to the fifth byte.
+        if (!orig || (size < 5 && !(standalone ? RoomAt(h->address) >= 5 : size && PaddingAfter(h->address, size, orig)))) {
+            LogSkip(h, false, size ? "under five bytes with no padding after it" : "not a known function start");
+            continue;
+        }
+        const std::uint32_t span = (std::max)(size, 5u);   // the bytes the jump and the original's body cover
+        if (const HarnessPatch* patch = standalone ? nullptr : HarnessPatchIn(h->address, span)) {
+            std::snprintf(why, sizeof(why), "the harness patches +0x%X (%s)",
+                          static_cast<unsigned>((std::max)(patch->address, h->address) - h->address), patch->what);
+            LogSkip(h, true, why);
             continue;
         }
         // Another mod (Rebirth's addon.dll) may have patched code anywhere in the body; replacing
         // the function would silently drop that patch, unless the rewrite reproduces it (behind its
         // flag, which must be on). EI_Plugin.asi patches after this point; its sites are known too.
+        // A patch outside every known site is expected only in a launch with Rebirth's mods.
         rebirth_hook::Verdict verdict = standalone ? rebirth_hook::Verdict::Unpatched
-            : rebirth_hook::Check(h->address, size, orig, h->verify || h->record ? h->stolen : 0, why, sizeof(why));
-        if (verdict == rebirth_hook::Verdict::Skip) {
-            Log("SKIP %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
+            : rebirth_hook::Check(h->address, span, orig, h->verify || h->record ? h->stolen : 0, why, sizeof(why));
+        if (verdict == rebirth_hook::Verdict::Skip || verdict == rebirth_hook::Verdict::Unknown) {
+            LogSkip(h, verdict == rebirth_hook::Verdict::Skip || rebirth_hook::RebirthLaunch(), why);
             continue;
         }
         if (verdict == rebirth_hook::Verdict::Implemented)
@@ -476,13 +540,12 @@ int InstallHooks() {
         // checked: a verify wrapper of a method registered through a thunk calls the same
         // dispatch (CWorldClient::Create, 00561E50, overflowed the stack that way).
         if (const HookEntry* thunk = ThunkEntryAt(h->address)) {
-            Log("SKIP %s at %08X: %s is a virtual-call thunk (register a non-virtual shim instead)", h->name,
-                static_cast<unsigned>(h->address), thunk->name);
+            std::snprintf(why, sizeof(why), "%s is a virtual-call thunk (register a non-virtual shim instead)", thunk->name);
+            LogSkip(h, false, why);
             continue;
         }
         if (h->dispatch && !SameDispatch(h->replacement, orig)) {
-            Log("SKIP %s at %08X: its dispatch bytes differ from the original's", h->name,
-                static_cast<unsigned>(h->address));
+            LogSkip(h, false, "its dispatch bytes differ from the original's");
             continue;
         }
         if (h->stolen > 0) {
@@ -493,7 +556,7 @@ int InstallHooks() {
                 !(*h->original = MakeTrampoline(h->address, h->stolen)) ||
                 (patchedStart && !rebirth_hook::RelocateStolen(h->address, h->stolen,
                                                                static_cast<unsigned char*>(*h->original)))) {
-                Log("SKIP %s at %08X: cannot build trampoline", h->name, static_cast<unsigned>(h->address));
+                LogSkip(h, false, "cannot build trampoline");
                 continue;
             }
         }
@@ -509,11 +572,13 @@ int InstallHooks() {
         Log(h->record ? "recording %s at %08X -> %p" : h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
             static_cast<unsigned>(h->address), h->replacement);
         g_installed.emplace_back(h->address, PlainReplacement(h->address));
+        hookedBy.emplace(h->address, h->name);
         if (h->recordOurs) RedirectOurs(h);
         ++installed;
     }
     text.Restore();
     if (shortLeft) Log("%d function(s) under 5 bytes left to the original (EI_REPLACE_SHORT)", shortLeft);
+    if (g_unexpectedSkips) Log("%d unexpected SKIP(s) above: those rewrites never run", g_unexpectedSkips);
     if (standalone) return installed;
     // The game's static initialisers have run and nothing else yet: their results are compared now.
     for (StartupCheck* check = g_startupChecks; check; check = check->next) {

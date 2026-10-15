@@ -2,6 +2,7 @@
 #include "harness_clock.h"
 
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "../../src/game/random.h"
 
@@ -797,6 +798,7 @@ int __cdecl TracedRand() {
 
 void JumpFrom(std::uintptr_t entry, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(entry);
+    ei::NoteHarnessPatch(entry, 5, "the random trace");
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;
