@@ -871,6 +871,15 @@ depends = ["SV2h"]
 files = ["tests/verify/*"]
 note = "SV2h did not change the checks that run the original on the real object, restore a snapshot and then run ours (UI side-by-side checks, WakeVerify and similar). Review each: if the snapshot restore leaves ours' blocks alive and frees the original's (or the snapshot itself is a game-heap block alive across a run), the heap order differs from a no-hooks run. Also note the residual pool risk (CFixedAlloc, STLport node allocator, MFC plexes refilled by a twin's free)."
 
+[[ticket]]
+id = "SV2h1b"
+title = "SV2h1 parted three goldens from main"
+group = "verification"
+size = 1
+depends = ["SV2h1"]
+files = ["tests/verify/*"]
+note = "After the SV2h1 merge, work.py test MAIN --golden gives 3 differ (main 64e8a7b3); the S12c merge before it (4ebed089) keeps all 3 the same. render_terrain vanilla: isaac.count 69 in the golden, 116 in the run at world update 60 (more random draws). terrain_water_load and ui_saveload_delete vanilla: script #gobject 7658611C golden, 3656F9F8 run (from world update 125 / 260). Find the SV2h1 check (commits 8ceeef3a CString/CFile/CArchive/CDib, 4ae61deb game text, 1361af3e script load/parse) whose swap changes behaviour, fix it so the goldens stay the same, and check with work.py test --golden."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
