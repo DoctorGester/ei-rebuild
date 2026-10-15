@@ -96,6 +96,9 @@ SAVES_KNOWN = {
     r'^commands globals\.(groups\.3\.object[12]|objects\.2\.value)$':
         "SV7b1: render_movie_present's script group \"Peasans\" is [1884, 699, 702] in the original and "
         "[1884, 702, 699] in ours, so the loop variable i ends on the other id (members in address order)",
+    r'^commands globals\.groups\.5\.object[01]$':
+        "SV7b1: Rebirth ui_widescreen_more's script group 5 is [1901, 1913] in the original and [1913, 1901] in ours "
+        "(members in address order; seen re-recording for SV7b3)",
 }
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'

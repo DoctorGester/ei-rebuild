@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 namespace ei::verify::leftovers {
@@ -88,9 +89,14 @@ void Install() {
         Log("harness: unit statistics stack copies: the rewrites zero them (no original code in the image)");
         return;
     }
+    // EI_LEFTOVERS=<hex mask>: only the sites whose bit is set (bit i: kSites[i]), to find which copy a
+    // difference comes from; default all.
+    unsigned mask = ~0u;
+    char value[16] = "";
+    if (GetEnvironmentVariableA("EI_LEFTOVERS", value, sizeof(value))) mask = std::strtoul(value, nullptr, 16);
     int patched = 0;
-    for (const Site& site : kSites)
-        if (Redirect(site)) ++patched;
+    for (int i = 0; i < static_cast<int>(sizeof(kSites) / sizeof(kSites[0])); ++i)
+        if ((mask >> i & 1) && Redirect(kSites[i])) ++patched;
     Log("harness: unit statistics stack copies zeroed first (%d of %d original sites)", patched,
         static_cast<int>(sizeof(kSites) / sizeof(kSites[0])));
 }
