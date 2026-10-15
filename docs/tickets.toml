@@ -861,7 +861,7 @@ title = "Delta coder and stream twins: ours first"
 group = "verification"
 depends = ["SV2h"]
 files = ["tests/verify/verify_net_delta.cpp", "tests/verify/verify_net_streams.cpp", "tests/verify/verify_net_coder.cpp", "tests/verify/delta_snapshot.h", "tests/verify/verify_crt_streams.cpp", "tests/verify/verify_directdraw_holder.cpp"]
-note = "SV2h left the network delta coder's checks (net_delta FieldCopy / StreamCopy / CloneStream, net_streams, net_coder, delta_snapshot.h): the twin bit streams and buffers are game-heap blocks made before either side runs. Keep the bytes in our memory, run ours, then clone for the original (the KeptStream pattern of verify_net_link). Also review the crt_streams start-up batteries and directdraw_holder for the same order. Check with work.py test --golden."
+note = "Merged 2026-10-15 as stopped (layout-independent goldens instead): ours-first + heap::Aside in net delta / streams / coder / directdraw checks, with real fixes (ReadDiff copy of old, CheckFieldRead seeding, delta globals restored, twin ownership). FinishVerify and ReadChecked stay original-first."
 
 [[ticket]]
 id = "SV2h3"
