@@ -892,3 +892,25 @@ Shortening the wait would lose the coverage; no golden is recorded for it (the s
 - Full verify suite (128 runs, 4 at once) passed; zone_gz15h_tornado-vanilla passed on its retry after the first
   attempt crashed at startup inside AIL_waveOutOpen (the harness's MutedWaveOutOpen from CSoundManager::Open, main
   thread, EIP 00007EBC, no module): not seen before in the board's history; on watch (SV6c).
+
+## SV2f: five Rebirth goldens differed in one main suite (2026-10-15)
+
+Not S7, and the goldens are right. Main's batch 632 (128 runs, 16 at once) had ground_prints, harness_digest,
+map_objects, script_parse and ui_trade_restore (Rebirth) part from their goldens at world update 40, all five with the
+same hashes (isaac.c 0x46 / count 89 against 0x45 / 169: 176 more ISAAC draws; obj1804, 1890, 1936, 1937 `#ai`, obj1937
+`#place`); items, levers and console (Rebirth, also zone1 new games) matched in the same batch. A build of the same
+tree in a worktree (its map's code layout the same as main's DLL of that suite) matched all five goldens in about 40
+runs: alone, 4 at once, with main's run folder, a shorter build path, 13 copies at once, three full `--golden` suites.
+One of those suites had render_scene and render_movie (vanilla) part the same way (the same four objects at update 40);
+the other two had none. So zone1's start has two outcomes, decided by timing, and the busier the machine the likelier
+the other one. The reservation's base is not it (eight fixed bases, all the same).
+
+What separates them (main's failing run against a passing one, the verify wrappers' "first call" order in ei_hook.log):
+in the passing run the client takes the world's synchronised objects (CWorldClient::QueueSynchronised,
+Lever::ReadLeverNetState, ObjectVariableName, CMapObjectClientSpecific::SetLightMode, SetVisibilityMode) right after
+CPlayerClient::OnStringEvent, in the failing run only after NotifyUnitChanged, the lights and the hero's weapon parts;
+the music stream thread (SoundFader::Update, CResourceStream::OpenFile, SoundStreamRead) is further ahead of the main
+thread in the failing run. ISAAC is shared by the client's particles and ambience and the server's AI, so one draw
+moved is enough. Follow-up SV2g. Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six
+deep) and writes heapseq.txt at that update, so tracing does not slow the run down; the passing runs' reservation
+events and object places at update 40 were identical.

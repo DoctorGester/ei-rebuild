@@ -1016,10 +1016,19 @@ note = "From SV2b: script_copy vanilla with our hooks: the heap traces of two ru
 id = "SV2f"
 title = "Five Rebirth goldens differ on main after S7 + SV2b (fewer random draws, AI state)"
 group = "verification"
-status = "queued"
+status = "review"
 size = 0.5
 files = ["src/lib/mfc_list.cpp", "src/game/game_lists.cpp"]
-note = "work.py test MAIN --golden at ef377c81: ground_prints, harness_digest, map_objects, script_parse, ui_trade_restore (all rebirth) differ; common fields: random isaac.count 169 in the golden vs 89 in the run, obj1804 (unanwiwo) #ai, obj1937 (unmoto) #place / #vitals. SV2b recorded the goldens on a tree with everything up to SV6b; the only merge after that is S7 (MFC CList / CMap / CPlex, 28f434c4), so S7 is the suspect: FreePlexChain (006FE90F) returns 0 where the original leaves the caller's EAX / free's EAX; check the AI path / AI map lists S7 registered. Bisect by disabling S7's addresses (disabled.txt, see src/hook/hook.cpp) or by building 81a05a7d vs 28f434c4; fix the cause so the five match again without re-recording, unless the golden itself is wrong."
+note = "Not S7: the same tree built in a worktree matches all five goldens (~40 runs, three full --golden suites); zone1's start has two timing-decided outcomes, likelier under load (SV2g). Goldens unchanged; EI_HEAPSEQ diagnostic added."
+
+[[ticket]]
+id = "SV2g"
+title = "zone1's start has two outcomes under load (ISAAC +176 by update 40)"
+group = "verification"
+status = "queued"
+size = 1
+files = ["tests/verify/harness*.cpp"]
+note = "SV2f: one main suite (16 at once) had 5 of 8 Rebirth zone1 new games part from their goldens at update 40 with identical hashes (isaac.c 0x46/count 89 vs 0x45/169; obj1804, 1890, 1936, 1937 #ai); in a worktree 2 vanilla runs of ~170 (render_scene, render_movie). Hint (verify first-call order): in the failing run the client takes the world's synchronised objects (QueueSynchronised, Lever::ReadLeverNetState, SetLightMode, SetVisibilityMode) after NotifyUnitChanged and the weapon parts instead of right after OnStringEvent, and the music stream thread is further ahead; SV6b saw AI message order vary under load too. Catch a failing run with EI_HEAPSEQ=40 (cheap) and EI_DIGEST=1 alongside a passing one; find which real-time input (stream thread, a real message, a loading pump) moves the sync. docs/notes/standalone-verification.md SV2f."
 
 # ---------------------------------------------------------------- harness and suite
 
