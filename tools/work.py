@@ -551,6 +551,7 @@ def cmd_prune(db, args):
     if args.vacuum:
         print('vacuum (blocks writers until it ends)...')
         db.execute('VACUUM')
+        db.execute('PRAGMA wal_checkpoint(TRUNCATE)')  # in WAL mode the shrunk copy sits in the WAL until a checkpoint
         print(f'{os.path.getsize(db_path()) / 1e6:.0f} MB after')
     elif free * size > 100e6:
         print('the file keeps its size until `work.py prune --vacuum` runs: it blocks every writer for as long as it copies the '
