@@ -11,10 +11,12 @@
 // Also the cursor's draws straight to the primary surface (ticket R6): the cursor thread 005E5690
 // (redraws the cursor on the primary every 41 ms between frames), the background save 005E6630 and
 // the holder blit 005E5640 they use. With the new renderer presenting ("present") the cursor is drawn
-// only by the new renderer, in every frame it presents (render::Cursor above): the thread, the
-// background saves and the frame draw's old blits into the render target (which the new frame
-// overwrites at the present) are left out. Between frames (loading, movies) the cursor then does
-// not move; the movie players hide it anyway. The cursor's holders made in the switch-over have no
+// by the new renderer, in every frame it presents (render::Cursor above): the background saves and
+// the frame draw's old blits into the render target (which the new frame overwrites at the present)
+// are left out. Presenting by itself (no DirectDraw), the cursor thread moves the cursor between
+// frames as the original did on the primary, by presenting the last frame again
+// (render::CursorBetweenFrames, ticket R9c2); as in the original, not while the image is hidden (the
+// movie players and the loading screen hide it). The cursor's holders made in the switch-over have no
 // DirectDraw surface at all (ticket R7): the old path's draws need one (OldPathDraws).
 #include "ui_cursor.h"
 #include "device.h"
@@ -24,6 +26,7 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "originals_render.h"
+#include "../hook/log.h"   // TEMP R9c2
 
 #include <cstdint>
 #include <cstring>
@@ -84,6 +87,27 @@ bool OldPathDraws(const CCursor* self) {
     return !render::Presenting() && self->under_->surface && self->target_->surface;
 }
 
+// The cursor thread's step in the switch-over without DirectDraw (R9c2): under the cursor's lock, the
+// position updated (005E52E0) and, when an image is shown and the cursor moved (or its frame
+// stepped), the last frame presented again with the cursor at its new rectangle
+// (render::CursorBetweenFrames; nothing while the main thread's frames come often enough); the drawn
+// rectangle follows as the original's blits made it.
+void MoveBetweenFrames(CCursor* self) {
+    static int traced = 0;
+    DWORD t0 = GetTickCount();
+    gameapi::EnterCriticalSection(&self->lock_);
+    DWORD t1 = GetTickCount();
+    char moved = UpdatePosition(self);
+    DWORD t2 = GetTickCount();
+    if (traced < 400 && (t2 - t0 > 30 || moved)) { ++traced; ei::Log("TEMP cursor step: lock %lu ms, update %lu ms, moved %d", t1 - t0, t2 - t1, moved); }
+    if (self->imageShown_ != 0 && moved != 0) {
+        CursorImage* image = self->image_;
+        render::CursorBetweenFrames(image->holder, image->saved, ToRender(self->from_), ToRender(self->rect_));
+        self->drawn_ = self->rect_;
+    }
+    gameapi::LeaveCriticalSection(&self->lock_);
+}
+
 } // namespace
 
 // 005E5640 (thiscall on the destination holder, RET 0x14): Blt from `source`'s surface (rectangles,
@@ -137,7 +161,9 @@ EI_REPLACE(0x005E54A0, CursorDrawFrame);
 // there (after the vertical blank); overlapping, their union is composed in the composition surface
 // (the old background put back, the new one saved, the cursor combined in) and copied to the screen
 // in one blit. `drawn_` becomes the new rectangle. The cursor's lock is held while it draws. At the
-// end the event `stopped_` is set.
+// end the event `stopped_` is set. In the switch-over without DirectDraw each step is
+// MoveBetweenFrames (the new renderer presents instead of the blits); with "present" on a DirectDraw
+// device nothing is drawn between frames.
 void __fastcall CursorThread(CCursor* self) {
     if (!self->enabled_) return;
     RECT* drawn = &self->drawn_;
@@ -153,14 +179,19 @@ void __fastcall CursorThread(CCursor* self) {
     DWORD last = gameapi::timeGetTime();
     while (!self->stop_) {
         DWORD now = gameapi::timeGetTime();
+        { static DWORD lastReal = 0; DWORD r = GetTickCount(); if (lastReal && r - lastReal > 100) ei::Log("TEMP cursor loop gap %lu ms (virtual now %lu last %lu)", r - lastReal, now, last); lastReal = r; }
         if (now - last < kThreadPeriod) {
             gameapi::Sleep(kThreadPeriod - (now - last));
             continue;
         }
         last = now;
         if (!SoftwareCursor()) continue;
-        // With "present" the new renderer draws the cursor in its frames; nothing goes to the primary.
-        if (!OldPathDraws(self)) continue;
+        // With "present" nothing goes to the primary: the new renderer draws the cursor in its frames
+        // and, presenting by itself, between them (MoveBetweenFrames).
+        if (!OldPathDraws(self)) {
+            if (render::PresentsItself()) MoveBetweenFrames(self);
+            continue;
+        }
         gameapi::EnterCriticalSection(&self->lock_);
         char moved = UpdatePosition(self);
         if (self->imageShown_ == 0 || moved == 0 || !self->image_->holder->surface) {

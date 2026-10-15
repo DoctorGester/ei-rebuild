@@ -275,7 +275,7 @@ Movies and software cursor (old device calls kept, behind `render::Presenting()`
 | 005DB3F0 `PlayMovie` (`bink_video.cpp`; fastcall name, frame time, 5 stack arguments, RET 0x14) | blocking player (callers 00458270, 0057A060, 004B89B8, 00602190, 00632940, 00634D20, 00634E60): own message loop (Esc / Space end or skip a frame), letterboxed blit to the primary | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through 004EF610 (else `render::Present` ends the sidecar frame); result 0 / 1 (1 with movies off), 00784751 set again |
 | 005DB9E0 `HolderFill`, 005E5640 `HolderBlt`, 005E6630 `CursorSaveBackground` | colour fill, Blt between holders, background copy under the device lock | not called |
 | 005DA400 `ShowLoadingMovie` (fastcall progress) | loading movie (progres*.bik per zone by 00595080; state 007C5550 / holder 007C551C / type 007C5554 / rect 007C5520) stretched over the primary | last frame blitted and presented as above |
-| 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | draws nothing (the renderer draws the cursor in each frame, so it does not move between frames: loading, movies) |
+| 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | without DirectDraw: the last frame presented again with the cursor moved (R9c2, section 9); with a DirectDraw device: nothing |
 
 005DA880 is dead (a thread procedure started only by 005DAD50, which has no caller); 005DA5AB / 005DB603 are catch
 blocks (fallback to 004EF7B0, only with 00784756 0). Kept: a failed Lock whose report says go on skips the copy and
@@ -467,7 +467,7 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   to the restored window. DXGI_STATUS_OCCLUDED counts as success.
 - Movies and the loading screen already reach `render::Present` through 004EF610 (R9a2). The software cursor:
   the cursor thread (005E5690) draws nothing without DirectDraw; the renderer draws the cursor in each frame, and the
-  movie players and 005DA400 hide it, so it does not move during movies and loading. Drawing it between frames needs
+  movie players and 005DA400 hide it, so it does not move during movies and loading (as in the original: R9c2 below). Drawing it between frames needs
   a present from another thread (follow-up).
 - The harness: `fullscreen 0|1` (starter: the registry's FullScreen), `focus off|on` (WM_ACTIVATE inactive through
   the game's window procedure and SW_SHOWMINNOACTIVE; SW_SHOWNOACTIVATE and WA_CLICKACTIVE), `windowsize <w> <h>`,
@@ -551,6 +551,72 @@ standalone exe change; vanilla and Rebirth runs keep the original's probes and v
   frames\<frame>.bmp as samecapture does). Scenario `render_present_shot`: Scroll Lock in the main menu and in the
   game at a frozen moment, then the recorder for a few frozen frames; file and frame must match.
 
+### R9c2: the software cursor between frames (done)
+
+What the original shows. The renderer's +4 bit 0 (read as "the software cursor bit" above) is the game's active flag
+(set by WinMain's activation, app_main.cpp), and the cursor runs in mode 2 with its thread whenever the options'
+FpsIndependentCursor is on (the default; 005DAEA0: mode 1 has no thread). The thread (005E5690) wakes every 41 ms
+and, when the image is shown (+0x0C) and 005E52E0 says the cursor moved or its frame stepped, puts the old place's
+background back on the primary and blits the composed cursor at the new place: the cursor moves at about 24 Hz
+whatever the frame rate, and on with no frames at all. It draws nothing while the image is hidden: every movie
+player (005DB3F0, 005DBA50, the titles 0062B7D0) and every loading screen step (005DA400) call 005E5270 0 first and
+show it again only at their end (005DB3F0, 005DA3C0, 005DBF70), so during movies and loading the original shows no
+cursor (Ghidra: 005E5690 tests +0x0C before any blit). Where it shows: long frames and work on the main thread
+outside the movie players and loading steps; the image, frame and hot spot are the frame draw's (005E52E0's
+rectangle: the position less the hot spot, clipped to the bounds, one step behind the mouse).
+
+The choice: a present from the cursor thread, not a hardware cursor. A hardware cursor (SetCursor with an HCURSOR
+made from the cursor picture) would need nothing from the renderer, but differs from what the game shows: it moves
+with the Windows cursor while the game holds its own still (005E67B0, the camera turned with the right button), it
+is not scaled with the frame in a larger window, the animated shapes would need a new HCURSOR per 125 ms frame, the
+gamma ramp would not apply to it and captures would not see it; the cursor would also have to leave the frame. A
+present from the cursor thread keeps the game's own model (the thread, its lock, 005E52E0, the mask) and draws
+exactly what a frame with the cursor there would show. Made safe against the main thread's sokol use as follows
+(`render_cursor.cpp`):
+- The cursor thread makes no sokol call. It records on a Direct3D 11 deferred context, with the raw objects of
+  sokol's pipelines (the window blit, `ei-window-blit`, that draws the cursor into the frame; the present,
+  `ei-present`, that draws the frame through the gamma ramp into the swap chain), and runs the list on the
+  immediate context with ExecuteCommandList(RestoreContextState TRUE): the context's state is put back, so sokol's
+  state cache stays right. The device's multithread protection (ID3D11Multithread) is on, so the list runs between
+  two of the main thread's calls. Its own resources per present: the cursor's part as an immutable texture and three
+  immutable constant buffers.
+- The swap chain is shared: the main thread's window present (in EndFrame, from the frame without its cursor kept
+  through DrawToWindow and Present) and the cursor thread's take turns under one lock (`BeginWindowPresent` ..
+  `EndWindowPresent`); at the end of each of its presents the main thread takes references to what the cursor
+  thread draws with (swap chain, back buffer view, ramp view, samplers, the two pipelines' shaders and states, the
+  client area and the frame's place) and drops them at the start of the next one (so ResizeBuffers holds no extra
+  reference). A lost device drops everything under the lock first (`DropCursorPresents`, R9c1's RecreateDevice).
+  Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present in mode 2) before the
+  present lock, in both threads.
+- The frame without its cursor: with the new renderer presenting itself, render::Cursor no longer adds the cursor
+  to the frame's commands but keeps it aside (`Frame::cursor`); EndFrame draws the frame, copies it (`KeepFrameForCursor`,
+  a GPU copy into a texture of the frame's size), then draws the cursor over it, so the frame, captures and
+  ReadFrame are as before. The cursor thread copies that frame into a work target, draws the cursor there with the
+  window blit (one texel a pixel, texels whose mask is set left out) and presents the work target as the main
+  thread presents its frame (black bars, gamma ramp, the vertical blank as the main thread's).
+- The cursor's picture: render::Cursor keeps the whole picture of the current shape with its mask as RGBA8
+  (all frames side by side; `CursorPicturePart`, under its own lock); the cursor thread cuts the frame shown
+  (`from_`) out of it, and presents nothing for a picture the main thread has not drawn yet.
+- When: `CursorBetweenFrames` presents only when nothing was presented on the game window for 40 ms (real time:
+  the harness's virtual clock does not reach the renderer); at the frame rates the game normally runs the frames
+  show the cursor themselves and the cursor thread presents nothing. The game side (`ui_cursor_frame.cpp`
+  `MoveBetweenFrames`) is the original's step: under the cursor's lock 005E52E0, then with the image shown and a
+  move the present, `drawn_` set to the new rectangle. In `present` on a DirectDraw device (dgVoodoo, turned on
+  late) nothing is drawn between frames, as before.
+- Verify build: every frame the cursor thread composes is read back and compared with the frame without its cursor
+  and the cursor's texels ("render: cursor between frames: N composed frames checked, M differed" /
+  "render: MISMATCH cursor between frames"); the last one is kept for the harness.
+
+Harness: `mouseglide <ms> <x0> <y0> <x1> <y1>` (the harness's mouse, what GetCursorPos reads, moved by a thread
+of its own in 10 ms steps, so it moves while the main thread is away), `stall <ms>` (the main thread away: one long
+frame), `cursormark`, `cursorcheck <name>|- <min> [max]` (presents by the cursor thread since the mark within
+min..max; with a name the last composed frame goes to frames\<name>.bmp, the checks must have found no
+difference and its rectangle must sit at the mouse less the image's hot spot within 24 pixels, the cursor
+trailing the mouse by up to two of the thread's steps). Scenario `render_cursor_present`: a long frame in the main
+menu and in the game while the mouse glides (at least 10 presents each, about 36 seen), the loading screen of a new
+game (logged only: the work before the first loading step is a long frame with the cursor still shown) and a
+movie (at most 2 presents: the moments before the player hides the cursor).
+
 ### Before R9a (reference)
 
 The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and
@@ -581,7 +647,8 @@ above; 3 is R9b):
    WM_ACTIVATE handling in 004EF610's place. The present's full-frame readback (33 MB at 3840x2160, staging copy kept
    between frames) is fine for the switch-over only.
 5. The cursor between frames: the hardware cursor needs nothing; the software cursor option draws only inside frames in
-   the switch-over, so it does not move during movies and loading.
+   the switch-over, so it does not move during movies and loading (R9c2: the cursor thread presents between frames;
+   during movies and loading the original hides it).
 
 Other open items: the fog colour and range come from the old device state (not game data yet); weather's old draw
 (`CRainSnow::DrawParticles`, split from the builders by A-S13) still runs next to the hand-over; GPU shadows; several steps (holders, saved pictures, interface

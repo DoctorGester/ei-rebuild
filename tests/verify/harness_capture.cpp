@@ -322,6 +322,20 @@ State Poll(const char** detail) {
 
 unsigned FramesPresented() { return g_frames; }
 
+bool WriteFrame(const char* name, int width, int height, const std::vector<std::uint8_t>& bgr, std::string* written) {
+    char path[MAX_PATH];
+    ei::OutputPath("frames", path);
+    CreateDirectoryA(path, nullptr);
+    std::size_t used = std::strlen(path);
+    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", name);
+    Image image;
+    image.width = width;
+    image.height = height;
+    image.bgr = bgr;
+    if (written) *written = path;
+    return WriteBmp(path, image);
+}
+
 namespace {
 // Reads a BMP into `image` (top-down rows): the 24-bit ones this file wrote, and the game's own
 // (CDib::Write: 16 or 32 bits, BI_BITFIELDS with the three masks after the header, or BI_RGB).
