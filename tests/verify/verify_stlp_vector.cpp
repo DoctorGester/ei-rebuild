@@ -658,3 +658,10 @@ EI_VERIFY(0x0053BEB0, Free68<0x0053BEB0>::Deallocate, 6, Free68<0x0053BEB0>::ori
 EI_VERIFY(0x0069C9D0, Free16<0x0069C9D0>::DeallocateFast, 0, s_unused);
 EI_VERIFY(0x00613630, Free60<0x00613630>::DeallocateFast, 0, s_unused);
 EI_VERIFY(0x0056FB80, Free164<0x0056FB80>::DeallocateFast, 0, s_unused);
+
+// S16a: the unit set's id vectors (world_unit_set_add.cpp): ~_Vector_base (2), _M_insert_overflow,
+// _Construct of an id.
+EI_VERIFY(0x004FE420, Free4<0x004FE420>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x004FDE90, Free4<0x004FDE90>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x004FF640, Change4<0x004FF640>::InsertOverflow, 5, Change4<0x004FF640>::original);
+EI_VERIFY(0x0055C260, Helper4<0x0055C260>::ConstructAt, 0, s_unused);

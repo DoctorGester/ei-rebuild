@@ -40,6 +40,16 @@ struct FiguredTableElement {
 };
 using FiguredGroupsTraits = stlp::DwordObjectTraits<FiguredTable, FiguredTableElement>;
 using DressedTraits = stlp::DwordObjectTraits<DressedUnitRecord, recordvec::DressedUnitElement>;
+using FiguredAbi = stlp::HashtableAbi<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
+using FiguredGroupsTable = stlp::hashtable<FiguredGroupsTraits>;
+using FiguredGroupsAbi = stlp::HashtableAbi<FiguredGroupsTraits>;
+using DressedTable = stlp::hashtable<DressedTraits>;
+using DressedAbi = stlp::HashtableAbi<DressedTraits>;
+
+// 0055ABB0 (RET 8). pair<const unsigned, FiguredTable>(key, table): the key, then a copy of the
+// table (its functor bytes, then _M_copy_from). Returns this.
+FiguredGroupsTable::Value* __fastcall ConstructGroupPair(FiguredGroupsTable::Value* self, void*, const std::uint32_t* key,
+                                                         const FiguredTable* table);
 
 // The unit shapes' cache (UnitShapeCache::Map, ai_shape_cache.h): pair<const handle, RefPtr>,
 // 0x18-byte nodes. A key lands in bucket handle.key % count; two handles are equal when their
