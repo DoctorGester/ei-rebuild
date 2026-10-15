@@ -59,7 +59,7 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 
 Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `run_all --widescreen` compares with addon.
 
-- **W4b** EI_Plugin's remaining Fixes and NPlayers sites (running since 2026-10-15; sonnet, 0.5 sessions). From W4a/W2b (2026-10-15): EiPluginFixes still addon's in 005ED7B0, 006091C0, 006407E0, 005F13A0, 00536100 and 006093B7/00640C97; EiPluginNPlayers at 00640060 and 00608D20 (ei::rebirth::PluginNPlayers() exists now). Same approach as W4a: read EI_Plugin.asi's installer, reproduce behind the flag, declare it on the hook, verify in a Rebirth launch.
+- **W4b** EI_Plugin's remaining Fixes and NPlayers sites (review since 2026-10-15; sonnet, 0.5 sessions). From W4a/W2b (2026-10-15): EiPluginFixes still addon's in 005ED7B0, 006091C0, 006407E0, 005F13A0, 00536100 and 006093B7/00640C97; EiPluginNPlayers at 00640060 and 00608D20 (ei::rebirth::PluginNPlayers() exists now). Same approach as W4a: read EI_Plugin.asi's installer, reproduce behind the flag, declare it on the hook, verify in a Rebirth launch.
 - **W1** Layout widths, scaling functions, harness resolution steps (done 2026-10-14). SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; run_all --widescreen within tolerance. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off).
 - **W2** Sprite shapes, text extent and text draw, control rectangles (done 2026-10-14; opus). Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip. After: W1.
 - **W3** Battle-screen panel builders (done 2026-10-14; opus). Then widescreen::SetPanelOffset replaces addon's variable. After: W2.
