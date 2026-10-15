@@ -469,6 +469,13 @@ public:
     void RemoveTimedObject(unsigned id);
     // 0058D5D0. Puts a unit in the update map (+0x104) and sets its update slot.
     void AddToUpdateMap(CEngineObject* unit);
+    // The updates an object stays in the update map before it may sleep (updateCountdown): 0x80
+    // plus 0..15, which the game takes from bits 5..8 of the object's address (0058D5D0, 0058D3D0,
+    // 0058D670, 005927C0, 00593FC0, 00596900), so it follows the heap's layout. Harness runs on the
+    // virtual clock take the low 4 bits of the object's id instead, in the original code as well
+    // (tests/verify/harness_heap.h), so that every run and both sides agree.
+    static int UpdateCountdownFor(const CEngineObject* object);
+    static void SpreadUpdateCountdownsById();
 
     // world_tick.cpp
     // 0058DCD0. One world tick: advances the tick count, runs every timed object (spells,

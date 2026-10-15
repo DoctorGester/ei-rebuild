@@ -177,6 +177,7 @@
 #include "harness_capture.h"
 #include "harness_clock.h"
 #include "harness_digest.h"
+#include "harness_heap.h"
 #include "harness_starter.h"
 #include "harness_net.h"
 #include "ui_census.h"
@@ -908,6 +909,9 @@ bool g_deterministic = true;
 bool g_clockTrace = false;
 // "randtrace": log every random draw (harness_clock.h), installed at the first message loop pass.
 bool g_randomTrace = false;
+// "lfheap": on the virtual clock, leave the CRT's heap as the game makes it (its addresses do not
+// repeat; harness_heap.h).
+bool g_keepHeap = false;
 constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;   // game.exe import table
 constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
 decltype(&::GetLocalTime) g_getLocalTime;
@@ -2427,6 +2431,7 @@ struct Harness {
         if (std::strstr(clockMode, "real")) g_deterministic = false;
         if (std::strstr(clockMode, "clocktrace")) g_clockTrace = true;
         if (std::strstr(clockMode, "randtrace")) g_randomTrace = true;
+        if (std::strstr(clockMode, "lfheap")) g_keepHeap = true;
         if (report) {
             std::fputs("RESULT: RUNNING\n", report);
             std::fclose(report);
@@ -2490,6 +2495,7 @@ struct Harness {
         PatchSlot(kGetPrivateProfileSectionNamesASlot, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);
+            if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);

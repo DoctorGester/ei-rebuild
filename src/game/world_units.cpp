@@ -419,7 +419,7 @@ constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B,
 constexpr std::uint32_t kGrey = 0x3F4CCCCD, kOne = 0x3F800000;
 constexpr std::uint32_t kTorchLightKind = 0x2001;   // the torch's smoke particles
 
-int UpdateCountdown(const CEngineObject* object) { return ((reinterpret_cast<int>(object) >> 5) & 0xF) + 0x80; }
+int UpdateCountdown(const CEngineObject* object) { return CWorldServer::UpdateCountdownFor(object); }
 
 // Copies dwords (the original's REP MOVSD / dword moves; floats are not loaded on the FPU).
 void Copy(void* to, const void* from, std::size_t n) {
