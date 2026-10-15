@@ -1973,11 +1973,12 @@ done = "2026-10-15"
 id = "S4d"
 title = "Standalone library: the old iostream streams (constructors, streambuf defaults)"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["src/lib/crt_iostream.h", "src/lib/crt_iostream.cpp"]
 note = "S4c ported the ostream inserters (src/lib/crt_iostream.*). The image still lacks the streams themselves: ostream(streambuf*) 006FC42F (8 static-initialiser calls), the ios / streambuf constructors and destructors (006FCAD2 streambuf(char*, int), 006FCB35 ~streambuf, 006FCDB1, 006FCF26 and the ostream destructor), the streambuf virtual defaults the game's streambufs inherit (vtable 007482AC: 006FCAB6, 006FCC86 sync, 006FCB65 setbuf, 006FCD18 / 006FCD1E seek, 006FCB99 xsputn, 006FCBEF xsgetn, 006FCD30, 006FCCBB doallocate), the log stream's streambuf, and fflush 006ED534 (osfx under ios::stdio). Also check the C initialisers in the __xi list the image does not run (00783BBC 006E728D, 00783BC4 006F239A __initstdio, 00783BC8 006F02F9; __initmbctable is done). Verify against the originals on scratch objects as verify_crt_iostream.cpp does. standalone.md S4c group 4."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S11b"
