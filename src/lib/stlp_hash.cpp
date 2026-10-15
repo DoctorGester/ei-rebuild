@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace stlp {
 
@@ -15,6 +16,17 @@ TableWithDword* __fastcall ConstructTableWithDword(TableWithDword* self) {
     HashtableAbi<DwordKeyTraits<8>>::ConstructDefault(&self->table);
     self->extra = 0;
     return self;
+}
+
+std::uint32_t __fastcall HashString(const string* s) { return s->Hash(); }
+std::uint32_t __fastcall HashText(const char* s) { return HashChars(s); }
+
+void* __fastcall RecordNamed(RecordsByName* self, void*, const char* name) {
+    string key(name);
+    StringKeyed<4> obj(key);
+    void* record;
+    std::memcpy(&record, self->byName.FindOrInsert(obj).mapped, sizeof(record));
+    return record;
 }
 
 } // namespace stlp
@@ -26,6 +38,8 @@ namespace {
 using Map8 = stlp::HashtableAbi<stlp::DwordKeyTraits<8>>;
 using Set4 = stlp::HashtableAbi<stlp::DwordKeyTraits<4>>;
 using Map28 = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
+// String keys (__stl_hash_string), a 4-byte mapped value: 20-byte nodes (the 24-byte list).
+using Str4 = stlp::HashtableAbi<stlp::StringKeyTraits<4>>;
 
 } // namespace
 
@@ -153,3 +167,120 @@ EI_REPLACE(0x0040AD20, Map8::ConstructIterator);
 EI_REPLACE(0x005BE450, Map8::ConstructIterator);
 EI_REPLACE(0x006B0B10, Map8::ConstructIterator);
 EI_REPLACE(0x006B0B30, Map8::ConstructIterator);
+
+// String keys with a 4-byte mapped value (each _M_new_node takes 0x14-byte nodes; each clear()
+// pushes onto the 24-byte list).
+EI_REPLACE(0x004298D0, stlp::HashString);
+EI_REPLACE(0x00460BA0, stlp::HashText);
+EI_REPLACE(0x004FB0F0, Str4::Find);
+EI_REPLACE(0x005AD520, Str4::Find);
+EI_REPLACE(0x006B07C0, Str4::Find);
+EI_REPLACE(0x006B0870, Str4::Find);
+EI_REPLACE(0x006B0930, Str4::Find);
+EI_REPLACE(0x006BC0C0, Str4::Find);
+EI_REPLACE(0x0069D0E0, Str4::SkipToNext);
+EI_REPLACE(0x006BCCD0, Str4::EraseKey);
+
+// hash_map<string, T>::operator[](const string&): 16 instantiations.
+EI_REPLACE(0x004297A0, Str4::SubscriptKey);
+EI_REPLACE(0x004ABAA0, Str4::SubscriptKey);
+EI_REPLACE(0x004ABBD0, Str4::SubscriptKey);
+EI_REPLACE(0x004ABD00, Str4::SubscriptKey);
+EI_REPLACE(0x0053C650, Str4::SubscriptKey);
+EI_REPLACE(0x0053C780, Str4::SubscriptKey);
+EI_REPLACE(0x0053C8B0, Str4::SubscriptKey);
+EI_REPLACE(0x0060AC20, Str4::SubscriptKey);
+EI_REPLACE(0x00619FB0, Str4::SubscriptKey);
+EI_REPLACE(0x00684B20, Str4::SubscriptKey);
+EI_REPLACE(0x006A75E0, Str4::SubscriptKey);
+EI_REPLACE(0x00464750, Str4::SubscriptKey);
+EI_REPLACE(0x005335E0, Str4::SubscriptKey);
+EI_REPLACE(0x006BBDF0, Str4::SubscriptKey);
+EI_REPLACE(0x0064EE90, Str4::SubscriptKey);
+EI_REPLACE(0x006AD670, Str4::SubscriptKey);
+
+// hash_map<string, T*>::operator[](const char*) on a record table: 8 instantiations.
+EI_REPLACE(0x004AB720, stlp::RecordNamed);
+EI_REPLACE(0x004AB820, stlp::RecordNamed);
+EI_REPLACE(0x0052CA40, stlp::RecordNamed);
+EI_REPLACE(0x0052CB40, stlp::RecordNamed);
+EI_REPLACE(0x0069D290, stlp::RecordNamed);
+EI_REPLACE(0x0069D380, stlp::RecordNamed);
+EI_REPLACE(0x006AD580, stlp::RecordNamed);
+EI_REPLACE(0x00613820, stlp::RecordNamed);
+
+// find_or_insert(obj): 15 instantiations.
+EI_REPLACE(0x004ACC10, Str4::FindOrInsert);
+EI_REPLACE(0x004CE110, Str4::FindOrInsert);
+EI_REPLACE(0x004FBBD0, Str4::FindOrInsert);
+EI_REPLACE(0x00514880, Str4::FindOrInsert);
+EI_REPLACE(0x0053D340, Str4::FindOrInsert);
+EI_REPLACE(0x005ADC10, Str4::FindOrInsert);
+EI_REPLACE(0x00613B70, Str4::FindOrInsert);
+EI_REPLACE(0x0069D1E0, Str4::FindOrInsert);
+EI_REPLACE(0x0069E2A0, Str4::FindOrInsert);
+EI_REPLACE(0x006A7870, Str4::FindOrInsert);
+EI_REPLACE(0x006BCC20, Str4::FindOrInsert);
+EI_REPLACE(0x004ACAB0, Str4::FindOrInsert);
+EI_REPLACE(0x004ACB60, Str4::FindOrInsert);
+EI_REPLACE(0x0052CF60, Str4::FindOrInsert);
+EI_REPLACE(0x0069E1F0, Str4::FindOrInsert);
+
+// resize(hint): 20 instantiations (004CEF00, 00514D50 and 004FC320 keep an exception handler).
+EI_REPLACE(0x0042AFD0, Str4::Resize);
+EI_REPLACE(0x004AEA90, Str4::Resize);
+EI_REPLACE(0x004AEC40, Str4::Resize);
+EI_REPLACE(0x004AEDF0, Str4::Resize);
+EI_REPLACE(0x004AEFA0, Str4::Resize);
+EI_REPLACE(0x004AF150, Str4::Resize);
+EI_REPLACE(0x004AF300, Str4::Resize);
+EI_REPLACE(0x00464F30, Str4::Resize);
+EI_REPLACE(0x00514F70, Str4::Resize);
+EI_REPLACE(0x0053DDF0, Str4::Resize);
+EI_REPLACE(0x0053E050, Str4::Resize);
+EI_REPLACE(0x005AE430, Str4::Resize);
+EI_REPLACE(0x0060B740, Str4::Resize);
+EI_REPLACE(0x0061A650, Str4::Resize);
+EI_REPLACE(0x0069E090, Str4::Resize);
+EI_REPLACE(0x0069EB70, Str4::Resize);
+EI_REPLACE(0x006BD840, Str4::Resize);
+EI_REPLACE(0x004CEF00, Str4::Resize);
+EI_REPLACE(0x00514D50, Str4::Resize);
+EI_REPLACE(0x004FC320, Str4::Resize);
+
+// _M_new_node(obj): 20 instantiations.
+EI_REPLACE(0x0042A650, Str4::NewNode);
+EI_REPLACE(0x004ADBE0, Str4::NewNode);
+EI_REPLACE(0x004ADD00, Str4::NewNode);
+EI_REPLACE(0x004ADE20, Str4::NewNode);
+EI_REPLACE(0x004ADF40, Str4::NewNode);
+EI_REPLACE(0x004AE060, Str4::NewNode);
+EI_REPLACE(0x004AE180, Str4::NewNode);
+EI_REPLACE(0x00464E10, Str4::NewNode);
+EI_REPLACE(0x00514C10, Str4::NewNode);
+EI_REPLACE(0x0053D9D0, Str4::NewNode);
+EI_REPLACE(0x0053DAF0, Str4::NewNode);
+EI_REPLACE(0x0060B600, Str4::NewNode);
+EI_REPLACE(0x0061A380, Str4::NewNode);
+EI_REPLACE(0x004CE460, Str4::NewNode);
+EI_REPLACE(0x004FBF60, Str4::NewNode);
+EI_REPLACE(0x00514AF0, Str4::NewNode);
+EI_REPLACE(0x005ADF10, Str4::NewNode);
+EI_REPLACE(0x0069D880, Str4::NewNode);
+EI_REPLACE(0x0069E5B0, Str4::NewNode);
+EI_REPLACE(0x006BD240, Str4::NewNode);
+
+// clear(): 13 instantiations.
+EI_REPLACE(0x004AB2B0, Str4::Clear);
+EI_REPLACE(0x0053C0D0, Str4::Clear);
+EI_REPLACE(0x0053C280, Str4::Clear);
+EI_REPLACE(0x0053C430, Str4::Clear);
+EI_REPLACE(0x0053C5E0, Str4::Clear);
+EI_REPLACE(0x006A6D00, Str4::Clear);
+EI_REPLACE(0x006A6D70, Str4::Clear);
+EI_REPLACE(0x006A6DE0, Str4::Clear);
+EI_REPLACE(0x006A70A0, Str4::Clear);
+EI_REPLACE(0x006A7340, Str4::Clear);
+EI_REPLACE(0x006B0520, Str4::Clear);
+EI_REPLACE(0x006B0590, Str4::Clear);
+EI_REPLACE(0x006BCE00, Str4::Clear);

@@ -283,6 +283,16 @@ find_or_insert 004E2E90. Checks (tests/verify/verify_stlp_hash.cpp) against the 
 members compared; frees and inserts run the original, undo it (nodes popped off the LIFO free
 list, the table restored) and compare ours, which must reuse the same nodes; a rehashing resize
 runs the original on a clone. Destructors ours only. 76 of 99 reached by the suite, 0 mismatches.
+**S11 group 2.** String keys (`StringKeyTraits<4>`: `__stl_hash_string`, size and bytes equal;
+20-byte nodes on the 24-byte list, each new node copying the string with string(first, last)):
+102 more addresses, 201 in all: find, `_M_skip_to_next`, erase(key), operator[](const string&) 16,
+operator[](const char*) on the record tables 8 (`RecordsByName`: the record vector, then the map),
+find_or_insert 15, resize 20, `_M_new_node` 20, clear 13, the two `__stl_hash_string`s. All
+checked against the original: inserts undo the original's node (its string, then the node) and
+re-free operator[]'s temporaries on top; clear / erase(key) take the original's frees (each
+string, then its node) off their lists again, with the first word the free list overwrote. The
+checks snapshot only the bucket an insert or erase touches (whole-table copies made ui_mp_host
+time out). 169 of 201 reached, 0 mismatches.
 
 ## 3. Runtime: MFC, STLport, CRT
 

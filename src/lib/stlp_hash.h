@@ -401,6 +401,21 @@ struct HashtableAbi {
     }
 };
 
+// __stl_hash_string of a string (004298D0; ECX the string) and of a C string (00460BA0; ECX the text).
+std::uint32_t __fastcall HashString(const string* s);
+std::uint32_t __fastcall HashText(const char* s);
+
+// A vector of records (start, finish, end of storage) followed by the map from a record's name to it
+// (the item databases' weapon, armor, quick item, material and loot tables, the lever table).
+struct RecordsByName {
+    void* records[3];
+    hashtable<StringKeyTraits<4>> byName;
+};
+// hash_map<string, T*>::operator[](const char*) on the map (e.g. 004AB720; RET 4): a string of the
+// name, a {copy of it, null} value for find_or_insert, both freed after (the copy first); the
+// mapped record, null when the name was not there (it is inserted).
+void* __fastcall RecordNamed(RecordsByName* self, void*, const char* name);
+
 // A hash_map<int, T> with a dword after the table (the terrain's light table, 00571050):
 // hashtable(100) and the dword zeroed. Returns this.
 struct TableWithDword {
