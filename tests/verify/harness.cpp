@@ -196,6 +196,7 @@
 #include "harness_clock.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
+#include "harness_savetrace.h"
 #include "harness_hooks.h"
 #include "harness_starter.h"
 #include "harness_net.h"
@@ -735,6 +736,7 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
     // The game opens some data files for reading without sharing them; parallel harness runs read
     // the same install, so reads always let others read too.
     if (!write) share |= FILE_SHARE_READ;
+    if (write) savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
     return g_createFile(target, access, share, sa, disposition, flags, templ);
 }
 
@@ -2764,6 +2766,7 @@ struct Harness {
         ei::verify::starter::Install();
         net_port::Install();   // a UDP port of its own (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
+        if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
