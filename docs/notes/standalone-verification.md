@@ -1576,4 +1576,5 @@ files, then reverting each constant); with the float the goldens are the same ag
 
 **Suite** (`work.py test SV7d1a --golden --jobs 4`, 128 runs): ALL PASS, 0 verify mismatches in 7.9e9 checked calls
 (main's last 138 runs: 0); goldens 54 the same, levers and ui_saveload_delete differ only in `#gobject` (SV7b1, as on
-main). No golden re-recorded.
+main). No golden re-recorded. After merging main (SV7b1, SV7b4a's re-recorded goldens): 128 runs ALL PASS, 0 verify
+mismatches, all 56 goldens the same; `--standalone --golden` on the 44 scenarios with a vanilla golden: 44 the same.
