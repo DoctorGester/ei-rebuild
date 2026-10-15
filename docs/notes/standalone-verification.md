@@ -305,7 +305,7 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
   SkillLevelValue, Value6E8/6E9, SkillPrice and SchoolPrice (the game's settings at fixed addresses or the
   skill databases), UnitParams::ProtectionBlock and WeaponSkillBonus (databases and settings),
   UnitStats::PickLocation (the global generator). Each needs its globals passed in the payload and a
-  forwarder-free way to read them; a ticket for it is SV4d.
+  forwarder-free way to read them: done in SV4d (below).
 - Recorded from 48 scenarios (the SV4 seven and items, hero screens, camp, spells,
   scripts, models, particles, ...; vanilla): the new files are 145 KB. Reached: everything but
   MultiplyByConjugate (called from the skeleton frames), ReduceKind1 (the AI's
@@ -315,6 +315,35 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
   ResetDamageInfo (1). The matrices replay bit for bit at 007F, so MatrixMultiply and ToMatrix need no
   tolerance. Corrupted copies (one bit in a Reduce result, a matrix element, a Range result, a MaxDamage
   result) fail.
+
+**SV4d (2026-10-15): the game's data seam; the formulas that read settings and the skill database.**
+- The seam (src/game/game_data.h): `ei::GameData<T>(address)` is the address itself in the game; with
+  `EI_VECTORS_REPLAY` (ei_vectors only) it leads to a zeroed stand-in image of 00730000-007D0000
+  (tests/vectors/replay_game_data.cpp) that a check fills and replay_main clears before every record.
+  The named accessors go through it: GameLogicSettings() (the registry settings, 007C53F8),
+  GameDifficulty(), unitdb::Skills() / SkillLevels(), SkillDb(), IsaacRandom::Global(). The formulas
+  now read those by name (hpVal[0], mpVal[0], skillVal[0..1], perkPowerBase, backstabAdd, absorption)
+  instead of raw addresses; GetFactors' 007AF280 and ProtectionBlock's slot weights (0073E0FC) read
+  through GameData. A record's payload holds what the call read there (settings, the level record's
+  value and worth exponent, a skill's first stat letter, the weapon's skill bonus bytes, the
+  generator's draw); the replay writes it to the stand-in and builds raw-byte database records
+  (never constructed: a CString constructor reads the game).
+- Moved so that ei_vectors links them: StrengthRatio / DexterityRatio to unit_stats.cpp, SchoolPrice and
+  SkillDatabase::IndexOfLevel (0051FF00, which SkillPrice now calls directly instead of the original)
+  to unit_skill_price.cpp. ei_vectors also links unit_hit_location, unit_params_protection and
+  unit_params_skill.
+- `stats` gains SkillWithBonus, SkillLevelValue, Value6E8, Value6E9, StrengthRatio, DexterityRatio,
+  GetFactors, SchoolPrice, SkillPrice, SkillDatabase::IndexOfLevel, UnitParams::ProtectionBlock and
+  WeaponSkillBonus, UnitStats::PickLocation; `maths` gains CTransformPipeline::PushMatrix (a raw-byte
+  pipeline, stack 0; whether m was the slot written is recorded). Calls whose reads leave the recorded
+  shapes (an index past the skill bytes, a slot type past 8, a difficulty past 2, a pick that refills
+  the generator) are not offered.
+- Recorded from 38 vanilla scenarios (units, combat, items, HUD, hero, trade and camp screens, spells,
+  camera, models, menus, ...): 12 new files, 57 KB, every record replays bit for bit at 007F. Not
+  reached: Value6E9 (backstab), GetFactors (hero creation), PickLocation's random draw; few distinct
+  calls for ProtectionBlock (1), SkillLevelValue (1), Value6E8 (1), the two ratios (1 each),
+  SkillWithBonus (2), WeaponSkillBonus (3). Corrupted copies (one bit in a SkillPrice, SchoolPrice,
+  WeaponSkillBonus, ProtectionBlock and PushMatrix result) fail.
 
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record

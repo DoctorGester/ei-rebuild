@@ -202,4 +202,33 @@ bool CheckToMatrix(const ToMatrixCall& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("Quaternion::ToMatrix", ToMatrixCall, CheckToMatrix);
 
+bool CheckPush(const PushMatrixCall& v, char* d, std::size_t n) {
+    // A pipeline of raw bytes (never constructed): only its stack 0 is used.
+    alignas(4) static unsigned char storage[sizeof(CTransformPipeline)];
+    std::memset(storage, 0, sizeof(storage));
+    auto* pipeline = reinterpret_cast<CTransformPipeline*>(storage);
+    Matrix4 matrices[2] = {};
+    MatrixStack& stack = pipeline->stacks_[0];
+    stack.matrices = matrices;
+    stack.count = v.empty ? 0 : 1;
+    if (!v.empty) std::memcpy(matrices[0].m, v.top, sizeof(v.top));
+    float m[16];
+    std::memcpy(m, v.m, sizeof(m));
+    const float* pm = m;
+    if (v.alias) {
+        std::memcpy(matrices[stack.count].m, v.m, sizeof(v.m));
+        pm = matrices[stack.count].m;
+    }
+    const int expected = stack.count + 1;
+    pipeline->PushMatrix(pm, 0);
+    if (stack.count != expected) return Fail(d, n, "depth %d, expected %d", stack.count, expected);
+    const float* out = matrices[expected - 1].m;
+    for (int i = 0; i < 16; ++i)
+        if (!Same(out[i], v.out[i]))
+            return Fail(d, n, "%s alias %d element %d: ours %.9g, original %.9g", v.empty ? "empty" : "push", v.alias, i,
+                        out[i], v.out[i]);
+    return true;
+}
+EI_VECTOR_CHECK("CTransformPipeline::PushMatrix", PushMatrixCall, CheckPush);
+
 } // namespace

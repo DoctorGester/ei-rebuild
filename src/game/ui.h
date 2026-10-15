@@ -9,6 +9,7 @@
 
 #include "core_transform.h"
 #include "engine_object.h"
+#include "game_data.h"
 #include "item_db.h"
 #include "unit.h"   // LockKey
 
@@ -3135,4 +3136,4 @@ inline int& MouseDragX() { return *reinterpret_cast<int*>(0x007C7C60); }
 inline int& MouseDragY() { return *reinterpret_cast<int*>(0x007C7C64); }
 
 // 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
-inline int& GameDifficulty() { return *reinterpret_cast<int*>(0x0079BEC0); }
+inline int& GameDifficulty() { return ei::GameData<int>(0x0079BEC0); }

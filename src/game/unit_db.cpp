@@ -361,9 +361,4 @@ int SkillDatabase::IndexOf(const char* levelName) {
 }
 EI_REPLACE_METHOD(0x0051FE80, SkillDatabase::IndexOf);
 
-int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
-    for (const SkillLevelRecord* level = levels.begin(); level != levels.end(); ++level)
-        if (level == record) return static_cast<int>(level - levels.begin());
-    return -1;
-}
-EI_REPLACE_METHOD(0x0051FF00, SkillDatabase::IndexOfLevel);
+// 0051FF00 SkillDatabase::IndexOfLevel is in unit_skill_price.cpp (ei_vectors links it there).

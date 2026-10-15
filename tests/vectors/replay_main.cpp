@@ -85,6 +85,7 @@ int ReplayFile(const std::filesystem::path& path, const std::filesystem::path& r
         std::memcpy(&rh, record.data(), sizeof(rh));
         char detail[512] = "";
         // Exceptions stay masked, as in the game (an unmasked one there would have crashed it).
+        ResetGameData();
         SetControlWord(static_cast<std::uint16_t>(rh.controlWord | 0x3F));
         bool ok = check->run(record.data() + sizeof(RecordHeader), detail, sizeof(detail));
         SetControlWord(initial);

@@ -2,6 +2,7 @@
 // addon show, from the packed parameters (CUnit + 0x330) and packed vitals (+0x17C). See unit.h.
 #include "unit.h"
 
+#include "logic_settings.h"
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -11,10 +12,12 @@
 namespace {
 constexpr int kDamageTypes = 7;
 constexpr int kSlotKindWorn = 1;   // a slot counts when its kind is above this
+constexpr int kSlotTypes = 5;      // UnitParamsSlot::type 0..4
 // 0073E0FC: the weight of a body slot's protection by slot type (head 10, body 30, ...).
-inline const float* SlotWeights() { return reinterpret_cast<const float*>(std::uintptr_t(0x0073E0FC)); }
-// 007C54A0: the protection factor by difficulty (GameDifficulty, ui.h).
-inline const float* DifficultyFactors() { return reinterpret_cast<const float*>(std::uintptr_t(0x007C54A0)); }
+constexpr std::uintptr_t kSlotWeights = std::uintptr_t(0x0073E0FC);
+inline const float* SlotWeights() { return ei::GameData<const float[kSlotTypes]>(kSlotWeights); }
+// The protection factor by difficulty (GameDifficulty, ui.h): the setting "Absorption" (007C54A0).
+inline const float* DifficultyFactors() { return GameLogicSettings().absorption; }
 } // namespace
 
 void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std::uint8_t keyed) {

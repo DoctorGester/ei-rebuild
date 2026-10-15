@@ -21,8 +21,6 @@ constexpr signed char kNeighbours[kSlots][kSlots] = {
     {5, 1, -1},             // legs
     {4, 1, -1},
 };
-
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 } // namespace
 
 int UnitStats::PickLocation(int location) {
@@ -37,6 +35,6 @@ int UnitStats::PickLocation(int location) {
     for (int i = 0; i < kSlots; ++i)
         if (slots[i].kind == kWorking) working[count++] = i;
     if (count == 0) return kFallback;
-    return working[Random().Next() % count];   // the draw is inlined in the original
+    return working[IsaacRandom::Global().Next() % count];   // the draw is inlined in the original
 }
 EI_REPLACE_METHOD(0x00525B20, UnitStats::PickLocation);

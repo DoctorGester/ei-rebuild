@@ -1,10 +1,12 @@
-// What learning a skill level costs (00528050; the interface's skill pages call it). See unit.h
-// (UnitStats::SkillPrice) and docs/notes/units.md ("Statistics in play"). Plain C++ float maths (rule 7).
+// What learning a skill level (00528050) or raising a school (00527FF0) costs; the interface's
+// skill pages call them. With the level record lookup they use (0051FF00), so ei_vectors links
+// them without the rest of the skill database. See unit.h (UnitStats::SkillPrice) and
+// docs/notes/units.md ("Statistics in play"). Plain C++ float maths (rule 7).
+#include "logic_settings.h"
 #include "unit.h"
 #include "unit_db.h"
 
 #include "ei/hook.h"
-#include "originals_units.h"
 
 #include <cmath>
 #include <cstdint>
@@ -17,25 +19,34 @@ constexpr float kTenth = 0.1f;          // 0073B850
 constexpr float kHalf = 0.5f;           // 0073B86C
 constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (+0x6D3..+0x6F6)
 
-// The game's settings (globals read at the time of the call): the worth scale and divisor of a
-// level, the price growth per known skill level.
-constexpr std::uintptr_t kWorthScale = 0x007C547C;
-constexpr std::uintptr_t kWorthDivisor = 0x007C5480;
-constexpr std::uintptr_t kPriceGrowth = 0x007C5484;
-float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
-
-constexpr std::uintptr_t kSkillDatabase = 0x007AF268;
-// 0051FF00 (not rewritten): the index of `record` among the skill database's level records, or -1.
-
-// What a level value is worth (the same curve as RaiseSkill's).
+// What a level value is worth (the same curve as RaiseSkill's): the game's settings "Skill Val 1"
+// (the scale) and "Skill Val 2" (the divisor), read at the time of the call.
 double Worth(int value) {
-    return std::pow(kWorthBase, static_cast<double>(value) / Global(kWorthDivisor)) * Global(kWorthScale);
+    const LogicSettings& settings = GameLogicSettings();
+    return std::pow(kWorthBase, static_cast<double>(value) / settings.skillVal[1]) * settings.skillVal[0];
 }
 } // namespace
 
+int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
+    for (const SkillLevelRecord* level = levels.begin(); level != levels.end(); ++level)
+        if (level == record) return static_cast<int>(level - levels.begin());
+    return -1;
+}
+EI_REPLACE_METHOD(0x0051FF00, SkillDatabase::IndexOfLevel);
+
+// 00527FF0 (fastcall). What raising a school from level value `from` to `to` costs: the worths'
+// difference, truncated.
+int __fastcall SchoolPrice(int from, int to) {
+    const double upper = Worth(to);
+    const double lower = Worth(from);
+    return static_cast<int>(upper - lower);
+}
+EI_REPLACE(0x00527FF0, SchoolPrice);
+
 int UnitStats::SkillPrice(const char* record) {
-    int index = SkillRecordIndex(reinterpret_cast<const void*>(kSkillDatabase), nullptr, record);
-    double worth = Worth(reinterpret_cast<const ::SkillLevelRecord*>(record)->WorthExponent());
+    auto* level = reinterpret_cast<const ::SkillLevelRecord*>(record);
+    int index = SkillDb()->IndexOfLevel(level);
+    double worth = Worth(level->WorthExponent());
     double below;
     if (index % 3 > 0) {
         // The level below in the same skill: the record before it (read unchecked: a missing one
@@ -52,7 +63,7 @@ int UnitStats::SkillPrice(const char* record) {
     for (int i = 0; i < kKnownLevels; ++i) known = static_cast<std::uint8_t>(known + skillLevels[i]);
     // Stored to a float and to a double of the same value (the product is rounded at the game's
     // 24-bit precision before either store).
-    float price = static_cast<float>(std::pow(static_cast<double>(Global(kPriceGrowth)), known) * cost);
+    float price = static_cast<float>(std::pow(static_cast<double>(GameLogicSettings().perkPowerBase), known) * cost);
 
     // The power of ten of the first digit (FLDLG2; FYL2X, the CRT's floor and _CIpow).
     float power = static_cast<float>(std::pow(10.0, std::floor(std::log10(static_cast<double>(price)))));

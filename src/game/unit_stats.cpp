@@ -1,5 +1,6 @@
 // Creature statistics: attribute, skill and skill level lookups over UnitStats, and small helpers
 // of the hit (DamageInfo) and lock records. See unit.h.
+#include "logic_settings.h"
 #include "unit.h"
 #include "unit_db.h"
 
@@ -32,8 +33,9 @@ constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0073CCA8 
 constexpr int kLevelBase6E8 = 0x3E;
 constexpr int kLevelBase6E9 = 0x41;
 
-float Global7C5430() { return *reinterpret_cast<const float*>(0x007C5430); }
-float Global7AF280() { return *reinterpret_cast<const float*>(0x007AF280); }
+// 007AF280 (beside the skill database; written at 0052882C): the stat range GetFactors divides by.
+constexpr std::uintptr_t kFactorStatRange = std::uintptr_t(0x007AF280);
+float FactorStatRange() { return ei::GameData<const float>(kFactorStatRange); }
 
 // The skill level record `index`, or null when there is none.
 const SkillLevelRecord* LevelRecord(std::uint32_t index) {
@@ -43,6 +45,12 @@ const SkillLevelRecord* LevelRecord(std::uint32_t index) {
 bool IsZeroOrNaN(float f) { return !(f < kZero || f > kZero); }
 
 } // namespace
+
+double UnitStats::StrengthRatio() { return stat10 / GameLogicSettings().hpVal[0]; }
+EI_REPLACE_METHOD(0x00523CB0, UnitStats::StrengthRatio);
+
+double UnitStats::DexterityRatio() { return stat18 / GameLogicSettings().mpVal[0]; }
+EI_REPLACE_METHOD(0x00523CC0, UnitStats::DexterityRatio);
 
 double UnitStats::Period20() { return kStatBase / stat20; }
 EI_REPLACE_METHOD(0x00523CD0, UnitStats::Period20);
@@ -116,7 +124,7 @@ double UnitStats::Value6E8() {
 EI_REPLACE_METHOD(0x00524280, UnitStats::Value6E8);
 
 double UnitStats::Value6E9() {
-    double base = Global7C5430();
+    double base = GameLogicSettings().backstabAdd;
     std::uint8_t level = skillLevels[0x6E9 - 0x6D3];
     if (level != 0) {
         const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E9);
@@ -155,8 +163,8 @@ double UnitStats::ReduceKind1(float value) {
 EI_REPLACE_METHOD(0x00524020, UnitStats::ReduceKind1);
 
 void UnitStats::GetFactors(float* a, float* b, int) {
-    double x = (stat10 - kFactorBase) / Global7AF280();   // both kept on the FPU stack
-    double y = kOne - (stat18 - kFactorBase) / Global7AF280();
+    double x = (stat10 - kFactorBase) / FactorStatRange();   // both kept on the FPU stack
+    double y = kOne - (stat18 - kFactorBase) / FactorStatRange();
     *a = static_cast<float>(y * kPointThree + x * kPointSeven);
     *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }
