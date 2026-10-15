@@ -1070,6 +1070,13 @@ group = "verification"
 depends = ["SV7d1a"]
 note = "From SV7d1a: the build is /fp:precise. The 87 float_control(precise, on) pragmas and the volatile float store helpers (StoreFloat, RoundToFloat, Round, ...) written only to defeat /fp:fast's regrouping and unrounded float locals are redundant. Remove them where they only did that (a store the original does is a plain float assignment now), keeping x87::FromUnsigned, IsNaN and the x87:: transcendental helpers. check_cleanup's float_control count goes down. Suite with --golden; behaviour must not change."
 
+[[ticket]]
+id = "SV4c1"
+title = "Path vectors on more maps: smaller AI map snapshots"
+group = "verification"
+depends = ["SV4c"]
+note = "SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
