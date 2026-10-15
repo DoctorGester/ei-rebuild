@@ -192,6 +192,38 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
 (their checks are registered and wait for a scenario that does: SV5's coverage list). A corrupted copy
 (one bit of a Dot result, one of Refill's state) fails both records.
 
+**SV4a (2026-10-15): matrix maths, Range and the stat and damage formulas.**
+- `maths` also has MatrixMultiply (matrix_math.cpp), Quaternion::ToMatrix (before and after of all 16
+  elements, so the ones it leaves alone are checked) and MultiplyByConjugate (quaternion.cpp), the last
+  with the aliasing of its output.
+- `random` also has IsaacRandom::Range. The payload is the draw (results_[count_] after the call, which is
+  Next's result), min, max and the float result; the replay gives ours a generator that holds just that
+  draw, so the 4 KB generator is not recorded (Next and Refill cover it). Range moved from effects.cpp to
+  random.cpp, since effects.cpp does not link without the game.
+- `stats` (unit_stats.cpp, linked with src/lib/rebirth.cpp; Rebirth's patches stay off in the replay, the
+  vectors are vanilla): UnitStats::Period20, AttributeBase, AttributeWithBonus, SkillBase, WeaponSkill,
+  Reduce, ReduceKind1, LockKey::Opens, ResetDamageInfo, HasElementalDamage, ExcessDamage and MaxDamage. A
+  UnitStats is not copied whole: the payload has the fields the function reads (stat10/18/20, attributes,
+  skills, the six slots' kind, current, maximum and factor), the rest zero, so equal calls dedupe.
+  ExcessDamage and MaxDamage moved from unit_stat_small.cpp to unit_stats.cpp (unit_stat_small.cpp needs
+  net_delta.cpp, which needs the streams). Results the original leaves unrounded in ST0 are recorded as
+  doubles and compared bitwise.
+- Left out because their sources do not link without the game or read game memory: CTransformPipeline::
+  PushMatrix (the pipeline object), UnitStats::GetFactors, StrengthRatio/DexterityRatio, SkillWithBonus,
+  SkillLevelValue, Value6E8/6E9, SkillPrice and SchoolPrice (the game's settings at fixed addresses or the
+  skill databases), UnitParams::ProtectionBlock and WeaponSkillBonus (databases and settings),
+  UnitStats::PickLocation (the global generator). Each needs its globals passed in the payload and a
+  forwarder-free way to read them; a ticket for it is SV4d.
+- Recorded from 48 scenarios (the SV4 seven and items, hero screens, camp, spells,
+  scripts, models, particles, ...; vanilla): the new files are 145 KB. Reached: everything but
+  MultiplyByConjugate (called from the skeleton frames), ReduceKind1 (the AI's
+  target choice) and LockKey::Opens (lever and lock keys); none of the 48 reaches them; their checks are
+  registered and wait for scenarios (SV5's coverage list). Few distinct calls exist for AttributeBase (1),
+  AttributeWithBonus (1), WeaponSkill (1), Period20 (2), HasElementalDamage (1), ExcessDamage (1) and
+  ResetDamageInfo (1). The matrices replay bit for bit at 007F, so MatrixMultiply and ToMatrix need no
+  tolerance. Corrupted copies (one bit in a Reduce result, a matrix element, a Range result, a MaxDamage
+  result) fail.
+
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
 run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the

@@ -16,7 +16,7 @@ public:
     // 0049EE70. Generates the next 256 results (reference isaac()).
     void Refill();
 
-    // 00488970 (effects.cpp). Next() * (max - min) * ~2^-32 + min, left unrounded in ST0.
+    // 00488970 (random.cpp). Next() * (max - min) * ~2^-32 + min, left unrounded in ST0.
     float Range(float min, float max);
 
     // 0049F150. Once (while seeded_ is 0): seeds results_ (0049F660: 1 KB of a random file on C:\,

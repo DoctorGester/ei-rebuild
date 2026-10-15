@@ -69,9 +69,23 @@ struct EvaluateCall {
     float t, result;
 };
 
+struct ConjugateCall {   // MultiplyByConjugate: bit 0 out is a, bit 1 out is b
+    Quaternion a, b, out;
+    std::uint32_t alias;
+};
+struct MatrixMultiplyCall {   // MatrixMultiply: bit 0 out is a, bit 1 out is b (a and b as passed in)
+    float a[16], b[16], out[16];
+    std::uint32_t alias;
+};
+struct ToMatrixCall {    // Quaternion::ToMatrix: the elements it leaves alone are equal in before and after
+    Quaternion q;
+    float before[16], after[16];
+};
+
 static_assert(sizeof(ConstructCall) == 24 && sizeof(DotCall) == 28 && sizeof(LengthCall) == 16 && sizeof(FromAxisAngleCall) == 32);
 static_assert(sizeof(BinaryCall) == 40 && sizeof(UnaryCall) == 28 && sizeof(ScaleCall) == 32 && sizeof(AddInPlaceCall) == 40);
 static_assert(sizeof(ClampCall) == 8 && sizeof(IdentityCall) == 16 && sizeof(PreMultiplyCall) == 52 && sizeof(AxisCall) == 28);
 static_assert(sizeof(BSplineCall) == 32 && sizeof(EvaluateCall) == 24);
+static_assert(sizeof(ConjugateCall) == 52 && sizeof(MatrixMultiplyCall) == 196 && sizeof(ToMatrixCall) == 144);
 
 } // namespace ei::vectors::maths

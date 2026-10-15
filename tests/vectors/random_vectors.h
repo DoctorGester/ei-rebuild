@@ -19,6 +19,14 @@ struct Refill {
     IsaacRandom before, after;
 };
 
+// IsaacRandom::Range. The draw it takes is results_[count_] after the call (Next's result): the replay
+// gives ours a generator that holds just that value.
+struct Range {
+    std::uint32_t value;
+    float min, max, result;
+};
+
+static_assert(sizeof(Range) == 16);
 static_assert(sizeof(Next) == 2 * 0x814 + 4 && sizeof(Refill) == 2 * 0x814);
 
 } // namespace ei::vectors::random

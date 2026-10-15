@@ -60,7 +60,11 @@ add_executable(ei_vectors
     tests/vectors/hook_stub.cpp
     src/game/core_maths.cpp
     src/game/maths.cpp
+    src/game/matrix_math.cpp
+    src/game/quaternion.cpp
     src/game/random.cpp
+    src/game/unit_stats.cpp
+    src/lib/rebirth.cpp
     src/lib/crt.cpp
     src/lib/mfc.cpp)
 target_include_directories(ei_vectors PRIVATE include src)

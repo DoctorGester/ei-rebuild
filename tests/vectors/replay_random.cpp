@@ -31,4 +31,16 @@ bool CheckRefill(const random::Refill& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("IsaacRandom::Refill", random::Refill, CheckRefill);
 
+bool CheckRange(const random::Range& v, char* d, std::size_t n) {
+    static IsaacRandom rng;
+    rng.count_ = 1;
+    rng.results_[0] = v.value;
+    float result = rng.Range(v.min, v.max);
+    if (Same(result, v.result) && rng.count_ == 0) return true;
+    std::snprintf(d, n, "draw %08X in [%g, %g]: ours %.9g, original %.9g (count %u)", v.value, v.min, v.max, result,
+                  v.result, rng.count_);
+    return false;
+}
+EI_VECTOR_CHECK("IsaacRandom::Range", random::Range, CheckRange);
+
 } // namespace

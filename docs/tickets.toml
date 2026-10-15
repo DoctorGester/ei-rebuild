@@ -685,9 +685,10 @@ started = "2026-10-15"
 id = "SV4a"
 title = "Function vectors: matrix maths, effects' Range, and pure formulas (stat, damage tables)"
 group = "verification"
-status = "queued"
+status = "review"
 depends = ["SV4"]
 note = "Extend SV4's record/replay (tests/vectors) to matrix_math.cpp (MatrixMultiply, Quaternion::ToMatrix), MultiplyByConjugate (quaternion.cpp), IsaacRandom::Range and the pure stat/damage formula functions whose inputs are plain values or small structs. Same pattern as tests/vectors/record_maths.cpp; add the sources to ei_vectors in CMakeLists.txt; record with EI_VECTORS=1 and tools/vectors.py merge."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV4b"
@@ -704,6 +705,14 @@ group = "verification"
 status = "queued"
 depends = ["SV4"]
 note = "SV4's last family in standalone-verification.md section 3: path searches (ai_path*.cpp) replayed on a saved AI map. Needs the map state captured once per record run (not per call) and loaded by ei_vectors; records hold the query and the path."
+
+[[ticket]]
+id = "SV4d"
+title = "Function vectors: stat formulas that read game settings and databases"
+group = "verification"
+status = "queued"
+depends = ["SV4a"]
+note = "Left out of SV4a: UnitStats::GetFactors, StrengthRatio, DexterityRatio, SkillWithBonus, SkillLevelValue, Value6E8/6E9, SkillPrice, SchoolPrice, UnitParams::ProtectionBlock and WeaponSkillBonus, UnitStats::PickLocation read game settings at fixed addresses or the skill databases. Pass the values in the payload and make the sources read them through a seam the replay can fill; CTransformPipeline::PushMatrix needs the pipeline object. See standalone-verification.md SV4a."
 
 # ---------------------------------------------------------------- harness and suite
 
