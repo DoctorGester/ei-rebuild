@@ -1,7 +1,7 @@
 // The multiplayer hero screen's Create (00613EA0, CMpHeroScreen slot 25). Rebirth's WideScreen
 // replaces the function with the original followed by two hidden curtain sprites over the screen's
 // margins (widescreen::AddCurtains), which this reproduces; EI_Plugin.asi patches it too
-// (EiPluginFixes, not reproduced), so it is hooked in the vanilla launch only; nothing in the
+// (EiPluginFixes, reproduced: the figures' sex test), so it is hooked in a Rebirth launch too; nothing in the
 // rewritten code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
 #include "ui_screens.h"
@@ -29,6 +29,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <new>
 
 namespace {
@@ -153,6 +154,14 @@ void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* pr
                bool voiced) {
     if (voiced) voices.push_back(Voice{prototype->name, label});
     names.push_back(prototype->name);
+}
+
+// EI_Plugin's test (cmp word [ecx+4], 0x6566 on the name's characters): the 16 bits at +4, as the
+// plugin reads them, past a short name's end included.
+bool ModelNameIsFemale(const mfc::CString& model) {
+    std::uint16_t word;
+    std::memcpy(&word, static_cast<const char*>(model) + 4, sizeof word);
+    return word == 0x6566;
 }
 
 } // namespace
@@ -340,11 +349,20 @@ void CMpHeroScreen::Create() {
             return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(figureModel)),
                                     reinterpret_cast<const unsigned char*>(name)) == 0;
         };
-        if (isModel(game::Text(0x007908C8))) {   // "unhuma"
+        bool isMale = isModel(game::Text(0x007908C8));                // "unhuma"
+        bool isFemale = !isMale && isModel(game::Text(0x00792EA4));   // "unhufe"
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes)) {
+            // EI_Plugin's fixes (00614BB5, 00614D1B): the two name comparisons become one test of
+            // the two characters at +4 of the model's name (the word 0x6566, "fe"); a model that
+            // has them is a woman's, every other one a man's.
+            isFemale = ModelNameIsFemale(figureModel);
+            isMale = !isFemale;
+        }
+        if (isMale) {
             label.Format(game::Text(0x00792F14), static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);   // "%s %d"
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
-        if (isModel(game::Text(0x00792EA4))) {   // "unhufe"
+        if (isFemale) {
             label.Format(game::Text(0x00792F14), static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
@@ -444,6 +462,6 @@ void CMpHeroScreen::Create() {
     widescreen::AddCurtains(&window, 0);
 }
 EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
-// In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B), which
-// is not reproduced: the installer skips it there and addon's code runs.
-EI_REBIRTH_IMPLEMENTS(0x00613EA0, ei::rebirth::Patch::WideScreen);
+// In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the
+// figures' sex test above).
+EI_REBIRTH_IMPLEMENTS(0x00613EA0, ei::rebirth::Patch::WideScreen, ei::rebirth::Patch::EiPluginFixes);
