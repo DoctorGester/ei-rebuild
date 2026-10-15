@@ -602,12 +602,13 @@ depends = ["SV3"]
 id = "SV1a"
 title = "units and sandbox_actions: our wolf dies 300 ms of virtual time sooner than the original"
 group = "verification"
-status = "review"
+status = "done"
 size = 0.5
 model = "opus"
 files = ["tests/scenarios/units.txt", "tests/scenarios/sandbox_actions.txt", "tests/verify/harness_clock.cpp"]
 note = "From SV1 (2026-10-14): both repeat on the virtual clock on each side, but ours kills the wolf at 400 ms against 700 ms in the original, every run. CRT rand() sequence identical; where the draws fall drifts by about two frames. Compare randtrace side by side by value (or SV2's state digest) to find the first differing draw."
 started = "2026-10-14"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV1b"
