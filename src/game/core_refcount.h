@@ -42,6 +42,8 @@ static_assert(sizeof(CRefObject) == 8);
 
 // An owning pointer to a CRefObject (one dword).
 struct RefPtr {
+    // Body of the slot at 004AB960 (registered by member pointer).
+    RefPtr* DeleteScalar(unsigned flags);
     RefPtr* AssignCounted(const RefPtr* other);
     RefPtr* CopyPlain(const RefPtr* other);
     RefPtr* CopyShared(const RefPtr* other);

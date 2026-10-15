@@ -847,3 +847,39 @@ static int __fastcall AllocateVoiceVerify(CSoundManager* self, void*, int priori
     return index;
 }
 EI_VERIFY(0x006B7D10, AllocateVoiceVerify, 0, s_unusedAllocateVoice);
+
+// 006B89B0 (S16b; ui_base_topic's speech): ours only, its decoder calls recorded through a stand-in
+// setter that passes them on: at state 1 exactly the three requests, otherwise none; returns 1.
+namespace {
+struct DecoderCall {
+    const char* name;
+    std::uint32_t value;
+};
+thread_local DecoderPropertyFn t_decoderSet;
+thread_local DecoderCall t_decoderCalls[4];
+thread_local int t_decoderCount;
+int __stdcall RecordDecoderCall(const char* name, std::uint32_t value) {
+    if (t_decoderCount < 4) t_decoderCalls[t_decoderCount] = {name, value};
+    ++t_decoderCount;
+    return t_decoderSet(name, value);
+}
+int __stdcall DecompressCallbackVerify(int state, DecoderPropertyFn set) {
+    t_decoderSet = set;
+    t_decoderCount = 0;
+    int result = SoundDecompressCallback(state, &RecordDecoderCall);
+    bool ok = result == 1;
+    if (state == 1) {
+        static const DecoderCall kExpected[3] = {
+            {"Requested bit width", 16}, {"Requested sample rate", 44100}, {"Requested # of channels", 2}};
+        ok = ok && t_decoderCount == 3;
+        for (int i = 0; ok && i < 3; ++i)
+            ok = std::strcmp(t_decoderCalls[i].name, kExpected[i].name) == 0 && t_decoderCalls[i].value == kExpected[i].value;
+    } else {
+        ok = ok && t_decoderCount == 0;
+    }
+    ei::verify::Check("SoundDecompressCallback", true, ok, "state %d, %d calls", state, t_decoderCount);
+    return result;
+}
+void* s_decompressCallback;
+} // namespace
+EI_VERIFY(0x006B89B0, DecompressCallbackVerify, 0, s_decompressCallback);

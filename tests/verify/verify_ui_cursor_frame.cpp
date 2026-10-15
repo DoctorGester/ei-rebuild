@@ -53,6 +53,16 @@ static void __fastcall CursorThreadVerify(CCursor* self) {
 }
 EI_VERIFY(0x005E5690, CursorThreadVerify, 0, s_cursorThread);
 
+// 005E52A0, the thread's entry (S16b): ours only, exit code 0 (the loop's own check runs inside).
+unsigned __cdecl CursorThreadEntry(void* cursor);
+static unsigned __cdecl CursorThreadEntryVerify(void* cursor) {
+    unsigned code = CursorThreadEntry(cursor);
+    ei::verify::Check("CursorThreadEntry", 0u, code, "exit code %u", code);
+    return code;
+}
+static void* s_cursorThreadEntry;
+EI_VERIFY(0x005E52A0, CursorThreadEntryVerify, 0, s_cursorThreadEntry);
+
 // 005E6630 copies the screen under the cursor into its background surface: ours only. Checked: the
 // drawn rectangle and the bounds (+0x50) are unchanged. Every scenario that loads a zone (the
 // loading movie calls it).

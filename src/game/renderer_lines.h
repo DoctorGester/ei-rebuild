@@ -82,7 +82,5 @@ inline lib::AlignedArray<ProjectedPoint>& LineProjected() {
 }
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *reinterpret_cast<mfc::CArray<std::uint8_t>*>(0x007A9CC8); }
 
-// 005045D0 (thiscall on the renderer, RET 8).
-int __fastcall RendererPolyline(CSceneRenderer* renderer, void*, const ScreenPoints* points, std::uint32_t colour);
 // 0049B4B0 (fastcall: the device object, the points; the colour on the stack, RET 4).
 long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

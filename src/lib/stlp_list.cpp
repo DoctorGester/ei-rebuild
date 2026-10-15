@@ -363,6 +363,14 @@ EI_REPLACE(0x004FBCF0, StringDwordList::Clear);   // S12c: the link loader's arc
 EI_REPLACE(0x00423370, CountedRefList::Destruct);
 EI_REPLACE(0x004235F0, CountedRefList::Destruct);
 
+// S12g: ~list() of the client's servers (SharedRef, the owner's release inlined) and of the
+// server's keyed references at +0x25C0 (CountedEntry); insert(pos, first, last) of SharedRef and
+// CountedRef (each element through the instantiation's insert 0047A450 / 0047A480).
+EI_REPLACE(0x00421A50, SharedRefList::Destruct);
+EI_REPLACE(0x004238B0, CountedEntryList::Destruct);
+EI_REPLACE(0x00560430, SharedRefList::InsertRange);
+EI_REPLACE(0x00560460, CountedRefList::InsertRange);
+
 // remove(value) of CountedRef (erasing through 00429510).
 EI_REPLACE(0x00427320, stlp::ListRemoveCounted);
 // remove(value) of HeldObject (erasing through 00572270): the client sector grid's cells.

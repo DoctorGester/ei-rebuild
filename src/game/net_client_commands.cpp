@@ -20,7 +20,6 @@ RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);   // refptr_
 
 namespace net {
 
-
 namespace {
 
 // STLport (library): the timers list (+0x2604: {seconds, counted object}) end / insert / push_back,
@@ -36,7 +35,6 @@ void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char
 
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
-
 
 // RefPtr::Destroy as the callers inline it (the release is not null-checked after the shutdown,
 // and done inline: one reference less, deleted at zero).
@@ -170,10 +168,7 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
     }
     out->Share(entry);
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x0041D420, ClientSession::CreateEntryImpl);
-
 
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
 void ClientSession::OnJoined() { FlowBeginMultiplayerGameOriginal(reinterpret_cast<void*>(0x007AFE20)); }
@@ -187,7 +182,7 @@ EI_REPLACE(0x0041D410, ClientBeginGameHook);
 // both as signed integers; 0 for fewer than 4 bytes. Reading the dword moves the read position to
 // 4 (Seek(0) through slot 6, then a 4-byte read as BufferRead does it). Returned unrounded: the
 // caller multiplies ST0. Plain C++ division (rewrite-guide rule 7).
-double __fastcall ClientBufferRatio(ClientSession*, void*, GameBuffer* buffer) {
+double ClientSession::BufferRatioImpl(GameBuffer* buffer) {
     auto streamSize = [buffer] {
         if (buffer->cur > buffer->high) buffer->high = buffer->cur;
         return static_cast<std::int32_t>(buffer->base - reinterpret_cast<std::intptr_t>(buffer->begin) +
@@ -204,6 +199,6 @@ double __fastcall ClientBufferRatio(ClientSession*, void*, GameBuffer* buffer) {
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
     return static_cast<double>(streamSize()) / static_cast<double>(divisor);
 }
-EI_REPLACE(0x0041D9A0, ClientBufferRatio);
+EI_REPLACE_METHOD(0x0041D9A0, ClientSession::BufferRatioImpl);
 
 } // namespace net

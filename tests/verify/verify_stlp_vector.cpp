@@ -156,6 +156,7 @@ struct FreeCheck {
     }
 };
 template <std::uintptr_t A> using Free1 = FreeCheck<A, Vector1>;
+template <std::uintptr_t A> using Free2 = FreeCheck<A, Vector2>;
 template <std::uintptr_t A> using Free4 = FreeCheck<A, Vector4>;
 template <std::uintptr_t A> using Free8 = FreeCheck<A, Vector8>;
 template <std::uintptr_t A> using Free12 = FreeCheck<A, Vector12>;
@@ -429,6 +430,7 @@ struct HelperCheck {
 };
 template <std::uintptr_t A> using Helper2 = HelperCheck<A, std::uint16_t>;
 template <std::uintptr_t A> using Helper4 = HelperCheck<A, std::uint32_t>;
+template <std::uintptr_t A> using Helper1 = HelperCheck<A, char>;
 
 } // namespace
 
@@ -488,6 +490,8 @@ EI_VERIFY(0x006B6D30, Free1<0x006B6D30>::DestroyBase, 5, Free1<0x006B6D30>::orig
 EI_VERIFY(0x00598D80, Free1<0x00598D80>::DestroyBase, 5, Free1<0x00598D80>::original);
 EI_VERIFY(0x006B72E0, Free1<0x006B72E0>::DestroyBase, 5, Free1<0x006B72E0>::original);
 EI_VERIFY(0x00405BF0, Free4<0x00405BF0>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x004389C0, Free4<0x004389C0>::DestroyBase, 0, s_unused);   // S16b
+EI_VERIFY(0x004336D0, Free2<0x004336D0>::DestroyBase, 0, s_unused);   // S16b
 EI_VERIFY(0x00405DB0, Free4<0x00405DB0>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x00405E00, Free4<0x00405E00>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x00405E50, Free4<0x00405E50>::DestroyBase, 0, s_unused);
@@ -601,6 +605,11 @@ EI_VERIFY(0x0053D970, Change1<0x0053D970>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D990, Change1<0x0053D990>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D9B0, Change1<0x0053D9B0>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0069DB00, Change16<0x0069DB00>::AllocateAndCopy, 5, Change16<0x0069DB00>::original);
+// S12g: pointers (the item stock's vectors) and 24 bytes (the client maps): push ebp; mov ebp,esp; push -1 (5 bytes).
+EI_VERIFY(0x0069D9A0, Change4<0x0069D9A0>::AllocateAndCopy, 5, Change4<0x0069D9A0>::original);
+EI_VERIFY(0x0069DC70, Change4<0x0069DC70>::AllocateAndCopy, 5, Change4<0x0069DC70>::original);
+EI_VERIFY(0x0069DDD0, Change4<0x0069DDD0>::AllocateAndCopy, 5, Change4<0x0069DDD0>::original);
+EI_VERIFY(0x00573520, Change24<0x00573520>::AllocateAndCopy, 5, Change24<0x00573520>::original);
 EI_VERIFY(0x0043B6C0, Change4<0x0043B6C0>::InsertOverflow, 5, Change4<0x0043B6C0>::original);
 EI_VERIFY(0x0043B850, Change4<0x0043B850>::InsertOverflow, 5, Change4<0x0043B850>::original);
 EI_VERIFY(0x0043D5F0, Change4<0x0043D5F0>::InsertOverflow, 5, Change4<0x0043D5F0>::original);
@@ -645,6 +654,8 @@ EI_VERIFY(0x0062A0B0, Change60<0x0062A0B0>::InsertOverflow, 5, Change60<0x0062A0
 // PUSH ESI; SAR EDX,2; 0043DC80: MOV EAX,[ESP+4]; SUB EDX,ECX).
 EI_VERIFY(0x0043B530, Change2<0x0043B530>::InsertOverflow, 5, Change2<0x0043B530>::original);
 EI_VERIFY(0x00439DD0, Change8<0x00439DD0>::EraseRange, 5, Change8<0x00439DD0>::original);
+// S12g: the net strings' bytes: push esi; mov esi,edx; sub esi,ecx (5 bytes).
+EI_VERIFY(0x004193D0, Helper1<0x004193D0>::CopyTrivial, 5, Helper1<0x004193D0>::original);
 EI_VERIFY(0x0043B360, Helper4<0x0043B360>::CopyTrivial, 6, Helper4<0x0043B360>::original);
 EI_VERIFY(0x0043DC80, Helper4<0x0043DC80>::CopyElements, 6, Helper4<0x0043DC80>::original);
 EI_VERIFY(0x00571E30, Helper4<0x00571E30>::CopyElements, 6, Helper4<0x00571E30>::original);

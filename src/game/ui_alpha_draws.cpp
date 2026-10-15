@@ -40,22 +40,22 @@ __declspec(naked) void __fastcall UpdateRegionTips(CUiWindow*, void*, int) EI_OR
 } // namespace
 
 // 00600F70 (a container's). The children, each drawn (slot 21) when enabled.
-void __fastcall WindowDrawChildren(CUiWindow* self, void*, int pass) {
-    if (!self->interface_->drawing_) return;
-    Flush(self);
-    std::uint32_t savedRef = GetState(self, kAlphaRef);
-    SetState(self, kAlphaRef, 1);
-    UpdateRegionTips(self, nullptr, pass);
-    const UiPtrArray<CUiWindow>& children = static_cast<CUiContainer*>(self)->children_;
+void CUiContainer::DrawChildrenImpl(int pass) {
+    if (!interface_->drawing_) return;
+    Flush(this);
+    std::uint32_t savedRef = GetState(this, kAlphaRef);
+    SetState(this, kAlphaRef, 1);
+    ::UpdateRegionTips(this, nullptr, pass);
+    const UiPtrArray<CUiWindow>& children = static_cast<CUiContainer*>(this)->children_;
     for (int i = 0; i < children.size; ++i) {
         CUiWindow* child = children[i];
         if (!child->enabled_) continue;
         child->VirtualDrawChild(pass);
     }
-    Flush(self);
-    SetState(self, kAlphaRef, savedRef);
+    Flush(this);
+    SetState(this, kAlphaRef, savedRef);
 }
-EI_REPLACE(0x00600F70, WindowDrawChildren);
+EI_REPLACE_METHOD(0x00600F70, CUiContainer::DrawChildrenImpl);
 
 // 0062EFC0. Returns 1.
 int __fastcall WindowDrawBlended(CUiWindow* self, void*, int pass) {

@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -241,6 +242,39 @@ template <std::uintptr_t A> using PlainEraseNode24 = EraseCheck<A, stlp::ListAbi
 template <std::uintptr_t A> using PlainEraseNode32 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<24>>>;
 template <std::uintptr_t A> using PlainEraseNode40 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<32>>>;
 
+// insert(pos, first, last) of reference holders (S12g): one new node per source element, linked in
+// order between pos's old predecessor and pos, each holding what the policy's copy makes (the counts
+// are not compared: an object may come more than once).
+template <std::uintptr_t A, typename Abi, bool Shared>
+struct RangeInsertCheck {
+    using List = typename Abi::List;
+    using Node = typename List::Node;
+
+    static void __fastcall Verify(List* self, void*, Node* pos, const Node* first, const Node* last) {
+        std::vector<SharedRefCopy::Expected> expected;
+        for (const Node* n = first; n != last; n = n->next)
+            expected.push_back(Shared ? SharedRefCopy::Expect(n->data) : SharedRefCopy::Expected{n->data.ptr, false, 0});
+        Node* prev = pos->prev;
+        Abi::InsertRange(self, nullptr, pos, first, last);
+        bool ok = true;
+        Node* node = prev;
+        for (const SharedRefCopy::Expected& e : expected) {
+            Node* next = node->next;
+            ok = ok && next != pos && next->prev == node;
+            if (!ok) break;
+            CRefObject* copy = next->data.ptr;
+            if (!e.object) ok = copy == nullptr;
+            else if (e.clone) ok = copy && copy != e.object && (copy->flags6_ & CRefObject::kCopyOnShare);
+            else ok = copy == e.object;
+            node = next;
+        }
+        ok = ok && node->next == pos && pos->prev == node;
+        char detail[64] = "";
+        if (!ok) std::snprintf(detail, sizeof(detail), "%u elements before %p", static_cast<unsigned>(expected.size()), pos);
+        ei::verify::Report(Name<A>("stlp::list::insert(pos, first, last)"), ok, detail);
+    }
+};
+
 // remove(value): every node still linked both ways, none holding the object (unless `value` is one
 // of the elements: then the original too compares later nodes with the erased node's bytes).
 void __fastcall RemoveCountedVerify(stlp::list<RefPtr>* self, void*, const RefPtr* value) {
@@ -352,6 +386,12 @@ EI_VERIFY(0x00422F70, SharedEntryInsert<0x00422F70>::PushBack, 0, s_unused);
 EI_VERIFY(0x004246C0, SharedEntryInsert<0x004246C0>::PushBack, 0, s_unused);
 EI_VERIFY(0x00423690, CountedEntryInsert<0x00423690>::PushBack, 0, s_unused);
 EI_VERIFY(0x0056DED0, HeldObjectInsert<0x0056DED0>::PushBack, 0, s_unused);
+// S12g: insert(pos, first, last) of shared and counted references; ~list() of the client's servers
+// and of the server's keyed references. Ours only.
+EI_VERIFY(0x00560430, (RangeInsertCheck<0x00560430, SharedRefList, true>::Verify), 0, s_unused);
+EI_VERIFY(0x00560460, (RangeInsertCheck<0x00560460, CountedRefList, false>::Verify), 0, s_unused);
+EI_VERIFY(0x00421A50, SharedRefErase<0x00421A50>::Destruct, 0, s_unused);
+EI_VERIFY(0x004238B0, CountedEntryErase<0x004238B0>::Destruct, 0, s_unused);
 
 // erase(pos), clear(), ~list() and remove(value): ours only.
 EI_VERIFY(0x00420290, SharedRefErase<0x00420290>::Verify, 0, s_unused);

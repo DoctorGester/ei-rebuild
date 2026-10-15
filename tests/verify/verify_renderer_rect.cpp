@@ -4,9 +4,6 @@
 #include "../../src/game/model.h"
 #include "../../src/game/texture.h"
 
-int __fastcall RendererRectangle(CSceneRenderer* renderer, void*, int left, int top, int right, int bottom, char alpha,
-                                 char outline);
-
 // 005041F0 draws with Direct3D: ours only. The result is 0 for an inverted rectangle (nothing
 // counted), else 1 with one draw call (two with the outline) counted on the device object, stage
 // 0 without a texture.
@@ -15,7 +12,7 @@ static int __fastcall RendererRectangleVerify(CSceneRenderer* renderer, void*, i
                                               char alpha, char outline) {
     CTextureDevice* device = renderer->device_;
     int calls = device->drawCount_;
-    int result = RendererRectangle(renderer, nullptr, left, top, right, bottom, alpha, outline);
+    int result = renderer->DrawRectangleImpl(left, top, right, bottom, alpha, outline);
     int drawn = device->drawCount_ - calls;
     bool inverted = right < left || bottom < top;
     bool ok = inverted ? result == 0 && drawn == 0

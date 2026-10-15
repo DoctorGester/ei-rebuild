@@ -43,7 +43,7 @@ CTexture** TextureHolder(ClientArrayManager* self) { return reinterpret_cast<CTe
 
 // 004E2290 (slot 14, RET 4): a new CVisibilityFog, whatever the type asked: the engine object's
 // fields, everything up to the cell map zero, an empty cell map; null when the allocation fails.
-CEngineObject* __fastcall VisFogManagerNewObject(ClientArrayManager*, void*, int) {
+CEngineObject* ClientArrayManager::NewObjectImpl(int) {
     void* memory = gamecrt::operator_new(sizeof(CVisibilityFog));
     if (!memory) return nullptr;
     auto* fog = static_cast<CVisibilityFog*>(memory);
@@ -56,7 +56,7 @@ CEngineObject* __fastcall VisFogManagerNewObject(ClientArrayManager*, void*, int
     fog->boundsValid = 0;
     return object;
 }
-EI_REPLACE(0x004E2290, VisFogManagerNewObject);
+EI_REPLACE_METHOD(0x004E2290, ClientArrayManager::NewObjectImpl);
 
 // 004E2990 (slot 2, Create): the texture, the tile table, then the manager's own Create (its
 // result).
@@ -115,15 +115,15 @@ EI_REPLACE(0x004E28D0, VisFogManagerAdd);
 
 // 004E2700 (RET 4; the world's draw 00569E40). Nothing listed: 1. Otherwise the texture is made
 // sure of and bound to stage 0 (a failed bind: 0), then every fog draws; 1.
-int __fastcall VisFogManagerDraw(ClientArrayManager* self, void*, CSceneRenderer* renderer) {
-    if (self->list.count == 0) return 1;
-    TextureHolderEnsureLoaded(TextureHolder(self));
-    if (!renderer->SetTexture(0, self->current)) return 0;
-    for (FogNode* node = self->list.head; node;) {
+int ClientArrayManager::DrawImpl(CSceneRenderer* renderer) {
+    if (list.count == 0) return 1;
+    TextureHolderEnsureLoaded(TextureHolder(this));
+    if (!renderer->SetTexture(0, current)) return 0;
+    for (FogNode* node = list.head; node;) {
         CEngineObject* fog = node->data;
         node = node->next;
         FogDrawOriginal(fog, nullptr, renderer);
     }
     return 1;
 }
-EI_REPLACE(0x004E2700, VisFogManagerDraw);
+EI_REPLACE_METHOD(0x004E2700, ClientArrayManager::DrawImpl);

@@ -292,7 +292,8 @@ behind a hash, run the original again (its runs repeat) and `golden.py diff` the
 script_fx, terrain_water_load, world_load) take `dump loaded_<save>` once the load is done: the loaded world field by
 field, kept as a compact dump. The saves' bytes are kept (saves.txt: size and hash of every `<save>/*.sav` but the
 thumbnail shot.sav) only when every run wrote the same bytes, and that never happened: mission.sav differs in size and
-bytes between two runs of the original in every scenario that saves (SV3b).
+bytes between two runs of the original in every scenario that saves (SV3b). Since SV7d goldens keep the saves
+decoded field by field instead, with the bytes that follow memory left out by rule (section SV7d).
 
 **Known differences** (golden.py KNOWN, each with its ticket): fields kept in clear in compact digests and left out
 of comparisons with a golden (`compare --strict` keeps them), so a golden needs no re-recording when the ticket lands;
@@ -792,6 +793,22 @@ Checked: flags off, the ten Rebirth goldens the same (console's random trace mak
 same frame); flags on and vanilla, 19 goldens of 12 scenarios the same.
 
 
+### SV3c1: the scan as a build check (2026-10-15)
+
+`tools/check_patched_calls.py` (run by build.cmd after check_registrations, release and verify; skipped in debug,
+whose unoptimised code leaves calls the optimised builds inline) is the scan above kept: capstone-checked E8 / E9 sites
+in ei_hook.dll's .text (outside the incremental-link thunk table) whose target is our replacement of an address in
+docs/rebirth-patched-functions.txt, or the thunk of one; the caller is named from ei_hook.map. Our replacement of an
+address comes from the EI_REPLACE / EI_REPLACE_METHOD lines naming it; only those symbols (and the callers) are undecorated
+(the decorated name's prefix finds them), so it takes about 1 s (the whole-map version took 47 s). Allowed without a
+line: callers in tests/verify and tests/vectors, a function calling itself. Everything else is in
+`tools/check_patched_calls_allow.txt` with its reason: the script parser / evaluator family (AddNewScriptCommands, one
+flag), ProcessRequest -> StartNewGame and CMMIOResource::Destroy -> CMappedResource::Destroy (inlined in the original).
+Main had no other hit. Not seen: calls the compiler inlined, vtable and function-pointer calls, and a call to the
+implementation behind a registered entry function (a registered `FooEntry` that calls `FooImpl`, with other code calling
+`FooImpl`).
+
+
 ## SV3e: stored script runs clear their kill flag (2026-10-15)
 
 004BC420 sets its local run's kill flag to 0 after Execute returns unfinished, before the copy into the run list
@@ -1201,6 +1218,91 @@ one-off, not a layout effect.
 Follow-ups, one per family (group verification, after SV7a): SV7b1 script groups, SV7b2 save writers, SV7b3 UnitStats
 leftovers, SV7b4 the Rebirth orientation ulp, SV7b5 net replication order, SV7b6 pointer-keyed hashes. SV7d (decoded
 saves) can use save_trace.py and the writer list above for its leave-out rules.
+
+## SV7d: saves in goldens, decoded field by field (2026-10-15)
+
+**The files** (GameFlow::SaveGame 0057B3B0): saves\<slot>\scenario.sav (magic 0xDEAD: PartyManager::Save 004A8560,
+CInterface3D::SaveState 005F85C0, the bottom window's state through the save stream (CBattleScreenSetup::SaveState
+00635080) and CCamera::SaveState 00410C10), mission.sav (0x102: CWorldServer::SaveWorld 00597BD0), info.sav (0x111,
+not framed: the slot list's title) and shot.sav (the thumbnail, left out); visited zones as saves\current\<zone>.sav
+(SaveWorld too). SaveFileWrite (00579B80) frames the plain data: magic, version (0x74), checksum, a compressed flag
+and the LZ coder's output (net_coder.cpp).
+
+**The decoder** (tools/savefile.py; `show`, `diff`, `raw`, `rules`) undoes the frame and the coder and reads the plain
+data the way the game's writers wrote it, each reader naming the function it follows: savefile.py (frame, world
+header, AI graph diff runs, map object identities, the managers' lists, the world's tail), savefile_objects.py (map
+objects by class: trees, buildings, stones, stuff, torches, magic traps, levers, trap objects), savefile_unit.py
+(CUnit::SaveUnit 005321C0: the server and its orders, plan, path, step lists, UnitStats 0x704 bytes field by field,
+the AI brain with each mode's Save, memory, motion), savefile_items.py (timed effects by class, spells, items by
+class, missiles, the time wheel, the zone's whole CScript::SaveState 004C0F90, diplomacy, countdowns),
+savefile_players.py (the players and their parties) and savefile_scenario.py (the party manager's chunk archive,
+party records, input, screen, camera). A decode that does not end exactly where the data ends is an error. Entities
+are keyed by id (`obj<id>`, `item<id>`, `spell<id>`, `timed<id>`, `player<id>`, `record<n>`, ...), fields by name
+(`obj1766 controller.stats.hp 20.0`), in the file's order. A camera mission.sav is ~53,000 lines (272 KB gzipped),
+scenario.sav ~1,300.
+
+**What two plain runs of the original differ in** (SV3b: every saving scenario; the plain data has the same size,
+~2,400 bytes of mission.sav and ~70 of scenario.sav differ): heap pointers (0x10xxxxxx) and stack leftovers in fields
+the game never sets, and archive keys that are object addresses. Each is left out by a rule with its reason in the
+reader (`savefile.py rules FILES` lists the reasons): `~junk` for bytes never set, `~addr` for raw addresses, and `p<N>`
+(by first appearance) for pointers used as record identities. The fields, with the code that leaves them unset:
+
+| Field | Left out because |
+| --- | --- |
+| `stats.*` / `controller.stats.*`: builtFlags, unused6A, skillLevels byte 37, spareAbsorb of every layer, share / factor of an unused slot, fixedMaxHitPoints of a text-key unit | UnitStats is built as a stack copy (ApplyPrototype 00513B60, GiveDefaults 00513630, party records); Reset 005233E0 and UnitStatSlot::Reset 00523600 leave these; builtFlags is only ORed with 1 and never read; RecomputeHitPoints 005243D0 reads fixedMaxHitPoints only for units without a text key |
+| `server.vitals.builtFlags` | UnitVitals::Reset 00523370 leaves +0, only ORed with 1, never read |
+| `controller.action*.source` / `.point` of order kinds 0, 2, 7, 8, 9, 11 | their setters (OrderTurn, PlayAnimation, StopQueued, the resets 0054B230 / 00545F70) do not write them |
+| `controller.plan.direction` of an empty plan | only PlanAction 0054CA40 sets it |
+| `controller.motion.goal` while the path has no target | only FindPath sets it, read only after a search |
+| `controller.sneakWait` outside mode 3 | UpdateSneak 00548520 zeroes it when mode 3 starts and reads it only then |
+| `controller.waitFrame` | set to the tick only by TakeQueuedOrder 0054A6E0 / LeaveMoveMode, never initialised; the save cannot tell a stamp from a leftover (the original's value changes under EI_HEAP_JITTER) |
+| `controller.brain.modeN.point` / `.level` of a Suspection mode | the constructors leave them; Evaluate 005D1E90 either copies the brain's noticed point (saved with the brain) or keeps a leftover that compares the same; which one cannot be told when the leftover z is 0 |
+| Fear mode `shelter.y/z` (x = -1313), `fleePoint.x/y` (z = 0) | Construct 005D2850 sets only x / z, the others are read only when set |
+| `motion.turn` / `turnRate` under motion kinds 0 and 3 | only Build 005C67D0 sets them, for kinds 1, 2 and 4 |
+| `levels4C8` of a unit without a player | only the party memory update 005CB850 writes it |
+| `controller.queue.stepN.padding`, `moveMode*.pad`, `alarmN.pad`, script `areas.N.partN.pad`, an arrow figure's `hit.pad` (DamageInfo +0x39) | padding written with its struct (AnimationStep +3 from 00550A60, MoveModeState +6, WorldAlarm +1, DamageInfo +0x39 copied whole from the stack by DeliverAttack 0054F450, ScriptAreaPart +1 from AddRect 004B1ED0 / AddRound 004B2070) |
+| a sound effect's `nameTail` | char[0x100] written whole, Reset clears only the first byte |
+| `weightsTail` | ClassTemplate +0x34, archived with the nine weights, never set (004A6580, 004A7630) |
+| `templateN`, `recordN`, `N.object`, `identity` (scenario.sav) | ChunkArchive::SaveObjectRef 0040A440 writes the object's address as its key; the loader maps it to the object it creates |
+
+With these, two plain runs of the original decode to the same text in all 39 vanilla and 46 Rebirth saving scenarios
+(129 and 153 files), in the runs before and after merging main.
+
+**Ours against the original** (`--no-hooks` runs against hooked runs, and the `--golden` suite): the same text but for these, left out of
+golden comparisons by golden.py SAVES_KNOWN (each with its ticket; `compare --strict` keeps them):
+
+- SV7d1: a Fear mode's `distance` is 10.0 in the original and 9.99999714 or 9.99999619 in ours (camera obj1804 and
+  others, every run), Rebirth magic_traps obj1890's `spread` 3.26337504 / 3.26337481.
+- SV7d2: one path step's flags (`controller.motion.order.stepN.flags`, so UnitMotion's `stepSpeedN` and its point's
+  speed) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310.
+- SV7b1: the zone script group "Peasans" in render_movie_present is [1884, 699, 702] in the original and
+  [1884, 702, 699] in ours, so the loop variable `i` ends on the other id; and ground_prints obj1000011214's
+  `seenCorpses` swap (PartySync rebuilds them from a ScriptGroup). Both are address order: the original swaps them too
+  under EI_HEAP_JITTER=1. SV7d5 checks the corpses once SV7b1 lands.
+
+waitFrame and the Suspection mode fields, first listed as ours-only, turned out to follow memory in the original too
+(EI_HEAP_JITTER), so they became rules; SV7d3 and SV7d4 give them a canonical start, because both are read (ResolveBlocker
+waits on waitFrame + 2, Evaluate's level picks the brain's mode).
+
+**Under SV7a's heap jitter** (`--no-hooks`, both installs, against a plain run): seed 1 leaves every decoded save equal
+(with SAVES_KNOWN). Seed `2,fill` changes saves in 13 vanilla and 19 Rebirth runs, but in each of them the game itself
+diverges from update 40 (isaac.count, ai.decay of obj1804 / obj1890 / obj1936, then positions: leftovers read as
+behaviour, noted on SV7d4), so the digest differs first; no run had equal digests and different saves.
+
+**Goldens:** saves.txt lists each save's path and the hash of its decoded text; the text itself is in the shared
+store tests/golden/saves/<hash>.txt.gz (38 distinct saves, 4.2 MB: most goldens share the autosave of the first zone).
+`golden.py compare` (and `--golden`) decodes the run's saves and names the save, the entity and the first fields that
+differ, like the digest diff; `record` keeps the saves when every run decodes to the same fields; `golden.py saves --runs
+DIR...` adds them to existing goldens without recording the rest again (each run must match the golden) and drops store
+entries no golden uses. Added to the 85 goldens of saving scenarios (39 vanilla, 46 Rebirth) from two fresh plain runs
+of the original; no digest, console or dump was re-recorded. The 12 goldens of menu scenarios have no saves.
+
+**Not covered by the suite's saves** (decoded from the ported writers, unchecked against data): fake units (0x39),
+Tamed and Follow modes, memory calls, armour spells, carried items, plan steps, timed effects other than sound,
+particle, point light and lightning, items 0x3006 / 0x3007, time-wheel events, script point lights, particles, FX
+sources, lightning and areas, party manager parties and entries, and saves\current\<zone>.sav (none in the suite's saves; 16
+gz1g.sav from other runs decode). The chunk archive's record order follows the pointer-keyed hash (SV7a): it did not
+change under seed 1, but if it does, the scenario.sav records come out in another order (SV7b2).
 
 ## SV7b1: script groups ordered by object id (2026-10-15)
 

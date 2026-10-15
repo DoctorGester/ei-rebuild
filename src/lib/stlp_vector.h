@@ -444,6 +444,26 @@ struct VectorAbi {
     }
 };
 
+// Helpers of class instantiations compiled out of line, the element done by the policy E:
+// - _Construct(p) (e.g. 00443E30; ECX p, plain RET): E::Default, nothing for a null p.
+template <typename T, typename E>
+void __fastcall ConstructDefaultAt(T* p) {
+    if (p) E::Default(p);
+}
+// - _Construct(p, x) (e.g. 00657C60; ECX p, EDX x, plain RET): E::Construct, nothing for a null p.
+template <typename T, typename E>
+void __fastcall ConstructCopyAt(T* p, const T* x) {
+    if (p) E::Construct(p, *x);
+}
+// - __copy(first, last, out, random_access_iterator_tag, distance*) (e.g. 00443FF0; ECX first, EDX
+//   last, RET 0xC; the last two arguments are not read): each element assigned by E::Assign;
+//   nothing when last is not after first; returns the end of the copy.
+template <typename T, typename E>
+T* __fastcall CopyAssignTagged(const T* first, const T* last, T* out, const void*, const void*) {
+    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) E::Assign(*out, *first);
+    return out;
+}
+
 // Helpers of the plain-data instantiations compiled out of line (ECX and EDX the first two
 // arguments):
 // - _Construct(p, x) (e.g. 0043D7F0; plain RET): placement new, which skips a null p.

@@ -18,8 +18,6 @@ struct AlignedArray {
 } // namespace
 
 float* __fastcall StripDirection(float* out, int index, int mode, const void* points);
-int __fastcall DrawRibbon(CSceneRenderer* renderer, void*, const int* points, float width, int mode, float uLength,
-                          float vStart, float vSize);
 
 // 00502B90: MOV EAX,ECX; PUSH ESI; MOV ECX,[ESP+8] (7 bytes). Pure: both directions compared.
 static float*(__fastcall* s_direction)(float*, int, int, const void*);
@@ -67,7 +65,7 @@ EI_VERIFY(0x00502A20, DrawTlTrianglesVerify, 0, s_drawTl);
 static void* s_ribbon;
 static int __fastcall DrawRibbonVerify(CSceneRenderer* renderer, void*, const int* points, float width, int mode,
                                        float uLength, float vStart, float vSize) {
-    int result = DrawRibbon(renderer, nullptr, points, width, mode, uLength, vStart, vSize);
+    int result = renderer->DrawStripImpl(points, width, mode, uLength, vStart, vSize);
     int indices = reinterpret_cast<const AlignedArray*>(0x007AF030)->size;
     bool ok = (result == 0 || result == 1) && indices % 6 == 0;
     ei::verify::Check("DrawRibbon", true, ok, "points %d mode %d indices %d", points[1], mode, indices);

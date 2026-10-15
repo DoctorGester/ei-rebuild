@@ -120,7 +120,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   the first world update and field where two runs differ, and `golden.py record` / `compare` keep and check
   golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2). The suite
   checks them with `python tools\work.py test <ID> --golden` (any run_all arguments): the games run with the
-  goldens' digest and every run that has a golden is compared with it (SV3).
+  goldens' digest and every run that has a golden is compared with it (SV3), its saves too, decoded field by
+  field (`python tools\savefile.py show|diff|rules`, SV7d).
 - Function vectors (`tests/vectors/vectors.h`): with `EI_VECTORS=1` the verify build runs the original of
   each function that has a recorder (`tests/vectors/record_<family>.cpp`) and writes a sample of its calls
   to the run's `vectors/` folder; `python tools\vectors.py merge <run folders>` keeps them in

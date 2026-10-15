@@ -16,7 +16,6 @@ namespace misc400 {
 CBaseManager* __fastcall ManagerConstruct(CBaseManager* self);
 void __fastcall ManagerDestruct(CBaseManager* self);
 void __fastcall ClearPointee(void** self);
-CEngineObject* __fastcall ManagerNewObject(CBaseManager* self, void*, int type);
 const char* __fastcall ManagerClassName(const CBaseManager* self);
 int __fastcall ManagerClassId(const CBaseManager* self);
 } // namespace misc400
@@ -77,7 +76,7 @@ int __fastcall ClassIdVerify(const CBaseManager* self) {
 }
 
 CEngineObject* __fastcall NewObjectVerify(CBaseManager* self, void*, int type) {
-    CEngineObject* object = misc400::ManagerNewObject(self, nullptr, type);
+    CEngineObject* object = static_cast<CClientSpecificManager*>(self)->NewObjectImpl(type);
     bool makes = type >= 'E' && type <= 'K' && type != 'J';
     ei::verify::Check("Manager73BECC::NewObject", makes, object != nullptr, "type %d", type);
     return object;

@@ -19,9 +19,13 @@
 //   n inserted ones at the position) and the old block replaced; each party copy is checked by
 //   006613C0's own wrapper (the copies go through its address). Not in the start-up check (copies
 //   draw ISAAC keys); the hero list and the saved parties' reload reach it (ui_hero_*).
+// - S12g: the banned addresses' find_if (00427FF0) is pure and compares with the original; the
+//   speakers' _Construct and _M_insert_overflow, the parties' _Construct copies and the trade
+//   record's destructor run ours only (CString and counted copies, CParty destructors).
 #include "verify.h"
 
 #include "stlp_list_verify.h"
+#include "stlp_vector_verify.h"
 
 #include "../../src/game/library_containers.h"
 #include "../../src/game/link_figure.h"
@@ -557,7 +561,61 @@ struct GameAlgorithms {
         ei::verify::Report(Name<A>("stlp::_Construct(CEngineObject*)"), ok, ok ? "" : "another pointer or count");
         return result;
     }
+    // S12g: _Construct of a briefing speaker (0060AB00): the unit, a copy of the name, the flag.
+    static void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value) {
+        libcontainers::ConstructSpeaker(p, value);
+        bool ok = !p || (p->unit == value->unit && std::strcmp(p->name, value->name) == 0 &&
+                         p->spareFlag == value->spareFlag);
+        ei::verify::Report(Name<A>("stlp::_Construct(BriefingSpeaker)"), ok, ok ? "" : "another speaker");
+    }
 };
+
+// S12g: the briefing's speakers vector (0060A660), ours only: the model check over the speakers'
+// unit, name and flag.
+struct SpeakersAbi {
+    using Vector = libcontainers::Speakers;
+    using Element = libcontainers::SpeakerElement;
+    static void __fastcall InsertOverflow(Vector* self, void*, BriefingSpeaker* pos, const BriefingSpeaker* x,
+                                          std::size_t n) {
+        libcontainers::InsertSpeakersOverflow(self, nullptr, pos, x, n);
+    }
+};
+struct SpeakerText {
+    static std::string Of(const BriefingSpeaker& s) {
+        char head[32];
+        std::snprintf(head, sizeof(head), "%p|%d|", static_cast<const void*>(s.unit), s.spareFlag ? 1 : 0);
+        return head + std::string(static_cast<const char*>(s.name));
+    }
+};
+template <std::uintptr_t A> using SpeakerChecks = stlp_verify::ModelCheck<A, SpeakersAbi, SpeakerText>;
+
+// S12g: the client's trade record's destructor (00424DB0), ours only: the three parties destroyed
+// (each down to its base, so the three end with the same vtable), the revisions left.
+void __fastcall TradeRecordDestroyVerify(net::TradeRecord* self) {
+    const std::uint32_t accepted = self->acceptedRevision;
+    const std::uint32_t revision = self->revision;
+    libcontainers::DestroyTradeRecord(self);
+    auto vtable = [&](int i) { return *reinterpret_cast<const void* const*>(self->parties[i].bytes); };
+    bool ok = self->acceptedRevision == accepted && self->revision == revision && vtable(0) == vtable(1) &&
+              vtable(1) == vtable(2);
+    ei::verify::Report("net::TradeRecord::~TradeRecord 00424DB0", ok, ok ? "" : "the parties' vtables differ");
+}
+
+// S12g: find_if over the server's banned addresses (00427FF0; MOV EAX,[ESP+0xC]; PUSH ESI: 5
+// bytes), pure: against the original.
+using AddressNode = libcontainers::AddressList::Node;
+AddressNode**(__fastcall* s_findAddress)(AddressNode**, void*, AddressNode*, AddressNode*, const net::NetAddress*);
+AddressNode** __fastcall FindAddressVerify(AddressNode** out, void*, AddressNode* first, AddressNode* last,
+                                           const net::NetAddress* value) {
+    AddressNode* expected = nullptr;
+    AddressNode** expectedOut = s_findAddress(&expected, nullptr, first, last, value);
+    AddressNode** result = libcontainers::FindAddressByHost(out, nullptr, first, last, value);
+    bool ok = expectedOut == &expected && result == out && *out == expected;
+    char detail[64] = "";
+    if (!ok) std::snprintf(detail, sizeof(detail), "found %p, original's %p", static_cast<void*>(*out), static_cast<void*>(expected));
+    ei::verify::Report("find_if(banned addresses, same host) 00427FF0", ok, detail);
+    return result;
+}
 
 // A CString released: its count one less (when it was shared; a last reference frees the data).
 template <std::uintptr_t A>
@@ -1061,6 +1119,14 @@ EI_VERIFY(0x0060AB60, GameAlgorithms<0x0060AB60>::CopySpeakers, 0, s_unused);
 EI_VERIFY(0x0060AA80, GameAlgorithms<0x0060AA80>::ConstructRefPtr, 0, s_unused);
 EI_VERIFY(0x0060AAA0, GameAlgorithms<0x0060AAA0>::CopyBackward, 0, s_unused);
 EI_VERIFY(0x004FB680, GameAlgorithms<0x004FB680>::ConstructHeld, 0, s_unused);
+// S12g: the client's parties, the briefing's speakers, the client's trade records (ours only); the
+// banned addresses' find (against the original).
+EI_VERIFY(0x00429060, GameAlgorithms<0x00429060>::ConstructRefPtr, 0, s_unused);
+EI_VERIFY(0x004298F0, GameAlgorithms<0x004298F0>::ConstructHeld, 0, s_unused);
+EI_VERIFY(0x0060AB00, GameAlgorithms<0x0060AB00>::ConstructSpeaker, 0, s_unused);
+EI_VERIFY(0x0060A660, SpeakerChecks<0x0060A660>::InsertOverflow, 0, s_unused);
+EI_VERIFY(0x00424DB0, TradeRecordDestroyVerify, 0, s_unused);
+EI_VERIFY(0x00427FF0, FindAddressVerify, 5, s_findAddress);
 EI_VERIFY(0x005F9680, CStringRelease<0x005F9680>::Destroy, 0, s_unused);
 EI_VERIFY(0x005FBE20, CStringRelease<0x005FBE20>::Destroy, 0, s_unused);
 EI_VERIFY(0x005FBCB0, CStringRelease<0x005FBCB0>::Delete, 0, s_unused);

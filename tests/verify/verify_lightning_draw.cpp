@@ -8,11 +8,9 @@ namespace {
 void* s_unused;
 }
 
-int __fastcall DrawLightning(CLightning* self, void*, void* device);
-
 namespace {
 int __fastcall DrawVerify(CLightning* self, void*, void* device) {
-    int result = DrawLightning(self, nullptr, device);
+    int result = self->DrawImpl(device);
     ei::verify::Check("CLightning::Draw", true, result == 0 || result == 1, "");
     return result;
 }

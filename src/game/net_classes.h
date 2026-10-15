@@ -709,10 +709,22 @@ struct TradeRecordNode {
 };
 static_assert(sizeof(TradeRecordNode) == 0x160);
 
+// The same record as the node's element (from +8), as its destructor 00424DB0 takes it.
+struct TradeRecord {
+    std::uint32_t acceptedRevision;
+    std::uint32_t revision;
+    PartyStorage parties[3];
+};
+static_assert(sizeof(TradeRecord) == sizeof(TradeRecordNode) - 8);
+
 // The game client (vtable 0073BDEC). 0x2700 bytes, pointer at 0079B5D8 (GameClient()). It keeps
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
 class __declspec(novtable) ClientSession : public ClientBase {
 public:
+    // Body of the slot at 0041D9A0 (registered by member pointer).
+    double BufferRatioImpl(GameBuffer* buffer);
+    // Body of the slot at 0041D600 (registered by member pointer).
+    void ReadServerListImpl(GameBuffer* in);
     // 0x0041E270 (net_client_handlers.cpp).
     void StartParty(CRefObject* partner);
     // 0x0041E0A0 (net_client_handlers.cpp).

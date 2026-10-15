@@ -70,11 +70,11 @@ bool StoredAt(CEngineObject* object, const float* position) {
     return std::memcmp(reinterpret_cast<const std::uint8_t*>(object) + sizeof(CEngineObject), position, 3 * sizeof(float)) == 0;
 }
 void __fastcall MoveObjectVerify(CWorldClient* self, void*, CEngineObject* object, const float* position) {
-    WorldClientMoveObject(self, nullptr, object, position);
+    self->MoveObjectImpl(object, position);
     ei::verify::Check("WorldClientMoveObject", true, StoredAt(object, position), "object %p", object);
 }
 void __fastcall MoveObject2Verify(CWorldClient* self, void*, CEngineObject* object, const float* position) {
-    WorldClientMoveObject2(self, nullptr, object, position);
+    self->MoveObject2Impl(object, position);
     ei::verify::Check("WorldClientMoveObject2", true, StoredAt(object, position), "object %p", object);
 }
 
