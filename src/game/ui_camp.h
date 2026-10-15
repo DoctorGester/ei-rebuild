@@ -607,6 +607,9 @@ struct TradeRow {
     void Destroy();
     // 0062A7C0 (RET 4). Destroy, then operator delete when bit 0 of `flags` is set. Returns this.
     TradeRow* DeleteThis(int flags);
+    // 0062A310 (RET 4; S16a, ui_trade_panel.cpp). Copy constructor: the texts (shared), then the
+    // price, the level and the flag (the padding is not copied). Returns this.
+    TradeRow* CopyConstruct(const TradeRow* from);
 
     char* name;                      // +0x00 CString shown text
     char* key;                       // +0x04 CString the perk's record name (perk rows)
