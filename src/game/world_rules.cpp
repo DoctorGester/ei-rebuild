@@ -33,8 +33,6 @@ using VariableNode = stlp::list<net::VariableMessage*>::Node;
 
 // ---- Sorting predicates --------------------------------------------------------------------------
 
-// /fp:fast would regroup the depth sums as (z + y) + (x + offset); the original adds left to right.
-#pragma float_control(precise, on, push)
 bool DepthLess::Less(const int* a, const int* b) {
     auto* registry = static_cast<CBaseManager*>(manager);
     CEngineObject* first = registry->FindObject(static_cast<unsigned>(a[1]));
@@ -45,8 +43,8 @@ bool DepthLess::Less(const int* a, const int* b) {
     float offset = plane[11];
     const CMapObject* p = MapObject(first);
     const CMapObject* q = MapObject(second);
-    float da = StoreFloat(static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset));
-    float db = StoreFloat(static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset));
+    float da = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset);
+    float db = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset);
     // Living objects come before dead ones; within each kind, by depth. The original asks each
     // object again at every step, so the calls are repeated here in the same order.
     if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||
@@ -54,7 +52,6 @@ bool DepthLess::Less(const int* a, const int* b) {
         return !(da >= db);
     return ObjectSlots(first)->IsDead() == 0;
 }
-#pragma float_control(pop)
 
 // By the first part set's texture (its address), then the figure (its address), then the view depth.
 bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) {

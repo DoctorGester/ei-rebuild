@@ -34,8 +34,6 @@
 #include "originals_gameplay.h"
 #include "originals_units.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 
 using console::CStringArray;

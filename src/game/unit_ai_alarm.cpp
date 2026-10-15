@@ -25,11 +25,6 @@ constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
 enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
 enum Reaction { kFight = 0, kRevenge = 1, kWatch = 2, kWatchFearful = 3 };
 
-float Round(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 // FCOMP; TEST AH,0x40: equal or unordered.
 bool SameOrUnordered(float a, float b) { return x87::IsNaN(a) || x87::IsNaN(b) || a == b; }
 bool ZeroOrNaN(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
@@ -54,7 +49,9 @@ Mode* NewInline() {
 
 AIMode* NewFear(std::uint8_t flag) {
     auto* fear = NewCounted<FearMode>();
-    return fear ? fear->Construct(flag) : nullptr;
+    if (!fear) return nullptr;
+    fear->ClearFields();   // SV7b2: not left as memory held them
+    return fear->Construct(flag);
 }
 
 AIMode* NewCorpseWatcher() {
@@ -69,12 +66,12 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
     for (int i = 0; i < record->patrols.size; ++i) {
         const mapspec::Patrol& patrol = record->patrols.data[i];
         double cell = static_cast<double>(kOne) * kHalf;
-        long cellX = std::lrint(Round(kOne / cell * patrol.position.x));
-        long cellY = std::lrint(Round(kOne / cell * patrol.position.y));
+        long cellX = std::lrint(static_cast<float>(kOne / cell * patrol.position.x));
+        long cellY = std::lrint(static_cast<float>(kOne / cell * patrol.position.y));
         PatrolPoint point{};
         point.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
-        point.position.y = Round((static_cast<double>(cellY) + kHalf) * cell);
-        point.position.x = Round((static_cast<double>(cellX) + kHalf) * cell);
+        point.position.y = static_cast<float>((static_cast<double>(cellY) + kHalf) * cell);
+        point.position.x = static_cast<float>((static_cast<double>(cellX) + kHalf) * cell);
         point.position.z = 0.0f;
         mode->points.Add(point);
         LooksDestroyAt(&point.looks);
@@ -87,7 +84,7 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             float angle = 0.0f;
             double dx = static_cast<double>(waypoint.position.x) - from.x;
             double dy = static_cast<double>(waypoint.position.y) - from.y;
-            if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = Round(x87::fpatan(dy, dx));
+            if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = static_cast<float>(x87::fpatan(dy, dx));
             AILook look;
             look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.time,
                                        waypoint.stopFirst & 1);
@@ -171,6 +168,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
             }
             AddMode(fight);
             auto* suspection = NewCounted<SuspectionMode>();
+            if (suspection) suspection->ClearFields();   // SV7d4: not left as memory held them
             AddMode(suspection ? suspection->ScriptSuspectionModeConstruct() : nullptr);
             AddMode(NewCorpseWatcher());
             AddMode(NewFear(0));

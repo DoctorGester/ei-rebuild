@@ -3,9 +3,8 @@
 // (007A9BE0: interpolated colour, texture frame), binds its texture and hands both arrays to the
 // renderer (007AF060, vtable 0073D93C, slot 17 = 00502CA0). Names are provisional.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
-// of operations and the NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 
 #include "ei/hook.h"
@@ -16,17 +15,9 @@
 #include "originals_library.h"
 #include "originals_render.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // A zero-extended dword loaded with FILD qword (exact).
 double Unsigned(std::uint32_t value) {
@@ -83,7 +74,7 @@ void ConstructArrays() {
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
     double ticks = WorldTicks();
-    float fraction = Store((ticks + D(TickFraction())) - ticks);
+    float fraction = static_cast<float>((ticks + D(TickFraction())) - ticks);
     float one;
     std::uint32_t oneBits = 0x3F800000;
     std::memcpy(&one, &oneBits, sizeof(one));
@@ -144,14 +135,14 @@ int CParticleSource::Draw(void* renderer) {
     ParticleSprite* sprite = Sprites().data;
     mfc::CTypedPtrList<Particle>::Node* cursor = particles.head;
     if (cursor) {
-        float u = Store(D(EI_ONE) - D(t));
+        float u = static_cast<float>(D(EI_ONE) - D(t));
         ParticleVertex* vertex = Vertices().data;
         do {
             const Particle* p = *NextParticle(&particles, nullptr, &cursor);
-            vertex->x = Store(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
-            vertex->y = Store(D(u) * D(p->prevPos.y) + D(t) * D(p->pos.y));
-            vertex->z = Store(D(u) * D(p->prevPos.z) + D(t) * D(p->pos.z));
-            vertex->size = Store(D(u) * D(p->prevSize) + D(t) * D(p->size));
+            vertex->x = static_cast<float>(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
+            vertex->y = static_cast<float>(D(u) * D(p->prevPos.y) + D(t) * D(p->pos.y));
+            vertex->z = static_cast<float>(D(u) * D(p->prevPos.z) + D(t) * D(p->pos.z));
+            vertex->size = static_cast<float>(D(u) * D(p->prevSize) + D(t) * D(p->size));
             std::uint32_t now = p->color;
             std::uint32_t before = p->prevColor;
             std::uint32_t argb = static_cast<std::uint32_t>(MixChannel(now, before, 16, t, u));

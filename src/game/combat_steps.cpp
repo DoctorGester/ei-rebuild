@@ -19,8 +19,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;                                        // 0073B84C
@@ -159,7 +157,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
     char* entry = UnitAnimationEntry(unit, nullptr, index);
     if (!entry) return 0;
     volatile std::int64_t wide = Get<std::uint32_t>(entry, offset);
-    volatile float frames = static_cast<float>(wide);
+    float frames = static_cast<float>(wide);
     double speed = UnitResistanceToOriginal(unit, nullptr, entry);
     return FtolQuotient(frames, speed);
 }
@@ -429,13 +427,13 @@ std::uint32_t BandAt(double h, float base, float size, float top) {
 // A random height in [from, to) in steps of 0.01 (FISTP of the span in hundredths), else in the
 // overlap [high, low), else `high`.
 double RandomHeight(double to, float from, float low, float high) {
-    volatile float span = static_cast<float>((to - from) * kHundred);
+    float span = static_cast<float>((to - from) * kHundred);
     if (x87::fistp(span) > 0) {
         std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span));
         volatile std::int64_t pick = Random().Next() % steps;
         return static_cast<double>(pick) * kPercent + from;
     }
-    volatile float span2 = static_cast<float>((static_cast<double>(low) - high) * kHundred);
+    float span2 = static_cast<float>((static_cast<double>(low) - high) * kHundred);
     if (x87::fistp(span2) > 0) {
         std::uint32_t steps = static_cast<std::uint32_t>(x87::fistp(span2));
         volatile std::int64_t pick = Random().Next() % steps;
@@ -468,15 +466,15 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     double dz = static_cast<double>(z) - aim.z;
     double dy = static_cast<double>(y) - aim.y;
     double dx = static_cast<double>(x) - aim.x;
-    volatile float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
-    volatile float orderDistance = static_cast<float>(CtlActionDistance(this, nullptr, &order));
+    float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
+    float orderDistance = static_cast<float>(CtlActionDistance(this, nullptr, &order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 
     void* victimStats = &reinterpret_cast<CUnitServer*>(victim->controller)->stats;
-    volatile float myBase = static_cast<float>(UnitGroundAt(unit, nullptr, x, y) + z);
-    volatile float mySize = static_cast<float>(UnitSize(unit));
-    volatile float theirBase = static_cast<float>(UnitGroundAt(victim, nullptr, aim.x, aim.y) + aim.z);
-    volatile float theirSize = static_cast<float>(UnitSize(victim));
+    float myBase = static_cast<float>(UnitGroundAt(unit, nullptr, x, y) + z);
+    float mySize = static_cast<float>(UnitSize(unit));
+    float theirBase = static_cast<float>(UnitGroundAt(victim, nullptr, aim.x, aim.y) + aim.z);
+    float theirSize = static_cast<float>(UnitSize(victim));
 
     // Where to hit: a skill picks at random, an attack its source location, else the body; the
     // victim's stats move it to a part that can still be hit.
@@ -496,13 +494,13 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     std::uint32_t key = kKeyMiddle;
     double blow;
     double myTopValue = static_cast<double>(mySize) + myBase;
-    volatile float myTop = static_cast<float>(myTopValue);
+    float myTop = static_cast<float>(myTopValue);
     if (LessOrUnordered(myTopValue, theirBase)) {
         blow = static_cast<double>(theirBase) - myTop;
         key = kKeyHigh;
     } else {
         double theirTopValue = static_cast<double>(theirSize) + theirBase;
-        volatile float theirTop = static_cast<float>(theirTopValue);
+        float theirTop = static_cast<float>(theirTopValue);
         if (LessOrUnordered(theirTopValue, myBase)) {
             blow = static_cast<double>(myBase) - theirTopValue;
             key = kKeyLow;
@@ -513,7 +511,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
             double to;
             switch (static_cast<std::uint32_t>(location)) {
             case 0: {   // head
-                volatile float part = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
+                float part = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
                 from = Select(high, part, part, high);
                 to = Select(theirTop, low, theirTop, low);
                 break;
@@ -521,16 +519,16 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
             case 1:
             case 2:
             case 3: {   // body and arms
-                volatile float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
+                float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
                 from = Select(high, part, part, high);
-                volatile float upper = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
+                float upper = static_cast<float>(static_cast<double>(theirSize) * kUpperPart + theirBase);
                 to = Select(upper, low, upper, low);
                 break;
             }
             case 4:
             case 5: {   // legs
                 from = Select(high, theirBase, theirBase, high);
-                volatile float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
+                float part = static_cast<float>(static_cast<double>(theirSize) * kLowerPart + theirBase);
                 to = Select(part, low, part, low);
                 break;
             }
@@ -541,7 +539,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
             }
             double h = RandomHeight(to, from, low, high);
             key = BandAt(h, myBase, mySize, myTop);
-            volatile float offset = static_cast<float>((h - myBase) + static_cast<double>(mySize) * kEyeLevel);
+            float offset = static_cast<float>((h - myBase) + static_cast<double>(mySize) * kEyeLevel);
             blow = std::bit_cast<float>(Bits(offset) & 0x7FFFFFFFu);
         }
     }
@@ -557,9 +555,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
 
     if (unit->type_ != kUnitTypeHeroes) {
         // Other creatures strike low at targets that reach further than the distance between them.
-        volatile float myRadius = unit->Radius();
+        float myRadius = unit->Radius();
         CEngineObject* other = order.target;
-        volatile float span = static_cast<float>(static_cast<double>(ObjectSlots(other)->Radius()) + myRadius);
+        float span = static_cast<float>(static_cast<double>(ObjectSlots(other)->Radius()) + myRadius);
         if (other && other->GetClassId() == kClassUnit) {
             double scale = (static_cast<double>(Get<float>(this, 0x244)) + kOne) * myRadius;
             span = static_cast<float>(static_cast<double>(static_cast<CUnit*>(other)->standingHeight) + scale);

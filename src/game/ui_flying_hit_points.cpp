@@ -161,7 +161,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     for (Node* node = head->next; node != head; node = node->next) {
         const FlyingHitPoint& point = node->data;
         // The age as a fraction of the lifetime, stored as float.
-        float age = StoreFloat(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
+        float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
         if (age > 1.0f || !(age >= 0.0f)) continue;
         auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, point.target));
         if (!unit) continue;
@@ -173,10 +173,10 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
 
         if (point.flags & kMarker) {
             // 32 x 10 pixels centred 20 pixels above the middle.
-            float x0 = StoreFloat(static_cast<float>(middleX) - kMarkerWidth * 0.5f);
-            float y0 = StoreFloat(static_cast<float>(middleY - 20) - kMarkerHeight * 0.5f);
+            float x0 = static_cast<float>(static_cast<float>(middleX) - kMarkerWidth * 0.5f);
+            float y0 = static_cast<float>(static_cast<float>(middleY - 20) - kMarkerHeight * 0.5f);
             if (!(x0 >= 0.0f)) continue;
-            float x1 = StoreFloat(x0 + kMarkerWidth);
+            float x1 = static_cast<float>(x0 + kMarkerWidth);
             if (!(width >= x1)) continue;
             if (!(y0 >= 0.0f)) continue;
             float y1 = y0 + kMarkerHeight;
@@ -202,9 +202,9 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
             if (boxWidth <= 64) boxWidth = 64;
             boxHeight = row.flag == kLabelA ? 22 : boxHeight + 10;
         }
-        float x0 = StoreFloat(static_cast<float>(middleX) - static_cast<float>(boxWidth) * 0.5f);
-        float boxHeightF = StoreFloat(static_cast<float>(boxHeight));
-        float y0 = StoreFloat(static_cast<float>(middleY) - boxHeightF * 0.5f);
+        float x0 = static_cast<float>(static_cast<float>(middleX) - static_cast<float>(boxWidth) * 0.5f);
+        float boxHeightF = static_cast<float>(boxHeight);
+        float y0 = static_cast<float>(static_cast<float>(middleY) - boxHeightF * 0.5f);
         if (!(x0 >= 0.0f)) continue;
         if (!(width >= static_cast<float>(boxWidth) + x0)) continue;
         if (!(y0 >= 0.0f)) continue;
@@ -217,13 +217,13 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
 
         QuadBuffer quads;
         float x = static_cast<float>(boxWidth - length * static_cast<int>(kDigitWidth)) * 0.5f + x0;
-        float digitsBottom = StoreFloat(y0 + kDigitHeight);
+        float digitsBottom = static_cast<float>(y0 + kDigitHeight);
         for (int i = 0; i < length; ++i) {
             int value = static_cast<signed char>(static_cast<const char*>(text)[i]) - '0';
             float u0 = static_cast<float>(value & 3) * kDigitU;
-            float top = StoreFloat(1.0f - static_cast<float>(value >> 2) * kDigitV);
-            float next = StoreFloat(x + kDigitWidth);
-            quads.Add(x, y0, next, digitsBottom, u0, top, StoreFloat(u0 + kDigitU), top - kDigitV, colour);
+            float top = static_cast<float>(1.0f - static_cast<float>(value >> 2) * kDigitV);
+            float next = static_cast<float>(x + kDigitWidth);
+            quads.Add(x, y0, next, digitsBottom, u0, top, static_cast<float>(u0 + kDigitU), top - kDigitV, colour);
             x = next;
         }
         // The label rows under the digits, centred in the box.
@@ -232,7 +232,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
             if (!(point.flags & row.flag)) continue;
             float left = static_cast<float>(boxWidth - static_cast<int>(kLabelWidth)) * 0.5f + x0;
             float bottom = y + kLabelHeight;
-            quads.Add(left, y, StoreFloat(left + kLabelWidth), bottom, 0.0f, row.top, 1.0f, row.bottom, colour);
+            quads.Add(left, y, static_cast<float>(left + kLabelWidth), bottom, 0.0f, row.top, 1.0f, row.bottom, colour);
             y = bottom;
         }
         quads.Inset(kNumberInset);

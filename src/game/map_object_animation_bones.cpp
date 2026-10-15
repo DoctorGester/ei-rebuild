@@ -5,7 +5,7 @@
 #include "map_object_figures.h"
 
 #include "base_manager.h"
-#include "core_maths.h"   // StoreFloat
+#include "core_maths.h"
 #include "figure_mesh.h"
 #include "originals_units.h"
 #include "world.h"
@@ -56,7 +56,7 @@ void ConstructList(mfc::CTypedPtrList<T>* list, std::uintptr_t vtable) {
 void PlaceRoot(CFigureAnimationState* state) {
     CObject3D* owner = state->owner;
     double factor = owner->AnimationFactor(owner->scale.z);
-    float stored = StoreFloat(static_cast<float>(factor));
+    float stored = static_cast<float>(factor);
     Vector3 origin;
     origin.z = static_cast<float>(factor * owner->defaultScale.z);
     origin.y = stored * owner->defaultScale.y;

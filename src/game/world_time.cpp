@@ -23,7 +23,7 @@ EI_REPLACE_METHOD(0x0055FB30, CWorld::SetTimeImpl);
 
 void CWorld::SetTimeSpeedImpl(float speed) {
     // The time of day now, stored as a float before the speed changes.
-    volatile float now = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
+    float now = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
     if (speed > 0.0f) secondsPerTick_ = 1.0f / speed;
     else if (speed < 0.0f) secondsPerTick_ = static_cast<float>(1.0 / TimeSpeedSetting());
     else secondsPerTick_ = 0.0f;     // 0 or NaN (FCOMP: equal or unordered)

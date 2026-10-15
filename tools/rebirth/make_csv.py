@@ -98,11 +98,11 @@ STATUS = {
  'AutoExec': 'implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp',
  'PersistentGlobalVars': 'implemented: new rewrites GameFlow::AfterServerStart 0057EB10, GameFlow::UpdateFromServer 005800C0, SavedPartyList::Reload 00662FB0 (src/game/world_game.cpp); addon\'s container order in src/game/persistent_globals.cpp',
  'NivalRegistry': 'implemented: GameMain (src/game/app_main.cpp; S19): the image runs it, hooked Rebirth runs keep the original WinMain',
- 'Maps': 'deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, "Resources and paths")',
- 'ResOverride': 'deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, "Resources and paths")',
- 'MoviesPatch': 'deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, "Resources and paths")',
- 'CameraPatch': 'deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, "Resources and paths")',
- 'StreamPatch': 'deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, "Resources and paths")',
+ 'Maps': 'implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'ResOverride': 'implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'MoviesPatch': 'implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'CameraPatch': 'implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
+ 'StreamPatch': 'implemented in the standalone image: src/game/mod_folders.cpp (S19b; hooked Rebirth runs keep addon.dll); scenario rebirth_mod_folders',
 }
 SITE_STATUS = {
  ('FixSpellSelfCasting', 0x0068B770): 'implemented: CSpell::IsOffensive (src/game/spell.cpp)',

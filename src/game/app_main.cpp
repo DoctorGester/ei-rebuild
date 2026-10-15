@@ -526,7 +526,7 @@ constexpr int kLongestPassTicks = 5;
 // camera's time (0073C348: 1 / 55).
 std::uint32_t TickLength() { return Global<std::uint32_t>(0x0078FF34); }
 float CameraSeconds(std::uint32_t milliseconds) {
-    return RoundToFloat(x87::FromUnsigned(milliseconds) * ExeFloat(0x0073C348));
+    return static_cast<float>(x87::FromUnsigned(milliseconds) * ExeFloat(0x0073C348));
 }
 
 // Some calls of the loop go through the target of the original's CALL at the same point (the
@@ -633,7 +633,7 @@ float SpeedForBalance(double balance, float rounded) {
     } else {
         speed = Step(Step(x87::fsqrt(rounded) * ExeFloat(0x0073B850)) + ExeFloat(0x0073B84C)) - ExeFloat(0x0073B850);
     }
-    float result = RoundToFloat(speed);
+    float result = static_cast<float>(speed);
     if (!(result >= kSlowest)) result = kSlowest;
     if (kFastest < result) result = kFastest;
     return result;
@@ -679,10 +679,10 @@ bool RunPass() {
 
     if (RunWorlds()) {
         FlowProcessRequestOriginal(TheGameFlow());
-        const float fraction = RoundToFloat(x87::FromUnsigned(ClientBacklog()) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
+        const float fraction = static_cast<float>(x87::FromUnsigned(ClientBacklog()) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
         const double balance = Step(static_cast<double>(ClientIncomingCountAt(client)) - fraction);
-        const float roundedBalance = RoundToFloat(balance);
+        const float roundedBalance = static_cast<float>(balance);
         ClientSpeed() = SpeedForBalance(balance, roundedBalance);
         if (ShowClientSpeed()) PrintClientSpeed(ClientSpeed(), roundedBalance);
 
@@ -697,9 +697,9 @@ bool RunPass() {
         FrameCameraUpdate()(camera, nullptr, CameraSeconds(elapsed));
         if (!client->paused_) {
             if (camera->flags_ & CCamera::kRecording)
-                CameraRecordFrameAt(camera, nullptr, RoundToFloat(static_cast<double>(client->tick_) + client->tickFraction_));
+                CameraRecordFrameAt(camera, nullptr, static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
             if (camera->flags_ & CCamera::kPlaying)
-                CameraPlaybackStepAt(camera, nullptr, RoundToFloat(static_cast<double>(client->tick_) + client->tickFraction_));
+                CameraPlaybackStepAt(camera, nullptr, static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
         }
     }
     InterfaceUpdateAt(Interface());
@@ -778,7 +778,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     ServerSetupAt(Server());
     // The field of view: pi * 2 / 7 (51.4 degrees).
     CameraInitAt(Camera(), nullptr, options, options->nearClipDistance_, options->farClipDistance_,
-                 RoundToFloat(ExeDouble(0x0073C308) * ExeDouble(0x0073B9D8)));
+                 static_cast<float>(ExeDouble(0x0073C308) * ExeDouble(0x0073B9D8)));
     ClientSetCameraAt(Client(), nullptr, Camera());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();

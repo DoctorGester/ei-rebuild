@@ -39,12 +39,6 @@ std::uintptr_t MissileVtable() { return static_cast<std::uintptr_t>(0x00743754);
 
 CWorld* WorldOf(const CEngineObject* object) { return static_cast<CWorld*>(ObjectWorld(object)); }
 
-// The original stores these values to a float and reads them back.
-float StoreFloat(float v) {
-    volatile float r = v;
-    return r;
-}
-
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
     std::memcpy(&u, &f, 4);
@@ -77,7 +71,7 @@ int CEffectMissile::Steer() {
         velocity_.y = target->position.y - localPosition_.y;
         velocity_.z = aimZ - localPosition_.z;
         float speed = kMissileSpeed;
-        float distance = StoreFloat(static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x))));
+        float distance = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(velocity_.y, velocity_.x)));
         if (GetClassId() == kClassArrowFigure) speed = speed + speed;
         if (!(distance >= speed)) {   // within one step (or NaN)
             flying = 0;
@@ -93,7 +87,7 @@ int CEffectMissile::Steer() {
         // Below the ground plus the clearance: climb by what is missing, at most half the clearance less.
         double floor = world->RawSurfaceHeightAt(localPosition_.x, localPosition_.y) + kGroundClearance;
         if (floor > localPosition_.z) {
-            float missing = StoreFloat(static_cast<float>(floor - localPosition_.z));
+            float missing = static_cast<float>(floor - localPosition_.z);
             float limited = !(missing >= kGroundClearance) ? missing : kGroundClearance;
             velocity_.z = missing - limited * 0.5f;
         }

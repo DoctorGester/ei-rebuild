@@ -14,7 +14,8 @@
 
 // The particle callbacks run for every live particle every frame. The order of operations in each
 // expression follows the original instruction sequence; values the original rounds through a float
-// temporary go through StoreFloat, values it keeps on the FPU stack are written inline.
+// temporary are rounded with static_cast<float>, values it keeps on the FPU stack are written
+// inline.
 
 namespace {
 
@@ -145,7 +146,7 @@ int CParticleSource::UpdateFalling(Particle* p) {
     p->pos.y = p->drift.y + p->pos.y;
     p->pos.z = p->drift.z + p->pos.z;
     p->size = p->velocity.x * p->size;
-    float fall = StoreFloat(p->velocity.z + p->drift.z);
+    float fall = static_cast<float>(p->velocity.z + p->drift.z);
     p->drift.z = LessOrUnordered(fall, terminal) ? terminal : fall;
     return 1;
 }
@@ -218,13 +219,13 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     std::memcpy(&p->size, &size, sizeof(float));
     if (GlobalRandom().Next() % 100 + 1 <= 40) {
         p->size = size * kHalf;
-        extra = StoreFloat(size * kPointThree);
+        extra = static_cast<float>(size * kPointThree);
     }
-    float hi = StoreFloat(extra + spreadMax.x);
-    float lo = StoreFloat(spreadMin.x - extra);
+    float hi = static_cast<float>(extra + spreadMax.x);
+    float lo = static_cast<float>(spreadMin.x - extra);
     p->velocity.x = static_cast<float>(Unsigned(GlobalRandom().Next()) * (hi - lo) * kRandomScale + lo);
-    hi = StoreFloat(extra + spreadMax.y);
-    lo = StoreFloat(spreadMin.y - extra);
+    hi = static_cast<float>(extra + spreadMax.y);
+    lo = static_cast<float>(spreadMin.y - extra);
     std::uint32_t r = GlobalRandom().Next();
     p->velocity.z = 0.0f;
     p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
@@ -292,13 +293,13 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     float y = p->velocity.y;
     // Both are computed before either store; the plane test below reloads the stored floats.
     float ny = c * y + x * s;
-    p->velocity.x = StoreFloat(c * x - s * y);
-    p->velocity.y = StoreFloat(ny);
+    p->velocity.x = static_cast<float>(c * x - s * y);
+    p->velocity.y = static_cast<float>(ny);
     Vector3 offset;
     float d = elements[0].value[5];
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
-        float t = StoreFloat(-(DotZYX(p->velocity, n) / d));
+        float t = static_cast<float>(-(DotZYX(p->velocity, n) / d));
         t = LessOrUnordered(t, kOne) ? t : kOne;
         t = LessOrUnordered(t, kZero) ? kZero : t;
         Vector3 along;
@@ -308,8 +309,8 @@ int CParticleSource::UpdateOrbit(Particle* p) {
         std::memcpy(&offset, &p->velocity, sizeof(offset));
     }
     const Vector3& center = elements[0].pos;
-    float by = StoreFloat(origin.y + center.y);
-    float bz = StoreFloat(origin.z + center.z);
+    float by = static_cast<float>(origin.y + center.y);
+    float bz = static_cast<float>(origin.z + center.z);
     p->size = kOne;
     float px = (origin.x + center.x) + offset.x;
     p->pos.y = offset.y + by;

@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 struct AIBrain;
 struct AIOrder;
@@ -372,6 +373,13 @@ struct SuspectionMode : AIMode {
     void Save(CStream* stream);
     // 004BA610 (script_unit_modes.cpp). Constructor after operator new: the vtable only.
     SuspectionMode* ScriptSuspectionModeConstruct();
+    // Point and level zeroed. The constructors leave them, but Evaluate keeps a point that compares
+    // the same (a NaN always does) and the lower level, so every new mode starts from them zeroed: a
+    // determinism fix, SV7d4; the harness zeroes the original's alike (tests/verify/harness_leftovers.h).
+    void ClearFields() {
+        point = {};
+        level = 0;
+    }
     // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
     SuspectionMode* SuspectionClone() const;                 // 004BA630
     void SuspectionReset();                                  // 004BA6B0
@@ -437,6 +445,9 @@ struct FearMode : AIMode {
     // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
     // unset point (x = -1313), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
     FearMode* Construct(std::uint8_t flag);
+    // Every field after the count zeroed, before Construct: it leaves shelter y / z and fleePoint x / y,
+    // which the saves write (a determinism fix, SV7b2; the harness zeroes the original's alike).
+    void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
     // unit_ai_mode_lifetime.cpp. 005D2950: the root vtable. 005D2930 (slot 0, RET 4): that, then
     // operator delete when `flags` bit 0 is set; returns this.
     void Destruct();

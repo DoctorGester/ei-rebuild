@@ -11,6 +11,7 @@
 #include "core_transform.h"
 #include "net_coder.h"
 #include "net_link.h"
+#include "net_second_master.h"
 #include "party.h"
 #include "random.h"
 #include "unit.h"
@@ -572,7 +573,11 @@ EI_REPLACE_METHOD(0x0061CF50, CMpConnectScreen::EditAddress);
 void CMpConnectScreen::MasterRequest() {
     CopyText(boxText_, EmptyText());
     net::NetAddress master{};
-    master.Parse(MasterHost(), kMasterPort);
+    // EI_Plugin's NewMaster (its call at 0061D138): with a second master set, the master is tried first.
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
+        net::second_master::ParseMaster(&master, MasterHost(), kMasterPort);
+    else
+        master.Parse(MasterHost(), kMasterPort);
     net::ClientSession* client = net::GameClient();
     std::uint32_t extra = client ? client->queries_.extra : 0;
     void* memory = gamecrt::operator_new(sizeof(CMasterRequestBox));
@@ -582,6 +587,7 @@ void CMpConnectScreen::MasterRequest() {
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
 EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
+EI_REBIRTH_IMPLEMENTS(0x0061D0D0, ei::rebirth::Patch::EiPluginNewMaster);
 
 // --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
 

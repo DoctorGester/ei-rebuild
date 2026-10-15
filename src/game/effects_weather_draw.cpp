@@ -4,7 +4,7 @@
 #include "figure_mesh.h"   // VertexPacket
 
 #include "clip.h"         // TLVertex
-#include "core_maths.h"   // StoreFloat
+#include "core_maths.h"
 #include "model.h"        // CSceneRenderer, CTransformPipeline
 
 #include "ei/hook.h"
@@ -74,7 +74,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
         const FogCell& cell = node->value;
         std::memcpy(point, &cell.pos, sizeof(cell.pos));
         point->size = kFogSpriteSize;
-        const int alpha = x87::fistp(StoreFloat(cell.alpha * kColourScale));
+        const int alpha = x87::fistp(static_cast<float>(cell.alpha * kColourScale));
         sprite->colour = (static_cast<std::uint32_t>(alpha) << 24) | 0x00FFFFFFu;
         sprite->tile = FogTiles() + cell.frame;
         ++point;

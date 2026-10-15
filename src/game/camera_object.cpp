@@ -17,16 +17,13 @@
 #include <cstring>
 #include <new>
 
-#pragma float_control(precise, on)
-
 namespace {
 
-using camera::Store;
 
 // The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
 // (pi * 2/7), computed at run time as the original does.
-float DefaultPitch() { return Store((CAM_PI * CAM_PER_180) * CAM_FORTY_FIVE); }
-float DefaultAngle() { return Store(CAM_PI * CAM_TWO_SEVENTHS); }
+float DefaultPitch() { return static_cast<float>((CAM_PI * CAM_PER_180) * CAM_FORTY_FIVE); }
+float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
 
 } // namespace

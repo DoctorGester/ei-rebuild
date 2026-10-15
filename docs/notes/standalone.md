@@ -1343,7 +1343,7 @@ the image is the host's malloc; a NaN there makes Less(x, x) true and a NaN pivo
 the list. Nothing else reads viewPosition.
 - Fix: the view position starts at zero, in ours (CObject3D::Construct) and in the original through a harness site
   (harness_leftovers.cpp: CMapObject::Construct's CALL 0050E2F2 of 00515BD0, its one caller, zeroes it after the
-  original's construction; EI_LEFTOVERS bit 10). The comparator is unchanged. The constructor's verify zeroes the
+  original's construction; EI_LEFTOVERS family bit 6 since SV7b2). The comparator is unchanged. The constructor's verify zeroes the
   object's +0x28 before comparing.
 - Check kept: `g_drawSortCheck` (world.h), called by DrawPass before each UnitOrderLess sort, installed by the verify
   build (verify_world_client.cpp, ours only, so also in the image, which has no verify wrappers): `DrawPass sort list`
@@ -1394,6 +1394,35 @@ and "EI_Plugin.asi"), so hooked Rebirth runs now hook 00443080, 0041ECC0, 0063A5
 plugin's under Rebirth and vanilla in the image: 00632D70, 0041AA10, 0061D0D0, the calls into NewMaster's second master
 server (hat.gipath.org), which wait for the user's decision (S19c). The image's flags gain `Pause=1`
 (`rebirth::PluginPause`, EI_Plugin.ini's mode).
+
+**S19b (2026-10-15).** Rebirth's mod-folder patches in the image: `src/game/mod_folders.{h,cpp}`, the resource layer
+(Maps, ResOverride, CameraPatch, StreamPatch, MoviesPatch as addon.dll does them; docs/notes/rebirth.md, "Resources and paths").
+`modfolders::Active(flag)` is the image with the flag on, so hooked runs (vanilla, and Rebirth with addon) run as before. The
+sites: GetFile / ListFiles bodies (resource.cpp, resource_stream.cpp; plain bodies `GetFilePlain` / `ListFilesPlain` for the
+layer), OpenResource / Destroy entries, CFigureManager::CreateWithArchives, CLinkFigureLoader::Construct, CTextureManager::Create,
+CMaterialManager::Create, the nine maps-folder users (world_map_files.cpp, world_save.cpp, world_client_maps.cpp, world_game.cpp,
+world_briefing.cpp), CCamera::LoadPath, SwitchStream, the three BinkOpen calls (bink_video.cpp; 005DA880 also calls it but is dead).
+The mod archives open through the addresses 00671280 / 00671730 (rule 9). No verify wrapper compares the layer (nothing of it runs in
+a hooked run); it is checked by its scenario against addon.dll:
+- tests/scenarios/rebirth_mod_folders.txt: a mod of our own (tools/make_test_mod.py, a `# prepare:` tool, writes it into the run's
+  harness_saves) selected with the new harness step `addonpath` (answers AddonPath for addon.dll's RegQueryValueExW and the game's
+  RegQueryValueExA). The new step `modfile <archive> <file> <bytes>` reads a file of a game archive through OpenResource's address
+  and GetFile's slot. Rebirth (addon) and standalone-rebirth (the layer) pass the same checks: gfx.res gives the mod archive's
+  s19b.txt (also as `t\s19b.txt`) and still the game's lightning.dat, AddMob("traps.mob") loads the mod's Maps\traps.mob,
+  PlayCamera("s19b.cam") the mod's Camera\s19b.cam; vanilla and standalone find none of them. With Maps, ResOverride and
+  CameraPatch off the standalone-rebirth run fails all of these (checked once with a scratch copy).
+- tools/prepare_scenario.py now runs a scenario's prepare tools from the scenario's own checkout (the queue's run_all is the main
+  checkout's, so a worktree's new tool was not found).
+- Runs (after merging main): `--standalone --golden` on the 53 golden scenarios and rebirth_mod_folders, 108 runs pass, 97
+  goldens the same, 0 differ (before the merge ui_container_input standalone-rebirth parted at world update 300 with SV7b7's
+  fields, isaac.count and unmoto obj1937; gone with main). rebirth_mod_folders hooked: vanilla and Rebirth pass.
+- Not covered by a run: StreamPatch and MoviesPatch (no script handle on the stream's or a movie's path), the figure / texture extra
+  archives and ignored ('-') archives, Maps' zone-table and quest sites. Caveat: a vanilla launch with these flags set by hand stays
+  vanilla (the hook build never runs the layer).
+
+**S19c (2026-10-15).** NewMaster's second master server ported opt-in (rebirth.md, "EI_Plugin.asi"): `SecondMaster=` in
+ei_rebirth.ini (empty in `config/ei_rebirth_standalone.ini` and in every harness run: the game's own code). 00632D70,
+0041AA10 and 0061D0D0 are declared, so hooked Rebirth runs hook them too (the plugin's look-up of hat.gipath.org no longer runs).
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario

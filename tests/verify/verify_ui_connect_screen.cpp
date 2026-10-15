@@ -1,7 +1,7 @@
 // Checks for the multiplayer connection screen, its master request box and the address list's
 // vector members (ui_connect_screen.cpp). Multiplayer only: the screen opens from the multiplayer
 // hero screen's Continue with a hero (ui_mp_host does: the list draw 0061D780 is reached and compared
-// side by side; the rest is not reached). The others are ours only (they open windows, write
+// side by side; net_second_master also reaches MasterRequest 0061D0D0). The others are ours only (they open windows, write
 // config\addrbook.ini, talk to the network or reallocate the list); the checks are invariants of the result.
 #include "verify.h"
 #include "ui_surface_pixels.h"

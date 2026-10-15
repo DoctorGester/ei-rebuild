@@ -59,7 +59,7 @@ std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
 std::uint32_t GroupExcess(const AIAttackOption* option, AIObjectList* group, CUnit* candidate) {
     std::uint32_t sum = 0;
     if (!group->head) return sum;
-    float radius2 = RoundToFloat(option->radius * option->radius);
+    float radius2 = static_cast<float>(option->radius * option->radius);
     for (auto* node = group->head; node; node = node->next) {
         auto* member = static_cast<CUnit*>(node->data);
         if (!(AIDistance2(PositionOf(member), PositionOf(candidate)) > radius2)) sum += Excess(option, member);
@@ -132,17 +132,17 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
         double dz = static_cast<double>(self->position.z) - target->position.z;
         double dy = static_cast<double>(self->position.y) - target->position.y;
         double dx = static_cast<double>(self->position.x) - target->position.x;
-        float distance = RoundToFloat(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
-        float range = RoundToFloat(self->ScaledValue(distance));
-        float targetRadius = RoundToFloat(MapObject(target)->Radius());
-        float minDistance = RoundToFloat(static_cast<double>(MapObject(self)->Radius()) + targetRadius);
+        float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
+        float range = static_cast<float>(self->ScaledValue(distance));
+        float targetRadius = static_cast<float>(MapObject(target)->Radius());
+        float minDistance = static_cast<float>(static_cast<double>(MapObject(self)->Radius()) + targetRadius);
         CWorldServer* server = WorldServer();
         // The target is lifted off the sector map so it does not block its own cell.
         SectorMapRemove(server->Sectors(), nullptr, target);
         if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
-            float scale = RoundToFloat(kOne * kHalf);
-            point.x = RoundToFloat(scale * local.path.targetX);
-            point.y = RoundToFloat(scale * local.path.targetY);
+            float scale = static_cast<float>(kOne * kHalf);
+            point.x = static_cast<float>(scale * local.path.targetX);
+            point.y = static_cast<float>(scale * local.path.targetY);
             point.z = 0.0f;
         } else {
             point = *PositionOf(self);
@@ -208,7 +208,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     switch (option->kind) {
     case 0:
         damage = Excess(option, candidate);
-        score = RoundToFloat(static_cast<double>(static_cast<int>(damage & 0xFFFF)) * kDamageWeight + score);
+        score = static_cast<float>(static_cast<double>(static_cast<int>(damage & 0xFFFF)) * kDamageWeight + score);
         break;
     case 1:
     case 2:
@@ -224,7 +224,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         int words = static_cast<int>(damage & 0xFFFF);
         double partial = static_cast<double>(words) * kGroupDamageWeight + score + kGroupBase;
         int count = others < cap ? others : cap;
-        score = RoundToFloat(static_cast<double>(words * count) + partial);
+        score = static_cast<float>(static_cast<double>(words * count) + partial);
         break;
     }
     case 4:
@@ -233,22 +233,22 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         if (candidate->HasEffect(static_cast<std::uint32_t>(option->effect))) return kNoScore;
         double partial = static_cast<double>(score) + kOne;
         int count = others < cap ? others : cap;
-        score = RoundToFloat(static_cast<double>(count) + partial);
+        score = static_cast<float>(static_cast<double>(count) + partial);
         break;
     }
     case 7: {
-        float base = RoundToFloat(kGroupBase + static_cast<double>(score));
+        float base = static_cast<float>(kGroupBase + static_cast<double>(score));
         int hp = candidate->packedVitals.hitPoints;
-        long limit = std::lrint(RoundToFloat(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
+        long limit = std::lrint(static_cast<float>(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
         if (hp > limit - 2) return kNoScore;
         if (hp * 3 < limit) {
             float weight = control->Brain()->attention.healWeight;
-            score = RoundToFloat(kHealFactor * weight);
-            if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = RoundToFloat(static_cast<double>(score) + weight);
+            score = static_cast<float>(kHealFactor * weight);
+            if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = static_cast<float>(static_cast<double>(score) + weight);
         } else {
             double partial = static_cast<double>(base) + kHealGroupBase;
             int count = others < cap ? others : cap;
-            score = RoundToFloat(static_cast<double>(count * 2) + partial);
+            score = static_cast<float>(static_cast<double>(count * 2) + partial);
         }
         break;
     }
@@ -262,7 +262,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = RoundToFloat(x87::fsqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
+    float beyond = static_cast<float>(x87::fsqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
     float penalty = !(kZero >= beyond) ? beyond : kZero;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     if (!(result >= threshold)) return result;
@@ -297,7 +297,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
             held = nullptr;
             current[1] = 0;
         } else {
-            best = RoundToFloat(Score(from, self, candidates, held, static_cast<CUnit*>(held), kFloorScore, option));
+            best = static_cast<float>(Score(from, self, candidates, held, static_cast<CUnit*>(held), kFloorScore, option));
             if (!(best >= kFloorScore)) {
                 current[1] = 0;
                 best = kFloorScore;
@@ -311,7 +311,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
             auto* candidate = static_cast<CUnit*>(node->data);
             for (int i = 0; i < weapons.size; ++i) {
                 double s = Score(from, self, candidates, held, candidate, best, &weapons.data[i]);
-                if (s > best) scored.push_back({weapons.data[i].part, candidate, RoundToFloat(s)});
+                if (s > best) scored.push_back({weapons.data[i].part, candidate, static_cast<float>(s)});
             }
         }
     }
@@ -332,7 +332,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
                 const AIAttackOption* option = &spells.data[i];
                 if (alliesOnly && option->kind == 6) continue;
                 double s = Score(from, self, &allies, held, ally, best, option);
-                if (s > best) scored.push_back({option->part, ally, RoundToFloat(s)});
+                if (s > best) scored.push_back({option->part, ally, static_cast<float>(s)});
             }
         }
         allies.RemoveAll();

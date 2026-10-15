@@ -50,7 +50,7 @@ bool SignClear(float v) {
 }
 
 // Channel bytes: the value times 255 stored as a float, then FISTP (here: chop).
-std::uint32_t Channel(float v) { return static_cast<std::uint32_t>(x87::fistp(RoundToFloat(v * 255.0f))); }
+std::uint32_t Channel(float v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v * 255.0f))); }
 
 } // namespace
 
@@ -63,21 +63,21 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
     const SectorVertex& water = record[kVertices];
     if (hasWater && layer == 0 && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
         float absorption = terrain->materials[water.waterMaterial].absorption;
-        float loss = RoundToFloat(Product(WaterFalloff(), absorption, record->depth, record->depth));
-        float dim = AtLeastZero(RoundToFloat(1.0f - loss));
-        ambient.x = RoundToFloat(dim * ambient.x);
-        ambient.y = RoundToFloat(dim * ambient.y);
-        ambient.z = RoundToFloat(dim * ambient.z);
+        float loss = static_cast<float>(Product(WaterFalloff(), absorption, record->depth, record->depth));
+        float dim = AtLeastZero(static_cast<float>(1.0f - loss));
+        ambient.x = static_cast<float>(dim * ambient.x);
+        ambient.y = static_cast<float>(dim * ambient.y);
+        ambient.z = static_cast<float>(dim * ambient.z);
         float height = sun->position_.z;
-        attenuation = AtLeastZero(RoundToFloat(1.0 - Product(height, height, loss)));
+        attenuation = AtLeastZero(static_cast<float>(1.0 - Product(height, height, loss)));
         colour.x = Max(water.materialColour.x, record->materialColour.x);
         colour.y = Max(water.materialColour.y, record->materialColour.y);
         colour.z = Max(water.materialColour.z, record->materialColour.z);
     }
     if (shadows && terrain->SunReachesAtOriginal(position) == 0) {
-        record->lit.x = AtMostOne(RoundToFloat(ambient.x + colour.x));
-        record->lit.y = AtMostOne(RoundToFloat(ambient.y + colour.y));
-        record->lit.z = AtMostOne(RoundToFloat(ambient.z + colour.z));
+        record->lit.x = AtMostOne(static_cast<float>(ambient.x + colour.x));
+        record->lit.y = AtMostOne(static_cast<float>(ambient.y + colour.y));
+        record->lit.z = AtMostOne(static_cast<float>(ambient.z + colour.z));
         return;
     }
     // The fourth component is an uninitialised stack slot in the original; only copied through.
@@ -98,17 +98,17 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
         CLight* light = ref->light;
         float attenuation = 1.0f;
         Vector3 offset = light->position_ - at;
-        offset.y = RoundToFloat(offset.y);
-        offset.z = RoundToFloat(offset.z);
+        offset.y = static_cast<float>(offset.y);
+        offset.z = static_cast<float>(offset.z);
         float distance = Length<Sum3::ZYX>(offset);
-        float inverse = RoundToFloat(1.0f / distance);
-        Vector3 direction = {RoundToFloat(inverse * offset.x), RoundToFloat(inverse * offset.y),
-                             RoundToFloat(inverse * offset.z)};
+        float inverse = static_cast<float>(1.0f / distance);
+        Vector3 direction = {static_cast<float>(inverse * offset.x), static_cast<float>(inverse * offset.y),
+                             static_cast<float>(inverse * offset.z)};
         const SectorVertex& water = record[kVertices];
         if (layer == 0 && hasWater && water.waterMaterial != 0xFFFF && SignClear(record->depth)) {
             float absorption = terrain->materials[water.waterMaterial].absorption;
             double loss = Product(absorption, record->depth, record->depth, direction.z, direction.z, WaterFalloff());
-            attenuation = AtLeastZero(RoundToFloat(1.0 - loss));
+            attenuation = AtLeastZero(static_cast<float>(1.0 - loss));
         }
         float source[4] = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
         float shaded[4];

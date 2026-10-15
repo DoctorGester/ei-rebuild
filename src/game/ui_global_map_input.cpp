@@ -42,11 +42,6 @@ constexpr int kTipLine = 20;
 const char* ZoneSound() { return reinterpret_cast<const char*>(0x007941B8); }   // "buttons\globalmap\zone.wav"
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-// The original keeps the turned angle in a float stack slot.
-float StoreFloat(float value) {
-    volatile float stored = value;
-    return stored;
-}
 mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
@@ -105,7 +100,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         (console::Out7C5760() <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
         // Rebirth's WideScreen scales the drag without the margin (0063008C: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
-        float turned = StoreFloat(static_cast<float>(drag.x) * GameFloat(0x00740204) + angle_);   // 1 / 300
+        float turned = static_cast<float>(static_cast<float>(drag.x) * GameFloat(0x00740204) + angle_);   // 1 / 300
         angle_ = turned;
         angle_ = static_cast<float>(gamecrt::fmod(turned, GameFloat(0x007C8020)));
         Quaternion spin, tilt;

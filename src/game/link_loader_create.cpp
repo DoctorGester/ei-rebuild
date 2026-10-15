@@ -3,6 +3,7 @@
 // first archive's name), so this is the vanilla body, installed in the vanilla launch only, and
 // callers go through its address. A-S12; see docs/notes/renderer.md (section 12).
 #include "model.h"
+#include "mod_folders.h"
 #include "texture.h"   // CTextureDevice
 
 #include "ei/hook.h"
@@ -42,6 +43,13 @@ CLinkFigureLoader* CLinkFigureLoader::Construct(CTextureDevice* renderer, const 
     cache_.Construct();
     ei::SetVtable(this, CLinkFigureLoader::kVtableAddress);
     pipeline_ = renderer_->pipeline_->transform_;
+    // Rebirth's ResOverride (004F6952): the mod's figure archives come first.
+    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
+        for (const std::string& modPath : modfolders::FigureArchives()) {
+            const stlp::string path(modPath.c_str());
+            AddArchiveOriginal(this, nullptr, &path);
+        }
+    }
     {
         const stlp::string path = stlp::Plus(*folder, FiguresArchive());
         AddArchiveOriginal(this, nullptr, &path);

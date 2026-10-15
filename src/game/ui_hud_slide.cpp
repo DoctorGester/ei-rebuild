@@ -106,7 +106,7 @@ template <typename Panel>
 void AdvanceSlide(Panel* panel) {
     const double moved =
         WindowFrameTimeOriginal(panel) * panel->slideDirection_ / SlideTime() + panel->slide_;
-    panel->slide_ = RoundToFloat(moved);
+    panel->slide_ = static_cast<float>(moved);
     if (moved > 1.0) panel->slide_ = 1.0f;
     if (panel->slide_ < 0.0f) panel->slide_ = 0.0f;
     const double s = panel->slide_;
@@ -160,12 +160,12 @@ void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
     if (view_ == 1) {
         const double zoom = std::pow(kZoomRate, WindowFrameTimeOriginal(this)) * zoom_;
-        zoom_ = RoundToFloat(zoom);
+        zoom_ = static_cast<float>(zoom);
         if (zoom > zoomMax_) zoom_ = zoomMax_;
     }
     if (view_ == 2) {
         const double zoom = zoom_ / std::pow(kZoomRate, WindowFrameTimeOriginal(this));
-        zoom_ = RoundToFloat(zoom);
+        zoom_ = static_cast<float>(zoom);
         if (zoom < 1.0) zoom_ = 1.0f;
     }
     MapUpdateViewAt(this);
@@ -184,7 +184,7 @@ void CHudMap::UpdateVanilla() {
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
     // The "camera north" button (scene object 11) is lit while its time runs.
-    if (northTime_ > 0.0f) northTime_ = RoundToFloat(northTime_ - WindowFrameTimeOriginal(this));
+    if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - WindowFrameTimeOriginal(this));
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
 EI_REPLACE_METHOD(0x00642B40, CHudMap::UpdateVanilla);
@@ -255,7 +255,7 @@ constexpr std::uintptr_t kPartLabelKeys[4] = {
     std::uintptr_t(0x007945BC),   // "hl_arm"
 };
 // The strip's scale: 100 / 0.48157 (the layout's half height at depth 1), both read from the exe.
-float StripScale() { return RoundToFloat(GameFloat(0x0073BAB0) / GameFloat(0x007423FC)); }
+float StripScale() { return static_cast<float>(GameFloat(0x0073BAB0) / GameFloat(0x007423FC)); }
 constexpr int kUnitTravel = 180;
 constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
 constexpr int kWideUnitRight = 52;
@@ -455,11 +455,11 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // down, not 79 (see OnArc in ui_hud_setup.cpp).
     CUiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
-        const float angle = RoundToFloat(RoundToFloat(static_cast<float>(i) * Pi()) * OutlineStep());
-        const float down = RoundToFloat(x87::fcos(static_cast<double>(angle)) * OutlineRadius());
-        const int y = static_cast<int>(gamecrt::Ftol(RoundToFloat(down + OutlineCentreY())));
-        const float across = RoundToFloat(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
-        const int x = static_cast<int>(gamecrt::Ftol(RoundToFloat(OutlineCentreX() - across)));
+        const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * Pi()) * OutlineStep());
+        const float down = static_cast<float>(x87::fcos(static_cast<double>(angle)) * OutlineRadius());
+        const int y = static_cast<int>(gamecrt::Ftol(static_cast<float>(down + OutlineCentreY())));
+        const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
+        const int x = static_cast<int>(gamecrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
         round->CallAddPoint(x, y);
     }
     AddRegion()->CallSetRect(620, 0, 780, 160);
@@ -480,14 +480,14 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     bounds->texture_ = objects_.data[1];
     bounds->tint_[0] = bounds->tint_[1] = bounds->tint_[2] = 0.8f;
-    bounds->SetScale(RoundToFloat(RoundToFloat(DepthUnit() * halfSide_) * BoundsScale()));
+    bounds->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * BoundsScale()));
     CUiMesh* area = AddSprite(nullptr);
     Builder(area)->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     area->texture_ = objects_.data[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddSprite(nullptr);
     SpritePlaceOriginal(markers, nullptr, 700.0f, 80.0f, 12.0f);
-    markers->SetScale(RoundToFloat(RoundToFloat(DepthUnit() * halfSide_) * MarkersScale()));
+    markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
     Builder(markers)->ResetColours();
     markers->SetUvCount(4);
     const UiTexel markerTexels[4] = {
@@ -504,7 +504,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
     slingButton->uOffset_ = 0.22265625f;
     slingButton->vOffset_ = 0.140625f;
-    PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), RoundToFloat(Pi() * SlingQuarter()), 850.0f);
+    PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), static_cast<float>(Pi() * SlingQuarter()), 850.0f);
     slingButton->SetScale(0.8f);
     // 6 and 7: the view buttons; 8: the ring round the map; 9: the frame; 10: the compass needle;
     // 11: "camera north".

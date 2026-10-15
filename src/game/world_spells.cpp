@@ -23,9 +23,6 @@
 #include "originals_library.h"
 #include "originals_script.h"
 
-// The distances keep the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -94,7 +91,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
     if (static_cast<const CSpell*>(spell)->targetFlags_ & kSpellAreaFlag) target = nullptr;
-    end.z = StoreFloat(static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + GameFloat(0x0073C54C)));
+    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + GameFloat(0x0073C54C));
     if (caster) std::memcpy(&from, &static_cast<CUnit*>(caster)->position, sizeof(from));
 
     void* memory = gamecrt::operator_new(0xA8);
@@ -194,7 +191,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
                 if (!(distance >= bestDistance)) {
-                    float stored = StoreFloat(static_cast<float>(distance));
+                    float stored = static_cast<float>(distance);
                     std::memcpy(&bestBits, &stored, 4);
                     best = unit;
                     bestNode = node;
@@ -235,8 +232,6 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     units.vtable = mfc::PtrListVtable();
     units.RemoveAll();
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058E850, CWorldServer::CastSpell);
 EI_REPLACE_METHOD(0x0058E670, CWorldServer::CreateMissile);

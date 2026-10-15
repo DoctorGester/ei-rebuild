@@ -4,7 +4,7 @@
 #include "torch_client_spec.h"
 
 #include "camera.h"        // TheTerrain (the light manager, 007AF738)
-#include "core_maths.h"    // StoreFloat
+#include "core_maths.h"
 #include "effects.h"       // CParticleSource, CParticleManager
 #include "map_object.h"    // CMapObject::position
 #include "sound.h"         // CSoundManager
@@ -183,7 +183,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     light_->SetPoint(&rgb, &at);
     light_->range_ = radius;
     // The square is stored (FST) and 1 divided by the same register value.
-    const float squared = StoreFloat(radius * radius);
+    const float squared = static_cast<float>(radius * radius);
     light_->rangeSquared_ = squared;
     light_->inverseRangeSquared_ = 1.0f / squared;
     LightManagerAddOriginal(camera::TheTerrain(), nullptr, light_);

@@ -126,12 +126,12 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             reinterpret_cast<mfc::CString*>(partNames)[index] = bone->GetName();
 
             box = &partBoxes[index];
-            high.x = Higher(high.x, StoreFloat(box->pivot.x + box->boxMax.x + box->offset.x));
-            high.y = Higher(high.y, StoreFloat(box->pivot.y + box->boxMax.y + box->offset.y));
-            high.z = Higher(high.z, StoreFloat(box->pivot.z + box->boxMax.z + box->offset.z));
-            low.x = Lower(low.x, StoreFloat(box->pivot.x + box->boxMin.x + box->offset.x));
-            low.y = Lower(low.y, StoreFloat(box->pivot.y + box->boxMin.y + box->offset.y));
-            low.z = Lower(low.z, StoreFloat(box->pivot.z + box->boxMin.z + box->offset.z));
+            high.x = Higher(high.x, static_cast<float>(box->pivot.x + box->boxMax.x + box->offset.x));
+            high.y = Higher(high.y, static_cast<float>(box->pivot.y + box->boxMax.y + box->offset.y));
+            high.z = Higher(high.z, static_cast<float>(box->pivot.z + box->boxMax.z + box->offset.z));
+            low.x = Lower(low.x, static_cast<float>(box->pivot.x + box->boxMin.x + box->offset.x));
+            low.y = Lower(low.y, static_cast<float>(box->pivot.y + box->boxMin.y + box->offset.y));
+            low.z = Lower(low.z, static_cast<float>(box->pivot.z + box->boxMin.z + box->offset.z));
 
             const char* partName = bone->GetName();
             const int* fold = gamecrt::CaseFoldTable();
@@ -147,9 +147,9 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         low.y = -kHeroHalfWidth;
         low.x = -kHeroHalfWidth;
     }
-    center.x = StoreFloat((low.x + high.x) * kHalf);
-    center.y = StoreFloat((low.y + high.y) * kHalf);
-    center.z = StoreFloat((low.z + high.z) * kHalf);
+    center.x = static_cast<float>((low.x + high.x) * kHalf);
+    center.y = static_cast<float>((low.y + high.y) * kHalf);
+    center.z = static_cast<float>((low.z + high.z) * kHalf);
     below.x = low.x - center.x;
     below.y = low.y - center.y;
     below.z = low.z - center.z;
@@ -176,9 +176,9 @@ void CObject3D::UpdatePartBounds() {
         static_cast<const CFigureMesh*>(parts.data[i])->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
-    float centreX = StoreFloat((highX + lowX) * kHalf);
-    float centreY = StoreFloat(StoreFloat(highY + lowY) * kHalf);
-    float centreZ = StoreFloat(StoreFloat(highZ + lowZ) * kHalf);
+    float centreX = static_cast<float>((highX + lowX) * kHalf);
+    float centreY = static_cast<float>(static_cast<float>(highY + lowY) * kHalf);
+    float centreZ = static_cast<float>(static_cast<float>(highZ + lowZ) * kHalf);
     above.x = highX - centreX;
     above.y = highY - centreY;
     above.z = highZ - centreZ;

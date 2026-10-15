@@ -3,9 +3,9 @@
 // the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map, hero
 // screens").
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept. Constants are read from the exe's memory, as the original does.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
+// as the original does.
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -38,18 +38,11 @@
 #include <new>
 #include <bit>
 
-#pragma float_control(precise, on)
-
 using console::CStringArray;
 
 namespace {
 
 inline double D(float f) { return f; }
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float Bits(std::uint32_t bits) {
     float f;
@@ -222,9 +215,9 @@ public:
     // The layout point (centreX, centreY) at `depth` in camera space, stored as floats.
     Vector3 Centre() const {
         float depth = map_->depth_;
-        float x = Store((D(map_->centreX_) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) *
+        float x = static_cast<float>((D(map_->centreX_) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) *
                         D(GameFloat(0x0074209C)) * D(depth));
-        float y = Store((D(map_->centreY_) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073C524))) *
+        float y = static_cast<float>((D(map_->centreY_) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073C524))) *
                         D(GameFloat(0x0074209C)) * D(depth));
         return Vector3{x, y, depth};
     }
@@ -261,8 +254,8 @@ public:
         Vector3 turned;
         Rotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 p;
-        p.Construct(Store(D(centre.x) + D(turned.x)), Store(D(centre.y) + D(turned.y)),
-                    Store(D(centre.z) + D(turned.z)));
+        p.Construct(static_cast<float>(D(centre.x) + D(turned.x)), static_cast<float>(D(centre.y) + D(turned.y)),
+                    static_cast<float>(D(centre.z) + D(turned.z)));
         SetPosition(sprite, p);
         return sprite;
     }
@@ -351,14 +344,14 @@ void CGlobalMap::Create() {
     {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
-        q.SetAxisAngle(axis, Store(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));   // pi * 0.8
+        q.SetAxisAngle(axis, static_cast<float>(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));   // pi * 0.8
         std::memcpy(&turn_, &q, 16);
     }
     MapBuilder builder(this);
 
     // The current zone: its arrow above it, its base on it, the island.
     {
-        Vector3 above = {position_.x, position_.y, Store(D(position_.z) + D(GameFloat(0x0073CDB8)))};
+        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(GameFloat(0x0073CDB8)))};
         builder.Marker(allod->arrow, above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
         builder.Marker(allod->ball, at, Bits(0x3F4CCCCD));   // 0.8
@@ -670,10 +663,10 @@ float FmodStored(float a, const float* divisor) {
 // The product the original inlines (r = b * a in its operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
-    float z = Store(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
-    float y = Store(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
-    float x = Store(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
-    float w = Store(D(b.w) * D(a.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    float z = static_cast<float>(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
+    float y = static_cast<float>(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
+    float x = static_cast<float>(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
+    float w = static_cast<float>(D(b.w) * D(a.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
     r.w = w;
     r.x = x;
     r.y = y;
@@ -685,7 +678,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
     int whole = GameFtol(v);
-    float fraction = Store(v - static_cast<double>(whole));
+    float fraction = static_cast<float>(v - static_cast<double>(whole));
     std::memcpy(&reinterpret_cast<CUiMesh*>(layer)->uOffset_, &fraction, 4);
 }
 
@@ -702,7 +695,7 @@ void CGlobalMap::Update() {
     MapBuilder builder(this);
     if (turning_ != 0 || dragging_) {
         // Turn the model about z.
-        float turned = Store(FrameTime(this) * static_cast<double>(turning_) * D(GameFloat(0x00742098)) *
+        float turned = static_cast<float>(FrameTime(this) * static_cast<double>(turning_) * D(GameFloat(0x00742098)) *
                                  D(GameFloat(0x0073C3B0)) +
                              D(angle_));
         angle_ = turned;
@@ -712,7 +705,7 @@ void CGlobalMap::Update() {
         Quaternion spin;
         spin.SetAngleAxis(angle_, up);
         Quaternion tilt;
-        tilt.SetAxisAngle(side, Store(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));
+        tilt.SetAxisAngle(side, static_cast<float>(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));
         Quaternion turn = TurnProduct(spin, tilt);
         std::memcpy(&turn_, &turn, 16);
         if (!(D(turn_.w) >= D(GameFloat(0x0073B858)))) {   // FCOMP; TEST AH,1: below 0 or unordered
@@ -753,9 +746,9 @@ void CGlobalMap::Update() {
 
     // The current zone's arrow bobs over it.
     double time = FrameTime(this) + D(bobTime_);
-    bobTime_ = Store(time);
+    bobTime_ = static_cast<float>(time);
     double bob = D(GameFloat(0x0073B86C)) - x87::fcos(time * D(GameFloat(0x0073BF34))) * D(GameFloat(0x0073BAD4));
-    Vector3 above = {position_.x, position_.y, Store(bob + D(position_.z))};
+    Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
     SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]), builder.ModelPoint(above));
     // The layers' texture frames run at their own rates.
     SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, GameFloat(0x0073D09C));
@@ -780,7 +773,7 @@ void CGlobalMap::Update() {
             holder->result = hr;
             if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
         }
-        float seconds = Store(FrameTime(this));
+        float seconds = static_cast<float>(FrameTime(this));
         WeatherDrawOriginal(weather_, nullptr, reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
         if (!direct) {

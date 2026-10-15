@@ -237,7 +237,7 @@ struct HarnessPatch {
     std::size_t size;
     const char* what;
 };
-static HarnessPatch g_harnessPatches[64];
+static HarnessPatch g_harnessPatches[256];
 static int g_harnessPatchCount = 0;
 
 void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what) {
@@ -445,6 +445,7 @@ int InstallHooks() {
         GetModuleFileNameA(self, ini, MAX_PATH);
         if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
         rebirth::LoadSettings(ini);
+        if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
         if (standalone) rebirth_hook::SettingsOnly(ini);
         else rebirth_hook::Detect(file);
         unsigned short cw;

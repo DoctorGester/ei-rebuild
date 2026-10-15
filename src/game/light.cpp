@@ -45,11 +45,11 @@ CLight* CLight::Construct() {
     unused_E4 = 1.0f;
     // FSQRT of the double FLT_MAX (00743B48); the main thread's 24-bit precision rounds the root to
     // a float, and its square from there (2^128 - 2^105, one below FLT_MAX).
-    const float root = RoundToFloat(x87::fsqrt(static_cast<double>(FLT_MAX)));
+    const float root = static_cast<float>(x87::fsqrt(static_cast<double>(FLT_MAX)));
     const double squared = static_cast<double>(root) * root;
     range_ = root;
-    rangeSquared_ = RoundToFloat(squared);
-    inverseRangeSquared_ = static_cast<float>(1.0 / RoundToFloat(squared));
+    rangeSquared_ = static_cast<float>(squared);
+    inverseRangeSquared_ = static_cast<float>(1.0 / static_cast<float>(squared));
     return this;
 }
 EI_REPLACE_METHOD(0x0068CED0, CLight::Construct);

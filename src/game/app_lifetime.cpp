@@ -22,6 +22,7 @@
 
 #include <dinput.h>
 
+#include <cstring>
 #include <new>
 
 namespace {
@@ -63,6 +64,7 @@ ClassTemplate* __cdecl CreateClassTemplate() {
     created->refCount = 0;
     created->refsHigh = 0;
     if (!created) return nullptr;
+    std::memset(created->weightsTail, 0, sizeof(created->weightsTail));   // SV7b2: never set, saved
     return created->Construct();
 }
 EI_REPLACE(0x00457850, CreateClassTemplate);

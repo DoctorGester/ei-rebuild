@@ -15,8 +15,6 @@
 #include "originals_effects.h"
 #include "originals_ai.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kTargetThreshold = 0.5f;    // 0073B86C
 constexpr float kWallHalfWidth = 1.0f;      // 0073B84C

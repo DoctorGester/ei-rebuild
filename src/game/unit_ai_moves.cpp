@@ -96,37 +96,37 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     IsaacRandom* random = GameRandom();
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
-    eye.z = StoreFloat(AIMap()->TopHeightAt(&eye) + kEyeHeight);
+    eye.z = static_cast<float>(AIMap()->TopHeightAt(&eye) + kEyeHeight);
     if (!(wander >= 0.0f)) wander = kDefaultWander;
-    else wander = StoreFloat(wander * kWanderScale);
+    else wander = static_cast<float>(wander * kWanderScale);
     if (far) {
         if (owner->busy || std::strncmp(owner->unit->name, kHumanPrefix, 4) == 0) {
             far = false;
         } else {
-            wander = StoreFloat(static_cast<float>(count) * wander);
+            wander = static_cast<float>(static_cast<float>(count) * wander);
             count = 1;
         }
     }
 
-    float minWait = StoreFloat(wander * kMinWaitFraction);
+    float minWait = static_cast<float>(wander * kMinWaitFraction);
     for (; count > 0; --count) {
         int tries = 5;
         float dx, dy, wait;
         for (;;) {
-            float angle = StoreFloat(static_cast<float>(x87::FromUnsigned(random->Next()) * kAngleScale));
+            float angle = static_cast<float>(x87::FromUnsigned(random->Next()) * kAngleScale);
             double roll = x87::FromUnsigned(random->Next());
-            wait = StoreFloat(static_cast<float>((wander - minWait) * roll * kUnitScale + minWait));
-            float sine = StoreFloat(static_cast<float>(x87::fsin(angle)));
-            dx = StoreFloat(static_cast<float>(x87::fcos(angle) + direction->x));
-            dy = StoreFloat(sine + direction->y);
+            wait = static_cast<float>((wander - minWait) * roll * kUnitScale + minWait);
+            float sine = static_cast<float>(x87::fsin(angle));
+            dx = static_cast<float>(x87::fcos(angle) + direction->x);
+            dy = static_cast<float>(sine + direction->y);
             if (tries-- < 0) break;
-            Vector3 reach{StoreFloat(dx + dx), StoreFloat(dy + dy), StoreFloat(direction->z + direction->z)};
-            Vector3 to{StoreFloat(reach.x + eye.x), StoreFloat(reach.y + eye.y), StoreFloat(reach.z + eye.z)};
+            Vector3 reach{static_cast<float>(dx + dx), static_cast<float>(dy + dy), static_cast<float>(direction->z + direction->z)};
+            Vector3 to{static_cast<float>(reach.x + eye.x), static_cast<float>(reach.y + eye.y), static_cast<float>(reach.z + eye.z)};
             float sight = AIMap()->LineOfSight(&eye, &to);
             if (sight == kOne || x87::IsNaN(sight)) break;
         }
         AILook look{};
-        look.angle = StoreFloat(static_cast<float>(x87::fpatan(dy, dx)));
+        look.angle = static_cast<float>(x87::fpatan(dy, dx));
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = far;
@@ -143,17 +143,17 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     }
     IsaacRandom* random = GameRandom();
     float low = -radius;
-    float dx = StoreFloat(static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low));
+    float dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
     double dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
-    float radiusSq = StoreFloat(radius * radius);
+    float radiusSq = static_cast<float>(radius * radius);
     for (int tries = 9;;) {
         if (!(LengthSquared2DUnrounded<double>(dy, dx) > radiusSq)) break;
-        dx = StoreFloat(static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low));
+        dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
         dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
         if (--tries < 0) break;
     }
-    out->x = StoreFloat(dx + point->x);
-    out->y = StoreFloat(static_cast<float>(dy + point->y));
+    out->x = static_cast<float>(dx + point->x);
+    out->y = static_cast<float>(dy + point->y);
     out->z = 0.0f;
     CAIMap* map = AIMap();
     if (map->SlopeAt(out) > kMaxSlope) return false;
@@ -177,13 +177,13 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         double ux = self->position.x - out->x;
         double uy = self->position.y - out->y;
         double uz = self->position.z - out->z;
-        float distance = StoreFloat(static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz))));
-        float range = StoreFloat(distance * kRangePerDistance + kRangeBase);
+        float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz)));
+        float range = static_cast<float>(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
         if (!found || !(kOne / (kOne * kHalf) * distance * kDetourFactor >= static_cast<double>(local.path.smoothing))) {
             result = false;
-            long cooldown = std::lrint(StoreFloat(distance * kCooldownPerDistance));
+            long cooldown = std::lrint(static_cast<float>(distance * kCooldownPerDistance));
             standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
         }
     }
@@ -201,17 +201,17 @@ void AIBrain::UpdateFollow() {
     }
     if (followTimer++ < kFollowWait) return;
 
-    float farSq = StoreFloat(FollowFar() * FollowFar());
+    float farSq = static_cast<float>(FollowFar() * FollowFar());
     CUnit* self = owner->unit;
-    float nearSq = StoreFloat(FollowNear() * FollowNear());
+    float nearSq = static_cast<float>(FollowNear() * FollowNear());
     auto* leader = static_cast<CUnit*>(target);
-    Vector3 toLeader{StoreFloat(leader->position.x - self->position.x), StoreFloat(leader->position.y - self->position.y),
-                     StoreFloat(leader->position.z - self->position.z)};
+    Vector3 toLeader{static_cast<float>(leader->position.x - self->position.x), static_cast<float>(leader->position.y - self->position.y),
+                     static_cast<float>(leader->position.z - self->position.z)};
     int now = WorldTick();
-    float distance = StoreFloat(static_cast<float>(
-        x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z))));
+    float distance = static_cast<float>(
+        x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
     UnitController* leaderController = ControllerOf(leader);
-    float walkTime = StoreFloat(distance * kRangePerDistance + kRangeBase);
+    float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
 
     if (leaderController->command != kOrderMove && leaderController->nextCommand != kOrderMove) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
@@ -251,7 +251,7 @@ void AIBrain::UpdateFollow() {
 
     // The leader comes this way: find the moment it passes closest; when it passes within reach,
     // step aside of its way.
-    float best = StoreFloat(static_cast<float>(soonSq));
+    float best = static_cast<float>(soonSq);
     for (int ahead = kLeaderFirstStep;; ) {
         Vector3 later;
         ObjectSlots(leader)->PositionAt(&later, now + ahead);
@@ -260,21 +260,21 @@ void AIBrain::UpdateFollow() {
         double laterSq = LengthSquared2DUnrounded(lx, ly);
         if (laterSq > best) return;
         if (!(laterSq >= kOnTheWaySq)) break;
-        best = StoreFloat(static_cast<float>(laterSq));
+        best = static_cast<float>(laterSq);
         if (++ahead >= kLeaderLastStep) return;
     }
 
     Vector3 passing;
     ObjectSlots(leader)->PositionAt(&passing, now + kLeaderSide);
     double along = passing.y - leader->position.y;
-    float across = StoreFloat(static_cast<float>(passing.x - leader->position.x));
-    Vector3 side{StoreFloat(static_cast<float>(-along)), across, 0.0f};
+    float across = static_cast<float>(passing.x - leader->position.x);
+    Vector3 side{static_cast<float>(-along), across, 0.0f};
     double lengthSq = static_cast<double>(side.y) * side.y + along * along;
     if (!(lengthSq > 0.0)) return;
     double scale = kSideOffset / x87::fsqrt(lengthSq);
-    side.x = StoreFloat(static_cast<float>(scale * -along));
-    side.y = StoreFloat(static_cast<float>(scale * side.y));
-    side.z = StoreFloat(static_cast<float>(side.z * scale));
+    side.x = static_cast<float>(scale * -along);
+    side.y = static_cast<float>(scale * side.y);
+    side.z = static_cast<float>(side.z * scale);
     double ux = self->position.x - leader->position.x;
     double uy = self->position.y - leader->position.y;
     double uz = self->position.z - leader->position.z;
@@ -285,11 +285,11 @@ void AIBrain::UpdateFollow() {
     }
 
     ScopedPath local;
-    Vector3 aside{StoreFloat(passing.x + side.x), StoreFloat(passing.y + side.y), StoreFloat(side.z + passing.z)};
+    Vector3 aside{static_cast<float>(passing.x + side.x), static_cast<float>(passing.y + side.y), static_cast<float>(side.z + passing.z)};
     AIMap()->FindPath(self, &aside, &local.path, kPassRange, 0.0f);
     double half = kOne * kHalf;
-    float targetY = StoreFloat(static_cast<float>(half * local.path.targetY));
-    float offY = StoreFloat(aside.y - targetY);
+    float targetY = static_cast<float>(half * local.path.targetY);
+    float offY = static_cast<float>(aside.y - targetY);
     double offX = aside.x - half * local.path.targetX;
     if (!(LengthSquared2DUnrounded<double>(offX, offY) >= kReachedSq)) {
         owner->MoveTo(&aside, 0, 0, kPassRange);
@@ -316,7 +316,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     double dz = from->z - to->z;
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
-    float range = StoreFloat(static_cast<float>(2.0 * x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))));
+    float range = static_cast<float>(2.0 * x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, &saved);

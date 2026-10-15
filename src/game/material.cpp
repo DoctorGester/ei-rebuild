@@ -3,6 +3,7 @@
 #include "material.h"
 
 #include "game_strings.h"
+#include "mod_folders.h"
 #include "world_data.h"   // TextPathString
 
 #include "ei/hook.h"
@@ -135,6 +136,8 @@ CMaterialManager* CMaterialManager::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x0068E520, CMaterialManager::DeletingDestruct);
 
 int CMaterialManager::Create() {
+    // Rebirth's ResOverride (0068E648): the mod's archives open here if nothing opened them yet.
+    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     if (!CBaseManager::Create()) return 0;
     const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
     AddArchive(folder + "materials.res");

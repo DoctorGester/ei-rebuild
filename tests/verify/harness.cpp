@@ -54,7 +54,9 @@
 //                             script name <name> (as GetObjectByName) where the game's own picking
 //                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
 //                             +0x7C) around it. Fails when the unit is not drawn or always hidden
-//                             behind another object
+//                             behind another object. "#<id>" names a map object by id instead (a
+//                             lever, "clickunit #1889"): found by the battle screen's object pick
+//                             (005659D0), as waitunit does
 //   hudstate [minquick]       log the battle screen's pending action, the party's selection and
 //                             quick items, the quick item panel and the spell column; with
 //                             <minquick>, fail when the quick item panel shows fewer of its unit's
@@ -70,6 +72,9 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
+//   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
+//                             master the connection screen asks and a public game announces itself to
+//                             (net_second_master: 127.0.0.1 only)
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -106,6 +111,7 @@
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
+//                             "SecondMaster=<host[:port]>" sets NewMaster's second master server.
 //   resolution <W>x<H>|desktop, widescreen 0|1
 //                             answer the game's VideoResolution and the starter's WideScreen setting
 //                             for this run (game.exe's and addon.dll's registry reads; read before
@@ -217,6 +223,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
 #include "../../src/game/item.h"
+#include "../../src/game/options.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/originals_engine.h"
@@ -1275,7 +1282,8 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 // the log and the error (null: nothing logged).
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
-    int id = HarnessObjectIdFromName(name);
+    const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
+    int id = byId ? std::atoi(name + 1) : HarnessObjectIdFromName(name);
     auto* world = reinterpret_cast<std::uint8_t*>(kClientWorld);
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
     if (!header) return label + ": no pick list (not in a game)";
@@ -1306,7 +1314,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     }
     for (const POINT& p : candidates) {
         int at[2] = {p.x, p.y};
-        void* hit = HarnessUnitAtPoint(world, nullptr, at);
+        void* hit = byId ? static_cast<void*>(HoverObjectAt(world, nullptr, at)) : HarnessUnitAtPoint(world, nullptr, at);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;
@@ -1389,6 +1397,13 @@ std::string HudState(const std::string& argument) {
         Log("harness: hudstate: quick panel unit %p, %d entries (%d own), highlight %d, regions %d %d %d %d %d %d %d %d",
             quickPanel->unit_, quickPanel->entryCount_, own, quickPanel->selected_, items[0], items[1], items[2],
             items[3], items[4], items[5], items[6], items[7]);
+        // The player's quest items in the top row: the id a lever's lock matches (SetScience).
+        for (int e = 0; e < quickPanel->entryCount_; ++e) {
+            const CHudQuickItems::Entry& entry = quickPanel->entries_[e];
+            if (!entry.own && entry.item && entry.item->type_ == 0x3009)
+                Log("harness: hudstate: quick panel entry %d: quest item id %u (object %d)", e,
+                    static_cast<CItemQuest*>(entry.item)->questItemId_, entry.id);
+        }
     }
     if (auto* spells = *reinterpret_cast<CHudSpellColumn**>(screen + 0x19C))
     {
@@ -2027,8 +2042,9 @@ void RunSteps() {
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
-        } else if (s.verb == "hudstate" || s.verb == "campputon") {
-            std::string error = s.verb == "hudstate" ? HudState(s.argument) : CampPutOn(s.argument);
+        } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile") {
+            std::string error = s.verb == "hudstate" ? HudState(s.argument)
+                                : s.verb == "campputon" ? CampPutOn(s.argument) : starter::ModFileStep(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -2065,6 +2081,8 @@ void RunSteps() {
             } else {
                 ui->root_->SetOpen(false);
             }
+        } else if (s.verb == "masterhost") {
+            options::TheOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";
@@ -2771,11 +2789,11 @@ struct Harness {
         // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
-        ei::verify::starter::Install();
+        ei::verify::starter::Install(g_savesDir);
         net_port::Install();   // a UDP port of its own (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
-        leftovers::Install();   // unit statistics stack copies zeroed in the original too (harness_leftovers.h, SV7b3)
+        leftovers::Install();   // never-set blocks zeroed in the original too (harness_leftovers.h, SV7b3, SV7b2)
         shadow_turn::Install();   // the shadow's turn undone exactly in the original too (harness_shadow_turn.h, SV7b4a)
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
         path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)

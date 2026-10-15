@@ -122,6 +122,10 @@ the callees use rand(), release objects and share buffers).
   sight notices an unset local (ours zero; only matters for a distance above 1e15). StaysWithParty reads a party unit's
   missing Player mode at address 0x0C in the original (a crash; ours skips it); UpdateCombat attacks the chosen target with
   the weapon even when the choice was a spell.
+  T2b: a target removed mid-attack leaves the brain at action 3 with its target cleared; Execute hands that to
+  UpdateCombat, which (finding nobody) leaves it so, as the original does (checked by running 005D4170 behind the
+  wrapper). The verify wrapper's attack-has-target check now applies only when the call changed action or target
+  (scenario unit_ai_attack_removed, goldens on both installs).
 
 - AddClaim (005CCEA0) leaves the new call's point as its stack held it (ours zero); Noise tests the console filter's byte,
   builds an empty text otherwise and takes the hearer's controller unchecked.

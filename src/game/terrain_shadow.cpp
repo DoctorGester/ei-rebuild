@@ -69,7 +69,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
         if (Bits(vertex->z) > Bits(rayHeight)) return 0;
         bool crossed = false;
         if (error <= 2 * stepX - stepY) {
-            rayHeight = RoundToFloat(rayHeight + slopeX);
+            rayHeight = static_cast<float>(rayHeight + slopeX);
             column += directionX;
             error += 2 * stepY;
             if (column == -1) {
@@ -86,7 +86,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
         }
         // A step that left the sector in x does not also step in y.
         if (!crossed && (error >= stepX || stepX <= stepY)) {
-            rayHeight = RoundToFloat(rayHeight + slopeY);
+            rayHeight = static_cast<float>(rayHeight + slopeY);
             row += directionY;
             error -= 2 * stepX;
             if (row == -1) {
@@ -115,21 +115,21 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     if ((landscapeFlags & 4) == 0) return 0xFF;
     const float fade = MapEdgeFade();
     // How far inside the band's inner border the point is, per edge (negative: in the band).
-    float left = RoundToFloat(point->x - fade - 1.0f);
-    float bottom = RoundToFloat(point->y - fade - 1.0f);
-    float right = RoundToFloat(width - fade - point->x - 1.0f);
-    float top = RoundToFloat(height - fade - point->y - 1.0f);
+    float left = static_cast<float>(point->x - fade - 1.0f);
+    float bottom = static_cast<float>(point->y - fade - 1.0f);
+    float right = static_cast<float>(width - fade - point->x - 1.0f);
+    float top = static_cast<float>(height - fade - point->y - 1.0f);
     if (!(SignSet(left) || SignSet(bottom) || SignSet(right) || SignSet(top))) return 0xFF;
     left = AtMostZero(left);
     bottom = AtMostZero(bottom);
     right = AtMostZero(right);
     top = AtMostZero(top);
-    // ((top^2 + right^2) + bottom^2) + left^2; the partial sums are stored so that /fp:fast keeps the order.
-    float sum = RoundToFloat(top * top + right * right);
-    sum = RoundToFloat(sum + bottom * bottom);
-    float depth = RoundToFloat(x87::fsqrt(sum + left * left));
+    // ((top^2 + right^2) + bottom^2) + left^2, the partial sums rounded to float (as at 24 bits).
+    float sum = static_cast<float>(top * top + right * right);
+    sum = static_cast<float>(sum + bottom * bottom);
+    float depth = static_cast<float>(x87::fsqrt(sum + left * left));
     if (!(fade >= depth)) depth = fade;
-    int amount = x87::fistp(RoundToFloat(depth / fade * 255.0f));
+    int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }
 EI_REPLACE_METHOD(0x006CB020, Terrain::EdgeFade);

@@ -4,7 +4,7 @@
 // 24-bit x87 precision (the game's main thread), and reports through the usual verify counts under
 // "vecmath self-test" (a mismatch is logged with the helper, the grouping and the inputs).
 //
-// The reference evaluates each operation separately and rounds it to float (RoundToFloat), which
+// The reference evaluates each operation separately and rounds it to float (a cast), which
 // is what the original's x87 code gives at 24-bit precision whatever /fp:fast does. Inputs are
 // chosen so that the three groupings XYZ, ZYX and ZXY give three different results, so a helper
 // that used another grouping (or was regrouped with its caller) would show as a mismatch.
@@ -35,7 +35,7 @@ int g_mismatches = 0;
 int g_unseparated = 0;   // helpers for which fewer than kInputs separating inputs were found
 int g_fastRegrouped = 0; // the unprotected /fp:fast copy differing from its written grouping
 
-float R(double v) { return RoundToFloat(v); }
+float R(double v) { return static_cast<float>(v); }
 
 // ---- Reference: one rounded operation at a time ----
 
