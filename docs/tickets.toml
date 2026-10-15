@@ -558,10 +558,11 @@ files = ["unit.h", "unit_db.h", "unit_ai.h", "ai_map.h", "ai_*", "item_db.h", "i
 id = "F3"
 title = "Unknown fields: interface (~125)"
 group = "fields"
-status = "review"
+status = "done"
 files = ["ui.h", "ui_camp.h", "ui_screens.h", "ui_briefing.h", "ui_*"]
 note = "Coordinate with W2 (ui.h) and the P tickets: renames only."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "F4"
@@ -581,6 +582,15 @@ status = "done"
 files = ["map_spec.h", "net_*", "player_*", "sound*", "script*", "app_*", "bink_video.cpp", "quest_records.h", "base_manager.h", "src/lib"]
 started = "2026-10-14"
 done = "2026-10-14"
+
+[[ticket]]
+id = "F3a"
+title = "Interface layout follow-ups from F3"
+group = "fields"
+status = "queued"
+size = 0.4
+model = "sonnet"
+note = "From F3 (2026-10-15): CBattleScreen (ui.h) and CBattleScreenSetup (ui_camp.h) describe the same object twice (merge them); CUiMesh repeats CFigureMesh's layout up to +0x220 (derive); ui_window.cpp still writes raw SetDword offsets (+0xF4 and others); tests' unknown fields (verify_map_object ClientSound, verify_script_load LoadStream::unknown_04) that check_cleanup does not count. Groupings change here, so Opus if a signature moves."
 
 # ---------------------------------------------------------------- standalone verification
 
