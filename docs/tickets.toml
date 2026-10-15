@@ -1318,7 +1318,7 @@ note = "From C9c (2026-10-15): CLinkMesh::ProjectPart / RasterisePart (slots 13 
 id = "S"
 title = "First standalone exe"
 group = "standalone"
-status = "running"
+status = "later"
 depends = ["SV5"]
 size = 20
 note = "Umbrella for S1-S17 (standalone.md section 2: an address image rebuilt from game.exe's data with JMP stubs to our code, so forwarders, raw data addresses and the exe's vtables keep working before C12 / C13). Ready now and parallel with SV and C11: S1 (first), S2, S3, library S4-S13 (one per family; at most one worker per header). After S1: S14, S15. Then S16 first boot, S17 suite. S18 (own data) after C13."
@@ -1347,10 +1347,11 @@ note = "ei_standalone.exe linked at 0x200000 (fixed), reserving 0x400000-0x7D700
 id = "S2"
 title = "Standalone: the 201 unported functions under five bytes"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/game/short_functions.cpp", "include/ei/hook.h", "src/hook/hook.cpp", "tools/gen_short_functions.py"]
 note = "All 201 left are under 5 bytes (ret, xor eax,eax; ret, ret 4, ...); 154 are vtable slots. Port them (generated from their bytes where the pattern is plain), registered with a short-function flag: the hook build skips them as now, the standalone image stubs them (each has 5 bytes of room). Check: a tool compares each port's kind with the exe's bytes. No dependency. S1 found: the 67 rewritten short functions (and 83 registrations at starts the size table does not know) already get jumps in the image; this ticket is about the 201 with no rewrite."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S3"
