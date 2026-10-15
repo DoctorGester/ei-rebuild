@@ -86,7 +86,7 @@ struct Capture {
 
     Capture() {
         if (!g_captureVtable[0]) {
-            std::memcpy(g_captureVtable, reinterpret_cast<void*>(kConsoleStreambufVtable), sizeof(g_captureVtable));
+            std::memcpy(g_captureVtable, reinterpret_cast<void*>(ConsoleStreambuf::kVtableAddress), sizeof(g_captureVtable));
             g_captureVtable[1] = reinterpret_cast<void*>(&CaptureSync);
         }
         previous = ConsoleBuffer();
@@ -104,7 +104,7 @@ struct Capture {
         out.pending = Text(buffer->Line());
         ConsoleBuffer() = previous;
         g_captures.pop_back();
-        buffer->vtable_ = reinterpret_cast<void**>(kConsoleStreambufVtable);
+        buffer->vtable_ = reinterpret_cast<void**>(ConsoleStreambuf::kVtableAddress);
         buffer->DeletingDestructAt(1);
         buffer = nullptr;
         return out;
@@ -374,7 +374,7 @@ bool FindCommand(CommandMap* map, const char* key, CommandHandler* handler) {
 
 std::string CheatWord() {
     std::string word;
-    for (const char* p = game::Text(kCheatWordXor66); *p; ++p) word += static_cast<char>(*p ^ 0x66);
+    for (const char* p = game::consoletexts::CheatWord(); *p; ++p) word += static_cast<char>(*p ^ 0x66);
     return word;
 }
 
@@ -490,7 +490,7 @@ EI_VERIFY(0x005DC1B0, SyncVerify, 0, s_unused);
 ConsoleStreambuf* __fastcall ConstructVerify(ConsoleStreambuf* self, void*, unsigned filter) {
     ConsoleStreambuf* result = self->Construct(filter);
     bool ok = result == self && self->filter_ == filter && Length(self->Line()) == 0 &&
-              self->vtable_ == reinterpret_cast<void**>(kConsoleStreambufVtable) && self->base_ == self->buffer_ &&
+              self->vtable_ == reinterpret_cast<void**>(ConsoleStreambuf::kVtableAddress) && self->base_ == self->buffer_ &&
               self->ebuf_ == self->buffer_ + sizeof(self->buffer_);
     ei::verify::Check("ConsoleStreambuf::Construct", true, ok, "filter %X", filter);
     return result;
@@ -499,14 +499,14 @@ EI_VERIFY(0x005DC200, ConstructVerify, 0, s_unused);
 
 // 005DC260 / 005DC240: ours only (at exit, and for the capture streambufs): a console streambuf.
 void __fastcall DestructVerify(ConsoleStreambuf* self, void*) {
-    bool ok = self->vtable_ == reinterpret_cast<void**>(kConsoleStreambufVtable);
+    bool ok = self->vtable_ == reinterpret_cast<void**>(ConsoleStreambuf::kVtableAddress);
     self->Destruct();
     ei::verify::Check("ConsoleStreambuf::Destruct", true, ok, "%p", self);
 }
 EI_VERIFY(0x005DC260, DestructVerify, 0, s_unused);
 
 ConsoleStreambuf* __fastcall DeletingDestructVerify(ConsoleStreambuf* self, void*, unsigned flags) {
-    bool ok = self->vtable_ == reinterpret_cast<void**>(kConsoleStreambufVtable);
+    bool ok = self->vtable_ == reinterpret_cast<void**>(ConsoleStreambuf::kVtableAddress);
     ConsoleStreambuf* result = self->DeletingDestruct(flags);
     ei::verify::Check("ConsoleStreambuf::DeletingDestruct", true, ok && result == self, "%p", self);
     return result;

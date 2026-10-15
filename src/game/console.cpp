@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "ei/vcall.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
@@ -90,14 +91,14 @@ ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
     StreambufConstruct(buffer_, sizeof(buffer_));
     filter_ = filter;
     line_ = *reinterpret_cast<char**>(0x00796E48);   // CString(): the shared empty string
-    vtable_ = reinterpret_cast<void**>(kConsoleStreambufVtable);
+    ei::SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
 
 // 005DC260
 void ConsoleStreambuf::Destruct() {
-    vtable_ = reinterpret_cast<void**>(kConsoleStreambufVtable);
+    ei::SetVtable(this, kVtableAddress);
     Line().~CString();
     StreambufDestruct();
 }
@@ -216,7 +217,7 @@ void __fastcall Execute(const char* text) {
         char* p = Ops(command).GetBuffer(12);
         for (; *p; ++p) *p ^= 0x66;
         Ops(command).ReleaseBuffer(-1);
-        if (std::strcmp(command, game::Text(kCheatWordXor66)) == 0) {
+        if (std::strcmp(command, game::consoletexts::CheatWord()) == 0) {
             CheatEnabled() = true;
             PrintLine(game::Text(0x00792388));   // "Activated!"
             return;

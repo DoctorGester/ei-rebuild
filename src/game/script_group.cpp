@@ -42,15 +42,31 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
     slot->object = object;
 }
 
-// 004B2D80: orders by object address, unsigned.
-int __cdecl CompareObjectAddress(const void* a, const void* b) {
-    std::uintptr_t x = Address(static_cast<const ScriptObjectRef*>(a)->object);
-    std::uintptr_t y = Address(static_cast<const ScriptObjectRef*>(b)->object);
-    if (y > x) return -1;
-    return y < x ? 1 : 0;
+bool g_byId = false;   // ScriptGroup::OrderById
+
+// 004B2D80 (the game's: by object address, unsigned; ours: ScriptGroup::After).
+int __cdecl CompareMembers(const void* a, const void* b) {
+    const CEngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
+    const CEngineObject* y = static_cast<const ScriptObjectRef*>(b)->object;
+    if (x == y) return 0;
+    return ScriptGroup::After(x, y) ? 1 : -1;
 }
 
 } // namespace
+
+// ---- Member order (SV7b1) -------------------------------------------------------------------------
+
+bool ScriptGroup::IdAfter(const CEngineObject* x, const CEngineObject* y) {
+    if (!x || !y) return x != nullptr;
+    return x->id_ > y->id_;
+}
+
+bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
+    if (g_byId || ei::Standalone()) return IdAfter(x, y);
+    return Address(x) > Address(y);
+}
+
+void ScriptGroup::OrderById() { g_byId = true; }
 
 // ---- ScriptObjectRef ----------------------------------------------------------------------------
 
@@ -157,7 +173,7 @@ void ScriptGroup::Resize(int newSize) {
     maxSize = newMax;
 }
 
-// The merges compare the arrays' objects as unsigned addresses. Each source element is read before
+// The merges walk both arrays in member order (After). Each source element is read before
 // the destination slot is released, like the original (it matters only if `this` is a or b).
 void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
     int aSize = a.size, bSize = b.size;
@@ -178,7 +194,7 @@ void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
                 Store(&data[out++], x);
                 ++i;
                 ++j;
-            } else if (Address(x) > Address(y)) {
+            } else if (After(x, y)) {
                 Store(&data[out++], y);
                 ++j;
             } else {
@@ -213,7 +229,7 @@ void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
             if (x == y) {
                 ++i;
                 ++j;
-            } else if (Address(x) > Address(y)) {
+            } else if (After(x, y)) {
                 ++j;
             } else {
                 Store(&data[out++], x);
@@ -238,7 +254,7 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
                 Store(&data[out++], x);
                 ++i;
                 ++j;
-            } else if (Address(x) > Address(y)) {
+            } else if (After(x, y)) {
                 ++j;
             } else {
                 ++i;
@@ -249,7 +265,7 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
 }
 EI_REPLACE_METHOD(0x004B2B60, ScriptGroup::Intersection);
 
-void ScriptGroup::Sort() { GameQsort(data, size, 4, CompareObjectAddress); }
+void ScriptGroup::Sort() { GameQsort(data, size, 4, CompareMembers); }
 EI_REPLACE_METHOD(0x004B2D60, ScriptGroup::Sort);
 
 int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
@@ -283,7 +299,7 @@ void ScriptGroup::Insert(CEngineObject* object) {
             int middle = (high + low) / 2;
             CEngineObject* current = data[middle].object;
             if (object == current) return;
-            if (Address(object) > Address(current)) low = middle + 1;
+            if (After(object, current)) low = middle + 1;
             else high = middle - 1;
         } while (high - low >= 0);
     }
@@ -365,6 +381,6 @@ void ScriptGroup::Load(ScriptStream* stream) {
         if (id == -1) Clear(slot);
         else Store(slot, Registry()->FindObject(id));
     }
-    GameQsort(data, size, 4, CompareObjectAddress);
+    GameQsort(data, size, 4, CompareMembers);
 }
 EI_REPLACE_METHOD(0x004B3360, ScriptGroup::Load);

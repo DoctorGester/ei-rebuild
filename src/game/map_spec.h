@@ -81,6 +81,7 @@ class SpecRecord;
 // plain members (the record structs have no C++ virtuals), registered at the original addresses.
 // Calls through the vtable go through Record() (SpecRecord below).
 struct Spec {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C5C4);
     // 00469CA0. Constructor; returns this.
     Spec* SpecConstruct();
     // 00469E50. The destructor body.
@@ -117,6 +118,7 @@ static_assert(sizeof(Spec) == 0x4C);
 
 // An object record (vtable 0073C5F0, 0x8C bytes).
 struct ObjectSpec {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C5F0);
     // 0046A5C0 (0xB001). Constructor; returns this.
     ObjectSpec* ObjectSpecConstruct();
     // 0046AEB0 (and 0058EDF0, the quick item effect's record, vtable 0073FA58). The destructor body.
@@ -164,6 +166,7 @@ static_assert(sizeof(ObjectSpec) == 0x8C);
 
 // A flame (vtable 0073C620, 0xA0 bytes).
 struct FlameSpec {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C620);
     // 0046B210 (0xBBBF0000). Constructor; returns this.
     FlameSpec* FlameSpecConstruct();
     // 0046B120. The destructor body.
@@ -186,6 +189,7 @@ static_assert(sizeof(FlameSpec) == 0xA0);
 
 // A magic trap (vtable 0073C650, 0xD0 bytes).
 struct TrapSpec {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C650);
     // 0046B4A0 (0xBBAB0000). Constructor; returns this.
     TrapSpec* TrapSpecConstruct();
     // 0046B570. The destructor body (the arrays' destructors inlined: their blocks freed).
@@ -217,6 +221,7 @@ static_assert(sizeof(TrapSpec) == 0xD0);
 
 // A lever (vtable 0073C6B0, 0xA4 bytes).
 struct LeverSpec {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C6B0);
     // 0046BD40 (0xBBAC0000). Constructor; returns this.
     LeverSpec* LeverSpecConstruct();
     // 0046BDC0. The destructor body (the object record's).
@@ -266,6 +271,7 @@ static_assert(sizeof(ZoneDiplomacy) == 0x1014);
 
 // The effect records' base (vtable 0073C728, 0x54 bytes; code in map_spec_effect.cpp).
 struct EffectSpec {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C728);
     // Members of the effect records (map_spec_effect.cpp), registered at the original addresses.
     // 0046D370 / 0046D5A0 / 0046DA20: the destructor bodies (the base record's); 0046D350 / 0046D580 /
     // 0046DA00 (slot 10, RET 4): EffectSpecDestruct, then operator delete when bit 0 of `flags` is set.
@@ -286,6 +292,7 @@ struct EffectSpec {
 static_assert(sizeof(EffectSpec) == 0x54);
 
 struct ParticleSpec {            // 0073C758
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C758);
     // 0046D520. Constructor; returns this.
     ParticleSpec* ParticleSpecConstruct();
     // 0046D5A0. The destructor body; 0046D580 (slot 10, RET 4): that, then operator delete when bit 0 of
@@ -308,6 +315,7 @@ struct ParticleSpec {            // 0073C758
 static_assert(sizeof(ParticleSpec) == 0x5C);
 
 struct LightSpec {               // 0073C788
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C788);
     // 0046D960. Constructor; returns this.
     LightSpec* LightSpecConstruct();
     // 0046DA20. The destructor body; 0046DA00 (slot 10, RET 4): that, then operator delete when bit 0 of
@@ -332,6 +340,7 @@ struct LightSpec {               // 0073C788
 static_assert(sizeof(LightSpec) == 0x68);
 
 struct SoundSpec {               // 0073C7B8
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C7B8);
     // 0046DE70. Constructor; returns this.
     SoundSpec* SoundSpecConstruct();
     // 0046DF70. The destructor body; 0046DF50 (slot 10, RET 4): that, then operator delete when bit 0 of

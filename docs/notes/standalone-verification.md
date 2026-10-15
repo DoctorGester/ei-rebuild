@@ -1437,3 +1437,80 @@ on a golden without saves (it printed meta['saves'], which keep_saves leaves uns
 After merging main (SV7b3's zeroed statistics) the ground_prints goldens' saves were re-recorded the same way. The final
 `--golden --all-rebirth`: 95 goldens the same, levers and ui_saveload_delete (vanilla) differ only in the script's
 `#gobject` (address order, SV7b1); every save equal. Follow-up SV7d1a: audit other rewrites for the distributed sums.
+
+## SV7b1: script groups ordered by object id (2026-10-15)
+
+**The site.** A script group (ScriptGroup, script.h) keeps its members sorted without duplicates, and the game sorts by
+object address: the comparator 004B2D80 (CMP / SBB on the two pointers, for GameQsort in Sort 004B2D60 and Load
+004B3360; ScriptVars::Load 004B3AD0 and 004C40D0 reach it through Sort), the binary search of Insert 004B2EF0
+(callers: InsertAll, SSCCmd::CalcGroup / Execute, CPlayerServer::UpdateHeroesGroup, CWorldServer::CollectSharedObjects,
+CSpellEffect::UpdateLasting) and the merges of Union 004B2620, Difference 004B2920 and Intersection 004B2B60. Nothing
+else reads the order as sorted: IndexOf, Remove, Contains and RemoveDeleted search linearly.
+
+**The order now.** Null first, then CEngineObject::id_ (+0xC, signed; the id the script engine itself saves and loads
+groups by, ScriptObjectRef::Save / Load). Ties cannot happen: the world's id map (CWorldServer +0x12D74, FindObject
+00593AA0) holds one object per id, CBaseManager::NextFreeId hands out the highest id + 1 (the random search only past
+2,000,000,000), and an object keeps its id while a group references it (a released object goes back to the spares
+with id -1 only at reference count 0). Only objects outside the registry have id -1, and scripts cannot name them. The
+harness stub logs the first tie it meets ("share id"); none in the 106 runs of each pass below.
+
+- Ours (script_group.cpp): ScriptGroup::After decides every comparison (the qsort comparator CompareMembers, Insert,
+  the merges): by address as the game, by IdAfter once ScriptGroup::OrderById is called (the harness, at heap::Install's
+  point) and always in the standalone (ei::Standalone), where it stays as a determinism fix.
+- The original (tests/verify/harness_script_order.cpp, harness runs on the virtual clock unless `lfheap`): the
+  comparator's start becomes a JMP to an id comparator of ours, and each inline comparison a JMP to a naked stub that
+  redoes the replaced instructions, compares by id (EAX / ECX / EDX kept) and jumps back to the original's equal /
+  above / below path: Union 004B27B2 (8 bytes: CMP EDI,EDX / MOV [ESP+20],EDX / JNZ), Difference 004B2A9A (7: MOV
+  ECX,[ECX+EDX*4] / CMP / JNZ), Intersection 004B2CEE (7: MOV EAX,[EAX+EDX*4] / CMP / JNZ), Insert 004B2F27 (10: CMP /
+  JZ / JBE). The bytes are checked before patching.
+- When: at the first message loop pass (PeekMessageHook), after InstallHooks, not with the countdown sites before it.
+  A patch noted with NoteHarnessPatch leaves our registrations of the functions holding it out, and an unnoted one
+  makes rebirth_hook::Check skip them as patched by another mod; patched afterwards, ours stay installed and their
+  verify wrappers' trampolines run the patched body. No group exists before a world loads.
+- verify_script.cpp / verify_script_exec.cpp: `Sorted` follows ScriptGroup::After.
+
+**Goldens.** The 97 goldens `--no-hooks --golden`: 85 changed (every gz1g scenario: `script #gobject`, gobject.i is
+1884 from world update 40 on, where the address order gave 702 without jitter), 12 the same (no zone or no group).
+Re-recorded from four agreeing passes: two plain `--no-hooks`, `--no-hooks` with EI_HEAP_JITTER=2, and with our hooks.
+Against the plain pass (golden.py diff, `obj2 hp` left out, SV7b3):
+
+| Pass | Differ | What |
+| --- | --- | --- |
+| second plain | 0 | |
+| seed 1 | 3 (Rebirth) | render_titles_present, ui_container_input, ui_widescreen_more: cunit148 unanwiwo `rot` 1 ulp at update 80 (SV7b4) |
+| seed 2 | 3 (vanilla, no vanilla golden) | ui_hero_screen, ui_hero_stats, ui_screens: menu unit cunit2 unmoco2 `rot`, repeats with seed 2 (SV7b8) |
+| `3,fill` | 8 (vanilla) | at update 40 `isaac.count` 38 / 161 and unmoto obj1937's path; two repeats hit other scenarios (render_terrain, ui_quest_notice; levers, ui_trade_restore), seed 3 without fill none: an uninitialised read, not an order (SV7b7) |
+| ours (hooked) | 4 (vanilla, no vanilla golden) | ui_container_input, ui_screens, ui_widescreen_hud, ui_widescreen_more: menu units' `rot` in the last place, cunit129 flags 0xA2 / 0x4A2 |
+
+No `script` field differs in any pass: the group order no longer follows the layout. ScriptGroup::Union (32178 calls)
+and Sort (196) compared ours with the patched original without a mismatch; Insert, Difference, Intersection and Load
+were not reached from original code in hooked runs (their callers are ours).
+
+**SV3i and SV2d.** zone_gz3g (vanilla): two plain `--no-hooks` runs, one with seed 1 and two with our hooks agree in
+every record (`gobject.VSS#i#val` 3353 in all, where SV3i saw 3353 / 3357 between our runs and 3363 / 3371 between the
+original's). SV2d (gobject.i 1884 in ours, 702 in the original after a load) is gone: 1884 on both sides. Both set
+done. Follow-ups: SV7b7 (the `3,fill` uninitialised read), SV7b8 (the seed-2 vanilla menu unit orientation).
+
+**After SV7d (merge of main).** The 85 goldens were recorded again from two fresh plain `--no-hooks` runs so that they
+keep SV7d's decoded saves: the digests were the same as above, only the saves changed (mission.sav's script globals:
+"Peasans" saved as [699, 702, 1884], `i` on 1884, where address order gave [1884, 699, 702] and 702). 17 save texts
+of the shared store replaced. golden.py SAVES_KNOWN's two SV7b1 entries (the Peasans order, ground_prints'
+`seenCorpses` order, which PartySync rebuilds from a ScriptGroup) are dropped: ours and the original now save the same
+order (SV7d5 settled).
+
+**Final check (after the merge).** `work.py test SV7b1 --golden --jobs 4`: every run passed but ui_mp_host (vanilla
+and Rebirth TIMEOUT; passed alone right after: it hosts on UDP 8888, which a game of another batch can hold, N0c); the
+56 goldens it reaches the same, saves included, with SAVES_KNOWN's SV7b1 entries gone (SV7d5 done). `--no-hooks
+--golden` with EI_HEAP_JITTER=1 over all 97: 96 the same; ui_battle_spells (vanilla) differed once in two units'
+hashes at update 180 and matched in two more seed-1 runs and a plain one.
+
+**After SV7b3 (second merge of main).** Recorded again from two fresh plain `--no-hooks` runs on top of SV7b3's zeroed
+unit statistics: 81 goldens differed from main's only in `script #gobject` (and two in mission.sav's script globals);
+hero_death, movement, ui_screens and world_load (Rebirth) already matched. SAVES_KNOWN's three SV7b1 entries on main
+(seenCorpses, render_movie_present's "Peasans", Rebirth ui_widescreen_more's group 5 [1901, 1913]) are dropped: id
+order settles each.
+
+**After SV7d1 / SV7d2 (third merge of main).** Recorded again from two fresh plain `--no-hooks` runs, so the saves carry
+SV7d2's plain path cell words: all 85 goldens of saving scenarios differed from main's only in their saves (mission.sav's
+script globals in 83, seenCorpses in 4); the digests were already the id order's. SAVES_KNOWN is empty now (main had
+removed SV7d1's and SV7d2's entries, this branch the three SV7b1 ones).

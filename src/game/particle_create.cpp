@@ -906,7 +906,6 @@ namespace {
 // Not rewritten (forwarders): the engine object's base constructor (vtable 0073B8E0, id -1, the
 // rest zero) and its base destructor body.
 
-constexpr std::uintptr_t kParticleSourceVtable = 0x0073CFD0;
 
 
 } // namespace
@@ -944,7 +943,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     s->frameRectCapacity = 0;
     s->frameRectCount = 0;
     s->texture = nullptr;
-    ei::SetVtable(s, kParticleSourceVtable);
+    ei::SetVtable(s, CParticleSource::kVtableAddress);
     s->Reset();
     s->type_ = type;
     return s;
@@ -955,7 +954,7 @@ EI_REPLACE(0x004981B0, NewParticleSource);
 // texture and free the frame rectangles if any are left, empty the particle list and free its
 // blocks, free the element array, then the engine object's base destructor.
 void CParticleSource::Destruct() {
-    ei::SetVtable(this, kParticleSourceVtable);
+    ei::SetVtable(this, kVtableAddress);
     Clear();
     if (texture) (*static_cast<void(__fastcall***)(void*, void*)>(texture))[4](texture, nullptr);
     if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
