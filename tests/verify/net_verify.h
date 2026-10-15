@@ -31,7 +31,8 @@ struct BuiltCompare {
     bool ok = true;
     int failures = 0;
 
-    static bool InImage(std::uint32_t v) { return v >= 0x00400000u && v < 0x00800000u; }
+    // game.exe's image (SizeOfImage 0x3D7000). The CRT heap can start right above it (harness_heap.h).
+    static bool InImage(std::uint32_t v) { return v >= 0x00400000u && v < 0x007D7000u; }
     static bool HeapPointer(std::uint32_t v) { return v >= 0x10000u && !InImage(v); }
 
     // The first four differences are listed.

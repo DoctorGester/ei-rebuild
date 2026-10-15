@@ -28,18 +28,28 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
 77 scenarios repeat on both sides and match; of the other 16, ten only failed on dgVoodoo's minimise
 (below; run_all.py now runs those again). What is left:
 
-- **combat, combat_more, sound: neither side repeats.** The runs part in a fight (which hits land,
-  `skill=` +-3.4e38 in "was attacked", and whether an AI unit's GuardMode goes idle or a "Delayed
-  sound" line comes before or after a hit). Random traces (`--clock virtual,randtrace`) are the same
-  draw for draw up to where they part, and no clock read, step or sound start/end differs before it
-  (clocktrace and the trace's notes). Not explained yet; a guess is memory layout (an order by heap
-  address, or an unwritten field read). SV2's state digest would name the first field that differs.
-  **SV2 (2026-10-15) found one order by heap address:** a unit's update-map countdown (CMapObject
-  +0x174) is set to 0x80 + bits 5..8 of the unit's address (AddToUpdateMap 0058D5D0, CreateObject
-  005927C0), and it decides when an idle unit leaves the update map (UpdateUnits 0058D670). Two runs
-  of the original alone already differ there in a dozen units at the first record (`golden.py diff
-  --all-fields`). A unit that sleeps a few updates earlier or later thinks on other ticks; a likely
-  cause of the fights that part. The digest leaves the field out of comparisons by default.
+- **combat, combat_more, sound: solved (SV1b, 2026-10-15).** The runs parted in a fight (which hits
+  land, `skill=` +-3.4e38 in "was attacked", whether a GuardMode goes idle or a "Delayed sound" line
+  comes before or after a hit), with the same random draws up to there. The cause was the heap:
+  game.exe's CRT (VC6, static) puts every malloc on one Win32 heap of its own (_crtheap 007CAF08,
+  _heap_init 006F54E6; on NT 5+ __heap_select picks the system heap, no small-block heap), and on
+  Windows 8+ such a heap gets the low-fragmentation front end, which hands out a bucket's free slots
+  in a random order. The same calls got other addresses every run, and the game reads addresses: a
+  unit's update-map countdown is 0x80 + bits 5..8 of its address (SV2; 0058D5D0 and seven more
+  places), which decides when an idle unit leaves the update map (UpdateUnits 0058D670). The
+  harness now makes the CRT's heap without the front end (HEAP_NO_SERIALIZE, with a lock of its own;
+  tests/verify/harness_heap.h), and on that heap the original repeats bit for bit (`golden.py diff
+  --all-fields`: all 630 / 635 / 530 records the same; with `--clock virtual,lfheap`, the old heap,
+  combat does not repeat). Ours and the original still allocate differently (the verify wrappers),
+  so the harness also has both sides spread the countdown by the object's id instead of its address
+  (the eight original sites patched, CWorldServer::UpdateCountdownFor in ours). What was left
+  between ours and the original was a rewrite bug: AIViewer::Refresh (005CA1D0) appended the units
+  near a unit to its nearby list, where the original inserts each at the head, so two units coming
+  into view in one update were "seen" in the other order. With that fixed, the three repeat and match
+  (and SV1a's wrapper fix, merged before). Left: in sound the digests of ours and the original part
+  at update 272 in `crt.rand` only (a client-side animation pick, StartIdleAnimation -> FindAnimation,
+  one frame earlier in ours) without changing what the game prints. Before SV1a's fix ours alone did
+  not always repeat that pick (in 3 of 6 sound runs its timing moved); after it, 6 of 6 repeated.
 - **units, sandbox_actions: solved (SV1a, 2026-10-15).** The wolf died after 400 ms of virtual time in
   ours against 700 ms in the original. Not the rewrite: with `EI_PLAIN=1` (no verify wrappers) ours
   matched the original step for step. A bisection over the verify wrappers (verified.txt) named
@@ -55,11 +65,11 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   against 15 entries), in the plain build as well: likely the update-map countdown above, which
   follows the heap layout.
 - **rebirth_flags** fails on the original by design (its `rebirthflags` steps need our code). Ours
-  passes but does not repeat either, and that is a lead for the combat case: the script variables
-  it prints list the units of a group in a different order from run to run (`Peasans : group =
-  <CUnit:1884>, <CUnit:702>, <CUnit:699>`, then `..., 699, 702`; a loop's last unit `i` with them),
-  on both installs. An order that changes between runs with the same clock and draws points to an
-  order by heap address.
+  did not repeat: the units of a group were listed in a different order from run to run (`Peasans :
+  group = <CUnit:1884>, <CUnit:702>, <CUnit:699>`, then `..., 699, 702`), an order by heap address,
+  which the repeatable heap above fixed. The other difference was the scenario's own:
+  `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its arguments (5,
+  1.#INF or a NaN); the scenario now only checks that it is not below 0 (SV1b).
 - **dgVoodoo's minimise.** A game that Windows gave the foreground (when the game in front closed)
   and that lost it to a starting game is minimised by dgVoodoo; each time it came twice within
   ~100 ms, the first time taking the surfaces (the harness restores them, harness.cpp

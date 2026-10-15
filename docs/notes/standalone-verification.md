@@ -226,3 +226,55 @@ Two causes, not one.
   same build: with `speed 10` 81 s (timeout), without 26 s. The 78 other scenarios with `speed 10`
   keep it (their goldens are being recorded with it); SV1i looks at which of them wait on sound or
   timers.
+
+## SV1b: the heap, the update countdown and the nearby list (2026-10-15)
+
+combat, combat_more, sound and rebirth_flags did not repeat on the virtual clock, on either side.
+
+**The heap.** game.exe's CRT (VC6, statically linked) puts every malloc on a Win32 heap of its own
+(_crtheap 007CAF08, `HeapCreate(0, 0x1000, 0)` in _heap_init 006F54E6; on NT 5+ __heap_select 006F539E
+picks the system heap, so there is no small-block heap in front). Windows 8+ gives such a heap the
+low-fragmentation front end, which picks a bucket's free slot at random: the same calls get other
+addresses in every run. tests/verify/harness_heap.cpp, on the virtual clock and on both sides: the
+harness (static constructor, before the CRT starts; ei_launch starts the game suspended) patches game.exe's
+HeapCreate import so the CRT's heap is made with HEAP_NO_SERIALIZE (no front end), and HeapAlloc /
+HeapFree / HeapReAlloc / HeapSize / HeapDestroy take a critical section of the harness's for that heap.
+With it, three runs of the original are the same in every digest field of every record (combat 630,
+combat_more 635, sound 530 records, `--all-fields`); with `--clock virtual,lfheap` (the game's heap)
+combat's three consoles differ. Other threads that allocate from the CRT heap could still move
+addresses; none showed up.
+
+**The update countdown.** Each side now repeats, but ours and the original allocate differently (the
+verify wrappers run originals on scratch copies), so units sit at other addresses on the two sides,
+and the countdown (0x80 + bits 5..8 of the address) differs. The harness makes both sides spread it by
+the object's id (`id_ & 0xF`) instead: the eight original sites (`SAR r,5 / AND r,0xF` -> `MOV
+r,[r+0xC] / AND r,0xF`; 0058D4FA WakeUnitsAround, 0058D5E2 AddToUpdateMap, 0058D8F7 UpdateUnits,
+00592B14 / 00592C81 / 00593131 CreateObject, 005940DD InvokeAlarm, 00596BB1 the save's update map) and
+CWorldServer::UpdateCountdownFor in ours (world_server.cpp; AddToUpdateMap, UpdateUnits and
+CreateObject call it). Outside the harness it stays the address. golden.py no longer leaves the
+field out.
+
+**AIViewer::Refresh (005CA1D0), a rewrite bug.** With both, ours and the original still printed two
+"Unit A sees unit B" lines of one update in the other order (combat, combat_more, sound), with every
+digest field the same. The original inserts each unit near the viewer at the head of the brain's
+nearby list (an inlined AddHead); ours appended them (AddCountedTail), and See walks the list from the
+head. Fixed (unit_ai_sight.cpp). The wrapper (verify_unit_ai_sight.cpp) is ours-only and checks the
+list's members, not their order.
+
+**rebirth_flags** repeats on the fixed heap (the group order was by address). Its last difference
+was its own: `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its
+arguments (5, 1.#INF, or a NaN that made the variable's verify fail when stored); the scenario now
+checks `Not(IsLess(DistancePointPoint(3,4),0))`, true for any of them.
+
+Results (on top of SV1a): the four scenarios, three runs per side, repeat; combat, combat_more and
+sound print the same as the original. Left: in sound the digests part at update 272 in `crt.rand` only
+(StartIdleAnimation -> FindAnimation one frame earlier in ours, a client-side pick) without a
+difference in the console; obj2 (unmoco2)'s hit points are an unwritten field in ours (NaN / 2e14
+against NaN / 1.0 in the original's first record).
+
+What the repeatable heap changed elsewhere in the suite: the CRT heap can now begin right above
+game.exe's image (0x007F...), and netverify::BuiltCompare took everything below 0x800000 for an image
+address, so CBaseManager::ConstructBase's bucket pointers failed to pair (six scenarios); InImage (and
+ui_census's vtable range) now end at the image's real end, 0x007D7000. ui_hud under Rebirth: zone1's
+lone wolf (obj1804) reached the hero during the HUD walk and the "hero died" box covered the HUD on
+every run; the scenario now has the hero in god mode until its last check.

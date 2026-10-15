@@ -12,6 +12,10 @@ newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
+# zone1's lone wolf (1804) may come for the hero during the ~27 s below (it did under Rebirth on the
+# repeatable heap, SV1b, and the "hero died" box then covered the HUD): the hero cannot be hurt until
+# the end.
+console @GodMode(0,1)
 waitwindow 15 battle
 
 # Mouse moves over every panel (each panel's move handler and the tooltips).
@@ -186,6 +190,7 @@ click 392 333
 waitwindow 10 battle
 
 # The game runs on after the menu.
+console @GodMode(0,0)
 console @GSSetVar(0,"hp0",HP(GetLeader()))
 check IsAlive(GetLeader())
 console @InflictDamage(GetLeader(),5)
