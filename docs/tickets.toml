@@ -829,7 +829,7 @@ title = "zone1's start has two outcomes under load (ISAAC +176 by update 40)"
 group = "verification"
 size = 1
 files = ["tests/verify/harness*.cpp"]
-note = "Probably SV2f's cause (the S7 checks' heap order, fixed): watch whether a 16-at-once main suite still has zone1 new games part at update 40 (isaac count 89 vs 169, obj1804/1937 #ai). If it does: EI_HEAPSEQ=40 plus EI_DIGEST=1 on a failing and a passing run; verify first-call order hint in docs/notes/standalone-verification.md SV2f."
+note = "Main suite --golden at 16 at once after the SV2f merge (2026-10-15): 128 runs ALL PASS in 144 s, 56 goldens the same, 0 differ. Closed."
 
 # ---------------------------------------------------------------- harness and suite
 
