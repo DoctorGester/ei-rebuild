@@ -1457,6 +1457,15 @@ group = "cleanup"
 size = 5
 note = "Plan: docs/notes/standalone.md section 3, step 2 (discussed with the user 2026-10-13). After the hook build is retired (side-by-side checks need the shared layout): CArray to std::vector, CList to std::list, stlp::vector / list / map to their std twins, stlp::string and CString to one string type; the framework pieces (files, archives, GDI, exceptions) stay small classes of our own. Keep what must survive: hash_map iteration order where it feeds game logic, saves or network messages (39 stlp::hash_map uses; check each, the rest can be std::unordered_map), STLport sort order at sites where equal elements are visible (the objectives list), the CRT behaviour (_ftol, rand, sprintf digits), and the archive encoding of strings / arrays in saves and messages. Split into one ticket per family when started."
 
+[[ticket]]
+id = "C15"
+title = "reinterpret_cast: typed fields, objects and calls instead of casts"
+group = "cleanup"
+size = 3
+model = "sonnet"
+files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
+note = "User 2026-10-15: the number of reinterpret_casts is a cleanup area. src has 6,077 (tests 2,797; cleanup-plan.md's baseline was 4,186 on 2026-10-04, so it grew with the port). Rough split by grep: ~2,700 cast a game address to a pointer (gameapi.h import slots 411, globals, forwarders; these mostly go with S18's own data and Phase 4's direct imports, so leave them until then), ~1,000 are byte-pointer offset reads (base + 0x.. into a struct: give the struct the field), the rest are pointer punning between game types, vtable and function-pointer casts. Batches like C11: one file family per worker, the biggest typed-struct families first (world_game.cpp 123, world_data.h 77, ui.h 68, ui_global_map.cpp 65, sound_manager*.cpp 122, ui_battle_update.cpp 59, player_client.cpp 54). Spelling and typing only: never change a calling convention, argument order or float grouping; goldens must stay the same. Add the count to check_cleanup's baseline so it can only fall. progress.py already counts it."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
