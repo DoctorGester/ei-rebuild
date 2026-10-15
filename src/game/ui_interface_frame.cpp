@@ -154,7 +154,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     mfc::CString unused;
     mfc::CString text(event);
     SplitWords(text, &words, ' ');
-    words.data[0].MakeUpper();
+    words.data[0].MakeLower();
     // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).

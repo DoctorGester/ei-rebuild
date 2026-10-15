@@ -9,7 +9,9 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -22,19 +24,50 @@ std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.
 namespace {
 
 char g_exePath[MAX_PATH];
+std::string g_commandLine;      // as the CRT would see game.exe's: "<game.exe>" and the game's arguments
+std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's command line)
+HMODULE g_resources;            // game.exe loaded as an image resource
+void (*g_missingCodeHandler)(const char* what);
 
 // game.exe's code section (.text, 0x401000-0x73A670).
 constexpr std::uintptr_t kTextBegin = 0x00401000;
 constexpr std::uintptr_t kTextEnd = 0x0073A670;
 constexpr std::uintptr_t kWinMain = 0x00456440;
 
+// A code address as the log names it: inside game.exe's code plainly, elsewhere as module+offset.
+void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
+    HMODULE module = nullptr;
+    char path[MAX_PATH];
+    if ((address < kTextBegin || address >= kTextEnd) &&
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCSTR>(address), &module) &&
+        GetModuleFileNameA(module, path, MAX_PATH)) {
+        // "ei_hook+offset", as the harness's crash log has it (tools/resolve_crash.py).
+        const char* slash = std::strrchr(path, '\\');
+        const char* name = slash ? slash + 1 : path;
+        const char* dot = std::strrchr(name, '.');
+        std::snprintf(out, size, "%08X (%.*s+%X)", static_cast<unsigned>(address),
+                      static_cast<int>(dot ? dot - name : std::strlen(name)), name,
+                      static_cast<unsigned>(address - reinterpret_cast<std::uintptr_t>(module)));
+        return;
+    }
+    std::snprintf(out, size, "%08X", static_cast<unsigned>(address));
+}
+
 // Execution reached an address of game.exe's code with no rewrite: the INT3 filling the image there.
+// Its caller is the return address on the stack when the hit is a function's first byte (a call).
 LONG CALLBACK OnBreakpoint(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
     if (r->ExceptionCode != EXCEPTION_BREAKPOINT || at < kTextBegin || at >= kTextEnd) return EXCEPTION_CONTINUE_SEARCH;
-    Log("standalone: no code at %08X (in the function at %08X), called from %08X", static_cast<unsigned>(at),
-        static_cast<unsigned>(FunctionContaining(at)), static_cast<unsigned>(*reinterpret_cast<std::uint32_t*>(e->ContextRecord->Esp)));
+    const std::uintptr_t function = FunctionContaining(at);
+    char where[64], caller[160], what[256];
+    if (function) std::snprintf(where, sizeof(where), "in the game function at %08X", static_cast<unsigned>(function));
+    else strcpy_s(where, "library code");
+    DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
+    std::snprintf(what, sizeof(what), "no code at %08X (%s), [esp] %s", static_cast<unsigned>(at), where, caller);
+    Log("standalone: %s", what);
+    if (g_missingCodeHandler) g_missingCodeHandler(what);
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -74,37 +107,167 @@ int CheckJumps() {
     return bad;
 }
 
+// ---- game.exe's module, as the image's code sees it ------------------------------------------------
+// 0x400000 is not a loaded module in the host's process, yet the game hands it (its hInstance) to
+// LoadIconA, LoadStringA, FindResourceA ... The image's import slots of those calls lead here: the
+// image's handle becomes game.exe loaded as an image resource, and to the game the process's own
+// module (NULL, GetModuleHandleA(NULL)) is game.exe, as in a hooked run. For LoadIconA, LoadCursorA
+// and LoadBitmapA NULL names the system's images and stays.
+
+HMODULE ImageModule() { return reinterpret_cast<HMODULE>(kImageBase); }
+
+HMODULE Resources(HMODULE module, bool nullIsExe) {
+    return module == ImageModule() || (nullIsExe && !module) ? g_resources : module;
+}
+
+HICON WINAPI ImageLoadIcon(HINSTANCE instance, LPCSTR name) { return LoadIconA(Resources(instance, false), name); }
+HCURSOR WINAPI ImageLoadCursor(HINSTANCE instance, LPCSTR name) { return LoadCursorA(Resources(instance, false), name); }
+HBITMAP WINAPI ImageLoadBitmap(HINSTANCE instance, LPCSTR name) { return LoadBitmapA(Resources(instance, false), name); }
+int WINAPI ImageLoadString(HINSTANCE instance, UINT id, LPSTR buffer, int size) {
+    return LoadStringA(Resources(instance, true), id, buffer, size);
+}
+HRSRC WINAPI ImageFindResource(HMODULE module, LPCSTR name, LPCSTR type) {
+    return FindResourceA(Resources(module, true), name, type);
+}
+HGLOBAL WINAPI ImageLoadResource(HMODULE module, HRSRC resource) { return LoadResource(Resources(module, true), resource); }
+HMODULE WINAPI ImageModuleHandle(LPCSTR name) { return name ? GetModuleHandleA(name) : ImageModule(); }
+// As GetModuleFileNameA: truncated to `size` with its terminator, then ERROR_INSUFFICIENT_BUFFER.
+DWORD WINAPI ImageModuleFileName(HMODULE module, LPSTR out, DWORD size) {
+    if (module && module != ImageModule()) return GetModuleFileNameA(module, out, size);
+    if (size == 0) return 0;
+    const DWORD length = static_cast<DWORD>(std::strlen(g_exePath));
+    const DWORD copied = length < size ? length : size - 1;
+    std::memcpy(out, g_exePath, copied);
+    out[copied] = 0;
+    if (copied < length) {
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return size;
+    }
+    return length;
+}
+LPSTR WINAPI ImageCommandLine() { return g_commandLine.data(); }
+
+// Points `base`'s import slots of `dll`!`function` at `replacement`. Slots are matched by what they hold
+// (the export the loader, or the host, resolved), so a module without an import name table works too.
+bool RouteImport(std::uintptr_t base, const char* dll, const char* function, const void* replacement) {
+    HMODULE exporter = GetModuleHandleA(dll);
+    const FARPROC current = exporter ? GetProcAddress(exporter, function) : nullptr;
+    if (!current) return false;
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
+    const IMAGE_DATA_DIRECTORY& dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (!dir.VirtualAddress) return false;
+    bool routed = false;
+    for (auto* d = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(base + dir.VirtualAddress); d->Name; ++d) {
+        if (_stricmp(reinterpret_cast<const char*>(base + d->Name), dll) != 0) continue;
+        for (auto* slot = reinterpret_cast<IMAGE_THUNK_DATA32*>(base + d->FirstThunk); slot->u1.Function; ++slot) {
+            if (slot->u1.Function != reinterpret_cast<DWORD>(current)) continue;
+            DWORD old;
+            VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
+            slot->u1.Function = reinterpret_cast<DWORD>(replacement);
+            VirtualProtect(slot, sizeof(*slot), old, &old);
+            routed = true;
+        }
+    }
+    return routed;
+}
+
+// Miles (mss32.dll) loads every *.asi it finds as a sound provider. EI_Plugin.asi (Rebirth) patches
+// game.exe's code, which here is the image with our jumps: it stays out (its features are Rebirth
+// flags of our code, from ei_rebirth.ini). mp3dec.asi, the MP3 decoder, loads.
+HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
+    const char* slash = name ? std::strrchr(name, '\\') : nullptr;
+    const char* file = slash ? slash + 1 : name;
+    if (file && _stricmp(file, "EI_Plugin.asi") == 0) {
+        Log("standalone: Miles asked for %s: not loaded into the image", name);
+        SetLastError(ERROR_MOD_NOT_FOUND);
+        return nullptr;
+    }
+    return LoadLibraryA(name);
+}
+
+// Routes the image's resource, module and command-line calls, and Miles's LoadLibraryA. False when
+// game.exe's resources cannot be loaded or a call is not found.
+bool RouteImageCalls() {
+    g_resources = LoadLibraryExA(g_exePath, nullptr, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    if (!g_resources) {
+        Log("standalone: cannot load %s's resources (error %lu)", g_exePath, GetLastError());
+        return false;
+    }
+    struct Route {
+        const char* dll;
+        const char* function;
+        const void* replacement;
+    };
+    const Route routes[] = {
+        {"USER32.dll", "LoadIconA", reinterpret_cast<const void*>(&ImageLoadIcon)},
+        {"USER32.dll", "LoadCursorA", reinterpret_cast<const void*>(&ImageLoadCursor)},
+        {"USER32.dll", "LoadBitmapA", reinterpret_cast<const void*>(&ImageLoadBitmap)},
+        {"USER32.dll", "LoadStringA", reinterpret_cast<const void*>(&ImageLoadString)},
+        {"KERNEL32.dll", "FindResourceA", reinterpret_cast<const void*>(&ImageFindResource)},
+        {"KERNEL32.dll", "LoadResource", reinterpret_cast<const void*>(&ImageLoadResource)},
+        {"KERNEL32.dll", "GetModuleHandleA", reinterpret_cast<const void*>(&ImageModuleHandle)},
+        {"KERNEL32.dll", "GetModuleFileNameA", reinterpret_cast<const void*>(&ImageModuleFileName)},
+        {"KERNEL32.dll", "GetCommandLineA", reinterpret_cast<const void*>(&ImageCommandLine)},
+    };
+    bool ok = true;
+    for (const Route& r : routes) {
+        if (RouteImport(kImageBase, r.dll, r.function, r.replacement)) continue;
+        Log("standalone: game.exe's import %s!%s not found to route", r.dll, r.function);
+        ok = false;
+    }
+    if (HMODULE miles = GetModuleHandleA("mss32.dll")) {
+        if (!RouteImport(reinterpret_cast<std::uintptr_t>(miles), "KERNEL32.dll", "LoadLibraryA",
+                         reinterpret_cast<const void*>(&MilesLoadLibrary))) {
+            Log("standalone: mss32.dll's LoadLibraryA not found: EI_Plugin.asi would load");
+            ok = false;
+        }
+    }
+    return ok;
+}
+
 } // namespace
 
-bool Standalone() { return GetModuleHandleA(nullptr) != reinterpret_cast<HMODULE>(kImageBase); }
+bool Standalone() {
+    static const bool standalone = GetModuleHandleA(nullptr) != reinterpret_cast<HMODULE>(kImageBase);
+    return standalone;
+}
 
 const char* StandaloneExePath() { return g_exePath; }
 
+void SetMissingCodeHandler(void (*handler)(const char* what)) { g_missingCodeHandler = handler; }
+
 } // namespace ei
 
-// Called by the host once the image is laid out. `run` 0: install and check the jumps, then return
-// (0 when every jump is right and WinMain has one). `run` 1: then run WinMain.
-extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePath, int run) {
+// Called by the host once the image is laid out, with the game's arguments (what followed "--" on the
+// host's command line, as typed). `run` 0: install and check the jumps and route the image's calls,
+// then return (0 when all of it is right and WinMain has a jump). `run` 1: then run WinMain.
+extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePath, int run, const char* arguments) {
     using namespace ei;
     strcpy_s(g_exePath, exePath);
+    const bool hasArguments = arguments && *arguments;
+    g_commandLine = std::string("\"") + exePath + "\"" + (hasArguments ? " " : "") + (hasArguments ? arguments : "");
+    g_argumentsAt = std::strlen(exePath) + 2 + (hasArguments ? 1 : 0);
     SetProcessDPIAware();
     const int installed = InstallHooks();
     const int bad = CheckJumps();
     const bool winMain = *reinterpret_cast<const unsigned char*>(kWinMain) == 0xE9;
     Log("standalone: %d jump(s) written into the image, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
+    const bool routed = RouteImageCalls();
+    Log("standalone: game.exe's resources, module and command line%s routed; arguments: '%s'", routed ? "" : " not all",
+        g_commandLine.c_str() + g_argumentsAt);
     // What the static initialisers call that has no code yet (logged; not a failure of the check).
     static_init::ReportMissingTargets();
-    if (!run) return installed > 0 && bad == 0 && winMain ? 0 : 1;
+    if (!run) return installed > 0 && bad == 0 && winMain && routed ? 0 : 1;
     AddVectoredExceptionHandler(1, OnBreakpoint);
     SetUnhandledExceptionFilter(OnUnhandled);
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's
     // exit runs the functions the initialisers registered with atexit).
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
-    char commandLine[1] = {};
-    const int result =
-        reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr, commandLine, SW_SHOWNORMAL);
+    const int result = reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr,
+                                                              g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
     ExitGame(result);
     return result;
 }

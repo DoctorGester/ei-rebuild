@@ -8,6 +8,9 @@
   - Each address is where it belongs: stores, fills, float results and guards in .data (or its
     zero-filled tail), float and double operands in .rdata (or .data, an earlier fold's result), call targets and exit functions in .text,
     import slots in the import address table.
+  - src/standalone/static_exit.cpp (the exit functions no rewrite registers) is what their instructions
+    decode to now, its addresses are where they belong (as above), and src/hook/function_sizes.inc and
+    config/extra_function_sizes.csv give each exit function its decoded size.
 
 usage: python tools/check_static_init.py [--exe game.exe]
 exit code 1 on any problem
@@ -19,7 +22,7 @@ import gen_static_init as gen  # noqa: E402
 
 BLOCK = re.compile(r'^    // ([0-9A-F]{8}): [^\n]*\n    d\.Begin\(0x([0-9A-F]{8})\);\n((?:    (?!// )[^\n]*\n)*)', re.M)
 WHERE = [   # (pattern, which group holds an address, sections it may be in)
-    (re.compile(r'd\.(?:Store|StoreFloat|Fill|Once)\((0x[0-9A-F]{8})'), ('.data',)),
+    (re.compile(r'd\.(?:Store|StoreFloat|Fill|Once|NonZero|Release)\((0x[0-9A-F]{8})'), ('.data',)),
     (re.compile(r'd\.Dword\((0x[0-9A-F]{8})\)'), ('.rdata', '.data')),
     (re.compile(r'd\.(?:Float|Double)\((0x[0-9A-F]{8})\)'), ('.rdata', '.data')),   # .data: an earlier fold's result
     (re.compile(r'd\.(?:Cdecl|Stdcall|Thiscall|AtExit)\((0x[0-9A-F]{8})'), ('.text',)),
@@ -59,8 +62,28 @@ def main():
             problems.append(f'{a:08X}: differs from what its instructions decode to now (run tools/gen_static_init.py)')
     if not problems and gen.render(decoded) != text:
         problems.append('the header or footer differs (run tools/gen_static_init.py)')
+    exits, bad = gen.decode_exits(img, decoded)
+    problems += [f'not decoded: {b}' for b in bad]
+    exit_text = open(gen.OUT_EXIT, encoding='utf-8').read() if os.path.exists(gen.OUT_EXIT) else ''
+    if not bad and gen.render_exits(exits) != exit_text:
+        problems.append(f'{os.path.relpath(gen.OUT_EXIT, gen.ROOT)} differs from what the exit functions decode to now '
+                        '(run tools/gen_static_init.py)')
+    sizes = gen.load_sizes()
+    extra = {}
+    for row in open(gen.EXTRA_SIZES, encoding='utf-8').read().splitlines()[1:]:
+        if row:
+            extra[int(row.split(',')[0], 16)] = int(row.split(',')[1])
+    for fn, _, _, size, _ in exits:
+        if sizes.get(fn) != size or extra.get(fn) != size:
+            problems.append(f'exit function {fn:08X}: {size} bytes, function_sizes.inc has {sizes.get(fn)}, '
+                            f'extra_function_sizes.csv {extra.get(fn)} (run tools/gen_static_init.py)')
     iat = img.iat()
-    for a, _, body in ours:
+    cases = [(int(m.group(1), 16), m.group(2)) for m in
+             re.finditer(r'^    case (0x[0-9A-F]{8}):[^\n]*\n((?:        (?!return)[^\n]*\n)*)', exit_text, re.M)]
+    for a, body in cases:
+        if img.section(a) != '.text':
+            problems.append(f'exit function {a:08X} is in {img.section(a)}, not .text')
+    for a, _, body in ours + [(a, None, body) for a, body in cases]:
         for rx, sections in WHERE:
             for m in rx.finditer(body):
                 v = int(m.group(1), 16)
@@ -73,8 +96,9 @@ def main():
     for p in problems:
         print('check_static_init:', p)
     calls = sum(len(re.findall(r'd\.(?:Cdecl|Stdcall|Thiscall|Import)\(', body)) for _, _, body in ours)
-    exits = sum(body.count('d.AtExit(') for _, _, body in ours)
-    print(f'check_static_init: {len(ours)} static initialiser(s), {calls} call(s), {exits} atexit, {len(problems)} problem(s)')
+    atexits = sum(body.count('d.AtExit(') for _, _, body in ours)
+    print(f'check_static_init: {len(ours)} static initialiser(s), {calls} call(s), {atexits} atexit, {len(exits)} exit '
+          f'function(s) generated, {len(problems)} problem(s)')
     return 1 if problems else 0
 
 

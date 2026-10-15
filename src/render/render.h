@@ -30,7 +30,8 @@
 //              (device.h, ticket R9a) and the new renderer presents through its own swap chain on
 //              the game window; turned on later (a DirectDraw device exists) the new frame is
 //              copied into the game's render target before the old present shows it
-// Without "new" nothing here runs and the game draws exactly as before. The harness's "render"
+// Without "new" nothing here runs and the game draws exactly as before. The standalone image
+// (ei::Standalone) without EI_RENDER runs "new,present". The harness's "render"
 // step adds the words of EI_RENDER to its own (a run of the install without dgVoodoo sets
 // "new,present" for every scenario).
 

@@ -52,7 +52,8 @@ def main():
     logdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'build', 'verify')
     build = logdir if os.path.exists(os.path.join(logdir, 'ei_hook.map')) else os.path.join(ROOT, 'build', 'verify')
     lines = open(os.path.join(logdir, 'ei_hook.log'), errors='replace').read().splitlines()
-    start = max((i for i, l in enumerate(lines) if 'harness: exception' in l), default=None)
+    # A crash, or the standalone image's stop at code with no rewrite (its caller as ei_hook+offset).
+    start = max((i for i, l in enumerate(lines) if 'harness: exception' in l or 'standalone: no code at' in l), default=None)
     if start is None:
         print('no crash logged')
         return 1

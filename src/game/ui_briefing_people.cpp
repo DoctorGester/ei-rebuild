@@ -164,7 +164,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     }
     mfc::CString key(name);
     text::ReplaceChar(&key, '_', ' ');
-    key.MakeUpper();
+    key.MakeLower();
     const itemdb::ItemRecordHead* record;
     {
         stlp::string lookup(static_cast<const char*>(key));

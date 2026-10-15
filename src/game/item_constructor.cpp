@@ -538,7 +538,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         AsText(text).TrimSpaceRight();
     }
     StringSplit(text, &parts, '.');
-    for (int i = 0; i < parts.size; ++i) parts.data[i].MakeUpper();
+    for (int i = 0; i < parts.size; ++i) parts.data[i].MakeLower();
 
     // "spell container[spell text]": a scroll holding that spell.
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data[0])),

@@ -40,7 +40,7 @@ __declspec(naked) void CString::Empty() EI_ORIGINAL(0x007008FB)
 __declspec(naked) char* CString::GetBufferSetLength(int) EI_ORIGINAL(0x00700E17)
 __declspec(naked) char* CString::GetBuffer(int) EI_ORIGINAL(0x00700DA0)
 __declspec(naked) void CString::ReleaseBuffer(int) EI_ORIGINAL(0x00700DEF)
-__declspec(naked) void CString::MakeUpper() EI_ORIGINAL(0x00700EFE)
+__declspec(naked) void CString::MakeLower() EI_ORIGINAL(0x00700EFE)
 __declspec(naked) void CString::AssignChar(char) EI_ORIGINAL(0x006FD559)
 __declspec(naked) void CString::TrimRight(const char*) EI_ORIGINAL(0x006FE08A)
 #ifndef EI_VECTORS_REPLAY

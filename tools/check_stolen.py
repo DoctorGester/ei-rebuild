@@ -26,7 +26,7 @@ def main():
     for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) +
                        glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp'))):
         text = open(path, encoding='utf-8').read()
-        for m in re.finditer(r'EI_(?:VERIFY|RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*\w+\s*,\s*(\d+)\s*,', text):
+        for m in re.finditer(r'EI_(?:VERIFY|RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*[\w:<>]+\s*,\s*(\d+)\s*,', text):
             address, stolen = int(m.group(1), 16), int(m.group(2))
             if stolen == 0:
                 continue
