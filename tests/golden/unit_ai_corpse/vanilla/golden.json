@@ -1,0 +1,12 @@
+{
+  "scenario": "unit_ai_corpse",
+  "install": "vanilla",
+  "recorded": "2026-10-15",
+  "commit": "2bafeb16",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "SV5a: camp maker, trap victims, scripted cast at points, AI corpse and noise (re-recorded on main's SV7b2 zeroed fields)",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}

@@ -263,6 +263,94 @@ void JitterFill(void* p, SIZE_T bytes, DWORD flags) {
     for (SIZE_T i = 0; i < bytes; ++i) b[i] = static_cast<unsigned char>(JitterNext() >> 11);
 }
 
+// EI_HEAP_FILL=<byte>[,from,to[,offFrom,offTo]] (SV7b7; or the same in heapfill.txt beside ei_hook.dll): the main
+// thread's new blocks in the reservation (not HEAP_ZERO_MEMORY) numbered from..to-1 (counted from 0, every run the
+// same) get `byte` at offsets offFrom..offTo-1, with or without the jitter; `r<seed>` for the byte fills seeded
+// bytes instead, each block's from its number (so a block gets the same bytes whatever else is filled). A range of
+// up to 64 blocks logs each (number, size, place, callers). Finds which block's unwritten bytes a run reads, by
+// bisection.
+bool g_fixedFill;
+unsigned char g_fixedByte;
+bool g_fillRandom;
+unsigned g_fillSeed;
+unsigned g_fillFrom, g_fillTo = ~0u, g_fillOffFrom, g_fillOffTo = ~0u, g_blockNumber;
+
+// The setting from heapfill.txt beside ei_hook.dll when there is one: a variable of its own would move the game's
+// blocks (the CRT copies the environment onto its heap), and with them the jitter.
+bool ReadFillFile(char* text, DWORD size) {
+    HMODULE self = nullptr;
+    char path[MAX_PATH];
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(&ReadFillFile), &self) ||
+        !GetModuleFileNameA(self, path, MAX_PATH))
+        return false;
+    char* slash = std::strrchr(path, '\\');
+    if (!slash || strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "heapfill.txt") != 0) return false;
+    HANDLE file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (file == INVALID_HANDLE_VALUE) return false;
+    DWORD read = 0;
+    const BOOL ok = ReadFile(file, text, size - 1, &read, nullptr);
+    CloseHandle(file);
+    text[ok ? read : 0] = 0;
+    return text[0] != 0;
+}
+
+void ReadFixedFill() {
+    char text[96] = "";
+    if ((!GetEnvironmentVariableA("EI_HEAP_FILL", text, sizeof(text)) || !text[0]) && !ReadFillFile(text, sizeof(text)))
+        return;
+    unsigned v[5] = {0, 0, ~0u, 0, ~0u};
+    char* at = text;
+    if (*at == 'r') {
+        g_fillRandom = true;
+        ++at;
+    }
+    for (int i = 0; i < 5 && *at; ++i) {
+        v[i] = static_cast<unsigned>(std::strtoul(at, &at, 0));
+        if (*at == ',') ++at;
+    }
+    g_fixedFill = true;
+    g_fixedByte = static_cast<unsigned char>(v[0]);
+    g_fillSeed = v[0];
+    g_fillFrom = v[1];
+    g_fillTo = v[2];
+    g_fillOffFrom = v[3];
+    g_fillOffTo = v[4];
+    Log("harness: heap fill %s%02X, blocks %u..%u, offsets %u..%u", g_fillRandom ? "seeded " : "", g_fixedByte,
+        g_fillFrom, g_fillTo, g_fillOffFrom, g_fillOffTo);
+}
+
+// `start`: a resized block's old size (only its new bytes are filled).
+void FixedFill(void* p, SIZE_T bytes, DWORD flags, void* const* frame, SIZE_T start = 0) {
+    const unsigned n = g_blockNumber++;
+    if (!p || (flags & HEAP_ZERO_MEMORY) || n < g_fillFrom || n >= g_fillTo) return;
+    const SIZE_T to = bytes < g_fillOffTo ? bytes : g_fillOffTo;
+    const SIZE_T from = start > g_fillOffFrom ? start : g_fillOffFrom;
+    auto* b = static_cast<unsigned char*>(p);
+    if (g_fillRandom) {
+        unsigned x = (g_fillSeed * 2654435761u) ^ (n * 0x9E3779B9u) ^ 0x5BD1E995u;
+        for (SIZE_T i = 0; i < to; ++i) {
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            if (i >= from) b[i] = static_cast<unsigned char>(x >> 11);
+        }
+    } else if (from < to) {
+        std::memset(b + from, g_fixedByte, to - from);
+    }
+    if (g_fillTo - g_fillFrom > 64) return;
+    unsigned callers[8] = {};
+    int found = 0;
+    const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
+    for (int i = 0; i < 256 && found < 8 && frame + i < top; ++i) {
+        const auto v = reinterpret_cast<std::uintptr_t>(frame[i]);
+        if (ReturnAddress(v)) callers[found++] = unsigned(v);
+    }
+    Log("harness: heap fill block %u: %u bytes at %08X, callers %08X %08X %08X %08X %08X %08X %08X %08X", n,
+        unsigned(bytes), TracePlace(p), callers[0], callers[1], callers[2], callers[3], callers[4], callers[5],
+        callers[6], callers[7]);
+}
+
 void* Allocate(DWORD flags, SIZE_T bytes, bool reserved) {
     if (reserved) {
         if (g_jitter) Jitter();
@@ -300,6 +388,7 @@ HANDLE WINAPI RepeatableHeapCreate(DWORD options, SIZE_T initial, SIZE_T maximum
     Log("harness: the CRT's heap %p, %08X-%08X, without the low-fragmentation heap (repeatable addresses; thread %u)",
         g_heap, unsigned(g_begin), unsigned(g_end), unsigned(g_mainThread));
     ReadJitter();
+    ReadFixedFill();
     if (g_jitter && g_spacerCount < kSpacers)
         if (void* p = g_heapAlloc(g_heap, 0, 16u * (1 + JitterNext() % 4096))) g_spacers[g_spacerCount++] = p;
     return g_heap;
@@ -317,7 +406,9 @@ LPVOID WINAPI RepeatableHeapAlloc(HANDLE heap, DWORD flags, SIZE_T bytes) {
     if (heap != g_heap) return g_heapAlloc(heap, flags, bytes);
     Locked lock(heap);
     auto* const frame = static_cast<void* const*>(_AddressOfReturnAddress());
-    void* result = Allocate(flags, bytes, Reserved(bytes, frame));
+    const bool reserved = Reserved(bytes, frame);
+    void* result = Allocate(flags, bytes, reserved);
+    if (g_fixedFill && reserved && InReservation(result)) FixedFill(result, bytes, flags, frame);
     Trace('a', bytes, nullptr, result, frame);
     Observe('a', bytes, nullptr, result, frame);
     return result;
@@ -340,6 +431,7 @@ LPVOID WINAPI RepeatableHeapReAlloc(HANDLE heap, DWORD flags, LPVOID memory, SIZ
     void* result = nullptr;
     auto* const frame = static_cast<void* const*>(_AddressOfReturnAddress());
     const bool reserved = Reserved(bytes, frame);
+    const SIZE_T before = g_fixedFill && memory ? g_heapSize(from, 0, memory) : 0;
     if ((from == g_heap) == reserved) result = g_heapReAlloc(from, flags, memory, bytes);
     if (!result && !(flags & HEAP_REALLOC_IN_PLACE_ONLY) && !(from == g_large && bytes >= kLarge)) {
         const SIZE_T old = g_heapSize(from, 0, memory);
@@ -349,6 +441,8 @@ LPVOID WINAPI RepeatableHeapReAlloc(HANDLE heap, DWORD flags, LPVOID memory, SIZ
             g_heapFree(from, 0, memory);
         }
     }
+    if (g_fixedFill && reserved && InReservation(result) && bytes > before && before != SIZE_T(-1))
+        FixedFill(result, bytes, flags, frame, before);
     Trace('r', bytes, memory, result, frame);
     Observe('r', bytes, memory, result, frame);
     return result;

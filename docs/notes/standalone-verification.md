@@ -1643,6 +1643,43 @@ files, then reverting each constant); with the float the goldens are the same ag
 main). No golden re-recorded. After merging main (SV7b1, SV7b4a's re-recorded goldens): 128 runs ALL PASS, 0 verify
 mismatches, all 56 goldens the same; `--standalone --golden` on the 44 scenarios with a vanilla golden: 44 the same.
 
+## SV5a: camp crafting, magic trap victims, AI modes, item info (2026-10-15)
+
+Four scenarios, each about 15-27 s, none with `speed`; goldens recorded on vanilla and Rebirth (each passed twice
+with the same digest). Reached, by `EI_COVER=hooks` (`coverage.py collect --add`, now 101 scenarios):
+
+| scenario | reaches |
+| --- | --- |
+| ui_camp_make | CCampPages::CanMakeSpell, CanMakeItem, DeconstructItem (and the spell deconstruct), CConstructorPage::DrawSpellMaker, CItemInfoPanel::DescribeBlueprint / DescribeMaterial / DescribeSpellRecord. Class-3 camp (`screen 5 3`), spell page (fire tab, rune tab, two runes, make, finished tab, deconstruct) and item page (instruction, materials, arrow, make, deconstruct). |
+| magic_traps_victims | MagicTrap::UpdateVictims. `# prepare: make_trap_mob.py --interval 0` writes zone2's seven traps with period 0 (the game's own are 15-150; only period 0 asks for newcomers each tick); two wolves enter trap 30004's circle. |
+| unit_cast_at | CUnitServer::OrderCastAt, AIBrain::CastAt (script `Cast(unit,x,y)`; the wolf casts fireball at points). The hero cannot be cast: healing at a point has no target and StartHealing dereferences it (the original crashes too). |
+| unit_ai_corpse | zone1 wolf 1804 sees a dead wolf, hears a blast and a fight (SeeCorpse logic, noise handlers). It reaches no listed function that was not reached before (see below) but adds AI-mode paths to the goldens. |
+
+Tool change: `prepare_scenario.prepare()` takes the tools folder and run_all passes the checkout's own (`# prepare:`
+tools used to resolve against the scheduler's checkout, i.e. main's, so a new option in a prepared tool needed a
+merge before the scenario could pass through `work.py test`).
+
+Not reached, with reasons:
+- CUnitServer::TryTame: charm costs far more mana than the hero's 56; the AI never chooses charm for a wolf. Needs a
+  high-mana caster (a unit with intelligence and the astral skill raised through script).
+- SuspectionMode::Execute / Enter / Leave: Enter never fires; the brain keeps the notices in the other modes.
+- LookAroundHook, SeeCorpseHook, AICallArray::Add: only the game's addresses count; our code calls the methods
+  directly (or inlined), so the cover INT3 never fires. SeeCorpse logic itself runs ("sees corpse" in the log).
+  SeeCorpseHook needs a controlled party member to die; `AddUnitUnderControl` causes that but trips the
+  `CUnit::SetPlayer` verify wrapper (ours-only PlayerOwnsUnit check).
+- PatrolPointArray::Add / SetAtGrow: no patrol unit was found in the zones; not investigated further.
+- CTrapObject::UpdateTrap: needs a trap object with a category-2 consumable; none found.
+- UseOnUnit with a potion (quick item category 8) fails the `CBattleScreenSetup::UseOnUnit` wrapper: the potion is
+  consumed synchronously, so the member does not nod. Scenario dropped.
+
+Suite, after merging main (SV7b2's zeroed fields changed the saves, so the four goldens were recorded again on the merged
+code: original twice, ours twice, vanilla and Rebirth, all four agreeing): `work.py test SV5a --golden --jobs 4`, 144 runs:
+all pass but magic_traps_victims, which the running scheduler cannot prepare (it still holds the old prepare_scenario and
+takes main's make_trap_mob.py, which has no `--interval`; it passes through plain `run_all.py`, and through the scheduler
+once it restarts on the merged tools); the existing goldens: 58 the same, none differ. The four new, by `run_all.py
+--golden`: 8 the same; `--standalone --golden`: 8 runs, 8 the same. unit_ai_corpse (Rebirth) differed once in 8 runs at
+once (a wolf's idle sound line, 4 more times 0 of 7 repeated alone): a rare under-load flip, the SV6b kind.
+
 ## SV7b2 / SV7d3 / SV7d4: never-set object fields start zeroed (2026-10-15)
 
 **The canonical value is zero**, as for SV7b3, in ours (kept in the standalone as a determinism fix) and in the original
@@ -1788,6 +1825,35 @@ vtable slots, the scene loader and its callees, the skin's lifetime and rewind, 
 MultiplyByConjugate). MultiplyByConjugate's vector family (record, replay, ConjugateCall) was removed: it had no
 source and could not get one from the game. Its verify wrapper stays (ours against the original), never reached.
 
+## SV7b7: a particle source's emission point read before it is set (2026-10-15)
+
+**Symptom** (SV7b1, SV7d): under `EI_HEAP_JITTER=<seed>,fill` the original (`--no-hooks`) parts at update 40 of gz1g
+in some scenarios (isaac.count 38 / 161, ai.decay of obj1804 / 1890 / 1936, unmoto obj1937's path), a different set
+per seed and per load of the machine (the main thread's block order, and so the jitter's fill, follows timing).
+
+**Tool:** `EI_HEAP_FILL` (harness_heap.h; or `heapfill.txt` beside ei_hook.dll, since a variable of its own moves the
+blocks: the CRT copies the environment onto its heap) fills chosen blocks (by number), byte ranges and resized blocks'
+new bytes with a byte or seeded bytes; bisecting the block number, then the offset, names the field. Seeded bytes with resized blocks' tails and no jitter reproduce it in levers, ui_saveload, ui_saveload_delete,
+combat and combat_more every time.
+
+**Cause:** NewParticleSource 004981B0 neither constructs nor Resets (004847E0) the source's emission point `origin`
+(+0x98, the 0x1F0-byte block from operator new); only Attach 004849F0 sets it. A source ticked before Attach
+(00496EB0: Follow takes `motion = position - origin`) gets a motion as large as the leftover, so Emit tries
+distance / emitSpacing times (up to maxParticles), each a GlobalRandom draw: the ISAAC count the AI's decay draws
+then take from. The bisection's byte was +0x9B (origin.x's exponent).
+
+**Fix:** the source starts zeroed in ours (NewParticleSource, kept in the standalone) and, through
+harness_leftovers (the CALL of operator new at 004981CD, family bit 7, runs without hooks only, as SV7b2's) in the
+original. Found first under `2,fill`, but not a behaviour read by itself: the packed vitals' second byte (CMapObject
++0x17D, UnitVitalsPacked `unused_01`), which Reset 005233B0 skips and the network state sends whole; SV7b2's zeroed
+map objects (CreateObject 00512730) now cover it, so this branch's own fix for it was dropped at the merge.
+
+**Runs** (after merging main with SV7b1 and SV7b2): `--no-hooks --golden` plain: 58 the same (no golden
+re-recorded). Vanilla, seeded fill with tails, no jitter: with the particle family off (EI_LEFTOVERS=7F) combat and
+combat_more part at update 40 with the ticket's signature, with it all 45 the same; `2,fill` and `3,fill`: all 45
+the same. Hooked `--golden` (136 runs): all pass, 58 the same; `--standalone --golden` on 8 scenarios: 16 the same.
+Before the merge, Rebirth `2,fill` parted only on the menu unit cunit187's `#place` (SV7b8's family).
+
 ## SV7b2a: the saves' last leftovers canonical, archive keys numbered (2026-10-15)
 
 **Sites** (the original in `EI_NO_HOOKS=1` runs, tests/verify/harness_save_leftovers.cpp: each sits in a function ours
@@ -1806,4 +1872,3 @@ zeroes whole; the rule was wrong. Close already writes the records in first-save
 which only the load path walks), so numbering keeps the format and the order; the loader maps any key. 00544B70 builds a
 stack step too but has no caller. savefile*.py now read every former rule as a value (the Reader keeps the rule tokens
 for later use; none is in use). Without the patch (EI_SAVE_LEFTOVERS=0) 83 steps in combat's saves had a non-zero padding.
-

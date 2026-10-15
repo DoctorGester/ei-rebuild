@@ -37,6 +37,10 @@
 // UnitOrderLess irreflexive and STLport's unguarded scans run off the list). Ours zeroes it; its one
 // caller, CMapObject::Construct's CALL at 0050E2F2, goes through a harness function that zeroes it
 // after the original's construction (EI_LEFTOVERS family bit 6).
+//
+// And (SV7b7) NewParticleSource 004981B0's source is allocated zeroed (its operator new CALL at 004981CD,
+// family bit 7, without hooks only): nothing sets the emission point (+0x98) before Attach, and the first
+// Tick takes the motion, so the number of emission tries and GlobalRandom draws, from it.
 
 namespace ei::verify::leftovers {
 
