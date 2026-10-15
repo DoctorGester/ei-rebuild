@@ -1,6 +1,6 @@
-// Checks for map_spec*.cpp. Side by side (the original first): the type names (the original's
-// string made in a scratch CString and destroyed again), the world object look-ups and the
-// quaternion rotation (within a few ULPs). Ours only: the constructors (vtable and kind), the
+// Checks for map_spec*.cpp. Side by side: the type names (ours first, then the original's string
+// made in a scratch CString and destroyed again; SV2h1), and with the original first the world
+// object look-ups and the quaternion rotation (within a few ULPs). Ours only: the constructors (vtable and kind), the
 // patrol array copy (same patrols and waypoints as the source). Reading and writing chunks run
 // ours only without checks beyond the zone loading itself.
 #include "verify.h"
@@ -25,15 +25,16 @@ std::uint32_t VtableOf(const void* p) {
     return v;
 }
 
-// A type name made by the original into scratch storage, compared with ours, then destroyed.
+// A type name made by ours, then by the original into scratch storage (SV2h1: ours allocates
+// first), compared, then the original's destroyed.
 template <typename Self>
 using NameFn = mfc::CString*(__fastcall*)(Self*, void*, mfc::CString*);
 template <typename Self>
 mfc::CString* CompareName(const char* what, NameFn<Self> original, mfc::CString* (Self::*ours)(mfc::CString*), Self* self,
                           mfc::CString* out) {
+    (self->*ours)(out);
     alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
     auto* expected = original(self, nullptr, reinterpret_cast<mfc::CString*>(raw));
-    (self->*ours)(out);
     ei::verify::Check(what, true, std::strcmp(*expected, *out) == 0, static_cast<const char*>(*out));
     expected->~CString();
     return out;

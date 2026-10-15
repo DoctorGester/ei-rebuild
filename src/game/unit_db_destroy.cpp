@@ -276,6 +276,10 @@ void DestroyStringsAndFree(CStringVector* v) {
 }
 } // namespace
 
+// 0053F010. A model slot's destructor: a jump to CString::~CString on its level name (the one
+// member to destroy); the CRT's vector destructor iterator runs it on the record's six slots.
+void __fastcall DestroyModelSlot(UnitModelSlot* slot) { DestroyString(&slot->levelName); }
+
 // 0053EE70. A unit model record's destructor, members in reverse order: the vector of sound
 // counts (+0x144, storage only), the sound names, the CStrings +0x124 / +0x118, the string
 // vectors +0xF8 / +0xEC, the CString +0xE8, the six slots (their level names, through the CRT's
@@ -350,6 +354,7 @@ UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
 } // namespace unitdb
 
 EI_REPLACE(0x0053EE70, unitdb::DestroyModelRecord);
+EI_REPLACE(0x0053F010, unitdb::DestroyModelSlot);
 EI_REPLACE(0x0053A050, unitdb::DestroyUnitDatabase);
 EI_REPLACE(0x00539CE0, unitdb::DestroyNpcTable);
 EI_REPLACE(0x0051FB50, unitdb::DestroySkillDatabase);

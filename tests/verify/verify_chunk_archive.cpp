@@ -16,6 +16,7 @@
 #include "../../src/lib/stlp.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -174,14 +175,15 @@ void __fastcall CloseVerify(ChunkArchive* self, void*, CStream* stream) {
 // Header bytes AppendChild adds in front of a child of `size` bytes.
 std::int32_t Grown(std::uint32_t size) { return static_cast<std::int32_t>(size + (size * 2 >= 0x100 ? 5 : 2)); }
 
-// 004093A0: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: the original assigns a scratch
-// CString, ours the real one; same text. Writing: ours; the chunk grows by the text and terminator.
+// 004093A0: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: ours assigns the real CString,
+// then the original a scratch one (SV2h1: ours allocates first); same text. Writing: ours; the
+// chunk grows by the text and terminator.
 void(__fastcall* s_cstring)(ChunkArchive*, void*, int, mfc::CString*);
 void __fastcall CStringVerify(ChunkArchive* self, void*, int id, mfc::CString* s) {
     if (self->loading_) {
+        self->CStringField(id, s);
         mfc::CString scratch("");
         s_cstring(self, nullptr, id, &scratch);
-        self->CStringField(id, s);
         ei::verify::Check("ChunkArchive::CStringField", true, std::strcmp(scratch, *s) == 0, "id %d", id);
         return;
     }
@@ -191,14 +193,16 @@ void __fastcall CStringVerify(ChunkArchive* self, void*, int id, mfc::CString* s
     ei::verify::Check("ChunkArchive::CStringField", Grown(size), self->Current()->size - before, "id %d", id);
 }
 
-// 00409470: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: the original on a copy of the
-// string, ours on the real one; same contents. Writing: as CStringField.
+// 00409470: SUB ESP,0x14 (3), PUSH EBX (1), PUSH EBP (1). Loading: ours on the real string, then
+// the original on a copy of its old contents (kept in our memory; SV2h1); same contents. Writing:
+// as CStringField.
 void(__fastcall* s_string)(ChunkArchive*, void*, int, stlp::string*);
 void __fastcall StringVerify(ChunkArchive* self, void*, int id, stlp::string* s) {
     if (self->loading_) {
-        stlp::string scratch(*s);
-        s_string(self, nullptr, id, &scratch);
+        const std::string kept = s->size() ? std::string(s->data(), s->size()) : std::string();
         self->StringField(id, s);
+        stlp::string scratch(kept.data(), kept.data() + kept.size());
+        s_string(self, nullptr, id, &scratch);
         ei::verify::Check("ChunkArchive::StringField", true, scratch == *s, "id %d", id);
         return;
     }

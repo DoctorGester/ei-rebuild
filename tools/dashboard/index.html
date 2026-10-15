@@ -272,6 +272,7 @@ function render(data) {
   }).join('');
   document.querySelector('#cleanup tbody').innerHTML = peakRows('cleanup', metrics);
   document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
+    ['Library functions with our code (of ' + fmt((c.standalone || {}).library_functions || 0) + ')', 'library_ours'],
     ['Unported game functions', 'unported_functions'], ['of them under 5 bytes (cannot be hooked)', 'unported_unhookable'],
     ['of them Rebirth-patched', 'unported_rebirth_patched'],
     ['Forwarded addresses', 'forwarder_addresses'], ['to unported game code', 'forwarders_to_unported'],
@@ -316,6 +317,9 @@ function render(data) {
     lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
                   { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
       { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }),
+    lineChart(h, [{ name: 'Functions', color: accent, area: true, get: p => p.standalone && p.standalone.library_functions ? pct(p.standalone.library_ours, p.standalone.library_functions) : null },
+                  { name: 'Bytes', color: good, get: p => p.standalone && p.standalone.library_bytes ? pct(p.standalone.library_ours_bytes, p.standalone.library_bytes) : null }],
+      { title: 'Standalone: library code ours', note: "Share of the exe's MFC, STLport and CRT functions (config/library.csv) with our code at their address, which the standalone image runs instead of the original's.", unit: '%', max: 100 }),
     lineChart(h, [{ name: 'To library code', color: accent, get: p => p.standalone && p.standalone.forwarders_to_library },
                   { name: 'To code already rewritten', color: good, get: p => p.standalone && p.standalone.forwarders_to_rewritten },
                   { name: 'To unported game code', color: '#4a6fa5', get: p => p.standalone && p.standalone.forwarders_to_unported },

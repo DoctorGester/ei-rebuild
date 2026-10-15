@@ -101,4 +101,26 @@ EI_REPLACE(0x00511C30, SerializeCArray<gamearrays::Particles>);    // a map obje
 EI_REPLACE(0x00556E10, SerializeCArray<ObjectValues>);             // a unit memory's object records
 EI_REPLACE(0x004C55C0, SerializeCArray<BuiltCommands>);            // a command block
 
+// Lists whose loader builds, assigns and releases a temporary (S6d).
+using mfc::impl::SerializeCListThrough;
+EI_REPLACE(0x00427690, SerializeCListThrough<EngineObjectsThrough>);    // ItemObjectListClass
+EI_REPLACE(0x00571420, SerializeCListThrough<EngineObjectsThrough>);    // ClientObjectList2Class
+EI_REPLACE(0x004C9350, SerializeCListThrough<ObjectRefsThrough>);       // ObjectRefListClass
+EI_REPLACE(0x0052C740, SerializeCListThrough<VictimsThrough>);          // VictimListClass
+EI_REPLACE(0x005576C0, SerializeCListThrough<OwnedRefsThrough>);        // gamelists::OwnedRefListClass
+EI_REPLACE(0x00598FD0, SerializeCListThrough<RefsThrough>);             // RefListAClass
+EI_REPLACE(0x00599DF0, SerializeCListThrough<RefsThrough>);             // RefListBClass
+EI_REPLACE(0x00558100, SerializeCListThrough<ArmourSpellsThrough>);     // ArmourSpellListClass
+EI_REPLACE(0x004C61C0, SerializeCListThrough<ParticleSourcesThrough>);  // ParticleSourceListClass
+EI_REPLACE(0x004C64C0, SerializeCListThrough<FxSourcesThrough>);        // FxSourceListClass
+EI_REPLACE(0x004C6800, SerializeCListThrough<LightningsThrough>);       // LightningListClass
+EI_REPLACE(0x004C7640, SerializeCListThrough<DeclsThrough>);            // DeclListClass
+EI_REPLACE(0x004C7F60, SerializeCListThrough<DefinitionsThrough>);      // DefinitionListClass
+EI_REPLACE(0x004C8640, SerializeCListThrough<RunsThrough>);             // RunListClass
+EI_REPLACE(0x004C8F00, SerializeCListThrough<GroupsThrough>);           // GroupListClass
+EI_REPLACE(0x004CA2E0, SerializeCListThrough<TokensThrough>);           // gamelists::TokenListClass
+EI_REPLACE(0x004D63E0, SerializeCListThrough<DefinesThrough>);          // DefineListClass
+EI_REPLACE(0x0059A4A0, SerializeCListThrough<SharedObjectsThrough>);    // gamelists::SharedObjectListClass
+EI_REPLACE(0x006BC920, SerializeCListThrough<WavesThrough>);            // the sound cache's CList<WaveRecord>
+
 } // namespace gameslots

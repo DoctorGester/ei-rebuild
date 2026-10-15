@@ -1,15 +1,19 @@
 // Differential checks for the item texts (item_db_text.cpp). The text functions change the text
-// manager's cursor (+0x20..+0x28) and write CStrings: the original runs first on scratch copies
-// of the outputs, its final cursor state is recorded and the state restored, then ours runs on
-// the real outputs; strings, state and results are compared.
+// manager's cursor (+0x20..+0x28) and write CStrings: ours runs first on the real outputs (the old
+// texts kept in our memory), its final cursor state is recorded and the state restored, then the
+// original runs on scratch strings made from the kept texts (freed again; SV2h1: ours allocates
+// first); strings, state and results are compared and ours' state put back.
 //
 // Side effect of verifying: every lookup runs twice, so CMappedResource::GetFile raises the
 // reference count of a found text file twice (the text manager never closes them either way).
 #include "verify.h"
 
+#include "kept_strings.h"
+
 #include "../../src/game/item_db_text.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -48,19 +52,25 @@ static BOOL __fastcall IsPastEndVerify(CTextManager* self, void*, const char* p)
 EI_VERIFY(0x004E0000, IsPastEndVerify, 7, s_isPastEnd);
 
 // 004E0020: MOV EAX,FS:[0] (6 bytes). Callers may pass a CString's own text as `name` together
-// with that CString; the scratch copy shares the buffer, so the original sees the same aliasing.
+// with that CString: the original then gets the same place in its scratch copy.
 static BOOL(__fastcall* s_getString)(CTextManager*, void*, const char*, mfc::CString*);
 static BOOL __fastcall GetStringVerify(CTextManager* self, void*, const char* name, mfc::CString* out) {
     CursorState before = Save(self);
-    mfc::CString scratch(*out);
-    BOOL expected = s_getString(self, nullptr, name, &scratch);
-    CursorState after = Save(self);
-    Restore(self, before);
+    const std::string kept = ei::verify::KeepText(*out);
+    const std::string nameText = name ? name : "";
+    const char* old = *out;
+    const bool aliased = name && name >= old && name <= old + kept.size();
+    const std::size_t offset = aliased ? static_cast<std::size_t>(name - old) : 0;
     BOOL actual = self->GetString(name, out);
-    bool same = expected == actual && SameText(scratch, *out) && SameState(after, Save(self));
-    ei::verify::Check("CTextManager::GetString", true, same, "%s: %d '%.60s' vs %d '%.60s'", name, expected,
+    CursorState mine = Save(self);
+    Restore(self, before);
+    mfc::CString scratch(kept.c_str());
+    BOOL expected = s_getString(self, nullptr, aliased ? static_cast<const char*>(scratch) + offset : name, &scratch);
+    bool same = expected == actual && SameText(scratch, *out) && SameState(mine, Save(self));
+    Restore(self, mine);
+    ei::verify::Check("CTextManager::GetString", true, same, "%s: %d '%.60s' vs %d '%.60s'", nameText.c_str(), expected,
                       static_cast<const char*>(scratch), actual, static_cast<const char*>(*out));
-    return expected;
+    return actual;
 }
 EI_VERIFY(0x004E0020, GetStringVerify, 6, s_getString);
 
@@ -72,32 +82,37 @@ static BOOL __fastcall GetItemTextsVerify(CTextManager* self, void*, CItem* item
     // Some callers pass the same CString twice (0063CEE0 and 0063E820 use one string for the
     // description and the kind, so the kind text overwrites the description): the scratch
     // outputs must alias exactly where the real ones do.
-    mfc::CString scratch[3] = {*name, *description, *kind};
     mfc::CString* outputs[3] = {name, description, kind};
-    mfc::CString* scratchOut[3];
+    int alias[3];
+    std::string kept[3];
     for (int i = 0; i < 3; ++i) {
-        scratchOut[i] = &scratch[i];
+        alias[i] = i;
         for (int j = 0; j < i; ++j)
             if (outputs[j] == outputs[i]) {
-                scratchOut[i] = scratchOut[j];
+                alias[i] = j;
                 break;
             }
+        kept[i] = ei::verify::KeepText(*outputs[i]);
     }
-    mfc::CString& scratchName = *scratchOut[0];
-    mfc::CString& scratchDescription = *scratchOut[1];
-    mfc::CString& scratchKind = *scratchOut[2];
-    BOOL expected = s_getItemTexts(self, nullptr, item, &scratchName, &scratchDescription, &scratchKind);
-    CursorState after = Save(self);
-    Restore(self, before);
     BOOL actual = self->GetItemTexts(item, name, description, kind);
+    CursorState mine = Save(self);
+    Restore(self, before);
+    mfc::CString scratch[3];
+    for (int i = 0; i < 3; ++i)
+        if (alias[i] == i) scratch[i] = kept[i].c_str();
+    mfc::CString& scratchName = scratch[alias[0]];
+    mfc::CString& scratchDescription = scratch[alias[1]];
+    mfc::CString& scratchKind = scratch[alias[2]];
+    BOOL expected = s_getItemTexts(self, nullptr, item, &scratchName, &scratchDescription, &scratchKind);
     bool sameName = SameText(scratchName, *name), sameDescription = SameText(scratchDescription, *description);
-    bool sameKind = SameText(scratchKind, *kind), sameState = SameState(after, Save(self));
+    bool sameKind = SameText(scratchKind, *kind), sameState = SameState(mine, Save(self));
+    Restore(self, mine);
     bool same = expected == actual && sameName && sameDescription && sameKind && sameState;
     ei::verify::Check("CTextManager::GetItemTexts", true, same,
                       "kind %X id %08X: result %d/%d name %d description %d kind %d state %d; description '%.60s' vs '%.60s'",
                       item->type_, item->prototypeId_, expected, actual, sameName, sameDescription, sameKind, sameState,
                       static_cast<const char*>(scratchDescription), static_cast<const char*>(*description));
-    return expected;
+    return actual;
 }
 EI_VERIFY(0x004E0150, GetItemTextsVerify, 7, s_getItemTexts);
 
@@ -105,16 +120,18 @@ EI_VERIFY(0x004E0150, GetItemTextsVerify, 7, s_getItemTexts);
 static BOOL(__fastcall* s_formatItemName)(CTextManager*, void*, CItem*, mfc::CString*);
 static BOOL __fastcall FormatItemNameVerify(CTextManager* self, void*, CItem* item, mfc::CString* out) {
     CursorState before = Save(self);
-    mfc::CString scratch(*out);
-    BOOL expected = s_formatItemName(self, nullptr, item, &scratch);
-    CursorState after = Save(self);
-    Restore(self, before);
+    const std::string kept = ei::verify::KeepText(*out);
     BOOL actual = self->FormatItemName(item, out);
-    bool same = expected == actual && SameText(scratch, *out) && SameState(after, Save(self));
+    CursorState mine = Save(self);
+    Restore(self, before);
+    mfc::CString scratch(kept.c_str());
+    BOOL expected = s_formatItemName(self, nullptr, item, &scratch);
+    bool same = expected == actual && SameText(scratch, *out) && SameState(mine, Save(self));
+    Restore(self, mine);
     ei::verify::Check("CTextManager::FormatItemName", true, same, "kind %X id %08X count %u: '%.60s' vs '%.60s'",
                       item->type_, item->prototypeId_, item->count_, static_cast<const char*>(scratch),
                       static_cast<const char*>(*out));
-    return expected;
+    return actual;
 }
 EI_VERIFY(0x004E13E0, FormatItemNameVerify, 7, s_formatItemName);
 
@@ -209,3 +226,19 @@ static TextSourceList::Node** __fastcall ListInsertVerify(TextSourceList* self, 
     return result;
 }
 EI_VERIFY(0x004E1590, ListInsertVerify, 0, s_unusedList);
+
+// The original's node (checked, then destroyed and back to the pool), then ours: the same node again
+// (the pool's free list is last in, first out), the pair copied.
+static TextSourceList::Node*(__fastcall* s_createNode)(TextSourceList*, void*, const TextSource*);
+static TextSourceList::Node* __fastcall CreateNodeVerify(TextSourceList* self, void*, const TextSource* value) {
+    TextSourceList::Node* theirs = s_createNode(self, nullptr, value);
+    const bool theirsOk = theirs->data.name == value->name && theirs->data.source == value->source;
+    theirs->data.~TextSource();
+    stlp::deallocate(theirs, sizeof(TextSourceList::Node));
+    TextSourceList::Node* ours = TextSourcesCreateNode(self, nullptr, value);
+    const bool ok = ours == theirs && ours->data.name == value->name && ours->data.source == value->source;
+    ei::verify::Check("TextSourcesCreateNode", true, theirsOk && ok, "\"%s\"", value->name.data());
+    return ours;
+}
+// PUSH EBP; MOV EBP,ESP; PUSH -1 (5).
+EI_VERIFY(0x004E15C0, CreateNodeVerify, 5, s_createNode);

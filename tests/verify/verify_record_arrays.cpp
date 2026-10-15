@@ -461,6 +461,8 @@ using O005FBD80 = OursDestroy<0x005FBD80, Bytes<0x18>, DestroyGlobalMapRecord>;
 EI_VERIFY(0x005FBD80, O005FBD80::Run, 0, s_unused);
 using O005FBDD0 = OursDestroy<0x005FBDD0, Bytes<0x18>, DestroyGlobalMapRecord>;
 EI_VERIFY(0x005FBDD0, O005FBDD0::Run, 0, s_unused);
+using O005FBD30 = OursDestroy<0x005FBD30, Bytes<0x10>, DestroyGlobalMapZone>;
+EI_VERIFY(0x005FBD30, O005FBD30::Run, 0, s_unused);
 
 // The script's command arrays.
 using A004CD2B0 = TwinSetSizeGrow<0x004CD2B0, Cmds>;
@@ -572,3 +574,52 @@ using A00575690 = TwinConstructElements<0x00575690, WaterLevels>;
 EI_VERIFY(0x00575690, A00575690::Run, 6, A00575690::original);
 using O005755C0 = OursDestroy<0x005755C0, WaterLevelElement, DestroyWaterLevel>;
 EI_VERIFY(0x005755C0, O005755C0::Run, 0, s_unused);
+
+// CStringArray's GetAt by value (S16): ours first into the caller's CString, then the original into
+// a scratch one; the same text and the same buffer (a shared copy), the scratch then destroyed.
+// 004698A0: PUSH ECX; MOV EAX,[ESP+0xC] (5). 004698C0: PUSH ECX; MOV EAX,[ECX+4]; MOV ECX,[ESP+0xC] (8).
+template <std::uintptr_t Address>
+struct TwinStringGetAt {
+    static inline mfc::CString*(__fastcall* original)(const mfc::CArray<mfc::CString>*, void*, mfc::CString*, int);
+    static mfc::CString* __fastcall Run(const mfc::CArray<mfc::CString>* self, void*, mfc::CString* result, int index) {
+        mfc::CString* ours = StringGetAt(self, nullptr, result, index);
+        alignas(mfc::CString) unsigned char scratch[sizeof(mfc::CString)];
+        auto* theirs = reinterpret_cast<mfc::CString*>(scratch);
+        mfc::CString* returned = original(self, nullptr, theirs, index);
+        const bool ok = ours == result && returned == theirs &&
+                        std::strcmp(static_cast<const char*>(*theirs), static_cast<const char*>(*result)) == 0;
+        theirs->~CString();
+        ei::verify::Check("CStringArray::GetAt (by value)", true, ok, "%08X index %d", static_cast<unsigned>(Address), index);
+        return ours;
+    }
+};
+using A004698A0 = TwinStringGetAt<0x004698A0>;
+EI_VERIFY(0x004698A0, A004698A0::Run, 5, A004698A0::original);
+using A004698C0 = TwinStringGetAt<0x004698C0>;
+EI_VERIFY(0x004698C0, A004698C0::Run, 8, A004698C0::original);
+
+// 005711E0, the water levels' destructor (ours only): the array's vtable written, each element's
+// the float array's.
+namespace {
+void __fastcall WaterLevelsDestructCheck(WaterLevels::Array* self) {
+    int size = self->size;
+    WaterLevelElement* elements = self->data;
+    bool ok = size <= self->maxSize && (size == 0 || elements);
+    WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>(self);
+    Check("CArray destructor 005711E0", true, ok && self->vtable == mfc::impl::ClientMapArrayClass::Vtable(), "%d", size);
+}
+// No suite scenario destroys the water levels: at start-up, two levels, the first with floats. The
+// blocks are freed in the reverse of their allocation (the floats, then the levels' storage), which
+// leaves the game's heap as it was.
+void WaterLevelsDestructStartupCheck() {
+    WaterLevels::Array levels;
+    levels.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::ClientMapArrayClass::Vtable()));
+    levels.SetSize(2, -1);
+    auto* floats = reinterpret_cast<mfc::CArray<float>*>(&levels.data[0]);
+    floats->data = static_cast<float*>(gamecrt::operator_new(3 * sizeof(float)));
+    floats->size = floats->maxSize = 3;
+    WaterLevelsDestructCheck(&levels);
+}
+} // namespace
+EI_VERIFY(0x005711E0, WaterLevelsDestructCheck, 0, s_unused);
+EI_STARTUP_CHECK(WaterLevelsDestructStartupCheck);

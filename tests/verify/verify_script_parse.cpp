@@ -3,8 +3,10 @@
 //
 // The parser functions only write their output (an SSCCmd tree, an array of them, a token list) and
 // the error state of the CScript (+0x1EC text, +0x1F0 code, +0x1F4 line); the token position is
-// passed by pointer. So the original runs on a copy of the position into a scratch output, ours on
-// the real one, and the outputs, positions, results and error states are compared. Functions that
+// passed by pointer. So ours runs first on the real output and position, then the original on a
+// copy of the position into a scratch output made afterwards (SV2h1: ours allocates first; the
+// script's error fields are put back to ours' afterwards), and the outputs, positions, results and
+// error states are compared. Functions that
 // allocate command blocks in the CScript (LoadScriptBody, LoadCommands, Load) run only ours and are
 // checked for consistency.
 #include "verify.h"
@@ -34,6 +36,21 @@ struct ErrorState {
         return {static_cast<const char*>(script->ErrorText()), script->ErrorCode(), script->ErrorLine()};
     }
     bool operator==(const ErrorState& o) const { return text == o.text && code == o.code && line == o.line; }
+};
+
+// The script's error fields as ours left them, the text shared (nothing allocated): put back after
+// the original ran, so the script keeps ours' text block and an error text the original set is
+// freed again.
+struct OursError {
+    mfc::CString text;
+    int code;
+    int line;
+    explicit OursError(CScript* script) : text(script->ErrorText()), code(script->ErrorCode()), line(script->ErrorLine()) {}
+    void PutBack(CScript* script) const {
+        script->ErrorText() = text;
+        script->ErrorCode() = code;
+        script->ErrorLine() = line;
+    }
 };
 
 bool SameText(const mfc::CString& a, const mfc::CString& b) {
@@ -97,14 +114,14 @@ struct CmdAt : SSCCmd {
 };
 __declspec(naked) CmdAt* CmdAt::ConstructAt() EI_ORIGINAL(0x004D0A50)
 
-// A fresh scratch SSCCmd with the same id and block pointer as `from`.
+// A fresh scratch SSCCmd with the given id and block pointer (the real command's before ours ran).
 struct ScratchCmd {
     alignas(4) unsigned char storage[sizeof(SSCCmd)];
-    explicit ScratchCmd(const SSCCmd& from) {
+    ScratchCmd(int id, ScriptDecl* calledScript) {
         CmdAt* c = reinterpret_cast<CmdAt*>(storage);
         c->ConstructAt();
-        c->id = from.id;
-        c->calledScript = from.calledScript;
+        c->id = id;
+        c->calledScript = calledScript;
     }
     ~ScratchCmd() { Get()->Destruct(); }
     SSCCmd* Get() { return reinterpret_cast<SSCCmd*>(storage); }
@@ -240,12 +257,12 @@ EI_VERIFY(0x004D0BA0, KeywordNameVerify, 6, s_keywordName);
 
 // ---- Tokens -------------------------------------------------------------------------------------
 
-// 004CFB70: PUSH -1; PUSH imm32 (7 bytes). The original constructs a scratch token.
+// 004CFB70: PUSH -1; PUSH imm32 (7 bytes). Ours constructs the token, then the original a scratch one.
 static ScriptToken*(__fastcall* s_tokenConstruct)(ScriptToken*);
 static ScriptToken* __fastcall TokenConstructVerify(ScriptToken* self) {
+    ScriptToken* result = self->Construct();
     alignas(4) unsigned char scratch[sizeof(ScriptToken)];
     ScriptToken* expected = s_tokenConstruct(reinterpret_cast<ScriptToken*>(scratch));
-    ScriptToken* result = self->Construct();
     bool ok = expected == reinterpret_cast<ScriptToken*>(scratch) && result == self && SameText(expected->text, self->text) &&
               expected->line == self->line;
     ei::verify::Check("ScriptToken::Construct", true, ok, "\"%s\" %d", static_cast<const char*>(self->text), self->line);
@@ -282,8 +299,13 @@ EI_VERIFY(0x004CF380, ConstructTokensVerify, 0, s_unused);
 
 // ---- Lexer --------------------------------------------------------------------------------------
 
-// 004CF7A0: PUSH -1; PUSH imm32 (7 bytes). The original fills a scratch list; tokens, result and
-// error state are compared.
+// 004CF7A0: PUSH -1; PUSH imm32 (7 bytes). The original fills a scratch list first, ours the real one
+// while the scratch is alive, the scratch is freed last; tokens, result and error state are compared.
+// The one SV2h1 check kept in the old order (SV2h1b, docs/notes/standalone-verification.md): with
+// ours first, run from the main checkout (its shorter paths), the free blocks after a save is loaded
+// came out so that unit 1884 got the highest address of zone gz1g's Peasans group (ordered by
+// address) and the script's `i` ended on it, where the original's runs have 702. Ours first with the
+// scratch freed before ours ran did not bring 702 back either; this order does, from both paths.
 static BOOL(__fastcall* s_tokenize)(CScript*, void*, const mfc::CString*, ScriptTokenList*);
 static BOOL __fastcall TokenizeVerify(CScript* self, void*, const mfc::CString* text, ScriptTokenList* tokens) {
     ScriptTokenList scratch{tokens->vtable, nullptr, nullptr, 0, nullptr, nullptr, tokens->blockSize};
@@ -308,10 +330,12 @@ EI_VERIFY(0x004CF7A0, TokenizeVerify, 7, s_tokenize);
 static BOOL(__fastcall* s_expect)(CScript*, void*, const ScriptTokenList*, ScriptPos*, int);
 static BOOL __fastcall ExpectVerify(CScript* self, void*, const ScriptTokenList* tokens, ScriptPos* pos, int id) {
     ScriptPos copy = *pos;
-    BOOL expected = s_expect(self, nullptr, tokens, &copy, id);
-    ErrorState error = ErrorState::Take(self);
     BOOL actual = self->ExpectLexeme(tokens, pos, id);
+    ErrorState error = ErrorState::Take(self);
+    const OursError mine(self);
+    BOOL expected = s_expect(self, nullptr, tokens, &copy, id);
     bool ok = expected == actual && copy == *pos && error == ErrorState::Take(self);
+    mine.PutBack(self);
     ei::verify::Check("CScript::ExpectLexeme", true, ok, "id %X: %d vs %d", id, expected, actual);
     return actual;
 }
@@ -319,12 +343,13 @@ EI_VERIFY(0x004CF4D0, ExpectVerify, 6, s_expect);
 
 // ---- Names --------------------------------------------------------------------------------------
 
-// 004D37F0: PUSH -1; PUSH imm32 (7 bytes). Both construct a result string.
+// 004D37F0: PUSH -1; PUSH imm32 (7 bytes). Both construct a result string: ours first, then the
+// original into scratch storage.
 static mfc::CString*(__fastcall* s_qualify)(CScript*, void*, mfc::CString*, const mfc::CString*);
 static mfc::CString* __fastcall QualifyVerify(CScript* self, void*, mfc::CString* out, const mfc::CString* name) {
+    mfc::CString* actual = self->QualifyName(out, *name);
     alignas(4) unsigned char scratch[sizeof(mfc::CString)];
     mfc::CString* expected = s_qualify(self, nullptr, reinterpret_cast<mfc::CString*>(scratch), name);
-    mfc::CString* actual = self->QualifyName(out, *name);
     bool ok = expected == reinterpret_cast<mfc::CString*>(scratch) && actual == out && SameText(*expected, *actual);
     ei::verify::Check("CScript::QualifyName", true, ok, "\"%s\": \"%s\" vs \"%s\"", static_cast<const char*>(*name),
                       static_cast<const char*>(*expected), static_cast<const char*>(*actual));
@@ -357,12 +382,14 @@ static void __fastcall AddDefineVerify(ScriptDefineList* defines, const ScriptDe
 }
 EI_VERIFY(0x004D34F0, AddDefineVerify, 0, s_unused);
 
-// 004D33E0: MOV EAX,FS:[0] (6 bytes). The original rewrites a copy of the line.
+// 004D33E0: MOV EAX,FS:[0] (6 bytes). Ours rewrites the line, then the original a copy of its old
+// text (kept in our memory).
 static void(__fastcall* s_applyDefines)(mfc::CString*, const ScriptDefineList*);
 static void __fastcall ApplyDefinesVerify(mfc::CString* line, const ScriptDefineList* defines) {
-    mfc::CString copy(*line);
-    s_applyDefines(&copy, defines);
+    const std::string kept = static_cast<const char*>(*line);
     ApplyDefines(line, defines);
+    mfc::CString copy(kept.c_str());
+    s_applyDefines(&copy, defines);
     ei::verify::Check("ApplyDefines", true, SameText(copy, *line), "\"%s\" vs \"%s\"", static_cast<const char*>(copy),
                       static_cast<const char*>(*line));
 }
@@ -386,7 +413,8 @@ EI_VERIFY(0x004D0A50, CmdConstructVerify, 7, s_cmdConstruct);
 // ---- Parser -------------------------------------------------------------------------------------
 
 // 004CFBC0 (Rebirth patches it: vanilla only): PUSH -1; PUSH imm32 (7 bytes). The command is always
-// empty on entry (every caller clears it), so the original parses into a fresh scratch command.
+// empty on entry (every caller clears it): ours parses into it, then the original into a fresh
+// scratch command with the id and block pointer the command had.
 static BOOL(__fastcall* s_loadFunction)(CScript*, void*, SSCCmd*, ScriptPos*, const ScriptTokenList*, int, ScriptVars*,
                                         const char*, BOOL, BOOL);
 static BOOL __fastcall LoadFunctionVerify(CScript* self, void*, SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
@@ -397,18 +425,22 @@ static BOOL __fastcall LoadFunctionVerify(CScript* self, void*, SSCCmd* cmd, Scr
         ei::verify::Check("CScript::LoadFunction (unchecked)", true, actual == 0 || actual == 1, "%d", actual);
         return actual;
     }
-    ScratchCmd scratch(*cmd);
+    const int cmdId = cmd->id;
+    ScriptDecl* const calledScript = cmd->calledScript;
     ScriptPos copy = *pos;
-    BOOL expected = s_loadFunction(self, nullptr, scratch.Get(), &copy, tokens, id, locals, signature, assignment, scriptCall);
-    ErrorState error = ErrorState::Take(self);
     BOOL actual = self->LoadFunction(cmd, pos, tokens, id, locals, signature, assignment, scriptCall);
+    ErrorState error = ErrorState::Take(self);
+    const OursError mine(self);
+    ScratchCmd scratch(cmdId, calledScript);
+    BOOL expected = s_loadFunction(self, nullptr, scratch.Get(), &copy, tokens, id, locals, signature, assignment, scriptCall);
     bool ok = expected == actual && copy == *pos && error == ErrorState::Take(self) && SameCmd(*scratch.Get(), *cmd, true);
+    mine.PutBack(self);
     ei::verify::Check("CScript::LoadFunction", true, ok, "id %X \"%s\": %d vs %d", id, signature, expected, actual);
     return actual;
 }
 EI_VERIFY(0x004CFBC0, LoadFunctionVerify, 7, s_loadFunction);
 
-// 004D0BF0: PUSH -1; PUSH imm32 (7 bytes). The original fills a scratch array.
+// 004D0BF0: PUSH -1; PUSH imm32 (7 bytes). Ours fills the array, then the original a scratch array.
 static BOOL(__fastcall* s_loadConditions)(CScript*, void*, mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*);
 static BOOL __fastcall LoadConditionsVerify(CScript* self, void*, mfc::CArray<SSCCmd>* conditions, ScriptPos* pos,
                                             const ScriptTokenList* tokens, ScriptVars* locals) {
@@ -416,10 +448,12 @@ static BOOL __fastcall LoadConditionsVerify(CScript* self, void*, mfc::CArray<SS
     scratch.vtable = conditions->vtable;
     scratch.growBy = conditions->growBy;
     ScriptPos copy = *pos;
-    BOOL expected = s_loadConditions(self, nullptr, &scratch, &copy, tokens, locals);
-    ErrorState error = ErrorState::Take(self);
     BOOL actual = self->LoadConditions(conditions, pos, tokens, locals);
+    ErrorState error = ErrorState::Take(self);
+    const OursError mine(self);
+    BOOL expected = s_loadConditions(self, nullptr, &scratch, &copy, tokens, locals);
     bool ok = expected == actual && copy == *pos && error == ErrorState::Take(self) && SameCmds(scratch, *conditions);
+    mine.PutBack(self);
     ei::verify::Check("CScript::LoadConditions", true, ok, "%d vs %d, %d vs %d conditions", expected, actual, scratch.size,
                       conditions->size);
     scratch.SetSize(0, -1);
@@ -427,19 +461,21 @@ static BOOL __fastcall LoadConditionsVerify(CScript* self, void*, mfc::CArray<SS
 }
 EI_VERIFY(0x004D0BF0, LoadConditionsVerify, 7, s_loadConditions);
 
-// 004D1D50: PUSH -1; PUSH imm32 (7 bytes). The command is cleared first, so the original parses
-// into a fresh scratch command.
+// 004D1D50: PUSH -1; PUSH imm32 (7 bytes). The command is cleared first: ours parses into it, then
+// the original into a fresh scratch command.
 static BOOL(__fastcall* s_loadAssign)(CScript*, void*, SSCCmd*, ScriptPos*, const ScriptTokenList*, ScriptVars*,
                                       const mfc::CString*);
 static BOOL __fastcall LoadAssignVerify(CScript* self, void*, SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
                                         ScriptVars* locals, const mfc::CString* name) {
+    ScriptPos copy = *pos;
+    BOOL actual = self->LoadAssignOperator(cmd, pos, tokens, locals, name);
+    ErrorState error = ErrorState::Take(self);
+    const OursError mine(self);
     alignas(4) unsigned char storage[sizeof(SSCCmd)];
     SSCCmd* scratch = reinterpret_cast<CmdAt*>(storage)->ConstructAt();
-    ScriptPos copy = *pos;
     BOOL expected = s_loadAssign(self, nullptr, scratch, &copy, tokens, locals, name);
-    ErrorState error = ErrorState::Take(self);
-    BOOL actual = self->LoadAssignOperator(cmd, pos, tokens, locals, name);
     bool ok = expected == actual && copy == *pos && error == ErrorState::Take(self) && SameCmd(*scratch, *cmd, true);
+    mine.PutBack(self);
     ei::verify::Check("CScript::LoadAssignOperator", true, ok, "\"%s\": %d vs %d", static_cast<const char*>(*name), expected,
                       actual);
     scratch->Destruct();
@@ -448,7 +484,8 @@ static BOOL __fastcall LoadAssignVerify(CScript* self, void*, SSCCmd* cmd, Scrip
 EI_VERIFY(0x004D1D50, LoadAssignVerify, 7, s_loadAssign);
 
 // 004D1FE0: PUSH -1; PUSH imm32 (7 bytes). The definition is always empty here (Load clears it):
-// the original then fills a fresh scratch definition with the same name. Otherwise only ours runs.
+// ours fills it, then the original a fresh scratch definition sharing its name. Otherwise only
+// ours runs.
 static BOOL(__fastcall* s_loadDeclarations)(CScript*, void*, ScriptDefinition*, ScriptPos*, const ScriptTokenList*, BOOL);
 static BOOL __fastcall LoadDeclarationsVerify(CScript* self, void*, ScriptDefinition* script, ScriptPos* pos,
                                               const ScriptTokenList* tokens, BOOL qualify) {
@@ -457,20 +494,22 @@ static BOOL __fastcall LoadDeclarationsVerify(CScript* self, void*, ScriptDefini
         ei::verify::Check("CScript::LoadVariableDeclarations (unchecked)", true, actual == 0 || actual == 1, "%d", actual);
         return actual;
     }
+    ScriptPos copy = *pos;
+    BOOL actual = self->LoadVariableDeclarations(script, pos, tokens, qualify);
+    ErrorState error = ErrorState::Take(self);
+    const OursError mine(self);
+
     alignas(4) unsigned char storage[sizeof(ScriptDefinition)];
     ScriptDefinition* scratch = reinterpret_cast<ScriptDefinition*>(storage);
-    new (&scratch->name) mfc::CString(script->name);
+    new (&scratch->name) mfc::CString(script->name);  // shared: the load leaves the name alone
     new (&scratch->params) mfc::CString;
     scratch->ifThen = mfc::CArray<ScriptIfThen>{script->ifThen.vtable, nullptr, 0, 0, 0};
     static_cast<VarsAt*>(&scratch->vars)->Construct();
     scratch->index = script->index;
-
-    ScriptPos copy = *pos;
     BOOL expected = s_loadDeclarations(self, nullptr, scratch, &copy, tokens, qualify);
-    ErrorState error = ErrorState::Take(self);
-    BOOL actual = self->LoadVariableDeclarations(script, pos, tokens, qualify);
     bool ok = expected == actual && copy == *pos && error == ErrorState::Take(self) && SameText(scratch->params, script->params) &&
               SameVars(scratch->vars, script->vars);
+    mine.PutBack(self);
     ei::verify::Check("CScript::LoadVariableDeclarations", true, ok, "%d vs %d, \"%s\" vs \"%s\"", expected, actual,
                       static_cast<const char*>(scratch->params), static_cast<const char*>(script->params));
     static_cast<DefinitionAt*>(scratch)->Destruct();

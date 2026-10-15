@@ -871,6 +871,49 @@ depends = ["SV2h"]
 files = ["tests/verify/*"]
 note = "SV2h did not change the checks that run the original on the real object, restore a snapshot and then run ours (UI side-by-side checks, WakeVerify and similar). Review each: if the snapshot restore leaves ours' blocks alive and frees the original's (or the snapshot itself is a game-heap block alive across a run), the heap order differs from a no-hooks run. Also note the residual pool risk (CFixedAlloc, STLport node allocator, MFC plexes refilled by a twin's free)."
 
+[[ticket]]
+id = "SV2h3a"
+title = "Heap-order holes: the original first on a game-heap copy (render, data, AI files)"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_figure_bone_lifetime.cpp", "tests/verify/verify_figure_mesh.cpp", "tests/verify/verify_models.cpp", "tests/verify/verify_link_figure.cpp", "tests/verify/verify_ground_decal.cpp", "tests/verify/verify_ground_print.cpp", "tests/verify/verify_effects_weather_draw.cpp", "tests/verify/verify_render_helper.cpp", "tests/verify/verify_ini_file.cpp", "tests/verify/verify_registry.cpp", "tests/verify/verify_item_constructor.cpp", "tests/verify/verify_item_parts.cpp", "tests/verify/verify_core_stream_chunks.cpp", "tests/verify/verify_acks_db.cpp", "tests/verify/verify_ai_area_lists.cpp", "tests/verify/verify_unit_client_models.cpp", "tests/verify/verify_unit_item_lists.cpp", "tests/verify/verify_world_client_maps.cpp", "tests/verify/verify_world_save.cpp", "tests/verify/verify_player_sources.cpp", "tests/verify/verify_object3d_figure_setup.cpp", "tests/verify/verify_unit_ai_sight.cpp", "tests/verify/verify_aligned_arrays.cpp", "tests/verify/verify_dib.cpp", "tests/verify/verify_device_object.cpp", "tests/verify/verify_magic_trap.cpp", "tests/verify/verify_console.cpp", "tests/verify/verify_text_keys.cpp"]
+note = "SV2h3's heap-order check (EI_HEAPORDER=1, harness_heap_order.cpp; notes SV2h3) finds about 90 wrappers in these files that still run the original first on a game-heap copy and free it after ours allocated (pattern hole in heaporder.txt): FigureBone::Construct, CFigureMesh LoadFig / LoadOld / Resize, CModel Resize, the link figure loader, ground decal Begin / Reserve, AddBlood / AddFootprint / AddScorch, weather PrepareBuffers, the INI and registry readers, the item name lists, ReadTagged / FindTagged, the acks records, FillAreaLists, CollectItems, world save / ReadAIGraph, console Tokenize, the text key lists. Apply the SV2f rule (ours first, the copy made after from bytes kept in our memory, freed), and make the copy, the original's run on it and its free inside a heap::Aside (harness_heap.h), so the twin's blocks stay out of the reservation. Done when EI_HEAPORDER over the vanilla suite shows no hole in these files and --golden passes."
+
+
+[[ticket]]
+id = "SV2h3b"
+title = "Heap-order holes: UI checks that run the same object twice or restore after ours allocates"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
+note = "From SV2h3's heap-order check (EI_HEAPORDER=1; notes SV2h3): side-by-side UI checks whose second run allocates before the first run's blocks are freed. CHudQuickItems / WeaponBar / ActionColumn / SpellColumn::SetUnit and CHeroStatsPanel::SetHero run the original and then ours on the same panel with no restore, and ours' SetTip makes its tooltip before freeing the original's; the clock's and move panel's setups leave a list the original added to, emptied (its CPlex freed) only after ours allocated; CHudPanels / CUiScrollText Layout, the item strip, trade lists, help page, connect screen, DamageLists show holes too. Each needs a twin, or a restore that frees everything the first run made before the second allocates. Done when EI_HEAPORDER shows no hole in these files and --golden passes."
+
+
+[[ticket]]
+id = "SV2h3c"
+title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the harness's own"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
+note = "From SV2h3's heap-order check (pattern both / kept in heaporder.txt; notes SV2h3): CUiTooltip::Construct's scratch run leaves 4 materials per call (DestroyBody does not release them: a leak and a heap shift); CMapDatabase LoadAll / Load, particle Draw / CreateForType, LoadMap, ListFiles, ListWaveFiles, CreatePointFont, the server constructor, ShowFps's capture and the options / save list / edit checks keep blocks on both sides. Also: many examples show 64-byte CPlex blocks from CMapPtrToPtr::At (MFC's temporary handle map) in the reservation, which the harness means to send to the growable heap (InHandleMap): check whether the thunks hide FromHandle's return from its stack scan or whether these are another map. Done when each is fixed or explained."
+
+
+[[ticket]]
+id = "SV2h1b"
+title = "SV2h1 parted three goldens from main"
+group = "verification"
+size = 1
+depends = ["SV2h1"]
+files = ["tests/verify/*"]
+note = "After the SV2h1 merge, work.py test MAIN --golden gives 3 differ (main 64e8a7b3); the S12c merge before it (4ebed089) keeps all 3 the same. render_terrain vanilla: isaac.count 69 in the golden, 116 in the run at world update 60 (more random draws). terrain_water_load and ui_saveload_delete vanilla: script #gobject 7658611C golden, 3656F9F8 run (from world update 125 / 260). Find the SV2h1 check (commits 8ceeef3a CString/CFile/CArchive/CDib, 4ae61deb game text, 1361af3e script load/parse) whose swap changes behaviour, fix it so the goldens stay the same, and check with work.py test --golden."
+
+[[ticket]]
+id = "SV2h1c"
+title = "Twin originals allocate outside the reservation heap"
+group = "verification"
+depends = ["SV2h1b"]
+note = "SV2h1b: after a save is loaded, gobject.i (gz1g's address-ordered Peasans group) follows which free region of the reservation heap is smallest when unit 1884 is made; a verify run makes ~8x the heap calls of a --no-hooks run, so any change to a check that allocates before a load can flip it (SV2h1's Tokenize order did, from main's paths only). Route the main thread's game-heap calls made while an original runs on a twin (the verify wrapper's call through its trampoline on scratch outputs) to harness_heap's second heap (frees and reallocs already go by address), so the reservation sees only the game's own blocks; then the twin order no longer matters for goldens. Check: terrain_water_load / ui_saveload_delete / world_load / magic_traps vanilla from main's paths (python E:/workspace/ei/tools/work.py test with EI_BUILD_DIR of build/verify's length, SV2h1b notes) against their goldens, SV2d."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1414,7 +1457,7 @@ size = 1.5
 model = "opus"
 depends = ["S1", "S2", "S3", "S4", "S5", "S6", "S6a", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"]
 files = ["src/standalone/*.cpp"]
-note = "Also needs S13a (world, terrain and sector destructors, database resets)."
+note = "Also needs S13a (world, terrain and sector destructors, database resets). S16 (2026-10-15): about 30 boot stops ported (docs/notes/standalone.md S16): all static initialisers run, WinMain, the renderer, sound, DirectInput (instance routed to the host module; c_dfDIMouse's object table lives in game.exe's .text, ours used), scripts, the main menu world's load. The run now stops at 005593D0 (the server's unit appearance cache, S16a). Main menu not reached. 15 of S16's ports went to S3f / S6b / S6c / S12d, which merged first (S16's copies dropped)."
 
 [[ticket]]
 id = "S17"
@@ -1686,7 +1729,7 @@ group = "standalone"
 size = 1
 depends = ["S12a"]
 files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/mfc_array.h", "config/library.csv"]
-note = "S12a ported the trees in its ranges (004337xx-0065A770); 95 library.csv rows there are not trees and stay unregistered. Lists: 00478F10 (~list<CMemoryStream>, unwind only) 00478FC0 00478FD0 00478FE0 00479130 004827D0 00482980 004829B0 00482CC0 004FB3B0 004FB3C0 004FB570 004FB730 004FB840 004FB8B0 004FBCF0 005F9570 005F9620 00482790; hashtables (S11 policies): 00482C30 00482DD0 00482DF0 004F6A50 004FB090 004FBB80 004FBC80 005E0C00 005E0D50 005E0E00; vectors and alloc proxies (S10 policies): 00482A80 00482BF0 00482D10 004FB290 004FB6A0 004FB6F0 004FB860 004FB9D0 004FBA40 005F8E00 005F9090 005FA8E0 00619600 006316C0 006317E0 006325E0 00632610 0060AA80 0060AAA0 004FB680; CArray / ConstructElements / two-CString records (with S6a's mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0; the rest need reading (some are in S12b's list: 005F8E90 005F92A0 005F94B0 005FB810): 00482440 004FB170 005F60B0 005F99B0 005F9C70 005F9F40 005FA2C0 005FA300 005FA360 005FA3C0 0060A010 0060A660 0060AB00 0060AB60 006342C0 005E0550 00445FC0 00482E90 004F69F0 005F9680 005FBE20 005FBCB0 0060ABE0 (one row each in config/library.csv)."
+note = "S12a ported the trees in its ranges (004337xx-0065A770); 95 library.csv rows there are not trees and stay unregistered. Lists: 00478F10 (~list<CMemoryStream>, unwind only) 00478FC0 00478FD0 00478FE0 00479130 004827D0 00482980 004829B0 00482CC0 004FB3B0 004FB3C0 004FB570 004FB730 004FB840 004FB8B0 004FBCF0 005F9570 005F9620 00482790; hashtables (S11 policies): 00482C30 00482DD0 00482DF0 004F6A50 004FB090 004FBB80 004FBC80 005E0C00 005E0D50 005E0E00; vectors and alloc proxies (S10 policies): 00482A80 00482BF0 00482D10 004FB290 004FB6A0 004FB6F0 004FB860 004FB9D0 004FBA40 005F8E00 005F9090 005FA8E0 00619600 006316C0 006317E0 006325E0 00632610 0060AA80 0060AAA0 004FB680; CArray / ConstructElements / two-CString records (with S6a's mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0; the rest need reading (some are in S12b's list: 005F8E90 005F92A0 005F94B0 005FB810): 00482440 004FB170 005F60B0 005F99B0 005F9C70 005F9F40 005FA2C0 005FA300 005FA360 005FA3C0 0060A010 0060A660 0060AB00 0060AB60 006342C0 005E0550 00445FC0 00482E90 004F69F0 005F9680 005FBE20 005FBCB0 0060ABE0 (one row each in config/library.csv). Left for S6b/S6c (CArray rows in S12a's ranges, not taken while S6b works in mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0 (005FB090, 005FB2F0, 005FB560 already registered in mfc_slots.cpp). Left for S12d: 0060A660 0060AB00 005F8E90 005F92A0 005F94B0 005FB810. Unregistered twins outside the ranges: 0042B3C0 0042B3F0 00429060 00429DB0 004298F0 00404D50 004E15C0 005E1560 00457940 004FAF10 004FC0C0 004217C0."
 
 [[ticket]]
 id = "S12d"
@@ -1726,6 +1769,31 @@ size = 1
 depends = ["S6c"]
 files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
 note = "From S6c. Serialize (slot 2) of 20: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); 004C2700 with its own SerializeElements<CString>. SerializeCList builds the local with the element policy and adds a copy: each needs the instantiation's assignment and the temporary's release (a SerializeCList variant taking the element's copy / release), checked at start-up like verify_mfc_serialize.cpp's (Mode 2 where releasing a copy needs more than construction)."
+
+[[ticket]]
+id = "S6e"
+title = "Standalone library: the ConstructElements helpers S6d's loaders reach"
+group = "standalone"
+depends = ["S6d"]
+note = "From S6d. Unregistered element helpers the list Serialize (and the instantiations' other inlined NewNodes) call: 004D6840 ConstructElements<ScriptDefine> (zeroed, two empty strings: ArrayAbi<ScriptDefine, ScriptDefineElements>::ConstructElements), 00558EF0 and 00479620 (ConstructElements<RefPtr>: the zero fill, as 0059E2C0 / Plain4), 004C59A0 (CArray<ScriptIfThen>'s constructor, vtable 0073D3AC). Checks as verify_mfc_list.cpp's TwinConstructElements."
+
+[[ticket]]
+id = "S16a"
+title = "Standalone: the server's unit appearance cache build (005593D0) and its hash_map helpers"
+group = "standalone"
+size = 1
+depends = ["S16"]
+files = ["src/game/world_sync.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp"]
+note = "The S16 boot stop after the main menu world's CWorldServer::SendZone: 005593D0 (1883 bytes, library.csv 'unit appearance cache build', called through world_sync.cpp's UnitSetAdd forwarder). Unported callees: 00559DB0, 004FF640, 0055C260, 0055AC40, 0055ABB0, 0055BA10, 0055AD10, 0055B5C0, 0055D020, 0055C270, 0055A860, 0055AEB0, 0055B670, 0055B540, 00559DE0, 0055BB40, 0055BA80, 0055A9F0, 0055BBF0, 0055BAC0, 004FE420, 0051FAD0, 004FDE90 (hash_maps keyed by the appearance, vectors of item / weapon prototype indices and CStrings). Then rerun work.py test S16a --standalone and continue S16's loop (docs/notes/standalone.md S16)."
+
+[[ticket]]
+id = "S12f"
+title = "Standalone library: the hero screen's string sorts, spell lookup and party-entry insert_overflow"
+group = "standalone"
+size = 1
+depends = ["S12e"]
+files = ["src/game/stl_sorts.cpp", "src/lib/stlp_algo.h", "src/lib/stlp_vector.cpp", "src/game/library_containers.cpp"]
+note = "S12e's hero screen rows (A-I15), still forwarded by our code: the topic sort over vector<stlp::string> (ui_briefing_topics.cpp): introsort loop 0060B330 (RET 0xC) and final insertion sort 0060B440 (RET 4); the comparison is _stricmp of the two texts (partition 0060B990: the pivot a string copy, swaps through string(first, last) / assign, so copies allocate: stlp::Sort with a string Ops, ours first per SV2f); the CString sort (ui_hero_screen_create.cpp, operator< by _mbscmp): 0061A240 (RET 8) / 0061A300 (copies add references: ValueOps<CString>, ours first); the spell prototype by name 00613920 (thiscall on 007C8510, RET 4: a stlp::string made from the text, map find 00613C20, the value at +0xC, the string freed); vector<party file entry, 0x74 bytes: PartyRecords + CString at +0x70> _M_insert_overflow 00619920 (RET 0xC; copy 006613C0 + CString copy, destroy CString + 006611D0; ours first). Not done in S12e (it took the connection lists, the hashtables, the vector members, the hero caches' constructors and 00619770)."
 
 # ---------------------------------------------------------------- Lua
 

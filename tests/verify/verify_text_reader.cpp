@@ -1,13 +1,17 @@
 // Differential checks for the text manager's line reader (src/game/text_reader.cpp), as in
-// verify_item_db.cpp: the original runs first (on scratch copies of the output strings / word
-// arrays), its final cursor state (+0x20..+0x28) and result are recorded and the state restored,
-// then ours runs on the real outputs; results, outputs and states are compared. Nested reader calls
-// run through their own wrappers in both runs.
+// verify_item_db.cpp: ours runs first on the real outputs, its final cursor state (+0x20..+0x28)
+// and result are recorded and the state restored, then the original runs on scratch strings / word
+// arrays made afterwards (freed again; SV2h1: ours allocates first) and ours' state is put back;
+// results, outputs and states are compared. Nested reader calls run through their own wrappers in
+// both runs.
 #include "verify.h"
+
+#include "kept_strings.h"
 
 #include "../../src/game/text_reader.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -36,26 +40,28 @@ bool SameWords(const console::CStringArray& a, const console::CStringArray& b) {
 }
 int Offset(const CTextManager* t) { return t->text_ ? static_cast<int>(t->cursor_ - t->text_) : -1; }
 
-// Runs `original` then `ours` (both return BOOL) from the same state; compares results and the
-// final state, plus whatever `same` says about the outputs.
-template <typename Original, typename Ours, typename SameOutputs>
-BOOL Both(const char* name, CTextManager* self, Original original, Ours ours, SameOutputs sameOutputs) {
+// Runs `ours` then `original` (both return BOOL) from the same state; compares results and the
+// final state, plus whatever `same` says about the outputs; leaves ours' state.
+template <typename Ours, typename Original, typename SameOutputs>
+BOOL Both(const char* name, CTextManager* self, Ours ours, Original original, SameOutputs sameOutputs) {
     CursorState before = Save(self);
-    BOOL expected = original();
-    CursorState after = Save(self);
-    Restore(self, before);
     BOOL actual = ours();
-    bool ok = expected == actual && Same(after, Save(self)) && sameOutputs();
+    CursorState mine = Save(self);
+    Restore(self, before);
+    BOOL expected = original();
+    CursorState theirs = Save(self);
+    Restore(self, mine);
+    bool ok = expected == actual && Same(theirs, mine) && sameOutputs();
     ei::verify::Check(name, true, ok, "result %d vs %d, cursor +%d (original +%d)", expected, actual, Offset(self),
-                      after.text ? static_cast<int>(after.cursor - after.text) : -1);
-    return expected;
+                      theirs.text ? static_cast<int>(theirs.cursor - theirs.text) : -1);
+    return actual;
 }
 
 // 004DEFC0: PUSH EDI; MOV EDI,ECX; XOR EAX,EAX (5 bytes).
 BOOL(__fastcall* s_open)(CTextManager*, void*, const char*);
 BOOL __fastcall OpenVerify(CTextManager* self, void*, const char* key) {
     return Both(
-        "TextOpen", self, [&] { return s_open(self, nullptr, key); }, [&] { return self->Open(key); },
+        "TextOpen", self, [&] { return self->Open(key); }, [&] { return s_open(self, nullptr, key); },
         [] { return true; });
 }
 
@@ -76,20 +82,28 @@ int __fastcall CharCodeVerify(const char* p) {
     return expected;
 }
 
+// The readers into a CString: ours into the caller's, then the original into a scratch string made
+// from the text the caller's had (kept before ours ran).
+
 // 004DF770: PUSH -1; PUSH 0x71B1C8 (7 bytes).
 BOOL(__fastcall* s_peekWord)(CTextManager*, void*, mfc::CString*);
 BOOL __fastcall PeekWordVerify(CTextManager* self, void*, mfc::CString* out) {
-    mfc::CString scratch(*out);
+    const std::string kept = ei::verify::KeepText(*out);
+    mfc::CString scratch;
     return Both(
-        "TextPeekWord", self, [&] { return s_peekWord(self, nullptr, &scratch); },
-        [&] { return self->PeekWord(out); }, [&] { return SameText(scratch, *out); });
+        "TextPeekWord", self, [&] { return self->PeekWord(out); },
+        [&] {
+            scratch = kept.c_str();
+            return s_peekWord(self, nullptr, &scratch);
+        },
+        [&] { return SameText(scratch, *out); });
 }
 
 // 004DF6E0: PUSH EBP; MOV EBP,ECX; PUSH ESI; MOV ESI,[EBP+0x20] (7 bytes).
 BOOL(__fastcall* s_skipLine)(CTextManager*);
 BOOL __fastcall SkipLineVerify(CTextManager* self) {
     return Both(
-        "TextSkipLine", self, [&] { return s_skipLine(self); }, [&] { return TextSkipLine(self); },
+        "TextSkipLine", self, [&] { return TextSkipLine(self); }, [&] { return s_skipLine(self); },
         [] { return true; });
 }
 
@@ -97,43 +111,56 @@ BOOL __fastcall SkipLineVerify(CTextManager* self) {
 BOOL(__fastcall* s_nextLine)(CTextManager*);
 BOOL __fastcall NextLineVerify(CTextManager* self) {
     return Both(
-        "TextNextLine", self, [&] { return s_nextLine(self); }, [&] { return TextNextLine(self); },
+        "TextNextLine", self, [&] { return TextNextLine(self); }, [&] { return s_nextLine(self); },
         [] { return true; });
 }
 
 // 004DF8D0: PUSH -1; PUSH 0x71B1F0 (7 bytes).
 BOOL(__fastcall* s_readLine)(CTextManager*, void*, mfc::CString*, BOOL);
 BOOL __fastcall ReadLineVerify(CTextManager* self, void*, mfc::CString* out, BOOL advance) {
-    mfc::CString scratch(*out);
+    const std::string kept = ei::verify::KeepText(*out);
+    mfc::CString scratch;
     return Both(
-        "TextReadLine", self, [&] { return s_readLine(self, nullptr, &scratch, advance); },
-        [&] { return self->ReadLine(out, advance); }, [&] { return SameText(scratch, *out); });
+        "TextReadLine", self, [&] { return self->ReadLine(out, advance); },
+        [&] {
+            scratch = kept.c_str();
+            return s_readLine(self, nullptr, &scratch, advance);
+        },
+        [&] { return SameText(scratch, *out); });
 }
 
 // 004DFB80: PUSH -1; PUSH 0x71B208 (7 bytes).
 BOOL(__fastcall* s_readToHash)(CTextManager*, void*, mfc::CString*, BOOL);
 BOOL __fastcall ReadToHashVerify(CTextManager* self, void*, mfc::CString* out, BOOL advance) {
-    mfc::CString scratch(*out);
+    const std::string kept = ei::verify::KeepText(*out);
+    mfc::CString scratch;
     return Both(
-        "TextReadToHash", self, [&] { return s_readToHash(self, nullptr, &scratch, advance); },
-        [&] { return self->ReadToHash(out, advance); }, [&] { return SameText(scratch, *out); });
+        "TextReadToHash", self, [&] { return self->ReadToHash(out, advance); },
+        [&] {
+            scratch = kept.c_str();
+            return s_readToHash(self, nullptr, &scratch, advance);
+        },
+        [&] { return SameText(scratch, *out); });
 }
 
-// 004DFCB0: PUSH -1; PUSH 0x71B238 (7 bytes). The original fills a scratch array.
+// 004DFCB0: PUSH -1; PUSH 0x71B238 (7 bytes). Ours fills the caller's array, then the original a
+// scratch array, whose strings are freed last to first.
 BOOL(__fastcall* s_split)(CTextManager*, void*, console::CStringArray*, BOOL);
 BOOL __fastcall SplitVerify(CTextManager* self, void*, console::CStringArray* words, BOOL advance) {
     console::CStringArray scratch;
-    return Both(
-        "TextSplit", self, [&] { return s_split(self, nullptr, &scratch, advance); },
-        [&] { return self->Split(words, advance); }, [&] { return SameWords(scratch, *words); });
+    BOOL result = Both(
+        "TextSplit", self, [&] { return self->Split(words, advance); },
+        [&] { return s_split(self, nullptr, &scratch, advance); }, [&] { return SameWords(scratch, *words); });
+    ei::verify::EmptyBackwards(scratch);
+    return result;
 }
 
 // 004DF030: PUSH -1; PUSH 0x71B190 (7 bytes).
 BOOL(__fastcall* s_findLine)(CTextManager*, void*, const char*);
 BOOL __fastcall FindLineVerify(CTextManager* self, void*, const char* key) {
     return Both(
-        "TextFindLine", self, [&] { return s_findLine(self, nullptr, key); },
-        [&] { return self->FindLine(key); }, [] { return true; });
+        "TextFindLine", self, [&] { return self->FindLine(key); },
+        [&] { return s_findLine(self, nullptr, key); }, [] { return true; });
 }
 
 } // namespace

@@ -48,6 +48,10 @@ void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
 // 005CD4B0: the event table's cells (the Rebirth-patched resize 005C9310 calls it).
 struct AIEventCell;   // unit_ai.h
 void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid);
+// 005AF580 / 005AF590: the edge and representative-cell grids' default constructors (1 x 1, then
+// the allocator; the region map's constructor hands them to the vector constructor iterator).
+void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid);
+void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
 // 005AF5A0: the region grids' default constructor (1 x 1; the region map's constructor hands it
 // to the vector constructor iterator).
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);

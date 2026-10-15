@@ -115,6 +115,8 @@ void __fastcall TextSourcesBegin(TextSourceList* list, void*, TextSourceNode** o
 // 004E1550. erase(pos): unlinks the node, frees its name and returns the node to the free list;
 // *out = the next node. Returns out.
 TextSourceNode** __fastcall TextSourcesErase(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos);
+// 004E15C0 (RET 4). _M_create_node(value): a node from the pool, the pair copied into it.
+TextSourceNode* __fastcall TextSourcesCreateNode(TextSourceList* list, void*, const TextSource* value);
 // 004E1590. insert(pos, value): a new node (004E15C0 copies the pair) linked before `pos`; *out =
 // the new node. Returns out.
 TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos,

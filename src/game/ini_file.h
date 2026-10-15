@@ -18,6 +18,7 @@ public:
     CIniFile* Construct();                                  // 00695B80 (empty path)
     CIniFile* ConstructWithPath(const char* path);          // 00695B90
     BOOL SetPath(const char* path);                          // 00695BF0, returns 1
+    void Destruct();                                         // 00695BE0 (the path's ~CString)
 
     // 00695D10. The key names of `section` (the part before '=', trimmed) into `out` (emptied
     // first). Returns 0 for an empty or unreadable section.

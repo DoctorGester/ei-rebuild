@@ -781,6 +781,35 @@ face groups, nested calls, definitions, delta fields, behaviours (now built by t
 004C5180 and 00444B10 are reached. Left for S6d: the 19 list Serialize whose loader builds, assigns
 and releases a temporary (counted references, script records) and 004C2700 (SerializeElements<CString>).
 
+**S6d (2026-10-15).** S6c's leftovers, 21 addresses. The 19 list Serialize whose loader reads each
+element into a temporary: `SerializeCListThrough<ListTemporary<Abi, Init, Assign, Destroy>>`
+(mfc_slots.h; the stored form is SerializeCList's), the element functions per instantiation in
+game_slots.h: engine object pointers (00427690, 00571420: the holder's assignment, a release through
+slot 4), script object references (004C9350: released and cleared, then the copy constructor), the
+magic trap's victims (0052C740: unless the same object), counted pointers (005576C0: ShareAssign and the
+owner's release; 00598FD0 / 00599DF0: Assign and the plain release), the armour spells (00558100: the
+holder, a dword and one byte), the script's particle sources and lightnings (bytes), FX sources, command
+blocks, definitions, runs, groups, tokens and defines (their assignments and destructors), the world's
+shared objects (the three dwords, then the counted copy) and the sound cache's wave records. Where
+game_lists.h's ABI builds the element otherwise than the instantiation's NewNode, game_slots.h has its own
+(FX sources' empty name, lightnings' -1, the commands' header, tokens' "None", defines, shared objects'
+array header). 004C2700 (CArray<CString>) is SerializeCArray's shape over SerializeStrings, which is also
+registered at 007085AF (SerializeElements<CString>). The temporary holds the stored bytes, so a load
+shares and releases whatever the archive held: the loaded elements borrow the source's references, and a
+wave record's load frees the source's name buffer (the original's behaviour, kept). Checks
+(verify_mfc_serialize.cpp), at start-up next to the original: lists of fake engine and counted objects
+(the counts, flags and a log of releases, deletions, shutdowns and clones compared after each load, both
+loads from the same state; copy-on-share, detached and zero-count objects included), records with their
+strings shared; command blocks, definitions, runs, groups and shared objects without arrays (a loaded
+copy's temporary frees what the source's arrays hold); wave records loaded from a source each, compared
+by text; CArray<CString> and SerializeElements<CString> with texts up to 299 characters. No suite
+scenario calls them. The token and wave loads leak each element's temporary block (its "None", its
+8-byte name buffer: read over), and leaking them in the check moved the game's heap enough to change
+ui_widescreen_hud / _more's goldens (a unit's place at world update 80). The check takes them back: the
+block allocators reuse the last freed block first, so the n blocks a load leaks are the first n of the
+free list; it allocates and frees them before the load to learn them and frees them after (a token's
+block must hold one reference to "None"; a wave block must not come back from as many allocations).
+
 **S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
 `TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
 the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a
@@ -845,6 +874,50 @@ in disabled.txt too, so not from S12b. The sort start-up check skips itself when
 (no trampoline). Left for S12d: the allocating sorts (objectives, save list), pair<string, list<T>>
 0069C1C0 and the unclassified container rows.
 
+**S12c (2026-10-15).** S12a's lists, hashtables, vectors and unwind helpers, 70 addresses on the
+shared shims (no new container code): lists (stlp_list.cpp) - begin / end 00478FC0 00478FD0 00478FE0,
+the 0x18-byte lists' constructors 004827D0 / 004FB3C0 and destructors 004829B0 / 00482CC0 (library.csv
+calls them clear), ~list of 16-byte nodes 005F9620, insert 00482980, `_M_create_node` 00482C30
+(`ListAbi::CreateNode`, new), the sentinel given back while a constructor unwinds 00482790 / 004FB840
+(`ListPutSentinel<32>`), iterator-- 004FB570 (`ListIteratorDecrement`), get_allocator 00479130 and
+the iterator's copy 004FB3B0 (the tree shims), the link loader's list<pair<string, dword>> (insert
+004FB730, create 004FB8B0, clear 004FBCF0; `StringDwordElement` in stlp_pair.h) and list<CString>'s
+create 005F9C70; pair<string, dword>(const string&, const dword&) 004FB170 (library.csv: string's copy
+constructor). Hashtables (stlp_hash.cpp): dword keys of 8 bytes - begin 004FB090 005E0C00, the
+iterator's constructor 00482DD0 005E0D50, `_M_skip_to_next` 005E0E00, ~hashtable 00482DF0 (unwind
+only); the link loader's figure sets (string keys, 20-byte nodes: pool sizes 17-24 share one free list)
+- ~hashtable 004F6A50, clear 004FBC80, skip 004FBB80, dead in the hook build (their caller 004F6BD0 is
+ours). Vectors (stlp_vector.cpp): the base constructor 00482A80 00619600 006316C0, ~_Vector_base of
+1, 4, 8 and 12-byte elements (10 addresses), deallocate(p, n) in both forms (11), `_M_fill_insert` of
+dwords 004FBA40, `_M_insert_overflow` of 8-byte pairs 006317E0 (from 006312C0) and its
+`uninitialized_copy` 006325E0 / `uninitialized_fill_n` 00632610 (`VectorAbi`, new). Game types
+(src/game/library_containers.*): ~list<CMemoryStream> 00478F10 (the loopback queue, unwind only),
+~list of a key and two CStrings 005F9570, the briefing's shown-item `_M_create_node` 0060A010, copy of
+its speakers 0060AB60 (CString operator=), the RefPtr `_Construct` 0060AA80 and `copy_backward`
+0060AAA0, a held engine object's `_Construct` 004FB680, CString's destructor 005F9680 / 005FBE20 (a
+jump to 00700970; library.csv calls the first exception::~exception) and scalar deleting destructor
+005FBCB0 / 0060ABE0, and four unwind helpers (00445FC0 a word's CString, 00482E90 clears a dword,
+005F60B0 two pointer vectors, 004F69F0 the counted root's vtable 0073C368), and 005E0550 (library.csv: a pointer iterator's operator-; it is CTime::operator-(CTimeSpan), 005E0400 calls it after a CTime constructor). Several library.csv
+names for these rows are wrong (destructors named clear, a list create named hashtable
+`_M_new_node`); the rows were left as they are (add-only). Checks
+(tests/verify/verify_library_containers.cpp): against the original - begin / end / get_allocator /
+iterator copy and --, the hashtable begin, iterator constructor and both skips, the vector base
+constructor, uninitialized_copy (into a scratch buffer), CTime - span; the list constructor, insert and create
+original first, its node back on the pool (LIFO), then ours (same node, same bytes); the frees with a
+trampoline original first, the block taken off its free list again, then ours; `_M_fill_insert` with
+room on a twin over a copy of the storage in our memory. Ours only (they destroy, release or copy
+CStrings and counted pointers): the destructors (the nodes on top of their free list in order), the
+pair<string, dword> list, the CString copies (the count one less when shared), the RefPtr copies
+(counts), the rest by their effect. A start-up check drives all 70 through their game addresses with
+scratch objects (fake counted objects that never reach zero); in the suite only the dword hashtable
+members 005E0C00 / 005E0D50 / 005E0E00 (console: 1411 skips), 005E0550 (console, once) and 005FBCB0 (S12a's console map check) are
+reached. smoke, console, items, world_load, models, ui_screens, ui_base_dialogue,
+ui_global_map_pick, ui_camp, ui_saveload, net_lobby, ui_main_menu, ui_mp_host, both installs: 26 pass,
+0 mismatches; after merging S12d the full `--golden` suite: 128 runs pass, 56 goldens the same, 0 mismatches. Not taken: S12a's CArray rows (S6b/S6c, listed in the ticket's note) and the rows of
+S12d (it ported 0060A660 and 0060AB00; 005F8E90, 005F92A0, 005F94B0 and 005FB810, "unreviewed family" rows, are still unregistered). Unregistered twins outside the
+ranges with the same instructions: 00429060, 00429DB0, 004298F0 (the RefPtr and held-object copies),
+004FAF10 (a char vector's ~_Vector_base), 0042B3C0, 0042B3F0, 00404D50, 004E15C0, 005E1560, 00457940,
+004FC0C0, 004217C0.
 **S12d (2026-10-15).** The allocating sorts (src/game/stl_sorts.cpp on `stlp::Sort<T, Less, Ops>`;
 stlp_algo.h now takes an element policy, `Held<T, Ops>` temporaries and `CopyBackward`, with every
 by-value copy, assignment and destruction where STLport's has them): the objectives window's quests
@@ -872,6 +945,42 @@ vector<uint16> insert_overflow 0043B530, vector<8 bytes> erase 00439DD0, frees b
 (SentPacket's items, the freed-id batches' vectors: copy constructors, default inserts, erase, clear,
 ~list), its find_if and counted-pointer init, two plain hashtable erases, a hashtable clear and two
 constructors, three vector-member destructors and the hero screen's string sorts and vector members.
+
+**S12e (2026-10-15).** S12d's leftovers our code forwards to, 25 addresses. The connection's lists
+whose elements own something (src/game/library_net_lists.*, on stlp_list.h's `ListAbi` with element
+policies): list<SentPacket> (`PacketRecord`: copied as 0043ADE0 - time, sequence, the items by
+list's copy constructor, the header's 0x104 bytes, the rolled-back byte; destroyed as 0043A1D0 - the
+items' entries released, their nodes, then the items' sentinel), its items list<SentItem>
+(`SentRecord`: the entry counted by its 16-bit count, released through CRefObject::Release),
+list<vector<FreedId>> (vector's copy constructor; ~_Vector_base) and list<ReliableChunk> (bytes):
+copy constructors 00437930 / 00437F60 / 00438690 (a sentinel, then insert(end(), first, last)), the
+default inserts 00438F60 / 00439000 / 004397E0 / 00439C80 (`InsertDefault`: the default made, copied
+into the node, destroyed - a packet's default takes an item sentinel from the pool and gives it back,
+so the pool ends as the original's), erase 00437F30 / 004390C0, clear 0043CA40 / 0043BA20, ~list
+004399C0; the clients' find_if by peer address 0043D780 (the 16 address bytes at Connection +0x2C)
+and the counted pointer's init 0043D7D0 (stored without a reference). Where the original copies its
+stack's uninitialised bytes (a default item's action and version, a default packet's time, sequence
+and header, a default chunk) ours copies zeros; every caller overwrites them. Hashtables
+(stlp_hash.cpp): erase by key of the fog's cell map 004E2F00 (`Map28`) and the sound manager's
+deferred sounds 006BD060 (`Map8`), ~hashtable<CString, float> 00663330 (the party records'
+variables). The hero screen's item caches: constructors 00633F50 / 00633FF0 (`HeroItemCache`: map()
+and the limit 50, library_trees.cpp) and the texture cache's node allocate 00619770
+(`TreeAbi::AllocateNodes`, new). The link loader's archive erase 004FAE00 (`StringDwordList::Erase`);
+the server list's GameInfoRecord strings 0041AC30 and the print records' names 006D29A0 / 006D29E0
+(library_containers.cpp). Checks (tests/verify/verify_library_net_lists.cpp, verify_stlp_hash.cpp,
+verify_library_trees.cpp, verify_library_containers.cpp): ours only for the connection lists (the
+copies against their source element by element with each entry's count up by its copies; inserts by
+links, default element and pool blocks; erase / clear / ~list by links and the blocks on top), the
+archive erase and the game record; against the original the find and the init (pure), the erases by
+key (the original first, its freed nodes restored), the cache constructors and allocate (the
+original's block back to the pool, ours takes it) and the print names (CheckFree). A start-up check
+drives all 25 through their addresses (fake counted entries: their counts come back to 50). The
+init's stolen bytes are 11 (`MOV [ESP+0],0` is eight bytes; a first try with 10 crashed). In the
+suite the connection members run in every session (smoke: 52 inits, 352 finds, the copies only in
+the start-up check); 006BD060, 00663330 and the hero caches are reached, 004E2F00, 00619770, 004FAE00,
+0041AC30 and the print names only by the start-up check. Full `--golden` suite: 128 runs pass, 56 goldens the same, 0 mismatches. Not done, filed as S12f: the hero screen's
+string sorts (0060B330 / 0060B440 over stlp::string by _stricmp, 0061A240 / 0061A300 over CString),
+the spell lookup 00613920 and the party entries' insert_overflow 00619920.
 
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
@@ -929,6 +1038,42 @@ second registrations at 00445040 / 00445170 / 004457F0, S12a against S12b). `--s
 initialisers without code 0 call targets, 0 exit functions, 0 exit callees; the boot still stops at
 005AF580. In the image AfxCriticalInit and the locks run over the exe's data copy (zero, so first
 use initialises them).
+
+**S16 (2026-10-15).** The first boot of the image, stop by stop (`work.py test S16 --standalone`, then
+`tools/resolve_crash.py` on the run). Each stop was ported at its address with a check; stops in
+another ticket's family took only the instantiation on the path (or waited for that ticket's merge).
+In order: the AI grids' constructors 005AF580 / 005AF590; the script definitions' SetSize 004CD770
+(S6b's now); the smooth table 005C4210; the console command map 005E0A90 (S12a's now); streambuf
+006FCAD2 (S4d); AfxClassInit 00700674, the static exceptions 006E68C9.., MFC's static data 0070B600
+(S3f's now); after that all 410 initialisers run and WinMain starts. Then list<int>::clear 00405500 and
+the chunk stack's erase / clear 0040A920.. (S12d's now); _memicmp 006FD2F0; the sound emitter
+constructor 006B63D0; the x87 stack forms of acos / asin / fmod 006E7334 / 006E83D4 / 006E95A0
+(src/lib/crt_x87.cpp; fmod keeps the CRT loader's NaN payload); the text source node 004E15C0; the
+music themes' SetSize 006B59A0 (S6b's now); AfxBeginThread 007022A0 / AfxEndThread 00702380 with
+CWinThread's constructor 0070C259 / 0070C2F6 (src/lib/mfc_thread.*: image only, host _beginthreadex,
+the current thread object thread-local, no message filter hook); the stream thread's entry 006B6A10;
+CIniFile's destructor 00695BE0; the unit model slot's destructor 0053F010; the lever records' copy
+00465B20; DirectInput (below); the figure classes' Create jumps 005A6C70 / 005A6E00; the game's
+~CGdiObject copies 00444B10.. (S6c's now); sscanf 006EAEEC (crt_format.cpp: MSVC 6's `_input` for
+the integer, %n, %c / %s / %[ conversions; floats and wide characters end the scan; a start-up battery
+of 37 formats x 33 texts against the original; a format that starts with %n is left out, the original
+then reads a stale stack byte as its last character); lower_bound<unsigned*> 00408A50 (the hashtable
+constructors' prime lookup); CStringArray's GetAt by value 004698A0 / 004698C0 (record_arrays.cpp);
+the script keyword table (below); the client sector grids' lists of held objects, clear 005703C0 /
+00573660, erase 00572270, ~list 00572E90 / 0069BE70 (`stlp::HeldObject` destroys with the object's
+Release, slot 4). The run then stops at 005593D0, the server's unit appearance cache build
+(CWorldServer::SendZone, the main menu's world): 1883 bytes over about 20 unported hash_map and
+vector helpers (0055A..-0055D..), filed as S16a. The main menu is not reached yet.
+- Code read as data: ClassifyToken's keyword table is the immediate at 004CF69B (Rebirth rewrites
+  it); the image has INT3 there, so `KeywordTable` gives the vanilla table 0078BCA0 when standalone
+  (through GameData, so ei_vectors' stand-in still holds it). No other GameData read of a code
+  address is left in src.
+- DirectInput in the image: DirectInputCreateEx refuses an instance that is not a loaded module
+  (E_INVALIDARG), so standalone.cpp routes the image's import to a wrapper that gives the host's
+  module for 0x400000. c_dfDIMouse (00745D00) points at its object table in game.exe's code section
+  (006E6180), which the image fills with INT3: `CDirectInputMouse::MouseDataFormat` is our copy (the
+  same seven objects and the game's axis GUIDs; a start-up check compares it with the original's).
+  Other dinput.lib data in .text, if any, would need the same.
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
@@ -1058,3 +1203,25 @@ ANSI code page; file names (save names typed by the player) go to the ANSI file 
 Total 5-6 tickets. Byte-equality compares, hashing, copying and formatting (the large majority of
 string code) work unchanged on UTF-8. It cannot start before the port is complete: until then the
 original code reads the same strings.
+
+**S10c (2026-10-15).** 004AD640, the trader stock's recipe map pair destructor (pair<string, list<recipe*>>):
+`PairAbi::DestroyStringList` in src/lib/stlp_pair.cpp (the list's nodes in order and the sentinel back to
+the pool via `list::Destroy`, then the string's block); item_stock.cpp's `RecipePairDestroy` calls it.
+Verified ours only (verify_stlp_pair.cpp: the string block on top of its free list, the sentinel on top of
+the 0xC list unless the string's block shares it); reached by trader_stock (22 calls, 0 mismatches, both
+installs); items passes. The size row already existed (function_sizes.inc, 120).
+
+**S6e (2026-10-15).** The element helpers S6d's lists reach: 004D6840 (ConstructElements<ScriptDefine>:
+`ArrayAbi<ScriptDefine, ScriptDefineElements>` in game_lists.cpp), 00479620 and 00558EF0 (the zero fill,
+`Plain4` in mfc_list.cpp) and 004C59A0 (CArray<ScriptIfThen>'s constructor, `ArrayHeader<
+ScriptIfThenArrayClass>`). Twin checks per call (verify_mfc_list.cpp `TwinConstructElements`,
+verify_mfc_array.cpp `TwinConstruct`); no suite scenario calls them, so each also runs at start-up
+(0, 1, 3 and 7 elements filled with 0xCD, a filled header). Then the last MFC library rows our code
+forwarded to without a registration: 00475F20 (the scene loader's point block free: `ArrayFree1`),
+005FBD30 (the global map zone's destructor: the CStrings at +0xC, then +8), 005711E0 (the water levels'
+CArray<CArray<float>> destructor: `WaterLevels::Destruct<ClientMapArrayClass>`) and 0046F160 (a patrol
+element's scalar deleting destructor: `ScalarDelete<&DestroyPatrol>`); checked ours only, the last two
+(which no scenario reaches) also at start-up with their blocks allocated and freed in reverse order, so the
+game's heap is left as it was (goldens unchanged). After these,
+no MFC row of config/library.csv is forwarded to without a registration except operator new / delete
+(007005AF / 007005D8, the allocator, standalone only).

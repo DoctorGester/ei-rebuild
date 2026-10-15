@@ -228,6 +228,8 @@ namespace unitdb {
 void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
 void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
+// 0053F010 (thiscall): a model slot's destructor (its level name).
+void __fastcall DestroyModelSlot(UnitModelSlot* slot);
 } // namespace unitdb
 
 // The model table (0x20 bytes, the database's +0x40): the records (an STLport vector) and a
