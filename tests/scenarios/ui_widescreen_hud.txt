@@ -21,8 +21,9 @@ resolution desktop
 widescreen 1
 rebirthflags WideScreen
 reject Script error
+# The main menu's animations: its model-space draws (device bounds of the projected vertices) come in the fifth second.
 waitmenu
-wait 1500
+wait 5000
 
 # The hero on zone1, the camera settled.
 console thingamabob
