@@ -93,6 +93,12 @@ public:
     // 00498630. Every held source nobody else references (refCount_ 1) is released and leaves
     // `held_` (the client's zone load).
     void ReleaseUnheld();
+    // 005627C0 (S13a, world_destructors.cpp). The destructor's body: the vtable, Destroy, the
+    // members last to first (`held_`'s nodes and buckets, the free particles' list emptied), then
+    // CBaseManager's body.
+    void Destruct();
+    // 005627A0 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
+    CParticleManager* DeletingDestruct(unsigned flags);
 
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
     HeldMap held_;                                  // +0x0CC id -> source holding a reference

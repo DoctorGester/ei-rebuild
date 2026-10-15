@@ -1,0 +1,287 @@
+// The destructors the compiler wrote for the world's classes (S13a): the bodies the exe's vtables
+// reach through their slot 0 (the scalar deleting destructors), the members destroyed last to
+// first after the class's own teardown. The containers are the library's (lib/mfc.h CArray /
+// CList, lib/containers.h AlignedArray, lib/stlp.h hash_map). Checked by
+// tests/verify/verify_world_destructors.cpp. docs/notes/standalone.md, S13a.
+#include "effects.h"
+#include "game_arrays.h"
+#include "ground_print.h"
+#include "model.h"
+#include "originals_world.h"
+#include "record_lifetime.h"
+#include "registry.h"
+#include "script.h"
+#include "sector_map.h"
+#include "terrain.h"
+#include "world.h"
+#include "world_data.h"
+#include "world_deleting_destructors.h"
+
+#include "ei/hook.h"
+#include "ei/vcall.h"
+#include "lib/crt.h"
+
+void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
+
+namespace {
+
+// The members' vtables the destructors store back before emptying them.
+constexpr std::uintptr_t kParticleListVtable = std::uintptr_t(0x0073D018);   // CTypedPtrList<CPtrList, Particle*>
+constexpr std::uintptr_t kWaterLevelsVtable = std::uintptr_t(0x0073F730);    // CArray<CArray<float>>
+constexpr std::uintptr_t kSectorCacheVtable = std::uintptr_t(0x0073F724);    // CList<SectorData*>
+constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x0073F41C);
+constexpr std::uintptr_t kCountedArrayVtable = std::uintptr_t(0x0073F53C);   // the client's +0xA0
+constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073F928);
+constexpr std::uintptr_t kSharedObjectListVtable = std::uintptr_t(0x0073FA10); // CList<SharedObject>
+constexpr std::uintptr_t kCountedListVtable = std::uintptr_t(0x0073BE74);      // CList<CEngineObject*>
+constexpr std::uintptr_t kProjectileListVtable = std::uintptr_t(0x0073F9D0);   // CList<Projectile*>
+
+// The client's ground print lists: each print's destructor (the client's copies 0056D080,
+// 0056D400, 0056D680 of GroundPrint's).
+struct PrintElement {
+    template <typename P>
+    static void Destroy(P* print) {
+        print->Destruct();
+    }
+};
+
+// A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
+// cells' lists (their vector deleting destructor), then the row pointers.
+void FreeGrid(SectorGrid& grid) {
+    if (grid.cells_) SectorListsDelete(grid.cells_, nullptr, 3);
+    gamecrt::operator_delete(grid.rows_);
+}
+
+// The server's lists' element destructors (their RemoveAll rows 0059A370, 00429E50, 00599C70).
+// A shared object: its array of counted objects (the body 00594950: the base vtable, every object
+// released through slot 4, the data freed).
+struct SharedObjectElements {
+    static void Construct(SharedObject*, int) {}
+    static void Destruct(SharedObject* entry, int count) {
+        for (; count > 0; --count, ++entry) {
+            auto& objects = entry->objects;
+            objects.vtable = SharedObject::ObjectsBaseVtable();
+            if (!objects.data) continue;
+            for (int i = 0; i < objects.size; ++i)
+                if (CEngineObject* object = objects.data[i]) object->Release();
+            gamecrt::operator_delete(objects.data);
+        }
+    }
+};
+// A counted object: released through slot 4.
+struct ReleasedElements {
+    static void Construct(CEngineObject**, int) {}
+    static void Destruct(CEngineObject** slot, int count) {
+        for (; count > 0; --count, ++slot)
+            if (*slot) (*slot)->Release();
+    }
+};
+// A missile: its counted pointer released (0059B4B0).
+struct ProjectileElements {
+    static void Construct(Projectile**, int) {}
+    static void Destruct(Projectile** slot, int count) {
+        for (; count > 0; --count, ++slot) RefPtrRelease(reinterpret_cast<RefPtr*>(slot));
+    }
+};
+// A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the
+// elements destroyed.
+template <typename Elements, typename T>
+void DestroyList(mfc::CList<T>& list, std::uintptr_t vtable) {
+    auto& typed = reinterpret_cast<mfc::CList<T, Elements>&>(list);
+    typed.vtable = reinterpret_cast<void*>(vtable);
+    typed.RemoveAll();
+}
+
+// The second script's destructor as the server's inlines it (0058AC5E..0058AD44): the reset, the
+// error text, then the members last to first (MFC rows not ported yet, originals_world.h; the
+// variables through ScriptVarsDestruct).
+void DestructInlineScript(CScript* script) {
+    auto* base = reinterpret_cast<std::uint8_t*>(script);
+    ScriptReset(script);
+    records::AsCString(*reinterpret_cast<char**>(base + 0x1EC)).~CString();
+    ScriptMember4C92C0(base + 0x1CC);
+    ScriptMember4C8E20(base + 0x1B0);
+    ScriptMember4CB650(base + 0x194);
+    ScriptMember4C7560(base + 0x178);
+    ScriptMember4C8520(base + 0x15C);
+    ScriptMember4C7E30(base + 0x140);
+    ScriptVarsDestruct(reinterpret_cast<ScriptVars*>(base + 0xA0));
+    ScriptMember4CB310(base + 0x8C);
+    ScriptMember4C7560(base + 0x70);
+    ScriptMember4C6760(base + 0x4C);
+    ScriptMember4C6410(base + 0x30);
+    ScriptMember4C6120(base + 0x14);
+    ScriptMember4CB150(base);
+}
+
+template <typename T>
+T* DeleteIf(T* self, unsigned flags) {
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+
+} // namespace
+
+void CWorld::Destruct() {
+    ei::SetVtable(this, kBaseVtableAddress);
+    DestroyManagers();
+    auto* countdowns = reinterpret_cast<mfc::CArray<int>*>(countdowns_);
+    countdowns->vtable = reinterpret_cast<void*>(kCountdownsVtable);
+    countdowns->FreeData();
+    reinterpret_cast<RefPtr*>(&netSession_)->Destroy();
+    shared5C_.Destroy();
+    if (CLinkFigureLoader* loader = figureLoader_)
+        if (--loader->refCount_ == 0) loader->DeleteThis(1);
+    CEngineObject::DestructBase();
+}
+EI_REPLACE_METHOD(0x0055EC80, CWorld::Destruct);
+
+CWorld* CWorld::DeletingDestruct(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
+}
+EI_REPLACE_METHOD(0x0055EC60, CWorld::DeletingDestruct);
+
+void CParticleManager::Destruct() {
+    ei::SetVtable(this, worlddata::kParticleManagerVtable);
+    CParticleManager::Destroy();
+    held_.Destroy();
+    freeParticles.vtable = reinterpret_cast<void*>(kParticleListVtable);
+    freeParticles.RemoveAll();
+    CBaseManager::DestructBody();
+}
+EI_REPLACE_METHOD(0x005627C0, CParticleManager::Destruct);
+
+CParticleManager* CParticleManager::DeletingDestruct(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
+}
+EI_REPLACE_METHOD(0x005627A0, CParticleManager::DeletingDestruct);
+
+void Terrain::Destruct() {
+    ei::SetVtable(this, worlddata::kTerrainVtable);
+    Terrain::Destroy();
+    waterLevels.vtable = reinterpret_cast<void*>(kWaterLevelsVtable);
+    waterLevels.FreeData();
+    records::AsCString(textAE0).~CString();
+    visibleColumnLast.FreeData();
+    visibleColumnFirst.FreeData();
+    wavePhases.FreeData();
+    lights.Destroy();
+    sectorCache.vtable = reinterpret_cast<void*>(kSectorCacheVtable);
+    sectorCache.RemoveAll();
+    vertexTiles.FreeData();
+    archive.Destroy();
+    textureFrames.FreeData();
+    textureClass.FreeData();
+    materials.FreeData();
+    records::AsCString(textFC).~CString();
+    records::AsCString(textF8).~CString();
+    pageMaterials.FreeData();
+    pageTextures.FreeData();
+    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    CEngineObject::DestructBase();
+}
+EI_REPLACE_METHOD(0x00562B80, Terrain::Destruct);
+
+Terrain* Terrain::DeletingDestruct(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
+}
+EI_REPLACE_METHOD(0x00562B60, Terrain::DeletingDestruct);
+
+void Sector::Destruct() {
+    ei::SetVtable(this, kSectorVtable);
+    Clear();
+    occluders.vtable = reinterpret_cast<void*>(kSectorOccluderArrayVtable);
+    occluders.FreeData();
+    units.vtable = mfc::PtrListVtable();
+    units.RemoveAll();
+    objects.vtable = reinterpret_cast<void*>(kSectorObjectListVtable);
+    objects.RemoveAll();
+}
+EI_REPLACE_METHOD(0x005BFCD0, Sector::Destruct);
+
+Sector* Sector::DeletingDestruct(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
+}
+EI_REPLACE_METHOD(0x0059E080, Sector::DeletingDestruct);
+
+void CWorldClient::Destruct() {
+    ei::SetVtable(this, kClientVtable);
+    Teardown();
+    pausedTitle_.~CString();
+    windowTitle_.~CString();
+    windowClass_.~CString();
+    appName_.~CString();
+    list7BC_.Destroy();
+    RainSnow()->DestructBody();
+    records::AsCString(texturePath_).~CString();
+    platforms_.DestructBody();
+    handle_.Destroy();
+    scorchMarks_.Release<PrintElement>();
+    footprints_.Release<PrintElement>();
+    bloodPrints_.Release<PrintElement>();
+    records::AsCString(zoneName_).~CString();
+    GridResize2(&secondGrid_, nullptr, 1, 1);
+    FreeGrid(secondGrid_);
+    GridResize(&objectGrid_, nullptr, 1, 1);
+    FreeGrid(objectGrid_);
+    lineLists_.Destroy();
+    reinterpret_cast<stlp::vector<ScreenEntry>*>(&hits_)->FreeStorage();
+    screenEntries_.Destroy();
+    dynamicNodes_.Destroy();
+    dynamicObjects_.vtable = ObjectPtrListVtable();
+    dynamicObjects_.RemoveAll();
+    objects_.Destroy();
+    DestroySectorList(&heroes_);
+    countedA0_.vtable = reinterpret_cast<void*>(kCountedArrayVtable);
+    if (countedA0_.data) {
+        for (int i = 0; i < countedA0_.size; ++i) ObjectHolderDelete(&countedA0_.data[i], nullptr, 0);
+        gamecrt::operator_delete(countedA0_.data);
+    }
+    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(reinterpret_cast<gamearrays::Exits::Array*>(&exitsVtable_));
+    CWorld::Destruct();
+}
+EI_REPLACE_METHOD(0x00561B00, CWorldClient::Destruct);
+
+CWorldClient* CWorldClient::DeletingDestruct(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
+}
+EI_REPLACE_METHOD(0x00561A00, CWorldClient::DeletingDestruct);
+
+void CWorldServer::Destruct() {
+    ei::SetVtable(this, kServerVtable);
+    Teardown();
+    DestroyList<SharedObjectElements>(sharedObjects_, kSharedObjectListVtable);
+    DestroyList<ReleasedElements>(counted_, kCountedListVtable);
+    DestroyList<ProjectileElements>(projectiles_, kProjectileListVtable);
+    zoneHeader_.Destruct();
+    timedObjects_.map.Destroy();
+    namedObjects_.map.Destroy();
+    otherMapObjects_.map.Destroy();
+    mapObjects_.map.Destroy();
+    sentObjects_.map.Destroy();
+    objects_.map.Destroy();
+    records::AsCString(mapName_).~CString();
+    records::AsCString(mobName_).~CString();
+    diplomacy_.Reset();
+    DestructInlineScript(SecondScript());
+    ScriptDestructOriginal(MainScript());
+    AIMapDestructOriginal(AIMap());
+    Messages()->Destroy();
+    mobFiles_.Destruct();
+    records::AsCString(zoneName_).~CString();
+    updateMap_.map.Destroy();
+    gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(reinterpret_cast<gamearrays::Exits::Array*>(&exitsVtable_));
+    CWorld::Destruct();
+}
+EI_REPLACE_METHOD(0x0058AAD0, CWorldServer::Destruct);
+
+CWorldServer* CWorldServer::DeletingDestruct(unsigned flags) {
+    Destruct();
+    return DeleteIf(this, flags);
+}
+EI_REPLACE_METHOD(0x0058A430, CWorldServer::DeletingDestruct);

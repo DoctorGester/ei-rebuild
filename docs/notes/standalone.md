@@ -315,6 +315,22 @@ SharedObject copy and delete (shared loot), the party base's and the collections
 destructors. Left: S13a (three database resets, six world destructors); 00646C25 and 00656464 are
 string bytes, not functions.
 
+**S13a (2026-10-15).** The three database resets (src/game/database_reset.cpp: units 0057CBE0,
+spell tables 0057CE80, items 0057D340) destroy each table's name index and record vector through
+the library (stlp::hash_map::Destroy, the record_vectors.h policies) in the original's order and
+construct them again in place. The world classes' destructors (src/game/world_destructors.cpp):
+bodies and slot-0 deleting destructors of CWorld (0055EC80 / 0055EC60), CWorldClient (00561B00 /
+00561A00), the particle manager (005627C0 / 005627A0), Terrain (00562B80 / 00562B60), CWorldServer
+(0058AAD0 / 0058A430) and Sector (005BFCD0 / 0059E080), members destroyed through mfc::CArray /
+CList (vtable written back first; element policies for the server's shared objects, counted objects
+and missiles), stlp hash_map / vector / list and AlignedArray. Still forwarded (originals_world.h,
+S13b): the grid resizes 00572450 / 005724F0, the first script's destructor 0058A140, the AI map's
+0058A450 and the eleven MFC rows the inlined second-script destructor calls. Checks
+(verify_record_lifetime.cpp, verify_world_destructors.cpp) are ours only. Reached with 0 mismatches:
+the three resets, both worlds' bodies (exit and the start-up checks), the Terrain, particle manager
+and Sector slot-0 destructors. The other bodies run inside ours, so their own checks count nothing;
+the worlds' slot-0 destructors are not called (exit functions destroy the globals).
+
 **S10 (2026-10-15).** STLport `vector<T>` (src/lib/stlp_vector.h, stlp_vector.cpp): STLport's members
 (insert overflow, fill / range insert, erase, resize, reserve, push_back, operator=, the base
 constructors and destructors) as one body each over an element policy (`PlainElement`,

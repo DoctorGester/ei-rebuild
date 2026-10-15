@@ -321,6 +321,14 @@ public:
     // constructor: the engine object's fields, the base vtable 0073F18C, no figure loader, helper,
     // session or managers, the clock at 0 and the empty countdown array. Returns this.
     CWorld* ConstructBase();
+    // 0055EC80 (S13a, world_destructors.cpp; also the end of the client's 00561B00 and the
+    // server's 0058AAD0). The destructor's body: the base vtable, DestroyManagers, then the members
+    // last to first (the countdown array's storage, the session and +0x5C as RefPtr::Destroy, the
+    // figure loader's reference) and CEngineObject's body.
+    void Destruct();
+    // 0055EC60 (slot 0 of the base vtable): Destruct, then operator delete when bit 0 of `flags`
+    // is set. Returns this.
+    CWorld* DeletingDestruct(unsigned flags);
 
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
     static constexpr std::uintptr_t kCountdownsVtable = std::uintptr_t(0x0073F234);
@@ -616,6 +624,14 @@ public:
     // messages registry, the AI map, both scripts, the diplomacy, the id maps, the zone header (a
     // queue stream), the three lists), the vtable 0073F928, then ResetState. Returns this.
     CWorldServer* Construct();
+    // world_destructors.cpp
+    // 0058AAD0 (the global's exit function 00589C00). The vtable 0073F928, Teardown, then the members
+    // last to first: the lists, the zone header, the id maps, the strings, the diplomacy (its Reset),
+    // both scripts (the second's destructor inlined), the AI map, the messages registry, the .mob
+    // list, the zone name, the update map, the zone exits, then the base body (CWorld::Destruct).
+    void Destruct();
+    // 0058A430 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
+    CWorldServer* DeletingDestruct(unsigned flags);
 
     // world_server_life.cpp
     // 0058AE10, vtable slot 2 (Create; called by WinMain). Teardown (slot 3) first, then the
@@ -998,6 +1014,10 @@ using SectorListNode = SectorList::Node;
 // destructor. Bit 1 of `flags`: `cells` is a new[] block (its count in the dword before it), every
 // list destroyed from the last; else the one list. Bit 0: the memory freed. Returns the block.
 SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags);
+// A cell's list destroyed (world_client_maps.cpp; STLport's list<counted pointer>::~list, 0056DEF0
+// / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
+// and its node returned to the pool, the sentinel last.
+void DestroySectorList(SectorList* list);
 struct SectorGrid {
     SectorList* cells_;                   // +0x00 the lists
     SectorList** rows_;                   // +0x04 row y: its lists
@@ -1520,6 +1540,15 @@ public:
     // and snow layer (cleared), the selection list, the window's names), the flags 0x3DC0, the vtable
     // 0073F41C and the fields it zeroes. Returns this.
     CWorldClient* Construct();
+    // 00561B00 (S13a, world_destructors.cpp; also the global client world's exit function). The
+    // destructor's body: the client vtable, Teardown, then the members last to first (the window
+    // names, the lists, the rain and snow layer, the platforms, the handle, the ground prints, both
+    // sector grids set to 1 x 1 and freed, the maps, the counted array, the exits) and the base's
+    // body (CWorld::Destruct).
+    void Destruct();
+    // 00561A00 (slot 0 of 0073F41C): Destruct, then operator delete when bit 0 of `flags` is set.
+    // Returns this.
+    CWorldClient* DeletingDestruct(unsigned flags);
 
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }

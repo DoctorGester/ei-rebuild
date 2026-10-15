@@ -7,7 +7,7 @@
 // construct or assign strings in place. A destructor's wrapper checks that the record is well formed
 // before (its vectors ordered); a copy's wrapper compares the destination with the source after.
 // Reached: the databases' records when they are loaded again (a new game resets them: 0057CBE0 and
-// the three after it), the save / load window's list (ui_saveload), the music themes when music.reg
+// the three after it, whose wrappers check the empty databases after), the save / load window's list (ui_saveload), the music themes when music.reg
 // is read (every start), the zone exits on a zone load, the face groups with every figure scene
 // load, the shared objects when a saved game is loaded.
 #include "verify.h"
@@ -250,6 +250,51 @@ void __fastcall SkillResetVerify(SkillDatabase* self) {
     ei::verify::Check("SkillDatabase::Reset", true, ok, "database %p", static_cast<void*>(self));
 }
 
+// The resource databases' resets (S13a): each table's three record pointers well formed before;
+// after, no records and an empty index of 193 buckets.
+bool OrderedTable(char* const* pointers) {
+    return pointers[0] <= pointers[1] && pointers[1] <= pointers[2] && (pointers[0] || !pointers[2]);
+}
+bool EmptyTable(char* const* pointers) { return !pointers[0] && !pointers[1] && !pointers[2]; }
+template <typename Map>
+bool EmptyIndex(const Map& index) {
+    return index.BucketCount() == 193 && index.Size() == 0 && !index.First();
+}
+template <typename Table>
+char* const* PointersOf(const Table& table) {
+    return reinterpret_cast<char* const*>(&table);
+}
+
+void __fastcall UnitResetVerify(UnitDatabase* self) {
+    bool ok = OrderedTable(PointersOf(self->prototypes)) && OrderedTable(PointersOf(self->npcs)) &&
+              OrderedTable(PointersOf(self->models)) && OrderedTable(PointersOf(self->levels));
+    self->Reset();
+    ok = ok && EmptyTable(PointersOf(self->prototypes)) && EmptyIndex(self->prototypes.byName) &&
+         EmptyTable(PointersOf(self->npcs)) && EmptyIndex(self->npcs.byName) && EmptyTable(PointersOf(self->models)) &&
+         EmptyIndex(self->models.byName) && EmptyTable(PointersOf(self->levels)) && EmptyIndex(self->levels.byName);
+    ei::verify::Check("UnitDatabase::Reset", true, ok, "database %p", static_cast<void*>(self));
+}
+
+void __fastcall SpellResetVerify(SpellDatabase* self) {
+    bool ok = OrderedTable(PointersOf(self->spells)) && OrderedTable(PointersOf(self->modifiers));
+    for (const auto& list : self->lists) ok = ok && Ordered(list);
+    self->Reset();
+    ok = ok && EmptyTable(PointersOf(self->spells)) && EmptyIndex(self->spells.byCode) &&
+         EmptyTable(PointersOf(self->modifiers)) && EmptyIndex(self->modifiers.byCode);
+    for (auto& list : self->lists) ok = ok && !list.Start() && !list.Finish() && !list.EndOfStorage();
+    ei::verify::Check("SpellDatabase::Reset", true, ok, "database %p", static_cast<void*>(self));
+}
+
+void __fastcall ItemResetVerify(ItemDatabase* self) {
+    IndexedRecordTable* tables[] = {&self->materials, &self->weapons, &self->armors,
+                                    &self->quickItems, &self->questItems, &self->loot};
+    bool ok = true;
+    for (IndexedRecordTable* table : tables) ok = ok && OrderedTable(PointersOf(*table));
+    self->Reset();
+    for (IndexedRecordTable* table : tables) ok = ok && EmptyTable(PointersOf(*table)) && EmptyIndex(table->ByName());
+    ei::verify::Check("ItemDatabase::Reset", true, ok, "database %p", static_cast<void*>(self));
+}
+
 // The MFC collections' deleting destructors: the object back.
 template <void* (__fastcall* Ours)(void*, void*, unsigned)>
 void* __fastcall CollectionDeleteVerify(void* self, void*, unsigned flags) {
@@ -292,6 +337,9 @@ EI_VERIFY(0x006BD1B0, WaveAssignVerify, 0, s_unused);
 EI_VERIFY(0x005BE370, ShapePairConstructVerify, 0, s_unused);
 EI_VERIFY(0x005BE280, ShapePairDestroyVerify, 0, s_unused);
 EI_VERIFY(0x0057CD60, SkillResetVerify, 0, s_unused);
+EI_VERIFY(0x0057CBE0, UnitResetVerify, 0, s_unused);
+EI_VERIFY(0x0057CE80, SpellResetVerify, 0, s_unused);
+EI_VERIFY(0x0057D340, ItemResetVerify, 0, s_unused);
 EI_VERIFY(0x00571E50, CollectionDeleteVerify<PlatformListDelete>, 0, s_unused);
 EI_VERIFY(0x00571ED0, CollectionDeleteVerify<ClientArrayDelete>, 0, s_unused);
 EI_VERIFY(0x0059B430, CollectionDeleteVerify<SectorArrayDelete>, 0, s_unused);
