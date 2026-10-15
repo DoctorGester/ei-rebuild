@@ -1543,7 +1543,7 @@ done = "2026-10-15"
 id = "S6"
 title = "Standalone library: MFC CArray<T>"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 files = ["src/lib/mfc_array.h", "src/lib/mfc.h", "src/lib/containers.h"]
 note = "About 200 forwarded instantiations: SetSize 65, constructors / destructors 45, Copy, SetAtGrow, GetAt, Add, RemoveAt, ConstructElements / DestructElements. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
@@ -1818,6 +1818,16 @@ group = "standalone"
 status = "queued"
 depends = ["S4a"]
 note = "S4a's conversions (crt_format.cpp: TenByteToDigits / FormatFloat / StringToLd12 / Ld12ToDouble) are pure integer code reading only the decimal point and _pctype. A tests/vectors family recording sprintf float conversions and atof from the game (SV4a/SV4b pattern) would replay them in ei_vectors without the game; the in-game start-up battery (verify_crt_format.cpp) already covers ~135k cases."
+
+[[ticket]]
+id = "S6b"
+title = "Standalone library: the last 31 CArray<T> instantiations"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S6"]
+files = ["src/lib/mfc_array.h", "src/game/game_arrays.cpp"]
+note = "What S6 left (docs/notes/standalone.md S6): SetSize / ConstructElements of the CFigure parts and scene records (0044FCD0, 00453240, 00453550, 004545C0, 00454F80: their element constructors are game code), the script command family (004C4FD0, 004C54A0, 004C6D10, 004CC0C0, 004CCCB0, 004CCD90, 004CD130, 004CD2B0, 004CD770, 004CE920, 004CEB80), DeltaField 0050FA30, the CMap-element arrays 00474DB0 / 00476F20 / 00477100 (after S7), music themes 006B56C0 / 006B59A0, cache entries 006BE210, the menu arrays 00631E70 / 00631FF0 (compiler callees 005FBD80 / 005FBDD0), GetAt by copy 0046EAB0 / 00584EA0, and the class destructors 004763C0, 00557890, 0058AA60, 00599330. Same pattern: EachElements with the element's own constructor / destructor called directly, verify per address."
 
 # ---------------------------------------------------------------- Lua
 

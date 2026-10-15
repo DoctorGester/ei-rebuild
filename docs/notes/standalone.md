@@ -292,6 +292,28 @@ The suite reaches 125 of the 201, 0 mismatches. 004387D0 (no Ghidra function) go
 Left: S10a (54 vectors of game records whose element copy / destroy are records' own functions,
 and 11 non-vector entries named like vector code).
 
+**S6 (2026-10-15).** MFC `CArray<T>` (src/lib/mfc_array.h, mfc_array.cpp; game-element ones in
+src/game/game_arrays.*): mfc::CArray's bodies (mfc.h) under `ArrayAbi<T, Policy>` shims (SetSize,
+SetAtGrow by reference or value, Add, Copy, RemoveAt, GetAt by value, ElementAt, Construct /
+DestructElements, constructor / destructor with the instantiation's vtable as a type with
+`Vtable()`). The element policy is what the instantiation's ConstructElements does after MFC's
+memset: nothing (plain bytes by size), an inlined constructor (`InitElements`: identity
+quaternions, empty CStrings, nested array headers, the animation step's blank values), or
+`EachElements<T, Init, Destroy>` with the element's destructor called directly (zone exits and
+records, script groups and objectives, effect particles, point lights, slot 4 releases of object
+references, slot 0 / 1 virtual destructors, aligned blocks, nested arrays restoring their base
+vtable). 171 of the 204 forwarded rows are registered (plus 25 helpers they call, 195 addresses);
+0059CB50 / 0059CCE0 / 00468C50 / 00468F70 were the engine's aligned arrays (now in
+aligned_arrays.cpp). Checks (tests/verify/verify_mfc_array.cpp): one alias per address; plain and
+constructed elements against the original on a twin array (header and element bytes); SetSize of
+owning elements against the original while nothing is destroyed (grow), ours only on shrink;
+destructors, DestructElements, string / reference copies and GetAt ours only against the source.
+The suite reaches 124 of the 190 checked addresses, 0 mismatches; the model and animation
+file loaders' arrays (0045xxxx-00477xxx), the save's shared-object arrays and the AI map's array
+destructors are not reached. Left: S6b (31: CFigure part / scene record constructors, the script
+command family 004C4FD0-004CEB80, DeltaField, CMap-element arrays (S7), music themes, cache
+entries, three class destructors named like CArray ones).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
