@@ -578,6 +578,22 @@ struct HashCheck {
             [&] { return Word(result = Abi::EraseKey(self, nullptr, key)); }, self->BucketOf(*key));
         return result;
     }
+    // erase(key) of plain values (S12e): the matching nodes after the bucket's head, then the head.
+    static std::size_t __fastcall EraseKeyPlain(Table* self, void*, const Key* key) {
+        Trail trail;
+        Node* first = self->BucketVector()[self->BucketOf(*key)];
+        if (first) {
+            for (Node* n = first->next; n; n = n->next)
+                if (n->value.key == *key) trail.Add(n, sizeof(Node));
+            if (first->value.key == *key) trail.Add(first, sizeof(Node));
+        }
+        std::size_t result = 0;
+        CheckTrail(
+            Name<A>("stlp::hashtable::erase(key)"), self, trail,
+            [&] { return Word(Original<decltype(&Abi::EraseKey)>()(self, nullptr, key)); },
+            [&] { return Word(result = Abi::EraseKey(self, nullptr, key)); }, self->BucketOf(*key));
+        return result;
+    }
     static Value* __fastcall FindOrInsert(Table* self, void*, const Value* obj) {
         Value* result = nullptr;
         CheckInsert(
@@ -801,6 +817,7 @@ template <std::uintptr_t A> using ClearStrList = ClearOurs<A, StrList>;
 template <std::uintptr_t A> using ClearParties = ClearOurs<A, gamehash::PartyAbi>;
 template <std::uintptr_t A> using ClearFigured = ClearOurs<A, FiguredGroups>;
 template <std::uintptr_t A> using ClearDressed = ClearOurs<A, Dressed>;
+template <std::uintptr_t A> using ClearCStrFloat = ClearOurs<A, CStrFloat>;
 
 // --- hash_map<CString, float> ---
 
@@ -1251,6 +1268,9 @@ EI_VERIFY(0x006B0930, S4<0x006B0930>::Find, 5, S4<0x006B0930>::original);
 EI_VERIFY(0x006BC0C0, S4<0x006BC0C0>::Find, 5, S4<0x006BC0C0>::original);
 EI_VERIFY(0x0069D0E0, S4<0x0069D0E0>::SkipToNext, 5, S4<0x0069D0E0>::original);
 EI_VERIFY(0x006BCCD0, S4<0x006BCCD0>::EraseKeyStrings, 5, S4<0x006BCCD0>::original);
+// erase(key) of dword keys (S12e): PUSH EBX; MOV EBX,[ECX+4] (4 bytes) + PUSH EBP (5).
+EI_VERIFY(0x004E2F00, H28<0x004E2F00>::EraseKeyPlain, 5, H28<0x004E2F00>::original);
+EI_VERIFY(0x006BD060, H8<0x006BD060>::EraseKeyPlain, 5, H8<0x006BD060>::original);
 EI_VERIFY(0x004297A0, S4<0x004297A0>::SubscriptKey, 7, S4<0x004297A0>::original);
 EI_VERIFY(0x004ABAA0, S4<0x004ABAA0>::SubscriptKey, 7, S4<0x004ABAA0>::original);
 EI_VERIFY(0x004ABBD0, S4<0x004ABBD0>::SubscriptKey, 7, S4<0x004ABBD0>::original);
@@ -1369,6 +1389,7 @@ EI_VERIFY(0x004ABA70, PartyCheck<0x004ABA70>::DeleteNode, 0, s_unused);
 EI_VERIFY(0x004AD050, ClearParties<0x004AD050>::Clear, 0, s_unused);
 EI_VERIFY(0x005986B0, ClearFigured<0x005986B0>::Destroy, 0, s_unused);
 EI_VERIFY(0x00598860, ClearDressed<0x00598860>::Destroy, 0, s_unused);
+EI_VERIFY(0x00663330, ClearCStrFloat<0x00663330>::Destroy, 0, s_unused);   // S12e: the party records' variables
 EI_VERIFY(0x005BCCB0, ShapeCheck<0x005BCCB0>::InitHandle, 9, ShapeCheck<0x005BCCB0>::original);
 EI_VERIFY(0x005BE090, ShapeCheck<0x005BE090>::Slot, 7, ShapeCheck<0x005BE090>::original);
 EI_VERIFY(0x005BE320, SH<0x005BE320>::Find, 5, SH<0x005BE320>::original);

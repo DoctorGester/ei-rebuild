@@ -80,6 +80,16 @@ using Arrivals = stlp::TreeAbi<ArrivalMap>;
 static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
               sizeof(Arrivals::Node) == 0x18);
 
+// The hero screen's item caches (ItemObjectCache, ui_item_info.h): the map, then how many entries
+// it keeps. Their constructors 00633F50 / 00633FF0 (S12e): map() (the header from the pool, empty),
+// then the limit 50.
+struct HeroItemCache {
+    ItemCache::Tree map;
+    std::uint32_t limit;
+};
+static_assert(sizeof(HeroItemCache) == 0x10);
+HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self);
+
 // 004F4CD0: LinkPartHeader() as operator[]'s default value: the 0x50 bytes zeroed.
 void __fastcall ZeroLinkHeader(LinkPartHeader* p);
 // 005F8FC0: the model cache's destructor as the item screens' unwinding runs it: every cached model

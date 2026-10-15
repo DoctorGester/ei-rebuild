@@ -1752,6 +1752,15 @@ depends = ["S16"]
 files = ["src/game/world_sync.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp"]
 note = "The S16 boot stop after the main menu world's CWorldServer::SendZone: 005593D0 (1883 bytes, library.csv 'unit appearance cache build', called through world_sync.cpp's UnitSetAdd forwarder). Unported callees: 00559DB0, 004FF640, 0055C260, 0055AC40, 0055ABB0, 0055BA10, 0055AD10, 0055B5C0, 0055D020, 0055C270, 0055A860, 0055AEB0, 0055B670, 0055B540, 00559DE0, 0055BB40, 0055BA80, 0055A9F0, 0055BBF0, 0055BAC0, 004FE420, 0051FAD0, 004FDE90 (hash_maps keyed by the appearance, vectors of item / weapon prototype indices and CStrings). Then rerun work.py test S16a --standalone and continue S16's loop (docs/notes/standalone.md S16)."
 
+[[ticket]]
+id = "S12f"
+title = "Standalone library: the hero screen's string sorts, spell lookup and party-entry insert_overflow"
+group = "standalone"
+size = 1
+depends = ["S12e"]
+files = ["src/game/stl_sorts.cpp", "src/lib/stlp_algo.h", "src/lib/stlp_vector.cpp", "src/game/library_containers.cpp"]
+note = "S12e's hero screen rows (A-I15), still forwarded by our code: the topic sort over vector<stlp::string> (ui_briefing_topics.cpp): introsort loop 0060B330 (RET 0xC) and final insertion sort 0060B440 (RET 4); the comparison is _stricmp of the two texts (partition 0060B990: the pivot a string copy, swaps through string(first, last) / assign, so copies allocate: stlp::Sort with a string Ops, ours first per SV2f); the CString sort (ui_hero_screen_create.cpp, operator< by _mbscmp): 0061A240 (RET 8) / 0061A300 (copies add references: ValueOps<CString>, ours first); the spell prototype by name 00613920 (thiscall on 007C8510, RET 4: a stlp::string made from the text, map find 00613C20, the value at +0xC, the string freed); vector<party file entry, 0x74 bytes: PartyRecords + CString at +0x70> _M_insert_overflow 00619920 (RET 0xC; copy 006613C0 + CString copy, destroy CString + 006611D0; ours first). Not done in S12e (it took the connection lists, the hashtables, the vector members, the hero caches' constructors and 00619770)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

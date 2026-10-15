@@ -312,6 +312,8 @@ EI_REPLACE(0x004236C0, CountedEntryList::Erase);
 EI_REPLACE(0x005F8E50, CStringList::Erase);
 // erase(pos) of the connection's 0x104-byte headers (nodes from operator new; S12d).
 EI_REPLACE(0x00438660, PlainList260::Erase);
+// erase(pos) of pair<const string, dword> (the link loader's archives; S12e).
+EI_REPLACE(0x004FAE00, StringDwordList::Erase);
 
 // clear(): SharedRef (7), CountedRef (8), SharedEntry (2).
 EI_REPLACE(0x00427100, SharedRefList::Clear);
