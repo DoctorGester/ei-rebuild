@@ -1184,6 +1184,8 @@ verify_mfc_array.cpp `TwinConstruct`); no suite scenario calls them, so each als
 forwarded to without a registration: 00475F20 (the scene loader's point block free: `ArrayFree1`),
 005FBD30 (the global map zone's destructor: the CStrings at +0xC, then +8), 005711E0 (the water levels'
 CArray<CArray<float>> destructor: `WaterLevels::Destruct<ClientMapArrayClass>`) and 0046F160 (a patrol
-element's scalar deleting destructor: `ScalarDelete<&DestroyPatrol>`); checked ours only. After these,
+element's scalar deleting destructor: `ScalarDelete<&DestroyPatrol>`); checked ours only, the last two
+(which no scenario reaches) also at start-up with their blocks allocated and freed in reverse order, so the
+game's heap is left as it was (goldens unchanged). After these,
 no MFC row of config/library.csv is forwarded to without a registration except operator new / delete
 (007005AF / 007005D8, the allocator, standalone only).

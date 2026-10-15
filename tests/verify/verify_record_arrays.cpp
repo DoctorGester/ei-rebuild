@@ -608,5 +608,18 @@ void __fastcall WaterLevelsDestructCheck(WaterLevels::Array* self) {
     WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>(self);
     Check("CArray destructor 005711E0", true, ok && self->vtable == mfc::impl::ClientMapArrayClass::Vtable(), "%d", size);
 }
+// No suite scenario destroys the water levels: at start-up, two levels, the first with floats. The
+// blocks are freed in the reverse of their allocation (the floats, then the levels' storage), which
+// leaves the game's heap as it was.
+void WaterLevelsDestructStartupCheck() {
+    WaterLevels::Array levels;
+    levels.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::ClientMapArrayClass::Vtable()));
+    levels.SetSize(2, -1);
+    auto* floats = reinterpret_cast<mfc::CArray<float>*>(&levels.data[0]);
+    floats->data = static_cast<float*>(gamecrt::operator_new(3 * sizeof(float)));
+    floats->size = floats->maxSize = 3;
+    WaterLevelsDestructCheck(&levels);
+}
 } // namespace
 EI_VERIFY(0x005711E0, WaterLevelsDestructCheck, 0, s_unused);
+EI_STARTUP_CHECK(WaterLevelsDestructStartupCheck);
