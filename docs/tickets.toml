@@ -1489,7 +1489,7 @@ size = 2
 model = "opus"
 depends = ["S16"]
 files = ["tools/run_all.py", "tests/golden"]
-note = "Needs S15a too (the harness's call-site patches inside original code: frame capture, held updates, update countdowns) before standalone goldens can compare."
+note = "Needs S15a too (done). Wait for SV7's layout-independent goldens (SV7c): the standalone heap differs from the original's, so comparing against today's goldens only shows heap-layout fields."
 
 [[ticket]]
 id = "S18"
