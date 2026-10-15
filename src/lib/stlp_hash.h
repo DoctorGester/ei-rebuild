@@ -14,6 +14,8 @@
 // head of its bucket, and iteration walks the buckets in order and each chain from its head. A
 // rehash (resize) moves each old bucket's chain, head first, to the head of its new bucket.
 
+#include "crt.h"
+#include "mfc.h"
 #include "stlp.h"
 #include "stlp_alloc.h"
 #include "stlp_vector.h"
@@ -89,6 +91,76 @@ struct StringKeyTraits {
         std::memcpy(to->mapped, from.mapped, MappedBytes);
     }
     static void Destroy(Value* p) { p->key.~string(); }
+};
+
+// A value of a dword key (hashed as itself) and a T whose copy and destruction are an element
+// policy's (Construct(T*, const T&), Destroy(T*): stlp_vector.h's policies, record_vectors.h's).
+template <typename T>
+struct DwordKeyedObject {
+    std::uint32_t key;
+    T mapped;
+};
+template <typename T, typename E>
+struct DwordObjectTraits {
+    using Value = DwordKeyedObject<T>;
+    using Key = std::uint32_t;
+    static const Key& KeyOf(const Value& v) { return v.key; }
+    static std::uint32_t Hash(const Key& k) { return k; }
+    static bool Equal(const Key& a, const Key& b) { return a == b; }
+    static void Construct(Value* to, const Value& from) {
+        to->key = from.key;
+        E::Construct(&to->mapped, from.mapped);
+    }
+    static void Destroy(Value* p) { E::Destroy(&p->mapped); }
+};
+
+// pair<const CString, float> (the party's named variables): hashed by the text up to its zero
+// (HashChars), equal when _mbscmp says so (the node's key first). The node copies the CString
+// (a shared reference) and the float's bits; deleting it releases the CString. A temporary built
+// from a key holds a copy of it and zero.
+struct CStringFloat {
+    mfc::CString key;
+    float mapped;
+    explicit CStringFloat(const mfc::CString& k) : key(k), mapped(0.0f) {}
+};
+struct CStringFloatTraits {
+    using Value = CStringFloat;
+    using Key = mfc::CString;
+    static const Key& KeyOf(const Value& v) { return v.key; }
+    static std::uint32_t Hash(const Key& k) { return HashChars(static_cast<const char*>(k)); }
+    static bool Equal(const Key& a, const Key& b) {
+        return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(a)),
+                               reinterpret_cast<const unsigned char*>(static_cast<const char*>(b))) == 0;
+    }
+    static void Construct(Value* to, const Value& from) {
+        new (&to->key) mfc::CString(from.key);
+        std::memcpy(&to->mapped, &from.mapped, sizeof(float));
+    }
+    static void Destroy(Value* p) { p->key.~CString(); }
+};
+
+// pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as
+// StringKeyTraits. The node copies the string, then the list (its sentinel, then each element in
+// order); deleting it frees the list's nodes, its sentinel, then the string.
+struct StringList {
+    string key;
+    list<void*> mapped;
+};
+struct StringListTraits {
+    using Value = StringList;
+    using Key = string;
+    static const Key& KeyOf(const Value& v) { return v.key; }
+    static std::uint32_t Hash(const Key& k) { return k.Hash(); }
+    static bool Equal(const Key& a, const Key& b) { return a == b; }
+    static void Construct(Value* to, const Value& from) {
+        new (&to->key) string(from.key);
+        to->mapped.Construct();
+        list<void*>::InsertRange(to->mapped.head, from.mapped.First(), from.mapped.End());
+    }
+    static void Destroy(Value* p) {
+        p->mapped.Release();
+        p->key.~string();
+    }
 };
 
 // hashtable<Value, Key, HashFcn, ExtractKey, EqualKey, Alloc> over Traits (Value, Key, KeyOf, Hash,
@@ -308,6 +380,49 @@ public:
         buckets_.FreeStorage();
     }
 
+    // _M_copy_from(ht) (e.g. 004AA950): the bucket vector emptied, reserve(ht's bucket count), that
+    // many nulls appended; each of ht's chains copied from its head, a node at a time
+    // (_M_new_node), each linked after the one before; then ht's count. The table holds no nodes.
+    void CopyFrom(const hashtable& ht) {
+        std::size_t n = ht.BucketCount();
+        buckets_.Finish() = buckets_.Start();
+        buckets_.template Reserve<BucketElement>(n);
+        Node* none = nullptr;
+        buckets_.template FillInsert<BucketElement>(buckets_.end(), n, none);
+        for (std::size_t i = 0; i < n; ++i) {
+            const Node* cur = ht.buckets_[i];
+            if (!cur) continue;
+            Node* copy = NewNode(cur->value);
+            buckets_[i] = copy;
+            for (cur = cur->next; cur; cur = cur->next) {
+                Node* next = NewNode(cur->value);
+                copy->next = next;
+                copy = next;
+            }
+        }
+        count_ = ht.count_;
+    }
+    // hashtable(const hashtable& ht) (e.g. 004A8A50): ht's functor bytes, an empty bucket vector,
+    // no elements, then _M_copy_from(ht).
+    void CopyConstruct(const hashtable& ht) {
+        functors_[0] = ht.functors_[0];
+        functors_[1] = ht.functors_[1];
+        functors_[2] = ht.functors_[2];
+        buckets_.ConstructEmpty();
+        count_ = 0;
+        CopyFrom(ht);
+    }
+    // operator=(ht) (e.g. 004A8AD0): nothing for the table itself; else clear(), ht's functor
+    // bytes, _M_copy_from(ht).
+    void Assign(const hashtable& ht) {
+        if (&ht == this) return;
+        Clear();
+        functors_[0] = ht.functors_[0];
+        functors_[1] = ht.functors_[1];
+        functors_[2] = ht.functors_[2];
+        CopyFrom(ht);
+    }
+
     // _M_new_node(obj) (e.g. 00407420): a node from the pool, no next, a copy of obj.
     static Node* NewNode(const Value& obj) {
         Node* n = static_cast<Node*>(allocate(sizeof(Node)));
@@ -383,8 +498,20 @@ struct HashtableAbi {
     // temporary {copy of key, zeroes}, which is destroyed after; the address of the mapped part.
     static void* __fastcall SubscriptKey(Table* self, void*, const Key* key) {
         Value obj(*key);
-        return self->FindOrInsert(obj).mapped;
+        return &self->FindOrInsert(obj).mapped;
     }
+    // hashtable(const hashtable&) (e.g. 004A8A50; RET 4): returns this.
+    static Table* __fastcall CopyConstruct(Table* self, void*, const Table* source) {
+        self->CopyConstruct(*source);
+        return self;
+    }
+    // operator= (e.g. 004A8AD0; RET 4): returns this.
+    static Table* __fastcall Assign(Table* self, void*, const Table* source) {
+        self->Assign(*source);
+        return self;
+    }
+    // _M_copy_from(ht) (e.g. 004AA950; RET 4).
+    static void __fastcall CopyFrom(Table* self, void*, const Table* source) { self->CopyFrom(*source); }
     // pair<iterator, bool> (insert_unique's result): only the bool's byte is written after the iterator.
     struct InsertResult {
         Iterator it;

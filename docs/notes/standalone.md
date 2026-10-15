@@ -475,6 +475,34 @@ time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash
 a float key, and the 350-odd hash members nothing of ours calls (reached only from other
 originals; dead in the standalone image unless the exe's data points at them).
 
+**S11a (2026-10-15).** Hashtables whose values copy and destroy themselves: `hashtable` got
+`CopyFrom` (`_M_copy_from`), `CopyConstruct`, `Assign`; traits `CStringFloatTraits` (hash over the
+text, `_mbscmp` equality, the float copied as bits), `StringListTraits` (pair<string, list<void*>>),
+`DwordObjectTraits<T, Policy>` (dword key, value by an element policy). 25 addresses: CString->float
+004613C0 00461540 004615B0 004616A0 00461750 004A8A50 00580900 004A8AD0 004AA950 005E0DB0
+(stlp_hash.cpp); string keys ~hashtable 004A9010 006A6C20, string->list 004A8E60 004AAEB0 0069D130;
+the bridge heights' operator[] 005BCDE0 (Map8; the original's new value is the caller's stack dword,
+VC6's T() for a scalar: 0 here, its one caller overwrites it); in src/game/game_hashes.*: CParty map
+004A91B0 004ABA70 004AD050, the unit looks' ~hashtable 005986B0 (nested FiguredUnit tables)
+00598860, the shape cache 005BCCB0 005BE090 005BE320 005BE730 (heights equal when FCOMP says equal or
+unordered). Checks (verify_stlp_hash.cpp): CString->float against the original (keys' references
+retained before the original's frees, so its release is undone by taking the nodes back), the copies
+ours only (same buckets, keys' shared texts, value bits, new nodes); string->list clear against the
+original (list nodes, sentinel, string, node trail), find_or_insert and the shape cache's operator[] /
+find against the original; destructors, the CParty map (a party's copy cannot be undone) and inserts
+of the shape cache (Share marks the shape copy-on-share) ours only, the freed pool blocks checked in
+order. The suite reaches 21 of 25, 0 mismatches; not reached: 004A91B0 004ABA70 006A6C20 005BE090.
+
+**S10b (2026-10-15).** The three acks.db tables' resize(n): 006DB9C0 (UnitAcks), 006DBBD0
+(ModelAcks), 006DBE20 (ExtraAcks), as `VectorAbi<R, AcksElement<R>>::ResizeDefault`
+(record_vectors.h). The head copies its name and the speech map by the hashtable's copy constructor
+/ operator= (S11a); a default head is the name and an empty map of 100 buckets. The copied map's
+values still point into the source record's speech lists, as in the original. The policy lists the
+speech-list arrays itself: `records::Memberwise` takes an array of `stlp::vector` as trivially
+copyable (a vector's copy assignment is implicit and trivial), so its array overloads never apply and
+a default record's lists were left as garbage. Checks ours only (model text: name, map, every list);
+reached at boot, 0 mismatches.
+
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
 (NewNode, FreeNode, RemoveAt, RemoveAll, AddTail / AddHead and RemoveHead by value, destructor with

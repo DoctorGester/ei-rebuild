@@ -1857,11 +1857,12 @@ done = "2026-10-15"
 id = "S10b"
 title = "Standalone library: acks.db table record vectors"
 group = "standalone"
-status = "queued"
+status = "done"
 size = 1
 depends = ["S10a", "S11"]
 files = ["src/game/record_vectors.h", "src/game/record_vectors.cpp", "src/game/acks_db.h"]
 note = "S10a left the resize(n) of acks.db's three table record vectors (006DB9C0 UnitAcks 0x1C4, 006DBBD0 ModelAcks 0x5C, 006DBE20 ExtraAcks 0x38): each record's head holds a hash_map<int, SpeechList*> (AckRecordHead), so the record's copy needs S11's hashtable copy (_M_copy_from); the speech lists copy with SpeechElement (record_vectors.h), the destructors are ported (acks_db.cpp). Policy pattern and checks: standalone.md S10a, verify_record_vectors.cpp."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S10c"
@@ -1894,11 +1895,12 @@ note = "What S6 left (docs/notes/standalone.md S6): SetSize / ConstructElements 
 id = "S11a"
 title = "Standalone library: STLport hashtables of objects"
 group = "standalone"
-status = "queued"
+status = "done"
 size = 1
 depends = ["S11"]
 files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
 note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp)."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S7a"
@@ -1927,6 +1929,24 @@ status = "queued"
 size = 1
 files = ["src/lib/crt_iostream.h", "src/lib/crt_iostream.cpp"]
 note = "S4c ported the ostream inserters (src/lib/crt_iostream.*). The image still lacks the streams themselves: ostream(streambuf*) 006FC42F (8 static-initialiser calls), the ios / streambuf constructors and destructors (006FCAD2 streambuf(char*, int), 006FCB35 ~streambuf, 006FCDB1, 006FCF26 and the ostream destructor), the streambuf virtual defaults the game's streambufs inherit (vtable 007482AC: 006FCAB6, 006FCC86 sync, 006FCB65 setbuf, 006FCD18 / 006FCD1E seek, 006FCB99 xsputn, 006FCBEF xsgetn, 006FCD30, 006FCCBB doallocate), the log stream's streambuf, and fflush 006ED534 (osfx under ios::stdio). Also check the C initialisers in the __xi list the image does not run (00783BBC 006E728D, 00783BC4 006F239A __initstdio, 00783BC8 006F02F9; __initmbctable is done). Verify against the originals on scratch objects as verify_crt_iostream.cpp does. standalone.md S4c group 4."
+
+[[ticket]]
+id = "S11b"
+title = "Hashtables of objects: checks for the four unreached S11a members"
+group = "standalone"
+status = "later"
+size = 1
+files = ["tests/verify/verify_stlp_hash.cpp"]
+note = "S11a ported 25 hash members; the suite never reaches 004A91B0 (hash_map<int, CParty> operator[]), 004ABA70 (its _M_delete_node), 006A6C20 (string-key ~hashtable) and 005BE090 (the shape cache's operator[]). Find a scenario that reaches them (party creation, a world teardown, an AI unit with a new shape key) or add one, and confirm 0 mismatches. Checks there are ours only for the CParty map (standalone.md S11a)."
+
+[[ticket]]
+id = "S10d"
+title = "records::Memberwise: arrays of stlp::vector members"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/game/record_members.h"]
+note = "stlp::vector has a deleted copy ctor but an implicit trivial copy assignment, so std::is_trivially_copyable is true and record_members.h's array overloads of CopyMember / DefaultMember are skipped for an array of vectors (memcpy / no-op instead). S10b hit it (acks lists[], listed in AcksElement by hand). Make the array overloads key on the element's own policy (or static_assert against arrays of non-POD records) so a future Memberwise over e.g. SpellDatabase::lists cannot go wrong silently."
 
 # ---------------------------------------------------------------- Lua
 

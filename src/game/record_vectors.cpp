@@ -48,6 +48,11 @@ EI_REPLACE(0x006D2830, Print2Vector::ResizeDefault);          // 0x34
 EI_REPLACE(0x006E4560, SpeechVector::ResizeDefault);          // 0x28
 EI_REPLACE(0x006E47F0, EnvironmentSpeechVector::ResizeDefault);   // 0x2C
 
+// acks.db's tables (resize(n), RET 4; loaded at startup).
+EI_REPLACE(0x006DB9C0, UnitAcksVector::ResizeDefault);    // 0x1C4
+EI_REPLACE(0x006DBBD0, ModelAcksVector::ResizeDefault);   // 0x5C
+EI_REPLACE(0x006DBE20, ExtraAcksVector::ResizeDefault);   // 0x38
+
 // The client's lobby queries (net_lobby.cpp).
 EI_REPLACE(0x004439C0, QueryVector::InsertOverflow);   // 0x2C
 EI_REPLACE(0x00443BF0, QueryVector::Assign);

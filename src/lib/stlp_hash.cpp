@@ -40,6 +40,10 @@ using Set4 = stlp::HashtableAbi<stlp::DwordKeyTraits<4>>;
 using Map28 = stlp::HashtableAbi<stlp::DwordKeyTraits<28>>;
 // String keys (__stl_hash_string), a 4-byte mapped value: 20-byte nodes (the 24-byte list).
 using Str4 = stlp::HashtableAbi<stlp::StringKeyTraits<4>>;
+// hash_map<CString, float>: 12-byte nodes (the 16-byte list).
+using CStrFloat = stlp::HashtableAbi<stlp::CStringFloatTraits>;
+// hash_map<string, list<void*>>: 20-byte nodes (the 24-byte list).
+using StrList = stlp::HashtableAbi<stlp::StringListTraits>;
 
 } // namespace
 
@@ -291,3 +295,30 @@ EI_REPLACE(0x006A7340, Str4::Clear);
 EI_REPLACE(0x006B0520, Str4::Clear);
 EI_REPLACE(0x006B0590, Str4::Clear);
 EI_REPLACE(0x006BCE00, Str4::Clear);
+
+// ~hashtable() of string keys with a 4-byte mapped value (library.csv: "clear").
+EI_REPLACE(0x004A9010, Str4::Destroy);
+EI_REPLACE(0x006A6C20, Str4::Destroy);
+
+// hash_map<CString, float> (the party's variables, NamedFloatTable): operator[], clear, the node
+// members, resize, the copies and the iterator's _M_skip_to_next.
+EI_REPLACE(0x004613C0, CStrFloat::SubscriptKey);
+EI_REPLACE(0x00461540, CStrFloat::Clear);
+EI_REPLACE(0x004615B0, CStrFloat::NewNode);
+EI_REPLACE(0x004616A0, CStrFloat::DeleteNode);
+EI_REPLACE(0x00461750, CStrFloat::Resize);
+EI_REPLACE(0x004A8A50, CStrFloat::CopyConstruct);
+EI_REPLACE(0x00580900, CStrFloat::CopyConstruct);
+EI_REPLACE(0x004A8AD0, CStrFloat::Assign);
+EI_REPLACE(0x004AA950, CStrFloat::CopyFrom);
+EI_REPLACE(0x005E0DB0, CStrFloat::SkipToNext);
+
+// hash_map<string, list<void*>> (the item stock's recipes): ~hashtable, clear, find_or_insert.
+EI_REPLACE(0x004A8E60, StrList::Destroy);
+EI_REPLACE(0x004AAEB0, StrList::Clear);
+EI_REPLACE(0x0069D130, StrList::FindOrInsert);
+
+// hash_map<int, unsigned>::operator[] of the AI map's bridge heights (resize 005BEA80, node
+// 005BE1B0). The original's new value is the caller's stack dword after the key argument (VC6's
+// T() for a scalar); it is zero here, which its one caller (CAIMap::ApplyBridges) overwrites.
+EI_REPLACE(0x005BCDE0, Map8::Subscript);
