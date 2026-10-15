@@ -1294,6 +1294,15 @@ size = 1
 files = ["tools/tickets.py", "tools/work.py", "tools/work_board/*", "tools/tickets_board/index.html"]
 note = "User 2026-10-15: move volatile ticket status (running / review / done / started dates) out of docs/tickets.toml into build/live/work.db (the shared database work.py already uses, found from any worktree), so a worker's status shows at once and merges stop conflicting on status lines. Ticket text (title, group, size, depends, files, notes) stays in git. work.py start sets running, the worker's 'tickets.py set ID review' writes the database, 'work.py done ID merged' sets done. tickets.py reads status from the database (falling back to the toml's status for tickets the database has never seen, then migrating them once), writes docs/tickets.md and build/tickets/tickets.json as before, and drops the status field from tickets.toml after migration. The work board server (work.py serve, :8765) also serves the ticket board page (tools/tickets_board/index.html) with live tickets.json, so it is always current; the claude.ai artifact stays and is republished by the coordinator. Update tools/tickets.py docs and tests, the area-worker brief if it mentions status, and keep the existing tickets' current statuses exactly."
 
+[[ticket]]
+id = "I12"
+title = "ui_mp_host times out when two batches run it at once"
+group = "harness"
+size = 0.5
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
+note = "Main --golden 2026-10-15 (twice) and SV7b1's suite: ui_mp_host vanilla and rebirth TIMEOUT at step 33-35 of 61 while other batches ran; passes alone. Most likely two games hosting on UDP 8888 at once (see N0c). Fix in the scheduler (a 'net' resource: one multiplayer scenario at a time machine-wide) or give each slot its own port if the game takes one from the command line or config. Check which scenarios host or join."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
