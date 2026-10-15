@@ -781,7 +781,7 @@ note = "From SV3: harness_saves/<save>/mission.sav (size and bytes) differs betw
 id = "SV3c"
 title = "Rebirth with the flags off parts from addon's code at world update 40"
 group = "verification"
-status = "running"
+status = "review"
 size = 0.5
 files = ["tools/golden.py"]
 note = "From SV3: EI_REBIRTH=FollowAddon=0 (flags off; the rewrites of what addon.dll patches are not installed) on the Rebirth install, against the Rebirth goldens (addon's code alone, which ours with the flags on matches): all five (console, harness_digest, items, script_parse, ui_help) differ from the first record after the new game, world update 40: isaac.count 172 against 169, three more ISAAC draws. Something ours runs with a flag off while addon.dll's patch is active elsewhere (a flag consulted outside the patched function, or an EI_Plugin feature). Find it with randtrace on both (set EI_HARNESS_CLOCK=virtual,randtrace) and golden.py diff; check with: set EI_REBIRTH=FollowAddon=0 & python tools\\work.py test <ID> --rebirth-only --golden console items."
@@ -927,6 +927,14 @@ group = "verification"
 status = "queued"
 size = 0.5
 note = "From SV3d: the original repeats, ours differs from it in crt.rand: sound (ours repeats; console line 32 an extra 'Unit 1000012714 was attacked by 1000011214' line, digests part at update 100 in crt.rand; SV1b saw a FindAnimation pick one frame earlier in ours at 272), zone_gz2g_traps (@120 crt.rand; ours' own runs part at 80 in isaac.count, maybe SV1j), models (@100 crt.rand, ours alternates between the original's value and another). Use randtrace on both sides after SV1j lands."
+
+[[ticket]]
+id = "SV3c1"
+title = "Build check: no direct calls to rewrites of Rebirth-patched functions (rule 9)"
+group = "verification"
+status = "queued"
+size = 0.5
+note = "From SV3c: GameRender called our CWorldClient::Render directly, so flags off ran the vanilla terrain radius while addon's patched 00569E40 was due; a one-off scan found three more (fixed). Make it a check: capstone over ei_hook.dll .text, follow incremental-link thunks, call/jmp targets that are the replacement of an address in docs/rebirth-patched-functions.txt, callers named from ei_hook.map; allow verify wrappers, self-calls, the script parser/evaluator family (one flag) and calls the original inlines (ProcessRequest -> StartNewGame, CMMIOResource::Destroy -> CMappedResource::Destroy). The scratch version took 47 s (undecorating the whole map): undecorate only the target and caller symbols. Inlined calls stay unseen (a source grep for small patched functions covers those)."
 
 # ---------------------------------------------------------------- harness and suite
 

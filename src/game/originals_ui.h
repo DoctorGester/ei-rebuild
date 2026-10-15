@@ -27,6 +27,10 @@ struct ItemCell;
 struct NamedFloatTable;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
+// 00638EF0 (thiscall on the battle screen, RET 0xC; Rebirth-patched: FixSpellSelfCasting; rewritten as
+// CBattleScreen::SelectUnit in ui_hud.cpp): the click on a unit or a point.
+__declspec(naked) inline void __fastcall SelectUnitAt(void* /*battle screen*/, void*, CUnit*, int, int)
+    EI_ORIGINAL(0x00638EF0)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
 __declspec(naked) inline void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int)
     EI_ORIGINAL(0x005DB3F0)

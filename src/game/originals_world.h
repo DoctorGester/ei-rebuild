@@ -249,6 +249,8 @@ __declspec(naked) inline void __fastcall PlatformSetDestructOriginal(PlatformSet
 // connection is lost). 0058DFF0: the server world's update (CWorldServer::Update; EAX 0 when it stops).
 // 0057C700 (patched by Rebirth): the game flow (007AFE20) runs its pending request (GameFlow::ProcessRequest).
 __declspec(naked) inline int __fastcall ClientSegmentOriginal(void* /*client*/) EI_ORIGINAL(0x005641F0)
+// 00569E40 (patched by Rebirth: LandscapeDrawRadius): the client world draws a frame (CWorldClient::Render).
+__declspec(naked) inline int __fastcall ClientRenderOriginal(void* /*client*/) EI_ORIGINAL(0x00569E40)
 __declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*server*/) EI_ORIGINAL(0x0058DFF0)
 __declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow*/) EI_ORIGINAL(0x0057C700)
 // C3m. 00596030 (rewritten as CWorldServer::LoadMapObjects; RET 8): loads a .mob file's objects (second argument:
