@@ -177,7 +177,7 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **X40a** Crash stacks name the functions (ei_hook+offset through ei_hook.map, game.exe through the function list) (running since 2026-10-16). X40 logs the code addresses on a crashed game's stack (ei_hook.log 'stack ei_hook+XXXX' / 'stack 006936BE (game.exe)'), raw. Resolve them to names in run_all's failure summary or a small tool, from build/<cfg>/ei_hook.map and the known game functions, and drop stale frames (addresses above the throw's frame chain).
+- **X40a** Crash stacks name the functions (ei_hook+offset through ei_hook.map, game.exe through the function list) (review since 2026-10-16). X40 logs the code addresses on a crashed game's stack (ei_hook.log 'stack ei_hook+XXXX' / 'stack 006936BE (game.exe)'), raw. Resolve them to names in run_all's failure summary or a small tool, from build/<cfg>/ei_hook.map and the known game functions, and drop stale frames (addresses above the throw's frame chain).
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.

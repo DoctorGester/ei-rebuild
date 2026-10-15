@@ -334,6 +334,18 @@ def wait_for_disk(path, low=None, wait=None, poll=5.0):
         time.sleep(poll)
 
 
+def crash_stack_note(out, build, cmd, root=ROOT):
+    """The note under a crashed run's line: its stack by function names (tools/resolve_crash.py, X40a), the
+    last frames before the crash; never fails the run."""
+    try:
+        import resolve_crash
+        exe = cmd[cmd.index('--exe') + 1] if '--exe' in cmd else None
+        text = resolve_crash.named_stack(out, build=build, game_exe=exe, root=root, max_frames=10)
+        return f'stack: {text}' if text else f'stack: not resolved (python tools/resolve_crash.py {os.path.relpath(out, root)})'
+    except Exception as e:           # a tool problem must not hide the crash itself
+        return f'stack: not resolved ({type(e).__name__}: {e})'
+
+
 def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env, dgvoodoo=False):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
@@ -404,6 +416,8 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
                         + ('' if proc.returncode != UNKILLABLE_EXIT else ' (it did not die: a thread is stuck in the kernel)')]
         if proc.returncode == UNKILLABLE_EXIT:
             failures.append('the game process is still alive after TerminateProcess')
+    if any('the game crashed' in f or 'no code at' in f for f in failures):
+        notes.append(crash_stack_note(out, build, cmd, root))
     expected = expected_result(scenario)
     if expected and result == expected and proc.returncode != UNKILLABLE_EXIT:
         result = 'PASS'
