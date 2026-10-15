@@ -917,6 +917,42 @@ vector<uint16> insert_overflow 0043B530, vector<8 bytes> erase 00439DD0, frees b
 ~list), its find_if and counted-pointer init, two plain hashtable erases, a hashtable clear and two
 constructors, three vector-member destructors and the hero screen's string sorts and vector members.
 
+**S12e (2026-10-15).** S12d's leftovers our code forwards to, 25 addresses. The connection's lists
+whose elements own something (src/game/library_net_lists.*, on stlp_list.h's `ListAbi` with element
+policies): list<SentPacket> (`PacketRecord`: copied as 0043ADE0 - time, sequence, the items by
+list's copy constructor, the header's 0x104 bytes, the rolled-back byte; destroyed as 0043A1D0 - the
+items' entries released, their nodes, then the items' sentinel), its items list<SentItem>
+(`SentRecord`: the entry counted by its 16-bit count, released through CRefObject::Release),
+list<vector<FreedId>> (vector's copy constructor; ~_Vector_base) and list<ReliableChunk> (bytes):
+copy constructors 00437930 / 00437F60 / 00438690 (a sentinel, then insert(end(), first, last)), the
+default inserts 00438F60 / 00439000 / 004397E0 / 00439C80 (`InsertDefault`: the default made, copied
+into the node, destroyed - a packet's default takes an item sentinel from the pool and gives it back,
+so the pool ends as the original's), erase 00437F30 / 004390C0, clear 0043CA40 / 0043BA20, ~list
+004399C0; the clients' find_if by peer address 0043D780 (the 16 address bytes at Connection +0x2C)
+and the counted pointer's init 0043D7D0 (stored without a reference). Where the original copies its
+stack's uninitialised bytes (a default item's action and version, a default packet's time, sequence
+and header, a default chunk) ours copies zeros; every caller overwrites them. Hashtables
+(stlp_hash.cpp): erase by key of the fog's cell map 004E2F00 (`Map28`) and the sound manager's
+deferred sounds 006BD060 (`Map8`), ~hashtable<CString, float> 00663330 (the party records'
+variables). The hero screen's item caches: constructors 00633F50 / 00633FF0 (`HeroItemCache`: map()
+and the limit 50, library_trees.cpp) and the texture cache's node allocate 00619770
+(`TreeAbi::AllocateNodes`, new). The link loader's archive erase 004FAE00 (`StringDwordList::Erase`);
+the server list's GameInfoRecord strings 0041AC30 and the print records' names 006D29A0 / 006D29E0
+(library_containers.cpp). Checks (tests/verify/verify_library_net_lists.cpp, verify_stlp_hash.cpp,
+verify_library_trees.cpp, verify_library_containers.cpp): ours only for the connection lists (the
+copies against their source element by element with each entry's count up by its copies; inserts by
+links, default element and pool blocks; erase / clear / ~list by links and the blocks on top), the
+archive erase and the game record; against the original the find and the init (pure), the erases by
+key (the original first, its freed nodes restored), the cache constructors and allocate (the
+original's block back to the pool, ours takes it) and the print names (CheckFree). A start-up check
+drives all 25 through their addresses (fake counted entries: their counts come back to 50). The
+init's stolen bytes are 11 (`MOV [ESP+0],0` is eight bytes; a first try with 10 crashed). In the
+suite the connection members run in every session (smoke: 52 inits, 352 finds, the copies only in
+the start-up check); 006BD060, 00663330 and the hero caches are reached, 004E2F00, 00619770, 004FAE00,
+0041AC30 and the print names only by the start-up check. Full `--golden` suite: 128 runs pass, 56 goldens the same, 0 mismatches. Not done, filed as S12f: the hero screen's
+string sorts (0060B330 / 0060B440 over stlp::string by _stricmp, 0061A240 / 0061A300 over CString),
+the spell lookup 00613920 and the party entries' insert_overflow 00619920.
+
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
 006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot

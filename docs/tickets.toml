@@ -1736,6 +1736,15 @@ depends = ["S6c"]
 files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
 note = "From S6c. Serialize (slot 2) of 20: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); 004C2700 with its own SerializeElements<CString>. SerializeCList builds the local with the element policy and adds a copy: each needs the instantiation's assignment and the temporary's release (a SerializeCList variant taking the element's copy / release), checked at start-up like verify_mfc_serialize.cpp's (Mode 2 where releasing a copy needs more than construction)."
 
+[[ticket]]
+id = "S12f"
+title = "Standalone library: the hero screen's string sorts, spell lookup and party-entry insert_overflow"
+group = "standalone"
+size = 1
+depends = ["S12e"]
+files = ["src/game/stl_sorts.cpp", "src/lib/stlp_algo.h", "src/lib/stlp_vector.cpp", "src/game/library_containers.cpp"]
+note = "S12e's hero screen rows (A-I15), still forwarded by our code: the topic sort over vector<stlp::string> (ui_briefing_topics.cpp): introsort loop 0060B330 (RET 0xC) and final insertion sort 0060B440 (RET 4); the comparison is _stricmp of the two texts (partition 0060B990: the pivot a string copy, swaps through string(first, last) / assign, so copies allocate: stlp::Sort with a string Ops, ours first per SV2f); the CString sort (ui_hero_screen_create.cpp, operator< by _mbscmp): 0061A240 (RET 8) / 0061A300 (copies add references: ValueOps<CString>, ours first); the spell prototype by name 00613920 (thiscall on 007C8510, RET 4: a stlp::string made from the text, map find 00613C20, the value at +0xC, the string freed); vector<party file entry, 0x74 bytes: PartyRecords + CString at +0x70> _M_insert_overflow 00619920 (RET 0xC; copy 006613C0 + CString copy, destroy CString + 006611D0; ours first). Not done in S12e (it took the connection lists, the hashtables, the vector members, the hero caches' constructors and 00619770)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
