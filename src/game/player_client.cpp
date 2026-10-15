@@ -124,7 +124,7 @@ constexpr int kNumberExperience = 8;
 int ScaledExperience(const CUnit* unit, float amount) {
     double base = *reinterpret_cast<const double*>(0x0073E128);
     float offset = *reinterpret_cast<const float*>(0x0073E124);
-    volatile float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->attackRate) - offset) * amount);
+    float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->attackRate) - offset) * amount);
     return static_cast<int>(std::lrint(scaled));
 }
 

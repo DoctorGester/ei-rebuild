@@ -2,9 +2,8 @@
 // camera upright towards its target (0040D710) and keeping it above nearby objects (0040E4C0).
 // See camera.h and docs/notes/core.md.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
-// of operations and the NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "camera.h"
 
 #include "map_object_figures.h"
@@ -17,12 +16,9 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 using camera::D;
-using camera::Store;
 
 // FCOMP then TEST AH,0x40 (C3): equal, or unordered.
 bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
@@ -37,11 +33,11 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
     if (!(lengthSquare > CAM_LOOK_EPSILON)) return false;
     double inv = CAM_ONE_D / x87::fsqrt(lengthSquare);
-    float invRounded = Store(inv);
-    float nx = Store(inv * dx);
-    float ny = Store(D(invRounded) * dy);
-    float elevation = Store(CIasin(-(D(invRounded) * dz)));
-    float heading = Store(CIacos(D(ny) / Hypot(nx, ny)));
+    float invRounded = static_cast<float>(inv);
+    float nx = static_cast<float>(inv * dx);
+    float ny = static_cast<float>(D(invRounded) * dy);
+    float elevation = static_cast<float>(CIasin(-(D(invRounded) * dz)));
+    float heading = static_cast<float>(CIacos(D(ny) / Hypot(nx, ny)));
     if (EqualOrUnordered(nx, CAM_ZERO) || EqualOrUnordered(heading, CAM_ZERO)) {
         std::memcpy(&viewRotation_, &camera::IdentityRotation(), sizeof(Quaternion));
     } else {
@@ -62,21 +58,21 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     double e1 = Dot2DUnrounded<double>(q.w, q.x, q.z, q.y);
     double e2 = D(q.x) * q.z - D(q.w) * q.y;
     Vector3 xAxis;
-    xAxis.x = Store((D(q.w) * q.w - (LengthSquared2DUnrounded<double>(q.y, q.z) + xx)) + (xx + xx));
-    xAxis.y = Store(e1 + e1);
-    xAxis.z = Store(e2 + e2);
-    float angle = Store(-((CAM_PI * CAM_PER_180) * CAM_NINETY + D(elevation)));
+    xAxis.x = static_cast<float>((D(q.w) * q.w - (LengthSquared2DUnrounded<double>(q.y, q.z) + xx)) + (xx + xx));
+    xAxis.y = static_cast<float>(e1 + e1);
+    xAxis.z = static_cast<float>(e2 + e2);
+    float angle = static_cast<float>(-((CAM_PI * CAM_PER_180) * CAM_NINETY + D(elevation)));
     Quaternion turn;
     const Quaternion& r = *turn.SetAngleAxis(angle, xAxis);
     Quaternion& t = localRotation_;
     double x = ((D(t.z) * r.y - D(t.y) * r.z) + D(r.w) * t.x) + D(t.w) * r.x;
-    float y = Store(((D(t.x) * r.z - D(t.z) * r.x) + D(r.w) * t.y) + D(t.w) * r.y);
-    float zz = Store(((D(t.y) * r.x - D(r.y) * t.x) + D(r.w) * t.z) + D(t.w) * r.z);
+    float y = static_cast<float>(((D(t.x) * r.z - D(t.z) * r.x) + D(r.w) * t.y) + D(t.w) * r.y);
+    float zz = static_cast<float>(((D(t.y) * r.x - D(r.y) * t.x) + D(r.w) * t.z) + D(t.w) * r.z);
     double w = D(r.w) * t.w - DotUnrounded<Sum3::ZYX, double>(r.x, r.y, r.z, t.x, t.y, t.z);
     t.z = zz;
     t.y = y;
-    t.w = Store(w);
-    t.x = Store(x);
+    t.w = static_cast<float>(w);
+    t.x = static_cast<float>(x);
     return true;
 }
 
@@ -89,43 +85,43 @@ void CCamera::AlignToTarget() {
     q.AxisZ(&zAxis);
     q.AxisX(&xAxis);
     double negZx = -D(zAxis.x);
-    float hy = Store(negZx);
+    float hy = static_cast<float>(negZx);
     float hz = 0.0f;
     double inv = D(CAM_ONE) / x87::fsqrt(negZx * hy + D(zAxis.y) * zAxis.y);
-    float invRounded = Store(inv);
-    float hx = Store(inv * zAxis.y);
-    hy = Store(D(hy) * invRounded);
+    float invRounded = static_cast<float>(inv);
+    float hx = static_cast<float>(inv * zAxis.y);
+    hy = static_cast<float>(D(hy) * invRounded);
     double dot = DotUnrounded<Sum3::ZYX, double>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
-    float cosine = Store(dot);
+    float cosine = static_cast<float>(dot);
     if (dot > D(CAM_ONE)) cosine = 1.0f;
     else if (!(D(cosine) >= D(CAM_MINUS_ONE))) cosine = -1.0f;
-    float angle = Store(CIacos(cosine));
+    float angle = static_cast<float>(CIacos(cosine));
     float magnitude = angle;
     std::uint32_t bits;
     std::memcpy(&bits, &magnitude, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&magnitude, &bits, 4);
     if (CAM_PI * CAM_PER_180 > D(magnitude)) return;
-    float cx = Store(D(xAxis.y) * hz - D(xAxis.z) * hy);
-    float cy = Store(D(xAxis.z) * hx - D(hz) * xAxis.x);
-    float cz = Store(D(hy) * xAxis.x - D(xAxis.y) * hx);
+    float cx = static_cast<float>(D(xAxis.y) * hz - D(xAxis.z) * hy);
+    float cy = static_cast<float>(D(xAxis.z) * hx - D(hz) * xAxis.x);
+    float cz = static_cast<float>(D(hy) * xAxis.x - D(xAxis.y) * hx);
     double invC = D(CAM_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cx, cy, cz));
     Vector3 axis;
-    axis.x = Store(D(cx) * invC);
-    axis.y = Store(D(cy) * invC);
-    axis.z = Store(D(cz) * invC);
+    axis.x = static_cast<float>(D(cx) * invC);
+    axis.y = static_cast<float>(D(cy) * invC);
+    axis.z = static_cast<float>(D(cz) * invC);
     double axisLength = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
     if (axisLength > CAM_ALIGN_EPSILON) {
         Quaternion turn;
-        const Quaternion& r = *turn.SetAngleAxis(Store(D(angle) * D(CAM_TENTH)), axis);
+        const Quaternion& r = *turn.SetAngleAxis(static_cast<float>(D(angle) * D(CAM_TENTH)), axis);
         double x = ((D(r.y) * q.z - D(q.y) * r.z) + D(q.x) * r.w) + D(r.x) * q.w;
-        float y = Store(((D(q.x) * r.z - D(r.x) * q.z) + D(q.y) * r.w) + D(r.y) * q.w);
-        float z = Store(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(r.z) * q.w);
+        float y = static_cast<float>(((D(q.x) * r.z - D(r.x) * q.z) + D(q.y) * r.w) + D(r.y) * q.w);
+        float z = static_cast<float>(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(r.z) * q.w);
         double w = D(r.w) * q.w - DotUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z, r.x, r.y, r.z);
         q.z = z;
         q.y = y;
-        q.w = Store(w);
-        q.x = Store(x);
+        q.w = static_cast<float>(w);
+        q.x = static_cast<float>(x);
     }
     ClampAboveObjects();
 }
@@ -150,32 +146,32 @@ void CCamera::ClampAboveObjects() {
         if (object->above.x > limit || object->above.y > limit || object->above.z > limit ||
             object->center.z > limit)
             continue;
-        float cx = Store(D(object->position.x) + object->center.x);
-        float cy = Store(D(object->position.y) + object->center.y);
+        float cx = static_cast<float>(D(object->position.x) + object->center.x);
+        float cy = static_cast<float>(D(object->position.y) + object->center.y);
         float cz = p->z;
         double radius = Hypot(object->above.x, object->above.y);
         double dx = D(cx) - p->x;
         double dy = D(cy) - p->y;
         double dz = D(cz) - p->z;
-        float outside = Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
+        float outside = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
         double factor = CAM_ZERO;
         if (!(outside > CAM_ZERO)) factor = CAM_ONE;
         else if (!(outside > CAM_OBJECT_FADE)) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
-        float height = Store(((D(object->position.z) + object->above.z) + object->center.z) * factor);
+        float height = static_cast<float>(((D(object->position.z) + object->above.z) + object->center.z) * factor);
         if (!(best >= height)) best = height;
     }
     CameraSettings* s = settings_;
     float raised;
     if (best > highest) {
-        float over = Store(D(best) - D(highest));
+        float over = static_cast<float>(D(best) - D(highest));
         float limit = s->maxRaise;
         float used = !(over >= limit) ? over : limit;
-        float wanted = Store((D(used) + highest) + D(s->clearance));
+        float wanted = static_cast<float>((D(used) + highest) + D(s->clearance));
         float z = p->z;
         raised = !(z >= wanted) ? wanted : z;
     } else {
         float top = !(best >= highest) ? highest : best;
-        float wanted = Store(D(top) + D(s->clearance));
+        float wanted = static_cast<float>(D(top) + D(s->clearance));
         float z = p->z;
         raised = !(z >= wanted) ? wanted : z;
     }

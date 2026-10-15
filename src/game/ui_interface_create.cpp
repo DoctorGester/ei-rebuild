@@ -28,12 +28,6 @@
 namespace {
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-// The original keeps the fonts' scale in a float stack slot.
-float StoreScale(float value) {
-    volatile float stored = value;
-    return stored;
-}
-
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
 const char* FontFace() { return game::Text(0x00793034); }   // "Times New Roman"
@@ -138,7 +132,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     LOGFONTA measured;
     gameapi::GetObjectA(fonts_[0]->handle_, sizeof(measured), &measured);
     const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
-    const float scale = StoreScale(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
+    const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
     if (fonts_[0]) fonts_[0]->Delete();
     for (int i = 0; i < 3; ++i) {
         fonts_[i] = NewFont();

@@ -49,7 +49,7 @@ constexpr float kSectorTint = 0.7f;
 constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
-float ArcAngle(int turn, float step) { return RoundToFloat(RoundToFloat(static_cast<float>(turn) * Pi()) * step); }
+float ArcAngle(int turn, float step) { return static_cast<float>(static_cast<float>(static_cast<float>(turn) * Pi()) * step); }
 // The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only
 // add, subtract, multiply, divide and square root), so they stay unrounded and it is their product
 // with the radius that the FPU rounds to float at its 24-bit precision. That is what makes
@@ -65,8 +65,8 @@ struct ArcPoint {
 };
 ArcPoint OnArc(int turn, float step, double radius) {
     const float angle = ArcAngle(turn, step);
-    return {static_cast<int>(gamecrt::Ftol(RoundToFloat(ArcCos(angle) * radius))),
-            static_cast<int>(gamecrt::Ftol(RoundToFloat(ArcSin(angle) * radius)))};
+    return {static_cast<int>(gamecrt::Ftol(static_cast<float>(ArcCos(angle) * radius))),
+            static_cast<int>(gamecrt::Ftol(static_cast<float>(ArcSin(angle) * radius)))};
 }
 
 CUiMeshBuilder* Builder(CUiMesh* sprite) { return static_cast<CUiMeshBuilder*>(sprite); }
@@ -156,15 +156,15 @@ void CHudMovePanel::SetupVanilla() {
     for (int mode = 0; mode < 4; ++mode) {
         CUiMesh* sector = AddSprite(nullptr);
         const float endAngle = ArcAngle(mode + 1, Eighth());
-        const float endUp = RoundToFloat(ArcSin(endAngle) * SectorRadius());
-        const float endAcross = RoundToFloat(ArcCos(endAngle) * SectorRadius());
+        const float endUp = static_cast<float>(ArcSin(endAngle) * SectorRadius());
+        const float endAcross = static_cast<float>(ArcCos(endAngle) * SectorRadius());
         const float startAngle = ArcAngle(mode, Eighth());
-        const float startUp = RoundToFloat(ArcSin(startAngle) * SectorRadius());
-        const float startAcross = RoundToFloat(ArcCos(startAngle) * SectorRadius());
-        sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, RoundToFloat(LayoutBottom() - startUp), endAcross,
-                            RoundToFloat(LayoutBottom() - endUp), 2.0f, 254.0f, RoundToFloat(startAcross + TexelLeft()),
-                            RoundToFloat(TexelBottom() - startUp), RoundToFloat(endAcross + TexelLeft()),
-                            RoundToFloat(TexelBottom() - endUp));
+        const float startUp = static_cast<float>(ArcSin(startAngle) * SectorRadius());
+        const float startAcross = static_cast<float>(ArcCos(startAngle) * SectorRadius());
+        sector->SetTriangle(10.0f, 100.0f, 0.0f, 600.0f, startAcross, static_cast<float>(LayoutBottom() - startUp), endAcross,
+                            static_cast<float>(LayoutBottom() - endUp), 2.0f, 254.0f, static_cast<float>(startAcross + TexelLeft()),
+                            static_cast<float>(TexelBottom() - startUp), static_cast<float>(endAcross + TexelLeft()),
+                            static_cast<float>(TexelBottom() - endUp));
         sector->tint_[0] = kSectorTint;
         sector->tint_[1] = kSectorTint;
         sector->tint_[2] = kSectorTint;

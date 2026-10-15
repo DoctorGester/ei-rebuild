@@ -30,8 +30,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858
 constexpr float kOne = 1.0f;                                        // 0073B84C / 0073EEE4
@@ -595,7 +593,7 @@ namespace {
 // The unit's attack interval: the weapon prototype's +0x6C (or stats +0x8C truncated) scaled by
 // 15 / stats +0x30 (unscaled when that is 0 or NaN), rounded.
 int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
-    volatile float factor = self->Combat().rate;
+    float factor = self->Combat().rate;
     if (!ZeroOrUnordered(factor)) factor = kFifteen / factor;
     int base;
     if (weapon) {
@@ -612,7 +610,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
         }
         base = truncated;
     }
-    volatile float scaled = static_cast<float>(static_cast<double>(base) * factor);
+    float scaled = static_cast<float>(static_cast<double>(base) * factor);
     return x87::fistp(scaled);
 }
 
@@ -790,7 +788,7 @@ void CUnitServer::ApproachTarget() {
         return;
     }
 
-    volatile float reach = static_cast<float>(CtlActionDistance(this, nullptr, &action));
+    float reach = static_cast<float>(CtlActionDistance(this, nullptr, &action));
     Vector3 aim;
     Slots(target)->AimPoint(&aim);
     if (!IsMoving(target)) {
@@ -846,16 +844,16 @@ void CUnitServer::ApproachTarget() {
     offset.x = where[0] - unit->position.x;
     offset.y = where[1] - unit->position.y;
     offset.z = where[2] - unit->position.z;
-    volatile float distance = LengthZXY(offset);
-    volatile float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
+    float distance = LengthZXY(offset);
+    float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
     double closing;
     if (IsMoving(chased)) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<CUnit*>(chased);
-        volatile float vx = other->position.x - unit->position.x;
-        volatile float vy = other->position.y - unit->position.y;
+        float vx = other->position.x - unit->position.x;
+        float vy = other->position.y - unit->position.y;
         double dz = static_cast<double>(other->position.z) - unit->position.z;
-        volatile float vz = static_cast<float>(dz);
+        float vz = static_cast<float>(dz);
         double length = dz * vz;
         length = length + static_cast<double>(vy) * vy;
         length = length + static_cast<double>(vx) * vx;
@@ -867,16 +865,16 @@ void CUnitServer::ApproachTarget() {
         }
         Vector3 axis;
         other->orientation.AxisY(&axis);
-        volatile float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
+        float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
         closing = Slots(other)->MoveSpeed() * along + mySpeed;
     } else {
         closing = mySpeed;
     }
-    volatile float closingF = static_cast<float>(closing);
+    float closingF = static_cast<float>(closing);
     float floor = std::bit_cast<float>(kMinClosingBits);
     float divisor = std::bit_cast<float>(LessOrUnordered(floor, closingF) ? std::bit_cast<std::uint32_t>(static_cast<float>(closingF))
                                                                            : kMinClosingBits);
-    volatile float eta = static_cast<float>((static_cast<double>(distance) - reach) / divisor);
+    float eta = static_cast<float>((static_cast<double>(distance) - reach) / divisor);
     int ticks = x87::fistp(eta);
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;
     else if (ticks < kChaseMinTicks) ticks = kChaseMinTicks;
@@ -893,16 +891,16 @@ void CUnitServer::ApproachTarget() {
             return;
         }
     }
-    volatile float patience = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
+    float patience = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
     CAIMap* aiMap = WorldServer()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
     if (!(DistanceSquaredXYUnrounded<double>(unit->position, goal) > kPointOne)) return;   // (sic: the path flag stays cleared)
 
     SectorMapRemove(WorldServer()->Sectors(), nullptr, chased);
-    volatile float far = static_cast<float>(static_cast<double>(goal.y) * kShort);
+    float far = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
-    volatile float unitY = static_cast<float>(static_cast<double>(unit->position.y) * kLong);
+    float unitY = static_cast<float>(static_cast<double>(unit->position.y) * kLong);
     Vector3 point;
     point.x = static_cast<float>(static_cast<double>(unit->position.x) * kLong + nearX);
     point.y = static_cast<float>(static_cast<double>(unitY) + far);
@@ -912,7 +910,7 @@ void CUnitServer::ApproachTarget() {
     SectorMapAdd(WorldServer()->Sectors(), nullptr, chased);
 
     double h = HalfScale();
-    volatile float headX = static_cast<float>(h * motion.targetX);
+    float headX = static_cast<float>(h * motion.targetX);
     double fy = static_cast<double>(goal.y) - h * motion.targetY;
     double fx = static_cast<double>(goal.x) - headX;
     aiMap->refreshUnits = savedFlag;

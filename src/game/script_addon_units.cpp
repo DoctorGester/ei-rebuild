@@ -113,7 +113,7 @@ bool GetUnitExp(Call* call) {
     } else if (Stricmp(what, "penalty") == 0) {
         value = data->stats.pendingExperience;
     } else if (Stricmp(what, "real") == 0) {
-        volatile float sum = data->stats.pendingExperience + data->stats.experience;
+        float sum = data->stats.pendingExperience + data->stats.experience;
         value = sum;
     } else {
         return InvalidArguments("GetUnitExp");
@@ -132,7 +132,7 @@ bool GetArmor(Call* call) {
     *FloatResult(call) = 0.0f;
     if (static_cast<unsigned>(part) > 6 || kind > 5 || !data) return InvalidArguments("GetArmor");
     if (kind >= 0) {
-        volatile float sum = 0.0f;
+        float sum = 0.0f;
         const UnitStatSlot& slot = data->stats.slots[kind];
         for (int i = 0; i < 3; ++i) sum = slot.layers[i].absorb[part] + sum;
         Store(FloatResult(call), sum);

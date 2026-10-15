@@ -176,16 +176,13 @@ EI_REPLACE_METHOD(0x005FE400, CUiSurface::MoveTo);
 
 // --- CUiModel --------------------------------------------------------------------------------
 
-// /fp:fast would fold the two constant factors into one (different rounding); keep the original's
-// order of operations.
-#pragma float_control(precise, on, push)
 void CUiModel::SetScreenPosition(float x, float y, float depth) {
     // 0074015C (1/400), 0073B84C (1), 0073C524 (0.75), 00740ED4: layout coordinates to the view
     // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth. Each product is rounded once to float.
     constexpr float kLayoutScale = 0x1.47ae14p-9f;
     constexpr float kViewScale = 0x1.ed21e6p-2f;
-    volatile float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
-    volatile float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
+    float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
+    float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
     Vector3& position = object_->localPosition_;
     float value = px;
     std::memcpy(&position.x, &value, sizeof(float));
@@ -193,7 +190,6 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
     std::memcpy(&position.y, &value, sizeof(float));
     std::memcpy(&position.z, &depth, sizeof(float));
 }
-#pragma float_control(pop)
 EI_REPLACE_METHOD(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------

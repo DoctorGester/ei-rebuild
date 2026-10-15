@@ -3,10 +3,11 @@
 //
 // Floating point follows the original's x87 code: values the original keeps on the FPU stack stay
 // there (inline assembly where a value is stored and still used unrounded, or truncated with the
-// game's _ftol), values it stores as float go through Store, products keep their operand order
-// (precise floating point), constants are read from the exe's memory.
+// game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
+// operand order (precise floating point), constants are read from the exe's memory.
 #include "ui_item_info.h"
 #include "game_strings.h"
+#include "plugin_fixes.h"
 
 #include "dx_surface.h"
 #include "item.h"
@@ -14,6 +15,7 @@
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -31,15 +33,9 @@
 #include <cstring>
 #include <bit>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
 template <typename T>
@@ -212,13 +208,13 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
 // dt * speed and wraps at 2 pi (compared unrounded, stored as float).
 void Turn(ItemTurn* turn, float dt, bool hovered) {
     if (hovered) {
-        turn->speed = Store(D(GameFloat(0x007402F4)) * D(dt) + D(turn->speed));
+        turn->speed = static_cast<float>(D(GameFloat(0x007402F4)) * D(dt) + D(turn->speed));
     } else if (!(turn->speed >= GameFloat(0x007402F0))) {   // FCOMP; TEST AH,1: below or unordered
         turn->angle = 0.0f;
         turn->speed = 0.0f;
     } else {
         double pi = D(GameFloat(0x007402C0));
-        turn->speed = Store((pi + pi - D(turn->angle)) * D(GameFloat(0x0073BAA0)));
+        turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(GameFloat(0x0073BAA0)));
     }
     if (turn->speed > GameFloat(0x007402EC)) std::memcpy(&turn->speed, reinterpret_cast<const void*>(0x007402EC), 4);
     // The angle is stored (FST) and compared unrounded with 2 pi.
@@ -257,18 +253,18 @@ Quaternion HalfTurn(float ax, float ay, float az) {
 // The two products the original inlines (a * b), each with its own order of the w sum.
 Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
     Quaternion r;
-    r.w = Store(D(a.w) * D(b.w) - DotUnrounded<Sum3::XYZ, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.x = Store(((D(b.y) * D(a.z) - D(a.y) * D(b.z)) + D(a.w) * D(b.x)) + D(a.x) * D(b.w));
-    r.y = Store(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(a.y) * D(b.w));
-    r.z = Store(((D(a.y) * D(b.x) - D(a.x) * D(b.y)) + D(b.w) * D(a.z)) + D(a.w) * D(b.z));
+    r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::XYZ, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.x = static_cast<float>(((D(b.y) * D(a.z) - D(a.y) * D(b.z)) + D(a.w) * D(b.x)) + D(a.x) * D(b.w));
+    r.y = static_cast<float>(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(a.y) * D(b.w));
+    r.z = static_cast<float>(((D(a.y) * D(b.x) - D(a.x) * D(b.y)) + D(b.w) * D(a.z)) + D(a.w) * D(b.z));
     return r;
 }
 Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
     Quaternion r;
-    r.w = Store(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.x = Store(((D(b.y) * D(a.z) - D(b.z) * D(a.y)) + D(a.w) * D(b.x)) + D(b.w) * D(a.x));
-    r.y = Store(((D(b.z) * D(a.x) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(b.w) * D(a.y));
-    r.z = Store(((D(b.x) * D(a.y) - D(b.y) * D(a.x)) + D(a.z) * D(b.w)) + D(a.w) * D(b.z));
+    r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.x = static_cast<float>(((D(b.y) * D(a.z) - D(b.z) * D(a.y)) + D(a.w) * D(b.x)) + D(b.w) * D(a.x));
+    r.y = static_cast<float>(((D(b.z) * D(a.x) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(b.w) * D(a.y));
+    r.z = static_cast<float>(((D(b.x) * D(a.y) - D(b.y) * D(a.x)) + D(a.z) * D(b.w)) + D(a.w) * D(b.z));
     return r;
 }
 
@@ -329,7 +325,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
 
     Set(model, 0x280, texture);
     AsSprite(model)->Place(cell->x, cell->y, cell->depth);
-    AsSprite(model)->SetScale(Store(D(GameFloat(0x007402C4)) * D(cell->size) * D(cell->depth) * D(GameFloat(0x00740408))));
+    AsSprite(model)->SetScale(static_cast<float>(D(GameFloat(0x007402C4)) * D(cell->size) * D(cell->depth) * D(GameFloat(0x00740408))));
     Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
 
     std::uint8_t* itemBytes = reinterpret_cast<std::uint8_t*>(item);
@@ -360,14 +356,14 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         float extent;
         std::memcpy(&extent, &bits, sizeof(extent));
         double half = D(GameFloat(0x0073B86C));
-        float y = Store(D(Get<float>(model, 0x190)) * D(cell->size) * half + D(cell->y));
-        float x = Store(D(cell->x) - D(Get<float>(model, 0x18C)) * D(cell->size) * half);
+        float y = static_cast<float>(D(Get<float>(model, 0x190)) * D(cell->size) * half + D(cell->y));
+        float x = static_cast<float>(D(cell->x) - D(Get<float>(model, 0x18C)) * D(cell->size) * half);
         AsSprite(model)->Place(x, y, cell->depth);
-        AsSprite(model)->SetScale(Store(D(GameFloat(0x007402C4)) * D(cell->size) * D(cell->depth) *
+        AsSprite(model)->SetScale(static_cast<float>(D(GameFloat(0x007402C4)) * D(cell->size) * D(cell->depth) *
                                         D(GameFloat(0x00740164)) / D(extent)));
     } else {
         SetShade(model, 0x3F800000);
-        float dt = Store(reinterpret_cast<CUiContainer*>(this)->FrameTime());
+        float dt = static_cast<float>(reinterpret_cast<CUiContainer*>(this)->FrameTime());
         auto* turn = Get<ItemTurn*>(itemBytes, 0x1C);
         int kind = Get<int>(itemBytes, 0x10);
         void* spell = Get<void*>(itemBytes, 0x44);
@@ -402,11 +398,11 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         }
 
         // The frame behind the item (texture 2 of the screen), drawn once and removed.
-        float frameDepth = Store(D(cell->depth) * D(GameFloat(0x0073FF20)));
+        float frameDepth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073FF20)));
         CUiMesh* frame = AddSprite(0);
         double half = D(GameFloat(0x007403E0));
-        AsSprite(frame)->SetRectangle(frameDepth, 100.0f, Store(D(cell->x) - half), Store(D(cell->y) - half),
-                                      Store(D(cell->x) + half), Store(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+        AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
+                                      static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
         Set(frame, 0x280, objects_.data[2]);
         AsSprite(frame)->Draw(pass);
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
@@ -423,27 +419,27 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     if (Get<int>(itemBytes, 0x10) == 0x3008 && spell && reinterpret_cast<CSpell*>(spell)->GetModifierCount() > 0) {
         float px, py, pz;
         AsSprite(model)->Position(&px, &py, &pz);
-        float scale = Store(AsSprite(model)->Scale());
+        float scale = static_cast<float>(AsSprite(model)->Scale());
         CUiMesh* mark = AddSprite(0);
-        AsSprite(mark)->SetRectangle(Store(D(pz) * D(GameFloat(0x0073CD70))), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
+        AsSprite(mark)->SetRectangle(static_cast<float>(D(pz) * D(GameFloat(0x0073CD70))), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                                      0x20, 0x20);
         Set(mark, 0x280, objects_.data[1]);
         AsSprite(mark)->SetScale(scale);
         SetShade(reinterpret_cast<std::uint8_t*>(mark), cell->mode == 9 ? 0x3F000000 : 0x3F800000);
-        float step = Store(D(scale) * D(GameFloat(0x007403DC)));
+        float step = static_cast<float>(D(scale) * D(GameFloat(0x007403DC)));
         for (int i = 0; i < reinterpret_cast<CSpell*>(spell)->GetModifierCount(); ++i) {
             int code = static_cast<signed char>(Get<std::uint8_t>(spell, 0x54 + i)) - 1;
             double cellSize = D(GameFloat(0x0073C520));
-            Set(mark, 0xCC, Store(static_cast<double>(code & 7) * cellSize));
-            Set(mark, 0xD0, Store(static_cast<double>(-(code >> 3)) * cellSize));
+            Set(mark, 0xCC, static_cast<float>(static_cast<double>(code & 7) * cellSize));
+            Set(mark, 0xD0, static_cast<float>(static_cast<double>(-(code >> 3)) * cellSize));
             double d = D(step) / D(pz);
             float dx;
             if (i == 0 || i == 4)
                 dx = 0.0f;
             else if (i == 5 || i == 6 || i == 7)
-                dx = -Store(d);
+                dx = -static_cast<float>(d);
             else
-                dx = Store(d);
+                dx = static_cast<float>(d);
             double dy;
             if (i == 2 || i == 6)
                 dy = D(GameFloat(0x0073B858));
@@ -451,8 +447,8 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                 dy = -d;
             else
                 dy = d;
-            float depth = Store(D(pz) * D(GameFloat(0x0073CD70)));
-            AsSprite(mark)->Place(Store(D(dx) + D(px)), Store(dy + D(py)), depth);
+            float depth = static_cast<float>(D(pz) * D(GameFloat(0x0073CD70)));
+            AsSprite(mark)->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
             AsSprite(mark)->Draw(pass);
         }
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(mark));
@@ -461,12 +457,12 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     // Items the strip's mode cannot take get a dark square in front.
     using CanEquipFn = bool(__thiscall*)(CItemScreen*, CItem*, int);
     if (cell->mode != 9 && !reinterpret_cast<CanEquipFn>(vtable_[43])(this, item, cell->mode)) {
-        float depth = Store(D(cell->depth) * D(GameFloat(0x0073CF50)));
-        if (LiesFlat(item)) depth = Store(D(cell->depth) * D(GameFloat(0x0073CCA8)));
+        float depth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073CF50)));
+        if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073CCA8)));
         CUiMesh* shade = AddSprite(0);
         double half = D(GameFloat(0x007403E0));
-        AsSprite(shade)->SetRectangle(depth, 100.0f, Store(D(cell->x) - half), Store(D(cell->y) - half),
-                                      Store(D(cell->x) + half), Store(D(cell->y) + half), 0, 0, 0x100, 0x100);
+        AsSprite(shade)->SetRectangle(depth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
+                                      static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0, 0, 0x100, 0x100);
         Set<std::uint32_t>(shade, 0x280, 0);
         Set(shade, 0x08, Get<std::uint32_t>(shade, 0x08) | 0x100);
         Set<std::uint32_t>(shade, 0xD4, 0x82804040);
@@ -482,11 +478,11 @@ BOOL CItemInfoPanel::Draw(int pass) {
     if (itemCount_ && items_[0]) {
         ItemCell cell;
         cell.item = items_[0];
-        cell.x = Store(static_cast<double>(x_) + D(GameFloat(0x0073BAB0)));   // + 100
+        cell.x = static_cast<float>(static_cast<double>(x_) + D(GameFloat(0x0073BAB0)));   // + 100
         cell.depth = 3.0f;
         cell.size = 120.0f;
         cell.mode = 9;
-        cell.y = Store(static_cast<double>(y_) + D(GameFloat(0x0073CF58)));   // + 200
+        cell.y = static_cast<float>(static_cast<double>(y_) + D(GameFloat(0x0073CF58)));   // + 200
         ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(owner_), nullptr, pass, &cell);   // through its address, so the wrapper sees the call
     }
     return 1;
@@ -530,9 +526,10 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     }
     mfc::CString sex;
     const char* figureModel = Get<const char*>(figure, 0xE8);
-    if (SameText(figureModel, game::Text(0x007908C8)))          // "unhuma"
+    const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (005ED889): the model's fifth character
+    if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, game::Text(0x007908C8)))   // "unhuma"
         sex = game::Text(0x00792EAC);                                   // "m"
-    else if (SameText(figureModel, game::Text(0x00792EA4)))     // "unhufe"
+    else if (fixes || SameText(figureModel, game::Text(0x00792EA4)))     // "unhufe"
         sex = game::Text(0x0078BBD8);                                   // "f"
     model->Format(game::Text(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
     texture->Format(game::Text(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
@@ -554,7 +551,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
 
     Set(model, 0x280, texture);
     AsSprite(model)->Place(cell->x, cell->y, cell->depth);
-    AsSprite(model)->SetScale(Store(D(cell->size) * D(cell->depth) * D(GameFloat(0x007402C4)) * D(GameFloat(0x00740408))));
+    AsSprite(model)->SetScale(static_cast<float>(D(cell->size) * D(cell->depth) * D(GameFloat(0x007402C4)) * D(GameFloat(0x00740408))));
     Set(model, 0x27C, Get<std::uint32_t>(this, 0xEC));
     Set(model, 0x224, 1.0f);
     Set(model, 0x228, 1.0f);
@@ -563,22 +560,24 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, Store((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
+    QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
     Quaternion orientation;
     SetOrientation(model, *QuaternionProduct(&orientation, &tilt, &turn));
 
     // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.
-    float frameDepth = Store(D(cell->depth) * D(GameFloat(0x0073FF20)));
+    float frameDepth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073FF20)));
     CUiMesh* frame = AddSprite(0);
     double half = D(GameFloat(0x007403E0));
-    AsSprite(frame)->SetRectangle(frameDepth, 100.0f, Store(D(cell->x) - half), Store(D(cell->y) - half),
-                                  Store(D(cell->x) + half), Store(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
+    AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
+                                  static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
     Set(frame, 0x280, objects_.data[2]);
     AsSprite(frame)->Draw(pass);
     RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
     AsSprite(model)->Draw(pass);
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
+// EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
+EI_REBIRTH_IMPLEMENTS(0x005ED7B0, ei::rebirth::Patch::EiPluginFixes);
 
 // --- 005EC020: an item's figure texture -------------------------------------------------------------
 

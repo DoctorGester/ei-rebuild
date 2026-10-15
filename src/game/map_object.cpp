@@ -15,7 +15,6 @@
 #include <cstring>
 
 // The scale formulas must keep the original's order of operations and its NaN behaviour.
-#pragma float_control(precise, on)
 
 namespace {
 constexpr float kScaleStep = std::bit_cast<float>(0x3ECCCCCDu);   // 0073B868 (0.4)

@@ -1,9 +1,9 @@
 // The hero preview of the camp (0060F050) and the multiplayer hero screen (006159E0): 005EC300.
 // See ui.h (CUiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
 //
-// Floating point follows the original's x87 code: values it stores as float go through Store,
-// values it keeps on the FPU stack stay unrounded (double), products and sums keep its operand
-// order, constants are read from the exe's memory.
+// Floating point follows the original's x87 code: values it stores as float are rounded with
+// static_cast<float>, values it keeps on the FPU stack stay unrounded (double), products and sums
+// keep its operand order, constants are read from the exe's memory.
 #include "ui.h"
 #include "model.h"
 
@@ -17,15 +17,9 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 template <typename T>
 T Get(const void* p, int offset) {
@@ -56,30 +50,30 @@ void FlushAndRestore(UiRenderer* renderer) {
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
 double DotCall(const Vector3& a, const Vector3& b) { return DotUnrounded<Sum3::ZYX, double>(a, b); }
-Vector3 Scale(const Vector3& v, float s) { return {Store(D(s) * D(v.x)), Store(D(s) * D(v.y)), Store(D(s) * D(v.z))}; }
+Vector3 Scale(const Vector3& v, float s) { return {static_cast<float>(D(s) * D(v.x)), static_cast<float>(D(s) * D(v.y)), static_cast<float>(D(s) * D(v.z))}; }
 Vector3 CrossStored(const Vector3& a, const Vector3& b) {
-    float z = Store(D(a.x) * D(b.y) - D(a.y) * D(b.x));
-    float y = Store(D(a.z) * D(b.x) - D(b.z) * D(a.x));
-    float x = Store(D(a.y) * D(b.z) - D(a.z) * D(b.y));
+    float z = static_cast<float>(D(a.x) * D(b.y) - D(a.y) * D(b.x));
+    float y = static_cast<float>(D(a.z) * D(b.x) - D(b.z) * D(a.x));
+    float x = static_cast<float>(D(a.y) * D(b.z) - D(a.z) * D(b.y));
     return {x, y, z};
 }
 Vector3 Sum(const Vector3& a, const Vector3& b) {
-    float z = Store(D(a.z) + D(b.z));
-    float y = Store(D(a.y) + D(b.y));
-    float x = Store(D(a.x) + D(b.x));
+    float z = static_cast<float>(D(a.z) + D(b.z));
+    float y = static_cast<float>(D(a.y) + D(b.y));
+    float x = static_cast<float>(D(a.x) + D(b.x));
     return {x, y, z};
 }
 
 // The products the original inlines (q * r), with the two orders of the w sum it uses.
 Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     Quaternion out;
-    out.z = Store(((D(q.x) * D(r.y) - D(q.y) * D(r.x)) + D(q.w) * D(r.z)) + D(q.z) * D(r.w));
-    out.y = Store(((D(q.z) * D(r.x) - D(q.x) * D(r.z)) + D(q.y) * D(r.w)) + D(q.w) * D(r.y));
-    out.x = Store(((D(q.y) * D(r.z) - D(q.z) * D(r.y)) + D(q.x) * D(r.w)) + D(q.w) * D(r.x));
+    out.z = static_cast<float>(((D(q.x) * D(r.y) - D(q.y) * D(r.x)) + D(q.w) * D(r.z)) + D(q.z) * D(r.w));
+    out.y = static_cast<float>(((D(q.z) * D(r.x) - D(q.x) * D(r.z)) + D(q.y) * D(r.w)) + D(q.w) * D(r.y));
+    out.x = static_cast<float>(((D(q.y) * D(r.z) - D(q.z) * D(r.y)) + D(q.x) * D(r.w)) + D(q.w) * D(r.x));
     if (!second)
-        out.w = Store(D(q.w) * D(r.w) - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
+        out.w = static_cast<float>(D(q.w) * D(r.w) - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
     else
-        out.w = Store(D(q.w) * D(r.w) - DotUnrounded<Sum3::XYZ, double>(q.x, q.y, q.z, r.x, r.y, r.z));
+        out.w = static_cast<float>(D(q.w) * D(r.w) - DotUnrounded<Sum3::XYZ, double>(q.x, q.y, q.z, r.x, r.y, r.z));
     return out;
 }
 
@@ -152,7 +146,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     Set(model, 8, Get<std::uint32_t>(model, 8) | 0x800);
     {
         std::uint32_t now = gameapi::timeGetTime();
-        float time = Store(x87::FromUnsigned(now) * D(GameFloat(0x0073BB24)) * D(GameFloat(0x0073C518)));
+        float time = static_cast<float>(x87::FromUnsigned(now) * D(GameFloat(0x0073BB24)) * D(GameFloat(0x0073C518)));
         VirtualCall(model, 25, time);
     }
 
@@ -163,17 +157,17 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     QuaternionSetAxisAngleOriginal(&q, nullptr, &up, turn);
     Vector3 v = {q.x, q.y, q.z};
     Vector3 origin = {0.0f, 0.0f, 0.0f};
-    float ww = Store(D(q.w) * D(q.w));
-    Vector3 along = Scale(v, Store(DotCall(v, origin) + DotCall(v, origin)));
-    Vector3 across = Scale(CrossStored(v, origin), Store(D(q.w) + D(q.w)));
-    Vector3 rotated = Sum(Sum(Scale(origin, Store(D(ww) - DotCall(v, v))), across), along);
+    float ww = static_cast<float>(D(q.w) * D(q.w));
+    Vector3 along = Scale(v, static_cast<float>(DotCall(v, origin) + DotCall(v, origin)));
+    Vector3 across = Scale(CrossStored(v, origin), static_cast<float>(D(q.w) + D(q.w)));
+    Vector3 rotated = Sum(Sum(Scale(origin, static_cast<float>(D(ww) - DotCall(v, v))), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
     double dx = ((D(depth) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) * D(GameFloat(0x007402C4))) *
                 D(GameFloat(0x0073BA98));
     double dy = D(GameFloat(0x007402C4)) * D(GameFloat(0x007403D8));
-    float px = Store(D(rotated.x) + dx);
-    float py = Store(D(rotated.y) + dy);
-    float pz = Store(D(rotated.z) + D(GameFloat(0x0073BA98)));
+    float px = static_cast<float>(D(rotated.x) + dx);
+    float py = static_cast<float>(D(rotated.y) + dy);
+    float pz = static_cast<float>(D(rotated.z) + D(GameFloat(0x0073BA98)));
     Set(model, 0x1C, px);
     Set(model, 0x20, py);
     Set(model, 0x24, pz);
@@ -186,7 +180,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
         Quaternion side;
         q = Product(q,
                     *QuaternionSetAxisAngleOriginal(&side, nullptr, &zAxis,
-                                                    Store(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))),
+                                                    static_cast<float>(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))),
                     true);
     }
     std::memcpy(model + 0x34, &q, 16);

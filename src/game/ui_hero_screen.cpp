@@ -377,7 +377,7 @@ void CMpHeroScreen::MakePreview(int flag) {
         controller->ShowWeapon(0xFFFFFFFF);
         controller->RefreshModel();
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
-        controller->RestartAnimation(StoreFloat(static_cast<float>(now - 1.0f)));
+        controller->RestartAnimation(static_cast<float>(now - 1.0f));
         unit->SetFromStats(reinterpret_cast<UnitStats*>(player->members_.data->stats));
         unit->Controller()->RefreshWounds();
     }

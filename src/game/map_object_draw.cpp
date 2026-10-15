@@ -22,7 +22,6 @@
 #include "originals_units.h"
 
 // The light range test keeps its sums on the FPU stack like the original.
-#pragma float_control(precise, on)
 
 namespace {
 constexpr std::uint32_t kObjectNotDrawn = 0x40;     // object->flags_

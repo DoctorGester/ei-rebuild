@@ -1,7 +1,6 @@
 // The game server's awards: the zone completion command (00418ED0, "<zone>_3"), the host's item
 // awards (004191C0) and the queued award message (00419D90), plus the counted pointer copy they
 // use (004263F0). See net_classes.h and docs/notes/network.md.
-#pragma float_control(precise, on)
 
 #include "net_messages.h"
 #include "game_strings.h"

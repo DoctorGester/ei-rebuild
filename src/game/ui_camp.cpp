@@ -32,8 +32,6 @@
 #include <cstring>
 #include <initializer_list>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 
@@ -264,10 +262,6 @@ const std::uint8_t* PartRecord(const std::uint8_t* item, int recordType) {
 int ItemType(std::uint8_t* item) { return AsObject(item)->type_; }
 
 double D(float f) { return f; }
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 __declspec(naked) int __cdecl GameFtol(double) {
     __asm {
         fld qword ptr [esp + 4]
@@ -280,9 +274,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
 } // namespace
 
 // 0060FAB0: prices (slot 54); CanEquip follows.
-
-// The products and differences keep the original's order (no reassociation under /fp:fast).
-#pragma float_control(precise, on, push)
 
 namespace {
 constexpr float kPriceZero = 0.0f;   // 0073B858
@@ -336,8 +327,6 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
     return GameFtol(ItemPrice(item) * multipliers[kind]);
 }
 
-#pragma float_control(pop)
-
 EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
 EI_REBIRTH_IMPLEMENTS(0x0060FAB0, ei::rebirth::Patch::FixRepairPrice);
 
@@ -380,20 +369,20 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
                 const std::uint8_t* record = SpellRecord(ItemOf(spellResults_, i));
                 skillSum += Read<int>(record, 0x44);
                 school = Read<int>(record, 0x14);
-                manaSum = Store(D(manaSum) + D(Read<float>(record, 0x18)));
+                manaSum = static_cast<float>(D(manaSum) + D(Read<float>(record, 0x18)));
                 // The modifier must suit the spell (its kind +0xC, flags at +0x78 of the spell).
                 std::uint32_t kind = Read<std::uint32_t>(ModifierRecord(item), 0x0C);
                 if (kind < 5 && record[0x78 + kind] == 0) return false;
             } else if (IsModifier(ItemOf(spellResults_, i))) {
                 ++modifiers;
                 const std::uint8_t* modifier = ModifierRecord(ItemOf(spellResults_, i));
-                manaSum = Store(D(manaSum) + D(Read<float>(modifier, 0x10)));
+                manaSum = static_cast<float>(D(manaSum) + D(Read<float>(modifier, 0x10)));
                 skillSum += Read<int>(modifier, 0x18);
             }
         }
         if (!hasSpell || modifiers >= 8) return false;
         const std::uint8_t* modifier = ModifierRecord(item);
-        float manaTotal = Store(D(manaSum) + D(Read<float>(modifier, 0x10)));
+        float manaTotal = static_cast<float>(D(manaSum) + D(Read<float>(modifier, 0x10)));
         int skillTotal = skillSum + Read<int>(modifier, 0x18);
         int skill = 0, mana = 0;
         VirtualBestPartySkill(school, &skill, &mana);

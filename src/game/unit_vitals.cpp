@@ -15,9 +15,8 @@
 #include <cstring>
 
 // The formulas must keep the original's order of operations (see unit_stats.cpp). Values the
-// original keeps on the FPU stack are double locals; values it stores to a float are float or
-// volatile float locals.
-#pragma float_control(precise, on)
+// original keeps on the FPU stack are double locals; values it stores to a float are float
+// locals.
 
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858
@@ -143,14 +142,14 @@ __declspec(naked) double __fastcall CallSkillLevelValueCopy(UnitStats*, void*, i
 namespace {
 double EffectScale(CUnit* unit, float k) {
     if (!unit) return kOne;
-    volatile float strengthen = static_cast<float>(CallEffectValue(unit, nullptr, kEffectStrengthen) * k + kOne);
+    float strengthen = static_cast<float>(CallEffectValue(unit, nullptr, kEffectStrengthen) * k + kOne);
     return strengthen / (CallEffectValue(unit, nullptr, kEffectWeaken) * k + kOne);
 }
 
 // value scaled by EffectScale, at least 1 (NaN kept).
 float ScaledAtLeastOne(CUnit* unit, float k, float value) {
     double scale = EffectScale(unit, k);
-    volatile float scaled = static_cast<float>(scale * value);
+    float scaled = static_cast<float>(scale * value);
     float one = kOne;
     float s = scaled;
     return LessOrUnordered(one, s, s, one);
@@ -162,7 +161,7 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
     for (const UnitStatSlot& slot : stats->slots) {
         if (slot.kind == 0 || slot.type != type) continue;
         if (!(slot.current < slot.maximum || slot.current > slot.maximum)) continue;   // equal or NaN
-        volatile float ratio = slot.current / slot.maximum;
+        float ratio = slot.current / slot.maximum;
         float r = ratio;
         lowest = LessOrUnordered(r, lowest, r, lowest);
     }
@@ -185,7 +184,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     regenTicks = 0;
     if (inCombat == 0 && !(mana >= maxMana)) {
         double regen = manaRegen;
-        volatile float raised = static_cast<float>(
+        float raised = static_cast<float>(
             (LevelValueOf(stats, kSkillManaRegen) * kPercent + kOne) * regen * maxMana + mana);
         float limit = maxMana;
         float r = raised;
@@ -194,7 +193,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
     }
     if (!(hitPoints >= maxHitPoints)) {
         double regen = hitPointRegen;
-        volatile float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + kOne) * regen);
+        float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + kOne) * regen);
         if (unit) {
             double boost = CallEffectValue(unit, nullptr, kEffectRegeneration);
             if (boost > kZero) rate = static_cast<float>(boost * rate);
@@ -218,11 +217,11 @@ bool UnitStats::HealSlots(float scale, float amount) {
         if (slot.kind > 1 && !(slot.current >= slot.maximum)) total += slot.factor;
     }
     if (!(total < kZero || total > kZero)) return true;   // zero or NaN
-    volatile float share = static_cast<float>(amount / (total * scale));
+    float share = static_cast<float>(amount / (total * scale));
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 1 || slot.current >= slot.maximum) continue;
         float limit = slot.maximum;
-        volatile float raised = static_cast<float>(share * limit + slot.current);
+        float raised = static_cast<float>(share * limit + slot.current);
         float r = raised;
         float healed = LessOrUnordered(limit, r, limit, r);
         slot.current = healed;
@@ -243,7 +242,7 @@ BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
     for (UnitStatSlot& slot : slots) {
         if (slot.kind != 3) continue;
         float limit = slot.maximum;
-        volatile float raised = static_cast<float>(vitals->hitPointRegen * limit + slot.current);
+        float raised = static_cast<float>(vitals->hitPointRegen * limit + slot.current);
         float r = raised;
         slot.current = LessOrUnordered(r, limit, r, limit);
     }
@@ -253,10 +252,10 @@ BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
 EI_REPLACE_METHOD(0x00525930, UnitStats::RegenerateSlots);
 
 void UnitStats::SetSlotMaxima(float maxHitPoints) {
-    volatile float ratio = maxHitPoints / slots[1].share;
+    float ratio = maxHitPoints / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        volatile float limit = ratio * slot.share;
+        float limit = ratio * slot.share;
         slot.maximum = limit;
         float m = limit;
         float current = slot.current;
@@ -266,14 +265,14 @@ void UnitStats::SetSlotMaxima(float maxHitPoints) {
 EI_REPLACE_METHOD(0x00525A00, UnitStats::SetSlotMaxima);
 
 void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
-    volatile float ratio = maxHitPoints / slots[1].share;
+    float ratio = maxHitPoints / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
         double limit = ratio * slot.share;   // kept on the FPU stack for the proportion
-        volatile float factor = static_cast<float>(limit / slot.maximum);
+        float factor = static_cast<float>(limit / slot.maximum);
         slot.maximum = static_cast<float>(limit);
         float m = static_cast<float>(limit);
-        volatile float scaled = factor * slot.current;
+        float scaled = factor * slot.current;
         float s = scaled;
         slot.current = LessOrUnordered(m, s, m, s);
     }
@@ -333,8 +332,8 @@ double UnitStats::ManaCurve() {
 EI_REPLACE_METHOD(0x00523F50, UnitStats::ManaCurve);
 
 double UnitStats::RateValue() {
-    volatile float base = stat18 * kPointTwo + kTen;
-    volatile float level = static_cast<float>(LevelValueOf(this, kSkillRate));   // FILD, FSTP float
+    float base = stat18 * kPointTwo + kTen;
+    float level = static_cast<float>(LevelValueOf(this, kSkillRate));   // FILD, FSTP float
     float arms = ArmsFactorAt(this, nullptr, 1);
     return (level * kPercentB + kOne) * arms * base;
 }
@@ -408,7 +407,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     valuesB0[0].current = strongest[12] + valuesB0[0].current;
     valuesB0[1].current = strongest[13] + valuesB0[1].current;
     valuesB0[2].current = strongest[14] + valuesB0[2].current;
-    volatile float lowered = valuesE0[0].current - strongest[15] * kPercentB;
+    float lowered = valuesE0[0].current - strongest[15] * kPercentB;
     float l = lowered;
     valuesE0[0].current = LessOrUnordered(kZero, l, l, kZero);
     lowered = valuesE0[3].current - strongest[16];
@@ -418,7 +417,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     l = lowered;
     valuesE0[2].current = LessOrUnordered(kZero, l, l, kZero);
     valuesE0[4].current = strongest[19] + valuesE0[4].current;
-    volatile float hasteDelta = strongest[0x21] - strongest[0x22];
+    float hasteDelta = strongest[0x21] - strongest[0x22];
 
     if (keyed) {
         double curve =
@@ -434,10 +433,10 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
     vitals->maxHitPoints = limit;
-    volatile float ratio = limit / slots[1].share;
+    float ratio = limit / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        volatile float slotLimit = ratio * slot.share;
+        float slotLimit = ratio * slot.share;
         slot.maximum = slotLimit;
         float m = slotLimit;
         float current = slot.current;
@@ -460,7 +459,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     rateBase = keyed ? stat18 * kPointTwo + kTen : kUnkeyedRateBase;
     double value = (LevelValueOf(this, kSkillRate) * kPercentB + kOne) * arms * rateBase;
     rate = static_cast<float>(value);
-    volatile float hasted = static_cast<float>(value + hasteDelta);
+    float hasted = static_cast<float>(value + hasteDelta);
     float h = hasted;
     rate = LessOrUnordered(kOne, h, h, kOne);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
@@ -544,7 +543,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
     UnitVitals* vitals = VitalsOf(server);
     std::uint8_t old = levels[index];
     int raised = (amount & 0xFF) + old;
-    volatile float worthNew = static_cast<float>(LevelWorth(raised));
+    float worthNew = static_cast<float>(LevelWorth(raised));
     double worthOld = LevelWorth(old);
     levels[index] = static_cast<std::uint8_t>(old + amount);
     int cost = GameFtol(worthNew - worthOld);
@@ -584,9 +583,9 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     UnitVitals* vitals = VitalsOf(server);
     stat10Base = static_cast<float>(static_cast<double>(amount) + stat10Base);
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
-    volatile float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
+    float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
     const char* record = SkillLevelRecord(kSkillHitPoints);
-    volatile float maxHitPoints =
+    float maxHitPoints =
         static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
     vitals->maxMana = static_cast<float>(UnitStatsManaCurve(this));
@@ -607,10 +606,10 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     UnitVitals* vitals = VitalsOf(server);
     stat18Base = static_cast<float>(static_cast<double>(amount) + stat18Base);
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
-    volatile float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
-    volatile float maxHitPoints =
+    float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
+    float maxHitPoints =
         static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillHitPoints) * kPercent + kOne) * scaled);
-    volatile float boosted = static_cast<float>(CallHitPointEffectScale(unit) * maxHitPoints);
+    float boosted = static_cast<float>(CallHitPointEffectScale(unit) * maxHitPoints);
     float one = kOne;
     float b = boosted;
     vitals->maxHitPoints = LessOrUnordered(one, b, b, one);
@@ -620,7 +619,7 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
         static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillMana) * kPercent + kOne) * scaled);
     CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
-    volatile float lowered = unit->baseScale.y - kPointTwo;
+    float lowered = unit->baseScale.y - kPointTwo;
     float l = lowered;
     unit->baseScale.y = LessOrUnordered(kZero, l, l, kZero);
     lowered = unit->scale.y - kPointTwo;

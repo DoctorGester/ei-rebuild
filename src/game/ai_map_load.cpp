@@ -184,13 +184,13 @@ void BuildClimbTables(CAIMap& map) {
     map.climbLarge.SetSize(kClimbSteps);
     map.climbSmall.SetSize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
-        const float rise = std::fabs(RoundToFloat(static_cast<float>(i - kLevelStep) / map.heightScale));
-        const float slope = std::fabs(RoundToFloat(Atan2(rise, kCellSize) * (kHalfTurn / kPi)));
+        const float rise = std::fabs(static_cast<float>(static_cast<float>(i - kLevelStep) / map.heightScale));
+        const float slope = std::fabs(static_cast<float>(Atan2(rise, kCellSize) * (kHalfTurn / kPi)));
         const double sine = x87::fsin(kPi * kPerDegree * slope);
         double effort = sine * sine + 1.0;
         effort *= effort;
         if (i < kLevelStep) effort = 1.0 / x87::fsqrt(effort);
-        const int cost = x87::fistp(RoundToFloat(effort * kFlatCost));
+        const int cost = x87::fistp(static_cast<float>(effort * kFlatCost));
         map.climbSmall[i] = slope > kSmallLimit ? -1 : kFlatCostUnits;
         map.climbLarge[i] = slope > kLargeLimit ? -1 : cost;
     }
@@ -301,17 +301,17 @@ struct SquareHeights {
 // corners and keeps the first one, and the quarter of the first and the opposite corner, on the
 // stack.
 SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
-    const float next = RoundToFloat(VertexHeight(vertex[1], maxZ));
-    const float below = RoundToFloat(VertexHeight(vertex[kVertexRow], maxZ));
-    const float opposite = RoundToFloat(VertexHeight(vertex[kVertexRow + 1], maxZ));
+    const float next = static_cast<float>(VertexHeight(vertex[1], maxZ));
+    const float below = static_cast<float>(VertexHeight(vertex[kVertexRow], maxZ));
+    const float opposite = static_cast<float>(VertexHeight(vertex[kVertexRow + 1], maxZ));
     const double first = VertexHeight(vertex[0], maxZ);
-    const float sides = RoundToFloat((below + next) * kQuarter);
+    const float sides = static_cast<float>((below + next) * kQuarter);
     SquareHeights heights;
-    heights.cell[0] = RoundToFloat(first * kHalf + sides);
+    heights.cell[0] = static_cast<float>(first * kHalf + sides);
     const double diagonal = (first + opposite) * kQuarter;
-    heights.cell[1] = RoundToFloat(next * kHalf + diagonal);
-    heights.cell[2] = RoundToFloat(below * kHalf + diagonal);
-    heights.cell[3] = RoundToFloat(opposite * kHalf + sides);
+    heights.cell[1] = static_cast<float>(next * kHalf + diagonal);
+    heights.cell[2] = static_cast<float>(below * kHalf + diagonal);
+    heights.cell[3] = static_cast<float>(opposite * kHalf + sides);
     return heights;
 }
 
@@ -319,26 +319,26 @@ SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
 // less the ground `land`. Here the original keeps the third cell's surface on the stack as well
 // and subtracts the ground from it there.
 SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const SquareHeights& land) {
-    const float next = RoundToFloat(VertexHeight(vertex[1], maxZ));
-    const float below = RoundToFloat(VertexHeight(vertex[kVertexRow], maxZ));
-    const float opposite = RoundToFloat(VertexHeight(vertex[kVertexRow + 1], maxZ));
+    const float next = static_cast<float>(VertexHeight(vertex[1], maxZ));
+    const float below = static_cast<float>(VertexHeight(vertex[kVertexRow], maxZ));
+    const float opposite = static_cast<float>(VertexHeight(vertex[kVertexRow + 1], maxZ));
     const double first = VertexHeight(vertex[0], maxZ);
-    const float sides = RoundToFloat((below + next) * kQuarter);
-    const float surface0 = RoundToFloat(first * kHalf + sides);
+    const float sides = static_cast<float>((below + next) * kQuarter);
+    const float surface0 = static_cast<float>(first * kHalf + sides);
     const double diagonal = (first + opposite) * kQuarter;
-    const float surface1 = RoundToFloat(next * kHalf + diagonal);
+    const float surface1 = static_cast<float>(next * kHalf + diagonal);
     const double surface2 = below * kHalf + diagonal;
-    const float surface3 = RoundToFloat(opposite * kHalf + sides);
+    const float surface3 = static_cast<float>(opposite * kHalf + sides);
     SquareHeights depths;
-    depths.cell[0] = RoundToFloat(surface0 - land.cell[0]);
-    depths.cell[1] = RoundToFloat(surface1 - land.cell[1]);
-    depths.cell[2] = RoundToFloat(surface2 - land.cell[2]);
-    depths.cell[3] = RoundToFloat(surface3 - land.cell[3]);
+    depths.cell[0] = static_cast<float>(surface0 - land.cell[0]);
+    depths.cell[1] = static_cast<float>(surface1 - land.cell[1]);
+    depths.cell[2] = static_cast<float>(surface2 - land.cell[2]);
+    depths.cell[3] = static_cast<float>(surface3 - land.cell[3]);
     return depths;
 }
 
 // A world height in the map's units (FISTP of the float product).
-int HeightUnits(float height, float scale) { return x87::fistp(RoundToFloat(height * scale)); }
+int HeightUnits(float height, float scale) { return x87::fistp(static_cast<float>(height * scale)); }
 
 // The terrain type of a tile word: the type word of its tile, 0xF outside the textures.
 std::uint32_t TileType(const MapDescription& map, std::uint16_t tile) {

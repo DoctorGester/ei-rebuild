@@ -75,7 +75,7 @@ Layout Compute() {
     if (w < kLayoutWidth || h < kLayoutHeight || w * 3 <= h * 4) return layout;
     layout.width43 = h * kLayoutWidth / kLayoutHeight;
     layout.margin = (w - layout.width43) / 2;
-    volatile float units = static_cast<float>(layout.margin * 800.0 / layout.width43);
+    float units = static_cast<float>(layout.margin * 800.0 / layout.width43);
     layout.extra = static_cast<int>(std::ceil(static_cast<double>(units)));
     // FILD width43; FIDIV width; FSTP dword (10024954) and FILD width; FMUL qword 0.0075f (a float
     // constant widened to a double: 0.0074999998); FIDIV height; FSTP dword (10024902).

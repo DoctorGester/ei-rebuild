@@ -137,12 +137,6 @@ EI_REPLACE_METHOD(0x00627C90, CRepairGrid::Draw);
 
 namespace {
 
-// Rounds to float, as the original's FSTP into a float local does (/fp:fast drops a plain cast).
-float StoreFloat(double value) {
-    volatile float stored = static_cast<float>(value);
-    return stored;
-}
-
 int Channel(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
 std::uint32_t Colour(int alpha, int red, int blue) {
@@ -160,7 +154,7 @@ struct Pulse {
 Pulse Advance(CConstructorPage* page) {
     double t = WindowFrameTimeOriginal(page) + page->pulse_;
     page->pulse_ = static_cast<float>(t);
-    float p = StoreFloat((x87::fcos(t * 5.0) + 1.0) * 0.5);
+    float p = static_cast<float>((x87::fcos(t * 5.0) + 1.0) * 0.5);
     double a = 1.0 - p;
     double low = a * 80.0;
     return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
@@ -207,7 +201,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
                 itemdb::Spells().RecordAt(reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellSize));
             needed += spell->skill;
-            manaSum = StoreFloat(static_cast<double>(manaSum) + spell->mana);
+            manaSum = static_cast<float>(static_cast<double>(manaSum) + spell->mana);
             lastMana = spell->mana;
             school = spell->school;
             cell.x = 350.0f;
@@ -217,7 +211,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
         } else if (ItemKindIsModifierOriginal(item)) {
             auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(itemdb::SpellModifiers().RecordAt(
                 reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellModifierSize));
-            manaSum = StoreFloat(static_cast<double>(manaSum) + modifier->mana);
+            manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
             needed += modifier->skill;
             cell.x = static_cast<float>(column) + 450.0f;
             cell.y = static_cast<float>(row * 100) + 150.0f;

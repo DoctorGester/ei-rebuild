@@ -47,12 +47,6 @@ DamageInfo TornadoHit() {
     return hit;
 }
 
-// The original stores these values to a float and reads them back.
-float StoreFloat(float v) {
-    volatile float r = v;
-    return r;
-}
-
 // The snapshot read against was consumed to its end (stream slots 5 and 4, in that order).
 bool SnapshotReadToEnd() {
     BitStream* snapshot = delta::ReadSnapshot();
@@ -101,15 +95,15 @@ void CEffectTornado::Reset() {
 
 void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
     double speed = x87::FromUnsigned(IsaacRandom::Global().Next()) * kRandomScale * kSpeedRange + kSpeedMin;
-    Vector3 way{StoreFloat(to->x - from->x), StoreFloat(to->y - from->y), StoreFloat(to->z - from->z)};
+    Vector3 way{static_cast<float>(to->x - from->x), static_cast<float>(to->y - from->y), static_cast<float>(to->z - from->z)};
     framesLeft_ = 0;
     double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
     if (length > 0.0) {
         double scale = speed / length;
-        way.x = StoreFloat(static_cast<float>(way.x * scale));
-        way.y = StoreFloat(static_cast<float>(way.y * scale));
-        way.z = StoreFloat(static_cast<float>(way.z * scale));
-        float ticks = StoreFloat(static_cast<float>(length / speed));
+        way.x = static_cast<float>(way.x * scale);
+        way.y = static_cast<float>(way.y * scale);
+        way.z = static_cast<float>(way.z * scale);
+        float ticks = static_cast<float>(length / speed);
         long rounded = std::lrint(ticks);   // FISTP
         framesLeft_ = rounded < 0 ? 0 : static_cast<int>(rounded);
     }
@@ -122,8 +116,8 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
 
 int CEffectTornado::Tick() {
     if (moving_ != 0) {
-        localPosition_ = Vector3{StoreFloat(localPosition_.x + velocity_.x), StoreFloat(localPosition_.y + velocity_.y),
-                                 StoreFloat(localPosition_.z + velocity_.z)};
+        localPosition_ = Vector3{static_cast<float>(localPosition_.x + velocity_.x), static_cast<float>(localPosition_.y + velocity_.y),
+                                 static_cast<float>(localPosition_.z + velocity_.z)};
         if (source_ != nullptr) Source()->position = localPosition_;
         if (sound_ != -1) sound::Manager()->SetSoundPosition(sound_, &localPosition_.x, kSoundNear, kSoundFar);
     }

@@ -15,8 +15,6 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace net {
 
 namespace {
@@ -24,11 +22,6 @@ namespace {
 using ObjectMap = stlp::map<CRefObject*, RefPtr>;
 using SentIdMap = stlp::map<std::uint32_t, RefPtr>;
 using AttachedMap = stlp::map<CRefObject*, AttachedId>;
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // CRT eh vector constructor / destructor iterators (stdcall).
 void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
@@ -150,7 +143,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     id_ = 0;
     SessionBase* session = CurrentSession();
     if (session) {
-        roundTrip_ = Store(static_cast<double>(session->maxRoundTrip_));
+        roundTrip_ = static_cast<float>(static_cast<double>(session->maxRoundTrip_));
     } else {
         roundTrip_ = *reinterpret_cast<const float*>(0x0073BF34);
     }
@@ -160,7 +153,7 @@ Connection* Connection::Construct(std::uint32_t id) {
     sendTimer_ = 0.0f;
     idleTime_ = 0.0f;
     updateBudget_ = 0xDC;
-    roundTripSquare_ = Store(old * old);
+    roundTripSquare_ = static_cast<float>(old * old);
     lastReceived_ = 0;
     sequenceHigh_ = 0x10000;
     FreedBatch* out;

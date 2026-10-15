@@ -69,7 +69,7 @@ bool DistancePointPoint(Call* call) {
 }
 
 bool Add(Call* call) {
-    volatile float sum = 0.0f;
+    float sum = 0.0f;
     const float* f = Floats(call);
     for (int i = 0, n = FloatCount(call); i < n; ++i) sum = f[i] + sum;
     Store(FloatResult(call), sum);
@@ -77,7 +77,7 @@ bool Add(Call* call) {
 }
 
 bool Mul(Call* call) {
-    volatile float product = 1.0f;
+    float product = 1.0f;
     const float* f = Floats(call);
     for (int i = 0, n = FloatCount(call); i < n; ++i) product = f[i] * product;
     Store(FloatResult(call), product);
@@ -145,7 +145,7 @@ bool Abs(Call* call) {
 bool Round(Call* call) {
     float x;
     Store(&x, Floats(call)[0]);
-    volatile float shifted;
+    float shifted;
     double rounded;
     if (Status(0.0f, x) & (kC0 | kC3)) {
         shifted = static_cast<float>(static_cast<double>(x) + 0.5);

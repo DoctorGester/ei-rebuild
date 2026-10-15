@@ -13,9 +13,6 @@
 
 #include <cstring>
 
-// Precise semantics keep the x87 division in SessionBase::AddClient as written.
-#pragma float_control(precise, on)
-
 namespace net {
 
 // The network log's inserters (library), declared in net_classes.h.

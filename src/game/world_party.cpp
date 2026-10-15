@@ -25,9 +25,6 @@
 #include "originals_library.h"
 #include "originals_script.h"
 
-// The arrival maths keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 // Values and vtables read from the exe's memory as the original does (rule 9).
@@ -215,8 +212,8 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
     // `entrance_`), facing away from the map's centre unless the exit gives a heading.
     double cell = static_cast<double>(CellSize()) * Half();
-    float centreX = StoreFloat(static_cast<float>(gridWidth_ * cell * Half()));
-    float centreY = StoreFloat(static_cast<float>(gridHeight_ * cell * Half()));
+    float centreX = static_cast<float>(gridWidth_ * cell * Half());
+    float centreY = static_cast<float>(gridHeight_ * cell * Half());
     Quaternion rotation;
     std::memcpy(&rotation, NoRotation(), sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};
@@ -226,13 +223,13 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     int entrance = static_cast<int>(party->entrance_);
     if (zone && entrance >= 0 && entrance < zone->exits.size) {
         exit = &zone->exits.data[entrance];
-        start.x = StoreFloat(static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half()));
-        start.y = StoreFloat(static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * Half()));
+        start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half());
+        start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * Half());
         start.z = 0.0f;
         std::memcpy(&startValue, &exit->view, 4);
     }
-    float angle = StoreFloat(static_cast<float>(Fpatan(static_cast<double>(start.y) - centreY,
-                                                       static_cast<double>(start.x) - centreX) - FacingOffset()));
+    float angle = static_cast<float>(Fpatan(static_cast<double>(start.y) - centreY,
+                                                       static_cast<double>(start.x) - centreX) - FacingOffset());
     if (exit && *reinterpret_cast<const std::uint8_t*>(&exit->hasDeployAngle)) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
     Vector3 up{0.0f, 0.0f, 1.0f};
     QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
@@ -255,8 +252,6 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     records.vtable = RecordArrayVtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-
-#pragma float_control(pop)
 
 // ---- CopyItem ---------------------------------------------------------------------------------
 

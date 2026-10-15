@@ -90,7 +90,7 @@ void CRainSnow::UpdateFade(float now) {
         if (targetMode == 1 && sound) SoundSetVolume(SoundManager(), nullptr, sound, 100, 0);
     } else if (!((now - fadeStart) / fadeDuration > kOne)) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
-        float level = StoreFloat(static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf));
+        float level = static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf);
         if (sound) SoundSetVolume(SoundManager(), nullptr, sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
@@ -122,9 +122,9 @@ EI_REPLACE_METHOD(0x004E4050, CRainSnow::FinishFade);
 
 // SetWind script command (00564190 calls it): the drops' slant.
 void CRainSnow::SetWind(const Vector3& direction, float strength) {
-    float x = StoreFloat(strength * direction.x);
-    float y = StoreFloat(strength * direction.y);
-    float z = StoreFloat(strength * direction.z);
+    float x = static_cast<float>(strength * direction.x);
+    float y = static_cast<float>(strength * direction.y);
+    float z = static_cast<float>(strength * direction.z);
     wind.x = x;
     wind.y = y;
     wind.z = z;
@@ -222,11 +222,11 @@ void CVisibilityFog::ComputeBounds() {
     boundsMin.y = Load(boundsMin.y) - kHalf;
     boundsMin.z = Load(boundsMin.z) - kHalf;
     // The x sum stays on the FPU stack until it is halved; y and z go through float temporaries.
-    float sy = StoreFloat(Load(boundsMin.y) + Load(boundsMax.y));
-    float sz = StoreFloat(Load(boundsMin.z) + Load(boundsMax.z));
-    float cx = StoreFloat((Load(boundsMax.x) + Load(boundsMin.x)) * kHalf);
-    float cy = StoreFloat(sy * kHalf);
-    float cz = StoreFloat(sz * kHalf);
+    float sy = static_cast<float>(Load(boundsMin.y) + Load(boundsMax.y));
+    float sz = static_cast<float>(Load(boundsMin.z) + Load(boundsMax.z));
+    float cx = static_cast<float>((Load(boundsMax.x) + Load(boundsMin.x)) * kHalf);
+    float cy = static_cast<float>(sy * kHalf);
+    float cz = static_cast<float>(sz * kHalf);
     center.x = cx;
     center.y = cy;
     center.z = cz;

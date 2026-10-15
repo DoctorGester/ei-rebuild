@@ -53,12 +53,6 @@ void ChooseFigure(CUiWindow* owner, const char* name) {
     reinterpret_cast<Fn>(owner->vtable_[52])(owner, name);
 }
 
-// The original keeps this value in a float local (FSTP dword) and reads it back.
-float StoreFloat(float value) {
-    volatile float stored = value;
-    return stored;
-}
-
 CUiMesh* Sprite(CUiWindow& w, int index) { return reinterpret_cast<CUiMesh*>(w.sceneObjects_.data[index]); }
 
 } // namespace
@@ -93,7 +87,7 @@ EI_REPLACE_METHOD(0x00629A40, CUiItemStrip::SetupFigures);
 BOOL CUiItemStrip::DrawFigures(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
-    const float frac = StoreFloat(position - static_cast<float>(first));
+    const float frac = static_cast<float>(position - static_cast<float>(first));
     Sprite(window, 0)->uOffset_ = position_[tab_] > kZero ? std::bit_cast<float>(kDimmed) : 0.0f;
     Sprite(window, 1)->uOffset_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
     Sprite(window, 9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);

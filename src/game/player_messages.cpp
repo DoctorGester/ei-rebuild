@@ -67,7 +67,7 @@ void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
 
 void CPlayerServer::SetVariableMax(const char* name, float value) {
     // Rounded to float (FST) before any comparison.
-    volatile float stored = static_cast<float>(VariableGet(Variables(Owner()), nullptr, name));
+    float stored = static_cast<float>(VariableGet(Variables(Owner()), nullptr, name));
     float current = stored;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);

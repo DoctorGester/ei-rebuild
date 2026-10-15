@@ -227,13 +227,13 @@ EI_REPLACE(0x004DDD60, SysInfoAtExit);
 
 // 004DDCBA / 004DDCD7 / 004DDCF8 / 004DDD19: the four constants, each one operation on the exe's
 // pi rounded to a float by the store.
-void __cdecl SysInfoInitTwoPi() { GameFloatAt(0x007AB8F0) = RoundToFloat(Pi() + Pi()); }
+void __cdecl SysInfoInitTwoPi() { GameFloatAt(0x007AB8F0) = static_cast<float>(Pi() + Pi()); }
 EI_REPLACE(0x004DDCBA, SysInfoInitTwoPi);
-void __cdecl SysInfoInitHalfPi() { GameFloatAt(0x007ABA00) = RoundToFloat(Pi() / GameFloat(0x0073CDB8)); }
+void __cdecl SysInfoInitHalfPi() { GameFloatAt(0x007ABA00) = static_cast<float>(Pi() / GameFloat(0x0073CDB8)); }
 EI_REPLACE(0x004DDCD7, SysInfoInitHalfPi);
-void __cdecl SysInfoInitQuarterPi() { GameFloatAt(0x007ABA04) = RoundToFloat(Pi() / GameFloat(0x0073BAA0)); }
+void __cdecl SysInfoInitQuarterPi() { GameFloatAt(0x007ABA04) = static_cast<float>(Pi() / GameFloat(0x0073BAA0)); }
 EI_REPLACE(0x004DDCF8, SysInfoInitQuarterPi);
-void __cdecl SysInfoInitInversePi() { GameFloatAt(0x007ABA08) = RoundToFloat(GameFloat(0x0073B84C) / Pi()); }
+void __cdecl SysInfoInitInversePi() { GameFloatAt(0x007ABA08) = static_cast<float>(GameFloat(0x0073B84C) / Pi()); }
 EI_REPLACE(0x004DDD19, SysInfoInitInversePi);
 
 // 004DDCB0 / 004DDCCD / 004DDCEE / 004DDD0F: the table's entries for them.

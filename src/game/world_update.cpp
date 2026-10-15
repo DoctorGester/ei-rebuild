@@ -21,9 +21,6 @@
 #include "originals_script.h"
 #include "originals_world.h"
 
-// The radius keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 void* NetworkLog() { return reinterpret_cast<void*>(flowdata::kNetLogStream); }
@@ -72,7 +69,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
         auto* controller = static_cast<CUnitServer*>(unit->controller);
-        float perception = StoreFloat(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
+        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * worlddata::HearingScale() + worlddata::WakeMargin());
@@ -178,7 +175,5 @@ int CWorldServer::Update() {
     ++updateCount_;
     return 1;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058DFF0, CWorldServer::Update);

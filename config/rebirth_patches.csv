@@ -268,18 +268,18 @@ SavesPath,addon,00655D7E,5,00655D40+3E,resources/paths,no,call,disabled here: CA
 SavesPath,addon,00615622,5,00613EA0+1782,resources/paths,no,call,disabled here: CALL redirected,n/a: disabled in this install,
 EiPluginInit,EI_Plugin,006B6272,5,006B6040+232,infrastructure,no,,CALL into the plugin after AIL_startup,active here; not started,always
 EiPluginInit,EI_Plugin,0073AF20,4,data,infrastructure,no,,marker,active here; not started,always
-EiPluginNPlayers,EI_Plugin,0061BB82,1,0061B2C0+8C2,multiplayer,no,,player count - 1,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b); the other sites not started,always
-EiPluginNPlayers,EI_Plugin,0061BAF7,2,0061B2C0+837,multiplayer,no,,bytes,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b); the other sites not started,always
-EiPluginNPlayers,EI_Plugin,00640069,4,00640060+9,multiplayer,no,,bytes,active here; not started,always
-EiPluginNPlayers,EI_Plugin,00608D9D,4,00608D20+7D,multiplayer,no,,0,active here; not started,always
-EiPluginNPlayers,EI_Plugin,00608DE4,4,00608D20+C4,multiplayer,no,,0,active here; not started,always
-EiPluginNPlayers,EI_Plugin,006095FB,4,006095A0+5B,multiplayer,no,,0x2E8,active here; not started,always
-EiPluginNPlayers,EI_Plugin,0064016B,27,00640060+10B,multiplayer,no,,bytes (more than 7 players),inactive here; not started,nplayers>7
-EiPluginNPlayers,EI_Plugin,006401C0,4,00640060+160,multiplayer,no,,bytes,inactive here; not started,nplayers>7
-EiPluginNPlayers,EI_Plugin,006401D7,8,00640060+177,multiplayer,no,,bytes,inactive here; not started,nplayers>7
-EiPluginNPlayers,EI_Plugin,006401DF,3,00640060+17F,multiplayer,no,,bytes,inactive here; not started,nplayers>7
-EiPluginNPlayers,EI_Plugin,006401E2,4,00640060+182,multiplayer,no,,bytes,inactive here; not started,nplayers>7
-EiPluginNPlayers,EI_Plugin,00640240,4,00640060+1E0,multiplayer,no,,bytes,inactive here; not started,nplayers>7
+EiPluginNPlayers,EI_Plugin,0061BB82,1,0061B2C0+8C2,multiplayer,no,,player count - 1,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),always
+EiPluginNPlayers,EI_Plugin,0061BAF7,2,0061B2C0+837,multiplayer,no,,bytes,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),always
+EiPluginNPlayers,EI_Plugin,00640069,4,00640060+9,multiplayer,no,,bytes,active here; implemented: CHudPortraits::AddPortrait 00640060 (src/game/ui_hud_portrait_setup.cpp; W4b),always
+EiPluginNPlayers,EI_Plugin,00608D9D,4,00608D20+7D,multiplayer,no,,0,active here; implemented: CChatWindow::Construct 00608D20 (src/game/ui_chat_window.cpp; W4b),always
+EiPluginNPlayers,EI_Plugin,00608DE4,4,00608D20+C4,multiplayer,no,,0,active here; implemented: CChatWindow::Construct 00608D20 (src/game/ui_chat_window.cpp; W4b),always
+EiPluginNPlayers,EI_Plugin,006095FB,4,006095A0+5B,multiplayer,no,,0x2E8,active here; implemented: CChatWindow::Update 006095A0 (src/game/ui_chat_window.cpp; W4b),always
+EiPluginNPlayers,EI_Plugin,0064016B,27,00640060+10B,multiplayer,no,,bytes (more than 7 players),inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401C0,4,00640060+160,multiplayer,no,,bytes,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401D7,8,00640060+177,multiplayer,no,,bytes,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401DF,3,00640060+17F,multiplayer,no,,bytes,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
+EiPluginNPlayers,EI_Plugin,006401E2,4,00640060+182,multiplayer,no,,bytes,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
+EiPluginNPlayers,EI_Plugin,00640240,4,00640060+1E0,multiplayer,no,,bytes,inactive here; not reproduced: the installer skips the functions when NPlayers > 7 (W4b),nplayers>7
 EiPluginPause,EI_Plugin,0066FAFE,4,0066FAC0+3E,multiplayer,no,,"JMP +0x62, NOPs",active here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp; mode rebirth::PluginPause),pause12
 EiPluginPause,EI_Plugin,0066FB62,14,data,multiplayer,no,,bytes,active here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12
 EiPluginPause,EI_Plugin,0066FB10,5,0066FAC0+50,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",active here (written with Pause=2 only); implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12
@@ -303,16 +303,16 @@ EiPluginBriefings,EI_Plugin,005920C3,1,00592090+33,multiplayer,no,,jump offset +
 EiPluginBriefings,EI_Plugin,005920D5,1,00592090+45,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
 EiPluginBriefings,EI_Plugin,005920E9,1,00592090+59,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
 EiPluginBriefings,EI_Plugin,005920F0,1,00592090+60,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
-EiPluginFixes,EI_Plugin,00614BB5,22,00613EA0+D15,multiplayer,partly,,"cmp word [ecx+4],0x6566; jne; jmp; NOPs",active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a); the other sites not started,always
-EiPluginFixes,EI_Plugin,00614D1B,26,00613EA0+E7B,multiplayer,partly,,jmp; NOPs,active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a); the other sites not started,always
-EiPluginFixes,EI_Plugin,005ED889,8,005ED7B0+D9,multiplayer,partly,,"cmp byte [ecx+4],0x66; je; jmp",active here; not started,always
-EiPluginFixes,EI_Plugin,00609427,8,006091C0+267,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; not started,always
-EiPluginFixes,EI_Plugin,006408E6,8,006407E0+106,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; not started,always
-EiPluginFixes,EI_Plugin,00640D2F,8,006407E0+54F,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; not started,always
-EiPluginFixes,EI_Plugin,005F1401,1,005F13A0+61,multiplayer,partly,,JMP short,active here; not started,always
-EiPluginFixes,EI_Plugin,00536132,6,00536100+32,multiplayer,partly,,NOPs,active here; not started,always
-EiPluginFixes,EI_Plugin,006093B7,5,006091C0+1F7,multiplayer,partly,,JMP into the plugin,active here; not started,always
-EiPluginFixes,EI_Plugin,00640C97,5,006407E0+4B7,multiplayer,partly,,JMP into the plugin,active here; not started,always
+EiPluginFixes,EI_Plugin,00614BB5,22,00613EA0+D15,multiplayer,partly,,"cmp word [ecx+4],0x6566; jne; jmp; NOPs",active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a),always
+EiPluginFixes,EI_Plugin,00614D1B,26,00613EA0+E7B,multiplayer,partly,,jmp; NOPs,active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a),always
+EiPluginFixes,EI_Plugin,005ED889,8,005ED7B0+D9,multiplayer,partly,,"cmp byte [ecx+4],0x66; je; jmp","active here; implemented: CItemScreen::FaceNames, called by DrawHeroFace 005ED7B0 (src/game/ui_item_view.cpp; W4b)",always
+EiPluginFixes,EI_Plugin,00609427,8,006091C0+267,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; implemented: CChatWindow::ShowPlayers 006091C0 (src/game/ui_chat_window.cpp; W4b),always
+EiPluginFixes,EI_Plugin,006408E6,8,006407E0+106,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; implemented: CHudPortraits::Rebuild 006407E0 (src/game/ui_hud_portrait_setup.cpp; W4b),always
+EiPluginFixes,EI_Plugin,00640D2F,8,006407E0+54F,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; implemented: CHudPortraits::Rebuild 006407E0 (src/game/ui_hud_portrait_setup.cpp; W4b),always
+EiPluginFixes,EI_Plugin,005F1401,1,005F13A0+61,multiplayer,partly,,JMP short,active here; implemented: ItemDamageLists 005F13A0 (src/game/ui_item_info.cpp; W4b),always
+EiPluginFixes,EI_Plugin,00536132,6,00536100+32,multiplayer,partly,,NOPs,active here; implemented: CUnitClientSpecific::RefreshSkins 00536100 (src/game/unit_client_equipment.cpp; W4b),always
+EiPluginFixes,EI_Plugin,006093B7,5,006091C0+1F7,multiplayer,partly,,JMP into the plugin,"active here; implemented: CChatWindow::ShowPlayers 006091C0 (src/game/ui_chat_window.cpp; W4b: the prototype fallback, src/game/plugin_fixes.h)",always
+EiPluginFixes,EI_Plugin,00640C97,5,006407E0+4B7,multiplayer,partly,,JMP into the plugin,active here; implemented: CHudPortraits::Rebuild 006407E0 (src/game/ui_hud_portrait_setup.cpp; W4b: the prototype fallback),always
 EiPluginPK,EI_Plugin,00554144,1,00553F40+204,multiplayer,no,,JMP short in CUnitServer::TakeHit (rewritten),inactive here; not started,always
 EiPluginPK,EI_Plugin,0054D9F0,6,0054D960+90,multiplayer,no,,NOPs in CUnitServer::ExecuteOrder (rewritten),inactive here; not started,always
 EiPluginPK,EI_Plugin,0058E2C4,7,0058DFF0+2D4,multiplayer,no,,bytes,inactive here; not started,always

@@ -94,7 +94,8 @@ comes from a bug we already hit.
    distributed and refolded sums (FearMode's `(30x + d) * (1/31)` became `30/31 x + d/31` and
    settled on another fixed point, SV7d1) and kept float locals unrounded (ticket X3: unrounded
    atan2 angles flipped a facing quaternion's sign at 180 degrees, 1 call in 300k); the volatile
-   float store helpers and `float_control(precise)` pragmas written against that are redundant now.
+   float store helpers and `float_control(precise)` pragmas written against that were removed
+   (SV7d1a1): round with `static_cast<float>` or a float variable.
    Under precise, `std::sqrt / sin / cos / atan2 / exp / log / log10` call the modern CRT (SSE2 code
    paths): use `x87::fsqrt / fsin / fcos / fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`,
    the instructions the original's VC6 code inlines. A product of two constants that the original
