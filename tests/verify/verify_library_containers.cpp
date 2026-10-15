@@ -227,6 +227,17 @@ struct StringDwordChecks {
                   (last == self->head || TopOf(sizeof(Node), 1) == std::vector<void*>{last});
         ei::verify::Report(Name<A>("stlp::list<pair<string, dword>>::clear"), ok, ok ? "" : "not emptied");
     }
+    // erase(pos) (S12e): unlinked, the next node returned, the node (freed after its string) on
+    // top of its free list.
+    static Node** __fastcall Erase(List* self, void*, Node** out, Node* pos) {
+        Node* prev = pos->prev;
+        Node* next = pos->next;
+        Node** result = StringDwordList::Erase(self, nullptr, out, pos);
+        bool ok = result == out && *out == next && prev->next == next && next->prev == prev &&
+                  TopOf(sizeof(Node), 1) == std::vector<void*>{pos};
+        ei::verify::Report(Name<A>("stlp::list<pair<string, dword>>::erase"), ok, ok ? "" : "not unlinked or not freed");
+        return result;
+    }
 };
 
 // _M_create_node of a CString and of the briefing's shown item: ours only.
@@ -367,6 +378,21 @@ void CheckFree(const char* name, void* p, std::size_t bytes, bool runOriginal, T
     if (!ok) std::snprintf(detail, sizeof(detail), "%p (%u bytes) not on top of its free list", p, static_cast<unsigned>(bytes));
     ei::verify::Report(name, ok, detail);
 }
+
+// The print records' name (S12e): the original first when the block is pool-sized, then ours.
+template <std::uintptr_t A>
+struct PrintNameFree {
+    static inline void* original = nullptr;
+    static void __fastcall Verify(PrintRecord* self) {
+        net::StringRep words;   // the string's three pointers
+        static_assert(sizeof(words) == sizeof(self->name));
+        std::memcpy(&words, &self->name, sizeof(words));
+        CheckFree(Name<A>("print record: the name freed"), words.start, static_cast<std::size_t>(words.eos - words.start),
+                  original != nullptr,
+                  [&] { reinterpret_cast<decltype(&libcontainers::DestroyPrintName)>(original)(self); },
+                  [&] { libcontainers::DestroyPrintName(self); });
+    }
+};
 
 template <std::uintptr_t A, typename Abi>
 struct VectorFree {
@@ -572,6 +598,24 @@ struct UnwindHelpers {
         if (second && FreeList(secondBytes) != FreeList(firstBytes)) ok = ok && TopOf(secondBytes, 1) == std::vector<void*>{second};
         if (second && first && FreeList(secondBytes) == FreeList(firstBytes)) ok = ok && TopOf(firstBytes, 2)[1] == second;
         ei::verify::Report(Name<A>("unwind: two vectors"), ok, ok ? "" : "the storage is not on top of its free list");
+    }
+    // The server list's game record (S12e): the description's block, then the name's, on top of their
+    // free lists.
+    static void __fastcall DestroyGameInfo(net::GameInfoRecord* self) {
+        void* description = self->description.start;
+        void* name = self->name.start;
+        std::size_t descriptionBytes = static_cast<std::size_t>(self->description.eos - self->description.start);
+        std::size_t nameBytes = static_cast<std::size_t>(self->name.eos - self->name.start);
+        libcontainers::DestroyGameInfoRecord(self);
+        // Blocks above 128 bytes went to operator delete.
+        bool namePooled = name && FreeList(nameBytes);
+        bool descriptionPooled = description && FreeList(descriptionBytes);
+        bool ok = !namePooled || TopOf(nameBytes, 1) == std::vector<void*>{name};
+        if (descriptionPooled && FreeList(descriptionBytes) != FreeList(nameBytes))
+            ok = ok && TopOf(descriptionBytes, 1) == std::vector<void*>{description};
+        if (descriptionPooled && namePooled && FreeList(descriptionBytes) == FreeList(nameBytes))
+            ok = ok && TopOf(nameBytes, 2).size() == 2 && TopOf(nameBytes, 2)[1] == description;
+        ei::verify::Report(Name<A>("GameInfoRecord: the strings freed"), ok, ok ? "" : "a block is not on top of its free list");
     }
     static void __fastcall SetRoot(void* self) {
         libcontainers::SetRootVtable(self);
@@ -991,5 +1035,11 @@ EI_VERIFY(0x00445FC0, CStringRelease<0x00445FC0>::DestroyWord, 0, s_unused);
 EI_VERIFY(0x00482E90, UnwindHelpers<0x00482E90>::ClearLocal, 0, s_unused);
 EI_VERIFY(0x005F60B0, UnwindHelpers<0x005F60B0>::DestroyVectors, 0, s_unused);
 EI_VERIFY(0x004F69F0, UnwindHelpers<0x004F69F0>::SetRoot, 0, s_unused);
+// S12e: the link loader's archive erase (ours only), the game record's strings (ours only), the
+// print records' names (MOV EAX,[ECX+4]; MOV ECX,[ECX+0xC]: 6 bytes, against the original).
+EI_VERIFY(0x004FAE00, StringDwordChecks<0x004FAE00>::Erase, 0, s_unused);
+EI_VERIFY(0x0041AC30, UnwindHelpers<0x0041AC30>::DestroyGameInfo, 0, s_unused);
+EI_VERIFY(0x006D29A0, PrintNameFree<0x006D29A0>::Verify, 6, PrintNameFree<0x006D29A0>::original);
+EI_VERIFY(0x006D29E0, PrintNameFree<0x006D29E0>::Verify, 6, PrintNameFree<0x006D29E0>::original);
 // CTime - CTimeSpan: mov ecx,[ecx]; mov eax,[esp+8] (6 bytes), against the original.
 EI_VERIFY(0x005E0550, TimeMinus<0x005E0550>::Verify, 6, TimeMinus<0x005E0550>::original);
