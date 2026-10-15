@@ -386,9 +386,9 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
 # The original code does not change, so a run of it only needs playing again when its scenario, its install's
 # files, the clock or the game's EI_* settings change. A passed run's folder (frames, report, log; not
 # harness_saves) is kept in <main checkout>/build/reference/<scenario>-<install>/<key>/ with cached.json (run()'s
-# results); run() copies it into the run folder instead of playing it. Not in the key: the harness itself (the
-# verify build's ei_launch and ei_hook.dll run the original code's scenarios too): after a harness change that
-# alters what a reference run captures, run with --fresh.
+# results); run() copies it into the run folder instead of playing it. The harness's own sources
+# (tests/verify/harness*) are in the key, so a digest or clock change plays the original again; other harness
+# changes that alter what a reference run captures need --fresh.
 
 CACHED_NOTE = 'reference cache: '     # the note of a run taken from the cache (no time recorded for it)
 REFERENCE_KEEP = 3                     # keys kept per <scenario>-<install> (other worktrees' scenario revisions)
@@ -426,7 +426,8 @@ def install_fingerprint(root, install):
 def reference_key(name, install, root, clock, environ):
     """The cache key of a run of the original code, or None when it is not cached (the scenario has uncommitted
     edits or no commit). Made of: the scenario's last commit (work.scenario_revs, as WB6's timing table), the
-    install's files, the tools its "# prepare:" lines run, the clock override and the game's EI_* settings."""
+    install's files, the harness's sources, the tools its "# prepare:" lines run, the clock override and the game's
+    EI_* settings."""
     try:
         import work
         rev = work.scenario_revs(root).get(name, '')
@@ -438,6 +439,9 @@ def reference_key(name, install, root, clock, environ):
     settings = {k: v for k, v in game_environment(environ).items() if k != 'EI_RENDER'}    # run_once drops it
     h.update(json.dumps(settings, sort_keys=True).encode())
     h.update(install_fingerprint(root, install).encode())
+    for source in sorted(glob.glob(os.path.join(root, 'tests', 'verify', 'harness*'))):
+        with contextlib.suppress(OSError), open(source, 'rb') as f:
+            h.update(f.read())
     with contextlib.suppress(OSError):
         with open(os.path.join(root, 'tests', 'scenarios', name + '.txt'), encoding='utf-8', errors='replace') as f:
             for text in f:
