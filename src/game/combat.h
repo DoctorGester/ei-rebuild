@@ -53,12 +53,13 @@ static_assert(sizeof(UnitAction) == 0x24);
 
 // One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620). 00550A60
 // constructs a blank one: animation 0xFF, +1 0xFF, +2 0, duration -1, +8 0. It never sets byte 3,
-// so the original's steps carry a stack byte there; ours carry 0.
+// nor do the builders' inline stack steps, so the original's steps carried a stack byte there;
+// ours carry 0, and so does the original in harness runs (SV7b2a, harness_save_leftovers.cpp).
 struct AnimationStep {
     std::uint8_t animation;     // +0x00 index of the unit's animation entry (0xFF: a pause)
     std::uint8_t variant;       // +0x01 the emote / animation variant (0xFF: none; UnitSetAnimation)
     std::uint8_t flags;         // +0x02 UnitSetAnimation's flags (StartAction's stepFlags)
-    std::uint8_t padding;       // +0x03 not initialised by the original
+    std::uint8_t padding;       // +0x03 0 (not initialised by the original)
     int duration;               // +0x04 game ticks
     int kind;                   // +0x08 1 holds the queue time, 2 lying (a fall); passed to the unit (UnitSet25C)
 

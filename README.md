@@ -93,6 +93,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `freeze` / `unfreeze` hold the game's clocks and camera around captures; `samecapture <a> <b>`
   requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two
   runs' frames with a tolerance (`--mask` restricts it to where two other frames differ).
+  A finished run's frames are stored packed (`<name>.bmp.z`, tools/frame_store.py; compare_frames and
+  frame_preview read both forms).
   `render <spec>` turns the new renderer on for the run (its frame goes to `<name>.new.bmp`) and
   `oldterrain`, `oldobjects`, `oldinterface` (`off|on`) switch parts of the old draw
   (`docs/notes/renderer.md`, scenario `render_scene`).

@@ -421,7 +421,9 @@ EI_VERIFY(0x0067A370, LightningStartVerify, 0, s_unused);
 
 static void __fastcall SoundResetVerify(CEffectSound* self) {
     self->Reset();
-    bool ok = BaseCleared(self) && self->sound_ == -1 && self->looping_ == 1 && self->name_[0] == 0 &&
+    bool named = false;
+    for (char c : self->name_) named |= c != 0;
+    bool ok = BaseCleared(self) && self->sound_ == -1 && self->looping_ == 1 && !named &&
               self->fresh_ == 1 && self->noFade_ == 0;
     ei::verify::Check("CEffectSound::Reset", true, ok, "object %p", self);
 }

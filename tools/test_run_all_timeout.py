@@ -101,7 +101,7 @@ class Retries(unittest.TestCase):
                     with open(os.path.join(folder, 'ei_hook.log'), 'w') as f:
                         f.write('first attempt\n')
                     return 'FAIL', 1.0, ['a check'], {}, []
-                shutil.rmtree(folder)         # what run_once does
+                shutil.rmtree(folder, ignore_errors=True)   # what run_once does
                 os.makedirs(folder)
                 return 'PASS', 1.0, [], {}, []
 
@@ -112,6 +112,32 @@ class Retries(unittest.TestCase):
             with open(os.path.join(build, 'runs', 'x-vanilla-attempt1', 'ei_hook.log')) as f:
                 self.assertEqual(f.read(), 'first attempt\n')
             self.assertFalse(os.path.exists(os.path.join(folder, 'ei_hook.log')))
+
+
+    def test_whole_attempt_is_kept(self):
+        with tempfile.TemporaryDirectory() as build:
+            folder = os.path.join(build, 'runs', 'x-vanilla')
+            os.makedirs(os.path.join(folder, 'harness_saves'))
+            for name in ('ei_hook.log', 'digest.txt', os.path.join('harness_saves', 'a.mmp')):
+                with open(os.path.join(folder, name), 'w') as f:
+                    f.write(name)
+            self.assertEqual(run_all.keep_attempt('x-vanilla', 1, build=build), 'x-vanilla-attempt1')
+            kept = os.path.join(build, 'runs', 'x-vanilla-attempt1')
+            self.assertTrue(os.path.exists(os.path.join(kept, 'digest.txt')))
+            self.assertTrue(os.path.exists(os.path.join(kept, 'harness_saves', 'a.mmp')))
+            self.assertFalse(os.path.exists(folder))
+            self.assertIsNone(run_all.keep_attempt('x-vanilla', 2, build=build))
+
+
+class LowDisk(unittest.TestCase):
+    """A game is not started on a nearly full disk (X40: file writes fail there and the game throws)."""
+
+    def test_wait_for_disk(self):
+        with tempfile.TemporaryDirectory() as build:
+            self.assertIsNone(run_all.wait_for_disk(build, low=1, wait=0))
+            failure = run_all.wait_for_disk(build, low=1 << 40, wait=0)
+            self.assertIn('MB free on', failure)
+            self.assertIn('not started', failure)
 
 
 if __name__ == '__main__':

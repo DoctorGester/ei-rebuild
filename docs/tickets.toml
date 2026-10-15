@@ -1137,6 +1137,30 @@ size = 1
 depends = ["SV5a"]
 note = "SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
 
+[[ticket]]
+id = "S20a"
+title = "Goldens for the renderer-only scenarios (they fail on the original code)"
+group = "verification"
+note = "From S20: render_cursor_present (vanilla, Rebirth), render_device_lost, render_present_shot (vanilla, Rebirth) and render_present_window FAIL or TIMEOUT with --no-hooks (the original has no present thread / device-lost / shot path: 'cursorcheck: 0 presents', 'waitpresent: timed out', checkshot 100% differ), so golden.py refuses them (the run must pass with --no-hooks). Decide per scenario: a golden digest taken from a hooked or standalone run once the world state it digests no longer depends on the renderer, or leave them to their own checks and drop them from the golden count."
+
+[[ticket]]
+id = "S20b"
+title = "render_present_fullscreen has no run of the original (full screen at its own display mode)"
+group = "verification"
+note = "From S20: run_all leaves render_present_fullscreen-vanilla out of --no-hooks runs (full screen at its own mode without our renderer would switch the display; user rule: never an exclusive full screen at a non-native mode), so it has no golden. Either a windowed or native-mode variant of the same world steps gets the golden, or it stays covered by its hooked check only."
+
+[[ticket]]
+id = "S20c"
+title = "ui_mp_host (vanilla, Rebirth), net_second_master and Rebirth rebirth_flags: hooked runs part from the original, standalone matches"
+group = "verification"
+note = "Coordinator: standalone already matches, so S21 (hook builds retired) can restore these four goldens (re-record saves under SV7b2a rules) without chasing the hooked difference; only chase it if S21 is delayed."
+
+[[ticket]]
+id = "S20d"
+title = "zone_gz3g and zone_gz15h_tornado: saves left out of the goldens (brain memory call0 point.z differs between plain runs)"
+group = "verification"
+note = "From S20 on top of SV7b2a: two plain --no-hooks passes of zone_gz3g (vanilla) and zone_gz15h_tornado (vanilla, Rebirth) decode to different savea/mission.sav in 2 to 8 objects' controller.brain.memory.call0.point.z (values near 1e-28, e.g. obj3328 / obj3329 in gz3g, obj338784..338792 in the tornado zone): an uninitialised float that follows the heap, another leftover family like SV7b2/SV7b3. Their goldens keep console, digest and dumps; golden.json says 'saves: not kept'. Find the writer of call0.point (a brain memory slot built by a script command or SSCCmd::Execute), zero it in ours and in the original (harness_leftovers / harness_save_leftovers), then 'golden.py saves' for the three."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1398,6 +1422,28 @@ group = "harness"
 size = 1
 depends = ["T2a"]
 note = "T2a: the original repeats (5 of 5), ours (hooked, --dgvoodoo, standalone) alternates: ours plays three more ambience sounds in frame 15 (Terrain::PlayAmbience, MaybeRemark draws; EI_HARNESS_CLOCK=virtual,randtrace + tools/randtrace.py on ui_base_dialogue). Find which input of PlayAmbience / the sector votes differs (listener, SectorAt load state, sound-end notes) and fix; then record ui_base_dialogue goldens (4 passes, vanilla and rebirth). Not the renderer (dgvoodoo parts too)."
+
+[[ticket]]
+id = "X40"
+title = "Games crash with C++ exception E06D7363 right after a file write (unit texture .mmp, save stream)"
+group = "harness"
+size = 1
+model = "opus"
+note = "Seen 2026-10-15 23:45 and 23:51 (and once at 11:24, SV2h3 zone_gz3g): 27 runs across S20, SV7b2a and SV7c, hooked and --no-hooks, vanilla and Rebirth, in bursts where most runs of the batches starting that minute crash 4-14 s in. The last log lines are always a file write: 'install write redirected: ...\\textures\\mo1884p.mmp (or mo699p.mmp) -> <run>\\harness_saves\\textures\\...' (written twice, then the crash), or 'verify FileStreamWrite: first call' during a save. Exception E06D7363 (MSVC throw) at 759BB702 (KernelBase RaiseException), so the game throws on a failed file operation. No stack is in ei_hook.log despite the message, and the retry keeps only harness_report.txt in <run>-attempt1 for some runs. Find which call fails and why (GetLastError of the redirected CreateFile/WriteFile/read-back; disk space, a sharing violation from a scanner, or the redirect itself), fix the cause, and make the crash handler log the C++ exception's type and the game stack."
+
+[[ticket]]
+id = "WB11"
+title = "Shrink the run data: work.db per-run counts and 4K BMPs in the reference cache"
+group = "harness"
+size = 1
+model = "sonnet"
+note = "Merged. Pending: work.db VACUUM (python tools/work.py prune --vacuum, needs the user's OK: shared DB, blocks writers for seconds); pack build/reference/ui_widescreen*-rebirth after the scheduler restarts; work.db.pre-wb10 left for the user."
+
+[[ticket]]
+id = "X40a"
+title = "Crash stacks name the functions (ei_hook+offset through ei_hook.map, game.exe through the function list)"
+group = "harness"
+note = "X40 logs the code addresses on a crashed game's stack (ei_hook.log 'stack ei_hook+XXXX' / 'stack 006936BE (game.exe)'), raw. Resolve them to names in run_all's failure summary or a small tool, from build/<cfg>/ei_hook.map and the known game functions, and drop stale frames (addresses above the throw's frame chain)."
 
 # ---------------------------------------------------------------- cleanup
 

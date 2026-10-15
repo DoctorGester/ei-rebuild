@@ -1,0 +1,92 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  Script error: Unexpected 'EndMarkerA'
+  1
+  1
+  1
+  1
+  1
+  Script error: Unexpected 'EndMarkerB'
+  1
+  Script error: Unexpected 'EndMarkerC'
+  1
+  Script error: Unexpected 'EndMarkerD'
+  0
+  0
+  zx run done
+  1
+  1
+  1
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  zx text
+  1
+  1
+  1
+  1
+  1
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  0
+  0
+  1
+  1
+  1

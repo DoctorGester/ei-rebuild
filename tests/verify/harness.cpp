@@ -102,6 +102,10 @@
 //   expect <text>             require <text> in the console output since the previous expect
 //   reject <text>             fail if <text> appears in the console output from now on
 //   report                    write the verify totals to harness_report.txt
+//   diskfull <text>           TEST ONLY (harness_disk_full.txt): writes to files whose path contains
+//                             <text> fail with ERROR_DISK_FULL from now on (harness_crash.h)
+//   expectcrash <text>        the run passes when the game crashes with a failure line containing
+//                             <text>, and fails at "quit" when it has not crashed
 //   quit                      write the report and exit the game through the console
 //   realtime, deterministic   the game on real time, or (the default) on the virtual game clock
 //                             with fixed seeds, where runs repeat exactly (see below)
@@ -201,9 +205,11 @@
 #include "harness_capture.h"
 #include "harness_address_order.h"
 #include "harness_clock.h"
+#include "harness_crash.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
 #include "harness_leftovers.h"
+#include "harness_save_leftovers.h"
 #include "harness_shadow_turn.h"
 #include "harness_path_cells.h"
 #include "harness_savetrace.h"
@@ -624,6 +630,7 @@ constexpr std::uintptr_t kCreateFileASlot = 0x0073B218;
 constexpr std::uintptr_t kGetFileAttributesASlot = 0x0073B2F8;
 constexpr std::uintptr_t kSetFileAttributesASlot = 0x0073B304;
 constexpr std::uintptr_t kMoveFileASlot = 0x0073B40C;
+constexpr std::uintptr_t kWriteFileSlot = 0x0073B270;   // failed writes are reported (harness_crash.h)
 
 char g_savesDir[MAX_PATH];
 decltype(&::CreateFileA) g_createFile;
@@ -750,7 +757,9 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
     // the same install, so reads always let others read too.
     if (!write) share |= FILE_SHARE_READ;
     if (write) savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
-    return g_createFile(target, access, share, sa, disposition, flags, templ);
+    HANDLE file = g_createFile(target, access, share, sa, disposition, flags, templ);
+    crash::OnFileOpened(name, target, file, write);   // "diskfull" (harness_crash.h)
+    return file;
 }
 
 // Registry: harness runs never write the game's settings (it saves its options on exit).
@@ -933,6 +942,7 @@ void WriteReport() {
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
+    if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -1548,14 +1558,41 @@ bool IsInputStep(const std::string& verb) {
            verb == "focus" || verb == "windowsize";
 }
 
+// "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
+std::string g_expectedCrash;
+// The crash's failure line gives the free space for a C++ throw (a write failing on a full disk throws
+// a CFileException) or when it is below kLowDiskMb.
+constexpr long long kLowDiskMb = 1024;
+constexpr DWORD kMsvcThrow = 0xE06D7363;
+
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
-// the game (and Rebirth) install their own filters, which can leave a crashed game hanging.
+// the game (and Rebirth) install their own filters, which can leave a crashed game hanging. The
+// failure names a C++ throw's type and contents and, when it is low, the run disk's free space
+// (harness_crash.h); ei_hook.log gets the code addresses on the stack.
 LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
-    char what[96];
-    std::snprintf(what, sizeof(what), "the game crashed: exception %08lX at %08lX (stack in ei_hook.log)",
-                  e->ExceptionRecord->ExceptionCode, static_cast<unsigned long>(e->ContextRecord->Eip));
-    Log("harness: %s", what);
-    g_failures.push_back(what);
+    char head[64];
+    std::snprintf(head, sizeof(head), "the game crashed: exception %08lX at %08lX", e->ExceptionRecord->ExceptionCode,
+                  static_cast<unsigned long>(e->ContextRecord->Eip));
+    std::string what = head;
+    if (std::string thrown = crash::DescribeThrow(e->ExceptionRecord); !thrown.empty()) what += ": " + thrown;
+    const long long freeMb = crash::FreeMegabytes(g_savesDir);
+    if (freeMb >= 0 && (freeMb < kLowDiskMb || e->ExceptionRecord->ExceptionCode == kMsvcThrow))
+        what += "; " + std::to_string(freeMb) + " MB free on the run folder's disk";
+    what += " (stack in ei_hook.log)";
+    Log("harness: %s", what.c_str());
+    Log("harness: %lld MB free on the run folder's disk", freeMb);
+    LogModuleOf(e->ContextRecord->Eip);
+    const auto* stack = reinterpret_cast<const std::uintptr_t*>(e->ContextRecord->Esp);
+    MEMORY_BASIC_INFORMATION mbi{};
+    VirtualQuery(stack, &mbi, sizeof(mbi));
+    const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
+    for (int i = 0; i < 1024 && stack + i < stackEnd; ++i) LogCodeAddress("stack", stack[i]);
+    if (!g_expectedCrash.empty() && what.find(g_expectedCrash) != std::string::npos) {
+        Log("harness: the crash the scenario expects (expectcrash %s)", g_expectedCrash.c_str());
+        g_expectedCrash.clear();
+    } else {
+        g_failures.push_back(what);
+    }
     if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
         WaitForSingleObject(writer, 3000);
         CloseHandle(writer);
@@ -2287,9 +2324,14 @@ void RunSteps() {
             }
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
+        } else if (s.verb == "diskfull") {
+            crash::FailWritesTo(s.argument.c_str());
+        } else if (s.verb == "expectcrash") {
+            g_expectedCrash = s.argument;
         } else if (s.verb == "report") {
             WriteReport();
         } else if (s.verb == "quit") {
+            if (!g_expectedCrash.empty()) g_failures.push_back("the game did not crash (expectcrash " + g_expectedCrash + ")");
             WriteReport();
             // The game can hang on the way out (Rebirth did: harness_starter.cpp). The quit console command calls exit(),
             // which stops our watchdog thread too, so ei_launch ends the process when it sees
@@ -2777,6 +2819,7 @@ struct Harness {
         strcpy_s(g_savesDir, g_reportPath);
         if (char* slash = std::strrchr(g_savesDir, '\\')) strcpy_s(slash + 1, g_savesDir + MAX_PATH - (slash + 1), "harness_saves");
         CreateDirectoryA(g_savesDir, nullptr);
+        Log("harness: %lld MB free on the run folder's disk", crash::FreeMegabytes(g_savesDir));
         if (!GetCurrentDirectoryA(MAX_PATH, g_rootDirs[0])) g_rootDirs[0][0] = '\0';
 
         PatchSlot(kFindWindowASlot, &NoOtherGameWindow, g_findWindow);
@@ -2796,6 +2839,7 @@ struct Harness {
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
         leftovers::Install();   // never-set blocks zeroed in the original too (harness_leftovers.h, SV7b3, SV7b2)
+        save_leftovers::Install();   // what the saves carried from memory, canonical too (harness_save_leftovers.h, SV7b2a)
         shadow_turn::Install();   // the shadow's turn undone exactly in the original too (harness_shadow_turn.h, SV7b4a)
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
         path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
@@ -2805,6 +2849,7 @@ struct Harness {
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);
+        crash::WatchWrites(kWriteFileSlot);
         PatchSlot(kDeleteFileASlot, &RedirectedDeleteFile, g_deleteFile);
         PatchSlot(kCopyFileASlot, &RedirectedCopyFile, g_copyFile);
         PatchSlot(kMoveFileASlot, &RedirectedMoveFile, g_moveFile);

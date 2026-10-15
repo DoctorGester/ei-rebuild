@@ -18,9 +18,7 @@ def read_step_list(r, name):
                 r.u8('animation')
                 r.u8('variant')
                 r.u8('flags')
-                r.junk('padding', 1, 'AnimationStep +3: 00550A60 never sets the byte, and the original step '
-                       'builders (BuildTransition 005516D0, BuildOrderSteps 00550100, BuildAttackSteps 0054F970) copy '
-                       'stack steps they construct inline, so the step carries a stack byte (ours: 0)')
+                r.u8('padding')   # SV7b2a: 0 in both (the original's stack byte zeroed by the harness)
                 r.i32('duration')
                 r.i32('kind')
     return count

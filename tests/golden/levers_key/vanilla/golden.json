@@ -8,5 +8,5 @@
   "clear": null,
   "repeated_in": 6,
   "reason": "T2f: object sets and SetSun's relight order by id / sector on both sides; four original passes and two hooked agree",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 6 runs"
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

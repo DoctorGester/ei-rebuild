@@ -1,0 +1,12 @@
+{
+  "scenario": "rebirth_mod_folders",
+  "install": "rebirth",
+  "recorded": "2026-10-15",
+  "commit": "f0a8cdd5",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 2,
+  "reason": "S20: recorded from two agreeing plain --no-hooks --fresh passes (a third pass after merging main matched them); goldens of every scenario before the hook builds go",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+}

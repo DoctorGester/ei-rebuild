@@ -85,6 +85,7 @@ static void __fastcall BuildIdleVerify(CUnitServer* self, void*, AnimationSteps*
     ours.Take(steps);
     before.Restore();
     s_buildIdle(self, nullptr, steps);
+    combatverify::ZeroPadding(steps);   // byte 3 as ours writes it (SV7b2a)
     theirs.Save();
     ei::verify::Check("CUnitServer::BuildIdle", true, ours.SameAs(steps) && mine.SameAs(theirs),
                       "unit %d, %d steps (original %d)", UnitId(self), ours.count, steps->count);
@@ -121,6 +122,7 @@ static void __fastcall BuildMoveStepsVerify(CUnitServer* self, void*, AnimationS
     ours.Take(steps);
     before.Restore();
     s_buildMove(self, nullptr, steps, once);
+    combatverify::ZeroPadding(steps);
     theirs.Save();
     ei::verify::Check("CUnitServer::BuildMoveSteps", true, ours.SameAs(steps) && mine.SameAs(theirs),
                       "unit %d, once %d, %d steps (original %d)", UnitId(self), once & 0xFF, ours.count, steps->count);
