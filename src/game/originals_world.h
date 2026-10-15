@@ -31,6 +31,12 @@ namespace lib { template <typename T> struct AlignedArray; }
 // Setup (1 x 1, then 4 x 4).
 __declspec(naked) inline void __fastcall GridAllocate(SectorGrid* /*grid*/) EI_ORIGINAL(0x00572820)
 __declspec(naked) inline void __fastcall GridAllocate2(SectorGrid* /*grid*/) EI_ORIGINAL(0x005728D0)
+// 00572450 / 005724F0 (RET 8): the grid resized to (width, height) when its storage has another size:
+// the cells' lists destroyed (eh vector iterator), the storage freed, then GridAllocate / GridAllocate2.
+__declspec(naked) inline void __fastcall GridResize(SectorGrid* /*grid*/, void*, int /*width*/, int /*height*/)
+    EI_ORIGINAL(0x00572450)
+__declspec(naked) inline void __fastcall GridResize2(SectorGrid* /*grid*/, void*, int /*width*/, int /*height*/)
+    EI_ORIGINAL(0x005724F0)
 
 // 0047B670 (plain RET): an object id map with its highest id (the world's, the player's known objects): every
 // object released (slot 4) until a null one, the nodes freed, count and highest id 0.

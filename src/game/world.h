@@ -1006,6 +1006,10 @@ using SectorListNode = SectorList::Node;
 // destructor. Bit 1 of `flags`: `cells` is a new[] block (its count in the dword before it), every
 // list destroyed from the last; else the one list. Bit 0: the memory freed. Returns the block.
 SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags);
+// A cell's list destroyed (world_client_maps.cpp; STLport's list<counted pointer>::~list, 0056DEF0
+// / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
+// and its node returned to the pool, the sentinel last.
+void DestroySectorList(SectorList* list);
 struct SectorGrid {
     SectorList* cells_;                   // +0x00 the lists
     SectorList** rows_;                   // +0x04 row y: its lists
@@ -1528,6 +1532,15 @@ public:
     // and snow layer (cleared), the selection list, the window's names), the flags 0x3DC0, the vtable
     // 0073F41C and the fields it zeroes. Returns this.
     CWorldClient* Construct();
+    // 00561B00 (S13a, world_destructors.cpp; also the global client world's exit function). The
+    // destructor's body: the client vtable, Teardown, then the members last to first (the window
+    // names, the lists, the rain and snow layer, the platforms, the handle, the ground prints, both
+    // sector grids set to 1 x 1 and freed, the maps, the counted array, the exits) and the base's
+    // body (CWorld::Destruct).
+    void Destruct();
+    // 00561A00 (slot 0 of 0073F41C): Destruct, then operator delete when bit 0 of `flags` is set.
+    // Returns this.
+    CWorldClient* DeletingDestruct(unsigned flags);
 
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
