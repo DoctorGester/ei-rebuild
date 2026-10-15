@@ -139,4 +139,20 @@ void __fastcall SubCallArrayCopy(SubCalls::Array* self, void*, const SubCalls::A
 Bindings::Array* __fastcall BindingsCopyConstruct(Bindings::Array* self, void*, const Bindings::Array* source);
 SubCalls::Array* __fastcall SubCallsCopyConstruct(SubCalls::Array* self, void*, const SubCalls::Array* source);
 
+// ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
+
+struct SceneNodeArrayClass {   // CArray<SceneNode> (destructor 004514B0)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C15C); }
+};
+struct SubCallBaseClass {   // the nested calls' base array (destructors 004C5180 / 004CCF70)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D418); }
+};
+struct DeltaFieldArrayClass {   // CArray<DeltaField> (destructor 0050FBC0)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073DB94); }
+};
+struct TerrainAlignedArrayClass {   // the terrain's 16-byte records, an aligned block at +0 (006C4C40)
+    static void* Vtable() { return reinterpret_cast<void*>(0x007441B4); }
+};
+using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
+
 } // namespace recordarrays

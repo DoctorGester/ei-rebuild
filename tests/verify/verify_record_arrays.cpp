@@ -242,6 +242,22 @@ struct OursArrayDestruct {
     }
 };
 
+// A scalar deleting destructor: run on an object whose vtable has it in slot 1, returns the object
+// and, when it keeps the memory, leaves the destructor's vtable.
+template <std::uintptr_t Address, auto Fn, typename Class>
+struct OursDelete {
+    static inline void* original;
+    static void* __fastcall Run(void* self, void*, unsigned flags) {
+        static const char* name = Name("deleting destructor", Address);
+        auto* slots = *static_cast<void* const* const*>(self);
+        bool ours = slots && slots[1] == reinterpret_cast<void*>(Address);
+        void* result = mfc::impl::ScalarDelete<Fn>(self, nullptr, flags);
+        Check(name, true, ours && result == self && ((flags & 1) || *static_cast<void* const*>(self) == Class::Vtable()),
+              "%u", flags);
+        return result;
+    }
+};
+
 // The command copies: the size of the source, the nested calls' type and argument.
 template <std::uintptr_t Address>
 struct OursCmdArrayCopy {
@@ -415,3 +431,36 @@ using O004CD450 = OursCmdCopyAt<0x004CD450>;
 EI_VERIFY(0x004CD450, O004CD450::Run, 0, s_unused);
 using O004C7510 = OursSubCallCopyAt<0x004C7510>;
 EI_VERIFY(0x004C7510, O004C7510::Run, 0, s_unused);
+
+// Destructors only the vtables point at (S6c).
+using O004514B0 = OursArrayDestruct<0x004514B0, SceneNodes, SceneNodeArrayClass>;
+EI_VERIFY(0x004514B0, O004514B0::Run, 0, s_unused);
+using O004C5180 = OursArrayDestruct<0x004C5180, SubCalls, SubCallBaseClass>;
+EI_VERIFY(0x004C5180, O004C5180::Run, 0, s_unused);
+using O004CCF70 = OursArrayDestruct<0x004CCF70, SubCalls, SubCallBaseClass>;
+EI_VERIFY(0x004CCF70, O004CCF70::Run, 0, s_unused);
+using O0050FBC0 = OursArrayDestruct<0x0050FBC0, DeltaFields, DeltaFieldArrayClass>;
+EI_VERIFY(0x0050FBC0, O0050FBC0::Run, 0, s_unused);
+using O00545BA0 = OursArrayDestruct<0x00545BA0, Behaviours, BehaviourArrayClass>;
+EI_VERIFY(0x00545BA0, O00545BA0::Run, 0, s_unused);
+using O006C4C40 = OursArrayDestruct<0x006C4C40, TerrainAlignedRecords, TerrainAlignedArrayClass>;
+EI_VERIFY(0x006C4C40, O006C4C40::Run, 0, s_unused);
+
+using X004529F0 = OursDelete<0x004529F0, &SceneNodes::Destruct<SceneNodeArrayClass>, SceneNodeArrayClass>;
+EI_VERIFY(0x004529F0, X004529F0::Run, 0, s_unused);
+using X004CB0D0 = OursDelete<0x004CB0D0, &SubCalls::Destruct<SubCallBaseClass>, SubCallBaseClass>;
+EI_VERIFY(0x004CB0D0, X004CB0D0::Run, 0, s_unused);
+using X004CCF50 = OursDelete<0x004CCF50, &SubCalls::Destruct<SubCallBaseClass>, SubCallBaseClass>;
+EI_VERIFY(0x004CCF50, X004CCF50::Run, 0, s_unused);
+using X00510160 = OursDelete<0x00510160, &DeltaFields::Destruct<DeltaFieldArrayClass>, DeltaFieldArrayClass>;
+EI_VERIFY(0x00510160, X00510160::Run, 0, s_unused);
+using X00556BE0 = OursDelete<0x00556BE0, &Behaviours::Destruct<BehaviourArrayClass>, BehaviourArrayClass>;
+EI_VERIFY(0x00556BE0, X00556BE0::Run, 0, s_unused);
+using X005587E0 = OursDelete<0x005587E0, &Behaviours::Destruct<BehaviourArrayClass>, BehaviourArrayClass>;
+EI_VERIFY(0x005587E0, X005587E0::Run, 0, s_unused);
+using X006B5980 = OursDelete<0x006B5980, &Themes::Destruct<ThemeArrayClass>, ThemeArrayClass>;
+EI_VERIFY(0x006B5980, X006B5980::Run, 0, s_unused);
+using X00454CC0 = OursDelete<0x00454CC0, &scene::FaceGroupArrayDestruct, FaceGroupArrayClass>;
+EI_VERIFY(0x00454CC0, X00454CC0::Run, 0, s_unused);
+using X006C4EC0 = OursDelete<0x006C4EC0, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, TerrainAlignedArrayClass>;
+EI_VERIFY(0x006C4EC0, X006C4EC0::Run, 0, s_unused);

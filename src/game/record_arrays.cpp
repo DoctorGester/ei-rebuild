@@ -209,4 +209,28 @@ EI_REPLACE(0x004CCD90, SubCallsCopyConstruct);
 EI_REPLACE(0x004CD450, ScriptCmdCopyAt);
 EI_REPLACE(0x004C7510, ScriptSubCallCopyAt);
 
+// ---- Destructors only the vtables point at (ticket S6c) ------------------------------------------
+
+using mfc::impl::ScalarDelete;
+
+// The array destructors: each element's destructor inlined (the nested calls' commands destroyed and
+// deleted; 00545BA0 is 00557890's copy).
+EI_REPLACE(0x004514B0, SceneNodes::Destruct<SceneNodeArrayClass>);
+EI_REPLACE(0x004C5180, SubCalls::Destruct<SubCallBaseClass>);
+EI_REPLACE(0x004CCF70, SubCalls::Destruct<SubCallBaseClass>);
+EI_REPLACE(0x0050FBC0, DeltaFields::Destruct<DeltaFieldArrayClass>);
+EI_REPLACE(0x00545BA0, Behaviours::Destruct<BehaviourArrayClass>);
+EI_REPLACE(0x006C4C40, TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>);
+
+// Scalar deleting destructors (vtable slot 1).
+EI_REPLACE(0x004529F0, ScalarDelete<&SceneNodes::Destruct<SceneNodeArrayClass>>);
+EI_REPLACE(0x004CB0D0, ScalarDelete<&SubCalls::Destruct<SubCallBaseClass>>);
+EI_REPLACE(0x004CCF50, ScalarDelete<&SubCalls::Destruct<SubCallBaseClass>>);
+EI_REPLACE(0x00510160, ScalarDelete<&DeltaFields::Destruct<DeltaFieldArrayClass>>);
+EI_REPLACE(0x00556BE0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>);
+EI_REPLACE(0x005587E0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>);
+EI_REPLACE(0x006B5980, ScalarDelete<&Themes::Destruct<ThemeArrayClass>>);
+EI_REPLACE(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
+EI_REPLACE(0x006C4EC0, ScalarDelete<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>);
+
 } // namespace recordarrays
