@@ -1415,6 +1415,12 @@ size = 1
 model = "sonnet"
 note = "2026-10-15 the project folder was 47 GB. build/live/work.db is 3.9 GB because run.counts averages 76 KB per run over 54k runs: keep counts only for each batch's latest runs (or compress them) and VACUUM. build/reference (13 GB, shared cache of the original's runs) and build/verify/runs (8.7 GB) are mostly 3840x2160 32-bit BMP shots, ~24 MB each (546 in the cache): store them compressed (PNG or zlib) and decode on compare. build/live/work.db.pre-wb10 (0.9 GB) is a migration backup the user may drop."
 
+[[ticket]]
+id = "X40a"
+title = "Crash stacks name the functions (ei_hook+offset through ei_hook.map, game.exe through the function list)"
+group = "harness"
+note = "X40 logs the code addresses on a crashed game's stack (ei_hook.log 'stack ei_hook+XXXX' / 'stack 006936BE (game.exe)'), raw. Resolve them to names in run_all's failure summary or a small tool, from build/<cfg>/ei_hook.map and the known game functions, and drop stale frames (addresses above the throw's frame chain)."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
