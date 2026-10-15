@@ -290,6 +290,49 @@ public:
         return node;
     }
 
+    // equal_range(key) (e.g. 0055B5C0): the first node holding `key` and the first node after it
+    // that does not (its chain's next one, else the head of the next non-empty bucket, else null);
+    // both null when no node holds the key.
+    void EqualRange(const Key& key, Node*& first, Node*& last) const {
+        std::size_t b = BucketOf(key);
+        for (Node* cur = buckets_[b]; cur; cur = cur->next) {
+            if (!Traits::Equal(Traits::KeyOf(cur->value), key)) continue;
+            first = cur;
+            for (Node* other = cur->next; other; other = other->next) {
+                if (!Traits::Equal(Traits::KeyOf(other->value), key)) {
+                    last = other;
+                    return;
+                }
+            }
+            last = nullptr;
+            while (!last && ++b < BucketCount()) last = buckets_[b];
+            return;
+        }
+        first = nullptr;
+        last = nullptr;
+    }
+
+    // insert_equal_noresize(obj) (e.g. 0055B540): a copy of obj in a new node right after the
+    // first node with obj's key, else at the head of its bucket; the new node.
+    Node* InsertEqualNoresize(const Value& obj) {
+        std::size_t b = BucketOf(Traits::KeyOf(obj));
+        Node* first = buckets_[b];
+        for (Node* cur = first; cur; cur = cur->next) {
+            if (Traits::Equal(Traits::KeyOf(cur->value), Traits::KeyOf(obj))) {
+                Node* node = NewNode(obj);
+                node->next = cur->next;
+                cur->next = node;
+                ++count_;
+                return node;
+            }
+        }
+        Node* node = NewNode(obj);
+        node->next = first;
+        buckets_[b] = node;
+        ++count_;
+        return node;
+    }
+
     // begin() (e.g. 00404C30): the head of the first non-empty bucket, or null.
     Node* First() const {
         for (std::size_t b = 0; b < BucketCount(); ++b)
@@ -523,6 +566,28 @@ struct HashtableAbi {
         out->it.cur = self->InsertUnique(*obj, inserted);
         out->it.table = self;
         out->inserted = inserted;
+        return out;
+    }
+    // pair<iterator, iterator> (equal_range's result).
+    struct Range {
+        Iterator first;
+        Iterator last;
+    };
+    // equal_range(key) (0055B5C0; RET 8): the range into *out (EAX is not read).
+    static void __fastcall EqualRange(Table* self, void*, Range* out, const Key* key) {
+        Node* first;
+        Node* last;
+        self->EqualRange(*key, first, last);
+        out->first.cur = first;
+        out->first.table = self;
+        out->last.cur = last;
+        out->last.table = self;
+    }
+    // insert_equal_noresize(obj) (0055B540; RET 8): the new node's iterator into *out; returns out.
+    static Iterator* __fastcall InsertEqualNoresize(Table* self, void*, Iterator* out, const Value* obj) {
+        Node* node = self->InsertEqualNoresize(*obj);
+        out->table = self;
+        out->cur = node;
         return out;
     }
     // erase(key) (e.g. 006BCCD0; RET 4): the number erased.

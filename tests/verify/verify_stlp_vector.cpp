@@ -485,6 +485,7 @@ EI_VERIFY(0x0040C770, Free1<0x0040C770>::DestroyBase, 5, Free1<0x0040C770>::orig
 EI_VERIFY(0x00425040, Free1<0x00425040>::DestroyBase, 5, Free1<0x00425040>::original);
 EI_VERIFY(0x0042D2C0, Free1<0x0042D2C0>::DestroyBase, 5, Free1<0x0042D2C0>::original);
 EI_VERIFY(0x004DEAB0, Free1<0x004DEAB0>::DestroyBase, 5, Free1<0x004DEAB0>::original);
+EI_VERIFY(0x006B6D30, Free1<0x006B6D30>::DestroyBase, 5, Free1<0x006B6D30>::original);
 EI_VERIFY(0x00598D80, Free1<0x00598D80>::DestroyBase, 5, Free1<0x00598D80>::original);
 EI_VERIFY(0x006B72E0, Free1<0x006B72E0>::DestroyBase, 5, Free1<0x006B72E0>::original);
 EI_VERIFY(0x00405BF0, Free4<0x00405BF0>::DestroyBase, 0, s_unused);
@@ -654,6 +655,7 @@ EI_VERIFY(0x00439DD0, Change8<0x00439DD0>::EraseRange, 5, Change8<0x00439DD0>::o
 EI_VERIFY(0x004193D0, Helper1<0x004193D0>::CopyTrivial, 5, Helper1<0x004193D0>::original);
 EI_VERIFY(0x0043B360, Helper4<0x0043B360>::CopyTrivial, 6, Helper4<0x0043B360>::original);
 EI_VERIFY(0x0043DC80, Helper4<0x0043DC80>::CopyElements, 6, Helper4<0x0043DC80>::original);
+EI_VERIFY(0x00571E30, Helper4<0x00571E30>::CopyElements, 6, Helper4<0x00571E30>::original);
 EI_VERIFY(0x0043D7E0, Helper2<0x0043D7E0>::ConstructAt, 0, s_unused);
 EI_VERIFY(0x0043D7F0, Helper4<0x0043D7F0>::ConstructAt, 0, s_unused);
 EI_VERIFY(0x0064B620, Helper4<0x0064B620>::ConstructAt, 0, s_unused);
@@ -666,3 +668,10 @@ EI_VERIFY(0x0053BEB0, Free68<0x0053BEB0>::Deallocate, 6, Free68<0x0053BEB0>::ori
 EI_VERIFY(0x0069C9D0, Free16<0x0069C9D0>::DeallocateFast, 0, s_unused);
 EI_VERIFY(0x00613630, Free60<0x00613630>::DeallocateFast, 0, s_unused);
 EI_VERIFY(0x0056FB80, Free164<0x0056FB80>::DeallocateFast, 0, s_unused);
+
+// S16a: the unit set's id vectors (world_unit_set_add.cpp): ~_Vector_base (2), _M_insert_overflow,
+// _Construct of an id.
+EI_VERIFY(0x004FE420, Free4<0x004FE420>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x004FDE90, Free4<0x004FDE90>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x004FF640, Change4<0x004FF640>::InsertOverflow, 5, Change4<0x004FF640>::original);
+EI_VERIFY(0x0055C260, Helper4<0x0055C260>::ConstructAt, 0, s_unused);

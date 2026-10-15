@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "../../src/game/random.h"
+#include "../../src/lib/crt.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -782,14 +783,11 @@ std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
     return value;
 }
 
-// The game's CRT rand() (006E77F7; per thread: _getptd 006F00D1, holdrand at +0x14), which
-// gamecrt::rand jumps to.
+// The game's CRT rand() (006E77F7; per thread: the seed libcrt::RandState has), which gamecrt::rand
+// jumps to.
 constexpr std::uintptr_t kCrtRand = 0x006E77F7;
-constexpr std::uintptr_t kCrtThreadData = 0x006F00D1;
-constexpr int kHoldRand = 0x14;
 int __cdecl TracedRand() {
-    auto* data = reinterpret_cast<std::uint8_t*(__cdecl*)()>(kCrtThreadData)();
-    auto& hold = *reinterpret_cast<std::uint32_t*>(data + kHoldRand);
+    unsigned& hold = libcrt::RandState();
     hold = hold * 0x343FDu + 0x269EC3u;
     const int value = static_cast<int>((hold >> 16) & 0x7FFF);
     WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()", hold);

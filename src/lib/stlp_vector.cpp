@@ -116,6 +116,7 @@ EI_REPLACE(0x00425040, Vector1::DestroyBase);
 EI_REPLACE(0x0042D2C0, Vector1::DestroyBase);
 EI_REPLACE(0x004DEAB0, Vector1::DestroyBase);
 EI_REPLACE(0x00598D80, Vector1::DestroyBase);
+EI_REPLACE(0x006B6D30, Vector1::DestroyBase);   // S16a: the sound voices' string (no Ghidra function)
 EI_REPLACE(0x006B72E0, Vector1::DestroyBase);
 EI_REPLACE(0x00405BF0, Vector4::DestroyBase);
 EI_REPLACE(0x00405DB0, Vector4::DestroyBase);
@@ -357,6 +358,8 @@ using CountedRefVector = stlp::VectorAbi<RefPtr, stlp::CountedRefElement>;
 } // namespace
 EI_REPLACE(0x00426F00, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x004AB320, CountedRefVector::InsertOverflow);
+EI_REPLACE(0x004AB910, (stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>));   // S16a: the party records' copy
+EI_REPLACE(0x00429080, (stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>));   // S12g: the client's parties (same code)
 EI_REPLACE(0x004AB520, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x0060A120, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x00421ED0, CountedRefVector::EraseRange);
@@ -386,3 +389,4 @@ EI_REPLACE(0x0064B620, stlp::ConstructAt<std::uint32_t>);
 EI_REPLACE(0x004193D0, stlp::CopyTrivial<char>);   // S12g: the net strings' bytes (memmove)
 EI_REPLACE(0x0043B360, stlp::CopyTrivial<std::uint32_t>);
 EI_REPLACE(0x0043DC80, stlp::CopyElements<std::uint32_t>);
+EI_REPLACE(0x00571E30, stlp::CopyElements<std::uint32_t>);   // S16a: the client's drawn objects

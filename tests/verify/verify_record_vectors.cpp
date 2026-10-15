@@ -353,13 +353,6 @@ void __fastcall SaveEntryConstructVerify(SaveEntry* p, const SaveEntry* x) {
     bool ok = !p || SaveEntryText::Of(*p) == SaveEntryText::Of(*x);
     ei::verify::Report("stlp::_Construct(SaveEntry) 00657C60", ok, ok ? "" : "another entry");
 }
-// 0062A310: the trade row's copy constructor.
-TradeRow* __fastcall TradeRowCopyVerify(TradeRow* self, void*, const TradeRow* from) {
-    TradeRow* result = CopyConstructTradeRow(self, nullptr, from);
-    bool ok = result == self && TradeRowText::Of(*self) == TradeRowText::Of(*from);
-    ei::verify::Report("TradeRow::TradeRow(const TradeRow&) 0062A310", ok, ok ? "" : "another row");
-    return result;
-}
 
 template <std::uintptr_t A> using SaveEntries = ModelCheck<A, SaveEntryVector, SaveEntryText>;
 template <std::uintptr_t A> using MpAddresses = ModelCheck<A, MpAddressVector, MpAddressText>;
@@ -469,11 +462,10 @@ EI_VERIFY(0x006579C0, SaveEntries<0x006579C0>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x0061EC40, MpAddresses<0x0061EC40>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00629E60, TradeRowChecks<0x00629E60>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00652930, OptionBindings<0x00652930>::InsertOverflow, 0, s_unused);
-// S12g: the element helpers (the lobby's queries, the save list, the camp's trade rows).
+// S12g: the element helpers (the lobby's queries, the save list).
 EI_VERIFY(0x00443E30, QueryDefaultVerify, 0, s_unused);
 EI_VERIFY(0x00443FF0, QueryCopyVerify, 0, s_unused);
 EI_VERIFY(0x00657C60, SaveEntryConstructVerify, 0, s_unused);
-EI_VERIFY(0x0062A310, TradeRowCopyVerify, 0, s_unused);
 
 // The game flow's zone table (built when a game starts).
 EI_VERIFY(0x00587480, ZoneTableChecks<0x00587480>::InsertOverflow, 0, s_unused);

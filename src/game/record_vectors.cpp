@@ -7,11 +7,6 @@
 
 using namespace recordvec;
 
-TradeRow* __fastcall recordvec::CopyConstructTradeRow(TradeRow* self, void*, const TradeRow* from) {
-    TradeRowElement::Construct(self, *from);
-    return self;
-}
-
 // The item database's resize(n) (RET 4): a default record made first and destroyed last; the
 // tail erased, or copies of it appended.
 EI_REPLACE(0x006A7F00, MaterialVector::ResizeDefault);    // 0x50 bytes
@@ -91,10 +86,8 @@ EI_REPLACE(0x006578F0, SaveEntryVector::EraseRange);
 EI_REPLACE(0x006579C0, SaveEntryVector::InsertOverflow);       // 0x44
 EI_REPLACE(0x0061EC40, MpAddressVector::InsertOverflow);       // 0x2C
 EI_REPLACE(0x00629E60, TradeRowVector::InsertOverflow);        // 0x18
-// S12g: the save list's _Construct(p, x) (ECX p, EDX x) and the trade row's copy constructor
-// (thiscall, RET 4, returns this).
+// S12g: the save list's _Construct(p, x) (ECX p, EDX x).
 EI_REPLACE(0x00657C60, (stlp::ConstructCopyAt<SaveEntry, SaveEntryElement>));
-EI_REPLACE(0x0062A310, CopyConstructTradeRow);
 EI_REPLACE(0x0062A0B0, TradeRecordVector::InsertOverflow);     // 0x3C
 EI_REPLACE(0x00652930, OptionBindingVector::InsertOverflow);   // 0x18
 

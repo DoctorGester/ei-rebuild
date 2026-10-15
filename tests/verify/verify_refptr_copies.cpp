@@ -11,6 +11,7 @@
 
 #include "../../src/game/core_refcount.h"
 #include "../../src/game/engine_object.h"
+#include "../../src/lib/stlp_vector_refs.h"
 
 #include <cstring>
 
@@ -279,6 +280,7 @@ EI_VERIFY(0x00438A10, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00439910, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0059B4B0, ReleaseVerify, 0, s_unused);   // A-W12 copy
 EI_VERIFY(0x0069FD50, ReleaseVerify, 0, s_unused);   // A-H24 copy
+EI_VERIFY(0x004A5D70, ReleaseVerify, 0, s_unused);   // S16a: counted_ptr<T>'s destructor
 
 // The pair releases: the 29-byte body of 004215A0 (identical in all four; only internal jumps)
 // copied to executable memory is the original; dry runs on a stand-in held at +4.
@@ -529,3 +531,34 @@ EI_VERIFY(0x00511B90, HolderAssignVerify, 0, s_unused);
 EI_VERIFY(0x0052C690, HolderAssignVerify, 0, s_unused);
 EI_VERIFY(0x00556C40, HolderAssignVerify, 0, s_unused);
 EI_VERIFY(0x00556C60, HolderAssignVerify, 0, s_unused);
+
+static void* s_unusedCopyCounted;
+// S16a, ours only (they count and may delete): counted_ptr<T>'s copy constructor (the object and
+// one more reference), its deleting destructor (this back) and copy(first, last, out) (each
+// holder the source's object, the end of the copy back).
+RefPtr* __fastcall RefPtrDelete(RefPtr* self, void*, unsigned flags);   // refptr_copies.cpp
+static RefPtr* __fastcall CopyCountedVerify(RefPtr* self, void*, const RefPtr* from) {
+    CRefObject* object = from->ptr;
+    const int before = object ? object->refs_ : 0;
+    RefPtr* result = self->CopyCounted(from);
+    const bool ok = result == self && self->ptr == object && (!object || object->refs_ == static_cast<std::int16_t>(before + 1));
+    ei::verify::Check("RefPtr::CopyCounted", true, ok, "%p", object);
+    return result;
+}
+EI_VERIFY(0x004A5D50, CopyCountedVerify, 0, s_unusedCopyCounted);
+EI_VERIFY(0x004ABE30, CopyCountedVerify, 0, s_unusedCopyCounted);
+static RefPtr* __fastcall RefPtrDeleteVerify(RefPtr* self, void*, unsigned flags) {
+    RefPtr* result = RefPtrDelete(self, nullptr, flags);
+    ei::verify::Check("RefPtrDelete", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x004AB960, RefPtrDeleteVerify, 0, s_unusedCopyCounted);
+static RefPtr* __fastcall CopyAssignedVerify(const RefPtr* first, const RefPtr* last, RefPtr* out) {
+    RefPtr* end = stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(first, last, out);
+    bool ok = end == out + (last > first ? last - first : 0);
+    for (const RefPtr* p = first; ok && p < last; ++p) ok = out[p - first].ptr == p->ptr;
+    ei::verify::Check("stlp::copy<counted_ptr> (004AB910, 00429080)", true, ok, "%d", static_cast<int>(last - first));
+    return end;
+}
+EI_VERIFY(0x004AB910, CopyAssignedVerify, 0, s_unusedCopyCounted);
+EI_VERIFY(0x00429080, CopyAssignedVerify, 0, s_unusedCopyCounted);   // S12g: the same code

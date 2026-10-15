@@ -283,6 +283,21 @@ struct HashCheck {
         return result;
     }
 
+    // equal_range (S16a): both ends compared with the original's.
+    using Range = typename Abi::Range;
+    static void __fastcall EqualRange(Table* self, void*, Range* out, const Key* key) {
+        Range theirs{};
+        Original<decltype(&Abi::EqualRange)>()(self, nullptr, &theirs, key);
+        Abi::EqualRange(self, nullptr, out, key);
+        bool ok = out->first.cur == theirs.first.cur && out->first.table == theirs.first.table &&
+                  out->last.cur == theirs.last.cur && out->last.table == theirs.last.table;
+        char detail[96] = "";
+        if (!ok)
+            std::snprintf(detail, sizeof(detail), "key %s: ours %p..%p, original's %p..%p", KeyText(*key).text, out->first.cur,
+                          out->last.cur, theirs.first.cur, theirs.last.cur);
+        ei::verify::Report(Name<A>("stlp::hashtable::equal_range"), ok, detail);
+    }
+
     // --- Construction -----------------------------------------------------------------------
 
     // The original's empty table (scratch) against ours (self): storage, size, functor bytes.
@@ -1054,6 +1069,95 @@ struct StringListCheck {
     }
 };
 
+// --- S16a: the unit set's tables (world_unit_set_add.cpp) ---
+
+using FiguredAbi = gamehash::FiguredAbi;
+template <std::uintptr_t A> using HF = HashCheck<A, FiguredAbi>;
+template <std::uintptr_t A> using ClearFiguredMap = ClearOurs<A, FiguredAbi>;
+
+// A copy of `source`: the same bucket count, count and functor bytes, each chain the same keys in
+// nodes of their own (the values are copied by the element policies, checked with their vectors).
+template <typename Table>
+bool SameKeys(const Table* self, const Table* source) {
+    Table* mine = const_cast<Table*>(self);
+    Table* from = const_cast<Table*>(source);
+    bool ok = mine->BucketCount() == from->BucketCount() && mine->Count() == from->Count() &&
+              std::memcmp(mine->Functors(), from->Functors(), 3) == 0;
+    for (std::size_t b = 0; ok && b < mine->BucketCount(); ++b) {
+        auto* m = mine->BucketVector()[b];
+        auto* t = from->BucketVector()[b];
+        for (; ok && m && t; m = m->next, t = t->next) ok = m != t && m->value.key == t->value.key;
+        ok = ok && !m && !t;
+    }
+    return ok;
+}
+
+template <std::uintptr_t A>
+struct UnitSetTables {
+    using Figured = FiguredAbi::Table;
+    using Groups = gamehash::FiguredGroupsTable;
+    static inline void* original = nullptr;
+    template <typename Fn> static Fn Original() { return reinterpret_cast<Fn>(original); }
+
+    // hashtable(const hashtable&) and the group pair (ours only).
+    static Figured* __fastcall CopyConstruct(Figured* self, void*, const Figured* source) {
+        Figured* result = FiguredAbi::CopyConstruct(self, nullptr, source);
+        bool ok = result == self && SameKeys(self, source);
+        ei::verify::Report(Name<A>("stlp::hashtable::hashtable(const hashtable&)"), ok, ok ? "" : "not a copy of the source");
+        return result;
+    }
+    static Groups::Value* __fastcall GroupPair(Groups::Value* self, void*, const std::uint32_t* key, const Figured* table) {
+        Groups::Value* result = gamehash::ConstructGroupPair(self, nullptr, key, table);
+        bool ok = result == self && self->key == *key && SameKeys(&self->mapped, table);
+        ei::verify::Report(Name<A>("stlp::pair<const unsigned, hashtable>::pair"), ok, ok ? "" : "not the key and a copy of the table");
+        return result;
+    }
+    // find_or_insert of a group: a lookup (no rehash, the key there) against the original; else
+    // ours alone, the key found at the result and one more element.
+    static Groups::Value* __fastcall FindOrInsert(Groups* self, void*, const Groups::Value* obj) {
+        using Abi = gamehash::FiguredGroupsAbi;
+        const char* name = Name<A>("stlp::hashtable::find_or_insert");
+        if (HashCheck<A, Abi>::WouldRehash(self) || !self->Find(obj->key)) {
+            std::size_t count = self->Count();
+            Groups::Value* result = Abi::FindOrInsert(self, nullptr, obj);
+            Groups::Node* found = self->Find(obj->key);
+            bool ok = found && result == &found->value && self->Count() == count + 1;
+            ei::verify::Report(name, ok, ok ? "" : "the new group is not the key's");
+            return result;
+        }
+        Groups::Value* theirs = Original<decltype(&Abi::FindOrInsert)>()(self, nullptr, obj);
+        Groups::Value* ours = Abi::FindOrInsert(self, nullptr, obj);
+        ei::verify::Check(name, Word(theirs), Word(ours), "key %s", KeyText(obj->key).text);
+        return ours;
+    }
+};
+
+// insert_equal_noresize (ours only): one more element, the new node holding obj's key right after
+// the first node of that key, else at the head of its bucket.
+template <std::uintptr_t A, typename Abi>
+struct InsertEqualCheck {
+    using Table = typename Abi::Table;
+    using Node = typename Abi::Node;
+    static typename Abi::Iterator* __fastcall Run(Table* self, void*, typename Abi::Iterator* out, const typename Abi::Value* obj) {
+        std::size_t count = self->Count();
+        std::size_t b = self->BucketOf(obj->key);
+        Node* head = self->BucketVector()[b];
+        Node* equal = head;
+        while (equal && equal->value.key != obj->key) equal = equal->next;
+        Node* after = equal ? equal->next : head;
+        typename Abi::Iterator* result = Abi::InsertEqualNoresize(self, nullptr, out, obj);
+        Node* made = out->cur;
+        bool ok = result == out && out->table == self && made && self->Count() == count + 1 && made->value.key == obj->key &&
+                  made->next == after && (equal ? equal->next == made : self->BucketVector()[b] == made);
+        char detail[64] = "";
+        if (!ok) std::snprintf(detail, sizeof(detail), "key %s: node %p", KeyText(obj->key).text, made);
+        ei::verify::Report(Name<A>("stlp::hashtable::insert_equal_noresize"), ok, detail);
+        return result;
+    }
+};
+template <std::uintptr_t A> using InsertFigured = InsertEqualCheck<A, FiguredAbi>;
+template <std::uintptr_t A> using InsertDressed = InsertEqualCheck<A, Dressed>;
+
 } // namespace
 
 // Construction.
@@ -1320,3 +1424,18 @@ EI_VERIFY(0x005BE090, ShapeCheck<0x005BE090>::Slot, 7, ShapeCheck<0x005BE090>::o
 EI_VERIFY(0x005BE320, SH<0x005BE320>::Find, 5, SH<0x005BE320>::original);
 EI_VERIFY(0x005BE730, ShapeCheck<0x005BE730>::FindOrInsert, 5, ShapeCheck<0x005BE730>::original);
 EI_VERIFY(0x005BCDE0, BridgeCheck<0x005BCDE0>::Subscript, 7, BridgeCheck<0x005BCDE0>::original);
+
+// S16a: the unit set's tables (world_unit_set_add.cpp).
+EI_VERIFY(0x0055AC40, HF<0x0055AC40>::ConstructDefault, 7, HF<0x0055AC40>::original);
+EI_VERIFY(0x0055AEB0, UnitSetTables<0x0055AEB0>::CopyConstruct, 0, s_unused);
+EI_VERIFY(0x0055ABB0, UnitSetTables<0x0055ABB0>::GroupPair, 0, s_unused);
+EI_VERIFY(0x0055AD10, ClearFiguredMap<0x0055AD10>::Destroy, 0, s_unused);
+EI_VERIFY(0x0055BA10, UnitSetTables<0x0055BA10>::FindOrInsert, 5, UnitSetTables<0x0055BA10>::original);
+EI_VERIFY(0x0055CEB0, H8<0x0055CEB0>::Resize, 6, H8<0x0055CEB0>::original);
+EI_VERIFY(0x0055B670, H8<0x0055B670>::Resize, 6, H8<0x0055B670>::original);
+EI_VERIFY(0x0055BBF0, H8<0x0055BBF0>::Resize, 6, H8<0x0055BBF0>::original);
+EI_VERIFY(0x0055B5C0, H8<0x0055B5C0>::EqualRange, 5, H8<0x0055B5C0>::original);
+EI_VERIFY(0x0055BB40, H8<0x0055BB40>::EqualRange, 5, H8<0x0055BB40>::original);
+EI_VERIFY(0x0055BA80, H8<0x0055BA80>::SkipToNext, 6, H8<0x0055BA80>::original);
+EI_VERIFY(0x0055B540, InsertFigured<0x0055B540>::Run, 0, s_unused);
+EI_VERIFY(0x0055BAC0, InsertDressed<0x0055BAC0>::Run, 0, s_unused);

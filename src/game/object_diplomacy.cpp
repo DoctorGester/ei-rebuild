@@ -20,6 +20,9 @@ void CDiplomacy::Reset() {
     for (int i = 0; i < 32; ++i) allied_[i] = 1u << i;
 }
 EI_REPLACE_METHOD(0x004554B0, CDiplomacy::Reset);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x0058A370, CDiplomacy::Reset);
 
 void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUnits) {
     std::uint32_t bit = Bit(other);

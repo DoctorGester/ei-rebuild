@@ -67,6 +67,9 @@ void CEngineObject::DestructBase() {
     owner_ = nullptr;
 }
 EI_REPLACE_METHOD(0x00455930, CEngineObject::DestructBase);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x0055ED90, CEngineObject::DestructBase);
 
 void CEngineObject::ClearFields() {
     refCount_ = 0;

@@ -4,6 +4,7 @@
 #include "verify.h"
 
 #include "../../src/game/world.h"
+#include "../../src/lib/stlp_alloc.h"
 #include "../../src/hook/log.h"
 
 #include <cmath>
@@ -439,3 +440,43 @@ EI_VERIFY(0x00569A90, ShowManagersVerify, 6, s_showManagers);
 EI_VERIFY(0x00569AA0, HideManagersVerify, 5, s_hideManagers);
 EI_VERIFY(0x00569B10, ShowWorldDataVerify, 6, s_showWorldData);
 EI_VERIFY(0x00569B20, HideWorldDataVerify, 6, s_hideWorldData);
+
+// 0056A370: ours queues first; the original then queues the same entry after it, which is compared,
+// unlinked and freed (SV2f).
+static int(__fastcall* s_queueScreenEntry)(CEngineObject*, stlp::list<ScreenEntry>*);
+static int __fastcall QueueScreenEntryVerify(CEngineObject* object, stlp::list<ScreenEntry>* queued) {
+    using Node = stlp::list<ScreenEntry>::Node;
+    Node* last = queued->head->prev;
+    const int result = QueueScreenEntry(object, queued);
+    Node* ours = queued->head->prev;
+    const int expected = s_queueScreenEntry(object, queued);
+    Node* theirs = queued->head->prev;
+    bool ok = result == expected && (result ? ours != last : ours == last);
+    if (theirs != ours) {
+        ok = ok && theirs->prev == ours && std::memcmp(&theirs->data, &ours->data, sizeof(ScreenEntry)) == 0;
+        ours->next = queued->head;
+        queued->head->prev = ours;
+        stlp::deallocate(theirs, sizeof(Node));
+    }
+    char detail[96] = "";
+    if (!ok) std::snprintf(detail, sizeof(detail), "object %d flags %08X: ours %d, original's %d", object->id_, object->flags_, result, expected);
+    ei::verify::Report("CWorldClient screen entry queue 0056A370", ok, detail);
+    return result;
+}
+// 0056A370: SUB ESP,0x1C; PUSH ESI; MOV ESI,ECX (6 bytes).
+EI_VERIFY(0x0056A370, QueueScreenEntryVerify, 6, s_queueScreenEntry);
+
+// S16a, ours only (they free): the print lists' erase: out back holding the node that followed, linked
+// to the one that preceded.
+template <typename T, void** (__fastcall* Erase)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*)>
+void** __fastcall ErasePrintVerify(stlp::list<T>* self, void*, void** out, typename stlp::list<T>::Node* pos) {
+    auto* next = pos->next;
+    auto* prev = pos->prev;
+    void** result = Erase(self, nullptr, out, pos);
+    const bool ok = result == out && *out == next && prev->next == next && next->prev == prev;
+    ei::verify::Report("CWorldClient print list erase", ok, ok ? "" : "the neighbours are not linked");
+    return result;
+}
+EI_VERIFY(0x00572550, (ErasePrintVerify<BloodPrint, &CWorldClient::EraseBloodPrint>), 0, s_unused);
+EI_VERIFY(0x00572580, (ErasePrintVerify<Footprint, &CWorldClient::EraseFootprint>), 0, s_unused);
+EI_VERIFY(0x005725B0, (ErasePrintVerify<GroundPrint, &CWorldClient::EraseScorchMark>), 0, s_unused);

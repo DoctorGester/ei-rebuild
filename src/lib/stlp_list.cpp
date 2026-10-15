@@ -101,6 +101,7 @@ EI_REPLACE(0x004436C0, stlp::ListEnd);
 EI_REPLACE(0x0068C500, stlp::ListEnd);
 EI_REPLACE(0x0069BE60, stlp::ListEnd);
 EI_REPLACE(0x0069C2E0, stlp::ListEnd);
+EI_REPLACE(0x00572AF0, stlp::ListEnd);   // S16a: the client sector grid's second cells
 // S12c: the .mob loader's tint lists (00478FC0, 00478FD0, 00478FE0).
 EI_REPLACE(0x00478FC0, stlp::ListBegin);
 EI_REPLACE(0x00478FD0, stlp::ListBegin);
@@ -232,6 +233,19 @@ void __fastcall ListRemoveCounted(list<RefPtr>* self, void*, const RefPtr* value
     self->Remove<CountedRef>(*value, SameObject());
 }
 
+void __fastcall ListRemoveHeld(list<CEngineObject*>* self, void*, CEngineObject* const* value) {
+    self->Remove<HeldObject>(*value, [](CEngineObject* a, CEngineObject* b) { return a == b; });
+}
+
+void __fastcall ListRemoveInt(list<int>* self, void*, const int* value) {
+    self->Remove(*value, [](int a, int b) { return a == b; });
+}
+
+char __stdcall ListForEachRelease(list<CEngineObject*>::Node* first, list<CEngineObject*>::Node* last, char f) {
+    for (; first != last; first = first->next) HeldObject::Destroy(&first->data);
+    return f;
+}
+
 } // namespace stlp
 
 // insert(pos, x) of plain data: 4 bytes (6), 16 (2), 20, 28 and 0x104 (from operator new).
@@ -244,6 +258,7 @@ EI_REPLACE(0x0069C3D0, PlainList4::Insert);
 EI_REPLACE(0x00411630, PlainList16::Insert);
 EI_REPLACE(0x00421AF0, PlainList16::Insert);
 EI_REPLACE(0x00443800, PlainList28::Insert);
+EI_REPLACE(0x0056EAF0, List32::Insert);   // S16a: the client's screen entries (+0xF0)
 EI_REPLACE(0x005392C0, PlainList20::Insert);
 EI_REPLACE(0x00439C50, PlainList260::Insert);
 // insert(pos, x) of SharedRef (9), CountedRef (11), SharedEntry, HeldObject (3) and CString.
@@ -278,6 +293,7 @@ EI_REPLACE(0x004FB730, StringDwordList::Insert);
 
 // _M_create_node(x): 16 bytes of plain data, a CString (called by 005F97E0) and pair<const string,
 // dword> (by 004FB730).
+EI_REPLACE(0x0056F7C0, List32::CreateNode);   // S16a: the client's screen entries
 EI_REPLACE(0x00482C30, PlainList16::CreateNode);   // library.csv: hashtable::_M_new_node
 EI_REPLACE(0x005F9C70, CStringList::CreateNode);
 EI_REPLACE(0x004FB8B0, StringDwordList::CreateNode);
@@ -337,6 +353,7 @@ EI_REPLACE(0x004272E0, SharedEntryList::Clear);
 EI_REPLACE(0x005703C0, HeldObjectList::Clear);
 EI_REPLACE(0x00573660, HeldObjectList::Clear);
 EI_REPLACE(0x00572270, HeldObjectList::Erase);
+EI_REPLACE(0x005755E0, HeldObjectList::Erase);   // S16a: the second grid's cells
 EI_REPLACE(0x00572E90, HeldObjectList::Destruct);
 EI_REPLACE(0x0069BE70, HeldObjectList::Destruct);
 EI_REPLACE(0x00427560, SharedEntryList::Clear);
@@ -356,3 +373,9 @@ EI_REPLACE(0x00560460, CountedRefList::InsertRange);
 
 // remove(value) of CountedRef (erasing through 00429510).
 EI_REPLACE(0x00427320, stlp::ListRemoveCounted);
+// remove(value) of HeldObject (erasing through 00572270): the client sector grid's cells.
+EI_REPLACE(0x00570400, stlp::ListRemoveHeld);
+// remove(value) of int (erasing through 00512030): the light factory's lit ids (S16a).
+EI_REPLACE(0x00511FB0, stlp::ListRemoveInt);
+// for_each with the releasing functor over a HeldObject list (the client's object maps).
+EI_REPLACE(0x00571780, stlp::ListForEachRelease);

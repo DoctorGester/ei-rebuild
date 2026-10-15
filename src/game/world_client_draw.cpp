@@ -298,6 +298,18 @@ bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head;
 
 } // namespace
 
+int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued) {
+    if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
+    const CObject3D* figure = static_cast<const CObject3D*>(object);
+    ScreenEntry entry;
+    entry.classId = object->GetClassId();
+    entry.objectId = static_cast<unsigned>(object->id_);
+    for (int i = 0; i < 4; ++i) entry.rect[i] = figure->dirtyRect[i];
+    stlp::list<ScreenEntry>::Insert(queued->head, entry);
+    return 1;
+}
+EI_REPLACE(0x0056A370, QueueScreenEntry);
+
 // ---- Render (00569E40) --------------------------------------------------------------------------
 
 int CWorldClient::Render() {

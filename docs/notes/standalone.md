@@ -1021,10 +1021,12 @@ the opt-in check above); 00613920 through ItemStock::GenerateSpells
 (trader_stock).
 
 **S12g (2026-10-15).** The library functions our code still forwarded to (tools/dashboard_data.py's
-forwarders_to_library): 48 on main when it started; S16a's branch took 20 of them (the client maps'
-list members, 005593D0's helpers, the counted_ptr copies / release of the party records, the light
-factory's remove), so this ticket did 27 and left 00429080 (stlp::copy of counted_ptr, the same code
-as 004AB910, which S16a registers with its new `stlp::CopyAssigned`; filed as S12h). Strings
+forwarders_to_library): 48 on main when it started; S16a took 21 of them (the client maps' list
+members, 005593D0's helpers, the counted_ptr copies / release of the party records, the light
+factory's remove, the trade row's copy constructor 0062A310), so this ticket did the other 27,
+00429080 (stlp::copy of counted_ptr) among them once S16a was merged: the same code as 004AB910,
+registered with S16a's `stlp::CopyAssigned` and its check. forwarders_to_library is 0 after the
+merge; S16b's three standalone stops (0069D9A0, 00657C60, 00424E40) are among them. Strings
 (stlp_string.cpp): `_M_allocate_block` 00424E40, both `operator+` 00427D60 / 00427E80 (`Join`: a
 temporary reserved for exactly both parts and the terminator, `out` made as a copy of it, the
 temporary freed), `operator==` 00427FA0 and `__stl_throw_out_of_range` 004410A0 (`ThrowOutOfRange`:
@@ -1035,8 +1037,7 @@ Vectors (stlp_vector.cpp): `_M_allocate_and_copy` of pointers 0069D9A0 / 0069DC7
 bytes 00573520 and of strings 0053D7F0; `uninitialized_copy` of counted 0042AF80 and shared
 0042AE90 references; the memmove copy of chars 004193D0; and three element helpers in stlp_vector.h
 (`ConstructDefaultAt`, `ConstructCopyAt`, `CopyAssignTagged`) for the lobby's queries 00443E30 /
-00443FF0 and the save list 00657C60; the trade row's copy constructor 0062A310
-(record_vectors.cpp). Lists (stlp_list.cpp): ~list of the client's servers 00421A50 (SharedRef) and
+00443FF0 and the save list 00657C60 (record_vectors.cpp). Lists (stlp_list.cpp): ~list of the client's servers 00421A50 (SharedRef) and
 of the server's keyed references 004238B0 (CountedEntry), insert(pos, first, last) of SharedRef
 00560430 and CountedRef 00560460. library_containers.cpp: the counted / held `_Construct` copies
 00429060 / 004298F0 (the same code as 0060AA80 / 004FB680), the briefing speakers' `_Construct`
@@ -1058,9 +1059,9 @@ keeps the thrown object's 0x10C bytes and the throw information; the two must be
 temporary string's block back on its list after each unwind. The rest run ours only by effect: the
 string vector copy (texts, own blocks), the reference copies (pointers; counted: one more
 reference per copy; shared: null / clone / same as Share decides), the list range inserts (links
-and copies), the list destructors (the sentinel on top of its list), the queries, save entries,
-trade rows and speakers by text, the trade record (revisions kept, the three parties down to one
-vtable).
+and copies), the list destructors (the sentinel on top of its list), the queries, save entries and
+speakers by text, the trade record (revisions kept, the three parties down to one vtable); 00429080
+shares S16a's 004AB910 check.
 
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
@@ -1154,6 +1155,48 @@ vector helpers (0055A..-0055D..), filed as S16a. The main menu is not reached ye
   (006E6180), which the image fills with INT3: `CDirectInputMouse::MouseDataFormat` is our copy (the
   same seven objects and the game's axis GUIDs; a start-up check compares it with the original's).
   Other dinput.lib data in .text, if any, would need the same.
+
+**S16a (2026-10-15).** The boot loop from 005593D0 to the main menu and on into the zone path. The
+standalone boot (`boot`) now passes: main menu, quit, clean exit. Stops in order, each ported at its
+address with a check (twin checks that allocate run ours first, SV2f):
+- 005593D0 UnitSet::Add, the server's unit appearance cache (src/game/world_unit_set_add.cpp), with the
+  figured / dressed hash_multimap's equal_range, insert_equal_noresize, resize and find_or_insert, the
+  group pair and record copies and the ids vector's insert overflow (stlp_hash.h).
+- 00570400 list<held object>::remove; 00426450 / 0043B310 the node allocator's checked deallocate
+  copies (crt.cpp); 005755E0 the second grid's held-object erase, 00572AF0 end(), 00571780 for_each
+  with the releasing functor, 00571E30 copy<uint32_t>; 0056A370 the draw pass's screen entry queue
+  (QueueScreenEntry, world_client_draw.cpp; no Ghidra function, size row by hand) with list insert
+  0056EAF0 / node create 0056F7C0.
+- 004D8490: disabled.txt named a rewrite whose original the image does not have. The image now ignores
+  disabled.txt (hook.cpp logs "standalone: disabled.txt not applied"): every rewrite runs there.
+- Exit path: 00546470 CUnitServer::DestroyServer; the compiler's jump thunks (functions.csv kind
+  "thunk") are registered with their target's replacement (17 addresses beside their targets: chunk
+  destructors, ObjectListIterator::Next, the destroy hooks, CMapObject / CEngineObject bodies, ...;
+  their calls skip the target's check); 006B6D30 the sound voices' string destructor; 00503960 and 59
+  more exit functions of function-local statics: tools/gen_static_init.py now also finds the run-time
+  atexit registrations (PUSH fn, CALL 006E727B within 14 instructions, nothing pushed, called or
+  branched to between) and generates them into static_exit.cpp ("atexit at" the call site; 190 exit
+  functions in all); the unit database's 0053EFF0 / 00540840 / 005407E0 / 005214B0 (unit_db_destroy.cpp).
+- Zone path (console, camera, zone_*): counted_ptr's copy 004A5D50 / 004ABE30, release 004A5D70,
+  deleting destructor 004AB960 and copy 004AB910 (the party records); the game's endl 004BA9F0
+  (crt_iostream.cpp; no Ghidra function); _hypot 006FD026 (crt_x87.cpp, image only like the other x87
+  entries): _hypothlp runs under control word 133F, 64 bits, every step stored to a double (so rounded
+  twice) and a denormal result cut off, not rounded (the masked underflow's handler); a start-up
+  battery of 93000 cases (specials, random doubles, floats, overflow and denormal edges, five control
+  words) is bit for bit. list<int>::remove 00511FB0 (the light factory's lit ids); the lightning
+  segment's constructor 00468900 (no Ghidra function).
+- After the zone: the harness's digest and random trace read rand's state through
+  `libcrt::RandState()` (the image has no _getptd 006F00D1); the particle sources' no-op element
+  callback 00485530 (RET 4, no Ghidra function: EI_REPLACE_SHORT by hand in particle_create.cpp); the
+  print lists' erase 00572550 / 00572580 / 005725B0 (CWorldClient::Erase*); the hero screen's name sort
+  0061A240 (S12f, from main); the trade rows' copy constructor 0062A310 (TradeRow::CopyConstruct).
+Standalone now passes boot, smoke, console, camera, effects, items, movement, units, world, world_load,
+zone_base_bz1g, zone_gz2g_traps, zone_gz3g, particles, map_objects, sound, unit_ai, models, combat,
+spells, script_exec, ui_main_menu, ui_saveload, ui_hud, ui_hero_screen, ui_camp, ui_trade_restore,
+ui_options_bind and ui_global_map_pick (29 of the 32 sampled; the rest not run standalone yet). Next stops,
+filed as S16b: 0069D9A0 (ui_camp_deals: the item stock's pointer vector allocate-and-copy), 00657C60
+(ui_saveload_delete: the save entries' copy constructor), 00424E40 (ui_mp_host: the net strings' block
+allocation).
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
