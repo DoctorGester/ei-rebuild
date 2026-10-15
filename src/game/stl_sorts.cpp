@@ -80,10 +80,12 @@ struct SaveEntryOps {
     static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
     static void Destroy(SaveEntry* p) { p->Destruct(); }
 };
-struct BySavedTime {
-    bool operator()(const SaveEntry& a, const SaveEntry& b) const { return a.savedAt_ < b.savedAt_; }
+// Every helper tests 00658020 (a.savedAt < b.savedAt) and takes the other branch: the order is
+// "not older than".
+struct NotOlder {
+    bool operator()(const SaveEntry& a, const SaveEntry& b) const { return !(a.savedAt_ < b.savedAt_); }
 };
-using SaveSort = stlp::Sort<SaveEntry, BySavedTime, SaveEntryOps>;
+using SaveSort = stlp::Sort<SaveEntry, NotOlder, SaveEntryOps>;
 
 } // namespace
 
@@ -136,9 +138,9 @@ void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* l
 }
 
 void __fastcall SaveIntroSort(SaveEntry* first, SaveEntry* last, void*, int depth, int) {
-    SaveSort::IntroLoop(first, last, depth, BySavedTime());
+    SaveSort::IntroLoop(first, last, depth, NotOlder());
 }
-void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int) { SaveSort::FinalInsertionSort(first, last, BySavedTime()); }
+void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int) { SaveSort::FinalInsertionSort(first, last, NotOlder()); }
 SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result) {
     return stlp::CopyBackward<SaveEntry, SaveEntryOps>(first, last, result);
 }

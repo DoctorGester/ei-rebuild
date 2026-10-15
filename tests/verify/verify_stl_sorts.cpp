@@ -17,7 +17,10 @@
 // - The save list: SaveEntry copies allocate (CStringArray::Copy), so the original sorts a copy that
 //   holds only each saved time and its position (empty strings and arrays, which copy without
 //   allocating), and ours's order is compared through each entry's strings, time, flag and array
-//   contents. copy_backward is checked ours only (the entries written equal the ones read). A
+//   contents. Its comparison is "not older" (00658020 is a less, every caller takes its other
+//   branch), so equal times compare true both ways: where the unguarded scans could leave the range
+//   (over 16 entries) and two saves have the same time, ours sorts alone (logged). copy_backward is
+//   checked ours only (the entries written equal the ones read). A
 //   start-up check sorts random key-only entries and, with small arrays, compares each position's
 //   array size and capacity too (capacities follow the whole copy and assignment sequence).
 #include "verify.h"
@@ -31,6 +34,7 @@
 #include "../../src/game/stl_sorts.h"
 #include "../../src/hook/log.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -367,8 +371,17 @@ struct KeyEntries {
     SaveEntry* Data() { return entries.data(); }
 };
 
+bool DistinctTimes(const std::vector<SavePrint>& entries) {
+    std::vector<std::int32_t> times;
+    for (const SavePrint& e : entries) times.push_back(e.savedAt);
+    std::sort(times.begin(), times.end());
+    return std::adjacent_find(times.begin(), times.end()) == times.end();
+}
+
+// `runsOff`: the call's unguarded scans can leave the range when two saves have the same time.
 template <typename Original, typename Ours>
-void CompareSaves(const char* name, SaveEntry* first, SaveEntry* last, int guard, Original original, Ours ours) {
+void CompareSaves(const char* name, SaveEntry* first, SaveEntry* last, int guard, bool runsOff, Original original,
+                  Ours ours) {
     if (last < first) {
         original(first, last);
         return;
@@ -377,6 +390,14 @@ void CompareSaves(const char* name, SaveEntry* first, SaveEntry* last, int guard
     std::vector<SavePrint> input;
     for (const SaveEntry* p = first - guard; p != last; ++p) input.push_back(SavePrint::Of(*p));
     ours(first, last);
+    if (runsOff && !DistinctTimes(input)) {
+        static int s_logged = 0;
+        if (s_logged < 10) {
+            ++s_logged;
+            ei::Log("%s: %d saves, two of the same time: ours only", name, static_cast<int>(last - first));
+        }
+        return;
+    }
     KeyEntries twin(n);
     for (std::size_t i = 0; i < n; ++i) twin.Set(i, input[i].savedAt, static_cast<int>(i));
     original(twin.Data() + guard, twin.Data() + n);
@@ -425,7 +446,7 @@ EI_VERIFY(0x0064FBD0, QuestUnguardedVerify, 5, s_questUnguarded);
 static void(__fastcall* s_saveIntro)(SaveEntry*, SaveEntry*, void*, int, int);
 static void __fastcall SaveIntroVerify(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp) {
     CompareSaves(
-        "SaveIntroSort", first, last, 0, [&](SaveEntry* f, SaveEntry* l) { s_saveIntro(f, l, tag, depth, comp); },
+        "SaveIntroSort", first, last, 0, last - first > 16, [&](SaveEntry* f, SaveEntry* l) { s_saveIntro(f, l, tag, depth, comp); },
         [&](SaveEntry* f, SaveEntry* l) { SaveIntroSort(f, l, tag, depth, comp); });
 }
 EI_VERIFY(0x00657DF0, SaveIntroVerify, 6, s_saveIntro);
@@ -434,7 +455,7 @@ EI_VERIFY(0x00657DF0, SaveIntroVerify, 6, s_saveIntro);
 static void(__fastcall* s_saveFinal)(SaveEntry*, SaveEntry*, int);
 static void __fastcall SaveFinalVerify(SaveEntry* first, SaveEntry* last, int comp) {
     CompareSaves(
-        "SaveFinalSort", first, last, 0, [&](SaveEntry* f, SaveEntry* l) { s_saveFinal(f, l, comp); },
+        "SaveFinalSort", first, last, 0, last - first > 16, [&](SaveEntry* f, SaveEntry* l) { s_saveFinal(f, l, comp); },
         [&](SaveEntry* f, SaveEntry* l) { SaveFinalSort(f, l, comp); });
 }
 EI_VERIFY(0x00657F10, SaveFinalVerify, 5, s_saveFinal);
@@ -612,7 +633,7 @@ void SortStartupCheck() {
 EI_STARTUP_CHECK(SortStartupCheck);
 
 // The save list's sort as FillEntries calls it (the introsort loop, then the final insertion
-// sort), on key-only entries (300 cases) and on entries with small arrays of empty strings (40
+// sort), on key-only entries with distinct times (300 cases) and on entries with small arrays of empty strings (40
 // cases; their blocks come from the game's heap and go back with the entries): each position's
 // time and tag, and with arrays their sizes and capacities, must match.
 void SaveSortStartupCheck() {
@@ -622,13 +643,15 @@ void SaveSortStartupCheck() {
         Random random{seed};
         bool arrays = seed > 300;
         std::size_t n = random.Next() % (arrays ? 40 : 200);
-        std::uint32_t keys = 1 + random.Next() % 30;
         int depth = Depth(n, random.Next());
+        // Distinct times (with equal ones the unguarded scans can leave the range), shuffled.
+        std::vector<std::int32_t> times(n);
+        for (std::size_t i = 0; i < n; ++i) times[i] = static_cast<std::int32_t>(3 * i) - 40;
+        for (std::size_t i = n; i > 1; --i) std::swap(times[i - 1], times[random.Next() % i]);
         KeyEntries theirs(n), ours(n);
         for (std::size_t i = 0; i < n; ++i) {
-            std::int32_t key = static_cast<std::int32_t>(random.Next() % keys) - 3;
-            theirs.Set(i, key, static_cast<int>(i));
-            ours.Set(i, key, static_cast<int>(i));
+            theirs.Set(i, times[i], static_cast<int>(i));
+            ours.Set(i, times[i], static_cast<int>(i));
             if (!arrays) continue;
             for (int a = 0; a < 2; ++a) {
                 int size = static_cast<int>(random.Next() % 4);
