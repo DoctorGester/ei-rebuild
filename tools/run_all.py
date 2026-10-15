@@ -1,7 +1,8 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
-                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--verified-candidates N]
+                               [--dgvoodoo] [--fresh] [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden]
+                               [--verified-candidates N]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
                    Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
@@ -9,7 +10,24 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    twice) and any it does not list yet. Named scenarios and --all-rebirth run under both.
   --native         only the install without dgVoodoo (run\\native, tools/setup_native_run.cmd), with
                    EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
-                   renderer presents through its own swap chain (docs/notes/renderer.md section 9)
+                   renderer presents through its own swap chain (docs/notes/renderer.md section 9);
+                   scenarios that need the old device (below) run there too: their old-path steps
+                   do nothing, and what is left checks the new frame alone
+  renderers        Runs of our code (vanilla and Rebirth with hooks) draw with our renderer
+                   (EI_RENDER=new,present: no DirectDraw device, its own swap chain, no display mode
+                   change), so they never need the machine to themselves. dgVoodoo draws only the
+                   original code (--no-hooks, --widescreen's rebirth-nohooks, compare.py's original
+                   side) and scenarios whose "render" step leaves out "present" (they compare the old
+                   path's frame with the new one in one run), and --widescreen's runs with hooks too
+                   (their frames are compared with the original's pixel by pixel; across renderers
+                   they differ, wants_dgvoodoo). A dgVoodoo run with a "resolution" step runs alone.
+                   EI_RENDER in the environment is kept as it is (with hooks; the original code
+                   never gets it).
+  --dgvoodoo       runs of our code on dgVoodoo as before R10 (the old device path, and the verify
+                   wrappers that compare with the original's DirectDraw calls)
+  --fresh          play the original code's runs again instead of taking them from the reference
+                   cache (build\\reference in the main checkout: a passed run of the original code,
+                   kept by scenario commit, install files, clock and EI_* settings; reference_key)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
                    the scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud and
                    ui_widescreen_screens; they
@@ -41,7 +59,7 @@ A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s
 game's watchdog ends it at the limit, ei_launch 20 s later if the watchdog could not (tools/launcher/launch.cpp).
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
-import argparse, functools, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
+import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
 import prepare_scenario
 
@@ -126,7 +144,8 @@ def switches_display(scenario):
     """Whether a scenario asks for full screen at a mode other than the desktop's (`resolution WxH` with
     `fullscreen 1`). Only our renderer covers the monitor without changing the mode; the original's DirectDraw,
     under dgVoodoo or not, switches the real display, which upsets the user's desktop. So such a scenario runs
-    only with our hooks (plan() leaves out its runs without them)."""
+    only on our renderer (plan() leaves out its runs without our hooks, with --dgvoodoo or with an EI_RENDER
+    without present)."""
     with open(scenario, encoding='cp1251', errors='replace') as f:
         lines = f.read().splitlines()
     mode = any(re.match(r'\s*resolution\s+(?!desktop\b)\S', l) for l in lines)
@@ -134,9 +153,56 @@ def switches_display(scenario):
 
 
 def sets_display_mode(scenario):
-    """Whether a scenario sets the display mode (a `resolution` step): it runs with no other game."""
+    """Whether a scenario sets the display mode (a `resolution` step): on dgVoodoo it runs with no other game."""
     with open(scenario, encoding='cp1251', errors='replace') as f:
         return any(re.match(r'\s*resolution\b', line) for line in f)
+
+
+# Our renderer's switch-over (docs/notes/renderer.md section 9): no DirectDraw or Direct3D 7 device, the frame
+# presented through its own swap chain, full screen without a display mode change.
+OUR_RENDERER = 'new,present'
+
+
+def render_steps(scenario):
+    """The word lists of a scenario's `render` steps."""
+    steps = []
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='cp1251', errors='replace') as f:
+            for text in f:
+                m = re.match(r'\s*render\s+(\S+)', text)
+                if m:
+                    steps.append(m.group(1).split(','))
+    return steps
+
+
+def needs_old_device(scenario):
+    """Whether a scenario's `render` step leaves out `present`: it compares the old path's frame (drawn through
+    dgVoodoo) with the new renderer's in one run, so it runs on dgVoodoo."""
+    return any('present' not in words for words in render_steps(scenario))
+
+
+def our_renderer(scenario, install, hooks, dgvoodoo=False, environ=None):
+    """Whether a run draws with our renderer (EI_RENDER=new,present) rather than dgVoodoo (ticket R10). native
+    always; the original code (no hooks) never; otherwise EI_RENDER in environ (default: this process's) decides
+    when it is set, else our renderer unless dgvoodoo (--dgvoodoo) or the scenario needs the old device. A
+    scenario whose `render` step says `present` draws with ours whatever else is set (the harness adds EI_RENDER's
+    words to the step's)."""
+    if install == 'native':
+        return True
+    if not hooks:
+        return False
+    if any('new' in words and 'present' in words for words in render_steps(scenario)):
+        return True
+    environ = os.environ if environ is None else environ
+    if 'EI_RENDER' in environ:
+        return 'present' in environ['EI_RENDER'].split(',')
+    return not dgvoodoo and not needs_old_device(scenario)
+
+
+def runs_alone(scenario, install, hooks, dgvoodoo=False, environ=None):
+    """A run that keeps the machine to itself: a dgVoodoo run that sets the display mode. Our renderer changes
+    no display mode (full screen is a window over the monitor), so its runs share the machine."""
+    return sets_display_mode(scenario) and not our_renderer(scenario, install, hooks, dgvoodoo, environ)
 
 
 # EI_* variables that are not settings of a game: where the build is, the machine's slots, and what ei_launch
@@ -189,7 +255,8 @@ def expected_result(scenario):
     return None
 
 
-def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None):
+def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None,
+        dgvoodoo=False, fresh=False):
     """One game of a scenario on an install. root: the checkout whose tests/scenarios and run/ it uses;
     build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
     take_slot False: the caller already holds a machine slot for it (tools/work_sched.py).
@@ -198,13 +265,27 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
     game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
     are exactly these (this process's other game variables are dropped), for a scheduler running other
     submitters' batches. It goes to the subprocess only; os.environ stays as it is.
-    A run that fails after dgVoodoo minimised its window is run again (MINIMISED)."""
+    dgvoodoo: a run of our code draws through dgVoodoo instead of our renderer (our_renderer).
+    A run of the original code (no hooks) is taken from the reference cache when it holds it (reference_key),
+    unless fresh; a passed one is put there.
+    A dgVoodoo run that fails after dgVoodoo minimised its window is run again (MINIMISED)."""
+    folder = folder or f'{name}-{install}'
+    scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
+    environ = os.environ if game_env is None else game_env
+    key = reference_key(name, install, root, clock, environ) if not hooks else None
+    if key and not fresh:
+        cached = reference_from_cache(name, install, key, os.path.join(build, 'runs', folder))
+        if cached:
+            return cached
+    on_dgvoodoo = not our_renderer(scenario, install, hooks, dgvoodoo, environ)
     for attempt in range(MINIMISED_RERUNS + 1):
-        result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env)
-        if result == 'PASS' or attempt == MINIMISED_RERUNS or not minimised(build, folder or f'{name}-{install}'):
+        result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock,
+                                                            game_env, dgvoodoo)
+        if result == 'PASS' or attempt == MINIMISED_RERUNS or not on_dgvoodoo or not minimised(build, folder):
             break
-        print(f'  {folder or name + "-" + install}: {result} after dgVoodoo minimised the window; running it again',
-              flush=True)
+        print(f'  {folder}: {result} after dgVoodoo minimised the window; running it again', flush=True)
+    if key and result == 'PASS':
+        store_reference(name, install, key, os.path.join(build, 'runs', folder), (result, seconds, failures, counts, notes))
     return result, seconds, failures, counts, notes
 
 
@@ -216,7 +297,7 @@ def minimised(build, folder):
     return False
 
 
-def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env):
+def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env, dgvoodoo=False):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
@@ -231,15 +312,23 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'vanilla', 'game.exe')]
     elif install == 'native':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'native', 'game.exe')]
-        env = dict(os.environ if env is None else env, EI_RENDER='new,present')
+        env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER)
     elif os.path.exists(os.path.join(root, 'run', 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(root, 'run', 'rebirth', 'game.exe')]
+    environ = os.environ if env is None else env
+    if install != 'native' and 'EI_RENDER' not in environ and our_renderer(scenario, install, hooks, dgvoodoo, environ):
+        env = dict(environ, EI_RENDER=OUR_RENDERER)    # dgVoodoo's DLLs stay beside game.exe; nothing draws through them
+    elif not hooks and 'EI_RENDER' in environ:
+        # The original code draws only through dgVoodoo: with the harness's capture taking the new renderer's frame
+        # (present), which nothing draws without our hooks, its frames came out empty.
+        env = {k: v for k, v in environ.items() if k != 'EI_RENDER'}
+        environ = env
     if not hooks:
         cmd.append('--no-hooks')
     if clock:
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
-    with machine_slot(alone=sets_display_mode(scenario)) if take_slot else contextlib.nullcontext():
+    with machine_slot(alone=runs_alone(scenario, install, hooks, dgvoodoo, environ)) if take_slot else contextlib.nullcontext():
         start = time.time()
         # ei_launch ends a game at the limit plus its margin; this is for ei_launch itself (its job object
         # takes the game down with it).
@@ -276,6 +365,136 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
     return result, seconds, failures, counts, notes
 
 
+# ---- the reference cache: runs of the original code (on dgVoodoo) kept by what decides them (ticket R10)
+#
+# The original code does not change, so a run of it only needs playing again when its scenario, its install's
+# files, the clock or the game's EI_* settings change. A passed run's folder (frames, report, log; not
+# harness_saves) is kept in <main checkout>/build/reference/<scenario>-<install>/<key>/ with cached.json (run()'s
+# results); run() copies it into the run folder instead of playing it. Not in the key: the harness itself (the
+# verify build's ei_launch and ei_hook.dll run the original code's scenarios too): after a harness change that
+# alters what a reference run captures, run with --fresh.
+
+CACHED_NOTE = 'reference cache: '     # the note of a run taken from the cache (no time recorded for it)
+REFERENCE_KEEP = 3                     # keys kept per <scenario>-<install> (other worktrees' scenario revisions)
+
+
+def reference_dir():
+    """<main checkout>/build/reference (shared by every worktree), or None outside a repository. EI_REFERENCE_DIR:
+    another folder (tests)."""
+    if os.environ.get('EI_REFERENCE_DIR'):
+        return os.environ['EI_REFERENCE_DIR']
+    try:
+        common = subprocess.run(['git', 'rev-parse', '--path-format=absolute', '--git-common-dir'], cwd=ROOT,
+                                capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return None
+    return os.path.join(os.path.dirname(os.path.normpath(common)), 'build', 'reference') if common else None
+
+
+def install_fingerprint(root, install):
+    """What of an install decides a run of the original code: the files beside its game.exe in run/<install>
+    (names, sizes, times; configuration files such as dgVoodoo.conf by content)."""
+    h = hashlib.sha1(install.encode())
+    with contextlib.suppress(OSError):
+        for entry in sorted(os.scandir(os.path.join(root, 'run', install)), key=lambda e: e.name.lower()):
+            if not entry.is_file():
+                continue
+            st = entry.stat()
+            h.update(f'{entry.name.lower()}\0{st.st_size}\0{st.st_mtime_ns}\0'.encode())
+            if os.path.splitext(entry.name)[1].lower() in ('.conf', '.ini', '.cfg', '.txt') and st.st_size < 1 << 20:
+                with open(entry.path, 'rb') as f:
+                    h.update(f.read())
+    return h.hexdigest()
+
+
+def reference_key(name, install, root, clock, environ):
+    """The cache key of a run of the original code, or None when it is not cached (the scenario has uncommitted
+    edits or no commit). Made of: the scenario's last commit (work.scenario_revs, as WB6's timing table), the
+    install's files, the tools its "# prepare:" lines run, the clock override and the game's EI_* settings."""
+    try:
+        import work
+        rev = work.scenario_revs(root).get(name, '')
+    except (Exception, SystemExit):
+        return None
+    if not rev or rev.endswith('+dirty'):
+        return None
+    h = hashlib.sha1(f'{name}\0{install}\0{rev}\0{clock or ""}\0'.encode())
+    settings = {k: v for k, v in game_environment(environ).items() if k != 'EI_RENDER'}    # run_once drops it
+    h.update(json.dumps(settings, sort_keys=True).encode())
+    h.update(install_fingerprint(root, install).encode())
+    with contextlib.suppress(OSError):
+        with open(os.path.join(root, 'tests', 'scenarios', name + '.txt'), encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(prepare_scenario.PREFIX):
+                    tool = text[len(prepare_scenario.PREFIX):].split()[:1]
+                    with contextlib.suppress(OSError), open(os.path.join(root, 'tools', *tool), 'rb') as t:
+                        h.update(t.read())
+    return f'{rev[:10]}-{h.hexdigest()[:12]}'
+
+
+def reference_from_cache(name, install, key, out):
+    """run()'s results of a cached run, its files copied into the run folder out; None when not cached."""
+    base = reference_dir()
+    if not base:
+        return None
+    entry = os.path.join(base, f'{name}-{install}', key)
+    try:
+        with open(os.path.join(entry, 'cached.json')) as f:
+            info = json.load(f)
+        start = time.time()
+        shutil.rmtree(out, ignore_errors=True)
+        shutil.copytree(entry, out, ignore=shutil.ignore_patterns('cached.json'))
+        os.utime(entry)                                  # recently used: kept by the pruning
+        result, _, failures, counts, notes = info['run']
+    except (OSError, ValueError, TypeError, KeyError):
+        return None
+    return (result, time.time() - start, failures, {fn: tuple(c) for fn, c in counts.items()},
+            notes + [f'{CACHED_NOTE}{key} (played {info.get("time", "?")} in {info.get("seconds", 0):.0f}s)'])
+
+
+def store_reference(name, install, key, out, results):
+    """Keeps a passed run of the original code (its folder without harness_saves) under its key and drops the
+    scenario's least recently used keys beyond REFERENCE_KEEP. Never raises: a run never fails because of it."""
+    base = reference_dir()
+    if not base:
+        return
+    home = os.path.join(base, f'{name}-{install}')
+    entry = os.path.join(home, key)
+    tmp = f'{entry}.{os.getpid()}.{threading.get_ident()}.tmp'
+    try:
+        os.makedirs(home, exist_ok=True)
+        shutil.copytree(out, tmp, ignore=shutil.ignore_patterns('harness_saves'))
+        result, seconds, failures, counts, notes = results
+        with open(os.path.join(tmp, 'cached.json'), 'w') as f:
+            json.dump({'run': [result, seconds, failures, {fn: list(c) for fn, c in counts.items()}, notes],
+                       'seconds': seconds, 'time': time.strftime('%Y-%m-%d %H:%M'), 'folder': out}, f)
+        if os.path.isdir(entry):
+            shutil.rmtree(entry, ignore_errors=True)     # played again (--fresh): the newer run
+        os.replace(tmp, entry)
+        keys = sorted((e for e in os.scandir(home) if e.is_dir() and not e.name.endswith('.tmp')),
+                      key=lambda e: e.stat().st_mtime, reverse=True)
+        for old in keys[REFERENCE_KEEP:]:
+            shutil.rmtree(old.path, ignore_errors=True)
+    except OSError:
+        pass
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def cached_reference(name, install, hooks, root=ROOT, clock=None, environ=None):
+    """Whether run() would take this run from the reference cache (work.py test: then it is not alone)."""
+    if hooks:
+        return False
+    key = reference_key(name, install, root, clock, os.environ if environ is None else environ)
+    base = reference_dir()
+    return bool(key and base and os.path.exists(os.path.join(base, f'{name}-{install}', key, 'cached.json')))
+
+
+def is_cached(notes):
+    """Whether run() took the run from the reference cache (no game was played)."""
+    return any(n.startswith(CACHED_NOTE) for n in notes)
+
+
 def console_of(folder, build=BUILD):
     """The console output a run's report holds (its lines after "console output:")."""
     path = os.path.join(build, 'runs', folder, 'harness_report.txt')
@@ -298,6 +517,9 @@ def run_with_retries(name, install, hooks, retries, folder=None, runner=run):
     return result, seconds, failures, counts, notes
 
 
+COMPARE_JOBS = 8     # compare_frames.py processes at once (each one CPU core, ~1 GB for three 4K frames)
+
+
 def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
     """--widescreen: each frame of <name>-rebirth against <name>-rebirth-nohooks (tools/compare_frames.py).
     A frame <f> with a <f>_later (captured after the clocks ran on) is compared without what moved
@@ -313,7 +535,7 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
     if not frames:
         print('no frames to compare', file=out)
         return False
-    ok = True
+    commands = []
     for frame in frames:
         if frame.endswith('_later'):
             continue
@@ -331,13 +553,16 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
             excludes += ['--exclude', moving[0], moving[1], '--exclude', moving[2], moving[3]]
         if excludes:
             cmd += excludes + ['--exclude-grow', '8']
-        out.flush()
-        if out is sys.stdout:
-            ok = subprocess.run(cmd).returncode == 0 and ok
-        else:
-            p = subprocess.run(cmd, capture_output=True, text=True, errors='replace')
-            out.write(p.stdout + p.stderr)
-            ok = p.returncode == 0 and ok
+        commands.append(cmd)
+    # compare_frames.py reads 4K frames pixel by pixel in Python (20-40 s a frame): the frames at once, printed in
+    # their order (R10: the comparisons took longer than the games)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=COMPARE_JOBS) as pool:
+        done = list(pool.map(lambda cmd: subprocess.run(cmd, capture_output=True, text=True, errors='replace'), commands))
+    ok = True
+    for p in done:
+        out.write(p.stdout + p.stderr)
+        ok = p.returncode == 0 and ok
+    out.flush()
     return ok
 
 
@@ -361,6 +586,8 @@ def parse_args(argv=None):
     ap.add_argument('--all-rebirth', action='store_true')
     ap.add_argument('--native', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
+    ap.add_argument('--dgvoodoo', action='store_true')
+    ap.add_argument('--fresh', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--golden', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
@@ -390,12 +617,20 @@ def plan(args, root=ROOT):
         names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
     path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
-    kept = [(n, i) for n, i in jobs if uses_hooks(i, args) or not switches_display(path(n))]
+    kept = [(n, i) for n, i in jobs if not switches_display(path(n))
+            or our_renderer(path(n), i.split('-')[0], uses_hooks(i, args), wants_dgvoodoo(args))]
     for n, i in jobs:
         if (n, i) not in kept:
             print(f'{n}-{i}: left out, full screen at its own mode without our renderer would switch the display',
                   file=sys.stderr)
     return kept
+
+
+def wants_dgvoodoo(args):
+    """Whether runs of our code draw through dgVoodoo: --dgvoodoo, and --widescreen, whose frames are compared with
+    the original's (dgVoodoo's) pixel by pixel: across the renderers 0.2-1% of a 4K interface frame differ by more
+    than 8 (texture filtering of the scene behind the panels, up to 150-230), the water's phase up to 20% (R10)."""
+    return getattr(args, 'dgvoodoo', False) or getattr(args, 'widescreen', False)
 
 
 def uses_hooks(install, args):
@@ -441,9 +676,10 @@ def expected_times(jobs, root=ROOT, build=BUILD, db=None):
     return {(n, i): fallbacks.get(f'{n}-{i}') for n, i in jobs}
 
 
-def record_time(db, name, install, seconds, result, root=ROOT, batch=None):
-    """Appends a finished game's time to the machine-wide table; never raises. Crashed and timed-out runs (ERROR, NO REPORT, TIMEOUT) are not times."""
-    if db is None or result in ('ERROR', 'NO REPORT', 'TIMEOUT'):
+def record_time(db, name, install, seconds, result, root=ROOT, batch=None, notes=()):
+    """Appends a finished game's time to the machine-wide table; never raises. Crashed and timed-out runs (ERROR, NO
+    REPORT, TIMEOUT) and runs taken from the reference cache are not times."""
+    if db is None or result in ('ERROR', 'NO REPORT', 'TIMEOUT') or is_cached(notes):
         return
     try:
         import work
@@ -547,14 +783,14 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
         futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}',
-                               functools.partial(run, clock=args.clock)): (n, i)
+                               functools.partial(run, clock=args.clock, dgvoodoo=wants_dgvoodoo(args), fresh=args.fresh)): (n, i)
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
             result, seconds, failures, counts, notes = future.result()
             with lock:
                 results[(name, install)] = (result, seconds, failures, notes)
-                record_time(db, name, install, seconds, result)
+                record_time(db, name, install, seconds, result, notes=notes)
                 for fn, (calls, bad) in counts.items():
                     totals[fn][0] += calls
                     totals[fn][1] += bad

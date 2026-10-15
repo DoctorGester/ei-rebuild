@@ -177,6 +177,7 @@ bool CreateDevice() {
         return false;
     }
     ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
+    ProtectDevice(g_device, g_context);
     return true;
 }
 
@@ -464,6 +465,7 @@ bool RecreateDevice() {
     FpuGuard fpu;
     ++g_losses;
     std::size_t kept = 0, keptBytes = 0;
+    DropCursorPresents();
     DropWindow();
     DropShowWindow();
     DestroyTarget();
@@ -707,9 +709,20 @@ bool DrawOldTerrain() {
     return g_oldTerrain || !Active();
 }
 
+// The harness's oldterrain / oldobjects / oldinterface steps. With `present` the old path stays off: it has no
+// device to draw into (or its frame is replaced by the new one), and running it anyway changed the new frame
+// (render_scene's world / world_again in a native run: the terrain darker and the water's phase after "on").
+namespace {
+bool OldPathSwitchable(const char* step, bool on) {
+    if (!on || !g_present) return true;
+    ei::Log("render: '%s on' ignored: with 'present' the old path stays off", step);
+    return false;
+}
+} // namespace
+
 void SetDrawOldTerrain(bool on) {
     EnsureConfigured();
-    g_oldTerrain = on;
+    if (OldPathSwitchable("oldterrain", on)) g_oldTerrain = on;
 }
 
 bool DrawOldMeshes() {
@@ -724,12 +737,12 @@ bool DrawOldInterface() {
 
 void SetDrawOldObjects(bool on) {
     EnsureConfigured();
-    g_oldObjects = on;
+    if (OldPathSwitchable("oldobjects", on)) g_oldObjects = on;
 }
 
 void SetDrawOldInterface(bool on) {
     EnsureConfigured();
-    g_oldInterface = on;
+    if (OldPathSwitchable("oldinterface", on)) g_oldInterface = on;
 }
 
 void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
@@ -798,6 +811,16 @@ bool DrawPending() {
     g_drawnCommands = g_frame.commands.size();
     ++g_passes;
     return true;
+}
+
+// The software cursor kept out of the frame's commands (render::Cursor when the new renderer
+// presents itself) drawn over it: the frame's last draw.
+void DrawCursor() {
+    if (!g_frame.haveCursor) return;
+    g_frame.haveCursor = false;
+    g_frame.blitBatches.push_back(g_frame.cursor);
+    g_frame.commands.push_back(Command{Command::Blit, static_cast<int>(g_frame.blitBatches.size()) - 1});
+    DrawPending();
 }
 
 // A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
@@ -950,12 +973,21 @@ void EndFrame() {
     FpuGuard fpu;
     if (!DrawPending()) return;
     ShowFrame();
-    // "present" without DirectDraw: onto the game window through the new renderer's swap chain.
-    bool toWindow = g_presentsItself && DrawToWindow();
+    // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
+    // turn with the cursor thread's presents (render_cursor.cpp), which take the frame as it was
+    // before its cursor.
+    bool toWindow = false;
+    if (g_presentsItself) {
+        BeginWindowPresent();
+        KeepFrameForCursor();
+        DrawCursor();
+        toWindow = DrawToWindow();
+    }
     sg_commit();
     ++g_commits;
     if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
     if (toWindow) PresentWindow();
+    if (g_presentsItself) EndWindowPresent(toWindow && !g_deviceLost);
     g_haveFrame = true;
     // "present" turned on after the DirectDraw device was made: into the game's render target,
     // which the old present then flips or copies to the screen.
@@ -982,6 +1014,7 @@ void Present() {
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
     g_frame.commands.clear();
+    g_frame.haveCursor = false;
     g_frame.haveFog = false;
     g_frameDrawn = false;
     if (g_started) {

@@ -16,6 +16,8 @@
 class CTextureDevice;   // game/texture.h
 struct ID3D11Device;
 struct ID3D11DeviceContext;
+struct ID3D11RenderTargetView;
+struct IDXGISwapChain1;
 
 namespace render::detail {
 
@@ -121,6 +123,10 @@ struct Frame {
     std::vector<BlitBatch> blitBatches;
     std::vector<ClearBatch> clears;
     std::vector<Command> commands;
+    // The software cursor (render::Cursor) when the new renderer presents itself: drawn last, after
+    // the frame without it is kept for the cursor thread (render_cursor.cpp).
+    BlitBatch cursor{};
+    bool haveCursor = false;
     bool haveFog = false;
     bool fogEnabled = false;
     std::uint32_t fogColour = 0;   // D3DCOLOR
@@ -168,6 +174,21 @@ bool FrameSize(int* width, int* height);
 // nothing to present into: no window, minimised, the swap chain or device failed), then Present.
 bool DrawToWindow();
 void PresentWindow();
+// What the last DrawToWindow drew with, for the cursor thread's presents (render_cursor.cpp): the
+// swap chain and its back buffer's view, the present pipeline (the frame through the gamma ramp) and
+// the ramp's view, the client area and the frame's place in it, whether Present waits for the
+// vertical blank. Raw pointers, no references taken; false when there is no swap chain.
+struct WindowParts {
+    IDXGISwapChain1* chain;
+    ID3D11RenderTargetView* view;
+    sg_shader shader;
+    sg_pipeline pipeline;
+    sg_view ramp;
+    int clientWidth, clientHeight;
+    Rect placed;
+    bool vsync;
+};
+bool CurrentWindowParts(WindowParts* parts);
 // The game window's swap chain and everything the window module made on the device, released
 // (before sg_shutdown: the device is lost); the next DrawToWindow makes them on the new device.
 void DropWindow();
@@ -237,6 +258,15 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height);
 // Destroys the images made for one frame (the cursor), after its commit.
 void RetireFrameImages();
 void DestroyBlits();
+// The window blit's shader, pipeline and sampler (the cursor thread draws the cursor with them).
+void BlitParts(sg_shader* shader, sg_pipeline* pipeline, sg_sampler* sampler);
+struct Picture;
+// render::Cursor's image: the whole cursor picture of `holder` (all its frames side by side) as RGBA8,
+// alpha 255 where the mask (`mask`, `maskBytes` per pixel, the picture's width) is clear, else 0;
+// kept for the cursor thread (render_cursor.cpp). The part `from` copied into `rgba` (w x h); false
+// when the picture or the rectangle does not fit.
+bool CursorPicturePart(const void* holder, const void* mask, int maskBytes, const Picture& picture, const Rect& from,
+                 std::vector<std::uint8_t>* rgba);
 // DestroyBlits, and every image kept across frames (movies, the cursor's and fills' cache): the
 // device is lost.
 void DropBlits();
@@ -278,6 +308,19 @@ struct Picture {
 bool PictureFromMmpData(const void* holder, const void* data);
 const Picture* PictureOf(const void* holder);
 sg_sampler LinearSampler();
+
+// The cursor between frames (render_cursor.cpp). The swap chain's lock: the main thread's present on
+// the game window (BeginWindowPresent .. EndWindowPresent) and the cursor thread's
+// (render::CursorBetweenFrames) take turns. In between the main thread keeps its frame without the
+// cursor (KeepFrameForCursor, after DrawPending); EndWindowPresent takes the references the cursor
+// thread draws with (when the frame was presented). ProtectDevice turns on the device's multithread
+// protection (the cursor thread's command list runs on the immediate context); DropCursorPresents
+// releases everything before the device goes.
+void ProtectDevice(ID3D11Device* device, ID3D11DeviceContext* context);
+void BeginWindowPresent();
+void KeepFrameForCursor();
+void EndWindowPresent(bool presented);
+void DropCursorPresents();
 sg_sampler StageSampler(const StageState& stage);
 // After a frame is presented: images replaced during the frame are destroyed, entries unused for a
 // long time dropped.

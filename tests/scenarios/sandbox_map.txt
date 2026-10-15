@@ -1,14 +1,14 @@
-# Sandbox: start a new single-player game and let zone1 play through its intro at ~5.5x speed,
-# then report and quit. Exercises zone loading, AI map refresh, footprints, path search, line of
-# sight, lighting, scripts, and the save the game writes when a new game starts.
-# The zone1 intro runs on real time (~37 s), so this scenario needs more than the default 60 s.
-# On the virtual clock it took 72-81 s against 17 s on real time (SV1f), so real time for now.
-realtime
+# Sandbox: start a new single-player game and let zone1 play through its intro (the leader is
+# blocked until it ends), then report and quit. Exercises zone loading, AI map refresh, footprints,
+# path search, line of sight, lighting, scripts, and the save the game writes when a new game starts.
+# No "speed": on the virtual clock every frame runs five world updates whatever their length, so a
+# shorter one speeds nothing up, it only gives each frame less virtual time; the intro waits on its
+# speech (about 37 s of samples, ended on virtual time) and took 5.5 times the frames at "speed 10"
+# (SV1f: 72-81 s on a busy machine).
 timeout 80
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitfor 45 Not(IsUnitBlocked(GetLeader()))
 wait 10000

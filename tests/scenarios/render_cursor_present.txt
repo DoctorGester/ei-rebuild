@@ -1,0 +1,55 @@
+# R9c2: the software cursor between frames in the switch-over without DirectDraw (docs/notes/renderer.md,
+# section 9). The game's cursor thread (005E5690, every 41 ms) drew the moved cursor straight onto the
+# primary, so it kept moving while the main thread drew no frame; without DirectDraw it presents the
+# last frame again (as drawn before its cursor) with the cursor at its new place
+# (render::CursorBetweenFrames). As in the original it draws nothing while the image is hidden: the
+# movie players and every loading screen step hide it (005E5270 0).
+#
+# The mouse is moved by a harness thread ("mouseglide": what the game's GetCursorPos reads, the only
+# input the cursor thread takes) while the main thread is away: a long frame ("stall": the cursor
+# moves, each composed frame checked in the verify build and the last one written to frames\), a
+# movie and a new game's loading screen (the cursor stays hidden: at most the moments before the
+# player hides it). "cursorcheck" also checks the cursor's rectangle against the mouse and the
+# image's hot spot. The thread exists only with the options' FPSIndependentCursor on (the game's default;
+# off, the cursor runs in mode 1 without it and the original draws the cursor only in frames): answered
+# 1 for this run ("fpscursor").
+fpscursor 1
+render new,present
+reject Script error
+waitmenu
+console thingamabob
+
+# The main menu: one long frame.
+move 400 300
+frames 10
+cursormark
+mouseglide 1200 400 300 550 400
+stall 1600
+cursorcheck menu_stall 10
+
+# A new game's loading screen: logged only (the main thread's work before the first loading step is a
+# long frame with the cursor still shown, which the cursor thread rightly draws).
+cursormark
+mouseglide 3000 550 400 250 250
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+cursorcheck - 0
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+
+# A movie (about 1.7 s; the console runs it to its end): hidden.
+cursormark
+mouseglide 1200 250 250 400 350
+console @PlayMovie("crdtfin.bik")
+cursorcheck - 0 2
+
+# In the game: one long frame.
+move 400 300
+frames 10
+cursormark
+mouseglide 1200 400 300 250 400
+stall 1600
+cursorcheck game_stall 10
+report
+quit

@@ -199,7 +199,13 @@ party_records, render_movie, render_movie_present, render_scene, render_terrain,
 sandbox_actions, script_copy, script_parse, script_quest, smoke, spells_cast, ui_battle_spells, ui_container_input,
 ui_help, ui_hero_delete, ui_hero_screen, ui_hero_stats, ui_main_menu, ui_objectives, ui_options_bind, ui_order_move,
 ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, ui_widescreen, unit_create,
-world_load. Rebirth 5: console, harness_digest, items, script_parse, ui_help. Rebirth with the flags off: FLAGSOFF.
+world_load. Rebirth 5: console, harness_digest, items, script_parse, ui_help. Rebirth with the flags off
+(`set EI_REBIRTH=FollowAddon=0`): all five differ from the Rebirth golden at world update 40 (three more ISAAC draws;
+SV3c), so that configuration has no passing golden yet.
+
+**Speed 10:** 29 of the 38 vanilla goldens' scenarios have `speed 10`, whose handling on the virtual clock SV1i
+changes; their goldens are recorded with the old handling and need recording again after SV1i (the same four suites
+and `record`).
 
 **Not covered yet**, by the first run that differed from the first run of the original (`@N`: world update of the
 first differing record, then the fields; unmoto: the zone's two idle wolves, obj1936/1937):
@@ -235,3 +241,79 @@ first differing record, then the fields; unmoto: the zone's two idle wolves, obj
 
 When SV1b / SV1g land, run the four suites again and `record`: a scenario that repeats then gets its golden, and one
 that stops repeating is reported, not recorded.
+
+## SV4: function vectors, record mode and replay (2026-10-15)
+
+**Record mode** (verify build, `EI_VECTORS=1` in the game's environment; `work.py test` passes it on). A
+family's recorders (`EI_RECORD(addr, recorder, stolen, orig)` in tests/vectors/record_<family>.cpp, stolen
+bytes as for EI_VERIFY, checked by check_stolen.py and check_signatures.py) replace every other hook at
+their address, ours and the verify wrapper alike, so the game runs the original there. A recorder copies
+the arguments and the state the function reads, reads the x87 control word, calls the original, copies
+the result and the state after, and offers that payload (a plain struct, tests/vectors/<family>_vectors.h)
+to its `Sampler`. The sampler drops repeats (a hash of control word and payload) and keeps a reservoir of
+`cap` distinct calls per bucket with a fixed-seed generator, so the same calls give the same sample; a
+bucket keeps a rare path from drowning among common calls (ISAAC's refilling draw). The harness's report
+writes `<run>/vectors/<family>/<function>.vec`.
+
+**Data** (tests/vectors/data/<family>/<function>.vec, checked in). `python tools/vectors.py merge <run
+folders>` merges runs: repeats dropped, `cap` per bucket chosen by a hash of the record (stable for the same
+runs); `vectors.py show` prints a file's header, buckets and control words. Re-recording replaces the
+files and the commit says why. The vectors are the original's behaviour, so a change of ours never is a
+reason; an intended difference (a Rebirth fix behind its flag) needs its own check, not new vectors.
+
+**Replay** (`ei_vectors.exe`, built in every configuration, run by build.cmd after the checks). It links
+the families' own sources (no hook DLL, no game: tests/vectors/hook_stub.cpp makes EI_REPLACE register
+nothing; src/lib's forwarders link but must never be called) and the checks in
+tests/vectors/replay_<family>.cpp, registered under the recorded function name. Each record runs under
+its recorded control word (exceptions masked), compared bitwise as the verify wrappers compare. It fails
+on a differing record, a file without a check or with another payload size, or no files at all.
+
+Families so far:
+- `maths` (maths.cpp, core_maths.cpp): Vector3::Vector3, Dot, Vector3::Length, Quaternion::FromAxisAngle,
+  AddVectors, NegateVector, ScaleVector, Vector3::AddInPlace, ClampUnit, Quaternion::SetIdentity,
+  Quaternion::PreMultiply, Quaternion::AxisX/Y/Z, CubicSegment::SetBSpline, CubicSegment::Evaluate; up to
+  256 per function. Whether the output pointer was one of the inputs is recorded and reproduced.
+- `random` (random.cpp): IsaacRandom::Next (12 ordinary draws and 12 refilling ones) and Refill (8),
+  the whole generator before and after.
+
+Recorded from units, sandbox_actions, camera, combat, movement, spells_cast and unit_ai (vanilla, 2026-10-15):
+16 files, 2,868 records, 271 KB; every one replays the same. Control word 007F (24 bits) everywhere but
+one FromAxisAngle call at 027F (53 bits, another thread). Few distinct calls exist for ClampUnit (13),
+AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment::SetBSpline or Evaluate
+(their checks are registered and wait for a scenario that does: SV5's coverage list). A corrupted copy
+(one bit of a Dot result, one of Refill's state) fails both records.
+
+Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
+sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
+run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the
+payload (copied, never pointers) and, for the replay, a way to build them outside the game.
+
+## SV1f / SV1h: the virtual clock's speed and the other threads' clock (2026-10-15)
+
+Two causes, not one.
+
+- SV1h (other threads stand still after a long main-thread block): other threads read the virtual
+  time plus the real time since the main thread last moved it, never going back. A load or a movie
+  (seconds of real time with no advance) put their clock that far ahead; from the next frame they
+  saw `virtual + a few ms`, below what they had seen, so their clock stood still until the frames
+  caught up (each frame takes back only its own advance, and none on a busy machine whose frames take
+  longer than they advance). The cursor thread's 41 ms steps took 1.5 s (render_cursor_present: 2
+  presents in a 1.6 s in-game stall), and the main thread's music waits (WaitAndEndAfter: Sleep(0)
+  until the stream thread's fader, on the other threads' clock, has faded out) waited as long again.
+  Now their clock runs from an anchor (their time, the real time it was taken at) that each main-thread
+  advance moves to max(their time then, the new virtual time): real time when the main thread stands
+  still, the virtual time when it runs ahead, never back and never standing still. Freeze holds it.
+  render_cursor_present runs on the virtual clock again (28 presents in the stall). The main thread's
+  clock is untouched, so nothing a digest sees changes (other threads' clocks drive only the music
+  fader and the cursor thread's steps).
+- SV1f (sandbox_map 72-81 s against 17 s): `speed 10`. On the virtual clock a frame advances
+  5 x the update length, so the main loop runs five updates a frame at any speed; a 10 ms update only
+  gives each frame 50 ms of virtual time instead of 275. zone1's intro blocks the leader until its
+  speech ends (about 36.5 s of samples, ended on virtual time), so it took 5.5 times the frames: at
+  about 9 frames a second on a busy machine, 67-80 s. On real time the run passed by racing: the
+  `waitfor Not(IsUnitBlocked(...))` was true after 0 ms, before the intro had blocked the leader, so
+  it never waited for the intro at all. sandbox_map now runs without `speed` on the virtual clock:
+  26 s on a busy machine, the intro 36.85 s of virtual time in 12 s. Measured in one batch on the
+  same build: with `speed 10` 81 s (timeout), without 26 s. The 78 other scenarios with `speed 10`
+  keep it (their goldens are being recorded with it); SV1i looks at which of them wait on sound or
+  timers.

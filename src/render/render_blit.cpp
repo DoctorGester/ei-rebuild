@@ -188,6 +188,12 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height) {
     sg_draw(0, 6, 1);
 }
 
+void BlitParts(sg_shader* shader, sg_pipeline* pipeline, sg_sampler* sampler) {
+    *shader = g_blitShader;
+    *pipeline = g_blit;
+    *sampler = g_nearest;
+}
+
 void DestroyBlits() {
     if (g_blit.id) sg_destroy_pipeline(g_blit);
     if (g_clear.id) sg_destroy_pipeline(g_clear);
@@ -417,24 +423,10 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     // file, the mask (the holder's width, in its pixel size) from the game's memory.
     int maskWidth = holder->width;
     int maskBytes = holder->bitsPerPixel / 8;
+    // The whole picture is kept with its mask for the cursor thread (render_cursor.cpp).
     if (const Picture* picture = PictureOf(imageHolder);
-        picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) && from.left >= 0 && from.top >= 0 &&
-        from.right <= picture->width && from.bottom <= picture->height) {
-        for (int y = 0; y < h; ++y) {
-            const auto* mrow = static_cast<const std::uint8_t*>(mask) +
-                               (static_cast<std::size_t>(from.top + y) * maskWidth + from.left) * maskBytes;
-            for (int x = 0; x < w; ++x) {
-                std::uint32_t m = 0;
-                std::memcpy(&m, mrow + static_cast<std::size_t>(x) * maskBytes, static_cast<std::size_t>(maskBytes));
-                const std::uint8_t* p =
-                    &picture->rgba[(static_cast<std::size_t>(from.top + y) * picture->width + from.left + x) * 4];
-                std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * w + x) * 4];
-                o[0] = p[0];
-                o[1] = p[1];
-                o[2] = p[2];
-                o[3] = m == 0 ? 255 : 0;   // the mask is all ones where the image is black
-            }
-        }
+        picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) &&
+        CursorPicturePart(imageHolder, mask, maskBytes, *picture, from, &rgba)) {
         CursorBlit(rgba, w, h, to, ImageUse::Cursor);
         return;
     }
@@ -544,6 +536,12 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
         g_frameViews.push_back(view);
     }
     Frame& f = CurrentFrame();
+    if (use == ImageUse::Cursor && PresentsItself()) {
+        // Drawn by EndFrame after the frame without it is kept for the cursor thread.
+        f.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
+        f.haveCursor = true;
+        return;
+    }
     f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
