@@ -882,10 +882,11 @@ note = "The coverage list's largest uncovered area is network play: net_messages
 id = "SV3e"
 title = "Script: RunCommands keeps the instance as a stored run's kill flag"
 group = "verification"
-status = "queued"
+status = "running"
 size = 0.25
 files = ["src/game/script_exec_run.cpp"]
 note = "From SV3d (digest 2's script group): a run that CScript::RunCommands (004BC420) stores after Execute returns unfinished has killFlag = the instance in ours (script run#.instance -2 or an instance index in the digest), null in the original (-1): 004BC420 clears its local run's kill flag (local_b0 = 0) before copying it into runs_. So a stored run's KillScript would write through a stale pointer in ours instead of FatalError. Clear run->killFlag before RunAssign in script_exec_run.cpp, check that the verify wrapper sees it. Blocks the goldens of frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_hud (both installs), world_client, zone_base_bz1g, ui_mp_host."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV3f"
