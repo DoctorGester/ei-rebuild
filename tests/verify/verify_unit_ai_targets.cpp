@@ -3,6 +3,8 @@
 // in combat (PlayerMode's combat step 005D4170: combat.txt, combat_more.txt).
 #include "verify.h"
 
+#include "combat_verify_util.h"
+
 #include "../../src/game/unit_ai.h"
 
 #include <cstring>
@@ -72,7 +74,10 @@ EI_VERIFY(0x005CF9A0, ScoreVerify, 6, s_score);
 // 005D0030 Choose: MOV EAX,FS:[0] (6 bytes). Differential: the original first; the only state it
 // leaves behind is reports it added (a reference each) or raised, which are put back before ours
 // runs. The chosen pair and the report array afterwards are compared. Both run the reach test
-// (a path search, no lasting state).
+// (a path search, no lasting state) and its order check, which plans the attack and draws from the
+// ISAAC generator (BuildAttackSteps' blow height): the generators are put back before ours runs and
+// compared afterwards, so the game draws once, as without the wrapper (SV1g: unit_ai_fear's foe drew
+// three blow heights where the plain build drew one, and every later draw moved).
 static void(__fastcall* s_choose)(AIAttention*, void*, AIBrain*, int*, AIObjectList*, const Vector3*, bool, int);
 static void __fastcall ChooseVerify(AIAttention* self, void*, AIBrain* brain, int* partAndObject, AIObjectList* candidates,
                                     const Vector3* from, bool alliesOnly, int reachArg) {
@@ -80,7 +85,11 @@ static void __fastcall ChooseVerify(AIAttention* self, void*, AIBrain* brain, in
     int size = reports.size;
     std::vector<AIReport> before(reports.data, reports.data + size);
     int theirs[2] = {partAndObject[0], partAndObject[1]};
+    combatverify::RandomState randomBefore, randomTheirs, randomOurs;
+    randomBefore.Save();
     s_choose(self, nullptr, brain, theirs, candidates, from, alliesOnly, reachArg);
+    randomTheirs.Save();
+    randomBefore.Restore();
     std::vector<AIReport> afterTheirs(reports.data, reports.data + reports.size);
     for (int i = size; i < reports.size; ++i) {
         --reports.data[i].object->refCount_;
@@ -89,6 +98,8 @@ static void __fastcall ChooseVerify(AIAttention* self, void*, AIBrain* brain, in
     reports.size = size;
     for (int i = 0; i < size; ++i) reports.data[i].what = before[i].what;
     self->Choose(brain, partAndObject, candidates, from, alliesOnly, reachArg);
+    randomOurs.Save();
+    ei::verify::Check("AIAttention::Choose random", true, randomTheirs.SameAs(randomOurs), "brain %p", brain);
     bool same = theirs[0] == partAndObject[0] && theirs[1] == partAndObject[1] && static_cast<int>(afterTheirs.size()) == reports.size &&
                 (reports.size == 0 || std::memcmp(afterTheirs.data(), reports.data, sizeof(AIReport) * reports.size) == 0);
     ei::verify::Check("AIAttention::Choose", true, same, "brain %p: {%d, %08X} vs {%d, %08X}, reports %d vs %d", brain, theirs[0],
@@ -98,12 +109,19 @@ EI_VERIFY(0x005D0030, ChooseVerify, 6, s_choose);
 
 // 005CF3C0 CanReach: PUSH -1; PUSH 0x728068 (7 bytes). Differential: the original, then ours; AL
 // compared. Both run the path search and lift the target off the sector map and back (no lasting
-// state but the target's place in its sector list). Reached through Choose (above) for the target
-// it picks: unit_ai (aggression), combat.
+// state but the target's place in its sector list); the order check draws (see Choose), so the
+// generators are put back before ours and compared after. Reached through Choose (above) for the
+// target it picks: unit_ai (aggression), combat.
 static bool(__fastcall* s_canReach)(AIAttention*, void*, AIBrain*, const int*, int);
 static bool __fastcall CanReachVerify(AIAttention* self, void*, AIBrain* brain, const int* partAndObject, int fromHere) {
+    combatverify::RandomState randomBefore, randomTheirs, randomOurs;
+    randomBefore.Save();
     bool expected = s_canReach(self, nullptr, brain, partAndObject, fromHere);
+    randomTheirs.Save();
+    randomBefore.Restore();
     bool actual = self->CanReach(brain, partAndObject, fromHere);
+    randomOurs.Save();
+    ei::verify::Check("AIAttention::CanReach random", true, randomTheirs.SameAs(randomOurs), "brain %p", brain);
     ei::verify::Check("AIAttention::CanReach", expected, actual, "brain %p part %d object %08X here %d", brain, partAndObject[0],
                       partAndObject[1], fromHere & 0xFF);
     return expected;
