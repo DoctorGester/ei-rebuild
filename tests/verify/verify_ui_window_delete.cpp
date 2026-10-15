@@ -9,6 +9,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_briefing.h"
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/ui_create_screen.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/game/ui_screens.h"
 
@@ -165,13 +166,13 @@ EI_DELETE_VERIFY(CItemScreen, CampScreenDelete)
 EI_DELETE_VERIFY(CItemScreen, Screen9Delete)
 EI_DELETE_VERIFY(CGlobalMap, GlobalMapDelete)
 EI_DELETE_VERIFY(CBriefingScreen, BriefingDelete)
-EI_DELETE_VERIFY_FREE(void, Screen8Delete)
+EI_DELETE_VERIFY(CTitlesScreen, TitlesDelete)
 EI_DELETE_VERIFY(CHelpWindow, HelpWindowDelete)
 EI_DELETE_VERIFY(CObjectivesWindow, ObjectivesDelete)
 EI_DELETE_VERIFY(CSaveLoadWindow, SaveLoadDelete)
 EI_DELETE_VERIFY(CChatWindow, ChatWindowDelete)
 EI_DELETE_VERIFY(CUiItemStrip, ForwardingStripDelete)
-EI_DELETE_VERIFY_FREE(CUiWindow, TradePanelDelete)
+EI_DELETE_VERIFY(CUiWindow, TradePanelDelete)
 EI_DELETE_VERIFY(CHeroStatsPanel, StatsPanelDelete)
 EI_DELETE_VERIFY(CSpellMakerPage, SpellMakerDelete)
 EI_DELETE_VERIFY(CMpConnectScreen, ConnectScreenDelete)
@@ -221,7 +222,7 @@ EI_VERIFY(0x005F6600, CampScreenDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6FF0, Screen9DeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6900, GlobalMapDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6B80, BriefingDeleteVerify, 0, s_unused);
-EI_VERIFY(0x005F6E20, Screen8DeleteVerify, 0, s_unused);
+EI_VERIFY(0x005F6E20, TitlesDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F8950, HelpWindowDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00603B70, ObjectivesDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006070A0, SaveLoadDeleteVerify, 0, s_unused);
@@ -246,38 +247,45 @@ EI_VERIFY(0x0063FF50, HudPortraitsDeleteVerify, 0, s_unused);
 
 // --- Input sides: the result is the window ----------------------------------------------------------
 
-#define EI_INPUT_DELETE_VERIFY(Fn)                                                       \
-    void* __fastcall Fn(void* input, void*, unsigned flags);                             \
-    static void* __fastcall Fn##Verify(void* input, void*, unsigned flags) {             \
-        void* result = Fn(input, nullptr, flags);                                        \
-        CheckDeleted(#Fn, static_cast<char*>(input) - 0x94, result, flags);              \
+#define EI_INPUT_DELETE_VERIFY(Fn, Cls, Delete)                                          \
+    static void* __fastcall Fn##Verify(UiInput* input, void*, unsigned flags) {          \
+        void* result = input->DeleteWindow<&Cls::Delete>(flags);                         \
+        CheckDeleted(#Fn, WindowFromInput<char>(input), result, flags);                  \
         return result;                                                                   \
     }
 
-EI_INPUT_DELETE_VERIFY(ChatOverlayInputDelete)
-EI_INPUT_DELETE_VERIFY(UiWindowInputDelete)
-EI_INPUT_DELETE_VERIFY(UiContainerInputDelete)
-EI_INPUT_DELETE_VERIFY(ItemInfoPanelInputDelete)
-EI_INPUT_DELETE_VERIFY(BattleScreenSetupInputDelete)
-EI_INPUT_DELETE_VERIFY(ItemScreenInputDelete)
-EI_INPUT_DELETE_VERIFY(CampScreenInputDelete)
-EI_INPUT_DELETE_VERIFY(Screen9InputDelete)
-EI_INPUT_DELETE_VERIFY(GlobalMapInputDelete)
-EI_INPUT_DELETE_VERIFY(BriefingInputDelete)
-EI_INPUT_DELETE_VERIFY(Screen8InputDelete)
-EI_INPUT_DELETE_VERIFY(HelpWindowInputDelete)
-EI_INPUT_DELETE_VERIFY(ObjectivesInputDelete)
-EI_INPUT_DELETE_VERIFY(SaveLoadInputDelete)
-EI_INPUT_DELETE_VERIFY(ChatWindowInputDelete)
-EI_INPUT_DELETE_VERIFY(ForwardingStripInputDelete)
-EI_INPUT_DELETE_VERIFY(TradePanelInputDelete)
-EI_INPUT_DELETE_VERIFY(StatsPanelInputDelete)
-EI_INPUT_DELETE_VERIFY(SpellMakerInputDelete)
-EI_INPUT_DELETE_VERIFY(ConnectScreenInputDelete)
-EI_INPUT_DELETE_VERIFY(MasterRequestBoxInputDelete)
-EI_INPUT_DELETE_VERIFY(OptionsWindowInputDelete)
-EI_INPUT_DELETE_VERIFY(HeroScreenInputDelete)
-EI_INPUT_DELETE_VERIFY(MessageBoxInputDelete)
+EI_INPUT_DELETE_VERIFY(ChatOverlayInputDelete, CChatOverlay, ChatOverlayDelete)
+EI_INPUT_DELETE_VERIFY(UiWindowInputDelete, CUiWindow, UiWindowDelete)
+EI_INPUT_DELETE_VERIFY(StatsPanelInputDelete, CHeroStatsPanel, StatsPanelDelete)
+EI_INPUT_DELETE_VERIFY(UiContainerInputDelete, CUiContainer, UiContainerDelete)
+EI_INPUT_DELETE_VERIFY(ItemInfoPanelInputDelete, CItemInfoPanel, ItemInfoPanelDelete)
+EI_INPUT_DELETE_VERIFY(BattleScreenSetupInputDelete, CBattleScreenSetup, BattleScreenSetupDelete)
+EI_INPUT_DELETE_VERIFY(ItemScreenInputDelete, CItemScreen, ItemScreenDelete)
+EI_INPUT_DELETE_VERIFY(CampScreenInputDelete, CItemScreen, CampScreenDelete)
+EI_INPUT_DELETE_VERIFY(Screen9InputDelete, CItemScreen, Screen9Delete)
+EI_INPUT_DELETE_VERIFY(GlobalMapInputDelete, CGlobalMap, GlobalMapDelete)
+EI_INPUT_DELETE_VERIFY(BriefingInputDelete, CBriefingScreen, BriefingDelete)
+EI_INPUT_DELETE_VERIFY(Screen8InputDelete, CTitlesScreen, TitlesDelete)
+EI_INPUT_DELETE_VERIFY(HelpWindowInputDelete, CHelpWindow, HelpWindowDelete)
+EI_INPUT_DELETE_VERIFY(ObjectivesInputDelete, CObjectivesWindow, ObjectivesDelete)
+EI_INPUT_DELETE_VERIFY(SaveLoadInputDelete, CSaveLoadWindow, SaveLoadDelete)
+EI_INPUT_DELETE_VERIFY(ChatWindowInputDelete, CChatWindow, ChatWindowDelete)
+EI_INPUT_DELETE_VERIFY(ForwardingStripInputDelete, CUiItemStrip, ForwardingStripDelete)
+EI_INPUT_DELETE_VERIFY(TradePanelInputDelete, CUiWindow, TradePanelDelete)
+EI_INPUT_DELETE_VERIFY(SpellMakerInputDelete, CSpellMakerPage, SpellMakerDelete)
+EI_INPUT_DELETE_VERIFY(ConnectScreenInputDelete, CMpConnectScreen, ConnectScreenDelete)
+EI_INPUT_DELETE_VERIFY(MasterRequestBoxInputDelete, CMasterRequestBox, MasterRequestBoxDelete)
+EI_INPUT_DELETE_VERIFY(OptionsWindowInputDelete, COptionsWindow, OptionsWindowDelete)
+EI_INPUT_DELETE_VERIFY(HeroScreenInputDelete, CMpHeroScreen, HeroScreenDelete)
+EI_INPUT_DELETE_VERIFY(MessageBoxInputDelete, CMessageBox, MessageBoxDelete)
+EI_INPUT_DELETE_VERIFY(HudWeaponBarInputDelete, CHudWeaponBar, HudWeaponBarDelete)
+EI_INPUT_DELETE_VERIFY(HudQuickItemsInputDelete, CHudQuickItems, HudQuickItemsDelete)
+EI_INPUT_DELETE_VERIFY(HudSpellColumnInputDelete, CHudSpellColumn, HudSpellColumnDelete)
+EI_INPUT_DELETE_VERIFY(HudActionColumnInputDelete, CHudActionColumn, HudActionColumnDelete)
+EI_INPUT_DELETE_VERIFY(HudPortraitsInputDelete, CHudPortraits, HudPortraitsDelete)
+EI_INPUT_DELETE_VERIFY(HudUnitPanelInputDelete, CHudUnitPanel, HudUnitPanelDelete)
+EI_INPUT_DELETE_VERIFY(HudMapInputDelete, CHudMap, HudMapDelete)
+EI_INPUT_DELETE_VERIFY(HudTopPanelInputDelete, CHudTopPanel, HudTopPanelDelete)
 
 EI_VERIFY(0x005E3C80, ChatOverlayInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00600AC0, UiWindowInputDeleteVerify, 0, s_unused);
@@ -318,14 +326,6 @@ EI_VERIFY(0x006345E0, MessageBoxInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00634FD0, MessageBoxInputDeleteVerify, 0, s_unused);
 
 // The battle HUD panels' input sides (every game scenario at exit).
-EI_INPUT_DELETE_VERIFY(HudWeaponBarInputDelete)
-EI_INPUT_DELETE_VERIFY(HudQuickItemsInputDelete)
-EI_INPUT_DELETE_VERIFY(HudSpellColumnInputDelete)
-EI_INPUT_DELETE_VERIFY(HudActionColumnInputDelete)
-EI_INPUT_DELETE_VERIFY(HudPortraitsInputDelete)
-EI_INPUT_DELETE_VERIFY(HudUnitPanelInputDelete)
-EI_INPUT_DELETE_VERIFY(HudMapInputDelete)
-EI_INPUT_DELETE_VERIFY(HudTopPanelInputDelete)
 EI_VERIFY(0x0064BCF0, HudWeaponBarInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0064BD00, HudQuickItemsInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0064BD10, HudSpellColumnInputDeleteVerify, 0, s_unused);

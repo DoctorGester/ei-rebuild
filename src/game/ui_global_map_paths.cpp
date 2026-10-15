@@ -196,6 +196,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
 }
 
 namespace {
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
 void __fastcall GlobalMapLeftDown(void* input, void*, int buttons, int x, int y) {
     WindowFromInput<CGlobalMap>(input)->OnLeftDown(buttons, x, y);
 }

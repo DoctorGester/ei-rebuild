@@ -19,7 +19,6 @@
 namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
-inline void __fastcall RefsCopy(void* a0, void*, const void* a2) { GroupAssignOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
 
 // Floats are copied through the FPU (FLD / FSTP): a signalling NaN becomes quiet.
@@ -53,7 +52,7 @@ void AssignVars(ScriptVars* to, const ScriptVars* from) {
     StringsCopyOriginal(&to->floatNames, nullptr, &from->floatNames);
     StringsCopyOriginal(&to->strings, nullptr, &from->strings);
     StringsCopyOriginal(&to->stringNames, nullptr, &from->stringNames);
-    RefsCopy(&to->objects, nullptr, &from->objects);
+    GroupAssignOriginal((void*)&to->objects, nullptr, &from->objects);
     StringsCopyOriginal(&to->objectNames, nullptr, &from->objectNames);
     GroupsCopy(&to->groups, nullptr, &from->groups);
     StringsCopyOriginal(&to->groupNames, nullptr, &from->groupNames);
@@ -303,7 +302,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->groups, nullptr, &copy, i);
-        RefsCopy(&groups.data[i], nullptr, &copy);
+        GroupAssignOriginal((void*)&groups.data[i], nullptr, &copy);
         GroupDestruct(&copy);
     }
     NamesCopyConstructAt(&groupNames, nullptr, &other->groupNames);

@@ -1363,7 +1363,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 13 merged: shims 908 -> 792 (file-local wrappers over originals_library.h forwarders inlined, 130 in 82 files). Next: ui_window_delete.cpp InputDelete shims (27), other void* selfs, the 664 raw addresses."
+note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Left: wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies, 664 raw addresses."
 
 [[ticket]]
 id = "C12"
@@ -2033,7 +2033,7 @@ group = "standalone"
 size = 1.5
 model = "sonnet"
 files = ["tests/golden", "tools/golden.py", "tests/scenarios"]
-note = "72 of the 128 runs have no golden (S17: 54 scenarios pass under --standalone but are checked against nothing). Goldens can only be recorded from the original (--no-hooks), so record one for every scenario that can have one (golden.py record --runs, two fresh plain runs agreeing; under jitter too once SV7c lands); for each that cannot, say why in the scenario (renderer-only, timing-only, multiplayer). After the SV7 tail. Blocks hook retirement (S21)."
+note = "From SV7b8a: ui_widescreen and ui_widescreen_screens can only have Rebirth goldens (rebirthflags WideScreen; golden.py refuses vanilla); record their Rebirth goldens here."
 
 [[ticket]]
 id = "S21"

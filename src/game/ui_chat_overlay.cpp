@@ -337,15 +337,9 @@ void CChatOverlay::OnChar(int key, int, int) {
     ChatOverlayDrawTypedOriginal(this);
 }
 namespace {
-void __fastcall ChatKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CChatOverlay>(input)->OnKeyDown(key, repeat, flags);
-}
-void __fastcall ChatChar(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CChatOverlay>(input)->OnChar(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x005E3230, ChatKeyDown);
-EI_REPLACE(0x005E3550, ChatChar);
+EI_REPLACE_METHOD(0x005E3230, InputForward<&CChatOverlay::OnKeyDown>::Call);
+EI_REPLACE_METHOD(0x005E3550, InputForward<&CChatOverlay::OnChar>::Call);
 
 // --- 005E26F0: the constructor ---------------------------------------------------------------------
 

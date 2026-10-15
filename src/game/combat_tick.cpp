@@ -127,7 +127,6 @@ bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { r
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
-bool __fastcall QueueHolds(void* a0, void*, AnimationSteps* a2) { return StepsQueueHoldsOriginal(a0, nullptr, (const void*)a2); }
 void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { StepsEmoteOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall PlanTake(OrderPlan*, void*, AnimationSteps, int, int) EI_ORIGINAL(0x00545110)
 __declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
@@ -143,7 +142,6 @@ __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORI
 // Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
-int __fastcall MemoryIsEnemy(void* a0, void*, CUnit* a2, CEngineObject* a3) { return AiMemoryIsEnemyOriginal(a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
 // Rewritten elsewhere (combat*.cpp), through their game addresses: ActionDistance, CanReachTarget,
 // CanCast, BuildAttackHit, ResolveHit, AnimationDuration, BuildOrderSteps.
@@ -305,7 +303,7 @@ void LeaveMoveMode(CUnitServer* self) {
 // updates. Not while turning (state 2).
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = CtlIdleAnimation(self);
-    if (!QueueHolds(&self->queue, nullptr, idle)) {
+    if (!StepsQueueHoldsOriginal(&self->queue, nullptr, (const void*)idle)) {
         if (self->queue.count == 0 && self->queue.extra == -1) {
             int now = WorldTick(self);
             idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
@@ -544,7 +542,7 @@ void CUnitServer::ContinueAction() {
     CEngineObject* target = action.target;
     bool seen = true;
     char* player = unit->player;
-    if (player && IsUnit(target) && !MemoryIsEnemy(Brain()->memory, nullptr, unit, target))
+    if (player && IsUnit(target) && !AiMemoryIsEnemyOriginal(Brain()->memory, nullptr, (void*)unit, (void*)target))
         seen = PartySees(PlayerMessages(player), nullptr, target);
 
     bool cast = IsCastKind(action.kind);

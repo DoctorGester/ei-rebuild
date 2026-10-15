@@ -43,6 +43,19 @@ struct UiInput {
     void BaseKeyUp(int key, int repeat, int flags);     // 006019A0
     void BaseChar(int key, int repeat, int flags);      // 006018E0
     int BaseWheel(int flags, int delta, int x, int y);  // 00601730 (RET 0x10; returns 1)
+
+    // The input side's slot 0 of a window (SUB ECX,0x94; JMP to the window's deleting destructor,
+    // ui_window_delete.cpp): `Delete` is that window class's own method; returns the window.
+    template <auto Delete>
+    auto DeleteWindow(unsigned flags);
+};
+
+// The class a member function pointer belongs to.
+template <typename F>
+struct MemberClass;
+template <typename R, typename C, typename... A>
+struct MemberClass<R (C::*)(A...)> {
+    using type = C;
 };
 
 // The window an input sub-object belongs to, and back.
@@ -53,6 +66,22 @@ T* WindowFromInput(void* input) {
 inline UiInput* InputOf(void* window) {
     return reinterpret_cast<UiInput*>(static_cast<char*>(window) + kUiInputOffset);
 }
+
+template <auto Delete>
+auto UiInput::DeleteWindow(unsigned flags) {
+    using Window = typename MemberClass<decltype(Delete)>::type;
+    return (WindowFromInput<Window>(this)->*Delete)(flags);
+}
+
+// An input-side handler (slots 1-12 of a window's input vtable) that is the window class's own method:
+// `Call` runs with `this` the input sub-object (at window+0x94) and forwards the same arguments to
+// `Method` on the window. Registered as EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call).
+template <auto Method, typename Signature = decltype(Method)>
+struct InputForward;
+template <auto Method, typename R, typename C, typename... A>
+struct InputForward<Method, R (C::*)(A...)> {
+    R Call(A... args) { return (WindowFromInput<C>(this)->*Method)(args...); }
+};
 
 // The window's input side's handled flag (+0x9C): set by a handler that consumed the event; the
 // interface manager then stops passing it on.

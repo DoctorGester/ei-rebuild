@@ -36,7 +36,6 @@ __declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
-inline void** __fastcall MapRegistryFind(void* a0, void*, const StringRep* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, (const void*)a2); }
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): unloading the quest texts,
 // picking the zones that follow, loading a zone's quests.
 __declspec(naked) void __fastcall FlowUnloadQuestTexts(void* /*flow*/) EI_ORIGINAL(0x00580F10)
@@ -115,7 +114,7 @@ void ServerSession::SetMap(const StringRep* name) {
 
     StringRep registryName;
     StringPlusText(&registryName, name, game::ZoneSuffix1Text());
-    auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &registryName));
+    auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&registryName));
     StringRepDestroy(&registryName);
     if (!entry) return;
 

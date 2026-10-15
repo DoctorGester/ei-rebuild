@@ -24,8 +24,6 @@ namespace {
 // CList::RemoveHead / RemoveTail instantiations (__thiscall, the element returned through a
 // hidden pointer: copy-constructed into `out`, the node freed).
 __declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C69B0)
-void* __fastcall TempGroupsRemoveTail(void* a0, void*, void* a2) { return TempGroupsRemoveTailOriginal(a0, nullptr, a2); }
-void* __fastcall TempObjectsRemoveTail(void* a0, void*, void* a2) { return TempObjectsRemoveTailOriginal(a0, nullptr, a2); }
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
 __declspec(naked) void __fastcall DeclDestruct(void*) EI_ORIGINAL(0x004C54A0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
@@ -93,13 +91,13 @@ void __fastcall ScriptReset(CScript* script) {
     // Temporaries: every entry but one dropped, the last one emptied.
     auto& groups = script->tempGroups_;
     while (groups.count > 1) {
-        TempGroupsRemoveTail(&groups, nullptr, element);
+        TempGroupsRemoveTailOriginal(&groups, nullptr, element);
         GroupDestruct(element);
     }
     PtrArraySetSize(&groups.tail->data, nullptr, 0, -1);
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
-        TempObjectsRemoveTail(&objects, nullptr, element);
+        TempObjectsRemoveTailOriginal(&objects, nullptr, element);
         RefReset(reinterpret_cast<ScriptObjectRef*>(element));
     }
     RefAssign(&objects.tail->data, nullptr, nullptr);

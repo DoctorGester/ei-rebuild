@@ -95,27 +95,12 @@ EI_REPLACE_METHOD(0x0065E4D0, CUiTooltip::TooltipDelete);
 // The input sides' slot 0 (SUB ECX,0x94; JMP to the window's): 0065CB70 the scroll bar's, 0065CB80
 // the slider's, 0065CB90 the spin's, 0065CBA0 the edit field's, 0065E2B0 the scrolling text's,
 // 0065EAC0 the tooltip's.
-void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiScrollbar>(input)->ScrollbarDelete(flags);
-}
-EI_REPLACE(0x0065CB70, ScrollbarInputDelete);
-EI_REPLACE(0x0065CB80, ScrollbarInputDelete);
-void* __fastcall SpinInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiSpin>(input)->SpinDelete(flags);
-}
-EI_REPLACE(0x0065CB90, SpinInputDelete);
-void* __fastcall EditFieldInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiEditField>(input)->EditFieldDelete(flags);
-}
-EI_REPLACE(0x0065CBA0, EditFieldInputDelete);
-void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiScrollText>(input)->ScrollTextDelete(flags);
-}
-EI_REPLACE(0x0065E2B0, ScrollTextInputDelete);
-void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiTooltip>(input)->TooltipDelete(flags);
-}
-EI_REPLACE(0x0065EAC0, TooltipInputDelete);
+EI_REPLACE_METHOD(0x0065CB70, UiInput::DeleteWindow<&CUiScrollbar::ScrollbarDelete>);
+EI_REPLACE_METHOD(0x0065CB80, UiInput::DeleteWindow<&CUiScrollbar::ScrollbarDelete>);
+EI_REPLACE_METHOD(0x0065CB90, UiInput::DeleteWindow<&CUiSpin::SpinDelete>);
+EI_REPLACE_METHOD(0x0065CBA0, UiInput::DeleteWindow<&CUiEditField::EditFieldDelete>);
+EI_REPLACE_METHOD(0x0065E2B0, UiInput::DeleteWindow<&CUiScrollText::ScrollTextDelete>);
+EI_REPLACE_METHOD(0x0065EAC0, UiInput::DeleteWindow<&CUiTooltip::TooltipDelete>);
 
 // --- The scrolling text's tokens ------------------------------------------------------------------
 

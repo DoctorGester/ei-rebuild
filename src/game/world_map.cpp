@@ -34,7 +34,6 @@ __declspec(naked) void __fastcall DiplomacyReset(void*, void*) EI_ORIGINAL(0x004
 // 0059D7A0. The timed-object map's clear (nodes freed, buckets kept).
 __declspec(naked) void __fastcall TimedMapClear(void*, void*) EI_ORIGINAL(0x0059D7A0)
 // 0040A3A0. CRefObject::Release (the missiles).
-void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // Rewritten elsewhere, through their addresses: ClearMapObjects / LoadMapObjects (world_zone).
 __declspec(naked) void __fastcall ClearMapObjectsAt(CWorldServer*, void*) EI_ORIGINAL(0x00596C60)
 // 0058B250. ResetZone (rewritten below), through its address.
@@ -58,7 +57,7 @@ void EndTimedObjects(CWorldServer* world) {
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next)
-        if (node->data) RefRelease(node->data, nullptr);
+        if (node->data) RefObjectRelease(node->data);
     list.RemoveAll();
 }
 
@@ -267,7 +266,6 @@ __declspec(naked) void __fastcall AlignedArraySetAtGrow(lib::AlignedArray<CEngin
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
-void __fastcall StateObjectsAdded(void* a0, void*, void* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateSendHeader(void*, void*, void* /*stream*/) EI_ORIGINAL(0x0066D230)
 
 } // namespace
@@ -315,7 +313,7 @@ void CWorldServer::SendFreshObjects() {
         AlignedArraySetAtGrow(&objects, nullptr, objects.size, object);
         node = next;
     }
-    StateObjectsAdded(state, nullptr, &objects);
+    StateObjectsAddedOriginal(state, nullptr, &objects);
     StateSendHeader(state, nullptr, header);
     PlayerListRelease(PlayerList(), nullptr, temporary);
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);

@@ -73,7 +73,6 @@ __declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*
 __declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
 __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
 __declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
-inline void** __fastcall BriefingIndexAt(void* a0, void*, const void* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIGINAL(0x006B0600)
 // The briefing index's find by a record's name [006B0930, RET 8: out iterator (node, table), key].
 __declspec(naked) void __fastcall BriefingFindNode(void*, void*, void**, const void*) EI_ORIGINAL(0x006B0930)
@@ -151,7 +150,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
     BriefingPushBack(&briefings->records, nullptr, briefing);
     BriefingIndexClear(map);
     for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) {
-        *BriefingIndexAt(map, nullptr, r) = r;
+        *(void**)MapRegistryFindOriginal((void*)map, nullptr, r) = r;
     }
 }
 
@@ -282,7 +281,7 @@ bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     BriefingPushBack(&records, nullptr, record);
     BriefingIndexClear(&index);
     for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) {
-        *BriefingIndexAt(&index, nullptr, r) = r;
+        *(void**)MapRegistryFindOriginal((void*)&index, nullptr, r) = r;
     }
     return true;
 }

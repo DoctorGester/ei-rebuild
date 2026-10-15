@@ -355,6 +355,7 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
 void __fastcall BattleScreenKeyDown(void* input, void*, int key, int repeat, int flags) {
     WindowFromInput<CBattleScreenSetup>(input)->OnKeyDown(key, repeat, flags);
 }

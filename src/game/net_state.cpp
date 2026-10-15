@@ -228,8 +228,6 @@ namespace {
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
 // (005C7FC0: PathReadOriginal, originals_ai.h.)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
-void __fastcall PlayerRemoveUnit(void* a0, void*, void* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
-void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
 
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
 
@@ -370,8 +368,8 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         if (id == -1) {
             if (current) {
                 unit->player = nullptr;
-                PlayerRemoveUnit(current, nullptr, unit);
-                if (char* now = unit->player) PlayerAddUnit(now, nullptr, unit);
+                PlayerRemoveUnitOriginal(current, nullptr, unit);
+                if (char* now = unit->player) PlayerAddUnitOriginal(now, nullptr, unit);
                 UnitMarkChanged(unit, nullptr, 11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
@@ -381,8 +379,8 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
             if ((AsPlayer(local)->id_ == id || view->localSession) && unit->player != local) {
                 char* old = unit->player;
                 unit->player = local;
-                if (old) PlayerRemoveUnit(old, nullptr, unit);
-                if (char* now = unit->player) PlayerAddUnit(now, nullptr, unit);
+                if (old) PlayerRemoveUnitOriginal(old, nullptr, unit);
+                if (char* now = unit->player) PlayerAddUnitOriginal(now, nullptr, unit);
                 UnitMarkChanged(unit, nullptr, 11);
                 if (unit->controller) unit->Controller()->PlayerChanged(local);
             }

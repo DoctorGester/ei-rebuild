@@ -495,19 +495,10 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall ConnectLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMpConnectScreen>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall ConnectLButtonDouble(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMpConnectScreen>(input)->OnLButtonDouble(buttons, x, y);
-}
-void __fastcall ConnectKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CMpConnectScreen>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x0061C700, ConnectLButtonDown);
-EI_REPLACE(0x0061CA30, ConnectLButtonDouble);
-EI_REPLACE(0x0061CAD0, ConnectKeyDown);
+EI_REPLACE_METHOD(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
+EI_REPLACE_METHOD(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
 
 // --- 0061CC00: the selection kept in the list and in view -----------------------------------------
 

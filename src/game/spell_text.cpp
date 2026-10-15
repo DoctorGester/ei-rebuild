@@ -34,13 +34,11 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map.
 // 004ABD00: operator[](key) (inserts a null record for a missing name); returns the value.
-char** __fastcall SpellMapAt(void* a0, void*, const stlp::string* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, (const void*)a2); }
 // 004ACC10: find_or_insert(pair); returns the element.
 struct NameRecordPair {
     stlp::string name;
     char* record;
 };
-NameRecordPair* __fastcall ModifierMapFindOrInsert(void* a0, void*, const NameRecordPair* a2) { return (NameRecordPair*)ModifierMapFindOrInsertOriginal(a0, nullptr, (const void*)a2); }
 void* const kSpellNameMap = reinterpret_cast<void*>(0x007C851C);
 void* const kModifierNameMap = reinterpret_cast<void*>(0x007C853C);
 
@@ -80,7 +78,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
 char* FindModifier(const char* name) {
     stlp::string key(name);
     NameRecordPair entry{key, nullptr};
-    char* record = ModifierMapFindOrInsert(kModifierNameMap, nullptr, &entry)->record;
+    char* record = ((NameRecordPair*)ModifierMapFindOrInsertOriginal(kModifierNameMap, nullptr, (const void*)&entry))->record;
     return record;
 }
 
@@ -98,7 +96,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     char* prototype;
     {
         stlp::string key(static_cast<const char*>(text));
-        prototype = *SpellMapAt(kSpellNameMap, nullptr, &key);
+        prototype = *(char**)SpellMapAtOriginal(kSpellNameMap, nullptr, (const void*)&key);
     }
     if (!constructor->CallBeginConstruct(prototype))
         return reinterpret_cast<CSpell*>(game::FatalError(kCantBegin, static_cast<const char*>(text)));
