@@ -147,7 +147,8 @@ void SetCallbacks(CParticleSource* s, std::uintptr_t emit, std::uintptr_t update
     if (element) s->elementFn = reinterpret_cast<void*>(element);
 }
 
-// 00485530: an element callback that does nothing (RET 4).
+// 00485530: an element callback that does nothing (RET 4; no Ghidra function, so not in
+// short_functions.cpp: registered below, S16a).
 constexpr std::uintptr_t kNoElementTick = 0x00485530;
 
 // --- Types with their own set-up code ------------------------------------------------------------
@@ -984,3 +985,10 @@ const char* __fastcall ParticleSourceClassName(CParticleSource*) { return reinte
 int __fastcall ParticleSourceClassId(CParticleSource*) { return 12; }
 EI_REPLACE(0x004982D0, ParticleSourceClassName);
 EI_REPLACE(0x004982E0, ParticleSourceClassId);
+
+namespace ei::short_functions {
+void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
+} // namespace ei::short_functions
+using ei::short_functions::Ret4;
+// The element callback that does nothing (kNoElementTick; S16a: the standalone image has no code there).
+EI_REPLACE_SHORT(0x00485530, Ret4);

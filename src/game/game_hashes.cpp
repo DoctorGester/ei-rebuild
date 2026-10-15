@@ -27,6 +27,13 @@ RefPtr* __fastcall ShapeSlot(ShapeTable* self, void*, const ShapeCacheHandle* ha
     return result;
 }
 
+FiguredGroupsTable::Value* __fastcall ConstructGroupPair(FiguredGroupsTable::Value* self, void*, const std::uint32_t* key,
+                                                         const FiguredTable* table) {
+    self->key = *key;
+    self->mapped.CopyConstruct(*table);
+    return self;
+}
+
 ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self) {
     self->ref = nullptr;
     self->cache = nullptr;

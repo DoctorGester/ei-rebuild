@@ -139,7 +139,7 @@ __declspec(naked) BOOL __fastcall CallBuild(CItemConstructor*) EI_ORIGINAL(0x006
 
 // --- CItem ---------------------------------------------------------------------------------------
 
-void CItem::InitFromRecord(const ItemRecordHead* head) {
+void CItem::InitFromRecordImpl(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
     // quiets a signalling NaN; the other fields are copied as dwords.
     FpuCopy(&conditionMax_, &head->condition);
@@ -152,13 +152,7 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
     value3C_ = head->value3C;
     magicLevel_ = head->magicLevel;
 }
-namespace {
-// Slot 13's entry point (rule 4).
-void __fastcall ItemInitFromRecordHook(CItem* self, void*, const ItemRecordHead* record) {
-    self->CItem::InitFromRecord(record);
-}
-} // namespace
-EI_REPLACE(0x006A0490, ItemInitFromRecordHook);
+EI_REPLACE_METHOD(0x006A0490, CItem::InitFromRecordImpl);
 
 void CItem::AttachSpell(CSpell* spell) {
     CSpell* previous = spell_;

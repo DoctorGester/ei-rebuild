@@ -64,7 +64,7 @@ void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
         file.stream.Open(path, netlink::FileStream::kOpenWrite, 0);
     }
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
-    file.stream.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
+    file.stream.WriteImpl(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
     file.stream.Close();
 }
 EI_REPLACE(0x005813A0, WriteMapFile);

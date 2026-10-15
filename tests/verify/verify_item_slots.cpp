@@ -12,7 +12,7 @@ namespace {
 template <typename T>
 BOOL SameBoth(const char* name, BOOL(__fastcall* original)(T*, void*, T*), T* self, T* other) {
     BOOL expected = original(self, nullptr, other);
-    BOOL actual = self->T::IsSameAs(other);
+    BOOL actual = self->T::IsSameAsImpl(other);
     ei::verify::Check(name, expected, actual, "items %p / %p", self, other);
     return expected;
 }
@@ -22,7 +22,7 @@ void InitBoth(const char* name, void(__fastcall* original)(T*, void*, const item
     alignas(4) unsigned char scratch[sizeof(T)];
     std::memcpy(scratch, self, sizeof(T));
     original(reinterpret_cast<T*>(scratch), nullptr, record);
-    self->T::InitFromRecord(record);
+    self->T::InitFromRecordImpl(record);
     int diff = -1;
     for (std::size_t i = 0; i < sizeof(T) && diff < 0; ++i)
         if (scratch[i] != reinterpret_cast<const unsigned char*>(self)[i]) diff = static_cast<int>(i);
@@ -96,7 +96,7 @@ ItemUse*(__fastcall* s_questUse)(CItemQuest*, void*, ItemUse*);
 ItemUse* __fastcall QuestUseVerify(CItemQuest* self, void*, ItemUse* out) {
     ItemUse* expected = s_questUse(self, nullptr, out);
     ItemUse ours{~0u, ~0u, ~0u};
-    ItemUse* result = self->CItemQuest::GetUse(&ours);
+    ItemUse* result = self->CItemQuest::GetUseImpl(&ours);
     ei::verify::Check("CItemQuest::GetUse", true,
                       expected == out && result == &ours && std::memcmp(out, &ours, sizeof(ours)) == 0,
                       "%u %u %u vs %u %u %u", out->kind, out->value, out->extra, ours.kind, ours.value, ours.extra);

@@ -62,6 +62,9 @@ struct LightningSegment {
     // 00466CE0. Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.
     void Animate(float time, float amplitude);
+    // 00468900 (no Ghidra function; S16a, class_slots.cpp). The constructor (the bolt's vector
+    // constructor iterator runs it on the branches): the points empty. Returns this.
+    LightningSegment* Construct();
     // 00468920 (A-E1; class_slots.cpp). The destructor (the bolt's vector destructor iterator runs
     // it on the branches): the points' block freed.
     void Destruct();

@@ -85,6 +85,15 @@ static void __fastcall ResetSlotVerify(CUnitServer* self) {
 }
 EI_VERIFY(0x00546080, ResetSlotVerify, 0, s_unusedResetSlot);
 
+// 00546470 (S16a). Ours only, as ResetSlot (a 5-byte jump: no trampoline).
+static void* s_unusedDestroyServer;
+static void __fastcall DestroyServerVerify(CUnitServer* self) {
+    self->DestroyServer();
+    ei::verify::Check("CUnitServer::DestroyServer", true, !self->action.target && !self->action2.target, "unit %d",
+                      UnitId(self));
+}
+EI_VERIFY(0x00546470, DestroyServerVerify, 0, s_unusedDestroyServer);
+
 // 005460A0: MOV EAX,[ECX+0x908] (6 bytes).
 static int(__fastcall* s_tameStage)(CUnitServer*);
 static int __fastcall TameStageVerify(CUnitServer* self) {

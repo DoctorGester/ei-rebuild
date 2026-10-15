@@ -176,7 +176,7 @@ int __fastcall TickVerify(GroundPrint* self) {
     std::memcpy(storage, self, sizeof(GroundPrint));
     auto* copy = reinterpret_cast<GroundPrint*>(storage);
     int expected = s_tick(copy);
-    int actual = self->GroundPrint::Tick();
+    int actual = self->GroundPrint::TickImpl();
     ei::verify::Check("GroundPrint::Tick", expected, actual, "life %d", actual);
     PrintDiff d = Compare(*copy, *self);
     ei::verify::Check("GroundPrint::Tick fields", true, d.Ok(), "%s", d.text);
@@ -192,7 +192,7 @@ int __fastcall BloodTickVerify(BloodPrint* self) {
     std::memcpy(storage, self, sizeof(BloodPrint));
     auto* copy = reinterpret_cast<BloodPrint*>(storage);
     int expected = s_bloodTick(copy);
-    int actual = self->BloodPrint::Tick();
+    int actual = self->BloodPrint::TickImpl();
     ei::verify::Check("BloodPrint::Tick", expected, actual, "life %d", actual);
     PrintDiff d = Compare(*copy, *self);
     ei::verify::Check("BloodPrint::Tick fields", true, d.Ok(), "%s", d.text);
@@ -222,20 +222,20 @@ void SaveCompare(const char* name, void(__fastcall* original)(T*, void*, CStream
 // marks (and, through the originals below, footprints and blood prints).
 void(__fastcall* s_save)(GroundPrint*, void*, CStream*);
 void __fastcall SaveVerify(GroundPrint* self, void*, CStream* stream) {
-    SaveCompare("GroundPrint::Save", s_save, self, stream, [self](CStream* s) { self->GroundPrint::Save(s); });
+    SaveCompare("GroundPrint::Save", s_save, self, stream, [self](CStream* s) { self->GroundPrint::SaveImpl(s); });
 }
 EI_VERIFY(0x006CF370, SaveVerify, 6, s_save);
 
 // 006CFE10 / 006CFAC0: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
 void(__fastcall* s_footprintSave)(Footprint*, void*, CStream*);
 void __fastcall FootprintSaveVerify(Footprint* self, void*, CStream* stream) {
-    SaveCompare("Footprint::Save", s_footprintSave, self, stream, [self](CStream* s) { self->Footprint::Save(s); });
+    SaveCompare("Footprint::Save", s_footprintSave, self, stream, [self](CStream* s) { self->Footprint::SaveImpl(s); });
 }
 EI_VERIFY(0x006CFE10, FootprintSaveVerify, 5, s_footprintSave);
 
 void(__fastcall* s_bloodSave)(BloodPrint*, void*, CStream*);
 void __fastcall BloodSaveVerify(BloodPrint* self, void*, CStream* stream) {
-    SaveCompare("BloodPrint::Save", s_bloodSave, self, stream, [self](CStream* s) { self->BloodPrint::Save(s); });
+    SaveCompare("BloodPrint::Save", s_bloodSave, self, stream, [self](CStream* s) { self->BloodPrint::SaveImpl(s); });
 }
 EI_VERIFY(0x006CFAC0, BloodSaveVerify, 5, s_bloodSave);
 
@@ -259,20 +259,20 @@ void LoadCompare(const char* name, void(__fastcall* original)(T*, void*, CStream
 // of the two below, run on copies).
 void(__fastcall* s_load)(GroundPrint*, void*, CStream*);
 void __fastcall LoadVerify(GroundPrint* self, void*, CStream* stream) {
-    LoadCompare("GroundPrint::Load", s_load, self, stream, [self](CStream* s) { self->GroundPrint::Load(s); });
+    LoadCompare("GroundPrint::Load", s_load, self, stream, [self](CStream* s) { self->GroundPrint::LoadImpl(s); });
 }
 EI_VERIFY(0x006CF4F0, LoadVerify, 6, s_load);
 
 // 006CFE60 / 006CFB40: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
 void(__fastcall* s_footprintLoad)(Footprint*, void*, CStream*);
 void __fastcall FootprintLoadVerify(Footprint* self, void*, CStream* stream) {
-    LoadCompare("Footprint::Load", s_footprintLoad, self, stream, [self](CStream* s) { self->Footprint::Load(s); });
+    LoadCompare("Footprint::Load", s_footprintLoad, self, stream, [self](CStream* s) { self->Footprint::LoadImpl(s); });
 }
 EI_VERIFY(0x006CFE60, FootprintLoadVerify, 5, s_footprintLoad);
 
 void(__fastcall* s_bloodLoad)(BloodPrint*, void*, CStream*);
 void __fastcall BloodLoadVerify(BloodPrint* self, void*, CStream* stream) {
-    LoadCompare("BloodPrint::Load", s_bloodLoad, self, stream, [self](CStream* s) { self->BloodPrint::Load(s); });
+    LoadCompare("BloodPrint::Load", s_bloodLoad, self, stream, [self](CStream* s) { self->BloodPrint::LoadImpl(s); });
 }
 EI_VERIFY(0x006CFB40, BloodLoadVerify, 5, s_bloodLoad);
 

@@ -75,4 +75,12 @@ struct SameObject {
 // remove(value) (00427320; RET 4) of a CountedRef list: every element holding the same object.
 void __fastcall ListRemoveCounted(list<RefPtr>* self, void*, const RefPtr* value);
 
+// remove(value) (00570400; RET 4) of a HeldObject list (the client sector grid's cells): every
+// element that is the same object, erased through 00572270.
+void __fastcall ListRemoveHeld(list<CEngineObject*>* self, void*, CEngineObject* const* value);
+
+// for_each(first, last, f) (00571780; RET 0xC) over a HeldObject list with a functor that releases
+// each object (slot 4, when there is one); the nodes stay. Returns the functor (one byte).
+char __stdcall ListForEachRelease(list<CEngineObject*>::Node* first, list<CEngineObject*>::Node* last, char f);
+
 } // namespace stlp

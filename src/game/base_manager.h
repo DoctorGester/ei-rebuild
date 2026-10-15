@@ -37,12 +37,15 @@ public:
     void Destroy() override;
     // 9: 004046E0. Frees the spares and creates the objects listed in the stream.
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     // 10: 00404760. Writes {id, type, prototypeId_} of every registered object.
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
 
     // 13: 004031B0. Keeps the context and creates (slot 2); a failed create clears the context
     // again. Returns 1 / 0.
     virtual BOOL Init(void* context);
+    BOOL InitImpl(void* context);   // body of the slot above (registered by member pointer)
     // 14: a new object of `type` (null when the type is unknown).
     virtual CEngineObject* NewObject(int type) = 0;
     // 15: 004034E0. Destroys and releases every object, then empties the registration tables.
@@ -50,20 +53,27 @@ public:
     // 16-22: the archive interface of the managers that load from resource archives
     // (CResourceManager overrides them); here they do nothing and return 0 / null / false.
     virtual BOOL AddArchive(const char* path);                     // 16: 00402D60
+    BOOL AddArchiveImpl(const char* path);   // body of the slot above (registered by member pointer)
     virtual BOOL RemoveArchive(const char* path);                  // 17: 00402D70
+    BOOL RemoveArchiveImpl(const char* path);   // body of the slot above (registered by member pointer)
     virtual BOOL RemoveAllArchives();                              // 18: 00402D80
     virtual void* GetFile(const char* name, std::uint32_t* size);  // 19: 00402D90
+    void* GetFileImpl(const char* name, std::uint32_t* size);   // body of the slot above (registered by member pointer)
     virtual bool CloseFile(void* data);                            // 20: 00402DA0
+    bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     virtual BOOL HasFile(const char* name);                        // 21: 00402DB0
+    BOOL HasFileImpl(const char* name);   // body of the slot above (registered by member pointer)
     virtual void FreeAllFiles();                                   // 22: 00402DC0
     // 23: 00403730. A spare object of `type`, or a new one (slot 14), registered under `id` or,
     // for -1, under a free id; the manager becomes its owner and it is created (slot 2). Null
     // when slot 14 fails.
     virtual CEngineObject* CreateObject(int type, int id);
+    CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
     // 24: 00403AE0. An object without references leaves the manager: unregistered, destroyed
     // (slot 3), without owner, then kept as a spare. Returns RemoveObject's 0 (the original's EAX
     // is not meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);
+    int ReleaseObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
 
     // 00402B20. The constructor body; returns this.
     CBaseManager* ConstructBase();

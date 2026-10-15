@@ -62,7 +62,7 @@ template <typename Item>
 void CheckSave(const char* name, StreamFn<Item> original, Item* self, CStream* stream) {
     RecordStream expected(nullptr), actual(nullptr);
     original(self, nullptr, &expected);
-    self->Item::Save(&actual);
+    self->Item::SaveImpl(&actual);
     ei::verify::Check(name, true, expected.Same(actual), "item %d (kind %X): %u vs %u bytes, first difference at %d",
                       self->id_, self->type_, static_cast<unsigned>(expected.bytes.size()),
                       static_cast<unsigned>(actual.bytes.size()), expected.FirstDifference(actual));
@@ -72,9 +72,9 @@ void CheckSave(const char* name, StreamFn<Item> original, Item* self, CStream* s
 template <typename Item>
 void CheckLoad(const char* name, StreamFn<Item> originalSave, Item* self, CStream* stream) {
     RecordStream read(stream), written(nullptr);
-    self->Item::Load(&read);
+    self->Item::LoadImpl(&read);
     if (originalSave != nullptr) originalSave(self, nullptr, &written);
-    else self->Item::Save(&written);
+    else self->Item::SaveImpl(&written);
     ei::verify::Check(name, true, read.Same(written), "item %d (kind %X): %u bytes read, %u written back, first difference at %d",
                       self->id_, self->type_, static_cast<unsigned>(read.bytes.size()),
                       static_cast<unsigned>(written.bytes.size()), read.FirstDifference(written));

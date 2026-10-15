@@ -46,7 +46,7 @@ void* s_unused;
 } // namespace
 
 static void* __fastcall GetFileVerify(CMappedResource* self, void*, const char* name, std::uint32_t* size) {
-    void* data = self->CMappedResource::GetFile(name, size);
+    void* data = self->CMappedResource::GetFileImpl(name, size);
     if (data && !self->image_) {
         LoadedFile* byData = OriginalLookupByData(self, data);
         stlp::string key(name);
@@ -62,7 +62,7 @@ static bool __fastcall CloseFileVerify(CMappedResource* self, void*, void* data)
     LoadedFile* before = (data && !self->image_) ? OriginalLookupByData(self, data) : nullptr;
     int refs = before ? before->refCount : 0;
     std::string name = before ? std::string(before->name.data(), before->name.size()) : std::string();
-    bool result = self->CMappedResource::CloseFile(data);
+    bool result = self->CMappedResource::CloseFileImpl(data);
     if (before) {
         LoadedFile* byData = OriginalLookupByData(self, data);
         stlp::string key(name.data(), name.data() + name.size());
@@ -81,7 +81,7 @@ static void*(__fastcall* s_mmioGetFile)(CMMIOResource*, void*, const char*, std:
 static void* __fastcall MmioGetFileVerify(CMMIOResource* self, void*, const char* name, std::uint32_t* size) {
     std::uint32_t expectedSize = 0xDEADBEEF, actualSize = 0xDEADBEEF;
     void* expected = s_mmioGetFile(self, nullptr, name, &expectedSize);
-    void* actual = self->CMMIOResource::GetFile(name, &actualSize);
+    void* actual = self->CMMIOResource::GetFileImpl(name, &actualSize);
     bool same = expected == actual && expectedSize == actualSize;
     ei::verify::Check("CMMIOResource::GetFile", true, same, "\"%s\" %p/%u vs %p/%u", name, expected, expectedSize,
                       actual, actualSize);
@@ -93,7 +93,7 @@ EI_VERIFY(0x006725E0, MmioGetFileVerify, 6, s_mmioGetFile);
 // OpenResource opens a file and allocates, so it cannot run twice. Check the state it leaves.
 // Only installs in the vanilla launch (Rebirth patches the original).
 static BOOL __fastcall OpenResourceVerify(CMappedResource* self, void*, const char* path, BOOL writable) {
-    BOOL result = self->CMappedResource::OpenResource(path, writable);
+    BOOL result = self->CMappedResource::OpenResourceImpl(path, writable);
     bool ok = !result || (self->header_.magic == kResMagic && self->entries_ && self->names_ && self->fd_ >= 0 &&
                           self->writable_ == static_cast<std::uint32_t>(writable));
     ei::verify::Check("CMappedResource::OpenResource", true, ok, "\"%s\" result %d", path, result);

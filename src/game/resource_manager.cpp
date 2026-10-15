@@ -60,7 +60,7 @@ void CResourceManager::Destroy() {
 
 // --- Archives -----------------------------------------------------------------------------------
 
-BOOL CResourceManager::AddArchive(const char* path) {
+BOOL CResourceManager::AddArchiveImpl(const char* path) {
     return AddArchiveOf(path, sizeof(CMappedResource), MappedResourceConstructOriginal);
 }
 
@@ -85,7 +85,7 @@ BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedR
     return 1;
 }
 
-BOOL CResourceManager::RemoveArchive(const char* path) {
+BOOL CResourceManager::RemoveArchiveImpl(const char* path) {
     for (ArchiveEntry* e = archives_.begin(); e != archives_.end(); ++e) {
         if (!SameName(e->name, path)) continue;
         e->resource->CloseResource();
@@ -101,19 +101,19 @@ BOOL CResourceManager::RemoveAllArchives() {
     return 1;
 }
 
-void* CResourceManager::GetFile(const char* name, std::uint32_t* size) {
+void* CResourceManager::GetFileImpl(const char* name, std::uint32_t* size) {
     for (ArchiveEntry& e : archives_)
         if (void* data = e.resource->GetFile(name, size)) return data;
     return nullptr;
 }
 
-bool CResourceManager::CloseFile(void* data) {
+bool CResourceManager::CloseFileImpl(void* data) {
     for (ArchiveEntry& e : archives_)
         if (e.resource->CloseFile(data)) return true;
     return false;
 }
 
-BOOL CResourceManager::HasFile(const char* name) {
+BOOL CResourceManager::HasFileImpl(const char* name) {
     for (ArchiveEntry& e : archives_)
         if (e.resource->FindEntry(name) != -1) return 1;
     return 0;
@@ -126,25 +126,19 @@ void CResourceManager::FreeAllFiles() {
 namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).
 void __fastcall DestroyHook(CResourceManager* self) { self->CResourceManager::Destroy(); }
-BOOL __fastcall AddArchiveHook(CResourceManager* self, void*, const char* path) {
-    return self->CResourceManager::AddArchive(path);
-}
-BOOL __fastcall RemoveArchiveHook(CResourceManager* self, void*, const char* path) {
-    return self->CResourceManager::RemoveArchive(path);
-}
 BOOL __fastcall RemoveAllArchivesHook(CResourceManager* self) { return self->CResourceManager::RemoveAllArchives(); }
-void* __fastcall GetFileHook(CResourceManager* self, void*, const char* name, std::uint32_t* size) {
-    return self->CResourceManager::GetFile(name, size);
-}
-bool __fastcall CloseFileHook(CResourceManager* self, void*, void* data) { return self->CResourceManager::CloseFile(data); }
-BOOL __fastcall HasFileHook(CResourceManager* self, void*, const char* name) { return self->CResourceManager::HasFile(name); }
 void __fastcall FreeAllFilesHook(CResourceManager* self) { self->CResourceManager::FreeAllFiles(); }
 } // namespace
 EI_REPLACE(0x00674F40, DestroyHook);
-EI_REPLACE(0x00675050, AddArchiveHook);
-EI_REPLACE(0x00675200, RemoveArchiveHook);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE(0x00512720, DestroyHook);
+EI_REPLACE(0x0068E8F0, DestroyHook);
+EI_REPLACE(0x006AC800, DestroyHook);
+EI_REPLACE_METHOD(0x00675050, CResourceManager::AddArchiveImpl);
+EI_REPLACE_METHOD(0x00675200, CResourceManager::RemoveArchiveImpl);
 EI_REPLACE(0x00675340, RemoveAllArchivesHook);
-EI_REPLACE(0x00675440, GetFileHook);
-EI_REPLACE(0x00675490, CloseFileHook);
-EI_REPLACE(0x006754E0, HasFileHook);
+EI_REPLACE_METHOD(0x00675440, CResourceManager::GetFileImpl);
+EI_REPLACE_METHOD(0x00675490, CResourceManager::CloseFileImpl);
+EI_REPLACE_METHOD(0x006754E0, CResourceManager::HasFileImpl);
 EI_REPLACE(0x00675530, FreeAllFilesHook);

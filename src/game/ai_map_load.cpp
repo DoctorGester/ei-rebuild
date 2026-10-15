@@ -123,8 +123,8 @@ struct Archive {
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return reinterpret_cast<CMappedResource*>(storage); }
     bool Open(const char* path) { return MappedResourceOpenOriginal(Get(), nullptr, path, 0) != 0; }
-    void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFile(name, size); }
-    void Close(void* file) { Get()->CMappedResource::CloseFile(file); }
+    void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFileImpl(name, size); }
+    void Close(void* file) { Get()->CMappedResource::CloseFileImpl(file); }
 
     alignas(void*) unsigned char storage[sizeof(CMappedResource)];
 };

@@ -280,6 +280,24 @@ void DestroyStringsAndFree(CStringVector* v) {
 // member to destroy); the CRT's vector destructor iterator runs it on the record's six slots.
 void __fastcall DestroyModelSlot(UnitModelSlot* slot) { DestroyString(&slot->levelName); }
 
+void __fastcall DestroyLevelRecord(UnitLevelRecord* record) { DestroyString(&record->name); }
+
+UnitLevelRecord* __fastcall DeleteLevelRecord(UnitLevelRecord* self, void*, unsigned flags) {
+    DestroyLevelRecord(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+
+UnitPrototypeRecord* __fastcall DeletePrototypeRecord(UnitPrototypeRecord* self, void*, unsigned flags) {
+    DestroyPrototypeRecord(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+
+void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last) {
+    for (; first != last; ++first) DestroyString(first);
+}
+
 // 0053EE70. A unit model record's destructor, members in reverse order: the vector of sound
 // counts (+0x144, storage only), the sound names, the CStrings +0x124 / +0x118, the string
 // vectors +0xF8 / +0xEC, the CString +0xE8, the six slots (their level names, through the CRT's
@@ -363,3 +381,7 @@ EI_REPLACE(0x0053ED30, unitdb::DestroyNpcRecord);
 EI_REPLACE(0x00539B20, unitdb::DestroyPrototypeTable);
 EI_REPLACE(0x00539E70, unitdb::DestroyModelTable);
 EI_REPLACE(0x00539A10, unitdb::ConstructUnitDatabase);
+EI_REPLACE(0x0053EFF0, unitdb::DestroyLevelRecord);
+EI_REPLACE(0x00540840, unitdb::DeleteLevelRecord);
+EI_REPLACE(0x005407E0, unitdb::DeletePrototypeRecord);
+EI_REPLACE(0x005214B0, unitdb::DestroyStringRange);

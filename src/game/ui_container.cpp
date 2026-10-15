@@ -92,6 +92,9 @@ void CUiContainer::UpdateBase() {
     for (int i = 0; i < children_.size; ++i) children_.data[i]->VirtualUpdate();
 }
 EI_REPLACE_METHOD(0x006010E0, CUiContainer::UpdateBase);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x0062AD00, CUiContainer::UpdateBase);
 
 void CUiContainer::RedrawContainer() {
     if (!interface_->drawing_) return;

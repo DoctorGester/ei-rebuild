@@ -4,6 +4,7 @@
 #include "ui_camp.h"
 #include "game_strings.h"
 #include "party.h"
+#include "record_lifetime.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -41,9 +42,8 @@ struct TextGlue {
 void* TextGlue::Table() { return GameFlowOriginal(); }
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return TextsReadLineOriginal(a0, nullptr, a2, a3); }
 
-// vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (thiscall, RET 4), 0062A7C0
-// destroys one (and frees it with flag 1; RET 4), 00629E60 the insert that reallocates (RET 0xC).
-__declspec(naked) void __fastcall RowCopy(TradeRow*, void*, const TradeRow*) EI_ORIGINAL(0x0062A310)
+// vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (TradeRow::CopyConstruct below),
+// 0062A7C0 destroys one (and frees it with flag 1; RET 4), 00629E60 the insert that reallocates (RET 0xC).
 __declspec(naked) void __fastcall RowDestroy(TradeRow*, void*, int) EI_ORIGINAL(0x0062A7C0)
 __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow* /*pos*/, const TradeRow*, int /*n*/)
     EI_ORIGINAL(0x00629E60)
@@ -83,7 +83,7 @@ TradeRow BlankRow() {
 
 TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
     if (rows->end != rows->capacity) {
-        if (rows->end) RowCopy(rows->end, nullptr, &value);
+        if (rows->end) rows->end->CopyConstruct(&value);
         ++rows->end;
     } else {
         RowsInsertOverflow(rows, nullptr, rows->end, &value, 1);
@@ -139,6 +139,17 @@ TradeRow* TradeRow::DeleteThis(int flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x0062A7C0, TradeRow::DeleteThis);
+
+TradeRow* TradeRow::CopyConstruct(const TradeRow* from) {
+    new (&records::AsCString(name)) mfc::CString(records::AsCString(from->name));
+    new (&records::AsCString(key)) mfc::CString(records::AsCString(from->key));
+    new (&records::AsCString(nextKey)) mfc::CString(records::AsCString(from->nextKey));
+    price = from->price;
+    level = from->level;
+    learnable = from->learnable;
+    return this;
+}
+EI_REPLACE_METHOD(0x0062A310, TradeRow::CopyConstruct);
 
 // --- 00625880 -----------------------------------------------------------------------------------
 

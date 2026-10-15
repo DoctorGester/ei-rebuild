@@ -254,11 +254,11 @@ int __fastcall FramedMessageCountVerify(FramedLink* self) {
 // target; the result and both streams compared.
 bool(__fastcall* s_receive)(FramedLink*, void*, CMemoryStream*);
 bool __fastcall FramedReceiveVerify(FramedLink* self, void*, CMemoryStream* stream) {
-    if (!IsMemoryStream(&self->inbox_) || !IsMemoryStream(stream)) return self->FramedLink::Receive(stream);
+    if (!IsMemoryStream(&self->inbox_) || !IsMemoryStream(stream)) return self->FramedLink::ReceiveImpl(stream);
     LinkCopy copy(self);
     KeptStream keptTarget(stream);
     unsigned before = self->inbox_.size_;
-    bool actual = self->FramedLink::Receive(stream);
+    bool actual = self->FramedLink::ReceiveImpl(stream);
     copy.Clone();
     CMemoryStream target;
     keptTarget.CloneTo(&target);
@@ -329,7 +329,7 @@ bool g_sendBusy;
 bool(__fastcall* s_send)(FramedLink*, void*, void*);
 bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
     std::uintptr_t vt = VtableOf(self);
-    if (g_sendBusy || !IsMemoryStream(stream) || (vt != kDriverVtable && vt != 0x0073CA10)) return self->FramedLink::Send(static_cast<CStream*>(stream));
+    if (g_sendBusy || !IsMemoryStream(stream) || (vt != kDriverVtable && vt != 0x0073CA10)) return self->FramedLink::SendImpl(static_cast<CStream*>(stream));
     g_sendBusy = true;
     alignas(8) std::uint8_t copy[sizeof(DriverLink)];
     std::memcpy(copy, self, sizeof(copy));
@@ -341,7 +341,7 @@ bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
     g_send.sends = g_send.disconnects = g_send.replayedSends = g_send.replayedDisconnects = 0;
     g_send.mismatch = false;
     SetVtablePtr(self, RecorderVtable(real));
-    bool actual = self->FramedLink::Send(static_cast<CStream*>(stream));
+    bool actual = self->FramedLink::SendImpl(static_cast<CStream*>(stream));
     SetVtablePtr(self, real);
 
     g_send.recording = false;

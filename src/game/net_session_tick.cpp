@@ -55,7 +55,7 @@ EI_REPLACE_METHOD(0x00435010, NetAddress::ToString);
 // after that byte (an empty datagram is only logged). Then ticks every connection; one that timed
 // out is reported (slot 11) and removed (slot 2). Counts the call in `frame_`. The current session
 // is this one meanwhile.
-void SessionBase::Tick(double dt) {
+void SessionBase::TickImpl(double dt) {
     CurrentSession() = this;
     time_ = dt + time_;
     NetAddress from{};
@@ -110,10 +110,7 @@ void SessionBase::Tick(double dt) {
     ++frame_;
     CurrentSession() = nullptr;
 }
-namespace {
-void __fastcall TickHook(SessionBase* self, void*, double dt) { self->SessionBase::Tick(dt); }
-} // namespace
-EI_REPLACE(0x00437370, TickHook);
+EI_REPLACE_METHOD(0x00437370, SessionBase::TickImpl);
 
 } // namespace net
 
@@ -166,7 +163,7 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
 EI_REPLACE_METHOD(0x00436CC0, SessionBase::FindClient);
 
 // 00436CF0 (slot 2): logs it, closes the connection and erases the node.
-void SessionBase::RemoveClient(ClientNode* node) {
+void SessionBase::RemoveClientImpl(ClientNode* node) {
     if (node == clients_) return;
     if (NetLog()) LogConnection(kRemove, node->connection, 0);
     node->connection->Close();
@@ -176,7 +173,7 @@ void SessionBase::RemoveClient(ClientNode* node) {
 
 // 00437080 (slot 3, packet kind 0): an update from a client. Unknown senders are logged (returns
 // false); a client whose update does not read is logged, reported (slot 11) and removed (slot 2).
-bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
+bool SessionBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
     ClientNode* node = ClientAt(from);
     if (node == clients_) {
         LogText(kUnknownHost);
@@ -192,7 +189,7 @@ bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 
 // 00437240 (slot 6, packet kind 1): a client leaves: its connection id follows; when it matches,
 // the client is reported (slot 12) and removed (slot 2).
-void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
+void SessionBase::OnLeaveImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
     cursor->p += 4;
@@ -204,49 +201,22 @@ void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // The base session's handlers of the kinds it does not serve: each logs an error.
-void SessionBase::OnGetInfo(const NetAddress*, BufferCursor*) { LogText(0x00783F4C); }    // "ERROR: Can't handle get info"
-void SessionBase::OnLogin(const NetAddress*, BufferCursor*) { LogText(0x00783F6C); }      // "ERROR: Can't handle login"
-void SessionBase::OnInfo(const NetAddress*, BufferCursor*) { LogText(0x00783F88); }       // "ERROR: Can't handle info"
-void SessionBase::OnAccepted(const NetAddress*, BufferCursor*) { LogText(0x00783FA4); }   // "ERROR: Can't handle accepted"
-void SessionBase::OnRejected(const NetAddress*, BufferCursor*) { LogText(0x00783FC4); }   // "ERROR: Can't handle rejected"
-void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(0x00783FE4); }     // "ERROR: Can't handle master packet"
+void SessionBase::OnGetInfoImpl(const NetAddress*, BufferCursor*) { LogText(0x00783F4C); }    // "ERROR: Can't handle get info"
+void SessionBase::OnLoginImpl(const NetAddress*, BufferCursor*) { LogText(0x00783F6C); }      // "ERROR: Can't handle login"
+void SessionBase::OnInfoImpl(const NetAddress*, BufferCursor*) { LogText(0x00783F88); }       // "ERROR: Can't handle info"
+void SessionBase::OnAcceptedImpl(const NetAddress*, BufferCursor*) { LogText(0x00783FA4); }   // "ERROR: Can't handle accepted"
+void SessionBase::OnRejectedImpl(const NetAddress*, BufferCursor*) { LogText(0x00783FC4); }   // "ERROR: Can't handle rejected"
+void SessionBase::OnMasterImpl(const NetAddress*, BufferCursor*) { LogText(0x00783FE4); }     // "ERROR: Can't handle master packet"
 
-namespace {
-void __fastcall RemoveClientHook(SessionBase* self, void*, ClientNode* node) { self->SessionBase::RemoveClient(node); }
-bool __fastcall OnUpdateHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    return self->SessionBase::OnUpdate(from, cursor);
-}
-void __fastcall OnLeaveHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnLeave(from, cursor);
-}
-void __fastcall OnGetInfoHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnGetInfo(from, cursor);
-}
-void __fastcall OnLoginHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnLogin(from, cursor);
-}
-void __fastcall OnInfoHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnInfo(from, cursor);
-}
-void __fastcall OnAcceptedHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnAccepted(from, cursor);
-}
-void __fastcall OnRejectedHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnRejected(from, cursor);
-}
-void __fastcall OnMasterHook(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->SessionBase::OnMaster(from, cursor);
-}
-} // namespace
-EI_REPLACE(0x00436CF0, RemoveClientHook);
-EI_REPLACE(0x00437080, OnUpdateHook);
-EI_REPLACE(0x00437240, OnLeaveHook);
-EI_REPLACE(0x004371E0, OnGetInfoHook);    // slot 4, kind 3
-EI_REPLACE(0x00437210, OnLoginHook);      // slot 5, kind 4
-EI_REPLACE(0x004372B0, OnInfoHook);       // slot 7, kind 5
-EI_REPLACE(0x004372E0, OnAcceptedHook);   // slot 8, kind 6
-EI_REPLACE(0x00437310, OnRejectedHook);   // slot 9, kind 7
-EI_REPLACE(0x00437340, OnMasterHook);     // slot 10, kind -1
+EI_REPLACE_METHOD(0x00436CF0, SessionBase::RemoveClientImpl);
+EI_REPLACE_METHOD(0x00437080, SessionBase::OnUpdateImpl);
+EI_REPLACE_METHOD(0x00437240, SessionBase::OnLeaveImpl);
+EI_REPLACE_METHOD(0x004371E0, SessionBase::OnGetInfoImpl);    // slot 4, kind 3
+EI_REPLACE_METHOD(0x00437210, SessionBase::OnLoginImpl);      // slot 5, kind 4
+EI_REPLACE_METHOD(0x004372B0, SessionBase::OnInfoImpl);       // slot 7, kind 5
+EI_REPLACE_METHOD(0x004372E0, SessionBase::OnAcceptedImpl);   // slot 8, kind 6
+EI_REPLACE_METHOD(0x00437310, SessionBase::OnRejectedImpl);   // slot 9, kind 7
+EI_REPLACE_METHOD(0x00437340, SessionBase::OnMasterImpl);     // slot 10, kind -1
 
 } // namespace net
 

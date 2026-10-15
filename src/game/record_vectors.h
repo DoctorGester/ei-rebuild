@@ -515,14 +515,7 @@ struct MpAddressElement {
 // The camp's trade rows (ui_trade_panel.cpp's 00629E60): the copy constructor 0062A310 (the texts,
 // then the numbers and the flag; the padding is not copied), the destructor 00613CF0.
 struct TradeRowElement {
-    static void Construct(TradeRow* to, const TradeRow& from) {
-        new (&records::AsCString(to->name)) mfc::CString(records::AsCString(from.name));
-        new (&records::AsCString(to->key)) mfc::CString(records::AsCString(from.key));
-        new (&records::AsCString(to->nextKey)) mfc::CString(records::AsCString(from.nextKey));
-        to->price = from.price;
-        to->level = from.level;
-        to->learnable = from.learnable;
-    }
+    static void Construct(TradeRow* to, const TradeRow& from) { to->CopyConstruct(&from); }
     static void Destroy(TradeRow* p) { p->Destroy(); }
 };
 

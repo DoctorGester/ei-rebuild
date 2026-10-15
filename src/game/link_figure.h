@@ -117,23 +117,30 @@ class __declspec(novtable) CLinkMesh {
 public:
     // 0: 004F2E20 (RET 4, returns this). Destruct; freed when flags bit 0 is set.
     virtual void* DeleteThis(unsigned flags);
+    void* DeleteThisImpl(unsigned flags);   // body of the slot above (registered by member pointer)
     // 1: 004F45E0. screenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
     virtual void UpdateScreenRect();
     // 2: 004F3040 (RET 4, AL). Whether `name` is a part.
     virtual bool HasPart(const stlp::string* name);
+    bool HasPartImpl(const stlp::string* name);   // body of the slot above (registered by member pointer)
     // 3: 004F2FB0 (RET 4). Appends the part names, in map order, to `out`.
     virtual void CollectPartNames(stlp::vector<stlp::string>* out);
+    void CollectPartNamesImpl(stlp::vector<stlp::string>* out);   // body of the slot above (registered by member pointer)
     // 4: 004F30D0 (RET 4, AL). The loader (004F7480) loads part `name` into this mesh.
     virtual bool LoadPart(const stlp::string* name);
+    bool LoadPartImpl(const stlp::string* name);   // body of the slot above (registered by member pointer)
     // 5: 004F3530 (RET 4, AL). Removes part `name`: false when there is none. The later elements of
     // each array move down over its elements; parts whose index range starts after the removed
     // one's get every start lowered by the removed part's starts (sic: not by its counts).
     virtual bool RemovePart(const stlp::string* name);
+    bool RemovePartImpl(const stlp::string* name);   // body of the slot above (registered by member pointer)
     // 6: 004F3780 (RET 0x18, AL). Part `name`'s first vertex packet, corner and index and its vertex
     // and index counts; false (nothing written) when there is no such part.
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount);
+    bool GetPartDataImpl(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
+                             std::uint16_t** indices, int* vertexCount, int* indexCount);   // body of the slot above (registered by member pointer)
     // 7-12 (link_mesh_draw.cpp, A-S12): a figure mesh's part `name` drawn through this figure
     // (CObject3D::figure; 005A7A70): 7 (004F3AD0) fills a flat part's colours and speculars, 8
     // (004F3870) lights it (both AL: false when there is no such part), 9-12 (004F3C60, 004F3FA0,
@@ -142,27 +149,46 @@ public:
     // +0xCC / +0xD0.
     virtual bool FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                              lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
+    bool FlatColoursImpl(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
+                             lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);   // body of the slot above (registered by member pointer)
     virtual bool LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                            lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
+    bool LightPartImpl(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
+                           lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);   // body of the slot above (registered by member pointer)
     virtual int DrawPartMoved(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
                               lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
                               std::uint32_t u, std::uint32_t v);
+    int DrawPartMovedImpl(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
+                              lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
+                              std::uint32_t u, std::uint32_t v);   // body of the slot above (registered by member pointer)
     virtual int DrawPart(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
                          lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v);
+    int DrawPartImpl(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
+                         lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v);   // body of the slot above (registered by member pointer)
     virtual int DrawPartMovedTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                       lib::AlignedArray<std::uint32_t>* colours,
                                       lib::AlignedArray<std::uint32_t>* speculars,
                                       lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v);
+    int DrawPartMovedTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+                                      lib::AlignedArray<std::uint32_t>* colours,
+                                      lib::AlignedArray<std::uint32_t>* speculars,
+                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v);   // body of the slot above (registered by member pointer)
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v);
+    int DrawPartTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+                                 lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
+                                 std::uint32_t u, std::uint32_t v);   // body of the slot above (registered by member pointer)
     // 13 / 14 (004F4680, 004F4850): the shadow of part `name` (0051CE60): its points projected with
     // `matrix` (the part's per-vertex offsets added) into `points`, growing `bounds`; then its
     // projected points `pixels` rasterised into the shadow target. Both return the point count (0
     // when there is no such part).
     virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                             float* points, float* bounds);
+    int ProjectPartImpl(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+                            float* points, float* bounds);   // body of the slot above (registered by member pointer)
     virtual int RasterisePart(const stlp::string* name, int* pixels, void* target);
+    int RasterisePartImpl(const stlp::string* name, int* pixels, void* target);   // body of the slot above (registered by member pointer)
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D790);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073D7CC);   // the part-header base

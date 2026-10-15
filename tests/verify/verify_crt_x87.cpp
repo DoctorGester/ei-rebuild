@@ -7,6 +7,8 @@
 //   mantissas and exponents): EDX:EAX bit for bit.
 // - _CIfmod: bit for bit (FPREM is exact) on random doubles and floats and every special pair.
 // - acos, asin, fmod (the stack-argument forms, S16): the same cases as their _CI forms.
+// - _hypot (S16a): bit for bit on every special pair, random doubles of every size, floats as the game
+//   passes them, the overflow and denormal edges.
 // - _CIacos, _CIasin, _CIpow: NaNs, zeros and every result under the main thread's control word (007F, the
 //   float its callers store) bit for bit; the rest within a tolerance (CompareResult).
 // Every scenario runs it (WinMain entry).
@@ -33,6 +35,8 @@ constexpr std::uintptr_t kFmod = 0x006E95AA;
 constexpr std::uintptr_t kStackAcos = 0x006E7334;
 constexpr std::uintptr_t kStackAsin = 0x006E83D4;
 constexpr std::uintptr_t kStackFmod = 0x006E95A0;
+// _hypot (cdecl; S16a).
+constexpr std::uintptr_t kHypot = 0x006FD026;
 
 struct Extended {
     unsigned char bytes[10];
@@ -445,6 +449,34 @@ void FmodBattery() {
     }
 }
 
+void HypotBattery() {
+    std::vector<double> specials = SpecialValues();
+    for (double v : {3.0, -4.0, 1e300, -1e-300, 1.3407807929942596e154, 1e-310, 2.2250738585072014e-308})
+        specials.push_back(v);
+    Lcg random{8080};
+    for (unsigned controlWord : kControlWords) {
+        for (double x : specials) {
+            for (double y : specials)
+                BinaryCase("_hypot", kHypot, Code(&libcrt::Hypot), x, y, controlWord, true, &CallStackBinary);
+        }
+        for (int i = 0; i < 300; ++i) {
+            const double x = static_cast<float>(random.Uniform(-5000.0, 5000.0));
+            const double y = static_cast<float>(random.Uniform(-5000.0, 5000.0));
+            BinaryCase("_hypot", kHypot, Code(&libcrt::Hypot), x, y, controlWord, true, &CallStackBinary);
+            BinaryCase("_hypot", kHypot, Code(&libcrt::Hypot), x * 1e-3, y, controlWord, true, &CallStackBinary);
+            BinaryCase("_hypot", kHypot, Code(&libcrt::Hypot), FromBits(random.Next64()), FromBits(random.Next64()),
+                       controlWord, true, &CallStackBinary);
+        }
+        for (int i = 0; i < 100; ++i) {   // results near the largest double and in the denormal range
+            const double scale = (i & 1) ? 1.7e308 : 2.5e-308;
+            BinaryCase("_hypot", kHypot, Code(&libcrt::Hypot), random.Uniform(-1.0, 1.0) * scale,
+                       random.Uniform(-1.0, 1.0) * scale, controlWord, true, &CallStackBinary);
+            BinaryCase("_hypot", kHypot, Code(&libcrt::Hypot), random.Uniform(0.0, 1.0) * 4.9e-322,
+                       random.Uniform(0.0, 1.0) * 1e-320, controlWord, true, &CallStackBinary);
+        }
+    }
+}
+
 void CrtX87StartupCheck() {
     const unsigned saved = ControlWord();
     s_cases = 0;
@@ -453,6 +485,7 @@ void CrtX87StartupCheck() {
     FmodBattery();
     InverseTrigBattery();
     PowBattery();
+    HypotBattery();
     SetControlWord(saved);
     ei::Log("crt x87: %d case(s) against the originals; %d result(s) at 53 / 64 bits or denormal within the "
             "tolerance but not bit-equal", s_cases, s_nearResults);
