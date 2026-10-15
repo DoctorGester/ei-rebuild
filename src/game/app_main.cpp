@@ -533,7 +533,8 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // the hook's jump. The frame's last camera update (00457595 -> 0040FB30) is held still while a
 // scenario is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick
 // (00457368 -> 005641F0) are followed by the harness's "speed" hold. The standalone image has no
-// original code there (INT3): it calls the function directly.
+// original code there (INT3): it calls the function directly. A harness hook for the call
+// (ei/main_loop.h) comes first wherever one is set; in the image it is the harness's only way in.
 template <typename Fn>
 Fn CallTarget(const unsigned char& call, Fn fallback) {
     if (ei::Standalone() || (&call)[0] != 0xE8) return fallback;
@@ -542,12 +543,17 @@ Fn CallTarget(const unsigned char& call, Fn fallback) {
     return reinterpret_cast<Fn>(reinterpret_cast<std::uintptr_t>(&call) + 5 + relative);
 }
 using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
-CameraUpdate FrameCameraUpdate() { return CallTarget<CameraUpdate>(Global<const unsigned char>(0x00457595), &CameraUpdateAt); }
-using WorldUpdate = int(__fastcall*)(void*, void*);
+CameraUpdate FrameCameraUpdate() {
+    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) return reinterpret_cast<CameraUpdate>(hook);
+    return CallTarget<CameraUpdate>(Global<const unsigned char>(0x00457595), &CameraUpdateAt);
+}
+using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
 WorldUpdate ServerUpdate() {
+    if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
     return CallTarget(Global<const unsigned char>(0x00457314), reinterpret_cast<WorldUpdate>(&ServerUpdateOriginal));
 }
 WorldUpdate ClientSegment() {
+    if (auto hook = ei::mainloop::g_harnessHooks.clientSegment) return hook;
     return CallTarget(Global<const unsigned char>(0x00457368), reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal));
 }
 

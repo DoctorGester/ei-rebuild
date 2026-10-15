@@ -31,7 +31,8 @@ the game's draw (EndScene) and the interface draw, before the cursor blit (005E5
 (004EF610) and the lock's release (005E6610). The original body behind the hook's entry jump stays
 untouched so the harness can still find the call. The camera-freeze skip (`CALL 0040FB30` at 00457595)
 and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00456440); the rewritten
-WinMain keeps both working (A-E2 below).
+WinMain keeps both working (A-E2 below). A harness hook point (ei/main_loop.h, S15a) for each of these
+calls comes before the call-site read; the standalone image has only those.
 
 ## Kept and skipped
 
