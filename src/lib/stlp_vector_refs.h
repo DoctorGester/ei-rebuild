@@ -22,6 +22,8 @@ struct CountedRefElement {
         RefPtrRelease(&old);
     }
     static void Destroy(RefPtr* p) { RefPtrRelease(p); }
+    // resize(n)'s element (e.g. 004200C0, 004AD700): a null pointer.
+    static void Default(RefPtr* p) { p->ptr = nullptr; }
 };
 
 } // namespace stlp

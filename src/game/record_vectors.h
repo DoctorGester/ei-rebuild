@@ -7,8 +7,10 @@
 
 #include "acks_db.h"
 #include "item_db.h"
+#include "lever.h"
 #include "model.h"
 #include "net_classes.h"
+#include "party_manager.h"
 #include "quest_records.h"
 #include "record_members.h"
 #include "unit_db.h"
@@ -291,6 +293,33 @@ struct QueryElement {
 };
 
 using QueryVector = stlp::VectorAbi<net::Query, QueryElement>;
+
+// ---- The party manager's entries (party_manager.h; party_manager.cpp's 004ADAA0) ---------------
+
+// An entry: memberwise (empty texts and ids by default); the destructor 004AE2D0.
+struct PartyEntryElement : records::Memberwise<PartyManagerEntry, &PartyManagerEntry::name, &PartyManagerEntry::text,
+                                               &PartyManagerEntry::ids> {
+    static void Destroy(PartyManagerEntry* p) { p->Destruct(); }
+};
+
+using PartyEntryVector = stlp::VectorAbi<PartyManagerEntry, PartyEntryElement>;
+
+// ---- The lever table's records (lever.h; app_device_list.cpp's 00465180) ------------------------
+
+// A lever record: memberwise; resize(n)'s default has empty texts and no spots (the other fields
+// left as they are); the destructor 004652A0 (the texts from the last).
+struct LeverElement : records::Memberwise<LeverRecord, &LeverRecord::name, &LeverRecord::spots,
+                                          &LeverRecord::spotCount, &LeverRecord::farScale,
+                                          &LeverRecord::duration, &LeverRecord::text20,
+                                          &LeverRecord::sound, &LeverRecord::text28> {
+    static void Default(LeverRecord* p) {
+        Memberwise::Default(p);
+        p->spotCount = 0;
+    }
+    static void Destroy(LeverRecord* p) { p->~LeverRecord(); }
+};
+
+using LeverVector = stlp::VectorAbi<LeverRecord, LeverElement>;
 
 // ---- The quest database (quest_records.h) ------------------------------------------------------
 

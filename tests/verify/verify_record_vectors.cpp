@@ -187,6 +187,31 @@ struct QueryText {
     }
 };
 
+// The party manager's entries: the texts and the ids.
+std::string IntsText(const stlp::vector<int>& v) {
+    std::string text = "[";
+    char id[16];
+    for (const int* p = v.begin(); p != v.end(); ++p) {
+        std::snprintf(id, sizeof(id), "%d,", *p);
+        text += id;
+    }
+    return text + "]";
+}
+struct PartyEntryText {
+    static std::string Of(const PartyManagerEntry& r) { return Str(r.name) + "|" + Str(r.text) + IntsText(r.ids); }
+};
+
+// The lever records: the texts and the spot count.
+struct LeverText {
+    static std::string Of(const LeverRecord& r) {
+        char count[16];
+        std::snprintf(count, sizeof(count), "|%u|", r.spotCount);
+        return Str(r.name) + count + Str(r.text20) + "|" + Str(r.sound) + "|" + Str(r.text28);
+    }
+};
+
+template <std::uintptr_t A> using Levers = ModelCheck<A, LeverVector, LeverText>;
+template <std::uintptr_t A> using PartyEntries = ModelCheck<A, PartyEntryVector, PartyEntryText>;
 template <std::uintptr_t A> using Queries = ModelCheck<A, QueryVector, QueryText>;
 template <std::uintptr_t A> using Prints = ModelCheck<A, PrintVector, PrintText<PrintRecord>>;
 template <std::uintptr_t A> using Prints2 = ModelCheck<A, Print2Vector, PrintText<PrintRecord2>>;
@@ -257,3 +282,9 @@ EI_VERIFY(0x004439C0, Queries<0x004439C0>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00443BF0, Queries<0x00443BF0>::Assign, 0, s_unused);
 EI_VERIFY(0x004442B0, Queries<0x004442B0>::EraseRange, 0, s_unused);
 EI_VERIFY(0x00444090, Queries<0x00444090>::ResizeDefault, 0, s_unused);
+
+// The party manager's entries (loaded with a save).
+EI_VERIFY(0x004ADAA0, PartyEntries<0x004ADAA0>::ResizeDefault, 0, s_unused);
+
+// The lever table (loaded at startup).
+EI_VERIFY(0x00465180, Levers<0x00465180>::ResizeDefault, 0, s_unused);

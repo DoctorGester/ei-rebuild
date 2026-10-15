@@ -301,3 +301,8 @@ EI_REPLACE(0x004AB520, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x0060A120, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x00421ED0, CountedRefVector::EraseRange);
 EI_REPLACE(0x004A9A00, CountedRefVector::EraseRange);
+// resize(n): the RefPtr chunk vector (004200C0), the party manager's records and class templates
+// (004AD700 / 004AD8D0; counted_ptr<T>).
+EI_REPLACE(0x004200C0, CountedRefVector::ResizeDefault);
+EI_REPLACE(0x004AD700, CountedRefVector::ResizeDefault);
+EI_REPLACE(0x004AD8D0, CountedRefVector::ResizeDefault);

@@ -74,6 +74,14 @@ struct RefCheck {
         ei::verify::Report(Name<A>("stlp::vector::erase"), ok, ok ? "" : "the elements differ from the model");
         return result;
     }
+    // resize(n): the pointers kept, nulls appended (the released objects may be gone).
+    static void __fastcall ResizeDefault(Vector* self, void*, std::size_t n) {
+        Model m = Read(*self);
+        m.resize(n, nullptr);
+        CountedRefVector::ResizeDefault(self, nullptr, n);
+        bool ok = Read(*self) == m;
+        ei::verify::Report(Name<A>("stlp::vector::resize"), ok, ok ? "" : "the elements differ from the model");
+    }
 };
 
 template <std::uintptr_t A> using CStrings = stlp_verify::ModelCheck<A, CStringVector, CStringText>;
@@ -104,3 +112,6 @@ EI_VERIFY(0x004AB520, RefCheck<0x004AB520>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x0060A120, RefCheck<0x0060A120>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00421ED0, RefCheck<0x00421ED0>::EraseRange, 0, s_unused);
 EI_VERIFY(0x004A9A00, RefCheck<0x004A9A00>::EraseRange, 0, s_unused);
+EI_VERIFY(0x004200C0, RefCheck<0x004200C0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x004AD700, RefCheck<0x004AD700>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x004AD8D0, RefCheck<0x004AD8D0>::ResizeDefault, 0, s_unused);
