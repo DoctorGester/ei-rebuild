@@ -269,9 +269,6 @@ void __fastcall MapObjectSave(void* a0, void*, CStream* a2) { MapObjectSaveOrigi
 // [00403F40, rewritten in base_manager.cpp].
 void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
 
-constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
-constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
-constexpr std::uintptr_t kPointsVtable = 0x0073C680;
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;
 constexpr int kVictimBlockSize = 10;
@@ -281,8 +278,6 @@ void* TailFields(MagicTrap* trap, int i) {
     return fields[i];
 }
 constexpr int kTailFieldCount = 4;
-
-void* VtableOf(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 // An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the
 // original's order).
@@ -313,9 +308,9 @@ MagicTrap* MagicTrap::Construct() {
     MapObjectConstructOriginal(this);
     spell = nullptr;
     EmptyArray(area);
-    area.vtable = VtableOf(kCirclesVtable);
+    area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
     EmptyArray(points);
-    points.vtable = VtableOf(kPointsVtable);
+    points.vtable = mfc::impl::TrapTargetsArrayClass::Vtable();
     inside.vtable = gameslots::VictimListClass::Vtable();
     inside.count = 0;
     inside.free = nullptr;
@@ -323,7 +318,7 @@ MagicTrap* MagicTrap::Construct() {
     inside.head = nullptr;
     inside.blocks = nullptr;
     inside.blockSize = kVictimBlockSize;
-    ei::SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kVtableAddress);
 
     MapObjectCreate(this);
     sides = 0xFFFFFFFFu;
@@ -340,7 +335,7 @@ MagicTrap* MagicTrap::Construct() {
 EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
 
 void MagicTrap::DestructBody() {
-    ei::SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kVtableAddress);
     MapObjectDestroy(this);
     SetSpell(this, nullptr);   // 0052C690(0)
     CirclesSetSize(&area, nullptr, 0, -1);

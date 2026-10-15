@@ -366,6 +366,7 @@ using HelperArray = mfc::CArray<CMaterial, mfc::RawElements<CMaterial>>;
 // The fake unit (CFakeUnit, vtable 0073BFE8) as LoadFakeUnitScene fills it: a CObject3D
 // (map_object_figures.h) up to +0x4E0, then the skin and the scene's arrays.
 struct FakeUnitScene {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BFE8);
     void* DeleteScalar(unsigned flags);
     std::uint8_t object3D_[0x4E0];      // the CObject3D part: Object3D()
     SceneSkin skin;                     // +0x4E0 (0x50 bytes)

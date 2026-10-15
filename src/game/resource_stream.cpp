@@ -5,6 +5,7 @@
 #include "resource_stream.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_engine.h"
@@ -18,13 +19,6 @@ namespace {
 void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
 
-constexpr std::uintptr_t kResourceBaseVtable = 0x00743324;
-constexpr std::uintptr_t kResourceStreamVtable = 0x00743320;
-constexpr std::uintptr_t kMappedResourceVtable = 0x007432E0;
-constexpr std::uintptr_t kMmioResourceVtable = 0x00743300;
-
-void SetVtable(void* object, std::uintptr_t vtable) { *static_cast<std::uintptr_t*>(object) = vtable; }
-
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
     return pattern[0] == '\0' || WildcardMatch(name, pattern, 0) != 0;
@@ -35,7 +29,7 @@ bool PartMatches(const char* name, const char* pattern) {
 // --- CResourceBase -------------------------------------------------------------------------------
 
 CResourceBase* CResourceBase::Construct() {
-    SetVtable(this, kResourceBaseVtable);
+    ei::SetVtable(this, kVtableAddress);
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -45,7 +39,7 @@ CResourceBase* CResourceBase::Construct() {
 }
 
 void CResourceBase::Destruct() {
-    SetVtable(this, kResourceBaseVtable);
+    ei::SetVtable(this, kVtableAddress);
     header_ = ResHeader{};
     entries_ = nullptr;
     names_ = nullptr;
@@ -74,7 +68,7 @@ void CResourceBase::FreeAccelTable() {
 
 CResourceStream* CResourceStream::Construct() {
     CResourceBase::Construct();
-    SetVtable(this, kResourceStreamVtable);
+    ei::SetVtable(this, kVtableAddress);
     archive_ = nullptr;
     file_ = nullptr;
     offset_ = 0;
@@ -83,7 +77,7 @@ CResourceStream* CResourceStream::Construct() {
 }
 
 void CResourceStream::Destruct() {
-    SetVtable(this, kResourceStreamVtable);
+    ei::SetVtable(this, kVtableAddress);
     Close();
     CResourceBase::Destruct();
 }
@@ -228,13 +222,13 @@ void CMappedResource::ListFiles(void* stringArray, const char* pattern) const {
 CMMIOResource* CMMIOResource::Construct() {
     CMappedResource::Construct();
     file_.Construct();
-    SetVtable(this, kMmioResourceVtable);
+    ei::SetVtable(this, kVtableAddress);
     mappedImage_ = nullptr;
     return this;
 }
 
 void CMMIOResource::Destroy() {
-    SetVtable(this, kMmioResourceVtable);
+    ei::SetVtable(this, kVtableAddress);
     // CloseResource, inlined (00675720 is CMappedFile::Close's copy).
     file_.Close();
     entries_ = nullptr;

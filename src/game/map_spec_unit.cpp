@@ -35,13 +35,20 @@ struct TargetChunk {
     void* target;                // +0x18
 };
 static_assert(sizeof(TargetChunk) == 0x1C);
+// The three chunk classes on it, by vtable: a waypoint, a patrol and a behaviour record.
+struct WaypointChunk : TargetChunk {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C710);
+};
+struct PatrolChunk : TargetChunk {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C718);
+};
+struct BehaviourChunk : TargetChunk {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C720);
+};
+static_assert(sizeof(WaypointChunk) == sizeof(TargetChunk) && sizeof(PatrolChunk) == sizeof(TargetChunk) &&
+              sizeof(BehaviourChunk) == sizeof(TargetChunk));
 
 namespace {
-
-constexpr std::uintptr_t kWaypointChunkVtable = 0x0073C710;
-constexpr std::uintptr_t kPatrolChunkVtable = 0x0073C718;
-constexpr std::uintptr_t kBehaviourChunkVtable = 0x0073C720;
-constexpr std::uintptr_t kPatrolsVtable = 0x0073C37C;
 
 // CRT eh vector constructor / destructor iterators.
 template <typename Constructor, typename Destructor>
@@ -81,10 +88,11 @@ void ReadVector(Chunk& c, Vector3& to) {
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
-// A child chunk object of `vtable` for `parent`.
-void StartChild(TargetChunk& child, std::uintptr_t vtable, Chunk* parent) {
+// A child chunk object of its class for `parent`.
+template <typename ChunkClass>
+void StartChild(ChunkClass& child, Chunk* parent) {
     child.chunk.Construct(nullptr);
-    ei::SetVtable(&child, vtable);
+    ei::SetVtable(&child, ChunkClass::kVtableAddress);
     child.chunk.parent_ = parent;
 }
 
@@ -98,7 +106,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->patrols.growBy = 0;
     self->patrols.maxSize = 0;
     self->patrols.size = 0;
-    ei::SetVtable(&self->patrols, kPatrolsVtable);
+    ei::SetVtable(&self->patrols, mfc::impl::BehaviourPatrolsArrayClass::Vtable());
     self->type = 3;
     self->loop = 1;
     self->flags = 0;
@@ -208,8 +216,8 @@ void __fastcall PatrolChunkOnChunk(TargetChunk* self) {
         return;
     }
     if (c.id_ != 0xBBBE0000) return;
-    TargetChunk child;
-    StartChild(child, kWaypointChunkVtable, &self->chunk);
+    WaypointChunk child;
+    StartChild(child, &self->chunk);
     auto* patrol = static_cast<Patrol*>(self->target);
     WaypointsSetSize(&patrol->waypoints, nullptr, patrol->waypoints.size + 1, -1);
     patrol->waypoints.data[patrol->waypoints.size - 1].position = {0.0f, 0.0f, 0.0f};
@@ -254,8 +262,8 @@ void __fastcall BehaviourChunkOnChunk(TargetChunk* self) {
         break;
     case 0xBBBC000E: b->alarm = c.ReadByte(); break;
     case 0xBBBD0000: {
-        TargetChunk child;
-        StartChild(child, kPatrolChunkVtable, &self->chunk);
+        PatrolChunk child;
+        StartChild(child, &self->chunk);
         auto* behaviour = static_cast<Behaviour*>(self->target);
         PatrolsSetSize(&behaviour->patrols, nullptr, behaviour->patrols.size + 1, -1);
         behaviour->patrols.data[behaviour->patrols.size - 1].position = {0.0f, 0.0f, 0.0f};
@@ -286,18 +294,18 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
     WriteVector(c, 0xBBBC0005, b->guard);
     c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->enabled));
     c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
-    TargetChunk patrolChunk;
+    PatrolChunk patrolChunk;
     patrolChunk.chunk.Construct(nullptr);
-    ei::SetVtable(&patrolChunk, kPatrolChunkVtable);
+    ei::SetVtable(&patrolChunk, PatrolChunk::kVtableAddress);
     patrolChunk.chunk.parent_ = &self->chunk;
     for (int i = 0; i < static_cast<Behaviour*>(self->target)->patrols.size; ++i) {
         Patrol* p = &static_cast<Behaviour*>(self->target)->patrols.data[i];
         patrolChunk.target = p;
         patrolChunk.chunk.BeginWrite(0xBBBD0000);
         WriteVector(patrolChunk.chunk, 0xBBBD0001, p->position);
-        TargetChunk waypointChunk;
+        WaypointChunk waypointChunk;
         waypointChunk.chunk.Construct(nullptr);
-        ei::SetVtable(&waypointChunk, kWaypointChunkVtable);
+        ei::SetVtable(&waypointChunk, WaypointChunk::kVtableAddress);
         waypointChunk.chunk.parent_ = &patrolChunk.chunk;
         for (int j = 0; j < p->waypoints.size; ++j) {
             Waypoint* w = &p->waypoints.data[j];
@@ -395,9 +403,9 @@ void __fastcall UnitSpecSave(UnitSpec* self) {
     for (int i = 4; i >= 0; --i) c.WriteStringArray(0xBBBB0005 + i, &self->lists[i]);
     c.WriteBlob(0xBBBB0004, self->stats, sizeof(self->stats));
     self->object.ObjectSpecWriteFields();
-    TargetChunk writer;
+    BehaviourChunk writer;
     writer.chunk.Construct(nullptr);
-    ei::SetVtable(&writer, kBehaviourChunkVtable);
+    ei::SetVtable(&writer, BehaviourChunk::kVtableAddress);
     writer.chunk.parent_ = &c;
     for (Behaviour& behaviour : self->behaviour) {
         behaviour.guard = self->object.base.position;
@@ -423,9 +431,9 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
     case 0xBBBB0009: c.ReadStringArray(&self->lists[c.id_ - 0xBBBB0005]); break;
     case 0xBBBB000A: self->field0A = c.ReadByte(); break;
     case 0xBBBC0000: {
-        TargetChunk reader;
+        BehaviourChunk reader;
         reader.chunk.Construct(nullptr);
-        ei::SetVtable(&reader, kBehaviourChunkVtable);
+        ei::SetVtable(&reader, BehaviourChunk::kVtableAddress);
         reader.chunk.parent_ = &c;
         int index = self->behaviours;
         self->behaviours = index + 1;
