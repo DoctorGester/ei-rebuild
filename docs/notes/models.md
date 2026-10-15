@@ -86,10 +86,14 @@ Facts not in the code comments:
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `CLightFactory` (spell.h). FigurePart (map_object_figures.h)
   and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. Debug panel 0079B930: file-local
   `CDebugPanel` in string_map.cpp. map_object_shadow.cpp (C9b): the rasterise target is `RasterTarget : RasterTriangle`, the locked surface a
-  `DDSURFACEDESC2`, the ground quads `VertexPacket`s, the texture's name `CTexture::Name()`. Still raw: the colour key read from
-  `CTexture::block_` (+0x60: the field is typed as the aligned block pointer; its meaning for a keyed texture, flags 0x2000,
-  needs recovering), `reinterpret_cast<CUnit*>(object)` for the unit's controller (CObject3D / CMapObject relation), the
-  three work buffers `AlignedRecordBuffer` (the callees take `float*` / `int*`, so their point and pixel pairs stay indexed).
+  `DDSURFACEDESC2`, the ground quads `VertexPacket`s, the texture's name `CTexture::Name()`. C9c: the "colour key" at
+  RasterTriangle +0x30 is a pointer, `keyTexels` = the skin's `CTexture::block_` when it is keyed (flags 0x2000, a type 0x35
+  object's skin): 2DintMMX's slot 9 (10001EB0) samples it as 16-bit 1:5:5:5 texels at the corners' texture points (row pitch
+  RasterTarget +0x38 = 0x200 bytes, wrapping) and writes 0xF000 where the top bit is set; slot 8 ignores +0x30 / +0x38.
+  Nothing in this exe allocates block_ (0068F860 is dead, 0068F6C0 frees it), so the keyed path never runs. The unit's
+  controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are `lib::AlignedArray`s of
+  `Vector2`, `RasterTriangle::Point` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,
+  004F65B0, 00452E70 allocate as AllocAligned32); the callees still take `float*` / `int*` (`&Points()[n].x`).
 - **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...); flag 4 overwrites the
   mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows
   (0051CE60), the renderer (00503A40) and 006CEDE0.

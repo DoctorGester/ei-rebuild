@@ -298,8 +298,8 @@ static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
 
 // The start of the target the pixel converter's triangle rasterisers (slots 8 / 9) read: a shadow
-// triangle's three corners, each a screen and a texture point (moved as qwords), and the colour
-// key; the surface follows (map_object_shadow.cpp fills it).
+// triangle's three corners, each a screen and a texture point (moved as qwords), and the keyed
+// texture's texels; the surface follows (map_object_shadow.cpp fills it).
 struct RasterTriangle {
     struct Point {
         int x;
@@ -310,9 +310,12 @@ struct RasterTriangle {
         Point texture;
     };
     Corner corners[3];
-    std::uint32_t colourKey;   // +0x30 set: the figure meshes (005A0E80) rasterise through slot 9
+    // +0x30 a keyed texture's texels (CTexture::block_), or null. Set: the figure meshes (005A0E80)
+    // rasterise through slot 9, which samples them as 16-bit 1:5:5:5 texels at the corners' texture
+    // points (wrapping at the row pitch, RasterTarget +0x38) and shadows only where the top bit is set.
+    const std::uint8_t* keyTexels;
 };
-static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, colourKey) == 0x30);
+static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);
 
 // 2DintMMX's graphics processor, the pixel converter (*007AF06C, also CTextureDevice::converter_).
 // Its code is in the DLL; only the slots the rewritten code calls are named. Never constructed here.
@@ -336,7 +339,7 @@ public:
     // 8: rasterises one triangle of a shadow: `target` starts with its three corners (a screen and
     // a texture point each, pairs of ints) and goes on with the surface (004F4850, 005A0E80).
     virtual void RasteriseTriangle(void* target);
-    // 9: the same for a target with a colour key (RasterTriangle::colourKey; 005A0E80).
+    // 9: the same, masked by a keyed texture's texels (RasterTriangle::keyTexels; 005A0E80).
     virtual void RasteriseKeyedTriangle(void* target);
     // 10: decodes a DXT block image into 16-bit pixels (texture_fill.cpp).
     virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
@@ -495,8 +498,11 @@ public:
     AlignedBuffer extra_;       // +0x2C the .mmp file's extra block
     PixelFormat format_;        // +0x3C
     CDXSurface* surface_;       // +0x5C the texture surface (counted)
-    std::uint8_t* block_;       // +0x60 an aligned block (raw pointer before the data), freed when a
-                                // surface is made (0068F6C0, 0068F860) and by 00690FA0
+    // +0x60 an aligned block (raw pointer before the data), freed when a surface is made (0068F6C0,
+    // 0068F860) and by 00690FA0. For a keyed texture (flags_ 0x2000, a type 0x35 object's skin) the
+    // shadow rasterises through it as 16-bit texels (RasterTriangle::keyTexels); nothing in this
+    // exe allocates it, so it is null and the keyed path never runs.
+    std::uint8_t* block_;
     std::uint32_t spare64_;     // +0x64 cleared by the constructor, slot 2 and slot 3; nothing reads it
 };
 static_assert(offsetof(CTexture, extra_) == 0x2C);
