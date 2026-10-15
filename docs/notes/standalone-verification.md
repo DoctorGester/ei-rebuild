@@ -196,3 +196,33 @@ Adding a family: a payload header, a record file (one recorder per function, `Sa
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
 run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the
 payload (copied, never pointers) and, for the replay, a way to build them outside the game.
+
+## SV1f / SV1h: the virtual clock's speed and the other threads' clock (2026-10-15)
+
+Two causes, not one.
+
+- SV1h (other threads stand still after a long main-thread block): other threads read the virtual
+  time plus the real time since the main thread last moved it, never going back. A load or a movie
+  (seconds of real time with no advance) put their clock that far ahead; from the next frame they
+  saw `virtual + a few ms`, below what they had seen, so their clock stood still until the frames
+  caught up (each frame takes back only its own advance, and none on a busy machine whose frames take
+  longer than they advance). The cursor thread's 41 ms steps took 1.5 s (render_cursor_present: 2
+  presents in a 1.6 s in-game stall), and the main thread's music waits (WaitAndEndAfter: Sleep(0)
+  until the stream thread's fader, on the other threads' clock, has faded out) waited as long again.
+  Now their clock runs from an anchor (their time, the real time it was taken at) that each main-thread
+  advance moves to max(their time then, the new virtual time): real time when the main thread stands
+  still, the virtual time when it runs ahead, never back and never standing still. Freeze holds it.
+  render_cursor_present runs on the virtual clock again (28 presents in the stall). The main thread's
+  clock is untouched, so nothing a digest sees changes (other threads' clocks drive only the music
+  fader and the cursor thread's steps).
+- SV1f (sandbox_map 72-81 s against 17 s): `speed 10`. On the virtual clock a frame advances
+  5 x the update length, so the main loop runs five updates a frame at any speed; a 10 ms update only
+  gives each frame 50 ms of virtual time instead of 275. zone1's intro blocks the leader until its
+  speech ends (about 36.5 s of samples, ended on virtual time), so it took 5.5 times the frames: at
+  about 9 frames a second on a busy machine, 67-80 s. On real time the run passed by racing: the
+  `waitfor Not(IsUnitBlocked(...))` was true after 0 ms, before the intro had blocked the leader, so
+  it never waited for the intro at all. sandbox_map now runs without `speed` on the virtual clock:
+  26 s on a busy machine, the intro 36.85 s of virtual time in 12 s. Measured in one batch on the
+  same build: with `speed 10` 81 s (timeout), without 26 s. The 78 other scenarios with `speed 10`
+  keep it (their goldens are being recorded with it); SV1i looks at which of them wait on sound or
+  timers.
