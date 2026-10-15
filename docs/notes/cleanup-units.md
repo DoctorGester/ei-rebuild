@@ -421,4 +421,4 @@ Spelling only: no signature, argument order or float grouping changed.
   small rewrite), net_session_tick / net_connection log texts, net_messages.h (17), spell_effect_internal.h and
   world_effect_internal.h floats, class `kVtableAddress` statics, function addresses.
 - Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
-  check_thunks, check_registrations, check_cleanup, ei_vectors); golden run below.
+  check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
