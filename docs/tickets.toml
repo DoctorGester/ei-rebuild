@@ -833,9 +833,10 @@ note = "From SV1g's sweep: effects (frame 12), objects_more (CLightning::Start, 
 id = "SV2b"
 title = "Rebirth with hooks: zone1 script variable i does not repeat"
 group = "verification"
-status = "queued"
+status = "running"
 depends = ["SV2a"]
 note = "SV2a's digest 2 (script group): under Rebirth with our hooks, zone1's global object variable i (Rebirth's script, with VSS#i#val; the last object of a group, which keeps its objects in address order) is unit 702 in some runs and 1884 in others (spells_cast, combat, script_fx, ui_battle_spells, harness_digest); the original (addon alone) is 702 in every run. So some objects' addresses still differ between our runs under Rebirth (an allocation outside the repeatable CRT heap: addon.dll's or ours'). golden.py KNOWN leaves script gobject.i out meanwhile. Find which allocation moves (the group's members' addresses in two runs) and make it repeat."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV2c"
