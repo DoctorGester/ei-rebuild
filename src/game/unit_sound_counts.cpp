@@ -57,7 +57,7 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     mfc::CStringArray files;
     StringArrayConstruct(&files);
     SoundSystemListFilesOriginal(sounds, nullptr, &files, kSoundPattern);
-    for (int i = 0; i < files.size; ++i) reinterpret_cast<mfc::CString*>(files.data)[i].MakeUpper();
+    for (int i = 0; i < files.size; ++i) reinterpret_cast<mfc::CString*>(files.data)[i].MakeLower();
 
     int modelCount = static_cast<int>(models.end - models.begin);
     for (int m = 0; m < modelCount; ++m) {
@@ -67,7 +67,7 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
         for (std::size_t n = 0; n < names; ++n) {
             model->soundCounts[n] = 0;
             mfc::CString& name = model->soundNames.begin()[n];
-            name.MakeUpper();
+            name.MakeLower();
             for (int f = 0; f < files.size; ++f) {
                 if (StartsWith(files.data[f], name)) ++model->soundCounts[n];
             }

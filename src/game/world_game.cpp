@@ -2308,7 +2308,7 @@ void GameFlow::BuildZoneTable() {
         more = CFileFindNext(&find);
         mfc::CString name;
         CFileFindTitle(&find, nullptr, &name);
-        name.MakeUpper();
+        name.MakeLower();
         FlowRegisterQuestsOriginal(this, nullptr, name);
         UnloadQuestTexts();
         mfc::CString map;

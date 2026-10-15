@@ -202,8 +202,8 @@ void __fastcall Execute(const char* text) {
         return;
     }
 
-    Ops(command).MakeUpper();
-    for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeUpper();
+    Ops(command).MakeLower();
+    for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeLower();
     if (Mbscmp(command, game::Text(0x0079239C)) == 0 || Mbscmp(command, game::Text(0x00792394)) == 0) {   // quit, exit
         QuitGame(0);
         return;

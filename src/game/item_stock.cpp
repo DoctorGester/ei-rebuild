@@ -722,7 +722,7 @@ void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const Record
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeUpper();
+        name.MakeLower();
         char* record = find(TableObject(table), nullptr, name);
         if (record) AddUnique(list, record, &PushItemRecord);
     }
@@ -760,7 +760,7 @@ void ItemStock::LoadLists(void* stream) {
     int values[3] = {0, 0, 0};
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeUpper();
+        name.MakeLower();
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
         entry.record = FindMaterialNamed(TableObject(itemdb::Materials()), nullptr, name);
