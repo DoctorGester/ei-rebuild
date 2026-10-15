@@ -29,7 +29,7 @@ void AppendCounted(LinkList* list, CRefObject* link) {
 
 } // namespace
 
-void CWorldHandle::TakeNew(void* joined) {
+void CWorldHandle::TakeNewImpl(void* joined) {
     if (pendingLink_) AppendCounted(static_cast<LinkList*>(joined), pendingLink_);
     CRefObject* link = pendingLink_;
     pendingLink_ = nullptr;
@@ -38,7 +38,7 @@ void CWorldHandle::TakeNew(void* joined) {
 
 namespace netlink {
 
-void DriverSession::TakeNew(void* joined) {
+void DriverSession::TakeNewImpl(void* joined) {
     auto* list = static_cast<LinkList*>(joined);
     for (DriverNode* node = holders_->next; node != holders_; node = node->next) {
         CRefObject* link = node->value.ptr;
@@ -59,12 +59,5 @@ void DriverSession::TakeNew(void* joined) {
 
 } // namespace netlink
 
-namespace {
-// Virtual slots: registered through shims (a pointer to a virtual member would dispatch).
-void __fastcall HandleTakeNewHook(CWorldHandle* self, void*, void* joined) { self->CWorldHandle::TakeNew(joined); }
-void __fastcall SessionTakeNewHook(netlink::DriverSession* self, void*, void* joined) {
-    self->DriverSession::TakeNew(joined);
-}
-} // namespace
-EI_REPLACE(0x00478880, HandleTakeNewHook);
-EI_REPLACE(0x0047A230, SessionTakeNewHook);
+EI_REPLACE_METHOD(0x00478880, CWorldHandle::TakeNewImpl);
+EI_REPLACE_METHOD(0x0047A230, netlink::DriverSession::TakeNewImpl);

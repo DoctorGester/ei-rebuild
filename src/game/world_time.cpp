@@ -14,15 +14,14 @@ constexpr double kHoursPerSecond = 1.0 / 15.0;  // 0073F3C8 (as the game counts 
 bool KeepsPlayerTimes(int kind) { return kind == 1 || kind == 3; }
 } // namespace
 
-void CWorld::SetTime(float hours) {
+void CWorld::SetTimeImpl(float hours) {
     double elapsed = std::fmod(static_cast<double>(tick_) * secondsPerTick_, kHoursPerDay);
     timeBase_ = static_cast<float>(hours - elapsed);
 }
 
-void __fastcall WorldSetTimeHook(CWorld* self, void*, float hours) { self->CWorld::SetTime(hours); }
-EI_REPLACE(0x0055FB30, WorldSetTimeHook);
+EI_REPLACE_METHOD(0x0055FB30, CWorld::SetTimeImpl);
 
-void CWorld::SetTimeSpeed(float speed) {
+void CWorld::SetTimeSpeedImpl(float speed) {
     // The time of day now, stored as a float before the speed changes.
     volatile float now = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
     if (speed > 0.0f) secondsPerTick_ = 1.0f / speed;
@@ -32,8 +31,7 @@ void CWorld::SetTimeSpeed(float speed) {
     SetTime(now);
 }
 
-void __fastcall WorldSetTimeSpeedHook(CWorld* self, void*, float speed) { self->CWorld::SetTimeSpeed(speed); }
-EI_REPLACE(0x0055FB50, WorldSetTimeSpeedHook);
+EI_REPLACE_METHOD(0x0055FB50, CWorld::SetTimeSpeedImpl);
 
 double CWorld::NightLevel() {
     double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
@@ -67,25 +65,23 @@ void CWorld::SetWind(const Vector3* direction, float strength) {
 }
 EI_REPLACE_METHOD(0x0055FCB0, CWorld::SetWind);
 
-void CWorldServer::SetTime(float hours) {
+void CWorldServer::SetTimeImpl(float hours) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
-    CWorld::SetTime(hours);
+    CWorld::SetTimeImpl(hours);
     MarkPlayersDirty(4);
     UpdateWeather();
 }
 
-void __fastcall ServerSetTimeHook(CWorldServer* self, void*, float hours) { self->CWorldServer::SetTime(hours); }
-EI_REPLACE(0x0058EEA0, ServerSetTimeHook);
+EI_REPLACE_METHOD(0x0058EEA0, CWorldServer::SetTimeImpl);
 
-void CWorldServer::SetTimeSpeed(float speed) {
+void CWorldServer::SetTimeSpeedImpl(float speed) {
     if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
-    CWorld::SetTimeSpeed(speed);
+    CWorld::SetTimeSpeedImpl(speed);
     MarkPlayersDirty(4);
     UpdateWeather();
 }
 
-void __fastcall ServerSetTimeSpeedHook(CWorldServer* self, void*, float speed) { self->CWorldServer::SetTimeSpeed(speed); }
-EI_REPLACE(0x0058EEE0, ServerSetTimeSpeedHook);
+EI_REPLACE_METHOD(0x0058EEE0, CWorldServer::SetTimeSpeedImpl);
 
 void CWorldServer::ChangeWind(const Vector3* direction, float strength) {
     // FCOMP / mask selects: below 0 or NaN gives 0, above 1 gives 1; the value is copied as it is.

@@ -139,11 +139,5 @@ void __fastcall WorldClientMoveObject2(CWorldClient* self, void*, CEngineObject*
 EI_REPLACE(0x005618A0, WorldClientMoveObject);
 EI_REPLACE(0x005618C0, WorldClientMoveObject2);
 
-int __fastcall LightningManagerInit(ClientListManager* self, void*, void* context) {
-    return self->CBaseManager::InitImpl(context);
-}
-int __fastcall VisFogManagerInit(ClientArrayManager* self, void*, void* context) {
-    return self->CBaseManager::InitImpl(context);
-}
-EI_REPLACE(0x00562D70, LightningManagerInit);
-EI_REPLACE(0x00562DA0, VisFogManagerInit);
+EI_REPLACE_METHOD(0x00562D70, CBaseManager::InitImpl);   // the lightning manager's Init (ClientListManager)
+EI_REPLACE_METHOD(0x00562DA0, CBaseManager::InitImpl);   // the vis-fog manager's Init (ClientArrayManager)

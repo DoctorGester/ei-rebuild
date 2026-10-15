@@ -79,12 +79,12 @@ void __fastcall MoveObject2Verify(CWorldClient* self, void*, CEngineObject* obje
 }
 
 int __fastcall LightningInitVerify(ClientListManager* self, void*, void* context) {
-    int result = LightningManagerInit(self, nullptr, context);
+    int result = self->CBaseManager::InitImpl(context);
     ei::verify::Check("LightningManagerInit", true, self->context_ == context, "manager %p result %d", self, result);
     return result;
 }
 int __fastcall VisFogInitVerify(ClientArrayManager* self, void*, void* context) {
-    int result = VisFogManagerInit(self, nullptr, context);
+    int result = self->CBaseManager::InitImpl(context);
     ei::verify::Check("VisFogManagerInit", true, self->context_ == context, "manager %p result %d", self, result);
     return result;
 }

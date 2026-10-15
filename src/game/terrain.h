@@ -80,9 +80,11 @@ public:
     // 006C5430 (slot 2; terrain_landscape.cpp). Reset, the vertex tile table (006C7A80), the wave
     // phases, the sine table sin(i * pi / 256); position zero, rotation identity. Returns 1.
     int Create() override;
+    int CreateImpl();   // body of the slot above (registered by member pointer)
     // 006C54D0 (slot 3). Frees the map (006C7750), releases the registered lights and empties
     // their table, empties the sector cache list, then Reset.
     void Destroy() override;
+    void DestroyImpl();   // body of the slot above (registered by member pointer)
     // 006C5620. The constructor's body: no map, no textures (the arrays freed), texts "none",
     // frame 1, no sun, waves upwards at strength 0, phase 2 pi, no ambient loops.
     void Reset();
@@ -225,6 +227,7 @@ public:
     // (flag 8), the wave phase and frame counter, then Animate for each drawn sector of the visible
     // rows. Returns 1.
     int RunTick() override;
+    int RunTickImpl();   // body of the slot above (registered by member pointer)
 
     // 006C8ED0 (RET 8; terrain_animation.cpp). Takes `sun` and the ambient colour: the ray steps
     // of the shadow test from the direction towards the sun (components below 0.01 in size pushed

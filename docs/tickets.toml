@@ -1220,7 +1220,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "batch 5: 127 virtual-slot Hook shims converted to <Slot>Impl members (items, ground prints, link mesh/loader, net session/lobby/link, resources, base manager); progress 1,132 -> 1,005. verify and release clean, check_stolen/x87/signatures/thunks 0, work.py test C11 --golden: 128 runs ALL PASS, goldens 56 the same 0 differ. Notes in docs/notes/cleanup-units.md."
+note = "batch 6: 64 more virtual-slot Hook shims converted to <Slot>Impl members (unit_update, map_object, light, texture, manager NewObject, terrain, renderer, net sessions, world time); progress 1,005 -> 941. verify and release clean, check_stolen/x87/signatures/thunks 0. Notes in docs/notes/cleanup-units.md."
 
 [[ticket]]
 id = "C12"

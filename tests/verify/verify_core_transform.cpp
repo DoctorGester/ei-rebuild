@@ -126,11 +126,11 @@ void CheckFile(const char* name, FileFn original, void (*ours)(CTransformObject*
 FileFn s_save, s_load;
 void __fastcall SaveVerify(CTransformObject* self, void*, void* file) {
     CheckFile("CTransformObject::SaveTransform", s_save,
-              [](CTransformObject* o, void* f) { o->CTransformObject::SaveTransform(f); }, self, file);
+              [](CTransformObject* o, void* f) { o->CTransformObject::SaveTransformImpl(f); }, self, file);
 }
 void __fastcall LoadVerify(CTransformObject* self, void*, void* file) {
     CheckFile("CTransformObject::LoadTransform", s_load,
-              [](CTransformObject* o, void* f) { o->CTransformObject::LoadTransform(f); }, self, file);
+              [](CTransformObject* o, void* f) { o->CTransformObject::LoadTransformImpl(f); }, self, file);
 }
 
 // 0040E810: PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x1C (3).

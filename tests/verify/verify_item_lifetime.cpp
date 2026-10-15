@@ -180,7 +180,7 @@ int ClassOfKind(int kind) {
 }
 
 CEngineObject* __fastcall NewObjectVerify(CBaseManager* manager, void*, int kind) {
-    CEngineObject* object = static_cast<CItemManager*>(manager)->CItemManager::NewObject(kind);
+    CEngineObject* object = static_cast<CItemManager*>(manager)->CItemManager::NewObjectImpl(kind);
     const int expectedClass = ClassOfKind(kind);
     const bool ok = expectedClass < 0 ? object == nullptr
                                       : object == nullptr || (object->type_ == kind && object->GetClassId() == expectedClass);

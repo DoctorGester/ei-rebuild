@@ -559,6 +559,7 @@ struct CItemManager : CResourceManager {
     // item for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007 loot, 0x3008 scroll, 0x3009
     // quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
+    CEngineObject* NewObjectImpl(int kind);   // body of the slot above (registered by member pointer)
 
     // 006AD000 (RET 0x10; item_constructor.cpp, A-H20). An item of `kind` built by the context's
     // item constructor (BeginCreateItem with `kind` and `key`) from prototype record `index` of

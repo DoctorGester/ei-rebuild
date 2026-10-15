@@ -49,7 +49,7 @@ void* __fastcall PlayerVerify(net::ServerSession* self, void*, int id) {
 }
 
 bool __fastcall AdmitVerify(net::ServerSession* self, void*, std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
-    bool result = self->ServerSession::Admit(address, password, reason);
+    bool result = self->ServerSession::AdmitImpl(address, password, reason);
     ei::verify::Check("ServerSession::Admit", true, result ? *reason == 1 : (*reason >= 1 && *reason <= 3), "");
     return result;
 }

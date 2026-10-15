@@ -26,7 +26,7 @@ bool AllRunning(void* list) {
 }
 
 void __fastcall TickVerify(net::ServerSession* self, void*, double dt) {
-    self->ServerSession::Tick(dt);
+    self->ServerSession::TickImpl(dt);
     ei::verify::Check("ServerTick", true, AllRunning(self->finishedTrades_) && AllRunning(self->awards_), "");
 }
 

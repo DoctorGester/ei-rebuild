@@ -39,7 +39,7 @@ static int __fastcall ReleaseObjectVerify(CTextureManager* self, void*, CEngineO
     bool cacheable = idle && Registered(self, object) && (object->flags_ & 0x38);
     int count = self->cache_.count;
     int bytes = self->cachedBytes_;
-    int result = self->CTextureManager::ReleaseObject(object);
+    int result = self->CTextureManager::ReleaseObjectImpl(object);
     const char* problem = nullptr;
     if (result != 0) {
         problem = "result";

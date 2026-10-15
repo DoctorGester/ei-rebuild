@@ -31,7 +31,7 @@ CSpell* __fastcall CreateSpellObjectVerify(CSpellManager* self, void*, int id) {
 }
 
 CEngineObject* __fastcall NewObjectVerify(CSpellManager* self, void*, int type) {
-    CEngineObject* object = self->CSpellManager::NewObject(type);
+    CEngineObject* object = self->CSpellManager::NewObjectImpl(type);
     std::uintptr_t want = type == 0x3002 ? CSpell::kVtableAddress : type == 0x3003 ? CSpellContainer::kVtableAddress : 0;
     bool ok = object ? VtableOf(object) == want : want == 0;
     ei::verify::Check("CSpellManager::NewObject", true, ok, "manager %p type 0x%X -> %p", self, type, object);

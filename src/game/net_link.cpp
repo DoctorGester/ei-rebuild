@@ -619,7 +619,7 @@ void DriverLink::Disconnect() {   // 00479810
     pending.Reset();
     TakeAll(&pending);
     if (pending.size_ != 0 && IsLive(player_)) {
-        pending.Seek(pending.size_);
+        pending.SeekImpl(pending.size_);
         std::uint32_t count = BufferFill(&player_->reliableIn_);
         CStream* stream = &pending;
         stream->Write(player_->reliableIn_.begin, count);

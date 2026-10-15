@@ -61,7 +61,7 @@ void CountDown(void*& list, Erase erase, float dt) {
 // too: when it runs out it is reset and, with a master server host set, the game is announced.
 // A timer that lands within rounding of zero may expire one tick apart from the original (x87
 // versus plain float maths).
-void ServerSession::Tick(double dt) {
+void ServerSession::TickImpl(double dt) {
     ServerBaseTickAt(this, nullptr, dt);
     float step = static_cast<float>(dt);
     CountDown(finishedTrades_, List25C0Erase, step);
@@ -75,9 +75,8 @@ void ServerSession::Tick(double dt) {
     }
 }
 namespace {
-void __fastcall ServerTickHook(ServerSession* self, void*, double dt) { self->ServerSession::Tick(dt); }
 } // namespace
-EI_REPLACE(0x004182E0, ServerTickHook);
+EI_REPLACE_METHOD(0x004182E0, ServerSession::TickImpl);
 
 // 00417E40: whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.

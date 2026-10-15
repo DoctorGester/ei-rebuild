@@ -69,7 +69,7 @@ EI_REPLACE_METHOD(0x0041A020, ServerSession::LeaderId);
 // (reason 2), when a password is set and the 20 bytes at `*password` differ (reason 3; the pointer
 // moves past them either way), or when the clients and the pending joins reach the maximum
 // (reason 1).
-bool ServerSession::Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
+bool ServerSession::AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
     void* banned = &banned_;
     *reason = 2;
     void* sentinel = banned_;
@@ -222,18 +222,13 @@ void ServerSession::ReportDeparture(void* connection, int text) {
 }
 
 // Slots 11 (a client lost: text 4) and 12 (a client left: text 1).
-void ServerSession::OnClientLost(Connection* connection) { ReportDeparture(connection, 4); }
-void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(connection, 1); }
+void ServerSession::OnClientLostImpl(Connection* connection) { ReportDeparture(connection, 4); }
+void ServerSession::OnClientLeftImpl(Connection* connection) { ReportDeparture(connection, 1); }
 
 namespace {
-bool __fastcall AdmitHook(ServerSession* self, void*, std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
-    return self->ServerSession::Admit(address, password, reason);
-}
-void __fastcall ClientLostHook(ServerSession* self, void*, Connection* connection) { self->ServerSession::OnClientLost(connection); }
-void __fastcall ClientLeftHook(ServerSession* self, void*, Connection* connection) { self->ServerSession::OnClientLeft(connection); }
 } // namespace
-EI_REPLACE(0x0041A050, AdmitHook);
-EI_REPLACE(0x0041A700, ClientLostHook);
-EI_REPLACE(0x0041A770, ClientLeftHook);
+EI_REPLACE_METHOD(0x0041A050, ServerSession::AdmitImpl);
+EI_REPLACE_METHOD(0x0041A700, ServerSession::OnClientLostImpl);
+EI_REPLACE_METHOD(0x0041A770, ServerSession::OnClientLeftImpl);
 
 } // namespace net

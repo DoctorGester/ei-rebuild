@@ -380,6 +380,7 @@ public:
     void Destroy() override;
     // 14: 00688CD0. A new CSpell (0x3002) or CSpellContainer (0x3003), constructed; else null.
     CEngineObject* NewObject(int type) override;
+    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
     // 00688990. The destructor body: the sequences destroyed (00688990's 006886F0 per sequence)
     // and deleted, the map emptied and freed, CResourceManager::Destroy and Destruct.
     // 00688970: slot 0.
@@ -555,8 +556,10 @@ public:
     // 14: 0068DA40. A new CLight (0x134 bytes) of type 0x2E or 0x31 (its type_); other types are
     // logged and give null.
     CEngineObject* NewObject(int type) override;
+    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
     // 23: 0068DAD0. CBaseManager::CreateObject, then flags_ bit 7 cleared (no null check).
     CEngineObject* CreateObject(int type, int id) override;
+    CEngineObject* CreateObjectImpl(int type, int id);   // body of the slot above (registered by member pointer)
 
     std::uint32_t unused_B0[4];    // +0xB0
     CEngineObject* held_;           // +0xC0 released by the destructor

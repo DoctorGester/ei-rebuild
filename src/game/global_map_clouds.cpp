@@ -109,7 +109,7 @@ void CCloudNoise::SetRamp(int start, int width, float speed) {
 }
 EI_REPLACE_METHOD(0x0049A010, CCloudNoise::SetRamp);
 
-void CCloudNoise::MakeLayer(std::uint8_t* out) {
+void CCloudNoise::MakeLayerImpl(std::uint8_t* out) {
     IsaacRandom& random = IsaacRandom::Global();
     const std::uint32_t a = random.Next();
     const std::uint32_t b = random.Next();
@@ -131,7 +131,7 @@ void CCloudNoise::MakeLayer(std::uint8_t* out) {
     }
 }
 
-void CCloudNoise::Generate(std::uint8_t* out, int step) {
+void CCloudNoise::GenerateImpl(std::uint8_t* out, int step) {
     if (step >= 1 && step <= 4) {
         MakeLayer(layers_ + (step - 1) * kLayerCells);
         return;
@@ -153,10 +153,6 @@ void CCloudNoise::Generate(std::uint8_t* out, int step) {
 
 namespace {
 // The virtual slots are registered through shims (rewrite-guide rule 4).
-void __fastcall CloudMakeLayerHook(CCloudNoise* self, void*, std::uint8_t* out) { self->CCloudNoise::MakeLayer(out); }
-void __fastcall CloudGenerateHook(CCloudNoise* self, void*, std::uint8_t* out, int step) {
-    self->CCloudNoise::Generate(out, step);
-}
 } // namespace
-EI_REPLACE(0x0049A090, CloudMakeLayerHook);
-EI_REPLACE(0x0049A220, CloudGenerateHook);
+EI_REPLACE_METHOD(0x0049A090, CCloudNoise::MakeLayerImpl);
+EI_REPLACE_METHOD(0x0049A220, CCloudNoise::GenerateImpl);

@@ -244,7 +244,7 @@ namespace {
 void CopyParty(CParty* to, CParty* from) {
     LocalStream local;
     from->SaveParty(&local.stream, 1);
-    local.stream.CMemoryStream::Seek(0);
+    local.stream.CMemoryStream::SeekImpl(0);
     to->LoadParty(&local.stream, 1);
 }
 
@@ -299,7 +299,7 @@ void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
 void PartyManager::Load(CMemoryStream* from) {
     LocalStream local;
     from->ReadSized(&local.stream);
-    local.stream.CMemoryStream::Seek(0);
+    local.stream.CMemoryStream::SeekImpl(0);
     LocalArchive archive;
     archive.archive.Open(&local.stream, 1, static_cast<int>(from->version_));
     ArchiveManager(this, &archive.archive);
