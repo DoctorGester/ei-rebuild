@@ -16,8 +16,6 @@
 #include "originals_library.h"
 #include "originals_units.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                       // 0073B858
 constexpr float kOne = 1.0f;                        // 0073B84C

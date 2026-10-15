@@ -8,8 +8,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                    // 0073B858
 constexpr float kByteMax = 255.0f;               // 0073C370

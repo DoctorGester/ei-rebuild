@@ -21,8 +21,6 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }

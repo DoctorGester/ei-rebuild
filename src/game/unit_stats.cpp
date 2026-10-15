@@ -12,10 +12,6 @@
 #include <bit>
 #include <cstring>
 
-// /fp:fast reassociates and distributes (e.g. (a - 25) + b became (a + b) - 25); the formulas here
-// must keep the original's order of operations.
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858
 constexpr float kOne = 1.0f;                                        // 0073B84C

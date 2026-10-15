@@ -348,9 +348,6 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
 
 // ---- AwardExperience --------------------------------------------------------------------------
 
-// The shares keep the original's operation order: no reassociation here.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
@@ -482,8 +479,6 @@ void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
     if (!player) ShareAmongSoloPlayers(this, amount);
     else ShareAmongHeroes(this, player, amount);
 }
-
-#pragma float_control(pop)
 
 // ---- SyncPartyRecords -------------------------------------------------------------------------
 

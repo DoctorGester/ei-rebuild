@@ -30,8 +30,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858
 constexpr float kOne = 1.0f;                                        // 0073B84C / 0073EEE4

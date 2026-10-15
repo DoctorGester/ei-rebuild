@@ -32,8 +32,6 @@
 #include <cstring>
 #include <initializer_list>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 
@@ -281,9 +279,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
 
 // 0060FAB0: prices (slot 54); CanEquip follows.
 
-// The products and differences keep the original's order (no reassociation under /fp:fast).
-#pragma float_control(precise, on, push)
-
 namespace {
 constexpr float kPriceZero = 0.0f;   // 0073B858
 constexpr float kPriceOne = 1.0f;    // 0073B84C
@@ -335,8 +330,6 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
     }
     return GameFtol(ItemPrice(item) * multipliers[kind]);
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
 EI_REBIRTH_IMPLEMENTS(0x0060FAB0, ei::rebirth::Patch::FixRepairPrice);

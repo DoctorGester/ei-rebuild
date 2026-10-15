@@ -1,7 +1,6 @@
 // The game server's script variables (+0x25B0): named floats the script reads and writes in a
 // network game (00419570 .. 00419940), replicated to the clients as VariableMessages. See
 // net_messages.h and docs/notes/network.md.
-#pragma float_control(precise, on)
 
 #include "net_messages.h"
 #include "core_refcount.h"

@@ -15,8 +15,6 @@
 #include <cstring>
 #include <initializer_list>
 
-#pragma float_control(precise, on)
-
 // --- Forwarders (not rewritten) ----------------------------------------------------------------
 
 __declspec(naked) void __fastcall LightningPointsSetSize(LightningPointArray*, void*, int, int) EI_ORIGINAL(0x00468C50)

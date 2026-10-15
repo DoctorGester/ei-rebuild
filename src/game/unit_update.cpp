@@ -13,8 +13,6 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr int kClassUnitServer = 0x3E;        // CUnitServer (combat.h)
 constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit controllers

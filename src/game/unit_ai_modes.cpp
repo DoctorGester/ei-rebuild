@@ -20,7 +20,6 @@
 #include "originals_units.h"
 #include "lib/mfc_array.h"
 
-#pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {

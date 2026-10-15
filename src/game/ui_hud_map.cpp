@@ -23,8 +23,6 @@
 #include <cstring>
 #include <new>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }

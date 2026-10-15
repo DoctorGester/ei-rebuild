@@ -19,9 +19,6 @@
 
 #include <cstring>
 
-// Keep the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -208,8 +205,6 @@ void __fastcall ShowBolt(void* /*glue*/, void*, Vector3 from, Vector3 to) {
         QueueAddLine(reinterpret_cast<void*>(kScriptQueue), nullptr, &text, 1);
     }
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058CCD0, CWorldServer::UpdateWeather);
 EI_REPLACE(0x00578E30, ShowBolt);

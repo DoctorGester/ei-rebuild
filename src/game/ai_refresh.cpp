@@ -45,8 +45,6 @@ using ObjectList = mfc::CList<void*>;
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
     if (x0 < 0) x0 = 0;
@@ -285,8 +283,6 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     else row = cost >= 2 ? 1 : 0;
     return worlddata::MarkTable()[row * 16 + column];
 }
-
-#pragma float_control(pop)
 
 namespace {
 // 007916BC: 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells

@@ -125,8 +125,6 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     meshType_ = other->meshType_;
 }
 
-#pragma float_control(precise, on, push)
-
 void CFigureMesh::SetPose(const float* q, const float* offset) {
     // Slot 14 stores the quaternion as the world rotation (+0x44).
     FigureSlots(this)->CombineRotation(*reinterpret_cast<const Quaternion*>(q));
@@ -194,8 +192,6 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     FpuCopy(&moved[1], &m[13]);
     FpuCopy(&moved[2], &m[14]);
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigure);
 EI_REPLACE_METHOD(0x0059F510, CFigureMesh::SetPose);

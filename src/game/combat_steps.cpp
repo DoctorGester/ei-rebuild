@@ -19,8 +19,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;                                        // 0073B84C

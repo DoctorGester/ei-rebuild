@@ -17,7 +17,6 @@
 // The formulas must keep the original's order of operations (see unit_stats.cpp). Values the
 // original keeps on the FPU stack are double locals; values it stores to a float are float or
 // volatile float locals.
-#pragma float_control(precise, on)
 
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858

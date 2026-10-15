@@ -33,8 +33,6 @@
 #include <cstring>
 #include <new>
 
-#pragma float_control(precise, on)
-
 using console::CStringArray;
 
 namespace {

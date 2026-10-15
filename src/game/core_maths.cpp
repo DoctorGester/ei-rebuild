@@ -80,16 +80,12 @@ Vector3* Quaternion::AxisZ(Vector3* out) const {
 }
 EI_REPLACE_METHOD(0x0040D6B0, Quaternion::AxisZ);
 
-// /fp:fast would distribute the 1/6 over the sums here (changing the rounding), so this function
-// is compiled with precise semantics; every value is stored to a float member anyway.
-#pragma float_control(precise, on, push)
 void CubicSegment::SetBSpline(float p0, float p1, float p2, float p3) {
     c[0] = ((p1 * 4.0f + p0) + p2) * 0.16666667f;
     c[1] = (p2 - p0) * 0.5f;
     c[2] = ((p0 - p1 * 2.0f) + p2) * 0.5f;
     c[3] = (((p1 - p2) * 3.0f - p0) + p3) * 0.16666667f;
 }
-#pragma float_control(pop)
 EI_REPLACE_METHOD(0x0040E3D0, CubicSegment::SetBSpline);
 
 float CubicSegment::Evaluate(float t) const {

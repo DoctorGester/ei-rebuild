@@ -25,9 +25,6 @@
 #include "originals_library.h"
 #include "originals_script.h"
 
-// The arrival maths keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 // Values and vtables read from the exe's memory as the original does (rule 9).
@@ -255,8 +252,6 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     records.vtable = RecordArrayVtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-
-#pragma float_control(pop)
 
 // ---- CopyItem ---------------------------------------------------------------------------------
 

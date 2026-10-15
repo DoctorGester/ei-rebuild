@@ -59,8 +59,6 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 // 005B2A00 (thiscall on the set, RET 0x10).
 void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
     double scale = static_cast<double>(worlddata::One()) /
@@ -113,8 +111,6 @@ void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius
             AddCell(this, x, y);
         }
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x005B2A00, FootprintCellSet::AlongDirection);
 EI_REPLACE_METHOD(0x005B2760, FootprintCellSet::DiscAt);

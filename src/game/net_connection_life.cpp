@@ -15,8 +15,6 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace net {
 
 namespace {

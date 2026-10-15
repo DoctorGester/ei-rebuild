@@ -18,8 +18,6 @@
 #include <cstring>
 #include "originals_ui.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }

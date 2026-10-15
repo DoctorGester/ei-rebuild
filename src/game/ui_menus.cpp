@@ -312,7 +312,6 @@ constexpr float kGammaScale = 0.02f;   // 00742B80: value * 0.02 - 1
 constexpr float kSlideSeconds = 0.5f;  // 00742B74
 } // namespace
 
-#pragma float_control(precise, on, push)
 namespace {
 float StoreRounded(double v) {
     volatile float r = static_cast<float>(v);
@@ -363,7 +362,6 @@ void COptionsWindow::Update() {
         }
     }
 }
-#pragma float_control(pop)
 
 namespace {
 } // namespace

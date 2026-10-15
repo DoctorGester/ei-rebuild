@@ -358,9 +358,6 @@ EI_REPLACE(0x0047EB20, ReadDiff);
 
 // --- Positions ---------------------------------------------------------------------------------
 
-// The quantisation keeps the original's order of operations.
-#pragma float_control(precise, on, push)
-
 namespace {
 constexpr float kWriteOffsetXY = -16.0f;          // 0073CA8C
 constexpr float kWriteScaleXY = 120.46875f;       // 0073CA88
@@ -455,8 +452,6 @@ void DeltaField::ReadRanged(float* value, float min, float max) {
     *value = static_cast<float>(static_cast<int>(q)) * step + min;
 }
 EI_REPLACE_METHOD(0x0047F110, DeltaField::ReadRanged);
-
-#pragma float_control(pop)
 
 // --- 16-bit floats -----------------------------------------------------------------------------
 

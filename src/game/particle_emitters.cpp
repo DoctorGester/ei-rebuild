@@ -19,8 +19,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }

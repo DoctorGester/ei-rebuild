@@ -12,8 +12,6 @@
 
 #include <concepts>
 
-#pragma float_control(precise, on)
-
 using namespace particle;
 
 // --- Casting effects (0x2027-0x202A): sparks rising around the caster -----------------------------

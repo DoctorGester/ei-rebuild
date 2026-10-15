@@ -17,8 +17,6 @@
 #include <cstring>
 #include <new>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 using camera::Store;

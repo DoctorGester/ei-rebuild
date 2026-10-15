@@ -24,7 +24,6 @@
 
 // Keep the original's order of operations: values it keeps on the FPU stack are double locals,
 // values it stores (FSTP to memory) are float (volatile where the compiler might keep them).
-#pragma float_control(precise, on)
 
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858

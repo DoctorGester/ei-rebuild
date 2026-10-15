@@ -36,9 +36,6 @@
 
 #include <cstring>
 
-// The placement maths keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 using mapspec::ObjectSpec;
@@ -382,8 +379,6 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
     MessageDestructBase(message, nullptr);
 }
-
-#pragma float_control(pop)
 
 // ---- CreateObject (005927C0) -------------------------------------------------------------------
 

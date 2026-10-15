@@ -42,8 +42,6 @@ CUnitShape* NewPatch() {
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /
                    (static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
@@ -76,7 +74,5 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     if (add) UnitLayerAddOriginal(layer, nullptr, owner, Patch(), x0, y0);
     else UnitLayerRemoveOriginal(layer, nullptr, owner, x0, y0);
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x005B7EF0, CAIMap::StampWaterPatch);

@@ -29,9 +29,6 @@
 #include <bit>
 #include <cstring>
 
-// Keep the original's order of operations (see combat.cpp).
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                                   // 0073B858
 constexpr float kHitNoiseScale = 2.0f;                          // 0073EEF0

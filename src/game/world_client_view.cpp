@@ -19,9 +19,6 @@
 #include "originals_units.h"
 #include "originals_world.h"
 
-// Every float expression here must keep the original's association: (a + b) + c.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 constexpr int kTypeHero = 0x32;           // CEngineObject::type_ of heroes
@@ -322,8 +319,6 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
         return GroundHeightAt(px, py);
     });
 }
-
-#pragma float_control(pop)
 
 // ---- Draw list sorting ---------------------------------------------------------------------------
 

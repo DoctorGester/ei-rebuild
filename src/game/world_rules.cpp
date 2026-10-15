@@ -33,8 +33,6 @@ using VariableNode = stlp::list<net::VariableMessage*>::Node;
 
 // ---- Sorting predicates --------------------------------------------------------------------------
 
-// /fp:fast would regroup the depth sums as (z + y) + (x + offset); the original adds left to right.
-#pragma float_control(precise, on, push)
 bool DepthLess::Less(const int* a, const int* b) {
     auto* registry = static_cast<CBaseManager*>(manager);
     CEngineObject* first = registry->FindObject(static_cast<unsigned>(a[1]));
@@ -54,7 +52,6 @@ bool DepthLess::Less(const int* a, const int* b) {
         return !(da >= db);
     return ObjectSlots(first)->IsDead() == 0;
 }
-#pragma float_control(pop)
 
 // By the first part set's texture (its address), then the figure (its address), then the view depth.
 bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) {

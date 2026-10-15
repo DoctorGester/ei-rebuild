@@ -33,7 +33,6 @@ T Read(char*& p) {
 
 // The arithmetic below is compiled exactly as written: /fp:fast must not regroup it, and each value
 // the original stores to a float goes through StoreFloat (F); everything else stays on the FPU.
-#pragma float_control(precise, on, push)
 
 namespace {
 
@@ -307,8 +306,6 @@ void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float 
 
 } // namespace
 
-#pragma float_control(pop)
-
 namespace {
 
 // The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
@@ -559,8 +556,6 @@ __declspec(naked) void __fastcall ObjectMatrix(const void* /*object*/, void*, fl
 inline float FarLimit() { return *reinterpret_cast<const float*>(0x0073FAFC); }
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 namespace {
 // Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
 // ("less or unordered") as a mask on the float bits, so a NaN on either side takes the point.
@@ -720,5 +715,3 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, f
     return buffers_.vertexCount << 2;
 }
 EI_REPLACE_METHOD(0x005A0CD0, CFigureMesh::DrawOffset);
-
-#pragma float_control(pop)

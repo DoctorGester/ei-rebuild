@@ -17,8 +17,6 @@
 #include "originals_library.h"
 #include "originals_world.h"
 
-#pragma float_control(precise, on)
-
 namespace terrain {
 namespace {
 

@@ -17,8 +17,6 @@
 #include "originals_world.h"
 #include "world_data.h"
 
-// Keep the original's order of float operations (/fp:fast would reassociate constants).
-#pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {

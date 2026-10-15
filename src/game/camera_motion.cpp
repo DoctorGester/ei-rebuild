@@ -17,8 +17,6 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 using camera::D;

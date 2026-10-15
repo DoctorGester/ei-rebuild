@@ -30,8 +30,6 @@ float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatil
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser, const IntPoint* points,
                                    RasterTriangle* triangle) {
     const MeshBuffers& buffers = mesh->buffers_;
@@ -60,7 +58,5 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
     }
     return buffers.vertexCount * 4;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE(0x005A0E80, RasteriseFigureMesh);

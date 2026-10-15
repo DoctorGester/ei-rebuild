@@ -9,9 +9,6 @@
 #include <cstring>
 #include "originals_library.h"
 
-// Keep the original's order of operations in the interpolation (/fp:fast may reassociate).
-#pragma float_control(precise, on)
-
 namespace {
 
 const float kOne = 1.0f;   // 0073B84C

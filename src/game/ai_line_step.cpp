@@ -14,8 +14,6 @@
 namespace {
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     float dx = StoreFloat(to->x - from->x);
     float dy = StoreFloat(to->y - from->y);
@@ -57,7 +55,5 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     }
     return static_cast<double>(largest) / heightScale;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x005BC750, CAIMap::LargestStepAlong);
