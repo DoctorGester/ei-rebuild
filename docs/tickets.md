@@ -170,7 +170,7 @@ After the port and before the standalone exe. Mechanical tickets go to Sonnet (s
 
 After the SV loop. Counts are on the progress dashboard ("Standalone readiness"). Saves and multiplayer need not match vanilla in the UTF-8 build (user 2026-10-13).
 
-- **S** First standalone exe (later; 20 sessions). Own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types after the hook build is retired. After: SV5.
+- **S** First standalone exe (running since 2026-10-15; 20 sessions). Own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types after the hook build is retired. After: SV5.
 - **U** UTF-8 inside, cp1251 assets converted when read (later; 5.5 sessions). U1-U5, behind a switch in the standalone build. After: S.
 
 ## Lua scripting (docs/notes/lua-scripting.md)

@@ -1316,10 +1316,11 @@ note = "From C9c (2026-10-15): CLinkMesh::ProjectPart / RasterisePart (slots 13 
 id = "S"
 title = "First standalone exe"
 group = "standalone"
-status = "later"
+status = "running"
 depends = ["SV5"]
 size = 20
 note = "Own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types after the hook build is retired."
+started = "2026-10-15"
 
 [[ticket]]
 id = "U"
