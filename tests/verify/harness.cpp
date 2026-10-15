@@ -197,6 +197,7 @@
 // ends a game that hangs after "quit".
 #include "verify.h"
 #include "harness_capture.h"
+#include "harness_address_order.h"
 #include "harness_clock.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
@@ -2627,6 +2628,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     SetMainThread();
     heap::SettleCrt();
     script_order::PatchOriginal();
+    address_order::PatchOriginal();
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
@@ -2813,6 +2815,7 @@ struct Harness {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap) script_order::Install();   // script groups by object id (harness_script_order.h)
+            if (!g_keepHeap) address_order::Install();   // object sets by id, SetSun by sector (harness_address_order.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)

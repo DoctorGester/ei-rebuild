@@ -1,9 +1,10 @@
 // Checks for world_object_sets.cpp: ours only (the functions allocate, free and release objects).
-// The sort leaves the set strictly increasing; a radix pass leaves the target ordered by its byte;
+// The sort leaves the set strictly increasing (in address_order's order); a radix pass leaves the target ordered by its byte;
 // SetSize keeps the elements it should; the comparison splits the sets consistently and leaves the
 // sent set equal to the current one.
 #include "verify.h"
 
+#include "../../src/game/address_order.h"
 #include "../../src/lib/containers.h"
 
 #include <cstdint>
@@ -20,7 +21,7 @@ void* s_unused;
 
 bool StrictlyIncreasing(const ObjectSet& a) {
     for (int i = 1; i < a.size; ++i)
-        if (!(a.data[i - 1] < a.data[i])) return false;
+        if (!address_order::ObjectBefore(a.data[i - 1], a.data[i])) return false;
     return true;
 }
 

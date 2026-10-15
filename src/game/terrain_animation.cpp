@@ -9,6 +9,7 @@
 // sideways (only where its depth is negative), the others up and in a circle driven by the world
 // time.
 #include "terrain.h"
+#include "address_order.h"
 #include "terrain_sector.h"
 #include "random.h"
 #include "spell.h"
@@ -201,6 +202,13 @@ int __cdecl CompareSlots(const void* a, const void* b) {
     return x->sx > y->sx ? 1 : 0;
 }
 
+// The order CompareSlots meant, on the sectors themselves: harness runs and the standalone
+// (address_order.h), since the slots' neighbours' pointers follow the heap and the last slots read
+// past the array.
+int __cdecl CompareSectors(const void* a, const void* b) {
+    return CompareSlots(*static_cast<const SectorData* const*>(a), *static_cast<const SectorData* const*>(b));
+}
+
 // SetSun's function-local static (007C8938, guard bit 1 of 007C8948, freed by 006C9270 at exit).
 lib::AlignedArray<SectorData*>& SortedSectors() { return *reinterpret_cast<lib::AlignedArray<SectorData*>*>(0x007C8938); }
 std::uint8_t& SortedSectorsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C8948); }
@@ -256,7 +264,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
             sorted[index] = sector;
         }
     }
-    GameQsortOriginal(sorted.data, sorted.size, sizeof(SectorData*), terrain::CompareSlots);
+    GameQsortOriginal(sorted.data, sorted.size, sizeof(SectorData*),
+                      address_order::ById() ? terrain::CompareSectors : terrain::CompareSlots);
     if (sorted.size == 0) return;
     float step = static_cast<float>(static_cast<double>(lightInterval - 1) / sorted.size);
     float at = 0.0f;
