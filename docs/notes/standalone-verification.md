@@ -1798,6 +1798,25 @@ Goldens: not recorded. The original and ours each repeat, but ours differs from 
 `isaac.count` and zone1's idle wolf obj1936 `ai.standCooldown` (ours took 250, 11 and 180 draws against the original's
 57 in three runs: the SV1j family, ours flipping), so `golden.py record` refuses it.
 
+## S20: goldens for every scenario before the hooks go (2026-10-16)
+
+53 goldens added (38 vanilla, 15 Rebirth: ui_widescreen and ui_widescreen_screens Rebirth only), each from two agreeing plain
+`--no-hooks --fresh` passes on main with SV7b7, T2f and SV7b2a (their decoded saves recorded with `golden.py saves`). With
+them, `work.py test S20 --golden --jobs 4`: 144 runs ALL PASS, 124 goldens the same, 0 differ; `--standalone --golden`
+(every golden of each install): vanilla 91 and Rebirth 77 the same, 0 differ.
+
+Without a golden (20 runs), by cause:
+- by rule: the `rebirthflags` scenarios on vanilla (net_second_master, rebirth_flags, the four ui_widescreen*; SV7b8a);
+  watchdog_main / _dump / _ei_launch (meant to time out).
+- renderer-only scenarios the original cannot pass (render_cursor_present V+R, render_device_lost, render_present_shot V+R,
+  render_present_window): S20a; render_present_fullscreen (no run of the original): S20b.
+- ui_mp_host V+R, net_second_master (Rebirth), rebirth_flags (Rebirth): golden recorded, standalone matches, hooked runs differ
+  the same way every run; withheld, recordings in commit 4f6afaef: S20c.
+- Saves left out of three goldens (zone_gz3g, zone_gz15h_tornado V+R: brain memory call0 point.z is a heap leftover): S20d.
+Before SV7b7 and T2f, ours alternated in isaac.count / crt.rand in effects, particles, script_fx, models, sound, unit_create,
+zone_gz2g_traps and zone_gz15h_tornado (Rebirth); on main now they match in hooked and standalone runs.
+
+Scratch: tests with 4K frames leave 7.6 GB in build/verify/runs; E: ran out of space once (E06D7363 crashes, X40).
 
 ## SV5c: the fake unit and its scene loader are dead (2026-10-15)
 

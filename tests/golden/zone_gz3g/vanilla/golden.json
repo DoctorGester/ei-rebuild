@@ -1,0 +1,12 @@
+{
+  "scenario": "zone_gz3g",
+  "install": "vanilla",
+  "recorded": "2026-10-15",
+  "commit": "4f6afaef",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 2,
+  "reason": "S20: recorded from two agreeing plain --no-hooks --fresh passes on main with SV7b7 and T2f; goldens of every scenario before the hook builds go",
+  "saves": "not kept: save savea/mission.sav: 2 fields differ; first: / obj3328 controller.brain.memory.call0.point.z: 9.76406519e-29 in the first run, 1.00796095e-28 in q2 / obj3329 controller.brain.memory.call0.point.z: 9.77682447e-29 in the first run, 1.00923688e-28 in q2"
+}
