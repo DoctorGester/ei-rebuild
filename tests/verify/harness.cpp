@@ -198,6 +198,7 @@
 #include "harness_heap.h"
 #include "harness_leftovers.h"
 #include "harness_shadow_turn.h"
+#include "harness_path_cells.h"
 #include "harness_savetrace.h"
 #include "harness_watch.h"
 #include "harness_hooks.h"
@@ -2775,6 +2776,7 @@ struct Harness {
         leftovers::Install();   // unit statistics stack copies zeroed in the original too (harness_leftovers.h, SV7b3)
         shadow_turn::Install();   // the shadow's turn undone exactly in the original too (harness_shadow_turn.h, SV7b4a)
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
+        path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
