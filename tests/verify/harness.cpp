@@ -896,6 +896,7 @@ void WriteReport() {
     digest::Flush();
     ei::vectors::Flush();
     if (census::Enabled()) census::Write();
+    heap::WriteOrderReport();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     unsigned long mismatches = 0;
@@ -2681,6 +2682,7 @@ struct Harness {
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
+            if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
