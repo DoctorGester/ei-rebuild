@@ -1,0 +1,17 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  1
+  1
+  Unit 1937 acknowledges with idleSound = AAn4XyU
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  1

@@ -1113,6 +1113,30 @@ size = 1
 model = "opus"
 note = "Last step of SV7. On main after SV7b7: run every golden scenario --no-hooks and hooked under EI_HEAP_JITTER 1, 2, 3 and 2,fill / 3,fill on vanilla AND Rebirth (SV7b7 ran vanilla only after its merge), plus EI_HEAP_FILL seeded fills; every golden must stay the same. Known open: Rebirth 2,fill menu unit cunit187 #place at update 20 (SV7b8's family). One follow-up per remaining family, canonicalised on both sides as SV7b1/SV7b2. Re-check after S20 and SV7b2a land so the new goldens are covered too."
 
+[[ticket]]
+id = "SV5a1"
+title = "TryTame and the AI's charm: a caster with enough mana"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "SV5a: CUnitServer::TryTame (00551AE0) stays unreached. The hero's 56 mana is far below charm's cost and the zone wolves never pick charm. Needs a script-raised caster (GiveIntelligence / GiveSkill astral, high mana) and a Cast order of charm at a unit, or an AI unit with charm among its spells; scratch tries are spells_charm and unit_ai_charm in standalone-verification.md SV5a."
+
+[[ticket]]
+id = "SV5a2"
+title = "Hook-reach for AI hooks our code calls directly (LookAroundHook, SeeCorpseHook, AICallArray::Add, SuspectionMode)"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "SV5a: SuspectionMode::Execute/Enter/Leave, PatrolPointArray::Add/SetAtGrow, LookAroundHook (005CFE40), SeeCorpseHook (005CBE90), AICallArray::Add (005CD880) are unreached. SeeCorpse logic runs but our code calls the hook functions directly, so the cover INT3 on the game address never fires; decide whether coverage should count ours-to-ours calls via the first byte of our function, or a scenario with a controlled party member dying (AddUnitUnderControl trips the CUnit::SetPlayer verify wrapper: ours-only PlayerOwnsUnit check). CTrapObject::UpdateTrap needs a trap object with a category-2 consumable (none found)."
+
+[[ticket]]
+id = "SV5a3"
+title = "Verify wrapper for UseOnUnit with a potion (synchronously consumed)"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
