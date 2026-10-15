@@ -25,8 +25,8 @@ bool ZoneExit::Contains(float x, float y) const {
     }
     double centerX = (x2 + x1) * 0.5f;
     float centerY = StoreFloat(static_cast<float>((y2 + y1) * 0.5f));
-    float c = StoreFloat(static_cast<float>(std::cos(static_cast<double>(angle))));
-    float s = StoreFloat(static_cast<float>(std::sin(static_cast<double>(angle))));
+    float c = StoreFloat(static_cast<float>(x87::fcos(static_cast<double>(angle))));
+    float s = StoreFloat(static_cast<float>(x87::fsin(static_cast<double>(angle))));
     float dy = StoreFloat(y - centerY);
     double dxExact = x - centerX;
     float dx = StoreFloat(static_cast<float>(dxExact));

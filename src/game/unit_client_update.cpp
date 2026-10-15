@@ -180,7 +180,7 @@ EI_REPLACE_METHOD(0x005344A0, CUnitClientSpecific::RestartFadeIn);
 
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
-    double ratio = std::log(experience / LevelBase()) / std::log(static_cast<double>(LevelFactor()));
+    double ratio = x87::flog(experience / LevelBase()) / x87::flog(static_cast<double>(LevelFactor()));
     volatile float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
     float rounded = level;
     // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value;

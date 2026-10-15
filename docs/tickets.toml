@@ -1063,6 +1063,13 @@ title = "Vanilla widescreen menu unit cunit129 flags 0xA2 / 0x4A2 hooked"
 group = "verification"
 note = "From SV7b4a (docs/notes/standalone-verification.md, 'SV7b4a / SV3f'): hooked vanilla ui_widescreen_hud and ui_widescreen_more have cunit129 (unanwibo) flags 0x4A2 where the patched original has 0xA2 from update 60, then the zone diverges (isaac.count 69 / 89 at update 180, obj1000011214 nextCommand). No vanilla golden for either. Repeats in two rounds; not an orientation ulp (the shadow round trip is exact now). Find which rewrite sets 0x400 on the menu unit."
 
+[[ticket]]
+id = "SV7d1a1"
+title = "Drop the fp:fast workarounds now that the build is /fp:precise"
+group = "verification"
+depends = ["SV7d1a"]
+note = "From SV7d1a: the build is /fp:precise. The 87 float_control(precise, on) pragmas and the volatile float store helpers (StoreFloat, RoundToFloat, Round, ...) written only to defeat /fp:fast's regrouping and unrounded float locals are redundant. Remove them where they only did that (a store the original does is a plain float assignment now), keeping x87::FromUnsigned, IsNaN and the x87:: transcendental helpers. check_cleanup's float_control count goes down. Suite with --golden; behaviour must not change."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]

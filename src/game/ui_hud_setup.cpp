@@ -55,8 +55,8 @@ float ArcAngle(int turn, float step) { return RoundToFloat(RoundToFloat(static_c
 // with the radius that the FPU rounds to float at its 24-bit precision. That is what makes
 // sin(pi / 2) x radius the whole radius below, and cos(pi / 3) x 34 exactly 17 (a cosine rounded
 // to float first gives 16.999998 and 16: X33).
-double ArcCos(float angle) { return std::cos(static_cast<double>(angle)); }
-double ArcSin(float angle) { return std::sin(static_cast<double>(angle)); }
+double ArcCos(float angle) { return x87::fcos(static_cast<double>(angle)); }
+double ArcSin(float angle) { return x87::fsin(static_cast<double>(angle)); }
 
 // The point at `turn` steps on the circle of `radius` about the origin, truncated (_ftol).
 struct ArcPoint {

@@ -456,9 +456,9 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = RoundToFloat(RoundToFloat(static_cast<float>(i) * Pi()) * OutlineStep());
-        const float down = RoundToFloat(std::cos(static_cast<double>(angle)) * OutlineRadius());
+        const float down = RoundToFloat(x87::fcos(static_cast<double>(angle)) * OutlineRadius());
         const int y = static_cast<int>(gamecrt::Ftol(RoundToFloat(down + OutlineCentreY())));
-        const float across = RoundToFloat(std::sin(static_cast<double>(angle)) * OutlineRadius());
+        const float across = RoundToFloat(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
         const int x = static_cast<int>(gamecrt::Ftol(RoundToFloat(OutlineCentreX() - across)));
         round->CallAddPoint(x, y);
     }

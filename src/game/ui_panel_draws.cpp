@@ -160,7 +160,7 @@ struct Pulse {
 Pulse Advance(CConstructorPage* page) {
     double t = WindowFrameTimeOriginal(page) + page->pulse_;
     page->pulse_ = static_cast<float>(t);
-    float p = StoreFloat((std::cos(t * 5.0) + 1.0) * 0.5);
+    float p = StoreFloat((x87::fcos(t * 5.0) + 1.0) * 0.5);
     double a = 1.0 - p;
     double low = a * 80.0;
     return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};

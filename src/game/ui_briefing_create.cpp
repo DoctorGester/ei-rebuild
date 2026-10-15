@@ -100,7 +100,7 @@ UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitControll
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
     Vector3 out{v.x, v.y, v.z};
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out));
+    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
     if (length == 0.0f || x87::IsNaN(length)) return out;
     float inverse = 1.0f / length;
     out.x = StoreFloat(out.x * inverse);
