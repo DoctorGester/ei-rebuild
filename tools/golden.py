@@ -83,6 +83,10 @@ KNOWN = {
                   "leftovers give; on SV2b's heap they differ by scenario and install in the original "
                   "(0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth), ours keeps SV3a's 0xFFC00000",
 }   # SV2b (zone1's script variable i between our runs under Rebirth) fixed 2026-10-15
+# Known differences in decoded saves (tools/savefile.py's "<key> <field>"), each with its ticket: left out of save
+# comparisons unless --strict, so the goldens' saves need no re-recording when the ticket lands; drop the entry then.
+SAVES_KNOWN = {
+}
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'
@@ -205,6 +209,11 @@ def group_of(field):
         if field.startswith(prefixes):
             return name
     return 'unit'
+
+
+def saves_known_pattern():
+    """The "<key> <field>" expression of the known differences in decoded saves (SAVES_KNOWN), or None."""
+    return '|'.join(f'(?:{p})' for p in SAVES_KNOWN) or None
 
 
 def known_pattern():
@@ -510,9 +519,11 @@ def golden_saves(folder):
     return dict(line.split(' ', 1) for line in read_lines(path, 'utf-8') if line)
 
 
-def save_differences(expected, actual, name_a, name_b, fields=12, store=None):
+def save_differences(expected, actual, name_a, name_b, fields=12, store=None, known=None):
     """Two sets of decoded saves ({path: hash or (hash, lines)}): the lines that describe their differences (the
-    files, then per file the first fields that differ, in the first one's order)."""
+    files, then per file the first fields that differ, in the first one's order). known: a "<key> <field>"
+    expression of fields left out (the known differences in saves, SAVES_KNOWN)."""
+    known = re.compile(known) if known else None
     out = []
     if sorted(expected) != sorted(actual):
         out.append(f'saves: {name_a} has {", ".join(sorted(expected)) or "none"}, {name_b} '
@@ -534,7 +545,9 @@ def save_differences(expected, actual, name_a, name_b, fields=12, store=None):
             out.append(f'save {name}: differs (decoded {hash_a} in {name_a}, {hash_b} in {name_b}; '
                        f'the store has no copy of {hash_a if lines_a is None else hash_b})')
             continue
-        found = savefile.differences(lines_a, lines_b)
+        found = [f for f in savefile.differences(lines_a, lines_b) if not (known and known.search(f'{f[0]} {f[1]}'))]
+        if not found:
+            continue
         out.append(f'save {name}: {len(found)} fields differ; first:')
         out += [f'  {key} {field}: {va} in {name_a}, {vb} in {name_b}' for key, field, va, vb in found[:fields]]
         if len(found) > fields:
@@ -550,7 +563,7 @@ def first_line_difference(what, expected, actual, name_a, name_b):
 
 
 def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=ADDRESS_DEPENDENT, golden=False,
-                    with_saves=True, known=None, clear=None):
+                    with_saves=True, known=None, clear=None, saves_known='default'):
     """Two runs' console, digest, dumps and saves (a may be a golden: golden=True; b's digest and dumps are
     then compacted into b first, leaving out ignore and keeping clear in clear, as the golden was; with_saves
     False: not the saves). known: fields left out of the comparison too (the known differences). The lines that
@@ -596,7 +609,9 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
         saves_a = golden_saves(a) if golden else decoded_saves(a)
         saves_b = decoded_saves(b)
         if saves_a is not None and saves_b is not None:
-            lines += save_differences(saves_a, saves_b, name_a, name_b, fields, store=os.path.join(os.path.dirname(os.path.dirname(a)), 'saves') if golden else STORE)
+            store = os.path.join(os.path.dirname(os.path.dirname(a)), 'saves') if golden else STORE
+            lines += save_differences(saves_a, saves_b, name_a, name_b, fields, store,
+                                      saves_known_pattern() if saves_known == 'default' else saves_known)
     return lines
 
 
@@ -707,7 +722,7 @@ def keep_saves(target, folders, meta):
         if problem:
             break
         found = save_differences(first, decoded_saves(other) or {}, 'the first run',
-                                 os.path.basename(os.path.dirname(other)))
+                                 os.path.basename(os.path.dirname(other)), known=saves_known_pattern())
         if found:
             problem = found
     if problem:
@@ -779,7 +794,8 @@ def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT, 
         meta = json.load(f)
     lines = compare_folders(golden, folder, 'the golden', 'the run', ulps, records, fields,
                             meta.get('left_out', ADDRESS_DEPENDENT), golden=True,
-                            known=None if strict else known_pattern(), clear=meta.get('clear') or '')
+                            known=None if strict else known_pattern(), clear=meta.get('clear') or '',
+                            saves_known=None if strict else 'default')
     return ('DIFFERS' if lines else 'SAME'), lines
 
 
