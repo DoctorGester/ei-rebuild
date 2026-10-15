@@ -46,7 +46,6 @@ static_assert(sizeof(CStringArray) == 0x14);
 // vtable (generateacks' line writers). Declared only.
 class __declspec(novtable) CStdioFileVirtuals : public mfc::CFileVirtuals {
 public:
-    virtual void GetBufferPtr();                    // 20: 0070150F
     virtual void WriteString(const char* text);     // 21: 00701E23
 };
 
