@@ -963,11 +963,18 @@ note = "From SV3e: ui_hud-rebirth, the original repeats and ours repeats, but fr
 id = "SV6"
 title = "Hook build: 224 registrations skipped at install (unknown starts, a second hook on one address)"
 group = "verification"
-status = "running"
+status = "review"
 size = 1
 files = ["src/hook/function_sizes.inc", "config/extra_function_sizes.csv", "src/hook/hook.cpp"]
 note = "A vanilla smoke run on main (2026-10-15, build/verify/runs/smoke-vanilla/ei_hook.log) logs 224 SKIP lines: 108 verify wrappers and 42 plain replacements at 'not a known function start' (effect Update/Emit/Tick slots, ExchangeMessage 0062C920, MotionSegmentConstruct 0052E230, ControllerZero 00533C40/50/B0, ClientControllerPath 00533DF0, Verify_0x0066D7B0 twice, ...), and 67 with 'byte +0x0 differs from game.exe on disk' (Unpack/Load/Save verify wrappers of CEffect*; no address appears twice in the log, so the cause is not yet known: something writes those starts before install), besides the 8 expected SV1b countdown sites. None of these run in the hook build, so their rewrites are unverified; the standalone image does jump to the unknown starts. Add their sizes (config/extra_function_sizes.csv, function_sizes.inc), fold or drop the second registrations, and make build.cmd or the harness fail on an unexpected SKIP so new ones can't hide (S5's first suite tested nothing for this reason)."
 started = "2026-10-15"
+
+[[ticket]]
+id = "SV6a"
+title = "zone_gz15h_tornado (Rebirth) near its 120 s limit under load"
+group = "verification"
+status = "queued"
+note = "SV6 full suite (4 jobs): the Rebirth run timed out twice at step 11 (wait 150000); alone it passes in 92 s (vanilla 50 s). Shorten the wait or raise the limit, or find what makes the Rebirth run slower."
 
 # ---------------------------------------------------------------- harness and suite
 
