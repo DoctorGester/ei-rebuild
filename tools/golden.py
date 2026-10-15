@@ -775,7 +775,7 @@ def add_saves(args):
             for line in problem[1:8]:
                 print('  ' + line)
         else:
-            print(f'{name} {args.install}: {meta["saves"]}')
+            print(f'{name} {args.install}: {meta.get("saves", "no saves")}')
     used = set()
     for path in glob.glob(os.path.join(GOLDEN, '*', '*', 'saves.txt')):
         used.update((golden_saves(os.path.dirname(path)) or {}).values())
