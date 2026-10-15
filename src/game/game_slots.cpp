@@ -22,7 +22,6 @@ EI_REPLACE(0x00561840, BridgeManagerDestroy);
 // Engine object lists (released through slot 4) and object reference lists (released and cleared).
 EI_REPLACE(0x00427600, gamelists::EngineObjects::Destruct<ItemObjectListClass>);
 EI_REPLACE(0x00571F10, gamelists::EngineObjects::Destruct<ClientObjectList2Class>);
-EI_REPLACE(0x004C92C0, gamelists::ObjectRefs::Destruct<ObjectRefListClass>);
 EI_REPLACE(0x0052C6B0, gamelists::ObjectRefs::Destruct<VictimListClass>);
 
 // Object pointers and records holding objects.
@@ -40,17 +39,9 @@ EI_REPLACE(0x00599D60, gamelists::Refs::Destruct<RefListBClass>);
 // The script's point lights, effects, definitions, runs, groups and command blocks.
 EI_REPLACE(0x004BE250, gamearrays::PointLights::Destruct<PointLightArrayClass>);
 EI_REPLACE(0x004CB150, gamearrays::PointLights::Destruct<PointLightArrayClass>);
-EI_REPLACE(0x004C6120, gamelists::ParticleSources::Destruct<ParticleSourceListClass>);
-EI_REPLACE(0x004C6410, gamelists::FxSources::Destruct<FxSourceListClass>);
-EI_REPLACE(0x004C6760, gamelists::Lightnings::Destruct<LightningListClass>);
 EI_REPLACE(0x004BE2E0, Definitions::Destruct<DefinitionArrayClass>);
 EI_REPLACE(0x004CB310, Definitions::Destruct<DefinitionArrayClass>);
-EI_REPLACE(0x004C7E30, gamelists::Definitions::Destruct<DefinitionListClass>);
-EI_REPLACE(0x004C8520, gamelists::Runs::Destruct<RunListClass>);
-EI_REPLACE(0x004C8E20, GroupList::Destruct<GroupListClass>);
-EI_REPLACE(0x004C7560, DeclList::Destruct<DeclListClass>);
 EI_REPLACE(0x004C18E0, Commands::Destruct<CommandArrayClass>);
-EI_REPLACE(0x004C54A0, Commands::Destruct<CommandArrayClass>);
 
 // ---- Scalar deleting destructors (vtable slot 1) ---------------------------------------------------
 

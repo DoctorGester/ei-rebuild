@@ -96,8 +96,6 @@ using B0046EF40 = OursDestruct<0x0046EF40, &ArrayHeader<TrapCircleArrayClass>::D
 EI_VERIFY(0x0046EF40, B0046EF40::Run, 0, s_unused);
 using B0046EF80 = OursDestruct<0x0046EF80, &ArrayHeader<TrapPointArrayClass>::Destruct, TrapPointArrayClass>;
 EI_VERIFY(0x0046EF80, B0046EF80::Run, 0, s_unused);
-using B00498E80 = OursDestruct<0x00498E80, &ArrayHeader<Array0498Class>::Destruct, Array0498Class>;
-EI_VERIFY(0x00498E80, B00498E80::Run, 0, s_unused);
 using B004C1820 = OursDestruct<0x004C1820, &ArrayHeader<ScriptAreaClass>::Destruct, ScriptAreaClass>;
 EI_VERIFY(0x004C1820, B004C1820::Run, 0, s_unused);
 using B004BC980 = OursDestruct<0x004BC980, &ArrayHeader<ScriptFloatsClass>::Destruct, ScriptFloatsClass>;
@@ -152,8 +150,6 @@ using B0059B0B0 = OursDestruct<0x0059B0B0, &ArrayHeader<PartyUnitArrayClass>::De
 EI_VERIFY(0x0059B0B0, B0059B0B0::Run, 0, s_unused);
 using B0059E0A0 = OursDestruct<0x0059E0A0, &ArrayHeader<SectorOccluderArrayClass>::Destruct, SectorOccluderArrayClass>;
 EI_VERIFY(0x0059E0A0, B0059E0A0::Run, 0, s_unused);
-using B005C18E0 = OursDestruct<0x005C18E0, &ArrayHeader<SectorCellArrayClass>::Destruct, SectorCellArrayClass>;
-EI_VERIFY(0x005C18E0, B005C18E0::Run, 0, s_unused);
 using B005C1A90 = OursDestruct<0x005C1A90, &ArrayHeader<SpiralCellArrayClass>::Destruct, SpiralCellArrayClass>;
 EI_VERIFY(0x005C1A90, B005C1A90::Run, 0, s_unused);
 using B005C5850 = OursDestruct<0x005C5850, &ArrayHeader<SmoothRowArrayClass>::Destruct, SmoothRowArrayClass>;
@@ -198,8 +194,6 @@ using B00571600 = OursDestruct<0x00571600, &PtrList::Destruct<ClientList3Class>,
 EI_VERIFY(0x00571600, B00571600::Run, 0, s_unused);
 using B0059B260 = OursDestruct<0x0059B260, &PtrList::Destruct<ExperienceListClass>, ExperienceListClass>;
 EI_VERIFY(0x0059B260, B0059B260::Run, 0, s_unused);
-using B005CDBA0 = OursDestruct<0x005CDBA0, &PtrList::Destruct<StaticListClass>, StaticListClass>;
-EI_VERIFY(0x005CDBA0, B005CDBA0::Run, 0, s_unused);
 using B005D99E0 = OursDestruct<0x005D99E0, &PtrList::Destruct<AttentionListClass>, AttentionListClass>;
 EI_VERIFY(0x005D99E0, B005D99E0::Run, 0, s_unused);
 using B00665FF0 = OursDestruct<0x00665FF0, &PtrList::Destruct<PlayerListClass>, PlayerListClass>;
@@ -242,8 +236,6 @@ using B00556B70 = OursDestruct<0x00556B70, &MemoryRecords::Destruct<MemoryRecord
 EI_VERIFY(0x00556B70, B00556B70::Run, 0, s_unused);
 using B00556FE0 = OursDestruct<0x00556FE0, &MemoryRecords::Destruct<MemoryRecordArrayClass>, MemoryRecordArrayClass>;
 EI_VERIFY(0x00556FE0, B00556FE0::Run, 0, s_unused);
-using B004C9DB0 = OursDestruct<0x004C9DB0, &NamedRecords::Destruct<NamedRecordArrayClass>, NamedRecordArrayClass>;
-EI_VERIFY(0x004C9DB0, B004C9DB0::Run, 0, s_unused);
 using B005FB2F0 = OursDestruct<0x005FB2F0, &GlobalMapPoints::Destruct<GlobalMapPointArrayClass>, GlobalMapPointArrayClass>;
 EI_VERIFY(0x005FB2F0, B005FB2F0::Run, 0, s_unused);
 using B005FB560 = OursDestruct<0x005FB560, &GlobalMapPoints::Destruct<GlobalMapPathArrayClass>, GlobalMapPathArrayClass>;
@@ -274,8 +266,6 @@ using B00427600 = OursDestruct<0x00427600, &gamelists::EngineObjects::Destruct<g
 EI_VERIFY(0x00427600, B00427600::Run, 0, s_unused);
 using B00571F10 = OursDestruct<0x00571F10, &gamelists::EngineObjects::Destruct<gameslots::ClientObjectList2Class>, gameslots::ClientObjectList2Class>;
 EI_VERIFY(0x00571F10, B00571F10::Run, 0, s_unused);
-using B004C92C0 = OursDestruct<0x004C92C0, &gamelists::ObjectRefs::Destruct<gameslots::ObjectRefListClass>, gameslots::ObjectRefListClass>;
-EI_VERIFY(0x004C92C0, B004C92C0::Run, 0, s_unused);
 using B0052C6B0 = OursDestruct<0x0052C6B0, &gamelists::ObjectRefs::Destruct<gameslots::VictimListClass>, gameslots::VictimListClass>;
 EI_VERIFY(0x0052C6B0, B0052C6B0::Run, 0, s_unused);
 using B00570180 = OursDestruct<0x00570180, &gamearrays::ObjectPtrs::Destruct<gameslots::ClientObjectPtrArrayClass>, gameslots::ClientObjectPtrArrayClass>;
@@ -298,28 +288,12 @@ using B004BE250 = OursDestruct<0x004BE250, &gamearrays::PointLights::Destruct<ga
 EI_VERIFY(0x004BE250, B004BE250::Run, 0, s_unused);
 using B004CB150 = OursDestruct<0x004CB150, &gamearrays::PointLights::Destruct<gameslots::PointLightArrayClass>, gameslots::PointLightArrayClass>;
 EI_VERIFY(0x004CB150, B004CB150::Run, 0, s_unused);
-using B004C6120 = OursDestruct<0x004C6120, &gamelists::ParticleSources::Destruct<gameslots::ParticleSourceListClass>, gameslots::ParticleSourceListClass>;
-EI_VERIFY(0x004C6120, B004C6120::Run, 0, s_unused);
-using B004C6410 = OursDestruct<0x004C6410, &gamelists::FxSources::Destruct<gameslots::FxSourceListClass>, gameslots::FxSourceListClass>;
-EI_VERIFY(0x004C6410, B004C6410::Run, 0, s_unused);
-using B004C6760 = OursDestruct<0x004C6760, &gamelists::Lightnings::Destruct<gameslots::LightningListClass>, gameslots::LightningListClass>;
-EI_VERIFY(0x004C6760, B004C6760::Run, 0, s_unused);
 using B004BE2E0 = OursDestruct<0x004BE2E0, &gameslots::Definitions::Destruct<gameslots::DefinitionArrayClass>, gameslots::DefinitionArrayClass>;
 EI_VERIFY(0x004BE2E0, B004BE2E0::Run, 0, s_unused);
 using B004CB310 = OursDestruct<0x004CB310, &gameslots::Definitions::Destruct<gameslots::DefinitionArrayClass>, gameslots::DefinitionArrayClass>;
 EI_VERIFY(0x004CB310, B004CB310::Run, 0, s_unused);
-using B004C7E30 = OursDestruct<0x004C7E30, &gamelists::Definitions::Destruct<gameslots::DefinitionListClass>, gameslots::DefinitionListClass>;
-EI_VERIFY(0x004C7E30, B004C7E30::Run, 0, s_unused);
-using B004C8520 = OursDestruct<0x004C8520, &gamelists::Runs::Destruct<gameslots::RunListClass>, gameslots::RunListClass>;
-EI_VERIFY(0x004C8520, B004C8520::Run, 0, s_unused);
-using B004C8E20 = OursDestruct<0x004C8E20, &gameslots::GroupList::Destruct<gameslots::GroupListClass>, gameslots::GroupListClass>;
-EI_VERIFY(0x004C8E20, B004C8E20::Run, 0, s_unused);
-using B004C7560 = OursDestruct<0x004C7560, &gameslots::DeclList::Destruct<gameslots::DeclListClass>, gameslots::DeclListClass>;
-EI_VERIFY(0x004C7560, B004C7560::Run, 0, s_unused);
 using B004C18E0 = OursDestruct<0x004C18E0, &gameslots::Commands::Destruct<gameslots::CommandArrayClass>, gameslots::CommandArrayClass>;
 EI_VERIFY(0x004C18E0, B004C18E0::Run, 0, s_unused);
-using B004C54A0 = OursDestruct<0x004C54A0, &gameslots::Commands::Destruct<gameslots::CommandArrayClass>, gameslots::CommandArrayClass>;
-EI_VERIFY(0x004C54A0, B004C54A0::Run, 0, s_unused);
 // dd
 using D004528D0 = OursDelete<0x004528D0, &FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>, FakeUnitBoneArraysClass>;
 EI_VERIFY(0x004528D0, D004528D0::Run, 0, s_unused);
