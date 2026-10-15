@@ -734,9 +734,10 @@ done = "2026-10-15"
 id = "SV4b"
 title = "Function vectors: parsers and the LZ coder"
 group = "verification"
-status = "queued"
+status = "running"
 depends = ["SV4"]
 note = "SV4 families with buffer inputs: the script parser (script_parse*.cpp) and the LZ coder. Payloads need variable-size input/output (the .vec format is fixed-size per function: add a length-prefixed variant or cap the buffer), and the replay must build the parser's objects outside the game."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV4c"
