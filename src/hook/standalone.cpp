@@ -5,6 +5,7 @@
 #include "log.h"
 #include "standalone/static_init.h"
 #include "game/originals_library.h"
+#include "lib/crt.h"
 
 #include <windows.h>
 
@@ -262,8 +263,10 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     if (!run) return installed > 0 && bad == 0 && winMain && routed ? 0 : 1;
     AddVectoredExceptionHandler(1, OnBreakpoint);
     SetUnhandledExceptionFilter(OnUnhandled);
-    // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's
-    // exit runs the functions the initialisers registered with atexit).
+    // As the CRT's start-up: the multibyte code page (__initmbctable, the C initialiser 00783BC0), the
+    // static initialisers, WinMain, then exit with its result (the CRT's exit runs the functions the
+    // initialisers registered with atexit).
+    libcrt::InitMultibyteTable();
     static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
     const int result = reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr,

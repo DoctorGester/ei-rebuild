@@ -264,6 +264,26 @@ struct Exception {
 };
 static_assert(sizeof(Exception) == 12);
 
+// The locale (S4c, src/lib/crt_locale.cpp). setlocale and _setmbcp are the image's only (the hook build
+// keeps the exe's; the game's text manager sets LC_CTYPE from its "Font CharSet" option, then the
+// multibyte code page from it); LC_ALL is not ported (never called). InitMultibyteTable is the CRT
+// start-up's __initmbctable (006EA218: _setmbcp(_MB_CP_ANSI) once), for the image's start. InitCtype is
+// __init_ctype (006F47FB; LC_CTYPE's table builder, called by setlocale; 0 on success).
+struct LocaleId {   // VC6's LC_ID
+    unsigned short language;
+    unsigned short country;
+    unsigned short codePage;
+};
+static_assert(sizeof(LocaleId) == 6);
+char* __cdecl Setlocale(int category, const char* locale);                     // 006EA234
+int __cdecl Setmbcp(int codePage);                                              // 006E9E30
+void InitMultibyteTable();
+int InitCtype();
+// _ismbcdigit / _ismbcspace: a byte by _pctype, a double-byte character (lead byte high) by its class
+// in the multibyte code page (0 without one).
+int __cdecl Ismbcdigit(unsigned c);                                             // 006ECE1A
+int __cdecl Ismbcspace(unsigned c);                                             // 006ECEA9
+
 // The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
 // heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
 void* __cdecl OperatorNew(std::size_t size);                                    // 007005AF

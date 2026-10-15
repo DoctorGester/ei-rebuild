@@ -162,7 +162,7 @@ manager's setlocale query), so tolower / toupper take `_tolower_lk`'s path (LCMa
 `__lc_codepage`) and the compares fold bytes through a table of tolower rebuilt when the locale
 changes; character classes come from `_pctype`, lead bytes from `_mbctype`. Only single-byte paths
 are ported (`__mb_cur_max` 1, `__ismbcodepage` 0). In the standalone image that data is the C
-locale (ASCII case only) unless something sets it: who sets the hook build's locale is still open.
+locale (ASCII case only) until the game sets it (S4c: the text manager's Create, in both builds).
 Library functions have no Ghidra size in function_sizes.inc: each registered one is added to
 config/extra_function_sizes.csv (the installer skips an unknown start). Checks
 (tests/verify/verify_crt.cpp): against the original, memmove ours only; atoi against atol 006E804D;
@@ -263,6 +263,24 @@ ThrowInfo, so the exe's catch tables and ours (verify_mfc_try) both match it; MS
 "Unknown exception" 00747298). check_returns allows 006E7819 (it does not return). Check:
 tests/verify/verify_crt_except.cpp (constructor, copy and what against the originals; a start-up check drives
 all six, since the suite throws none).
+
+**S4c group 3: the locale.** Who sets `__lc_handle[LC_CTYPE]`: the game, in both builds. The text manager's
+Create (004DED20) calls setlocale(LC_CTYPE, the options' "Font CharSet" 0079BE94, "english" from the
+options constructor unless the registry has another) and _setmbcp(_MB_CP_LOCALE); "english" resolves to
+"English_United States.1252", handle 0x409, code page 1252 (the multibyte code page is already 1252 from
+the CRT start-up's `_setmbcp(_MB_CP_ANSI)`, so _setmbcp changes nothing on a 1252 system). The hook build
+keeps the exe's setlocale / _setmbcp (its remaining library code reads that state); the image gets ours
+(src/lib/crt_locale.cpp, `EI_REPLACE_STANDALONE`): getqloc.c's name search (EnumSystemLocalesA with
+the exe's abbreviation tables), _setlocale_set_cat, __init_ctype (class tables by GetStringTypeW, called
+directly: the category table's pointer is exe code), _setmbcp with setSBUpLow; and the image's start
+(src/hook/standalone.cpp) now runs the C initialiser __initmbctable (00783BC0) before the static
+initialisers. Left out: the locks, `__setlc_active`, setlocale(LC_ALL, ...) (never called), the Win9x
+paths. _ismbcdigit / _ismbcspace (both builds): `_pctype` for a byte (also `_isctype`'s answer),
+GetStringTypeW in the multibyte code page for a double-byte character. Check: tests/verify/
+verify_crt_locale.cpp, start-up: the class tests against the originals (every byte and 14 double-byte
+values, under 1252 and 932); _setmbcp for 22 code pages from two states, setlocale for 67 steps (49
+names incl. abbreviations, countries, code pages, Japanese 932, bad names; sequences ending in "C";
+queries), original then ours from the same state, every byte of the state and the class tables equal.
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
