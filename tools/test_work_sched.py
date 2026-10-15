@@ -4,7 +4,7 @@ usage: python tools/test_work_sched.py [-v]
 Each test has its own database and slot folder in a temporary directory (the machine's slots are not
 touched), so it can run beside real suites.
 """
-import json, os, subprocess, sys, tempfile, threading, time, unittest
+import datetime, json, os, subprocess, sys, tempfile, threading, time, unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_all, work, work_sched
@@ -106,6 +106,25 @@ class SchedTest(unittest.TestCase):
         for x in (a, b):
             self.assertEqual((self.batch(x)['state'], self.batch(x)['exit_code']), ('finished', 0))
             self.assertIn('ALL PASS', self.batch(x)['summary'])
+
+    def test_small_batch_goes_ahead_of_a_big_one(self):
+        fake = Fake(default=0.3)
+        big = [f'a{i}' for i in range(16)]
+        a = self.submit(big, expected={n: 30 for n in big})
+        b = self.submit(['b1'], expected={'b1': 10}, build='b2')
+        self.drive(self.sched(fake))
+        self.assertLess(min(fake.starts(b)), max(fake.starts(a)) - 0.1, 'the one-run batch waited for the big one to start')
+
+    def test_waiting_big_batch_gets_its_turn(self):
+        a = self.submit([f'a{i}' for i in range(8)], expected={f'a{i}': 30 for i in range(8)})
+        b = self.submit(['b1'], expected={'b1': 10}, build='b2')
+        rows = {r['id']: r for r in self.db.execute('SELECT * FROM batch')}
+        runs = lambda x: self.db.execute('SELECT * FROM run WHERE batch = ?', (x,)).fetchall()
+        t = datetime.datetime.fromisoformat(rows[a]['submitted']).timestamp()
+        self.assertLess(work_sched.batch_priority(rows[b], runs(b), 4, t), work_sched.batch_priority(rows[a], runs(a), 4, t))
+        later = t + 120     # a has waited 2 min for 60 s of machine work; a new small batch comes in then
+        fresh = dict(rows[b], submitted=datetime.datetime.fromtimestamp(later).astimezone().isoformat())
+        self.assertLess(work_sched.batch_priority(rows[a], runs(a), 4, later), work_sched.batch_priority(fresh, runs(b), 4, later))
 
     def test_unparseable_arguments_fail_the_batch(self):
         fake = Fake(default=0.2)
