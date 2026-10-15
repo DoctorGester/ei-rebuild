@@ -16,11 +16,8 @@ void CUiItemPanel::OnLeftDown(int, int x, int y) {
     if (topic) OwnerTopicClicked(topic);
 }
 namespace {
-void __fastcall ItemPanelLeftDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CUiItemPanel>(input)->OnLeftDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x005EE310, ItemPanelLeftDown);
+EI_REPLACE_METHOD(0x005EE310, InputForward<&CUiItemPanel::OnLeftDown>::Call);
 
 // 0060E210: the blank panel's constructor.
 CUiItemPanel* CUiItemPanel::ConstructBlank(CInterface3D* ui, CUiWindow* owner) {

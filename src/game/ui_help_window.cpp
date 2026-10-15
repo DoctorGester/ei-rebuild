@@ -164,12 +164,6 @@ void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall HelpWindowLeftDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CHelpWindow>(input)->OnLeftDown(buttons, x, y);
-}
-void __fastcall HelpWindowKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CHelpWindow>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00659190, HelpWindowLeftDown);
-EI_REPLACE(0x006592C0, HelpWindowKeyDown);
+EI_REPLACE_METHOD(0x00659190, InputForward<&CHelpWindow::OnLeftDown>::Call);
+EI_REPLACE_METHOD(0x006592C0, InputForward<&CHelpWindow::OnKeyDown>::Call);

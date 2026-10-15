@@ -142,8 +142,5 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     ChooseFigure(owner_, figures_->begin()[index]);
 }
 namespace {
-void __fastcall FigureStripClick(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CUiItemStrip>(input)->OnFigureClick(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00629DB0, FigureStripClick);
+EI_REPLACE_METHOD(0x00629DB0, InputForward<&CUiItemStrip::OnFigureClick>::Call);

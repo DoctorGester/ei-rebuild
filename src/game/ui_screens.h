@@ -73,6 +73,16 @@ auto UiInput::DeleteWindow(unsigned flags) {
     return (WindowFromInput<Window>(this)->*Delete)(flags);
 }
 
+// An input-side handler (slots 1-12 of a window's input vtable) that is the window class's own method:
+// `Call` runs with `this` the input sub-object (at window+0x94) and forwards the same arguments to
+// `Method` on the window. Registered as EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call).
+template <auto Method, typename Signature = decltype(Method)>
+struct InputForward;
+template <auto Method, typename R, typename C, typename... A>
+struct InputForward<Method, R (C::*)(A...)> {
+    R Call(A... args) { return (WindowFromInput<C>(this)->*Method)(args...); }
+};
+
 // The window's input side's handled flag (+0x9C): set by a handler that consumed the event; the
 // interface manager then stops passing it on.
 inline bool& UiHandled(void* window) { return static_cast<CUiWindow*>(window)->Input()->handled_; }

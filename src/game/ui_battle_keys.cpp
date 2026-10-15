@@ -355,8 +355,5 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall BattleScreenKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x0063A560, BattleScreenKeyDown);
+EI_REPLACE_METHOD(0x0063A560, InputForward<&CBattleScreenSetup::OnKeyDown>::Call);

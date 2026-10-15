@@ -367,11 +367,8 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 }
 
 namespace {
-void __fastcall EscMenuLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CEscMenu>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x0062AE90, EscMenuLButtonDown);
+EI_REPLACE_METHOD(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
 
 // --- Main menu clicks (00632D70) ------------------------------------------------------------------
 
@@ -502,11 +499,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 }
 
 namespace {
-void __fastcall MainMenuLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMainMenu>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00632D70, MainMenuLButtonDown);
+EI_REPLACE_METHOD(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
 
 // --- Message box (00634790) -----------------------------------------------------------------------
 

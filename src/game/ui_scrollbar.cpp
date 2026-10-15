@@ -171,17 +171,8 @@ void CUiSlider::OnMouseMove(int, int x, int y) {
 }
 
 namespace {
-void __fastcall ScrollbarMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CUiScrollbar>(input)->OnMouseMove(buttons, x, y);
-}
-int __fastcall ScrollbarWheel(void* input, void*, int flags, int delta, int x, int y) {
-    return WindowFromInput<CUiScrollbar>(input)->OnWheel(flags, delta, x, y);
-}
-void __fastcall SliderMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CUiSlider>(input)->OnMouseMove(buttons, x, y);
-}
 } // namespace
 
-EI_REPLACE(0x0065B1A0, ScrollbarMouseMove);
-EI_REPLACE(0x0065B430, ScrollbarWheel);
-EI_REPLACE(0x0065B810, SliderMouseMove);
+EI_REPLACE_METHOD(0x0065B1A0, InputForward<&CUiScrollbar::OnMouseMove>::Call);
+EI_REPLACE_METHOD(0x0065B430, InputForward<&CUiScrollbar::OnWheel>::Call);
+EI_REPLACE_METHOD(0x0065B810, InputForward<&CUiSlider::OnMouseMove>::Call);
