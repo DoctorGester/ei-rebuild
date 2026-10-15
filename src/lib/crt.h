@@ -85,6 +85,7 @@ int __cdecl fseek(CrtFile* file, long offset, int origin);                      
 long __cdecl ftell(CrtFile* file);                                                   // 006E97C4
 std::size_t __cdecl fread(void* to, std::size_t size, std::size_t count, CrtFile* file);          // 006E8F35
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file); // 006E968B
+int __cdecl fflush(CrtFile* file);                                                   // 006ED534
 // A stream's file descriptor (the _fileno macro: FILE::_file, +0x10; in the standalone image the host
 // CRT's, libcrt::Fileno).
 int fileno(const CrtFile* file);

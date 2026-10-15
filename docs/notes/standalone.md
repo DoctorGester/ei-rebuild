@@ -282,6 +282,21 @@ values, under 1252 and 932); _setmbcp for 22 code pages from two states, setloca
 names incl. abbreviations, countries, code pages, Japanese 932, bad names; sequences ending in "C";
 queries), original then ours from the same state, every byte of the state and the class tables equal.
 
+**S4c group 4: the ostream inserters.** src/lib/crt_iostream.{h,cpp}, both builds (the streams are the
+game's): MSVC 6's old iostream layouts (streambuf with its 11 virtual slots, ios, ostream with its
+virtual base table and x_floatused) and operator<< for char 006FC0B0, unsigned 006FC14E, const char*
+006FC31D, double 006FC7FA, long 006FC91C, int 006FC9C6, the manipulator 00434FE0, ostream::flush 006FC346
+and the flush manipulator 00435000; opfx / osfx / writepad are internal (the exe's other callers keep the
+exe's). Numbers go through the game's sprintf as VC6 builds the format ("%%%s.%.0ug" for double, the
+precision capped at 15, 6 after the inline float inserter); the double's buffer is larger than VC6's 24
+bytes (a fixed value past 10^22 overruns it there). Check: tests/verify/verify_crt_iostream.cpp shadows
+every game call on scratch streams (original and ours, recording streambufs: bytes, streambuf calls, state,
+width) and runs a start-up battery of 9,191 insertions (25 formats x 7 streambuf behaviours); operator<<
+(const char*)'s original is rebuilt from the exe's opfx / writepad / osfx (no room for a trampoline);
+flush and the manipulators are ours only. Left for the image: the streams themselves (ostream(streambuf*)
+006FC42F, which the static initialisers call, the ios / streambuf constructors and destructors, the
+log's streambuf), fflush for ios::stdio.
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on

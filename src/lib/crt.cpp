@@ -102,6 +102,7 @@ __declspec(naked) int __cdecl fseek(CrtFile*, long, int) EI_ORIGINAL(0x006E95D2)
 __declspec(naked) long __cdecl ftell(CrtFile*) EI_ORIGINAL(0x006E97C4)
 __declspec(naked) std::size_t __cdecl fread(void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E8F35)
 __declspec(naked) std::size_t __cdecl fwrite(const void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E968B)
+__declspec(naked) int __cdecl fflush(CrtFile*) EI_ORIGINAL(0x006ED534)
 
 __declspec(naked) void __cdecl splitpath(const char*, char*, char*, char*, char*) EI_ORIGINAL(0x006E8BEE)
 __declspec(naked) double __cdecl ceil(double) EI_ORIGINAL(0x006E8B1F)
