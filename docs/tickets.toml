@@ -745,7 +745,7 @@ title = "render_present_cpuwindows: the original's unmoco2 hit points are anothe
 group = "verification"
 size = 0.25
 depends = ["SV3a"]
-note = "From SV3d: after SV3a (unmoco2's hit points as the original's), render_present_cpuwindows (vanilla) still differs at the first record: obj2 hp nan:0xFFFFFF0A in the original (in both runs), nan:0xFFC00000 in ours. Other scenarios agree on 0xFFC00000; cunit2's packed vitals now agree everywhere. Find where the original's value comes from on that path (CPU windows) and match it, or add a KNOWN entry. SV2b: on the one-reservation harness heap the original's obj2 hp is a NaN from its stack leftovers in every scenario (0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth, by scenario; repeats); golden.py KNOWN leaves obj2 hp out. Match it (the leftover dwords on GiveDefaults' stack) or keep the entry."
+note = "Settled by SV7b3 (2026-10-15): the UnitStats leftovers are zeroed in both the original (harness_leftovers.cpp) and ours; unmoco2 hp is 1.0 on both sides."
 
 [[ticket]]
 id = "SV3i"
