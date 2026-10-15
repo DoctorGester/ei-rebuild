@@ -487,6 +487,8 @@ void StringJoinStartupCheck() {
     const auto plusString = OriginalOf<0x00427E80>(&StringAbi::PlusString);
     const auto equals = OriginalOf<0x00427FA0>(&StringAbi::Equals);
     const auto allocateBlock = OriginalOf<0x00424E40>(&StringAbi::AllocateBlock);
+    // No trampolines when the addresses are not hooked (disabled.txt, record mode).
+    if (!plusText || !plusString || !equals || !allocateBlock || !s_throwOutOfRange) return;
     static const char* const kTexts[] = {"", "a", "basic_string", "the quick brown fox jumps over the lazy dog"};
     const char allocator = 0;
     alignas(4) unsigned char storage[4][sizeof(stlp::string)];
