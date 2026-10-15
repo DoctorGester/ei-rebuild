@@ -7,7 +7,6 @@ CUnitServer::SaveServer (005561C0, combat_save.cpp).
 
 import savefile_objects as objects
 
-ONE_BITS = 0x3F800000       # 1.0f
 UNSET_SHELTER = 0xC4A42000  # -1313.0f, FearMode::Construct's "no shelter"
 
 
@@ -251,9 +250,8 @@ def read_look(r, name):
         r.u8('stopFirst')
 
 
-def read_mode(r, name, thought):
-    """A mode: its type (slot 8), then its Save (slot 12; unit_ai_modes.cpp). `thought`: the brain's decay is
-    not 1.0 (AIBrain::Think 005D53B0 ran since the brain was set up or loaded)."""
+def read_mode(r, name):
+    """A mode: its type (slot 8), then its Save (slot 12; unit_ai_modes.cpp)."""
     with r.scope(name):
         kind = r.i32('type')
         if kind == 0:       # GuardMode::Save 005D0F00
@@ -273,17 +271,14 @@ def read_mode(r, name, thought):
         elif kind == 2:     # SentryMode::Save 005D1DC0
             r.vec('point')
         elif kind == 3:     # SuspectionMode::Save 005D2360
-            if not thought or peek_u32(r, 8) != 0:
-                why = ('SuspectionMode +0x08..+0x17 (point, level): the constructors (AddSuspectionMode, '
-                       'NewModeOfType, the script\'s) leave them; Evaluate (005D1E90, each Think past the inactive '
-                       'test) copies the noticed point with z 0 once it differs (unordered counts as the same, so a '
-                       'NaN x survives). Junk while the brain has not thought since it was set up or loaded (decay '
-                       '1.0) or point.z is not 0 (never copied)')
-                junk_vec(r, 'point', why)
-                r.junk('level', 4, why)
-            else:
-                r.vec('point')
-                r.i32('level')
+            why = ('SuspectionMode +0x08..+0x17 (point, level): the constructors (AddSuspectionMode, NewModeOfType, '
+                   'the script\'s) leave them; Evaluate (005D1E90, each Think) either copies the brain\'s noticed point '
+                   'and level (saved with the brain: noticedX/Y/Level) with z 0, or, while the point compares the same '
+                   '(unordered too), keeps the leftover point and takes min(leftover level, noticedLevel). Whether it '
+                   'ever copied cannot be told from the save when the leftover z is 0 (the original\'s plain heap holds '
+                   'zeros, EI_HEAP_JITTER fill and ours other bytes), so both are left out')
+            junk_vec(r, 'point', why)
+            r.junk('level', 4, why)
         elif kind == 4:     # AggressionMode::Save 005D27A0
             r.id('enemy')
             r.u8('fixed')
@@ -414,7 +409,6 @@ def read_brain(r):
         r.f32('callRadius')
         r.f32('nearX')
         r.f32('nearY')
-        thought = peek_u32(r) != ONE_BITS
         r.f32('decay')
         r.vec('previousPosition')
         r.vec('position')
@@ -422,7 +416,7 @@ def read_brain(r):
         count = r.i32('modes')
         r.i32('currentMode')
         for i in range(count):
-            read_mode(r, f'mode{i}', thought)
+            read_mode(r, f'mode{i}')
         read_memory(r)
         r.u8('alerted')
         r.i8('alarm')
@@ -513,7 +507,10 @@ def read_controller(r, text_key):
                 r.i16(str(i))
         r.i32('boredTicks')
         read_damage_info(r, 'pendingHit')
-        r.i32('waitFrame')
+        r.junk('waitFrame', 4, 'CUnitServer +0x93C: set to the world tick only when a queued order is taken over '
+               '(TakeQueuedOrder 0054A6E0, LeaveMoveMode), never initialised (the constructor and ResetController '
+               'leave it), so the save cannot tell a stamp from a leftover; the original\'s value follows memory '
+               '(EI_HEAP_JITTER)')
     return motion_kind
 
 

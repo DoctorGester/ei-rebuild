@@ -92,15 +92,10 @@ SAVES_KNOWN = {
     r'^obj\d+ (controller\.motion\.order\.step\d+\.flags|motion\.point\d+\.speed|motion\.stepSpeed\d+)$':
         "SV7d2: one path step's flags (UnitMotion's step speed, ai_motion.cpp Build) are 0x2664 in ours where the "
         "original has 0x1417 / 0x2963 / 0x4310 (camera obj1804, Rebirth obj1890 and obj1937, every run)",
-    r'^obj\d+ controller\.waitFrame$':
-        "SV7d3: the controller's waitFrame is set only when an order is taken over and nothing initialises it; the "
-        "original's memory holds 189 (vanilla) or 0 (Rebirth) where ours holds 244 / 173 (camera obj1898)",
-    r'^obj\d+ controller\.brain\.mode2\.(point\.[xyz]|level)$':
-        "SV7d4: a Suspection mode that has not noticed anything keeps 0,0,0 / 0 in the original but 0xFFFFFFFF "
-        "(NaN, level -1) in ours, which Evaluate keeps since NaN compares the same (camera obj1890)",
     r'^obj\d+ controller\.brain\.memory\.seenCorpses\.\d+$':
-        "SV7d5: the corpse a unit's memory records first differs (ground_prints obj1000011214: 1195532174 / "
-        "1195532175, the other way round under Rebirth)",
+        "SV7b1: a party unit's seenCorpses are rebuilt from a ScriptGroup (player_sync.cpp), so in address order "
+        "(ground_prints obj1000011214: 1195532174 / 1195532175, the other way round under Rebirth and under "
+        "EI_HEAP_JITTER=1 in the original)",
     r'^commands globals\.(groups\.3\.object[12]|objects\.2\.value)$':
         "SV7b1: render_movie_present's script group \"Peasans\" is [1884, 699, 702] in the original and "
         "[1884, 702, 699] in ours, so the loop variable i ends on the other id (members in address order)",

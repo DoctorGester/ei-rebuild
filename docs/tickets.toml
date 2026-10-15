@@ -941,7 +941,7 @@ id = "SV7b1"
 title = "Script groups ordered by object id, not address"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes). SV7d: the decoded saves show it too: render_movie_present (vanilla) mission.sav's zone script group 'Peasans' (commands globals.groups.3) is [1884, 699, 702] in the original and [1884, 702, 699] in ours, and the loop variable i (globals.objects.2) ends on the other id. golden.py SAVES_KNOWN leaves those fields out under SV7b1: drop that entry when this lands."
+note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes). SV7d: the decoded saves show it too: render_movie_present (vanilla) mission.sav's zone script group 'Peasans' (commands globals.groups.3) is [1884, 699, 702] in the original and [1884, 702, 699] in ours, and the loop variable i (globals.objects.2) ends on the other id. golden.py SAVES_KNOWN leaves those fields out under SV7b1: drop that entry when this lands. SV7d: also the party units' brain.memory.seenCorpses (PartySync in player_sync.cpp rebuilds them from a ScriptGroup): ground_prints obj1000011214's two corpses swap between the original and ours and between the original's plain and EI_HEAP_JITTER=1 runs; SAVES_KNOWN marks that entry SV7b1 too (SV7d5 checks it after this lands)."
 
 [[ticket]]
 id = "SV7b2"
@@ -1000,7 +1000,7 @@ title = "Unit controller waitFrame: the original's memory value"
 group = "verification"
 size = 0.25
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): CUnitServer's waitFrame is written only when an order is taken over (combat_tick.cpp) and nothing initialises it; the save writes it whole. The original holds 189 (vanilla) or 0 (Rebirth) for camera obj1898 in both runs, ours 244 / 173 (other units 0 vs leftovers). Find what the original's controller block holds there on construction (the allocation's previous contents or a constructor write) and give ours the same, or show the value is never read and make it a junk rule in savefile_unit. Drop the SV7d3 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves), SV7b2's family. CUnitServer's waitFrame (+0x93C) is set to the world tick only when a queued order is taken over (TakeQueuedOrder 0054A6E0, LeaveMoveMode in combat_tick.cpp) and never initialised; ResolveBlocker (unit_motion_tick.cpp) reads it (a party member waits while CurrentFrame() < waitFrame + 2), so a leftover can decide whether a follower waits. The original's value follows memory: camera obj1898 189 in plain runs, 209 under EI_HEAP_JITTER=1 (Rebirth 0 / other values), ours 244 / 173. savefile_unit leaves it out (junk). Give it a canonical start (0) in the standalone and, if the harness patches the original alike, check the goldens; then the junk rule can become a value again."
 
 [[ticket]]
 id = "SV7d4"
@@ -1008,7 +1008,7 @@ title = "Suspection mode starts from 0xFFFFFFFF in ours, zeros in the original"
 group = "verification"
 size = 0.25
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): an AI Suspection mode (brain mode 2, Save 005D2360) that has noticed nothing keeps point 0,0,0 and level 0 in the original, but 0xFFFFFFFF (NaN) and level -1 in ours; Evaluate 005D1E90 keeps the NaN point because NaN compares as the same. Camera obj1890 and others (Rebirth ui_widescreen_more obj1936). Our AI mode allocations start from 0xFF memory where the original's held zeros: match the original's start state. Drop the SV7d4 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves), SV7b2's family. SuspectionMode's point and level (+0x08..+0x17) are never set by the constructors (AddSuspectionMode, NewModeOfType, the script's). Evaluate 005D1E90 copies the brain's noticed point and level, but while the leftover point compares the same (unordered too) it keeps it and returns min(leftover level, noticedLevel), and that return picks the brain's mode. The original's plain heap holds zeros there (0,0,0 / 0); under EI_HEAP_JITTER fill and in ours (0xFFFFFFFF: NaN, level -1) other bytes, so a Suspection mode that noticed nothing can evaluate to -1 in ours and 0 in the original. savefile_unit leaves both out (junk). Give them a canonical start (zeros, as the original's usual heap) in the standalone and check the goldens."
 
 [[ticket]]
 id = "SV7d5"
@@ -1016,7 +1016,7 @@ title = "seenCorpses: units note corpses in another order"
 group = "verification"
 size = 0.25
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): ground_prints obj1000011214's brain.memory.seenCorpses.0 is 1195532174 in the original and 1195532175 in ours (vanilla), the other way round under Rebirth, in both runs of each. The order units' memories record corpses follows some iteration (by memory or list order); find it (SaveMemory 005CC350's list, the corpse watcher) and match it. Drop the SV7d5 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): folded into SV7b1. ground_prints obj1000011214's brain.memory.seenCorpses order is 1195532174, 1195532175 in the original and the other way round in ours (and in the original under EI_HEAP_JITTER=1, and under Rebirth). PartySync (player_sync.cpp) rebuilds each party unit's seenCorpses from a ScriptGroup (known.InsertAll, ScriptGroupToListOriginal), whose members are in address order. Nothing to do beyond SV7b1: once it lands, check the order agrees and drop the seenCorpses entry (marked SV7b1) from golden.py SAVES_KNOWN."
 
 # ---------------------------------------------------------------- harness and suite
 

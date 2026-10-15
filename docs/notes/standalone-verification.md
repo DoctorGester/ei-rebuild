@@ -292,7 +292,8 @@ behind a hash, run the original again (its runs repeat) and `golden.py diff` the
 script_fx, terrain_water_load, world_load) take `dump loaded_<save>` once the load is done: the loaded world field by
 field, kept as a compact dump. The saves' bytes are kept (saves.txt: size and hash of every `<save>/*.sav` but the
 thumbnail shot.sav) only when every run wrote the same bytes, and that never happened: mission.sav differs in size and
-bytes between two runs of the original in every scenario that saves (SV3b).
+bytes between two runs of the original in every scenario that saves (SV3b). Since SV7d goldens keep the saves
+decoded field by field instead, with the bytes that follow memory left out by rule (section SV7d).
 
 **Known differences** (golden.py KNOWN, each with its ticket): fields kept in clear in compact digests and left out
 of comparisons with a golden (`compare --strict` keeps them), so a golden needs no re-recording when the ticket lands;
