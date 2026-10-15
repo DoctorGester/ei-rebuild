@@ -731,6 +731,20 @@ console). The image installs all five image-only registrations; `--standalone` b
 005AF580. Left: S8b (resource strings, the exceptions' error messages and ReportError, CFile's name
 slots 4-6; they need the module state's resource handle and game.exe's string table in the image).
 
+**S6a (2026-10-15).** The CArray / CList / CMap functions only the exe's vtables point at, 400
+addresses (src/lib/mfc_slots.*, game-element ones in src/game/game_slots.*). Scalar deleting
+destructors (slot 1) are one template, `ScalarDelete<&Destruct>`, over each instantiation's
+destructor (S6 / S7 policies; new ones for elements destroyed through their vtable, aligned blocks
+and CStrings at fixed offsets); the four exception classes' destructors are jumps to std::exception's.
+Serialize (slot 2) is afxtempl's with the default SerializeElements (each element's raw bytes,
+whatever it holds) over S8's CArchive: `SerializeCArray / SerializeCList / SerializeCMap<Abi>`; the
+element policy must be the one the instantiation's inlined SetSize / NewNode uses, which is not always
+its destructor's (00450570 builds bone-link arrays its destructor deletes through slot 1). Checks:
+destructors ours only (vtable left, header emptied, slot owner); every Serialize at start-up next to
+the original (stolen bytes) on memory archives: the stored bytes, and loads into empty, growing and
+shrinking objects. No suite scenario calls a Serialize. Left: S6c (33 Serialize whose elements are
+counted references or script records, about 20 destructors).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
