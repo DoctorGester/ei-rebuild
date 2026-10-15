@@ -669,3 +669,71 @@ using A0042A850 = TwinConstructElements<0x0042A850, Plain4>;
 EI_VERIFY(0x0042A850, A0042A850::Run, 5, A0042A850::original);
 using A00573250 = TwinConstructElements<0x00573250, Plain4>;
 EI_VERIFY(0x00573250, A00573250::Run, 5, A00573250::original);
+
+// Batch 6: CArray<CString> and the script groups by value (ours only: they reference and copy).
+namespace {
+using StringArray = Strings::Array;
+bool SameStrings(const StringArray* a, const StringArray* b) {
+    if (a->size != b->size) return false;
+    for (int i = 0; i < a->size; ++i)
+        if (std::strcmp(a->data[i], b->data[i]) != 0) return false;
+    return true;
+}
+CString* __fastcall StringGetAtVerify(const StringArray* self, void*, CString* result, int index) {
+    CString* returned = StringArrayAbi::GetAt(self, nullptr, result, index);
+    Check("CArray GetAt 004C2680", true, returned == result && std::strcmp(*result, self->data[index]) == 0, "%d", index);
+    return returned;
+}
+void __fastcall StringCopyVerify(StringArray* self, void*, const StringArray* source) {
+    StringArrayAbi::Copy(self, nullptr, source);
+    Check("CArray Copy 004C14A0", true, SameStrings(self, source), "%d", self->size);
+}
+void __fastcall StringArrayDestructVerify(StringArray* self) {
+    Strings::Destruct<StringArrayClass>(self);
+    Check("CArray destructor 004C26A0", true, self->vtable == StringArrayClass::Vtable(), "");
+}
+
+using RefArray = gamearrays::ObjectRefs::Array;
+using GroupArray = gamearrays::Groups::Array;
+bool SameRefs(const RefArray* a, const RefArray* b) {
+    if (a->size != b->size) return false;
+    for (int i = 0; i < a->size; ++i)
+        if (a->data[i].object != b->data[i].object) return false;
+    return true;
+}
+const RefArray* Refs(const ScriptGroup* group) { return reinterpret_cast<const RefArray*>(group); }
+void __fastcall ObjectRefCopyVerify(RefArray* self, void*, const RefArray* source) {
+    gamearrays::ObjectRefCopy(self, nullptr, source);
+    Check("CArray Copy 004C1290", true, SameRefs(self, source), "%d", self->size);
+}
+ScriptGroup* __fastcall GroupGetAtVerify(const GroupArray* self, void*, ScriptGroup* result, int index) {
+    ScriptGroup* returned = gamearrays::GroupGetAt(self, nullptr, result, index);
+    Check("CArray GetAt 004C3B00", true,
+          returned == result && result->vtable == ScriptGroupClass::Vtable() && SameRefs(Refs(result), Refs(&self->data[index])),
+          "%d", index);
+    return returned;
+}
+void __fastcall GroupArrayCopyVerify(GroupArray* self, void*, const GroupArray* source) {
+    gamearrays::GroupArrayCopy(self, nullptr, source);
+    bool ok = self->size == source->size;
+    for (int i = 0; ok && i < self->size; ++i) ok = SameRefs(Refs(&self->data[i]), Refs(&source->data[i]));
+    Check("CArray Copy 004C1BE0", true, ok, "%d", self->size);
+}
+void __fastcall GroupArrayDestructVerify(GroupArray* self) {
+    gamearrays::Groups::Destruct<gamearrays::GroupArrayClass>(self);
+    Check("CArray destructor 004C3B20", true, self->vtable == gamearrays::GroupArrayClass::Vtable(), "");
+}
+} // namespace
+using A004C2510 = TwinSetSizeGrow<0x004C2510, Strings>;
+EI_VERIFY(0x004C2510, A004C2510::Run, 5, A004C2510::original);
+EI_VERIFY(0x004C2680, StringGetAtVerify, 0, s_unused);
+EI_VERIFY(0x004C14A0, StringCopyVerify, 0, s_unused);
+EI_VERIFY(0x004C26A0, StringArrayDestructVerify, 0, s_unused);
+EI_VERIFY(0x004C1290, ObjectRefCopyVerify, 0, s_unused);
+EI_VERIFY(0x004C3B00, GroupGetAtVerify, 0, s_unused);
+EI_VERIFY(0x004C1BE0, GroupArrayCopyVerify, 0, s_unused);
+EI_VERIFY(0x004C3B20, GroupArrayDestructVerify, 0, s_unused);
+using A006C5050 = TwinConstructElements<0x006C5050, AlignedArrays>;
+EI_VERIFY(0x006C5050, A006C5050::Run, 5, A006C5050::original);
+using A006C5010 = OursDestructElements<0x006C5010, AlignedArrays>;
+EI_VERIFY(0x006C5010, A006C5010::Run, 0, A006C5010::original);

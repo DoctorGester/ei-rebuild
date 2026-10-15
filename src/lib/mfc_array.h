@@ -9,12 +9,14 @@
 // helpers __stdcall), and mfc_array.cpp registers each instantiation our code forwards to at its
 // library address. Checked by tests/verify/verify_mfc_array.cpp.
 
+#include "containers.h"
 #include "mfc.h"
 #include "mfc_string.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <new>
 #include <type_traits>
 
 namespace mfc::impl {
@@ -235,6 +237,9 @@ struct CellRowArrayClass {   // the AI map's cell rows
 };
 struct AreaListClass {   // the AI map's area lists
     static void* Vtable() { return reinterpret_cast<void*>(0x0073F9E0); }
+};
+struct StringArrayClass {   // CArray<CString> (the script's string variables)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D2F8); }
 };
 struct ArrayBaseClass {   // the base vtable the element arrays' destructors restore (patrols, motion records)
     static void* Vtable() { return reinterpret_cast<void*>(0x0073C388); }
@@ -464,6 +469,33 @@ using AiLookRecords = ArrayAbi<AiLookElement, EachElements<AiLookElement, InitWi
 using AllodElement = StringsAndArray<0x2C, 6, 0x18, IntArrayClass>;
 using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
                                                        DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>>>;
+
+// Elements that are the engine's aligned arrays (lib/containers.h AlignedArray, 16 bytes; the terrain
+// sectors' lists): zero filled (006C5050); destroyed by freeing the block (006C5010), the fields left.
+inline void FreeAlignedData(Bytes<16>* p) {
+    void* data = *reinterpret_cast<void**>(p->bytes);
+    if (data) lib::FreeAligned32(data);
+}
+using AlignedArrays = ArrayAbi<Bytes<16>, EachElements<Bytes<16>, nullptr, FreeAlignedData>>;
+
+// CArray<CString>: built and destroyed by MFC's ConstructElements / DestructElements<CString>
+// (006FE268 / 006FE296, mfc_string.cpp).
+using Strings = ArrayAbi<CString, HelperElements<CString, ConstructStrings, DestructStrings>>;
+struct StringArrayAbi {
+    using Array = Strings::Array;
+    // 004CC840 / 004C2680 (RET 8): element `index` copy-constructed into `result`; returns `result`.
+    static CString* __fastcall GetAt(const Array* self, void*, CString* result, int index) {
+        return new (result) CString(self->data[index]);
+    }
+    // 004C14A0 (RET 4): SetSize to the source's size, then each element assigned from a copy (GetAt).
+    static void __fastcall Copy(Array* self, void*, const Array* source) {
+        self->SetSize(source->size, -1);
+        for (int i = 0; i < source->size; ++i) {
+            CString copy(source->data[i]);
+            self->data[i] = copy;
+        }
+    }
+};
 
 // mfc_array.cpp: the element destructors registered on their own (0045E1E0, 004C9AF0, 004608D0).
 void __fastcall DestroyPatrol(PatrolElement* p);

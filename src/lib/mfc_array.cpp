@@ -205,4 +205,15 @@ EI_REPLACE(0x004C9970, AiLookRecords::SetSize);
 EI_REPLACE(0x004CDE30, AiLookRecords::ConstructElements);
 EI_REPLACE(0x004606F0, OwnedAllods::DestructElements);
 
+// ---- Elements that are aligned arrays ------------------------------------------------------------
+EI_REPLACE(0x006C5050, AlignedArrays::ConstructElements);
+EI_REPLACE(0x006C5010, AlignedArrays::DestructElements);
+
+// ---- CArray<CString> ---------------------------------------------------------------------------------
+EI_REPLACE(0x004C2510, Strings::SetSize);
+EI_REPLACE(0x004C26A0, Strings::Destruct<StringArrayClass>);
+EI_REPLACE(0x004CC840, StringArrayAbi::GetAt);
+EI_REPLACE(0x004C2680, StringArrayAbi::GetAt);
+EI_REPLACE(0x004C14A0, StringArrayAbi::Copy);
+
 } // namespace mfc::impl

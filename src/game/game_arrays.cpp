@@ -39,6 +39,45 @@ ScriptObjectRef* __fastcall ObjectRefGetAt(const ObjectRefs::Array* self, void*,
 }
 EI_REPLACE(0x004CC7A0, ObjectRefGetAt);
 EI_REPLACE(0x004C21E0, ObjectRefGetAt);
+void __fastcall ObjectRefCopy(ObjectRefs::Array* self, void*, const ObjectRefs::Array* source) {
+    self->SetSize(source->size, -1);
+    for (int i = 0; i < source->size; ++i) {
+        ScriptObjectRef copy;
+        ObjectRefGetAt(source, nullptr, &copy, i);
+        ScriptObjectRef* slot = &self->data[i];
+        ReleaseAndClear(slot);
+        slot->object = copy.object;
+        if (copy.object) ++copy.object->refCount_;
+        ReleaseAndClear(&copy);
+    }
+}
+EI_REPLACE(0x004C1290, ObjectRefCopy);
+
+// Script groups by value.
+namespace {
+ObjectRefs::Array* Refs(ScriptGroup* group) { return reinterpret_cast<ObjectRefs::Array*>(group); }
+const ObjectRefs::Array* Refs(const ScriptGroup* group) { return reinterpret_cast<const ObjectRefs::Array*>(group); }
+} // namespace
+ScriptGroup* __fastcall GroupGetAt(const Groups::Array* self, void*, ScriptGroup* result, int index) {
+    InitGroup(result);
+    ObjectRefCopy(Refs(result), nullptr, Refs(&self->data[index]));
+    return result;
+}
+EI_REPLACE(0x004CC890, GroupGetAt);
+EI_REPLACE(0x004C3B00, GroupGetAt);
+void __fastcall GroupArrayCopy(Groups::Array* self, void*, const Groups::Array* source) {
+    self->SetSize(source->size, -1);
+    for (int i = 0; i < source->size; ++i) {
+        alignas(ScriptGroup) std::uint8_t storage[sizeof(ScriptGroup)];
+        auto* copy = reinterpret_cast<ScriptGroup*>(storage);
+        GroupGetAt(source, nullptr, copy, i);
+        ObjectRefCopy(Refs(&self->data[i]), nullptr, Refs(copy));
+        copy->DestructBody();
+    }
+}
+EI_REPLACE(0x004C1BE0, GroupArrayCopy);
+EI_REPLACE(0x004C3B20, Groups::Destruct<GroupArrayClass>);
+
 EI_REPLACE(0x0059C8C0, ObjectPtrs::SetSize);
 EI_REPLACE(0x00570000, ObjectPtrs::SetSize);
 EI_REPLACE(0x0059C890, ObjectPtrs::DestructElements);
