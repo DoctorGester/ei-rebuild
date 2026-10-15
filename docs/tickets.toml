@@ -1543,11 +1543,12 @@ done = "2026-10-15"
 id = "S6"
 title = "Standalone library: MFC CArray<T>"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["src/lib/mfc_array.h", "src/lib/mfc.h", "src/lib/containers.h"]
 note = "About 200 forwarded instantiations: SetSize 65, constructors / destructors 45, Copy, SetAtGrow, GetAt, Add, RemoveAt, ConstructElements / DestructElements. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S7"
