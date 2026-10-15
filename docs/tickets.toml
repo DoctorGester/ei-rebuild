@@ -1778,10 +1778,11 @@ done = "2026-10-15"
 id = "S4b"
 title = "Standalone library: CRT file functions and the rest of the heap (image only)"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp"]
 note = "EI_REPLACE_STANDALONE (S4 group 2): the game CRT's FILE table and heap stay the exe's in the hook build (MFC CStdioFile shares them). fopen 006E9107, fclose 006E8EB8, fseek 006E95D2, ftell 006E97C4, fread 006E8F35, fwrite 006E968B, _open 006EB35C, _read 006EB046, _write, _lseek 006EB284, _close 006EAF66, _filelength, _access 006EAF20, _findfirst 006EB832 over the host CRT; realloc, calloc, _msize, _strdup and any other heap entry the image reaches must use the host heap that S4's malloc / free now use (a game realloc of a host block corrupts it). The exe's __xp / __xt terminators flush the game CRT streams: exit runs the host's. standalone.md S4."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S4c"
