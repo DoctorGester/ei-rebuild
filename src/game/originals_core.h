@@ -17,6 +17,10 @@ struct Quaternion;
 struct Vector3;
 namespace net { class ServerEntry; }
 
+// 004018A0 (rewritten as Quaternion::PreMultiply): *q = r * *q through the game's address (the shadow's
+// turn, map_object_shadow.cpp; the harness's shadow turn patch, harness_shadow_turn.h).
+__declspec(naked) inline void __fastcall PreMultiplyAt(Quaternion* /*q*/, void*, const Quaternion* /*r*/)
+    EI_ORIGINAL(0x004018A0)
 __declspec(naked) inline double __fastcall DotRaw(const Vector3* /*a*/, const Vector3* /*b*/) EI_ORIGINAL(0x00401E00)
 __declspec(naked) inline double __fastcall LengthRaw(const Vector3* /*v*/) EI_ORIGINAL(0x00401E20)
 __declspec(naked) inline Vector3* __fastcall Negate(Vector3* /*out*/, const Vector3* /*v*/) EI_ORIGINAL(0x00402200)

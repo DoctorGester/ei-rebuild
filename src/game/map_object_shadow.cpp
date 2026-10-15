@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "render/render.h"
+#include "originals_core.h"
 #include "originals_effects.h"
 #include "originals_world.h"
 
@@ -110,9 +111,8 @@ __declspec(naked) void __fastcall UnlockSurface(void*) EI_ORIGINAL(0x00691030)
 void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0 (DeviceDrawFlatOriginal, originals_render.h). Device: draws the shadow geometry.
-// Rewritten elsewhere, through their game addresses: 004018A0 Quaternion::PreMultiply,
-// 005A0CD0 CFigureMesh::DrawOffset.
-__declspec(naked) void __fastcall PreMultiplyAt(Quaternion*, void*, const Quaternion*) EI_ORIGINAL(0x004018A0)
+// 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
+// CFigureMesh::DrawOffset.
 __declspec(naked) int __fastcall ProjectPart(void*, void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0CD0)
 
 // 004EBE60: *slot = value with counted references; the old value is released (its slot 4).
@@ -266,12 +266,17 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
     LightRotation(pipeline, nullptr, &direction.x, &turn);
     CObject3D* object = self->object;
+    // The original turns the object back with the conjugate (0051D4E0 PreMultiply), which is not exact:
+    // each re-rendered shadow moved the orientation by an ulp, and how often that ran followed the frame
+    // timing. Ours keeps the orientation and puts it back (a determinism fix kept in the standalone; the
+    // harness does the same in the original, harness_shadow_turn.h, SV7b4a).
+    const Quaternion kept = object->orientation;
     PreMultiplyAt(&object->orientation, nullptr, &turn);
     ObjectWorldMatrix(&object->orientation, &object->position, &object->worldMatrix);
-    turn.x = -turn.x;
+    turn.x = -turn.x;   // the turn back, still used for the projector below
     turn.y = -turn.y;
     turn.z = -turn.z;
-    PreMultiplyAt(&self->object->orientation, nullptr, &turn);
+    self->object->orientation = kept;
     view = self->object->worldMatrix;
     std::memcpy(&self->bounds[0], &kFloatMax, 4);
     std::memcpy(&self->bounds[2], &kFloatLowest, 4);
