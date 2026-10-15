@@ -686,6 +686,33 @@ void SceneMesh::Construct() {
     ei::SetVtable(this, kVtableAddress);
 }
 
+// Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.
+void SceneMesh::Destruct() {
+    FaceGroupArrayDestruct(&groups);
+    faces.FreeData();
+    cornerIndices.FreeData();
+    pairs.FreeData();
+    corners.FreeData();
+    normals.FreeData();
+    texCoords.FreeData();
+    positions.FreeData();
+    spareBlocks0C8.FreeData();
+    normalBlocks.FreeData();
+    positionBlocks.FreeData();
+    spareBlocks098.FreeData();
+    name.~CString();
+    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    CEngineObject::DestructBase();
+}
+EI_REPLACE_METHOD(0x00454830, SceneMesh::Destruct);
+
+SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00454810, SceneMesh::DeletingDestruct);
+
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 
 namespace {

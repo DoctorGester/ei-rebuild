@@ -249,15 +249,21 @@ struct SceneMesh : CTransformObject {
     // scene_loader.cpp): the transform object's (00453400), the name empty, the groups' array
     // empty (00454A50), then the mesh's vtable.
     void Construct();
+    // 00454830 (slot 0's body; 00454810 is the scalar deleting destructor): the face groups, the
+    // eleven aligned blocks from the last, the name, then the transform object's vtable and the
+    // engine object's destructor body.
+    void Destruct();
+    SceneMesh* DeletingDestruct(unsigned flags);
 
     std::uint8_t unused_054[0x94 - 0x54];
     mfc::CString name;                  // +0x094
-    std::uint8_t unused_098[0xA8 - 0x98];
+    // +0x098 / +0x0C8 aligned blocks no loader code we know fills; the destructor frees them.
+    lib::AlignedArray<std::uint8_t> spareBlocks098;
     // +0x0A8 / +0x0B8 the positions and the normals packed four to a 64-byte block (x[4], y[4],
     // z[4], w[4]; 0044E3B0 / 0044DCF0); the figures copy them (CFigureMesh +0x1C0 / +0x1D0).
     BlockBuffer positionBlocks;
     BlockBuffer normalBlocks;
-    std::uint8_t unused_0C8[0xD8 - 0xC8];
+    lib::AlignedArray<std::uint8_t> spareBlocks0C8;
     PointBuffer positions;              // +0x0D8 the file's bits
     UvBuffer texCoords;                 // +0x0E8
     PointBuffer normals;                // +0x0F8 one per position (0044DCF0)
@@ -281,6 +287,7 @@ struct SceneMesh : CTransformObject {
     int materialType;
 };
 static_assert(offsetof(SceneMesh, name) == mesh::kName);
+static_assert(offsetof(SceneMesh, spareBlocks098) == 0x98 && offsetof(SceneMesh, spareBlocks0C8) == 0xC8);
 static_assert(offsetof(SceneMesh, positions) == mesh::kPositions);
 static_assert(offsetof(SceneMesh, texCoords) == mesh::kTexCoords);
 static_assert(offsetof(SceneMesh, faces) == mesh::kFaces);

@@ -8,6 +8,7 @@
 #include "verify.h"
 
 #include "../../src/game/record_arrays.h"
+#include "../../src/lib/mfc_gdi.h"
 
 #include <cstdio>
 #include <cstring>
@@ -258,6 +259,56 @@ struct OursDelete {
     }
 };
 
+// An engine object's destructor body (ours only): the engine object's vtable left.
+template <std::uintptr_t Address, typename T, void (T::*Fn)()>
+struct OursObjectDestruct {
+    static inline void* original;
+    static void __fastcall Run(T* self) {
+        static const char* name = Name("element destructor", Address);
+        (self->*Fn)();
+        Check(name, true, *reinterpret_cast<void* const*>(self) == reinterpret_cast<void*>(CEngineObject::kVtableAddress), "");
+    }
+};
+
+// Its slot 0 (ours only): run on an object whose vtable has it in slot 0, returns the object.
+template <std::uintptr_t Address, typename T, T* (T::*Fn)(unsigned)>
+struct OursObjectDelete {
+    static inline void* original;
+    static T* __fastcall Run(T* self, void*, unsigned flags) {
+        static const char* name = Name("deleting destructor", Address);
+        auto* slots = *reinterpret_cast<void* const* const*>(self);
+        bool ours = slots && slots[0] == reinterpret_cast<void*>(Address);
+        T* result = (self->*Fn)(flags);
+        Check(name, true, ours && result == self, "%u", flags);
+        return result;
+    }
+};
+
+// The game's inlined ~CGdiObject (ours only): the CGdiObject vtable, no handle left.
+template <std::uintptr_t Address>
+struct OursGdiDestruct {
+    static inline void* original;
+    static void __fastcall Run(mfc::impl::CGdiObject* self) {
+        static const char* name = Name("GDI object destructor", Address);
+        self->Destruct();
+        Check(name, true, self->vtable == mfc::impl::CGdiObject::Vtable() && !self->handle, "");
+    }
+};
+
+// Its slot 1 (ours only): run on an object whose vtable has it in slot 1, returns the object.
+template <std::uintptr_t Address>
+struct OursGdiDelete {
+    static inline void* original;
+    static mfc::impl::CGdiObject* __fastcall Run(mfc::impl::CGdiObject* self, void*, unsigned flags) {
+        static const char* name = Name("GDI object deleting destructor", Address);
+        auto* slots = static_cast<void* const*>(self->vtable);
+        bool ours = slots && slots[1] == reinterpret_cast<void*>(Address);
+        mfc::impl::CGdiObject* result = self->DeletingDestruct(flags);
+        Check(name, true, ours && result == self, "%u", flags);
+        return result;
+    }
+};
+
 // The command copies: the size of the source, the nested calls' type and argument.
 template <std::uintptr_t Address>
 struct OursCmdArrayCopy {
@@ -464,3 +515,27 @@ using X00454CC0 = OursDelete<0x00454CC0, &scene::FaceGroupArrayDestruct, FaceGro
 EI_VERIFY(0x00454CC0, X00454CC0::Run, 0, s_unused);
 using X006C4EC0 = OursDelete<0x006C4EC0, &TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>, TerrainAlignedArrayClass>;
 EI_VERIFY(0x006C4EC0, X006C4EC0::Run, 0, s_unused);
+
+// The scene's meshes and the figure's parts (S6c).
+using O00454830 = OursObjectDestruct<0x00454830, scene::SceneMesh, &scene::SceneMesh::Destruct>;
+EI_VERIFY(0x00454830, O00454830::Run, 0, s_unused);
+using X00454810 = OursObjectDelete<0x00454810, scene::SceneMesh, &scene::SceneMesh::DeletingDestruct>;
+EI_VERIFY(0x00454810, X00454810::Run, 0, s_unused);
+using O00454510 = OursObjectDestruct<0x00454510, CFigureMesh, &CFigureMesh::DestructPlainMesh>;
+EI_VERIFY(0x00454510, O00454510::Run, 0, s_unused);
+using X004543A0 = OursObjectDelete<0x004543A0, CFigureMesh, &CFigureMesh::DeletingDestructPlainMesh>;
+EI_VERIFY(0x004543A0, X004543A0::Run, 0, s_unused);
+
+// The fonts' inlined ~CGdiObject (S6c).
+using G00444B30 = OursGdiDestruct<0x00444B30>;
+EI_VERIFY(0x00444B30, G00444B30::Run, 0, s_unused);
+using G00444B90 = OursGdiDestruct<0x00444B90>;
+EI_VERIFY(0x00444B90, G00444B90::Run, 0, s_unused);
+using G005FDDE0 = OursGdiDestruct<0x005FDDE0>;
+EI_VERIFY(0x005FDDE0, G005FDDE0::Run, 0, s_unused);
+using G00444B10 = OursGdiDelete<0x00444B10>;
+EI_VERIFY(0x00444B10, G00444B10::Run, 0, s_unused);
+using G00444B70 = OursGdiDelete<0x00444B70>;
+EI_VERIFY(0x00444B70, G00444B70::Run, 0, s_unused);
+using G005FDDC0 = OursGdiDelete<0x005FDDC0>;
+EI_VERIFY(0x005FDDC0, G005FDDC0::Run, 0, s_unused);
