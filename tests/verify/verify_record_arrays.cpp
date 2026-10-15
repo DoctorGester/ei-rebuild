@@ -461,6 +461,8 @@ using O005FBD80 = OursDestroy<0x005FBD80, Bytes<0x18>, DestroyGlobalMapRecord>;
 EI_VERIFY(0x005FBD80, O005FBD80::Run, 0, s_unused);
 using O005FBDD0 = OursDestroy<0x005FBDD0, Bytes<0x18>, DestroyGlobalMapRecord>;
 EI_VERIFY(0x005FBDD0, O005FBDD0::Run, 0, s_unused);
+using O005FBD30 = OursDestroy<0x005FBD30, Bytes<0x10>, DestroyGlobalMapZone>;
+EI_VERIFY(0x005FBD30, O005FBD30::Run, 0, s_unused);
 
 // The script's command arrays.
 using A004CD2B0 = TwinSetSizeGrow<0x004CD2B0, Cmds>;
@@ -595,3 +597,16 @@ using A004698A0 = TwinStringGetAt<0x004698A0>;
 EI_VERIFY(0x004698A0, A004698A0::Run, 5, A004698A0::original);
 using A004698C0 = TwinStringGetAt<0x004698C0>;
 EI_VERIFY(0x004698C0, A004698C0::Run, 8, A004698C0::original);
+
+// 005711E0, the water levels' destructor (ours only): the array's vtable written, each element's
+// the float array's.
+namespace {
+void __fastcall WaterLevelsDestructCheck(WaterLevels::Array* self) {
+    int size = self->size;
+    WaterLevelElement* elements = self->data;
+    bool ok = size <= self->maxSize && (size == 0 || elements);
+    WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>(self);
+    Check("CArray destructor 005711E0", true, ok && self->vtable == mfc::impl::ClientMapArrayClass::Vtable(), "%d", size);
+}
+} // namespace
+EI_VERIFY(0x005711E0, WaterLevelsDestructCheck, 0, s_unused);
