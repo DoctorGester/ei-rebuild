@@ -1,0 +1,290 @@
+#pragma once
+
+// MFC 4.2's CArray<TYPE, ARG_TYPE> (afxtempl.h) as game.exe instantiates it, for the standalone exe
+// (ticket S6, docs/notes/standalone.md section 2). The bodies are mfc::CArray's (mfc.h); what differs
+// between the instantiations is the element: its size, how ConstructElements builds new ones (MFC's
+// memset, then the element's constructor if it has one: inlined, or an out-of-line helper) and how
+// DestructElements destroys them. Those are the element policies below. ArrayAbi turns the members
+// into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused; the element
+// helpers __stdcall), and mfc_array.cpp registers each instantiation our code forwards to at its
+// library address. Checked by tests/verify/verify_mfc_array.cpp.
+
+#include "mfc.h"
+#include "mfc_string.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
+
+namespace mfc::impl {
+
+// An element seen only as its bytes (plain data whose type the array code never looks into).
+template <std::size_t N>
+struct Bytes {
+    std::uint8_t bytes[N];
+};
+
+// ---- Element policies ---------------------------------------------------------------------------
+//
+// Each has Construct(T*, int) and Destruct(T*, int). Plain data is mfc::PlainElements<T> (zero fill,
+// nothing destroyed).
+
+// Zero fill, then `Init` on each element: an element constructor the instantiation inlined after
+// MFC's memset (placement new; MFC 4.2 tests the pointer for null first, never null here).
+template <typename T, void (*Init)(T*)>
+struct InitElements {
+    static void Construct(T* p, int n) {
+        PlainElements<T>::Construct(p, n);
+        for (; n--; ++p) Init(p);
+    }
+    static void Destruct(T*, int) {}
+};
+
+// Elements built by `ConstructFn` and destroyed by `DestructFn` (each void(T*, int): an out-of-line
+// ConstructElements / DestructElements, ours or the game's). nullptr: zero fill / nothing destroyed.
+template <typename T, auto ConstructFn, auto DestructFn>
+struct HelperElements {
+    static void Construct(T* p, int n) {
+        if constexpr (std::is_null_pointer_v<decltype(ConstructFn)>) PlainElements<T>::Construct(p, n);
+        else ConstructFn(p, n);
+    }
+    static void Destruct(T* p, int n) {
+        if constexpr (!std::is_null_pointer_v<decltype(DestructFn)>) DestructFn(p, n);
+    }
+};
+
+// An array header inside an element (the CArray constructor inlined): the vtable of `Class` (a type
+// with a static Vtable(), the instantiation's vtable in the exe's data), then data, size, maxSize and
+// growBy zero.
+template <typename Class>
+void ConstructHeader(void* at) {
+    static_cast<CArray<Bytes<1>>*>(at)->Construct(reinterpret_cast<std::uintptr_t>(Class::Vtable()));
+}
+
+// ---- The instantiations' calling conventions ----------------------------------------------------
+
+template <typename T, typename E = PlainElements<T>>
+struct ArrayAbi {
+    using Element = T;
+    using Array = CArray<T, E>;
+
+    // SetSize(nNewSize, nGrowBy) (RET 8).
+    static void __fastcall SetSize(Array* self, void*, int newSize, int newGrowBy) { self->SetSize(newSize, newGrowBy); }
+    // SetAtGrow(nIndex, ARG_TYPE) (RET 8): ARG_TYPE a reference (the element's address) or, for the
+    // dword instantiations, the value.
+    static void __fastcall SetAtGrow(Array* self, void*, int index, const T* value) { self->SetAtGrow(index, *value); }
+    static void __fastcall SetAtGrowByValue(Array* self, void*, int index, T value) { self->SetAtGrow(index, value); }
+    // Add(ARG_TYPE) (RET 4): the new element's index.
+    static int __fastcall Add(Array* self, void*, const T* value) { return self->Add(*value); }
+    // Copy(const CArray&) (RET 4): SetSize to the source's size, then the elements assigned.
+    static void __fastcall Copy(Array* self, void*, const Array* source) { self->Copy(*source); }
+    // RemoveAt(nIndex, nCount) (RET 8).
+    static void __fastcall RemoveAt(Array* self, void*, int index, int count) { self->RemoveAt(index, count); }
+    // ElementAt(nIndex) (RET 4).
+    static T* __fastcall ElementAt(Array* self, void*, int index) { return &self->data[index]; }
+    // ConstructElements / DestructElements (__stdcall, RET 8).
+    static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
+    static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
+
+    // The destructor (the vtable of `Class` written first): the elements destroyed, the storage freed.
+    template <typename Class>
+    static void __fastcall Destruct(Array* self) {
+        self->vtable = Class::Vtable();
+        self->FreeData();
+    }
+};
+
+// The constructor of every instantiation: the vtable of `Class`, the rest zero; returns this.
+template <typename Class>
+struct ArrayHeader {
+    using Array = CArray<Bytes<1>>;
+    static Array* __fastcall Construct(Array* self) {
+        return self->Construct(reinterpret_cast<std::uintptr_t>(Class::Vtable()));
+    }
+    // The destructor of an instantiation whose elements need nothing: the storage freed.
+    static void __fastcall Destruct(Array* self) { ArrayAbi<Bytes<1>>::Destruct<Class>(self); }
+};
+
+// ---- The instantiations' vtables (game data) -------------------------------------------------------
+//
+// One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable.
+
+struct IntArrayClass {   // CArray<int> / CDWordArray-like: the zone and quest id lists, the climb tables
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C3D0); }
+};
+struct UnitPtrArrayClass {   // the interface's unit pointer arrays
+    static void* Vtable() { return reinterpret_cast<void*>(0x007402AC); }
+};
+struct FloatArrayClass {   // CArray<float>
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3E8); }
+};
+struct ArgFloatArrayClass {   // the script commands' float arguments (a CArray<float> subclass)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D490); }
+};
+struct ScriptGroupClass {   // CArray<ScriptObjectRef>, a script group
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D11C); }
+};
+struct ScriptFloatsClass {   // the script's float variables
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D2EC); }
+};
+struct ScriptAreaClass {   // a script area's parts
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D31C); }
+};
+struct ScriptIfThenArrayClass {   // the script's if-then blocks
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3AC); }
+};
+struct PartySlotArrayClass {   // the script's party slots
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D2C8); }
+};
+struct AiLookArrayClass {   // the AI's look records
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D460); }
+};
+struct SpriteArrayClass {   // the weather and lightning sprites
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C584); }
+};
+struct RotKeyArrayClass {   // an animation file's rotation keys
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C83C); }
+};
+struct PosKeyArrayClass {   // an animation file's position keys
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C830); }
+};
+struct MorphHeadArrayClass {   // an animation file's morph headers
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C824); }
+};
+struct NormalArrayClass {   // a model file's normals
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C86C); }
+};
+struct FilePointArrayClass {   // a model file's points
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C860); }
+};
+struct FileUvArrayClass {   // a model file's texture coordinates
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C854); }
+};
+struct FileFaceArrayClass {   // a model file's faces
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C848); }
+};
+struct IndexArrayClass {   // a model file's index lists
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C800); }
+};
+struct BoneLinkArrayClass {   // a figure's bone links
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C12C); }
+};
+struct WaypointArrayClass {   // a patrol's waypoints
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C3A0); }
+};
+struct ExitArrayClass {   // a zone's exits
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C3F4); }
+};
+struct MapRecordItemsClass {   // the array inside a map record
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C400); }
+};
+struct MotionWaypointArrayClass {   // a unit's motion waypoints
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073EB90); }
+};
+struct MotionPointArrayClass {   // a unit's motion points
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073EBA8); }
+};
+struct PointArrayClass {   // a unit's point lists
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073F07C); }
+};
+struct AttackOptionArrayClass {   // a unit's attack options
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073F040); }
+};
+struct AnimationStepsClass {   // a unit's animation steps
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073EF2C); }
+};
+struct AnimationStepsCopyClass {   // the animation steps a motion copies
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073F01C); }
+};
+struct ClientMapArrayClass {   // the client map arrays (world_client_maps)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073F730); }
+};
+struct ObjectPtrArrayClass {   // a save's shared object pointers
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FAC8); }
+};
+struct SectorArrayClass {   // the AI map's sectors
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073F9EC); }
+};
+struct CellRowArrayClass {   // the AI map's cell rows
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FA04); }
+};
+struct AreaListClass {   // the AI map's area lists
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073F9E0); }
+};
+
+// ---- Elements ------------------------------------------------------------------------------------
+
+// 40-byte key frames: a quaternion at +0x18, identity (w first) after the zero fill (00453730).
+struct KeyFrame40 {
+    std::uint8_t head[0x18];
+    float w, x, y, z;
+};
+static_assert(sizeof(KeyFrame40) == 0x28);
+inline void InitKeyFrame40(KeyFrame40* p) {
+    p->w = 1.0f;
+    p->x = 0.0f;
+    p->y = 0.0f;
+    p->z = 0.0f;
+}
+
+// {dword, CString} (004553F0) and 0x3C-byte records with a CString at +0x28 (004606A0): the string
+// set to the shared empty one.
+template <std::size_t Size, std::size_t StringAt>
+struct WithString {
+    std::uint8_t bytes[Size];
+};
+template <std::size_t Size, std::size_t StringAt>
+void InitWithString(WithString<Size, StringAt>* p) {
+    *reinterpret_cast<char**>(p->bytes + StringAt) = PchNil();
+}
+
+// Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at
+// `ArrayAt` (00460720: 0x2C bytes, six strings, the array at +0x18; 004607E0: 0x5C bytes, eight
+// strings, the array at +0x48).
+template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
+struct StringsAndArray {
+    std::uint8_t bytes[Size];
+};
+template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
+void InitStringsAndArray(StringsAndArray<Size, Strings, ArrayAt, Class>* p) {
+    for (int i = 0; i < Strings; ++i) reinterpret_cast<char**>(p->bytes)[i] = PchNil();
+    ConstructHeader<Class>(p->bytes + ArrayAt);
+}
+
+// Elements that hold an array header of `Class` at `ArrayAt` (004534F0: the 20-byte element is the
+// array; 0045E180: 32-byte patrols with the array at +0xC).
+template <std::size_t Size, std::size_t ArrayAt, typename Class>
+struct WithArray {
+    std::uint8_t bytes[Size];
+};
+template <std::size_t Size, std::size_t ArrayAt, typename Class>
+void InitWithArray(WithArray<Size, ArrayAt, Class>* p) {
+    ConstructHeader<Class>(p->bytes + ArrayAt);
+}
+
+// ---- The instantiations --------------------------------------------------------------------------
+
+using Plain4 = ArrayAbi<Bytes<4>>;
+using Plain8 = ArrayAbi<Bytes<8>>;
+using Plain12 = ArrayAbi<Bytes<12>>;
+using Plain16 = ArrayAbi<Bytes<16>>;
+using Plain20 = ArrayAbi<Bytes<20>>;
+using Plain24 = ArrayAbi<Bytes<24>>;
+using Plain40 = ArrayAbi<Bytes<40>>;
+
+using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
+using NamedDwords = ArrayAbi<WithString<8, 4>, InitElements<WithString<8, 4>, InitWithString<8, 4>>>;
+using Exits3C = ArrayAbi<WithString<0x3C, 0x28>, InitElements<WithString<0x3C, 0x28>, InitWithString<0x3C, 0x28>>>;
+using Allods = ArrayAbi<StringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
+                        InitElements<StringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
+                                     InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>>>;
+using MapRecords = ArrayAbi<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
+                            InitElements<StringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>,
+                                         InitStringsAndArray<0x5C, 8, 0x48, MapRecordItemsClass>>>;
+using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
+                                InitElements<WithArray<0x14, 0, BoneLinkArrayClass>, InitWithArray<0x14, 0, BoneLinkArrayClass>>>;
+using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
+                         InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
+
+} // namespace mfc::impl
