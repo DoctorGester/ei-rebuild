@@ -88,7 +88,10 @@ int CMapObject::NotifyCompanion() {
 EI_REPLACE_METHOD(0x0050E930, CMapObject::NotifyCompanion);
 
 void CMapObject::TakePrototypeImpl(const char* prototype) {
-    UnitVitals vitals;   // not cleared: the builder fills what Pack reads
+    // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics
+    // too), and the original then packs what its stack held; the harness zeroes them there too
+    // (a determinism fix, SV7b3, harness_leftovers.h).
+    UnitVitals vitals{};
     reinterpret_cast<UnitStatsBuilder*>(owner_)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }

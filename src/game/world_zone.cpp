@@ -33,10 +33,6 @@ namespace {
 
 // The empty string the game compares against and passes as "no text" (a zero byte in .data).
 constexpr const char* kNoExit = "none";   // 007846F0
-constexpr std::uintptr_t kWrongEntrance = 0x00790958;   // "Wrong entrance number in zone exit..."
-constexpr std::uintptr_t kCantLoadMob = 0x00790B08;     // "CWorldServer::LoadMap.\n Can't load .mob file "%s".\n"
-constexpr std::uintptr_t kCantReadObjects = 0x00790B3C; // "CWorldServer::LoadMapObjects\nUnable to read file "%s"\n"
-constexpr std::uintptr_t kCantOpenObjects = 0x00790B74; // "CWorldServer::LoadMapObjects()\nUnable to read file "%s"\n"
 
 // Set while LoadMobFile reads a .mob file (byte at 007C554C; the object loaders read it).
 std::uint8_t& LoadingMobFile() { return *reinterpret_cast<std::uint8_t*>(0x007C554C); }
@@ -108,7 +104,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
             continue;   // leads nowhere
         if (from->entrance < 0 && gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(from->target),
                                                   reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
-            game::FatalError(game::Text(kWrongEntrance));
+            game::FatalError(game::zonetexts::WrongEntrance());
         int index = exits->size;
         ZoneExitsSetSizeOriginal(exits, nullptr, index + 1, -1);
         ZoneExit* to = &exits->data[index];
@@ -160,11 +156,11 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     ServerMapPath(this, nullptr, reinterpret_cast<char**>(&path), file);   // constructs the CString in place
     int result;
     if (!root->Open(path, 0x8020)) {
-        result = game::FatalError(game::Text(kCantOpenObjects), file);
+        result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
         bool read = ReadMapObjectFile(root, nullptr, this, keepIds);
         fileObject->Close();
-        result = read ? 1 : game::FatalError(game::Text(kCantReadObjects), file);
+        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
     root->Destruct();
     return result;
@@ -182,7 +178,7 @@ int CWorldServer::LoadMobFile(const char* file) {
         if (loaded == 0) {
             LoadingMobFile() = 0;
             zoneLoaded_ = 0;
-            return game::FatalError(game::Text(kCantLoadMob), file);
+            return game::FatalError(game::zonetexts::CantLoadMob(), file);
         }
     }
     LoadingMobFile() = 0;

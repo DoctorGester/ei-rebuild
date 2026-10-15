@@ -270,7 +270,7 @@ void SpellListRecord::ConstructDefault() {
 
 template <int Stride>
 char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uint32_t index) {
-    return table->At(index, Stride);
+    return table->RecordAt(index, Stride);
 }
 EI_REPLACE(0x006A5950, itemdb::RecordTableAt<kArmorSize>);
 EI_REPLACE(0x006A5990, itemdb::RecordTableAt<kQuickItemSize>);

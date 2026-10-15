@@ -105,7 +105,7 @@ double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
     auto* record = reinterpret_cast<const SkillLevelRecord*>(
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
+        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
     if (!record) return kZero;
     return record->Value();
 }

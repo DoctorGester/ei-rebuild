@@ -27,7 +27,7 @@ struct RecordTable {
     char* end;
 
     // The record at `index`, or nullptr when out of range.
-    char* At(std::uint32_t index, int stride) const {
+    char* RecordAt(std::uint32_t index, int stride) const {
         std::uint32_t count = static_cast<std::uint32_t>(static_cast<int>(end - begin) / stride);
         return index < count ? begin + index * stride : nullptr;
     }
@@ -423,7 +423,7 @@ static_assert(offsetof(MaterialRecordHead, damageFactor) == 0x28);
 static_assert(offsetof(MaterialRecordHead, absorbFactors) == 0x2C);
 static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
 
-// 006A5950 / 006A5990 / 006A59D0 / 006A5A10 (RET 4; item_db_records.cpp, A-H25): RecordTable::At
+// 006A5950 / 006A5990 / 006A59D0 / 006A5A10 (RET 4; item_db_records.cpp, A-H25): RecordTable::RecordAt
 // out of line for the armour, quick item, quest item and loot tables (only the quick item's figure name
 // 006A3CD0 called them).
 template <int Stride>
@@ -440,16 +440,16 @@ inline const RecordTable& SpellModifiers() { return *reinterpret_cast<const Reco
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) {
-    return reinterpret_cast<MaterialRecordHead*>(Materials().At(index, kMaterialSize));
+    return reinterpret_cast<MaterialRecordHead*>(Materials().RecordAt(index, kMaterialSize));
 }
-inline WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().At(index, kWeaponSize)); }
-inline ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().At(index, kArmorSize)); }
+inline WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().RecordAt(index, kWeaponSize)); }
+inline ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().RecordAt(index, kArmorSize)); }
 inline QuickItemRecord* QuickItemAt(std::uint32_t index) {
-    return reinterpret_cast<QuickItemRecord*>(QuickItems().At(index, kQuickItemSize));
+    return reinterpret_cast<QuickItemRecord*>(QuickItems().RecordAt(index, kQuickItemSize));
 }
-inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().At(index, kSpellSize)); }
+inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().RecordAt(index, kSpellSize)); }
 inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) {
-    return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().At(index, kSpellModifierSize));
+    return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().RecordAt(index, kSpellModifierSize));
 }
 
 // The two-letter type codes of weapons (007963E0..007963F4, "hm" at 00784524) and armours

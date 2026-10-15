@@ -93,8 +93,6 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
 // This file's functions through their addresses, so their verify wrappers stay in the path.
 __declspec(naked) char* __fastcall FindNpcAt(NpcPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005145D0)
 __declspec(naked) int __fastcall SetDefaultsAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*) EI_ORIGINAL(0x005134F0)
-__declspec(naked) int __fastcall BuildFromPrototypeAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*, const char*)
-    EI_ORIGINAL(0x005136D0)
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
 // CUnit::SetPrototype23C, rewritten elsewhere.
 __declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
@@ -109,7 +107,7 @@ const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(FindN
 // The prototype's model; its index is read even from a null prototype (the original faults there).
 const Model* ModelOf(const Prototype* prototype) {
     auto index = static_cast<std::uint32_t>(static_cast<const volatile Prototype*>(prototype)->modelIndex);
-    return reinterpret_cast<const Model*>(unitdb::Models().At(index, unitdb::kModelSize));
+    return reinterpret_cast<const Model*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
 }
 
 // --- The statistics both builders fill the same way ---------------------------------------
@@ -154,7 +152,7 @@ void SetSlots(UnitStats* stats, const Model* model) {
             continue;
         }
         const auto* level = reinterpret_cast<const UnitLevelRecord*>(
-            levels.At(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
+            levels.RecordAt(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
         slot.type = level->slotType;
         CopyDword(slot.share, entry.share);
         CopyDword(slot.factor, entry.factor);
@@ -262,6 +260,11 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     const Model* model = ModelOf(prototype);
     const Npc* npc = FindNpc(name);
     if (!vitals || !stats) return 0;
+    // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare
+    // absorb values, the high bits of builtFlags, ...) are 0, not what the caller's stack held
+    // (a determinism fix, SV7b3; the harness zeroes them in the original too, harness_leftovers.h).
+    std::memset(vitals, 0, sizeof(UnitVitals));
+    std::memset(stats, 0, sizeof(UnitStats));
     UnitVitalsReset(vitals);
     UnitStatsResetOriginal(stats);
 
@@ -535,7 +538,7 @@ float LevelAsFloat(const UnitStats* stats, int index) {
     std::uint8_t level = stats->skillLevels[index];   // unchecked
     if (level == 0) return kZero;
     const char* record =
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
+        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
     if (!record) return kZero;
     return static_cast<float>(LevelOf(record));
 }
@@ -557,7 +560,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const auto* record = reinterpret_cast<const SkillRecord*>(
-            unitdb::Skills().At(static_cast<std::uint32_t>(skill), kSkillRecordSize));
+            unitdb::Skills().RecordAt(static_cast<std::uint32_t>(skill), kSkillRecordSize));
         char stat = static_cast<const char*>(record->statNames.begin()[0])[0];   // its first stat's letter
         double base;
         if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
@@ -586,7 +589,7 @@ bool NamesRequirement(const mfc::CString& text) {
                            reinterpret_cast<const unsigned char*>(0x007846F0)) != 0;   // "none"
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
-    return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().At(index, unitdb::kSkillLevelSize));
+    return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
 }
 } // namespace
 
@@ -622,7 +625,7 @@ EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
 // --- Applying a prototype ---------------------------------------------------------------------
 
 int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
-    UnitVitals vitals{};   // the original's stack copies start as whatever the stack held
+    UnitVitals vitals{};   // zeroed (the original's start as the stack held them; SV7b3)
     UnitStats stats{};
     auto* mapObject = static_cast<CMapObject*>(object);
     const Prototype* prototype = FindPrototype(name);
@@ -643,7 +646,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     }
     const Model* model = ModelOf(prototype);
     if (object->GetClassId() == kClassUnit) {
-        BuildFromPrototypeAt(this, nullptr, &vitals, &stats, name);
+        UnitStatsBuildFromPrototype(this, nullptr, &vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
         SetServerDataAt(object, nullptr, &vitals);

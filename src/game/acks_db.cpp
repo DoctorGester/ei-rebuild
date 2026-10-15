@@ -141,7 +141,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         ModelAcks* record = FindModelAcks(&db.models, nullptr, prototype->name);
         if (!record) {
             auto* model = reinterpret_cast<const UnitModelRecord*>(
-                unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+                unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
             record = FindModelAcks(&db.models, nullptr, model->name);
             if (!record) return nullptr;
         }
