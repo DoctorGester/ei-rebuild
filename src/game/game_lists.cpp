@@ -148,6 +148,7 @@ typename List::Node* LinkTail(List* self, typename List::Node* node) {
 
 using DefinitionArray = mfc::impl::ArrayAbi<ScriptDefinition, DefinitionElements>;
 using RunArray = mfc::impl::ArrayAbi<ScriptRun, RunElements>;
+using DefineArray = mfc::impl::ArrayAbi<ScriptDefine, ScriptDefineElements>;   // CList<ScriptDefine>'s
 
 } // namespace
 
@@ -162,6 +163,7 @@ void InitRun(ScriptRun* p) { p->vars.ScriptVarsConstruct(); }
 
 EI_REPLACE(0x004CEB80, DefinitionArray::ConstructElements);
 EI_REPLACE(0x004CECB0, RunArray::ConstructElements);
+EI_REPLACE(0x004D6840, DefineArray::ConstructElements);   // the zero fill, then both strings empty
 EI_REPLACE(0x004CD930, Definitions::NewNode);
 EI_REPLACE(0x004CDA30, Runs::NewNode);
 
