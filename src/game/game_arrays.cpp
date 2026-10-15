@@ -16,6 +16,17 @@ EI_REPLACE(0x00573080, Exits::SetSize);
 EI_REPLACE(0x00460670, Exits::DestructElements);
 EI_REPLACE(0x004607B0, ZoneRecords::DestructElements);
 
+// The destructors of global arrays only exit functions call (S3c): the vtable back, the elements
+// destroyed, the storage freed. Plain elements: the sector spiral's radius tree keys (CArray<float>,
+// 007C2FD8; the exit function 005BF860) and offsets (007C2FF8; 005BF830), the path smoother's node
+// pool (007C3038; 005C4480), the particles' draw order (007A9C50; 00498930). The script quest's
+// objectives (007AA608; 004B17E0): each objective's text.
+EI_REPLACE(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
+EI_REPLACE(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct);
+EI_REPLACE(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
+EI_REPLACE(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
+EI_REPLACE(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
+
 // Script groups and quest objectives.
 EI_REPLACE(0x004C3980, Groups::SetSize);
 EI_REPLACE(0x004CC980, Groups::DestructElements);

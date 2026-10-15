@@ -50,13 +50,6 @@ void DestroyItemTable(itemdb::IndexedRecordTable& table) {
     DestroyRecords<Abi>(&table);
 }
 
-// A spell table: the index by code, then the records.
-template <typename Abi>
-void DestroySpellTable(itemdb::CodeIndexedTable& table) {
-    table.byCode.Destroy();
-    DestroyRecords<Abi>(&table);
-}
-
 } // namespace
 
 void UnitDatabase::Reset() {
@@ -74,9 +67,7 @@ EI_REPLACE_METHOD(0x0057CBE0, UnitDatabase::Reset);
 namespace itemdb {
 
 void SpellDatabase::Reset() {
-    for (int i = 2; i >= 0; --i) recordvec::SpellListVector::Destruct(&lists[i]);
-    DestroySpellTable<recordvec::SpellModifierVector>(modifiers);
-    DestroySpellTable<recordvec::SpellVector>(spells);
+    Destruct();   // 00684390 (database_destruct.cpp)
     Construct();
 }
 

@@ -96,7 +96,11 @@ EI_REPLACE(0x00619750, stlp::AllocProxyConstruct);
 EI_REPLACE(0x00421EB0, stlp::VectorGetAllocator);
 EI_REPLACE(0x00438CC0, stlp::VectorGetAllocator);
 
-// ~_Vector_base(): 31 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288 bytes: 1).
+// ~_Vector_base(): 31 instantiations, by element size (1 bytes: 7, 4 bytes: 21, 12 bytes: 1, 96 bytes: 1, 288 bytes: 1),
+// and six ~vector() with it inlined that only exit functions call (S3c): of pointers 0056E800 (the
+// frame lists 007AF508..007AF5A8, world.h), 0069BE20, 004A8C60, 004A8D00, 004A8D50 (the item
+// stock's scratch vectors 007C8650, 007C8680, 007C8670, 007C8660) and of 16-byte entries 004A8CB0
+// (its taken materials 007C8640).
 EI_REPLACE(0x0040C720, Vector1::DestroyBase);
 EI_REPLACE(0x0040C770, Vector1::DestroyBase);
 EI_REPLACE(0x00425040, Vector1::DestroyBase);
@@ -125,6 +129,12 @@ EI_REPLACE(0x005F9880, Vector4::DestroyBase);
 EI_REPLACE(0x00609F50, Vector4::DestroyBase);
 EI_REPLACE(0x006BC4D0, Vector4::DestroyBase);
 EI_REPLACE(0x006BC510, Vector4::DestroyBase);
+EI_REPLACE(0x0056E800, Vector4::DestroyBase);
+EI_REPLACE(0x0069BE20, Vector4::DestroyBase);
+EI_REPLACE(0x004A8C60, Vector4::DestroyBase);
+EI_REPLACE(0x004A8D00, Vector4::DestroyBase);
+EI_REPLACE(0x004A8D50, Vector4::DestroyBase);
+EI_REPLACE(0x004A8CB0, Vector16::DestroyBase);
 EI_REPLACE(0x0056F590, Vector12::DestroyBase);
 EI_REPLACE(0x0053B600, Vector96::DestroyBase);
 EI_REPLACE(0x0053B460, Vector288::DestroyBase);
@@ -289,6 +299,7 @@ EI_REPLACE(0x004DCE90, StringVector::InsertOverflow);
 EI_REPLACE(0x00575E50, StringVector::RangeInsert);
 EI_REPLACE(0x00581860, StringVector::Clear);
 EI_REPLACE(0x00583CB0, StringVector::EraseRange);
+EI_REPLACE(0x00421260, StringVector::Destruct);   // S3c: the quest files and folders 007AFDD0 / 007AFDC0 at exit
 
 // vector<RefPtr> and vector<counted_ptr<T>> (CountedRefElement, stlp_vector_refs.h).
 namespace {

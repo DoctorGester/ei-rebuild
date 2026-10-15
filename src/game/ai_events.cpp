@@ -37,6 +37,13 @@ void PushFree(AIEvent* event) {
 
 } // namespace
 
+void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
+    constexpr std::uintptr_t kPoolVtable = std::uintptr_t(0x0073FEB4);
+    pool->vtable = reinterpret_cast<void*>(kPoolVtable);
+    pool->RemoveAll();
+}
+EI_REPLACE(0x005CDBA0, AIEventPoolDestruct);
+
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
     // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).
     const int x = x87::fistp(event->x * kCellScale);
