@@ -36,11 +36,11 @@ console @UMClear(GetObjectByName("Mv3"))
 console @MoveToPoint(GetObjectByName("Mv1"),Add(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),4))
 console @MoveToPoint(GetObjectByName("Mv2"),Sub(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),2))
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),2))
-wait 4000
+wait 2500
 
 # MoveToObject: the third wolf goes to the first (5 east, 4 north of it).
 console @MoveToObject(GetObjectByName("Mv3"),GetObjectByName("Mv1"))
-wait 2000
+wait 1500
 
 # Follow in a chain: wolf 1 follows the hero, wolf 2 follows wolf 1, and the hero walks 8 north.
 console @Follow(GetObjectByName("Mv1"),GetLeader())
@@ -48,7 +48,8 @@ console @Follow(GetObjectByName("Mv2"),GetObjectByName("Mv1"))
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6))
 # (The walking hero's environment remark, acks 006D88E0, comes at random: in some 160 updates here,
 # not in every run; units, map_objects and ui_quick_items reach it too.)
-wait 9000
+waitfor 30 IsGreater(GetY(GetLeader()),Add(GSGetVar(0,"hy"),5))
+wait 500
 
 # Around an obstacle: an ogre stands on the straight line from a new wolf to its target.
 console @AddUnitToServer("MvRock","OgreTutor","MvRock",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4),0)
@@ -58,7 +59,7 @@ waitfor 10 IsAlive(GetObjectByName("Mv4"))
 console @UMClear(GetObjectByName("MvRock"))
 console @UMClear(GetObjectByName("Mv4"))
 console @MoveToPoint(GetObjectByName("Mv4"),Add(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),4))
-wait 2000
+wait 1200
 check IsLess(DistanceUnitPoint(GetObjectByName("MvRock"),Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4)),2)
 check IsAlive(GetLeader())
 check IsAlive(GetObjectByName("Mv1"))
@@ -68,7 +69,7 @@ check IsAlive(GetObjectByName("Mv3"))
 console @Walk(GetObjectByName("Mv1"))
 console @Run(GetObjectByName("Mv2"))
 console @Crawl(GetObjectByName("Mv3"))
-wait 1000
+wait 600
 check IsAlive(GetLeader())
 report
 quit

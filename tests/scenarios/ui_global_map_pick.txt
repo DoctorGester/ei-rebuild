@@ -11,7 +11,7 @@ newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 15 battle
-wait 1000
+wait 500
 screen 4
 waitwindow 15 map
 move 300 250

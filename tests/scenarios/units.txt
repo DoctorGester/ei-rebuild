@@ -65,7 +65,7 @@ console @Crawl(GetLeader())
 console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),3),GetY(GetLeader()))
 # The original game does not move the hero 2 units within 15 s from here either (checked with
 # --no-hooks), so this only lets the pose/movement code run.
-wait 2000
+wait 1500
 console @Stand(GetLeader())
 wait 500
 console @Rest(GetLeader())

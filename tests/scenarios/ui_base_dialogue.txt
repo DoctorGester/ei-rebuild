@@ -19,10 +19,10 @@ waitfor 20 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
 speed 55
 waitunit 10 Smith
 clickunit Smith
-wait 1500
+wait 800
 clickregion 0
 # the people walk to their places (state 2) before the phrases start (00608210)
-wait 4000
+wait 500
 click 400 300
 wait 800
 click 400 300

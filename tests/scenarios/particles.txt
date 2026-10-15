@@ -21,11 +21,11 @@ console @CreateParticleSource(27,Add(GetX(GetLeader()),4),Sub(GetY(GetLeader()),
 console @CreateParticleSource(28,Sub(GetX(GetLeader()),4),Sub(GetY(GetLeader()),4),GetZ(GetLeader()),1,"Modifier1")
 console @CastSpellUnit("strength{d2;d2;d2;d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
-wait 4000
+wait 2800
 
 console @SetParticleSourceSize(23,2)
 console @CreateParticleSource(29,Add(GetX(GetLeader()),7),GetY(GetLeader()),GetZ(GetLeader()),2,"LightningBlast")
-wait 3000
+wait 2200
 
 console @DeleteParticleSource(21)
 console @DeleteParticleSource(22)
@@ -58,7 +58,7 @@ console @CreateParticleSource(46,Add(GetX(GetLeader()),12),GetY(GetLeader()),Get
 console @CreateParticleSource(47,Sub(GetX(GetLeader()),12),GetY(GetLeader()),GetZ(GetLeader()),1,"Silence")
 console @CreateParticleSource(48,GetX(GetLeader()),Add(GetY(GetLeader()),12),GetZ(GetLeader()),1,"CurseStars")
 console @CreateParticleSource(49,GetX(GetLeader()),Sub(GetY(GetLeader()),12),GetZ(GetLeader()),1,"Transform")
-wait 2000
+wait 1500
 
 console @DeleteParticleSource(30)
 console @DeleteParticleSource(31)

@@ -19,7 +19,9 @@ console @SetPlayer(GetObjectByName("AiFoe"),6)
 console @UMClear(GetObjectByName("AiFoe"))
 console @UMAggression(GetObjectByName("AiFoe"))
 # The chase and the fight take a few hundred world updates (55 ms each).
-wait 16000
+waitfor 30 Not(Mul(IsAlive(GetObjectByName("AiAfraid")),IsAlive(GetObjectByName("AiFoe"))))
+# The death's own updates (the experience, the AI's reset).
+wait 1500
 check IsAlive(GetLeader())
 report
 quit

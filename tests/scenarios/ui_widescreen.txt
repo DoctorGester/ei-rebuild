@@ -18,7 +18,7 @@ resolution desktop
 widescreen 1
 rebirthflags WideScreen
 reject Script error
-wait 6000
+waitmenu
 
 # The main menu.
 move 400 20
@@ -33,25 +33,25 @@ unfreeze
 
 # The options window (main menu region 3), cancelled (its region 1).
 clickregion 3
-wait 1500
+waitwindow 10 options
 move 400 20
 wait 300
 freeze
 capture options
 unfreeze
 clickregion 1
-wait 1500
+waitwindow 10 menu
 
 # The load window (region 1), cancelled.
 clickregion 1
-wait 1500
+waitwindow 10 saveload
 move 400 20
 wait 300
 freeze
 capture load
 unfreeze
 clickregion 1
-wait 1500
+waitwindow 10 menu
 
 # The hero on zone1 with the battle screen's panels, the camera settled.
 console thingamabob
@@ -59,7 +59,7 @@ newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20
-wait 2000
+wait 1500
 freeze
 capture world
 unfreeze
@@ -70,7 +70,8 @@ unfreeze
 
 # The camp (screen 5); Esc returns to the game.
 screen 5
-wait 3000
+waitwindow 15 camp
+wait 500
 move 400 20
 wait 300
 freeze
@@ -81,6 +82,6 @@ freeze
 capture camp_later
 unfreeze
 key esc
-wait 2000
+waitwindow 15 battle
 report
 quit

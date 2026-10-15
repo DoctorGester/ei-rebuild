@@ -30,7 +30,7 @@ check IsAlive(GetObjectByName("C5"))
 check IsGreater(HP(GetObjectByName("C2")),0)
 check IsGreater(HP(GetObjectByName("C7")),0)
 # Let them be drawn (figures, shadows) for a moment.
-wait 2000
+wait 800
 
 # The same name twice: the old unit goes first.
 console @AddUnitToServer("C1","WolfGreyF1","C1",Add(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),2),0)
@@ -43,7 +43,7 @@ waitfor 10 Not(IsAlive(GetObjectByName("C4")))
 console @RemoveUnitFromServer(GetObjectByName("C5"))
 console @RemoveUnitFromServer(GetObjectByName("C6"))
 console @RemoveUnitFromServer(GetObjectByName("C2"))
-wait 1000
+wait 600
 
 # More of the same prototype after the removals.
 console @AddUnitToServer("C9","GoblinF1","C9",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),3),0)

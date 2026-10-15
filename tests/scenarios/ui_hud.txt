@@ -48,7 +48,7 @@ frames 5
 click 200 10
 frames 5
 click 400 10
-wait 1200
+wait 600
 click 400 10
 wait 300
 

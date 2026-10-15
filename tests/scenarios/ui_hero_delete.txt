@@ -11,6 +11,9 @@ waitwindow 15 heroes
 wait 500
 clickregion 5
 frames 10
+# Back to the defaults first (region 4 also empties the name field), then the name.
+clickregion 4
+frames 5
 key t
 frames 3
 key e
@@ -19,17 +22,17 @@ key s
 frames 3
 key t
 frames 5
-clickregion 4
-frames 5
+# Create (the statistics page), then its next button writes the hero and selects it in the list.
 clickregion 1
 frames 10
 clickregion 1
 frames 10
+# Delete asks first; Enter answers OK.
 clickregion 7
-frames 10
+waitwindow 10 msgbox
 key enter
 frames 10
 key esc
-wait 1000
+waitmenu
 report
 quit

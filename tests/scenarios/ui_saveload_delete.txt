@@ -38,7 +38,7 @@ clickregion 3
 frames 5
 clickregion 0
 waitwindow 30 battle
-wait 1000
+wait 500
 waitfor 20 IsGreater(HP(GetLeader()),0)
 check IsAlive(GetLeader())
 report

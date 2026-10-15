@@ -20,14 +20,15 @@ resolution desktop
 widescreen 1
 rebirthflags WideScreen
 reject Script error
-wait 6000
+waitmenu
 
 # The multiplayer hero screen (main menu region 5), a new hero (its region 5) with the name field;
 # Esc back to the list and to the main menu. Nothing touches the network (ui_hero_screen).
 clickregion 5
-wait 2000
+waitwindow 15 heroes
+wait 500
 clickregion 5
-wait 1500
+wait 800
 move 400 20
 wait 300
 freeze
@@ -40,7 +41,7 @@ unfreeze
 key esc
 wait 1500
 key esc
-wait 2000
+waitwindow 10 menu
 
 # The hero on zone1, the camera settled.
 console thingamabob
@@ -48,7 +49,8 @@ newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20
-wait 2000
+waitwindow 15 battle
+wait 1200
 
 # A tooltip: the mouse resting on the right column's buttons (they reach the screen's right edge),
 # then on the left column's.
@@ -108,7 +110,7 @@ unfreeze
 key esc
 wait 1000
 click 395 120
-wait 1500
+waitwindow 10 saveload
 move 400 20
 wait 300
 freeze

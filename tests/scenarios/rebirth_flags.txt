@@ -43,7 +43,8 @@ console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObj
 console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
 console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
 console @Attack(GetLeader(),GetObjectByName("RWolf"))
-wait 3000
+waitfor 20 Not(IsAlive(GetObjectByName("RWolf")))
+wait 500
 check IsAlive(GetLeader())
 
 # addon's console commands (AddNewConsoleCommands; the cheat word was given above).
@@ -144,9 +145,9 @@ console @PauseGame(0) PauseGame(1)
 # Rain, then snow: the layer's draws (004E4240 / 004E4C80; a change fades over 20 / 40 ticks, the
 # snow starting when the rain has faded into it).
 console @SetWeather("rain")
-wait 1500
+wait 1000
 console @SetWeather("snow")
-wait 4000
+wait 3000
 console @SetWeather("clear")
 console @GiveUnitWeapon(GetLeader(),"Axe.steel",1)
 console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArmor(GetLeader(),"no such armour",1)

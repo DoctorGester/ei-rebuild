@@ -21,13 +21,13 @@ waitfor 10 IsLess(HP(GetObjectByName("Wolf1")),GSGetVar(0,"w1"))
 # AI map footprint) on points 12 units away; they only need to start and run for a while.
 console @CastSpellPoint("acid_column{r2}",GetX(GetLeader()),GetY(GetLeader()),Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),4))
 console @CastSpellPoint("litnwall{ee1}",GetX(GetLeader()),GetY(GetLeader()),GetX(GetLeader()),Add(GetY(GetLeader()),12))
-wait 2000
+wait 1500
 
 # Clairvoyance (type 0x14) on a point and vision fog (0x17) on the hero.
 console @CastSpellPoint("clairvoyence{d2}",GetX(GetLeader()),GetY(GetLeader()),Add(GetX(GetLeader()),6),GetY(GetLeader()))
 console @CastSpellUnit("vision_fog{d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 # Long enough for the light wall to end (its AI map footprint and occluder removed).
-wait 11000
+wait 7000
 
 check IsAlive(GetLeader())
 report

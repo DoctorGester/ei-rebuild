@@ -19,7 +19,7 @@ waitwindow 15 camp
 clickregion 5
 wait 500
 ldown 300 142
-wait 1500
+wait 800
 lup 300 142
 wait 300
 key esc
