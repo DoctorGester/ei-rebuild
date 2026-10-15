@@ -8,6 +8,7 @@
 #include "../../src/game/game_slots.h"
 #include "../../src/game/record_arrays.h"
 #include "../../src/lib/mfc_slots.h"
+#include "../../src/lib/stlp_string.h"
 
 #include <cstdio>
 #include <cstring>
@@ -366,6 +367,407 @@ using S006C4790 = ArraySerialize<0x006C4790, recordarrays::SectorVertices, recor
 using S00571240 = ArraySerialize<0x00571240, recordarrays::WaterLevels, ClientMapArrayClass, 1>;
 using S005993A0 = ArraySerialize<0x005993A0, recordarrays::Sectors, VtableAt<CSectorMap::kSectorArrayVtable>, 2>;
 
+// ---- Lists loaded through a temporary (S6d) -----------------------------------------------------------
+
+// Fake engine objects (slot 4 releases: the count at +4 dropped) and fake counted objects (slot 0 the
+// deleting destructor, slot 2 OnShutdown, slot 3 Clone: fake i's clone is fake i + 4), every call
+// logged. The loads of the original and ours start from the same state and must leave the same.
+struct FakeEngine {
+    void* const* vtable;
+    int refCount;
+};
+struct FakeCounted {
+    void* const* vtable;
+    std::int16_t refs;
+    std::uint8_t flags6;
+    std::uint8_t flags7;
+};
+struct FakeWorld {
+    FakeEngine engines[4];
+    FakeCounted counted[8];
+    int log[64];
+    int logged;
+};
+FakeWorld g_world;
+
+void Log(int event) {
+    if (g_world.logged < 64) g_world.log[g_world.logged++] = event;
+}
+int EngineIndex(const FakeEngine* p) { return static_cast<int>(p - g_world.engines); }
+int CountedIndex(const FakeCounted* p) { return static_cast<int>(p - g_world.counted); }
+
+void __fastcall FakeEngineRelease(FakeEngine* self) {
+    Log(0x100 + EngineIndex(self));
+    --self->refCount;
+}
+void* __fastcall FakeCountedDelete(FakeCounted* self, void*, unsigned flags) {
+    Log(0x200 + CountedIndex(self) * 2 + static_cast<int>(flags & 1));
+    return self;
+}
+int __fastcall FakeCountedShutdown(FakeCounted* self) {
+    Log(0x300 + CountedIndex(self));
+    return 0;
+}
+FakeCounted* __fastcall FakeCountedClone(FakeCounted* self) {
+    Log(0x400 + CountedIndex(self));
+    return CountedIndex(self) < 4 ? self + 4 : self;
+}
+void* const* FakeEngineVtable() {
+    static void* const vtable[5] = {nullptr, nullptr, nullptr, nullptr, reinterpret_cast<void*>(&FakeEngineRelease)};
+    return vtable;
+}
+void* const* FakeCountedVtable() {
+    static void* const vtable[4] = {reinterpret_cast<void*>(&FakeCountedDelete), nullptr,
+                                    reinterpret_cast<void*>(&FakeCountedShutdown), reinterpret_cast<void*>(&FakeCountedClone)};
+    return vtable;
+}
+
+// Engine objects with counts 2, 1, 1, 3. Counted objects: 0 plain, 1 copy-on-share (shared as its
+// clone 5), 2 detached (shared as null), 3 with no reference (released to zero, so deleted); 4-7 the
+// clones.
+void ResetWorld() {
+    static const int kEngineRefs[4] = {2, 1, 1, 3};
+    for (int i = 0; i < 4; ++i) g_world.engines[i] = {FakeEngineVtable(), kEngineRefs[i]};
+    for (int i = 0; i < 8; ++i) g_world.counted[i] = {FakeCountedVtable(), static_cast<std::int16_t>(i < 3 ? 1 : 0), 0, 0};
+    g_world.counted[1].flags6 = CRefCounted::kCopyOnShare;
+    g_world.counted[2].flags7 = CRefCounted::kDetached;
+    g_world.logged = 0;
+}
+// Element `seed` of a list: fake (seed & 3), none for every fifth.
+CEngineObject* EngineAt(int seed) {
+    if (seed % 5 == 4) return nullptr;
+    return reinterpret_cast<CEngineObject*>(&g_world.engines[seed & 3]);
+}
+CRefObject* CountedAt(int seed) {
+    if (seed % 5 == 4) return nullptr;
+    return reinterpret_cast<CRefObject*>(&g_world.counted[seed & 3]);
+}
+// A text of its own for element `seed`: the prefix, the seed and as many '.' as seed % 7.
+CString TextAt(const char* prefix, int seed) {
+    char text[32];
+    int n = std::snprintf(text, sizeof(text), "%s%d", prefix, seed);
+    for (int i = 0; i < seed % 7 && n < 30; ++i) text[n++] = '.';
+    text[n] = 0;
+    return CString(text);
+}
+
+// What a list's elements hold in the checks. `Set` gives an element its values (`owned`: a source,
+// which also gets strings of its own; the starting lists' elements hold plain values only), `Drop`
+// destroys what a source's element owns. The loaded elements share what the source holds without a
+// reference of their own (the temporary released it again), so the loaded lists are freed without
+// destroying their elements, and before their source. kFresh (the wave records): each load frees the
+// strings the stored bytes point at, so each load reads a source of its own, and its elements own
+// their copies (compared by text).
+template <typename T>
+struct FillBase {
+    static constexpr bool kFresh = false;
+    static void Drop(T*) {}
+    static bool Same(const T& a, const T& b) { return std::memcmp(&a, &b, sizeof(T)) == 0; }
+};
+struct EngineFill : FillBase<CEngineObject*> {
+    static void Set(CEngineObject** p, int seed, bool) { *p = EngineAt(seed); }
+};
+struct ObjectRefFill : FillBase<ScriptObjectRef> {
+    static void Set(ScriptObjectRef* p, int seed, bool) { p->object = EngineAt(seed); }
+};
+struct RefFill : FillBase<RefPtr> {
+    static void Set(RefPtr* p, int seed, bool) { p->ptr = CountedAt(seed); }
+};
+struct ArmourSpellFill : FillBase<gameslots::ArmourSpellRecord> {
+    static void Set(gameslots::ArmourSpellRecord* p, int seed, bool) {
+        p->object = EngineAt(seed);
+        p->value = static_cast<std::uint32_t>(seed * 7 + 1);
+        p->flag = static_cast<std::uint8_t>(seed + 3);
+        Pattern(p->pad, sizeof(p->pad), seed);
+    }
+};
+struct ParticleSourceFill : FillBase<ScriptParticleSource> {
+    static void Set(ScriptParticleSource* p, int seed, bool) {
+        p->id = seed;
+        p->deleteAfterMove = seed & 1;
+        p->moving = seed + 2;
+        p->steps = seed * 3;
+        p->step = {static_cast<float>(seed) * 0.25f, 1.5f, -2.0f};
+        p->lifetime = seed - 4;
+    }
+};
+struct FxSourceFill : FillBase<ScriptFxSource> {
+    static void Set(ScriptFxSource* p, int seed, bool owned) {
+        p->id = seed;
+        if (owned) p->name = TextAt("fx", seed);
+        p->position = {1.0f, static_cast<float>(seed), 3.0f};
+        p->volume = 0.5f;
+        p->radius = static_cast<float>(seed) * 2.0f;
+        p->idle = seed & 1;
+        p->spread = 4.0f;
+        p->minDelay = seed;
+        p->maxDelay = seed + 10;
+        p->countdown = seed * 5;
+    }
+    static void Drop(ScriptFxSource* p) { p->name.~CString(); }
+};
+struct LightningFill : FillBase<ScriptLightning> {
+    static void Set(ScriptLightning* p, int seed, bool) { p->id = seed * 3 + 1; }
+};
+struct DeclFill : FillBase<ScriptDecl> {   // no commands (a loaded copy's temporary frees the source's)
+    static void Set(ScriptDecl* p, int seed, bool) { p->id = seed + 100; }
+};
+struct DefinitionFill : FillBase<ScriptDefinition> {   // no pairs or variables (as for the commands)
+    static void Set(ScriptDefinition* p, int seed, bool owned) {
+        p->index = seed;
+        if (!owned) return;
+        p->name = TextAt("script", seed);
+        p->params = TextAt("f", seed);
+    }
+    static void Drop(ScriptDefinition* p) { ScriptDefinitionDestruct(p); }
+};
+struct RunFill : FillBase<ScriptRun> {   // no variables
+    static void Set(ScriptRun* p, int seed, bool) {
+        p->block = reinterpret_cast<ScriptDecl*>(static_cast<std::uintptr_t>(0x1000 + seed * 4));
+        p->index = seed;
+        p->ticks = seed * 2;
+        p->sleepStart = seed - 1;
+        p->killFlag = reinterpret_cast<int*>(static_cast<std::uintptr_t>(0x2000 + seed * 4));
+    }
+};
+struct GroupFill : FillBase<ScriptGroup> {   // empty groups (a loaded copy's temporary frees the source's references)
+    static void Set(ScriptGroup*, int, bool) {}
+};
+struct TokenFill : FillBase<ScriptToken> {
+    static void Set(ScriptToken* p, int seed, bool owned) {
+        if (owned) p->text = TextAt("tok", seed);
+        p->line = seed * 11;
+    }
+    static void Drop(ScriptToken* p) { p->text.~CString(); }
+    // By text: each new node's "None" is a string of its own.
+    static bool Same(const ScriptToken& a, const ScriptToken& b) {
+        return a.line == b.line && a.text.GetLength() == b.text.GetLength() && std::strcmp(a.text, b.text) == 0;
+    }
+};
+struct DefineFill : FillBase<ScriptDefine> {
+    static void Set(ScriptDefine* p, int seed, bool owned) {
+        if (!owned) return;
+        p->name = TextAt("NAME", seed);
+        p->value = TextAt("value", seed + 1);
+    }
+    static void Drop(ScriptDefine* p) { ScriptDefineElements::Destruct(p, 1); }
+};
+struct SharedObjectFill : FillBase<SharedObject> {   // no objects (a loaded copy's temporary frees the source's array)
+    static void Set(SharedObject* p, int seed, bool) {
+        p->objectId = seed + 1;
+        p->player = seed & 3;
+        p->money = static_cast<std::uint32_t>(seed * 100);
+    }
+};
+struct WaveFill : FillBase<WaveRecord> {
+    static constexpr bool kFresh = true;
+    static void Set(WaveRecord* p, int seed, bool owned) {
+        p->data = reinterpret_cast<void*>(static_cast<std::uintptr_t>(0x3000 + seed * 4));
+        if (owned) {
+            CString text = TextAt("sound\\wave", seed);
+            const char* first = text;
+            gamelists::WaveName(p)->Assign(first, first + text.GetLength());
+        }
+        p->lastUsed = static_cast<std::uint32_t>(seed * 13);
+        p->size = seed * 1024;
+        p->uses = seed & 1;
+    }
+    static void Drop(WaveRecord* p) { gamelists::DestroyWave(p); }
+    static bool Same(const WaveRecord& a, const WaveRecord& b) {
+        const stlp::string* x = gamelists::WaveName(const_cast<WaveRecord*>(&a));
+        const stlp::string* y = gamelists::WaveName(const_cast<WaveRecord*>(&b));
+        return a.data == b.data && a.lastUsed == b.lastUsed && a.size == b.size && a.uses == b.uses && *x == *y &&
+               stlp::StringAbi::EndOfStorage(*x) - x->data() == stlp::StringAbi::EndOfStorage(*y) - y->data();
+    }
+};
+
+// Sources of 7 and 0 elements (blocks of 3); stored with both; loaded into an empty list and one of 2
+// elements with both, from the original's bytes, with the fakes as they were before each load. The
+// loaded lists, what the reads consumed and the fakes after the load (counts, flags and the log of
+// releases, deletions, shutdowns and clones) compared.
+template <std::uintptr_t Address, typename Through, typename Class, typename Fill>
+struct ListThroughSerialize {
+    using List = typename Through::Abi::List;
+    static inline void* original = nullptr;
+
+    static void __fastcall Run(List* self, void*, CArchive* ar) {
+        static const char* name = Name("", Address);
+        SerializeCListThrough<Through>(self, nullptr, ar);
+        Report(name, true, "");
+    }
+
+    static void Make(List& l, int which) {
+        ListHeader<Class>::Construct(reinterpret_cast<mfc::CList<void*>*>(&l), nullptr, 3);
+        int n = which >= 0 ? which : (which == -1 ? 0 : 2);
+        for (int i = 0; i < n; ++i) {
+            auto* node = l.NewNode(l.tail, nullptr);
+            Fill::Set(&node->data, (which & 0xF) * 16 + i, which >= 0);
+            if (l.tail) l.tail->next = node;
+            else l.head = node;
+            l.tail = node;
+        }
+    }
+    static bool Same(const List& x, const List& y) {
+        if (x.count != y.count || x.blockSize != y.blockSize) return false;
+        auto* a = x.head;
+        auto* b = y.head;
+        for (; a && b; a = a->next, b = b->next)
+            if (!Fill::Same(a->data, b->data) || (a->prev == nullptr) != (b->prev == nullptr)) return false;
+        return !a && !b && (x.tail == nullptr) == (y.tail == nullptr);
+    }
+    static void Free(List& l, bool drop) {
+        if (drop)
+            for (auto* node = l.head; node; node = node->next) Fill::Drop(&node->data);
+        mfc::PlexFreeDataChain(l.blocks);
+    }
+    static std::vector<unsigned char> Store(SerializeFn fn, List& l) {
+        MemoryArchive ar;
+        fn(&l, nullptr, &ar.ar);
+        return ar.Stored();
+    }
+
+    static bool Compare(SerializeFn theirs, SerializeFn ours, int source) {
+        ResetWorld();
+        List src;
+        Make(src, source);
+        std::vector<unsigned char> stored = Store(theirs, src);
+        bool ok = stored == Store(ours, src);
+        for (int start = 0; start < 2; ++start) {
+            List sx, sy, x, y;
+            std::vector<unsigned char> bytesX = stored, bytesY = stored;
+            if constexpr (Fill::kFresh) {
+                Make(sx, source);
+                Make(sy, source);
+                bytesX = Store(theirs, sx);
+                bytesY = Store(theirs, sy);
+            }
+            Make(x, -1 - start);
+            Make(y, -1 - start);
+            MemoryArchive lx(bytesX), ly(bytesY);
+            FakeWorld before = g_world;
+            theirs(&x, nullptr, &lx.ar);
+            FakeWorld afterOriginal = g_world;
+            g_world = before;
+            ours(&y, nullptr, &ly.ar);
+            ok = ok && lx.Used() == ly.Used() && Same(x, y) && std::memcmp(&afterOriginal, &g_world, sizeof(FakeWorld)) == 0;
+            g_world = before;
+            Free(x, Fill::kFresh);
+            Free(y, Fill::kFresh);
+            if constexpr (Fill::kFresh) {
+                Free(sx, false);   // its strings went with the load's temporaries
+                Free(sy, false);
+            }
+        }
+        Free(src, true);
+        return ok;
+    }
+
+    static void Startup() {
+        auto ours = reinterpret_cast<SerializeFn>(&SerializeCListThrough<Through>);
+        bool ok = Compare(reinterpret_cast<SerializeFn>(original), ours, 7) &&
+                  Compare(reinterpret_cast<SerializeFn>(original), ours, 0);
+        Check(Name(" start-up", Address), true, ok, "");
+    }
+};
+
+// ---- CArray<CString> and SerializeElements<CString> (S6d) ----------------------------------------------
+
+// Texts of 0 to 299 characters (so some lengths take the WORD form), by seed.
+void SetText(CString& s, int seed) {
+    char text[300];
+    int n = (seed * 71) % 300;
+    for (int i = 0; i < n; ++i) text[i] = static_cast<char>('a' + (seed + i) % 26);
+    text[n] = 0;
+    s = text;
+}
+bool SameTexts(const CString* a, const CString* b, int count) {
+    for (int i = 0; i < count; ++i)
+        if (a[i].GetLength() != b[i].GetLength() || std::strcmp(a[i], b[i]) != 0) return false;
+    return true;
+}
+
+// 004C2700: sources of 5, 0 and 3 strings; loaded into an empty array, one of 2 strings (grows) and
+// one of 8 (shrinks); the strings compared by text.
+struct StringArraySerialize {
+    using Array = Strings::Array;
+    static inline void* original = nullptr;
+
+    static void __fastcall Run(Array* self, void*, CArchive* ar) {
+        static const char* name = Name("", 0x004C2700);
+        SerializeStringArray(self, nullptr, ar);
+        Report(name, true, "");
+    }
+    static void Make(Array& a, int which) {
+        static const int kSizes[] = {0, 2, 8};
+        a.Construct(reinterpret_cast<std::uintptr_t>(StringArrayClass::Vtable()));
+        int n = which >= 0 ? which : kSizes[-1 - which];
+        a.SetSize(n, -1);
+        for (int i = 0; i < n; ++i) SetText(a.data[i], (which & 0xF) * 16 + i);
+    }
+    static bool Same(const Array& x, const Array& y) {
+        return x.size == y.size && x.maxSize == y.maxSize && x.growBy == y.growBy && (x.data == nullptr) == (y.data == nullptr) &&
+               SameTexts(x.data, y.data, x.size);
+    }
+    static void Release(Array& a) { Strings::Destruct<StringArrayClass>(&a); }
+
+    static void Startup() {
+        bool ok = Compare<Array>(reinterpret_cast<SerializeFn>(original), reinterpret_cast<SerializeFn>(&SerializeStringArray), Make,
+                                 Same, Release, 3, {5, 0, 3});
+        Check(Name(" start-up", 0x004C2700), true, ok, "");
+    }
+};
+
+// 007085AF: six strings stored with both (the same bytes), then loaded with both into six strings that
+// hold texts already.
+struct StringsSerialize {
+    using Fn = void(__stdcall*)(CArchive*, CString*, int);
+    static inline void* original = nullptr;
+
+    static void __stdcall Run(CArchive* ar, CString* strings, int count) {
+        static const char* name = Name("", 0x007085AF);
+        SerializeStrings(ar, strings, count);
+        Report(name, true, "");
+    }
+    static void Startup() {
+        auto theirs = reinterpret_cast<Fn>(original);
+        CString source[6], x[6], y[6];
+        for (int i = 0; i < 6; ++i) {
+            SetText(source[i], i + 1);
+            SetText(x[i], i + 20);
+            SetText(y[i], i + 20);
+        }
+        MemoryArchive a, b;
+        theirs(&a.ar, source, 6);
+        SerializeStrings(&b.ar, source, 6);
+        MemoryArchive lx(a.Stored()), ly(a.Stored());
+        theirs(&lx.ar, x, 6);
+        SerializeStrings(&ly.ar, y, 6);
+        bool ok = a.Stored() == b.Stored() && lx.Used() == ly.Used() && SameTexts(x, y, 6) && SameTexts(x, source, 6);
+        Check(Name(" start-up", 0x007085AF), true, ok, "");
+    }
+};
+
+using S00427690 = ListThroughSerialize<0x00427690, gameslots::EngineObjectsThrough, gameslots::ItemObjectListClass, EngineFill>;
+using S00571420 = ListThroughSerialize<0x00571420, gameslots::EngineObjectsThrough, gameslots::ClientObjectList2Class, EngineFill>;
+using S004C9350 = ListThroughSerialize<0x004C9350, gameslots::ObjectRefsThrough, gameslots::ObjectRefListClass, ObjectRefFill>;
+using S0052C740 = ListThroughSerialize<0x0052C740, gameslots::VictimsThrough, gameslots::VictimListClass, ObjectRefFill>;
+using S005576C0 = ListThroughSerialize<0x005576C0, gameslots::OwnedRefsThrough, gamelists::OwnedRefListClass, RefFill>;
+using S00598FD0 = ListThroughSerialize<0x00598FD0, gameslots::RefsThrough, gameslots::RefListAClass, RefFill>;
+using S00599DF0 = ListThroughSerialize<0x00599DF0, gameslots::RefsThrough, gameslots::RefListBClass, RefFill>;
+using S00558100 = ListThroughSerialize<0x00558100, gameslots::ArmourSpellsThrough, gameslots::ArmourSpellListClass, ArmourSpellFill>;
+using S004C61C0 =
+    ListThroughSerialize<0x004C61C0, gameslots::ParticleSourcesThrough, gameslots::ParticleSourceListClass, ParticleSourceFill>;
+using S004C64C0 = ListThroughSerialize<0x004C64C0, gameslots::FxSourcesThrough, gameslots::FxSourceListClass, FxSourceFill>;
+using S004C6800 = ListThroughSerialize<0x004C6800, gameslots::LightningsThrough, gameslots::LightningListClass, LightningFill>;
+using S004C7640 = ListThroughSerialize<0x004C7640, gameslots::DeclsThrough, gameslots::DeclListClass, DeclFill>;
+using S004C7F60 = ListThroughSerialize<0x004C7F60, gameslots::DefinitionsThrough, gameslots::DefinitionListClass, DefinitionFill>;
+using S004C8640 = ListThroughSerialize<0x004C8640, gameslots::RunsThrough, gameslots::RunListClass, RunFill>;
+using S004C8F00 = ListThroughSerialize<0x004C8F00, gameslots::GroupsThrough, gameslots::GroupListClass, GroupFill>;
+using S004CA2E0 = ListThroughSerialize<0x004CA2E0, gameslots::TokensThrough, gamelists::TokenListClass, TokenFill>;
+using S004D63E0 = ListThroughSerialize<0x004D63E0, gameslots::DefinesThrough, gameslots::DefineListClass, DefineFill>;
+using S0059A4A0 = ListThroughSerialize<0x0059A4A0, gameslots::SharedObjectsThrough, gamelists::SharedObjectListClass, SharedObjectFill>;
+using S006BC920 = ListThroughSerialize<0x006BC920, gameslots::WavesThrough, VtableAt<0x00744124>, WaveFill>;
+
 void SerializeStartupCheck() {
     S00405190::Startup();
     S00427890::Startup();
@@ -496,6 +898,28 @@ void SerializeStartupCheck() {
     S006C4790::Startup();
     S00571240::Startup();
     S005993A0::Startup();
+    // S6d: the lists loaded through a temporary, CArray<CString> and its SerializeElements.
+    S00427690::Startup();
+    S00571420::Startup();
+    S004C9350::Startup();
+    S0052C740::Startup();
+    S005576C0::Startup();
+    S00598FD0::Startup();
+    S00599DF0::Startup();
+    S00558100::Startup();
+    S004C61C0::Startup();
+    S004C64C0::Startup();
+    S004C6800::Startup();
+    S004C7640::Startup();
+    S004C7F60::Startup();
+    S004C8640::Startup();
+    S004C8F00::Startup();
+    S004CA2E0::Startup();
+    S004D63E0::Startup();
+    S0059A4A0::Startup();
+    S006BC920::Startup();
+    StringsSerialize::Startup();
+    StringArraySerialize::Startup();
 }
 
 } // namespace
@@ -630,3 +1054,24 @@ EI_VERIFY(0x006B5770, S006B5770::Run, 5, S006B5770::original);
 EI_VERIFY(0x006C4790, S006C4790::Run, 5, S006C4790::original);
 EI_VERIFY(0x00571240, S00571240::Run, 5, S00571240::original);
 EI_VERIFY(0x005993A0, S005993A0::Run, 5, S005993A0::original);
+EI_VERIFY(0x00427690, S00427690::Run, 8, S00427690::original);
+EI_VERIFY(0x00571420, S00571420::Run, 8, S00571420::original);
+EI_VERIFY(0x004C9350, S004C9350::Run, 7, S004C9350::original);
+EI_VERIFY(0x0052C740, S0052C740::Run, 8, S0052C740::original);
+EI_VERIFY(0x005576C0, S005576C0::Run, 8, S005576C0::original);
+EI_VERIFY(0x00598FD0, S00598FD0::Run, 8, S00598FD0::original);
+EI_VERIFY(0x00599DF0, S00599DF0::Run, 8, S00599DF0::original);
+EI_VERIFY(0x00558100, S00558100::Run, 8, S00558100::original);
+EI_VERIFY(0x004C61C0, S004C61C0::Run, 8, S004C61C0::original);
+EI_VERIFY(0x004C64C0, S004C64C0::Run, 8, S004C64C0::original);
+EI_VERIFY(0x004C6800, S004C6800::Run, 8, S004C6800::original);
+EI_VERIFY(0x004C7640, S004C7640::Run, 8, S004C7640::original);
+EI_VERIFY(0x004C7F60, S004C7F60::Run, 8, S004C7F60::original);
+EI_VERIFY(0x004C8640, S004C8640::Run, 8, S004C8640::original);
+EI_VERIFY(0x004C8F00, S004C8F00::Run, 8, S004C8F00::original);
+EI_VERIFY(0x004CA2E0, S004CA2E0::Run, 8, S004CA2E0::original);
+EI_VERIFY(0x004D63E0, S004D63E0::Run, 8, S004D63E0::original);
+EI_VERIFY(0x0059A4A0, S0059A4A0::Run, 8, S0059A4A0::original);
+EI_VERIFY(0x006BC920, S006BC920::Run, 8, S006BC920::original);
+EI_VERIFY(0x004C2700, StringArraySerialize::Run, 5, StringArraySerialize::original);
+EI_VERIFY(0x007085AF, StringsSerialize::Run, 5, StringsSerialize::original);

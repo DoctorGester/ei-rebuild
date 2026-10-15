@@ -781,6 +781,30 @@ face groups, nested calls, definitions, delta fields, behaviours (now built by t
 004C5180 and 00444B10 are reached. Left for S6d: the 19 list Serialize whose loader builds, assigns
 and releases a temporary (counted references, script records) and 004C2700 (SerializeElements<CString>).
 
+**S6d (2026-10-15).** S6c's leftovers, 21 addresses. The 19 list Serialize whose loader reads each
+element into a temporary: `SerializeCListThrough<ListTemporary<Abi, Init, Assign, Destroy>>`
+(mfc_slots.h; the stored form is SerializeCList's), the element functions per instantiation in
+game_slots.h: engine object pointers (00427690, 00571420: the holder's assignment, a release through
+slot 4), script object references (004C9350: released and cleared, then the copy constructor), the
+magic trap's victims (0052C740: unless the same object), counted pointers (005576C0: ShareAssign and the
+owner's release; 00598FD0 / 00599DF0: Assign and the plain release), the armour spells (00558100: the
+holder, a dword and one byte), the script's particle sources and lightnings (bytes), FX sources, command
+blocks, definitions, runs, groups, tokens and defines (their assignments and destructors), the world's
+shared objects (the three dwords, then the counted copy) and the sound cache's wave records. Where
+game_lists.h's ABI builds the element otherwise than the instantiation's NewNode, game_slots.h has its own
+(FX sources' empty name, lightnings' -1, the commands' header, tokens' "None", defines, shared objects'
+array header). 004C2700 (CArray<CString>) is SerializeCArray's shape over SerializeStrings, which is also
+registered at 007085AF (SerializeElements<CString>). The temporary holds the stored bytes, so a load
+shares and releases whatever the archive held: the loaded elements borrow the source's references, and a
+wave record's load frees the source's name buffer (the original's behaviour, kept). Checks
+(verify_mfc_serialize.cpp), at start-up next to the original: lists of fake engine and counted objects
+(the counts, flags and a log of releases, deletions, shutdowns and clones compared after each load, both
+loads from the same state; copy-on-share, detached and zero-count objects included), records with their
+strings shared; command blocks, definitions, runs, groups and shared objects without arrays (a loaded
+copy's temporary frees what the source's arrays hold); wave records loaded from a source each, compared
+by text; CArray<CString> and SerializeElements<CString> with texts up to 299 characters. No suite
+scenario calls them.
+
 **S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
 `TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
 the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a

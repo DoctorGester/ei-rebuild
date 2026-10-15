@@ -620,6 +620,7 @@ address,size,note
 007084C0,87,library function registered at its address (S8; Ghidra size)
 00708447,121,library function registered at its address (S8; Ghidra size)
 00708517,152,library function registered at its address (S8; Ghidra size)
+007085AF,78,SerializeElements<CString> registered at its address (S6d; Ghidra size)
 00700B20,65,library function registered at its address (S8; Ghidra size)
 00700F63,54,library function registered at its address (S8; Ghidra size)
 0070AC94,56,library function registered at its address (S8; Ghidra size)
