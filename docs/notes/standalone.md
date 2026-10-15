@@ -1352,7 +1352,9 @@ the list. Nothing else reads viewPosition.
 - Runs: five `--standalone` suite passes (95 scenarios each, watchdog_* left out): 475 runs pass, 288,630 checked
   sorts, 0 bad. Hooked suite with EI_HEAP_JITTER 1,fill / 2,fill / 3,fill (both installs, 571 runs): 263,386
   checked sorts, 0 bad; one FAIL, combat_more Rebirth under 2,fill (the leader took no damage: the jitter's known AI
-  divergence, SV7d4), and timeouts that passed on retry. Scratch driver: build\S17a\passes.py.
+  divergence, SV7d4), and timeouts that passed on retry. After merging main (S19, which saw the crash once more on
+  the Rebirth image: units, element 88000A00): two `--standalone` passes on both installs, 380 runs pass, 234,652
+  checked sorts, 0 bad; `--standalone --golden` 97 of 97 the same. Scratch driver: build\S17a\passes.py.
 
 **S19 (2026-10-15).** The image on the Rebirth install against the 53 Rebirth goldens. `run_all --standalone` now also
 runs install `standalone-rebirth` (run folders `<scenario>-standalone-rebirth`, Rebirth goldens; `--vanilla-only` /
