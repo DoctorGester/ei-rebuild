@@ -150,6 +150,29 @@ struct list {
     static void Distance(const Node* first, const Node* last, int& n) {
         for (; first != last; first = first->next) ++n;
     }
+    // _List_global::_Transfer(pos, first, last), inlined into the splices: [first, last) unlinked
+    // and linked in before `pos`, unless pos is `last`.
+    static void Transfer(Node* pos, Node* first, Node* last) {
+        if (pos == last) return;
+        last->prev->next = pos;
+        first->prev->next = last;
+        pos->prev->next = first;
+        Node* tmp = pos->prev;
+        pos->prev = last->prev;
+        last->prev = first->prev;
+        first->prev = tmp;
+    }
+    // splice(pos, x, i) (e.g. 004380C0): the node `i` moved before `pos` (nothing when pos is i or
+    // the node after it).
+    static void SpliceOne(Node* pos, Node* i) {
+        Node* j = i->next;
+        if (pos == i || pos == j) return;
+        Transfer(pos, i, j);
+    }
+    // splice(pos, x, first, last) (e.g. 00438770).
+    static void SpliceRange(Node* pos, Node* first, Node* last) {
+        if (first != last) Transfer(pos, first, last);
+    }
 };
 static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
 
@@ -218,5 +241,14 @@ AnyList::Node** __fastcall ListBegin(const AnyList* self, void*, AnyList::Node**
 AnyList::Node** __fastcall ListEnd(const AnyList* self, void*, AnyList::Node** out);
 // distance(first, last, n) (e.g. 00429040; RET 8): ECX the count.
 void __fastcall ListDistance(int* n, void*, const AnyList::Node* first, const AnyList::Node* last);
+// The iterator's copy constructor (004387C0; RET 4): returns this.
+AnyList::Node** __fastcall ListIteratorCopy(AnyList::Node** self, void*, AnyList::Node* const* from);
+// --it (00439A60): returns it.
+AnyList::Node** __fastcall ListIteratorDecrement(AnyList::Node** it);
+// splice(pos, x, i) (004380C0; RET 0xC) and splice(pos, x, first, last) (00438770; RET 0x10):
+// neither list is read.
+void __fastcall ListSpliceOne(AnyList* self, void*, AnyList::Node* pos, AnyList* x, AnyList::Node* i);
+void __fastcall ListSpliceRange(AnyList* self, void*, AnyList::Node* pos, AnyList* x, AnyList::Node* first,
+                                AnyList::Node* last);
 
 } // namespace stlp
