@@ -682,6 +682,37 @@ CFileFind getters, CTime, CFile Read / Open / lengths on a twin or read twice, C
 reads read twice), the rest ours only; start-up checks throw each exception, run files through a
 temporary folder and an archive round trip with a 16-byte buffer. Left: S8a.
 
+**S8a (2026-10-15).** MFC's handle maps and the GDI objects, 35 addresses (size rows added; 0070AB1A,
+0070BFD7 and 0070C028 have no Ghidra function: decoded sizes). src/lib/mfc_handle_map: CMapPtrToPtr
+(constructor, destructors, InitHashTable, RemoveAll, NewAssoc, FreeAssoc (the last one empties the
+map), GetAssocAt, GetValueAt, operator[], RemoveKey; its association has no hash field, unlike
+CMap's), CHandleMap's constructor and FromHandle (an unknown handle gets a temporary object of the
+map's class under AfxCriticalNewHandler, rethrown after the handler is put back),
+CRuntimeClass::CreateObject (a CException on the way is deleted, null returned), AfxSetNewHandler
+(_afxNewHandler 00796E14); mfc_exception: AfxThrowMemoryException / AfxThrowResourceException (the
+static objects 007C8DE8 / 007C8C58). mfc_gdi: CDC's constructor (CDC is 0x10 bytes: m_bPrinting),
+CDC::FromHandle, SelectObject (00708F5A for CPen*, 00708FE6 = slot 10 for CFont*, one body),
+SetTextColor (slot 12), DrawText (slot 26), CGdiObject FromHandle / Attach / Detach / DeleteObject,
+CPen(style, width, colour), CFont::CreatePointFont / CreatePointFontIndirect, and the create functions
+of CTempDC (0070BFD7, fixed allocator 007C8D18, vtable 007463E4) and CTempGdiObject (0070C028,
+007C8CF0, 0074645C). The maps are the module thread state's: the hook build keeps the original's
+afxMapHDC / afxMapHGDIOBJ (our code calls their addresses), the image registers its own
+(`EI_REPLACE_STANDALONE`, a `thread_local` map per thread, never freed) and AfxCriticalNewHandler
+(no CWinThread, so no safety pool: it throws a CMemoryException). The game has no CWinApp, so the
+temporary maps are never emptied (no OnIdle): every distinct surface DC leaves a CTempDC behind, in
+the original as here. Checks (tests/verify/verify_mfc_handle_map.cpp, verify_mfc_gdi.cpp):
+GetAssocAt / GetValueAt and CDC's constructor against the original; the point fonts run the original
+into a scratch CFont and compare the LOGFONTs; the rest ours only against the original's maps (Attach
+puts the object in the permanent map, Detach takes it out, FromHandle's object carries the handle) and
+the DC's state (current object, text colour); a start-up check runs 4,000 random map operations
+through the originals and ours side by side (every bucket chain compared after each), builds a handle
+map both ways, makes temporary and permanent objects in ours, builds the image's map of GDI objects and
+throws both static exceptions. smoke, console, ui_main_menu, ui_saveload(_delete), both installs: 0
+mismatches (SelectObject(CFont*) 2.7k, CDC::FromHandle 1.4k, DrawText 1.1k, NewAssoc 2k calls in
+console). The image installs all five image-only registrations; `--standalone` boot still stops at
+005AF580. Left: S8b (resource strings, the exceptions' error messages and ReportError, CFile's name
+slots 4-6; they need the module state's resource handle and game.exe's string table in the image).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

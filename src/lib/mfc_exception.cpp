@@ -21,6 +21,12 @@ const void* ArchiveExceptionThrowInfo() { return reinterpret_cast<const void*>(0
 // CNotSupportedException*.
 void* SimpleNotSupportedException() { return reinterpret_cast<void*>(0x007C8D50); }
 const void* NotSupportedThrowInfo() { return reinterpret_cast<const void*>(0x0077EE80); }
+// _simpleMemoryException and _simpleResourceException (static, not auto-deleted) and the throw
+// information of a CMemoryException* and a CResourceException*.
+void* SimpleMemoryException() { return reinterpret_cast<void*>(0x007C8DE8); }
+const void* MemoryThrowInfo() { return reinterpret_cast<const void*>(0x0077EE38); }
+void* SimpleResourceException() { return reinterpret_cast<void*>(0x007C8C58); }
+const void* ResourceThrowInfo() { return reinterpret_cast<const void*>(0x0077EC28); }
 
 // The two classes' CRuntimeClass records.
 void* FileExceptionClass() { return reinterpret_cast<void*>(0x00746820); }
@@ -190,6 +196,18 @@ void __stdcall ThrowNotSupported() {
     CxxThrowException(&thrown, NotSupportedThrowInfo());
 }
 
+void __stdcall ThrowMemoryException() {
+    void* thrown = SimpleMemoryException();
+    CxxThrowException(&thrown, MemoryThrowInfo());
+    __assume(false);
+}
+
+void __stdcall ThrowResourceException() {
+    void* thrown = SimpleResourceException();
+    CxxThrowException(&thrown, ResourceThrowInfo());
+    __assume(false);
+}
+
 void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
 void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
 
@@ -204,6 +222,8 @@ EI_REPLACE(0x007031D5, ThrowFileException);
 EI_REPLACE(0x007030F0, ThrowOsError);
 EI_REPLACE(0x0070A835, ThrowArchiveException);
 EI_REPLACE(0x006FE3A2, ThrowNotSupported);
+EI_REPLACE(0x006FE389, ThrowMemoryException);
+EI_REPLACE(0x0070A29E, ThrowResourceException);
 EI_REPLACE(0x0070CF4C, FileExceptionRuntimeClass);
 EI_REPLACE(0x0070CF46, ArchiveExceptionRuntimeClass);
 
