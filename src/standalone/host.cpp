@@ -30,6 +30,23 @@ constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;    // game.exe 1.06 (Russian), 
 constexpr std::size_t kReserve = 0x00640000;
 unsigned char g_reserve[kReserve];
 
+// game.exe's code section in the image (INT3 until ei_hook.dll writes its jumps).
+std::uintptr_t g_textBegin, g_textEnd;
+
+// An INT3 of the image hit before ei_hook.dll's own report is in place (its static constructors run
+// at LoadLibrary): named on stderr (ei_launch's run notes) and the process ends, never silently
+// (S16c). ei_hook.dll's handler, added later at the front, reports the hits after that itself.
+LONG CALLBACK EarlyBreakpoint(EXCEPTION_POINTERS* e) {
+    const auto at = reinterpret_cast<std::uintptr_t>(e->ExceptionRecord->ExceptionAddress);
+    if (e->ExceptionRecord->ExceptionCode != EXCEPTION_BREAKPOINT || at < g_textBegin || at >= g_textEnd)
+        return EXCEPTION_CONTINUE_SEARCH;
+    std::fprintf(stderr, "ei_standalone: no code at %08X before ei_hook.dll's missing-code report, [esp] %08X\n",
+                 static_cast<unsigned>(at), static_cast<unsigned>(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp)));
+    std::fflush(stderr);
+    TerminateProcess(GetCurrentProcess(), 3);
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
 int Fail(const char* what) {
     std::fprintf(stderr, "ei_standalone: %s (error %lu)\n", what, GetLastError());
     return 1;
@@ -189,6 +206,13 @@ int main(int argc, char** argv) {
     if (!BuildImage(file, nt)) return Fail("cannot lay out game.exe's image");
     if (ResolveImports(nt, Folder(exe)) != 0) return 1;
 
+    const auto* sec = IMAGE_FIRST_SECTION(nt);
+    for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)
+        if (sec[i].Characteristics & IMAGE_SCN_CNT_CODE) {
+            g_textBegin = kImageBase + sec[i].VirtualAddress;
+            g_textEnd = g_textBegin + sec[i].Misc.VirtualSize;
+        }
+    AddVectoredExceptionHandler(1, EarlyBreakpoint);
     HMODULE hook = LoadLibraryA(dll.c_str());
     if (!hook) return Fail(("cannot load " + dll).c_str());
     using Main = int(__cdecl*)(const char* exePath, int run, const char* arguments);

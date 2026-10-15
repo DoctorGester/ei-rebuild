@@ -396,3 +396,18 @@ EI_VERIFY(0x006BAC90, SoundCloseStreamVerify, 0, s_unused);
 EI_VERIFY(0x006B6A30, SoundOpenVerify, 0, s_unused);
 EI_VERIFY(0x006B6D80, SoundCloseVerify, 0, s_unused);
 EI_VERIFY(0x006B73E0, SoundResetVerify, 0, s_unused);
+
+// 006B68A0 (S16c): DirectSoundEnumerateA's callback in Open (on the caller's thread), ours only: one
+// more element, the GUID pointer last, TRUE. Reached when Open is given a device index (none of the
+// suite's runs does).
+int __stdcall AddSoundDevice(void* guid, const char* description, const char* module, void* devices);
+static int __stdcall AddSoundDeviceVerify(void* guid, const char* description, const char* module, void* devices) {
+    auto* list = static_cast<lib::AlignedArray<int>*>(devices);
+    const int before = list->size;
+    const int result = AddSoundDevice(guid, description, module, devices);
+    ei::verify::Check("AddSoundDevice", true,
+                      result == 1 && list->size == before + 1 && (*list)[before] == static_cast<int>(reinterpret_cast<std::intptr_t>(guid)),
+                      "%d devices", list->size);
+    return result;
+}
+EI_VERIFY(0x006B68A0, AddSoundDeviceVerify, 0, s_unused);

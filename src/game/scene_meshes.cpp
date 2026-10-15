@@ -231,4 +231,30 @@ void __fastcall IndexMeshCorners(VtArray* meshes) {
 }
 EI_REPLACE(0x0044CFF0, IndexMeshCorners);
 
+// 0044CF00 / 0044CF60 (no Ghidra functions; S16c): the two qsort comparators above (kCompareRecords,
+// kComparePairs; called through their addresses so the checks run). 1, -1 or 0 by the first field
+// that differs: the records' vertex, position and texture as ints, the pairs' two words unsigned.
+namespace {
+template <typename T>
+int CompareFields(const T* a, const T* b, int count) {
+    for (int i = 0; i < count; ++i) {
+        if (a[i] > b[i]) return 1;
+        if (a[i] < b[i]) return -1;
+    }
+    return 0;
+}
+} // namespace
+int __cdecl CompareCornerRecords(const void* a, const void* b) {
+    const auto* x = static_cast<const CornerRecord*>(a);
+    const auto* y = static_cast<const CornerRecord*>(b);
+    const std::int32_t first[3] = {x->vertex, x->position, x->texture};
+    const std::int32_t second[3] = {y->vertex, y->position, y->texture};
+    return CompareFields(first, second, 3);
+}
+int __cdecl CompareWordPairs(const void* a, const void* b) {
+    return CompareFields(static_cast<const std::uint16_t*>(a), static_cast<const std::uint16_t*>(b), 2);
+}
+EI_REPLACE(0x0044CF00, CompareCornerRecords);
+EI_REPLACE(0x0044CF60, CompareWordPairs);
+
 } // namespace scene

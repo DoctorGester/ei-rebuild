@@ -992,3 +992,15 @@ void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
 using ei::short_functions::Ret4;
 // The element callback that does nothing (kNoElementTick; S16a: the standalone image has no code there).
 EI_REPLACE_SHORT(0x00485530, Ret4);
+// The same no-op element callbacks of the types set up from 00492D30 to 00496270 (RET 4 each, no Ghidra
+// functions; S16c: reached by none of the suite's standalone runs, found by the address scan).
+EI_REPLACE_SHORT(0x00492FB0, Ret4);
+EI_REPLACE_SHORT(0x00493DD0, Ret4);
+EI_REPLACE_SHORT(0x00494A00, Ret4);
+EI_REPLACE_SHORT(0x00494DF0, Ret4);
+EI_REPLACE_SHORT(0x004950A0, Ret4);
+EI_REPLACE_SHORT(0x00495310, Ret4);
+EI_REPLACE_SHORT(0x004957D0, Ret4);
+EI_REPLACE_SHORT(0x00495A20, Ret4);
+EI_REPLACE_SHORT(0x00496260, Ret4);
+EI_REPLACE_SHORT(0x004965D0, Ret4);

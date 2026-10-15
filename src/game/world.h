@@ -1469,6 +1469,10 @@ public:
     // HasIncoming (slot 6, AL) / IncomingCount (slot 7); false / 0 without one.
     bool PumpHasIncoming();
     int PumpIncomingCount();
+    // 00566E00 (world_client_session.cpp; the console's disconnect through GameFlow 00581620, S16c).
+    // The local view's owner (session +0x20, the connection's player +0x1C) disconnects
+    // (CPlayer::Disconnect). The original reads through null without a session, as this does.
+    void DisconnectLocalPlayer();
     // 00565790 / 005659D0 (RET 4). The object at screen point `point` (x, y): the screen entries of
     // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 (00565790) or 24
     // (005659D0) go to the vector +0xF4, which is sorted front to back (DepthLess with the view
@@ -1876,6 +1880,9 @@ struct GameFlow {
     void RequestZoneChange(const char* zone, int entrance);          // 00581700 (RET 8): 4, +0x78 = entrance
     void RequestPartyZone5(const char* zone, const void* party);     // 00581730 (RET 8)
     void RequestPartyZone6(const char* zone, const void* party);     // 00581760 (RET 8)
+    // 00581620 (world_game.cpp; the console's disconnect, S16c; `this` is not used). The client world's
+    // local player disconnects (CWorldClient::DisconnectLocalPlayer).
+    void DisconnectClient();
     // 0057C460 (RET 8). Starts `zone`: the current zone is torn down; mode 0 takes the mode from
     // the zone record's kind (0 -> 1, 1 -> 4, 2 -> 3), "endofgame" is mode 8, mode 2 loads the main
     // menu zone (also when the zone is unknown, after FatalError and closing the network
