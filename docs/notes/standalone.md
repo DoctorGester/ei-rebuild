@@ -162,7 +162,7 @@ manager's setlocale query), so tolower / toupper take `_tolower_lk`'s path (LCMa
 `__lc_codepage`) and the compares fold bytes through a table of tolower rebuilt when the locale
 changes; character classes come from `_pctype`, lead bytes from `_mbctype`. Only single-byte paths
 are ported (`__mb_cur_max` 1, `__ismbcodepage` 0). In the standalone image that data is the C
-locale (ASCII case only) unless something sets it: who sets the hook build's locale is still open.
+locale (ASCII case only) until the game sets it (S4c: the text manager's Create, in both builds).
 Library functions have no Ghidra size in function_sizes.inc: each registered one is added to
 config/extra_function_sizes.csv (the installer skips an unknown start). Checks
 (tests/verify/verify_crt.cpp): against the original, memmove ours only; atoi against atol 006E804D;
@@ -234,6 +234,68 @@ local 32-bit times, size, name; the game never closes the handle) go through the
 bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _findfirst; the heap ours only.
 smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
 stops at 0040AA80 (hash table resize, S11) before any file code.
+
+**S4c (2026-10-15), group 1: the x87 entries.** _ftol 006E853C, _CIacos 006E7320, _CIasin 006E83C0, _CIpow
+006E81A0 and _CIfmod 006E95AA take ST0 / ST1 and return in EDX:EAX or ST0; our src/game helpers call them
+through their addresses (`mov eax, addr; call eax`), so the image needs code there. src/lib/crt_x87.cpp:
+a naked entry each (arguments to the stack, a plain C++ body; ECX / EDX kept), image only
+(`EI_REPLACE_STANDALONE`: the hook build keeps the exe's x87 results and so its goldens);
+check_cleanup exempts that one file's `__asm`. _ftol decodes the 80-bit value with integers (exact for every
+input, the integer indefinite for NaN / infinity / |x| >= 2^63). The _CI bodies follow the CRT: its control word
+(006EF665) keeps the caller's precision and rounds to nearest, so the port computes at 53 bits and rounds the
+FADD / FSUB / FMUL / FSQRT results to the caller's precision (a float store at 24 bits); FPATAN is inlined by
+/fp:fast as in the original; pow splits y log2(x) as y k + y log2(m) with fma errors (FYL2X's 64-bit product),
+n by ties-to-even, 2^f by exp2, FSCALE by ldexp; the integer test on y rounds y / 2 at the caller's precision
+(an odd y beyond 2^24 tests even at 24 bits, as in the original); overflow follows the caller's rounding
+direction (DBL_MAX under chop); fmod is exact, +0 for a zero x, the indefinite for an infinite y. errno /
+_matherr are not reproduced (nothing reads them). Check (tests/verify/verify_crt_x87.cpp, start-up, against
+the originals still in place): 44,900 cases under five control words (24 / 53 / 64 bits, nearest / chop / up),
+FPU stack depth and control word after each; _ftol and fmod bit for bit, the _CI functions bit for bit under
+007F (the main thread's word, the float the callers store) and for special values; at 53 / 64 bits pow is
+within 4 + |y| / 2 double units and acos / asin within 4 (1,758 results not bit-equal), denormal results
+within tolerance (the original's _87except may flush them). smoke vanilla: 0 mismatches; the image installs
+all five.
+
+**S4c group 2: exceptions.** src/lib/crt_except.cpp, both builds (no state of their own): _CxxThrowException
+006E7819 raises 0xE06D7363 (not continuable, {0x19930520, object, ThrowInfo}) with the thrower's own
+ThrowInfo, so the exe's catch tables and ours (verify_mfc_try) both match it; MSVC 6 std::exception
+{vtable 00747290, text, owned} (constructor, copy, operator=, destructor, deleting destructor, what with
+"Unknown exception" 00747298). check_returns allows 006E7819 (it does not return). Check:
+tests/verify/verify_crt_except.cpp (constructor, copy and what against the originals; a start-up check drives
+all six, since the suite throws none).
+
+**S4c group 3: the locale.** Who sets `__lc_handle[LC_CTYPE]`: the game, in both builds. The text manager's
+Create (004DED20) calls setlocale(LC_CTYPE, the options' "Font CharSet" 0079BE94, "english" from the
+options constructor unless the registry has another) and _setmbcp(_MB_CP_LOCALE); "english" resolves to
+"English_United States.1252", handle 0x409, code page 1252 (the multibyte code page is already 1252 from
+the CRT start-up's `_setmbcp(_MB_CP_ANSI)`, so _setmbcp changes nothing on a 1252 system). The hook build
+keeps the exe's setlocale / _setmbcp (its remaining library code reads that state); the image gets ours
+(src/lib/crt_locale.cpp, `EI_REPLACE_STANDALONE`): getqloc.c's name search (EnumSystemLocalesA with
+the exe's abbreviation tables), _setlocale_set_cat, __init_ctype (class tables by GetStringTypeW, called
+directly: the category table's pointer is exe code), _setmbcp with setSBUpLow; and the image's start
+(src/hook/standalone.cpp) now runs the C initialiser __initmbctable (00783BC0) before the static
+initialisers. Left out: the locks, `__setlc_active`, setlocale(LC_ALL, ...) (never called), the Win9x
+paths. _ismbcdigit / _ismbcspace (both builds): `_pctype` for a byte (also `_isctype`'s answer),
+GetStringTypeW in the multibyte code page for a double-byte character. Check: tests/verify/
+verify_crt_locale.cpp, start-up: the class tests against the originals (every byte and 14 double-byte
+values, under 1252 and 932); _setmbcp for 22 code pages from two states, setlocale for 67 steps (49
+names incl. abbreviations, countries, code pages, Japanese 932, bad names; sequences ending in "C";
+queries), original then ours from the same state, every byte of the state and the class tables equal.
+
+**S4c group 4: the ostream inserters.** src/lib/crt_iostream.{h,cpp}, both builds (the streams are the
+game's): MSVC 6's old iostream layouts (streambuf with its 11 virtual slots, ios, ostream with its
+virtual base table and x_floatused) and operator<< for char 006FC0B0, unsigned 006FC14E, const char*
+006FC31D, double 006FC7FA, long 006FC91C, int 006FC9C6, the manipulator 00434FE0, ostream::flush 006FC346
+and the flush manipulator 00435000; opfx / osfx / writepad are internal (the exe's other callers keep the
+exe's). Numbers go through the game's sprintf as VC6 builds the format ("%%%s.%.0ug" for double, the
+precision capped at 15, 6 after the inline float inserter); the double's buffer is larger than VC6's 24
+bytes (a fixed value past 10^22 overruns it there). Check: tests/verify/verify_crt_iostream.cpp shadows
+every game call on scratch streams (original and ours, recording streambufs: bytes, streambuf calls, state,
+width) and runs a start-up battery of 9,191 insertions (25 formats x 7 streambuf behaviours); operator<<
+(const char*)'s original is rebuilt from the exe's opfx / writepad / osfx (no room for a trampoline);
+flush and the manipulators are ours only. Left for the image: the streams themselves (ostream(streambuf*)
+006FC42F, which the static initialisers call, the ios / streambuf constructors and destructors, the
+log's streambuf), fflush for ios::stdio.
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
@@ -433,6 +495,34 @@ time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash
 a float key, and the 350-odd hash members nothing of ours calls (reached only from other
 originals; dead in the standalone image unless the exe's data points at them).
 
+**S11a (2026-10-15).** Hashtables whose values copy and destroy themselves: `hashtable` got
+`CopyFrom` (`_M_copy_from`), `CopyConstruct`, `Assign`; traits `CStringFloatTraits` (hash over the
+text, `_mbscmp` equality, the float copied as bits), `StringListTraits` (pair<string, list<void*>>),
+`DwordObjectTraits<T, Policy>` (dword key, value by an element policy). 25 addresses: CString->float
+004613C0 00461540 004615B0 004616A0 00461750 004A8A50 00580900 004A8AD0 004AA950 005E0DB0
+(stlp_hash.cpp); string keys ~hashtable 004A9010 006A6C20, string->list 004A8E60 004AAEB0 0069D130;
+the bridge heights' operator[] 005BCDE0 (Map8; the original's new value is the caller's stack dword,
+VC6's T() for a scalar: 0 here, its one caller overwrites it); in src/game/game_hashes.*: CParty map
+004A91B0 004ABA70 004AD050, the unit looks' ~hashtable 005986B0 (nested FiguredUnit tables)
+00598860, the shape cache 005BCCB0 005BE090 005BE320 005BE730 (heights equal when FCOMP says equal or
+unordered). Checks (verify_stlp_hash.cpp): CString->float against the original (keys' references
+retained before the original's frees, so its release is undone by taking the nodes back), the copies
+ours only (same buckets, keys' shared texts, value bits, new nodes); string->list clear against the
+original (list nodes, sentinel, string, node trail), find_or_insert and the shape cache's operator[] /
+find against the original; destructors, the CParty map (a party's copy cannot be undone) and inserts
+of the shape cache (Share marks the shape copy-on-share) ours only, the freed pool blocks checked in
+order. The suite reaches 21 of 25, 0 mismatches; not reached: 004A91B0 004ABA70 006A6C20 005BE090.
+
+**S10b (2026-10-15).** The three acks.db tables' resize(n): 006DB9C0 (UnitAcks), 006DBBD0
+(ModelAcks), 006DBE20 (ExtraAcks), as `VectorAbi<R, AcksElement<R>>::ResizeDefault`
+(record_vectors.h). The head copies its name and the speech map by the hashtable's copy constructor
+/ operator= (S11a); a default head is the name and an empty map of 100 buckets. The copied map's
+values still point into the source record's speech lists, as in the original. The policy lists the
+speech-list arrays itself: `records::Memberwise` takes an array of `stlp::vector` as trivially
+copyable (a vector's copy assignment is implicit and trivial), so its array overloads never apply and
+a default record's lists were left as garbage. Checks ours only (model text: name, map, every list);
+reached at boot, 0 mismatches.
+
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
 (NewNode, FreeNode, RemoveAt, RemoveAll, AddTail / AddHead and RemoveHead by value, destructor with
@@ -448,6 +538,25 @@ the original on a twin header (touched nodes saved and restored; a new block com
 the last node removed, RemoveAll, destructors, CPlex and the game-element lists ours only. The
 suite reaches 62 of the 104, 0 mismatches; the CMap rows (scene / model file loaders 00453B90-
 00477380) and the shared-object, AI-map and armour-spell lists are not reached. Left: S7a.
+
+**S8 (2026-10-15).** MFC files, archives, exceptions, AfxMessageBox and the map-free CDC members,
+108 addresses (size rows added for each). mfc_exception: CException's constructor and Delete, the
+CFileException / CArchiveException destructors, OsErrorToException, the four throws (through the
+game's `_CxxThrowException` 006E7819 with the exe's throw information: S4c owns that function) and
+AFX_EXCEPTION_LINK; the link chain is the original's thread state (00702107) in the hook build, a
+`thread_local` registered image-only at 00702107. mfc_file: CFile, CStdioFile (stream calls on the
+game CRT in the hook build, the host CRT in the image, as S4b), CFileFind, AfxFullPath / AfxGetRoot.
+mfc_time: CTime's constructors, GetCurrentTime, Format (host `_mktime32` / `_localtime32_s` /
+`strftime` in the image, with VC6's time() from GetLocalTime through the import slot). mfc_archive:
+CArchive Read / Write / Flush / FillBuffer / counts / BYTE-WORD-DWORD operators, the CString
+operators and AfxReadStringLength, CString = LPCWSTR (00700B20) and `_wcstombsz`. mfc_window:
+AfxMessageBox: CWinApp's constructor (0070D654) has no caller, so the module state never has an
+application and the box always has no owner and the module's file name as its title (the image
+shows ei_standalone.exe there); the wrapper checks that against the original's state. mfc_gdi: CDC
+SetBkMode / MoveTo / LineTo / FillSolidRect. Checks: pure functions against the original (paths,
+CFileFind getters, CTime, CFile Read / Open / lengths on a twin or read twice, CStdioFile line
+reads read twice), the rest ours only; start-up checks throw each exception, run files through a
+temporary folder and an archive round trip with a 16-byte buffer. Left: S8a.
 
 ## 3. Runtime: MFC, STLport, CRT
 

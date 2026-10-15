@@ -22,12 +22,15 @@
 #include "unit_looks.h"
 
 #include "ei/vcall.h"
+#include "lib/stlp_hash.h"
 #include "lib/stlp_vector.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <new>
+#include <type_traits>
 
 // A unit model's body slot as its record's copies copy it, found by argument-dependent lookup from
 // records::Memberwise (the slot constructor 0053F000 leaves the level name empty).
@@ -277,6 +280,91 @@ struct EnvironmentSpeechElement {
 
 using SpeechVector = stlp::VectorAbi<SpeechRecord, SpeechElement>;
 using EnvironmentSpeechVector = stlp::VectorAbi<acks::EnvironmentSpeech, EnvironmentSpeechElement>;
+
+} // namespace recordvec
+
+// The speech lists' elements as members of the acks records (records::CopyMember of their vectors).
+template <>
+struct records::ElementOf<SpeechRecord> {
+    using type = recordvec::SpeechElement;
+};
+template <>
+struct records::ElementOf<acks::EnvironmentSpeech> {
+    using type = recordvec::EnvironmentSpeechElement;
+};
+
+namespace acks {
+
+// The records' head as their compiler-written members copy it: the name, then the map by ack kind
+// (copy constructor 006DECC0, operator= 006E14E0: STLport's, over _M_copy_from 006E00F0; the
+// copy's map still points into the source record's lists, as the original's does). By default an
+// empty name with room for 8 bytes and an empty map of 193 buckets (006DCD90; its functor bytes
+// are an uninitialised stack byte in the original, 0 here).
+using SpeechTable = stlp::hashtable<stlp::DwordKeyTraits<8>>;
+inline SpeechTable& SpeechTableOf(AckRecordHead& head) { return *reinterpret_cast<SpeechTable*>(&head.speeches); }
+inline const SpeechTable& SpeechTableOf(const AckRecordHead& head) {
+    return *reinterpret_cast<const SpeechTable*>(&head.speeches);
+}
+static_assert(sizeof(SpeechTable) == sizeof(AckRecordHead::speeches));
+inline void CopyMember(AckRecordHead& to, const AckRecordHead& from) {
+    records::CopyMember(to.name, from.name);
+    SpeechTableOf(to).CopyConstruct(SpeechTableOf(from));
+}
+inline void AssignMember(AckRecordHead& to, const AckRecordHead& from) {
+    records::AssignMember(to.name, from.name);
+    SpeechTableOf(to).Assign(SpeechTableOf(from));
+}
+inline void DefaultMember(AckRecordHead& to) {
+    records::DefaultMember(to.name);
+    SpeechTableOf(to).Construct(100, 0, 0, 0);
+}
+
+} // namespace acks
+
+namespace recordvec {
+
+// ---- acks.db's table records (acks_db.h; 006DB9C0 / 006DBBD0 / 006DBE20, loaded at startup) ----
+
+// The compiler-written members (006DE370 / 006DC000 and the copy loops' inlined operator=): the
+// head, then the speech lists in order (listed here: records::Memberwise would take an array of
+// vectors for plain bytes, a vector being trivially copyable to the type traits); the destructors
+// are the S13 ports (006DC390, 006DC920, 006DCAF0).
+template <typename R>
+struct AcksElement {
+    static constexpr bool kUnit = std::is_same_v<R, acks::UnitAcks>;
+    static void Construct(R* to, const R& from) {
+        acks::CopyMember(to->head, from.head);
+        for (std::size_t i = 0; i < std::size(from.lists); ++i) records::CopyMember(to->lists[i], from.lists[i]);
+        if constexpr (kUnit) {
+            records::CopyMember(to->environmentSpeeches, from.environmentSpeeches);
+            records::CopyMember(to->namedSpeeches, from.namedSpeeches);
+        }
+    }
+    static void Assign(R& to, const R& from) {
+        acks::AssignMember(to.head, from.head);
+        for (std::size_t i = 0; i < std::size(from.lists); ++i) records::AssignMember(to.lists[i], from.lists[i]);
+        if constexpr (kUnit) {
+            records::AssignMember(to.environmentSpeeches, from.environmentSpeeches);
+            records::AssignMember(to.namedSpeeches, from.namedSpeeches);
+        }
+    }
+    static void Default(R* p) {
+        acks::DefaultMember(p->head);
+        for (acks::SpeechList& list : p->lists) records::DefaultMember(list);
+        if constexpr (kUnit) {
+            records::DefaultMember(p->environmentSpeeches);
+            records::DefaultMember(p->namedSpeeches);
+        }
+    }
+    static void Destroy(R* p) { p->Destruct(); }
+};
+using UnitAcksElement = AcksElement<acks::UnitAcks>;
+using ModelAcksElement = AcksElement<acks::ModelAcks>;
+using ExtraAcksElement = AcksElement<acks::ExtraAcks>;
+
+using UnitAcksVector = stlp::VectorAbi<acks::UnitAcks, UnitAcksElement>;
+using ModelAcksVector = stlp::VectorAbi<acks::ModelAcks, ModelAcksElement>;
+using ExtraAcksVector = stlp::VectorAbi<acks::ExtraAcks, ExtraAcksElement>;
 
 // ---- The client's lobby queries (net_classes.h; net_lobby.cpp's 004439C0 00443BF0 004442B0 00444090)
 
