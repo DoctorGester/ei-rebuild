@@ -313,10 +313,10 @@ struct TwinConstruct {
 
 // ---- Ours only -----------------------------------------------------------------------------------
 
-template <typename Class>
+template <std::uintptr_t Address, typename Class>
 struct HeaderChecks {
     static void __fastcall Destruct(mfc::CArray<Bytes<1>>* self) {
-        static const char* name = Name("destructor", reinterpret_cast<std::uintptr_t>(Class::Vtable()));
+        static const char* name = Name("destructor", Address);
         bool ok = self->size <= self->maxSize && (self->size == 0 || self->data);
         ArrayHeader<Class>::Destruct(self);
         Check(name, true, ok && self->vtable == Class::Vtable(), "%d", self->size);
@@ -370,26 +370,46 @@ EI_VERIFY(0x005C1760, A005C1760::Run, 10, A005C1760::original);
 using A005FAF80 = TwinConstruct<0x005FAF80, UnitPtrArrayClass>;
 EI_VERIFY(0x005FAF80, A005FAF80::Run, 10, A005FAF80::original);
 
-EI_VERIFY(0x004600D0, HeaderChecks<IntArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00474F30, HeaderChecks<FilePointArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00475110, HeaderChecks<FileUvArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004752F0, HeaderChecks<FileFaceArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00475680, HeaderChecks<RotKeyArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004759E0, HeaderChecks<PosKeyArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00475D40, HeaderChecks<MorphHeadArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00476780, HeaderChecks<IndexArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00476AB0, HeaderChecks<NormalArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004BB020, HeaderChecks<PartySlotArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004BCF10, HeaderChecks<ScriptAreaClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004C29C0, HeaderChecks<ScriptFloatsClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004C5AF0, HeaderChecks<ScriptIfThenArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004CB050, HeaderChecks<FloatArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x004CB770, HeaderChecks<AiLookArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00557250, HeaderChecks<PointArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00557410, HeaderChecks<AttackOptionArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00557E70, HeaderChecks<AnimationStepsClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x00599180, HeaderChecks<CellRowArrayClass>::Destruct, 0, s_unused);
-EI_VERIFY(0x005997A0, HeaderChecks<AreaListClass>::Destruct, 0, s_unused);
+using D004600D0 = HeaderChecks<0x004600D0, IntArrayClass>;
+EI_VERIFY(0x004600D0, D004600D0::Destruct, 0, s_unused);
+using D00474F30 = HeaderChecks<0x00474F30, FilePointArrayClass>;
+EI_VERIFY(0x00474F30, D00474F30::Destruct, 0, s_unused);
+using D00475110 = HeaderChecks<0x00475110, FileUvArrayClass>;
+EI_VERIFY(0x00475110, D00475110::Destruct, 0, s_unused);
+using D004752F0 = HeaderChecks<0x004752F0, FileFaceArrayClass>;
+EI_VERIFY(0x004752F0, D004752F0::Destruct, 0, s_unused);
+using D00475680 = HeaderChecks<0x00475680, RotKeyArrayClass>;
+EI_VERIFY(0x00475680, D00475680::Destruct, 0, s_unused);
+using D004759E0 = HeaderChecks<0x004759E0, PosKeyArrayClass>;
+EI_VERIFY(0x004759E0, D004759E0::Destruct, 0, s_unused);
+using D00475D40 = HeaderChecks<0x00475D40, MorphHeadArrayClass>;
+EI_VERIFY(0x00475D40, D00475D40::Destruct, 0, s_unused);
+using D00476780 = HeaderChecks<0x00476780, IndexArrayClass>;
+EI_VERIFY(0x00476780, D00476780::Destruct, 0, s_unused);
+using D00476AB0 = HeaderChecks<0x00476AB0, NormalArrayClass>;
+EI_VERIFY(0x00476AB0, D00476AB0::Destruct, 0, s_unused);
+using D004BB020 = HeaderChecks<0x004BB020, PartySlotArrayClass>;
+EI_VERIFY(0x004BB020, D004BB020::Destruct, 0, s_unused);
+using D004BCF10 = HeaderChecks<0x004BCF10, ScriptAreaClass>;
+EI_VERIFY(0x004BCF10, D004BCF10::Destruct, 0, s_unused);
+using D004C29C0 = HeaderChecks<0x004C29C0, ScriptFloatsClass>;
+EI_VERIFY(0x004C29C0, D004C29C0::Destruct, 0, s_unused);
+using D004C5AF0 = HeaderChecks<0x004C5AF0, ScriptIfThenArrayClass>;
+EI_VERIFY(0x004C5AF0, D004C5AF0::Destruct, 0, s_unused);
+using D004CB050 = HeaderChecks<0x004CB050, FloatArrayClass>;
+EI_VERIFY(0x004CB050, D004CB050::Destruct, 0, s_unused);
+using D004CB770 = HeaderChecks<0x004CB770, AiLookArrayClass>;
+EI_VERIFY(0x004CB770, D004CB770::Destruct, 0, s_unused);
+using D00557250 = HeaderChecks<0x00557250, PointArrayClass>;
+EI_VERIFY(0x00557250, D00557250::Destruct, 0, s_unused);
+using D00557410 = HeaderChecks<0x00557410, AttackOptionArrayClass>;
+EI_VERIFY(0x00557410, D00557410::Destruct, 0, s_unused);
+using D00557E70 = HeaderChecks<0x00557E70, AnimationStepsClass>;
+EI_VERIFY(0x00557E70, D00557E70::Destruct, 0, s_unused);
+using D00599180 = HeaderChecks<0x00599180, CellRowArrayClass>;
+EI_VERIFY(0x00599180, D00599180::Destruct, 0, s_unused);
+using D005997A0 = HeaderChecks<0x005997A0, AreaListClass>;
+EI_VERIFY(0x005997A0, D005997A0::Destruct, 0, s_unused);
 
 using A00453790 = TwinSetSize<0x00453790, Plain4>;
 EI_VERIFY(0x00453790, A00453790::Run, 5, A00453790::original);
@@ -621,7 +641,8 @@ using A0046F0B0 = OursDestructElements<0x0046F0B0, OwnedPatrols>;
 EI_VERIFY(0x0046F0B0, A0046F0B0::Run, 0, A0046F0B0::original);
 using A004606F0 = OursDestructElements<0x004606F0, OwnedAllods>;
 EI_VERIFY(0x004606F0, A004606F0::Run, 0, A004606F0::original);
-EI_VERIFY(0x0045E250, HeaderChecks<ArrayBaseClass>::Destruct, 0, s_unused);
+using D0045E250 = HeaderChecks<0x0045E250, ArrayBaseClass>;
+EI_VERIFY(0x0045E250, D0045E250::Destruct, 0, s_unused);
 using A0045E1E0 = OursDestroy<0x0045E1E0, PatrolElement, DestroyPatrol>;
 EI_VERIFY(0x0045E1E0, A0045E1E0::Run, 0, A0045E1E0::original);
 using A004C9AF0 = OursDestroy<0x004C9AF0, AiLookElement, DestroyAiLookRecord>;
