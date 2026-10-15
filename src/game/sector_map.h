@@ -47,6 +47,11 @@ struct __declspec(novtable) Sector {
     int RemoveOccluder(int head, int bottom, int top, int kind, int transparency);
     // 005C0060 (RET 4). Puts record `index` on the free list.
     void FreeOccluder(int index);
+    // 005BFCD0 (S13a, world_destructors.cpp). The destructor's body: the vtable, Clear, then the
+    // members last to first (the record array's storage, both lists emptied).
+    void Destruct();
+    // 0059E080 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
+    Sector* DeletingDestruct(unsigned flags);
 
     mfc::CTypedPtrList<CEngineObject> objects;   // +0x04 non-unit objects
     mfc::CTypedPtrList<CEngineObject> units;     // +0x20

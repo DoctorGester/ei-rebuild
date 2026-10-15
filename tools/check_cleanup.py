@@ -93,8 +93,10 @@ PATTERNS = {
 # are records whose members are stlp::hash_maps; CRegionMap is a
 # block grid; PlatformSet is the engine's CBridgeManager around an mfc::CList.
 NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'UnitSet', 'CRegionMap', 'PlatformSet'}
+# src/lib/crt_x87.cpp holds the CRT's register-argument x87 entries (_ftol, _CIpow, ...): naked by necessity.
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
-          'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h'}
+          'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h',
+          '__asm block': 'src/lib/crt_x87.cpp'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
 REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')

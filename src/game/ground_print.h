@@ -34,6 +34,8 @@ static_assert(sizeof(NamedTexture) == 0x10);
 class __declspec(novtable) GroundPrint {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F76C);
+    // The vtable of the copies the lists' nodes start from (CopyConstruct; the same slots).
+    static constexpr std::uintptr_t kCopyVtableAddress = std::uintptr_t(0x0073F778);
 
     // 0: 006CECD0. One tick: life - 1, both half sizes grow by `growth_`, alpha = (1 - max(t, 0))
     // * alphaScale with t = (lifetime - life) / lifetime. Returns the life left.
@@ -63,6 +65,13 @@ public:
     // 00575560 / 00575580 (RET 4; S13): the footprint and scorch mark lists' scalar deleting
     // destructors: Destruct, the print freed when bit 0 of `flags` is set; returns this.
     GroundPrint* DeletingDestruct(unsigned flags);
+
+    // 00571FC0 (RET 4). The copy constructor the lists' node copies start with (0056F880 /
+    // 0056F940 / 0056F9F0, which then copy their own members and store their vtable): every member
+    // copied, the texture name into a block of its own and the texture counted (NamedTexture::Copy),
+    // the three geometry arrays' headers as they are (the copy shares their blocks); then
+    // kCopyVtableAddress. Returns this.
+    GroundPrint* CopyConstruct(const GroundPrint* other);
 
     // The members the three constructors share before their own parts: everything cleared, the
     // texture name empty, `visible`, life and alpha scale, lifetime and colour set.

@@ -276,6 +276,11 @@ struct UnitDatabase {
     // unknown name). Returns 1, or what the fatal error report returns when the archive or the
     // file cannot be opened.
     int Load(const char* folder, const char* archive);
+    // 0057CBE0 (S13a, database_reset.cpp; the compiler's destruction and construction in place,
+    // which the resource switch 0057CB50 runs). The tables from the last to the first, each the
+    // name index (its nodes, then its buckets), then the records (in order) and their storage; then
+    // the four from the first: no records, an index of 100 buckets (193).
+    void Reset();
 
     UnitPrototypeTable prototypes;  // +0x00
     NpcPrototypeTable npcs;         // +0x20
