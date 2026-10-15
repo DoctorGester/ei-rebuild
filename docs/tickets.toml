@@ -839,6 +839,14 @@ size = 1
 files = ["tests/verify/*"]
 note = "SV2f found that a twin check which runs the original first on an allocating call (new block, grown table, copy) gives the original the block address a no-hooks run would get and ours the next one, shifting game heap order and so random draws (five Rebirth goldens differed). It fixed verify_mfc_list / mfc_array / mfc_coll. Sweep the other tests/verify checks for the same order (original first, or a twin buffer / snapshot on the game heap) and apply the SV2f rule from docs/notes/standalone-verification.md: ours allocates first, the original's blocks come after and are freed, snapshots live in our memory. Also the S4a1 note: a start-up battery that calls a recorded function's trampoline crashes in record mode (null trampoline); guard those. Check with work.py test SV2h --golden."
 
+[[ticket]]
+id = "SV6d"
+title = "Build-time check: one registration per address"
+group = "verification"
+size = 0.5
+files = ["tools/check_registrations.py", "build.cmd"]
+note = "The S6a merge (2026-10-15) put 13 addresses under two EI_REPLACE / EI_VERIFY registrations from different files (S7 game_lists.cpp, S3c game_arrays.cpp / ai_events.cpp vs S6a game_slots.cpp / mfc_slots.cpp); SV6 caught it only at run time, failing every run. Add a build check (like check_forwarders) that fails the build when an address has two EI_REPLACE / EI_REPLACE_STANDALONE registrations or two EI_VERIFY wrappers in the same build, naming both files; prefer reading what the build actually registers (the generated table or the DLL's registration list) over grepping sources, so macro-generated registrations count. Run it from build.cmd for both builds."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
