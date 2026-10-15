@@ -1586,10 +1586,10 @@ note = "_Rb_tree / map / set, stlp::string, pair, __introsort_loop (keep its ord
 id = "S13"
 title = "Standalone: compiler-generated helpers of game types"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 files = ["src/game/*.cpp", "config/library.csv"]
-note = "The 49 forwarded \"compiler\" rows (record copy constructors, destructors, deleting destructors, aligned buffer constructors) and the 17 the exe's data points at: game types, ported like game code. No dependency."
+note = "The 49 forwarded \"compiler\" rows (record copy constructors, destructors, deleting destructors, aligned buffer constructors) and the 17 the exe's data points at: game types, ported like game code. No dependency. Done 2026-10-15: 46 of 49 forwarded rows and 9 of 17 data-pointed (two are string bytes, not functions); the rest is S13a."
 started = "2026-10-15"
 
 [[ticket]]
@@ -1681,6 +1681,16 @@ group = "standalone"
 status = "queued"
 depends = ["S3"]
 note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3."
+
+[[ticket]]
+id = "S13a"
+title = "Standalone: compiler-written world destructors and database resets"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S13"]
+files = ["src/game/*.cpp"]
+note = "Left from S13 (docs/notes/standalone.md S13). Three database resets, each destroyed and constructed again in place with many STLport hash_map / vector instantiations: units 0057CBE0, spell tables 0057CE80, items 0057D340 (the skills' 0057CD60 is SkillDatabase::Reset). Six data-pointed deleting destructors whose bodies are compiler rows not yet ported: CWorld base 0055EC60 (body 0055EC80, 259 bytes), CWorldClient 00561A00 (00561B00, 844), particle manager 005627A0 (005627C0, 283), Terrain 00562B60 (00562B80, 484), CWorldServer 0058A430 (0058AAD0, 825), Sector 0059E080 (005BFCD0, 295). Verify like verify_record_lifetime.cpp; most run at shutdown (read 'verify total' in ei_hook.log)."
 
 # ---------------------------------------------------------------- Lua
 
