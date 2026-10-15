@@ -1105,6 +1105,14 @@ group = "verification"
 depends = ["SV5b"]
 note = "levers_key repeats on both sides but ours flips against the original at update 60 (isaac.count, zone1 wolf obj1936 ai.standCooldown: the SV1j family); record its goldens when that is settled (standalone-verification.md, SV5b)."
 
+[[ticket]]
+id = "SV7c"
+title = "Goldens hold under heap jitter on both installs (SV7 step c)"
+group = "verification"
+size = 1
+model = "opus"
+note = "Last step of SV7. On main after SV7b7: run every golden scenario --no-hooks and hooked under EI_HEAP_JITTER 1, 2, 3 and 2,fill / 3,fill on vanilla AND Rebirth (SV7b7 ran vanilla only after its merge), plus EI_HEAP_FILL seeded fills; every golden must stay the same. Known open: Rebirth 2,fill menu unit cunit187 #place at update 20 (SV7b8's family). One follow-up per remaining family, canonicalised on both sides as SV7b1/SV7b2. Re-check after S20 and SV7b2a land so the new goldens are covered too."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
