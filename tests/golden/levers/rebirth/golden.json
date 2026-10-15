@@ -2,11 +2,11 @@
   "scenario": "levers",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "eb3af83e",
+  "commit": "5d15174f",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^script gobject\\.i$)",
+  "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
-  "saves": "not kept: saves: differs from line 2: the first run 'save1/mission.sav 50772 facadbff2d084d6b', orig2 'save1/mission.sav 50752 97776e23f156136b'"
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "saves": "not kept: saves: differs from line 2: the first run 'save1/mission.sav 51049 992384b59657a9c7', orig2 'save1/mission.sav 51038 602169e086942455'"
 }

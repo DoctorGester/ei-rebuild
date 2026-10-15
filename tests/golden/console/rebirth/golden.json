@@ -2,11 +2,11 @@
   "scenario": "console",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "eb3af83e",
+  "commit": "5d15174f",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^script gobject\\.i$)",
+  "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50550 4fd2b243672301fa', orig2 'savea/mission.sav 50576 16dfb9e97ddb1a5f'"
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 51091 7c00a77f59fe5375', orig2 'savea/mission.sav 51106 a7ac0223ef31ea90'"
 }

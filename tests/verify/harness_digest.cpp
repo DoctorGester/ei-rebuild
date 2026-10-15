@@ -2,6 +2,7 @@
 #include "harness_digest.h"
 
 #include "harness_clock.h"
+#include "harness_heap.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -942,9 +943,31 @@ void Init(const unsigned* frames) {
     }
 }
 
+namespace {
+
+// The heap trace's end: every world object's id, class and address.
+void NoteAddresses(CWorldServer* w) {
+    std::vector<std::pair<unsigned, CEngineObject*>> objects;
+    w->objects_.map.ForEach([&](const auto* n) {
+        if (n->value) objects.emplace_back(n->key, n->value);
+    });
+    std::sort(objects.begin(), objects.end(), [](const auto& a, const auto& c) { return a.first < c.first; });
+    char line[96];
+    for (const auto& [id, object] : objects) {
+        std::snprintf(line, sizeof(line), "obj %u %d %08X", id, object->GetClassId(), heap::TracePlace(object));
+        heap::Note(line);
+    }
+}
+
+} // namespace
+
 void AfterWorldUpdate(void* server) {
     g_server = static_cast<CWorldServer*>(server);
     ++g_updates;
+    if (heap::TraceUntil() && g_updates == heap::TraceUntil()) {
+        NoteAddresses(g_server);
+        heap::StopTrace();
+    }
     if (g_period && g_updates >= g_nextAt) {
         g_nextAt = g_updates + g_period;
         TakeRecord();

@@ -14,10 +14,13 @@
 // Install() makes that heap repeat: HeapCreate (game.exe's import, called only by _heap_init) makes
 // it with HEAP_NO_SERIALIZE, which keeps the low-fragmentation front end off, and HeapAlloc,
 // HeapFree, HeapReAlloc, HeapSize and HeapDestroy (game.exe's imports) take a lock of their own for
-// that heap, since the heap no longer locks itself. The same calls in the same order then get the
-// same addresses (the heap's own segments are 64 KB aligned; what moves between runs is only where
-// they start). Both sides of a comparison (--no-hooks and ours) get it: it is the harness's, not the
-// game's. Outside the harness nothing changes.
+// that heap, since the heap no longer locks itself. A growable heap's later segments land wherever
+// VirtualAlloc finds room, which other threads change between runs, so blocks of two segments could
+// swap their address order (SV2b): blocks below 0x7F000 come from one fixed 256 MB reservation
+// (HeapCreate with a maximum), larger ones from a second, growable heap (each such block is a
+// VirtualAlloc of its own there, as in the game's heap). The same calls in the same order then get
+// the same addresses but for the reservation's base. Both sides of a comparison (--no-hooks and
+// ours) get it: it is the harness's, not the game's. Outside the harness nothing changes.
 //
 // That makes each side repeat itself, but ours and the original still allocate differently (the
 // verify wrappers run the original on scratch copies, which allocate too), so the units' addresses
@@ -30,10 +33,28 @@
 // The clock option "lfheap" (EI_HARNESS_CLOCK, run_all.py / compare.py --clock virtual,lfheap)
 // leaves both as the game has them, to see what they change.
 
+#include <cstdint>
+
 namespace ei::verify::heap {
 
 // Before the game's CRT starts (the harness's static constructor): patches the imports and the
 // countdown sites above. Leaves the heap alone (and logs why) when the CRT's heap already exists.
 void Install();
+
+// On the main thread once the CRT runs (the first message loop pass): the CRT's locks and time zone,
+// which it makes on first use from any thread, made now (harness_heap.cpp).
+void SettleCrt();
+
+// "heaptrace" (EI_HARNESS_CLOCK; after Install, before the CRT starts): every call on the CRT's heap
+// goes into heaptrace.txt, one line each: sequence, op (a / f / r; "*" when not the starting
+// thread), size, the block freed or resized, the block returned (in the reservation as 0x80000000 +
+// its offset, the same in every run), and the first return
+// addresses found on the stack, up to ten (into game.exe, or ours as 0x10000000 + offset). Until world update
+// EI_HEAPTRACE (default 40), where the digest notes every world object's address ("# obj ...").
+void StartTrace(std::uintptr_t selfBase, std::uintptr_t selfEnd);
+unsigned TraceUntil();   // 0 when not tracing
+unsigned TracePlace(const void* p);   // as the trace writes an address
+void Note(const char* text);
+void StopTrace();
 
 } // namespace ei::verify::heap

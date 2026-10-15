@@ -2,11 +2,11 @@
   "scenario": "terrain_water_load",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "eb3af83e",
+  "commit": "5d15174f",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^script gobject\\.i$)",
+  "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
-  "saves": "not kept: saves: differs from line 2: the first run 'save1/mission.sav 50221 2905fe731788a490', orig2 'save1/mission.sav 50334 966835adf00bb8f7'"
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "saves": "not kept: saves: differs from line 2: the first run 'save1/mission.sav 50766 35d1b4a551d1cf3d', orig2 'save1/mission.sav 50768 b8ad6b04e88f59b2'"
 }

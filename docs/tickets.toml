@@ -833,7 +833,7 @@ note = "From SV1g's sweep: effects (frame 12), objects_more (CLightning::Start, 
 id = "SV2b"
 title = "Rebirth with hooks: zone1 script variable i does not repeat"
 group = "verification"
-status = "running"
+status = "review"
 depends = ["SV2a"]
 note = "SV2a's digest 2 (script group): under Rebirth with our hooks, zone1's global object variable i (Rebirth's script, with VSS#i#val; the last object of a group, which keeps its objects in address order) is unit 702 in some runs and 1884 in others (spells_cast, combat, script_fx, ui_battle_spells, harness_digest); the original (addon alone) is 702 in every run. So some objects' addresses still differ between our runs under Rebirth (an allocation outside the repeatable CRT heap: addon.dll's or ours'). golden.py KNOWN leaves script gobject.i out meanwhile. Find which allocation moves (the group's members' addresses in two runs) and make it repeat."
 started = "2026-10-15"
@@ -844,7 +844,7 @@ title = "unit_create parted from its golden once in crt.rand"
 group = "verification"
 status = "queued"
 depends = ["SV2a"]
-note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread."
+note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread. SV2b: on the new harness heap unit_create (both installs) does not repeat in ours: crt.rand at update 80 / 140."
 
 [[ticket]]
 id = "SV5a"
@@ -926,7 +926,7 @@ group = "verification"
 status = "queued"
 size = 0.25
 depends = ["SV3a"]
-note = "From SV3d: after SV3a (unmoco2's hit points as the original's), render_present_cpuwindows (vanilla) still differs at the first record: obj2 hp nan:0xFFFFFF0A in the original (in both runs), nan:0xFFC00000 in ours. Other scenarios agree on 0xFFC00000; cunit2's packed vitals now agree everywhere. Find where the original's value comes from on that path (CPU windows) and match it, or add a KNOWN entry."
+note = "From SV3d: after SV3a (unmoco2's hit points as the original's), render_present_cpuwindows (vanilla) still differs at the first record: obj2 hp nan:0xFFFFFF0A in the original (in both runs), nan:0xFFC00000 in ours. Other scenarios agree on 0xFFC00000; cunit2's packed vitals now agree everywhere. Find where the original's value comes from on that path (CPU windows) and match it, or add a KNOWN entry. SV2b: on the one-reservation harness heap the original's obj2 hp is a NaN from its stack leftovers in every scenario (0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth, by scenario; repeats); golden.py KNOWN leaves obj2 hp out. Match it (the leftover dwords on GiveDefaults' stack) or keep the entry."
 
 [[ticket]]
 id = "SV3i"
@@ -934,7 +934,7 @@ title = "zone_gz3g (vanilla): script group VSS#i#val differs between our runs"
 group = "verification"
 status = "queued"
 size = 0.5
-note = "From SV3d: zone_gz3g vanilla with our hooks: script gobject.VSS#i#val is 3353 in one run and 3357 in another at world update 60 (65 script fields follow: instance variables), the original's runs agree there. Like SV2b (Rebirth's zone1) but on vanilla: an address-ordered script group, so an allocation of ours still moves between runs. Maybe the same cause as SV2b."
+note = "From SV3d: zone_gz3g vanilla with our hooks: script gobject.VSS#i#val is 3353 in one run and 3357 in another at world update 60 (65 script fields follow: instance variables), the original's runs agree there. Like SV2b (Rebirth's zone1) but on vanilla: an address-ordered script group, so an allocation of ours still moves between runs. Maybe the same cause as SV2b. SV2b: the heap fix (one reservation, other threads' and MFC temporary handle objects' blocks aside, CRT locks and __tzset settled on the main thread) made ours repeat zone_gz3g in vanilla, but now the original's VSS#i#val differs between its runs (3363 / 3371) and under Rebirth ours differs from the original (4683 / 4684). Use heaptrace (EI_HEAPTRACE=60) on --no-hooks runs."
 
 [[ticket]]
 id = "SV3j"
@@ -956,7 +956,7 @@ note = "From SV3c: GameRender called our CWorldClient::Render directly, so flags
 id = "SV3k"
 title = "ui_hud under Rebirth: script gobject.i differs from the original"
 group = "verification"
-status = "queued"
+status = "review"
 depends = ["SV3e"]
 note = "From SV3e: ui_hud-rebirth, the original repeats and ours repeats, but from world update 40 the script group's gobject.i is 702 in the original and 1884 in ours (then units' ai.point differ). Find which script command picks the object (a group or object order, a Rebirth-patched callee?) and fix; then record ui_hud rebirth."
 
@@ -969,6 +969,20 @@ size = 1
 files = ["src/hook/function_sizes.inc", "config/extra_function_sizes.csv", "src/hook/hook.cpp"]
 note = "A vanilla smoke run on main (2026-10-15, build/verify/runs/smoke-vanilla/ei_hook.log) logs 224 SKIP lines: 108 verify wrappers and 42 plain replacements at 'not a known function start' (effect Update/Emit/Tick slots, ExchangeMessage 0062C920, MotionSegmentConstruct 0052E230, ControllerZero 00533C40/50/B0, ClientControllerPath 00533DF0, Verify_0x0066D7B0 twice, ...), and 67 with 'byte +0x0 differs from game.exe on disk' (Unpack/Load/Save verify wrappers of CEffect*; no address appears twice in the log, so the cause is not yet known: something writes those starts before install), besides the 8 expected SV1b countdown sites. None of these run in the hook build, so their rewrites are unverified; the standalone image does jump to the unknown starts. Add their sizes (config/extra_function_sizes.csv, function_sizes.inc), fold or drop the second registrations, and make build.cmd or the harness fail on an unexpected SKIP so new ones can't hide (S5's first suite tested nothing for this reason)."
 started = "2026-10-15"
+
+[[ticket]]
+id = "SV2d"
+title = "gobject.i after loading a save: 1884 in ours, 702 in the original"
+group = "verification"
+status = "queued"
+note = "From SV2b: on the one-reservation harness heap, world_load and magic_traps (vanilla) part at world update 140 / 160 in script gobject.i (zone1's Peasans group, address-ordered: the original's last member is 702, ours 1884; both repeat). The units are made again by the load, so ours' blocks before them differ from the original's (verify wrappers' scratch copies, our own temporaries). Compare the two sides' heap traces (EI_HARNESS_CLOCK=virtual,heaptrace, EI_HEAPTRACE=160) around the units' allocations (# obj lines) and find which extra or missing block puts 1884 above 702."
+
+[[ticket]]
+id = "SV2e"
+title = "script_copy: ours' CPlayerServer::Flush compresses to another size between runs"
+group = "verification"
+status = "queued"
+note = "From SV2b: script_copy vanilla with our hooks: the heap traces of two runs part at CMemoryStream::Resize from CodeStream / CompressTo in CPlayerServer::Flush (called from LeaveVerify): 1392 bytes in one run, 1408 in another (a third run matched the first), and every later block moves, so zone1's gobject.i differs at update 80. Something in the flushed stream is not the same between runs (an address of a block from the growable heap, a padding byte, real time); dump the stream before compression in two runs and diff."
 
 # ---------------------------------------------------------------- harness and suite
 
