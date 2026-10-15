@@ -394,7 +394,8 @@ int InstallHooks() {
         GetModuleFileNameA(self, ini, MAX_PATH);
         if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
         rebirth::LoadSettings(ini);
-        if (!standalone) rebirth_hook::Detect(file);
+        if (standalone) rebirth_hook::SettingsOnly(ini);
+        else rebirth_hook::Detect(file);
         unsigned short cw;
         __asm fnstcw cw
         Log("FPU control word at WinMain: %04X", cw);
