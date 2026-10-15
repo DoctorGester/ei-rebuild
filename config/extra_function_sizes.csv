@@ -469,3 +469,8 @@ address,size,note
 0066D7B0,59,CPlayerServer::SendText body (no Ghidra function)
 0066EAC0,120,CPlayerServer::SendObjects0C body (no Ghidra function)
 0066F1F0,80,CPlayerServer::SendText08 body (no Ghidra function)
+006E8715,82,library function registered at its address (S4a; Ghidra size)
+006ECC47,81,library function registered at its address (S4a; Ghidra size)
+006EAEB0,60,library function registered at its address (S4a; Ghidra size)
+006E955F,65,library function registered at its address (S4a; Ghidra size)
+006E911A,87,library function registered at its address (S4a; Ghidra size)

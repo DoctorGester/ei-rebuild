@@ -7,6 +7,7 @@
 // depend on the game's locale tables. In the standalone build these become thin wrappers over
 // the modern CRT, after checking the behaviour is identical.
 
+#include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 
@@ -192,6 +193,22 @@ void* __fastcall NodeRefill(std::size_t bytes);                                 
 char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // 00406B70 (_S_chunk_alloc)
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);         // 006E8D35
+
+// Formatted text (S4a, src/lib/crt_format.cpp): MSVC 6's _output and its float conversion (17 digits from
+// a 12-byte long double, then rounded half up on the digit string; three-digit exponents; "1#INF" and
+// friends), and atof by __strgtold12 / _ld12tod. Byte- and bit-exact with the originals.
+int __cdecl Sprintf(char* buffer, const char* format, ...);                     // 006E8715
+int __cdecl Vsprintf(char* buffer, const char* format, va_list args);           // 006ECC47
+int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);           // 006EAEB0
+int __cdecl Printf(const char* format, ...);                                    // 006E955F
+double __cdecl Atof(const char* text);                                          // 006E911A
+// vfprintf: formatted in memory, then one write through the game's fwrite (not registered).
+int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args);
+// stdout (&_iob[1], 00798080).
+gamecrt::CrtFile* StandardOutput();
+// _output into `room` bytes (a string FILE of that size): the count, or -1 once the room runs out; a
+// terminator when it still fits.
+int FormatInto(char* buffer, std::size_t room, const char* format, va_list args);
 
 // The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
 // heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
