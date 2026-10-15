@@ -1599,7 +1599,7 @@ done = "2026-10-15"
 id = "S6a"
 title = "Standalone library: MFC container slots in the exe's vtables"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 depends = ["S6", "S7"]
 files = ["src/lib/mfc_array.h", "src/lib/mfc_list.h"]
@@ -1973,6 +1973,15 @@ status = "queued"
 size = 1
 files = ["src/lib/mfc_gdi.h", "src/lib/mfc_gdi.cpp"]
 note = "S8 left these: CDC::FromHandle 00708D79, CDC::SelectObject(CPen*) 00708F5A, CGdiObject::Attach 0070A075 / DeleteObject 0070A0CC, CPen(style, width, colour) 0070A0E2, CFont::CreatePointFont 0070BBE5 (+ CreatePointFontIndirect 0070BC2A), and the CDC vtable slots the interface calls (10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText). They need MFC's handle maps (afxMapHDC 00708D07, afxMapHGDIOBJ 00709FEE, CHandleMap::FromHandle 0070367C, CGdiObject::FromHandle 0070A060, Detach 0070A0A2, AfxThrowResourceException 0070A29E): the hook build keeps the original's maps (module thread state), the image needs its own. Also unported from S8's families: AfxMessageBox(UINT) 0070ACCC (needs CString::LoadString 00702B0E), CFile slots 4-6 GetFileName / GetFileTitle / GetFilePath (00702C31 / 00702CB3 / 00702D35), CFileException / CArchiveException GetErrorMessage and ReportError (vtable slots). standalone.md S8."
+
+[[ticket]]
+id = "S6c"
+title = "Standalone library: the last MFC container slots (S6a leftovers)"
+group = "standalone"
+status = "queued"
+depends = ["S6a"]
+files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "tests/verify/verify_mfc_serialize.cpp", "tests/verify/verify_mfc_slots.cpp"]
+note = "From S6a. Serialize (slot 2), 33: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); arrays whose SetSize runs unported element constructors (0044FEF0, 00450160, 004507E0, 00451640, 00454A70, 004C2700 own SerializeElements<CString>, 004C52A0, 004C7820, 0050FC80, 00557960, 00571240, 005993A0, 006B5770, 006C4790). Use mfc_slots.h's SerializeC* with element types whose constructor / assignment / destructor match, and verify_mfc_serialize.cpp's start-up check (Mode 2 where destruction needs more than construction). Destructors + deleting destructors, about 20: CGdiObject / CFont 00444B30 00444B90 005FDDE0 (00444B10 00444B70 005FDDC0; need S8a's DeleteObject), ScriptSubCall arrays 004C5180 004CCF70 (004CB0D0 004CCF50), 004514B0 (004529F0), maps 00454510 00454830 00454CE0 (004543A0 00454810 00454CC0), DeltaField 0050FBC0 (00510160), Behaviour 00545BA0 (00556BE0), 00557890 (005587E0), MusicTheme 006B56C0 (006B5980), CacheEntry list 006BC870 (006BD190), 006C4690 (006C4E80), 006C4C40 (006C4EC0). 00646C25 / 00656464 are not functions (code addresses in data)."
 
 # ---------------------------------------------------------------- Lua
 
