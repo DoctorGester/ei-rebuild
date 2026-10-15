@@ -212,6 +212,29 @@ and random digit strings): 0 mismatches. Full suite (128 runs): 0 mismatches, on
 zone_gz15h_tornado rebirth timeout; fprintf / printf are not reached (debug output). Follow-up: S4a1
 (a function-vector family for the conversions).
 
+**S4b (2026-10-15).** Image only (`EI_REPLACE_STANDALONE`; the hook build keeps the exe's FILE table,
+descriptors and heap, which MFC's CStdioFile shares). Heap (crt.cpp): realloc 006ED69A, calloc 006F0317
+(count * size unchecked, as VC6), _msize 006EEC7B, _strdup 006EEC50 on the host heap, retried through the
+CRT's new handler under `_newmode` like malloc. Nothing else reaches the CRT heap from our side (other
+callers are CRT / MFC internals: _beginthread(ex) calloc, CMemFile 0070AEEA / 0070AEF7, the MFC thread
+state's _msize). Files (src/lib/crt_file.cpp): _open 006EB35C is VC6's _sopen (flags to CreateFileA's
+access / sharing / disposition / attributes, `_fmode` 007CAC80, `_umaskval` 007CAADC, a trailing Ctrl-Z
+dropped from a text file opened for update) through the game's import slots, so the harness's
+saves / install redirection applies in the image too; the handle becomes a host descriptor
+(`_open_osfhandle`, same translation and append flags). fopen 006E9107 parses the mode as `_openfile`
+(an unknown or repeated letter ends it; `_commode` 007CADA4) and wraps the descriptor with `_fdopen`, so
+the game's CrtFile* is the host's FILE*. _read, _write, _lseek, _close, _filelength, fclose, fseek, ftell,
+fread, fwrite are the host's (a bad descriptor or stream returns the error instead of the host's
+invalid-parameter abort); &_iob[0..2] map to the host's std streams; `gamecrt::fileno` is a function
+(host `_fileno` in the image). _access 006EAF20 (write bit only) and _findfirst 006EB832 (attributes,
+local 32-bit times, size, name; the game never closes the handle) go through the game's slots;
+`gamecrt::findfirst` / `FindData` replace resource_stream.cpp's own forwarder. Check
+(tests/verify/verify_crt_file.cpp, a start-up check against the originals on scratch files under %TEMP%):
+27 fopen modes on text / Ctrl-Z / missing files with the same reads, seeks, tells and writes (results,
+bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _findfirst; the heap ours only.
+smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
+stops at 0040AA80 (hash table resize, S11) before any file code.
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on

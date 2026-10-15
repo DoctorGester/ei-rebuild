@@ -15,19 +15,8 @@
 namespace {
 
 // CRT and MFC routines of the game.
-// _findfirst: the game never closes the handle it returns.
-__declspec(naked) long __cdecl FindFirst(const char* /*path*/, void* /*findData*/) EI_ORIGINAL(0x006EB832)
 void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
-
-// _finddata_t (0x118 bytes): attrib, three times, size at +0x10, name.
-struct FindData {
-    std::uint32_t attrib;
-    std::uint32_t times[3];
-    std::uint32_t size;
-    char name[260];
-};
-static_assert(sizeof(FindData) == 0x118);
 
 constexpr std::uintptr_t kResourceBaseVtable = 0x00743324;
 constexpr std::uintptr_t kResourceStreamVtable = 0x00743320;
@@ -148,8 +137,8 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
     }
     // A readable loose file comes first.
     if (gamecrt::access(name, 4) == 0) {
-        FindData data;
-        FindFirst(name, &data);
+        gamecrt::FindData data;
+        gamecrt::findfirst(name, &data);   // the handle is never closed
         file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
         if (file_ != nullptr) {
             if (size != nullptr) *size = data.size;
