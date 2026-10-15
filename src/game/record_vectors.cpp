@@ -26,3 +26,18 @@ EI_REPLACE(0x006B2100, QuestVector::ResizeDefault);      // 0x38
 EI_REPLACE(0x006B2240, BriefingVector::ResizeDefault);   // 0x6C
 EI_REPLACE(0x006B0710, QuestVector::PushBack);
 EI_REPLACE(0x006B0780, BriefingVector::PushBack);
+
+// The unit database's resize(n) (RET 4).
+EI_REPLACE(0x0053E2A0, UnitPrototypeVector::ResizeDefault);   // 0x120
+EI_REPLACE(0x0053E520, UnitNpcVector::ResizeDefault);         // 0x60
+EI_REPLACE(0x0053E730, UnitModelVector::ResizeDefault);       // 0x168
+EI_REPLACE(0x0053E9B0, UnitLevelVector::ResizeDefault);       // 0x44
+
+// The skill database's resize(n) (RET 4) and the level records' clear().
+EI_REPLACE(0x005209D0, SkillVector::ResizeDefault);           // 0x18
+EI_REPLACE(0x00520B20, SkillLevelVector::ResizeDefault);      // 0x44
+EI_REPLACE(0x00520C20, SkillLevelVector::Clear);
+
+// A zone's unit looks (world_unit_set.cpp's lists; resize(n), RET 4).
+EI_REPLACE(0x0055A400, FiguredUnitVector::ResizeDefault);     // 0x3C
+EI_REPLACE(0x0055A580, DressedUnitVector::ResizeDefault);     // 0x24

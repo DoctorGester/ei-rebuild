@@ -81,7 +81,70 @@ struct BriefingText {
     }
 };
 
-template <std::uintptr_t A> using Materials = ModelCheck<A, MaterialVector, MaterialText>;
+// The unit and skill records: their strings and string lists.
+struct UnitPrototypeText {
+    static std::string Of(const UnitPrototypeRecord& r) {
+        return Str(r.name) + "|" + Str(r.modelName) + "|" + Str(r.soundFolder) + "|" + Texts(r.lootItems) +
+               Texts(r.spellNames) + Texts(r.armourNames) + "|" + Str(r.weaponName) + "|" + Str(r.secondWeaponName);
+    }
+};
+struct UnitNpcText {
+    static std::string Of(const UnitNpcRecord& r) {
+        return Str(r.name) + "|" + Texts(r.skillNames) + Texts(r.startWeapons) + Texts(r.startQuickItems) +
+               Texts(r.startSpells);
+    }
+};
+struct UnitModelText {
+    static std::string Of(const UnitModelRecord& r) {
+        std::string text = Str(r.name) + "|";
+        for (const UnitModelSlot& slot : r.slots) text += Str(slot.levelName) + ",";
+        char counts[16];
+        std::snprintf(counts, sizeof(counts), "|%u",
+                      static_cast<unsigned>(r.soundCountsEnd - r.soundCounts));
+        return text + "|" + Str(r.figureName) + Texts(r.field1F) + Texts(r.field20) + "|" + Str(r.hitMaterial) + "|" +
+               Str(r.soundFolder) + Texts(r.soundNames) + counts;
+    }
+};
+struct UnitLevelText {
+    static std::string Of(const UnitLevelRecord& r) { return Str(r.name); }
+};
+struct SkillText {
+    static std::string Of(const SkillRecord& r) { return Str(r.name) + "|" + Str(r.field1) + Texts(r.statNames); }
+};
+struct SkillLevelText {
+    static std::string Of(const SkillLevelRecord& r) {
+        return Str(r.field0) + "|" + Str(r.name) + "|" + Str(r.requiredLevelName) + "|" + Str(r.requiredSkillName);
+    }
+};
+
+// A zone's unit looks: the id lists and the texture names.
+std::string Ids(const UnitIdList& v) {
+    std::string text = "[";
+    char id[16];
+    for (const std::uint32_t* p = v.begin(); p != v.end(); ++p) {
+        std::snprintf(id, sizeof(id), "%u,", *p);
+        text += id;
+    }
+    return text + "]";
+}
+struct FiguredUnitText {
+    static std::string Of(const FiguredUnitRecord& r) {
+        return Ids(r.armourIds) + Ids(r.weaponIds) + Texts(FiguredUnitElement::NamesOf(r));
+    }
+};
+struct DressedUnitText {
+    static std::string Of(const DressedUnitRecord& r) { return Ids(r.items) + Ids(r.extraWeapons); }
+};
+
+template <std::uintptr_t A> using FiguredUnits = ModelCheck<A, FiguredUnitVector, FiguredUnitText>;
+template <std::uintptr_t A> using DressedUnits = ModelCheck<A, DressedUnitVector, DressedUnitText>;
+template <std::uintptr_t A> using UnitPrototypes = ModelCheck<A, UnitPrototypeVector, UnitPrototypeText>;
+template <std::uintptr_t A> using UnitNpcs = ModelCheck<A, UnitNpcVector, UnitNpcText>;
+template <std::uintptr_t A> using UnitModels = ModelCheck<A, UnitModelVector, UnitModelText>;
+template <std::uintptr_t A> using UnitLevels = ModelCheck<A, UnitLevelVector, UnitLevelText>;
+template <std::uintptr_t A> using Skills = ModelCheck<A, SkillVector, SkillText>;
+template <std::uintptr_t A> using SkillLevels = ModelCheck<A, SkillLevelVector, SkillLevelText>;
+template <std::uintptr_t A> using Materials =ModelCheck<A, MaterialVector, MaterialText>;
 template <std::uintptr_t A> using Weapons = ModelCheck<A, WeaponVector, ItemText>;
 template <std::uintptr_t A> using Armors = ModelCheck<A, ArmorVector, ItemText>;
 template <std::uintptr_t A> using QuickItems = ModelCheck<A, QuickItemVector, ItemText>;
@@ -113,3 +176,16 @@ EI_VERIFY(0x006B2100, Quests<0x006B2100>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006B2240, Briefings<0x006B2240>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006B0710, Quests<0x006B0710>::PushBack, 0, s_unused);
 EI_VERIFY(0x006B0780, Briefings<0x006B0780>::PushBack, 0, s_unused);
+
+// The unit and skill databases (loaded at startup; the clear when the perks reload).
+EI_VERIFY(0x0053E2A0, UnitPrototypes<0x0053E2A0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x0053E520, UnitNpcs<0x0053E520>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x0053E730, UnitModels<0x0053E730>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x0053E9B0, UnitLevels<0x0053E9B0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x005209D0, Skills<0x005209D0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x00520B20, SkillLevels<0x00520B20>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x00520C20, SkillLevels<0x00520C20>::Clear, 0, s_unused);
+
+// A zone's unit looks (resize(n) while a zone's units load).
+EI_VERIFY(0x0055A400, FiguredUnits<0x0055A400>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x0055A580, DressedUnits<0x0055A580>::ResizeDefault, 0, s_unused);

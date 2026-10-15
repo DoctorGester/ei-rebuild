@@ -7,8 +7,21 @@
 
 #include "item_db.h"
 #include "quest_records.h"
+#include "record_members.h"
+#include "unit_db.h"
+#include "unit_looks.h"
 
 #include "lib/stlp_vector.h"
+
+#include <cstdint>
+
+// A unit model's body slot as its record's copies copy it, found by argument-dependent lookup from
+// records::Memberwise (the slot constructor 0053F000 leaves the level name empty).
+using UnitModelSlotMembers = records::Memberwise<UnitModelSlot, &UnitModelSlot::levelName, &UnitModelSlot::levelIndex,
+                                                 &UnitModelSlot::share, &UnitModelSlot::factor>;
+inline void CopyMember(UnitModelSlot& to, const UnitModelSlot& from) { UnitModelSlotMembers::Construct(&to, from); }
+inline void AssignMember(UnitModelSlot& to, const UnitModelSlot& from) { UnitModelSlotMembers::Assign(to, from); }
+inline void DefaultMember(UnitModelSlot& to) { UnitModelSlotMembers::Default(&to); }
 
 namespace recordvec {
 
@@ -58,7 +71,145 @@ using SpellModifierVector =
 using SpellListVector =
     stlp::VectorAbi<itemdb::SpellListRecord, RecordElement<itemdb::SpellListRecord, &itemdb::SpellListRecord::AssignList>>;
 
-using QuestVector = stlp::VectorAbi<QuestRecord, RecordElement<QuestRecord, &QuestRecord::AssignQuest>>;
+// ---- The unit and skill databases (unit_db.h) ---------------------------------------------------
+
+// 0053E2A0's copies (e.g. 005400D0): every member, the bytes +0x38..+0x47 too.
+struct UnitPrototypeElement
+    : records::Memberwise<UnitPrototypeRecord, &UnitPrototypeRecord::name, &UnitPrototypeRecord::modelName,
+                          &UnitPrototypeRecord::modelIndex, &UnitPrototypeRecord::skin, &UnitPrototypeRecord::hair,
+                          &UnitPrototypeRecord::scale, &UnitPrototypeRecord::panelViewSize, &UnitPrototypeRecord::height,
+                          &UnitPrototypeRecord::viewDistance, &UnitPrototypeRecord::viewHeight, &UnitPrototypeRecord::shake,
+                          &UnitPrototypeRecord::soundFolder, &UnitPrototypeRecord::unused_38, &UnitPrototypeRecord::hitPoints,
+                          &UnitPrototypeRecord::mana, &UnitPrototypeRecord::level, &UnitPrototypeRecord::experienceValue,
+                          &UnitPrototypeRecord::protectionScale, &UnitPrototypeRecord::field12, &UnitPrototypeRecord::speed,
+                          &UnitPrototypeRecord::combat, &UnitPrototypeRecord::naturalWeapon, &UnitPrototypeRecord::hitSoundKind,
+                          &UnitPrototypeRecord::damage, &UnitPrototypeRecord::damageSpread, &UnitPrototypeRecord::skillLevel,
+                          &UnitPrototypeRecord::attributes01, &UnitPrototypeRecord::attribute2,
+                          &UnitPrototypeRecord::peripheralRange, &UnitPrototypeRecord::valuesB0, &UnitPrototypeRecord::valuesE0,
+                          &UnitPrototypeRecord::gold, &UnitPrototypeRecord::secondGold, &UnitPrototypeRecord::lootItems,
+                          &UnitPrototypeRecord::skills3to5, &UnitPrototypeRecord::spellNames, &UnitPrototypeRecord::armourNames,
+                          &UnitPrototypeRecord::weaponName, &UnitPrototypeRecord::secondWeaponName> {
+    static void Destroy(UnitPrototypeRecord* p) { unitdb::DestroyPrototypeRecord(p); }
+};
+
+// 0053E520's copies (e.g. 00540320): +0x23 and +0x5D..+0x5F are not copied.
+struct UnitNpcElement
+    : records::Memberwise<UnitNpcRecord, &UnitNpcRecord::name, &UnitNpcRecord::field1, &UnitNpcRecord::experience,
+                          &UnitNpcRecord::stats, &UnitNpcRecord::attributes, &UnitNpcRecord::skills, &UnitNpcRecord::skillNames,
+                          &UnitNpcRecord::startWeapons, &UnitNpcRecord::startQuickItems, &UnitNpcRecord::startSpells,
+                          &UnitNpcRecord::experienceFloor, &UnitNpcRecord::startMoney, &UnitNpcRecord::voiced> {
+    static void Destroy(UnitNpcRecord* p) { unitdb::DestroyNpcRecord(p); }
+};
+
+// 0053E730's copies (e.g. 00540510): the members up to the sound names, the sound counts (a
+// vector<int> declared as its three pointers), the rest; +0x11D..+0x11F are not copied.
+struct UnitModelElement {
+    using R = UnitModelRecord;
+    using Head = records::Memberwise<
+        R, &R::name, &R::objectClass, &R::hitPointRegen, &R::manaRegen, &R::field4, &R::movementKind, &R::angle,
+        &R::modeSpeeds, &R::actionSpeeds, &R::field8, &R::sizeClass, &R::sizeClassSmall, &R::damageWeights, &R::protection,
+        &R::slots, &R::figureName, &R::field1F, &R::field20, &R::height, &R::bloodKind, &R::footprintKind, &R::footPart,
+        &R::castEffect, &R::hitMaterial, &R::swapFeet, &R::sizeScale, &R::soundFolder, &R::unused_128, &R::soundNames>;
+    using Tail = records::Memberwise<R, &R::idleSoundChance, &R::attackSoundChance, &R::eyeLeft, &R::eyeBottom,
+                                     &R::eyeWidth, &R::eyeHeight>;
+    using Counts = stlp::vector<std::uint32_t>;
+    static Counts& CountsOf(R& r) { return *reinterpret_cast<Counts*>(&r.soundCounts); }
+    static const Counts& CountsOf(const R& r) { return *reinterpret_cast<const Counts*>(&r.soundCounts); }
+
+    static void Construct(R* to, const R& from) {
+        Head::Construct(to, from);
+        records::CopyMember(CountsOf(*to), CountsOf(from));
+        Tail::Construct(to, from);
+    }
+    static void Assign(R& to, const R& from) {
+        Head::Assign(to, from);
+        records::AssignMember(CountsOf(to), CountsOf(from));
+        Tail::Assign(to, from);
+    }
+    static void Default(R* p) {
+        Head::Default(p);
+        records::DefaultMember(CountsOf(*p));
+    }
+    static void Destroy(R* p) { unitdb::DestroyModelRecord(p); }
+};
+
+// 0053E9B0's copies (e.g. 005427B0); the destructor (00540840 with 0) is the name's.
+struct UnitLevelElement : records::Memberwise<UnitLevelRecord, &UnitLevelRecord::name, &UnitLevelRecord::slotType,
+                                              &UnitLevelRecord::valuesA, &UnitLevelRecord::valuesB,
+                                              &UnitLevelRecord::vitalMask> {
+    static void Destroy(UnitLevelRecord* p) { p->name.~CString(); }
+};
+
+// The skill database: 005209D0's copies (00521C70) and 00520B20's (00521E20; +0x41..+0x43 are not
+// copied); the destructors are S13's.
+struct SkillElement : records::Memberwise<SkillRecord, &SkillRecord::name, &SkillRecord::field1, &SkillRecord::field2,
+                                          &SkillRecord::statNames> {
+    static void Destroy(SkillRecord* p) { p->Destruct(); }
+};
+struct SkillLevelElement
+    : records::Memberwise<SkillLevelRecord, &SkillLevelRecord::field0, &SkillLevelRecord::name, &SkillLevelRecord::field2,
+                          &SkillLevelRecord::requiredLevelName, &SkillLevelRecord::exclusionGroup,
+                          &SkillLevelRecord::requiredSkillName, &SkillLevelRecord::values, &SkillLevelRecord::learnable> {
+    static void Destroy(SkillLevelRecord* p) { p->Destruct(); }
+};
+
+using UnitPrototypeVector = stlp::VectorAbi<UnitPrototypeRecord, UnitPrototypeElement>;
+using UnitNpcVector = stlp::VectorAbi<UnitNpcRecord, UnitNpcElement>;
+using UnitModelVector = stlp::VectorAbi<UnitModelRecord, UnitModelElement>;
+using UnitLevelVector = stlp::VectorAbi<UnitLevelRecord, UnitLevelElement>;
+using SkillVector = stlp::VectorAbi<SkillRecord, SkillElement>;
+using SkillLevelVector = stlp::VectorAbi<SkillLevelRecord, SkillLevelElement>;
+
+// ---- A zone's unit looks (unit_looks.h; world_unit_set.cpp's 0055A400 / 0055A580) --------------
+
+// The figured units' records (0055D5A0's copies; +0x02 and +0x1D..+0x1F are not copied): the head,
+// then the texture names, CStrings declared as their data pointers. The destructor (00559B30):
+// the names and their storage, then the weapon and armour ids' storage.
+struct FiguredUnitElement {
+    using R = FiguredUnitRecord;
+    using Head = records::Memberwise<R, &R::prototype, &R::armourIds, &R::weaponIds, &R::extraWeapon, &R::modelNumber,
+                                     &R::morphS, &R::morphT, &R::morphU>;
+    static CStringVector& NamesOf(R& r) { return *reinterpret_cast<CStringVector*>(&r.names); }
+    static const CStringVector& NamesOf(const R& r) { return *reinterpret_cast<const CStringVector*>(&r.names); }
+
+    static void Construct(R* to, const R& from) {
+        Head::Construct(to, from);
+        records::CopyMember(NamesOf(*to), NamesOf(from));
+    }
+    static void Assign(R& to, const R& from) {
+        Head::Assign(to, from);
+        records::AssignMember(NamesOf(to), NamesOf(from));
+    }
+    static void Default(R* p) {
+        Head::Default(p);
+        records::DefaultMember(NamesOf(*p));
+    }
+    static void Destroy(R* p) {
+        CStringVector& names = NamesOf(*p);
+        for (mfc::CString* name = names.Start(); name != names.Finish(); ++name) name->~CString();
+        names.FreeStorage();
+        p->weaponIds.FreeStorage();
+        p->armourIds.FreeStorage();
+    }
+};
+
+// The dressed units' records (0055D7F0's copies); the destructor (00559DE0): both id lists'
+// storage, the last first.
+struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitRecord::prototype, &DressedUnitRecord::items,
+                                                &DressedUnitRecord::extraWeapons, &DressedUnitRecord::extraWeapon,
+                                                &DressedUnitRecord::modelNumber> {
+    static void Destroy(DressedUnitRecord* p) {
+        p->extraWeapons.FreeStorage();
+        p->items.FreeStorage();
+    }
+};
+
+using FiguredUnitVector = stlp::VectorAbi<FiguredUnitRecord, FiguredUnitElement>;
+using DressedUnitVector = stlp::VectorAbi<DressedUnitRecord, DressedUnitElement>;
+
+// ---- The quest database (quest_records.h) ------------------------------------------------------
+
+using QuestVector =stlp::VectorAbi<QuestRecord, RecordElement<QuestRecord, &QuestRecord::AssignQuest>>;
 using BriefingVector =
     stlp::VectorAbi<QuestBriefingRecord, RecordElement<QuestBriefingRecord, &QuestBriefingRecord::AssignBriefing>>;
 
