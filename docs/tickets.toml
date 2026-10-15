@@ -1039,7 +1039,7 @@ id = "SV7d1a"
 title = "Audit /fp:fast-distributed (a + b) * c in rewrites"
 group = "verification"
 depends = ["SV7d1"]
-note = "From SV7d1: under /fp:fast, MSVC compiled FearMode's (30x + d) * (1/31) as 30/31 x + d/31, and the result drifted by an ulp to a different fixed point. Any rewrite that multiplies an unrounded sum by a constant may be distributed or folded the same way. Scan the verify DLL's compiled code for products whose order differs from the original's (the original does FADD then FMUL; ours does FMUL, FMUL, FADD), and round the sum first with the volatile store helper. CheckNear hides these; a save or digest shows them only when the error accumulates."
+note = "User 2026-10-15 questioned /fp:fast. Redirected: try /fp:precise as the project default (x87), compare verify mismatches and goldens with main; keep it if equal or better, then the regrouping audit is moot."
 
 # ---------------------------------------------------------------- harness and suite
 
