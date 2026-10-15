@@ -1550,11 +1550,12 @@ note = "CFile, CFileFind, CArchive (Read, Write, Flush, counts), CTime, CDC / CP
 id = "S9"
 title = "Standalone library: STLport list<T>"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["src/lib/stlp_list.h", "src/lib/stlp.h"]
-note = "About 175 instantiations (insert, list, end, clear, erase, begin, push_back, ~list, distance). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+note = "Done in two groups (160 of 175 registered, verify wrappers for all; suite 127 runs ALL PASS, 0 list mismatches, 106 reached). The remaining 15 need element types not ported yet: S9a."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S10"
@@ -1705,6 +1706,15 @@ group = "standalone"
 status = "queued"
 depends = ["S3a"]
 note = "Callees of the generated exit functions (src/standalone/static_exit.cpp) that no library ticket covers, as the standalone check logs them ('exit function's callee ... has no code yet'): compiler-generated destructors 00561B00 (CWorldClient), 0058AAD0 (CWorldServer), 0045E6F0 (map database), 00684390 (spell database), 006ADF40 (quest database), 006D00E0 (prints), 006D70B0 (acks), and the ones Ghidra has no function for: 0056E800 (x11), 004584E0, 004F0520, 005BF870, 005C4490, 0069BE20, 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48, 0070E181 (check first which are MFC/STLport internals for S4-S9). The matching constructors are S3b's. Port at the address with EI_REPLACE (sizes in config/extra_function_sizes.csv where Ghidra has none). docs/notes/standalone.md S3a."
+
+[[ticket]]
+id = "S9a"
+title = "Standalone library: the last 15 STLport list<T> instantiations"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/lib/stlp_list.h", "src/lib/stlp_list.cpp"]
+note = "S9 left the instantiations whose element type is not ported yet (all forwarded from src/game): StackNode list 0040A6B0 push_back(), 0040A6D0 pop_back, 0040A8D0 insert(pos) default; trade records of three 00661050 parties 00424900 push_back default, 00424A40 ~list, 00429770 erase (0x160-byte nodes, operator new); CMemoryStream elements 00478FF0 insert, 004790F0 erase, 00479570 clear, 004795B0 insert range (48-byte free list); 004FB2E0 LinkArchive default insert; ground print records 0056ED90 0056EED0 0056F010 (copy 00571FC0 unported); 0062C090 TitleLine insert (CStrings stored as const char*; ECX unused). Same scheme as S9: a policy per element in stlp_list_refs.h, ListAbi shims, verify in tests/verify/verify_stlp_list_refs.cpp. standalone.md S9."
 
 # ---------------------------------------------------------------- Lua
 

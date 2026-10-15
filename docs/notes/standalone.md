@@ -153,6 +153,18 @@ destructors (S3c). Checked: check_static_init (the file and the sizes against ga
 the standalone check (0 exit functions without code), smoke and ui_main_menu on both installs (129
 hooked; vanilla exits through all of them).
 
+**S9 (2026-10-15).** STLport `list<T>` (src/lib/stlp_list.h, stlp_list.cpp): one body per member,
+`ListAbi<T, Policy>` shims with the instantiations' calling conventions, the element copy / destroy
+as a policy (plain bytes, or the holder policies in stlp_list_refs.h: Share + Destroy, counted +
+release, key + either, held engine objects, CString). 160 of the 175 forwarded instantiations are
+registered: begin / end / distance, the constructors and destructors, insert / push_back / erase /
+clear, remove 00427320. tests/verify/verify_stlp_list*.cpp check plain data against the original
+(the original's node is unlinked and pooled again, ours must take the same node, links and bytes),
+holder lists ours only (links, the copy's count or clone, the freed node on top of its free list).
+The suite reaches 106 of the 160 (most server-side award and trade lists not). The node size picks
+the free list: a wrong element size corrupts the pool of another size (005392C0 holds 20 bytes in a
+32-byte node). Left: S9a (15 with element types not ported yet).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
