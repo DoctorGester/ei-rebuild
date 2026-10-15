@@ -1656,6 +1656,15 @@ first, then calls the original target; `EI_LEFTOVERS=<hex mask>` now picks famil
 | Suspection modes | AddSuspectionMode's `operator new` (005D63B5); the calls of 004BA610 from ApplyBehaviour 005D6630 and SSCCmd::Execute (UMAg, UMStandard, UMSuspection: seven) | SuspectionMode::ClearFields in AddSuspectionMode, ApplyBehaviour and ModeCalls::Suspicion (script_exec.cpp) | `brain.modeN.point` / `.level` (SV7d4: Evaluate keeps a point that compares the same, a NaN always does, and the lower level, which picks the brain's mode) |
 | Fear modes | AddFearMode's `operator new` (005D6485); the calls of FearMode::Construct 005D2850 from ApplyBehaviour (three) and SSCCmd::Execute (five) | FearMode::ClearFields in AddFearMode, NewFear (unit_ai_alarm.cpp), ModeCalls::Fear | `shelter.y/z`, `fleePoint.x/y` |
 | class templates | the ten calls of ClassTemplate::Construct 004A6580 (the party manager's builder 004A7630, CreateClassTemplate 00457850): `weightsTail` zeroed first | AddTemplate, CreateClassTemplate | `weightsTail` (scenario.sav) |
+| view positions (S17a, merged after) | CMapObject::Construct's call of CObject3D::Construct (0050E2F2): zeroed after the construction | CObject3D::Construct (map_object_lifetime.cpp) | the draw sorts' view position (no save field); main's S17a site, a family of its own here (bit 6, was bit 10) |
+
+**Without hooks only.** The five SV7b2 families are patched only with EI_NO_HOOKS=1 (SV7b3's and S17a's
+sites stay on in every run, as before). Each of their sites sits in a function ours replaces, and a
+harness patch in a body makes InstallHooks leave the rewrite out ("SKIP ... the harness patches"): with
+them on in hooked runs, NewObjectImpl, CreateObject, AddSuspectionMode, AddFearMode, ApplyBehaviour,
+SSCCmd::Execute, the party manager's builder and CreateClassTemplate ran the original, and on the vanilla
+install SSCCmd::Execute then had no addon commands (rebirth_flags failed: ConsoleString printed its first
+argument, GSSetPlayerVar did nothing). In a hooked run ours zeroes the same blocks.
 
 The harness's noted-patch table (src/hook/hook.cpp) grows from 64 to 256: with these 60 sites it overflowed, and hooked
 runs then skipped four or five registrations whose bytes another harness patch held ("unexpected SKIP").
@@ -1689,11 +1698,12 @@ save):
 | EI_HEAP_JITTER=1 | 0 | 0 |
 | EI_HEAP_JITTER=2 | 0 | 0 |
 | EI_HEAP_JITTER=3,fill | 8 at update 40 or 140: levers, render_movie_present, terrain_water_load, ui_battle_commands, ui_saveload_delete (vanilla); magic_traps, ui_saveload, ui_widescreen_hud (Rebirth) (SV7b7) | only in those |
-| ours (hooked) | 2: ui_widescreen_hud / ui_widescreen_more vanilla, cunit129 flags 0xA2 / 0x4A2 (SV7b8a: designed, no vanilla golden) | 0 |
+| ours (hooked; after the third merge, against that tree's plain pass, with the heap-block families off in hooked runs so our NewObjectImpl, CreateObject, mode builders, Execute and template builders run) | 2: ui_widescreen_hud / ui_widescreen_more vanilla, cunit129 flags 0xA2 / 0x4A2 (SV7b8a: designed, no vanilla golden) | 0 |
 
 **Goldens re-recorded**, all 97, from the plain pass and every other pass that agreed with it (89 from six runs; the
 eight above from five, without `3,fill`): only saves.txt changed (85 goldens), 34 decoded saves of the store replaced;
-the second merge's recording gave the same saves.
+the second merge's recording gave the same saves. After the third merge (S17a, S19a, SV4c) a plain pass still gave
+the 97 goldens the same and every decoded save as before.
 
 The suite's non-golden frames_basic, render_cpuwindows and render_present (vanilla) leave a saveb\scenario.sav whose
 screen block savefile_scenario.py reads 0x12 bytes too far (not SV7b2's readers; SV7d6).

@@ -101,6 +101,13 @@ const char* const kFamilyNotes[kFamilies] = {
     "a class template's weights tail zeroed first, SV7b2",
     "a new 3D object's view position zeroed, S17a",
 };
+// The families patched only in runs without hooks (EI_NO_HOOKS=1). Their sites all sit in functions ours
+// replaces (NewObjectImpl, CreateObject, AddSuspectionMode, AddFearMode, ApplyBehaviour, SSCCmd::Execute,
+// the party manager's builder, CreateClassTemplate), and ours zeroes the same blocks; patched in a hooked
+// run they would make InstallHooks leave those rewrites out (a harness patch in the body), so the
+// original would run in their place (SSCCmd::Execute without addon's commands on the vanilla install).
+constexpr unsigned kNoHooksOnly = 1u << kServerObjects | 1u << kMapObjects | 1u << kSuspection | 1u << kFear |
+                                  1u << kTemplates;
 
 struct Site {
     std::uintptr_t call;     // a CALL rel32
@@ -209,11 +216,15 @@ void Install() {
     unsigned mask = ~0u;
     char value[16] = "";
     if (GetEnvironmentVariableA("EI_LEFTOVERS", value, sizeof(value))) mask = std::strtoul(value, nullptr, 16);
+    char hooks[8] = "";
+    GetEnvironmentVariableA("EI_NO_HOOKS", hooks, sizeof(hooks));
+    if (hooks[0] != '1') mask &= ~kNoHooksOnly;
     int patched = 0;
     for (int i = 0; i < static_cast<int>(sizeof(kSites) / sizeof(kSites[0])); ++i)
         if ((mask >> kSites[i].family & 1) && Redirect(kSites[i])) ++patched;
-    Log("harness: never-set blocks zeroed first (%d of %d original sites)", patched,
-        static_cast<int>(sizeof(kSites) / sizeof(kSites[0])));
+    Log("harness: never-set blocks zeroed first (%d of %d original sites%s)", patched,
+        static_cast<int>(sizeof(kSites) / sizeof(kSites[0])),
+        hooks[0] == '1' ? "" : "; the heap-block families only without hooks, where ours zeroes them");
 }
 
 } // namespace ei::verify::leftovers

@@ -29,7 +29,8 @@
 // 005D2850 from ApplyBehaviour 005D6630 and the script zero their fields first): Evaluate 005D1E90
 // keeps a Suspection point that compares the same and the lower level, so its leftovers picked the
 // brain's mode. Ours does the same (gamecrt::operator_new_zeroed, SuspectionMode / FearMode::
-// ClearFields).
+// ClearFields). These families are patched only with EI_NO_HOOKS=1: every site sits in a function ours
+// replaces, and a harness patch in a body makes InstallHooks leave the rewrite out.
 //
 // Also (S17a) CObject3D::Construct 00515BD0 leaves the view position (+0x28), which the draw sorts
 // read for an object listed only for its shadow before it was ever in view (a NaN there makes
