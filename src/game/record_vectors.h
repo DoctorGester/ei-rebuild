@@ -6,6 +6,7 @@
 // (tests/verify/verify_record_vectors.cpp checks them). docs/notes/standalone.md, S10a.
 
 #include "acks_db.h"
+#include "engine_object.h"
 #include "item_db.h"
 #include "lever.h"
 #include "model.h"
@@ -332,6 +333,22 @@ struct ReplicatedElement : stlp::PlainElement<net::Replicated> {
 };
 
 using ReplicatedVector = stlp::VectorAbi<net::Replicated, ReplicatedElement>;
+
+// ---- The client party's engine objects (net_client_party.cpp's 00428A20) -------------------------
+
+// Counted engine object pointers: a copy adds a reference (004298F0), the destructor releases a
+// held object through its slot 4 (CEngineObject::Release). Only _M_insert_overflow is out of line.
+struct EngineObjectRefElement {
+    static void Construct(CEngineObject** to, CEngineObject* const& from) {
+        *to = from;
+        if (from) ++from->refCount_;
+    }
+    static void Destroy(CEngineObject** p) {
+        if (*p) (*p)->Release();
+    }
+};
+
+using EngineObjectRefVector = stlp::VectorAbi<CEngineObject*, EngineObjectRefElement>;
 
 // ---- The HUD's portrait slots (ui.h; ui_hud_portrait_setup.cpp's 0064AB20 / 0064AD40) -----------
 

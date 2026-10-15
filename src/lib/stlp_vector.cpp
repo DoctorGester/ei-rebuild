@@ -306,3 +306,10 @@ EI_REPLACE(0x004A9A00, CountedRefVector::EraseRange);
 EI_REPLACE(0x004200C0, CountedRefVector::ResizeDefault);
 EI_REPLACE(0x004AD700, CountedRefVector::ResizeDefault);
 EI_REPLACE(0x004AD8D0, CountedRefVector::ResizeDefault);
+
+// vector<RefPtr> of shared holders (SharedRefElement): the server's file chunks.
+namespace {
+using SharedRefVector = stlp::VectorAbi<RefPtr, stlp::SharedRefElement>;
+} // namespace
+EI_REPLACE(0x00421D90, SharedRefVector::EraseRange);
+EI_REPLACE(0x00426CB0, SharedRefVector::FillInsert);

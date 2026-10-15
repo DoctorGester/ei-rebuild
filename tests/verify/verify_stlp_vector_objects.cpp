@@ -84,6 +84,36 @@ struct RefCheck {
     }
 };
 
+// vector<RefPtr> of shared holders: sharing may clone, so the elements outside the change keep
+// their pointers and the counts add up.
+using SharedRefVector = stlp::VectorAbi<RefPtr, stlp::SharedRefElement>;
+template <std::uintptr_t A>
+struct SharedRefCheck {
+    using Vector = SharedRefVector::Vector;
+    static std::vector<CRefObject*> Read(const RefPtr* first, const RefPtr* last) {
+        std::vector<CRefObject*> m;
+        for (; first != last; ++first) m.push_back(first->ptr);
+        return m;
+    }
+    static RefPtr* __fastcall EraseRange(Vector* self, void*, RefPtr* first, RefPtr* last) {
+        std::size_t head = static_cast<std::size_t>(first - self->begin());
+        std::vector<CRefObject*> before = Read(self->begin(), first);
+        std::size_t size = self->size() - static_cast<std::size_t>(last - first);
+        RefPtr* result = SharedRefVector::EraseRange(self, nullptr, first, last);
+        bool ok = result == first && self->size() == size && Read(self->begin(), self->begin() + head) == before;
+        ei::verify::Report(Name<A>("stlp::vector::erase"), ok, ok ? "" : "the size or the head differs");
+        return result;
+    }
+    static void __fastcall FillInsert(Vector* self, void*, RefPtr* pos, std::size_t n, const RefPtr* x) {
+        std::size_t head = static_cast<std::size_t>(pos - self->begin());
+        std::vector<CRefObject*> before = Read(self->begin(), pos);
+        std::size_t size = self->size() + n;
+        SharedRefVector::FillInsert(self, nullptr, pos, n, x);
+        bool ok = self->size() == size && Read(self->begin(), self->begin() + head) == before;
+        ei::verify::Report(Name<A>("stlp::vector::_M_fill_insert"), ok, ok ? "" : "the size or the head differs");
+    }
+};
+
 template <std::uintptr_t A> using CStrings = stlp_verify::ModelCheck<A, CStringVector, CStringText>;
 template <std::uintptr_t A> using Strings = stlp_verify::ModelCheck<A, StringVector, StringText>;
 
@@ -115,3 +145,5 @@ EI_VERIFY(0x004A9A00, RefCheck<0x004A9A00>::EraseRange, 0, s_unused);
 EI_VERIFY(0x004200C0, RefCheck<0x004200C0>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x004AD700, RefCheck<0x004AD700>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x004AD8D0, RefCheck<0x004AD8D0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x00421D90, SharedRefCheck<0x00421D90>::EraseRange, 0, s_unused);
+EI_VERIFY(0x00426CB0, SharedRefCheck<0x00426CB0>::FillInsert, 0, s_unused);

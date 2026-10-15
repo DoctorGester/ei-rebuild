@@ -238,6 +238,25 @@ struct ReplicatedPush {
     }
 };
 
+// The client party's engine objects: the pointers as a model; the inserted object gains one
+// reference per copy (the moved elements' copies and releases cancel out).
+template <std::uintptr_t A>
+struct EngineObjectRefs {
+    using Vector = EngineObjectRefVector::Vector;
+    static void __fastcall InsertOverflow(Vector* self, void*, CEngineObject** pos, CEngineObject* const* x,
+                                          std::size_t n) {
+        std::vector<CEngineObject*> m(self->begin(), self->end());
+        CEngineObject* inserted = *x;
+        int refs = inserted ? inserted->refCount_ + static_cast<int>(n) : 0;
+        m.insert(m.begin() + (pos - self->begin()), n, inserted);
+        EngineObjectRefVector::InsertOverflow(self, nullptr, pos, x, n);
+        bool ok = std::vector<CEngineObject*>(self->begin(), self->end()) == m &&
+                  (!inserted || inserted->refCount_ == refs);
+        ei::verify::Report(stlp_verify::Name<A>("stlp::vector::_M_insert_overflow"), ok,
+                           ok ? "" : "the pointers or the count differ");
+    }
+};
+
 template <std::uintptr_t A> using HudPortraitSlots = ModelCheck<A, HudPortraitSlotVector, HudPortraitSlotText>;
 template <std::uintptr_t A> using Levers = ModelCheck<A, LeverVector, LeverText>;
 template <std::uintptr_t A> using PartyEntries = ModelCheck<A, PartyEntryVector, PartyEntryText>;
@@ -324,3 +343,6 @@ EI_VERIFY(0x0041F790, ReplicatedPush<0x0041F790>::PushDefault, 0, s_unused);
 // The HUD's portrait slots (the party's portraits).
 EI_VERIFY(0x0064AB20, HudPortraitSlots<0x0064AB20>::PushDefault, 0, s_unused);
 EI_VERIFY(0x0064AD40, HudPortraitSlots<0x0064AD40>::EraseRange, 0, s_unused);
+
+// The client party's engine objects (multiplayer).
+EI_VERIFY(0x00428A20, EngineObjectRefs<0x00428A20>::InsertOverflow, 0, s_unused);
