@@ -313,6 +313,13 @@ std::size_t __cdecl Fwrite(const void* from, std::size_t size, std::size_t count
 }
 EI_REPLACE_STANDALONE(0x006E968B, libcrt::Fwrite);
 
+// A null stream flushes every stream (VC6's flsall: 0, or EOF when one fails), as the host's does.
+int __cdecl Fflush(gamecrt::CrtFile* file) {
+    QuietInvalidParameters quiet;
+    return std::fflush(file ? HostFile(file) : nullptr);
+}
+EI_REPLACE_STANDALONE(0x006ED534, libcrt::Fflush);
+
 int Fileno(const gamecrt::CrtFile* file) {
     QuietInvalidParameters quiet;
     return _fileno(HostFile(file));

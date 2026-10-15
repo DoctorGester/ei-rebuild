@@ -2,8 +2,9 @@
 // build leaves them to the exe (EI_REPLACE_STANDALONE), so a start-up check runs ours beside the
 // originals (the forwarders in crt.h) on scratch files in a folder of its own under %TEMP%:
 // - fopen in 20 modes (translation, update, append, the letters VC6 stops at), then the same reads,
-//   seeks, tells and writes on each side's own copy of the file: every result, the bytes read, and the
-//   file's bytes after fclose (a text file opened for update loses a trailing Ctrl-Z);
+//   seeks, tells, writes and fflush (S4d; also of every stream) on each side's own copy of the file:
+//   every result, the bytes read, and the file's bytes after fclose (a text file opened for update loses
+//   a trailing Ctrl-Z);
 // - _open with 12 flag sets (created read-only, exclusive, missing), _filelength, _lseek, _read, _write,
 //   _close the same way, and bad descriptors;
 // - _access (modes 0, 2, 4, 6 on a file, a read-only file, a folder, a missing path) and _findfirst
@@ -36,9 +37,10 @@ struct Streams {
     long(__cdecl* tell)(gamecrt::CrtFile*);
     std::size_t(__cdecl* read)(void*, std::size_t, std::size_t, gamecrt::CrtFile*);
     std::size_t(__cdecl* write)(const void*, std::size_t, std::size_t, gamecrt::CrtFile*);
+    int(__cdecl* flush)(gamecrt::CrtFile*);
 };
-const Streams kOriginalStreams{gamecrt::fopen, gamecrt::fclose, gamecrt::fseek, gamecrt::ftell, gamecrt::fread, gamecrt::fwrite};
-const Streams kOurStreams{libcrt::Fopen, libcrt::Fclose, libcrt::Fseek, libcrt::Ftell, libcrt::Fread, libcrt::Fwrite};
+const Streams kOriginalStreams{gamecrt::fopen, gamecrt::fclose, gamecrt::fseek, gamecrt::ftell, gamecrt::fread, gamecrt::fwrite, gamecrt::fflush};
+const Streams kOurStreams{libcrt::Fopen, libcrt::Fclose, libcrt::Fseek, libcrt::Ftell, libcrt::Fread, libcrt::Fwrite, libcrt::Fflush};
 
 // The descriptor functions of one side.
 struct Descriptors {
@@ -135,10 +137,14 @@ Trace StreamScript(const Streams& s, const std::string& path, const char* mode) 
     read(2);
     seek(2, SEEK_SET);
     write("A\nB");
+    trace.push_back(s.flush(file));
+    tell();
     seek(0, SEEK_CUR);
     read(4);
     seek(0, SEEK_END);
     write("end\n");
+    trace.push_back(s.flush(file));
+    trace.push_back(s.flush(nullptr));
     seek(0, SEEK_SET);
     read(60);
     trace.push_back(s.close(file));

@@ -297,6 +297,33 @@ flush and the manipulators are ours only. Left for the image: the streams themse
 006FC42F, which the static initialisers call, the ios / streambuf constructors and destructors, the
 log's streambuf), fflush for ios::stdio.
 
+**S4d (2026-10-15): the streams.** src/lib/crt_iostream.{h,cpp}, both builds (no state of their own: the
+shared lock 007CAE90 and the live-ios count 007CAEC8 are the exe's): streambuf(char*, int) 006FCAD2,
+~streambuf 006FCB35 and its deleting destructor 006FCAB6, the base class's virtuals the console's streambufs
+inherit (sync 006FCC86, setbuf 006FCB65, seekoff 006FCD18, seekpos 006FCD1E, xsputn 006FCB99, xsgetn
+006FCBEF, pbackfail 006FCD30, doallocate 006FCCBB; `Streambuf::Default*`, non-virtual so they can be
+registered); ios() 006FCDB1, ~ios 006FCEDC, its deleting destructor 006FCE0F, ios::init 006FCF26;
+ostream(streambuf*) 006FC42F (the eight static-initialiser calls), ~ostream 006FC502 and its deleting
+destructor 006FC404, both entered with the ios as `this` (`Ios::DestructOstream` / `DeleteOstream`). The
+constructors write the exe's vtables. There is no separate log streambuf: the eight ostreams 007C55A8-
+007C5810 all write to console streambufs (console.h). Not ported (no callers): streambuf() 006FCA77,
+ios(streambuf*) 006FCE94, ostream() 006FC3CE, ostream(const ostream&) 006FC494, ostream_withassign.
+fflush 006ED534: image only (crt_file.cpp, the host stream's; a null stream flushes all), also reached from
+MFC's CStdioFile::Flush 00701FB8. Check: tests/verify/verify_crt_streams.cpp, original vs ours on scratch
+streambufs whose own virtuals record the calls (8 states x 5 behaviours x every operation, 807 cases) and on
+scratch ios / ostreams (bytes but the critical section, the count's change, an owned streambuf deleted once);
+the game's calls are shadowed (xsputn on every console line, the ostream / ios / streambuf destructors at
+exit); the two deleting destructors without trampoline room against the destructor plus operator delete;
+fflush in verify_crt_file's scripts. smoke and ui_main_menu, both installs: 0 mismatches. `--standalone`
+boot: 006FC42F, 006FC502 and 006FCEDC no longer missing; it still stops at 00411AB0 (S12) first.
+The C initialisers the image does not run, checked: 006E728D (__onexitinit: the atexit table, which only
+the exe's _onexit / exit read; the image's are ours), 006F239A (__initstdio: `__piob` for the exe's
+_getstream / flsall; the image's fopen / fflush are the host's; MFC's CStdioFile::Open 00701CB0 calls the
+exe's 006ED1A3 / 006ED350 (_open_osfhandle / _fdopen, its descriptor and stream tables): map those to the
+host as fopen is when CStdioFile is ported, S8) and 006F02F9 (VC6's unhandled-exception
+filter: terminate() on an uncaught C++ exception; the image keeps the host's filter, which reports the
+crash). None is needed now.
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on
