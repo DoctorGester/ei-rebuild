@@ -941,7 +941,7 @@ id = "SV7b1"
 title = "Script groups ordered by object id, not address"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes)."
+note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes). SV7d: the decoded saves show it too: render_movie_present (vanilla) mission.sav's zone script group 'Peasans' (commands globals.groups.3) is [1884, 699, 702] in the original and [1884, 702, 699] in ours, and the loop variable i (globals.objects.2) ends on the other id. golden.py SAVES_KNOWN leaves those fields out under SV7b1: drop that entry when this lands. SV7d: also the party units' brain.memory.seenCorpses (PartySync in player_sync.cpp rebuilds them from a ScriptGroup): ground_prints obj1000011214's two corpses swap between the original and ours and between the original's plain and EI_HEAP_JITTER=1 runs; SAVES_KNOWN marks that entry SV7b1 too (SV7d5 checks it after this lands)."
 
 [[ticket]]
 id = "SV7b2"
@@ -986,6 +986,46 @@ size = 0.25
 model = "sonnet"
 files = ["tests/verify/verify_ui_base.cpp"]
 note = "render_cursor_present vanilla failed twice on main (2026-10-15, after the SV3c1 merge) and once on S16a with 'MISMATCH CInterface3D::Update: mouse 1920,1260' (1 of ~10187). InterfaceUpdateVerify (tests/verify/verify_ui_base.cpp) compares the interface's mouse position with the window procedure's stored one (007C7C50/54) after Update; 1920,1260 is outside the game window, so a WM_MOUSEMOVE from the real cursor probably lands while a window's update pumps messages. Confirm (log both values), then make the check robust (compare against the stored value as of Update's own read, or skip when the stored value changed during the call). Harness inputs only; no game change."
+
+[[ticket]]
+id = "SV7d1"
+title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
+group = "verification"
+size = 0.5
+depends = ["SV7d"]
+note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands."
+
+[[ticket]]
+id = "SV7d2"
+title = "Path step flags: one step's flags are 0x2664 in ours"
+group = "verification"
+size = 0.5
+depends = ["SV7d"]
+note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands."
+
+[[ticket]]
+id = "SV7d3"
+title = "Unit controller waitFrame: the original's memory value"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "From SV7d (decoded saves), SV7b2's family. CUnitServer's waitFrame (+0x93C) is set to the world tick only when a queued order is taken over (TakeQueuedOrder 0054A6E0, LeaveMoveMode in combat_tick.cpp) and never initialised; ResolveBlocker (unit_motion_tick.cpp) reads it (a party member waits while CurrentFrame() < waitFrame + 2), so a leftover can decide whether a follower waits. The original's value follows memory: camera obj1898 189 in plain runs, 209 under EI_HEAP_JITTER=1 (Rebirth 0 / other values), ours 244 / 173. savefile_unit leaves it out (junk). Give it a canonical start (0) in the standalone and, if the harness patches the original alike, check the goldens; then the junk rule can become a value again."
+
+[[ticket]]
+id = "SV7d4"
+title = "Suspection mode starts from 0xFFFFFFFF in ours, zeros in the original"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "From SV7d (decoded saves), SV7b2's family. SuspectionMode's point and level (+0x08..+0x17) are never set by the constructors (AddSuspectionMode, NewModeOfType, the script's). Evaluate 005D1E90 copies the brain's noticed point and level, but while the leftover point compares the same (unordered too) it keeps it and returns min(leftover level, noticedLevel), and that return picks the brain's mode. The original's plain heap holds zeros there (0,0,0 / 0); under EI_HEAP_JITTER fill and in ours (0xFFFFFFFF: NaN, level -1) other bytes, so a Suspection mode that noticed nothing can evaluate to -1 in ours and 0 in the original. savefile_unit leaves both out (junk). Give them a canonical start (zeros, as the original's usual heap) in the standalone and check the goldens. SV7d also saw: with EI_HEAP_JITTER=2,fill the original's game diverges at update 40 (isaac.count, ai.decay of obj1804 / obj1890 / obj1936, positions) in 13 of 39 vanilla and 19 of 46 Rebirth runs (seed 1 without fill: none). Leftovers read as behaviour; this mode's level and waitFrame (SV7d3) are candidates, not confirmed."
+
+[[ticket]]
+id = "SV7d5"
+title = "seenCorpses: units note corpses in another order"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "From SV7d (decoded saves): folded into SV7b1. ground_prints obj1000011214's brain.memory.seenCorpses order is 1195532174, 1195532175 in the original and the other way round in ours (and in the original under EI_HEAP_JITTER=1, and under Rebirth). PartySync (player_sync.cpp) rebuilds each party unit's seenCorpses from a ScriptGroup (known.InsertAll, ScriptGroupToListOriginal), whose members are in address order. Nothing to do beyond SV7b1: once it lands, check the order agrees and drop the seenCorpses entry (marked SV7b1) from golden.py SAVES_KNOWN."
 
 # ---------------------------------------------------------------- harness and suite
 

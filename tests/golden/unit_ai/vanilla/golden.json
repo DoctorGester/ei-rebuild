@@ -8,5 +8,5 @@
   "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
   "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50744 31e786c3e3958aa6', orig2 'savea/mission.sav 50743 4a9d5c808e1e0c30'"
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }
