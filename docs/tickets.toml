@@ -228,9 +228,18 @@ note = "From R9c2 (2026-10-15): under Rebirth, render_present, render_movie_pres
 id = "R10a"
 title = "SectorData::Light: a one-record verify mismatch in runs on our renderer (vanilla/Rebirth)"
 group = "renderer"
-status = "running"
+status = "done"
 note = "From R10: ui_battle_commands vanilla (twice, record 733, sector (0,0)-(32,32) skip 0) and effects_bow rebirth (record 950) failed with 1 SectorData::Light mismatch when run with EI_RENDER=new,present; the same scenarios passed in 4 other present runs, in native runs and in every dgVoodoo run on the board. The wrapper (verify_terrain_lighting.cpp) now logs both records' colour / specular / lit values at the first mismatch: catch one, see whether it is a one-step rounding edge (the wrapper's own caveat) or an input that changes between the two calls (x87 precision after the dgVoodoo DirectX probe, another thread)."
 started = "2026-10-15"
+done = "2026-10-15"
+
+[[ticket]]
+id = "R10b"
+title = "Products with a repeated factor in /fp:fast files: check the grouping against the original"
+group = "renderer"
+status = "queued"
+files = ["src/game/ai_motion.cpp", "src/lib/vecmath.h"]
+note = "R10a found /fp:fast regrouping a * b * d * d as (a * b) * (d * d) in terrain_lighting.cpp (one ulp off under chop, hidden by CheckNear); fixed with vecmath Product(). A grep for repeated factors in /fp:fast files found ai_motion.cpp:257 (x * inverse * inverse) and :259 (cubic * length * length); other hits are integer or under precise. Check their dumpbin against Ghidra, use Product() where regrouped, and consider a bit-for-bit check where a float feeds a truncation."
 
 # ---------------------------------------------------------------- native interface drawing
 
