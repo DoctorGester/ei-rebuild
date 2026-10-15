@@ -1098,6 +1098,13 @@ title = "savefile.py: saveb scenario.sav screen block decodes 0x12 bytes past it
 group = "verification"
 note = "From SV7b2: the non-golden scenarios frames_basic, render_cpuwindows and render_present (vanilla) leave harness_saves\\saveb\\scenario.sav whose screen block (CBattleScreenSetup::SaveState 00635080 through the save stream) savefile_scenario.py reads to 0x1fac where the block ends at 0x1f9a. Find the reader branch that a second save (or these screens' state) takes and fix it; needed before S20 records goldens for every scenario."
 
+[[ticket]]
+id = "SV5b1"
+title = "levers_key goldens"
+group = "verification"
+depends = ["SV5b"]
+note = "levers_key repeats on both sides but ours flips against the original at update 60 (isaac.count, zone1 wolf obj1936 ai.standCooldown: the SV1j family); record its goldens when that is settled (standalone-verification.md, SV5b)."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]

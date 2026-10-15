@@ -1742,3 +1742,21 @@ standalone) parts from it in `isaac.count` at update 80 or 100 in bz1g and alter
 118 / 193 at update 80 / 100, original 57 / 193; standalone matches at 80 and parts at 100: 56 against 193). Ours draws three
 more ambience sounds in frame 15 (`Terrain::PlayAmbience`, `MaybeRemark`, the sector votes) than the original, the same
 family as zone_base_bz1g and ui_base_topic (T2f).
+
+## SV5b: LockKey::Opens through both callers (2026-10-15)
+
+`levers_key` (vanilla and Rebirth, 22 s, no `speed`): zone1's gate lever 1889 gets locks with `SetScience(lever, id,
+level, flags...)` (the lock is {mask = the flags, id, level}), the hero is put beside it with `SetCPFast` (the lever
+is 130 units and a long detour from the start), and the player's quest item Palantir (quest item id 8; `hudstate` now
+prints the ids of the top row's quest items) is picked in the quick item panel's top row (region 4: x 670..720, y
+500..550; 700..750 in Rebirth's widescreen layout). Mode 6's hover (`Lever::KeyOpens`, the cursor) and click, then the
+use order: `CUnitServer::UseSkill` -> slot 41 `Lever::ApplyKey` opens it (lock mask 8 id 8: the lever changes state).
+Locks refused: another id, no lock, masks 1, 2, 4, 9, 15 under the cursor. `clickunit #1889` picks a map object by id
+(the object pick 005659D0). A key's level branch (`(common & 7) != 0`) stays unreached: a quest item's key is
+{8, id, skill} and a locked lever refuses the plain click (IsDirectUseBlocked).
+`UseSkillVerify` allowed no change of the unit's order; a key that opens a lever ends it (kind 9), as the original's
+slot 41 does, so a lever target is exempt.
+Vectors: `LockKey::Opens` 8 records (tests/vectors/data/stats), replayed with 0 problems.
+Goldens: not recorded. The original and ours each repeat, but ours differs from the original at update 60 in
+`isaac.count` and zone1's idle wolf obj1936 `ai.standCooldown` (ours took 250, 11 and 180 draws against the original's
+57 in three runs: the SV1j family, ours flipping), so `golden.py record` refuses it.
