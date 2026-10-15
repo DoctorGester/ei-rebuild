@@ -86,12 +86,6 @@ KNOWN = {
 # Known differences in decoded saves (tools/savefile.py's "<key> <field>"), each with its ticket: left out of save
 # comparisons unless --strict, so the goldens' saves need no re-recording when the ticket lands; drop the entry then.
 SAVES_KNOWN = {
-    r'^obj\d+ controller\.brain\.mode4\.(distance|spread)$':
-        "SV7d1: a Fear mode's distance is 10.0 in the original, 9.99999714 or 9.99999619 in ours (camera obj1804, "
-        "every run); Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481",
-    r'^obj\d+ (controller\.motion\.order\.step\d+\.flags|motion\.point\d+\.speed|motion\.stepSpeed\d+)$':
-        "SV7d2: one path step's flags (UnitMotion's step speed, ai_motion.cpp Build) are 0x2664 in ours where the "
-        "original has 0x1417 / 0x2963 / 0x4310 (camera obj1804, Rebirth obj1890 and obj1937, every run)",
     r'^obj\d+ controller\.brain\.memory\.seenCorpses\.\d+$':
         "SV7b1: a party unit's seenCorpses are rebuilt from a ScriptGroup (player_sync.cpp), so in address order "
         "(ground_prints obj1000011214: 1195532174 / 1195532175, the other way round under Rebirth and under "

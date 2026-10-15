@@ -18,9 +18,6 @@
 
 #include <cstring>
 
-// ai_join.cpp: the word BuildCellsTo gives its cells (see CommitLeg).
-void SetBuildCellsStaleWord(std::uint32_t value);
-
 namespace {
 
 constexpr std::uintptr_t kRegionListVtable = 0x0073EDB0;   // CList of region nodes (+8 x, +0xA y: words)
@@ -68,24 +65,6 @@ __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellL
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
 std::uint8_t& SpiralGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F60); }
 SpiralCache* Spiral() { return reinterpret_cast<SpiralCache*>(0x007C2F58); }
-
-// The second dword of every cell BuildCells (005B9A20) adds is a stack slot it never writes: in
-// the original it is the dword the planner's last call at the same depth left 20 bytes below the
-// planner's stack pointer. SpiralGet (two arguments) pushes the planner's EBP there, which is 0
-// at that call; SearchCommit (no arguments) keeps its row offset there, 4 * (last row + 1) after
-// its loop over rows max(1, -originY) .. min(32, height - originY - 1). Nothing else is called
-// between the last of those and BuildCells; the value reaches the steering as the last step's
-// speed word (SetStepSpeeds rewrites the others). BuildCellsTo (ai_join.cpp) takes it from here.
-void CommitLeg(LocalSearch* search) {
-    int originY = search->originY;
-    int height = search->map->height;
-    int first = -originY > 1 ? -originY : 1;
-    int last = height - originY - 1 > 32 ? 32 : height - originY - 1;
-    // When the loop does not run the slot keeps the previous call's word; that needs the search
-    // window outside the map, which the planner never sets up.
-    if (first <= last) SetBuildCellsStaleWord(static_cast<std::uint32_t>(4 * (last + 1)));
-    SearchCommit(search, nullptr);
-}
 
 // An inlined CList destructor: the nodes need no destruction; the blocks are freed.
 template <typename List>
@@ -154,7 +133,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
 
     int count = 0;
     const std::int16_t* offsets = SpiralGet(Spiral(), nullptr, kAllOffsets, &count);
-    SetBuildCellsStaleWord(0);
     LocalSearch* search = &forwardSearch;
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint
@@ -200,7 +178,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             }
             if (!next && SearchCost(search, nullptr, toX, toY) == kUnreachable) {
                 // The last leg did not reach the target: one more leg from the best cell.
-                CommitLeg(search);
+                SearchCommit(search, nullptr);
                 if (!SearchContinue(search, nullptr, bestX, bestY, toX, toY, 1)) {
                     failed = true;
                     failedAt = w;
@@ -216,7 +194,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             }
             curY = bestY;
             curX = bestX;
-            CommitLeg(search);
+            SearchCommit(search, nullptr);
             reachedLast = exact;
         }
         w = next;
@@ -233,7 +211,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         if (diff < 0) diff = -diff;
         int distance = diff + ((shorter * 1448) >> 10);
         if (static_cast<double>(distance) > Threshold()) {
-            CommitLeg(search);
+            SearchCommit(search, nullptr);
             toY = bestY;
             toX = bestX;
             path->failed = true;

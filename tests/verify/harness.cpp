@@ -196,6 +196,7 @@
 #include "harness_clock.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
+#include "harness_path_cells.h"
 #include "harness_savetrace.h"
 #include "harness_hooks.h"
 #include "harness_starter.h"
@@ -2795,6 +2796,7 @@ struct Harness {
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)
+            path_cells::Install();   // the original's path cells get plain speed words (SV7d2)
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);

@@ -172,15 +172,16 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         }
         if (best >= previousBest) return best;
         previousBest = best;
-        // Rebuild the cells from the tail back along the chain. The original gives them second
-        // dwords from two stack slots it never writes; ours keep the old tail's.
-        std::uint16_t staleFlags = path->tail->data.flags, staleWord = path->tail->data.terrainBits;
+        // Rebuild the cells from the tail back along the chain. The original gives their speed
+        // words and terrain bits two stack slots it never writes (the tail what the path's builder
+        // left: the join's open cost or the planner's list vtable); ours get the plain words (SV7d2).
         path->RemoveAll();
-        PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), staleFlags, staleWord};
+        PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), kPlainStepSpeed, 0};
         path->AddHead(tail);
         for (const SmoothNode* node = bestNode; node; node = node->prev) {
-            PathCell stepped{0, 0, staleFlags, staleWord};
+            PathCell stepped{};
             path->head->data.Step(&stepped, node->direction);
+            SetPlainCellWords(&stepped);
             path->AddHead(stepped);
         }
     }
