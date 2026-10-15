@@ -55,7 +55,7 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
             std::memcpy(&triangle->corners[k].screen, &points[record.index[0]], 8);
             std::memcpy(&triangle->corners[k].texture, &TexturePoints().data[record.index[2]], 8);
         }
-        if (triangle->colourKey) rasteriser->RasteriseKeyedTriangle(triangle);
+        if (triangle->keyTexels) rasteriser->RasteriseKeyedTriangle(triangle);
         else rasteriser->RasteriseTriangle(triangle);
     }
     return buffers.vertexCount * 4;

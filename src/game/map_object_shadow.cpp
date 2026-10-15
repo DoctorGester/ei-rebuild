@@ -49,11 +49,14 @@ void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
 void* RenderDevice() { return *reinterpret_cast<void**>(0x007AF080); }
 void* ShadowProjector() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* TextureStages() { return reinterpret_cast<void*>(0x007AF060); }
-// The work buffers: projected points (two floats each), their pixels (two ints each), and the
-// ground quad (one 4x4 block of floats).
-AlignedRecordBuffer& Points() { return *reinterpret_cast<AlignedRecordBuffer*>(0x007AF1F8); }
-AlignedRecordBuffer& Pixels() { return *reinterpret_cast<AlignedRecordBuffer*>(0x007AF1E0); }
-AlignedRecordBuffer& Quads() { return *reinterpret_cast<AlignedRecordBuffer*>(0x007AF208); }
+// The work buffers: the parts' points projected into the light's view, their texture pixels, and
+// the ground quad (one block of four corners).
+using ShadowPoints = lib::AlignedArray<Vector2>;
+using ShadowPixels = lib::AlignedArray<RasterTriangle::Point>;
+using ShadowQuads = lib::AlignedArray<VertexPacket>;
+ShadowPoints& Points() { return *reinterpret_cast<ShadowPoints*>(0x007AF1F8); }
+ShadowPixels& Pixels() { return *reinterpret_cast<ShadowPixels*>(0x007AF1E0); }
+ShadowQuads& Quads() { return *reinterpret_cast<ShadowQuads*>(0x007AF208); }
 
 constexpr int kTypePointLight = 0x31;
 constexpr int kClassUnitObject = 0x50;
@@ -63,7 +66,7 @@ constexpr std::uint32_t kLightOff = 0x400;          // light->flags_
 constexpr std::uint32_t kLightRemoved = 0x80;
 constexpr std::uint32_t kLightStrong = 0x800;       // a point light counting ten times
 constexpr std::uint32_t kPartHidden = 0x80;         // part->flags_
-constexpr std::uint32_t kMaterialKeyed = 0x2000;
+constexpr std::uint32_t kTextureKeyed = 0x2000;     // skin->flags_: block_ holds its key texels
 constexpr int kPointBufferSize = 0x1000;
 constexpr int kTextureSize = 0x40;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
@@ -95,10 +98,6 @@ __declspec(naked) CEngineObject* __fastcall CreateShadowTexture(void*) EI_ORIGIN
 // 004F1440 / 004F15C0. Scene: the view matrix and the rotation that look along a direction.
 __declspec(naked) void __fastcall LightViewMatrix(void*, void*, float*, const float*) EI_ORIGINAL(0x004F1440)
 __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quaternion*) EI_ORIGINAL(0x004F15C0)
-// 004545A0 / 004F65B0 / 00452E70. Aligned storage for 8-, 8- and 64-byte records.
-__declspec(naked) void* __fastcall AllocatePoints(int) EI_ORIGINAL(0x004545A0)
-void* __fastcall AllocatePixels(int a0) { return AllocAligned32Of8Original(a0); }
-__declspec(naked) void* __fastcall AllocateQuads(int) EI_ORIGINAL(0x00452E70)
 // 005A0E80. Figure mesh: rasterises its projected points into the texture.
 __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
@@ -106,17 +105,7 @@ __declspec(naked) void* __fastcall RenderSurface(void*) EI_ORIGINAL(0x00692140)
 __declspec(naked) int __fastcall LockSurface(void*, void*, void*) EI_ORIGINAL(0x00690FC0)
 __declspec(naked) void __fastcall UnlockSurface(void*) EI_ORIGINAL(0x00691030)
 // 0056C750 (ClientProjectDecalOriginal, originals_world.h). The shadow projector: lays the texture's quad on
-// the ground (the depth passed as its bits).
-void __fastcall ProjectShadow(void* a0, void*, const float* a2, const float* a3, std::uint32_t a4, void* a5, void* a6,
-                              void* a7, void* a8, int a9, int a10) {
-    float depth;
-    std::memcpy(&depth, &a4, 4);
-    ClientProjectDecalOriginal(a0, nullptr, reinterpret_cast<const Vector3*>(a2), reinterpret_cast<const Vector3*>(a3),
-                               depth, static_cast<VertexPacket* const*>(a5),
-                               static_cast<lib::AlignedArray<VertexPacket>*>(a6),
-                               static_cast<lib::AlignedArray<DecalTexCoord>*>(a7),
-                               static_cast<lib::AlignedArray<std::uint16_t>*>(a8), a9, a10);
-}
+// the ground.
 // 00501AF0. Texture stages: binds a texture.
 void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.
@@ -138,67 +127,6 @@ void AssignTexture(CEngineObject** slot, CEngineObject* value) {
 constexpr int kShadowStack = 10;
 
 const float* TopMatrix(const CTransformPipeline* pipeline) { return pipeline->Top(kShadowStack)->m; }
-
-// The texture's +0x60 (CTexture::block_) holds the colour key of a keyed texture (flags_ 0x2000).
-std::uint32_t ColourKey(const CTexture* texture) { return std::bit_cast<std::uint32_t>(texture->block_); }
-
-// --- Work buffers -----------------------------------------------------------------------------
-
-using Allocator = void*(__fastcall*)(int);
-
-int GrowBy(const AlignedRecordBuffer& b) {
-    if (b.growBy != 0) return b.growBy;
-    int grow = b.size / 8;
-    if (grow < 4) return 4;
-    if (grow > 0x400) return 0x400;
-    return grow;
-}
-
-// Size `size`; growing allocates fresh storage without keeping the contents.
-void ResizeDiscarding(AlignedRecordBuffer& b, int size, Allocator allocate) {
-    if (!b.data) {
-        b.data = allocate(size);
-        b.capacity = size;
-        b.size = size;
-        return;
-    }
-    if (size <= b.capacity) {
-        b.size = size;
-        return;
-    }
-    int capacity = GrowBy(b) + b.capacity;
-    if (capacity <= size) capacity = size;
-    void* fresh = allocate(capacity);
-    gamecrt::operator_delete(static_cast<void**>(b.data)[-1]);
-    b.data = fresh;
-    b.size = size;
-    b.capacity = capacity;
-}
-
-// Size 1 for the 64-byte quads, keeping the contents when growing.
-void ResizeQuads(AlignedRecordBuffer& b) {
-    if (!b.data) {
-        b.data = AllocateQuads(1);
-        b.capacity = 1;
-        b.size = 1;
-        return;
-    }
-    if (b.capacity >= 1) {
-        b.size = 1;
-        return;
-    }
-    int capacity = GrowBy(b) + b.capacity;
-    if (capacity <= 1) capacity = 1;
-    void* fresh = AllocateQuads(capacity);
-    std::memcpy(fresh, b.data, static_cast<std::size_t>(b.size) * 64);
-    gamecrt::operator_delete(static_cast<void**>(b.data)[-1]);
-    b.data = fresh;
-    b.size = 1;
-    b.capacity = capacity;
-}
-
-float* PointAt(int index) { return static_cast<float*>(Points().data) + 2 * index; }
-int* PixelAt(int index) { return static_cast<int*>(Pixels().data) + 2 * index; }
 
 // --- Lights -----------------------------------------------------------------------------------
 
@@ -276,14 +204,15 @@ bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::X
 
 CFigureMesh* PartAt(const CObject3D* object, int i) { return static_cast<CFigureMesh*>(object->parts.data[i]); }
 
-// The bits a part is rasterised into: the callee's triangle corners and colour key, then the target
+// The bits a part is rasterised into: the callee's triangle corners and key texels, then the target
 // surface.
 struct RasterTarget : RasterTriangle {
     void* bits;                // +0x34
-    int width;                 // +0x38 0x200
+    int keyPitch;              // +0x38 the key texels' row pitch in bytes (only slot 9 reads it)
     int pitch;                 // +0x3C
 };
 static_assert(sizeof(RasterTarget) == 0x40);
+constexpr int kKeyTexelPitch = 0x200;   // 256 texels of 2 bytes
 
 // The surface description the lock fills (only the pitch and the bits are read).
 static_assert(sizeof(DDSURFACEDESC2) == 0x7C);
@@ -330,8 +259,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Matrix4 view;
     LightViewMatrix(pipeline, nullptr, view.m, &direction.x);
     pipeline->PushMatrixProduct(view, kShadowStack);
-    ResizeDiscarding(Points(), kPointBufferSize, AllocatePoints);
-    ResizeDiscarding(Pixels(), kPointBufferSize, AllocatePixels);
+    // The point and pixel buffers grow without keeping their contents (004545A0 / 004F65B0 allocate).
+    Points().SetSizeDiscard(kPointBufferSize);
+    Pixels().SetSizeDiscard(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
     LightRotation(pipeline, nullptr, &direction.x, &turn);
@@ -363,17 +293,17 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), PointAt(count),
+            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &Points()[count].x,
                                          self->bounds);
         } else {
             count += ProjectPart(PartAt(self->object, i), nullptr, pipeline, const_cast<float*>(TopMatrix(pipeline)),
-                                 PointAt(count), self->bounds);
+                                 &Points()[count].x, self->bounds);
         }
         pipeline->PopMatrix(kShadowStack);
     }
     pipeline->PopMatrix(kShadowStack);
     pipeline->PopMatrix(kShadowStack);
-    ResizeDiscarding(Points(), count, AllocatePoints);
+    Points().SetSizeDiscard(count);
 
     // Points to texture pixels.
     float scaleX = static_cast<float>(kTextureScale / (static_cast<double>(self->bounds[2]) - self->bounds[0]));
@@ -388,12 +318,12 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     t[13] = offsetY;
     t[5] = scaleY;
     for (int k = 0; k < Points().size; ++k) {
-        float x = static_cast<float>(static_cast<double>(t[0]) * PointAt(k)[0] + t[12]);
-        PixelAt(k)[0] = x87::fistp(x);
-        float y = static_cast<float>(static_cast<double>(t[5]) * PointAt(k)[1] + t[13]);
-        PixelAt(k)[1] = x87::fistp(y);
+        float x = static_cast<float>(static_cast<double>(t[0]) * Points()[k].x + t[12]);
+        Pixels()[k].x = x87::fistp(x);
+        float y = static_cast<float>(static_cast<double>(t[5]) * Points()[k].y + t[13]);
+        Pixels()[k].y = x87::fistp(y);
     }
-    ResizeDiscarding(Pixels(), count, AllocatePixels);
+    Pixels().SetSizeDiscard(count);
 
     // Rasterise into the render surface.
     void* surface = RenderSurface(static_cast<CWorld*>(self->ManagerContext())->TextureManager());
@@ -405,8 +335,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     }
     RasterTarget target{};
     CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
-    target.colourKey = skin && (skin->flags_ & kMaterialKeyed) ? ColourKey(skin) : 0;
-    target.width = 0x200;
+    target.keyTexels = skin && (skin->flags_ & kTextureKeyed) ? skin->block_ : nullptr;
+    target.keyPitch = kKeyTexelPitch;
     target.pitch = description.lPitch;
     // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
     // from there) and copied into the surface afterwards.
@@ -423,9 +353,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += figure->RasterisePart(&key, PixelAt(count), &target);
+            count += figure->RasterisePart(&key, &Pixels()[count].x, &target);
         } else {
-            count += RasterisePart(part, nullptr, device, PixelAt(count), &target);
+            count += RasterisePart(part, nullptr, device, &Pixels()[count].x, &target);
         }
     }
     if (ShadowMode() == 2) {
@@ -475,7 +405,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     m[10] = static_cast<float>(kOne - (static_cast<double>(yy) + xx));
 
     // The texture's square on the ground: corner 0 at (minimum x, maximum y), then clockwise.
-    ResizeQuads(Quads());
+    Quads().SetSize(1);   // keeps the contents when growing
     {
         float a = self->bounds[3];
         float b = self->bounds[0];
@@ -483,7 +413,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float y = CornerY(m, a, b);
         float x = static_cast<float>(CornerX(m, a, b));
         (void)z;   // computed for the corner's Vector3, never used
-        VertexPacket* quad = static_cast<VertexPacket*>(Quads().data);   // rows x, y, z, w; lane 0
+        VertexPacket* quad = Quads().data;   // rows x, y, z, w; lane 0
         quad->block[0][0] = static_cast<float>(static_cast<double>(at.x) + x);
         quad->block[1][0] = static_cast<float>(static_cast<double>(at.y) + y);
         quad->block[2][0] = at.z;
@@ -497,7 +427,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float b = corners[c][1];
         float y = CornerY(m, a, b);
         double x = CornerX(m, a, b);
-        VertexPacket* quad = static_cast<VertexPacket*>(Quads().data);
+        VertexPacket* quad = Quads().data;
         quad->block[0][1 + c] = static_cast<float>(x + at.x);
         quad->block[1][1 + c] = static_cast<float>(static_cast<double>(y) + at.y);
         quad->block[2][1 + c] = at.z;
@@ -514,10 +444,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    std::uint32_t radiusBits;
-    std::memcpy(&radiusBits, &self->object->radius, 4);
-    ProjectShadow(ShadowProjector(), nullptr, &direction.x, &point.x, radiusBits, &Quads(),
-                  &self->vertices, &self->texCoords, &self->indices, 0, keyedParts == 0);
+    ClientProjectDecalOriginal(ShadowProjector(), nullptr, &direction, &point, self->object->radius, &Quads().data,
+                               &self->vertices, &self->texCoords, &self->indices, 0, keyedParts == 0);
 
     if (self->vertices.size != 0) {
         pipeline->transform_->FitBounds(&self->sphere, self->vertices.data, self->vertices.size);
@@ -557,7 +485,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     if (vertices.size == 0) return 1;
     std::uint32_t colour = kDefaultColour;
     if (object->GetClassId() == kClassUnitObject) {
-        auto* half = static_cast<CUnitClientSpecific*>(reinterpret_cast<CUnit*>(object)->controller);
+        auto* half = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
