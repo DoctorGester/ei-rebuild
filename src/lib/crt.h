@@ -95,6 +95,42 @@ NewHandler __cdecl set_new_handler(NewHandler handler);
 
 } // namespace gamecrt
 
+// The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
+// at its library address, so the forwarders above and the exe's remaining library code reach these
+// bodies; tests/verify/verify_crt.cpp compares them with the originals. MSVC 6 behaviour in the
+// state the game runs in: the "C" locale (the text manager only queries LC_CTYPE) and a single-byte
+// multibyte code page (its _setmbcp(_MB_CP_LOCALE) in the C locale). Character classes and lead-byte
+// flags are read from the CRT's tables in the exe's data, as the originals do (a negative argument
+// indexes the same bytes before the table); in the standalone image they hold the C locale.
+namespace crt {
+
+int __cdecl Strncmp(const char* a, const char* b, std::size_t n);              // 006E9180
+char* __cdecl Strncpy(char* to, const char* from, std::size_t n);               // 006E7E80
+void* __cdecl Memmove(void* to, const void* from, std::size_t n);               // 006E79A0
+int __cdecl Strcmp(const char* a, const char* b);                               // 006F07D0 (not registered)
+int __cdecl Stricmp(const char* a, const char* b);                              // 006F2230
+int __cdecl Strnicmp(const char* a, const char* b, std::size_t n);              // 006FA1A0
+int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b);             // 006E848B
+int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b);            // 006E8767
+unsigned char* __cdecl Mbsinc(const unsigned char* p);                          // 006E9947
+int __cdecl Ismbblead(unsigned c);                                              // 006E99F2
+int __cdecl Isleadbyte(int c);                                                  // 006E9A6C
+int __cdecl Tolower(int c);                                                     // 006EBA53
+int __cdecl Toupper(int c);                                                     // 006E91C0
+int __cdecl Isalpha(int c);                                                     // 006E92FB
+int __cdecl Isdigit(int c);                                                     // 006E9379
+int __cdecl Isspace(int c);                                                     // 006E93CE
+int __cdecl Isprint(int c);                                                     // 006E944C
+long __cdecl Atol(const char* text);                                            // 006E804D (not registered)
+int __cdecl Atoi(const char* text);                                             // 006E80D8
+char* __cdecl Itoa(int value, char* buffer, int radix);                         // 006E9B36
+void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, char* ext); // 006E8BEE
+// MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part
+// first): equal elements end up in the same order as in the game.
+void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
+
+} // namespace crt
+
 namespace game {
 
 // 00480080. Reports a fatal error (printf-style) and normally exits the game.
