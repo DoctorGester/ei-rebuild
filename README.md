@@ -106,7 +106,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names
   the first world update and field where two runs differ, and `golden.py record` / `compare` keep and check
-  golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2).
+  golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2). The suite
+  checks them with `python tools\work.py test <ID> --golden` (any run_all arguments): the games run with the
+  goldens' digest and every run that has a golden is compared with it (SV3).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the

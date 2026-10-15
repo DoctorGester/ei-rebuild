@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
-                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--verified-candidates N]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden] [--verified-candidates N]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
                    Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
@@ -27,6 +27,11 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --clock virtual|real[,clocktrace][,randtrace]
                    run every scenario on the virtual clock or on real time, whatever its own lines say
                    (EI_HARNESS_CLOCK; tests/verify/harness_clock.h), with the clock or random trace
+  --golden         runs the games with a state digest (EI_DIGEST, the goldens' period) and afterwards compares
+                   every run that has a golden (tests/golden/<scenario>/<install>, tools/golden.py) with it:
+                   the console, the digest records, the dumps and the saves. Native runs compare with the vanilla
+                   golden; Rebirth runs with the Rebirth golden, also with the flags off (EI_REBIRTH=FollowAddon=0:
+                   the rewrites of what addon.dll patches are not installed, so addon's code runs)
   --verified-candidates N
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
@@ -43,6 +48,7 @@ import prepare_scenario
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens']   # --widescreen without scenario names
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
+GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's goldens (--golden; tools/golden.py)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run
 # for the end). run(), plan() and summary() take root/build so tools/work_sched.py can point them at
@@ -345,6 +351,7 @@ def parse_args(argv=None):
     ap.add_argument('--native', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
+    ap.add_argument('--golden', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--clock')
@@ -479,8 +486,35 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
     return ok
 
 
+GOLDEN_INSTALL = {'vanilla': 'vanilla', 'native': 'vanilla', 'rebirth': 'rebirth', 'rebirth-nohooks': 'rebirth'}
+
+
+def golden_check(jobs, out=None, root=ROOT, build=BUILD):
+    """--golden: every run of jobs whose scenario has a golden for its install against it (tools/golden.py
+    compare). Prints the runs that differ and a count; True when none differs."""
+    import golden
+    out = out or sys.stdout
+    counts = collections.Counter()
+    print('\ngoldens (tests/golden):', file=out)
+    for name, install in jobs:
+        folder = os.path.join(build, 'runs', f'{name}-{install}')
+        result, lines = golden.compare_one(name, GOLDEN_INSTALL.get(install, install), folder, root=root)
+        counts[result] += 1
+        if result != 'NO GOLDEN' and (result != 'SAME' or len(jobs) == 1):
+            print(f'  {name:<18} {install:<8} {result}', file=out)
+            for text in lines:
+                print(f'      {text}', file=out)
+    print(f'  {counts["SAME"]} the same, {counts["DIFFERS"]} differ, {counts["NO RUN"]} without a run, '
+          f'{counts["NO GOLDEN"]} without a golden', file=out)
+    ok = not counts['DIFFERS'] and not counts['NO RUN']
+    print('GOLDENS THE SAME' if ok else 'GOLDENS DIFFER', file=out)
+    return ok
+
+
 def main():
     args = parse_args()
+    if args.golden:
+        os.environ['EI_DIGEST'] = str(GOLDEN_PERIOD)
     jobs = plan(args)
     db = timing_db()
     times = expected_times(jobs, db=db)
@@ -512,6 +546,8 @@ def main():
 
     save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()})
     ok = summary(jobs, results, totals, args, time.time() - started)
+    if args.golden:
+        ok = golden_check(jobs) and ok
     return 0 if ok else 1
 
 

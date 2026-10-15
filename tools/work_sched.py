@@ -567,13 +567,22 @@ def cmd_test(db, args):
                      'alone': run_all.sets_display_mode(scenario), 'expected': expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
     env = run_all.game_environment()
+    if ra.golden:
+        # The digest the goldens were recorded with; the comparison runs here, after the batch, so the
+        # scheduler gets run_all's arguments without --golden.
+        env['EI_DIGEST'] = str(run_all.GOLDEN_PERIOD)
+        argv = [a for a in argv if a != '--golden']
     batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)
     ahead = db.execute("SELECT count(*) FROM batch WHERE id < ? AND state IN ('queued', 'running')", (batch,)).fetchone()[0]
     print(f'batch #{batch} ({args.id}): {len(runs)} runs, {ahead} batch(es) ahead (work.py status shows the queue)')
     ensure_scheduler()
     print(run_all.HEADER)
     sys.stdout.flush()
-    return wait(db, batch, root, build)
+    code = wait(db, batch, root, build)
+    if ra.golden and code != 130:
+        ok = run_all.golden_check(jobs, root=root, build=build)
+        code = code or (0 if ok else 1)
+    return code
 
 
 def wait(db, batch, root, build):
