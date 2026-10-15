@@ -1,0 +1,81 @@
+address,what,reason
+# What tools/standalone_gaps.py lists that the standalone image can never run (ticket S16d,
+# docs/notes/standalone.md). The image runs none of game.exe's code: every unregistered address holds
+# INT3, so a table entry or vtable slot is reached only when our code calls through it. what:
+#   vtable   every slot of the vtable at `address` (its length from config/vtables.csv)
+#   data     the data words at `address` (several separated by spaces, or a range START-END, END excluded)
+#   address  the function at `address` (several separated by spaces) wherever it is listed: forwarder,
+#            code literal, data reference
+# Lines starting with # are comments. The tool warns about a line that no longer covers anything.
+#
+# --- Hook-build-only forwarders and code reads (behind ei::Standalone()) ---
+006ECA0E 006ED1A3 006ED347 006ED350 006ED443 006ED484 006ED4D2,address,"mfc_file.cpp's forwarders to the exe's _fullpath, _open_osfhandle, __doserrno, _fdopen, clearerr, fputs, fgets: the hook build's CRT file state (the image calls the host's CRT)"
+006EDB02 006EDD02 006EDEE8 006EE39E,address,"mfc_time.cpp's forwarders to the exe's mktime, time, localtime, strftime: hook build only (the image calls the host's CRT)"
+006F00D1,address,"_getptd (originals_library.h CrtThreadDataOriginal): the exe's per-thread CRT data, read in the hook build only; the image keeps its own per thread (crt.cpp)"
+007051A1,address,"CWnd::DestroyWindow (originals_library.h): CWnd::Destruct calls it for a window with a handle that is not one of MFC's four static windows; the image makes no other CWnd and those four have no handle"
+00457314 00457368 00457595 004580D7 004CF69B,address,"S14's code-byte reads (CALL targets in app_main.cpp / app_frame.cpp, the keyword table's immediate in script_parse.cpp): read only when not ei::Standalone()"
+#
+# --- Slots in game classes' vtables ---
+007005E3,address,"CObject::GetRuntimeClass (slot 0 of the game's CObject-derived lists 0073B8D4 0073BE74 0073BE80 and of CCommandLineInfo): no code of ours asks an object for its runtime class (no IsKindOf, no CArchive object serialisation)"
+006E73EB,address,"_purecall (pure slots 11 12 14 of 0073B870, the managers' base): reached only by a bug; the image's INT3 report names the caller, more than the CRT's R6025 would"
+00460110,address,"the map database's CArray<MapRecord> deleting destructor (vtable 0073C3E8): the array is a global, never deleted through its vtable"
+#
+# --- MFC classes the image makes, with slots nothing of ours calls ---
+00745F5C,vtable,"CStringArray: slot 0 GetRuntimeClass only (nothing asks an object for its runtime class)"
+00745F78,vtable,"CWordArray: slot 0 GetRuntimeClass only"
+007464B8,vtable,"CDWordArray: slot 0 GetRuntimeClass only"
+00746560,vtable,"CByteArray: slot 0 GetRuntimeClass only"
+007467A0,vtable,"CUIntArray: slot 0 GetRuntimeClass only"
+0074689C,vtable,"CMapPtrToPtr: slot 0 GetRuntimeClass only"
+0073BFB4,vtable,"CFont: slot 0 GetRuntimeClass only (the interface deletes its fonts through slot 1, ours)"
+007463C4,vtable,"CBrush: slot 0 GetRuntimeClass only (brushes are locals, ui_gdi.h GameBrush)"
+007463D4,vtable,"CGdiObject: slot 0 GetRuntimeClass only"
+007463B4,vtable,"CPen: GetRuntimeClass and the deleting destructor; the interface's pens are members destroyed inline (ui_gdi.h GamePen::Destruct), never deleted through the vtable"
+007461B0,vtable,"CDC: a plain CDC is made only inside CreateTempDC, which stores CTempDC's vtable at once (mfc_gdi.cpp); the interface calls slots 10 12 26 of CTempDCs (ours)"
+007463E4,vtable,"CTempDC: GetRuntimeClass, and the destructor that only CHandleMap::DeleteTemp runs (MFC's idle processing; the image has none: its temporary DCs live until the process ends)"
+0074645C,vtable,"CTempGdiObject: GetRuntimeClass, and the destructor that only CHandleMap::DeleteTemp runs (not in the image)"
+0074685C,vtable,"CHandleMap: the deleting destructor; the image's maps (mfc_gdi.cpp MapHDC / MapHGDIOBJ) live until the process ends"
+0074646C,vtable,"CResourceException: MFC's one static object, not auto-deleted (Delete never frees it through slot 1); handlers catch by C++ type, not IsKindOf (slot 0)"
+00746484,vtable,"CUserException: MFC's one static object, not auto-deleted; no IsKindOf"
+007465F8,vtable,"CMemoryException: MFC's one static object, not auto-deleted; no IsKindOf"
+00746610,vtable,"CNotSupportedException: MFC's one static object, not auto-deleted; no IsKindOf"
+007466E0,vtable,"CWinThread: the image's threads (mfc_thread.cpp AfxBeginThread) run the procedure on a host thread and are freed by WinThread::Delete without a virtual call; the game reads only m_hThread"
+00746DA8,vtable,"CWnd: only MFC's four static windows (wndTop ...) are made, with no handle, and destroyed without a virtual call; the game's windows are its own classes"
+#
+# --- MFC classes the image never makes (their constructors have no code in it) ---
+0074624C,vtable,"CClientDC: never made (the interface draws through its surfaces' DCs)"
+007462C4,vtable,"CWindowDC: never made"
+0074633C,vtable,"CPaintDC: never made (no MFC window procedure)"
+0074649C,vtable,"CRgn: never made"
+00746650,vtable,"CMemFile: never made"
+00746FB0,vtable,"CPtrArray: never made (the game's arrays have their own vtables)"
+00746FE8,vtable,"CPtrList: never made (the game's lists have their own vtables)"
+00746EC4,vtable,"CTempWnd: never made (CWnd::FromHandle has no code in the image)"
+007469A0,vtable,"CCmdUI: never made (no command routing)"
+00746E88,vtable,"CTestCmdUI: never made"
+007470C4,vtable,"CWinApp: the game's WinMain does not go through CWinApp"
+00747164,vtable,"CCommandLineInfo: no CWinApp"
+007471FC,vtable,"CMenu: never made (no CWinApp, no menus)"
+00747214,vtable,"CTempMenu: never made"
+00747240,vtable,"CRecentFileList: no CWinApp"
+00746760,vtable,"_AFX_CTL3D_STATE: MFC's state objects are not made in the image (it keeps its own: mfc_state.cpp ImageModuleState, thread_local maps); the CThreadLocal / CProcessLocal holders stay empty and delete nothing"
+00746768,vtable,"_AFX_CTL3D_THREAD: an MFC state object, not made in the image"
+007467B0,vtable,"CThreadData: MFC's thread slot data, not made in the image (AfxThreadData stays null)"
+007467B8,vtable,"_AFX_THREAD_STATE: an MFC state object, not made in the image"
+007467C0,vtable,"AFX_MODULE_STATE: not made in the image (ImageModuleState is a plain static)"
+007467C8,vtable,"AFX_MODULE_THREAD_STATE: an MFC state object, not made in the image"
+007467D0,vtable,"_AFX_BASE_MODULE_STATE: an MFC state object, not made in the image"
+007470BC,vtable,"_AFX_WIN_STATE: an MFC state object, not made in the image"
+007472B0,vtable,"type_info: the exe's RTTI records are static data, never deleted (the image's RTTI is the host compiler's)"
+00748290,vtable,"ostream_withassign (cout / cerr / clog): never made; the game's streams are plain ostreams (crt_iostream.cpp)"
+#
+# --- Tables of the exe's CRT and MFC ---
+00746A00-00746C98,data,"CWnd's message map entries: dispatched only by CWnd::OnWndMsg (no MFC window procedure in the image)"
+007472C0 007472E0 00747338 00747344 00747350,data,"SEH scope tables of the exe's CRT functions: read by _except_handler3 only while their own function's frame is live"
+007975A0 007975A4 007975A8,data,"_FPinit, _FPmtinit / _FPmtterm: called by the exe's CRT start-up and thread set-up (_cinit, _mtinit); the host owns both"
+007978A8,data,"__lc_category's LC_CTYPE init (__init_ctype): our setlocale (crt_locale.cpp) calls InitCtype directly, never through the table"
+007978E0,data,"_aexit_rtn (_exit): called by the exe's _amsg_exit only"
+00783BC0,data,"the __xi table's __initmbctable: the image runs none of the C initialiser table; the host calls InitMultibyteTable itself (src/hook/standalone.cpp)"
+007975C8 00797B60 00797B74,data,"the exe CRT's unhandled-exception filter, unexpected and terminate handlers: read only by its own EH code; the image's C++ exceptions are the host's"
+00797B10-00797B28,data,"_cfltcvt_tab (_fptrap until the float code is linked in): read only by the exe's printf; ours formats floats itself (crt_format.cpp)"
+007474B8,data,"strftime's string ""a/p"" (bytes 61 2F 70 00) read as a pointer to 00702F61, which is inside a function, not a function start (the false vtables.csv row is dropped)"

@@ -40,9 +40,14 @@ int __cdecl CriticalNewHandler(std::size_t) {
     ThrowMemoryException();
 }
 
+int __cdecl DefaultNewHandler(std::size_t) {
+    ThrowMemoryException();
+}
+
 EI_REPLACE_METHOD(0x0070061B, CRuntimeClass::CreateObject);
 EI_REPLACE(0x0070059D, SetAfxNewHandler);
 EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
+EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);   // what libcrt::OperatorNew calls through 00796E14
 
 // ---- CMapPtrToPtr ---------------------------------------------------------------------------------
 
