@@ -43,13 +43,13 @@ namespace {
 // The unit prototypes (+8 the model) and models (+0xE8 the texture name prefix), the armours (+0xB8
 // the layer). An index past the end gives null.
 const UnitPrototypeRecord* UnitPrototype(std::uint32_t index) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(index, unitdb::kPrototypeSize));
+    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
 }
 const UnitModelRecord* UnitModel(std::uint32_t index) {
-    return reinterpret_cast<const UnitModelRecord*>(unitdb::Models().At(index, unitdb::kModelSize));
+    return reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
 }
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
-    return reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().At(index, itemdb::kArmorSize));
+    return reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
 }
 const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName; }
 
@@ -387,7 +387,7 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
     out[1].id = weapon;
     out[1].kind = kWeapon;
     out[1].itemType = static_cast<std::uint32_t>(
-        reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().At(weapon >> 16, itemdb::kWeaponSize))->type);
+        reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().RecordAt(weapon >> 16, itemdb::kWeaponSize))->type);
 }
 EI_REPLACE(0x005683D0, UnitTextureRecords);
 

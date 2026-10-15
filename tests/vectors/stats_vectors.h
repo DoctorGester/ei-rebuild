@@ -67,7 +67,7 @@ struct MaxCall {           // MaxDamage: words 1..7
 // ---- SV4d: the formulas that read the game's settings and the skill database (src/game/game_data.h).
 // The payload carries what they read there; the replay writes it to the stand-in.
 
-// A skill level record a formula reads: its index among the level records (RecordTable::At's
+// A skill level record a formula reads: its index among the level records (RecordTable::RecordAt's
 // argument), whether the table had it (index below its count), and its value (values[7]) and worth
 // exponent (values[6]).
 struct LevelView {

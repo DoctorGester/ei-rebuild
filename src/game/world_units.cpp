@@ -613,7 +613,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
                 else
                     index = 0;
             }
-            auto* model = reinterpret_cast<const UnitModelRecord*>(unitdb::Models().At(index, unitdb::kModelSize));
+            auto* model = reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
             std::memcpy(AsUnit(object)->actionSpeeds, model->actionSpeeds, 24);
             UnitMarkChanged(object, nullptr, 5);
             UnitMarkChanged(object, nullptr, 6);

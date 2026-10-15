@@ -32,7 +32,7 @@ constexpr int kCarriedGrowMax = 0x400;
 
 // The record of prototype `index`, or null when out of range (the table holds 0x120-byte records
 // whose first field is the name CString).
-char* PrototypeAt(std::uint32_t index) { return unitdb::Prototypes().At(index, unitdb::kPrototypeSize); }
+char* PrototypeAt(std::uint32_t index) { return unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize); }
 
 int PrototypeIndexOf(const char* record) {
     return record ? static_cast<int>((record - unitdb::Prototypes().begin) / unitdb::kPrototypeSize) : -1;

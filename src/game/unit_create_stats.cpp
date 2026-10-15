@@ -109,7 +109,7 @@ const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(FindN
 // The prototype's model; its index is read even from a null prototype (the original faults there).
 const Model* ModelOf(const Prototype* prototype) {
     auto index = static_cast<std::uint32_t>(static_cast<const volatile Prototype*>(prototype)->modelIndex);
-    return reinterpret_cast<const Model*>(unitdb::Models().At(index, unitdb::kModelSize));
+    return reinterpret_cast<const Model*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
 }
 
 // --- The statistics both builders fill the same way ---------------------------------------
@@ -154,7 +154,7 @@ void SetSlots(UnitStats* stats, const Model* model) {
             continue;
         }
         const auto* level = reinterpret_cast<const UnitLevelRecord*>(
-            levels.At(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
+            levels.RecordAt(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
         slot.type = level->slotType;
         CopyDword(slot.share, entry.share);
         CopyDword(slot.factor, entry.factor);
@@ -535,7 +535,7 @@ float LevelAsFloat(const UnitStats* stats, int index) {
     std::uint8_t level = stats->skillLevels[index];   // unchecked
     if (level == 0) return kZero;
     const char* record =
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
+        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
     if (!record) return kZero;
     return static_cast<float>(LevelOf(record));
 }
@@ -557,7 +557,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const auto* record = reinterpret_cast<const SkillRecord*>(
-            unitdb::Skills().At(static_cast<std::uint32_t>(skill), kSkillRecordSize));
+            unitdb::Skills().RecordAt(static_cast<std::uint32_t>(skill), kSkillRecordSize));
         char stat = static_cast<const char*>(record->statNames.begin()[0])[0];   // its first stat's letter
         double base;
         if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
@@ -586,7 +586,7 @@ bool NamesRequirement(const mfc::CString& text) {
                            reinterpret_cast<const unsigned char*>(0x007846F0)) != 0;   // "none"
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
-    return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().At(index, unitdb::kSkillLevelSize));
+    return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().RecordAt(index, unitdb::kSkillLevelSize));
 }
 } // namespace
 

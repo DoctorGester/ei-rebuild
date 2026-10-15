@@ -246,7 +246,7 @@ T Read(const std::uint8_t* p, int offset) {
 }
 std::uint32_t Index(const std::uint8_t* item) { return Read<std::uint32_t>(item, 0x54); }
 const std::uint8_t* Record(const RecordTable& table, std::uint32_t index, int stride) {
-    return reinterpret_cast<const std::uint8_t*>(table.At(index, stride));
+    return reinterpret_cast<const std::uint8_t*>(table.RecordAt(index, stride));
 }
 const std::uint8_t* SpellRecord(const std::uint8_t* item) { return Record(itemdb::Spells(), Index(item), 0x84); }
 const std::uint8_t* ModifierRecord(const std::uint8_t* item) { return Record(itemdb::SpellModifiers(), Index(item), 0x24); }

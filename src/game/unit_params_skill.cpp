@@ -20,13 +20,13 @@ const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
     std::uint8_t level = params->skillLevels[type];
     if (level == 0) return nullptr;
     return reinterpret_cast<const SkillLevelRecord*>(
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(type * 3 - 1 + level), unitdb::kSkillLevelSize));
+        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(type * 3 - 1 + level), unitdb::kSkillLevelSize));
 }
 
 // The first letter of skill `skill`'s name (+0x0C leads to it): which stat counts ('s', 'd',
 // 'i'). The record is read unchecked (an empty skill table faults as in the original).
 char StatLetter(int skill) {
-    auto* record = reinterpret_cast<const SkillRecord*>(unitdb::Skills().At(static_cast<std::uint32_t>(skill), unitdb::kSkillSize));
+    auto* record = reinterpret_cast<const SkillRecord*>(unitdb::Skills().RecordAt(static_cast<std::uint32_t>(skill), unitdb::kSkillSize));
     const char* name = record->statNames.begin()[0];
     return name[0];
 }

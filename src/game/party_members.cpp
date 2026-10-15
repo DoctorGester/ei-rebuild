@@ -124,7 +124,7 @@ EI_REPLACE_METHOD(0x006628D0, CParty::AddMember);
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
     auto* model = reinterpret_cast<UnitModelRecord*>(
-        unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+        unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
     record->texts[2] = model->figureName;
     BuildNpcStats(reinterpret_cast<UnitStats*>(record->stats), record->texts[5]);
     record->scaleY = prototype->scale.y;

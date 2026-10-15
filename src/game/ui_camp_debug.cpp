@@ -60,14 +60,14 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
         const char* wanted = record->materialClass;
-        char* material = itemdb::Materials().At(static_cast<std::uint32_t>(j), itemdb::kMaterialSize);
+        char* material = itemdb::Materials().RecordAt(static_cast<std::uint32_t>(j), itemdb::kMaterialSize);
         const char* name = reinterpret_cast<const itemdb::MaterialRecordHead*>(material)->soundName;
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(name), reinterpret_cast<const unsigned char*>(wanted)) != 0)
             continue;
         maker->SetManager(manager);
         maker->BeginCreateItem(kind, -1);
         maker->SetPrototype(reinterpret_cast<char*>(record));
-        maker->SetMaterial(itemdb::Materials().At(static_cast<std::uint32_t>(j), itemdb::kMaterialSize));
+        maker->SetMaterial(itemdb::Materials().RecordAt(static_cast<std::uint32_t>(j), itemdb::kMaterialSize));
         CItem* item = maker->EndCreateItem();
         maker->SetManager(nullptr);
         AddCounted(list, item);
@@ -79,7 +79,7 @@ bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
     return CStringFindTextOriginal(&record->text04, nullptr, word) >= 0;
 }
 itemdb::ItemRecordHead* Record(const RecordTable& table, int index, int stride) {
-    return reinterpret_cast<itemdb::ItemRecordHead*>(table.At(static_cast<std::uint32_t>(index), stride));
+    return reinterpret_cast<itemdb::ItemRecordHead*>(table.RecordAt(static_cast<std::uint32_t>(index), stride));
 }
 
 } // namespace

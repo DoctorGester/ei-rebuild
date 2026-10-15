@@ -46,7 +46,7 @@ int RandomBelow(int n) { return gamecrt::rand() * n / 0x7FFF % n; }
 
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
     return reinterpret_cast<const UnitModelRecord*>(
-        unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+        unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
 }
 
 // The skill sounds by animation number (0x13 tame, 0x14 steal, 0x15 science; loot for 0x16,

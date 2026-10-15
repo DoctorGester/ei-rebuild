@@ -52,7 +52,7 @@ int UnitStats::SkillPrice(const char* record) {
         // The level below in the same skill: the record before it (read unchecked: a missing one
         // faults, as in the original).
         auto* previous = reinterpret_cast<const ::SkillLevelRecord*>(
-            unitdb::SkillLevels().At(static_cast<std::uint32_t>(index - 1), unitdb::kSkillLevelSize));
+            unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(index - 1), unitdb::kSkillLevelSize));
         below = Worth(previous->WorthExponent());
     } else {
         below = Worth(0);
