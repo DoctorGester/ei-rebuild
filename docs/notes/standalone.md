@@ -406,6 +406,28 @@ levels below each), run the original, put the nodes back and run ours (same byte
 A start-up check fills a map<int, int> with random keys and erases them all through the
 `_Rebalance_for_erase` check with the red-black invariants after each step (the suite erases little):
 smoke 2,136 erases, the suite's rebalances and rotations, 0 mismatches.
+**S12 group 3.** The Connection's five maps (src/game/net_connection_trees.*; the members in
+src/lib/stlp_tree_abi.h `TreeAbi<Map, E>`, map's `At` renamed `Subscript`): sent ids
+(map<int32_t, RefPtr>; the compare is signed), objects, entries, records and attached ids, 127
+addresses: constructors (copy through SGI `_M_copy`), clear / destroy, `_M_empty_initialize`,
+operator[], the lookups, `_M_create_node`, `_M_insert`, `insert_unique` with and without a hint,
+the three erases, the node deallocators and the shared iterator / insert-result / distance /
+get_allocator helpers. The originals' operator[] for records and attached ids inserts a value it
+leaves partly uninitialised. Checks (tests/verify/verify_net_connection_trees.cpp): lookups against
+the original; `_M_empty_initialize` and the constructors original first, the header back to the
+pool, then ours (same block, colour byte and links: bytes 1-3 of a refilled header hold the free
+list's link); the rest ours only. A start-up check drives each tree 4 x 600 random steps through the
+originals and ours side by side. The standalone boot gets past the protection checks' list
+constructor 00455E50 (app_helpers.cpp) and stops at the CRT's 006ECE1A, called from ei_hook (S4c).
+**S12 group 4.** `basic_string<char>` (src/lib/stlp_string.*, `StringAbi`): `_M_range_initialize`
+(with and without the tag), the copy, `_Construct`, from-text, default (an 8-byte block) and capacity
+constructors, `_M_append` / append, assign (range, string, text), erase, substr (out_of_range through
+the shared forwarder `StringThrowOutOfRangeOriginal`), reserve, push_back, operator< and
+`__compare`, the deleting destructor; 26 addresses. Checks (tests/verify/verify_stlp_string.cpp):
+the compares against the original, the constructors original first then ours (same block, length,
+capacity, bytes), the mutators ours only against the contents before (append's capacity follows
+size + max(size, n) + 1), and a start-up script of 8 x 200 random steps through the originals and
+ours side by side.
 
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
