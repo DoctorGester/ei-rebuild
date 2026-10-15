@@ -1718,6 +1718,15 @@ depends = ["S12d"]
 files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/stlp_algo.h", "src/game/stl_sorts.cpp"]
 note = "Container rows our code still forwards to after S12d (library.csv \"container instantiation\" or \"unreviewed family\" rows with an EI_ORIGINAL and no EI_REPLACE). The connection lists whose elements own something, needing element policies for SentPacket (dtor 0043A1D0: clears its list<SentItem>, each item +0x10 released through 0040A3A0, then the sentinel to the 24-byte list) and the freed-id batches (vector<FreedId>, dtor 0043A150): copy constructors 00437930, 00437F60, 00438690 (sentinel, begin helper, insert-range 0043D800, 0043DC20, 0043DC50), default inserts 00438F60, 00439000, 004397E0, 00439C80, erase 00437F30, 004390C0, clear 0043CA40, 0043BA20, ~list 004399C0; the clients find_if by peer address 0043D780 (helpers 0043D7C0, 0043FB30) and the counted pointer init 0043D7D0. Hashtables (S11 policies): erase by key 004E2F00 (32-byte nodes) and 006BD060 (16-byte), clear with CString values 00663330, two constructors 00633F50 and 00633FF0 (first node 0x24, 50 buckets). Vector members destroyed inside an owner: 0041AC30 (two char vectors), 006D29A0 and 006D29E0 (a char vector at +4). 004FAE00 (erase whose element owns the vector of 004FB6A0, goes with S12c model lists). The hero screen (A-I15; 0060A660 and 0060AB00 are S12c): the sorts of 12-byte strings 0060B330, 0060B440 and of CStrings 0061A240, 0061A300 (copies allocate or add references: ours first, SV2f), the map lookup 00613920, the allocate of 36-byte elements 00619770, vector<0x74 record> insert_overflow 00619920. Not forwarded by our code (no registration needed until a caller is ported): the rest of the S12b list, e.g. 00438000 00438730 00438FF0 00439100 00439940 00439CC0 0043ADE0 0049D320 00539220 0055FDC0 00560060 0056E000 0056ECD0 00583A20 005E3AD0 00609A80 0069CA10."
 
+[[ticket]]
+id = "S6d"
+title = "Standalone library: the last list Serialize (S6c leftovers)"
+group = "standalone"
+size = 1
+depends = ["S6c"]
+files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
+note = "From S6c. Serialize (slot 2) of 20: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); 004C2700 with its own SerializeElements<CString>. SerializeCList builds the local with the element policy and adds a copy: each needs the instantiation's assignment and the temporary's release (a SerializeCList variant taking the element's copy / release), checked at start-up like verify_mfc_serialize.cpp's (Mode 2 where releasing a copy needs more than construction)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
