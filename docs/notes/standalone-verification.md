@@ -1549,3 +1549,5 @@ unmoco2 rotation under seed 2 (ui_hero_screen, ui_hero_stats, ui_screens the sam
 **Goldens re-recorded** (all 97: every digest changes from record 0, where the main menu's units cunit129, cunit148 and
 cunit187 now keep their orientation) with `golden.py record --runs` over the five passes, all agreeing; the decoded
 saves are unchanged (no store entry changed).
+
+Final check (after merging main again): `work.py test SV7b4a --golden --jobs 4`: 128 runs all pass, the 56 goldens it reaches the same.
