@@ -303,9 +303,41 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
     return result, seconds, failures, counts, notes
 
 
+# A game writes its run folder (harness_saves' texture cache, saves, frames): on a full disk a write fails and the game
+# throws (CFileException diskFull: ticket X40, E: down to 20 MB with 16 games running). Below LOW_DISK_MB free a game
+# waits up to LOW_DISK_WAIT_S for space, then the run fails without starting it.
+LOW_DISK_MB = 1024
+LOW_DISK_WAIT_S = 120
+
+
+def free_mb(path):
+    """Free megabytes on path's disk (None when unknown)."""
+    try:
+        return shutil.disk_usage(path).free // (1024 * 1024)
+    except OSError:
+        return None
+
+
+def wait_for_disk(path, low=None, wait=None, poll=5.0):
+    """None once path's disk has low MB free (default LOW_DISK_MB), else after wait seconds the failure line."""
+    low = LOW_DISK_MB if low is None else low
+    deadline = time.time() + (LOW_DISK_WAIT_S if wait is None else wait)
+    while True:
+        free = free_mb(path)
+        if free is None or free >= low:
+            return None
+        if time.time() >= deadline:
+            drive = os.path.splitdrive(os.path.abspath(path))[0] or path
+            return (f'only {free} MB free on {drive} (a game needs {low} MB: its file writes fail on a full disk); '
+                    'the game was not started')
+        time.sleep(poll)
+
+
 def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env, dgvoodoo=False):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
+    if low_disk := wait_for_disk(build):
+        return 'FAIL', 0.0, [low_disk], {}, []
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
@@ -526,12 +558,22 @@ ATTEMPT_FILES = ('ei_hook.log', 'harness_report.txt')
 
 
 def keep_attempt(folder, attempt, build=BUILD):
-    """Keep a failed attempt's log and report before the retry empties its run folder: they go to
-    <build>/runs/<folder>-attempt<attempt> (replaced). Returns that folder's name, or None when there was nothing."""
+    """Keep a failed attempt before the retry empties its run folder: the whole folder is renamed to
+    <build>/runs/<folder>-attempt<attempt> (replaced; no copy, so it also works on a full disk), or, when the rename
+    fails (a file still open), its log and report are copied there. Returns that folder's name, or None when nothing
+    was kept."""
     source = os.path.join(build, 'runs', folder)
     kept = f'{folder}-attempt{attempt}'
     target = os.path.join(build, 'runs', kept)
     shutil.rmtree(target, ignore_errors=True)
+    for _ in range(3):
+        try:
+            os.rename(source, target)
+            return kept
+        except FileNotFoundError:
+            return None
+        except OSError:
+            time.sleep(1)
     copied = False
     for name in ATTEMPT_FILES:
         with contextlib.suppress(OSError):

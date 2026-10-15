@@ -1,0 +1,13 @@
+# The crash report on a full disk (ticket X40): with every write to a composed-skin texture cache file
+# (textures\<name>.mmp, written by ComposeTexture 00693180 when a new game shows the hero) failing with
+# ERROR_DISK_FULL, MFC's CFile::Write throws a CFileException and nothing catches it. The run passes when
+# the failure line names the exception, its cause and the OS error; the stack goes to ei_hook.log.
+reject Script error
+waitmenu
+diskfull .mmp
+expectcrash CFileException* (cause 13 diskFull, OS error 112
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 2000
+quit
