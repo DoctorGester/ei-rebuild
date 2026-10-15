@@ -522,7 +522,12 @@ the shared forwarder `StringThrowOutOfRangeOriginal`), reserve, push_back, opera
 the compares against the original, the constructors original first then ours (same block, length,
 capacity, bytes), the mutators ours only against the contents before (append's capacity follows
 size + max(size, n) + 1), and a start-up script of 8 x 200 random steps through the originals and
-ours side by side.
+ours side by side. The from-text constructor reads its allocator argument (a byte), so callers pass
+a real one. Then the last two static-initialiser list constructors of S12's set
+(src/game/static_lists.cpp): 004ED540 the DirectDraw driver list 007AEE64, 0056A410 the deferred unit
+list 007AF5B4 (start-up check as for 00455E50). The standalone boot then stops at 00572820, the
+client's sector grid storage (originals_world.h `GridAllocate`, world area, next to S13b's grid
+resizes).
 
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
