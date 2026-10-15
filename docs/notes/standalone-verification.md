@@ -985,6 +985,72 @@ side by side, WakeVerify), to be reviewed for which side's blocks survive. Pools
 node allocator, MFC plexes) can still be refilled by a twin's free in a different order; no golden showed it.
 verify_mfc_array.cpp (S6a) and the STLport checks (S12) were left to their owners.
 
+## SV2h3: the heap-order check, and what it found (2026-10-15)
+
+Reviewing the side-by-side checks by reading did not scale (about 980 "restore / put back / side by side" places
+in 677 files), so the review is a run-time check: `EI_HEAPORDER=1` (verify build, virtual clock; harness_heap_order.cpp).
+InstallHooks hands every verify wrapper to it (`ei::SetVerifyInstall`, include/ei/hook.h): the game's jump goes to a
+thunk, and the wrapper's `orig` pointer to a second thunk in front of the trampoline. A thunk calls its target with a
+copy of the arguments (256 bytes, or what the stack holds) in a frame of its own and, after the return, takes off the
+caller's stack what the target took off the copy, so it works for every calling convention, and a call an exception
+unwinds past is found by its frame's address when an outer one returns. The reservation's calls of the main thread
+(harness_heap.cpp's observer, with the first eight return addresses) are kept while a wrapper that has a trampoline
+runs. When such a wrapper returns, its calls are split into the original's (inside the trampoline call) and the rest
+(ours and the check's copies) and three patterns counted:
+
+- hole: a block the original made is freed outside it while a block made outside it, which stays, was made in its
+  lifetime (the original on a game-heap copy first, ours on the real object, the copy freed after; or a snapshot put
+  back after ours allocated). In a run of the original alone the kept block would sit in the freed one's place.
+- kept: a block made outside the original (a game-heap copy of the input) is alive while the original makes a block
+  that stays.
+- both: both sides keep blocks, and ours that stay are not all remakes of the original's blocks freed outside it (a
+  snapshot dropped before ours ran is harmless: freeing everything the original made before ours allocates puts the
+  heap back, and ours' same-sized blocks take the same places).
+
+heaporder.txt in each run's folder lists the wrappers with a pattern, calls and counts, and one example per pattern
+(the two blocks' sizes and callers; ours as 0x10000000 + offset into ei_hook.dll, resolved with build\verify\ei_hook.map).
+Run: `EI_HEAPORDER=1 python tools/work.py test <ID> --vanilla-only --retries 0 --jobs 4`. The thunks' frames move
+the stack (98 of 98 passed in the first suite all the same) and slow the game (with the callers' stack scan,
+scenarios close to their time limit, ground_prints and zone_gz3g, time out); it is a diagnostic, not part of the
+goldens: the counts up to the timeout are still written. Pools inside the game are not seen, only their refills (a CFixedAlloc or STLport chunk, a CPlex).
+Nested checks are counted at every level, so an inner check's own pattern can show in its callers too (a CPlex
+from a list check inside a HUD setup's original).
+
+Found over the vanilla suite (97 scenarios; zone_gz3g crashed out of memory in the second run before the event
+records were bounded): 152 wrappers with a pattern, 136 with holes, 5 kept, 29 both. Nearly all holes are the SV2h
+pattern that SV2h did not reach: the original first on a game-heap copy (FigureBone::Construct, CFigureMesh LoadFig /
+Resize, the link figure loader, ground decals and prints, the INI and registry readers, the item lists, script
+load / parse, text split / reader, CString's operators, the STLport hash tables, the net delta writers). The checks
+that run the original on the real object and restore before ours (the HUD setups, the mesh shapes and builds) do not
+leave holes of their own: their drops come before ours allocates. What does show around them: checks that run the
+original and then ours again on the same object without a restore (CHudQuickItems / WeaponBar / ActionColumn /
+SpellColumn::SetUnit, CHeroStatsPanel::SetHero: ours makes a new tooltip before freeing the original's), lists that a
+restore empties after ours added to them (the clock's and the move panel's setups), and twins that keep blocks (the
+tooltip constructor's original leaves 4 materials per call; CMapDatabase::LoadAll; particle draws; LoadMap).
+
+Fixed here: CAIMap::MarkFootprint (ours' scratch footprint sets were alive while the original, which is kept, grew
+the map's sets: now kept in our memory and freed before the original runs) and PathSmoother::Smooth (the original
+first on a copy whose plex blocks were alive while it grew the smooth node pool: now ours first, the copy made after
+from the input kept in our memory). WakeVerify needs no change: the update map's nodes come from the STLport node
+allocator (no heap calls in any run); erasing the original's new keys and inserting ours permutes which pooled node
+holds which key, and only a bucket resize inside it (an update map past 193 entries) could change a chain's order.
+
+Freeing a scratch block before the original runs is not enough: an allocation and its free do not leave the heap as
+it was (where a free block is split, which free block is found next). With only the MarkFootprint reorder, the four
+Rebirth goldens that pass on main (ground_prints, harness_digest, script_parse, ui_trade_restore) parted at world
+update 40 in gz1g, and the three of SV2h1b came back the same; --no-hooks matched all 14. So the harness heap has an
+aside scope now (heap::Aside, harness_heap.h): while one is alive on the main thread, new blocks come from the
+growable heap outside the reservation, and frees and resizes find them by address. MarkFootprint's scratch sets and
+Smooth's copy (with the original's run on it) are made inside one. With it: --golden 55 the same, 1 differs
+(terrain_water_load, SV2h1b's script #gobject; ui_saveload_delete differed in one of two runs), against main's 3. The
+scope is the cheap fix for SV2h3a too: a twin made, run and freed inside an Aside moves nothing in the reservation,
+whatever the order (the pools inside the game, CFixedAlloc / STLport nodes / a CPlex free list, are still shared).
+
+Follow-ups: SV2h3a (the original first on a copy, outside the files other tickets hold), SV2h3b (the same object run
+twice, restores after ours allocates), SV2h3c (both sides keep blocks). Left to their tickets: verify_stlp_hash.cpp
+(S12c), verify_mfc_string.cpp, script_load / script_parse / text_reader / text_split / mob_script_decoder / mfc_try /
+chunk_archive (SV2h1), verify_net_delta.cpp and verify_net_state.cpp's ReadChecked (deltasnap copies; SV2h2).
+
 ## SV2h1: CString outputs run ours first (2026-10-15)
 
 The SV2h rule carried to the checks whose output is a CString (MFC's CFixedAlloc pools or a game-heap block for

@@ -872,6 +872,33 @@ files = ["tests/verify/*"]
 note = "SV2h did not change the checks that run the original on the real object, restore a snapshot and then run ours (UI side-by-side checks, WakeVerify and similar). Review each: if the snapshot restore leaves ours' blocks alive and frees the original's (or the snapshot itself is a game-heap block alive across a run), the heap order differs from a no-hooks run. Also note the residual pool risk (CFixedAlloc, STLport node allocator, MFC plexes refilled by a twin's free)."
 
 [[ticket]]
+id = "SV2h3a"
+title = "Heap-order holes: the original first on a game-heap copy (render, data, AI files)"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_figure_bone_lifetime.cpp", "tests/verify/verify_figure_mesh.cpp", "tests/verify/verify_models.cpp", "tests/verify/verify_link_figure.cpp", "tests/verify/verify_ground_decal.cpp", "tests/verify/verify_ground_print.cpp", "tests/verify/verify_effects_weather_draw.cpp", "tests/verify/verify_render_helper.cpp", "tests/verify/verify_ini_file.cpp", "tests/verify/verify_registry.cpp", "tests/verify/verify_item_constructor.cpp", "tests/verify/verify_item_parts.cpp", "tests/verify/verify_core_stream_chunks.cpp", "tests/verify/verify_acks_db.cpp", "tests/verify/verify_ai_area_lists.cpp", "tests/verify/verify_unit_client_models.cpp", "tests/verify/verify_unit_item_lists.cpp", "tests/verify/verify_world_client_maps.cpp", "tests/verify/verify_world_save.cpp", "tests/verify/verify_player_sources.cpp", "tests/verify/verify_object3d_figure_setup.cpp", "tests/verify/verify_unit_ai_sight.cpp", "tests/verify/verify_aligned_arrays.cpp", "tests/verify/verify_dib.cpp", "tests/verify/verify_device_object.cpp", "tests/verify/verify_magic_trap.cpp", "tests/verify/verify_console.cpp", "tests/verify/verify_text_keys.cpp"]
+note = "SV2h3's heap-order check (EI_HEAPORDER=1, harness_heap_order.cpp; notes SV2h3) finds about 90 wrappers in these files that still run the original first on a game-heap copy and free it after ours allocated (pattern hole in heaporder.txt): FigureBone::Construct, CFigureMesh LoadFig / LoadOld / Resize, CModel Resize, the link figure loader, ground decal Begin / Reserve, AddBlood / AddFootprint / AddScorch, weather PrepareBuffers, the INI and registry readers, the item name lists, ReadTagged / FindTagged, the acks records, FillAreaLists, CollectItems, world save / ReadAIGraph, console Tokenize, the text key lists. Apply the SV2f rule (ours first, the copy made after from bytes kept in our memory, freed), and make the copy, the original's run on it and its free inside a heap::Aside (harness_heap.h), so the twin's blocks stay out of the reservation. Done when EI_HEAPORDER over the vanilla suite shows no hole in these files and --golden passes."
+
+
+[[ticket]]
+id = "SV2h3b"
+title = "Heap-order holes: UI checks that run the same object twice or restore after ours allocates"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
+note = "From SV2h3's heap-order check (EI_HEAPORDER=1; notes SV2h3): side-by-side UI checks whose second run allocates before the first run's blocks are freed. CHudQuickItems / WeaponBar / ActionColumn / SpellColumn::SetUnit and CHeroStatsPanel::SetHero run the original and then ours on the same panel with no restore, and ours' SetTip makes its tooltip before freeing the original's; the clock's and move panel's setups leave a list the original added to, emptied (its CPlex freed) only after ours allocated; CHudPanels / CUiScrollText Layout, the item strip, trade lists, help page, connect screen, DamageLists show holes too. Each needs a twin, or a restore that frees everything the first run made before the second allocates. Done when EI_HEAPORDER shows no hole in these files and --golden passes."
+
+
+[[ticket]]
+id = "SV2h3c"
+title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the harness's own"
+group = "verification"
+depends = ["SV2h3"]
+files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
+note = "From SV2h3's heap-order check (pattern both / kept in heaporder.txt; notes SV2h3): CUiTooltip::Construct's scratch run leaves 4 materials per call (DestroyBody does not release them: a leak and a heap shift); CMapDatabase LoadAll / Load, particle Draw / CreateForType, LoadMap, ListFiles, ListWaveFiles, CreatePointFont, the server constructor, ShowFps's capture and the options / save list / edit checks keep blocks on both sides. Also: many examples show 64-byte CPlex blocks from CMapPtrToPtr::At (MFC's temporary handle map) in the reservation, which the harness means to send to the growable heap (InHandleMap): check whether the thunks hide FromHandle's return from its stack scan or whether these are another map. Done when each is fixed or explained."
+
+
+[[ticket]]
 id = "SV2h1b"
 title = "SV2h1 parted three goldens from main"
 group = "verification"
