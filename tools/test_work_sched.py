@@ -539,6 +539,39 @@ class SchedTest(unittest.TestCase):
         self.assertNotIn('EI_RENDER', seen[5][1])             # the original code: dgVoodoo whatever the submitter set
         self.assertEqual(seen[5][1]['EI_PLAIN'], '1')
 
+    def test_standalone(self):
+        """--standalone: the boot scenario by default, install "standalone", ei_launch --standalone on run\\vanilla's
+        game.exe, always our renderer (never the display mode), not with the original code."""
+        seen = []
+
+        def fake_subprocess_run(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)
+            seen.append((cmd, kw.get('env')))
+            return subprocess.CompletedProcess(cmd, 0, 'ei_standalone: 504 imports resolved, 0 missing\n'
+                                               'ei_standalone: the game returned 0\n', '')
+        self.scenario('boot', 'waitmenu\nquit\n')
+        wide = self.scenario('wide', 'render new\nresolution 800x600\nfullscreen 1\n')
+        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), [('boot', 'standalone')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', 'wide']), root=self.tmp), [('wide', 'standalone')])
+        with self.assertRaises(SystemExit):
+            run_all.plan(run_all.parse_args(['--standalone', '--no-hooks']), root=self.tmp)
+        self.assertTrue(run_all.our_renderer(wide, 'standalone', True, environ={'EI_RENDER': 'new'}))
+        self.assertFalse(run_all.runs_alone(wide, 'standalone', True, environ={}))
+        build = os.path.join(self.tmp, 'bld')
+        old_run = run_all.subprocess.run
+        run_all.subprocess.run = fake_subprocess_run
+        try:
+            notes = run_all.run('boot', 'standalone', True, root=self.tmp, build=build, take_slot=False,
+                                game_env={'EI_RENDER': 'new'})[4]
+        finally:
+            run_all.subprocess.run = old_run
+        cmd, env = seen[0]
+        self.assertIn('--standalone', cmd)
+        self.assertEqual(cmd[cmd.index('--exe') + 1], os.path.join(run_all.run_dir(self.tmp), 'vanilla', 'game.exe'))
+        self.assertEqual(env['EI_RENDER'], 'new,present')
+        self.assertEqual(notes, ['ei_standalone: the game returned 0'])
+
     def test_reference_cache(self):
         repo = os.path.join(self.tmp, 'repo')
         env = dict(os.environ, GIT_AUTHOR_NAME='t', GIT_AUTHOR_EMAIL='t@t', GIT_COMMITTER_NAME='t', GIT_COMMITTER_EMAIL='t@t')

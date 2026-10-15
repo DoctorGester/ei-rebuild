@@ -8,9 +8,10 @@
 // WinMain. Forwarders, function pointers in the data and vtable slots reach our code through those
 // jumps; an INT3 hit names an address that has no rewrite yet.
 //
-// usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run]
+// usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game arguments>]
 //   Run from the game folder (the working directory the game expects). Without --run the host builds
-//   the image, installs the jumps, checks them and exits: no window, nothing of the game runs.
+//   the image, installs the jumps, checks them and exits: no window, nothing of the game runs. What
+//   follows "--" is the game's command line, as typed (WinMain's, and GetCommandLineA's after the exe).
 
 #include <windows.h>
 
@@ -143,9 +144,29 @@ bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32
     return true;
 }
 
+// The game's arguments: what follows the token "--" on the host's command line, as typed.
+std::string GameArguments() {
+    const char* p = GetCommandLineA();
+    while (*p) {
+        while (*p == ' ' || *p == '\t') ++p;
+        const char* token = p;
+        bool quoted = false;
+        for (; *p && (quoted || (*p != ' ' && *p != '\t')); ++p)
+            if (*p == '"') quoted = !quoted;
+        if (p - token == 2 && token[0] == '-' && token[1] == '-') {
+            while (*p == ' ' || *p == '\t') ++p;
+            return p;
+        }
+    }
+    return {};
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
+    // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on an INT3 hit
+    // (TerminateProcess) loses none of it.
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::string exe = R"(F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe)";
     char self[MAX_PATH];
     GetModuleFileNameA(nullptr, self, MAX_PATH);
@@ -155,8 +176,9 @@ int main(int argc, char** argv) {
         if (!std::strcmp(argv[i], "--exe") && i + 1 < argc) exe = argv[++i];
         else if (!std::strcmp(argv[i], "--dll") && i + 1 < argc) dll = argv[++i];
         else if (!std::strcmp(argv[i], "--run")) run = true;
+        else if (!std::strcmp(argv[i], "--")) break;
         else {
-            std::fprintf(stderr, "usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run]\n");
+            std::fprintf(stderr, "usage: ei_standalone [--exe <game.exe>] [--dll <ei_hook.dll>] [--run] [-- <game arguments>]\n");
             return 2;
         }
     }
@@ -169,10 +191,10 @@ int main(int argc, char** argv) {
 
     HMODULE hook = LoadLibraryA(dll.c_str());
     if (!hook) return Fail(("cannot load " + dll).c_str());
-    using Main = int(__cdecl*)(const char* exePath, int run);
+    using Main = int(__cdecl*)(const char* exePath, int run, const char* arguments);
     auto start = reinterpret_cast<Main>(GetProcAddress(hook, "EiStandaloneMain"));
     if (!start) return Fail("ei_hook.dll has no EiStandaloneMain");
-    const int result = start(exe.c_str(), run ? 1 : 0);
+    const int result = start(exe.c_str(), run ? 1 : 0, GameArguments().c_str());
     std::printf("ei_standalone: %s %d\n", run ? "the game returned" : "check", result);
     return result;
 }

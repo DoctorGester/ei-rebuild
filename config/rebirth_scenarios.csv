@@ -1,6 +1,7 @@
 # Written by tools/rebirth_coverage.py: whether run_all.py also runs the scenario under Rebirth, and how
 # many of the 115 patched functions the scenarios reach it reaches on vanilla.
 scenario,rebirth,patched_reached
+boot,0,50
 camera,0,88
 combat,0,87
 combat_more,0,87

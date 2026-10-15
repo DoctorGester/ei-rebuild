@@ -13,6 +13,8 @@
 #include <new>
 #include <type_traits>
 
+#include "stlp_list.h"
+
 namespace stlp {
 
 // The game's __node_alloc: 16 free lists for sizes up to 128 bytes, operator new above that.
@@ -152,62 +154,7 @@ private:
     T* eos_ = nullptr;
 };
 
-// list<T>: one pointer to the sentinel node the constructor allocates (its next is the first
-// element, its prev the last; an empty list's sentinel points at itself). Nodes are next, prev,
-// then the element, from the node allocator. The game's instantiations keep their own insert /
-// erase / clear (reached through their addresses), so only the layout and the walk are here.
-template <typename T>
-struct list {
-    struct Node {
-        Node* next;
-        Node* prev;
-        T data;
-    };
-
-    Node* head;   // the sentinel
-
-    Node* First() const { return head->next; }
-    Node* End() const { return head; }
-    bool Empty() const { return head->next == head; }
-
-    // For a local list the original builds and drops in one function (e.g. the id lists of
-    // 00498480): the constructor (00404A70: a sentinel from the pool, linked to itself),
-    // push_back (insert(end(), value), 00404A40: one node from the pool) and the destructor
-    // (clear, then the sentinel back to the pool), allocating in the original's order.
-    void Construct() {
-        head = static_cast<Node*>(allocate(sizeof(Node)));
-        head->next = head;
-        head->prev = head;
-    }
-    void PushBack(const T& value) {
-        Node* node = static_cast<Node*>(allocate(sizeof(Node)));
-        new (&node->data) T(value);
-        node->next = head;
-        node->prev = head->prev;
-        head->prev->next = node;
-        head->prev = node;
-    }
-    void Destroy() {
-        ClearWith([](T*) {});
-        deallocate(head, sizeof(Node));
-    }
-
-    // clear() as STLport writes it, for an instantiation the original inlines: each element
-    // destroyed by `destroy(&data)` (its own destructor), the node returned to the pool, the
-    // sentinel linked to itself.
-    template <typename F> void ClearWith(F destroy) {
-        Node* cur = head->next;
-        while (cur != head) {
-            Node* node = cur;
-            cur = cur->next;
-            destroy(&node->data);
-            deallocate(node, sizeof(Node));
-        }
-        head->next = head;
-        head->prev = head;
-    }
-};
-static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
+// list<T>: stlp_list.h (included at the top).
 
 // deque<T> (0x28 bytes): the start and finish iterators (cur, first, last, node), the map of node
 // pointers and its size; the allocator proxies are empty bytes inside the map words. Nodes hold

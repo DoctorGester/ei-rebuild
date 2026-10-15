@@ -532,10 +532,11 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // (tests/verify/harness.cpp) keep working with this rewrite; the original body stays in place behind
 // the hook's jump. The frame's last camera update (00457595 -> 0040FB30) is held still while a
 // scenario is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick
-// (00457368 -> 005641F0) are followed by the harness's "speed" hold.
+// (00457368 -> 005641F0) are followed by the harness's "speed" hold. The standalone image has no
+// original code there (INT3): it calls the function directly.
 template <typename Fn>
 Fn CallTarget(const unsigned char& call, Fn fallback) {
-    if ((&call)[0] != 0xE8) return fallback;
+    if (ei::Standalone() || (&call)[0] != 0xE8) return fallback;
     std::int32_t relative;
     std::memcpy(&relative, &call + 1, sizeof(relative));
     return reinterpret_cast<Fn>(reinterpret_cast<std::uintptr_t>(&call) + 5 + relative);
