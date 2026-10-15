@@ -558,9 +558,10 @@ files = ["unit.h", "unit_db.h", "unit_ai.h", "ai_map.h", "ai_*", "item_db.h", "i
 id = "F3"
 title = "Unknown fields: interface (~125)"
 group = "fields"
-status = "queued"
+status = "running"
 files = ["ui.h", "ui_camp.h", "ui_screens.h", "ui_briefing.h", "ui_*"]
 note = "Coordinate with W2 (ui.h) and the P tickets: renames only."
+started = "2026-10-15"
 
 [[ticket]]
 id = "F4"
@@ -628,9 +629,10 @@ done = "2026-10-15"
 id = "SV5"
 title = "Coverage list and scenarios for what it shows uncovered"
 group = "verification"
-status = "queued"
+status = "running"
 size = 1
 depends = ["SV3"]
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV1a"
