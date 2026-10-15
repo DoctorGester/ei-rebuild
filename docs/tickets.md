@@ -201,7 +201,7 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 
 After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus.
 
-- **C11** Shims, constexpr addresses and per-file At() copies (review since 2026-10-15; sonnet). Batch 13 merged: shims 908 -> 792 (file-local wrappers over originals_library.h forwarders inlined, 130 in 82 files). Next: ui_window_delete.cpp InputDelete shims (27), other void* selfs, the 664 raw addresses.
+- **C11** Shims, constexpr addresses and per-file At() copies (ready; sonnet). Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Left: wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies, 664 raw addresses.
 - **C9d** Shadow callees: typed points, pixels and raster target (ready). From C9c (2026-10-15): CLinkMesh::ProjectPart / RasterisePart (slots 13 / 14) and 005A0CD0 / 005A0E80 take float* points, int* pixels and a void* target; typing them as Vector2*, RasterTriangle::Point* and RasterTarget* (move RasterTarget from map_object_shadow.cpp to texture.h) changes their signatures, so map_object_shadow.cpp still passes &Points()[n].x / &Pixels()[n].x. After: C9c.
 - **C12** __asm blocks and float_control pragmas (later). 221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x87 maths until the standalone build.
 - **C13** Forwarders to rewritten code into direct calls (later). User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check.

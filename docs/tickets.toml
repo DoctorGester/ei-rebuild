@@ -1363,7 +1363,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 14 in review: shims 792 -> 632 (input-side Delete shims -> UiInput::DeleteWindow, 71 input forwarders -> InputForward, world_game and 100 more wrappers over Original forwarders inlined). Next: untyped deleting destructors (DestroyAndFree), wrappers used by tests/verify, float-parameter wrappers, the 664 raw addresses."
+note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Left: wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies, 664 raw addresses."
 
 [[ticket]]
 id = "C12"
