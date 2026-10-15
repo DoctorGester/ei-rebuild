@@ -1303,3 +1303,65 @@ particle, point light and lightning, items 0x3006 / 0x3007, time-wheel events, s
 sources, lightning and areas, party manager parties and entries, and saves\current\<zone>.sav (none in the suite's saves; 16
 gz1g.sav from other runs decode). The chunk archive's record order follows the pointer-keyed hash (SV7a): it did not
 change under seed 1, but if it does, the scenario.sav records come out in another order (SV7b2).
+
+## SV7b3: unit statistics stack copies start zeroed (2026-10-15)
+
+**The leftovers.** The builders make a unit's UnitStats (0x704 bytes) and UnitVitals (0x58) in stack copies whose
+resets do not clear everything: UnitStats::Reset 005233E0 leaves builtFlags, the layers' spareAbsorb, the slots' share
+and factor, sightCone / peripheralRange / sideCone, load / loadFactor / armsFactor, modelField8, unused_06A,
+prototypeField12, skillLevels[0x24], fixedMaxHitPoints; UnitVitals::Reset 00523370 leaves builtFlags. (UnitStatSlot::
+Reset 00523600 has no caller.) The copies then go whole into the object (SetStats 00552F40, SetServerData) and into
+the saves (UnitStats::SaveTo 00528800, CMapObjectServer::SaveServer).
+
+**Readers.** share: SetSlotMaxima / ScaleSlotMaxima (00525A00 / 00525A70), Recompute's slot maxima (00524560),
+LearnSkill's heal; factor: Reduce 005259B0, ReduceKind1 00524020, HealSlots 00525800, ApplyHit's location 6;
+fixedMaxHitPoints: Recompute / RecomputeHitPoints for units without a text key; peripheralRange and sightCone: the AI's
+sight (005CA5A0); spareAbsorb, sideCone, unused_06A, builtFlags: only the saves (raw block). The builders that use a
+prototype write share, factor, fixedMaxHitPoints and the cones, so of these only GiveDefaults' unit (the main menu's
+unmoco2, the one unit without a prototype) read leftovers as behaviour: its maximum from fixedMaxHitPoints (at least
+1), its slots' maxima from 1 / share, its hit points from those: the NaN `obj2 hp` (SV3a, SV3h) whose bits followed
+the stack and so the heap.
+
+**The canonical value is zero**, in ours and, through a harness patch, in the original (tests/verify/harness_leftovers.h,
+every harness run; the standalone has ours only). Each CALL of a reset (or of the builder) on such a copy goes through a
+harness function that zeroes the block and then calls the original target (`EI_LEFTOVERS=<hex mask>` picks sites):
+
+| Site | Function | Copy |
+| --- | --- | --- |
+| 0051363E / 00513679 | GiveDefaults 00513630 | vitals / statistics |
+| 00513B8C / 00513BC9 | ApplyPrototype 00513B60 (no prototype) | vitals / statistics |
+| 00513776 / 0051377D | BuildFromPrototype 005136D0 | its callers' (ApplyPrototype, TakePrototype: stack) |
+| 0052EB81 / 0052EB8A | CUnit::TakePrototype 0052EB70 | vitals / statistics (only packed) |
+| 0050E9C5 | CMapObject::TakePrototype 0050E9B0 (BuildFromPrototype without statistics) | vitals: with a prototype the builder returns 0 untouched and the stack is packed |
+| 00662901 | CParty::AddMember 006628D0 (PartyUnitRecord::Construct 0065F5F0) | the 0x784-byte stack record whose statistics BuildNpcStats fills: the heroes' |
+
+Ours: GiveDefaults (map_object_manager.cpp; SeedLeftovers, SV3a's copy of the original's leftover dwords, is gone),
+BuildFromPrototype (unit_create_stats.cpp), CMapObject::TakePrototypeImpl (map_object_stub_slots.cpp), CParty::AddMember
+(party_members.cpp); ApplyPrototype and CUnit::TakePrototype already started from `{}`. unmoco2's hit points are now
+1.0 (maximum 1) on both sides; golden.py's KNOWN entry for `obj2 hp` is gone, so it is compared again.
+
+Left alone: resets of blocks that live in objects (CUnitServer::ResetController 00546480, the CMapObjectServer lifetime
+00515610..005157E0: a lever's vitals builtFlags still follows its heap block, SV7b2's CMapObjectServer::SaveServer
+line), and 00662030 (another stack PartyUnitRecord, filled by 00660100; not reached by the suite).
+
+**Saves.** combat (vanilla), traced, plain against seed 1: mission.sav's differing plain bytes went from 1246 to 1031,
+none of them UnitStats::SaveTo's any more (before: 55 from CUnitServer::SaveServer, 152 from PartyUnitRecord::Save; at
+SV7a 8931); scenario.sav 215 to 63. The rest are SV7b2's writers.
+
+**Goldens re-recorded** (all 97) from five passes of the 53 golden scenarios on both installs: the original plain,
+EI_HEAP_JITTER 1, 2 and 3,fill, and ours. 84 agreed in all five at once. Six Rebirth runs of the 3,fill pass (camera,
+items, spells, ui_hud, units, world) diverged at update 40 with SV7d4's signature (isaac.count 169 / 89, ai.decay of
+obj1804 / obj1890 / obj1936); camera again with the same seed matched, as did all six in a second 3,fill pass, which
+they were recorded with. ui_widescreen_more (Rebirth) kept its saves once SAVES_KNOWN had SV7b1's script group 5 order
+([1901, 1913] / [1913, 1901]). The other seven part on script group order (`gobject.i` 699 / 702 / 1884, SV7b1) and were
+recorded from the passes that agree with the plain original (golden.json's reason lists them): combat vanilla (ours has
+699 where the original has 702: ours differs from its golden until SV7b1), levers vanilla, terrain_water_load V+R,
+ui_saveload_delete V+R, magic_traps R. Decoded saves (SV7d): two new store entries replace two (the heroes' statistics).
+
+SV3a's ticket is settled differently from its note (both sides now give 1.0, not the original's NaN); SV3h
+(render_present_cpuwindows' other NaN, and the scenario- and install-dependent NaNs on SV2b's heap) is settled: the
+value no longer depends on the stack.
+
+After merging main, `--golden` (the suite, hooked, 128 runs): all pass, 54 goldens the same, 2 differ: levers and
+ui_saveload_delete (vanilla), `script #gobject` (`gobject.i` 702 / 1884 after the load: script group address order,
+SV7b1; ours' heap layout moved with main's changes). combat vanilla matched this time.

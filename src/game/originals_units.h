@@ -22,7 +22,9 @@ struct MoveModeState;
 struct PathCell;
 struct SightTarget;
 struct UnitAction;
+struct PartyUnitRecord;
 struct UnitPrototypeTable;
+struct UnitStatsBuilder;
 struct UnitStats;
 struct UnitVitals;
 
@@ -514,6 +516,15 @@ __declspec(naked) inline std::uintptr_t __fastcall ObjectSetFigureScaleOriginal(
 // 005233E0 / 00523550 (rewritten as UnitStats::Reset / UnitParams::Reset; plain RET): back to the defaults; EAX 0.
 __declspec(naked) inline int __fastcall UnitStatsResetOriginal(void* /*stats*/) EI_ORIGINAL(0x005233E0)
 __declspec(naked) inline int __fastcall UnitParamsResetOriginal(void* /*params*/) EI_ORIGINAL(0x00523550)
+// 005136D0 (rewritten as UnitStatsBuilder::BuildFromPrototype; RET 0xC): the vitals and statistics of prototype
+// `name`; 0 when `vitals` or `stats` is null.
+__declspec(naked) inline int __fastcall UnitStatsBuildFromPrototype(UnitStatsBuilder* /*builder*/, void*, UnitVitals* /*vitals*/,
+                                                                   UnitStats* /*stats*/, const char* /*name*/)
+    EI_ORIGINAL(0x005136D0)
+// 0065F5F0 (rewritten as PartyUnitRecord::Construct; plain RET): the record's texts, item lists and defaults (not its
+// statistics); returns the record.
+__declspec(naked) inline PartyUnitRecord* __fastcall PartyUnitRecordConstructOriginal(PartyUnitRecord* /*record*/)
+    EI_ORIGINAL(0x0065F5F0)
 // 00524CD0 (rewritten as UnitStats::ResetToBase; RET 4): the current values from the bases, with the load (a float).
 __declspec(naked) inline void __fastcall UnitStatsResetToBaseOriginal(void* /*stats*/, void*, float /*load*/)
     EI_ORIGINAL(0x00524CD0)
