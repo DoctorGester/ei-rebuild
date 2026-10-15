@@ -36,10 +36,13 @@ public:
     virtual int Read(void* buffer, unsigned size) = 0;
     virtual void Write(const void*, unsigned) {}
     explicit LoadStream(const ScriptStream* real) {
-        std::memcpy(&unknown_04, reinterpret_cast<const char*>(real) + 4, 8);
+        std::memcpy(&reading, reinterpret_cast<const char*>(real) + 4, 8);
     }
     ScriptStream* AsScript() { return reinterpret_cast<ScriptStream*>(this); }
-    int unknown_04;
+    // CStream's +0x04..+0x0B (reading_, ok_, the padding, version_), copied from the real stream.
+    std::uint8_t reading;
+    std::uint8_t ok;
+    std::uint8_t unused_06[2];
     int version;
 };
 

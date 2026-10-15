@@ -151,28 +151,16 @@ EI_VERIFY(0x00515820, ServerUpdateVerify, 5, s_serverUpdate);
 // 00510890. Ours only (sounds, random numbers). Every positive effect count is one lower, each
 // stench timer one lower (16 after it went negative), and a shown light is either where it was
 // or kLightHeight above the object.
-namespace {
-struct ClientSound {
-    int kind;
-    int unknown_04;
-    int handle;
-    std::uint32_t timer;
-    std::uint32_t unknown_10;
-};
-static_assert(sizeof(ClientSound) == 0x14);
-} // namespace
-
 static void* s_unusedClientUpdate;
 static int __fastcall ClientUpdateVerify(CMapObjectClientSpecific* self) {
-    char* raw = reinterpret_cast<char*>(self);
     CMapObject* owner = OwnerOf(self);
     int effectCount = owner->effectCount;
     bool effectsChecked = effectCount >= 0 && effectCount <= kMaxEffects;
     int ticks[kMaxEffects];
     if (effectsChecked)
         for (int i = 0; i < effectCount; ++i) ticks[i] = owner->effects[i].ticksLeft;
-    auto* sounds = *reinterpret_cast<ClientSound**>(raw + 0x40);
-    int soundCount = *reinterpret_cast<int*>(raw + 0x44);
+    EffectSoundRecord* sounds = self->sounds.data;
+    int soundCount = self->sounds.size;
     bool soundsChecked = soundCount >= 0 && soundCount <= kMaxSounds;
     int kinds[kMaxSounds];
     std::uint32_t timers[kMaxSounds];
@@ -181,7 +169,7 @@ static int __fastcall ClientUpdateVerify(CMapObjectClientSpecific* self) {
             kinds[i] = sounds[i].kind;
             timers[i] = sounds[i].timer;
         }
-    auto* light = *reinterpret_cast<CEngineObject**>(raw + 0x50);
+    CEngineObject* light = self->light;
     bool lightShown = light && !(light->flags_ & 0x80);
     float lightBefore[3] = {};
     if (light) std::memcpy(lightBefore, reinterpret_cast<char*>(light) + 0x1C, sizeof(lightBefore));
@@ -197,8 +185,8 @@ static int __fastcall ClientUpdateVerify(CMapObjectClientSpecific* self) {
     } else if (effectsChecked) {
         bad = 0x100;
     }
-    sounds = *reinterpret_cast<ClientSound**>(raw + 0x40);
-    if (soundsChecked && *reinterpret_cast<int*>(raw + 0x44) == soundCount) {
+    sounds = self->sounds.data;
+    if (soundsChecked && self->sounds.size == soundCount) {
         for (int i = 0; i < soundCount && bad < 0; ++i) {
             if (sounds[i].kind != kinds[i]) bad = 0x200 + i;
             else if (kinds[i] == 0x13) {

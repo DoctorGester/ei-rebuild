@@ -1,6 +1,8 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
 #include "ui.h"
 
+#include "material.h"
+
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -495,55 +497,54 @@ namespace {
 // The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
 // MaterialCreateOriginal), 0068EAF0 registers it (RET 8, MaterialRegisterOriginal).
 
-void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
+// A material's emissive colour (+0x50..+0x58, every component `value`) and one more reference.
+void PrepareMaterial(CMaterial* material, float value) {
+    material->colors.emissive.x = value;
+    material->colors.emissive.y = value;
+    material->colors.emissive.z = value;
+    ++material->refCount_;
+}
 
-// A material's colour (+0x50..+0x58) and a reference (+0x04).
-void PrepareMaterial(std::uint8_t* material, std::uint32_t colour) {
-    SetDword(material, 0x50, colour);
-    SetDword(material, 0x54, colour);
-    SetDword(material, 0x58, colour);
-    std::uint32_t references;
-    std::memcpy(&references, material + 4, 4);
-    SetDword(material, 4, references + 1);
+// The constructor's empty pointer array (data, growth step, capacity, size in its order).
+template <typename T>
+void ClearArray(UiPtrArray<T>& array) {
+    array.data = nullptr;
+    array.growBy = 0;
+    array.capacity = 0;
+    array.size = 0;
 }
 } // namespace
 
 CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
-    auto* self = reinterpret_cast<std::uint8_t*>(this);
     ConstructEngineObject(this);
-    for (int offset : {0x34, 0x44}) {   // two identity rotations (0040CB00, inlined here)
-        SetDword(self, offset, 0x3F800000);
-        SetDword(self, offset + 4, 0);
-        SetDword(self, offset + 8, 0);
-        SetDword(self, offset + 12, 0);
-    }
+    localRotation_.SetIdentity();   // two identity rotations (0040CB00, inlined here)
+    worldRotation_.SetIdentity();
     interface_ = ui;
     inputVtable_ = reinterpret_cast<void**>(0x007401D0);
-    std::memset(self + 0xA0, 0, 0x38);
-    for (int offset = 0xF8; offset <= 0x138; offset += 0x10) {   // the five pointer arrays
-        SetDword(self, offset, 0);
-        SetDword(self, offset + 0xC, 0);
-        SetDword(self, offset + 8, 0);
-        SetDword(self, offset + 4, 0);
-    }
+    std::memset(spareA0_, 0, sizeof(spareA0_));
+    ClearArray(objects_);
+    ClearArray(sceneObjects_);
+    ClearArray(surfaces_);
+    ClearArray(regions_);
+    ClearArray(models_);
     vtable_ = reinterpret_cast<void**>(0x00740F60);
     inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
-    SetDword(self, 0x08, 0);
+    flags_ = 0;
     rect_ = RECT{0, 0, 0, 0};
-    std::memcpy(self + 0x34, reinterpret_cast<const void*>(0x007C7E58), 16);
-    SetDword(self, 0x1C, 0);
-    SetDword(self, 0xF4, 0);
-    SetDword(self, 0x20, 0);
-    SetDword(self, 0x24, 0);
+    localRotation_ = *reinterpret_cast<const Quaternion*>(0x007C7E58);
+    localPosition_.x = 0.0f;
+    heldObject_ = nullptr;
+    localPosition_.y = 0.0f;
+    localPosition_.z = 0.0f;
     void* materials = *reinterpret_cast<void* const*>(0x007AF740);
-    std::uint8_t* white = MaterialCreateOriginal(materials, nullptr, 0x16);
-    SetDword(self, 0xF0, reinterpret_cast<std::uintptr_t>(white));
+    auto* white = reinterpret_cast<CMaterial*>(MaterialCreateOriginal(materials, nullptr, 0x16));
+    whiteMaterial_ = white;
     MaterialRegisterOriginal(materials, nullptr, white, 0x16);
-    PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xF0), 0x3F800000);
-    std::uint8_t* black = MaterialCreateOriginal(materials, nullptr, 0x16);
-    SetDword(self, 0xEC, reinterpret_cast<std::uintptr_t>(black));
+    PrepareMaterial(white, 1.0f);
+    auto* black = reinterpret_cast<CMaterial*>(MaterialCreateOriginal(materials, nullptr, 0x16));
+    blackMaterial_ = black;
     MaterialRegisterOriginal(materials, nullptr, black, 0x16);
-    PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xEC), 0);
+    PrepareMaterial(black, 0.0f);
     enabled_ = 1;
     CallSlot19(this, 1);
     return this;
@@ -563,12 +564,9 @@ EI_REPLACE_METHOD(0x00600D30, CUiContainer::AddChild);
 void CUiWindow::DestroyBase() {
     vtable_ = reinterpret_cast<void**>(0x00740F60);
     inputVtable_ = reinterpret_cast<void**>(0x00740F2C);
-    auto* self = reinterpret_cast<std::uint8_t*>(this);
-    for (int offset = 0xEC; offset <= 0xF4; offset += 4) {
-        CEngineObject* object;
-        std::memcpy(&object, self + offset, 4);
-        if (object) object->Release();
-        std::memset(self + offset, 0, 4);
+    for (CEngineObject** held : {&blackMaterial_, &whiteMaterial_, &heldObject_}) {
+        if (*held) (*held)->Release();
+        *held = nullptr;
     }
     for (int i = 0; i < sceneObjects_.size; ++i) sceneObjects_.data[i]->Release();
     sceneObjects_.SetSize(0, -1);
@@ -596,7 +594,7 @@ void CUiWindow::DestroyBase() {
         }
     }
     models_.SetSize(0, -1);
-    std::memset(self + 0x08, 0, 4);
+    flags_ = 0;
     // The arrays' destructors (their storage is already freed above, so these find nothing).
     if (models_.data) FreeAligned(models_.data);
     if (regions_.data) FreeAligned(regions_.data);

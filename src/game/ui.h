@@ -734,8 +734,17 @@ public:
     // with 1). Returns this (ui_window.cpp).
     CUiWindow* Construct(CInterface3D* ui);
 
+    // +0x00..+0x54 the engine's transform object (CTransformObject, core_transform.h), of which
+    // the window's code touches only these.
     void** vtable_;
-    std::uint8_t unused_004[0x94 - 0x004];   // CTransformObject members and more
+    std::uint8_t unused_004[0x08 - 0x04];    // CEngineObject: refCount_
+    std::uint32_t flags_;                    // +0x08 engine object flags; 0 from the constructor and the destructor
+    std::uint8_t unused_00C[0x1C - 0x0C];    // CEngineObject: id_ .. prototypeId_
+    Vector3 localPosition_;                  // +0x1C (0, 0, 0) from the constructor
+    std::uint8_t unused_028[0x34 - 0x28];    // CTransformObject: worldPosition_
+    Quaternion localRotation_;               // +0x34 from 007C7E58 (the constructor)
+    Quaternion worldRotation_;               // +0x44 the identity
+    std::uint8_t unused_054[0x94 - 0x54];
     // The input side starts at +0x94: {vtable, interface, handled flag}. Its handlers get `this`
     // = window + 0x94. Slots: 2 button down, 3 button up, 4 mouse move, 7 double click, 9 key
     // down, 12 wheel; each takes (buttons or key, x, y) in screen pixels.
@@ -906,7 +915,8 @@ public:
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
     bool inputHandled_;                       // +0x9C set by a handler that used the event
-    std::uint8_t unused_09D[0xD8 - 0x09D];
+    std::uint8_t unused_09D[0xA0 - 0x09D];
+    std::uint8_t spareA0_[0xD8 - 0xA0];       // +0xA0 zeroed by the constructor; no rewritten code reads it
     RECT rect_;                               // +0xD8 layout coordinates
     int enabled_;                             // +0xE8
     CEngineObject* blackMaterial_;            // +0xEC given to every sprite (AddSprite)
@@ -932,6 +942,9 @@ static_assert(offsetof(CUiWindow, interface_) == 0x98);
 static_assert(offsetof(CUiWindow, inputHandled_) == 0x9C);
 static_assert(sizeof(CUiWindow) == 0x148);
 static_assert(offsetof(CUiWindow, rect_) == 0xD8);
+static_assert(offsetof(CUiWindow, flags_) == 0x08 && offsetof(CUiWindow, localPosition_) == 0x1C);
+static_assert(offsetof(CUiWindow, localRotation_) == 0x34 && offsetof(CUiWindow, worldRotation_) == 0x44);
+static_assert(offsetof(CUiWindow, spareA0_) == 0xA0 && offsetof(CUiWindow, heldObject_) == 0xF4);
 static_assert(offsetof(CUiWindow, enabled_) == 0xE8);
 static_assert(offsetof(CUiWindow, blackMaterial_) == 0xEC);
 static_assert(offsetof(CUiWindow, objects_) == 0xF8);
