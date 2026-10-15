@@ -914,6 +914,21 @@ group = "verification"
 depends = ["SV2h1b"]
 note = "Stopped 2026-10-15 (user: goldens go layout-independent instead). WIP on branch worktree-agent-a50c52d1587d9f27a (1a5f7317): harness_heap_twins.cpp, a third heap for originals run through verify trampolines; ~130 wrappers keep original blocks (pools, caches, originals the game keeps), so an aside around every trampoline is not enough."
 
+[[ticket]]
+id = "SV7"
+title = "Goldens independent of heap layout"
+group = "verification"
+size = 2
+note = "User 2026-10-15: exact heap layouts are not worth preserving (the standalone's allocator and the STL cleanup change them). Goldens (digest of world / generators / players / object field hashes, dumps, saves) must not depend on addresses. Steps: (a) SV7a: a harness heap jitter mode and two --no-hooks runs of each scenario with different layouts; every digest / dump field that differs is address-dependent game behaviour: inventory the sites (orders by pointer, pointer-keyed hash iteration, uninitialised reads). (b) canonicalise each site by object id in both the original (harness patch, as the update countdown already is) and ours, kept in the standalone as a determinism fix. (c) re-record goldens with jitter on; ours must match under any layout, path or check order. (d) decoded saves (field by field, SV3b) as checkpoint comparisons. Replaces the SV2h line (twin ordering for heap layout): SV2h1c, SV2h3a-c, SV2d go when this lands."
+
+[[ticket]]
+id = "SV7a"
+title = "Heap jitter: find the game's address-dependent behaviour"
+group = "verification"
+size = 1
+depends = ["SV2h3"]
+note = "First step of SV7. Add a harness heap mode (EI_HEAP_JITTER=<seed>, tests/verify/harness_heap.*) that changes block addresses without changing the game's calls (e.g. a seeded pad before each block or a shifted reservation base, both sides alike). Run every golden scenario --no-hooks with two or three seeds (and no jitter), diff digests and dumps (tools/golden.py diff), and list each field that differs with the code site that makes it address-dependent (decompile the reader: sort / set / map by pointer, hash of a pointer, uninitialised memory, the update countdown already patched). Deliver the inventory in docs/notes/standalone-verification.md (SV7a) and one follow-up ticket per site family for the id-based fix. No fixes in this ticket beyond the jitter mode."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
