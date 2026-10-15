@@ -672,9 +672,10 @@ done = "2026-10-15"
 id = "SV2a"
 title = "Digest: the client world, missiles, timed objects, script queues"
 group = "verification"
-status = "queued"
+status = "running"
 depends = ["SV2"]
 note = "SV2's digest (tests/verify/harness_digest.cpp) reads the server world only. Not yet in it: the client world's units (positions the screen shows), each missile's position and target (Projectile 0xA8 bytes, layout unknown), timed objects' own state (spells, effects: class/flags/type only), the script command queues and countdowns, the AI event table. Add what a parting run needs first."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV1f"
@@ -776,6 +777,14 @@ group = "verification"
 status = "queued"
 depends = ["SV4a"]
 note = "Left out of SV4a: UnitStats::GetFactors, StrengthRatio, DexterityRatio, SkillWithBonus, SkillLevelValue, Value6E8/6E9, SkillPrice, SchoolPrice, UnitParams::ProtectionBlock and WeaponSkillBonus, UnitStats::PickLocation read game settings at fixed addresses or the skill databases. Pass the values in the payload and make the sources read them through a seam the replay can fill; CTransformPipeline::PushMatrix needs the pipeline object. See standalone-verification.md SV4a."
+
+[[ticket]]
+id = "SV2b"
+title = "Rebirth with hooks: zone1 script variable i does not repeat"
+group = "verification"
+status = "queued"
+depends = ["SV2a"]
+note = "SV2a's digest 2 (script group): under Rebirth with our hooks, zone1's global object variable i (Rebirth's script, with VSS#i#val; the last object of a group, which keeps its objects in address order) is unit 702 in some runs and 1884 in others (spells_cast, combat, script_fx, ui_battle_spells, harness_digest); the original (addon alone) is 702 in every run. So some objects' addresses still differ between our runs under Rebirth (an allocation outside the repeatable CRT heap: addon.dll's or ours'). golden.py KNOWN leaves script gobject.i out meanwhile. Find which allocation moves (the group's members' addresses in two runs) and make it repeat."
 
 # ---------------------------------------------------------------- harness and suite
 

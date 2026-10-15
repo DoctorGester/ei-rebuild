@@ -9,9 +9,12 @@
 #include "../../src/game/map_object.h"
 #include "../../src/game/party.h"
 #include "../../src/game/random.h"
+#include "../../src/game/script.h"
+#include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
 #include "../../src/game/world.h"
+#include "../../src/game/world_effect.h"
 
 #include <windows.h>
 
@@ -39,6 +42,15 @@ constexpr int kClassUnit = world::kClassUnit;   // 0x50
 constexpr int kClassMapObjectServer = 0x39;     // CMapObjectServer, a map object's server half
 constexpr int kClassUnitServer = 0x3E;          // CUnitServer, a unit's controller (UnitController)
 
+// The world's effects by class id (world_effect.h): their own state goes into "timed<id>".
+constexpr int kClassSound = 0x48, kClassAmbientSound = 0x49, kClassParticle = 0x4A, kClassPointLight = 0x4B,
+              kClassLightning = 0x4D, kClassArrow = 0x4E, kClassWall = 0x5A, kClassArrowFigure = 0x5B,
+              kClassShowVisibility = 0x5E, kClassSoundSeq = 99, kClassTornado = 0x65;
+
+// The client world (a static object of game.exe) and the mission's script (the world's CScript).
+CWorldClient* ClientWorldObject() { return reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8)); }
+CScript* MissionScriptObject() { return reinterpret_cast<CScript*>(std::uintptr_t(0x007C27D4)); }
+
 // A field's value: its name ('#' stands for `index`), how it is written and its 32 bits.
 enum class Kind : char { Int, Unsigned, Float, Bits, Mode };
 struct Field {
@@ -64,18 +76,25 @@ struct Entity {
     std::vector<Field> fields;
 };
 
-// Entities in record order: the world, the generators, the players by id, the objects by id.
-enum Group : int { kWorld = 0, kRandom = 1, kPlayer = 2, kObject = 3 };
+// Entities in record order: the world, the generators, the players by id, the objects by id (digest
+// 1); then (digest 2, SV2a) the timed objects' own state by id, the missiles by their place in the
+// list, the AI event table, the mission script, the client world and its units by id. A key's name
+// starts with its group's (kGroupNames), which tools/golden.py reads: a golden of digest 1 lacks the
+// groups after kObject, and its comparisons leave them out.
+enum Group : int { kWorld = 0, kRandom, kPlayer, kObject, kTimed, kMissile, kEvents, kScript, kClient, kClientUnit, kGroups };
+constexpr const char* kGroupNames[kGroups] = {"world", "random", "player", "obj", "timed",
+                                              "missile", "aievents", "script", "client", "cunit"};
+// The groups beyond digest 1's, as the title line lists them.
+constexpr const char* kNewGroups = "timed,missile,aievents,script,client,cunit";
 using Key = std::pair<int, int>;
 using State = std::map<Key, Entity>;
 
+// Groups of one entity are named alone ("world"); the others take the id ("obj12").
+bool Single(int group) { return group == kWorld || group == kRandom || group == kEvents || group == kScript || group == kClient; }
+
 std::string KeyName(const Key& key) {
-    switch (key.first) {
-    case kWorld: return "world";
-    case kRandom: return "random";
-    case kPlayer: return "player" + std::to_string(key.second);
-    default: return "obj" + std::to_string(key.second);
-    }
+    std::string name = kGroupNames[key.first];
+    return Single(key.first) ? name : name + std::to_string(key.second);
 }
 
 struct Builder {
@@ -381,10 +400,311 @@ std::string Describe(CEngineObject* o, bool mapObject) {
     return text;
 }
 
-// The whole state, and the section hashes.
+// --- Digest 2 (SV2a): the timed objects, missiles, AI events, the script and the client world ---
+
+std::uint32_t FloatBits(float value) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &value, 4);
+    return bits;
+}
+
+std::uint32_t TextHash(const char* text) {
+    Hash h;
+    h.AddText(text);
+    return h.h;
+}
+
+// A timed object's own state (the effects of world_effect.h, server side): the base's position,
+// velocity and start tick, then the class's own fields. False for a class not read here.
+bool ReadTimed(CEngineObject* o, Builder& b) {
+    const int classId = o->GetClassId();
+    switch (classId) {
+    case kClassSound: case kClassAmbientSound: case kClassParticle: case kClassPointLight: case kClassLightning:
+    case kClassArrow: case kClassWall: case kClassArrowFigure: case kClassShowVisibility: case kClassSoundSeq:
+    case kClassTornado:
+        break;
+    default:
+        return false;
+    }
+    auto* e = static_cast<CEffect*>(static_cast<CTransformObject*>(o));
+    b.Vector("pos.x", "pos.y", "pos.z", e->localPosition_);
+    b.Int("startTick", e->startTick_);
+    b.Int("moving", e->moving_);
+    b.Vector("velocity.x", "velocity.y", "velocity.z", e->velocity_);
+    switch (classId) {
+    case kClassSound: {
+        auto* sound = static_cast<CEffectSound*>(e);
+        b.Float("volume", sound->volume_);
+        b.Float("radius", sound->radius_);
+        b.Int("looping", sound->looping_);
+        break;
+    }
+    case kClassParticle:
+    case kClassWall: {
+        auto* particle = static_cast<CEffectParticle*>(e);
+        b.Int("particleType", particle->type_);
+        b.Float("size", particle->size_);
+        b.Int("attachedTo", particle->attachedTo_);
+        b.Vector("target.x", "target.y", "target.z", particle->target_);
+        b.Int("unit", particle->unitId_);
+        break;
+    }
+    case kClassPointLight: {
+        auto* light = static_cast<CEffectPointLight*>(e);
+        b.Vector("color.x", "color.y", "color.z", light->color_);
+        b.Float("range", light->range_);
+        break;
+    }
+    case kClassLightning: {
+        auto* bolt = static_cast<CEffectLightning*>(e);
+        b.Vector("from.x", "from.y", "from.z", bolt->from_);
+        b.Vector("to.x", "to.y", "to.z", bolt->to_);
+        b.Int("fromObject", bolt->fromObject_);
+        b.Int("toObject", bolt->toObject_);
+        break;
+    }
+    case kClassArrow:
+    case kClassArrowFigure: {
+        auto* missile = static_cast<CEffectMissile*>(e);
+        b.Int("arrived", missile->arrived_);
+        b.Int("target", missile->targetId_);
+        break;
+    }
+    default:
+        break;
+    }
+    return true;
+}
+
+// A missile of the server's list (a CSpellEffect, spell.h: a spell on its way or lasting). Its
+// visual (the flying CEffectArrow, a wall, a cloud) is a timed object: "timed<visual>".
+std::string DescribeMissile(const Projectile* p) {
+    const auto* e = reinterpret_cast<const CSpellEffect*>(p);
+    std::uint32_t vtable;
+    std::memcpy(&vtable, e->header, 4);
+    if (vtable != CSpellEffect::kVtableAddress) {
+        char text[24];
+        std::snprintf(text, sizeof(text), "vtable 0x%08X", vtable);
+        return text;
+    }
+    return "spell " + std::to_string(e->spellId >> 16);
+}
+
+void ReadMissile(const Projectile* p, Builder& b) {
+    const auto* e = reinterpret_cast<const CSpellEffect*>(p);
+    std::uint32_t vtable;
+    std::memcpy(&vtable, e->header, 4);
+    if (vtable != CSpellEffect::kVtableAddress) return;   // not a CSpellEffect: its description says so
+    b.Int("state", e->state);
+    b.Bits("flags", e->flags);
+    b.Vector("pos.x", "pos.y", "pos.z", e->position);
+    b.Int("target", IdOf(e->target));
+    b.Int("caster", IdOf(e->caster));
+    b.Vector("targetPoint.x", "targetPoint.y", "targetPoint.z", e->targetPoint);
+    b.Int("timer", e->timer);
+    b.Float("damage", e->damage);
+    b.Float("radius", e->radius);
+    b.Int("targets", e->targetCount);
+    b.Int("visual", IdOf(e->visual));
+    b.Int("sound", IdOf(e->sound));
+    b.Int("light", IdOf(e->light));
+    b.Unsigned("footprint", e->footprintStamped);
+}
+
+// The AI event table (CWorldServer + 0x2838): its tick, grid and, per side, the count and a hash of
+// the events in wheel order (x, y, the origin, expiry, source and side). Left out: each event's
+// payload (+0x14), which 005C9630 leaves as the free list's or the stack's leftovers.
+void ReadEvents(const AIEventTable* t, Builder& b) {
+    b.Int("tick", t->tick);
+    b.Int("width", t->width);
+    b.Int("height", t->height);
+    Hash sides[16];
+    int counts[16] = {};
+    int total = 0;
+    for (int slot = 0; slot < 0x400; ++slot) {
+        for (int side = 0; side < 16; ++side) {
+            for (const AIEvent* e = t->slots[slot][side]; e; e = e->nextInSlot) {
+                Hash& h = sides[side];
+                h.Add(FloatBits(e->x));
+                h.Add(FloatBits(e->y));
+                h.Add(e->origin[0]);
+                h.Add(e->origin[1]);
+                h.Add(static_cast<std::uint32_t>(e->expiry));
+                h.Add(static_cast<std::uint32_t>(e->sourceId));
+                h.Add(static_cast<std::uint32_t>(e->side));
+                ++counts[side];
+                ++total;
+            }
+        }
+    }
+    b.Int("count", total);
+    for (int side = 0; side < 16; ++side) {
+        b.Int("side#.count", counts[side], side);
+        b.Bits("side#.hash", sides[side].h, side);
+    }
+}
+
+// A script variable set: the floats' bits, the strings, the objects by id, the groups' ids (sorted:
+// a group is kept in address order).
+std::uint32_t HashVars(const ScriptVars& v) {
+    Hash h;
+    h.Add(static_cast<std::uint32_t>(v.floats.GetSize()));
+    for (int i = 0; i < v.floats.GetSize(); ++i) h.Add(FloatBits(v.floats[i]));
+    h.Add(static_cast<std::uint32_t>(v.strings.GetSize()));
+    for (int i = 0; i < v.strings.GetSize(); ++i) h.AddText(v.strings[i]);
+    h.Add(static_cast<std::uint32_t>(v.objects.GetSize()));
+    for (int i = 0; i < v.objects.GetSize(); ++i) h.Add(static_cast<std::uint32_t>(IdOf(v.objects[i].object)));
+    h.Add(static_cast<std::uint32_t>(v.groups.GetSize()));
+    for (int i = 0; i < v.groups.GetSize(); ++i) {
+        const ScriptGroup& group = v.groups[i];
+        std::vector<int> ids;
+        for (int j = 0; j < group.GetSize(); ++j) ids.push_back(IdOf(group[j].object));
+        std::sort(ids.begin(), ids.end());
+        h.Add(static_cast<std::uint32_t>(ids.size()));
+        for (int id : ids) h.Add(static_cast<std::uint32_t>(id));
+    }
+    return h.h;
+}
+
+// The mission script (CScript, script.h): its running instances and waiting runs (the command
+// queues: block, next command, ticks, sleep), the global variables (floats by name, the rest as
+// hashes), and the effects it keeps with their countdowns.
+void ReadScript(CScript* s, Builder& b) {
+    b.Int("loaded", s->loaded_);
+    b.Int("files", s->fileCount_);
+    b.Int("nextParticleId", s->nextParticleId_);
+    b.Int("nextFxId", s->nextFxId_);
+    b.Int("instances", s->instances_.GetCount());
+    std::vector<const int*> killFlags;
+    int i = 0;
+    for (auto* n = s->instances_.head; n; n = n->next, ++i) {
+        killFlags.push_back(&n->data.index);
+        b.Int("inst#.killed", n->data.index, i);
+        b.Bits("inst#.name", TextHash(n->data.name), i);
+        b.Bits("inst#.vars", HashVars(n->data.vars), i);
+    }
+    b.Int("runs", s->runs_.GetCount());
+    i = 0;
+    for (auto* n = s->runs_.head; n; n = n->next, ++i) {
+        const ScriptRun& run = n->data;
+        int instance = -1;   // the WorldScript's runs have none
+        if (run.killFlag) {
+            auto found = std::find(killFlags.begin(), killFlags.end(), run.killFlag);
+            instance = found != killFlags.end() ? static_cast<int>(found - killFlags.begin()) : -2;
+        }
+        b.Int("run#.block", run.block ? run.block->id : -1, i);
+        b.Int("run#.index", run.index, i);
+        b.Int("run#.ticks", run.ticks, i);
+        b.Int("run#.sleepStart", run.sleepStart, i);
+        b.Int("run#.instance", instance, i);
+        b.Bits("run#.vars", HashVars(run.vars), i);
+    }
+    // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
+    // text), objects (the id) and groups (a hash of the sorted ids).
+    const ScriptVars& g = s->globals_;
+    auto field = [&b](const char* kind, const mfc::CArray<mfc::CString>& names, int v, Kind type, std::uint32_t value) {
+        if (v < names.GetSize()) b.Add(Intern(std::string(kind) + "." + static_cast<const char*>(names[v])), -1, type, value);
+        else b.Add(Intern(std::string(kind) + "#"), v, type, value);
+    };
+    for (int v = 0; v < g.floats.GetSize(); ++v) field("global", g.floatNames, v, Kind::Float, FloatBits(g.floats[v]));
+    for (int v = 0; v < g.strings.GetSize(); ++v) field("gstring", g.stringNames, v, Kind::Bits, TextHash(g.strings[v]));
+    for (int v = 0; v < g.objects.GetSize(); ++v)
+        field("gobject", g.objectNames, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects[v].object)));
+    for (int v = 0; v < g.groups.GetSize(); ++v) {
+        const ScriptGroup& group = g.groups[v];
+        std::vector<int> ids;
+        for (int j = 0; j < group.GetSize(); ++j) ids.push_back(IdOf(group[j].object));
+        std::sort(ids.begin(), ids.end());
+        field("ggroup", g.groupNames, v, Kind::Bits, HashWords(reinterpret_cast<const std::uint32_t*>(ids.data()), int(ids.size())));
+    }
+    b.Int("globals.names", g.floatNames.GetSize() + g.stringNames.GetSize() + g.objectNames.GetSize() + g.groupNames.GetSize());
+    i = 0;
+    for (auto* n = s->fxSources_.head; n; n = n->next, ++i) {
+        const ScriptFxSource& fx = n->data;
+        b.Int("fx#.id", fx.id, i);
+        b.Int("fx#.sound", IdOf(fx.object), i);
+        b.Float("fx#.x", fx.position.x, i);
+        b.Float("fx#.y", fx.position.y, i);
+        b.Float("fx#.z", fx.position.z, i);
+        b.Int("fx#.idle", fx.idle, i);
+        // A source CreateFXSource made with a new id has the original's stack leftovers in its
+        // delays, spread and countdown (ours: 0, 0, 0, INT_MAX; docs/notes/script.md): only the
+        // randomized sources' (idle) are read.
+        if (!fx.idle) continue;
+        b.Int("fx#.countdown", fx.countdown, i);
+        b.Int("fx#.minDelay", fx.minDelay, i);
+        b.Int("fx#.maxDelay", fx.maxDelay, i);
+        b.Float("fx#.spread", fx.spread, i);
+    }
+    i = 0;
+    for (auto* n = s->particles_.head; n; n = n->next, ++i) {
+        const ScriptParticleSource& p = n->data;
+        b.Int("part#.id", p.id, i);
+        b.Int("part#.object", IdOf(p.object), i);
+        b.Int("part#.moving", p.moving, i);
+        b.Int("part#.steps", p.steps, i);
+        b.Int("part#.lifetime", p.lifetime, i);
+    }
+    for (int slot = 0; slot < s->pointLights_.GetSize(); ++slot) {
+        const ScriptPointLight& light = s->pointLights_[slot];
+        if (!light.object) continue;
+        b.Int("light#.id", light.id, slot);
+        b.Int("light#.object", IdOf(light.object), slot);
+        b.Int("light#.moving", light.moving, slot);
+        b.Int("light#.steps", light.steps, slot);
+    }
+    Hash bolts;
+    for (auto* n = s->lightning_.head; n; n = n->next) bolts.Add(static_cast<std::uint32_t>(IdOf(n->data.object)));
+    b.Int("lightning", s->lightning_.GetCount());
+    b.Bits("lightning.ids", bolts.h);
+}
+
+// The client world (CWorldClient, the drawing side): its clock and counts; its units go to "cunit<id>".
+void ReadClientWorld(CWorldClient* c, Builder& b, std::vector<CUnit*>& units) {
+    b.Int("tick", c->tick_);
+    b.Unsigned("paused", c->paused_);
+    b.Int("ticksRun", c->ticksRun_);
+    b.Float("tickFraction", c->tickFraction_);
+    b.Int("partyDanger", c->partyDanger_);
+    int objects = 0;
+    if (c->objects_.head) {
+        for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
+            ++objects;
+            if (n->data && n->data->GetClassId() == kClassUnit) units.push_back(static_cast<CUnit*>(n->data));
+        }
+    }
+    b.Int("objects", objects);
+    b.Int("units", static_cast<int>(units.size()));
+    b.Int("synchronised", c->dynamicObjects_.GetCount());
+}
+
+// A unit of the client world: what the screen shows (place, animation, the packed vitals).
+void ReadClientUnit(CUnit* u, Builder& b) {
+    b.Bits("flags", u->flags_);
+    b.Vector("pos.x", "pos.y", "pos.z", u->position);
+    b.Float("rot.w", u->orientation.w);
+    b.Float("rot.x", u->orientation.x);
+    b.Float("rot.y", u->orientation.y);
+    b.Float("rot.z", u->orientation.z);
+    b.Int("animation", u->animationEntry);
+    b.Int("animation2", u->secondEntry);
+    b.Int("animationStart", u->animationStart);
+    b.Float("animationSpeed", u->animationSpeed);
+    b.Int("dead", u->dead);
+    const UnitVitalsPacked& v = u->packedVitals;
+    b.Int("hp", v.hitPoints);
+    b.Int("maxHp", v.maxHitPoints);
+    b.Unsigned("mana", v.mana);
+    b.Unsigned("maxMana", v.maxMana);
+    b.Int("effects", u->effectCount);
+    b.Int("controller", u->controller ? u->controller->GetClassId() : -1);
+}
+
+// The whole state, and the section hashes (one per group).
 struct Snapshot {
     State state;
-    std::uint32_t world = 0, random = 0, players = 0, objects = 0, all = 0;
+    std::uint32_t sections[kGroups] = {};
+    std::uint32_t all = 0;
     std::string zone;
 };
 
@@ -426,18 +746,57 @@ void Read(CWorldServer* w, Snapshot& s) {
         ReadObject(object, mapObject, players, b);
     }
 
-    Hash all, section[4];
+    // The timed objects' own state (the effects), by id.
+    std::vector<std::pair<unsigned, CEngineObject*>> timed;
+    w->timedObjects_.map.ForEach([&](const auto* n) {
+        if (n->value) timed.emplace_back(n->key, n->value);
+    });
+    std::sort(timed.begin(), timed.end(), [](const auto& a, const auto& c) { return a.first < c.first; });
+    for (const auto& [id, object] : timed) {
+        Entity entity;
+        entity.description = std::to_string(object->GetClassId()) + " " + Text(object->GetClassName());
+        b.entity = &entity;
+        if (ReadTimed(object, b)) s.state[{kTimed, static_cast<int>(id)}] = std::move(entity);
+    }
+
+    // The missiles by their place in the list.
+    int place = 0;
+    for (auto* n = w->projectiles_.head; n; n = n->next, ++place) {
+        if (!n->data) continue;
+        b.entity = &s.state[{kMissile, place}];
+        b.entity->description = DescribeMissile(n->data);
+        ReadMissile(n->data, b);
+    }
+
+    b.entity = &s.state[{kEvents, 0}];
+    b.entity->description = "events";
+    ReadEvents(w->AIEvents(), b);
+
+    b.entity = &s.state[{kScript, 0}];
+    b.entity->description = "script";
+    ReadScript(MissionScriptObject(), b);
+
+    std::vector<CUnit*> clientUnits;
+    b.entity = &s.state[{kClient, 0}];
+    b.entity->description = "client";
+    ReadClientWorld(ClientWorldObject(), b, clientUnits);
+    for (CUnit* u : clientUnits) {
+        b.entity = &s.state[{kClientUnit, u->id_}];
+        b.entity->description = Describe(u, true);
+        ReadClientUnit(u, b);
+    }
+
+    Hash all, section[kGroups];
     for (const auto& [key, entity] : s.state) {
         Hash& h = section[key.first];
         h.Add(static_cast<std::uint32_t>(key.second));
         for (const Field& f : entity.fields) h.Add(f.value);
         h.Add(static_cast<std::uint32_t>(entity.fields.size()));
     }
-    s.world = section[kWorld].h;
-    s.random = section[kRandom].h;
-    s.players = section[kPlayer].h;
-    s.objects = section[kObject].h;
-    for (std::uint32_t v : {s.world, s.random, s.players, s.objects}) all.Add(v);
+    for (int g = 0; g < kGroups; ++g) {
+        s.sections[g] = section[g].h;
+        all.Add(s.sections[g]);
+    }
     all.AddText(s.zone.c_str());
     s.all = all.h;
 }
@@ -487,9 +846,12 @@ void WriteField(FILE* f, const std::string& key, const Field& field) {
 }
 
 void WriteHeader(FILE* f, unsigned record, unsigned update, unsigned frame, int tick, const Snapshot& s) {
-    std::fprintf(f, "@ %u update %u frame %u tick %d zone %s hash %08X world %08X random %08X players %08X objects %08X n %u\n",
-                 record, update, frame, tick, s.zone.empty() ? "-" : s.zone.c_str(), s.all, s.world, s.random, s.players,
-                 s.objects, unsigned(s.state.size()));
+    const std::uint32_t* h = s.sections;
+    std::fprintf(f, "@ %u update %u frame %u tick %d zone %s hash %08X world %08X random %08X players %08X objects %08X "
+                    "timed %08X missiles %08X events %08X script %08X client %08X n %u\n",
+                 record, update, frame, tick, s.zone.empty() ? "-" : s.zone.c_str(), s.all, h[kWorld], h[kRandom], h[kPlayer],
+                 h[kObject], h[kTimed], h[kMissile], h[kEvents], h[kScript], h[kClient] ^ h[kClientUnit],
+                 unsigned(s.state.size()));
 }
 
 // What changed from `before` to `now`, in record order.
@@ -551,8 +913,8 @@ bool OpenDigest() {
     std::setvbuf(g_file, nullptr, _IOFBF, 1 << 20);
     char hooks[8] = "";
     GetEnvironmentVariableA("EI_NO_HOOKS", hooks, sizeof(hooks));
-    std::fprintf(g_file, "# ei state digest 1; hooks %s; install %s; every %u world updates\n", hooks[0] == '1' ? "off" : "on",
-                 GetModuleHandleA("addon.dll") ? "rebirth" : "vanilla", g_period);
+    std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", kNewGroups,
+                 hooks[0] == '1' ? "off" : "on", GetModuleHandleA("addon.dll") ? "rebirth" : "vanilla", g_period);
     return true;
 }
 
@@ -617,6 +979,7 @@ std::string Dump(const std::string& name) {
     if (!f) return "dump: cannot write dump_" + name + ".txt";
     Snapshot s;
     Read(g_server, s);
+    std::fprintf(f, "# ei state digest 2; groups %s; dump %s\n", kNewGroups, name.c_str());
     WriteHeader(f, g_records, g_updates, g_frames ? *g_frames : 0, g_server->tick_, s);
     WriteDelta(f, State{}, s.state);
     std::fclose(f);
