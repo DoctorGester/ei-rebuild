@@ -1672,8 +1672,13 @@ Not reached, with reasons:
 - UseOnUnit with a potion (quick item category 8) fails the `CBattleScreenSetup::UseOnUnit` wrapper: the potion is
   consumed synchronously, so the member does not nod. Scenario dropped.
 
-Suite: `work.py test SV5a --golden --jobs 4` and `--standalone --golden` on the four new scenarios: all pass, goldens
-the same (8 runs standalone, vanilla and Rebirth).
+Suite, after merging main (SV7b2's zeroed fields changed the saves, so the four goldens were recorded again on the merged
+code: original twice, ours twice, vanilla and Rebirth, all four agreeing): `work.py test SV5a --golden --jobs 4`, 144 runs:
+all pass but magic_traps_victims, which the running scheduler cannot prepare (it still holds the old prepare_scenario and
+takes main's make_trap_mob.py, which has no `--interval`; it passes through plain `run_all.py`, and through the scheduler
+once it restarts on the merged tools); the existing goldens: 58 the same, none differ. The four new, by `run_all.py
+--golden`: 8 the same; `--standalone --golden`: 8 runs, 8 the same. unit_ai_corpse (Rebirth) differed once in 8 runs at
+once (a wolf's idle sound line, 4 more times 0 of 7 repeated alone): a rare under-load flip, the SV6b kind.
 
 ## SV7b2 / SV7d3 / SV7d4: never-set object fields start zeroed (2026-10-15)
 

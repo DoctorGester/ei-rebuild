@@ -1105,6 +1105,30 @@ group = "verification"
 depends = ["SV5b"]
 note = "levers_key repeats on both sides but ours flips against the original at update 60 (isaac.count, zone1 wolf obj1936 ai.standCooldown: the SV1j family); record its goldens when that is settled (standalone-verification.md, SV5b)."
 
+[[ticket]]
+id = "SV5a1"
+title = "TryTame and the AI's charm: a caster with enough mana"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "SV5a: CUnitServer::TryTame (00551AE0) stays unreached. The hero's 56 mana is far below charm's cost and the zone wolves never pick charm. Needs a script-raised caster (GiveIntelligence / GiveSkill astral, high mana) and a Cast order of charm at a unit, or an AI unit with charm among its spells; scratch tries are spells_charm and unit_ai_charm in standalone-verification.md SV5a."
+
+[[ticket]]
+id = "SV5a2"
+title = "Hook-reach for AI hooks our code calls directly (LookAroundHook, SeeCorpseHook, AICallArray::Add, SuspectionMode)"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "SV5a: SuspectionMode::Execute/Enter/Leave, PatrolPointArray::Add/SetAtGrow, LookAroundHook (005CFE40), SeeCorpseHook (005CBE90), AICallArray::Add (005CD880) are unreached. SeeCorpse logic runs but our code calls the hook functions directly, so the cover INT3 on the game address never fires; decide whether coverage should count ours-to-ours calls via the first byte of our function, or a scenario with a controlled party member dying (AddUnitUnderControl trips the CUnit::SetPlayer verify wrapper: ours-only PlayerOwnsUnit check). CTrapObject::UpdateTrap needs a trap object with a category-2 consumable (none found)."
+
+[[ticket]]
+id = "SV5a3"
+title = "Verify wrapper for UseOnUnit with a potion (synchronously consumed)"
+group = "verification"
+size = 1
+depends = ["SV5a"]
+note = "SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
