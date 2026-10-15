@@ -271,6 +271,22 @@ The suite reaches 125 of the 201, 0 mismatches. 004387D0 (no Ghidra function) go
 Left: S10a (54 vectors of game records whose element copy / destroy are records' own functions,
 and 11 non-vector entries named like vector code).
 
+**S10a (2026-10-15).** 50 record vectors registered (src/game/record_vectors.h / .cpp): a policy
+per record over its ported copy constructor, operator= and destructor, or memberwise
+(record_members.h: `records::Memberwise<R, &R::m...>` copies, assigns and builds resize(n)'s
+default member by member; CStrings and stlp::strings empty, vectors empty, plain fields left
+uninitialised as the originals' stack temporaries leave them). New shims: `PushDefault`
+(push_back(T()), in place when there is room), `CopyConstruct` (vector copy constructor);
+`FillInsert` copies x through the policy. Policies in stlp_vector_refs.h: `CountedRefElement` got
+its null default (004200C0 004AD700 004AD8D0), `SharedRefElement` (Share / ShareAssign / the
+owner's Destroy; 00421D90 00426CB0). Records whose defaults are not blank: print records (vtable,
+zero values), lever records (spotCount 0), HUD portrait slots (identity orientations), queries (zero
+address, growing buffer). Checks (verify_record_vectors.cpp): ours-only model checks over each
+record's texts; 00426B10 and 0062A0B0 (plain) against the original. 45 of 50 reached with 0
+mismatches; not reached: 004200C0, 00421D90, 00426B10 (Replicated overflow), 00428A20, 004439C0.
+Left (S10b): acks.db's table records 006DB9C0 006DBBD0 006DBE20 (each record holds a
+`hash_map<int, SpeechList*>`, whose copy waits for S11's hashtable).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
