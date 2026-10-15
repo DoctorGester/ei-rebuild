@@ -2226,7 +2226,7 @@ address,name,library,signature,notes
 0055C5A0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0055C5C0,stlp hashtable::_M_bkt_num_key,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
 0055C5E0,stlp hashtable::_M_new_node,STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
-0055C730,stlp __copy (pointers, memmove),STLport,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
+0055C730,"stlp __copy (pointers, memmove)",STLport,,"unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic"
 0055C760,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0055C780,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0055C7D0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
@@ -2261,7 +2261,7 @@ address,name,library,signature,notes
 005604B0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F234 (GetRuntimeClass 007005E3, Serialize 00560200 identified); touches no other vtable; callees library only"
 005612F0,CWorldClient constructor (static initialiser of 007AF5B8),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
 00561840,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 15 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
-00561B00,CWorldClient destructor (calls 00563290, then the members destructors),compiler,,client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed
+00561B00,"CWorldClient destructor (calls 00563290, then the members destructors)",compiler,,"client maps review (world.md, Client maps): compiler-generated member construction / destruction of the global CWorldClient; the constructor runs in static initialisation before the hooks are installed"
 0056A410,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 0056DFB0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 10 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 0056E000,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 25 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code

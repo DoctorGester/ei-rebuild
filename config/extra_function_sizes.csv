@@ -858,3 +858,4 @@ address,size,note
 005DFC10,10,"console command handler: disconnect, a jump to 00581620 (no Ghidra function; S16c)"
 006023F0,146,the briefing speakers' actionDone callback (no Ghidra function; S16c)
 006B68A0,276,the sound manager's DirectSoundEnumerateA callback (no Ghidra function; S16c)
+0070058F,8,library function registered at its address (S16d; Ghidra size)

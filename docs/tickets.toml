@@ -730,7 +730,7 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "From SV3d: digest 2's cunit rot (the client world's unit orientation quaternion) differs by 1-2 ulps between ours and the original, which repeat each: cunit2 (unmoco2, main menu) rot.w/x/y/z in ui_main_menu @220, ui_hero_stats @500 (ui_hero_screen @620 by more, 0.72510165 against 0.725037515: probably a frame later), cunit187 (unmoog1) rot.w in ui_container_input / ui_widescreen* @60, cunit1000011214 (hero) rot.z in script_exec @560. Find the client-side rotation rewrite whose float maths differ (rule 7; golden.py diff with --records to see the first record and the units) and fix it, or explain. Blocks those scenarios' goldens (ui_main_menu, ui_hero_screen and ui_hero_stats keep their digest-1 goldens meanwhile)."
+note = "Probably the same effect as SV7b4 (DrawShadow's inexact round trip plus whatever flips its count); not fixed. See SV7b4a."
 
 [[ticket]]
 id = "SV3g"
@@ -962,7 +962,7 @@ id = "SV7b4"
 title = "Rebirth menu unit orientation ulp under jitter"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 4. cunit148 (unanwiwo) rot.w/rot.z differ by 1 ulp at update 80 with EI_HEAP_JITTER=1 in Rebirth --no-hooks runs only (ui_container_input, ui_widescreen_more, render_titles_present); repeats. Not ClientPlaceOnPath 00535850 (ours steady in hooked runs; original and ours bitwise equal in the wrapper under both layouts); the incoming orientation already varies. Trace the writer among addon.dll / Rebirth-patched originals (address-dependent read or uninitialised float). Probably SV3f."
+note = "Investigated (2026-10-15): writers are SetHeading via ClientPlaceOnPath and DrawShadow 0051CE60's inexact shadow round trip (Rebirth's draw radius). The jitter-1 ulp is not one stack slot: any scrub, a 1 us spin, EI_DIGEST=1 or the watch bring the golden back. Tools EI_WATCH_CUNIT / EI_WATCH_ADDR / EI_STACK_SCRUB / EI_SPIN_US (harness_watch.h). Not fixed, no goldens re-recorded; follow-up SV7b4a."
 
 [[ticket]]
 id = "SV7b5"
@@ -993,7 +993,7 @@ title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
 group = "verification"
 size = 0.5
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands. Paused 2026-10-15, not started beyond reading. The original's FearMode::Evaluate tail at 005D3066 is FLD distance; FMUL 30; FADD [0073FF00]; FMUL [0073FFC0]; FSTP, the same order as ours. So check our codegen next (build/SV7d2/fear_ours.txt, disasm of the verify DLL) and the FPU precision. The (30x+10)/31 iteration sticks anywhere within about 15 ulp of 10, so 10.0 and 9.99999714 can both be fixed points; the cause is how it gets there (rounding of the intermediates or the start value). Done: /fp:fast had distributed (30x + d) / 31 and (2s + 3) / 3, so the result settled on a different fixed point. The sums are now rounded first, and the saves equal the original's. Follow-up: SV7d1a (audit the same pattern in other rewrites)."
 
 [[ticket]]
 id = "SV7d2"
@@ -1001,7 +1001,7 @@ title = "Path step flags: one step's flags are 0x2664 in ours"
 group = "verification"
 size = 0.5
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands. Paused 2026-10-15, cause found, no code yet. Our PathSmoother::Smooth (ai_path_smooth.cpp) copies the old tail's second dword into the rebuilt cells. The original 005C46C0 gives the rebuilt tail [entry-0x3C], a slot it never writes. After the local route that slot holds JoinLocalSearches' last SearchBest open cost ([esp+0x1C]); after PlanLongPath it holds 0 (waypoints.blocks zeroed at exit). The stepped cells get [entry-0x50]: FindPath's saved EBP (a stack address) on the local route, 0x0073FD9C (waypoint list vtable) on the plan route. SearchPathTo cells carry forward-search addr 0x007B2664. Next: add SetSmoothLeftovers(tail, stepped), set it from JoinLocalSearches (open, -) and PlanLongPath (0, 0x0073FD9C), use it in Smooth, set the join cells' dword to the forward address, drop the SV7d2 entry from SAVES_KNOWN, then run goldens. Done (user direction 2026-10-15: no leftover emulation). Every path builder now gives its cells the plain words, speed 0x200 and terrain bits 0 (kPlainStepSpeed): ours in JoinLocalSearches, BuildCellsTo (the stale-word emulation is removed) and Smooth. The original gets the same through harness_path_cells.cpp, which redirects 4 CALL sites. The 85 saving goldens' saves were re-recorded; no digests changed. Final --golden --all-rebirth: 95 the same; levers and ui_saveload_delete vanilla differ only in script #gobject (SV7b1)."
 
 [[ticket]]
 id = "SV7d3"
@@ -1026,6 +1026,20 @@ group = "verification"
 size = 0.25
 depends = ["SV7d"]
 note = "From SV7d (decoded saves): folded into SV7b1. ground_prints obj1000011214's brain.memory.seenCorpses order is 1195532174, 1195532175 in the original and the other way round in ours (and in the original under EI_HEAP_JITTER=1, and under Rebirth). PartySync (player_sync.cpp) rebuilds each party unit's seenCorpses from a ScriptGroup (known.InsertAll, ScriptGroupToListOriginal), whose members are in address order. Nothing to do beyond SV7b1: once it lands, check the order agrees and drop the seenCorpses entry (marked SV7b1) from golden.py SAVES_KNOWN."
+
+[[ticket]]
+id = "SV7b4a"
+title = "Client orientation ulp: find what flips it (shadow round trip)"
+group = "verification"
+depends = ["SV7b4"]
+note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in plain vs jitter runs with a counter patch (not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
+
+[[ticket]]
+id = "SV7d1a"
+title = "Audit /fp:fast-distributed (a + b) * c in rewrites"
+group = "verification"
+depends = ["SV7d1"]
+note = "From SV7d1: under /fp:fast, MSVC compiled FearMode's (30x + d) * (1/31) as 30/31 x + d/31, and the result drifted by an ulp to a different fixed point. Any rewrite that multiplies an unrounded sum by a constant may be distributed or folded the same way. Scan the verify DLL's compiled code for products whose order differs from the original's (the original does FADD then FMUL; ours does FMUL, FMUL, FADD), and round the sum first with the volatile store helper. CheckNear hides these; a save or digest shows them only when the error accumulates."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1938,6 +1952,14 @@ group = "standalone"
 depends = ["S16c"]
 files = ["tools/standalone_gaps.py", "src/lib/mfc_*.cpp", "src/lib/crt*.cpp"]
 note = "S16c's tools/standalone_gaps.py data lists 226 function starts referenced from game.exe's .rdata/.data that nothing registers (game code: none left). Nearly all are MFC class vtable slots (CWnd, CWinThread, CCmdTarget, CFile, CException ... 00702596-0070DD05) and CRT tables (__exit 006E8DB8 at 007978E0, 006F47FB at 007978A8, 006F01E4 / 006F02B3, the _initterm entry 006EA218 at 00783BC0 run by the host); plus 00460110, the deleting destructor of the map database's CArray<MapRecord> (vtable 0073C3E8, a global: never deleted through the vtable), and two false rows (00646C25, 00656464: strings read as code pointers, library.csv). None is reached by the 98-scenario --standalone suite. Decide per vtable whether the image can call it (the game makes no CWnd; CWinThread is replaced by the host's threads, S16) and port or list as unreachable; also the 13 forwarders to the exe's CRT file / time functions and _getptd / CWnd::DestroyWindow that run only in the hook build (behind ei::Standalone())."
+
+[[ticket]]
+id = "S16e"
+title = "Tooling: vtable slots must be function starts; library.csv 'not a function' rows out of the library count"
+group = "standalone"
+depends = ["S16d"]
+files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
+note = "S16d found three strings read as code pointers (0074676C '%ld', 0074718C 'dde', 007474B8 'a/p'): find_vtables.py takes any .text value as a slot, so a regenerated vtables.csv brings _AFX_CTL3D_THREAD's 2nd slot and the 007474B8 row back (fixed by hand). Make it accept only function starts (functions.csv minus library.csv 'not a function' rows). dashboard_data.py counts the four 'not a function' library.csv rows in library_functions (a denominator nothing can reach); leave them out there (keep them out of the game count). standalone_gaps.py already skips them."
 
 # ---------------------------------------------------------------- Lua
 

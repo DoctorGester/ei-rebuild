@@ -197,7 +197,9 @@
 #include "harness_digest.h"
 #include "harness_heap.h"
 #include "harness_leftovers.h"
+#include "harness_path_cells.h"
 #include "harness_savetrace.h"
+#include "harness_watch.h"
 #include "harness_hooks.h"
 #include "harness_starter.h"
 #include "harness_net.h"
@@ -807,6 +809,8 @@ int __fastcall HeldServerUpdate(void* server, void*) {
     const int result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
     digest::AfterWorldUpdate(server);   // a state record when its period says so
+    watch::AfterWorldUpdate();          // EI_WATCH_CUNIT (harness_watch.h)
+    watch::ScrubStack();                // EI_STACK_SCRUB (harness_watch.h)
     return result;
 }
 int __fastcall HeldClientSegment(void* client, void*) {
@@ -2769,6 +2773,8 @@ struct Harness {
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
         leftovers::Install();   // unit statistics stack copies zeroed in the original too (harness_leftovers.h, SV7b3)
+        if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
+        path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
