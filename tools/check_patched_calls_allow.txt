@@ -1,0 +1,21 @@
+# Reviewed direct calls to our rewrite of a Rebirth-patched function (tools/check_patched_calls.py).
+# One per line: <patched address, or *> <undecorated caller, * allowed>  # reason
+# Callers in tests/verify and tests/vectors (verify wrappers call both implementations) and a function
+# calling itself are allowed without a line. Each entry is a call the original makes directly too, or a
+# family of functions one flag covers.
+
+# The script parser / evaluator family: CalcParameters 004B4030, CalcFloat 004B41E0, CalcObject 004B56C0,
+# CalcGroup 004B5B00, LoadFunction 004CFBC0 and KeywordName 004D0BA0 are all Rebirth's AddNewScriptCommands
+# (one flag, Patch::AddNewScriptCommands; script_eval.cpp and script_parse*.cpp implement it behind
+# EI_REBIRTH_IMPLEMENTS). With the flag off our family is the vanilla code; with it on all of them
+# behave as addon's, so calls between them never mix patched and unpatched members.
+004B4030 SSCCmd::CalcFloat        # script evaluator family (AddNewScriptCommands): one flag
+004B4030 SSCCmd::PrepareArguments # script evaluator family (AddNewScriptCommands): one flag
+004B41E0 SSCCmd::CalcParameters   # script evaluator family (AddNewScriptCommands): one flag
+004B56C0 SSCCmd::CalcParameters   # script evaluator family (AddNewScriptCommands): one flag
+004B5B00 SSCCmd::CalcParameters   # script evaluator family (AddNewScriptCommands): one flag
+004D0BA0 CScript::LoadFunction    # script parser family (AddNewScriptCommands): one flag
+
+# The original inlines these: no call exists in game.exe, so none can reach a patch.
+0057BD10 GameFlow::ProcessRequest # 0057C700 contains StartNewGame's steps inline (the AutoExec site 0057C9A3 is inside 0057C700, 0057BD30 inside 0057BD10)
+006714A0 CMMIOResource::Destroy   # the original's CMMIOResource destructor ends with CMappedResource::Destroy's body inline (ResOverride 006714A2 is vanilla-only, deferred)
