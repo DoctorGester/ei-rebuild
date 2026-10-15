@@ -229,7 +229,7 @@ int(__fastcall* s_runTick)(Terrain*, void*);
 
 int __fastcall RunTickVerify(Terrain* self, void*) {
     int frame = self->frame;
-    int result = self->Terrain::RunTick();
+    int result = self->Terrain::RunTickImpl();
     ei::verify::Check("Terrain::RunTick", 1, result, "result");
     ei::verify::Check("Terrain::RunTick", frame + 1, self->frame, "frame counter");
     return result;

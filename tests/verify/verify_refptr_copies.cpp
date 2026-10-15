@@ -558,7 +558,8 @@ static RefPtr* __fastcall CopyAssignedVerify(const RefPtr* first, const RefPtr* 
     RefPtr* end = stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(first, last, out);
     bool ok = end == out + (last > first ? last - first : 0);
     for (const RefPtr* p = first; ok && p < last; ++p) ok = out[p - first].ptr == p->ptr;
-    ei::verify::Check("stlp::copy<counted_ptr> 004AB910", true, ok, "%d", static_cast<int>(last - first));
+    ei::verify::Check("stlp::copy<counted_ptr> (004AB910, 00429080)", true, ok, "%d", static_cast<int>(last - first));
     return end;
 }
 EI_VERIFY(0x004AB910, CopyAssignedVerify, 0, s_unusedCopyCounted);
+EI_VERIFY(0x00429080, CopyAssignedVerify, 0, s_unusedCopyCounted);   // S12g: the same code

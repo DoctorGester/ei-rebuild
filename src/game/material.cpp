@@ -159,7 +159,7 @@ int CMaterialManager::Create() {
     return 1;
 }
 
-CEngineObject* CMaterialManager::NewObject(int type) {
+CEngineObject* CMaterialManager::NewObjectImpl(int type) {
     void* block = gamecrt::operator_new(sizeof(CMaterial));
     if (!block) return nullptr;
     CMaterial* material = static_cast<CMaterial*>(block)->Construct();
@@ -196,9 +196,6 @@ EI_REPLACE(0x0068E510, MaterialManagerClassId);
 
 namespace {
 int __fastcall MaterialManagerCreateHook(CMaterialManager* self) { return self->CMaterialManager::Create(); }
-CEngineObject* __fastcall MaterialManagerNewObjectHook(CMaterialManager* self, void*, int type) {
-    return self->CMaterialManager::NewObject(type);
-}
 } // namespace
 EI_REPLACE(0x0068E640, MaterialManagerCreateHook);
-EI_REPLACE(0x0068E900, MaterialManagerNewObjectHook);
+EI_REPLACE_METHOD(0x0068E900, CMaterialManager::NewObjectImpl);

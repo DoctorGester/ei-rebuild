@@ -267,9 +267,11 @@ public:
     // that fmod(tick * secondsPerTick + base, 24) = hours). The server's 0058EEA0 also updates the
     // players' times first (game kinds 1 and 3), marks them dirty (4) and updates the weather.
     virtual void SetTime(float hours);
+    void SetTimeImpl(float hours);   // body of the slot above (registered by member pointer)
     // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
+    void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
@@ -471,7 +473,9 @@ public:
     void MarkPlayersDirty(std::uint32_t mask);
     // world_time.cpp. 0058EEA0 / 0058EEE0: slots 31 / 32 (see CWorld).
     void SetTime(float hours) override;
+    void SetTimeImpl(float hours);   // body of the slot above (registered by member pointer)
     void SetTimeSpeed(float speed) override;
+    void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
     // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
     // 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3* direction, float strength);
@@ -1116,6 +1120,7 @@ public:
     int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
     CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
     void TakeNew(void* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
+    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
 
     // 0055F280. The link released, the root vtable left.
     void Destruct();
@@ -1138,6 +1143,7 @@ public:
     // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
     // and the list emptied (its blocks freed).
     void TakeNew(void* joined) override;
+    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
 };
 static_assert(sizeof(CClientHandle) == 8);
 

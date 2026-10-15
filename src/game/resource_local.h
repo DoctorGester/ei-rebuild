@@ -32,7 +32,7 @@ struct LocalStream {
     void Fill(const void* data, std::uint32_t size) {
         stream.reading_ = 0;
         stream.Write(data, size);
-        stream.CMemoryStream::Seek(0);
+        stream.CMemoryStream::SeekImpl(0);
         stream.reading_ = 1;
     }
     CMemoryStream stream;

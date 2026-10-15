@@ -266,8 +266,13 @@ EI_REPLACE(0x0053D970, Vector1::DeleteBase);
 EI_REPLACE(0x0053D990, Vector1::DeleteBase);
 EI_REPLACE(0x0053D9B0, Vector1::DeleteBase);
 
-// _M_allocate_and_copy(n, first, last) of 16 bytes.
+// _M_allocate_and_copy(n, first, last) of 16 bytes, pointers (the item stock's three vectors; S12g)
+// and 24 bytes (the client maps; S12g).
 EI_REPLACE(0x0069DB00, Vector16::AllocateAndCopy);
+EI_REPLACE(0x0069D9A0, Vector4::AllocateAndCopy);
+EI_REPLACE(0x0069DC70, Vector4::AllocateAndCopy);
+EI_REPLACE(0x0069DDD0, Vector4::AllocateAndCopy);
+EI_REPLACE(0x00573520, Vector24::AllocateAndCopy);
 
 // _M_insert_overflow(pos, x, n): 4 bytes (9), 16 (2), 24 and 2.
 EI_REPLACE(0x0043B6C0, Vector4::InsertOverflow);
@@ -345,6 +350,7 @@ EI_REPLACE(0x00575E50, StringVector::RangeInsert);
 EI_REPLACE(0x00581860, StringVector::Clear);
 EI_REPLACE(0x00583CB0, StringVector::EraseRange);
 EI_REPLACE(0x00421260, StringVector::Destruct);   // S3c: the quest files and folders 007AFDD0 / 007AFDC0 at exit
+EI_REPLACE(0x0053D7F0, StringVector::AllocateAndCopy);   // S12g: the unit skins' names
 
 // vector<RefPtr> and vector<counted_ptr<T>> (CountedRefElement, stlp_vector_refs.h).
 namespace {
@@ -353,6 +359,7 @@ using CountedRefVector = stlp::VectorAbi<RefPtr, stlp::CountedRefElement>;
 EI_REPLACE(0x00426F00, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x004AB320, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x004AB910, (stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>));   // S16a: the party records' copy
+EI_REPLACE(0x00429080, (stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>));   // S12g: the client's parties (same code)
 EI_REPLACE(0x004AB520, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x0060A120, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x00421ED0, CountedRefVector::EraseRange);
@@ -360,6 +367,8 @@ EI_REPLACE(0x004A9A00, CountedRefVector::EraseRange);
 // resize(n): the RefPtr chunk vector (004200C0), the party manager's records and class templates
 // (004AD700 / 004AD8D0; counted_ptr<T>).
 EI_REPLACE(0x004200C0, CountedRefVector::ResizeDefault);
+// uninitialized_copy (ECX first, EDX last, RET 8): the client's party members (S12g).
+EI_REPLACE(0x0042AF80, CountedRefVector::UninitializedCopy);
 EI_REPLACE(0x004AD700, CountedRefVector::ResizeDefault);
 EI_REPLACE(0x004AD8D0, CountedRefVector::ResizeDefault);
 
@@ -369,6 +378,7 @@ using SharedRefVector = stlp::VectorAbi<RefPtr, stlp::SharedRefElement>;
 } // namespace
 EI_REPLACE(0x00421D90, SharedRefVector::EraseRange);
 EI_REPLACE(0x00426CB0, SharedRefVector::FillInsert);
+EI_REPLACE(0x0042AE90, SharedRefVector::UninitializedCopy);   // S12g: the net messages' shared copies
 
 // The plain-data helpers compiled out of line (S12d): _Construct of a uint16 (the id pools), of
 // 4-byte values (the freed ids, the battle screen's ids); copy of ints (__copy_trivial: memmove) and
@@ -376,6 +386,7 @@ EI_REPLACE(0x00426CB0, SharedRefVector::FillInsert);
 EI_REPLACE(0x0043D7E0, stlp::ConstructAt<std::uint16_t>);
 EI_REPLACE(0x0043D7F0, stlp::ConstructAt<std::uint32_t>);
 EI_REPLACE(0x0064B620, stlp::ConstructAt<std::uint32_t>);
+EI_REPLACE(0x004193D0, stlp::CopyTrivial<char>);   // S12g: the net strings' bytes (memmove)
 EI_REPLACE(0x0043B360, stlp::CopyTrivial<std::uint32_t>);
 EI_REPLACE(0x0043DC80, stlp::CopyElements<std::uint32_t>);
 EI_REPLACE(0x00571E30, stlp::CopyElements<std::uint32_t>);   // S16a: the client's drawn objects

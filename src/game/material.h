@@ -93,6 +93,7 @@ public:
     int Create() override;
     // 14: 0068E900. A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
+    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
     // 0068E970 (RET 4). A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
     // check) given the table's colours for its type_ (an absent key is entered first, its colours
     // the key's bits in every dword).

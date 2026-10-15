@@ -75,7 +75,7 @@ CTextureManager* __fastcall DeleteVerify(CTextureManager* self, void*, unsigned 
 }
 
 CEngineObject* __fastcall CreateObjectVerify(CTextureManager* self, void*, int type, int id) {
-    CEngineObject* object = self->CTextureManager::CreateObject(type, id);
+    CEngineObject* object = self->CTextureManager::CreateObjectImpl(type, id);
     const std::uint32_t flag = type == 0x3E ? 0x80u : type == 0x3F ? 0x100u : type == 0x40 ? 0x200u : 0x40u;
     ei::verify::Check("CTextureManager::CreateObject", true, (object->flags_ & flag) != 0 && object->owner_ == self,
                       "manager %p type 0x%X -> %p", self, type, object);

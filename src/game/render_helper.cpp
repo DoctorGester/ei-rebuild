@@ -231,7 +231,7 @@ EI_REPLACE_METHOD(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 // a block of its own with its blend factors (an empty block without them). The check of a stage's
 // operations ands the operation's number with the device's capability bits, as the original does;
 // a stage that fails it ends the first block there. Returns the new preset.
-CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool singleStage) {
+CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, bool singleStage) {
     const int count = static_cast<int>(states->size());
     int stages;
     if (singleStage) {
@@ -324,16 +324,12 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     return preset;
 }
 
-CRenderPreset* __fastcall RenderHelperRecord(CRenderHelper* self, void*, const StateVector* states, int index,
-                                             bool singleStage) {
-    return self->CRenderHelper::Record(states, index, singleStage);
-}
-EI_REPLACE(0x004FD2A0, RenderHelperRecord);
+EI_REPLACE_METHOD(0x004FD2A0, CRenderHelper::RecordImpl);
 
 // 004FD9D0 (slot 3, RET 4). The preset's state blocks deleted, its place among the built-in presets
 // cleared, and its record erased (hashtable::erase(key) as STLport writes it: the bucket's later
 // nodes first, then its head). The record holds the preset, so this usually deletes it.
-void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
+void CRenderHelper::ReleaseBlockImpl(CRenderPreset* preset) {
     for (int i = 0; i < static_cast<int>(preset->blocks_.size()); ++i) {
         const std::uint32_t block = preset->blocks_[i];
         const HRESULT result = device::DeleteStateBlock(device_, block);
@@ -358,10 +354,7 @@ void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
     }
 }
 
-void __fastcall RenderHelperReleaseBlock(CRenderHelper* self, void*, CRenderPreset* preset) {
-    self->CRenderHelper::ReleaseBlock(preset);
-}
-EI_REPLACE(0x004FD9D0, RenderHelperReleaseBlock);
+EI_REPLACE_METHOD(0x004FD9D0, CRenderHelper::ReleaseBlockImpl);
 
 // ---- The helper's lifetime ----------------------------------------------------------------------------
 

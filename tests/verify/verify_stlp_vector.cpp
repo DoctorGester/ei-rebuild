@@ -429,6 +429,7 @@ struct HelperCheck {
 };
 template <std::uintptr_t A> using Helper2 = HelperCheck<A, std::uint16_t>;
 template <std::uintptr_t A> using Helper4 = HelperCheck<A, std::uint32_t>;
+template <std::uintptr_t A> using Helper1 = HelperCheck<A, char>;
 
 } // namespace
 
@@ -601,6 +602,11 @@ EI_VERIFY(0x0053D970, Change1<0x0053D970>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D990, Change1<0x0053D990>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D9B0, Change1<0x0053D9B0>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0069DB00, Change16<0x0069DB00>::AllocateAndCopy, 5, Change16<0x0069DB00>::original);
+// S12g: pointers (the item stock's vectors) and 24 bytes (the client maps): push ebp; mov ebp,esp; push -1 (5 bytes).
+EI_VERIFY(0x0069D9A0, Change4<0x0069D9A0>::AllocateAndCopy, 5, Change4<0x0069D9A0>::original);
+EI_VERIFY(0x0069DC70, Change4<0x0069DC70>::AllocateAndCopy, 5, Change4<0x0069DC70>::original);
+EI_VERIFY(0x0069DDD0, Change4<0x0069DDD0>::AllocateAndCopy, 5, Change4<0x0069DDD0>::original);
+EI_VERIFY(0x00573520, Change24<0x00573520>::AllocateAndCopy, 5, Change24<0x00573520>::original);
 EI_VERIFY(0x0043B6C0, Change4<0x0043B6C0>::InsertOverflow, 5, Change4<0x0043B6C0>::original);
 EI_VERIFY(0x0043B850, Change4<0x0043B850>::InsertOverflow, 5, Change4<0x0043B850>::original);
 EI_VERIFY(0x0043D5F0, Change4<0x0043D5F0>::InsertOverflow, 5, Change4<0x0043D5F0>::original);
@@ -645,6 +651,8 @@ EI_VERIFY(0x0062A0B0, Change60<0x0062A0B0>::InsertOverflow, 5, Change60<0x0062A0
 // PUSH ESI; SAR EDX,2; 0043DC80: MOV EAX,[ESP+4]; SUB EDX,ECX).
 EI_VERIFY(0x0043B530, Change2<0x0043B530>::InsertOverflow, 5, Change2<0x0043B530>::original);
 EI_VERIFY(0x00439DD0, Change8<0x00439DD0>::EraseRange, 5, Change8<0x00439DD0>::original);
+// S12g: the net strings' bytes: push esi; mov esi,edx; sub esi,ecx (5 bytes).
+EI_VERIFY(0x004193D0, Helper1<0x004193D0>::CopyTrivial, 5, Helper1<0x004193D0>::original);
 EI_VERIFY(0x0043B360, Helper4<0x0043B360>::CopyTrivial, 6, Helper4<0x0043B360>::original);
 EI_VERIFY(0x0043DC80, Helper4<0x0043DC80>::CopyElements, 6, Helper4<0x0043DC80>::original);
 EI_VERIFY(0x00571E30, Helper4<0x00571E30>::CopyElements, 6, Helper4<0x00571E30>::original);

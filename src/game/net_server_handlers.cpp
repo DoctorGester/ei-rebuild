@@ -85,17 +85,14 @@ EI_REPLACE_METHOD(0x0041AA10, ServerSession::AnnounceToMaster);
 // 0041ACA0 (slot 10, RET 8). A packet of kind -1: only from the master server's address (all 16
 // bytes compared). Its first dword must be the session's +0x25FC; the second is then kept at
 // +0x2578 (the next announcement sends it back). The first dword is consumed either way.
-void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
+void ServerSession::OnMasterImpl(const NetAddress* from, BufferCursor* cursor) {
     if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0) return;
     if (TakeDword(cursor) != masterKey_) return;
     masterToken_ = TakeDword(cursor);
 }
 namespace {
-void __fastcall ServerOnMasterHook(ServerSession* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->ServerSession::OnMaster(from, cursor);
-}
 } // namespace
-EI_REPLACE(0x0041ACA0, ServerOnMasterHook);
+EI_REPLACE_METHOD(0x0041ACA0, ServerSession::OnMasterImpl);
 
 // 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read
 // (0079B924; nothing when it is gone or detached): the first binding of that connection names the

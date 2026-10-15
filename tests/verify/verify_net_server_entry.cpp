@@ -11,7 +11,7 @@ namespace {
 void* s_unused;
 
 void __fastcall DescribeVerify(net::ServerSession* self, void*, RefPtr* out) {
-    self->ServerSession::Describe(out);
+    self->ServerSession::DescribeImpl(out);
     auto* entry = reinterpret_cast<const std::uint8_t*>(out->ptr);
     bool ok = entry != nullptr;
     if (ok) {

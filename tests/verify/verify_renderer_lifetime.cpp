@@ -119,8 +119,8 @@ static void __fastcall DestructRendererVerify(CSceneRenderer* self) {
 EI_VERIFY(0x00500AC0, DestructRendererVerify, 0, s_unused[5]);
 
 static void* __fastcall DeleteRendererVerify(CSceneRenderer* self, void*, unsigned flags) {
-    if (flags & 1) return self->CSceneRenderer::DeleteRenderer(flags);
-    void* result = self->CSceneRenderer::DeleteRenderer(flags);
+    if (flags & 1) return self->CSceneRenderer::DeleteRendererImpl(flags);
+    void* result = self->CSceneRenderer::DeleteRendererImpl(flags);
     ei::verify::Check("CSceneRenderer::DeleteRenderer", true, result == self && BaseCleared(self) && !self->device_,
                       "%p", static_cast<void*>(self));
     return result;
@@ -143,7 +143,7 @@ static void __fastcall SetBaseColourVerify(CSceneRenderer* self, void*, std::uin
 EI_VERIFY(0x00500740, SetBaseColourVerify, 0, s_unused[8]);
 
 static void __fastcall SetColourVerify(CSceneRenderer* self, void*, std::uint32_t colour) {
-    self->CSceneRenderer::SetColour(colour);
+    self->CSceneRenderer::SetColourImpl(colour);
     bool ok = self->colour_ == colour && self->device_->colour_ == colour;
     ei::verify::Check("CSceneRenderer::SetColour", true, ok, "%08X", colour);
 }
@@ -178,7 +178,7 @@ static int __fastcall ClearFrameVerify(CSceneRenderer* self) {
 EI_VERIFY(0x00501A40, ClearFrameVerify, 0, s_unused[12]);
 
 static int __fastcall SetTextureVerify(CSceneRenderer* self, void*, int stage, void* texture) {
-    int result = self->CSceneRenderer::SetTexture(stage, texture);
+    int result = self->CSceneRenderer::SetTextureImpl(stage, texture);
     CDXSurface* expected = texture ? static_cast<CTexture*>(texture)->surface_ : nullptr;
     bool ok = result == 1 && self->device_->stageSurfaces_[stage] == expected;
     ei::verify::Check("CSceneRenderer::SetTexture", true, ok, "stage %d texture %p", stage, texture);
@@ -188,7 +188,7 @@ EI_VERIFY(0x00501AF0, SetTextureVerify, 0, s_unused[13]);
 
 static int __fastcall DrawFigureVerify(CSceneRenderer* self, void*, void* figure, const void* a, const void* b,
                                        void* material, int alpha, tagRECT* screen) {
-    int result = self->CSceneRenderer::DrawFigure(figure, a, b, material, alpha, screen);
+    int result = self->CSceneRenderer::DrawFigureImpl(figure, a, b, material, alpha, screen);
     ei::verify::Check("CSceneRenderer::DrawFigure", 1, result, "%p", figure);
     return result;
 }
@@ -196,14 +196,14 @@ EI_VERIFY(0x00501D00, DrawFigureVerify, 0, s_unused[14]);
 
 static int __fastcall DrawFigureLitVerify(CSceneRenderer* self, void*, void* figure, const void* lights, void* material,
                                           int alpha, tagRECT* screen, CTexture* textureA, CTexture* textureB) {
-    int result = self->CSceneRenderer::DrawFigureLit(figure, lights, material, alpha, screen, textureA, textureB);
+    int result = self->CSceneRenderer::DrawFigureLitImpl(figure, lights, material, alpha, screen, textureA, textureB);
     ei::verify::Check("CSceneRenderer::DrawFigureLit", 1, result, "%p", figure);
     return result;
 }
 EI_VERIFY(0x00501D40, DrawFigureLitVerify, 0, s_unused[15]);
 
 static void __fastcall DrawLineListVerify(CSceneRenderer* self, void*, void* lines) {
-    self->CSceneRenderer::DrawLineList(lines);
+    self->CSceneRenderer::DrawLineListImpl(lines);
     ei::verify::Check("CSceneRenderer::DrawLineList", true, true, "");
 }
 EI_VERIFY(0x00501CE0, DrawLineListVerify, 0, s_unused[16]);

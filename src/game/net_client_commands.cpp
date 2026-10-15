@@ -127,7 +127,7 @@ EI_REPLACE_METHOD(0x0041D260, ClientSession::SendCommand);
 
 // 0041D420 (slot 16): makes `*out` an empty server entry (no name or description, kind 4, no
 // players).
-void ClientSession::CreateEntry(RefPtr* out) {
+void ClientSession::CreateEntryImpl(RefPtr* out) {
     auto* entry = NewMessageMemory<ServerEntry>();
     if (entry) {
         ServerEntryConstructBase(entry);
@@ -171,9 +171,8 @@ void ClientSession::CreateEntry(RefPtr* out) {
     out->Share(entry);
 }
 namespace {
-void __fastcall ClientDescribeHook(ClientSession* self, void*, RefPtr* out) { self->ClientSession::CreateEntry(out); }
 } // namespace
-EI_REPLACE(0x0041D420, ClientDescribeHook);
+EI_REPLACE_METHOD(0x0041D420, ClientSession::CreateEntryImpl);
 
 
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
