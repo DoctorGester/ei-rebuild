@@ -7,21 +7,6 @@ CUnitServer::SaveServer (005561C0, combat_save.cpp).
 
 import savefile_objects as objects
 
-UNSET_SHELTER = 0xC4A42000  # -1313.0f, FearMode::Construct's "no shelter"
-
-
-def peek_u32(r, at=0):
-    """The dword `at` bytes ahead, unread (None past the end)."""
-    v = r.peek_i32(at)
-    return None if v is None else v & 0xFFFFFFFF
-
-
-def junk_vec(r, name, why, n=3):
-    with r.scope(name):
-        for i in range(n):
-            r.junk('xyzw'[i], 4, why)
-
-
 # ---- small records -------------------------------------------------------------------------------------
 
 def read_step_list(r, name):
@@ -33,7 +18,9 @@ def read_step_list(r, name):
                 r.u8('animation')
                 r.u8('variant')
                 r.u8('flags')
-                r.junk('padding', 1, 'AnimationStep +3: 00550A60 never sets the byte, the step carries a stack byte')
+                r.junk('padding', 1, 'AnimationStep +3: 00550A60 never sets the byte, and the original step '
+                       'builders (BuildTransition 005516D0, BuildOrderSteps 00550100, BuildAttackSteps 0054F970) copy '
+                       'stack steps they construct inline, so the step carries a stack byte (ours: 0)')
                 r.i32('duration')
                 r.i32('kind')
     return count
@@ -72,16 +59,9 @@ def read_path(r, name):
         for i in range(count):
             read_path_cell(r, f'cell{i}')
         kind = read_motion_order(r)
-        x = peek_u32(r)
         r.f32('targetX')
-        y = peek_u32(r)
         r.f32('targetY')
-        if x == 0 and y == 0:
-            junk_vec(r, 'goal', 'AIPath +0x60 goal while targetX/Y are 0 (the clear 005B23A0, no search since): only '
-                     'FindPath sets it (PathTo then +0x68), read only after a search (Replan, ReportPath); unset '
-                     'before the first one')
-        else:
-            r.vec('goal')
+        r.vec('goal')   # SV7b2: the controller starts zeroed, so unset is 0
         r.u8('reached')
         r.u8('failed')
         r.u8('flag6E')
@@ -99,26 +79,17 @@ def read_plan(r, name):
     """The current plan: AnimationSteps::Save (00544F60: the count, the steps, extra), then the plan's fields
     (SavePlanFields, combat_save.cpp)."""
     with r.scope(name):
-        steps = read_step_list(r, 'animation')
+        read_step_list(r, 'animation')
         r.i32('animation.extra')
         r.i32('startTime')
-        end = r.i32('endTime')
-        target = r.id('targetId')
+        r.i32('endTime')
+        r.id('targetId')
         r.i32('hitLocation')
         r.f32('rangeSq')
         r.u8('isCast')
         r.u8('notSkill')
         r.i32('castKind')
-        if steps == 0 and end == 0 and target == -1:
-            junk_vec(r, 'direction', 'OrderPlan +0x38 direction of an empty plan (OrderPlanReset 00544FD0 / '
-                     'ResetController leave it): only PlanAction (0054CA40) sets it, for the plan it makes; unset '
-                     'before the first plan, a leftover after')
-        else:
-            r.vec('direction')
-
-
-ORDER_NO_SOURCE = (0, 2, 7, 8, 9, 11)   # UnitAction kinds whose setters leave +0x04
-ORDER_NO_POINT = (0, 7, 8, 9, 11)       # and +0x0C
+        r.vec('direction')   # SV7b2: the controller starts zeroed, so unset is 0
 
 
 def read_order(r, name):
@@ -126,32 +97,16 @@ def read_order(r, name):
     param, modifier and flag18."""
     with r.scope(name):
         kind = r.i32('kind')
-        if kind in ORDER_NO_SOURCE:
-            r.junk('source', 4, 'UnitAction +0x04 of an order of kind 0, 2, 7, 8, 9 or 11: none of their setters '
-                   '(OrderTurn, PlayAnimation, StopQueued, the resets 0054B230 / 00545F70) sets it; a leftover '
-                   'or never set')
-        else:
-            r.x32('source')
+        r.x32('source')   # SV7b2: the controller starts zeroed; kinds 0, 2, 7, 8, 9, 11 leave it (0 or the last order's)
         r.id('target')
-        if kind in ORDER_NO_POINT:
-            junk_vec(r, 'point', 'UnitAction +0x0C of an order of kind 0, 7, 8, 9 or 11: their setters '
-                     '(PlayAnimation, StopQueued, the resets 0054B230 / 00545F70, ResetController) leave it; a '
-                     'leftover or never set')
-        else:
-            r.vec('point')
+        r.vec('point')   # SV7b2: as source; kinds 0, 7, 8, 9, 11 leave it
         r.i32('param')
         r.u8('modifier')
         r.u8('flag18')
 
 
-STATS_STACK = ('UnitStats is built as a stack copy (UnitStatsBuilder::ApplyPrototype 00513B60, the party records) '
-               'and UnitStats::Reset (005233E0) does not clear this')
-
-
 def read_stat_slot(r, name):
     """A UnitStatSlot (unit.h, 0xF4 bytes) of the raw stats block."""
-    spare = ('UnitStatLayer +0x20..+0x3B spareAbsorb: nothing reads it, only ClearOuterLayers zeroes it; '
-             + STATS_STACK)
     with r.scope(name):
         r.i32('type')
         r.x32('vitalMask')
@@ -161,27 +116,21 @@ def read_stat_slot(r, name):
                 for t in range(7):
                     r.f32(f'absorb{t}')
                 for t in range(7):
-                    r.junk(f'spareAbsorb{t}', 4, spare)
+                    r.f32(f'spareAbsorb{t}')
                 r.i32('state')
                 r.x32('spareA')
                 r.x32('spareB')
         kind = r.i32('kind')
         r.f32('current')
         r.f32('maximum')
-        if kind == 0:
-            why = ('UnitStatSlot +0xEC/+0xF0 (share, factor) of an unused slot (kind 0): UnitStatSlot::Reset (00523600) '
-                   'leaves them and the builders set them only for the slots of the model; ' + STATS_STACK)
-            r.junk('share', 4, why)
-            r.junk('factor', 4, why)
-        else:
-            r.f32('share')
-            r.f32('factor')
+        r.f32('share')
+        r.f32('factor')
 
 
 def read_stats(r, name, text_key):
     """UnitStats::SaveTo (00528800, unit_stats_io.cpp): the whole 0x704-byte block (unit.h) raw."""
     with r.scope(name):
-        r.junk('builtFlags', 4, 'UnitStats ' + objects.BUILT_FLAGS)
+        r.x32('builtFlags')
         r.f32('experience')
         r.f32('spentExperience')
         for n in ('stat10Base', 'stat10', 'stat18Base', 'stat18', 'stat20Base', 'stat20', 'speedBase', 'speed',
@@ -194,7 +143,7 @@ def read_stats(r, name, text_key):
         r.i32('movementKind')
         r.x32('modelField8')
         r.i16('sizeClass')
-        r.junk('unused6A', 2, 'UnitStats +0x6A: an int16 nothing writes; ' + STATS_STACK)
+        r.i16('unused6A')
         r.i16('sizeClass20')
         r.i16('sizeClass60')
         for n in ('reach', 'attack', 'attackSpread', 'defence', 'speedCombat', 'damage', 'damageSpread'):
@@ -212,15 +161,9 @@ def read_stats(r, name, text_key):
         r.raw('attributes', 3)
         r.raw('skills', 8)
         r.raw('skillLevels', 0x24)
-        r.junk('skillLevels36', 1, 'UnitStats +0x6F7: the 37th skill level byte; Reset clears 36 (0x6D3..0x6F6), '
-               'the trade panel copies 36 and no skill reaches index 36; ' + STATS_STACK)
+        r.u8('skillLevels36')
         r.x32('flags')
-        if text_key:
-            r.junk('fixedMaxHitPoints', 4, 'UnitStats +0x6FC of a text-key unit: RecomputeHitPoints (005243D0) reads '
-                   'it only for units without a text key, and the stats of a text-key unit come from its party record, '
-                   'which does not set it; ' + STATS_STACK)
-        else:
-            r.f32('fixedMaxHitPoints')
+        r.f32('fixedMaxHitPoints')
         r.f32('pendingExperience')
 
 
@@ -271,14 +214,8 @@ def read_mode(r, name):
         elif kind == 2:     # SentryMode::Save 005D1DC0
             r.vec('point')
         elif kind == 3:     # SuspectionMode::Save 005D2360
-            why = ('SuspectionMode +0x08..+0x17 (point, level): the constructors (AddSuspectionMode, NewModeOfType, '
-                   'the script\'s) leave them; Evaluate (005D1E90, each Think) either copies the brain\'s noticed point '
-                   'and level (saved with the brain: noticedX/Y/Level) with z 0, or, while the point compares the same '
-                   '(unordered too), keeps the leftover point and takes min(leftover level, noticedLevel). Whether it '
-                   'ever copied cannot be told from the save when the leftover z is 0 (the original\'s plain heap holds '
-                   'zeros, EI_HEAP_JITTER fill and ours other bytes), so both are left out')
-            junk_vec(r, 'point', why)
-            r.junk('level', 4, why)
+            r.vec('point')   # SV7d4: zeroed before the constructors (SuspectionMode::ClearFields)
+            r.i32('level')
         elif kind == 4:     # AggressionMode::Save 005D27A0
             r.id('enemy')
             r.u8('fixed')
@@ -292,28 +229,9 @@ def read_mode(r, name):
         elif kind == 7:     # FearMode::Save 005D36F0
             r.f32('distance')
             r.f32('spread')
-            with r.scope('shelter'):
-                x = peek_u32(r)
-                r.f32('x')
-                if x == UNSET_SHELTER:
-                    why = ('FearMode +0x14/+0x18 (shelter y, z) while x is -1313 (no shelter): FearMode::Construct '
-                           '(005D2850) sets only x')
-                    r.junk('y', 4, why)
-                    r.junk('z', 4, why)
-                else:
-                    r.f32('y')
-                    r.f32('z')
+            r.vec('shelter')   # SV7b2: Fear modes start zeroed (FearMode::ClearFields), so the unset y / z are 0
             r.u8('flag')
-            with r.scope('fleePoint'):
-                if peek_u32(r, 8) == 0:
-                    why = ('FearMode +0x1C/+0x20 (fleePoint x, y) while z is 0 (none pending): FearMode::Construct '
-                           '(005D2850) sets only z, and they are read only while z is 1')
-                    r.junk('x', 4, why)
-                    r.junk('y', 4, why)
-                else:
-                    r.f32('x')
-                    r.f32('y')
-                r.f32('z')
+            r.vec('fleePoint')
         elif kind == 10:    # FollowMode::Save 005D1E80
             r.id('leader')
         else:
@@ -454,24 +372,15 @@ def read_controller(r, text_key):
         r.i32('savedQueue.extra')
         r.x32('hitDirection')
         r.i32('state')
-        sneaking = 0
         for name in ('moveMode', 'moveMode2'):      # MoveModeState (8 bytes) raw
             with r.scope(name):
                 r.i32('mode')
                 r.u8('flag4')
-                w = r.u8('wasMode3')
-                if name == 'moveMode':
-                    sneaking = w
-                r.junk('pad', 2, 'MoveModeState +6..+7: padding nothing writes (ResetController sets the fields), '
-                       'written with the 8-byte record')
+                r.u8('wasMode3')
+                r.u16('pad')   # SV7b2: padding of the zeroed controller
         r.i32('nextAttackTime')
         r.i32('interceptTime')
-        if sneaking:
-            r.i32('sneakWait')
-        else:
-            r.junk('sneakWait', 4, 'CUnitServer +0x178 while moveMode.wasMode3 is 0: UpdateSneak (00548520) counts '
-                   'and reads it only while mode 3 is on and zeroes it when mode 3 starts, PathTo (00548700) zeroes '
-                   'it; neither the constructor nor ResetController sets it')
+        r.i32('sneakWait')   # SV7b2: the controller starts zeroed (UpdateSneak counts it only in mode 3)
         read_order(r, 'action')
         read_order(r, 'action2')
         read_stats(r, 'stats', text_key)
@@ -507,10 +416,7 @@ def read_controller(r, text_key):
                 r.i16(str(i))
         r.i32('boredTicks')
         read_damage_info(r, 'pendingHit')
-        r.junk('waitFrame', 4, 'CUnitServer +0x93C: set to the world tick only when a queued order is taken over '
-               '(TakeQueuedOrder 0054A6E0, LeaveMoveMode), never initialised (the constructor and ResetController '
-               'leave it), so the save cannot tell a stamp from a leftover; the original\'s value follows memory '
-               '(EI_HEAP_JITTER)')
+        r.i32('waitFrame')   # SV7d3: the controller starts zeroed; TakeQueuedOrder / LeaveMoveMode stamp it
     return motion_kind
 
 
@@ -541,18 +447,9 @@ def read_unit_motion(r, order_kind):
             r.f32(f'stepSpeed{i}')
         r.f32('speedScale')
         r.f32('baseTurnRate')
-        why = ('UnitMotion +0x44/+0x4C (turnRate, turn) under a motion order of kind 0 or 3: only Build (005C67D0) '
-               'and SamplePath set them, for kinds 1, 2 and 4, and only those kinds read them (Sample 005C7430); '
-               'the unit (operator new) starts with them unset')
-        if order_kind in (0, 3):
-            r.junk('turnRate', 4, why)
-        else:
-            r.f32('turnRate')
+        r.f32('turnRate')   # SV7b2: the unit starts zeroed; only kinds 1, 2 and 4 set it
         r.f32('startAngle')
-        if order_kind in (0, 3):
-            r.junk('turn', 4, why)
-        else:
-            r.f32('turn')
+        r.f32('turn')
 
 
 def read_items(r, name, n):
@@ -570,7 +467,7 @@ def read_unit(r):
     order_kind = read_controller(r, text_key)
     r.string('scriptName')
     r.x32('relationsA')
-    player = r.i32('player')
+    r.i32('player')
     r.i32('side')
     r.i8('animationEntry')
     r.i8('secondEntry')
@@ -594,11 +491,7 @@ def read_unit(r):
     read_items(r, 'armor', 7)
     with r.scope('levels4C8'):
         for i in range(5):
-            if player == -1:
-                r.junk(str(i), 4, 'CUnit +0x4C8 of a unit without a player: only the party unit\'s memory update '
-                       '(005CB850 from UpdateServer) writes it; the unit (operator new) starts with it unset')
-            else:
-                r.f32(str(i))
+            r.f32(str(i))   # SV7b2: the unit starts zeroed; only the party memory update writes it
     r.x32('relationsB')
     count = r.i32('carried')
     for i in range(count):

@@ -8,6 +8,7 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -198,9 +199,10 @@ void ShareQuestFile(const char* path, const char* name) {
     net::GameServer()->ShareFile(reinterpret_cast<const net::StringRep*>(&listed), data);
 }
 
-// The path of the maps folder's file `file`.
+// The path of the maps folder's file `file` (LoadZoneQuests's).
 stlp::string MapFilePath(const mfc::CString& file) {
     mfc::CString folder;
+    modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
     MapsFolderAt(&folder);
     mfc::CString full = folder + file;
     return stlp::string(static_cast<const char*>(full));
@@ -216,6 +218,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     {
         mfc::CFileFind find;
         mfc::CString folder;
+        modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
         MapsFolderAt(&folder);
         mfc::CString pattern = folder + static_cast<const char*>(file);
         found = find.FindFile(pattern, 0) != 0;

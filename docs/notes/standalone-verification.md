@@ -1314,6 +1314,9 @@ reader (`savefile.py rules FILES` lists the reasons): `~junk` for bytes never se
 | `weightsTail` | ClassTemplate +0x34, archived with the nine weights, never set (004A6580, 004A7630) |
 | `templateN`, `recordN`, `N.object`, `identity` (scenario.sav) | ChunkArchive::SaveObjectRef 0040A440 writes the object's address as its key; the loader maps it to the object it creates |
 
+SV7b2 (below) made most of these rows values again: what is left are the step padding, the script area and
+arrow-hit padding, a sound's `nameTail`, the item stock's `stackTail` and the chunk archive's identities.
+
 With these, two plain runs of the original decode to the same text in all 39 vanilla and 46 Rebirth saving scenarios
 (129 and 153 files), in the runs before and after merging main.
 
@@ -1639,6 +1642,71 @@ files, then reverting each constant); with the float the goldens are the same ag
 (main's last 138 runs: 0); goldens 54 the same, levers and ui_saveload_delete differ only in `#gobject` (SV7b1, as on
 main). No golden re-recorded. After merging main (SV7b1, SV7b4a's re-recorded goldens): 128 runs ALL PASS, 0 verify
 mismatches, all 56 goldens the same; `--standalone --golden` on the 44 scenarios with a vanilla golden: 44 the same.
+
+## SV7b2 / SV7d3 / SV7d4: never-set object fields start zeroed (2026-10-15)
+
+**The canonical value is zero**, as for SV7b3, in ours (kept in the standalone as a determinism fix) and in the original
+through tests/verify/harness_leftovers.cpp (every harness run; each CALL redirected to a harness function that zeroes
+first, then calls the original target; `EI_LEFTOVERS=<hex mask>` now picks families, not sites):
+
+| Family | Original sites | Ours | Fields it settles |
+| --- | --- | --- | --- |
+| server objects | the five `operator new` calls of CServerSpecificManager::NewObjectImpl 004D6970 (player server, 3D object server, CMapObjectServer, CUnitServer, torch spec) | NewObjectImpl: gamecrt::operator_new_zeroed (lib/crt.h) | `controller.waitFrame` (SV7d3: ResolveBlocker waits while CurrentFrame() < waitFrame + 2), `action*.source` / `.point`, `plan.direction`, `motion.goal`, `sneakWait`, `moveMode*.pad`, the controller's `stats.*` with SV7b3, `server.vitals.builtFlags` |
+| map objects | the eleven `operator new` calls of CMapObjectManager::CreateObject 00512730 | CreateObject: operator_new_zeroed | `levels4C8` of units without a player, `motion.turn` / `turnRate` under motion kinds 0 and 3 |
+| Suspection modes | AddSuspectionMode's `operator new` (005D63B5); the calls of 004BA610 from ApplyBehaviour 005D6630 and SSCCmd::Execute (UMAg, UMStandard, UMSuspection: seven) | SuspectionMode::ClearFields in AddSuspectionMode, ApplyBehaviour and ModeCalls::Suspicion (script_exec.cpp) | `brain.modeN.point` / `.level` (SV7d4: Evaluate keeps a point that compares the same, a NaN always does, and the lower level, which picks the brain's mode) |
+| Fear modes | AddFearMode's `operator new` (005D6485); the calls of FearMode::Construct 005D2850 from ApplyBehaviour (three) and SSCCmd::Execute (five) | FearMode::ClearFields in AddFearMode, NewFear (unit_ai_alarm.cpp), ModeCalls::Fear | `shelter.y/z`, `fleePoint.x/y` |
+| class templates | the ten calls of ClassTemplate::Construct 004A6580 (the party manager's builder 004A7630, CreateClassTemplate 00457850): `weightsTail` zeroed first | AddTemplate, CreateClassTemplate | `weightsTail` (scenario.sav) |
+| view positions (S17a, merged after) | CMapObject::Construct's call of CObject3D::Construct (0050E2F2): zeroed after the construction | CObject3D::Construct (map_object_lifetime.cpp) | the draw sorts' view position (no save field); main's S17a site, a family of its own here (bit 6, was bit 10) |
+
+**Without hooks only.** The five SV7b2 families are patched only with EI_NO_HOOKS=1 (SV7b3's and S17a's
+sites stay on in every run, as before). Each of their sites sits in a function ours replaces, and a
+harness patch in a body makes InstallHooks leave the rewrite out ("SKIP ... the harness patches"): with
+them on in hooked runs, NewObjectImpl, CreateObject, AddSuspectionMode, AddFearMode, ApplyBehaviour,
+SSCCmd::Execute, the party manager's builder and CreateClassTemplate ran the original, and on the vanilla
+install SSCCmd::Execute then had no addon commands (rebirth_flags failed: ConsoleString printed its first
+argument, GSSetPlayerVar did nothing). In a hooked run ours zeroes the same blocks.
+
+The harness's noted-patch table (src/hook/hook.cpp) grows from 64 to 256: with these 60 sites it overflowed, and hooked
+runs then skipped four or five registrations whose bytes another harness patch held ("unexpected SKIP").
+
+**Rules removed** (savefile_unit.py, savefile_objects.py, savefile_scenario.py, savefile.py): every row of SV7d's table
+above but the four below, so those fields are compared again. `alarmN.pad` was a value all along: LoadWorld zeroes the
+five alarms before a map loads. Still left out, for they come from stack copies with no call to redirect: the step
+padding (BuildTransition 005516D0, BuildOrderSteps 00550100 and BuildAttackSteps 0054F970 construct their stack steps
+inline; ours zero them, and NextAnimation's blank step now too), the arrow hit's DamageInfo padding (DeliverAttack's
+stack copy), the script areas' part padding (AddRect / AddRound), a sound's `nameTail` and the item stock's
+`stackTail`. The chunk archive keys (`templateN`, `recordN`, `N.object`, `identity`) stay identities numbered by first
+appearance: writing ids instead would change no format the loader reads (it maps any key to the object it creates),
+but the keys are template / record / party addresses with no id, and the record order follows the pointer-keyed hash;
+it did not change in any pass below. SV7b2a holds these.
+
+**Behaviour.** No digest, dump or console of the 97 goldens changed: in plain runs both leftovers were already what
+zero gives (waitFrame 0 from fresh heap pages, a Suspection point 0,0,0 / level 0), so the change only removes what the
+layout could decide. Under jitter it does: the `2,fill` divergence at world update 40 that SV7d noted on SV7d4
+(isaac.count, ai.decay of obj1804 / obj1890 / obj1936) no longer shows with seeds 1 and 2; `3,fill` still parts at
+update 40 in a few runs of either install (vanilla isaac.count 38 / 161, Rebirth 169 / 89, different scenarios on
+each pass: before the second merge 16 Rebirth and one vanilla, after it six vanilla and two Rebirth), so another
+uninitialised read remains (SV7b7).
+
+**Passes** (after merging main with SV7b1, SV7b4a, SV7b8a, SV7d1, SV7d1a, SV7d2; the 53 golden scenarios on both
+installs, 106 runs each; golden.py diff of every digest and dump against the first plain pass, then every decoded
+save):
+
+| Pass | Digests differ | Saves differ |
+| --- | --- | --- |
+| second plain `--no-hooks` | 0 | 0 |
+| EI_HEAP_JITTER=1 | 0 | 0 |
+| EI_HEAP_JITTER=2 | 0 | 0 |
+| EI_HEAP_JITTER=3,fill | 8 at update 40 or 140: levers, render_movie_present, terrain_water_load, ui_battle_commands, ui_saveload_delete (vanilla); magic_traps, ui_saveload, ui_widescreen_hud (Rebirth) (SV7b7) | only in those |
+| ours (hooked; after the third merge, against that tree's plain pass, with the heap-block families off in hooked runs so our NewObjectImpl, CreateObject, mode builders, Execute and template builders run) | 2: ui_widescreen_hud / ui_widescreen_more vanilla, cunit129 flags 0xA2 / 0x4A2 (SV7b8a: designed, no vanilla golden) | 0 |
+
+**Goldens re-recorded**, all 97, from the plain pass and every other pass that agreed with it (89 from six runs; the
+eight above from five, without `3,fill`): only saves.txt changed (85 goldens), 34 decoded saves of the store replaced;
+the second merge's recording gave the same saves. After the third merge (S17a, S19a, SV4c) a plain pass still gave
+the 97 goldens the same and every decoded save as before.
+
+The suite's non-golden frames_basic, render_cpuwindows and render_present (vanilla) leave a saveb\scenario.sav whose
+screen block savefile_scenario.py reads 0x12 bytes too far (not SV7b2's readers; SV7d6).
 
 ## SV7d1a1: the /fp:fast workarounds removed (2026-10-15)
 

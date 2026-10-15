@@ -6,6 +6,7 @@
 #include "game_strings.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
+#include "mod_folders.h"
 #include "world_data.h"
 
 #include "ei/hook.h"
@@ -45,6 +46,10 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 
 int CFigureManager::CreateWithArchives() {
     if (!CBaseManager::Create()) return 0;
+    // Rebirth's ResOverride (005AA544): the mod's figure archives come first.
+    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
+        for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
+    }
     mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
     AddArchive(folder + game::Text(kFiguresArchive));
     AddArchive(folder + game::Text(kMenusArchive));
