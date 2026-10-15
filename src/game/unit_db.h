@@ -348,6 +348,9 @@ struct SkillDatabase {
     // (chunk 2, one chunk 1 each). Returns 1, or what the fatal error report returns when the
     // archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
+    // 0051FB10 (database_construct.cpp; the static initialiser 0051FAF0). Both vectors empty.
+    // Returns this.
+    SkillDatabase* Construct();
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C

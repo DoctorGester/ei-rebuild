@@ -222,3 +222,4 @@ address,size,note
 00704471,27,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
 007044AF,27,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
 007044ED,27,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
+005CDFC0,297,logic settings constructor (S3b; the static initialiser 005CDFB0; no Ghidra function)

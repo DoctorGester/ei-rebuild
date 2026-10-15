@@ -418,6 +418,9 @@ struct IndexedRecordTable {
     void LoadQuickItems(CStream* source, int field);
     void LoadQuestItems(CStream* source, int field);
     void LoadLoot(CStream* source, int field);
+    // The constructor as 0057E3D0 inlines it (database_construct.cpp): no records, an empty index
+    // of 100 buckets (193).
+    void Construct();
 
     // The name index, typed (the materials are filed under their key, +0x00).
     using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
@@ -436,6 +439,9 @@ struct CodeIndexedTable {
     // 0068C820 / 0068C920 (RET 4; spell_db_lookup.cpp). The record filed under `code`: the index's
     // operator[] with a copy of the key, so an unknown code is filed with null.
     char* FindByCode(const char* code);
+    // The constructor as 0057E2F0 inlines it (database_construct.cpp): no records, an empty index
+    // of 100 buckets (193).
+    void Construct();
 
     RecordTable records;            // +0x00 begin, end
     char* capacityEnd;              // +0x08
@@ -452,6 +458,10 @@ struct SpellDatabase {
     // the three lists through a third. 1; FatalError's result when the archive or the file cannot
     // be opened.
     int Load(const char* folder, const char* archive);
+    // 0057E2F0 (database_construct.cpp; the static initialiser 00684360, the resource switch
+    // 0057CB50 and reload 0057DEE0). Both tables (CodeIndexedTable::Construct), the three lists
+    // empty. Returns this.
+    SpellDatabase* Construct();
 
     CodeIndexedTable spells;                    // +0x00 kSpellSize records
     CodeIndexedTable modifiers;                 // +0x20 kSpellModifierSize
@@ -471,6 +481,9 @@ struct ItemDatabase {
     // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index
     // emptied and its buckets freed, every record destroyed, the record storage freed.
     void DestructBody();
+    // 0057E3D0 (database_construct.cpp; the static initialiser 006A6540, the resource switch and
+    // reload). The six tables from the first (IndexedRecordTable::Construct). Returns this.
+    ItemDatabase* Construct();
 
     IndexedRecordTable materials;   // +0x00 kMaterialSize records
     IndexedRecordTable weapons;     // +0x20 kWeaponSize

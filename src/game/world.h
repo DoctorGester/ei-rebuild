@@ -1834,6 +1834,10 @@ struct SavedParties {
     // game (+0x10) as an MpHeroRecord (file name, then the party), every entry, the vector's
     // storage back to the node allocator, the folder name.
     void Destruct();
+    // 0065F580 (party_file.cpp; the static initialiser 0065F2A0). An empty folder name and vector,
+    // the party outside a game as an MpHeroRecord (the party 00661050, an empty file name). Returns
+    // this.
+    SavedParties* Construct();
 
     char* folder_;               // +0x00 CString
     SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
