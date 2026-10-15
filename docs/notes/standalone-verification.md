@@ -1927,3 +1927,18 @@ no-hooks runs (two after merging main, the plain and jitter passes before), SV5a
 post-merge runs.
 After: hooked and `--standalone --golden` over the 62 golden scenarios (124 runs each) all pass, 115 goldens the
 same, 0 differ; the default hooked suite (144 runs) too.
+
+## S20d: a heard claim's point canonical (2026-10-16)
+
+**Cause:** `memory.callN.point` of a claim (CallsAddClaim 005CCEA0, through the memory's 005CBBC0: "Unit N claims that
+player P are enemies!", hostileMask set) is the stack record's never-set point; the copy at 005CCF04..005CCF19 reads
+whatever the stack held (in zone_gz3g and zone_gz15h_tornado a heap address as z, ~1e-28). Only CallsUpdate's mask is
+used when the claim runs out; the point is saved and loaded, never read.
+
+**Fix:** ours already writes 0,0,0 (unit_ai_hearing.cpp). The original, in `EI_NO_HOOKS=1` runs: harness_save_leftovers
+turns the three loads `MOV EDX,[ESP+8/0xC/0x10]` into `XOR EDX,EDX` (22 of 22 sites patched).
+
+**Runs:** two plain `--no-hooks --fresh --golden` passes of both scenarios: goldens the same, every claim's point 0,0,0,
+the decoded saves the same; `golden.py saves` recorded them for zone_gz3g (vanilla) and zone_gz15h_tornado (V+R).
+Then a full plain `--no-hooks --golden` pass: 124 goldens the same, 0 differ (no other golden's saves changed);
+hooked and `--standalone --golden` on both scenarios: the 3 goldens the same, saves included. After merging main: the same.

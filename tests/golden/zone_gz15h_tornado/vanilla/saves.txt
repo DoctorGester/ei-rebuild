@@ -1,0 +1,4 @@
+current/gz1g.sav 59175dff2eeb2112
+savea/info.sav 14d4b8279b833cc0
+savea/mission.sav 5383bc46c5d726df
+savea/scenario.sav 790db0f9119aa1bc
