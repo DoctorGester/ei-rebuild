@@ -382,7 +382,7 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
         const Vector3* at = PositionOf(units->data[i]);
         float dx = Rounded(static_cast<double>(at->x) - centreX);
         float dy = Rounded(static_cast<double>(at->y) - centreY);
-        double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
+        double length = x87::fsqrt(LengthSquared2DUnrounded<double>(dx, dy));
         if (length > 0.0) {   // the original skips zero and NaN (FCOM; TEST AH,0x40)
             double inverse = 1.0 / length;
             dx = Rounded(dx * inverse);

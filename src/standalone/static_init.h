@@ -12,6 +12,8 @@
 // Addresses are game.exe's (the image in the standalone build, the original in the hook build).
 #pragma once
 
+#include "ei/x87.h"
+
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -54,7 +56,7 @@ public:
     static float Float(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
     static double Double(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
     // FLDLN2; FLD x; FYL2X.
-    static double Log(double x) { return std::log(x); }
+    static double Log(double x) { return x87::flog(x); }
     // MOV reg, [address]; TEST reg, reg: a pointer (or count) that is set.
     static bool NonZero(std::uintptr_t address) { return Dword(address) != 0; }
     // The counted object a global points at: its count (the dword after the vtable) goes down, and at
@@ -136,7 +138,7 @@ public:
     std::uint32_t Dword(std::uintptr_t address) const { return *reinterpret_cast<const std::uint32_t*>(address); }
     float Float(std::uintptr_t address) const { return *reinterpret_cast<const float*>(address); }
     double Double(std::uintptr_t address) const { return *reinterpret_cast<const double*>(address); }
-    static double Log(double x) { return std::log(x); }
+    static double Log(double x) { return x87::flog(x); }
     std::uint32_t Local(std::uint32_t) { return 0; }
     template <class... A>
     Result Cdecl(std::uintptr_t, A...) { return {0}; }

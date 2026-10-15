@@ -87,7 +87,7 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             float angle = 0.0f;
             double dx = static_cast<double>(waypoint.position.x) - from.x;
             double dy = static_cast<double>(waypoint.position.y) - from.y;
-            if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = Round(std::atan2(dy, dx));
+            if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = Round(x87::fpatan(dy, dx));
             AILook look;
             look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.time,
                                        waypoint.stopFirst & 1);

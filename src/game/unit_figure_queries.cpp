@@ -100,7 +100,7 @@ double CUnit::BodyExtent() {
     const Vector3& corner = partBoxes[part].boxMax;
     double y = corner.y;
     double x = corner.x;
-    return extentScale * std::sqrt(LengthSquared2DUnrounded(y, x));
+    return extentScale * x87::fsqrt(LengthSquared2DUnrounded(y, x));
 }
 EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
 

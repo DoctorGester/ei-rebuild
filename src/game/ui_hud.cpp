@@ -594,8 +594,8 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->orientation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
-        const float y = MarkerCentreY() - std::sin(angle) * MarkerRadius();
-        const float x = std::cos(angle) * MarkerRadius();
+        const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
+        const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
         SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }

@@ -66,7 +66,7 @@ int Compare(const char* a, const char* b) {
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 Vector3 Normalised(float x, float y, float z) {
     Vector3 out{x, y, z};
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z));
+    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)));
     if (length == 0.0f || x87::IsNaN(length)) return out;
     float inverse = 1.0f / length;
     out.x = StoreFloat(x * inverse);

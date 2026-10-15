@@ -102,7 +102,7 @@ void CHelpWindow::Update() {
     UpdateBase();
     double time = FrameTime() + pulseTime_;
     pulseTime_ = static_cast<float>(time);
-    double wave = (std::cos(time * 5.0f) + 1.0f) * 0.5f;
+    double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;
     double alpha = wave * 255.0f;
     volatile float alphaStored = static_cast<float>(alpha);   // the original's FST to a local
     double rest = (1.0f - wave) * 80.0f;
