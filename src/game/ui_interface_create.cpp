@@ -1,8 +1,9 @@
 // The interface manager's start (CInterface3D::Create 005F4990, called once by the application's
 // start with the renderer's device object): the screen size, the three fonts, the keyboard layout,
 // the console window, the debug information panel, the chat overlay, the fade and the help topics
-// seen (config\tutorial.ini). Rebirth patches it, so this is the vanilla body and it is hooked in
-// the vanilla launch only. See ui.h and docs/notes/ui.md, section 3.
+// seen (config\tutorial.ini). Rebirth's WideScreen changes the fonts' scale (addon's FMUL at +BF
+// reads its float at 005F4F81: widescreen::FontScale); hooked in both launches. See ui.h and
+// docs/notes/ui.md, section 3.
 #include "ui.h"
 
 #include "console.h"
@@ -10,8 +11,10 @@
 #include "text_split.h"
 #include "texture.h"
 #include "ui_gdi.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -135,7 +138,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     LOGFONTA measured;
     gameapi::GetObjectA(fonts_[0]->handle_, sizeof(measured), &measured);
     const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
-    const float scale = StoreScale(static_cast<float>(pixels) * GameFloat(0x0073D09C));   // 0.01
+    const float scale = StoreScale(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
     if (fonts_[0]) fonts_[0]->Delete();
     for (int i = 0; i < 3; ++i) {
         fonts_[i] = NewFont();
@@ -201,3 +204,4 @@ void CInterface3D::Create(CTextureDevice* device) {
     disconnected_ = false;
 }
 EI_REPLACE_METHOD(0x005F4990, CInterface3D::Create);
+EI_REBIRTH_IMPLEMENTS(0x005F4990, ei::rebirth::Patch::WideScreen);

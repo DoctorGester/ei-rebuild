@@ -1,17 +1,19 @@
-// Check for the vanilla body of the multiplayer hero screen's mode 00615D30 (A-I22,
-// src/game/ui_hero_screen_mode.cpp). Rebirth patches it, so the installer hooks it in the vanilla
-// launch only and this wrapper runs there.
+// Check for the multiplayer hero screen's mode 00615D30 (A-I22, src/game/ui_hero_screen_mode.cpp).
+// Rebirth's WideScreen replaces it (the original, then the curtains shown but on the hero list),
+// which the rewrite reproduces, so this wrapper runs in both launches.
 //
 // Ours only: it shows the selected hero (the party copied, the preview rebuilt, the equipment
 // sent), draws the lists and replaces every tip, so a second run is not the same call. Read back:
 // mode_; the regions (9 kept, plus 10 hero rows or 11 voice rows); the sprites shown (all but 7-9
 // on the hero list, 3-9 on the new hero, 7-9 on its statistics; not the selection frame, sprite
-// 2, which the lists show only with a selection); which of the surfaces 0-2 are shown (0 and 1,
+// 2, which the lists show only with a selection; with WideScreen's 21 sprites the last two, the
+// curtains, shown but in mode 9); which of the surfaces 0-2 are shown (0 and 1,
 // or 2). The screen opens in mode 9 from the main menu's Multiplayer button: scenarios
 // ui_hero_screen (modes 9 and 10), ui_hero_stats and ui_hero_delete reach this wrapper.
 #include "verify.h"
 
 #include "../../src/game/ui_screens.h"
+#include "../../src/game/ui_widescreen.h"
 
 namespace {
 
@@ -36,7 +38,10 @@ bool SurfacesAre(CMpHeroScreen* screen, unsigned shownMask) {
 static void __fastcall HeroScreenSetModeVerify(CMpHeroScreen* self, void*, int mode) {
     const int before = self->window.regions_.size;
     self->SetModeVanilla(mode);
-    const int count = self->window.sceneObjects_.size;
+    const int all = self->window.sceneObjects_.size;
+    // WideScreen's curtains (the last two of 21) follow the mode, not the rest.
+    const bool curtains = widescreen::Active() && all == 21;
+    const int count = curtains ? all - 2 : all;
     int regions = before < 9 ? before : 9;
     bool sprites = true;
     bool surfaces = true;
@@ -56,6 +61,7 @@ static void __fastcall HeroScreenSetModeVerify(CMpHeroScreen* self, void*, int m
         sprites = SpritesAre(self, 0, count, 0);
         surfaces = SurfacesAre(self, 0u);
     }
+    if (curtains) sprites = sprites && SpritesAre(self, count, all, mode != 9 ? 1 : 0);
     ei::verify::Check("CMpHeroScreen::SetModeVanilla", true,
                       self->mode_ == mode && self->window.regions_.size == regions && sprites && surfaces,
                       "mode %d (%d) regions %d of %d sprites %d surfaces %d", mode, self->mode_, self->window.regions_.size,

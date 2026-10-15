@@ -85,3 +85,7 @@ devirtualised.
   `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).
 - `CParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
   manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading_` and `Current()->occurrence`.
+
+## F5a (duplicate declarations)
+- `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats); app_device_list.cpp's `DeviceRecord` is gone.
+- bink_video.cpp's `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `mapspec::Waypoint::wait` is `time`; world_update.cpp's `IsLocal` is `NoPendingPossession`; `LocalViewData::partyTaken` is `sendParty` (CPlayerClient::sendParty_, the same byte).

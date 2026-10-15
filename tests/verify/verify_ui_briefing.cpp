@@ -42,7 +42,6 @@ struct PartyState {
 };
 
 float MapEdgeFade() { return *reinterpret_cast<const float*>(0x0079BD34); }
-CStream* SaveGameStream() { return reinterpret_cast<CStream*>(0x007AFDF8); }
 void** MessageBoxVtable() { return reinterpret_cast<void**>(0x00742348); }
 void** SaveLoadVtable() { return reinterpret_cast<void**>(0x00741388); }
 } // namespace
@@ -127,7 +126,7 @@ static void __fastcall ShowChatVerify(CBriefingScreen* self, void*, char show) {
 EI_VERIFY(0x00603090, ShowChatVerify, 0, s_unused);
 
 static void __fastcall SaveStateVerify(CBriefingScreen* self, void*) {
-    CStream* stream = SaveGameStream();
+    CStream* stream = GameSaveStream();
     std::uint32_t before = stream->Position();
     self->SaveState();
     std::uint32_t after = stream->Position();

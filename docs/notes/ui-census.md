@@ -13,6 +13,11 @@ What each window surface is drawn with, how often, and who reads it back. It was
   - A window that wears a verify stand-in copy of its vtable for the length of a call is labelled with its game vtable (`RealVtable`; see "Heap vtables" below).
   - The DIB is hashed around every DC session and at every frame. Any change that no hooked call explains is reported as "uncaught".
   - Output: one `ui_census.csv` in each run folder.
+  - **Call chains (N0d).** x86 code here has no frame pointers and no unwind tables, so `Chain()` scans the stack for return addresses. The unwritten slots of live frames hold return addresses from earlier, deeper calls (even whole old call paths), and the scan took them for callers. A scanned value is now kept only when its call is tied to the frames before it:
+    - a direct call (E8) must lead into the function holding the previous frame, through the jumps on the way (E9 thunks and hook entries, the `mov eax, imm32; jmp eax` forwarders, a tail call). Function starts come from the code itself: call targets, and addresses stored in data or in code (virtual methods, callbacks), each after padding or a RET;
+    - a call through a register or memory has no target to check. Its frame counts only when the callee's address is stored somewhere, and only once a later direct call (or a frame above it) proves it; an import call (`CALL [address]`) is never a caller. Unproven frames left at the end of the chain are dropped, so a chain can end early where its next caller was reached by a virtual call, never name a wrong one.
+    - A Rebirth greyscale row is no longer `[in verify]`: `GreyscaleVerify` hooks the game's own call, so the one run of ours inside its `CompareDrawing` is that call, not an extra one (`tools/ui_census_report.py`, `PIXEL_HELPERS`).
+    - The report no longer resolves a bare-named function of ours (the harness's `Send` lambda) to a game function that shares only the last part of its name (`SessionBase::Send`).
 - **`tools/ui_census_report.py [--summary]`** merges the runs into `build/verify/ui_census_merged.csv`, one row per window × primitive × call site, with vanilla and Rebirth counts kept apart.
   - Frames are named from config/functions.csv, ei_hook.map and the EI_REPLACE lines.
   - A verify wrapper's second run of the original body is left out of the counts.
@@ -90,11 +95,11 @@ What each window surface is drawn with, how often, and who reads it back. It was
 **Readers.** Besides the per-frame blit 005FDA80 (a Lock), these read surface pixels (counts vanilla / Rebirth):
 - every window's `CUiWindow::ShowSurfaces` 006002C0 swaps every surface out and back (`SwapContents` 005FD7A0) when the window is hidden or shown;
 - `CUiSurface::Freeze` 005FD760 does the same for the hero screen;
-- the backdrop: `DrawOverlays` 005F5320 captures the screen into it (CaptureScreen, 40 / 41), turns it grey (Greyscale, 37 / 37) and copies it at 16 bits (Rgb565Copy, 37 / 37), when a window that shows the screen behind it opens (the escape menu among them). N0's suite reached it in 15 scenarios; the census did not see it.
-- the save picture: `QuickSave` 006570E0 captures the screen and copies it at 16 bits (24 / 24), at every new game's autosave;
+- the backdrop: `DrawOverlays` 005F5320 captures the screen into it (CaptureScreen, 45 / 45), turns it grey (Greyscale, 38 / 38) and copies it at 16 bits (Rgb565Copy, 38 / 38), when a window that shows the screen behind it opens (the escape menu among them). N0's suite reached it in 15 scenarios; the census did not see it.
+- the save picture: `QuickSave` 006570E0 captures the screen and copies it at 16 bits (25 / 25), at every new game's autosave;
 - the global map: `CGlobalMap::RefreshSelection` 00630670 captures the pick picture (6 / 6), and the mouse moves read it with PixelAt (8 / 8: ours under vanilla, the game's 00630010 under Rebirth). ui_camp reached it too.
 
-The verify wrappers' pixel helpers read about 11,000 times, most of them on the item info panel. That is test traffic, not the game's. (Rebirth's greyscale rows are mostly marked `[in verify]`: the census's stack scan finds a stale return address into a verify helper. They are the game's.)
+The verify wrappers' pixel helpers read about 11,000 times, most of them on the item info panel. That is test traffic, not the game's. (Rebirth's greyscale used to be marked `[in verify]`, and some rows named callers that were not on the stack, such as `Connection::SendUpdate`. Both came from the call chains (N0d, below) and from a bare-name lookup in the report; see "Call chains".)
 
 ## Corrections to the ui-native.md inventory
 

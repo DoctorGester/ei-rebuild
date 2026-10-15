@@ -1,9 +1,11 @@
-// Check for the vanilla body of the multiplayer hero screen's Create 00613EA0 (A-I22,
-// src/game/ui_hero_screen_create.cpp). Rebirth patches it, so the installer hooks it in the
-// vanilla launch only and this wrapper runs there.
+// Check for the multiplayer hero screen's Create 00613EA0 (A-I22,
+// src/game/ui_hero_screen_create.cpp). Rebirth patches it (WideScreen, reproduced; EI_Plugin's
+// EiPluginFixes, not), so the installer hooks it in the vanilla launch only and this wrapper runs
+// there.
 //
 // Ours only: it builds the screen's children and reloads the saved heroes, which cannot be done
-// twice. Read back: mode 9; the regions (9 kept, 10 hero rows), 19 sprites, 4 surfaces, the menu
+// twice. Read back: mode 9; the regions (9 kept, 10 hero rows), 19 sprites (21 with WideScreen: the
+// curtains, hidden, tint 0.3), 4 surfaces, the menu
 // model; the selection (the first hero, or -1 without one); both figure lists not empty of null
 // names, the men's ascending and the women's descending by _mbscmp; no more voices than figures,
 // each with a name. Reached by scenarios ui_hero_screen, ui_hero_stats and ui_hero_delete (the
@@ -11,6 +13,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui_screens.h"
+#include "../../src/game/ui_widescreen.h"
 #include "../../src/lib/crt.h"
 
 namespace {
@@ -37,13 +40,26 @@ bool VoicesOk(const MpVoiceVector& voices, std::ptrdiff_t figures) {
     return true;
 }
 
+constexpr int kSprites = 19;
+
+bool CurtainsHidden(const CUiWindow& window) {
+    for (int i = kSprites; i < kSprites + 2; ++i) {
+        const CUiMesh* curtain = window.SceneMesh(i);
+        if (curtain->visible_ != 0 || curtain->tint_[0] != 0.3f || curtain->tint_[1] != 0.3f || curtain->tint_[2] != 0.3f)
+            return false;
+    }
+    return true;
+}
+
 } // namespace
 
 static void __fastcall HeroScreenCreateVerify(CMpHeroScreen* self) {
     self->Create();
     const int heroes = static_cast<int>(reinterpret_cast<const MpHeroRoster*>(0x007C82A0)->records.size());
     ei::verify::Check("CMpHeroScreen::Create layout", true,
-                      self->mode_ == 9 && self->window.regions_.size == 19 && self->window.sceneObjects_.size == 19 &&
+                      self->mode_ == 9 && self->window.regions_.size == 19 &&
+                          self->window.sceneObjects_.size == kSprites + (widescreen::Active() ? 2 : 0) &&
+                          (!widescreen::Active() || CurtainsHidden(self->window)) &&
                           self->window.surfaces_.size == 4 && self->window.models_.size == 1,
                       "mode %d regions %d sprites %d surfaces %d models %d", self->mode_, self->window.regions_.size,
                       self->window.sceneObjects_.size, self->window.surfaces_.size, self->window.models_.size);

@@ -202,6 +202,17 @@ status = "queued"
 depends = ["R9c1"]
 note = "R9c1 tests the recreation with render::LoseDevice (Present reported DXGI_ERROR_DEVICE_REMOVED without a real removal). A real one without a driver reset: a test-only device made through D3D11On12CreateDevice whose ID3D12Device5::RemoveDevice removes it (Windows 10 1809+, no install); check the swap chain works with an 11on12 device first (renderer.md section 9, R9c1)."
 
+[[ticket]]
+id = "R10"
+title = "Hooked harness runs on our renderer by default; dgVoodoo only for reference runs"
+group = "renderer"
+status = "running"
+size = 0.8
+model = "opus"
+files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "tests/verify/harness.cpp"]
+note = "Asked 2026-10-15 (user): switch test runs to our renderer. Runs of our code (vanilla and Rebirth with hooks) default to EI_RENDER=new,present; dgVoodoo stays only for runs of the original code (--no-hooks, rebirth-nohooks in --widescreen, compare.py's original side), which have nothing else to draw with. Our renderer goes full screen without a display mode change, so its runs need not be 'alone': only dgVoodoo runs that set a resolution keep the machine to themselves (today 6 scenarios: render_present_fullscreen/window, ui_widescreen*; they run in series and dominate widescreen suites). Also cache the reference runs' frames by the scenario's last-change commit (like WB6's timing table) so the dgVoodoo reference runs only rerun when a scenario changes. Check the cross-renderer frame comparisons (filtering) and the minimise rerun (SV1c, dgVoodoo only). First get the full --native suite green on main."
+started = "2026-10-15"
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -409,11 +420,12 @@ done = "2026-10-15"
 id = "N0d"
 title = "Census call chains: stale return addresses"
 group = "native-ui"
-status = "running"
+status = "done"
 size = 0.25
 files = ["tests/verify/ui_census.cpp"]
 note = "Chain() scans the stack for return-address-like values, so the pixel helpers' rows sometimes name stale callers (Rebirth's greyscale marked [in verify], SwapContents 'by' Connection::SendUpdate / CastSpell with zero counts). Walk only from the helper's own return address with real frames, or mark the helpers noinline (N0a, ui-census.md Readers)."
 started = "2026-10-15"
+done = "2026-10-15"
 
 # ---------------------------------------------------------------- widescreen
 
@@ -451,11 +463,12 @@ done = "2026-10-14"
 id = "W4"
 title = "Camp and hero screens, help, global map, cursor rectangles, interface creation"
 group = "widescreen"
-status = "running"
+status = "done"
 model = "opus"
 depends = ["W3"]
 note = "Also camera mouse moves and 004F1330. Seen 2026-10-14 by the user in a vanilla --widescreen run (ui_widescreen, hero screen): the hero model drawn in vertical strips; check it under W4 (the garbled title there is expected cp1251 text, per the user). After W3 (2026-10-14): also update the ui-native.md line saying 006462A0 is native only in vanilla until W3."
 started = "2026-10-14"
+done = "2026-10-15"
 
 [[ticket]]
 id = "W2a"
@@ -473,11 +486,23 @@ done = "2026-10-14"
 id = "W2b"
 title = "Connect screen Create 0061B2C0: addon's ExtendedServerName sites"
 group = "widescreen"
-status = "queued"
+status = "running"
 size = 0.3
 model = "sonnet"
 files = ["src/game/ui_connect_screen.cpp", "config/rebirth_patches.csv"]
 note = "From W2a (2026-10-14): the connect list draw now reproduces ExtendedServerName, but Create 0061B2C0 still carries addon's sites (field sizes, 0061BB51 and neighbours) plus the 0061B5CE float. Same approach as W2a: read addon's live bytes, gate on Patch::ExtendedServerName, compare in ui_mp_host under Rebirth."
+started = "2026-10-15"
+
+[[ticket]]
+id = "W4a"
+title = "Hero screen 00613EA0 under Rebirth: EiPluginFixes with WideScreen"
+group = "widescreen"
+status = "running"
+size = 0.5
+model = "sonnet"
+depends = ["W4"]
+note = "W4 added WideScreen's curtains to CMpHeroScreen::Create (00613EA0) but a Rebirth launch skips the hook: the function also holds EI_Plugin's EiPluginFixes at +D15 (00614BB5, cmp word [ecx+4],0x6566; jne; jmp) and +E7B (00614D1B, jmp; NOPs), not reproduced. Reproduce both behind their flag (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (ui_widescreen_more's new hero, ui_widescreen_screens' hero list) with run_all --widescreen."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- unknown fields
 
@@ -588,11 +613,12 @@ started = "2026-10-14"
 id = "SV1b"
 title = "combat, combat_more, sound and rebirth_flags do not repeat on the virtual clock"
 group = "verification"
-status = "queued"
+status = "running"
 size = 0.5
 model = "opus"
 files = ["docs/open-questions.md"]
 note = "From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'. SV2 (2026-10-15): a unit's update-map countdown (CMapObject +0x174) is set from bits 5-8 of its heap address (0058D5D0, 005927C0) and differs between runs of the original alone; it decides when an idle unit stops being updated, a likely cause. Use tools/golden.py diff --all-fields on digests of two runs."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV2a"
@@ -601,6 +627,16 @@ group = "verification"
 status = "queued"
 depends = ["SV2"]
 note = "SV2's digest (tests/verify/harness_digest.cpp) reads the server world only. Not yet in it: the client world's units (positions the screen shows), each missile's position and target (Projectile 0xA8 bytes, layout unknown), timed objects' own state (spells, effects: class/flags/type only), the script command queues and countdowns, the AI event table. Add what a parting run needs first."
+
+[[ticket]]
+id = "SV1f"
+title = "sandbox_map is 4x slower on the virtual clock than on real time"
+group = "verification"
+status = "queued"
+size = 0.3
+model = "opus"
+files = ["tests/scenarios/sandbox_map.txt", "tests/verify/harness_clock.cpp"]
+note = "Seen 2026-10-15: since SV1 made the virtual clock the default, sandbox_map (speed 10, then waitfor / wait 10000) took 72-81 s and hit its 80 s limit on main, against 17 s on real time; SV1 had measured 12 s virtual on a quiet machine. Put on 'realtime' for now. Find why the virtual clock runs it slower (the speed hold, frames bounded by drawing, the waits' real-time limits) and take the realtime line out again."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -891,8 +927,10 @@ done = "2026-10-15"
 id = "C9b"
 title = "map_object_shadow.cpp raw offsets"
 group = "cleanup"
-status = "queued"
+status = "done"
 note = "Left from C9 (models.md, \"Layouts\")."
+started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "C11"
@@ -932,21 +970,24 @@ done = "2026-10-14"
 id = "F5a"
 title = "Duplicate declarations F5 found (lever record, sound system view, waypoint names)"
 group = "cleanup"
-status = "running"
+status = "done"
 files = ["app_device_list.cpp", "lever.h", "bink_video.cpp", "sound.h", "map_spec.h", "world_update.cpp", "player_client.h"]
 note = "app_device_list.cpp's DeviceRecord is lever.h's LeverRecord (Levers.ldb; one declaration, the file and its notes say device). bink_video.cpp's SoundSystem view is CSoundManager (+0x1C Miles driver). mapspec::Waypoint::wait is the look's turning time (AILook::time), rename it. world_update.cpp's IsLocal tests CPlayerServer::possessedId_ < 0 (no pending possession), rename. CPlayerClient::sendParty_ (+0x85) vs LocalViewData::partyTaken: one name. Renames only, layout unchanged."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "F4b"
 title = "Drop the FigurePart alias (F4a follow-up)"
 group = "cleanup"
-status = "queued"
+status = "done"
 size = 1
 model = "sonnet"
 depends = ["F4a", "W2", "F5"]
 files = ["map_object_figures.h", "ui_model.cpp", "player_client.cpp", "verify_ui_model.cpp"]
 note = "F4a folded FigurePart into CFigureMesh but kept 'using FigurePart = CFigureMesh' because ui_model.cpp and player_client.cpp were open in W2 / F5. Rename their uses (fields are already CFigureMesh's: localPosition_, localRotation_, worldMatrix_, bounds_, boxPivot_, drawer_->screen_) and remove the alias."
+started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "F4c"
@@ -995,10 +1036,23 @@ done = "2026-10-14"
 id = "C5a"
 title = "C5 leftovers: save stream accessor, LocalFileStream wrappers, duplicate test streams"
 group = "cleanup"
-status = "queued"
+status = "done"
 size = 0.2
 model = "sonnet"
 note = "From C5 (2026-10-15): per-file accessors for the save stream 007AFDF8 (SaveGameStream in ui_battle_slots.cpp and ui_briefing.cpp, SaveStream() in ui_briefing_create.cpp, two verify tests) into one shared accessor; the two LocalFileStream wrappers (ui_connect_screen.cpp, ui_saveload.cpp; different interfaces, needs a regrouping call); identical SaveRecorder (verify_unit_ai_save) and RecordingStream (verify_unit_ai_options); TweenArray in model_db.cpp; hash_tables_400 / atexit_400 views."
+started = "2026-10-15"
+done = "2026-10-15"
+
+[[ticket]]
+id = "C9c"
+title = "map_object_shadow.cpp: what C9b left raw"
+group = "cleanup"
+status = "running"
+size = 0.3
+model = "opus"
+files = ["src/game/map_object_shadow.cpp"]
+note = "From C9b (2026-10-15): the colour key read from CTexture::block_ (+0x60; for a keyed texture, flags 0x2000, its meaning needs recovering); reinterpret_cast<CUnit*>(object) to reach the controller (CObject3D / CMapObject relation); AlignedRecordBuffer and PointAt/PixelAt indexing (CLinkMesh::ProjectPart and RasterisePart take float* / int*, typing them changes signatures)."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

@@ -25,6 +25,7 @@
 #include "originals_effects.h"
 #include "originals_world.h"
 
+#include <ddraw.h>
 #include <bit>
 #include <cstring>
 #include <vector>
@@ -275,10 +276,9 @@ bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::X
 
 CFigureMesh* PartAt(const CObject3D* object, int i) { return static_cast<CFigureMesh*>(object->parts.data[i]); }
 
-// The bits a part is rasterised into: unused_00 is the callee's, the rest the target surface.
-struct RasterTarget {
-    std::uint8_t unused_00[0x30];
-    std::uint32_t colourKey;   // +0x30
+// The bits a part is rasterised into: the callee's triangle corners and colour key, then the target
+// surface.
+struct RasterTarget : RasterTriangle {
     void* bits;                // +0x34
     int width;                 // +0x38 0x200
     int pitch;                 // +0x3C
@@ -286,30 +286,7 @@ struct RasterTarget {
 static_assert(sizeof(RasterTarget) == 0x40);
 
 // The surface description the lock fills (only the pitch and the bits are read).
-struct SurfaceDescription {   // DDSURFACEDESC2 (the members not read take its names)
-    std::uint32_t size;        // +0x00 dwSize
-    std::uint32_t flags;       // +0x04 dwFlags
-    std::uint32_t height;      // +0x08 dwHeight
-    std::uint32_t width;       // +0x0C dwWidth
-    int pitch;                 // +0x10
-    std::uint32_t backBufferCount;   // +0x14 dwBackBufferCount
-    std::uint32_t mipMapCount; // +0x18 dwMipMapCount
-    std::uint32_t alphaBitDepth;     // +0x1C dwAlphaBitDepth
-    std::uint32_t reserved;    // +0x20 dwReserved
-    void* bits;                // +0x24
-    std::uint32_t colourKeys[8];     // +0x28 ddckCKDestOverlay, ddckCKDestBlt, ddckCKSrcOverlay, ddckCKSrcBlt
-    std::uint32_t formatSize;  // +0x48 ddpfPixelFormat.dwSize
-    std::uint32_t formatFlags; // +0x4C ddpfPixelFormat.dwFlags
-    std::uint32_t fourCC;      // +0x50 ddpfPixelFormat.dwFourCC
-    int bitsPerPixel;          // +0x54 ddpfPixelFormat.dwRGBBitCount
-    std::uint32_t redMask;     // +0x58
-    std::uint32_t greenMask;   // +0x5C
-    std::uint32_t blueMask;    // +0x60
-    std::uint32_t alphaMask;   // +0x64
-    std::uint32_t caps[4];     // +0x68 ddsCaps
-    std::uint32_t textureStage;   // +0x78 dwTextureStage
-};
-static_assert(sizeof(SurfaceDescription) == 0x7C);
+static_assert(sizeof(DDSURFACEDESC2) == 0x7C);
 
 // One corner's x and y in the light's rotation `m` (3x4 rows of 4).
 double CornerX(const float* m, float a, float b) {
@@ -420,20 +397,20 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Rasterise into the render surface.
     void* surface = RenderSurface(static_cast<CWorld*>(self->ManagerContext())->TextureManager());
-    SurfaceDescription description;
+    DDSURFACEDESC2 description;
     if (!LockSurface(surface, nullptr, &description)) {
         *failure = game::FatalError(reinterpret_cast<const char*>(0x0078F584), self->GetName());
-        if (lights.manager) --reinterpret_cast<CEngineObject*>(lights.manager)->refCount_;
+        if (lights.manager) --lights.manager->refCount_;
         return false;
     }
     RasterTarget target{};
     CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
     target.colourKey = skin && (skin->flags_ & kMaterialKeyed) ? ColourKey(skin) : 0;
     target.width = 0x200;
-    target.pitch = description.pitch;
+    target.pitch = description.lPitch;
     // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
     // from there) and copied into the surface afterwards.
-    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.pitch) * kTextureSize);
+    std::vector<std::uint8_t> pixels(static_cast<std::size_t>(description.lPitch) * kTextureSize);
     target.bits = pixels.data();
     std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
     count = 0;
@@ -456,7 +433,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
         converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
     }
-    std::memcpy(description.bits, pixels.data(), pixels.size());
+    std::memcpy(description.lpSurface, pixels.data(), pixels.size());
     UnlockSurface(surface);
 
     // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
@@ -465,9 +442,10 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     shadowTexture->LoadPixelsFrom(static_cast<CTextureDevice*>(RenderDevice()), static_cast<const CTexture*>(surface));
     // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format (a
     // texture in its memory is read from there instead).
-    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
-                          description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
-                          description.alphaMask);
+    render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.lPitch,
+                          description.ddpfPixelFormat.dwRGBBitCount, description.ddpfPixelFormat.dwRBitMask,
+                          description.ddpfPixelFormat.dwGBitMask, description.ddpfPixelFormat.dwBBitMask,
+                          description.ddpfPixelFormat.dwRGBAlphaBitMask);
 
     // The light's rotation as a matrix.
     double x2 = static_cast<double>(turn.x) + turn.x;
@@ -505,11 +483,11 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float y = CornerY(m, a, b);
         float x = static_cast<float>(CornerX(m, a, b));
         (void)z;   // computed for the corner's Vector3, never used
-        float* quad = static_cast<float*>(Quads().data);
-        quad[0] = static_cast<float>(static_cast<double>(at.x) + x);
-        quad[4] = static_cast<float>(static_cast<double>(at.y) + y);
-        quad[8] = at.z;
-        quad[12] = 1.0f;
+        VertexPacket* quad = static_cast<VertexPacket*>(Quads().data);   // rows x, y, z, w; lane 0
+        quad->block[0][0] = static_cast<float>(static_cast<double>(at.x) + x);
+        quad->block[1][0] = static_cast<float>(static_cast<double>(at.y) + y);
+        quad->block[2][0] = at.z;
+        quad->block[3][0] = 1.0f;
     }
     const float corners[3][2] = {{self->bounds[3], self->bounds[2]},
                                  {self->bounds[1], self->bounds[2]},
@@ -519,11 +497,11 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float b = corners[c][1];
         float y = CornerY(m, a, b);
         double x = CornerX(m, a, b);
-        float* quad = static_cast<float*>(Quads().data);
-        quad[1 + c] = static_cast<float>(x + at.x);
-        quad[5 + c] = static_cast<float>(static_cast<double>(y) + at.y);
-        quad[9 + c] = at.z;
-        quad[13 + c] = 1.0f;
+        VertexPacket* quad = static_cast<VertexPacket*>(Quads().data);
+        quad->block[0][1 + c] = static_cast<float>(x + at.x);
+        quad->block[1][1 + c] = static_cast<float>(static_cast<double>(y) + at.y);
+        quad->block[2][1 + c] = at.z;
+        quad->block[3][1 + c] = 1.0f;
     }
 
     // The point the shadow falls from: the object's offset point through its matrix.
@@ -543,15 +521,15 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     if (self->vertices.size != 0) {
         pipeline->transform_->FitBounds(&self->sphere, self->vertices.data, self->vertices.size);
-        const float* position = &self->object->position.x;
-        self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position[0]);
-        self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position[1]);
-        self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position[2]);
+        const Vector3& position = self->object->position;
+        self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position.x);
+        self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position.y);
+        self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position.z);
     } else {
         self->sphere.flags = 0;
     }
     self->flags_ &= ~kFlagRefresh;
-    if (lights.manager) --reinterpret_cast<CEngineObject*>(lights.manager)->refCount_;
+    if (lights.manager) --lights.manager->refCount_;
     return true;
 }
 } // namespace
@@ -567,7 +545,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         if (!texture) return game::FatalError(reinterpret_cast<const char*>(0x0078F5B8));
         char name[0x100];
         gamecrt::sprintf(name, reinterpret_cast<const char*>(0x0078F5B0), object->id_);   // "SR%d"
-        *reinterpret_cast<mfc::CString*>(&static_cast<CTexture*>(texture)->name_) = name;
+        *static_cast<CTexture*>(texture)->Name() = name;
         flags_ |= kFlagRefresh;
     }
     std::uint32_t objectFlags = object->flags_;

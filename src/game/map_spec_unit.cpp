@@ -193,7 +193,7 @@ void __fastcall WaypointChunkOnChunk(TargetChunk* self) {
     switch (c.id_) {
     case 0xBBBE0001: ReadVector(c, static_cast<Waypoint*>(self->target)->position); break;
     case 0xBBBE0002: w->lookWait = static_cast<std::int16_t>(c.ReadInt()); break;
-    case 0xBBBE0003: static_cast<Waypoint*>(self->target)->wait = c.ReadFloat(); break;
+    case 0xBBBE0003: static_cast<Waypoint*>(self->target)->time = c.ReadFloat(); break;
     case 0xBBBE0004: static_cast<Waypoint*>(self->target)->stopFirst = c.ReadByte(); break;
     default: break;
     }
@@ -305,7 +305,7 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
             waypointChunk.chunk.BeginWrite(0xBBBE0000);
             WriteVector(waypointChunk.chunk, 0xBBBE0001, w->position);
             waypointChunk.chunk.WriteInt(0xBBBE0002, w->lookWait);
-            waypointChunk.chunk.WriteFloat(0xBBBE0003, Bits(w->wait));
+            waypointChunk.chunk.WriteFloat(0xBBBE0003, Bits(w->time));
             waypointChunk.chunk.WriteByte(0xBBBE0004, static_cast<std::uint8_t>(w->stopFirst));
             waypointChunk.chunk.EndWrite();
         }

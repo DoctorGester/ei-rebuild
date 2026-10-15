@@ -8,8 +8,9 @@
 // map's right-button drag, Esc opening the escape menu over it (OnKeyDown, OnDeactivate) and Esc
 // closing it again (OnMessageResult)); Close is not known to be reached (no scenario leaves the map).
 //
-// OnMouseMove (00630010, Rebirth-patched: the vanilla launch only). While dragging it only turns
-// the map (angle_, turn_) and clears the drag motion: side by side. Otherwise it selects a zone,
+// OnMouseMove (00630010, Rebirth-patched: hooked in both launches). While dragging it only turns
+// the map (angle_, turn_) and clears the drag motion: side by side (in a Rebirth launch against
+// addon's code: WideScreen's drag without the margin). Otherwise it selects a zone,
 // plays a sound and draws the tip: ours only, the tip's surface and its two sprites read back.
 // Scenario: ui_camp (mouse moves over the map; the right-button drag reaches the turning half).
 #include "verify.h"

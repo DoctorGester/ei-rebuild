@@ -471,8 +471,8 @@ public:
     void OnRightDown(int buttons, int x, int y);
     void OnRightUp(int buttons, int x, int y);
     void OnDeactivate();
-    // 00630010 (input slot 4, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
-    // vanilla launch only). The mouse moved. While dragging: the drag motion (007C7C60, printed
+    // 00630010 (input slot 4, RET 0xC; Rebirth-patched; reproducing WideScreen, so hooked in both
+    // launches: the drag scaled without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (007C7C60, printed
     // to the stream 007C5760) turns the map: angle_ += dx / 300 (layout units), taken mod
     // 007C8020, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
     // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
@@ -482,8 +482,8 @@ public:
     // it; a zone in state 0 or nothing hides the tip. A new name plays
     // "buttons\globalmap\zone.wav". Regions past the links do nothing.
     void OnMouseMove(int buttons, int x, int y);
-    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
-    // vanilla launch only; ui_global_map_paths.cpp). The left button pressed (nothing while
+    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched; ui_global_map_paths.cpp, reproducing
+    // WideScreen, so hooked in both launches: the pick picture's x without the margin). The left button pressed (nothing while
     // dragging). Regions 0 / 1, the turn buttons: turning_ -1 / +1 and
     // "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
     // "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions
@@ -758,9 +758,13 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
-    // 0060C870 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_camp_create.cpp). Builds the camp: the server flag set; the constructor's class
-    // template from the player's "constr.current" (none found: back to the world, nothing built)
+    // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
+    // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
+    // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
+    void Create();
+    // The original Create's body (not a function of the game). Builds the camp: the server flag
+    // set; the constructor's class template from the player's "constr.current" (none found: back
+    // to the world, nothing built)
     // with its flags, price weights and part lists; the player's "i.noconstr" / "i.off..." /
     // "i.on..." switches; texture "campinfo", twelve regions (the two action buttons, the two
     // hero turn areas, the eight page buttons) and ten button sprites; the item screen's base;
@@ -772,7 +776,7 @@ public:
     // 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
     // highest skill per spell school; the allod's constructor music; antialiasing (render state 2
     // = 2) when the device sorts independently.
-    void Create();
+    void BuildPages();
     // 0060E9E0. Shows page `page` (regions 4-11 and Esc call it): hides every page's panels,
     // shows the page's ones, its title and the strip that goes with it; a constructor page the
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused

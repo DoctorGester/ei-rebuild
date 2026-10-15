@@ -38,7 +38,6 @@ void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the serve
 void* MapDatabase() { return reinterpret_cast<void*>(0x0079BF00); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
 float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
-void* SaveStream() { return reinterpret_cast<void*>(0x007AFDF8); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
 void** ScreenInputVtable() { return reinterpret_cast<void**>(0x00741154); }
 void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
@@ -183,7 +182,7 @@ void CBriefingScreen::Create() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        StreamResizeOriginal(SaveStream(), nullptr, 0);
+        StreamResizeOriginal(GameSaveStream(), nullptr, 0);
     else if (LocalViewPlayer()->lastScreen != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();

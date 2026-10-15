@@ -142,10 +142,10 @@ struct LocalViewData {
     // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession;
-    std::uint8_t partyTaken;             // +0x85 the flow sets it once the local player took the requested party, clears it for a new zone
+    std::uint8_t sendParty;              // +0x85 CPlayerClient::sendParty_: the flow sets it once the local player took the requested party (the login then sends the party first), clears it for a new zone
 };
 static_assert(offsetof(LocalViewData, localSession) == 0x84);
-static_assert(offsetof(LocalViewData, partyTaken) == 0x85);
+static_assert(offsetof(LocalViewData, sendParty) == 0x85);
 static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds

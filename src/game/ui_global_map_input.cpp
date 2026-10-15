@@ -5,8 +5,10 @@
 #include "console.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -101,7 +103,8 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (dragging_) {
         POINT drag{MouseDragX(), MouseDragY()};
         (console::Out7C5760() <<static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y) << '\n').Flush();
-        interface_->CallScalePointFromScreen(&drag);
+        // Rebirth's WideScreen scales the drag without the margin (0063008C: addon's entry 005F7DFE).
+        interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = StoreFloat(static_cast<float>(drag.x) * GameFloat(0x00740204) + angle_);   // 1 / 300
         angle_ = turned;
         angle_ = static_cast<float>(gamecrt::fmod(turned, GameFloat(0x007C8020)));
@@ -124,8 +127,9 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             isLink = true;
         }
         if (region < 0) {
-            // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i.
-            std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2, y / 2);
+            // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
+            // WideScreen takes the margin off its x (0063023C: addon's code at 005FD237).
+            std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2 - widescreen::PickShift(), y / 2);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
             if (index >= zoneCount_) index = -1;
             if (gipat_ && index >= 0 && zones_.data[index].link >= 0) {
@@ -239,4 +243,5 @@ EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
 EI_REPLACE(0x0062FF60, GlobalMapRightDown);
 EI_REPLACE(0x0062FFC0, GlobalMapRightUp);
 EI_REPLACE(0x00630010, GlobalMapMouseMove);
+EI_REBIRTH_IMPLEMENTS(0x00630010, ei::rebirth::Patch::WideScreen);
 EI_REPLACE(0x00630580, GlobalMapKeyDown);
