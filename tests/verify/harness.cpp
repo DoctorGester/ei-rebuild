@@ -629,7 +629,7 @@ constexpr std::uintptr_t kCreateFileASlot = 0x0073B218;
 constexpr std::uintptr_t kGetFileAttributesASlot = 0x0073B2F8;
 constexpr std::uintptr_t kSetFileAttributesASlot = 0x0073B304;
 constexpr std::uintptr_t kMoveFileASlot = 0x0073B40C;
-constexpr std::uintptr_t kWriteFileSlot = 0x0073B270;   // "diskfull" only (harness_crash.h)
+constexpr std::uintptr_t kWriteFileSlot = 0x0073B270;   // failed writes are reported (harness_crash.h)
 
 char g_savesDir[MAX_PATH];
 decltype(&::CreateFileA) g_createFile;
@@ -757,7 +757,7 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
     if (!write) share |= FILE_SHARE_READ;
     if (write) savetrace::OnFileWrite(name);   // EI_SAVETRACE (harness_savetrace.h)
     HANDLE file = g_createFile(target, access, share, sa, disposition, flags, templ);
-    crash::OnFileOpened(name, file, write);   // "diskfull" (harness_crash.h)
+    crash::OnFileOpened(name, target, file, write);   // "diskfull" (harness_crash.h)
     return file;
 }
 
@@ -941,6 +941,7 @@ void WriteReport() {
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
+    if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -1558,8 +1559,10 @@ bool IsInputStep(const std::string& verb) {
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
 std::string g_expectedCrash;
-// Below this the crash's failure line gives the free space (a write failing on a full disk throws).
+// The crash's failure line gives the free space for a C++ throw (a write failing on a full disk throws
+// a CFileException) or when it is below kLowDiskMb.
 constexpr long long kLowDiskMb = 1024;
+constexpr DWORD kMsvcThrow = 0xE06D7363;
 
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
 // the game (and Rebirth) install their own filters, which can leave a crashed game hanging. The
@@ -1572,7 +1575,8 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     std::string what = head;
     if (std::string thrown = crash::DescribeThrow(e->ExceptionRecord); !thrown.empty()) what += ": " + thrown;
     const long long freeMb = crash::FreeMegabytes(g_savesDir);
-    if (freeMb >= 0 && freeMb < kLowDiskMb) what += "; " + std::to_string(freeMb) + " MB free on the run folder's disk";
+    if (freeMb >= 0 && (freeMb < kLowDiskMb || e->ExceptionRecord->ExceptionCode == kMsvcThrow))
+        what += "; " + std::to_string(freeMb) + " MB free on the run folder's disk";
     what += " (stack in ei_hook.log)";
     Log("harness: %s", what.c_str());
     Log("harness: %lld MB free on the run folder's disk", freeMb);
@@ -2320,7 +2324,7 @@ void RunSteps() {
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
         } else if (s.verb == "diskfull") {
-            crash::FailWritesTo(s.argument.c_str(), kWriteFileSlot);
+            crash::FailWritesTo(s.argument.c_str());
         } else if (s.verb == "expectcrash") {
             g_expectedCrash = s.argument;
         } else if (s.verb == "report") {
@@ -2843,6 +2847,7 @@ struct Harness {
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);
+        crash::WatchWrites(kWriteFileSlot);
         PatchSlot(kDeleteFileASlot, &RedirectedDeleteFile, g_deleteFile);
         PatchSlot(kCopyFileASlot, &RedirectedCopyFile, g_copyFile);
         PatchSlot(kMoveFileASlot, &RedirectedMoveFile, g_moveFile);

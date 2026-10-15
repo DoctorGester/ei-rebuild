@@ -168,30 +168,75 @@ std::string OsErrorText(long error) {
     return text;
 }
 
-// "diskfull": the text to look for (lower case), the handles of the files opened for it, the original WriteFile.
+// The files the game opened (the latest kMaxOpened reads and writes, with the path as the game named it
+// and the one opened, which differs under the overlay), the "diskfull" text (lower case) and the
+// original WriteFile.
+struct OpenedFile {
+    HANDLE handle;
+    bool write;     // opened for writing
+    bool failing;   // "diskfull"
+    char path[MAX_PATH];
+    char target[MAX_PATH];
+};
+// Two rings, so that the hundreds of files a zone load reads never push out a file open for writing.
+constexpr int kMaxOpened = 128;
+OpenedFile g_opened[2 * kMaxOpened];   // reads, then writes
+int g_nextOpened[2];
+SRWLOCK g_openedLock = SRWLOCK_INIT;
 char g_failText[MAX_PATH];
-constexpr int kMaxFailing = 64;
-HANDLE g_failing[kMaxFailing];
-SRWLOCK g_failingLock = SRWLOCK_INIT;
 decltype(&::WriteFile) g_writeFile;
+// The first write that failed for real (not "diskfull"), as the run's failure line.
+SRWLOCK g_failedLock = SRWLOCK_INIT;
+std::string g_failedWrite;
 
-bool Failing(HANDLE handle) {
-    AcquireSRWLockShared(&g_failingLock);
+// The entry of `handle` copied out; false when the game did not open it through the redirection.
+bool FindOpened(HANDLE handle, OpenedFile* out) {
+    AcquireSRWLockShared(&g_openedLock);
     bool found = false;
-    for (HANDLE h : g_failing) found |= h == handle;
-    ReleaseSRWLockShared(&g_failingLock);
+    for (const OpenedFile& f : g_opened) {
+        if (f.handle != handle) continue;
+        *out = f;
+        found = true;
+        break;
+    }
+    ReleaseSRWLockShared(&g_openedLock);
     return found;
 }
 
-BOOL WINAPI FailingWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped) {
-    if (file != INVALID_HANDLE_VALUE && Failing(file)) {
-        static LONG logged = 0;
-        if (InterlockedIncrement(&logged) <= 5) Log("harness: diskfull: a write of %lu bytes fails with ERROR_DISK_FULL", size);
+BOOL WINAPI WatchedWriteFile(HANDLE file, LPCVOID buffer, DWORD size, LPDWORD written, LPOVERLAPPED overlapped) {
+    OpenedFile opened{};
+    const bool known = file != INVALID_HANDLE_VALUE && FindOpened(file, &opened);
+    const bool injected = known && opened.failing;   // "diskfull"
+    BOOL result = FALSE;
+    DWORD error = ERROR_DISK_FULL;
+    if (injected) {
         if (written) *written = 0;
-        SetLastError(ERROR_DISK_FULL);
-        return FALSE;
+    } else {
+        result = g_writeFile(file, buffer, size, written, overlapped);
+        if (result) return result;
+        error = GetLastError();
+        if (error == ERROR_IO_PENDING) return result;
     }
-    return g_writeFile(file, buffer, size, written, overlapped);
+    char drive[4] = "";
+    if (known && opened.target[0] && opened.target[1] == ':') std::snprintf(drive, sizeof(drive), "%c:\\", opened.target[0]);
+    const long long freeMb = drive[0] ? FreeMegabytes(drive) : -1;
+    const bool redirected = known && std::strcmp(opened.path, opened.target) != 0;
+    char line[3 * MAX_PATH];
+    std::snprintf(line, sizeof(line), "a file write failed: %lu bytes to %s%s%s: error %lu (%s); %lld MB free on %s", size,
+                  known ? opened.path : "a file not opened through the redirection", redirected ? " -> " : "",
+                  redirected ? opened.target : "", error, OsErrorText(static_cast<long>(error)).c_str(), freeMb,
+                  drive[0] ? drive : "its disk");
+    static LONG logged = 0;
+    if (InterlockedIncrement(&logged) <= 10) Log("harness: %s%s", injected ? "diskfull: " : "", line);
+    // Only files the game opened for writing fail the run: a write to a file opened for reading (the
+    // CRT start-up checks try one) or to a handle the redirection never saw is the game's own business.
+    if (known && opened.write && !injected) {
+        AcquireSRWLockExclusive(&g_failedLock);
+        if (g_failedWrite.empty()) g_failedWrite = line;
+        ReleaseSRWLockExclusive(&g_failedLock);
+    }
+    SetLastError(error);
+    return result;
 }
 
 } // namespace
@@ -229,37 +274,52 @@ long long FreeMegabytes(const char* path) {
     return static_cast<long long>(available.QuadPart / (1024 * 1024));
 }
 
-void FailWritesTo(const char* text, std::uintptr_t writeFileSlot) {
-    strncpy_s(g_failText, text, _TRUNCATE);
-    _strlwr_s(g_failText);
-    if (g_writeFile) return;
+void WatchWrites(std::uintptr_t writeFileSlot) {
     auto* slot = reinterpret_cast<decltype(&::WriteFile)*>(writeFileSlot);
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     g_writeFile = *slot;
-    *slot = &FailingWriteFile;
+    *slot = &WatchedWriteFile;
     VirtualProtect(slot, sizeof(*slot), old, &old);
+}
+
+void FailWritesTo(const char* text) {
+    strncpy_s(g_failText, text, _TRUNCATE);
+    _strlwr_s(g_failText);
     Log("harness: diskfull: writes to files whose path contains '%s' fail from now on", g_failText);
 }
 
-void OnFileOpened(const char* path, HANDLE handle, bool write) {
-    if (!g_failText[0] || handle == INVALID_HANDLE_VALUE) return;
-    char lower[MAX_PATH];
-    strncpy_s(lower, path ? path : "", _TRUNCATE);
-    _strlwr_s(lower);
-    const bool fail = write && std::strstr(lower, g_failText) != nullptr;
-    AcquireSRWLockExclusive(&g_failingLock);
-    // A handle value comes back once its file is closed: one opened for another file is taken off.
-    for (HANDLE& h : g_failing)
-        if (h == handle) h = nullptr;
-    if (fail) {
-        for (HANDLE& h : g_failing) {
-            if (h) continue;
-            h = handle;
-            break;
-        }
+void OnFileOpened(const char* path, const char* target, HANDLE handle, bool write) {
+    if (handle == INVALID_HANDLE_VALUE) return;
+    bool failing = false;
+    if (write && g_failText[0]) {
+        char lower[MAX_PATH];
+        strncpy_s(lower, path ? path : "", _TRUNCATE);
+        _strlwr_s(lower);
+        failing = std::strstr(lower, g_failText) != nullptr;
     }
-    ReleaseSRWLockExclusive(&g_failingLock);
+    AcquireSRWLockExclusive(&g_openedLock);
+    // A handle value comes back once its file is closed: the old entry goes.
+    for (OpenedFile& f : g_opened)
+        if (f.handle == handle) f.handle = nullptr;
+    {
+        int& next = g_nextOpened[write ? 1 : 0];
+        OpenedFile& f = g_opened[(write ? kMaxOpened : 0) + next];
+        next = (next + 1) % kMaxOpened;
+        f.handle = handle;
+        f.write = write;
+        f.failing = failing;
+        strncpy_s(f.path, path ? path : "", _TRUNCATE);
+        strncpy_s(f.target, target ? target : "", _TRUNCATE);
+    }
+    ReleaseSRWLockExclusive(&g_openedLock);
+}
+
+std::string FailedWrite() {
+    AcquireSRWLockShared(&g_failedLock);
+    std::string line = g_failedWrite;
+    ReleaseSRWLockShared(&g_failedLock);
+    return line;
 }
 
 } // namespace ei::verify::crash

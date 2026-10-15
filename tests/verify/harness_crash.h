@@ -7,8 +7,9 @@
 // down to 20 MB on 2026-10-15: NTFS event 141 for game.exe), so the line also gives the run disk's
 // free space when it is low.
 //
-// "diskfull <text>" (TEST ONLY, tests/scenarios/harness_disk_full.txt): from then on every WriteFile
-// to a file whose path contains <text> fails with ERROR_DISK_FULL, as on a full disk.
+// Every failed write of the game is logged and fails the run with its file, error code and the disk's
+// free space. "diskfull <text>" (TEST ONLY, tests/scenarios/harness_disk_full.txt): from then on every
+// WriteFile to a file whose path contains <text> fails with ERROR_DISK_FULL, as on a full disk.
 
 #include <windows.h>
 
@@ -24,10 +25,18 @@ std::string DescribeThrow(const EXCEPTION_RECORD* record);
 // Free megabytes on the disk holding `path` (a folder), -1 when unknown.
 long long FreeMegabytes(const char* path);
 
-// "diskfull <text>": patches the game's WriteFile import slot (once) and fails writes to the files
-// opened from now on whose path contains <text> (case-insensitive).
-void FailWritesTo(const char* text, std::uintptr_t writeFileSlot);
-// The harness's CreateFileA redirection: `handle` was opened for `path` as the game named it.
-void OnFileOpened(const char* path, HANDLE handle, bool write);
+// Watches the game's WriteFile (its import slot, patched at start): a write that fails is logged with
+// the file, the error and the free space on its disk, and the first one is a failure of the run
+// (FailedWrite). "diskfull" writes fail here.
+void WatchWrites(std::uintptr_t writeFileSlot);
+// "diskfull <text>": the files opened for writing from now on whose path contains <text>
+// (case-insensitive) fail every write.
+void FailWritesTo(const char* text);
+// The harness's CreateFileA redirection: `handle` was opened for `path` as the game named it,
+// `target` the file actually opened (the overlay's copy, or `path`).
+void OnFileOpened(const char* path, const char* target, HANDLE handle, bool write);
+// The first write that failed for real, "" when none: "a file write failed: <bytes> to <file>: error
+// 112 (There is not enough space on the disk); <n> MB free on E:\".
+std::string FailedWrite();
 
 } // namespace ei::verify::crash
