@@ -822,6 +822,9 @@ struct AIEvent {
     AIEvent* nextInSlot;            // +0x2C the wheel slot's list
 };
 static_assert(sizeof(AIEvent) == 0x30);
+// 005CDBA0 (ai_events.cpp, S3c; only the exit function 005C8FB0 calls it, on the pool 007C43A8):
+// CList<AIEvent>'s destructor: its vtable (0073FEB4) back, RemoveAll.
+void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool);
 
 // A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
 struct AIEventCell {

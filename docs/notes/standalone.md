@@ -384,9 +384,16 @@ vtable 0073FE34, SmoothNodeArrayClass in game_arrays.h) as ArrayHeader<Class>::D
 (ours only, tests/verify/verify_exit_destructors.cpp, the vectors in verify_stlp_vector.cpp): the
 shape before; after, the indexes' counts zero, the arrays' vtables back, a list's sentinel on top
 of its free list. They run at exit, after harness_report.txt: their counts are in ei_hook.log.
-Left (S3d): the MFC internals 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48 (CThreadLocal /
-CProcessLocal destructors, jmps to 0070CA59 / 0070CAD2) and 0070E181 (AfxDeleteObject of the
-handle at +0x50 of 007C90C8).
+Group 2, the other game-side exit callees the standalone check listed (Ghidra has their sizes):
+CArray destructors 00498E80 (particle draw order), 005C18E0 (spiral offsets), 004C9DB0 (the script
+quest's objectives, gamearrays::Objectives); vectors 004A8C60 / 004A8D00 / 004A8D50 (pointers) and
+004A8CB0 (16-byte entries: the item stock's scratch vectors), 00421260 (vector<stlp::string>, the
+quest files and folders), 00583920 (the zone table, recordvec::ZoneTableVector); the deferred unit
+list 0056DEF0 (SectorListDestruct: each object released) and the AI event pool's CList 005CDBA0
+(AIEventPoolDestruct). Left: the console's command maps 005DC080 (a tree, S12a) and the MFC
+internals (S3d): 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48 (CThreadLocal / CProcessLocal
+destructors, jmps to 0070CA59 / 0070CAD2), 0070E181 (AfxDeleteObject of the handle at +0x50 of
+007C90C8), 006E690F, 006E695C, 006E6B30, 006E6B7D (base vtable stores) and 00704FE3.
 
 **S9 (2026-10-15).** STLport `list<T>` (src/lib/stlp_list.h, stlp_list.cpp): one body per member,
 `ListAbi<T, Policy>` shims with the instantiations' calling conventions, the element copy / destroy

@@ -1018,6 +1018,9 @@ SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flag
 // / 00572E90, inlined by the client's destructor for its heroes): each object released (slot 4)
 // and its node returned to the pool, the sentinel last.
 void DestroySectorList(SectorList* list);
+// 0056DEF0 (world_client_maps.cpp, S3c): the same at its address, which only the exit function
+// 0056A4C0 calls (on the deferred unit list 007AF5B4).
+void __fastcall SectorListDestruct(SectorList* list);
 struct SectorGrid {
     SectorList* cells_;                   // +0x00 the lists
     SectorList** rows_;                   // +0x04 row y: its lists

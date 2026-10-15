@@ -87,4 +87,5 @@ EI_REPLACE(0x0062A0B0, TradeRecordVector::InsertOverflow);     // 0x3C
 EI_REPLACE(0x00652930, OptionBindingVector::InsertOverflow);   // 0x18
 
 // The game flow's zone table: _M_insert_overflow (RET 0xC).
+EI_REPLACE(0x00583920, ZoneTableVector::Destruct);   // S3c: the zone table 007AFDE0 at exit (0057F4A0)
 EI_REPLACE(0x00587480, ZoneTableVector::InsertOverflow);       // 0xC

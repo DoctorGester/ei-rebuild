@@ -104,6 +104,18 @@ struct ObjectPtrArrayBaseClass {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073FABC); }
 };
 
+// The particles' draw order (CArray<ParticleDepth>, effects.h; 007A9C50).
+struct ParticleDepthArrayClass {
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D024); }
+};
+// The sector spiral's offsets (CArray<SpiralOffset>, sector_map.h; 007C2FF8).
+struct SpiralOffsetArrayClass {
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FDEC); }
+};
+// The script quest's objectives (CArray<ScriptQuestObjective>, script.h; 007AA608).
+struct ObjectiveArrayClass {
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D46C); }
+};
 // The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool; 007C3038).
 struct SmoothNodeArrayClass {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073FE34); }
