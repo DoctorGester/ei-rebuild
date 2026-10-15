@@ -15,6 +15,18 @@
 
 namespace mfc::impl {
 
+// CFileStatus (0x118 bytes): what CFile::GetStatus fills in.
+struct CFileStatus {
+    CTime created;          // +0x00 m_ctime
+    CTime modified;         // +0x04 m_mtime
+    CTime accessed;         // +0x08 m_atime
+    long size;              // +0x0C m_size
+    BYTE attribute;         // +0x10 m_attribute
+    BYTE padding;           // +0x11
+    char fullName[MAX_PATH];    // +0x12 m_szFullName
+};
+static_assert(sizeof(CFileStatus) == 0x118);
+
 // CFile (0x10 bytes, vtable 00745DF4). The virtual members are reached through the object's
 // vtable where the original dispatches (mfc::CFileVirtuals); the bodies here are the slots'.
 struct CFile {
@@ -40,6 +52,15 @@ struct CFile {
     CFile* DeletingDestructor(unsigned flags);                  // 00701050 (slot 1)
 
     unsigned long GetPosition() const;                          // 007013B9 (slot 3)
+    // Slots 4-6: the name part of GetStatus's path (AfxGetFileName), its title (AfxGetFileTitle) and the
+    // whole path.
+    CString GetFileName() const;                                // 00702C31 (slot 4)
+    CString GetFileTitle() const;                               // 00702CB3 (slot 5)
+    CString GetFilePath() const;                                // 00702D35 (slot 6)
+    // 00702D64 (not virtual): the cleared status with the file's name; with an open file also its times
+    // (a missing creation or access time is the modification time), size and attributes. FALSE when
+    // the handle's times or size cannot be read.
+    BOOL GetStatus(CFileStatus& status) const;
     void SetFilePath(const char* path);                         // 006E6361 (slot 7)
     BOOL Open(const char* path, unsigned flags, CFileException* error);   // 007011E8 (slot 8)
     CFile* Duplicate() const;                                   // 00701173 (slot 9)
@@ -128,6 +149,13 @@ static_assert(sizeof(CFileFind) == 0x1C);
 BOOL __stdcall FullPath(char* out, const char* path);          // 00701870
 // AfxGetRoot: the root of `path` ("x:\" or "\\server\share\") into `root`.
 void __stdcall GetRoot(const char* path, CString& root);        // 00701940
+
+// AfxGetFileName: the part of `path` after its last backslash, '/' or ':' into `name` (at most `max` bytes,
+// lstrcpyn); with a null `name` the size it needs (with the terminator), else 0.
+unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);      // 0070D0D2
+// AfxGetFileTitle: comdlg32's GetFileTitle (through the exe's import slot), AfxGetFileName's answer when
+// that fails; with a null `title` the size it needs, else 0.
+unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);    // 00701AC9
 
 // The classes' CRuntimeClass records (GetRuntimeClass, slot 0).
 void* __fastcall FileRuntimeClass(const void* self);            // 0070BE58
