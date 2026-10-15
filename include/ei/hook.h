@@ -59,6 +59,13 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
+// True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): no
+// game.exe code, only its headers and data laid out at kImageBase, into which InstallHooks writes the
+// jumps (plain replacements only). standalone.cpp.
+bool Standalone();
+// The game.exe file the standalone host built the image from.
+const char* StandaloneExePath();
+
 // A check that runs once, right after the hooks are installed (the entry of WinMain). For code that
 // only runs before that, the game's static initialisers: what they built is still there, and the
 // check compares it with what the port builds. Verification build only (tests/verify).

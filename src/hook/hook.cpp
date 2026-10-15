@@ -186,7 +186,8 @@ static constexpr DWORD kExpectedTimestamp = 0x3ABF0DB3;
 
 static bool ReadExeFromDisk(std::vector<unsigned char>& out) {
     char path[MAX_PATH];
-    GetModuleFileNameA(nullptr, path, MAX_PATH);
+    if (Standalone()) strcpy_s(path, StandaloneExePath());
+    else GetModuleFileNameA(nullptr, path, MAX_PATH);
     FILE* f = nullptr;
     if (fopen_s(&f, path, "rb") != 0 || !f) return false;
     fseek(f, 0, SEEK_END);
@@ -210,6 +211,22 @@ static std::uint32_t FunctionSizeAt(std::uintptr_t address) {
     const FunctionSize* it = std::lower_bound(kFunctionSizes, end, address,
         [](const FunctionSize& f, std::uintptr_t a) { return f.address < a; });
     return it != end && it->address == address ? it->size : 0;
+}
+
+// The start of the known function at or before `address` (0 below the first one).
+std::uintptr_t FunctionContaining(std::uintptr_t address) {
+    const FunctionSize* end = kFunctionSizes + std::size(kFunctionSizes);
+    const FunctionSize* it = std::upper_bound(kFunctionSizes, end, address,
+        [](std::uintptr_t a, const FunctionSize& f) { return a < f.address; });
+    return it == kFunctionSizes ? 0 : (it - 1)->address;
+}
+
+// The bytes from `address` to the next known function start.
+static std::uintptr_t RoomAt(std::uintptr_t address) {
+    const FunctionSize* end = kFunctionSizes + std::size(kFunctionSizes);
+    const FunctionSize* it = std::upper_bound(kFunctionSizes, end, address,
+        [](std::uintptr_t a, const FunctionSize& f) { return a < f.address; });
+    return it == end ? 16 : it->address - address;
 }
 
 // The .text section has identical file and virtual layout (raw 0x1000 == VA 0x1000).
@@ -293,9 +310,12 @@ private:
 };
 
 int InstallHooks() {
+    // In the standalone image there is no original to run, compare with or detect patches in: plain
+    // replacements only, no Rebirth detection, no start-up checks.
+    const bool standalone = Standalone();
     // EI_NO_HOOKS=1 (ei_launch --no-hooks): run the original code only, as a baseline for harness runs.
     char noHooks[4];
-    if (GetEnvironmentVariableA("EI_NO_HOOKS", noHooks, sizeof(noHooks)) && noHooks[0] == '1') {
+    if (!standalone && GetEnvironmentVariableA("EI_NO_HOOKS", noHooks, sizeof(noHooks)) && noHooks[0] == '1') {
         Log("EI_NO_HOOKS set: running the original game code");
         return 0;
     }
@@ -313,7 +333,7 @@ int InstallHooks() {
         return 0;
     }
 
-    DumpPatchedFunctions(file);
+    if (!standalone) DumpPatchedFunctions(file);
     LoadVerifiedList();
     LoadDisabledList();
     if (!g_disabled.empty()) Log("%u function(s) disabled (disabled.txt): the original runs", unsigned(g_disabled.size()));
@@ -329,7 +349,7 @@ int InstallHooks() {
         GetModuleFileNameA(self, ini, MAX_PATH);
         if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
         rebirth::LoadSettings(ini);
-        rebirth_hook::Detect(file);
+        if (!standalone) rebirth_hook::Detect(file);
         unsigned short cw;
         __asm fnstcw cw
         Log("FPU control word at WinMain: %04X", cw);
@@ -341,12 +361,12 @@ int InstallHooks() {
 
     // EI_PLAIN=1: no verify wrappers at all, every rewrite runs as it will without them (for timing runs).
     char plainValue[4];
-    const bool plain = GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1';
-    if (plain) Log("EI_PLAIN set: no verify wrappers");
+    const bool plain = standalone || (GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1');
+    if (plain) Log(standalone ? "standalone: no verify wrappers" : "EI_PLAIN set: no verify wrappers");
     // EI_VECTORS=1: record mode (tests/vectors): each function with a recorder runs the original
     // through it, and its calls are sampled as test vectors.
     char vectorsValue[4];
-    const bool recording = GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) && vectorsValue[0] == '1';
+    const bool recording = !standalone && GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) && vectorsValue[0] == '1';
     if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
     TextUnprotect text(nt);
@@ -373,15 +393,17 @@ int InstallHooks() {
             wrapper = false;
         }
         if (!h->record && h->verify != wrapper) continue;
-        if (!orig || size < 5) {
+        // The standalone image has no original code to keep: a short function, or a start the size
+        // table does not know, gets its jump when the next known function leaves room for it.
+        if (!orig || (size < 5 && !(standalone && RoomAt(h->address) >= 5))) {
             Log("SKIP %s at %08X: not a known function start", h->name, static_cast<unsigned>(h->address));
             continue;
         }
         // Another mod (Rebirth's addon.dll) may have patched code anywhere in the body; replacing
         // the function would silently drop that patch, unless the rewrite reproduces it (behind its
         // flag, which must be on). EI_Plugin.asi patches after this point; its sites are known too.
-        rebirth_hook::Verdict verdict =
-            rebirth_hook::Check(h->address, size, orig, h->verify || h->record ? h->stolen : 0, why, sizeof(why));
+        rebirth_hook::Verdict verdict = standalone ? rebirth_hook::Verdict::Unpatched
+            : rebirth_hook::Check(h->address, size, orig, h->verify || h->record ? h->stolen : 0, why, sizeof(why));
         if (verdict == rebirth_hook::Verdict::Skip) {
             Log("SKIP %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
             continue;
@@ -424,6 +446,7 @@ int InstallHooks() {
         ++installed;
     }
     text.Restore();
+    if (standalone) return installed;
     // The game's static initialisers have run and nothing else yet: their results are compared now.
     for (StartupCheck* check = g_startupChecks; check; check = check->next) {
         Log("startup check %s", check->name);

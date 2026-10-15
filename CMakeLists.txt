@@ -37,6 +37,7 @@ add_library(ei_hook SHARED
     src/hook/paths.cpp
     src/hook/profile.cpp
     src/hook/rebirth_hook.cpp
+    src/hook/standalone.cpp
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)
@@ -51,6 +52,11 @@ endif()
 target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
+
+# The standalone host (docs/notes/standalone.md section 2): game.exe's data laid out at 0x400000 inside
+# its own image, game.exe's code replaced by ei_hook.dll's jumps. Linked at a fixed base below that range.
+add_executable(ei_standalone src/standalone/host.cpp)
+target_link_options(ei_standalone PRIVATE /BASE:0x200000 /FIXED /DYNAMICBASE:NO)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
 # the families' sources, their checks, and a stub for the hook registrations. build.cmd runs it.

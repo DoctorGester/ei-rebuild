@@ -177,7 +177,7 @@ def file_stats(path, text):
             for a in ORIGINAL.findall(code):
                 cleanup['forwarder_sites'] += 1
                 origins.append(int(a, 16))
-            if not path.startswith('src/hook/'):
+            if not path.startswith(('src/hook/', 'src/standalone/')):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))
                 for k, n in ratchet_counts(path, text).items():
