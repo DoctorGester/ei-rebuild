@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -165,6 +166,34 @@ struct SpeechText {
 struct EnvironmentSpeechText {
     static std::string Of(const acks::EnvironmentSpeech& r) { return SpeechOf(r.speech); }
 };
+// acks.db's records: the name, the map's bucket count and size, each list's speeches.
+template <typename R>
+struct AcksText {
+    static std::string Lists(const acks::SpeechList& list) {
+        std::string text = "[";
+        for (const SpeechRecord* p = list.begin(); p != list.end(); ++p) text += SpeechOf(*p) + ",";
+        return text + "]";
+    }
+    template <std::size_t N>
+    static std::string Lists(const acks::SpeechList (&lists)[N]) {
+        std::string text;
+        for (const acks::SpeechList& list : lists) text += Lists(list);
+        return text;
+    }
+    static std::string Of(const R& r) {
+        const acks::SpeechTable& map = acks::SpeechTableOf(r.head);
+        char sizes[32];
+        std::snprintf(sizes, sizeof(sizes), "|%u/%u|", static_cast<unsigned>(map.Count()),
+                      static_cast<unsigned>(map.BucketCount()));
+        std::string text = Text(r.head.name) + sizes + Lists(r.lists);
+        if constexpr (std::is_same_v<R, acks::UnitAcks>) {
+            for (const acks::EnvironmentSpeech* p = r.environmentSpeeches.begin(); p != r.environmentSpeeches.end(); ++p)
+                text += "|" + SpeechOf(p->speech);
+            text += "|" + Lists(r.namedSpeeches);
+        }
+        return text;
+    }
+};
 
 // The lobby's queries: the address's bytes, the reply buffer's offsets, flags and bytes.
 struct QueryText {
@@ -308,6 +337,9 @@ template <std::uintptr_t A> using Prints = ModelCheck<A, PrintVector, PrintText<
 template <std::uintptr_t A> using Prints2 = ModelCheck<A, Print2Vector, PrintText<PrintRecord2>>;
 template <std::uintptr_t A> using Speeches = ModelCheck<A, SpeechVector, SpeechText>;
 template <std::uintptr_t A> using EnvironmentSpeeches = ModelCheck<A, EnvironmentSpeechVector, EnvironmentSpeechText>;
+template <std::uintptr_t A> using UnitAcksChecks = ModelCheck<A, UnitAcksVector, AcksText<acks::UnitAcks>>;
+template <std::uintptr_t A> using ModelAcksChecks = ModelCheck<A, ModelAcksVector, AcksText<acks::ModelAcks>>;
+template <std::uintptr_t A> using ExtraAcksChecks = ModelCheck<A, ExtraAcksVector, AcksText<acks::ExtraAcks>>;
 template <std::uintptr_t A> using FiguredUnits = ModelCheck<A, FiguredUnitVector, FiguredUnitText>;
 template <std::uintptr_t A> using DressedUnits = ModelCheck<A, DressedUnitVector, DressedUnitText>;
 template <std::uintptr_t A> using UnitPrototypes = ModelCheck<A, UnitPrototypeVector, UnitPrototypeText>;
@@ -367,6 +399,9 @@ EI_VERIFY(0x006D26E0, Prints<0x006D26E0>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006D2830, Prints2<0x006D2830>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006E4560, Speeches<0x006E4560>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x006E47F0, EnvironmentSpeeches<0x006E47F0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x006DB9C0, UnitAcksChecks<0x006DB9C0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x006DBBD0, ModelAcksChecks<0x006DBBD0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x006DBE20, ExtraAcksChecks<0x006DBE20>::ResizeDefault, 0, s_unused);
 
 // The lobby's queries (the multiplayer server list).
 EI_VERIFY(0x004439C0, Queries<0x004439C0>::InsertOverflow, 0, s_unused);

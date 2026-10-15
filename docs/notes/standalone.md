@@ -415,6 +415,16 @@ find against the original; destructors, the CParty map (a party's copy cannot be
 of the shape cache (Share marks the shape copy-on-share) ours only, the freed pool blocks checked in
 order. The suite reaches 21 of 25, 0 mismatches; not reached: 004A91B0 004ABA70 006A6C20 005BE090.
 
+**S10b (2026-10-15).** The three acks.db tables' resize(n): 006DB9C0 (UnitAcks), 006DBBD0
+(ModelAcks), 006DBE20 (ExtraAcks), as `VectorAbi<R, AcksElement<R>>::ResizeDefault`
+(record_vectors.h). The head copies its name and the speech map by the hashtable's copy constructor
+/ operator= (S11a); a default head is the name and an empty map of 100 buckets. The copied map's
+values still point into the source record's speech lists, as in the original. The policy lists the
+speech-list arrays itself: `records::Memberwise` takes an array of `stlp::vector` as trivially
+copyable (a vector's copy assignment is implicit and trivial), so its array overloads never apply and
+a default record's lists were left as garbage. Checks ours only (model text: name, map, every list);
+reached at boot, 0 mismatches.
+
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
 (NewNode, FreeNode, RemoveAt, RemoveAll, AddTail / AddHead and RemoveHead by value, destructor with
