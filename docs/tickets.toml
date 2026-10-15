@@ -1356,7 +1356,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 13: shims 908 -> 792 (130 file-local wrappers over the originals_library.h forwarders inlined: STLport string, MFC CString/CStringArray, list/hash/array helpers). Left: typed-result wrappers (17), int-to-pointer arg casts (5), fn-pointer uses, and ~240 wrappers over party/player/world/combat/ui forwarders (address-named forwarders would read worse). Next: other shim families (UI input delete shims, void* selfs) or raw addresses (664)."
+note = "Batch 13 merged: shims 908 -> 792 (file-local wrappers over originals_library.h forwarders inlined, 130 in 82 files). Next: ui_window_delete.cpp InputDelete shims (27), other void* selfs, the 664 raw addresses."
 
 [[ticket]]
 id = "C12"
