@@ -124,8 +124,8 @@ public:
     // 00638A10 (input slot 1; ui_battle_input.cpp). The screen loses the top: the order keys and
     // the press / box flags (+0x1C0, +0x1C1) cleared, then the container's slot 1.
     void OnDeactivate();
-    // 0063A560 (input side slot 9, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in
-    // the vanilla launch only; ui_battle_keys.cpp). A key pressed. While a portrait click picks a
+    // 0063A560 (input side slot 9, RET 0xC; Rebirth's MPSpeedControl reproduced behind its flag;
+    // ui_battle_keys.cpp). A key pressed. While a portrait click picks a
     // player, Esc ends that and nothing else happens. On a network client Enter / Backspace go to
     // the chat line (005F7C60 / 005F7C80) and the key is used. Otherwise the container's handler
     // (00601820) first; a key nobody used and not repeating: Esc drops the pending action with

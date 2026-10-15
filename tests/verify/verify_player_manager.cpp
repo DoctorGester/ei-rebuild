@@ -8,6 +8,9 @@
 
 #include "../../src/game/player_manager.h"
 #include "../../src/game/player_messages.h"
+#include "../../src/game/world.h"
+
+#include "ei/rebirth.h"
 
 #include <cstring>
 #include <vector>
@@ -44,18 +47,33 @@ CEngineObject* __fastcall NewPlayerVerify(CPlayerManager* self, void*, int type)
     ei::verify::Check("CPlayerManager::NewPlayer", true, ok, "manager %p type %d", self, type);
     return result;
 }
-// 0066C180 (A-H26; the vanilla launch only, Rebirth patches it): the client world's local session
-// at every start (CWorldClient's construction), the server's AcceptNewPlayers and its temporary
-// player at every new game. Ours only (it registers two objects): the player is filed under its
-// id with a reference, number 0, and owns the connection it got (a null one is taken as it is).
+// The number addon's PlayerNumbers gives `player`: the highest of the server world's other players
+// + 1, else 0 (walked over the list itself, not through the iterator the rewrite uses).
+int ExpectedPlayerNumber(CPlayer* player) {
+    if (!ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers)) return 0;
+    CBaseManager* players = WorldServer()->PlayerList();
+    if (!players) return 0;
+    int highest = -1;
+    for (auto* node = players->objectList_.head; node; node = node->next)
+        if (node->data != player && static_cast<CPlayer*>(node->data)->playerId_ > highest)
+            highest = static_cast<CPlayer*>(node->data)->playerId_;
+    return highest >= 0 ? highest + 1 : 0;
+}
+
+// 0066C180 (A-H26; Rebirth's PlayerNumbers reproduced): the client world's local session at every
+// start (CWorldClient's construction), the server's AcceptNewPlayers and its temporary player at
+// every new game. Ours only (it registers two objects): the player is filed under its id with a
+// reference, number 0 (with PlayerNumbers the next after the server's others), and owns the
+// connection it got (a null one is taken as it is).
 CEngineObject* __fastcall CreateSessionPlayerVerify(CPlayerManager* self) {
     CEngineObject* result = self->CreateSessionPlayer();
     auto* player = static_cast<CPlayer*>(result);
     bool ok = !player || (*reinterpret_cast<std::uintptr_t*>(player) == CPlayer::kVtableAddress &&
                           player->type_ == 0x300A && self->FindObject(static_cast<unsigned>(player->id_)) == player &&
-                          player->playerId_ == 0 && player->refCount_ >= 1 &&
+                          player->playerId_ == ExpectedPlayerNumber(player) && player->refCount_ >= 1 &&
                           (player->connection_ == nullptr || player->connection_->player_ == player));
-    ei::verify::Check("CPlayerManager::CreateSessionPlayer", true, ok, "manager %p player %p", self, result);
+    ei::verify::Check("CPlayerManager::CreateSessionPlayer", true, ok, "manager %p player %p number %d", self, result,
+                      player ? player->playerId_ : -1);
     return result;
 }
 void __fastcall ReleasePlayerVerify(CPlayerManager* self, void*, CEngineObject* player) {

@@ -108,11 +108,13 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 - **AutoExec**: the three "exec autoexec.cfg" executions (005DC620 called from 0057ABA0, 0057BD10, 0057C700) first execute every "Console
   AutoExec" registry line and every line of `2utoexec.cfg` (read once, at first use).
 
-### Multiplayer (5 of 9 applied; *not started*) and mod-only patches
+### Multiplayer (5 of 9 applied; implemented) and mod-only patches
 
-FixProcessLogin (clears +0x18 of a login record, 00443080), ExtendedServerName (0061B2C0 / 0061D780), MQClient (no .mq files from the server,
-0041ECC0), MPSpeedControl (0063A560 / 00648D70), PlayerNumbers (a call in 0066C180). *Disabled here*: SetDefaultRate, MPConsole, MpZone,
-ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
+FixProcessLogin (a stub clears +0x18, the age, of the join `ServerBase::OnLogin` 00443080 builds; ours always did), ExtendedServerName
+(0061B2C0 / 0061D780), MQClient (`ClientOnFileChunk` 0041ECC0 returns after collecting every chunk: no file from the server is written),
+MPSpeedControl (the network client test of the two speed keys in 0063A560 and the clock's speed buttons in 00648D70 dropped: JNE +0),
+PlayerNumbers (addon+21B4A replaces `CPlayer::SetPlayerId(0)` in 0066C180: the highest number of the server world's other players + 1,
+else 0). *Disabled here*: SetDefaultRate, MPConsole, MpZone, ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
 not inventoried.
 
 ### Resources and paths (6 of 12 applied; single player; NivalRegistry implemented, the rest *deferred*)
@@ -142,12 +144,28 @@ finds (calls of 00674AC0) and 13 finds (calls of 00671B40) to addon; with an emp
 
 The plugin checks game.exe (PE header word at +0x150 is 0x2EC226), refuses when the mode word at 0073AF10 says so, makes the image
 writable and patches 006B6272. Its first call reads `EI_Plugin.ini` and addon's mode word (0xAADDxxxx: bit 0 PK, 1 NPlayers = 6, 2 Pause,
-3 AutoAim, 4 GraphGen, 5 Test, 6 NewMaster, 7 Scripts, 8 Briefings, 9 Fixes off). Active here (all *not started*, multiplayer): NPlayers (player
-count bytes in the lobby code), Pause (0066FAFE, 0066FB62, ...; `RET 4` at the start of 005942C0), NewMaster (CALLs into the plugin at
-006330A9, 0041ABDA, 0061D138, 00440F9F, 42 NOPs at 0045D330 inside `GameOptions::SaveToRegistry`, a network thread), Briefings (005920FF,
-00592090), Fixes (0x66-byte checks in 00613EA0, 005ED7B0, 006091C0, 006407E0, JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100).
-Scripts is off (addon's AddNewScriptCommands / PlayerNumbers instead); PK, AutoAim, GraphGen, Test off. It updates itself from
-hat.gipath.org, so its patch set may change.
+3 AutoAim, 4 GraphGen, 5 Test, 6 NewMaster, 7 Scripts, 8 Briefings, 9 Fixes off). Active here (multiplayer): NPlayers (player count bytes
+in the lobby code; W2b, W4b), Pause, NewMaster, Briefings (S19a, below), Fixes (0x66-byte checks in 00613EA0, 005ED7B0, 006091C0, 006407E0,
+JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100; W4a, W4b). Scripts is off (addon's AddNewScriptCommands / PlayerNumbers instead); PK,
+AutoAim, GraphGen, Test off. It updates itself from hat.gipath.org (a signed manifest, then a new EI_Plugin.asi), so its patch set may change.
+
+S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
+- **Pause** (`CPlayerServer::OnPause` 0066FAC0; `rebirth::PluginPause()`, the ini's mode, 1 here). Modes 1 and 2 jump from 0066FAFE to 14
+  bytes at 0066FB62 that write `'3' - pause` over the last digit of "reserved_02" (007930F6 in .rdata, the key of announcement 12,
+  `CInterface3D::MessageText`) and go on, so resumes are announced too ("reserved_03"); mode 2 also replaces the leader test (0066FB10) by
+  the pausing player's own leader. Mode 3 skips the announcement (0066FB2C) and makes 005942C0 (`CWorld::SetServerPaused`, the server's
+  copy of SetPaused) a `RET 4`.
+- **Briefings** (`CWorldServer::CompleteBriefing` 00592090): a network client also queues the completion script (GSSetVar /
+  #OnBriefingComplete) after asking the server: the client path's stack offsets move by 0x14 and it jumps into the server path's tail
+  (005924D1). The plugin formats the name from the caller's EBX; the client's only caller (00608851) holds the name there, so ours passes it.
+- **NewMaster**, the game's own code: `GameOptions::SaveToRegistry` 0045C560 does not save the Master Server Name (42 NOPs);
+  `ServerSession::OnMasterImpl` 0041ACA0 takes answers from any address (2 NOPs at 0041ACB7); `MasterLinkTick` 00440DE0 leaves a master
+  link that closed before anything arrived as it is (the plugin's 10005490 at 00440F9F). Not reproduced: the plugin's second master server
+  (hat.gipath.org:28004), which needs the user's decision (port or drop): a thread resolving the name (gethostbyname, retried at most every
+  10 s; the main menu's click 00632D70 starts it and waits up to 300 ms; 006330A9), a copy of each announcement with 0xDEADBEEF, the player
+  count and the players' names sent there (0041AA10 at 0041ABDA), and in `CMpConnectScreen::MasterRequest` 0061D0D0 (0061D138) a
+  nonblocking TCP connect probe of the configured master (up to 1 s) that falls back to the second one. Without a resolved address the
+  announcement is the original's; the probe is not. Those three functions stay the original under Rebirth (SKIP) and vanilla in the image.
 
 ## FPU precision
 
@@ -380,4 +398,4 @@ wrapper re-derives the slider's rectangle, maximum and position and the field's 
 ### Remaining work
 
 WideScreen has no leftovers; the deferred Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
-layer); the multiplayer patches and EI_Plugin features (with multiplayer).
+layer, S19b); EI_Plugin's Fixes and NPlayers leftovers (W4b); NewMaster's second master server (the user's decision, S19a).

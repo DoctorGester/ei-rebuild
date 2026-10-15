@@ -17,6 +17,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -254,6 +255,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         console::CStringArray parts;
         StringSplit(name, &parts, '.');
         if (parts.GetSize() == 3) RequestBriefing(TheGameFlow(), nullptr, parts[2]);
+        // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
+        // 005924D1): the client queues the completion script as well. The plugin formats it with the
+        // caller's EBX as the name; the client's only caller (00608851) holds the name there.
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
         return;
     }
     console::CStringArray parts;
@@ -281,6 +286,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         if (record) GiveBriefingRewards(this, player, record);
     }
 
+    QueueBriefingScript(playerId, name);
+}
+
+void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
@@ -772,4 +781,5 @@ EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
 EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
+EI_REBIRTH_IMPLEMENTS(0x00592090, ei::rebirth::Patch::EiPluginBriefings);
 EI_REPLACE_METHOD(0x00591DE0, CWorldServer::ApplyMercBriefing);

@@ -21,6 +21,7 @@ static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
 
 bool g_followAddon = true;
 int g_pluginNPlayers = 7;
+int g_pluginPause = 1;
 char g_queued[1024];                         // QueueSpec runs before any C++ object may be used
 const Implements* g_implements = nullptr;    // constant-initialised: registrations come first
 const LiveStolen* g_liveStolen = nullptr;
@@ -34,6 +35,9 @@ void Set(Patch p, bool on) { detail::g_enabled[static_cast<int>(p)] = on; }
 
 int PluginNPlayers() { return g_pluginNPlayers; }
 void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
+
+int PluginPause() { return g_pluginPause; }
+void SetPluginPause(int mode) { g_pluginPause = mode; }
 
 const char* Name(Patch p) { return kNames[static_cast<int>(p)]; }
 

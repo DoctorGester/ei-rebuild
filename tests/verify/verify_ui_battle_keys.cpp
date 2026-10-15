@@ -1,5 +1,5 @@
-// Check for the battle screen's key-down handler (ui_battle_keys.cpp; 0063A560, Rebirth-patched:
-// the vanilla launch only). Ours only: it plays sounds, opens windows, orders units through the
+// Check for the battle screen's key-down handler (ui_battle_keys.cpp; 0063A560, Rebirth's
+// MPSpeedControl reproduced). Ours only: it plays sounds, opens windows, orders units through the
 // local view and hands the key to the panels, none of which may happen twice.
 #include "verify.h"
 
