@@ -125,6 +125,7 @@ void SpreadCountdownsById() {
         }
         const unsigned char byId[6] = {0x8B, static_cast<unsigned char>(0x40 | (r << 3) | r), 0x0C,
                                        0x83, static_cast<unsigned char>(0xE0 + r), 0x0F};
+        ei::NoteHarnessPatch(site.address, sizeof(byId), "the update countdown from the object's id, SV1b");
         DWORD old;
         VirtualProtect(code, sizeof(byId), PAGE_EXECUTE_READWRITE, &old);
         std::memcpy(code, byId, sizeof(byId));

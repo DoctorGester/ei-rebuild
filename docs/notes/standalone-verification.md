@@ -802,3 +802,42 @@ The others stay out for other causes: the SV1j family (isaac.count/standCooldown
 for frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_mp_host, zone_base_bz1g rebirth;
 zone_base_bz1g vanilla also shows SV3f's rotation ulp; ui_hud rebirth differs from the original from world update 40 in
 the script global gobject.i (702 in the original, 1884 in ours; both repeat), SV3k.
+
+## SV6: no registration skipped unnoticed at hook install (2026-10-15)
+
+The hook build left 224 registrations out at install (smoke, vanilla), so those rewrites never ran there:
+- 83 starts with no Ghidra function (spell effect Emit/Update/Tick slots 004889D0..00496840, reached through
+  tables; CPlayerServer 0066D7B0, 0066EAC0, 0066F1F0): sizes decoded with capstone (recursive descent within the gap,
+  two switch tables followed) and added to config/extra_function_sizes.csv and function_sizes.inc.
+- 64 functions under five bytes registered with EI_REPLACE / EI_VERIFY (RET, RET n, XOR EAX,EAX; RET, ...): game.exe
+  now gets their jump too when the bytes after them up to the fifth are NOP/INT3 padding on disk and in memory before
+  the next known function (InstallHooks, PaddingAfter). EI_REPLACE_SHORT ones stay the original's in the hook build.
+- 59 second registrations of one address: the EI_*_VERIFY macros of verify_player_messages.cpp and
+  verify_world_effect.cpp registered besides the EI_VERIFY line after each use (the macros now only define;
+  0066D490 had no line and got one), and 00669D50 had both an observer (verify_world_client.cpp, from before
+  OnGameState was ported) and OnGameStateVerify: the observer's counters moved into OnGameStateVerify
+  (game_state_message.h).
+- 9 the harness's own patches (the eight SV1b countdown sites in seven functions, the fixed ISAAC seed at 0049F660,
+  GameMain's redirected CALLs): expected.
+
+InstallHooks now classifies every SKIP. Expected: the harness patched the function (`ei::NoteHarnessPatch`, called by
+the harness's RedirectCall / JumpTo / JumpFrom / capture CALL / countdown sites; "the harness patches +0xN (...)"),
+a Rebirth site the rewrite does not implement, and, in a Rebirth launch only, a byte that differs outside every known
+site. Anything else (unknown start, short without padding, a second registration, thunk, dispatch, trampoline) is
+logged with " (unexpected)", counted, summed up in the log, and the harness report gets a FAILED line, so the run fails.
+
+## SV6a: zone_gz15h_tornado ran 1.6 times slower on Rebirth (2026-10-15)
+
+Same 2805 world ticks and 563 frames on both installs, but Rebirth lights 2.5 times as many terrain sectors
+(SectorData::Light 44198 calls against 17734; its map has more moving point lights), and every light call runs
+through the nested LightVertex / ShadeSun / AddDirectional verify wrappers: 88 million Check calls in the Rebirth run.
+EI_PROFILE=1 put about half of the main thread in ei::verify::Report, not in the lighting: it built a std::string
+and walked a std::map per check (and Check zeroed a 256-byte buffer). Report now finds its entry through a table keyed
+by the name literal's address (confirmed by comparing the text), Check/CheckNear leave the detail buffer unset.
+The wait of 150000 went from 88 s to 45-49 s on Rebirth (whole run 105 s -> 62-68 s, vanilla 65 s -> 42 s, 2 at once,
+profiled); the 120 s limit and the 150 s wait stay.
+
+The scenario reaches CEffectTornado (Launch, Tick, Reset) on Rebirth only, and not in every run: a strike needs open
+ground at a random point (about 3 % of the 64-tick weather updates, 44 in the wait), so runs with 72 to 90 s waited
+launched one in about half the cases and the 150 s wait is what makes it likely. Vanilla did not launch one in any run.
+Shortening the wait would lose the coverage; no golden is recorded for it (the strikes differ between runs).

@@ -28,6 +28,7 @@ enum class Verdict {
     Unpatched,    // no Rebirth patch in the function: install as usual
     Implemented,  // patched, every patch there is implemented by the rewrite and enabled
     Skip,         // patched by something the rewrite does not reproduce (or its flag is off)
+    Unknown,      // a byte differs from game.exe on disk outside every known site (another mod)
 };
 
 // Decides for the rewrite of the function at `address` (`size` bytes; `orig` its bytes on disk)

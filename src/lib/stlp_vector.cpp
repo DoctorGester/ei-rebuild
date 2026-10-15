@@ -212,13 +212,12 @@ EI_REPLACE(0x00438D00, Vector4::ConstructWithCapacity);
 // ~vector() of 8-byte elements (nothing to destroy).
 EI_REPLACE(0x004387D0, Vector8::DestroyBase);
 
-// The scalar deleting destructor of a _Vector_base of bytes: 6 instantiations.
+// The scalar deleting destructor of a _Vector_base of bytes: 4 instantiations. The same bodies at
+// 005AE5B0 / 005AE5D0 are the figure maps' pair destructors, registered by S13 (record_lifetime.h).
 EI_REPLACE(0x00464DF0, Vector1::DeleteBase);
 EI_REPLACE(0x0053D970, Vector1::DeleteBase);
 EI_REPLACE(0x0053D990, Vector1::DeleteBase);
 EI_REPLACE(0x0053D9B0, Vector1::DeleteBase);
-EI_REPLACE(0x005AE5B0, Vector1::DeleteBase);
-EI_REPLACE(0x005AE5D0, Vector1::DeleteBase);
 
 // _M_allocate_and_copy(n, first, last) of 16 bytes.
 EI_REPLACE(0x0069DB00, Vector16::AllocateAndCopy);

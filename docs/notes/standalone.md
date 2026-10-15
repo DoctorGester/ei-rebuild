@@ -191,6 +191,50 @@ _mbschr 3.7M, _mbslwr 1.7M calls). Left for S4a-S4c: sprintf / vsprintf / fprint
 the _CI maths (register arguments), _CxxThrowException, the iostream operators, setlocale / _setmbcp,
 _ismbcdigit / _ismbcspace. (library.csv named 006EC8A8 _mbsupr: it lowers.)
 
+**S4a (2026-10-15).** sprintf 006E8715, vsprintf 006ECC47, fprintf 006EAEB0, printf 006E955F and atof
+006E911A registered in both builds (src/lib/crt_format.cpp). One `Output<Sink>` is VC6's _output
+(the __lookuptable state machine copied from 007476D0, flags, `%I64`, `%Z`, wide text through wctomb,
+"(null)", text kept between conversions). Floats are not "17 correct digits": `$I10_OUTPUT` builds them
+from a 12-byte long double (96-bit `__ld12mul` with its truncated partial products, the exe's power-of-ten
+tables 0079AE60 / 0079AFC0 copied), then `_fptostr` rounds that digit string half up; `_cftoe2` writes
+three exponent digits, infinities and NaNs come out as "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" (so
+"%.2f" of infinity is "1.#J"), -0 prints as 0. atof is `__strgtold12` (at most 24 digits; with more,
+the original bumps the 24th digit itself when it is 5 or more; exponents beyond 5200 saturate; 'd' / 'D'
+accepted) then `_ld12tod` (rounds up only when a bit after the one following the rounding bit is set,
+so ties and some values above them round down; double format at 0079ADE0: min exponent -1023).
+fprintf / printf format in memory and write once through the game's fwrite (S4b owns the stream code).
+The decimal point is read from 00797FE8 (LC_NUMERIC), classes from `_pctype`; single-byte paths only.
+Checks (tests/verify/verify_crt_format.cpp, all against the original): sprintf / vsprintf / fprintf /
+printf run the original _output 006F17D4 into a scratch string FILE and compare count and bytes; atof
+through its trampoline, bits. A start-up check runs ~135k cases (58 float formats on ~6,000 doubles
+incl. denormals, NaNs and random bit patterns, integer / char / string conversions, atof on formatted
+and random digit strings): 0 mismatches. Full suite (128 runs): 0 mismatches, only the pre-existing
+zone_gz15h_tornado rebirth timeout; fprintf / printf are not reached (debug output). Follow-up: S4a1
+(a function-vector family for the conversions).
+
+**S4b (2026-10-15).** Image only (`EI_REPLACE_STANDALONE`; the hook build keeps the exe's FILE table,
+descriptors and heap, which MFC's CStdioFile shares). Heap (crt.cpp): realloc 006ED69A, calloc 006F0317
+(count * size unchecked, as VC6), _msize 006EEC7B, _strdup 006EEC50 on the host heap, retried through the
+CRT's new handler under `_newmode` like malloc. Nothing else reaches the CRT heap from our side (other
+callers are CRT / MFC internals: _beginthread(ex) calloc, CMemFile 0070AEEA / 0070AEF7, the MFC thread
+state's _msize). Files (src/lib/crt_file.cpp): _open 006EB35C is VC6's _sopen (flags to CreateFileA's
+access / sharing / disposition / attributes, `_fmode` 007CAC80, `_umaskval` 007CAADC, a trailing Ctrl-Z
+dropped from a text file opened for update) through the game's import slots, so the harness's
+saves / install redirection applies in the image too; the handle becomes a host descriptor
+(`_open_osfhandle`, same translation and append flags). fopen 006E9107 parses the mode as `_openfile`
+(an unknown or repeated letter ends it; `_commode` 007CADA4) and wraps the descriptor with `_fdopen`, so
+the game's CrtFile* is the host's FILE*. _read, _write, _lseek, _close, _filelength, fclose, fseek, ftell,
+fread, fwrite are the host's (a bad descriptor or stream returns the error instead of the host's
+invalid-parameter abort); &_iob[0..2] map to the host's std streams; `gamecrt::fileno` is a function
+(host `_fileno` in the image). _access 006EAF20 (write bit only) and _findfirst 006EB832 (attributes,
+local 32-bit times, size, name; the game never closes the handle) go through the game's slots;
+`gamecrt::findfirst` / `FindData` replace resource_stream.cpp's own forwarder. Check
+(tests/verify/verify_crt_file.cpp, a start-up check against the originals on scratch files under %TEMP%):
+27 fopen modes on text / Ctrl-Z / missing files with the same reads, seeks, tells and writes (results,
+bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _findfirst; the heap ours only.
+smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
+stops at 0040AA80 (hash table resize, S11) before any file code.
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on
@@ -286,6 +330,55 @@ record's texts; 00426B10 and 0062A0B0 (plain) against the original. 45 of 50 rea
 mismatches; not reached: 004200C0, 00421D90, 00426B10 (Replicated overflow), 00428A20, 004439C0.
 Left (S10b): acks.db's table records 006DB9C0 006DBBD0 006DBE20 (each record holds a
 `hash_map<int, SpeechList*>`, whose copy waits for S11's hashtable).
+
+**S6 (2026-10-15).** MFC `CArray<T>` (src/lib/mfc_array.h, mfc_array.cpp; game-element ones in
+src/game/game_arrays.*): mfc::CArray's bodies (mfc.h) under `ArrayAbi<T, Policy>` shims (SetSize,
+SetAtGrow by reference or value, Add, Copy, RemoveAt, GetAt by value, ElementAt, Construct /
+DestructElements, constructor / destructor with the instantiation's vtable as a type with
+`Vtable()`). The element policy is what the instantiation's ConstructElements does after MFC's
+memset: nothing (plain bytes by size), an inlined constructor (`InitElements`: identity
+quaternions, empty CStrings, nested array headers, the animation step's blank values), or
+`EachElements<T, Init, Destroy>` with the element's destructor called directly (zone exits and
+records, script groups and objectives, effect particles, point lights, slot 4 releases of object
+references, slot 0 / 1 virtual destructors, aligned blocks, nested arrays restoring their base
+vtable). 171 of the 204 forwarded rows are registered (plus 25 helpers they call, 195 addresses);
+0059CB50 / 0059CCE0 / 00468C50 / 00468F70 were the engine's aligned arrays (now in
+aligned_arrays.cpp). Checks (tests/verify/verify_mfc_array.cpp): one alias per address; plain and
+constructed elements against the original on a twin array (header and element bytes); SetSize of
+owning elements against the original while nothing is destroyed (grow), ours only on shrink;
+destructors, DestructElements, string / reference copies and GetAt ours only against the source.
+The suite reaches 124 of the 190 checked addresses, 0 mismatches; the model and animation
+file loaders' arrays (0045xxxx-00477xxx), the save's shared-object arrays and the AI map's array
+destructors are not reached. Left: S6b (31: CFigure part / scene record constructors, the script
+command family 004C4FD0-004CEB80, DeltaField, CMap-element arrays (S7), music themes, cache
+entries, three class destructors named like CArray ones).
+
+**S11 group 1 (2026-10-15).** STLport hashtables of dword keys (src/lib/stlp_hash.h, stlp_hash.cpp):
+`hashtable<Traits>` over a `vector<Node*>` of buckets (stlp_vector.h), the 0x14-byte layout
+(functor bytes, buckets, count), `HashtableAbi<Traits>` shims. 99 addresses: constructors (n and
+default 100 -> 193 buckets), `_M_initialize_buckets` (0040AA80 is one; the standalone boot now gets
+past it and stops at 00411AB0, a deque), resize, find, begin, operator[], find_or_insert,
+erase(iterator), clear, ~hashtable, `_M_new_node` / `_M_delete_node`, the iterator members and
+`__stl_next_prime` (0040AE00, 00672EC0). Node sizes from each `_M_new_node` or clear's free list:
+12 bytes (16-byte list) for most, 8 for the two dword sets 004DB8A0 / 00668B70, 32 for
+find_or_insert 004E2E90. Checks (tests/verify/verify_stlp_hash.cpp) against the original: pure
+members compared; frees and inserts run the original, undo it (nodes popped off the LIFO free
+list, the table restored) and compare ours, which must reuse the same nodes; a rehashing resize
+runs the original on a clone. Destructors ours only. 76 of 99 reached by the suite, 0 mismatches.
+**S11 group 2.** String keys (`StringKeyTraits<4>`: `__stl_hash_string`, size and bytes equal;
+20-byte nodes on the 24-byte list, each new node copying the string with string(first, last)):
+102 more addresses, 201 in all: find, `_M_skip_to_next`, erase(key), operator[](const string&) 16,
+operator[](const char*) on the record tables 8 (`RecordsByName`: the record vector, then the map),
+find_or_insert 15, resize 20, `_M_new_node` 20, clear 13, the two `__stl_hash_string`s. All
+checked against the original: inserts undo the original's node (its string, then the node) and
+re-free operator[]'s temporaries on top; clear / erase(key) take the original's frees (each
+string, then its node) off their lists again, with the first word the free list overwrote. The
+checks snapshot only the bucket an insert or erase touches (whole-table copies made ui_mp_host
+time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash_set<int>
+(insert_unique 0066B400 with its resize and `_M_new_node`, clear 0066BA70): 205 in all. Left
+(S11a): the 24 forwarded members whose values are CString, CParty, a list, a ref-counted handle or
+a float key, and the 350-odd hash members nothing of ours calls (reached only from other
+originals; dead in the standalone image unless the exe's data points at them).
 
 ## 3. Runtime: MFC, STLport, CRT
 

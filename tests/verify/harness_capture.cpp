@@ -19,6 +19,7 @@
 #include "harness_hooks.h"
 
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "../../src/render/render.h"
 
@@ -306,6 +307,7 @@ bool Install() {
         return false;
     }
     rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(&CaptureThenCursorLock) - (kCursorLockCall + 5));
+    ei::NoteHarnessPatch(kCursorLockCall, 5, "the frame capture's CALL");
     DWORD old;
     VirtualProtect(p + 1, 4, PAGE_EXECUTE_READWRITE, &old);
     std::memcpy(p + 1, &rel, 4);

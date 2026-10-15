@@ -203,6 +203,7 @@
 #include "../vectors/vectors.h"
 
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
@@ -913,10 +914,13 @@ void WriteReport() {
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
-    for (const std::string& failure : g_failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
-    std::fprintf(f, "RESULT: %s\n", mismatches || !g_failures.empty() ? "FAIL" : "PASS");
+    std::vector<std::string> failures = g_failures;
+    if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
+        failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
+    for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
+    std::fprintf(f, "RESULT: %s\n", mismatches || !failures.empty() ? "FAIL" : "PASS");
     std::fclose(f);
-    Log("harness: report written (%lu mismatches, %u failures)", mismatches, unsigned(g_failures.size()));
+    Log("harness: report written (%lu mismatches, %u failures)", mismatches, unsigned(failures.size()));
 }
 
 // Deterministic mode, the default (a "realtime" line anywhere in the scenario turns it off,
@@ -980,6 +984,7 @@ bool RedirectCall(std::uintptr_t site, std::uintptr_t expected, const void* to) 
         return false;
     }
     rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(to) - (site + 5));
+    ei::NoteHarnessPatch(site, 5, "a CALL the harness redirects");
     DWORD old;
     VirtualProtect(p + 1, 4, PAGE_EXECUTE_READWRITE, &old);
     std::memcpy(p + 1, &rel, 4);
@@ -1001,6 +1006,7 @@ void __fastcall FixedIsaacSeed(void* isaac) {
 
 void JumpTo(std::uintptr_t from, const void* to) {
     auto* p = reinterpret_cast<unsigned char*>(from);
+    ei::NoteHarnessPatch(from, 5, "the harness's replacement");
     DWORD old;
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
     p[0] = 0xE9;
