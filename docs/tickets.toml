@@ -1605,10 +1605,11 @@ done = "2026-10-15"
 id = "S11"
 title = "Standalone library: STLport hashtable, hash_map, hash_set"
 group = "standalone"
-status = "queued"
+status = "done"
 size = 1.5
 files = ["src/lib/stlp_hash.h", "src/lib/stlp.h"]
 note = "About 200: find_or_insert, operator[], clear, resize, find, erase, _M_new_node, iterators. Bucket counts and insertion order exactly as STLport's (iteration order feeds game logic and saves). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S12"
@@ -1831,6 +1832,16 @@ size = 1
 depends = ["S6"]
 files = ["src/lib/mfc_array.h", "src/game/game_arrays.cpp"]
 note = "What S6 left (docs/notes/standalone.md S6): SetSize / ConstructElements of the CFigure parts and scene records (0044FCD0, 00453240, 00453550, 004545C0, 00454F80: their element constructors are game code), the script command family (004C4FD0, 004C54A0, 004C6D10, 004CC0C0, 004CCCB0, 004CCD90, 004CD130, 004CD2B0, 004CD770, 004CE920, 004CEB80), DeltaField 0050FA30, the CMap-element arrays 00474DB0 / 00476F20 / 00477100 (after S7), music themes 006B56C0 / 006B59A0, cache entries 006BE210, the menu arrays 00631E70 / 00631FF0 (compiler callees 005FBD80 / 005FBDD0), GetAt by copy 0046EAB0 / 00584EA0, and the class destructors 004763C0, 00557890, 0058AA60, 00599330. Same pattern: EachElements with the element's own constructor / destructor called directly, verify per address."
+
+[[ticket]]
+id = "S11a"
+title = "Standalone library: STLport hashtables of objects"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S11"]
+files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
+note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp)."
 
 # ---------------------------------------------------------------- Lua
 

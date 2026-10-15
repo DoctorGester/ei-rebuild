@@ -337,6 +337,33 @@ destructors are not reached. Left: S6b (31: CFigure part / scene record construc
 command family 004C4FD0-004CEB80, DeltaField, CMap-element arrays (S7), music themes, cache
 entries, three class destructors named like CArray ones).
 
+**S11 group 1 (2026-10-15).** STLport hashtables of dword keys (src/lib/stlp_hash.h, stlp_hash.cpp):
+`hashtable<Traits>` over a `vector<Node*>` of buckets (stlp_vector.h), the 0x14-byte layout
+(functor bytes, buckets, count), `HashtableAbi<Traits>` shims. 99 addresses: constructors (n and
+default 100 -> 193 buckets), `_M_initialize_buckets` (0040AA80 is one; the standalone boot now gets
+past it and stops at 00411AB0, a deque), resize, find, begin, operator[], find_or_insert,
+erase(iterator), clear, ~hashtable, `_M_new_node` / `_M_delete_node`, the iterator members and
+`__stl_next_prime` (0040AE00, 00672EC0). Node sizes from each `_M_new_node` or clear's free list:
+12 bytes (16-byte list) for most, 8 for the two dword sets 004DB8A0 / 00668B70, 32 for
+find_or_insert 004E2E90. Checks (tests/verify/verify_stlp_hash.cpp) against the original: pure
+members compared; frees and inserts run the original, undo it (nodes popped off the LIFO free
+list, the table restored) and compare ours, which must reuse the same nodes; a rehashing resize
+runs the original on a clone. Destructors ours only. 76 of 99 reached by the suite, 0 mismatches.
+**S11 group 2.** String keys (`StringKeyTraits<4>`: `__stl_hash_string`, size and bytes equal;
+20-byte nodes on the 24-byte list, each new node copying the string with string(first, last)):
+102 more addresses, 201 in all: find, `_M_skip_to_next`, erase(key), operator[](const string&) 16,
+operator[](const char*) on the record tables 8 (`RecordsByName`: the record vector, then the map),
+find_or_insert 15, resize 20, `_M_new_node` 20, clear 13, the two `__stl_hash_string`s. All
+checked against the original: inserts undo the original's node (its string, then the node) and
+re-free operator[]'s temporaries on top; clear / erase(key) take the original's frees (each
+string, then its node) off their lists again, with the first word the free list overwrote. The
+checks snapshot only the bucket an insert or erase touches (whole-table copies made ui_mp_host
+time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash_set<int>
+(insert_unique 0066B400 with its resize and `_M_new_node`, clear 0066BA70): 205 in all. Left
+(S11a): the 24 forwarded members whose values are CString, CParty, a list, a ref-counted handle or
+a float key, and the 350-odd hash members nothing of ours calls (reached only from other
+originals; dead in the standalone image unless the exe's data points at them).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
