@@ -143,7 +143,7 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **SV1c** Keep harness games from taking the foreground, then drop the minimise rerun (running since 2026-10-15; sonnet, 0.4 sessions). From SV1: a game that got the foreground and lost it to a starting game is minimised twice by dgVoodoo and loses exclusive mode; run_all.run reruns such runs (MINIMISED). Block the activation so no harness game is ever foreground, then remove the rerun. Files: `tests/verify/harness.cpp`, `tools/run_all.py`.
+- **SV1c** Keep harness games from taking the foreground, then drop the minimise rerun (review since 2026-10-15; sonnet, 0.4 sessions). From SV1: a game that got the foreground and lost it to a starting game is minimised twice by dgVoodoo and loses exclusive mode; run_all.run reruns such runs (MINIMISED). Block the activation so no harness game is ever foreground, then remove the rerun. Files: `tests/verify/harness.cpp`, `tools/run_all.py`.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **T2a** ui_base_dialogue: Smith has no topics, dialogue never starts (ready; 1 session). OpenTopics adds regions only if topics exist; pick a person and quest state with topics so the dialogue screens are reached
 - **T2b** Hero attack on a removed target: PlayerMode::UpdateCombat verify mismatch (ready; 1 session). Attack(hero, wolf) then RemoveUnitFromServer after 55-220 ms gives a mismatch (state 0 action 3). Possible rewrite bug; reproduce in a scratch scenario
@@ -179,7 +179,7 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 
 After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus.
 
-- **C11** Shims, constexpr addresses and per-file At() copies (review since 2026-10-15; sonnet). batch 4: 103 shims converted (22 class B, 81 class A; progress 1,234 -> 1,131). verify and release clean, check_stolen/x87/signatures/thunks 0, work.py test C11 --golden: 128 runs ALL PASS, goldens 56 the same 0 differ. Notes in docs/notes/cleanup-units.md.
+- **C11** Shims, constexpr addresses and per-file At() copies (ready; sonnet). batch 4: 103 shims converted (22 class B, 81 class A; progress 1,234 -> 1,131). verify and release clean, check_stolen/x87/signatures/thunks 0, work.py test C11 --golden: 128 runs ALL PASS, goldens 56 the same 0 differ. Notes in docs/notes/cleanup-units.md.
 - **C9d** Shadow callees: typed points, pixels and raster target (ready). From C9c (2026-10-15): CLinkMesh::ProjectPart / RasterisePart (slots 13 / 14) and 005A0CD0 / 005A0E80 take float* points, int* pixels and a void* target; typing them as Vector2*, RasterTriangle::Point* and RasterTarget* (move RasterTarget from map_object_shadow.cpp to texture.h) changes their signatures, so map_object_shadow.cpp still passes &Points()[n].x / &Pixels()[n].x. After: C9c.
 - **C12** __asm blocks and float_control pragmas (later). 221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x87 maths until the standalone build.
 - **C13** Forwarders to rewritten code into direct calls (later). 2,377 sites; with the standalone work (changes what the verify wrappers see).
