@@ -1608,6 +1608,15 @@ size = 1
 files = ["src/lib/mfc_gdi.h", "src/lib/mfc_gdi.cpp"]
 note = "S8 left these: CDC::FromHandle 00708D79, CDC::SelectObject(CPen*) 00708F5A, CGdiObject::Attach 0070A075 / DeleteObject 0070A0CC, CPen(style, width, colour) 0070A0E2, CFont::CreatePointFont 0070BBE5 (+ CreatePointFontIndirect 0070BC2A), and the CDC vtable slots the interface calls (10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText). They need MFC's handle maps (afxMapHDC 00708D07, afxMapHGDIOBJ 00709FEE, CHandleMap::FromHandle 0070367C, CGdiObject::FromHandle 0070A060, Detach 0070A0A2, AfxThrowResourceException 0070A29E): the hook build keeps the original's maps (module thread state), the image needs its own. Also unported from S8's families: AfxMessageBox(UINT) 0070ACCC (needs CString::LoadString 00702B0E), CFile slots 4-6 GetFileName / GetFileTitle / GetFilePath (00702C31 / 00702CB3 / 00702D35), CFileException / CArchiveException GetErrorMessage and ReportError (vtable slots). standalone.md S8."
 
+[[ticket]]
+id = "S12c"
+title = "Standalone library: the lists, hashtables, vectors and CArrays in S12a's ranges"
+group = "standalone"
+size = 1
+depends = ["S12a"]
+files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/mfc_array.h", "config/library.csv"]
+note = "S12a ported the trees in its ranges (004337xx-0065A770); 95 library.csv rows there are not trees and stay unregistered. Lists: 00478F10 (~list<CMemoryStream>, unwind only) 00478FC0 00478FD0 00478FE0 00479130 004827D0 00482980 004829B0 00482CC0 004FB3B0 004FB3C0 004FB570 004FB730 004FB840 004FB8B0 004FBCF0 005F9570 005F9620 00482790; hashtables (S11 policies): 00482C30 00482DD0 00482DF0 004F6A50 004FB090 004FBB80 004FBC80 005E0C00 005E0D50 005E0E00; vectors and alloc proxies (S10 policies): 00482A80 00482BF0 00482D10 004FB290 004FB6A0 004FB6F0 004FB860 004FB9D0 004FBA40 005F8E00 005F9090 005FA8E0 00619600 006316C0 006317E0 006325E0 00632610 0060AA80 0060AAA0 004FB680; CArray / ConstructElements / two-CString records (with S6a's mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0; the rest need reading (some are in S12b's list: 005F8E90 005F92A0 005F94B0 005FB810): 00482440 004FB170 005F60B0 005F99B0 005F9C70 005F9F40 005FA2C0 005FA300 005FA360 005FA3C0 0060A010 0060A660 0060AB00 0060AB60 006342C0 005E0550 00445FC0 00482E90 004F69F0 005F9680 005FBE20 005FBCB0 0060ABE0 (one row each in config/library.csv)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
