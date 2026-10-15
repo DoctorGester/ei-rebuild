@@ -713,6 +713,34 @@ console). The image installs all five image-only registrations; `--standalone` b
 005AF580. Left: S8b (resource strings, the exceptions' error messages and ReportError, CFile's name
 slots 4-6; they need the module state's resource handle and game.exe's string table in the image).
 
+**S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
+extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
+006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot
+(0070C71F), CThreadLocalObject's destructor (0070CA59 and the CThreadLocal<T> jmp thunks 0070CC2D /
+0070D5F9, registered at their own addresses), CProcessLocalObject's (0070CAD2; thunks 0070CE77,
+0070D61F, 0070DC48), AfxDeleteObject (0070AA54) and AUX_DATA (afxData 007C90C8): its constructor
+0070D1AA (a static initialiser's call target), destructor 0070E181 (the menu-dot bitmap),
+UpdateSysColors 00703E12, UpdateSysMetrics 00703E56 and the two scroll-metric helpers 0070D158 /
+0070D188 (cdecl on afxData in the original; ours take `this`, the same object). mfc_exception: the
+four simple exceptions' destructors (006E690F, 006E695C, 006E6B30, 006E6B7D: each stores its own
+vtable). mfc_window: CWnd's destructor 00704FE3 (the ticket's "CStdioFile-like" one: the four objects it
+skips are wndTop / wndBottom / wndTopMost / wndNoTopMost) and CCmdTarget's 00703EC8; CWnd::DestroyWindow
+007051A1 stays a forwarder (originals_library.h): no game window is a CWnd, the image reports it if
+reached. The locals hang off the original's state in the hook build; in the image nothing fills them
+(S8a's maps are thread_local), so the destructors find slot 0 / no object. Not registered:
+0070CD25 (another ~CThreadLocal thunk, no exit function calls it). Checks
+(tests/verify/verify_mfc_state.cpp): a start-up check runs FreeSlot, ~CProcessLocalObject,
+AfxDeleteObject (by the process's GDI object count: GetObjectType still typed deleted bitmaps), the
+exception destructors, ~CWnd and ~CCmdTarget on twins through the trampolines and ours, and AUX_DATA's
+constructor both ways (also against afxData without the metrics: InstallHooks makes the process DPI
+aware after the static initialiser ran); the exit wrappers check the slot freed, the object kept,
+CWnd's vtable and the control site. smoke, ui_main_menu, console, ui_saveload, both installs: 0
+mismatches. Seen, not caused here: on Rebirth the exit stops after the handle maps' ~CMapPtrToPtr
+(an access violation in Riched20.dll, or the game still running at the harness's 3 s limit); main's
+own runs end the same way (S3e). `--standalone`: the only exit callee without code left is 005DC080
+(S12a); the MFC constructors the static initialisers still call (the four exceptions', CWnd(HWND),
+0070B600, 0070DC4D, 00700674) are S3f. The boot still stops at 005AF580.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

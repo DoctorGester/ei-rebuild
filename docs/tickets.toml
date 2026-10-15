@@ -1631,6 +1631,18 @@ group = "standalone"
 depends = ["S8a"]
 note = "Left by S8a: CString::LoadString 00702B0E with AfxLoadString 00702B92 (LoadStringA on the module state's resource handle, AfxGetModuleState 0070CE8C), AfxMessageBox(UINT) 0070ACCC, CException::ReportError 0070209C (slot 4 of every exception) and GetErrorMessage of CFileException 00703135 / CArchiveException 0070A795 (slot 3; AfxFormatString1 0070B2AC, AfxFormatStrings 0070B173 / 0070B1AD), CFile slots 4-6 GetFileName / GetFileTitle / GetFilePath (00702C31 / 00702CB3 / 00702D35; CFile::GetStatus 00702D64, CTime(FILETIME) 006FE4BC, AfxGetFileName 0070D0D2, AfxGetFileTitle 00701AC9 with comdlg32 GetFileTitleA 006FC044). The image needs game.exe's string table (MFC's 0xF0xx prompts): check that LoadStringA works on the image's laid-out .rsrc or give the image its own copy. All are error paths (exception reports, failed-file messages). standalone.md S8a."
 
+[[ticket]]
+id = "S3e"
+title = "Rebirth: exit stops after MFC's thread state frees the handle maps"
+group = "standalone"
+note = "Seen in S3d on main too: on the Rebirth install the normal exit's log ends at 'verify CMapPtrToPtr::~CMapPtrToPtr: first call' (the _AFX_THREAD_STATE / module thread state destructor freeing afxMapHDC / afxMapHGDIOBJ under ~CThreadLocal 0070CC2D), then either an access violation in Riched20.dll (+64E5, reading 00000008; ui_main_menu-rebirth) or the game still running at ei_launch's 3 s limit (smoke-rebirth, console-rebirth): no 'verify total' lines are written. Vanilla exits cleanly. Find which DLL (Rebirth's addon / dinput proxy, Riched20) still holds MFC temporary objects or a window after the maps go, and whether it predates S8a's CMapPtrToPtr / CHandleMap ports (run with those registrations off)."
+
+[[ticket]]
+id = "S3f"
+title = "Standalone library: MFC constructors the static initialisers still call"
+group = "standalone"
+note = "After S3d the standalone check's only exit callee without code is 005DC080 (S12a). The static initialisers' MFC call targets still without code: the four simple exceptions' constructors 006E68C9 (CResourceException, 007C8C58), 006E6916 (CUserException, 007C8BC0), 006E6AEA (CMemoryException, 007C8DE8), 006E6B37 (CNotSupportedException, 007C8D50) (CSimpleException(BOOL) 0070205? then +0x0C / +0x10 cleared, the resource id at +0x94, the class's vtable; their destructors are S3d's, mfc_exception.cpp), CWnd(HWND) 00704546 on wndTop / wndBottom / wndTopMost / wndNoTopMost (mfc_window.h has CWnd and CCmdTarget's layout now), 0070B600, 0070DC4D and 00700674 (x5). Port at their addresses with start-up checks against the original's globals (they run before the hooks), as S3b / S3d did. docs/notes/standalone.md S3b, S3d."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
