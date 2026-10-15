@@ -7,6 +7,8 @@
 // list afterwards, sentinel first, then the nodes from the last back to the first.
 #include "verify.h"
 
+#include "stlp_list_verify.h"
+
 #include "../../src/lib/stlp_list.h"
 
 #include <cstdint>
@@ -17,6 +19,8 @@ namespace {
 
 void* s_unused;
 
+using stlp_verify::FreeList;
+using stlp_verify::Name;
 using stlp::AnyList;
 using Node = AnyList::Node;
 
@@ -24,22 +28,6 @@ using List16 = stlp::ListAbi<stlp::Opaque<8>>;
 using List24 = stlp::ListAbi<stlp::Opaque<16>>;
 using List40 = stlp::ListAbi<stlp::Opaque<32>>;
 using List352 = stlp::ListAbi<stlp::Opaque<0x158>>;
-
-// The node allocator's free list for blocks of `bytes` (16 lists of 8-byte steps from 0079B224);
-// null above 128 bytes, which come from operator new.
-void** FreeList(std::size_t bytes) {
-    if (bytes > 128) return nullptr;
-    return reinterpret_cast<void**>(0x0079B224 + 4 * ((bytes - 1) >> 3));
-}
-
-// One report name per instantiation ("stlp::list::end 004049D0"), so the counts show which are reached.
-template <std::uintptr_t A>
-const char* Name(const char* kind) {
-    static char name[64];
-    static const bool once = (std::snprintf(name, sizeof(name), "%s %08X", kind, static_cast<unsigned>(A)), true);
-    (void)once;
-    return name;
-}
 
 template <std::uintptr_t A>
 struct IteratorCheck {

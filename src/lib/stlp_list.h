@@ -175,8 +175,8 @@ struct ListAbi {
     }
     // push_back(x) (e.g. 004207C0; RET 4): insert(end(), x).
     static void __fastcall PushBack(List* self, void*, const T* x) { self->template Insert<E>(self->head, *x); }
-    // erase(pos) (e.g. 00420290; RET 8).
-    static Node** __fastcall Erase(List* self, void*, Node** out, Node* pos) {
+    // erase(pos) (e.g. 00420290; RET 8): the list itself is not read.
+    static Node** __fastcall Erase(List*, void*, Node** out, Node* pos) {
         *out = List::template Erase<E>(pos);
         return out;
     }

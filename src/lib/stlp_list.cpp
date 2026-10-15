@@ -5,8 +5,12 @@
 // forwards to (addresses and jump targets masked).
 #include "stlp_list.h"
 
+#include "stlp_list_refs.h"
+#include "mfc.h"
+
 #include "ei/hook.h"
 
+#include <cstdint>
 
 namespace stlp {
 
@@ -128,3 +132,121 @@ EI_REPLACE(0x00421CD0, List24::Destruct);
 EI_REPLACE(0x004A9650, List24::Destruct);
 EI_REPLACE(0x00421D20, List40::Destruct);
 
+// The instantiations that copy or destroy elements, grouped by element policy (stlp_list_refs.h).
+namespace {
+
+using PlainList4 = stlp::ListAbi<std::uint32_t>;
+using PlainList16 = stlp::ListAbi<stlp::Opaque<16>>;
+using PlainList20 = stlp::ListAbi<stlp::Opaque<20>>;
+using PlainList28 = stlp::ListAbi<stlp::Opaque<28>>;
+using PlainList260 = stlp::ListAbi<stlp::Opaque<0x104>>;
+using SharedRefList = stlp::ListAbi<RefPtr, stlp::SharedRef>;
+using CountedRefList = stlp::ListAbi<RefPtr, stlp::CountedRef>;
+using SharedEntryList = stlp::ListAbi<stlp::RefEntry, stlp::SharedEntry>;
+using CountedEntryList = stlp::ListAbi<stlp::RefEntry, stlp::CountedEntry>;
+using HeldObjectList = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
+using CStringList = stlp::ListAbi<mfc::CString>;
+
+} // namespace
+
+namespace stlp {
+
+void __fastcall ListRemoveCounted(list<RefPtr>* self, void*, const RefPtr* value) {
+    self->Remove<CountedRef>(*value, SameObject());
+}
+
+} // namespace stlp
+
+// insert(pos, x) of plain data: 4 bytes (6), 16 (2), 20, 28 and 0x104 (from operator new).
+EI_REPLACE(0x00404A40, PlainList4::Insert);
+EI_REPLACE(0x0040AA10, PlainList4::Insert);
+EI_REPLACE(0x0056EA80, PlainList4::Insert);
+EI_REPLACE(0x0068C560, PlainList4::Insert);
+EI_REPLACE(0x0069C2F0, PlainList4::Insert);
+EI_REPLACE(0x0069C3D0, PlainList4::Insert);
+EI_REPLACE(0x00411630, PlainList16::Insert);
+EI_REPLACE(0x00421AF0, PlainList16::Insert);
+EI_REPLACE(0x00443800, PlainList28::Insert);
+EI_REPLACE(0x005392C0, PlainList20::Insert);
+EI_REPLACE(0x00439C50, PlainList260::Insert);
+// insert(pos, x) of SharedRef (9), CountedRef (11), SharedEntry, HeldObject (3) and CString.
+EI_REPLACE(0x004221B0, SharedRefList::Insert);
+EI_REPLACE(0x004223D0, SharedRefList::Insert);
+EI_REPLACE(0x004225B0, SharedRefList::Insert);
+EI_REPLACE(0x004227D0, SharedRefList::Insert);
+EI_REPLACE(0x00422BB0, SharedRefList::Insert);
+EI_REPLACE(0x00424100, SharedRefList::Insert);
+EI_REPLACE(0x00439E30, SharedRefList::Insert);
+EI_REPLACE(0x004437A0, SharedRefList::Insert);
+EI_REPLACE(0x0047A450, SharedRefList::Insert);
+EI_REPLACE(0x004229B0, CountedRefList::Insert);
+EI_REPLACE(0x00423190, CountedRefList::Insert);
+EI_REPLACE(0x00423410, CountedRefList::Insert);
+EI_REPLACE(0x00423960, CountedRefList::Insert);
+EI_REPLACE(0x00423B50, CountedRefList::Insert);
+EI_REPLACE(0x00423D40, CountedRefList::Insert);
+EI_REPLACE(0x00423F20, CountedRefList::Insert);
+EI_REPLACE(0x004242F0, CountedRefList::Insert);
+EI_REPLACE(0x004244E0, CountedRefList::Insert);
+EI_REPLACE(0x00424720, CountedRefList::Insert);
+EI_REPLACE(0x0047A480, CountedRefList::Insert);
+EI_REPLACE(0x00426230, SharedEntryList::Insert);
+EI_REPLACE(0x0056E8A0, HeldObjectList::Insert);
+EI_REPLACE(0x00572B00, HeldObjectList::Insert);
+EI_REPLACE(0x0069C410, HeldObjectList::Insert);
+EI_REPLACE(0x005F97E0, CStringList::Insert);
+
+// push_back(x): end(), then the instantiation's insert.
+EI_REPLACE(0x004207C0, SharedRefList::PushBack);
+EI_REPLACE(0x00422F70, SharedEntryList::PushBack);
+EI_REPLACE(0x004246C0, SharedEntryList::PushBack);
+EI_REPLACE(0x00423690, CountedEntryList::PushBack);
+EI_REPLACE(0x0056DED0, HeldObjectList::PushBack);
+
+// erase(pos): SharedRef (8), CountedRef (8), SharedEntry (2), CountedEntry and CString.
+EI_REPLACE(0x00420290, SharedRefList::Erase);
+EI_REPLACE(0x00420460, SharedRefList::Erase);
+EI_REPLACE(0x004293B0, SharedRefList::Erase);
+EI_REPLACE(0x00429490, SharedRefList::Erase);
+EI_REPLACE(0x00429650, SharedRefList::Erase);
+EI_REPLACE(0x00438840, SharedRefList::Erase);
+EI_REPLACE(0x004436D0, SharedRefList::Erase);
+EI_REPLACE(0x0047A380, SharedRefList::Erase);
+EI_REPLACE(0x004293F0, CountedRefList::Erase);
+EI_REPLACE(0x004294D0, CountedRefList::Erase);
+EI_REPLACE(0x00429550, CountedRefList::Erase);
+EI_REPLACE(0x00429590, CountedRefList::Erase);
+EI_REPLACE(0x004295D0, CountedRefList::Erase);
+EI_REPLACE(0x00429610, CountedRefList::Erase);
+EI_REPLACE(0x00429690, CountedRefList::Erase);
+EI_REPLACE(0x004296D0, CountedRefList::Erase);
+EI_REPLACE(0x00422FA0, SharedEntryList::Erase);
+EI_REPLACE(0x004246E0, SharedEntryList::Erase);
+EI_REPLACE(0x004236C0, CountedEntryList::Erase);
+EI_REPLACE(0x005F8E50, CStringList::Erase);
+
+// clear(): SharedRef (7), CountedRef (8), SharedEntry (2).
+EI_REPLACE(0x00427100, SharedRefList::Clear);
+EI_REPLACE(0x00427140, SharedRefList::Clear);
+EI_REPLACE(0x00427180, SharedRefList::Clear);
+EI_REPLACE(0x004271C0, SharedRefList::Clear);
+EI_REPLACE(0x00427260, SharedRefList::Clear);
+EI_REPLACE(0x004272A0, SharedRefList::Clear);
+EI_REPLACE(0x00427480, SharedRefList::Clear);
+EI_REPLACE(0x00427200, CountedRefList::Clear);
+EI_REPLACE(0x00427360, CountedRefList::Clear);
+EI_REPLACE(0x004273A0, CountedRefList::Clear);
+EI_REPLACE(0x004273E0, CountedRefList::Clear);
+EI_REPLACE(0x00427420, CountedRefList::Clear);
+EI_REPLACE(0x004274C0, CountedRefList::Clear);
+EI_REPLACE(0x00427500, CountedRefList::Clear);
+EI_REPLACE(0x004275A0, CountedRefList::Clear);
+EI_REPLACE(0x004272E0, SharedEntryList::Clear);
+EI_REPLACE(0x00427560, SharedEntryList::Clear);
+
+// ~list() of CountedRef (the release inlined): 2 instantiations.
+EI_REPLACE(0x00423370, CountedRefList::Destruct);
+EI_REPLACE(0x004235F0, CountedRefList::Destruct);
+
+// remove(value) of CountedRef (erasing through 00429510).
+EI_REPLACE(0x00427320, stlp::ListRemoveCounted);
