@@ -3,6 +3,7 @@
 // shares, so the paths there may point at another install. This redirects those lookups to
 // EI_GAME_ROOT for this process only; the registry itself is not changed.
 #include "log.h"
+#include "lib/gameapi.h"
 
 #include <cstdint>
 
@@ -13,8 +14,6 @@
 namespace ei {
 
 namespace {
-constexpr std::uintptr_t kRegQueryValueExASlot = 0x0073B028;   // game.exe import table entry
-
 char g_root[MAX_PATH];
 decltype(&::RegQueryValueExA) g_original;
 
@@ -37,7 +36,7 @@ void RedirectGamePaths() {
     strcpy_s(g_root, root);
     if (g_root[n - 1] != '\\') strcat_s(g_root, "\\");
 
-    auto* slot = reinterpret_cast<decltype(&::RegQueryValueExA)*>(kRegQueryValueExASlot);
+    auto* slot = &gameapi::RegQueryValueExA;   // game.exe's import table entry
     DWORD old;
     VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
     g_original = *slot;

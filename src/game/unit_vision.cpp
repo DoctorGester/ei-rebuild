@@ -26,7 +26,7 @@ constexpr float kOne = 1.0f;            // 0073B84C, 0073E9C4
 // address 0x0C (the original faults), other types index 0x7FFFFFFF bytes on (kept).
 double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {
     const auto* weapon =
-        reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().At(itemId >> 16, itemdb::kWeaponSize));
+        reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().RecordAt(itemId >> 16, itemdb::kWeaponSize));
     int type = weapon ? weapon->type : *reinterpret_cast<const volatile int*>(std::uintptr_t{0x0C});   // faults like the original
     int skill = 0x7FFFFFFF;
     if (type < 5 || type == 8) skill = 0;

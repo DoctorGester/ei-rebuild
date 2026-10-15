@@ -221,7 +221,7 @@ int CUiItemStrip::SpellTab(const char* item) {
     if (kinds->IsSpell(item)) {
         // A record out of range is read through null, as in the original.
         auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
-            itemdb::Spells().At(ItemRecord(item), itemdb::kSpellSize));
+            itemdb::Spells().RecordAt(ItemRecord(item), itemdb::kSpellSize));
         switch (spell->castType) {
         case 0: return 0;
         case 1: return 1;
@@ -231,7 +231,7 @@ int CUiItemStrip::SpellTab(const char* item) {
     }
     if (kinds->IsModifier(item)) {
         auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(
-            itemdb::SpellModifiers().At(ItemRecord(item), itemdb::kSpellModifierSize));
+            itemdb::SpellModifiers().RecordAt(ItemRecord(item), itemdb::kSpellModifierSize));
         return (static_cast<int>(modifier->kind) > 5) + 3;
     }
     return 5;
@@ -245,7 +245,7 @@ int CUiItemStrip::ArmorTab(const char* item) {
         case 0: return 0;
         case 1: {
             auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(
-                itemdb::Armors().At(ItemRecord(item), itemdb::kArmorSize));
+                itemdb::Armors().RecordAt(ItemRecord(item), itemdb::kArmorSize));
             return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case 2: return 3;

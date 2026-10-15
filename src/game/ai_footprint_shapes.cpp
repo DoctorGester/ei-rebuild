@@ -8,13 +8,10 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "world_data.h"
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-constexpr std::uintptr_t kCellSize = 0x0073FD18;   // 1.0
-constexpr std::uintptr_t kHalf = 0x0073B86C;       // 0.5
-constexpr std::uintptr_t kOne = 0x0073B84C;        // 1.0
 
 // Empties the set (SetSize(0, -1)) and its buckets when it was hashed.
 void ResetSet(FootprintCellSet* set) {
@@ -66,20 +63,20 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 
 // 005B2A00 (thiscall on the set, RET 0x10).
 void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
-    double scale = static_cast<double>(GameFloat(kOne)) /
-                   (static_cast<double>(GameFloat(kCellSize)) * static_cast<double>(GameFloat(kHalf)));
+    double scale = static_cast<double>(worlddata::One()) /
+                   (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
     float cx = StoreFloat(static_cast<float>(scale * position->x));
     float cy = StoreFloat(static_cast<float>(scale * position->y));
     double dx = direction->x, dy = direction->y, dz = direction->z;
     double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
-    double reach = length * scale + static_cast<double>(GameFloat(kOne));
+    double reach = length * scale + static_cast<double>(worlddata::One());
     float r = StoreFloat(static_cast<float>(reach));
     float r2 = StoreFloat(static_cast<float>(reach * r));
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
     float nx = -direction->y;
     float ny = direction->x;
     double side = x87::fsqrt(LengthSquared2DUnrounded<double>(ny, nx));
-    double divisor = side * (scale * width + static_cast<double>(GameFloat(kOne)));
+    double divisor = side * (scale * width + static_cast<double>(worlddata::One()));
     nx = StoreFloat(static_cast<float>(nx / divisor));
     ny = StoreFloat(static_cast<float>(ny / divisor));
 
@@ -90,18 +87,18 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
             float fy = StoreFloat(static_cast<float>(cy - static_cast<double>(y)));
             double fx = cx - static_cast<double>(x);
             if (!(LengthSquared2DUnrounded<double>(fy, fx) < r2)) continue;
-            if (!(Dot2DUnrounded<double>(fy, fx, ny, nx) < static_cast<double>(GameFloat(kOne)))) continue;
+            if (!(Dot2DUnrounded<double>(fy, fx, ny, nx) < static_cast<double>(worlddata::One()))) continue;
             AddCell(this, x, y);
         }
 }
 
 // 005B2760 (thiscall on the set, RET 0xC).
 void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius) {
-    double scale = static_cast<double>(GameFloat(kOne)) /
-                   (static_cast<double>(GameFloat(kCellSize)) * static_cast<double>(GameFloat(kHalf)));
+    double scale = static_cast<double>(worlddata::One()) /
+                   (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
     float cx = StoreFloat(static_cast<float>(scale * position->x));
     float cy = StoreFloat(static_cast<float>(scale * position->y));
-    double reach = scale * radius + static_cast<double>(GameFloat(kOne));
+    double reach = scale * radius + static_cast<double>(worlddata::One());
     float r = StoreFloat(static_cast<float>(reach));
     float r2 = StoreFloat(static_cast<float>(reach * r));
 

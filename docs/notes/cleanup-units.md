@@ -365,3 +365,84 @@ hides a data member is a C4458 warning here (renamed: `newName`, `parameterName`
   check_thunks, check_registrations: 4,774 method registrations). `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs,
   all PASS; of the 56 goldens one differs, render_movie_present (vanilla), only in the script `#gobject` field (a heap-layout
   field, SV7's); not chased.
+
+## C11 batch 8: constexpr address constants and own At() helpers (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...` constants: 369 before, 249 after (tools/progress.py); files defining their own `At()`: 4 before, 2
+after; reinterpret_cast 6,145 before, 6,083 after. Spelling only: no signature, argument order or float grouping changed. A script
+(`rep.py`, scratch) deleted the constant and replaced its uses by the home it stands for; the builds found the rest.
+- Vtables (about 60): the file-local constants of script_copy / script_destroy / script_blocks (`scriptvtable::k...` of script.h and
+  `mfc::impl::*Class::Vtable()`), fake_unit, magic_trap, map_spec, map_spec_unit, ai_join, ai_plan, ai_refresh, base_manager,
+  world_spells, world_loot, world_zone, unit_create, net_client_awards, particle_create, lightning_start, and `kLookArrayVtable` /
+  `kLookArrayBaseVtable` of unit_ai.h (six users and one verify file). The helpers that took the address as `uintptr_t` now take
+  `void*`; `ei::SetVtable(void*, const void*)` (vcall.h) and `CArray::Construct(const void*)` (mfc.h) take a vtable pointer, so
+  no cast is added. Two script argument-array classes (`ArgObjectsClass`, `ArgGroupsClass`, mfc_slots.h) were the only new homes of
+  this family. fake_unit, map_spec, map_spec_unit and particle_create lost their local `SetVtable` copies.
+- Strings: `game_strings.h` gained `QuestionMarkText`, `ZoneSuffix1/2/3Text` and six interface sound names (cancel, ok, select,
+  put on, put off, rotate) for the net_server_* / net_client_commands / ui_camp / ui_hero_screen_click / ui_menu_keys files; others
+  use the existing `NoneText`, `SpaceText`, `flowdata::kDot`, `kQuestVariablePrefix`, `kSlotFolder`.
+- Floats: `worlddata::One()` / `Zero()` and a new `Half()` (ai_footprint_shapes, ai_line_step, net_server_tick, ui_mesh_build).
+- unit_vitals: its fifteen constants are the `hpVal`, `mpVal` and `damageLevel*` members of `LogicSettings` at 007C53F8.
+- Globals: `TheGameFlow()`, `worlddata::InterfaceManager()` / `QuestBriefings()` / `FlushManipulator()`, `UiClientWorld()`,
+  `SkillDb()` / `unitdb::SkillLevels()`, `WorldServer()`, `gameapi::RegQueryValueExA` (hook/paths.cpp), and the
+  `BehaviourConstruct` / `BehaviourDestruct` functions called directly by the eh-vector iterators in map_spec_unit.
+- Own `At()`: atexit_400 uses `&ei::GameData<char>(address)`; ui_create_screen uses the new `ei::OffsetPtr(base, offset)`
+  (game_data.h). The two left are members, not raw-offset helpers: `RecordTable::At` (item_db.h, about 110 call sites) and
+  `CMap::At` (mfc_list.h); renaming them to `RecordAt` / `ElementAt` is a later batch.
+- Local renames: `near` / `far` locals in particle_create and unit_ai_modes (the Windows macros come in with mfc_array.h).
+- Left, by family (249): class `kVtableAddress` statics (about 70, already the class's home); vtables with no home (map_spec*,
+  ui_layouts, ui_scroll_text, resource_stream, misc_400, net_coder / net_link / core_streams / console shared constants);
+  strings (map_database 24, quest_database 10, ui_saveload, menu_rects, world_briefing, unit_equipment, world_zone, the
+  net_session_tick / net_connection log texts, ui_console_window / ui_text newlines); float constants in the effect headers
+  (spell_effect_internal.h, world_effect_internal.h), spell_effect_update, options, ui_mesh_build, ai_refresh tables; function
+  addresses (at-exit destructors, eh-vector callbacks that are members or live in src/standalone); image addresses in hook/ and
+  standalone/; globals with no accessor reachable from the file (unit_ai.cpp's world and game time: world.h clashes with its local
+  `GameTime()`, console stream, the candidates list, the script queue, net_server_tick's master host).
+- Verification: build verify and release with no errors or warnings on the merged tree, every check at 0 (check_stolen, check_x87,
+  check_signatures, check_thunks, check_registrations: 4,774 method registrations, check_cleanup, ei_vectors).
+  `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
+
+## C11 batch 9: the last own At() members and string constants with typed homes (2026-10-15)
+
+Files defining their own `At()`: 2 before, 0 after (tools/progress.py). `constexpr uintptr_t kX = 0x00...`: 249 before, 187 after.
+Spelling only: no signature, argument order or float grouping changed.
+- `RecordTable::At` (item_db.h) is now `RecordAt` (125 call sites in src/ and tests/, including the unqualified calls of
+  `UiRecordTable`, which derives from it; `UnitPrototypeTable::At` and `CMapPtrToPtr::At` are other classes and keep their name).
+  `CMap::At` (mfc_list.h, the hash map's `operator[]`) is now `ElementAt`, with `Abi::ElementAt` in mfc_slots.h and the mfc_list /
+  mfc_serialize verify tests. The verify-test files with their own `At<T>(object, offset)` helpers are not in the count (tests/).
+- String constants of five files moved into `game_strings.h` as accessors in a namespace each (they return `Text(address)`, so
+  ei_vectors still reads the stand-in data): `game::mapwords` (map_database, 23 words; "none" uses `NoneText()`),
+  `game::questwords` (quest_database, 10 names plus `ListKey(i)` for the six briefing list keys), `game::savewords` (ui_saveload,
+  12), `game::briefingwords` (world_briefing, 8), `game::zonetexts` (world_zone, 4 error texts), `game::equipmenttexts`
+  (unit_equipment, 4). The helpers that took the string's address as `uintptr_t` (map_database `Is`, quest_database
+  `ReadBriefingHeader` / `ReadListInline`) take `const char*`. `ListKey` is a switch, not an array of addresses, so
+  check_cleanup's raw-address count stays down (834 from 902 at the start of the batch).
+- Left (187): the families of batch 8 minus the strings above; menu_rects (its `Text(file ? kCantParse : kCantOpen)` needs a
+  small rewrite), net_session_tick / net_connection log texts, net_messages.h (17), spell_effect_internal.h and
+  world_effect_internal.h floats, class `kVtableAddress` statics, function addresses.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
+
+## C11 batch 10: network and menu texts, effect and AI float constants (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 187 before, 118 after (tools/progress.py); check_cleanup raw addresses 834 before, 765 after.
+Spelling only: no signature, argument order or float grouping changed.
+- Strings in `game_strings.h`: `game::menutexts` (menu_rects: `menus.reg` and its two errors; the `Text(file ? kCantParse : kCantOpen)`
+  became `file ? CantParse() : CantOpen()` passed to `FatalError`), `game::nettexts` (17 log lines of net_session_tick and
+  net_connection, including the six literal "Can't handle ..." texts; `LogAddress` / `LogText` / `LogConnection` / `LogLine` take
+  `const char*`, the connection's "after" text is `nullptr` when absent), `game::menukeytexts` (ui_menu_keys), `game::consoletexts`,
+  `game::weathertexts` (the two thunderstorm script formats), and `NewLineText()` / `PathSuffixText()` (ui_console_window, ui_text,
+  net_server_map).
+- Floats in `world_data.h` (`worlddata`): 22 effect constants of spell_effect_internal.h, spell_effect_update.cpp and
+  world_effect_internal.h (`OneRef`, `AcidRayScale`, `StrikeHeight`, `ScorchAlpha`, ...) return `const float&` (`ExeFloatRef`), so
+  `ConstAt` / `ConstPtr` of both effect headers take a `const float&`; `PowerScaled` / `LightRiseScaled` too. ui_mesh_build,
+  ai_line_step, ai_footprint_shapes lost their local `GameFloat`; `AnnouncePeriodRef` and `QueueWaitLimitRef` keep the memcpy / pointer
+  argument; the ai_refresh tables are `LevelHeights()`, `OccluderCosts()`, `OccluderDamping()`, `MarkTable()`, `DampScale()`. The unused
+  `kPi` of ui_mesh_build was dropped.
+- Left (118): class `kVtableAddress` statics (about 75, net_messages.h's 17 among them), vtables with no home (map_spec*, ui_layouts,
+  ui_scroll_text, resource_stream, magic_trap, lightning_start, misc_400, fake_unit), function addresses (at-exit destructors,
+  eh-vector callbacks), globals (script queue, candidates, master host, state block alpha), options' two float factors (they feed
+  naked `FtolProduct` / `StoreUnsignedProduct` that take an address), tests/ and hook/standalone files.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. See the golden result below.
+- `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, ALL PASS; 54 goldens the same, 2 differ (levers, ui_saveload_delete) only in script #gobject (heap layout, SV7's).

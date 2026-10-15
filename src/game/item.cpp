@@ -21,11 +21,11 @@ bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
 char* CItem::GetPrototype() {
     std::uint32_t index = PrototypeIndex(prototypeId_);
     switch (type_) {
-    case kItemWeapon: return Weapons().At(index, kWeaponSize);
-    case kItemArmor: return Armors().At(index, kArmorSize);
-    case kItemQuick: return QuickItems().At(index, kQuickItemSize);
-    case kItemLoot: return Loot().At(index, kLootSize);
-    case kItemQuest: return QuestItems().At(index, kQuestItemSize);
+    case kItemWeapon: return Weapons().RecordAt(index, kWeaponSize);
+    case kItemArmor: return Armors().RecordAt(index, kArmorSize);
+    case kItemQuick: return QuickItems().RecordAt(index, kQuickItemSize);
+    case kItemLoot: return Loot().RecordAt(index, kLootSize);
+    case kItemQuest: return QuestItems().RecordAt(index, kQuestItemSize);
     default: return nullptr;
     }
 }

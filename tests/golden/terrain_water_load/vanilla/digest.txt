@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash C741CE60 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 16A62041 n 68
 + world world
 world tick 20
 world updates 20
@@ -144,11 +144,10 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFFA
 obj2 #ai 9BF9CB43
 obj2 #place 784FE175
 obj2 #unit 807D16EC
-obj2 #vitals E824DBAF
+obj2 #vitals CB4D8108
 + obj3 82 nafltr59
 obj3 # 85B0C8E0
 + obj4 82 nafltr59
@@ -332,7 +331,7 @@ client synchronised 5
 + cunit2 80 unmoco2 ""
 cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
-cunit2 #vitals E4AA905D
+cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place F7787AC8
 cunit129 #unit BF865974
@@ -345,7 +344,7 @@ cunit148 #vitals C17C1FEE
 cunit187 #place C08C8AC9
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 72C53930 n 791
+@ 1 update 40 frame 7 tick 40 zone gz1g hash 8D2CED2F n 791
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -2155,7 +2154,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 3656F9F8
+script #gobject 7658611C
 script #inst AA0C8751
 script #instances 9EC34A1E
 script #runs F80920E1
@@ -2189,7 +2188,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place 49B2288E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 2A479790 n 791
+@ 2 update 60 frame 11 tick 60 zone gz1g hash D5AE438F n 791
 world tick 60
 world updates 60
 random isaac.count 69
@@ -2226,7 +2225,7 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place A95B5B07
-@ 3 update 80 frame 15 tick 65 zone gz1g hash FFF8E49D n 791
+@ 3 update 80 frame 15 tick 65 zone gz1g hash 00113082 n 791
 world tick 65
 world updates 80
 world paused 1
@@ -2268,11 +2267,11 @@ client ticksRun 52
 cunit1804 #place 450BFC7F
 cunit1804 #unit 618078DC
 cunit1000011214 #place FF01FC81
-@ 4 update 100 frame 19 tick 65 zone gz1g hash 42919C2F n 791
+@ 4 update 100 frame 19 tick 65 zone gz1g hash BD784830 n 791
 world updates 100
 random isaac.count 101
 client ticksRun 72
-@ 5 update 120 frame 23 tick 80 zone gz1g hash 4942033D n 793
+@ 5 update 120 frame 23 tick 80 zone gz1g hash 7DDBF1E7 n 793
 world tick 80
 world updates 120
 world paused 0
@@ -2407,6 +2406,7 @@ obj1000011214 #vitals 246B522C
 missile0 # B2C74084
 missile1 # D6708F81
 aievents tick 81
+script #gobject 3656F9F8
 client tick 79
 client ticksRun 17
 client objects 731

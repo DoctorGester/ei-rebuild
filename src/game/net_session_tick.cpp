@@ -30,11 +30,9 @@ namespace {
 inline void __fastcall StringDeallocate(void*, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
 
-constexpr std::uintptr_t kZeroLength = 0x00784020;   // "ZERO length packet received from "
-constexpr std::uintptr_t kTimeout = 0x00784008;      // "TIMEOUT client, drop "
 
 // "<text><address>\n" and a flush to the network log.
-void LogAddress(std::uintptr_t text, const char* address) { NetLog()->Put(game::Text(text))->Put(address)->PutChar('\n')->Flush(); }
+void LogAddress(const char* text, const char* address) { NetLog()->Put(text)->Put(address)->PutChar('\n')->Flush(); }
 
 } // namespace
 
@@ -66,7 +64,7 @@ void SessionBase::TickImpl(double dt) {
             if (NetLog()) {
                 StringRep address;
                 const char* text = from.ToString(&address)->start;
-                LogAddress(kZeroLength, text);
+                LogAddress(game::nettexts::ZeroLength(), text);
                 StringRepDestroy(&address);
             }
             continue;
@@ -99,7 +97,7 @@ void SessionBase::TickImpl(double dt) {
             if (NetLog()) {
                 StringRep address;
                 const char* text = connection->address_.ToString(&address)->start;
-                LogAddress(kTimeout, text);
+                LogAddress(game::nettexts::Timeout(), text);
                 StringDeallocate(&address.eos, nullptr, address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             OnClientLost(connection);
@@ -130,22 +128,18 @@ __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, vo
 // 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
 void __fastcall NodeFree(char* a0, std::size_t a1) { NodeDeallocateOriginal((void*)a0, a1); }
 
-constexpr std::uintptr_t kUnknownHost = 0x00783F2C;   // "ERROR: Update from unknown host"
-constexpr std::uintptr_t kBadClient = 0x00783F1C;     // "ERROR: client "
-constexpr std::uintptr_t kBadUpdate = 0x00783F04;     // " sent incorrect update"
-constexpr std::uintptr_t kRemove = 0x00783EE8;        // "REMOVE client "
 
 // "<text>\n" and a flush, when there is a network log.
-void LogText(std::uintptr_t text) {
-    if (LogStream* log = NetLog()) log->Put(game::Text(text))->PutChar('\n')->Flush();
+void LogText(const char* text) {
+    if (LogStream* log = NetLog()) log->Put(text)->PutChar('\n')->Flush();
 }
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
-void LogConnection(std::uintptr_t before, Connection* connection, std::uintptr_t after) {
+void LogConnection(const char* before, Connection* connection, const char* after) {
     StringRep peer;
     const char* text = connection->address_.ToString(&peer)->start;
-    LogStream* log = NetLog()->Put(game::Text(before))->Put(text);
-    if (after) log = log->Put(game::Text(after));
+    LogStream* log = NetLog()->Put(before)->Put(text);
+    if (after) log = log->Put(after);
     log->PutChar('\n')->Flush();
     NodeFree(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
 }
@@ -165,7 +159,7 @@ EI_REPLACE_METHOD(0x00436CC0, SessionBase::FindClient);
 // 00436CF0 (slot 2): logs it, closes the connection and erases the node.
 void SessionBase::RemoveClientImpl(ClientNode* node) {
     if (node == clients_) return;
-    if (NetLog()) LogConnection(kRemove, node->connection, 0);
+    if (NetLog()) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
     node->connection->Close();
     ClientNode* after;
     ClientsErase(&clients_, nullptr, &after, node);
@@ -176,11 +170,11 @@ void SessionBase::RemoveClientImpl(ClientNode* node) {
 bool SessionBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
     ClientNode* node = ClientAt(from);
     if (node == clients_) {
-        LogText(kUnknownHost);
+        LogText(game::nettexts::UnknownHost());
         return false;
     }
     if (!node->connection->ReadUpdate(cursor)) {
-        if (NetLog()) LogConnection(kBadClient, node->connection, kBadUpdate);
+        if (NetLog()) LogConnection(game::nettexts::BadClient(), node->connection, game::nettexts::BadUpdate());
         OnClientLost(node->connection);
         RemoveClient(node);
     }
@@ -201,12 +195,12 @@ void SessionBase::OnLeaveImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // The base session's handlers of the kinds it does not serve: each logs an error.
-void SessionBase::OnGetInfoImpl(const NetAddress*, BufferCursor*) { LogText(0x00783F4C); }    // "ERROR: Can't handle get info"
-void SessionBase::OnLoginImpl(const NetAddress*, BufferCursor*) { LogText(0x00783F6C); }      // "ERROR: Can't handle login"
-void SessionBase::OnInfoImpl(const NetAddress*, BufferCursor*) { LogText(0x00783F88); }       // "ERROR: Can't handle info"
-void SessionBase::OnAcceptedImpl(const NetAddress*, BufferCursor*) { LogText(0x00783FA4); }   // "ERROR: Can't handle accepted"
-void SessionBase::OnRejectedImpl(const NetAddress*, BufferCursor*) { LogText(0x00783FC4); }   // "ERROR: Can't handle rejected"
-void SessionBase::OnMasterImpl(const NetAddress*, BufferCursor*) { LogText(0x00783FE4); }     // "ERROR: Can't handle master packet"
+void SessionBase::OnGetInfoImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleGetInfo()); }
+void SessionBase::OnLoginImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleLogin()); }
+void SessionBase::OnInfoImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleInfo()); }
+void SessionBase::OnAcceptedImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleAccepted()); }
+void SessionBase::OnRejectedImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
+void SessionBase::OnMasterImpl(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
 
 EI_REPLACE_METHOD(0x00436CF0, SessionBase::RemoveClientImpl);
 EI_REPLACE_METHOD(0x00437080, SessionBase::OnUpdateImpl);
@@ -361,7 +355,6 @@ namespace {
 __declspec(naked) Connection** __fastcall ClientRefInit(Connection** /*ref*/, Connection* /*connection*/) EI_ORIGINAL(0x0043D7D0)
 __declspec(naked) ClientNode** __fastcall ClientsInsert(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/,
                                                         Connection* const* /*value*/) EI_ORIGINAL(0x00439E30)
-constexpr std::uintptr_t kAddClient = 0x00783EF8;   // "ADD client "
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 } // namespace
 
@@ -370,7 +363,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     if (NetLog()) {
         StringRep peer;
         const char* text = address->ToString(&peer)->start;
-        LogAddress(kAddClient, text);
+        LogAddress(game::nettexts::AddClient(), text);
         StringBufferFree(&peer);
     }
     RemoveClient(ClientAt(address));

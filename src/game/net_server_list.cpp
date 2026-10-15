@@ -8,6 +8,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "game_strings.h"
 
 #include <cstring>
 
@@ -24,7 +25,6 @@ __declspec(naked) void __fastcall CoderDecompress(void* /*coder*/, void*, GameBu
 __declspec(naked) std::uint32_t __fastcall CursorEnd(BufferCursor* /*cursor*/) EI_ORIGINAL(0x0041D930)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
 __declspec(naked) void __fastcall ClientAddServer(void* /*client*/, void*, ServerEntry* /*entry*/) EI_ORIGINAL(0x004428A0)
-constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::size_t kCoderSize = 0x2828;
 
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
@@ -79,9 +79,9 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
                 StringInitEmpty(&entry->name_);
                 StringInitEmpty(&entry->description_);
                 ei::SetVtable(entry, ServerEntry::kVtableAddress);
-                StringAssignText(&entry->name_, nullptr, reinterpret_cast<const char*>(kEmptyText));
+                StringAssignText(&entry->name_, nullptr, game::QuestionMarkText());
                 entry->kind_ = 4;
-                StringAssignText(&entry->description_, nullptr, reinterpret_cast<const char*>(kEmptyText));
+                StringAssignText(&entry->description_, nullptr, game::QuestionMarkText());
                 entry->players_ = 0;
                 entry->maxPlayers_ = 0;
                 entry->password_ = 0;

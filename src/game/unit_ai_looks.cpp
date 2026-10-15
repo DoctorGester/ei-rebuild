@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include <cmath>
 #include <cstring>
@@ -36,7 +37,7 @@ void ZeroLooks(AILook* first, int count) { std::memset(first, 0, sizeof(AILook) 
 } // namespace
 
 AILookArray* __fastcall LooksInit(AILookArray* looks) {
-    looks->vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+    looks->vtable = mfc::impl::AiLookArrayClass::Vtable();
     looks->data = nullptr;
     looks->growBy = 0;
     looks->maxSize = 0;
@@ -90,13 +91,13 @@ EI_REPLACE_METHOD(0x005D12B0, PatrolMode::AppendPoint);
 
 void PatrolPointElements::Construct(PatrolPoint* points, int count) {
     std::memset(static_cast<void*>(points), 0, sizeof(PatrolPoint) * static_cast<unsigned>(count));
-    for (int i = 0; i < count; ++i) points[i].looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+    for (int i = 0; i < count; ++i) points[i].looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
 }
 
 void PatrolPointElements::Destruct(PatrolPoint* points, int count) {
     for (int i = 0; i < count; ++i) {
         AILookArray& looks = points[i].looks;
-        looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+        looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
         if (looks.data) gamecrt::operator_delete(looks.data);
     }
 }

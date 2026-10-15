@@ -15,9 +15,6 @@
 namespace {
 
 
-constexpr std::uintptr_t kMenusReg = 0x00791020;       // "menus.reg"
-constexpr std::uintptr_t kCantOpen = 0x00790FE4;       // "Can't open file "menus.reg" with the main/esc menu rects\n"
-constexpr std::uintptr_t kCantParse = 0x00790FA4;      // "Can't open "menus.reg" as .reg with ...\n"
 
 // The entries in the order the original reads them: section, name, error, offset of the RECT.
 struct MenuRect {
@@ -56,9 +53,9 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     alignas(4) std::uint8_t reg[0x18];
     AsRegistry(reg)->Construct();
     // The owning manager's GetFile (slot 19): the resource file's data.
-    void* file = static_cast<CBaseManager*>(owner)->GetFile(game::Text(kMenusReg), nullptr);
+    void* file = static_cast<CBaseManager*>(owner)->GetFile(game::menutexts::MenusReg(), nullptr);
     if (!file || !AsRegistry(reg)->Attach(file)) {
-        int result = game::FatalError(game::Text(file ? kCantParse : kCantOpen));
+        int result = game::FatalError(file ? game::menutexts::CantParse() : game::menutexts::CantOpen());
         AsRegistry(reg)->Destroy();
         return result;
     }

@@ -101,9 +101,11 @@ EI_REPLACE_METHOD(0x00664710, AlignedPtrArray::SetAtGrow);
 
 PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
     if (!itemManager_) Create();
-    // The original's stack record: constructed (its statistics are whatever the stack holds),
-    // assigned to the new entry, destroyed.
-    alignas(PartyUnitRecord) unsigned char storage[sizeof(PartyUnitRecord)];
+    // A stack record: constructed, assigned to the new entry, destroyed. It starts zeroed: the
+    // constructor leaves the statistics, and BuildNpcStats' reset leaves some of theirs (the
+    // layers' spare values, ...), which the original took from its stack and saved with the party
+    // (a determinism fix, SV7b3; the harness zeroes the original's too, harness_leftovers.h).
+    alignas(PartyUnitRecord) unsigned char storage[sizeof(PartyUnitRecord)] = {};
     auto* temporary = reinterpret_cast<PartyUnitRecord*>(storage);
     temporary->Construct();
     int index = members_.size;
@@ -124,7 +126,7 @@ EI_REPLACE_METHOD(0x006628D0, CParty::AddMember);
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
     auto* model = reinterpret_cast<UnitModelRecord*>(
-        unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+        unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
     record->texts[2] = model->figureName;
     BuildNpcStats(reinterpret_cast<UnitStats*>(record->stats), record->texts[5]);
     record->scaleY = prototype->scale.y;

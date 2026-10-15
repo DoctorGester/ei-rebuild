@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "originals_units.h"
+#include "logic_settings.h"
 
 #include <bit>
 #include <cstring>
@@ -57,27 +58,6 @@ constexpr int kSkillStat10 = 23;
 constexpr int kSkillStat18 = 24;
 constexpr int kSkillStat20 = 25;
 
-float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
-const float* GlobalPtr(std::uintptr_t address) { return reinterpret_cast<const float*>(address); }
-
-// The experience curve constants: hit points 007C5454..007C5464, mana 007C5468..007C5478.
-constexpr std::uintptr_t kHpStatDivisor = 0x007C5454;
-constexpr std::uintptr_t kHpStatScale = 0x007C5458;
-constexpr std::uintptr_t kHpExpDivisor = 0x007C545C;
-constexpr std::uintptr_t kHpBase = 0x007C5460;
-constexpr std::uintptr_t kHpLogBase = 0x007C5464;
-constexpr std::uintptr_t kManaStatDivisor = 0x007C5468;
-constexpr std::uintptr_t kManaStatScale = 0x007C546C;
-constexpr std::uintptr_t kManaExpDivisor = 0x007C5470;
-constexpr std::uintptr_t kManaBase = 0x007C5474;
-constexpr std::uintptr_t kManaLogBase = 0x007C5478;
-// The slot ratio thresholds (LegsFactor / ArmsFactor / MovementState).
-constexpr std::uintptr_t kRatioLow = 0x007C5444;
-constexpr std::uintptr_t kFactorLow = 0x007C5448;
-constexpr std::uintptr_t kRatioMid = 0x007C543C;
-constexpr std::uintptr_t kFactorMid = 0x007C5440;
-constexpr std::uintptr_t kLimping = 0x007C544C;
-
 // base ^ (ln(experience / divisor) / ln(logBase)) exactly as the original computes it: FYL2X with
 // FLDLN2 for both logarithms and the CRT's _CIpow (006E81A0, ST1 ^ ST0). Returned unrounded.
 __declspec(naked) double __cdecl ExperienceCurve(const float* /*base*/, const float* /*experience*/,
@@ -125,7 +105,7 @@ double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
     auto* record = reinterpret_cast<const SkillLevelRecord*>(
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
+        unitdb::SkillLevels().RecordAt(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
     if (!record) return kZero;
     return record->Value();
 }
@@ -190,8 +170,8 @@ float LowestSlotRatio(const UnitStats* stats, int type) {
 }
 
 float RatioFactor(float lowest) {
-    if (!(lowest > Global(kRatioLow))) return Global(kFactorLow);
-    if (!(lowest > Global(kRatioMid))) return Global(kFactorMid);
+    if (!(lowest > GameLogicSettings().damageLevel2)) return GameLogicSettings().damageLevel2Value;
+    if (!(lowest > GameLogicSettings().damageLevel1)) return GameLogicSettings().damageLevel1Value;
     return kOne;
 }
 } // namespace
@@ -330,7 +310,7 @@ EI_REPLACE_METHOD(0x00524110, UnitStats::ArmsFactor);
 int UnitStats::MovementState(char checkLoad) {
     float lowest = LowestSlotRatio(this, kSlotLegs);
     if (checkLoad != 0 && load > capacity) return 2;
-    if (!(lowest >= Global(kLimping))) return 1;
+    if (!(lowest >= GameLogicSettings().damageLevelRunLimit)) return 1;
     return 0;
 }
 EI_REPLACE_METHOD(0x005241C0, UnitStats::MovementState);
@@ -338,16 +318,16 @@ EI_REPLACE_METHOD(0x005241C0, UnitStats::MovementState);
 // --- Maxima ----------------------------------------------------------------------------------
 
 double UnitStats::HitPointCurve() {
-    double curve = ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
-    double scaled = curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale));
+    double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
+    double scaled = curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
     return (LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled;
 }
 EI_REPLACE_METHOD(0x00523E80, UnitStats::HitPointCurve);
 
 double UnitStats::ManaCurve() {
     double curve =
-        ExperienceCurve(GlobalPtr(kManaBase), &experience, GlobalPtr(kManaExpDivisor), GlobalPtr(kManaLogBase));
-    double scaled = curve * (stat18 / Global(kManaStatDivisor) * Global(kManaStatScale));
+        ExperienceCurve(&GameLogicSettings().mpVal[3], &experience, &GameLogicSettings().mpVal[2], &GameLogicSettings().mpVal[4]);
+    double scaled = curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]);
     return (LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled;
 }
 EI_REPLACE_METHOD(0x00523F50, UnitStats::ManaCurve);
@@ -442,11 +422,11 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
     if (keyed) {
         double curve =
-            ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
-        double scaled = curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale));
+            ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
+        double scaled = curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
         vitals->maxHitPoints = static_cast<float>((LevelValueOf(this, kSkillHitPoints) * kPercent + kOne) * scaled);
-        curve = ExperienceCurve(GlobalPtr(kManaBase), &experience, GlobalPtr(kManaExpDivisor), GlobalPtr(kManaLogBase));
-        scaled = curve * (stat18 / Global(kManaStatDivisor) * Global(kManaStatScale));
+        curve = ExperienceCurve(&GameLogicSettings().mpVal[3], &experience, &GameLogicSettings().mpVal[2], &GameLogicSettings().mpVal[4]);
+        scaled = curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]);
         vitals->maxMana = static_cast<float>((LevelValueOf(this, kSkillMana) * kPercent + kOne) * scaled);
     } else {
         std::memcpy(&vitals->maxHitPoints, &fixedMaxHitPoints, sizeof(float));
@@ -515,15 +495,15 @@ namespace {
 // the skill levels' percentages (each product rounded once), the strengthen / weaken scale, the
 // slots scaled along and the hit points. As GainExperience, RaiseIntelligence and RaiseSkill do.
 void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
-    double curve = ExperienceCurve(GlobalPtr(kHpBase), &stats->experience, GlobalPtr(kHpExpDivisor),
-                                   GlobalPtr(kHpLogBase));
-    double scaled = curve * (stats->stat10 / Global(kHpStatDivisor) * Global(kHpStatScale));
+    double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &stats->experience, &GameLogicSettings().hpVal[2],
+                                   &GameLogicSettings().hpVal[4]);
+    double scaled = curve * (stats->stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]);
     float maxHitPoints = static_cast<float>((LevelValueOf(stats, kSkillHitPoints) * kPercent + kOne) * scaled);
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
     vitals->maxHitPoints = limit;
-    curve = ExperienceCurve(GlobalPtr(kManaBase), &stats->experience, GlobalPtr(kManaExpDivisor),
-                            GlobalPtr(kManaLogBase));
-    scaled = curve * (stats->stat18 / Global(kManaStatDivisor) * Global(kManaStatScale));
+    curve = ExperienceCurve(&GameLogicSettings().mpVal[3], &stats->experience, &GameLogicSettings().mpVal[2],
+                            &GameLogicSettings().mpVal[4]);
+    scaled = curve * (stats->stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]);
     vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + kOne) * scaled);
     CallScaleSlotMaxima(stats, nullptr, limit);
     vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
@@ -603,8 +583,8 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     if (server->GetClassId() != kClassServerObject) return false;
     UnitVitals* vitals = VitalsOf(server);
     stat10Base = static_cast<float>(static_cast<double>(amount) + stat10Base);
-    double curve = ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
-    volatile float scaled = static_cast<float>(curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale)));
+    double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
+    volatile float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
     const char* record = SkillLevelRecord(kSkillHitPoints);
     volatile float maxHitPoints =
         static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
@@ -626,16 +606,16 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     if (server->GetClassId() != kClassServerObject) return false;
     UnitVitals* vitals = VitalsOf(server);
     stat18Base = static_cast<float>(static_cast<double>(amount) + stat18Base);
-    double curve = ExperienceCurve(GlobalPtr(kHpBase), &experience, GlobalPtr(kHpExpDivisor), GlobalPtr(kHpLogBase));
-    volatile float scaled = static_cast<float>(curve * (stat10 / Global(kHpStatDivisor) * Global(kHpStatScale)));
+    double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
+    volatile float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
     volatile float maxHitPoints =
         static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillHitPoints) * kPercent + kOne) * scaled);
     volatile float boosted = static_cast<float>(CallHitPointEffectScale(unit) * maxHitPoints);
     float one = kOne;
     float b = boosted;
     vitals->maxHitPoints = LessOrUnordered(one, b, b, one);
-    curve = ExperienceCurve(GlobalPtr(kManaBase), &experience, GlobalPtr(kManaExpDivisor), GlobalPtr(kManaLogBase));
-    scaled = static_cast<float>(curve * (stat18 / Global(kManaStatDivisor) * Global(kManaStatScale)));
+    curve = ExperienceCurve(&GameLogicSettings().mpVal[3], &experience, &GameLogicSettings().mpVal[2], &GameLogicSettings().mpVal[4]);
+    scaled = static_cast<float>(curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]));
     vitals->maxMana =
         static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillMana) * kPercent + kOne) * scaled);
     CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);

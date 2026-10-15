@@ -10,6 +10,7 @@
 
 #include "lib/containers.h"
 #include "ei/hook.h"
+#include "world_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -23,17 +24,7 @@ float Store(double v) {
     volatile float r = static_cast<float>(v);
     return r;
 }
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-constexpr std::uintptr_t kPi = 0x00740154;          // float pi
-constexpr std::uintptr_t kTexel = 0x0073EEB8;       // 1 / 256
-constexpr std::uintptr_t kHalfTexel = 0x0073CC90;   // 1 / 512
-constexpr std::uintptr_t kOne = 0x0073B84C;
-constexpr std::uintptr_t kHalf = 0x0073B86C;
-constexpr std::uintptr_t kLayoutX = 0x00740164;     // 2 / 1600
-constexpr std::uintptr_t kLayoutY = 0x0074015C;     // 1 / 400
-constexpr std::uintptr_t kThreeQuarters = 0x0073C524;
-constexpr std::uintptr_t kView = 0x00740158;        // 0.48157 (the interface camera's half view)
 
 // The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_; SetSize 0044F960),
 // the two colour arrays (colorsA_, colorsB_; 005A6E70) and the 16-bit indices (+0x200; SetSize
@@ -73,7 +64,7 @@ void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetA
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {
-    double half = D(GameFloat(kHalfTexel));
+    double half = D(worlddata::HalfTexel());
     for (int i = 0; i < mesh->uvCount_; ++i) {
         mesh->uvs_[2 * i] = Store(D(mesh->uvs_[2 * i]) + half);
         mesh->uvs_[2 * i + 1] = Store(D(mesh->uvs_[2 * i + 1]) - half);
@@ -83,7 +74,7 @@ void NudgeAndCommit(CUiMesh* mesh) {
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
 void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
-    float s = Store(D(GameFloat(kView)) * D(depth) * D(scale) * D(GameFloat(kLayoutY)));
+    float s = Store(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
     mesh->ScaleX() = s;
     mesh->ScaleY() = s;
     mesh->ScaleZ() = s;
@@ -92,8 +83,8 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
-    mesh->position_.x = Store((x - D(GameFloat(kOne))) * D(GameFloat(kView)) * D(depth));
-    mesh->position_.y = Store((y - D(GameFloat(kThreeQuarters))) * D(GameFloat(kView)) * D(depth));
+    mesh->position_.x = Store((x - D(worlddata::One())) * D(worlddata::InterfaceView()) * D(depth));
+    mesh->position_.y = Store((y - D(worlddata::ThreeQuarters())) * D(worlddata::InterfaceView()) * D(depth));
     std::memcpy(&mesh->position_.z, &depth, 4);
 }
 
@@ -204,8 +195,8 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
 
     // Texture coordinates: the outer corners, then the inner ones.
     SetUvCount(8);
-    double texel = D(GameFloat(kTexel));
-    double one = D(GameFloat(kOne));
+    double texel = D(worlddata::Texel());
+    double one = D(worlddata::One());
     float* uv = uvs_;
     float outerV0 = Store(one - static_cast<double>(v0) * texel);
     float outerV1 = Store(one - static_cast<double>(v1) * texel);
@@ -244,7 +235,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
             reinterpret_cast<float*>(&quads_[q])[12 + i] = 1.0f;
         }
     }
-    double half = D(GameFloat(kHalf));
+    double half = D(worlddata::Half());
     double halfWidth = D(width) * half;
     double outerX = halfWidth / D(scale);
     double halfHeight = D(height) * half;
@@ -271,7 +262,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     inner.y[3] = innerY;
 
     // Placed at the rectangle's centre.
-    double layoutX = D(GameFloat(kLayoutX));
+    double layoutX = D(worlddata::LayoutX());
     SetPosition(this, (D(left) + D(right)) * layoutX, (D(top) + D(bottom)) * layoutX, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
@@ -313,7 +304,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     }
     // Placed by the sprite's own Place (Rebirth-patched), scaled through 005E7060.
     Place(x, y, depth);
-    float s = Store(D(GameFloat(kView)) * D(depth) * D(scale) * D(GameFloat(kLayoutY)));
+    float s = Store(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
     reinterpret_cast<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
     NudgeAndCommit(this);
 }
@@ -338,8 +329,8 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     vertices_[count * 4 - 1].position = 1;
 
     SetUvCount(4);
-    double texel = D(GameFloat(kTexel));
-    double one = D(GameFloat(kOne));
+    double texel = D(worlddata::Texel());
+    double one = D(worlddata::One());
     float outerV0 = Store(one - static_cast<double>(v0) * texel);
     uvs_[0] = Store(static_cast<double>(u0) * texel);
     uvs_[1] = outerV0;
@@ -390,7 +381,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
         w[3] = 1.0f;
         ++j;
     }
-    double layoutY = D(GameFloat(kLayoutY));
+    double layoutY = D(worlddata::LayoutY());
     SetPosition(this, D(x) * layoutY, D(y) * layoutY, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);

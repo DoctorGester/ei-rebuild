@@ -11,6 +11,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -31,7 +32,6 @@ __declspec(naked) void** __fastcall TradesInsert(void* /*list*/, void*, void** /
 __declspec(naked) void __fastcall TradesRemove(void* /*list*/, void*, const RefPtr* /*value*/) EI_ORIGINAL(0x00427320)
 __declspec(naked) void __fastcall FinishedPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00423690)
 
-constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
 bool Live(const void* object) {
@@ -61,7 +61,7 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
     const char* name = static_cast<PlayerMessage*>(offer->player_.ptr)->name_.start;
     std::uint32_t line = 0;   // CString
-    void* formatted = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &line, text, name);
+    void* formatted = TextFormat(worlddata::InterfaceManager(), nullptr, &line, text, name);
     self->Announce(*static_cast<const char**>(formatted), partner);
     CStringDestroy(&line);
 }

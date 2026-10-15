@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -23,15 +24,8 @@ __declspec(naked) void** __fastcall List25B4Erase(void* /*list*/, void*, void** 
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
-constexpr std::uintptr_t kZero = 0x0073B858;             // 0.0f
-constexpr std::uintptr_t kAnnouncePeriod = 0x0073BB20;   // seconds between announcements
 constexpr std::uintptr_t kMasterHost = 0x0079BED8;       // char*: the master server's host name
 
-float GameFloat(std::uintptr_t address) {
-    float value;
-    std::memcpy(&value, reinterpret_cast<const void*>(address), sizeof(value));
-    return value;
-}
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }
@@ -47,7 +41,7 @@ void CountDown(void*& list, Erase erase, float dt) {
         float& seconds = current->data.seconds;
         float left = seconds - dt;
         seconds = left;
-        if (!(left >= GameFloat(kZero))) {
+        if (!(left >= worlddata::Zero())) {
             void* next;
             erase(&list, nullptr, &next, current);
         }
@@ -68,8 +62,8 @@ void ServerSession::TickImpl(double dt) {
     CountDown(awards_, List25B4Erase, step);
     if (!public_) return;
     announceTimer_ = static_cast<float>(announceTimer_ - dt);
-    if (!(announceTimer_ >= GameFloat(kZero))) {   // run out (or NaN)
-        std::memcpy(&announceTimer_, reinterpret_cast<const void*>(kAnnouncePeriod), 4);
+    if (!(announceTimer_ >= worlddata::Zero())) {   // run out (or NaN)
+        std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const auto* host = *reinterpret_cast<const unsigned char* const*>(kMasterHost);
         if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) ServerAnnounceToMaster(this);
     }

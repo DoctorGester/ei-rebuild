@@ -255,6 +255,8 @@ struct CArray {
         size = 0;
         return this;
     }
+    // The same, from a vtable named by its class's accessor (`Class::Vtable()`).
+    CArray* Construct(const void* vtablePointer) { return Construct(reinterpret_cast<std::uintptr_t>(vtablePointer)); }
 
     // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
     // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the

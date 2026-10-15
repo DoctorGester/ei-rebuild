@@ -427,12 +427,12 @@ struct CheckedAt {
         std::uint32_t hash = 0;
         if (Abi::GetAssocAt(self, nullptr, key, &hash)) {
             V* expected = original(self, nullptr, key);
-            V* result = Abi::At(self, nullptr, key);
+            V* result = Abi::ElementAt(self, nullptr, key);
             Check(name, true, expected == result, "found");
             return result;
         }
         int count = self->count;
-        V* result = Abi::At(self, nullptr, key);
+        V* result = Abi::ElementAt(self, nullptr, key);
         Assoc* head = self->table ? self->table[hash] : nullptr;
         V zero{};
         Check(name, true,

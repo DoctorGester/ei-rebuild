@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
@@ -42,8 +43,6 @@ __declspec(naked) void __fastcall Member5F90E0(void*, void*, const void*) EI_ORI
 __declspec(naked) void __fastcall Member5F9300(void*, void*, const void*) EI_ORIGINAL(0x005F9300)
 __declspec(naked) void __fastcall Member5F9540(void*, void*, const void*) EI_ORIGINAL(0x005F9540)
 
-std::uint8_t* At(void* p, int offset) { return static_cast<std::uint8_t*>(p) + offset; }
-
 // The window's two vtables, the window's (+0x00) first, then its input side's (+0x94).
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
 void SetVtables(void* window, void** vtable, void** inputVtable) {
@@ -69,10 +68,10 @@ void CInterface3D::CreateScreen(int id) {
         SetDword(screen, 0x178, 0);
         SetDword(screen, 0x174, 0);
         SetDword(screen, 0x170, 0);
-        Member5C1760(At(screen, 0x1DC));
-        Member5F8F30(At(screen, 0x1F0));
-        Member5F6080(At(screen, 0x204));
-        Member5F5F90(At(screen, 0x220));
+        Member5C1760(ei::OffsetPtr(screen, 0x1DC));
+        Member5F8F30(ei::OffsetPtr(screen, 0x1F0));
+        Member5F6080(ei::OffsetPtr(screen, 0x204));
+        Member5F5F90(ei::OffsetPtr(screen, 0x220));
         SetVtables(screen, Vtable(0x00740764), Vtable(0x00740730));
         break;
     }
@@ -86,15 +85,15 @@ void CInterface3D::CreateScreen(int id) {
         screen = gamecrt::operator_new(0x2A4);
         if (!screen) break;
         ConstructContainerAt(screen, nullptr, this);
-        StringArrayConstruct(At(screen, 0x170));
+        StringArrayConstruct(ei::OffsetPtr(screen, 0x170));
         SetDword(screen, 0x184, EmptyString());
-        Member5FAF80(At(screen, 0x190));
-        Member5F90E0(At(screen, 0x240), nullptr, &allocators[0]);
+        Member5FAF80(ei::OffsetPtr(screen, 0x190));
+        Member5F90E0(ei::OffsetPtr(screen, 0x240), nullptr, &allocators[0]);
         SetDword(screen, 0x248, EmptyString());
-        Member5F8F30(At(screen, 0x26C));
-        Member5F9300(At(screen, 0x278), nullptr, &allocators[1]);
-        IdVectorConstructOriginal(At(screen, 0x284), nullptr, &allocators[2]);
-        Member5F9540(At(screen, 0x294), nullptr, &allocators[3]);
+        Member5F8F30(ei::OffsetPtr(screen, 0x26C));
+        Member5F9300(ei::OffsetPtr(screen, 0x278), nullptr, &allocators[1]);
+        IdVectorConstructOriginal(ei::OffsetPtr(screen, 0x284), nullptr, &allocators[2]);
+        Member5F9540(ei::OffsetPtr(screen, 0x294), nullptr, &allocators[3]);
         SetVtables(screen, Vtable(0x007405AC), Vtable(0x00740578));
         break;
     }

@@ -26,4 +26,7 @@ T& GameData(std::uintptr_t address) {
 }
 #endif
 
+// A pointer `offset` bytes into an object whose members are not declared yet (a half-built screen).
+inline std::uint8_t* OffsetPtr(void* base, int offset) { return static_cast<std::uint8_t*>(base) + offset; }
+
 } // namespace ei

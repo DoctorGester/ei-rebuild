@@ -16,6 +16,8 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 
 #include <cstdint>
 
@@ -36,14 +38,12 @@ __declspec(naked) void __fastcall PartsCopy(void*, void*, const void*) EI_ORIGIN
 // bindings (both arrays), nested calls (dropped elements delete their command).
 void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
-constexpr std::uintptr_t kCommandsVtable = 0x0073D3DC;  // CArray<SSCCmd> (the temporary ScriptDecl)
-constexpr std::uintptr_t kPartsVtable = 0x0073D328;     // CArray<ScriptAreaPart> (the temporary area)
 
 // CList::AddTail of an empty ScriptDecl, as 004BF540 / 004BF900 inline it: the node after the tail,
 // the empty temporary's commands copied in (004CC0C0), linked; the id is the list's count (the
 // field right after the tail) with `idBits`.
 ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
-    mfc::CArray<SSCCmd> empty{reinterpret_cast<void*>(kCommandsVtable), nullptr, 0, 0, 0};
+    mfc::CArray<SSCCmd> empty{mfc::impl::ScriptCommandsClass::Vtable(), nullptr, 0, 0, 0};
     BlockList::Node* node = NewBlockNode(list, list->tail, nullptr);
     ScriptDecl* block = &node->data;
     CommandsCopy(&block->commands, nullptr, &empty);
@@ -76,7 +76,7 @@ mfc::CArray<ScriptAreaPart>* CScript::FindArea(int id) {
     for (int i = 0; i < areas.size; ++i) {
         if (areas.data[i].id == id) return &areas.data[i].parts;
     }
-    mfc::CArray<ScriptAreaPart> empty{reinterpret_cast<void*>(kPartsVtable), nullptr, 0, 0, 0};
+    mfc::CArray<ScriptAreaPart> empty{mfc::impl::ScriptAreaPartsClass::Vtable(), nullptr, 0, 0, 0};
     int index = areas.size;
     AreasSetSize(&areas, nullptr, index + 1, -1);
     PartsCopy(&areas.data[index].parts, nullptr, &empty);

@@ -32,8 +32,6 @@ constexpr COLORREF kBackground = 0x282828;
 constexpr COLORREF kSelection = 0x505050;
 constexpr COLORREF kLineText = 0xB4B4B4;
 constexpr COLORREF kInputText = 0xFFFFFF;
-constexpr std::uintptr_t kPromptText = 0x00792DE0;
-constexpr std::uintptr_t kMoreText = 0x00787BD8;
 constexpr int kLineHeight = 15;
 constexpr int kInputHeight = 0x1F;     // the input strip at the bottom
 constexpr UINT kDrawLine = 0x800;      // DT_NOPREFIX
@@ -52,7 +50,7 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input.
 int PromptWidth(GameDC* dc, const mfc::CString& input, int count) {
-    mfc::CString text = mfc::CString(game::Text(kPromptText)) + Left(input, count);
+    mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
     gameapi::GetTextExtentPoint32A(dc->hdc_, text, Length(text), &size);
     return size.cx;
@@ -172,7 +170,6 @@ EI_REPLACE_METHOD(0x005E4180, ConsoleWindow::OnKeyDown);
 namespace {
 
 constexpr int kHistoryDepth = 30;
-constexpr std::uintptr_t kNewLine = 0x00784340;   // "\n"
 
 mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
@@ -273,7 +270,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         caret_ = 0;
         anchor_ = 0;
         ConsoleDrawInputOriginal(this);
-        AddTextAt(this, nullptr, (mfc::CString(game::Text(kPromptText)) + commands_.data[0]) + game::Text(kNewLine));
+        AddTextAt(this, nullptr, (mfc::CString(game::consoletexts::Prompt()) + commands_.data[0]) + game::NewLineText());
         ExecuteAt(commands_.data[0]);
         return;
     }
@@ -347,12 +344,12 @@ void ConsoleWindow::DrawLines() {
         dc->DrawText(text, Length(text), &rect, kDrawLine);
     }
     if (scroll_ > 0) {
-        mfc::CString mark(game::Text(kMoreText));
+        mfc::CString mark(game::consoletexts::More());
         RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
         dc->DrawText(mark, Length(mark), &rect, kDrawMark);
     }
     if (scroll_ < lines_.GetSize() - visibleLines_) {
-        mfc::CString mark(game::Text(kMoreText));
+        mfc::CString mark(game::consoletexts::More());
         RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
         dc->DrawText(mark, Length(mark), &rect, kDrawMark);
     }
@@ -383,7 +380,7 @@ void ConsoleWindow::DrawInput() {
     dc->SetTextColor(kInputText);
     dc->SetBkMode(TRANSPARENT);
     RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
-    mfc::CString text = mfc::CString(game::Text(kPromptText)) + input_;
+    mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + input_;
     dc->DrawText(text, Length(text), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
         GamePen pen;

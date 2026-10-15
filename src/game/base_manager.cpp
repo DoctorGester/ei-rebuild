@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "lib/mfc_list.h"
 
 namespace {
 
@@ -29,7 +30,6 @@ using IdList = stlp::list<int>;
 using IdNode = IdList::Node;
 
 // The manager's object lists (objectList_ and the spare lists) are CTypedPtrLists with this vtable.
-constexpr std::uintptr_t kObjectListVtable = 0x0073B8D4;
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
 // 00783C00: the fatal "out of ids" message ("CBaseManager::RegisterInstant ...").
@@ -236,7 +236,7 @@ CBaseManager* CBaseManager::ConstructBase() {
     char hash = 0, equal = 0, alloc = 0;
     ObjectsConstruct(&objects_, nullptr, 100, &hash, &equal, &alloc);
     maxId_ = 0;
-    objectList_.vtable = reinterpret_cast<void*>(kObjectListVtable);   // CPtrList(10)
+    objectList_.vtable = mfc::impl::TempListClass::Vtable();   // CPtrList(10)
     objectList_.count = 0;
     objectList_.free = nullptr;
     objectList_.tail = nullptr;
@@ -265,7 +265,7 @@ void CBaseManager::DestructBody() {
     DestroyTable(spareCounts_, SpareCountsDeleteNode, SpareCountBucketsDestroy);
     DestroyTable(spares_, SparesDeleteNode, SpareBucketsDestroy);
     DestroyTable(positions_, PositionsDeleteNode, PositionBucketsDestroy);
-    objectList_.vtable = reinterpret_cast<void*>(kObjectListVtable);   // ~CPtrList
+    objectList_.vtable = mfc::impl::TempListClass::Vtable();   // ~CPtrList
     objectList_.RemoveAll();
     DestroyTable(objects_, ObjectsDeleteNode, ObjectBucketsDestroy);
     DestructBase();
@@ -539,7 +539,7 @@ int CBaseManager::RemoveObject(CEngineObject* object) {
         list->tail = nullptr;
         list->head = nullptr;
         list->blocks = nullptr;
-        list->vtable = reinterpret_cast<void*>(kObjectListVtable);
+        list->vtable = mfc::impl::TempListClass::Vtable();
         list->blockSize = 10;
     }
     if (type > maxSpareType_) maxSpareType_ = type;

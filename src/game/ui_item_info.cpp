@@ -340,7 +340,7 @@ const UiRecordTable* ModifierRecords() { return reinterpret_cast<const UiRecordT
 
 // Record tables by stride (item_db.h): materials 0x50, weapons 0xB4, armour 200, quick items 0x8C.
 const char* RecordOf(std::uintptr_t table, std::uint32_t index, int stride) {
-    return reinterpret_cast<const RecordTable*>(table)->At(index, stride);
+    return reinterpret_cast<const RecordTable*>(table)->RecordAt(index, stride);
 }
 
 constexpr std::uint32_t kWhite = 0xFFFFFF;
@@ -503,7 +503,7 @@ void CItemInfoPanel::DescribeItem() {
     Texts* texts = TextManager();
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     mfc::CString material;
-    material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().At(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
+    material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().RecordAt(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
     ReplaceChar(&material, ' ', '_');
     material.MakeLower();
     mfc::CString name, description, kindText;
@@ -625,7 +625,7 @@ void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
     Texts* texts = TextManager();
     const auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
-        itemdb::Materials().At(Read<std::uint32_t>(item, 0x54), itemdb::kMaterialSize));
+        itemdb::Materials().RecordAt(Read<std::uint32_t>(item, 0x54), itemdb::kMaterialSize));
     if (!material) return;
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
@@ -891,7 +891,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             w.line += game::Text(0x0078DA40);   // " "
             text = game::Text(0x00783D6C);      // "?"
             std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);
-            const char* modifier = itemdb::SpellModifiers().At(index, itemdb::kSpellModifierSize);
+            const char* modifier = itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize);
             mfc::CString key(game::Text(0x0078DD1C));   // "modifier "
             key += reinterpret_cast<const char*>(reinterpret_cast<std::uintptr_t>(modifier) + 4);
             if (texts->Open(key)) {

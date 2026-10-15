@@ -15,6 +15,8 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -37,11 +39,6 @@ __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const vo
 
 // The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
 inline void** __fastcall MapRegistryFind(void* a0, void*, const StringRep* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, (const void*)a2); }
-constexpr std::uintptr_t kWorld = 0x007AFE20;
-constexpr std::uintptr_t kTextTable = 0x007C7D50;
-constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
-constexpr std::uintptr_t kMapSuffix = 0x00783D70;      // "_1"
-constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
@@ -189,16 +186,16 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
-        void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
-        void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 7, *static_cast<const char**>(titleOut));
+        void* titleOut = WorldMapTitle(TheGameFlow(), nullptr, &title);
+        void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 7, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);
     }
 
     StringRep key;
-    StringPlusText(&key, zone, game::Text(kRewardSuffix));
-    auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &key));
+    StringPlusText(&key, zone, game::ZoneSuffix3Text());
+    auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &key));
     StringRepDestroy(&key);
     if (entry) {
         void* clients = &clients_;
@@ -263,20 +260,20 @@ void ServerSession::LeaveZone() {
     auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
-        void* titleOut = WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title);
-        void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 6, *static_cast<const char**>(titleOut));
+        void* titleOut = WorldMapTitle(TheGameFlow(), nullptr, &title);
+        void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 6, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);
 
         StringRep key;
-        StringPlusText(&key, &static_cast<MapMessage*>(holder->ptr)->text_, game::Text(kMapSuffix));
+        StringPlusText(&key, &static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
         const char* keyText = key.start;
         StringRep lookup;
         std::uint8_t allocator = 0;
         StringInitWithAllocator(&lookup, nullptr, &allocator);
         StringAssignSpan(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
-        auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &lookup));
+        auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &lookup));
         StlStringDestroy(&lookup);
         StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
         if (entry) AwardHost(entry, true);
@@ -306,7 +303,7 @@ void ServerSession::LeaveZone() {
     static_cast<void**>(variables_)[1] = variables_;
     List2598Clear(&files_);
     QueueMapList();
-    WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, nullptr);
+    WorldPrepareMap(TheGameFlow(), nullptr, nullptr);
 }
 
 EI_REPLACE_METHOD(0x00419D90, ServerSession::QueueAward);

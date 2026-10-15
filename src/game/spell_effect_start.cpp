@@ -53,7 +53,7 @@ Next StartAcidRay(CSpellEffect* e, const Vector3& from) {
     e->timer = 0x96;
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    float power = PowerScaled(e, kAcidRayScale);
+    float power = PowerScaled(e, worlddata::AcidRayScale());
     e->CreateArrow(&from, e->target, 0x2012, power, game::Text(0x00795700), &color, range);
     e->CreateSound(0, game::Text(0x007956E8), &e->position, &kZeroVector, kVolume, kHearing);
     e->state = 1;
@@ -74,12 +74,12 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
     e->timer = FlightTicks(&distance, &speed) - 2;
     ScaleToSpeed(&velocity, &speed);
 
-    float size = PowerScaled(e, kFireballScale);
+    float size = PowerScaled(e, worlddata::FireballScale());
     e->CreateParticle(1, 0x2000, &from, size, 1.0f, &velocity, nullptr);
     if (e->caster) static_cast<CEffectParticle*>(e->visual)->unitId_ = e->caster->id_;   // the particle's unit (no null check)
-    e->targetPoint.z = GroundPlus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(kOne));
+    e->targetPoint.z = GroundPlus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(worlddata::OneRef()));
     ParticleSetTarget(e->visual, nullptr, &e->targetPoint);
-    if (speed * ConstAt(kFireballNear) > distance) {
+    if (speed * ConstAt(worlddata::FireballNear()) > distance) {
         e->CreateSound(0, game::Text(0x007956B0), &e->position, &velocity, kVolume, kHearing);
     } else {
         e->CreateSoundSequence(&e->position, &velocity, game::Text(0x00795678), game::Text(0x00795694), -1, kVolume,
@@ -94,19 +94,19 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
 
 // 4: a lightning strike from 30 above the target point, hitting every unit in the radius.
 Next StartLightStrike(CSpellEffect* e) {
-    e->targetPoint.z = GroundMinus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(kStrikeDepth));
+    e->targetPoint.z = GroundMinus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(worlddata::StrikeDepth()));
     e->position = e->targetPoint;
     Vector3 top = e->targetPoint;
-    top.z = top.z + ConstAt(kStrikeHeight);
+    top.z = top.z + ConstAt(worlddata::StrikeHeight());
     float power = Power(e);
     CEngineObject* bolt = CreateObject(e, kClassLightning);
-    LightningSetEnds(bolt, nullptr, &top, &e->position, power * ConstAt(kStrikeWidth));
+    LightningSetEnds(bolt, nullptr, &top, &e->position, power * ConstAt(worlddata::StrikeWidth()));
     e->SetVisual(bolt);
 
     float alpha = Power(e);
     e->CreateParticle(0, 0x2030, &e->targetPoint, e->radius, alpha, &kZeroVector, nullptr);
     e->CreateSound(0, game::Text(0x0079565C), &e->position, &kZeroVector, kLoud, kLoud);
-    e->targetPoint.z = e->targetPoint.z + ConstAt(kLightAbove);
+    e->targetPoint.z = e->targetPoint.z + ConstAt(worlddata::LightAbove());
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
     PrototypeLight(e, &e->targetPoint, PrototypeRange(e), &rise);
 
@@ -153,7 +153,7 @@ Next StartFireWall(CSpellEffect* e, const Vector3& from) {
     e->position = centre;
     e->timer = e->targetCount;
     e->state = 2;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(kOne));
+    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float radius = e->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
@@ -174,15 +174,15 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     b.x = span.x + e->targetPoint.x;
     b.y = span.y + e->targetPoint.y;
     b.z = span.z + e->targetPoint.z;
-    a.z = GroundPlus(e, kWorldSlotGroundHeight, a, ConstPtr(kOne));
-    b.z = GroundPlus(e, kWorldSlotGroundHeight, b, ConstPtr(kOne));
+    a.z = GroundPlus(e, kWorldSlotGroundHeight, a, ConstPtr(worlddata::OneRef()));
+    b.z = GroundPlus(e, kWorldSlotGroundHeight, b, ConstPtr(worlddata::OneRef()));
     CEngineObject* bolt = CreateObject(e, kClassLightning);
     LightningSetEnds(bolt, nullptr, &a, &b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
     e->timer = e->targetCount;
     e->state = 2;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(kOne));
+    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float radius = e->radius;
     float range = PrototypeRange(e);
     PrototypeLight(e, &centre, radius + range, &kZeroVector);
@@ -193,7 +193,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
 // 8: the poison cloud at the target point.
 Next StartPoisonCloud(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(kOne));
+    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float alpha = Power(e);
     e->CreateParticle(1, 0x2007, &centre, e->radius, alpha, &kZeroVector, nullptr);
     e->CreateSoundSequence(&centre, &kZeroVector, game::Text(0x007955BC), game::Text(0x007955D4), -1, kVolume, kHearing);
@@ -212,7 +212,7 @@ Next ApplyBuff(CSpellEffect* e) {
     BuffRecordInit(&record);
     std::memcpy(&record, &e->effectRecord, sizeof(record));
     record.power = static_cast<std::uint8_t>(
-        PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(kBuffScale)));
+        PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(worlddata::BuffScale())));
     record.ending = e->silentEnd;
     ObjectSlots(e->target)->AddEffect(&record);
     return Next::Done;
@@ -221,7 +221,7 @@ Next ApplyBuff(CSpellEffect* e) {
 // 0x12: fireworks (five numbered sounds).
 Next StartFirework(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(kOne));
+    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     float size = Power(e);
     e->CreateParticle(1, 0x2009, &centre, size, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, PrototypeRange(e), &kZeroVector);
@@ -233,7 +233,7 @@ Next StartFirework(CSpellEffect* e) {
 // 0x14: clairvoyance. The particle uses the target point as it was; the light, the ground point.
 Next StartClairvoyance(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(kOne));
+    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
     e->CreateParticle(0, 0x2018, &e->targetPoint, e->radius, 1.0f, &kZeroVector, nullptr);
     PrototypeLight(e, &centre, e->radius, &kZeroVector);
@@ -319,7 +319,7 @@ Next StartTeleport(CSpellEffect* e) {
     point.z = GroundPlus(e, kWorldSlotGridHeight, point, &point.z);
     e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
     point = e->targetPoint;
-    point.z = GroundMinus(e, kWorldSlotGridHeight, point, ConstPtr(kTeleportDepth));
+    point.z = GroundMinus(e, kWorldSlotGridHeight, point, ConstPtr(worlddata::TeleportDepth()));
     e->CreateParticle(0, 0x2019, &point, -1.0f, 1.0f, &kZeroVector, nullptr);
     e->CreateSound(0, game::Text(0x00795538), &point, &kZeroVector, kVolume, kHearing);
     PrototypeLight(e, &point, PrototypeRange(e), &kZeroVector);
@@ -352,7 +352,7 @@ Next StartCharm(CSpellEffect* e) {
 // 0x27: the effect only moves to the ground point.
 Next StartAtGround(CSpellEffect* e) {
     Vector3 centre = e->targetPoint;
-    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(kOne));
+    centre.z = GroundPlus(e, kWorldSlotGridHeight, centre, ConstPtr(worlddata::OneRef()));
     e->position = centre;
     return Next::Set;
 }
@@ -492,9 +492,9 @@ void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarge
     if (!boltTarget) return;
     Vector3 to = static_cast<CUnit*>(boltTarget)->position;
     HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &static_cast<CUnit*>(boltTarget)->above.z,
-                      ConstPtr(kTargetHeight), &to.z);
+                      ConstPtr(worlddata::TargetHeight()), &to.z);
     CEngineObject* bolt = CreateObject(this, kClassLightning);
-    LightningSetEnds(bolt, nullptr, from, &to, power * ConstAt(kBoltWidthScale));
+    LightningSetEnds(bolt, nullptr, from, &to, power * ConstAt(worlddata::BoltWidthScale()));
     LightningSetObjects(bolt, nullptr, source ? source->id_ : -1, boltTarget->id_);
     LightningSetFlag(bolt, nullptr, flag);
     Assign(this, &visual, bolt);
