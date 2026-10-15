@@ -1940,3 +1940,5 @@ turns the three loads `MOV EDX,[ESP+8/0xC/0x10]` into `XOR EDX,EDX` (22 of 22 si
 
 **Runs:** two plain `--no-hooks --fresh --golden` passes of both scenarios: goldens the same, every claim's point 0,0,0,
 the decoded saves the same; `golden.py saves` recorded them for zone_gz3g (vanilla) and zone_gz15h_tornado (V+R).
+Then a full plain `--no-hooks --golden` pass: 124 goldens the same, 0 differ (no other golden's saves changed);
+hooked and `--standalone --golden` on both scenarios: the 3 goldens the same, saves included. After merging main: the same.
