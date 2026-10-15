@@ -151,25 +151,47 @@ void InstallHooksAtWinMain();
 
 } // namespace ei
 
+// Every registration macro below also leaves a record of the address, kind and place in the section
+// .eireg of the module (data nothing reads at run time; not const, or the compiler drops it): tools/check_registrations.py reads the
+// built ei_hook.dll and fails the build when one address has two registrations of a kind that
+// InstallHooks would install (two plain replacements, two verify wrappers, two recorders).
+#pragma section(".eireg", read, write)
+namespace ei {
+enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegDispatch, kRegVerify, kRegRecord, kRegRecordOurs };
+struct RegRecord {
+    std::uintptr_t address;
+    const char* file;
+    int line;
+    int kind;
+};
+} // namespace ei
+#define EI_REG_RECORD(prefix, addr, kind) \
+    __declspec(allocate(".eireg")) static ::ei::RegRecord EI_CAT(prefix, __LINE__) = {addr, __FILE__, __LINE__, kind}
+
 // Replace the function at `addr` with a free function or static function.
 #define EI_REPLACE(addr, fn) \
+    EI_REG_RECORD(ei_reg_replace_, addr, ::ei::kRegReplace); \
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Replace the method at `addr` with a C++ member function.
 #define EI_REPLACE_METHOD(addr, method) \
+    EI_REG_RECORD(ei_reg_method_, addr, ::ei::kRegReplace); \
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
 // Register a method whose body is a tail call through the vtable, the same dispatch as the original's
 // own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar. Standalone image only.
 #define EI_REPLACE_DISPATCH(addr, method) \
+    EI_REG_RECORD(ei_reg_dispatch_, addr, ::ei::kRegDispatch); \
     static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
 // Replace the library function at `addr` in the standalone image only (StandaloneRegistrar).
 #define EI_REPLACE_STANDALONE(addr, fn) \
+    EI_REG_RECORD(ei_reg_standalone_, addr, ::ei::kRegStandalone); \
     static ::ei::StandaloneRegistrar EI_CAT(ei_standalone_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
 #define EI_REPLACE_SHORT(addr, fn) \
+    EI_REG_RECORD(ei_reg_short_, addr, ::ei::kRegShort); \
     static ::ei::ShortRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Define a function body that forwards to original code not rewritten yet. Works for any calling
@@ -179,17 +201,17 @@ void InstallHooksAtWinMain();
 
 // Verification build only (tests/verify_*.cpp): route `addr` to `wrapper`, and store a callable
 // pointer to the original code in `orig`.
-#define EI_VERIFY(addr, wrapper, stolen, orig)     static ::ei::HookRegistrar EI_CAT(ei_verify_, __LINE__)(         addr, reinterpret_cast<void*>(&wrapper), #wrapper, stolen, reinterpret_cast<void**>(&orig))
+#define EI_VERIFY(addr, wrapper, stolen, orig)     EI_REG_RECORD(ei_reg_verify_, addr, ::ei::kRegVerify);     static ::ei::HookRegistrar EI_CAT(ei_verify_, __LINE__)(         addr, reinterpret_cast<void*>(&wrapper), #wrapper, stolen, reinterpret_cast<void**>(&orig))
 
 // Verification build only (tests/vectors/record_*.cpp): in record mode route `addr` to `recorder`,
 // which calls the original through `orig` (stolen bytes as for EI_VERIFY).
-#define EI_RECORD(addr, recorder, stolen, orig)     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
+#define EI_RECORD(addr, recorder, stolen, orig)     EI_REG_RECORD(ei_reg_record_, addr, ::ei::kRegRecord);     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
 
 // EI_RECORD for a function whose callers are rewritten (they call our replacement directly, never the
 // address): in record mode our replacement's entry also jumps to the recorder, so their calls run the
 // original and are recorded too. Only for replacements of at least 5 bytes not shared with another
 // function.
-#define EI_RECORD_OURS(addr, recorder, stolen, orig)     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig), true)
+#define EI_RECORD_OURS(addr, recorder, stolen, orig)     EI_REG_RECORD(ei_reg_record_ours_, addr, ::ei::kRegRecordOurs);     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig), true)
 
 // Verification build only: run `fn` (void()) once when the hooks have been installed.
 #define EI_STARTUP_CHECK(fn) static ::ei::StartupCheckRegistrar EI_CAT(ei_startup_, __LINE__)(&fn, #fn)

@@ -75,6 +75,11 @@ CArchiveException* CArchiveException::DeletingDestructor(unsigned flags) {
     return this;
 }
 
+void __fastcall ResourceExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x0074646C); }
+void __fastcall UserExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x00746484); }
+void __fastcall MemoryExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x007465F8); }
+void __fastcall NotSupportedExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x00746610); }
+
 int __stdcall OsErrorToException(long osError) {
     switch (static_cast<unsigned long>(osError)) {
     case NO_ERROR: return CFileException::none;
@@ -217,6 +222,10 @@ EI_REPLACE_METHOD(0x006E6335, CFileException::Destruct);
 EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);
 EI_REPLACE_METHOD(0x006E6BA1, CArchiveException::Destruct);
 EI_REPLACE_METHOD(0x006E6B85, CArchiveException::DeletingDestructor);
+EI_REPLACE(0x006E690F, ResourceExceptionDestruct);
+EI_REPLACE(0x006E695C, UserExceptionDestruct);
+EI_REPLACE(0x006E6B30, MemoryExceptionDestruct);
+EI_REPLACE(0x006E6B7D, NotSupportedExceptionDestruct);
 EI_REPLACE(0x00703296, OsErrorToException);
 EI_REPLACE(0x007031D5, ThrowFileException);
 EI_REPLACE(0x007030F0, ThrowOsError);

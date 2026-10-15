@@ -18,6 +18,8 @@ cmake -S "%~dp0." -B "%~dp0build\%CFG%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% 
 cmake --build "%~dp0build\%CFG%" || exit /b 1
 rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide rule 4).
 python "%~dp0tools\check_thunks.py" || exit /b 1
+rem One address, one registration per kind (replacement, verify wrapper, recorder), read from the built DLL (SV6d).
+python "%~dp0tools\check_registrations.py" --dll "%~dp0build\%CFG%\ei_hook.dll" || exit /b 1
 rem Replacements declared void whose game callers use EAX afterwards (UnitActionPoint, AddSurface).
 python "%~dp0tools\check_returns.py" --map "%~dp0build\%CFG%\ei_hook.map" || exit /b 1
 rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<area>.h (ticket C3).

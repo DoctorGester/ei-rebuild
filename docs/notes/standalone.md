@@ -788,6 +788,74 @@ position, clear, destroy - and ours side by side; strings with high bytes, ASCII
 their elements, null references). Left in the ticket's ranges: 95 rows that are lists,
 hashtables, vectors, CArrays and unwind helpers (S12c).
 
+**S12b group 1 (2026-10-15).** STLport's sort internals moved from src/game/stl_sort.h to
+src/lib/stlp_algo.h (`stlp::Sort<T, Less>`: median of three returning a reference, the pivot copied
+once, unguarded partition and inserts, heap sort at depth 0, the final insertion sort), now for
+element types by value too. src/game/stl_sorts.cpp registers the sorts our code forwards to, 12
+addresses: the file chunks by index 0042A020 / 0042A150, CollectChanges's {object, priority} pairs
+by the object's address 0043F870 / 0043F9B0, the picking hits with DepthLess 00573740 / 00575BC0 /
+00576D40 (the original inlines the comparison in the scans; its sums only swap the first two terms,
+so `DepthLess::Less` serves), the battle screen's ids 0060B1E0 / 0064B750 (less<int>), the
+connection screen's server list by its sort key 0061EF60 / 0061F6F0 / 0061FB00 (keys 1-8 the column
+pairs, names by `_mbscmp`; copies only share the CStrings). Checks (tests/verify/verify_stl_sorts.cpp),
+all against the original: it sorts a copy, ours the range, the orders compared element by element
+(the original's recursion re-enters the wrapper); the unguarded insertion sorts copy from 16 before
+`first`; hits with a missing object or a non-finite depth go to the original alone (logged). The
+suite sorts short ranges only, so a start-up check sorts 300 random arrays of ids, pairs (equal
+objects, distinct priorities) and chunk pointers and 200 server lists (empty strings, keys 3-9)
+through the originals and ours, a quarter with depth limits that reach the heap sort. smoke,
+console, camera, combat, net_lobby, ui_mp_host: 0 mismatches. Their inner helpers (median,
+partition, heap, linear insert) are reached only from the replaced loops: dead in both builds. Not
+done: the objectives window's CString sort 0064F310 / 0064F9A0 / 0064FBD0 (its comparison builds
+strings and looks them up in the quest map 007C87B4, allocating on every call) and the save list's
+SaveEntry sort 00657DF0 / 00657F10 with copy_backward 00657D50 (its copies allocate CStringArrays).
+
+**S12b group 2.** STLport pair members (src/lib/stlp_pair.*, `PairAbi`), 10 addresses: the dword
+pairs' constructor 00407DE0 / 0040A9D0, pair<string, dword>(const string&, const dword&) 005729D0
+00689950 006BC140 0064F880 006A7710 (one body; 0064F880 is reached from the objectives window's
+quest sort, still the original's), pair<string, string>(const string&, const string&) 00445170
+(library.csv calls it the copy constructor), its destructor 00445040 (the second string first; the
+row's name is "unreviewed family") and scalar deleting destructor 004457F0. Checks
+(tests/verify/verify_stlp_pair.cpp): the dword pairs against the original into a scratch pair; the
+string pairs' constructors original first, its blocks back on their free lists (the last allocated
+first), then ours (same blocks, words, bytes, dword); the destructors ours only (the first string's
+pool block on top of its free list; 004457F0 starts with a CALL inside five bytes, so no trampoline).
+smoke, console, camera, combat, ui_objectives, ui_saveload, harness_digest with goldens: 14 the
+same, 0 mismatches; 0040A9D0, 00689950, 0064F880 and 004457F0 not reached. The full `--golden` suite: 128 runs pass
+(rebirth_flags vanilla's known first-run DistancePointPoint flake), 54 goldens the same; ui_widescreen_hud
+and ui_widescreen_more (rebirth) differ at world update 80 (cunit148 #place) with all 22 S12b addresses
+in disabled.txt too, so not from S12b. The sort start-up check skips itself when a sort is disabled
+(no trampoline). Left for S12d: the allocating sorts (objectives, save list), pair<string, list<T>>
+0069C1C0 and the unclassified container rows.
+
+**S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
+extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
+006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot
+(0070C71F), CThreadLocalObject's destructor (0070CA59 and the CThreadLocal<T> jmp thunks 0070CC2D /
+0070D5F9, registered at their own addresses), CProcessLocalObject's (0070CAD2; thunks 0070CE77,
+0070D61F, 0070DC48), AfxDeleteObject (0070AA54) and AUX_DATA (afxData 007C90C8): its constructor
+0070D1AA (a static initialiser's call target), destructor 0070E181 (the menu-dot bitmap),
+UpdateSysColors 00703E12, UpdateSysMetrics 00703E56 and the two scroll-metric helpers 0070D158 /
+0070D188 (cdecl on afxData in the original; ours take `this`, the same object). mfc_exception: the
+four simple exceptions' destructors (006E690F, 006E695C, 006E6B30, 006E6B7D: each stores its own
+vtable). mfc_window: CWnd's destructor 00704FE3 (the ticket's "CStdioFile-like" one: the four objects it
+skips are wndTop / wndBottom / wndTopMost / wndNoTopMost) and CCmdTarget's 00703EC8; CWnd::DestroyWindow
+007051A1 stays a forwarder (originals_library.h): no game window is a CWnd, the image reports it if
+reached. The locals hang off the original's state in the hook build; in the image nothing fills them
+(S8a's maps are thread_local), so the destructors find slot 0 / no object. Not registered:
+0070CD25 (another ~CThreadLocal thunk, no exit function calls it). Checks
+(tests/verify/verify_mfc_state.cpp): a start-up check runs FreeSlot, ~CProcessLocalObject,
+AfxDeleteObject (by the process's GDI object count: GetObjectType still typed deleted bitmaps), the
+exception destructors, ~CWnd and ~CCmdTarget on twins through the trampolines and ours, and AUX_DATA's
+constructor both ways (also against afxData without the metrics: InstallHooks makes the process DPI
+aware after the static initialiser ran); the exit wrappers check the slot freed, the object kept,
+CWnd's vtable and the control site. smoke, ui_main_menu, console, ui_saveload, both installs: 0
+mismatches. Seen, not caused here: on Rebirth the exit stops after the handle maps' ~CMapPtrToPtr
+(an access violation in Riched20.dll, or the game still running at the harness's 3 s limit); main's
+own runs end the same way (S3e). `--standalone`: the only exit callee without code left is 005DC080
+(S12a); the MFC constructors the static initialisers still call (the four exceptions', CWnd(HWND),
+0070B600, 0070DC4D, 00700674) are S3f. The boot still stops at 005AF580.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
