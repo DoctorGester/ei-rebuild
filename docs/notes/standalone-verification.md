@@ -1624,22 +1624,28 @@ it did not change in any pass below. SV7b2a holds these.
 
 **Behaviour.** No digest, dump or console of the 97 goldens changed: in plain runs both leftovers were already what
 zero gives (waitFrame 0 from fresh heap pages, a Suspection point 0,0,0 / level 0), so the change only removes what the
-layout could decide. Under jitter it does: the `2,fill` / `3,fill` divergence at world update 40 that SV7d noted on
-SV7d4 (isaac.count, ai.decay of obj1804 / obj1890 / obj1936) is gone from vanilla but for one run (ui_saveload_delete,
-isaac.count 38 / 161: SV7b7's signature), while 16 Rebirth runs of `3,fill` still part there (isaac.count 169 / 89, the
-same three units): a leftover only Rebirth's path reads (SV7b7).
+layout could decide. Under jitter it does: the `2,fill` divergence at world update 40 that SV7d noted on SV7d4
+(isaac.count, ai.decay of obj1804 / obj1890 / obj1936) no longer shows with seeds 1 and 2; `3,fill` still parts at
+update 40 in a few runs of either install (vanilla isaac.count 38 / 161, Rebirth 169 / 89, different scenarios on
+each pass: before the second merge 16 Rebirth and one vanilla, after it six vanilla and two Rebirth), so another
+uninitialised read remains (SV7b7).
 
-**Passes** (after merging main with SV7b1, SV7d1, SV7d2; the 53 golden scenarios on both installs, 106 runs each,
-golden.py diff of every digest and dump against the first plain pass, then every decoded save):
+**Passes** (after merging main with SV7b1, SV7b4a, SV7b8a, SV7d1, SV7d1a, SV7d2; the 53 golden scenarios on both
+installs, 106 runs each; golden.py diff of every digest and dump against the first plain pass, then every decoded
+save):
 
 | Pass | Digests differ | Saves differ |
 | --- | --- | --- |
 | second plain `--no-hooks` | 0 | 0 |
-| EI_HEAP_JITTER=1 | 1 (ui_screens vanilla: unmoco2 `rot`, no golden) | 0 |
-| EI_HEAP_JITTER=2 | 3 (ui_hero_screen, ui_hero_stats, ui_screens vanilla: unmoco2 `rot`, no golden) | 0 |
-| EI_HEAP_JITTER=3,fill | 18: 16 Rebirth and ui_saveload_delete vanilla at update 40 (SV7b7), ui_container_input Rebirth unmoco2 `rot` | only in those |
-| ours (hooked) | 6 vanilla menu units without a golden (`rot` in the last place, cunit129 flags 0xA2 / 0x4A2) | 0 |
+| EI_HEAP_JITTER=1 | 0 | 0 |
+| EI_HEAP_JITTER=2 | 0 | 0 |
+| EI_HEAP_JITTER=3,fill | 8 at update 40 or 140: levers, render_movie_present, terrain_water_load, ui_battle_commands, ui_saveload_delete (vanilla); magic_traps, ui_saveload, ui_widescreen_hud (Rebirth) (SV7b7) | only in those |
+| ours (hooked) | 2: ui_widescreen_hud / ui_widescreen_more vanilla, cunit129 flags 0xA2 / 0x4A2 (SV7b8a: designed, no vanilla golden) | 0 |
 
-**Goldens re-recorded**, all 97, from the plain pass and every other pass that agreed with it (79 from six runs; the 18
-above from five, without `3,fill`): only saves.txt changed (85 goldens), 34 decoded saves of the store replaced.
+**Goldens re-recorded**, all 97, from the plain pass and every other pass that agreed with it (89 from six runs; the
+eight above from five, without `3,fill`): only saves.txt changed (85 goldens), 34 decoded saves of the store replaced;
+the second merge's recording gave the same saves.
+
+The suite's non-golden frames_basic, render_cpuwindows and render_present (vanilla) leave a saveb\scenario.sav whose
+screen block savefile_scenario.py reads 0x12 bytes too far (not SV7b2's readers; SV7d6).
 
