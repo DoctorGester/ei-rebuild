@@ -131,6 +131,26 @@ void Trace(char op, SIZE_T bytes, const void* in, const void* out, void* const* 
                  unsigned(callers[5]), unsigned(callers[6]), unsigned(callers[7]), unsigned(callers[8]), unsigned(callers[9]));
 }
 
+// The heap-order check's observer (SetOrderObserver).
+OrderObserver g_observer;
+
+// Tells the observer of a call by the main thread on a block of the reservation, with the first
+// return addresses on the stack from `frame` (as the trace writes them).
+void Observe(char op, SIZE_T bytes, const void* in, const void* out, void* const* frame) {
+    if (!g_observer || GetCurrentThreadId() != g_mainThread) return;
+    const void* inside = in && InReservation(in) ? in : nullptr;
+    const void* made = out && InReservation(out) ? out : nullptr;
+    if (!inside && !made) return;
+    unsigned callers[kOrderCallers] = {};
+    int found = 0;
+    const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
+    for (int i = 0; i < 256 && found < kOrderCallers && frame + i < top; ++i) {
+        const auto v = reinterpret_cast<std::uintptr_t>(frame[i]);
+        if (ReturnAddress(v)) callers[found++] = unsigned(v >= g_selfBase && v < g_selfEnd ? v - g_selfBase + 0x10000000 : v);
+    }
+    g_observer(op, unsigned(bytes), inside, made, callers);
+}
+
 // Holds the lock for g_heap's calls; other heaps go straight through.
 struct Locked {
     explicit Locked(HANDLE heap) : held(heap == g_heap) { if (held) EnterCriticalSection(&g_lock); }
@@ -171,7 +191,9 @@ bool InHandleMap(void* const* frame) {
     constexpr std::uintptr_t kFromHandle = 0x0070367C;
     constexpr std::uintptr_t kFromHandleEnd = kFromHandle + 174;
     const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
-    for (int i = 0; i < 96 && frame + i < top; ++i) {
+    // The heap-order check's thunks put about 70 words of their own in front of each wrapper call.
+    const int words = g_observer ? 1024 : 96;
+    for (int i = 0; i < words && frame + i < top; ++i) {
         const auto v = reinterpret_cast<std::uintptr_t>(frame[i]);
         if (v > kFromHandle + 5 && v <= kFromHandleEnd && reinterpret_cast<const unsigned char*>(v)[-5] == 0xE8)
             return true;
@@ -233,6 +255,7 @@ LPVOID WINAPI RepeatableHeapAlloc(HANDLE heap, DWORD flags, SIZE_T bytes) {
     auto* const frame = static_cast<void* const*>(_AddressOfReturnAddress());
     void* result = Allocate(flags, bytes, Reserved(bytes, frame));
     Trace('a', bytes, nullptr, result, frame);
+    Observe('a', bytes, nullptr, result, frame);
     return result;
 }
 
@@ -240,6 +263,7 @@ BOOL WINAPI RepeatableHeapFree(HANDLE heap, DWORD flags, LPVOID memory) {
     if (heap != g_heap) return g_heapFree(heap, flags, memory);
     Locked lock(heap);
     Trace('f', 0, memory, nullptr, static_cast<void* const*>(_AddressOfReturnAddress()));
+    Observe('f', 0, memory, nullptr, static_cast<void* const*>(_AddressOfReturnAddress()));
     return g_heapFree(Owner(memory), flags, memory);
 }
 
@@ -262,6 +286,7 @@ LPVOID WINAPI RepeatableHeapReAlloc(HANDLE heap, DWORD flags, LPVOID memory, SIZ
         }
     }
     Trace('r', bytes, memory, result, frame);
+    Observe('r', bytes, memory, result, frame);
     return result;
 }
 
@@ -413,6 +438,14 @@ void SettleCrt() {
         unlock(n);
     }
     reinterpret_cast<void(__cdecl*)()>(0x006F8AA1)();
+}
+
+unsigned long MainThread() { return g_mainThread; }
+
+void SetOrderObserver(OrderObserver observer, std::uintptr_t selfBase, std::uintptr_t selfEnd) {
+    g_selfBase = selfBase;
+    g_selfEnd = selfEnd;
+    g_observer = observer;
 }
 
 void Install() {
