@@ -151,6 +151,12 @@ void CString::AllocBuffer(int length) {
         return;
     }
     CStringData* data;
+#ifdef EI_VECTORS_REPLAY
+    // ei_vectors has no fixed allocators: exactly the room asked for, as its own CString allocates
+    // (tests/vectors/replay_mfc.cpp), so either may free the other's strings.
+    data = static_cast<CStringData*>(gamecrt::operator_new(sizeof(CStringData) + static_cast<std::size_t>(length) + 1));
+    data->allocLength = length;
+#else
     if (length <= 64) {
         data = static_cast<CStringData*>(StringAlloc64().Alloc());
         data->allocLength = 64;
@@ -167,6 +173,7 @@ void CString::AllocBuffer(int length) {
         data = static_cast<CStringData*>(gamecrt::operator_new(sizeof(CStringData) + static_cast<std::size_t>(length) + 1));
         data->allocLength = length;
     }
+#endif
     data->refs = 1;
     data->data()[length] = '\0';
     data->dataLength = length;
@@ -174,6 +181,9 @@ void CString::AllocBuffer(int length) {
 }
 
 void __fastcall CString::FreeData(CStringData* data) {
+#ifdef EI_VECTORS_REPLAY
+    gamecrt::operator_delete(data);   // AllocBuffer's
+#else
     switch (data->allocLength) {
     case 64: StringAlloc64().Free(data); break;
     case 128: StringAlloc128().Free(data); break;
@@ -181,6 +191,7 @@ void __fastcall CString::FreeData(CStringData* data) {
     case 512: StringAlloc512().Free(data); break;
     default: gamecrt::operator_delete(data); break;
     }
+#endif
 }
 
 void CString::Release() {

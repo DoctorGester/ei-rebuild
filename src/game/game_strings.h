@@ -15,7 +15,7 @@ inline const char* Text(std::uintptr_t address) { return &ei::GameData<const cha
 // 0079B298: the exe's empty string (""). The game's text readers and CString constructors fall back
 // to it, and some loops compare against this address (not only against the contents).
 constexpr std::uintptr_t kEmptyTextAddress = 0x0079B298;
-inline const char* EmptyText() { return reinterpret_cast<const char*>(kEmptyTextAddress); }
+inline const char* EmptyText() { return &ei::GameData<const char>(kEmptyTextAddress); }
 
 // 00795D74: "Can't find texture format %d.\n" (the texture manager's FatalError, 00691D80).
 inline const char* CantFindTextureFormatText() { return reinterpret_cast<const char*>(0x00795D74); }

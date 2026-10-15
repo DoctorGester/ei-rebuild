@@ -23,9 +23,11 @@ Sampler g_keywordName("script", "KeywordName", kVariableSize, 256);
 Sampler g_tokenize("script", "CScript::Tokenize", kVariableSize, 6, 3);
 Sampler g_applyDefines("script", "ApplyDefines", kVariableSize, 128, 2);
 
+} // namespace
+
 // The keyword table and the lexer's data, once (with the game CRT's character classes, which the
 // lexer reads too).
-void OfferFixtures() {
+void ei::vectors::script::OfferFixtures() {
     static bool offered = false;
     if (offered) return;
     offered = true;
@@ -55,6 +57,8 @@ void OfferFixtures() {
     }
     g_keywords.OfferBytes(w, ControlWord());
 }
+
+namespace {
 
 // Tokens the lexer passes are at most 0xFF characters; longer texts (none known) are not kept.
 constexpr std::size_t kMaxText = 0x400;
