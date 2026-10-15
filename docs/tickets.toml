@@ -1350,7 +1350,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 12 merged: address constants 69 -> 20 (shared vtables got class homes); raw addresses 714 -> 664. Left: kNoElementTick, 7 image addresses, kEmptyTextAddress, kStateBlockAlpha, kMasterHost, unit_ai globals, kCandidates(+Guard), kScriptQueue, two options.cpp float factors. Next: other C11 shim/raw-address families."
+note = "Batch 13: shims 908 -> 792 (130 file-local wrappers over the originals_library.h forwarders inlined: STLport string, MFC CString/CStringArray, list/hash/array helpers). Left: typed-result wrappers (17), int-to-pointer arg casts (5), fn-pointer uses, and ~240 wrappers over party/player/world/combat/ui forwarders (address-named forwarders would read worse). Next: other shim families (UI input delete shims, void* selfs) or raw addresses (664)."
 
 [[ticket]]
 id = "C12"
