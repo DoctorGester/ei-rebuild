@@ -94,6 +94,9 @@ EI_REPLACE(0x00476640, Plain4::Add);
 EI_REPLACE(0x004CC870, Plain4::ConstructElements);
 EI_REPLACE(0x004CCA10, Plain4::ConstructElements);
 EI_REPLACE(0x0060AEC0, Plain4::ConstructElements);
+EI_REPLACE(0x004CC800, Plain4::ConstructElements);   // reference holders: the fill, then null again
+EI_REPLACE(0x0042A850, Plain4::ConstructElements);
+EI_REPLACE(0x00573250, Plain4::ConstructElements);
 EI_REPLACE(0x00468F90, Plain8::ConstructElements);
 EI_REPLACE(0x00452DC0, Plain12::ConstructElements);
 EI_REPLACE(0x005B1C70, Plain12::ConstructElements);

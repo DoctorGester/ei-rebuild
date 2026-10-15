@@ -5,6 +5,7 @@
 // (each called directly). Registered in game_arrays.cpp; checked by tests/verify/verify_mfc_array.cpp.
 
 #include "lib/mfc_array.h"
+#include "game/engine_object.h"
 #include "game/object_tables.h"
 #include "game/script.h"
 #include "game/unit.h"
@@ -53,6 +54,16 @@ inline void InitParticle(EffectParticle* p) {
 }
 inline void DestroyParticle(EffectParticle* p) { p->ReleaseSource(); }
 
+// Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by
+// a release through slot 4, the slot cleared (004CC7D0, 0052CEC0) or left (0059C890).
+inline void ReleaseAndClear(ScriptObjectRef* p) {
+    if (p->object) p->object->Release();
+    p->object = nullptr;
+}
+inline void ReleaseOnly(CEngineObject** p) {
+    if (*p) (*p)->Release();
+}
+
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
 using Exits = ArrayAbi<MapExit, EachElements<MapExit, InitExit, DestroyExit>>;
@@ -60,5 +71,16 @@ using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, Destroy
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;
 using Particles = ArrayAbi<EffectParticle, EachElements<EffectParticle, InitParticle, DestroyParticle>>;
+using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, ReleaseAndClear>>;
+using ObjectPtrs = ArrayAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, ReleaseOnly>>;
+
+// The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
+struct ObjectPtrArrayBaseClass {
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FABC); }
+};
+
+// 004CC7A0 (RET 8): element `index` copied into `result` with one more reference; returns `result`.
+// 004C21E0 (RET 8) calls it.
+ScriptObjectRef* __fastcall ObjectRefGetAt(const ObjectRefs::Array* self, void*, ScriptObjectRef* result, int index);
 
 } // namespace gamearrays

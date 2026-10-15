@@ -284,6 +284,19 @@ struct OursDestroy {
     }
 };
 
+// RemoveAt of owning elements: ours only.
+template <std::uintptr_t Address, typename Abi>
+struct OursRemoveAt {
+    using Array = typename Abi::Array;
+    static inline void* original;
+    static void __fastcall Run(Array* self, void*, int index, int count) {
+        static const char* name = Name("RemoveAt", Address);
+        int size = self->size;
+        Abi::RemoveAt(self, nullptr, index, count);
+        Check(name, true, self->size == size - count, "%d, %d: %d", index, count, self->size);
+    }
+};
+
 template <std::uintptr_t Address, typename Class>
 struct TwinConstruct {
     using Array = mfc::CArray<Bytes<1>>;
@@ -615,3 +628,44 @@ using A004C9AF0 = OursDestroy<0x004C9AF0, AiLookElement, DestroyAiLookRecord>;
 EI_VERIFY(0x004C9AF0, A004C9AF0::Run, 0, A004C9AF0::original);
 using A004608D0 = OursDestroy<0x004608D0, AllodElement, DestroyAllod>;
 EI_VERIFY(0x004608D0, A004608D0::Run, 0, A004608D0::original);
+
+// Batch 5: object references (src/game/game_arrays.*).
+namespace {
+using ObjectRefArray = gamearrays::ObjectRefs::Array;
+ScriptObjectRef* __fastcall ObjectRefGetAtVerify(const ObjectRefArray* self, void*, ScriptObjectRef* result, int index) {
+    ScriptObjectRef* returned = gamearrays::ObjectRefGetAt(self, nullptr, result, index);
+    Check("CArray GetAt 004C21E0", true, returned == result && result->object == self->data[index].object, "%d", index);
+    return returned;
+}
+void __fastcall ObjectRefArrayDestructVerify(ScriptGroup* self) {
+    self->DestructBody();
+    Check("CArray destructor 004C2290", true, self->vtable == ObjectRefArrayClass::Vtable(), "");
+}
+void __fastcall ObjectPtrArrayDestructVerify(gamearrays::ObjectPtrs::Array* self) {
+    gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>(self);
+    Check("CArray destructor 0059A100", true, self->vtable == gamearrays::ObjectPtrArrayBaseClass::Vtable(), "");
+}
+} // namespace
+EI_VERIFY(0x004C21E0, ObjectRefGetAtVerify, 0, s_unused);
+EI_VERIFY(0x004C2290, ObjectRefArrayDestructVerify, 0, s_unused);
+EI_VERIFY(0x0059A100, ObjectPtrArrayDestructVerify, 0, s_unused);
+using A004C2050 = TwinSetSizeGrow<0x004C2050, gamearrays::ObjectRefs>;
+EI_VERIFY(0x004C2050, A004C2050::Run, 5, A004C2050::original);
+using A0059C8C0 = TwinSetSizeGrow<0x0059C8C0, gamearrays::ObjectPtrs>;
+EI_VERIFY(0x0059C8C0, A0059C8C0::Run, 5, A0059C8C0::original);
+using A00570000 = TwinSetSizeGrow<0x00570000, gamearrays::ObjectPtrs>;
+EI_VERIFY(0x00570000, A00570000::Run, 5, A00570000::original);
+using A004C2200 = OursRemoveAt<0x004C2200, gamearrays::ObjectRefs>;
+EI_VERIFY(0x004C2200, A004C2200::Run, 0, A004C2200::original);
+using A004CC7D0 = OursDestructElements<0x004CC7D0, gamearrays::ObjectRefs>;
+EI_VERIFY(0x004CC7D0, A004CC7D0::Run, 0, A004CC7D0::original);
+using A0052CEC0 = OursDestructElements<0x0052CEC0, gamearrays::ObjectRefs>;
+EI_VERIFY(0x0052CEC0, A0052CEC0::Run, 0, A0052CEC0::original);
+using A0059C890 = OursDestructElements<0x0059C890, gamearrays::ObjectPtrs>;
+EI_VERIFY(0x0059C890, A0059C890::Run, 0, A0059C890::original);
+using A004CC800 = TwinConstructElements<0x004CC800, Plain4>;
+EI_VERIFY(0x004CC800, A004CC800::Run, 5, A004CC800::original);
+using A0042A850 = TwinConstructElements<0x0042A850, Plain4>;
+EI_VERIFY(0x0042A850, A0042A850::Run, 5, A0042A850::original);
+using A00573250 = TwinConstructElements<0x00573250, Plain4>;
+EI_VERIFY(0x00573250, A00573250::Run, 5, A00573250::original);
