@@ -699,10 +699,11 @@ done = "2026-10-15"
 id = "SV4a"
 title = "Function vectors: matrix maths, effects' Range, and pure formulas (stat, damage tables)"
 group = "verification"
-status = "running"
+status = "done"
 depends = ["SV4"]
 note = "Extend SV4's record/replay (tests/vectors) to matrix_math.cpp (MatrixMultiply, Quaternion::ToMatrix), MultiplyByConjugate (quaternion.cpp), IsaacRandom::Range and the pure stat/damage formula functions whose inputs are plain values or small structs. Same pattern as tests/vectors/record_maths.cpp; add the sources to ei_vectors in CMakeLists.txt; record with EI_VECTORS=1 and tools/vectors.py merge."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV4b"
@@ -755,6 +756,14 @@ status = "queued"
 size = 0.5
 files = ["tools/golden.py"]
 note = "From SV3: EI_REBIRTH=FollowAddon=0 (flags off; the rewrites of what addon.dll patches are not installed) on the Rebirth install, against the Rebirth goldens (addon's code alone, which ours with the flags on matches): all five (console, harness_digest, items, script_parse, ui_help) differ from the first record after the new game, world update 40: isaac.count 172 against 169, three more ISAAC draws. Something ours runs with a flag off while addon.dll's patch is active elsewhere (a flag consulted outside the patched function, or an EI_Plugin feature). Find it with randtrace on both (set EI_HARNESS_CLOCK=virtual,randtrace) and golden.py diff; check with: set EI_REBIRTH=FollowAddon=0 & python tools\\work.py test <ID> --rebirth-only --golden console items."
+
+[[ticket]]
+id = "SV4d"
+title = "Function vectors: stat formulas that read game settings and databases"
+group = "verification"
+status = "queued"
+depends = ["SV4a"]
+note = "Left out of SV4a: UnitStats::GetFactors, StrengthRatio, DexterityRatio, SkillWithBonus, SkillLevelValue, Value6E8/6E9, SkillPrice, SchoolPrice, UnitParams::ProtectionBlock and WeaponSkillBonus, UnitStats::PickLocation read game settings at fixed addresses or the skill databases. Pass the values in the payload and make the sources read them through a seam the replay can fill; CTransformPipeline::PushMatrix needs the pipeline object. See standalone-verification.md SV4a."
 
 # ---------------------------------------------------------------- harness and suite
 

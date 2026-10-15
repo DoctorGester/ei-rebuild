@@ -1,5 +1,5 @@
 // Small functions of the unit statistics and databases (A-U12): two stat ratios, the packed
-// vitals' and parameters' network fields, the damage words' sums, a school's price, the attack
+// vitals' and parameters' network fields, a school's price, the attack
 // parameters' difficulty scale and the databases' record lookups. Plain C++ float maths (rule 7).
 #include "combat.h"
 #include "net_delta.h"
@@ -21,7 +21,6 @@ constexpr std::uintptr_t kWorthDivisor = std::uintptr_t(0x007C5480);
 constexpr std::uintptr_t kDifficulty = std::uintptr_t(0x0079BEC0);
 constexpr std::uintptr_t kAttackFactors = std::uintptr_t(0x007C54AC);    // a float per difficulty
 constexpr std::uintptr_t kDefenceFactors = std::uintptr_t(0x007C54B8);
-constexpr int kDamageWords = 7;   // words 1..7 of a damage / protection block
 
 float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 int Difficulty() { return *reinterpret_cast<const int*>(kDifficulty); }
@@ -65,28 +64,6 @@ void __fastcall ReadPackedParams(UnitParams* params, DeltaField* field) {
     field->ReadDelta(params, sizeof(UnitParams));
 }
 EI_REPLACE(0x00523730, ReadPackedParams);
-
-// 00522AE0 (thiscall on the damage words, RET 4). The sum over words 1..7 of what exceeds the
-// matching protection word (a difference with its top bit set counts 0), as 16 bits; the
-// original leaves leftovers in the upper half of EAX (callers read AX).
-std::uint32_t __fastcall ExcessDamage(const std::uint16_t* damage, void*, const std::uint16_t* protection) {
-    std::uint16_t sum = 0;
-    for (int i = 1; i <= kDamageWords; ++i) {
-        const std::uint16_t difference = static_cast<std::uint16_t>(damage[i] - protection[i]);
-        if (!(difference & 0x8000)) sum = static_cast<std::uint16_t>(sum + difference);
-    }
-    return sum;
-}
-EI_REPLACE(0x00522AE0, ExcessDamage);
-
-// 00522B20 (thiscall on the damage words). The largest of words 1..7 (unsigned), in AX.
-std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {
-    std::uint16_t largest = 0;
-    for (int i = 1; i <= kDamageWords; ++i)
-        if (largest <= damage[i]) largest = damage[i];
-    return largest;
-}
-EI_REPLACE(0x00522B20, MaxDamage);
 
 // 00527FF0 (fastcall). What raising a school from level value `from` to `to` costs: the worths'
 // difference, truncated.

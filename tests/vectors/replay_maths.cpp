@@ -3,8 +3,11 @@
 #include "maths_vectors.h"
 #include "vectors.h"
 
+#include "../../src/game/model.h"
+
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 
 namespace {
 
@@ -148,5 +151,55 @@ bool CheckEvaluate(const EvaluateCall& v, char* d, std::size_t n) {
     return Fail(d, n, "t %.9g: ours %.9g, original %.9g", v.t, result, v.result);
 }
 EI_VECTOR_CHECK("CubicSegment::Evaluate", EvaluateCall, CheckEvaluate);
+
+bool CheckConjugate(const ConjugateCall& v, char* d, std::size_t n) {
+    Quaternion a = v.a, b = v.b, out{};
+    const Quaternion* pa = &a;
+    const Quaternion* pb = &b;
+    Quaternion* po = &out;
+    if (v.alias == 3)
+        pb = po = &a;   // out, a and b one quaternion
+    else if (v.alias & 1)
+        po = &a;
+    else if (v.alias & 2)
+        po = &b;
+    Quaternion* ret = MultiplyByConjugate(po, *pa, *pb);
+    if (ret == po && Same(*po, v.out)) return true;
+    return Fail(d, n, "conj(%g %g %g %g) * (%g %g %g %g) alias %u: ours (%.9g %.9g %.9g %.9g), original (%.9g %.9g %.9g %.9g)",
+                Q4(v.b), Q4(v.a), v.alias, Q4(*po), Q4(v.out));
+}
+EI_VECTOR_CHECK("MultiplyByConjugate", ConjugateCall, CheckConjugate);
+
+bool CheckMultiply(const MatrixMultiplyCall& v, char* d, std::size_t n) {
+    float a[16], b[16], out[16] = {};
+    std::memcpy(a, v.a, sizeof(a));
+    std::memcpy(b, v.b, sizeof(b));
+    const float* pa = a;
+    const float* pb = b;
+    float* po = out;
+    if (v.alias == 3)
+        pb = po = a;
+    else if (v.alias & 1)
+        po = a;
+    else if (v.alias & 2)
+        po = b;
+    MatrixMultiply(po, nullptr, pa, pb);
+    for (int i = 0; i < 16; ++i)
+        if (!Same(po[i], v.out[i]))
+            return Fail(d, n, "alias %u element %d: ours %.9g, original %.9g", v.alias, i, po[i], v.out[i]);
+    return true;
+}
+EI_VECTOR_CHECK("MatrixMultiply", MatrixMultiplyCall, CheckMultiply);
+
+bool CheckToMatrix(const ToMatrixCall& v, char* d, std::size_t n) {
+    float out[16];
+    std::memcpy(out, v.before, sizeof(out));
+    v.q.ToMatrix(out);
+    for (int i = 0; i < 16; ++i)
+        if (!Same(out[i], v.after[i]))
+            return Fail(d, n, "(%g %g %g %g) element %d: ours %.9g, original %.9g", Q4(v.q), i, out[i], v.after[i]);
+    return true;
+}
+EI_VECTOR_CHECK("Quaternion::ToMatrix", ToMatrixCall, CheckToMatrix);
 
 } // namespace
