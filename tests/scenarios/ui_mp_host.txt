@@ -12,6 +12,9 @@
 # harness gives each game its own UDP port (tests/verify/harness_net.h): with the shared 8888, a game
 # run beside another joined that one's server and showed the "disconnect" box when it quit (N0c). At the
 # end the briefing must still be on top.
+# 44-48 s beside other batches' games; 61-67 s (the default 60 s limit) when two batches' suites ran at once
+# (I12: not the port, the frames of a busy machine).
+timeout 120
 reject Script error
 waitmenu
 clickregion 5

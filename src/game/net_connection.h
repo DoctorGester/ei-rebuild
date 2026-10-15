@@ -39,7 +39,7 @@ static_assert(sizeof(IdPool) == 0x10);
 // The tracking record of one replicated object (vtable 0073BF4C, 0x14 bytes).
 class __declspec(novtable) ReplicaEntry : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BF4C;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BF4C);
 
     // 0: 004344A0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
     int OnShutdown() override;              // 2: 00434430 reset: the object let go, version and id cleared
@@ -143,7 +143,7 @@ struct AttachedId {
 
 class __declspec(novtable) Connection : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BF38;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BF38);
 
     using EntryMap = stlp::map<ReplicaEntry*, RefPtr>;
     using RecordMap = stlp::map<std::int32_t, Record>;

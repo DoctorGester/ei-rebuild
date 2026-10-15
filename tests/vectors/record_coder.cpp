@@ -41,7 +41,7 @@ BufferState StateOf(const GameBuffer* b) {
     s.flags = b->flags;
     std::uintptr_t vtable;
     std::memcpy(&vtable, b, sizeof(vtable));
-    s.growing = vtable == kGrowingBufferVtable;
+    s.growing = vtable == GameBuffer::kGrowingVtableAddress;
     return s;
 }
 
@@ -49,7 +49,7 @@ bool Recordable(const GameBuffer* in, const GameBuffer* out) {
     std::uintptr_t vin, vout;
     std::memcpy(&vin, in, sizeof(vin));
     std::memcpy(&vout, out, sizeof(vout));
-    auto known = [](std::uintptr_t v) { return v == kGrowingBufferVtable || v == kBufferViewVtable; };
+    auto known = [](std::uintptr_t v) { return v == GameBuffer::kGrowingVtableAddress || v == kBufferViewVtable; };
     return in != out && in->base == 0 && out->base == 0 && known(vin) && known(vout);
 }
 

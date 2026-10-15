@@ -116,7 +116,7 @@ void DestroyForReset(Connection* c) {
 // tick count, the round trip at the session's maxRoundTrip_ (or 0073BF34 without a session), its
 // square average is the square of what the memory held, send interval 0.04, budget 220.
 Connection* Connection::Construct(std::uint32_t id) {
-    ei::SetVtable(this, kRefValueVtable);
+    ei::SetVtable(this, CRefObject::kVtableAddress);
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     ReceivedConstruct(&received_, nullptr, &tags[2]);
     address_ = NetAddress{};
@@ -183,7 +183,7 @@ EI_REPLACE_METHOD(0x00432DA0, Connection::Construct);
 int Connection::OnShutdown() {
     ei::SetVtable(this, kVtableAddress);
     DestroyForReset(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     return static_cast<int>(reinterpret_cast<std::uintptr_t>(Construct(0)));
 }
 namespace {
@@ -217,7 +217,7 @@ void Connection::Destruct() {
     FreedSentinelFreeB(freedIds_, 1);
     VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x004334E0, Connection::Destruct);
 
@@ -252,7 +252,7 @@ __declspec(naked) void __fastcall HeaderListCopy(HeaderNode** /*to*/, void*, Hea
 Connection* Connection::Clone() {
     auto* copy = NewMessageMemory<Connection>();
     if (!copy) return nullptr;
-    ei::SetVtable(copy, kRefValueVtable);
+    ei::SetVtable(copy, CRefObject::kVtableAddress);
     copy->sendSequence_ = sendSequence_;
     copy->lastReceived_ = lastReceived_;
     copy->sequenceHigh_ = sequenceHigh_;
@@ -326,7 +326,7 @@ void ReleaseEntryObject(ReplicaEntry* e) {
 ReplicaEntry* ReplicaEntry::Clone() {
     auto* copy = NewMessageMemory<ReplicaEntry>();
     if (!copy) return nullptr;
-    ei::SetVtable(copy, kRefValueVtable);
+    ei::SetVtable(copy, CRefObject::kVtableAddress);
     copy->version_ = version_;
     copy->id_ = id_;
     copy->type_ = type_;
@@ -342,7 +342,7 @@ ReplicaEntry* ReplicaEntry::Clone() {
 int ReplicaEntry::OnShutdown() {
     ei::SetVtable(this, kVtableAddress);
     ReleaseEntryObject(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     object_.ptr = nullptr;
     ei::SetVtable(this, kVtableAddress);
     version_ = 0;
@@ -361,7 +361,7 @@ EI_REPLACE(0x00434430, ReplicaEntryResetHook);
 void ReplicaEntry::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     ReleaseEntryObject(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x004344C0, ReplicaEntry::Destruct);
 

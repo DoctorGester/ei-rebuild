@@ -1314,6 +1314,27 @@ After merging main: `work.py test S16d --golden --jobs 4` 128 runs pass, 54 gold
 scenarios pass under `--standalone` (render_cursor_present passed on its retry: the first attempt's
 cursor check saw the cursor away from the mouse).
 
+**S17 (2026-10-15).** The suite against the goldens: `work.py test S17 --standalone --golden --jobs 4 <the 44
+scenarios with a vanilla golden>` (standalone runs use the vanilla goldens), next to the same scenarios hooked
+(`--vanilla-only --golden`) from the same build, and each standalone run against its hooked twin directly (console,
+full digest, dumps, decoded saves; scratch script build\S17\classify.py, golden.py's compare_folders).
+- Before SV7b1 / SV7d1 / SV7d2 reached main (two builds): 13 and then 18 of 44 standalone goldens differed, the
+  hooked runs 2 (levers, ui_saveload_delete). Every differing field was SV7b1's script group address order:
+  `script #gobject` (`gobject.i` 699 / 702 / 1884) and the saves' `globals.groups.3/5.objectN` and
+  `globals.objects.2.value` (one, ui_help's group 3 `object0`, outside SAVES_KNOWN's pattern). Under `--strict`
+  also SV7d1 (Fear `distance`, 172 field lines) and SV7d2 (path step flags, 249) in 39 scenarios, the same in
+  hooked runs. Standalone against hooked: only the script group order, which follows the heap layout, so the
+  image's other heap (the host's malloc) only reorders more groups. No standalone-only behaviour difference.
+- After merging main with SV7b1, SV7d1 and SV7d2: 44 of 44 the same, three passes (KNOWN and SAVES_KNOWN are
+  empty), hooked 44 of 44; standalone and hooked runs are identical in every record, dump and decoded field.
+  SV7b2 / SV7d3 / SV7d4's fields stay left out by savefile.py's rules (`~junk`, `~addr`), not compared.
+- A 0xFF fill of every block the image's malloc hands out (a temporary EI_ variable, not kept) changed no
+  golden field either.
+- One crash, not repeated: camera's first attempt (1 of about 900 standalone runs) hit an access violation in
+  UnitOrderLess::Less under the draw list sort (IntroSortByModel 005740D0), an element read as FF000000: the
+  unguarded scans ran off the list. Candidate: a NaN `viewPosition.z` (never written for an object listed only
+  for its shadow; Less is then not irreflexive). Not confirmed by a NaN check over 76 runs: S17a.
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

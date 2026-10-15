@@ -1300,6 +1300,15 @@ size = 1
 files = ["tools/tickets.py", "tools/work.py", "tools/work_board/*", "tools/tickets_board/index.html"]
 note = "User 2026-10-15: move volatile ticket status (running / review / done / started dates) out of docs/tickets.toml into build/live/work.db (the shared database work.py already uses, found from any worktree), so a worker's status shows at once and merges stop conflicting on status lines. Ticket text (title, group, size, depends, files, notes) stays in git. work.py start sets running, the worker's 'tickets.py set ID review' writes the database, 'work.py done ID merged' sets done. tickets.py reads status from the database (falling back to the toml's status for tickets the database has never seen, then migrating them once), writes docs/tickets.md and build/tickets/tickets.json as before, and drops the status field from tickets.toml after migration. The work board server (work.py serve, :8765) also serves the ticket board page (tools/tickets_board/index.html) with live tickets.json, so it is always current; the claude.ai artifact stays and is republished by the coordinator. Update tools/tickets.py docs and tests, the area-worker brief if it mentions status, and keep the existing tickets' current statuses exactly."
 
+[[ticket]]
+id = "I12"
+title = "ui_mp_host times out when two batches run it at once"
+group = "harness"
+size = 0.5
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
+note = "Cause: not the port (N0c's per-game port is in; two batches of ui_mp_host, 4 games at once, all PASS). The scenario takes 36-49 s on a busy machine and 61-67 s when suites overlap, past the default 60 s limit (frames ~1 s each). Fix: timeout 120 in ui_mp_host.txt; no scheduler change."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
@@ -1347,7 +1356,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 11 merged: address constants 118 -> 69 (43 left are kVtableAddress statics in plain 0x spelling); raw addresses 765 -> 714. Next: class homes for kRefObjectRootVtable, kRefValueVtable, kGrowingBufferVtable, kBufferViewBaseVtable, kNodeStreamVtable (~30 files)."
+note = "Batch 12 merged: address constants 69 -> 20 (shared vtables got class homes); raw addresses 714 -> 664. Left: kNoElementTick, 7 image addresses, kEmptyTextAddress, kStateBlockAlpha, kMasterHost, unit_ai globals, kCandidates(+Guard), kScriptQueue, two options.cpp float factors. Next: other C11 shim/raw-address families."
 
 [[ticket]]
 id = "C12"
@@ -1982,6 +1991,15 @@ group = "standalone"
 depends = ["S16d"]
 files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
 note = "S16d found three strings read as code pointers (0074676C '%ld', 0074718C 'dde', 007474B8 'a/p'): find_vtables.py takes any .text value as a slot, so a regenerated vtables.csv brings _AFX_CTL3D_THREAD's 2nd slot and the 007474B8 row back (fixed by hand). Make it accept only function starts (functions.csv minus library.csv 'not a function' rows). dashboard_data.py counts the four 'not a function' library.csv rows in library_functions (a denominator nothing can reach); leave them out there (keep them out of the game count). standalone_gaps.py already skips them."
+
+[[ticket]]
+id = "S17a"
+title = "Standalone: one access violation in the draw list sort (camera, 1 of ~900 runs)"
+group = "standalone"
+size = 1
+depends = ["S17"]
+files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
+note = "From S17. camera --standalone crashed once (batch 1235, run 33000, build at main 830d77a8; the retry passed; 0 in ~900 other standalone runs, 0 in hooked runs): C0000005 reading FF000094 in UnitOrderLess::Less (world_rules.cpp, Object3D(a)->attached at +0x94 with a = FF000000) under IntroSortByModel 005740D0 <- SortByModel <- CWorldClient::DrawPass <- Render, main thread, after 'key left; frames 5' (eax=esi=FF000000, ebx=edi=309CA954). An element read as FF000000 means the unguarded partition / linear insert ran off the frame list. Candidates: (1) an irreflexive comparison: Less ends with !(za >= zb) on viewPosition.z, so a NaN z (less(x, x) true) lets the unguarded scans run past either end; viewPosition is written only for objects in view (CollectVisible), never by the constructor (CObject3D::Construct 00515BD0 leaves +0x28), so an object listed only for its shadow before it was ever in view sorts on heap leftovers; in the image those come from the host heap, not the game's. Not confirmed: an S17 diagnostic (log NaN view z in SortByModel) saw none in 44 + 32 standalone runs, also with every image malloc filled with 0xFF. (2) memory overwritten under the list (another thread, the unlocked node allocator). Next: keep the NaN check as a verify-build check in SortByModel's wrapper (log the object and list), run the standalone suite repeatedly; if (1), give viewPosition a canonical start (zero in ours and in the original through a harness patch, as SV7b3) rather than changing the comparator."
 
 # ---------------------------------------------------------------- Lua
 

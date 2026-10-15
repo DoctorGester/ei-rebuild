@@ -12,7 +12,7 @@ class CEngineObject {
 public:
     void SetFlagBits(std::uint32_t bits);
     void ClearFlagBits(std::uint32_t bits);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073B8E0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B8E0);
 
     virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor)
     virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)
