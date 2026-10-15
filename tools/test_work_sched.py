@@ -20,6 +20,13 @@ time.sleep(seconds)
 '''
 
 
+REAL_RUN = subprocess.run     # tests that fake the game replace subprocess.run (git still needs the real one)
+
+
+def is_game(cmd):
+    return os.path.basename(str(cmd[0])).lower() == 'ei_launch.exe'
+
+
 class Fake:
     """A runner that sleeps durations[scenario] and returns results[scenario] (a list: one per attempt)."""
 
@@ -276,7 +283,7 @@ class SchedTest(unittest.TestCase):
             return subprocess.CompletedProcess(cmd, 0, '', '')
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
-        open(os.path.join(scenarios, 'x.txt'), 'w').close()
+        open(os.path.join(scenarios, 'x.txt'), 'w').write('render new\n')   # on dgVoodoo: no EI_RENDER of run_all's own (R10)
         build = os.path.join(self.tmp, 'bld')
         old_run, old_environ = run_all.subprocess.run, dict(os.environ)
         run_all.subprocess.run = fake_subprocess_run
@@ -318,7 +325,7 @@ class SchedTest(unittest.TestCase):
             return subprocess.CompletedProcess(cmd, 0, '', '')
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
-        open(os.path.join(scenarios, 'x.txt'), 'w').close()
+        open(os.path.join(scenarios, 'x.txt'), 'w').write('render new\n')   # on dgVoodoo: no EI_RENDER of run_all's own (R10)
         build = os.path.join(self.tmp, 'bld')
         old_run = run_all.subprocess.run
         run_all.subprocess.run = fake_subprocess_run
@@ -468,6 +475,165 @@ class SchedTest(unittest.TestCase):
         self.assertIn('idle; exiting', first.stdout.read())
         first.stdout.close()
         self.assertIsNone(self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone())
+
+    # ---- R10: which renderer, alone, the reference cache
+
+    def scenario(self, name, text, root=None):
+        folder = os.path.join(root or self.tmp, 'tests', 'scenarios')
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, name + '.txt')
+        with open(path, 'w') as f:
+            f.write(text)
+        return path
+
+    def test_renderer_choice_and_alone(self):
+        plain = self.scenario('plain', 'waitmenu\n')
+        old = self.scenario('old', 'render new\nwaitmenu\n')
+        present = self.scenario('present', 'render new,present\nresolution 800x600\n')
+        wide = self.scenario('wide', 'resolution desktop\nwidescreen 1\n')
+        ours = lambda *a, environ=None, **k: run_all.our_renderer(*a, environ=environ or {}, **k)
+        self.assertTrue(ours(plain, 'vanilla', True))
+        self.assertTrue(ours(plain, 'rebirth', True))
+        self.assertTrue(ours(present, 'vanilla', True))
+        self.assertTrue(ours(present, 'vanilla', True, dgvoodoo=True))     # its own step keeps `present` on
+        self.assertTrue(ours(present, 'vanilla', True, environ={'EI_RENDER': 'new'}))
+        self.assertFalse(ours(old, 'vanilla', True))                       # compares the old path with the new frame
+        self.assertTrue(ours(old, 'native', True))                         # native has nothing else
+        self.assertFalse(ours(plain, 'rebirth', False))                    # the original code
+        self.assertFalse(ours(plain, 'vanilla', True, dgvoodoo=True))      # --dgvoodoo
+        self.assertFalse(ours(plain, 'vanilla', True, environ={'EI_RENDER': 'new'}))     # the submitter's own
+        self.assertTrue(ours(old, 'vanilla', True, environ={'EI_RENDER': 'new,present'}))
+        alone = lambda *a, **k: run_all.runs_alone(*a, environ={}, **k)
+        self.assertFalse(alone(wide, 'rebirth', True))                     # our renderer changes no display mode
+        self.assertFalse(alone(present, 'vanilla', True))
+        self.assertTrue(alone(wide, 'rebirth', False))                     # --widescreen's rebirth-nohooks
+        self.assertTrue(alone(wide, 'rebirth', True, dgvoodoo=True))
+        self.assertFalse(alone(plain, 'vanilla', False))
+
+    def test_game_gets_our_renderer(self):
+        seen = []
+
+        def fake_subprocess_run(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)
+            seen.append((cmd, kw.get('env')))
+            return subprocess.CompletedProcess(cmd, 0, '', '')
+        self.scenario('plain', 'waitmenu\n')
+        self.scenario('old', 'render new\n')
+        build = os.path.join(self.tmp, 'bld')
+        old_run = run_all.subprocess.run
+        run_all.subprocess.run = fake_subprocess_run
+        try:
+            for name, hooks, kw in (('plain', True, {}), ('plain', True, {'dgvoodoo': True}), ('old', True, {}),
+                                    ('plain', True, {'game_env': {'EI_RENDER': 'new'}}), ('plain', False, {'fresh': True}),
+                                    ('plain', False, {'fresh': True, 'game_env': {'EI_RENDER': 'new,present', 'EI_PLAIN': '1'}})):
+                run_all.run(name, 'vanilla', hooks, root=self.tmp, build=build, take_slot=False, **kw)
+        finally:
+            run_all.subprocess.run = old_run
+        render = [(os.environ if e is None else e).get('EI_RENDER') for _, e in seen]
+        self.assertEqual(render[0], 'new,present')
+        self.assertEqual(render[1:3], [os.environ.get('EI_RENDER')] * 2)   # dgVoodoo: inherited as before
+        self.assertEqual(render[3], 'new')
+        self.assertEqual(render[4], os.environ.get('EI_RENDER'))
+        self.assertIn('--no-hooks', seen[4][0])
+        self.assertNotIn('EI_RENDER', seen[5][1])             # the original code: dgVoodoo whatever the submitter set
+        self.assertEqual(seen[5][1]['EI_PLAIN'], '1')
+
+    def test_reference_cache(self):
+        repo = os.path.join(self.tmp, 'repo')
+        env = dict(os.environ, GIT_AUTHOR_NAME='t', GIT_AUTHOR_EMAIL='t@t', GIT_COMMITTER_NAME='t', GIT_COMMITTER_EMAIL='t@t')
+        git = lambda *a: subprocess.run(['git', *a], cwd=repo, env=env, capture_output=True, text=True, check=True).stdout.strip()
+        scen = self.scenario('w', 'resolution desktop\n', repo)
+        conf = os.path.join(repo, 'run', 'rebirth', 'dgVoodoo.conf')
+        os.makedirs(os.path.dirname(conf))
+        write = lambda path, text, mode='w': open(path, mode).write(text)
+        write(conf, 'a')
+        git('init', '-q'), git('add', 'tests'), git('commit', '-qm', 'w')
+        build = os.path.join(self.tmp, 'bld')
+        played = []
+
+        def fake_subprocess_run(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)
+            out = cmd[cmd.index('--out') + 1]
+            played.append(out)
+            os.makedirs(os.path.join(out, 'frames'), exist_ok=True)
+            os.makedirs(os.path.join(out, 'harness_saves'), exist_ok=True)
+            write(os.path.join(out, 'frames', 'menu.bmp'), str(len(played)))
+            write(os.path.join(out, 'harness_saves', 'big.sav'), 'x')
+            write(os.path.join(out, 'harness_report.txt'), 'RESULT: PASS\nconsole output:\n  hello\nFn 3 calls 0 mismatches\n')
+            return subprocess.CompletedProcess(cmd, 0, '', '')
+
+        def failing(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)
+            out = cmd[cmd.index('--out') + 1]
+            played.append(out)
+            write(os.path.join(out, 'harness_report.txt'), 'RESULT: FAIL\nFAILED: x\n')
+            return subprocess.CompletedProcess(cmd, 0, '', '')
+        old_run, old_dir = run_all.subprocess.run, os.environ.get('EI_REFERENCE_DIR')
+        run_all.subprocess.run = fake_subprocess_run
+        os.environ['EI_REFERENCE_DIR'] = os.path.join(self.tmp, 'reference')
+        frame = lambda: open(os.path.join(build, 'runs', 'w-rebirth-nohooks', 'frames', 'menu.bmp')).read()
+        go = lambda **k: run_all.run('w', 'rebirth', False, 'w-rebirth-nohooks', root=repo, build=build, take_slot=False,
+                                     game_env={}, **k)
+        cached = lambda clock=None, environ=None, hooks=False: run_all.cached_reference('w', 'rebirth', hooks, repo, clock,
+                                                                                         environ or {})
+        try:
+            self.assertFalse(cached())
+            first = go()
+            self.assertEqual((first[0], len(played)), ('PASS', 1))
+            self.assertTrue(cached())
+            self.assertFalse(cached(hooks=True))                               # runs of our code: never
+            second = go()
+            self.assertEqual(len(played), 1, 'a cached reference run was played again')
+            self.assertEqual((second[0], second[3]), ('PASS', {'Fn': (3, 0)}))
+            self.assertTrue(run_all.is_cached(second[4]))
+            self.assertFalse(run_all.is_cached(first[4]))
+            self.assertEqual(frame(), '1')
+            self.assertEqual(run_all.console_of('w-rebirth-nohooks', build), ['  hello'])
+            self.assertFalse(os.path.exists(os.path.join(build, 'runs', 'w-rebirth-nohooks', 'harness_saves', 'big.sav')))
+            go(fresh=True)                                                     # --fresh plays it and keeps the newer one
+            self.assertEqual((len(played), frame()), (2, '2'))
+            go()
+            self.assertEqual((len(played), frame()), (2, '2'))
+            self.assertFalse(cached(environ={'EI_PLAIN': '1'}))                # other game settings
+            self.assertFalse(cached(clock='real'))                             # another clock
+            write(conf, 'b')                                                   # the install's dgVoodoo.conf changed
+            self.assertFalse(cached())
+            go()
+            self.assertEqual(len(played), 3)
+            write(scen, 'wait 10\n', 'a')                                      # uncommitted edits: never cached
+            work._revs.clear()
+            self.assertIsNone(run_all.reference_key('w', 'rebirth', repo, None, {}))
+            go(), go()
+            self.assertEqual(len(played), 5)
+            git('commit', '-qam', 'w2')                                        # a new commit: played once
+            work._revs.clear()
+            go(), go()
+            self.assertEqual(len(played), 6)
+            self.assertLessEqual(len(os.listdir(os.path.join(self.tmp, 'reference', 'w-rebirth'))), run_all.REFERENCE_KEEP)
+            run_all.subprocess.run = failing                                   # a failed run is not kept
+            write(conf, 'c')
+            self.assertEqual(go()[0], 'FAIL')
+            self.assertFalse(cached())
+        finally:
+            run_all.subprocess.run = old_run
+            if old_dir is None:
+                os.environ.pop('EI_REFERENCE_DIR', None)
+            else:
+                os.environ['EI_REFERENCE_DIR'] = old_dir
+            work._revs.clear()
+
+    def test_cached_runs_are_no_times(self):
+        fake = Fake(default=0.05)
+
+        def runner(batch, run, retries, on_attempt):
+            r = fake(batch, run, retries, on_attempt)
+            return r[:4] + ([run_all.CACHED_NOTE + 'k'],) if run['scenario'] == 'c' else r
+        self.submit(['p', 'c'])
+        self.drive(self.sched(runner))
+        self.assertEqual([r['scenario'] for r in self.db.execute('SELECT scenario FROM timing')], ['p'])
 
 
 if __name__ == '__main__':
