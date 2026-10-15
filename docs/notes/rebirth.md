@@ -115,20 +115,39 @@ FixProcessLogin (clears +0x18 of a login record, 00443080), ExtendedServerName (
 ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
 not inventoried.
 
-### Resources and paths (6 of 12 applied; single player; NivalRegistry implemented, the rest *deferred*)
+### Resources and paths (6 of 12 applied; single player; implemented: NivalRegistry, and the five mod-folder patches in the standalone image)
 
 NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; WinMain stays
 original in hooked runs because the harness keys on its return addresses; every registry read goes through that root, so rewrites follow it;
 our GameMain takes addon's key with the flag, for the standalone image, S19); Maps (10
 sites), ResOverride (25 sites: resource archive open / close / init, every file find, the file-find vtable slot 007432F4), MoviesPatch (the
 BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the starter's mod loader looks in the selected mod's folders
-(and Rebirth's) first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders), so in the runs we have they pass
-through; only other mods (IronMod ships a Res folder) would exercise them and no harness run selects one. Reproducing them means rewriting
-WinMain and about thirty loader and resource functions around addon's override file system: standalone resource layer work. Our
-`OpenResource` 00671730 and `CMappedResource::Destroy` 006714A0 stay vanilla-only (patched sites). addon's side: `Maps` lists
-`<mod>\Maps<sub>\*.*` at start and each of 9 loader hooks passes the zone name to 1001B314, which points 100BB9D0 at the mod's path or the
-game's 007AF460 (the SetPath hook in 0055E990 pushes [100BB9D0]); `ResOverride` builds addon's tables once (1001FD2E) and routes the 4 mask
-finds (calls of 00674AC0) and 13 finds (calls of 00671B40) to addon; with an empty mod list every lookup falls back to the game's archives.
+first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders, no [RES]).
+
+**The standalone resource layer (S19b, `src/game/mod_folders.{h,cpp}`).** The image does what addon.dll v0.12.4.2 does for these five, behind
+their flags (`modfolders::Active`: the image with the flag on; a hooked Rebirth launch keeps addon's, and our rewrites of the patched
+functions stay vanilla-only there). addon's side, as the layer reproduces it:
+- The mod: starter `Settings\AddonPath` + `\` (100BD184). Its `config.reg` (the game's registry format) section [RES]: for twelve archives
+  (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp, textures) a value (string or array) names
+  mod archives (paths relative to the mod) that `CMappedResource::GetFile` asks before the game's archive; a value starting with `-` makes
+  the game's archive ignored. The key is the lower-case path the game opens: starter `Path Settings\RESOURCES PATH` (`.\Res\`) + name, speech
+  under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (CFigureManager::CreateWithArchives 005AA544,
+  CLinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (CTextureManager::Create
+  006915EF, after the game's three when all opened). The mod archives open at the first OpenResource or CMaterialManager::Create (1001FD2E).
+- GetFile (13 calls of 00671B40 and the vtable slot): the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name
+  not found is tried once more without the prefix (also with the Standard mod). ListFiles (4 calls of 00674AC0): the mod's listings and the
+  archive's own are appended to the caller's array, which is not emptied first (also with the Standard mod).
+- Maps: `<mod>\Maps<sub>\*.*` listed once; before each of the nine maps-folder uses (NewZone map / mob, MapPath, CWorldClient::LoadZone,
+  BuildZoneTable "*.mq", LoadZoneQuests twice, MapFileExists, WriteMapFile) the file's name selects the folder MapsFolder (0055E990) starts
+  from: the mod's when listed (any case; the zone table: the mod's top folder has a `.mq`), else the game's 007AF460. The choice stays until
+  the next site (the unhooked caller 00578DE4 sees the last one).
+- CameraPatch (CCamera::LoadPath's CFile::Open 0040ED42), MoviesPatch (every BinkOpen), StreamPatch (SwitchStream's path 006BB628): the mod's
+  `Camera\`, `Movies\` or `Stream\` file of that name when it exists.
+Check: tests/scenarios/rebirth_mod_folders.txt, with a mod tools/make_test_mod.py writes into the run's harness_saves and the harness step
+`addonpath` (AddonPath for addon.dll and the image): the harness's `modfile` reads gfx.res's files through GetFile (the mod's s19b.txt, `t\`
+retry, the game's lightning.dat), AddMob opens the mod's Maps\traps.mob, PlayCamera the mod's Camera\s19b.cam. Stream and Movies have no
+scenario (no script handle on the stream's file or a movie's path). Not reproduced: Rebirth's own override folders, the mod's [CONFIG] /
+[DEV] / SavesPath (disabled here), and addon's W file APIs (the layer uses the A ones).
 *Disabled here*: SavesPath, ConfigMusicReg, ConfigStreamSNReg, ConfigMovieIni, ConfigLightsIni, ConfigTutorialIni.
 
 ### Crash handling and infrastructure (2 of 9 applied)
@@ -379,5 +398,5 @@ wrapper re-derives the slider's rectangle, maximum and position and the field's 
 
 ### Remaining work
 
-WideScreen has no leftovers; the deferred Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
-layer); the multiplayer patches and EI_Plugin features (with multiplayer).
+WideScreen has no leftovers; the multiplayer patches and EI_Plugin features (with multiplayer). The mod-folder group runs in the
+standalone image only (hooked Rebirth launches keep addon's).
