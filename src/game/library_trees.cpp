@@ -19,6 +19,12 @@ void __fastcall ReleaseModelCache(ItemCache::Tree* self) {
     self->Destroy();
 }
 
+HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self) {
+    ItemCache::Construct(&self->map);
+    self->limit = 50;
+    return self;
+}
+
 } // namespace lib_trees
 
 using namespace lib_trees;
@@ -149,6 +155,10 @@ EI_REPLACE(0x005FA060, ItemCache::FreeHeader);
 EI_REPLACE(0x005FA090, ItemCache::FreeHeader);
 EI_REPLACE(0x005FA5D0, ItemCache::DeallocateNodes);
 EI_REPLACE(0x005F8FC0, ReleaseModelCache);
+// The hero screen's model and texture caches (S12e).
+EI_REPLACE(0x00633F50, ConstructHeroItemCache);
+EI_REPLACE(0x00633FF0, ConstructHeroItemCache);
+EI_REPLACE(0x00619770, ItemCache::AllocateNodes);   // the hero screen's texture cache header (S12e)
 // The first (models: 005F3000 and its members).
 EI_REPLACE(0x005F9690, ItemCache::Destroy);
 EI_REPLACE(0x00634160, ItemCache::Destroy);
