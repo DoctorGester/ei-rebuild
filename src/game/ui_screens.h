@@ -971,6 +971,8 @@ static_assert(sizeof(CCreditsScreen) == 0x1FC);
 // with rain at night.
 class CMainMenu : public CUiContainer {
 public:
+    // Body of the slot at 00632A90 (registered by member pointer).
+    int DrawImpl(int pass);
     // 00632D70 (input slot 2; ui_layouts.cpp). By region: 0 the difficulty question (a message
     // box, vtables 0074225C / 00742228), 1 load (the save/load window), 2 the exit movie and quit,
     // 3 options, 4 the titles (surfaces cleared, opened over the menu), 5 multiplayer (status

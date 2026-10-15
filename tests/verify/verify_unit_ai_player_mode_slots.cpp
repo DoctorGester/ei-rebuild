@@ -30,14 +30,14 @@ bool Fresh(const PlayerMode* mode, void* vtable) {
 // 00552090 / 00552140: MOV EAX,imm32 (5 bytes).
 static int __fastcall PlayerPriorityVerify(AIMode* self, void*, AIBrain* brain) {
     int expected = s_playerPriority(self, nullptr, brain);
-    ei::verify::Check("aimode::PlayerPriority", expected, aimode::PlayerPriority(self, nullptr, brain), "mode %p", self);
+    ei::verify::Check("aimode::PlayerPriority", expected, self->PlayerPriority(brain), "mode %p", self);
     return expected;
 }
 EI_VERIFY(0x00552090, PlayerPriorityVerify, 5, s_playerPriority);
 
 static int __fastcall TamedPriorityVerify(AIMode* self, void*, AIBrain* brain) {
     int expected = s_tamedPriority(self, nullptr, brain);
-    ei::verify::Check("aimode::TamedPriority", expected, aimode::TamedPriority(self, nullptr, brain), "mode %p", self);
+    ei::verify::Check("aimode::TamedPriority", expected, self->TamedPriority(brain), "mode %p", self);
     return expected;
 }
 EI_VERIFY(0x00552140, TamedPriorityVerify, 5, s_tamedPriority);

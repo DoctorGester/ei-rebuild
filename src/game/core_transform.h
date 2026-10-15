@@ -17,10 +17,13 @@ public:
 
     // 13: 00401490. Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);
+    CTransformObject* CopyTransformImpl(const CTransformObject& other);   // body of the slot above (registered by member pointer)
     // 14: 0040CB80. worldRotation = parent * localRotation. Overridden by 00516370 in units.
     virtual void CombineRotation(const Quaternion& parent);
+    void CombineRotationImpl(const Quaternion& parent);   // body of the slot above (registered by member pointer)
     // 15: 0040CC30. Recomputes the world transform from the parent's rotation and position.
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
+    void UpdateWorldImpl(const Quaternion& parentRotation, const Vector3& parentPosition);   // body of the slot above (registered by member pointer)
     // 16: 00401510. Writes the local transform to an MFC CFile (slot 14, Write).
     virtual void SaveTransform(void* file);
     void SaveTransformImpl(void* file);   // body of the slot above (registered by member pointer)

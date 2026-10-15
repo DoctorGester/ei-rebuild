@@ -143,3 +143,20 @@ struct ObjectListIterator {
     CEngineObject* Next();                      // 00404960
 };
 static_assert(sizeof(ObjectListIterator) == 8);
+
+// The client-specific manager (vtable 0073BECC, class id 0x30; misc_400.cpp): only its object factory
+// has a body in a class here, the other slots are rewritten as free functions.
+class CClientSpecificManager : public CBaseManager {
+public:
+    // Body of the slot at 0042D700 (registered by member pointer).
+    CEngineObject* NewObjectImpl(int type);
+};
+
+// The effect manager (class of the effects; world_effect_lifetime.cpp / world_managers.cpp).
+class CEffectManager : public CBaseManager {
+public:
+    // Body of the slot at 0055F380 (registered by member pointer).
+    CBaseManager* DeleteScalar(unsigned flags);
+    // Body of the slot at 0067E170 (registered by member pointer).
+    CEngineObject* NewObjectImpl(int type);
+};

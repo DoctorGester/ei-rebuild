@@ -222,7 +222,7 @@ void __fastcall OpenVerify(BufferedFile* self, void*, const char* path, const ch
 
 // 004DA580 / 004DA590: one-byte RET 4; nothing to compare.
 void __fastcall ViewReserveVerify(GameBuffer* self, void*, std::int32_t size) {
-    BufferViewReserve(self, nullptr, size);
+    self->ReserveViewImpl(size);
     ei::verify::Check("BufferViewReserve", true, true, "");
 }
 

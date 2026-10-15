@@ -1017,9 +1017,6 @@ namespace unitset {
 DressedUnitRecord* __fastcall ConstructHead(DressedUnitRecord* self);
 // 00559DE0: a record head's destructor: the extra weapons' storage, then the items'.
 void __fastcall DestroyHead(DressedUnitRecord* self);
-// 0055A860 / 0055A9F0 (RET 4): the copy constructors of the figured and dressed records. Return this.
-FiguredUnitRecord* __fastcall CopyFigured(FiguredUnitRecord* self, void*, const FiguredUnitRecord* from);
-DressedUnitRecord* __fastcall CopyDressed(DressedUnitRecord* self, void*, const DressedUnitRecord* from);
 // 0055D020 (RET 4): equal(first, last, other) of two id ranges (AL).
 bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other);
 // 0051FAD0 (RET 4): the scalar deleting destructor of a CString (the name vector's element loop
@@ -1226,8 +1223,13 @@ struct ClientListManager : CBaseManager {
     mfc::CList<CEngineObject*> list;      // +0xB0 counted
 };
 static_assert(sizeof(ClientListManager) == 0xCC);
+class CSceneRenderer;   // model.h
 // +0x1A4 (0xD0 bytes, vtable 0073F554): a counted object and a CList (constructor 005715D0, 10).
 struct ClientArrayManager : CBaseManager {
+    // Body of the slot at 004E2700 (registered by member pointer).
+    int DrawImpl(CSceneRenderer* renderer);
+    // Body of the slot at 004E2290 (registered by member pointer).
+    CEngineObject* NewObjectImpl(int);
     // 00562DF0. The destructor's body: Clear (004E2850: the object and every listed one released),
     // the list's and the pointer's own destructors, then the manager's body.
     void DestructBody();
@@ -1264,6 +1266,10 @@ inline MatrixDevice* TheMatrixDevice() { return *reinterpret_cast<MatrixDevice**
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
 public:
+    // Body of the slot at 005618C0 (registered by member pointer).
+    void MoveObject2Impl(CEngineObject* object, const float* position);
+    // Body of the slot at 005618A0 (registered by member pointer).
+    void MoveObjectImpl(CEngineObject* object, const float* position);
     void BuildUnitSkins(const void* othersVector, const void* dressedVector);
     // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
     // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,

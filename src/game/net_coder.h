@@ -30,6 +30,8 @@ struct StringRep;
 
 class __declspec(novtable) GameBuffer {
 public:
+    // Body of the slot at 004DA580 (registered by member pointer).
+    void ReserveViewImpl(std::int32_t);
     void* DeleteViewBase(unsigned deleteFlags);
     // 0047D940 (slot 5, RET 4) and the base's 0047D910 (slot 5 of 0073CA48, RET 4): deleting
     // destructors (the base's vtable left; freed when bit 0 of `flags` is set). Return `self`.

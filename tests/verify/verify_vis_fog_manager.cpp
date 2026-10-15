@@ -16,12 +16,10 @@
 #include <cstdint>
 
 // vis_fog_manager.cpp (no header declares the shims).
-CEngineObject* __fastcall VisFogManagerNewObject(ClientArrayManager* self, void*, int type);
 int __fastcall VisFogManagerCreate(ClientArrayManager* self);
 void __fastcall VisFogManagerDestroy(ClientArrayManager* self);
 int __fastcall VisFogManagerTick(ClientArrayManager* self);
 CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self);
-int __fastcall VisFogManagerDraw(ClientArrayManager* self, void*, CSceneRenderer* renderer);
 
 namespace {
 void* s_unused;
@@ -29,7 +27,7 @@ void* s_unused;
 constexpr std::size_t kFogBucketCount = 193;   // the first prime not below 100
 
 CEngineObject* __fastcall NewObjectVerify(ClientArrayManager* self, void*, int type) {
-    CEngineObject* result = VisFogManagerNewObject(self, nullptr, type);
+    CEngineObject* result = self->NewObjectImpl(type);
     bool good = true;
     if (result) {
         auto* fog = reinterpret_cast<CVisibilityFog*>(result);
@@ -77,7 +75,7 @@ CEngineObject* __fastcall AddVerify(ClientArrayManager* self) {
 // The draw leaves the list alone; with no fog it is 1.
 int __fastcall DrawVerify(ClientArrayManager* self, void*, CSceneRenderer* renderer) {
     int before = self->list.count;
-    int result = VisFogManagerDraw(self, nullptr, renderer);
+    int result = self->DrawImpl(renderer);
     ei::verify::Check("CVisFogManager draw (004E2700)", true, self->list.count == before && (before != 0 || result == 1),
                       "%d fogs, result %d", before, result);
     return result;

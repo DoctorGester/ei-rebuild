@@ -2071,14 +2071,17 @@ static_assert(offsetof(CHudTopPanel, page_) == 0x160);
 // 00601570 double click, 00601820 key) pass the event on to the handlers and children.
 class CUiContainer : public CUiWindow {
 public:
+    // Body of the slot at 00600F70 (registered by member pointer).
+    void DrawChildrenImpl(int pass);
     // 00600270 (ui_container.cpp; it does not use the window). Time since the last frame in
     // seconds: the display object's (00500960) slot 6 milliseconds * 0.001f, left unrounded in ST0.
     double FrameTime();
     // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
     void UpdateBase();
-    // 00600EF0 (rewritten as a free function, ui_container_draws.cpp; this forwards to its address).
+    // 00600EF0 (rewritten as DrawContainerImpl, ui_container_draws.cpp; this forwards to its address).
     // Base drawing (slot 20); returns 1.
     BOOL DrawContainer(int pass);
+    int DrawContainerImpl(int pass);   // body of the slot above (registered by member pointer)
     // 00601040 (ui_container.cpp). Base slot 22, only while the interface draws (+0x30): the
     // window's own (005FECC0), then every enabled child's slot 22.
     void RedrawContainer();
