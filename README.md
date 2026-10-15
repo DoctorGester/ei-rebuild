@@ -83,7 +83,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   loaded. Starting a zone from the main menu crashes the game, so scenarios start with `newgame`
   and change zones from zone1 (`zone_gz2g_traps.txt`; zone list in `docs/notes/ui.md`, section 10).
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
-  `speed 10` runs the game about 5.5x faster.
+  `speed 10` runs the game about 5.5x faster on real time. On the virtual clock a frame is five
+  updates whatever their length, so it speeds nothing up: each frame only gets less virtual time,
+  and what waits on sound or the clock (speech, script timers) takes more frames (SV1f).
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
   `freeze` / `unfreeze` hold the game's clocks and camera around captures; `samecapture <a> <b>`
   requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two
