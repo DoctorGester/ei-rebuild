@@ -1825,6 +1825,15 @@ size = 1
 depends = ["S12f"]
 note = "tools/dashboard_data.py counts 102 distinct EI_ORIGINAL targets that are library code (config/library.csv) with no code of ours at the address (forwarders_to_library; 2026-10-15). Each is a stop for the standalone image as soon as a caller runs. List them (forwarded addresses minus game and minus registered), group by family (MFC, STLport, CRT, allocator new/delete 007005AF/007005D8 which only the standalone registers), port and register them at their library addresses with checks under SV2f (ours first), and file what does not fit. Avoid S16a's current boot-stop functions."
 
+[[ticket]]
+id = "S12h"
+title = "Standalone library: stlp::copy of counted_ptr 00429080 (after S16a)"
+group = "standalone"
+size = 1
+depends = ["S12g", "S16a"]
+files = ["src/lib/stlp_vector.cpp", "tests/verify/verify_stlp_vector_objects.cpp"]
+note = "The last library forwarder S12g left (net_client_party.cpp: stlp::copy over counted_ptr, RET 4, the same instructions as 004AB910). Register it with S16a's stlp::CopyAssigned<RefPtr, stlp::CountedRefElement> once S16a is merged, and give it S16a's 004AB910 check (ours only: the pointers and counts). Check forwarders_to_library is then 0 on main."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
