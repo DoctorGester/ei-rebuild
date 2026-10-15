@@ -8,14 +8,10 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_screens.h"
 
 #include <cstdint>
 
-void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags);
-void* __fastcall SpinInputDelete(void* input, void*, unsigned flags);
-void* __fastcall EditFieldInputDelete(void* input, void*, unsigned flags);
-void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags);
-void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags);
 
 namespace {
 void* s_unused;
@@ -83,18 +79,18 @@ EI_DELETE_VERIFY(0x0065D8A0, TextTokenDeleteVerify, TextTokenDelete, UiTextToken
 EI_DELETE_VERIFY(0x0065D8C0, FormatTokenDeleteVerify, FormatTokenDelete, UiTextToken)
 EI_DELETE_VERIFY(0x0065D8F0, WordTokenDeleteVerify, WordTokenDelete, UiWordToken)
 
-#define EI_INPUT_DELETE_VERIFY(addr, Wrapper, Fn)                                    \
-    static void* __fastcall Wrapper(void* input, void*, unsigned flags) {             \
+#define EI_INPUT_DELETE_VERIFY(addr, Wrapper, Fn, Cls)                               \
+    static void* __fastcall Wrapper(UiInput* input, void*, unsigned flags) {           \
         const void* window = WindowOf(input);                                        \
-        void* result = Fn(input, nullptr, flags);                                    \
+        void* result = input->DeleteWindow<&Cls::Fn>(flags);                         \
         CheckDeleted(#Fn, window, result, flags);                                    \
         return result;                                                               \
     }                                                                                \
     EI_VERIFY(addr, Wrapper, 0, s_unused);
 
-EI_INPUT_DELETE_VERIFY(0x0065CB70, ScrollbarInputDeleteVerify, ScrollbarInputDelete)
-EI_INPUT_DELETE_VERIFY(0x0065CB80, SliderInputDeleteVerify, ScrollbarInputDelete)
-EI_INPUT_DELETE_VERIFY(0x0065CB90, SpinInputDeleteVerify, SpinInputDelete)
-EI_INPUT_DELETE_VERIFY(0x0065CBA0, EditFieldInputDeleteVerify, EditFieldInputDelete)
-EI_INPUT_DELETE_VERIFY(0x0065E2B0, ScrollTextInputDeleteVerify, ScrollTextInputDelete)
-EI_INPUT_DELETE_VERIFY(0x0065EAC0, TooltipInputDeleteVerify, TooltipInputDelete)
+EI_INPUT_DELETE_VERIFY(0x0065CB70, ScrollbarInputDeleteVerify, ScrollbarDelete, CUiScrollbar)
+EI_INPUT_DELETE_VERIFY(0x0065CB80, SliderInputDeleteVerify, ScrollbarDelete, CUiScrollbar)
+EI_INPUT_DELETE_VERIFY(0x0065CB90, SpinInputDeleteVerify, SpinDelete, CUiSpin)
+EI_INPUT_DELETE_VERIFY(0x0065CBA0, EditFieldInputDeleteVerify, EditFieldDelete, CUiEditField)
+EI_INPUT_DELETE_VERIFY(0x0065E2B0, ScrollTextInputDeleteVerify, ScrollTextDelete, CUiScrollText)
+EI_INPUT_DELETE_VERIFY(0x0065EAC0, TooltipInputDeleteVerify, TooltipDelete, CUiTooltip)
