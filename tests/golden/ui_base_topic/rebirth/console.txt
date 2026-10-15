@@ -1,0 +1,22 @@
+  Activated!
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  1
+  1
+  1
+  0
+  0
+  0
+  0
+  0
+  1
+  2
+  1

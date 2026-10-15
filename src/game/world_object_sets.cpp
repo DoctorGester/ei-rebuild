@@ -3,7 +3,9 @@
 // before (0047B1F0), giving the objects new to the player (referenced once more), the objects gone
 // (released through slot 4) and the objects still there; the sent set then becomes the new one.
 // The arrays are the original's aligned pointer arrays ({data, size, capacity, growBy}, blocks
-// from 0047B940) and their two SetSize variants. See docs/notes/world.md.
+// from 0047B940) and their two SetSize variants. See docs/notes/world.md. The game orders the sets
+// by address; harness runs and the standalone by object id (address_order.h, T2f).
+#include "address_order.h"
 #include "core_streams.h"
 #include "engine_object.h"
 
@@ -11,6 +13,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
@@ -46,7 +49,21 @@ void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
     }
 }
 
+bool g_byId = false;   // address_order::UseIds
+
 } // namespace
+
+void address_order::UseIds() { g_byId = true; }
+bool address_order::ById() { return g_byId || ei::Standalone(); }
+
+bool address_order::ObjectBefore(std::uint32_t a, std::uint32_t b) {
+    if (ById()) {
+        int ia = ObjectOf(a)->id_;
+        int ib = ObjectOf(b)->id_;
+        if (ia != ib) return ia < ib;
+    }
+    return a < b;
+}
 
 // 0047B770 (RET 8): SetSize(n, growBy): 0 frees the block; growing copies the elements.
 EI_REPLACE_METHOD(0x0047B770, ObjectSet::SetSize);
@@ -60,20 +77,24 @@ void __fastcall ObjectSetRadixPass(int shift, ObjectSet* src, ObjectSet* dst) { 
 EI_REPLACE(0x0047B120, ObjectSetRadixPass);
 
 // 0047ADF0: sorts the set (four byte passes, low byte first, through the scratch array) and drops
-// the duplicates.
+// the duplicates. By id (address_order::ById) a comparison sort, without the scratch array.
 void __fastcall ObjectSetSortUnique(ObjectSet* self) {
     if (self->size < 2) return;
-    if (!(ScratchGuard() & 1)) {
-        ScratchGuard() |= 1;
-        Scratch().Construct();
-        GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x0047B1D0));
+    if (address_order::ById()) {
+        std::sort(self->data, self->data + self->size, address_order::ObjectBefore);
+    } else {
+        if (!(ScratchGuard() & 1)) {
+            ScratchGuard() |= 1;
+            Scratch().Construct();
+            GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x0047B1D0));
+        }
+        ObjectSet& scratch = Scratch();
+        scratch.SetSize(self->size);
+        CountingPass(0, *self, scratch);
+        CountingPass(8, scratch, *self);
+        CountingPass(16, *self, scratch);
+        ObjectSetRadixPass(24, &scratch, self);
     }
-    ObjectSet& scratch = Scratch();
-    scratch.SetSize(self->size);
-    CountingPass(0, *self, scratch);
-    CountingPass(8, scratch, *self);
-    CountingPass(16, *self, scratch);
-    ObjectSetRadixPass(24, &scratch, self);
     // Each element compared with the one before it in place, as the original does.
     std::uint32_t* end = self->data + self->size;
     std::uint32_t* out = self->data + 1;
@@ -114,7 +135,7 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
             continue;
         }
         changed = true;
-        if (old < now) {
+        if (address_order::ObjectBefore(old, now)) {
             gone->data[goneCount++] = old;
             ++s;
             ObjectOf(old)->Release();
