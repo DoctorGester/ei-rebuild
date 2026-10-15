@@ -168,6 +168,13 @@ and atexit list, which other unported CRT code (realloc, calloc, _strdup, the st
 acos, asin and fmod have no callers (the game calls the _CI forms) and are not ported. Full suite
 (127 runs): all pass but zone_gz15h_tornado rebirth (times out on main too); 0 mismatches, e.g. modf
 9.5M, _controlfp 698k, rand 351k calls; the image check installs every registration.
+Group 3: memcpy (overlap as memmove), memset, strstr, wcslen, floor and the multibyte functions
+mfc_string.cpp forwards to, by their single-byte path: _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _mbsncmp,
+_mbclen, _mbslwr (`_SBUP` bytes through `_mbcasemap` 007CC080). Suite: 0 mismatches (memcpy 118M,
+_mbschr 3.7M, _mbslwr 1.7M calls). Left for S4a-S4c: sprintf / vsprintf / fprintf / printf / atof
+(MSVC6 _output / _input digits), the file functions and the rest of the heap (image only), _ftol and
+the _CI maths (register arguments), _CxxThrowException, the iostream operators, setlocale / _setmbcp,
+_ismbcdigit / _ismbcspace. (library.csv named 006EC8A8 _mbsupr: it lowers.)
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern

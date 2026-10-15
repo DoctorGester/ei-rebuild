@@ -146,6 +146,22 @@ void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, cha
 // first): equal elements end up in the same order as in the game.
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
 
+// The plain string and memory functions, and the multibyte ones whose single-byte path is one of them.
+void* __cdecl Memcpy(void* to, const void* from, std::size_t n);                // 006EC3A0 (overlap as memmove)
+void* __cdecl Memset(void* to, int value, std::size_t n);                       // 006E9CE0
+char* __cdecl Strstr(const char* text, const char* part);                       // 006EAE30
+std::size_t __cdecl Wcslen(const wchar_t* text);                                // 006EC6D5
+unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c);           // 006EC6F2
+unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c);          // 006EC99C
+unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part); // 006ECAB3
+unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set); // 006EC789
+int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n); // 006ECD2B
+std::size_t __cdecl Mbclen(const unsigned char* c);                             // 006ECC98
+// _mbslwr: single bytes flagged upper case in _mbctype mapped through _mbcasemap; a lead byte and its
+// trail are left as they are (the original maps them with LCMapString; none under the game's code page).
+unsigned char* __cdecl Mbslwr(unsigned char* text);                             // 006EC8A8
+double __cdecl Floor(double value);                                             // 006E7F7E
+
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the
 // game CRT's own (_tiddata::_holdrand, +0x14 of _getptd's block, which the harness and the verify
 // wrappers save and restore), in the standalone image a thread_local starting at 1.

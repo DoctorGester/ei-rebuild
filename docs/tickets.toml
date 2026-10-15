@@ -1493,10 +1493,10 @@ done = "2026-10-15"
 id = "S4"
 title = "Standalone library: CRT functions, iostream, import thunks, allocator"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp", "src/game/originals_library.h"]
-note = "37 CRT functions (rand, _ftol, sprintf, qsort, atexit, file I/O, mbs*, ctype), 4 ostream operators, the WSOCK32 and DirectInputCreateEx thunks. Keep MSVC6 behaviour (rand, qsort order, sprintf float digits, the case table). The allocator (operator new / delete, malloc / free, STLport node allocator 00405950 / 00404D70) registered for the standalone image only. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+note = "Three groups: CRT string / ctype / mbs / qsort / splitpath / itoa ports and the WSOCK32 / DINPUT thunks; rand, maths, _controlfp, eh vector iterators, the node allocator (exact, both builds), standalone-only heap / new / atexit / exit (EI_REPLACE_STANDALONE); memcpy / memset / strstr / floor and the mbs functions mfc_string forwards to. Suite 128 runs, 0 mismatches (only the pre-existing zone_gz15h_tornado rebirth timeout). Left: S4a (sprintf family, atof), S4b (file functions, rest of the heap, image only), S4c (_ftol / _CI maths, _CxxThrowException, iostream, locale)."
 started = "2026-10-15"
 
 [[ticket]]
@@ -1728,6 +1728,33 @@ status = "later"
 size = 1
 files = ["src/lib/mfc_string.cpp", "src/lib/mfc_coll.cpp"]
 note = "S5 ported what our code reaches. Left as original code: CPtrList (vtable 00746FE8), CPtrArray (00746FB0), CMapPtrToPtr (0074689C), CString Delete / Insert / Replace / MakeUpper (00700EEC) / MakeReverse / FreeExtra / Span* / AnsiToOem / wide constructors / FormatMessage / TrimLeft(set). Port only if the standalone exe needs them; a library start needs a row in config/extra_function_sizes.csv + function_sizes.inc before the installer hooks it. tests/vectors/replay_mfc.cpp could use mfc::impl::CString. standalone.md section 3 (S5)."
+
+[[ticket]]
+id = "S4a"
+title = "Standalone library: MSVC6 formatted text (sprintf family, atof)"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp"]
+note = "sprintf 006E8715, vsprintf 006ECC47 (mfc_string forwards to it), fprintf 006EAEB0, printf 006E955F, atof 006E911A: MSVC6 _output / _input as library code in src/lib/crt.cpp, registered at their addresses. Float digits: _fcvt-style rounding of the 17-digit string (round half up on the digit string), %g trimming, no inf/nan/hex; atof accepts a 'd' exponent. fprintf / printf write through the game's FILE (shared with S4b). Verify against the original into scratch buffers (tests/verify/verify_crt.cpp). standalone.md S4."
+
+[[ticket]]
+id = "S4b"
+title = "Standalone library: CRT file functions and the rest of the heap (image only)"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp"]
+note = "EI_REPLACE_STANDALONE (S4 group 2): the game CRT's FILE table and heap stay the exe's in the hook build (MFC CStdioFile shares them). fopen 006E9107, fclose 006E8EB8, fseek 006E95D2, ftell 006E97C4, fread 006E8F35, fwrite 006E968B, _open 006EB35C, _read 006EB046, _write, _lseek 006EB284, _close 006EAF66, _filelength, _access 006EAF20, _findfirst 006EB832 over the host CRT; realloc, calloc, _msize, _strdup and any other heap entry the image reaches must use the host heap that S4's malloc / free now use (a game realloc of a host block corrupts it). The exe's __xp / __xt terminators flush the game CRT streams: exit runs the host's. standalone.md S4."
+
+[[ticket]]
+id = "S4c"
+title = "Standalone library: _ftol and _CI maths, _CxxThrowException, iostream, locale set-up"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/lib/crt.h", "src/lib/crt.cpp"]
+note = "_ftol 006E853C and _CIpow 006E81A0 / _CIasin_or_acos 006E7320 006E83C0 / 006E95AA take ST0 (register arguments; they need a naked shim or are only reached from unported code: check the image's call targets first). _CxxThrowException 006E7819 and exception::exception / ~exception 006E7CD5 / 006E7DA8 (VC6 ThrowInfo layout; the image needs the host's). The ostream operators 00434FE0, 006FC0B0, 006FC14E, 006FC31D, 006FC7FA, 006FC91C, 006FC9C6. setlocale 006EA234 and _setmbcp 006E9E30: in the hook build __lc_handle[LC_CTYPE] is nonzero (a real locale) but who sets it is still open; the image has the C locale, so tolower / stricmp fold ASCII only until this is decided. _ismbcdigit 006ECE1A, _ismbcspace 006ECEA9 (mfc_string forwards; single-byte path = _pctype). standalone.md S4."
 
 # ---------------------------------------------------------------- Lua
 

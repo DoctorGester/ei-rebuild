@@ -8,7 +8,9 @@
 // - strncpy: the n bytes and the result; _itoa: the text and the result; _splitpath: the four parts.
 // - memmove: ours only; the destination afterwards holds the source as it was before.
 // - rand, srand: ours only; the result and the seed in the game CRT's thread data.
-// - ceil, modf: the bits of the results; _controlfp: the result and the control word after.
+// - ceil, floor, modf: the bits of the results; _controlfp: the result and the control word after.
+// - strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _mbsncmp, _mbclen: the results; memcpy,
+//   memset: the original into scratch, the bytes and the result; _mbslwr: the same on a copy.
 // The node allocator, the eh vector iterators and set_new_handler change state and have none: every
 // container and array of the game runs through them.
 // The import thunks (WSOCK32, DirectInputCreateEx) are a jump through the import slot and have none.
@@ -248,6 +250,120 @@ void __cdecl QsortVerify(void* base, std::size_t count, std::size_t width, Compa
 // 006E88FC: PUSH EBP; MOV EBP,ESP; SUB ESP,0xF8 (9 bytes).
 EI_VERIFY(0x006E88FC, QsortVerify, 9, s_qsort);
 
+char*(__cdecl* s_strstr)(const char*, const char*);
+char* __cdecl StrstrVerify(const char* text, const char* part) {
+    char* actual = libcrt::Strstr(text, part);
+    Check("strstr", s_strstr(text, part), actual, "\"%.40s\" \"%.40s\"", text, part);
+    return actual;
+}
+// 006EAE30: MOV ECX,[ESP+8]; PUSH EDI (5 bytes).
+EI_VERIFY(0x006EAE30, StrstrVerify, 5, s_strstr);
+
+std::size_t(__cdecl* s_wcslen)(const wchar_t*);
+std::size_t __cdecl WcslenVerify(const wchar_t* text) {
+    const std::size_t actual = libcrt::Wcslen(text);
+    Check("wcslen", s_wcslen(text), actual, "%p", static_cast<const void*>(text));
+    return actual;
+}
+// 006EC6D5: MOV ECX,[ESP+4]; CMP WORD PTR [ECX],0 (8 bytes).
+EI_VERIFY(0x006EC6D5, WcslenVerify, 8, s_wcslen);
+
+using Bytes = unsigned char*;
+using ConstBytes = const unsigned char*;
+
+Bytes(__cdecl* s_mbschr)(ConstBytes, unsigned);
+Bytes __cdecl MbschrVerify(ConstBytes text, unsigned c) {
+    Bytes actual = libcrt::Mbschr(text, c);
+    Check("_mbschr", s_mbschr(text, c), actual, "\"%.40s\" %u", Text(text), c);
+    return actual;
+}
+// 006EC6F2: PUSH EBP; MOV EBP,ESP; CMP [007CC06C],0 (10 bytes).
+EI_VERIFY(0x006EC6F2, MbschrVerify, 10, s_mbschr);
+
+Bytes(__cdecl* s_mbsrchr)(ConstBytes, unsigned);
+Bytes __cdecl MbsrchrVerify(ConstBytes text, unsigned c) {
+    Bytes actual = libcrt::Mbsrchr(text, c);
+    Check("_mbsrchr", s_mbsrchr(text, c), actual, "\"%.40s\" %u", Text(text), c);
+    return actual;
+}
+// 006EC99C: PUSH EBP; MOV EBP,ESP; PUSH ESI; XOR ESI,ESI (6 bytes).
+EI_VERIFY(0x006EC99C, MbsrchrVerify, 6, s_mbsrchr);
+
+Bytes(__cdecl* s_mbsstr)(ConstBytes, ConstBytes);
+Bytes __cdecl MbsstrVerify(ConstBytes text, ConstBytes part) {
+    Bytes actual = libcrt::Mbsstr(text, part);
+    Check("_mbsstr", s_mbsstr(text, part), actual, "\"%.40s\" \"%.40s\"", Text(text), Text(part));
+    return actual;
+}
+// 006ECAB3: PUSH EBP; MOV EBP,ESP; PUSH EBX; XOR EBX,EBX (6 bytes).
+EI_VERIFY(0x006ECAB3, MbsstrVerify, 6, s_mbsstr);
+
+Bytes(__cdecl* s_mbspbrk)(ConstBytes, ConstBytes);
+Bytes __cdecl MbspbrkVerify(ConstBytes text, ConstBytes set) {
+    Bytes actual = libcrt::Mbspbrk(text, set);
+    Check("_mbspbrk", s_mbspbrk(text, set), actual, "\"%.40s\" \"%.40s\"", Text(text), Text(set));
+    return actual;
+}
+// 006EC789: PUSH EBX; XOR EBX,EBX; CMP [007CC06C],EBX (9 bytes).
+EI_VERIFY(0x006EC789, MbspbrkVerify, 9, s_mbspbrk);
+
+int(__cdecl* s_mbsncmp)(ConstBytes, ConstBytes, std::size_t);
+int __cdecl MbsncmpVerify(ConstBytes a, ConstBytes b, std::size_t n) {
+    const int actual = libcrt::Mbsncmp(a, b, n);
+    Check("_mbsncmp", s_mbsncmp(a, b, n), actual, "\"%.40s\" \"%.40s\" %u", Text(a), Text(b), unsigned(n));
+    return actual;
+}
+// 006ECD2B: PUSH EBP; MOV EBP,ESP; PUSH EBX; XOR EBX,EBX (6 bytes).
+EI_VERIFY(0x006ECD2B, MbsncmpVerify, 6, s_mbsncmp);
+
+std::size_t(__cdecl* s_mbclen)(ConstBytes);
+std::size_t __cdecl MbclenVerify(ConstBytes c) {
+    const std::size_t actual = libcrt::Mbclen(c);
+    Check("_mbclen", s_mbclen(c), actual, "%u", unsigned(*c));
+    return actual;
+}
+// 006ECC98: MOV EAX,[ESP+4]; PUSH 0 (6 bytes).
+EI_VERIFY(0x006ECC98, MbclenVerify, 6, s_mbclen);
+
+Bytes(__cdecl* s_mbslwr)(Bytes);
+Bytes __cdecl MbslwrVerify(Bytes text) {
+    std::vector<unsigned char> scratch(text, text + std::strlen(Text(text)) + 1);
+    const bool sameReturn = s_mbslwr(scratch.data()) == scratch.data();
+    Bytes actual = libcrt::Mbslwr(text);
+    Check("_mbslwr", true, sameReturn && actual == text && std::memcmp(scratch.data(), text, scratch.size()) == 0,
+          "\"%.40s\" -> \"%.40s\"", Text(scratch.data()), Text(text));
+    return actual;
+}
+// 006EC8A8: PUSH EBP; MOV EBP,ESP; PUSH ESI; PUSH EDI; PUSH 0x19 (7 bytes).
+EI_VERIFY(0x006EC8A8, MbslwrVerify, 7, s_mbslwr);
+
+void*(__cdecl* s_memcpy)(void*, const void*, std::size_t);
+void* __cdecl MemcpyVerify(void* to, const void* from, std::size_t n) {
+    const unsigned char* source = static_cast<const unsigned char*>(from);
+    std::vector<unsigned char> expected(n);
+    void* expectedResult = s_memcpy(expected.data(), from, n);
+    void* actual = libcrt::Memcpy(to, from, n);
+    Check("memcpy", true,
+          expectedResult == expected.data() && actual == to && (n == 0 || std::memcmp(to, expected.data(), n) == 0),
+          "%u bytes, %p <- %p", unsigned(n), to, static_cast<const void*>(source));
+    return actual;
+}
+// 006EC3A0: PUSH EBP; MOV EBP,ESP; PUSH EDI; PUSH ESI (5 bytes).
+EI_VERIFY(0x006EC3A0, MemcpyVerify, 5, s_memcpy);
+
+void*(__cdecl* s_memset)(void*, int, std::size_t);
+void* __cdecl MemsetVerify(void* to, int value, std::size_t n) {
+    std::vector<unsigned char> expected(n);
+    void* expectedResult = s_memset(expected.data(), value, n);
+    void* actual = libcrt::Memset(to, value, n);
+    Check("memset", true,
+          expectedResult == expected.data() && actual == to && (n == 0 || std::memcmp(to, expected.data(), n) == 0),
+          "%u bytes of %d at %p", unsigned(n), value, to);
+    return actual;
+}
+// 006E9CE0: MOV EDX,[ESP+0xC]; MOV ECX,[ESP+4] (8 bytes).
+EI_VERIFY(0x006E9CE0, MemsetVerify, 8, s_memset);
+
 // rand and srand start with CALL _getptd: ours only, against the seed in the game CRT's thread data.
 struct ThreadDataHead {
     unsigned long words[5];
@@ -288,6 +404,16 @@ double __cdecl CeilVerify(double value) {
 }
 // 006E8B1F: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ECX (5 bytes).
 EI_VERIFY(0x006E8B1F, CeilVerify, 5, s_ceil);
+
+double(__cdecl* s_floor)(double);
+double __cdecl FloorVerify(double value) {
+    const double expected = s_floor(value);
+    const double actual = libcrt::Floor(value);
+    Check("floor", Bits(expected), Bits(actual), "%.17g: %.17g, ours %.17g", value, expected, actual);
+    return actual;
+}
+// 006E7F7E: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ECX (5 bytes).
+EI_VERIFY(0x006E7F7E, FloorVerify, 5, s_floor);
 
 double(__cdecl* s_modf)(double, double*);
 double __cdecl ModfVerify(double value, double* whole) {

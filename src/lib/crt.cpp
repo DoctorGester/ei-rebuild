@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <cwchar>
 #include <mutex>
 #include <new>
 #include <vector>
@@ -119,9 +120,12 @@ namespace libcrt {
 namespace {
 
 // The CRT's character class table pointer _pctype (00797DD8; the C locale's table + 1 entry, so -1 is
-// EOF) and its multibyte flags _mbctype + 1 (007CC181; all zero for a single-byte code page).
+// EOF) and its multibyte flags _mbctype + 1 (007CC181; no lead bytes for a single-byte code page, the
+// single-byte case bits still set), with _mbcasemap (007CC080), each byte's other case.
 const unsigned short* CharClasses() { return *reinterpret_cast<const unsigned short* const*>(0x00797DD8); }
 const unsigned char* MultibyteFlags() { return reinterpret_cast<const unsigned char*>(0x007CC181); }
+const unsigned char* MultibyteCaseMap() { return reinterpret_cast<const unsigned char*>(0x007CC080); }
+constexpr unsigned char kMbSingleUpper = 0x10;   // _SBUP in _mbctype
 
 constexpr unsigned short kDigit = 0x4;      // _DIGIT
 constexpr unsigned short kSpace = 0x8;      // _SPACE
@@ -522,6 +526,72 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
     }
 }
 EI_REPLACE(0x006E88FC, libcrt::Qsort);
+
+// ---- Plain string and memory functions; the multibyte ones by their single-byte path ----
+
+void* __cdecl Memcpy(void* to, const void* from, std::size_t n) { return Memmove(to, from, n); }
+EI_REPLACE(0x006EC3A0, libcrt::Memcpy);
+
+void* __cdecl Memset(void* to, int value, std::size_t n) { return std::memset(to, value, n); }
+EI_REPLACE(0x006E9CE0, libcrt::Memset);
+
+char* __cdecl Strstr(const char* text, const char* part) { return const_cast<char*>(std::strstr(text, part)); }
+EI_REPLACE(0x006EAE30, libcrt::Strstr);
+
+std::size_t __cdecl Wcslen(const wchar_t* text) { return std::wcslen(text); }
+EI_REPLACE(0x006EC6D5, libcrt::Wcslen);
+
+namespace {
+const char* AsText(const unsigned char* p) { return reinterpret_cast<const char*>(p); }
+unsigned char* AsBytes(const char* p) { return reinterpret_cast<unsigned char*>(const_cast<char*>(p)); }
+} // namespace
+
+// strchr / strrchr take the character as int and compare its low byte (0 finds the terminator).
+unsigned char* __cdecl Mbschr(const unsigned char* text, unsigned c) {
+    return AsBytes(std::strchr(AsText(text), static_cast<int>(c)));
+}
+EI_REPLACE(0x006EC6F2, libcrt::Mbschr);
+
+unsigned char* __cdecl Mbsrchr(const unsigned char* text, unsigned c) {
+    return AsBytes(std::strrchr(AsText(text), static_cast<int>(c)));
+}
+EI_REPLACE(0x006EC99C, libcrt::Mbsrchr);
+
+unsigned char* __cdecl Mbsstr(const unsigned char* text, const unsigned char* part) {
+    return AsBytes(Strstr(AsText(text), AsText(part)));
+}
+EI_REPLACE(0x006ECAB3, libcrt::Mbsstr);
+
+unsigned char* __cdecl Mbspbrk(const unsigned char* text, const unsigned char* set) {
+    return AsBytes(std::strpbrk(AsText(text), AsText(set)));
+}
+EI_REPLACE(0x006EC789, libcrt::Mbspbrk);
+
+int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
+    if (n == 0) return 0;
+    return Strncmp(AsText(a), AsText(b), n);
+}
+EI_REPLACE(0x006ECD2B, libcrt::Mbsncmp);
+
+std::size_t __cdecl Mbclen(const unsigned char* c) { return (MultibyteFlags()[*c] & kMbLead) ? 2 : 1; }
+EI_REPLACE(0x006ECC98, libcrt::Mbclen);
+
+unsigned char* __cdecl Mbslwr(unsigned char* text) {
+    for (unsigned char* p = text; *p; ++p) {
+        const unsigned char flags = MultibyteFlags()[*p];
+        if (flags & kMbLead) {
+            if (!p[1]) break;
+            ++p;
+        } else if (flags & kMbSingleUpper) {
+            *p = MultibyteCaseMap()[*p];
+        }
+    }
+    return text;
+}
+EI_REPLACE(0x006EC8A8, libcrt::Mbslwr);
+
+double __cdecl Floor(double value) { return std::floor(value); }
+EI_REPLACE(0x006E7F7E, libcrt::Floor);
 
 // ---- rand / srand ----
 
