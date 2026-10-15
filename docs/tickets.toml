@@ -1399,6 +1399,22 @@ size = 1
 depends = ["T2a"]
 note = "T2a: the original repeats (5 of 5), ours (hooked, --dgvoodoo, standalone) alternates: ours plays three more ambience sounds in frame 15 (Terrain::PlayAmbience, MaybeRemark draws; EI_HARNESS_CLOCK=virtual,randtrace + tools/randtrace.py on ui_base_dialogue). Find which input of PlayAmbience / the sector votes differs (listener, SectorAt load state, sound-end notes) and fix; then record ui_base_dialogue goldens (4 passes, vanilla and rebirth). Not the renderer (dgvoodoo parts too)."
 
+[[ticket]]
+id = "X40"
+title = "Games crash with C++ exception E06D7363 right after a file write (unit texture .mmp, save stream)"
+group = "harness"
+size = 1
+model = "opus"
+note = "Seen 2026-10-15 23:45 and 23:51 (and once at 11:24, SV2h3 zone_gz3g): 27 runs across S20, SV7b2a and SV7c, hooked and --no-hooks, vanilla and Rebirth, in bursts where most runs of the batches starting that minute crash 4-14 s in. The last log lines are always a file write: 'install write redirected: ...\\textures\\mo1884p.mmp (or mo699p.mmp) -> <run>\\harness_saves\\textures\\...' (written twice, then the crash), or 'verify FileStreamWrite: first call' during a save. Exception E06D7363 (MSVC throw) at 759BB702 (KernelBase RaiseException), so the game throws on a failed file operation. No stack is in ei_hook.log despite the message, and the retry keeps only harness_report.txt in <run>-attempt1 for some runs. Find which call fails and why (GetLastError of the redirected CreateFile/WriteFile/read-back; disk space, a sharing violation from a scanner, or the redirect itself), fix the cause, and make the crash handler log the C++ exception's type and the game stack."
+
+[[ticket]]
+id = "WB11"
+title = "Shrink the run data: work.db per-run counts and 4K BMPs in the reference cache"
+group = "harness"
+size = 1
+model = "sonnet"
+note = "2026-10-15 the project folder was 47 GB. build/live/work.db is 3.9 GB because run.counts averages 76 KB per run over 54k runs: keep counts only for each batch's latest runs (or compress them) and VACUUM. build/reference (13 GB, shared cache of the original's runs) and build/verify/runs (8.7 GB) are mostly 3840x2160 32-bit BMP shots, ~24 MB each (546 in the cache): store them compressed (PNG or zlib) and decode on compare. build/live/work.db.pre-wb10 (0.9 GB) is a migration backup the user may drop."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
