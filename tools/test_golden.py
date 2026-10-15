@@ -1,7 +1,7 @@
 """Tests of tools/golden.py on made-up digests (no games).
 usage: python tools/test_golden.py [-v]
 """
-import io, json, os, shutil, sys, tempfile, unittest
+import io, json, os, shutil, struct, sys, tempfile, unittest
 from contextlib import redirect_stdout
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -41,14 +41,15 @@ class GoldenTest(unittest.TestCase):
             f.write(text)
         return path
 
-    def run_folder(self, name, text, console=('  hello',), saves=b'save'):
+    def run_folder(self, name, text, console=('  hello',), saves=b'gz1g'):
         folder = os.path.join(self.dir, name)
         self.write(os.path.join(name, 'digest.txt'), text)
         self.write(os.path.join(name, 'dump_loaded.txt'), text.split('@ 1 ')[0])
         self.write(os.path.join(name, 'harness_report.txt'), 'RESULT: PASS\nconsole output:\n' + '\n'.join(console) + '\n')
         os.makedirs(os.path.join(folder, golden.SAVES, 'savea'))
-        with open(os.path.join(folder, golden.SAVES, 'savea', 'world.sav'), 'wb') as f:
-            f.write(saves)
+        with open(os.path.join(folder, golden.SAVES, 'savea', 'info.sav'), 'wb') as f:
+            # An info.sav (not framed, tools/savefile.py read_info): the zone name differs by `saves`.
+            f.write(struct.pack('<IIf', 0x111, 3, 6.0) + b'gipat\0' + saves + b'\0' + bytes(5))
         return folder
 
     def compact_of(self, text, name, ignore=None):
@@ -124,8 +125,9 @@ class GoldenTest(unittest.TestCase):
         orig1 = self.run_folder('orig1/levers-vanilla', digest())
         self.run_folder('orig2/levers-vanilla', digest())
         ours = self.run_folder('ours/levers-vanilla', digest(hooks='on'))
-        old = golden.GOLDEN
+        old = golden.GOLDEN, golden.STORE
         golden.GOLDEN = os.path.join(self.dir, 'golden')
+        golden.STORE = os.path.join(golden.GOLDEN, 'saves')
         try:
             args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test', fields=12,
                                       runs=[os.path.dirname(orig1), os.path.dirname(ours), os.path.join(self.dir, 'orig2')]))
@@ -145,7 +147,7 @@ class GoldenTest(unittest.TestCase):
                 self.assertEqual(result, 'DIFFERS')
                 self.assertTrue(lines[0].startswith('console: differs from line 2'), lines)
                 self.assertTrue(any('#vitals' in line for line in lines), lines)
-                self.assertTrue(any(line.startswith('saves: ') for line in lines), lines)
+                self.assertIn('  info zone: "gz1g" in the golden, "other" in the run', lines)
             finally:
                 golden.golden_folder = golden_folder
             # A second run of the original that does not repeat: not recorded.
@@ -156,7 +158,7 @@ class GoldenTest(unittest.TestCase):
             self.assertIn('not recorded', out.getvalue())
             self.assertIn('obj1 (80 unhuma "") pos.x: 11.0', out.getvalue())
         finally:
-            golden.GOLDEN = old
+            golden.GOLDEN, golden.STORE = old
 
 
 if __name__ == '__main__':

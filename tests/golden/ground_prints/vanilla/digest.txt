@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash AEE88991 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 16A62041 n 68
 + world world
 world tick 20
 world updates 20
@@ -144,11 +144,10 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFDE2
 obj2 #ai 9BF9CB43
 obj2 #place 784FE175
 obj2 #unit 807D16EC
-obj2 #vitals E824DBAF
+obj2 #vitals CB4D8108
 + obj3 82 nafltr59
 obj3 # 85B0C8E0
 + obj4 82 nafltr59
@@ -332,7 +331,7 @@ client synchronised 5
 + cunit2 80 unmoco2 ""
 cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
-cunit2 #vitals E4AA905D
+cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place F7787AC8
 cunit129 #unit BF865974
@@ -2835,7 +2834,7 @@ client synchronised 9
 cunit1977621927 #place 152C9921
 cunit1977621927 #unit 8F63FC75
 cunit1977621927 #vitals 8FC93AF9
-@ 21 update 440 frame 87 tick 381 zone gz1g hash 6662E02E n 795
+@ 21 update 440 frame 87 tick 381 zone gz1g hash 8378EFA0 n 795
 world tick 381
 world updates 442
 world objects 780
@@ -2911,6 +2910,7 @@ obj1000011214 #vitals 246B522C
 missile0 # CFB446DC
 missile1 # AB0389D9
 aievents tick 381
+script #gobject 3656F9F8
 client tick 379
 client ticksRun 7
 client objects 733

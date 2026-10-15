@@ -196,6 +196,7 @@
 #include "harness_clock.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
+#include "harness_leftovers.h"
 #include "harness_savetrace.h"
 #include "harness_watch.h"
 #include "harness_hooks.h"
@@ -2770,6 +2771,7 @@ struct Harness {
         net_port::Install();   // a UDP port of its own (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
+        leftovers::Install();   // unit statistics stack copies zeroed in the original too (harness_leftovers.h, SV7b3)
         if (watch::Enabled()) watch::Install();   // EI_WATCH_CUNIT (harness_watch.h)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);

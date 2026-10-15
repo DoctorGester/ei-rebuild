@@ -16,6 +16,8 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "world.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -84,11 +86,9 @@ inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLo
 // Message members.
 __declspec(naked) void __fastcall RefVectorConstruct(RefVector* /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FFF0)
 
-constexpr std::uintptr_t kTextTable = 0x007C7D50;
-constexpr std::uintptr_t kFlow = 0x007AFE20;
 
-void* TextTable() { return reinterpret_cast<void*>(kTextTable); }
-void* Flow() { return reinterpret_cast<void*>(kFlow); }
+void* TextTable() { return worlddata::InterfaceManager(); }
+void* Flow() { return TheGameFlow(); }
 bool Live(const void* object) {
     return object && !(static_cast<const CRefObject*>(object)->flags7_ & CRefObject::kDetached);
 }

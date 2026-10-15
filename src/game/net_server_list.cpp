@@ -8,6 +8,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "game_strings.h"
 
 #include <cstring>
 
@@ -24,7 +25,6 @@ __declspec(naked) void __fastcall CoderDecompress(void* /*coder*/, void*, GameBu
 __declspec(naked) std::uint32_t __fastcall CursorEnd(BufferCursor* /*cursor*/) EI_ORIGINAL(0x0041D930)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
 __declspec(naked) void __fastcall ClientAddServer(void* /*client*/, void*, ServerEntry* /*entry*/) EI_ORIGINAL(0x004428A0)
-constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::size_t kCoderSize = 0x2828;
 
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
@@ -46,7 +46,7 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 // Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's
 // player counts, kind, password flag and texts, added to the client. A wrong size or
 // a short record ends the reading (the entry being filled is not added).
-void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
+void ClientSession::ReadServerListImpl(GameBuffer* in) {
     alignas(4) std::uint8_t recordBytes[sizeof(GameInfoRecord)];
     auto* record = reinterpret_cast<GameInfoRecord*>(recordBytes);
     StringInitEmpty(&record->name);
@@ -79,9 +79,9 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
                 StringInitEmpty(&entry->name_);
                 StringInitEmpty(&entry->description_);
                 ei::SetVtable(entry, ServerEntry::kVtableAddress);
-                StringAssignText(&entry->name_, nullptr, reinterpret_cast<const char*>(kEmptyText));
+                StringAssignText(&entry->name_, nullptr, game::QuestionMarkText());
                 entry->kind_ = 4;
-                StringAssignText(&entry->description_, nullptr, reinterpret_cast<const char*>(kEmptyText));
+                StringAssignText(&entry->description_, nullptr, game::QuestionMarkText());
                 entry->players_ = 0;
                 entry->maxPlayers_ = 0;
                 entry->password_ = 0;
@@ -97,7 +97,7 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
             StringRep* description = &entry->description_;
             if (&record->description != description)
                 StringAssign(description, nullptr, record->description.start, record->description.finish, entry);
-            ClientAddServer(client, nullptr, entry);
+            ClientAddServer(this, nullptr, entry);
         }
     }
     CursorEnd(coderCursor);
@@ -109,6 +109,6 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
         StlStringDestroy(&record->name);
     }
 }
-EI_REPLACE(0x0041D600, ServerListRead);
+EI_REPLACE_METHOD(0x0041D600, ClientSession::ReadServerListImpl);
 
 } // namespace net

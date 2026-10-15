@@ -30,12 +30,12 @@ CTransformObject* CTransformObject::ConstructBase() {
 }
 EI_REPLACE_METHOD(0x00453400, CTransformObject::ConstructBase);
 
-CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other) {
+CTransformObject* CTransformObject::CopyTransformImpl(const CTransformObject& other) {
     std::memmove(&localPosition_, &other.localPosition_, sizeof(CTransformObject) - offsetof(CTransformObject, localPosition_));
     return this;
 }
 
-void CTransformObject::CombineRotation(const Quaternion& g) {
+void CTransformObject::CombineRotationImpl(const Quaternion& g) {
     const Quaternion& f = localRotation_;
     float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
     float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
@@ -53,7 +53,7 @@ void CTransformObject::CombineRotation(const Quaternion& g) {
 // recomputed (identically) in each component rather than held in a float local. 2 u.L is written
 // (2u).L, the form /fp:fast gives the written-out ((u.L) * 2): the same value (doubling is exact),
 // and an inlined sum times 2 is regrouped differently (vecmath.h, Dot2DUnrounded).
-void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
+void CTransformObject::UpdateWorldImpl(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     const float ux = q.x, uy = q.y, uz = q.z;
     const Vector3& l = localPosition_;
@@ -92,20 +92,9 @@ void CTransformObject::LoadTransformImpl(void* file) {
     in->Read(&localRotation_, 16u);
 }
 
-namespace {
-CTransformObject* __fastcall CopyTransformHook(CTransformObject* self, void*, const CTransformObject* other) {
-    return self->CTransformObject::CopyTransform(*other);
-}
-void __fastcall CombineRotationHook(CTransformObject* self, void*, const Quaternion* parent) {
-    self->CTransformObject::CombineRotation(*parent);
-}
-void __fastcall UpdateWorldHook(CTransformObject* self, void*, const Quaternion* rotation, const Vector3* position) {
-    self->CTransformObject::UpdateWorld(*rotation, *position);
-}
-} // namespace
-EI_REPLACE(0x00401490, CopyTransformHook);
-EI_REPLACE(0x0040CB80, CombineRotationHook);
-EI_REPLACE(0x0040CC30, UpdateWorldHook);
+EI_REPLACE_METHOD(0x00401490, CTransformObject::CopyTransformImpl);
+EI_REPLACE_METHOD(0x0040CB80, CTransformObject::CombineRotationImpl);
+EI_REPLACE_METHOD(0x0040CC30, CTransformObject::UpdateWorldImpl);
 EI_REPLACE_METHOD(0x00401510, CTransformObject::SaveTransformImpl);
 EI_REPLACE_METHOD(0x00401540, CTransformObject::LoadTransformImpl);
 

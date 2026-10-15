@@ -730,7 +730,7 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "Paused 2026-10-15: probably the same cause as SV7b4 (an uninitialised stack read in the original's client orientation path; see SV7b4's note)."
+note = "Probably the same effect as SV7b4 (DrawShadow's inexact round trip plus whatever flips its count); not fixed. See SV7b4a."
 
 [[ticket]]
 id = "SV3g"
@@ -745,7 +745,7 @@ title = "render_present_cpuwindows: the original's unmoco2 hit points are anothe
 group = "verification"
 size = 0.25
 depends = ["SV3a"]
-note = "From SV3d: after SV3a (unmoco2's hit points as the original's), render_present_cpuwindows (vanilla) still differs at the first record: obj2 hp nan:0xFFFFFF0A in the original (in both runs), nan:0xFFC00000 in ours. Other scenarios agree on 0xFFC00000; cunit2's packed vitals now agree everywhere. Find where the original's value comes from on that path (CPU windows) and match it, or add a KNOWN entry. SV2b: on the one-reservation harness heap the original's obj2 hp is a NaN from its stack leftovers in every scenario (0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth, by scenario; repeats); golden.py KNOWN leaves obj2 hp out. Match it (the leftover dwords on GiveDefaults' stack) or keep the entry."
+note = "Settled by SV7b3 (2026-10-15): the UnitStats leftovers are zeroed in both the original (harness_leftovers.cpp) and ours; unmoco2 hp is 1.0 on both sides."
 
 [[ticket]]
 id = "SV3i"
@@ -941,7 +941,7 @@ id = "SV7b1"
 title = "Script groups ordered by object id, not address"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes)."
+note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes). SV7d: the decoded saves show it too: render_movie_present (vanilla) mission.sav's zone script group 'Peasans' (commands globals.groups.3) is [1884, 699, 702] in the original and [1884, 702, 699] in ours, and the loop variable i (globals.objects.2) ends on the other id. golden.py SAVES_KNOWN leaves those fields out under SV7b1: drop that entry when this lands. SV7d: also the party units' brain.memory.seenCorpses (PartySync in player_sync.cpp rebuilds them from a ScriptGroup): ground_prints obj1000011214's two corpses swap between the original and ours and between the original's plain and EI_HEAP_JITTER=1 runs; SAVES_KNOWN marks that entry SV7b1 too (SV7d5 checks it after this lands)."
 
 [[ticket]]
 id = "SV7b2"
@@ -962,7 +962,7 @@ id = "SV7b4"
 title = "Rebirth menu unit orientation ulp under jitter"
 group = "verification"
 depends = ["SV7a"]
-note = "Paused 2026-10-15 (WIP commit). Found: jitter-1 difference in cunit148 vanishes with EI_STACK_SCRUB (any byte) after each server update, EI_DIGEST=1 or the watch: an uninitialised stack read in the original, value-insensitive except for the jitter value. Orientation writers: SetHeading 00402220 via ClientPlaceOnPath and the shadow round trip in DrawShadow 0051CE60 (PreMultiply 004018A0 by turn then by its conjugate; Rebirth's larger draw radius is why Rebirth only). Bisect (jitter 1, scrub 0): 0..0x4000 below the scrub frame fixes it, 0..0x2000 does not; next: bisect 0x2000..0x4000 (scratchpad SV7b4/bisect.py), then a data breakpoint on that slot to name the reader, canonicalise in both. SV3f likely the same cause."
+note = "Investigated (2026-10-15): writers are SetHeading via ClientPlaceOnPath and DrawShadow 0051CE60's inexact shadow round trip (Rebirth's draw radius). The jitter-1 ulp is not one stack slot: any scrub, a 1 us spin, EI_DIGEST=1 or the watch bring the golden back. Tools EI_WATCH_CUNIT / EI_WATCH_ADDR / EI_STACK_SCRUB / EI_SPIN_US (harness_watch.h). Not fixed, no goldens re-recorded; follow-up SV7b4a."
 
 [[ticket]]
 id = "SV7b5"
@@ -979,11 +979,60 @@ depends = ["SV7a"]
 note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
 
 [[ticket]]
+id = "SV3l"
+title = "CInterface3D::Update check flakes: mouse 1920,1260"
+group = "verification"
+size = 0.25
+model = "sonnet"
+files = ["tests/verify/verify_ui_base.cpp"]
+note = "render_cursor_present vanilla failed twice on main (2026-10-15, after the SV3c1 merge) and once on S16a with 'MISMATCH CInterface3D::Update: mouse 1920,1260' (1 of ~10187). InterfaceUpdateVerify (tests/verify/verify_ui_base.cpp) compares the interface's mouse position with the window procedure's stored one (007C7C50/54) after Update; 1920,1260 is outside the game window, so a WM_MOUSEMOVE from the real cursor probably lands while a window's update pumps messages. Confirm (log both values), then make the check robust (compare against the stored value as of Update's own read, or skip when the stored value changed during the call). Harness inputs only; no game change."
+
+[[ticket]]
+id = "SV7d1"
+title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
+group = "verification"
+size = 0.5
+depends = ["SV7d"]
+note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands."
+
+[[ticket]]
+id = "SV7d2"
+title = "Path step flags: one step's flags are 0x2664 in ours"
+group = "verification"
+size = 0.5
+depends = ["SV7d"]
+note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands."
+
+[[ticket]]
+id = "SV7d3"
+title = "Unit controller waitFrame: the original's memory value"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "From SV7d (decoded saves), SV7b2's family. CUnitServer's waitFrame (+0x93C) is set to the world tick only when a queued order is taken over (TakeQueuedOrder 0054A6E0, LeaveMoveMode in combat_tick.cpp) and never initialised; ResolveBlocker (unit_motion_tick.cpp) reads it (a party member waits while CurrentFrame() < waitFrame + 2), so a leftover can decide whether a follower waits. The original's value follows memory: camera obj1898 189 in plain runs, 209 under EI_HEAP_JITTER=1 (Rebirth 0 / other values), ours 244 / 173. savefile_unit leaves it out (junk). Give it a canonical start (0) in the standalone and, if the harness patches the original alike, check the goldens; then the junk rule can become a value again."
+
+[[ticket]]
+id = "SV7d4"
+title = "Suspection mode starts from 0xFFFFFFFF in ours, zeros in the original"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "From SV7d (decoded saves), SV7b2's family. SuspectionMode's point and level (+0x08..+0x17) are never set by the constructors (AddSuspectionMode, NewModeOfType, the script's). Evaluate 005D1E90 copies the brain's noticed point and level, but while the leftover point compares the same (unordered too) it keeps it and returns min(leftover level, noticedLevel), and that return picks the brain's mode. The original's plain heap holds zeros there (0,0,0 / 0); under EI_HEAP_JITTER fill and in ours (0xFFFFFFFF: NaN, level -1) other bytes, so a Suspection mode that noticed nothing can evaluate to -1 in ours and 0 in the original. savefile_unit leaves both out (junk). Give them a canonical start (zeros, as the original's usual heap) in the standalone and check the goldens. SV7d also saw: with EI_HEAP_JITTER=2,fill the original's game diverges at update 40 (isaac.count, ai.decay of obj1804 / obj1890 / obj1936, positions) in 13 of 39 vanilla and 19 of 46 Rebirth runs (seed 1 without fill: none). Leftovers read as behaviour; this mode's level and waitFrame (SV7d3) are candidates, not confirmed."
+
+[[ticket]]
+id = "SV7d5"
+title = "seenCorpses: units note corpses in another order"
+group = "verification"
+size = 0.25
+depends = ["SV7d"]
+note = "From SV7d (decoded saves): folded into SV7b1. ground_prints obj1000011214's brain.memory.seenCorpses order is 1195532174, 1195532175 in the original and the other way round in ours (and in the original under EI_HEAP_JITTER=1, and under Rebirth). PartySync (player_sync.cpp) rebuilds each party unit's seenCorpses from a ScriptGroup (known.InsertAll, ScriptGroupToListOriginal), whose members are in address order. Nothing to do beyond SV7b1: once it lands, check the order agrees and drop the seenCorpses entry (marked SV7b1) from golden.py SAVES_KNOWN."
+
+[[ticket]]
 id = "SV7b4a"
 title = "Client orientation ulp: find what flips it (shadow round trip)"
 group = "verification"
 depends = ["SV7b4"]
-note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in a watched plain vs jitter run without exceptions (a counter patch, not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
+note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in plain vs jitter runs with a counter patch (not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1269,7 +1318,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 6 merged 2026-10-15: 64 virtual-slot shims to Impl members; 952 shims left. The virtual-slot forwarder pool is used up; what is left is mostly call-through blocks, UI input shims, free __fastcall bodies of slots with no member yet, and shims that dereference a pointer parameter (see docs/notes/cleanup-units.md, C11 batch 6)."
+note = "Batch 9 merged 2026-10-15: own At() files 2 to 0 (RecordAt / ElementAt renames), address constants 249 to 187 (string accessors per file in game_strings.h), check_cleanup raw addresses 902 to 834. Left (187): menu_rects, net log texts and net_messages.h, effect float constants, class kVtableAddress statics, function addresses (docs/notes/cleanup-units.md, C11 batch 9)."
 
 [[ticket]]
 id = "C12"
@@ -1881,6 +1930,21 @@ group = "standalone"
 depends = ["S16a"]
 files = ["src/game/item_stock.cpp", "src/game/ui_saveload.cpp", "src/game/originals_library.h"]
 note = "S16a's loop left three stops (docs/notes/standalone.md S16a): 0069D9A0 (ui_camp_deals: the item stock's vector<char*> allocate-and-copy, from item_stock.cpp AssignPointers), 00657C60 (ui_saveload_delete: SaveEntry's copy constructor, from CSaveLoadWindow::FillEntries), 00424E40 (ui_mp_host: the net strings' StringAllocateBlock, from net::StringEmpty). Grep main first (S12e / S12f work on STLport rows). Then run the scenarios not yet run standalone (work.py test S16b <names> --standalone --jobs 4; 32 of 98 sampled so far) and continue the loop. S12g (2026-10-15) registered the three stops named here (0069D9A0, 00657C60, 00424E40) with the rest of the library forwarders; start from the suite run."
+
+[[ticket]]
+id = "S16c"
+title = "Standalone: console disconnect (005DFC10 -> 00581620 -> 00566E00) and reporting INT3 hits before the missing-code handler"
+group = "standalone"
+depends = ["S16b"]
+note = "S16b left: the console's disconnect (005DFC10, a jump to GameFlow 00581620, itself a jump to the client world's 00566E00, unported) is reached by no scenario. And an INT3 hit in the image before the missing-code handler is active (startup actions, static initialisers) ends the run silently as RUNNING with nothing logged (seen with ui_widescreen's sscanf, docs/notes/standalone.md S16b): install the handler first, or report from ei_launch."
+
+[[ticket]]
+id = "S16d"
+title = "Standalone: library code game.exe's data points at with no registration (226: MFC vtable slots, CRT tables)"
+group = "standalone"
+depends = ["S16c"]
+files = ["tools/standalone_gaps.py", "src/lib/mfc_*.cpp", "src/lib/crt*.cpp"]
+note = "S16c's tools/standalone_gaps.py data lists 226 function starts referenced from game.exe's .rdata/.data that nothing registers (game code: none left). Nearly all are MFC class vtable slots (CWnd, CWinThread, CCmdTarget, CFile, CException ... 00702596-0070DD05) and CRT tables (__exit 006E8DB8 at 007978E0, 006F47FB at 007978A8, 006F01E4 / 006F02B3, the _initterm entry 006EA218 at 00783BC0 run by the host); plus 00460110, the deleting destructor of the map database's CArray<MapRecord> (vtable 0073C3E8, a global: never deleted through the vtable), and two false rows (00646C25, 00656464: strings read as code pointers, library.csv). None is reached by the 98-scenario --standalone suite. Decide per vtable whether the image can call it (the game makes no CWnd; CWinThread is replaced by the host's threads, S16) and port or list as unreachable; also the 13 forwarders to the exe's CRT file / time functions and _getptd / CWnd::DestroyWindow that run only in the hook build (behind ei::Standalone())."
 
 # ---------------------------------------------------------------- Lua
 

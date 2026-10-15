@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include <bit>
 #include <cmath>
@@ -71,7 +72,7 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
         long cellX = std::lrint(Round(kOne / cell * patrol.position.x));
         long cellY = std::lrint(Round(kOne / cell * patrol.position.y));
         PatrolPoint point{};
-        point.looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+        point.looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
         point.position.y = Round((static_cast<double>(cellY) + kHalf) * cell);
         point.position.x = Round((static_cast<double>(cellX) + kHalf) * cell);
         point.position.z = 0.0f;

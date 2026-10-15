@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_ai.h"
+#include "lib/mfc_array.h"
 
 #include <cstring>
 
@@ -19,11 +20,11 @@ constexpr int kTypePatrol = 1;
 constexpr int kTypeFear = 7;
 } // namespace
 
-void __fastcall aimode::LookAroundExecute(AIMode*, void*, AIBrain* brain) {
+void AIMode::LookAroundExecute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->Say(kRemarkIdle);
     brain->LookAround(0);
 }
-EI_REPLACE(0x005D0A90, aimode::LookAroundExecute);
+EI_REPLACE_METHOD(0x005D0A90, AIMode::LookAroundExecute);
 
 int __fastcall aimode::PatrolType(AIMode*) { return kTypePatrol; }
 EI_REPLACE(0x005D1210, aimode::PatrolType);
@@ -61,7 +62,7 @@ void PatrolMode::Destruct() {
         // The elements' destructors: each look array's base destructor.
         for (int i = 0; i < points.size; ++i) {
             AILookArray& looks = points[i].looks;
-            looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+            looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
             if (looks.data) gamecrt::operator_delete(looks.data);
         }
         gamecrt::operator_delete(points.data);
@@ -89,7 +90,7 @@ EI_REPLACE_METHOD(0x005D1140, PatrolMode::Rebuild);
 PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*, PatrolPoint* out, int index) {
     const PatrolPoint& source = points->data[index];
     std::memcpy(&out->position, &source.position, sizeof(Vector3));
-    out->looks.Construct(kLookArrayVtable);
+    out->looks.Construct(mfc::impl::AiLookRecordArrayClass::Vtable());
     out->looks.SetSize(source.looks.size, -1);
     for (int i = 0; i < source.looks.size; ++i) out->looks.data[i] = source.looks.data[i];
     return out;
@@ -122,7 +123,7 @@ PatrolMode* PatrolMode::Clone() {
             LooksElementAt(&temporary.looks, nullptr, &look, j);
             target.looks.data[j] = look;
         }
-        temporary.looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+        temporary.looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
         if (temporary.looks.data) gamecrt::operator_delete(temporary.looks.data);
     }
     clone->current = current;
@@ -180,7 +181,7 @@ void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
     if (!points->data) return;
     for (int i = 0; i < points->size; ++i) {
         AILookArray& looks = points->data[i].looks;
-        looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+        looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
         if (looks.data) gamecrt::operator_delete(looks.data);
     }
     gamecrt::operator_delete(points->data);

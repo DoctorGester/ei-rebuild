@@ -605,22 +605,22 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
     char* materialRecord = nullptr;
     switch (kind) {
     case kItemWeapon:
-        prototype = Weapons().At(index, kWeaponSize);
-        materialRecord = Materials().At(material, kMaterialSize);
+        prototype = Weapons().RecordAt(index, kWeaponSize);
+        materialRecord = Materials().RecordAt(material, kMaterialSize);
         break;
     case kItemArmor:
-        prototype = Armors().At(index, kArmorSize);
-        materialRecord = Materials().At(material, kMaterialSize);
+        prototype = Armors().RecordAt(index, kArmorSize);
+        materialRecord = Materials().RecordAt(material, kMaterialSize);
         break;
     case kItemQuick:
     case kItemSpell:
-        prototype = QuickItems().At(index, kQuickItemSize);
+        prototype = QuickItems().RecordAt(index, kQuickItemSize);
         break;
     case kItemLoot:
-        prototype = Loot().At(index, kLootSize);
+        prototype = Loot().RecordAt(index, kLootSize);
         break;
     case kItemQuest:
-        prototype = QuestItems().At(index, kQuestItemSize);
+        prototype = QuestItems().RecordAt(index, kQuestItemSize);
         break;
     default:
         break;
@@ -657,7 +657,7 @@ template <typename Record, typename NameOf>
 void ListRecordNames(const RecordTable& table, mfc::CStringArray* names, NameOf nameOf) {
     names->SetSize(static_cast<int>(table.end - table.begin) / static_cast<int>(sizeof(Record)), -1);
     for (int i = 0; i < names->size; ++i) {
-        auto* record = reinterpret_cast<const Record*>(table.At(static_cast<std::uint32_t>(i), sizeof(Record)));
+        auto* record = reinterpret_cast<const Record*>(table.RecordAt(static_cast<std::uint32_t>(i), sizeof(Record)));
         names->data[i] = *nameOf(record);
     }
 }

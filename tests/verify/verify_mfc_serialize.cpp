@@ -210,7 +210,7 @@ struct MapSerialize {
             if (i == 0) key = K{};   // every map's first key the same
             V value;
             Pattern(&value, sizeof(V), which * 16 + i + 7);
-            *Abi::At(&m, nullptr, &key) = value;
+            *Abi::ElementAt(&m, nullptr, &key) = value;
         }
     }
     static bool Same(const Map& x, const Map& y) {

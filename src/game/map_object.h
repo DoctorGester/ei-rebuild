@@ -189,6 +189,7 @@ public:
     std::uintptr_t AddEffectImpl(const MapEffect* effect);   // body of the slot above (registered by member pointer)
     virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 (the new flags_)
     virtual int SetVisibilityMode(int mode);    // 47 (0xBC): 004467C0 hands it to the companion
+    std::uintptr_t SetVisibilityModeImpl(int mode);   // body of the slot above (registered by member pointer)
     virtual Vector3* EyePoint(Vector3* out);        // 48 (0xC0): where the object sees from; returns `out`
     virtual std::uint32_t ReadNetState(int first);   // 49 (RET 4): 0050EC30 (units 0052EF90)
     virtual void WriteNetState();      // 50: 0050EAF0 (units 0052EC70)

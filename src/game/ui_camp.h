@@ -1089,6 +1089,8 @@ static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 // quick slots along the top, and in the camp the body with its seven equipment slots.
 class CHeroEquipPanel : public CUiItemPanel {
 public:
+    // Body of the slot at 00622420 (registered by member pointer).
+    int DrawImpl(int pass);
     // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
     // regions and the four body pictures (textures camp1..camp4).

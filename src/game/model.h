@@ -208,6 +208,7 @@ static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
 inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransformPipeline* const*>(0x007AF068); }
 
 struct tagRECT;
+struct ScreenPoints;   // renderer_lines.h
 class CTextureDevice;
 namespace options {
 class GameOptions;
@@ -309,13 +310,17 @@ static_assert(offsetof(CRenderHelper, records_) == 0xF8 && offsetof(CRenderHelpe
 // Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
 class __declspec(novtable) CSceneRenderer {
 public:
+    // Body of the slot at 005045D0 (registered by member pointer).
+    int PolylineImpl(const ScreenPoints* points, std::uint32_t colour);
     // 0: 00501AB0. Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
     virtual void SetFogColourState(std::uint32_t colour);
+    int SetFogColourStateImpl(std::uint32_t colour);   // body of the slot above (registered by member pointer)
     // 1: 00500AA0 (RET 4; renderer_lifetime.cpp). Destructor body (00500AC0), then operator delete
     // when bit 0 of `flags` is set. Returns this.
     virtual void* DeleteRenderer(unsigned flags);
     void* DeleteRendererImpl(unsigned flags);   // body of the slot above (registered by member pointer)
     virtual void Unknown2();   // 2: 00500B70 (the creation, renderer_init.cpp)
+    void CreateRendererImpl(void* window, options::GameOptions* settings);   // body of the slot above (registered by member pointer)
     // 3: 005019F0 (renderer_lifetime.cpp). The base part's DestroyBase, flags_ bit 1 cleared, the
     // helper and the device object dropped (each set to null, then released).
     virtual void DestroyRenderer();
@@ -333,12 +338,14 @@ public:
     // 9: 00501AA0. The device object's z-buffer setting (CTextureDevice::zEnable_).
     virtual std::uint32_t ZEnable();
     virtual void Unknown10();
+    int SetBlendImpl(std::uint32_t source, std::uint32_t dest);   // body of the slot above (registered by member pointer)
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
     virtual int SetTexture(int stage, void* texture);
     int SetTextureImpl(int stage, void* texture);   // body of the slot above (registered by member pointer)
     // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
     // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
+    int DrawTrianglesImpl(void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);   // body of the slot above (registered by member pointer)
     // 13: 00501D40 (RET 0x1C). Draws `figure` (a CFigureMesh) through its drawer's lit draw
     // (005A7A70) with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
     // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
@@ -361,14 +368,17 @@ public:
     // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
     // and `offset` along it (0 and 0: untextured lengthwise), `slant` 0.25 at every call known.
     virtual int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant);
+    int DrawStripImpl(const int* points, float width, int mode, float uLength, float vStart, float vSize);   // body of the slot above (registered by member pointer)
     // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
     // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
     // rectangles. The first argument is 0 at every call known.
     virtual int DrawSprites(int unknown, void* points, void* sprites);
+    int DrawSpritesImpl(char additive, const void* pointArray, const void* spriteArray);   // body of the slot above (registered by member pointer)
     virtual void Unknown18();
     // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
     virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
+    int DrawRectangleImpl(int left, int top, int right, int bottom, char alpha, char outline);   // body of the slot above (registered by member pointer)
 
     // renderer_lifetime.cpp (A-U11). The base class (CVisualizator in the original's messages, vtable
     // 0073D8A0: slots 1 00500460, 2 00500540, 3 005006E0, 7 00500740, the rest pure) owns +0x04 ..

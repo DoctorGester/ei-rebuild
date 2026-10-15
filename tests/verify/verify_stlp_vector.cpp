@@ -156,6 +156,7 @@ struct FreeCheck {
     }
 };
 template <std::uintptr_t A> using Free1 = FreeCheck<A, Vector1>;
+template <std::uintptr_t A> using Free2 = FreeCheck<A, Vector2>;
 template <std::uintptr_t A> using Free4 = FreeCheck<A, Vector4>;
 template <std::uintptr_t A> using Free8 = FreeCheck<A, Vector8>;
 template <std::uintptr_t A> using Free12 = FreeCheck<A, Vector12>;
@@ -489,6 +490,8 @@ EI_VERIFY(0x006B6D30, Free1<0x006B6D30>::DestroyBase, 5, Free1<0x006B6D30>::orig
 EI_VERIFY(0x00598D80, Free1<0x00598D80>::DestroyBase, 5, Free1<0x00598D80>::original);
 EI_VERIFY(0x006B72E0, Free1<0x006B72E0>::DestroyBase, 5, Free1<0x006B72E0>::original);
 EI_VERIFY(0x00405BF0, Free4<0x00405BF0>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x004389C0, Free4<0x004389C0>::DestroyBase, 0, s_unused);   // S16b
+EI_VERIFY(0x004336D0, Free2<0x004336D0>::DestroyBase, 0, s_unused);   // S16b
 EI_VERIFY(0x00405DB0, Free4<0x00405DB0>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x00405E00, Free4<0x00405E00>::DestroyBase, 0, s_unused);
 EI_VERIFY(0x00405E50, Free4<0x00405E50>::DestroyBase, 0, s_unused);

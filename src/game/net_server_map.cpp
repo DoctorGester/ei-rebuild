@@ -11,6 +11,9 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world.h"
+#include "world_data.h"
+#include "game_flow_data.h"
 
 #include <cstring>
 
@@ -46,15 +49,7 @@ __declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, cons
 void __fastcall NamesFree(StringRep* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
 inline void __fastcall StringDeallocate(char**, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
-constexpr std::uintptr_t kFinishSuffix = 0x00783D84;      // "_3"
-constexpr std::uintptr_t kWorld = 0x007AFE20;
-constexpr std::uintptr_t kTextTable = 0x007C7D50;
-constexpr std::uintptr_t kMapRegistry = 0x007C87D4;
 
-constexpr std::uintptr_t kMapSuffix = 0x00783D80;      // appended to the map name for the message
-constexpr std::uintptr_t kRegistrySuffix = 0x00783D70; // appended for the registry lookup
-constexpr std::uintptr_t kPathPrefix = 0x00783D7C;
-constexpr std::uintptr_t kPathMiddle = 0x00783D78;
 constexpr std::uintptr_t kPathSuffix = 0x00783D74;
 
 std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
@@ -87,7 +82,7 @@ void ServerSession::SetMap(const StringRep* name) {
     ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
 
     StringRep messageName;
-    StringPlusText(&messageName, name, game::Text(kMapSuffix));
+    StringPlusText(&messageName, name, game::ZoneSuffix2Text());
     auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
     ZoneMessage* message = memory ? memory->Construct() : nullptr;
     MessageStringAssign(&message->text_, nullptr, &messageName);
@@ -111,19 +106,19 @@ void ServerSession::SetMap(const StringRep* name) {
     if (name != &current->text_) StringAssign(&current->text_, nullptr, name->start, name->finish, mapMessage);
     if (name != &mapName_) StringAssign(&mapName_, nullptr, name->start, name->finish, mapMessage);
 
-    void* world = reinterpret_cast<void*>(kWorld);
+    void* world = TheGameFlow();
     FlowRegisterQuestsOriginal(world, nullptr, name->start);
     WorldPrepareMap(world, nullptr, name->start);
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = WorldMapTitle(world, nullptr, &title);
-    void* textOut = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &text, 5, *static_cast<const char**>(titleOut));
+    void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 5, *static_cast<const char**>(titleOut));
     Announce(*static_cast<const char**>(textOut), nullptr);
     CStringDestroy(&text);
     CStringDestroy(&title);
 
     StringRep registryName;
-    StringPlusText(&registryName, name, game::Text(kRegistrySuffix));
-    auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &registryName));
+    StringPlusText(&registryName, name, game::ZoneSuffix1Text());
+    auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &registryName));
     StringRepDestroy(&registryName);
     if (!entry) return;
 
@@ -146,9 +141,9 @@ void ServerSession::SetMap(const StringRep* name) {
 
     std::uint32_t alloc;
     StringRep prefix, a, b, path;
-    StringFromText(&prefix, nullptr, game::Text(kPathPrefix), &alloc);
+    StringFromText(&prefix, nullptr, game::Text(flowdata::kQuestVariablePrefix), &alloc);
     StringPlusString(&a, &prefix, name);
-    StringPlusText(&b, &a, game::Text(kPathMiddle));
+    StringPlusText(&b, &a, game::Text(flowdata::kDot));
     StringPlusString(&path, &b, name);
     SetVariable(&path, 1.0f);
     StlStringDestroy(&path);
@@ -157,9 +152,9 @@ void ServerSession::SetMap(const StringRep* name) {
     StlStringDestroy(&prefix);
 
     StringRep prefix2, a2, b2, c2, path2;
-    StringFromText(&prefix2, nullptr, game::Text(kPathPrefix), &alloc);
+    StringFromText(&prefix2, nullptr, game::Text(flowdata::kQuestVariablePrefix), &alloc);
     StringPlusString(&a2, &prefix2, name);
-    StringPlusText(&b2, &a2, game::Text(kPathMiddle));
+    StringPlusText(&b2, &a2, game::Text(flowdata::kDot));
     StringPlusString(&c2, &b2, name);
     StringPlusText(&path2, &c2, game::Text(kPathSuffix));
     SetVariable(&path2, 1.0f);
@@ -175,7 +170,7 @@ void ServerSession::SetMap(const StringRep* name) {
 // 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
-    void* flow = reinterpret_cast<void*>(kWorld);
+    void* flow = TheGameFlow();
     FlowUnloadQuestTexts(flow);
     struct {
         StringRep* start;
@@ -190,7 +185,7 @@ void ServerSession::QueueMapList() {
     FlowPickZones(flow, nullptr, &zones, kind_, mapName_.start);
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
         StringRep key;
-        StringPlusText(&key, zone, game::Text(kMapSuffix));
+        StringPlusText(&key, zone, game::ZoneSuffix2Text());
         auto* message = NewMessageMemory<ZoneMessage>();
         if (message) {
             MessageConstructBase(message);
@@ -237,7 +232,7 @@ bool ServerSession::FinishMap(const StringRep* name) {
     static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
 
     StringRep messageName;
-    StringPlusText(&messageName, name, game::Text(kFinishSuffix));
+    StringPlusText(&messageName, name, game::ZoneSuffix3Text());
     auto* message = NewMessageMemory<ZoneMessage>();
     if (message) {
         MessageConstructBase(message);

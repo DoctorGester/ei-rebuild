@@ -153,6 +153,8 @@ EI_REPLACE(0x004FB6A0, Vector1::DestroyBase);
 EI_REPLACE(0x004FB290, Vector4::DestroyBase);
 EI_REPLACE(0x004FB6F0, Vector4::DestroyBase);
 EI_REPLACE(0x005F8E00, Vector4::DestroyBase);
+EI_REPLACE(0x004389C0, Vector4::DestroyBase);   // the session's handler vectors (no Ghidra function; S16b)
+EI_REPLACE(0x004336D0, Vector2::DestroyBase);   // the connection's id pools (S16b)
 EI_REPLACE(0x005F9090, Vector8::DestroyBase);
 EI_REPLACE(0x006342C0, Vector8::DestroyBase);
 EI_REPLACE(0x00482440, Vector12::DestroyBase);

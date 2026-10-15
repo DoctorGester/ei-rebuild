@@ -122,7 +122,7 @@ EI_VERIFY(0x006A6470, LootItemRecordKindVerify, 5, KindCheck<itemdb::LootItemRec
 
 // A-H25. The other kinds' operator= (stolen 0, as the weapon's: only a vector insert in the middle
 // reaches them), the base record's constructor and the material's copy constructor (the vectors'
-// resize and growth while the databases load: every run), RecordTable::At out of line (no caller
+// resize and growth while the databases load: every run), RecordTable::RecordAt out of line (no caller
 // left: 006A3CD0 is rewritten).
 namespace {
 template <typename R, R* (R::*Assign)(const R*)>
@@ -185,7 +185,7 @@ struct TableAtCheck {
     static inline char*(__fastcall* original)(const RecordTable*, void*, std::uint32_t);
     static char* __fastcall Verify(const RecordTable* table, void*, std::uint32_t index) {
         char* expected = original(table, nullptr, index);
-        ei::verify::Check("RecordTable::At", true, expected == RecordTableAt<Stride>(table, nullptr, index),
+        ei::verify::Check("RecordTable::RecordAt", true, expected == RecordTableAt<Stride>(table, nullptr, index),
                           "stride 0x%X index %u", static_cast<unsigned>(Stride), index);
         return expected;
     }

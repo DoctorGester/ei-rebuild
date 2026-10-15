@@ -264,6 +264,12 @@ static_assert(offsetof(CUnitController, unit_) == 0x1C);
 // unit's own slots 62-76 are not declared (CFakeUnit, 0073BFE8, shares the rewritten ones).
 class __declspec(novtable) CUnit : public CMapObject {
 public:
+    // Body of the slot at 00446830 (registered by member pointer).
+    const mfc::CString* SetScriptNameImpl(const char* newName);
+    // Body of the slot at 00446850 (registered by member pointer).
+    void ObjectDeletedImpl(CEngineObject* object);
+    // Body of the slot at 004467F0 (registered by member pointer).
+    int TakeHitImpl(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
     CEngineObject* CarriedItem(int index) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 

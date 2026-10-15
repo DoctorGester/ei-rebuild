@@ -50,7 +50,6 @@ int CharAt(const char* p) {
 }
 
 constexpr std::uintptr_t kNewline = 0x00784340;   // "\n" appended to flush the last line
-constexpr std::uintptr_t kSpace = 0x0078DA40;     // " " put back after each word
 
 } // namespace
 
@@ -85,10 +84,10 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
         } else if (c == ' ') {
             if (TextExtent(interface_, line + word, font).cx > width) {
                 lines.SetAtGrow(lines.GetSize(), line);
-                line = word + game::Text(kSpace);
+                line = word + game::SpaceText();
             } else {
                 line += word;
-                line += game::Text(kSpace);
+                line += game::SpaceText();
             }
             word.Empty();
         } else {

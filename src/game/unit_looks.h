@@ -20,6 +20,8 @@ using UnitIdList = stlp::vector<std::uint32_t>;
 // [3..6] the armour) and the extra weapons, one of which (`extraWeapon`) is shown. The server's
 // unit set (world.h, UnitSet) holds the same records; its figured records start with this head.
 struct DressedUnitRecord {
+    // Body of the slot at 0055A9F0 (registered by member pointer).
+    DressedUnitRecord* CopyConstruct(const DressedUnitRecord* from);
     // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the prototype (2 bytes), each id list's
     // count and dwords (the data written even when empty), the byte and the dword through
     // `stream`'s slot 2 (also called on a FiguredUnitRecord's head).
@@ -39,6 +41,8 @@ static_assert(sizeof(DressedUnitRecord) == 0x24);
 // Another unit of the zone (the first list read, 0x3C bytes): its prototype, armour and weapon
 // ids, the figure's morph coefficients and the texture names (none: from the prototype, 00535CB0).
 struct FiguredUnitRecord {
+    // Body of the slot at 0055A860 (registered by member pointer).
+    FiguredUnitRecord* CopyConstruct(const FiguredUnitRecord* from);
     std::uint16_t prototype;        // +0x00
     std::uint16_t unused_02;
     UnitIdList armourIds;           // +0x04

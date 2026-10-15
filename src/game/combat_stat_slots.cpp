@@ -67,7 +67,7 @@ EI_REPLACE_METHOD(0x00553500, CUnitServer::RepackStats);
 bool CUnitServer::AddArmourLayerOf(std::uint32_t key) {
     // A key out of range gives no record; the original then faults reading its type, as this does.
     auto* record = reinterpret_cast<const itemdb::ArmorRecord*>(
-        itemdb::Armors().At(key >> 16, itemdb::kArmorSize));
+        itemdb::Armors().RecordAt(key >> 16, itemdb::kArmorSize));
     stats.AddArmourLayer(unit->armor[record->type]);
     return false;
 }

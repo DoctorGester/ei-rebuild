@@ -54,7 +54,7 @@ int RowOfSlot(int slot) {
 // The compiler-inlined strcmp of the original (bytes compared unsigned): zero when equal.
 bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
-const char* ArmourRecord(std::uint32_t type) { return itemdb::Armors().At(type, itemdb::kArmorSize); }
+const char* ArmourRecord(std::uint32_t type) { return itemdb::Armors().RecordAt(type, itemdb::kArmorSize); }
 
 // The figure manager (global 007AF5F4) and the texture manager (007AF744).
 void* FigureManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
@@ -110,7 +110,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         mfc::CString part(plain);
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
                             reinterpret_cast<const unsigned char*>(kHair)) == 0) {
-            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_),
+            const char* prototype = unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(unit->prototypeId_),
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
@@ -169,7 +169,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
         if (!plain[0]) break;
         mfc::CString part(plain);
         if (CompareNames(part, kHair) == 0) {
-            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_),
+            const char* prototype = unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(unit->prototypeId_),
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
@@ -364,7 +364,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         SetLayerCount(out, nullptr, kSimpleLayers, -1);
         std::uint32_t id = armourIds[0];
         if (id != kNone) {
-            if (const char* armour = armours.At(id >> 16, itemdb::kArmorSize)) {
+            if (const char* armour = armours.RecordAt(id >> 16, itemdb::kArmorSize)) {
                 out->data[0].id = id;
                 out->data[0].kind = kLayerArmour;
                 out->data[0].slot = ItemHead(armour)->type;
@@ -372,7 +372,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         }
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && (id = weaponIds[hand]) != kNone) {
-            if (const char* weapon = itemdb::Weapons().At(id >> 16, itemdb::kWeaponSize)) {
+            if (const char* weapon = itemdb::Weapons().RecordAt(id >> 16, itemdb::kWeaponSize)) {
                 out->data[1].id = id;
                 out->data[1].kind = kLayerWeapon;
                 out->data[1].slot = ItemHead(weapon)->type;
@@ -389,7 +389,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
     for (int k = 0; k < 7; ++k) {
         std::uint32_t id = armourIds[k];
         if (id == kNone) continue;
-        const char* armour = armours.At(id >> 16, itemdb::kArmorSize);
+        const char* armour = armours.RecordAt(id >> 16, itemdb::kArmorSize);
         if (!armour) continue;
         out->data[k + 1].id = id;
         out->data[k + 1].kind = kLayerArmour;
@@ -482,7 +482,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     unitKey.Format(game::Text(0x0078FB7C), id);                    // "mo%dp"
     prototypeKey.Format(game::Text(0x0078FB74), unit->prototypeId_);  // "prot%dp"
     request.flags = kFlagDetailed;
-    const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_), unitdb::kPrototypeSize);
+    const char* prototype = unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(unit->prototypeId_), unitdb::kPrototypeSize);
     if (prototype)
         texture.Format(game::Text(0x0078FB64), unit->name, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
     else

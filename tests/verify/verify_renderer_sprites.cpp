@@ -19,8 +19,6 @@ struct SpriteSortRecord {
 void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending);
 void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count);
-int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
-                           const void* spriteArray);
 
 namespace {
 struct AlignedArray {
@@ -72,7 +70,7 @@ EI_VERIFY(0x00503680, DrawIndexedVerify, 0, s_drawIndexed);
 static void* s_sprites;
 static int __fastcall DrawSpritesVerify(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
                                         const void* spriteArray) {
-    int result = DrawSprites(renderer, nullptr, additive, pointArray, spriteArray);
+    int result = renderer->DrawSpritesImpl(additive, pointArray, spriteArray);
     int points = static_cast<const int*>(pointArray)[1];
     bool ok = result == 0 || result == 1;
     if (points > 0) {

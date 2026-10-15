@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/mfc_array.h"
 
 #include <bit>
 #include <cmath>
@@ -77,7 +78,7 @@ float PrototypeSize(CUnit* unit) {
 // clears the order (00545B20).
 void ConstructOrder(AIMoveOrder* order) {
     LooksInit(&order->looks);
-    order->looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+    order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
     order->Reset();
 }
 

@@ -28,7 +28,6 @@ void __fastcall PlayerManagerDestruct(CPlayerManager* self);
 const char* __fastcall EffectManagerClassName(CBaseManager*);
 int __fastcall EffectManagerClassId(CBaseManager*);
 void __fastcall EffectManagerDestruct(CBaseManager* self);
-CBaseManager* __fastcall EffectManagerDelete(CBaseManager* self, void*, unsigned flags);
 BOOL __fastcall EffectManagerCreate(CBaseManager* self);
 const char* __fastcall ItemManagerClassName(CItemManager*);
 int __fastcall ItemManagerClassId(CItemManager*);
@@ -103,7 +102,7 @@ void __fastcall EffectDestructVerify(CBaseManager* self) {
     ei::verify::Check("EffectManagerDestruct", CEngineObject::kVtableAddress, VtableOf(self), "");
 }
 void* __fastcall EffectDeleteVerify(CBaseManager* self, void*, unsigned flags) {
-    void* result = EffectManagerDelete(self, nullptr, flags);
+    void* result = static_cast<CEffectManager*>(self)->DeleteScalar(flags);
     ei::verify::Check("EffectManagerDelete", static_cast<void*>(self), result, "");
     return result;
 }

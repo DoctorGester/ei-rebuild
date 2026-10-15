@@ -2,11 +2,11 @@
   "scenario": "terrain_water_load",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "5d15174f",
+  "commit": "39d56af7",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^obj2 hp$)",
+  "clear": null,
   "repeated_in": 4,
-  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
-  "saves": "not kept: saves: differs from line 2: the first run 'save1/mission.sav 50766 35d1b4a551d1cf3d', orig2 'save1/mission.sav 50768 b8ad6b04e88f59b2'"
+  "reason": "SV7b3: unit statistics stack copies zeroed in the original (harness) and ours; the passes left out part on script group order (gobject.i 699/702/1884, SV7b1); agreeing: orig0 j1 j3f ours1",
+  "saves": "6 decoded saves (tools/savefile.py), the same in 4 runs"
 }

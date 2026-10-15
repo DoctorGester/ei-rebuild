@@ -397,11 +397,10 @@ EI_REPLACE_METHOD(0x00503680, CTextureDevice::DrawIndexedDirect);
 // byte counts) the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and
 // restored). The view matrix is the top of the pipeline's clip stack, transposed. Returns 1, or
 // 0 when a draw fails (the blend is then left as it is).
-int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
-                           const void* spriteArray) {
+int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const void* spriteArray) {
     const auto* points = static_cast<const PointArray*>(pointArray);
     const auto* sprites = static_cast<const SpriteArray*>(spriteArray);
-    CTransformPipeline* pipeline = renderer->pipeline_;
+    CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();
     Unused().SetSizeDiscard(0x200);
@@ -417,10 +416,10 @@ int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const
     DWORD savedSource = 0;
     DWORD savedDest = 0;
     if (additive) {
-        device::GetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, &savedSource);
-        device::GetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, &savedDest);
-        device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-        device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+        device::GetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, &savedSource);
+        device::GetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, &savedDest);
+        device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+        device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
         render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
         render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     }
@@ -434,21 +433,21 @@ int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const
         point += count;
         int kept = SortBackToFront();
         if (visibility == 1) {
-            if (!DrawClipped(renderer, kept, screen)) return 0;
+            if (!DrawClipped(this, kept, screen)) return 0;
         } else if (visibility == 0) {
-            if (!DrawQuads(renderer, kept)) return 0;
+            if (!DrawQuads(this, kept)) return 0;
         }
     }
 
     if (additive) {
-        device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, savedSource);
-        device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, savedDest);
+        device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
+        device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
         render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));
         render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     }
     return 1;
 }
-EI_REPLACE(0x00502CA0, DrawSprites);
+EI_REPLACE_METHOD(0x00502CA0, CSceneRenderer::DrawSpritesImpl);
 
 // The sprite buffers' aligned array copies (A-U10), registered on the template (RET 8): SetSize
 // keeping the contents for 32-byte (00504F70), 16-byte (00505150) and 4-byte (00505270) elements,

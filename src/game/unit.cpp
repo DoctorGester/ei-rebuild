@@ -383,19 +383,19 @@ EI_REPLACE_METHOD(0x005302F0, CUnit::ModeSpeed);
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-char* CUnit::GetPrototype() { return unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize); }
+char* CUnit::GetPrototype() { return unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize); }
 EI_REPLACE_METHOD(0x00530930, CUnit::GetPrototype);
 
 char* CUnit::GetPrototypeModel() {
-    char* prototype = unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize);
+    char* prototype = unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize);
     if (!prototype) return nullptr;
-    return unitdb::Models().At(static_cast<std::uint32_t>(reinterpret_cast<const UnitPrototypeRecord*>(prototype)->modelIndex),
+    return unitdb::Models().RecordAt(static_cast<std::uint32_t>(reinterpret_cast<const UnitPrototypeRecord*>(prototype)->modelIndex),
                                unitdb::kModelSize);
 }
 EI_REPLACE_METHOD(0x00530970, CUnit::GetPrototypeModel);
 
 char* CUnit::GetPrototype23C() {
-    return unitdb::Prototypes().At(static_cast<std::uint32_t>(prototype23C), unitdb::kPrototypeSize);
+    return unitdb::Prototypes().RecordAt(static_cast<std::uint32_t>(prototype23C), unitdb::kPrototypeSize);
 }
 EI_REPLACE_METHOD(0x005309E0, CUnit::GetPrototype23C);
 

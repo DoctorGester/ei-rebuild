@@ -62,7 +62,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     const std::uint32_t low = packed & 0xFFFF;
     spell->prototypeId_ = packed;
     if (low == 0) {
-        spell->InitFromPrototype(itemdb::Spells().At(packed >> 16, itemdb::kSpellSize));
+        spell->InitFromPrototype(itemdb::Spells().RecordAt(packed >> 16, itemdb::kSpellSize));
         return spell;
     }
     const std::uint32_t key = packed & 0xFFFF0000;
@@ -156,7 +156,7 @@ void ListRecordNames(const RecordTable& table, mfc::CStringArray* names) {
     const int stride = static_cast<int>(sizeof(Record));
     names->SetSize(static_cast<int>(table.end - table.begin) / stride, -1);
     for (int i = 0; i < static_cast<int>(table.end - table.begin) / stride; ++i) {
-        auto* record = reinterpret_cast<const Record*>(table.At(static_cast<std::uint32_t>(i), stride));
+        auto* record = reinterpret_cast<const Record*>(table.RecordAt(static_cast<std::uint32_t>(i), stride));
         names->data[i] = record->name;
     }
 }

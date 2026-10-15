@@ -177,6 +177,8 @@ static_assert(sizeof(CChatWindow) == 0x170);
 
 class CBriefingScreen : public CUiContainer {
 public:
+    // Body of the slot at 00602BF0 (registered by member pointer).
+    int DrawImpl(int pass);
     // Main vtable slots (ui_briefing.cpp).
     // 00602BB0 (slot 26). The screen closes: the map edge fade (0079BD34) back to the value
     // Create saved, the client glue's 00578920(1) / 00578940, the camera free again (flag 0x40,

@@ -62,7 +62,6 @@ void EnsureStatics() {
     EnsureStatic(0x10, Strip(), 0x00502C00);
 }
 
-
 // --- Device calls --------------------------------------------------------------------------------
 
 IDirect3DDevice7* Device(CSceneRenderer* renderer) { return device::D3D(renderer->device_); }
@@ -311,9 +310,8 @@ EI_REPLACE_METHOD(0x00502A20, CTextureDevice::DrawTlTriangles);
 // clips (points flagged by the transform object are skipped), 2 only sizes the buffers; u runs over
 // `uLength` along the ribbon (0.875 at the start when it is 0), v from `vStart` over `vSize`.
 // Returns the draw's result (1 when nothing is drawn).
-int __fastcall DrawRibbon(CSceneRenderer* renderer, void*, const int* points, float width, int mode, float uLength,
-                          float vStart, float vSize) {
-    CTransformPipeline* pipeline = renderer->pipeline_;
+int CSceneRenderer::DrawStripImpl(const int* points, float width, int mode, float uLength, float vStart, float vSize) {
+    CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();
 
@@ -401,23 +399,23 @@ int __fastcall DrawRibbon(CSceneRenderer* renderer, void*, const int* points, fl
     }
 
     if (Indices().size == 0) return 1;
-    IDirect3DDevice7* device = Device(renderer);
+    IDirect3DDevice7* device = Device(this);
     DWORD savedSource = 0, savedDest = 0;
     device::GetRenderState(device, D3DRENDERSTATE_SRCBLEND, &savedSource);
-    device::GetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, &savedDest);
-    device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-    device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+    device::GetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, &savedDest);
+    device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+    device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-    int result = renderer->device_->DrawTlTriangles(reinterpret_cast<TLVertex*>(Ribbon().data), Ribbon().size,
+    int result = device_->DrawTlTriangles(reinterpret_cast<TLVertex*>(Ribbon().data), Ribbon().size,
                                  reinterpret_cast<std::uint16_t*>(Indices().data), Indices().size);
-    device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, savedSource);
-    device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, savedDest);
+    device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
+    device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));
     render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     return result;
 }
-EI_REPLACE(0x00501D90, DrawRibbon);
+EI_REPLACE_METHOD(0x00501D90, CSceneRenderer::DrawStripImpl);
 
 // 00504E50 (RET 4): the index array's Add (A-U10), registered on the template; returns the index.
 EI_REPLACE_METHOD(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);

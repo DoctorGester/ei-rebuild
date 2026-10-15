@@ -38,7 +38,6 @@ constexpr int kI3DFigureId = 0x46;
 constexpr int kFigureClientSpecificId = 0x36;
 constexpr int kUiObjectId = 0x45;
 
-
 } // namespace
 
 const char* __fastcall WorldClientClassName(CWorldClient*) { return game::Text(kWorldClientName); }
@@ -130,14 +129,14 @@ EI_REPLACE(0x005619B0, WorldClientParticleManager);
 EI_REPLACE(0x005619C0, WorldClientManager194);
 EI_REPLACE(0x005619D0, WorldClientManager198);
 
-void __fastcall WorldClientMoveObject(CWorldClient* self, void*, CEngineObject* object, const float* position) {
-    self->objectGrid_.Move(object, position);
+void CWorldClient::MoveObjectImpl(CEngineObject* object, const float* position) {
+    objectGrid_.Move(object, position);
 }
-void __fastcall WorldClientMoveObject2(CWorldClient* self, void*, CEngineObject* object, const float* position) {
-    self->secondGrid_.Move2(object, position);
+void CWorldClient::MoveObject2Impl(CEngineObject* object, const float* position) {
+    secondGrid_.Move2(object, position);
 }
-EI_REPLACE(0x005618A0, WorldClientMoveObject);
-EI_REPLACE(0x005618C0, WorldClientMoveObject2);
+EI_REPLACE_METHOD(0x005618A0, CWorldClient::MoveObjectImpl);
+EI_REPLACE_METHOD(0x005618C0, CWorldClient::MoveObject2Impl);
 
 EI_REPLACE_METHOD(0x00562D70, CBaseManager::InitImpl);   // the lightning manager's Init (ClientListManager)
 EI_REPLACE_METHOD(0x00562DA0, CBaseManager::InitImpl);   // the vis-fog manager's Init (ClientArrayManager)

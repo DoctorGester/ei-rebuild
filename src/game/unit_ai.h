@@ -86,8 +86,6 @@ void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
 // 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
 AILook* __fastcall LooksElementAt(const AILookArray* looks, void*, AILook* out, int index);
-constexpr std::uintptr_t kLookArrayVtable = 0x0073D4B4;
-constexpr std::uintptr_t kLookArrayBaseVtable = 0x0073D460;
 
 // A move the modes prepare on the stack (0x20 bytes): where to go and what to look at there.
 struct AIMoveOrder {
@@ -153,6 +151,22 @@ struct AIMode {
     // 0040A3A0 (CRefObject::Release): drops a reference, deleting the mode at zero.
     void Release();
 
+    // 005D0A80 (unit_ai_modes.cpp). Slot 4 of Guard, Sentry, Follow and the abstract base: always 50.
+    int Priority50(AIBrain* brain);
+    // 005D0AF0. Slot 6 of Guard, Patrol, Sentry, Follow and the abstract base: drop the action and
+    // target, pick a new alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
+    void EnterIdle(AIBrain* brain);
+    // 005D0A50. Slot 6 (Enter) of CorpseWatcher, Player and the abstract base 0073D22C: drop the
+    // action and target.
+    void ClearAction(AIBrain* brain);
+    // 005D0A90 (unit_ai_mode_lifetime.cpp). Slot 5 (Execute) of the abstract base 0073D15C: the idle
+    // remark (1 in 1001), then LookAround(0).
+    void LookAroundExecute(AIBrain* brain);
+    // 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000
+    // (unit_ai_player_mode_slots.cpp).
+    int PlayerPriority(AIBrain* brain);
+    int TamedPriority(AIBrain* brain);
+
     // Shared slot implementations of the script-made modes (script_unit_modes.cpp).
     // 004BA320 / 004BA330 / 004BA440 / 004BA6A0 / 004BA700 / 004BA9B0. Destructor body of the plain
     // modes: the root vtable.
@@ -184,17 +198,6 @@ inline void* const kFearVtable = reinterpret_cast<void*>(0x0073FF8C);
 
 // Shared slot implementations of the simple modes (registered once, used by several vtables).
 namespace aimode {
-// 005D0A80. Slot 4 of Guard, Sentry, Follow and the abstract base: always 50.
-int __fastcall Priority50(AIMode* self, void*, AIBrain* brain);
-// 005D0AF0. Slot 6 of Guard, Patrol, Sentry, Follow and the abstract base: drop the action and
-// target, pick a new alertness decay (0.8 + 0.4 * random) and clear the controller's busy flag.
-void __fastcall EnterIdle(AIMode* self, void*, AIBrain* brain);
-// 005D0A50. Slot 6 (Enter) of CorpseWatcher, Player and the abstract base 0073D22C: drop the
-// action and target.
-void __fastcall ClearAction(AIMode* self, void*, AIBrain* brain);
-// 005D0A90 (unit_ai_mode_lifetime.cpp). Slot 5 (Execute) of the abstract base 0073D15C: the idle
-// remark (1 in 1001), then LookAround(0).
-void __fastcall LookAroundExecute(AIMode* self, void*, AIBrain* brain);
 // 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
 int __fastcall PatrolType(AIMode* self);
 int __fastcall FearType(AIMode* self);
@@ -208,8 +211,6 @@ inline void* const kPlayerVtable = reinterpret_cast<void*>(0x0073F0F8);
 inline void* const kTamedVtable = reinterpret_cast<void*>(0x0073F0C4);
 // 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000.
 // 005520A0 / 00552150 (slot 8): their types 6 and 8 (unit_ai_player_mode_slots.cpp).
-int __fastcall PlayerPriority(AIMode* self, void*, AIBrain* brain);
-int __fastcall TamedPriority(AIMode* self, void*, AIBrain* brain);
 int __fastcall PlayerType(AIMode* self);
 int __fastcall TamedType(AIMode* self);
 inline void* const kActionBaseVtable = reinterpret_cast<void*>(0x0073D22C);

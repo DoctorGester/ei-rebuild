@@ -20,6 +20,7 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "originals_ui.h"
+#include "game_flow_data.h"
 
 #include <cstring>
 #include <new>
@@ -28,12 +29,6 @@
 namespace {
 
 
-constexpr std::uintptr_t kBriefingSection = 0x007906E4;   // "briefing "
-constexpr std::uintptr_t kShowTag = 0x007906DC;           // "#show"
-constexpr std::uintptr_t kHero = 0x0078B0F4;              // "Hero"
-constexpr std::uintptr_t kElderPrefix = 0x007906F0;       // "b.elder."
-constexpr std::uintptr_t kVariablePrefix = 0x007906FC;    // "b."
-constexpr std::uintptr_t kDot = 0x00783D78;               // "."
 
 // The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
@@ -65,18 +60,18 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     void* texts = BriefingTexts();
     bool missing;
     {
-        mfc::CString prefix(game::Text(kBriefingSection));
+        mfc::CString prefix(game::briefingwords::BriefingSection());
         mfc::CString section = prefix + briefing;
         missing = TextsOpenSection(texts, nullptr, section) == 0;
     }
     if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
-    while (TextFindLineOriginal(texts, nullptr, game::Text(kShowTag))) {
+    while (TextFindLineOriginal(texts, nullptr, game::briefingwords::ShowTag())) {
         ReaderSplit(static_cast<CTextManager*>(texts), nullptr, &words, 1);
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),
-                             reinterpret_cast<const unsigned char*>(game::Text(kHero))) != 0)
+                             reinterpret_cast<const unsigned char*>(game::briefingwords::Hero())) != 0)
             return new (out) mfc::CString(words[1]);
     }
     return new (out) mfc::CString(game::EmptyText());
@@ -86,13 +81,13 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
     StringSlot speaker;
     BriefingSpeakerAt(speaker.Raw(), briefing);
     if (!IsEmpty(speaker.Get())) {
-        mfc::CString prefix(game::Text(kVariablePrefix));
+        mfc::CString prefix(game::briefingwords::VariablePrefix());
         mfc::CString withSpeaker = prefix + speaker.Get();
-        mfc::CString withDot = withSpeaker + game::Text(kDot);
+        mfc::CString withDot = withSpeaker + game::Text(flowdata::kDot);
         mfc::CString variable = withDot + briefing;
         speaker.Get() = variable;
     } else {
-        mfc::CString prefix(game::Text(kElderPrefix));
+        mfc::CString prefix(game::briefingwords::ElderPrefix());
         mfc::CString variable = prefix + briefing;
         speaker.Get() = variable;
     }
@@ -244,7 +239,6 @@ EI_REPLACE(0x005809D0, LoadZoneQuests);
 
 namespace {
 
-constexpr std::uintptr_t kQuestPrefix = 0x00783D7C;   // "q."
 
 } // namespace
 
@@ -257,7 +251,7 @@ void GameFlow::OnVariableChanged(const void* event) {
     {
         mfc::CString prefix = name.Left(2);
         quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                reinterpret_cast<const unsigned char*>(game::Text(kQuestPrefix))) == 0;
+                                reinterpret_cast<const unsigned char*>(game::Text(flowdata::kQuestVariablePrefix))) == 0;
     }
     if (quest) {
         QuestLogUpdateOriginal(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);
@@ -269,9 +263,6 @@ void GameFlow::OnVariableChanged(const void* event) {
 
 namespace {
 
-constexpr std::uintptr_t kQuestRegistry = 0x00790784;   // "\quest.reg"
-constexpr std::uintptr_t kMapList = 0x00790778;         // "\map.txt"
-constexpr std::uintptr_t kQuestSection = 0x00790790;    // "quest "
 
 // 005809D0 (RET 4, AL; patched by Rebirth). The flow loads the quests of a folder.
 inline bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char* a2) { return FlowLoadQuestsOriginal(a2); }
@@ -307,7 +298,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     bool registered;
     {
         mfc::CString base(folder);
-        mfc::CString path = base + game::Text(kQuestRegistry);
+        mfc::CString path = base + game::briefingwords::QuestRegistry();
         registered = TextsOpenSection(texts, nullptr, path) != 0;
     }
     if (!registered) return;
@@ -316,7 +307,7 @@ void GameFlow::RegisterQuests(const char* folder) {
                    const_cast<char*>(static_cast<CTextManager*>(texts)->cursor_));
     {
         mfc::CString base(folder);
-        mfc::CString path = base + game::Text(kMapList);
+        mfc::CString path = base + game::briefingwords::MapList();
         MapDatabaseLoad(reinterpret_cast<void*>(0x0079BF00), nullptr, path);
     }
     // push_back(folder)
@@ -344,7 +335,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     void* texts = BriefingTexts();
     int found;
     {
-        mfc::CString prefix(game::Text(kQuestSection));
+        mfc::CString prefix(game::briefingwords::QuestSection());
         mfc::CString section = prefix + name;
         found = TextsOpenSection(texts, nullptr, section);
     }

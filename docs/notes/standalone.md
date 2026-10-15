@@ -1210,6 +1210,72 @@ filed as S16b: 0069D9A0 (ui_camp_deals: the item stock's pointer vector allocate
 (ui_saveload_delete: the save entries' copy constructor), 00424E40 (ui_mp_host: the net strings' block
 allocation).
 
+**S16b (2026-10-15).** The three stops S16a left (0069D9A0, 00657C60, 00424E40) came with S12g from main
+(also 00427D60 / 00427FA0, the net strings' operator+ and ==; 00421A50, ~list<SharedRef>; 0069DC70 /
+0069DDD0, the stock's spell and modifier vectors' allocate-and-copy; 0060A660 / 0060AB00, the briefing
+speakers' insert overflow and _Construct), which this branch had ported the same way and dropped at the
+merge. Then every scenario was run under `--standalone` and the loop continued. Ported here, each at its
+address with a check (ours only unless said):
+- 005DF3A0 / 005DF490 / 005DF5A0: the console's join, server and memusage (console_commands.cpp; no
+  Ghidra functions, size rows by hand). join / server build a one-member party on the stack (Construct,
+  AddMember("F", "Human Hero", "Hercules" / "Serv")), hand it with the map name to the flow's request 5 / 6
+  (00581730 / 00581760), destroy it; server prints "Starting up a server" first; with not exactly one
+  argument the usage line (server's says "Join has 1 parameter, map name", as the original). memusage is a
+  jump to an empty function: ours is empty. The check: usage alone, or the flow's state and target after.
+  net_lobby reaches server. disconnect (005DFC10, a jump to 00581620 -> the client world's 00566E00) is
+  not reached by any scenario and stays unported (S16c).
+- 005E52A0: the cursor thread's AfxBeginThread procedure (CursorThread, exit code 0; ui_cursor_frame.cpp).
+- 005B80D0: counted_ptr's release, the exit function of 007C2F64 (RefPtrRelease, like 004A5D70).
+- 006B89B0: the sound loader's AIL_decompress_ASI callback (sound_manager.cpp
+  `SoundDecompressCallback`): at state 1 it sets "Requested bit width" 16, "Requested sample rate" 44100,
+  "Requested # of channels" 2 through the decoder's setter; returns 1. The check records the setter's calls
+  through a stand-in (1223 calls in ui_base_topic, 0 mismatches).
+- 004389C0 / 004336D0: ~_Vector_base of 4- and 2-byte elements (the session's handler vectors, the
+  connection's id pools; the latter only at exit), against the original's free.
+- ui_widescreen*: the image died silently at the startup action (`RESULT: RUNNING`, no INT3 report):
+  WideScreen's Startup parses VIDEORESOLUTION with sscanf before the hooks are in, and the image had no code
+  at 006EAEEC yet. Resolution() now calls libcrt::Sscanf directly (the same _input, S16's battery).
+All 98 scenarios pass under `--standalone` (`work.py test S16b <all> --standalone --jobs 4`). Hooked
+vanilla runs of net_lobby, console, render_cursor_present, ui_base_topic, ui_camp_deals, ui_mp_host and
+ui_widescreen: 0 mismatches. Risk seen: an INT3 hit before the missing-code handler is active (startup
+actions, static initialisers) is not reported; it ends the run as RUNNING with nothing logged.
+
+**S16c (2026-10-15).** INT3 hits before the missing-code report, the console's disconnect, and the rest
+of what the image could still hit as INT3.
+- Early hits: EiStandaloneMain installs its breakpoint handler (and the unhandled filter) before
+  InstallHooks, so a hit in a startup action reaches the harness's report (`FAILED: standalone: no code
+  at ...`; tried with a startup action calling 005794A0). The host adds its own handler before it loads
+  ei_hook.dll: a hit during the DLL's static constructors (before the harness's report exists) prints
+  `ei_standalone: no code at <address> before ei_hook.dll's missing-code report, [esp] <caller>` (a run
+  note) and ends with code 3 (tried with a static object calling 005794A0: NO REPORT plus that note).
+  ei_launch: a game that ends by itself (no timeout, no quit) while its report still says RUNNING gets
+  `FAILED: the game ended ... before the harness wrote its result` and `RESULT: FAIL` in the report (exit
+  code named; a breakpoint's says INT3 of the image), in every install.
+- disconnect: 005DFC10 (`commands::Disconnect`, any arguments) -> GameFlow 00581620
+  (`GameFlow::DisconnectClient`, `this` unused) -> 00566E00 (`CWorldClient::DisconnectLocalPlayer`: the
+  local view's owner, session +0x20 -> connection +0x1C, CPlayer::Disconnect; the original reads through
+  null without a session, so does ours). No Ghidra functions: size rows by hand. Checks ours only: the
+  owner holds no link afterwards. No scenario: "disconnect" in net_lobby's lobby passes the check (1 call,
+  0 mismatches) and then the client's next segment ends the game in its error box "CWorldClient::Segment().
+  Disconnecting client due to packet parsing error." with the original code (`--no-hooks`), ours and the
+  image alike, so no run with it can pass.
+- `tools/standalone_gaps.py` lists what the image could still reach as INT3: forwarder targets, code
+  addresses written in src/ and function starts game.exe's data points at, each without a registration
+  (exception funclets and dead code left out). Ported from its first list, each at its address (no Ghidra
+  functions, size rows by hand): 0041BA20 the server's party member handler (INC [EDX+8]: the message's
+  version; padding after it, so the hook build hooks it too; ours only, the version up by one); 0044CF00 /
+  0044CF60 the corner records' and word pairs' qsort comparators (IndexMeshCorners; against the original,
+  5 stolen bytes); 006023F0 the briefing speakers' actionDone (`SpeakerAnimationDone`: the client twin
+  of a speaker plays the listening animation again; ours only, the callback set again); 006B68A0 the
+  DirectSound device enumeration callback (`AddSoundDevice`: the GUID pointer appended with the aligned
+  array's SetSize; ours only); ten particle element callbacks 00492FB0-004965D0 (RET 4, EI_REPLACE_SHORT
+  Ret4 like 00485530). What is left: 13 forwarders to the exe's CRT file / time functions, _getptd and
+  CWnd::DestroyWindow (all behind `ei::Standalone()`: hook build only), the five code-byte reads of S14,
+  and 226 library function starts in data (MFC vtable slots, CRT tables; 00460110 the map database
+  CArray's deleting destructor, never deleted through its vtable): S16d.
+After merging main: `work.py test S16c --golden --jobs 4` 128 runs pass, 56 goldens the same; all 98
+scenarios pass under `--standalone`.
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

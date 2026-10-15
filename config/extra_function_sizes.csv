@@ -833,3 +833,28 @@ address,size,note
 004BA9F0,25,the game's endl manipulator (no Ghidra function; S16a)
 00468900,29,the lightning segment constructor for the eh vector iterator (no Ghidra function; S16a)
 00485530,3,the particle sources' no-op element callback, RET 4 (no Ghidra function; S16a)
+005B80D0,28,counted_ptr<T>'s destructor for 007C2F64's exit function (no Ghidra function; S16b)
+005E52A0,12,the cursor thread's AfxBeginThread procedure (no Ghidra function; S16b)
+005DF3A0,230,console command handler body: join (no Ghidra function; S16b)
+005DF490,266,console command handler body: server (no Ghidra function; S16b)
+005DF5A0,5,console command handler: memusage, a jump to the empty 00455CD0 (no Ghidra function; S16b)
+004389C0,64,~_Vector_base of the session's handler vectors (no Ghidra function; S16b)
+006B89B0,59,the sound loader's AIL_decompress_ASI callback (no Ghidra function; S16b)
+0041BA20,4,"the server session's party member handler, INC [EDX+8]; RET with padding after (no Ghidra function; S16c)"
+0044CF00,84,the corner records' qsort comparator (no Ghidra function; S16c)
+0044CF60,58,the word pairs' qsort comparator (no Ghidra function; S16c)
+00492FB0,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00493DD0,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00494A00,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00494DF0,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+004950A0,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00495310,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+004957D0,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00495A20,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00496260,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+004965D0,3,"a particle type's no-op element callback, RET 4 (no Ghidra function; S16c)"
+00566E00,25,the client world's local player disconnect (no Ghidra function; S16c)
+00581620,10,"GameFlow's disconnect, a jump to 00566E00 (no Ghidra function; S16c)"
+005DFC10,10,"console command handler: disconnect, a jump to 00581620 (no Ghidra function; S16c)"
+006023F0,146,the briefing speakers' actionDone callback (no Ghidra function; S16c)
+006B68A0,276,the sound manager's DirectSoundEnumerateA callback (no Ghidra function; S16c)

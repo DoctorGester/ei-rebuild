@@ -324,3 +324,101 @@ declaration and the registration; it skipped what did not match and the linker f
   RendererSetFogColour / SetBlend, UiContainerDraw ...: these are class-A conversions, a member to add and the body to move).
 - Left: 941. The virtual-slot forwarders are used up; the rest is call-through blocks, UI input and `void*` selfs, mfc / stlp
   aliases, and free bodies that need a member added first.
+
+## C11 batch 7: free bodies of virtual slots to members (2026-10-15)
+
+47 more shims became members (tools/progress.py: 952 before, 905 after on this branch; 908 with main's merged in). Spelling only: no signature, argument order or float
+grouping changed. This batch took the free `__fastcall Fn(T* self, void*, ...)` bodies of slots that had no member yet: the body
+moved into a non-virtual member (`<Slot>Impl`, or the slot's own name where the class has no virtual of that name), declared next
+to the virtual it implements ("body of the slot above") or at the top of the class, registered with `EI_REPLACE_METHOD`, and the
+verify wrappers call the member. A script did the move (the `self->x` of the body became `x`, or `this->x` where a parameter or
+local of the same name exists; comments and strings untouched; a function inside a `namespace` closes and reopens it around the
+member); the builds found the rest. A member of a named namespace needs qualified helper names (`misc400::New`, `unitdb::Destroy...`),
+a helper of the same name as a member needs `::` (`::DrawStrip`, `::DrawRain`, `::UpdateRegionTips`), and a parameter or local that
+hides a data member is a C4458 warning here (renamed: `newName`, `parameterName`, `currentWorld`, `currentMode`).
+- Converted (47): CSceneRenderer SetFogColourState / SetBlend / CreateRenderer / DrawRectangle / DrawSprites / DrawStrip (the ribbon
+  draw) / DrawTriangles / Polyline; CLightningManager NewObject and CLightning Draw; ClientArrayManager (vis fog) NewObject / Draw;
+  CRainSnow Draw; CUiContainer DrawContainer (00600EF0) and DrawChildren (00600F70), CBriefingScreen, CMainMenu and CHeroEquipPanel
+  Draw; CUnit TakeHit / ObjectDeleted / SetScriptName and CMapObject SetVisibilityMode; CWorldClient MoveObject / MoveObject2;
+  UnitLevelRecord and UnitPrototypeRecord DeleteScalar; FiguredUnitRecord / DressedUnitRecord CopyConstruct; RefPtr DeleteScalar;
+  GameBuffer ReserveView (the fixed view's empty reserve, two addresses); AIMode Priority50 / EnterIdle / ClearAction /
+  LookAroundExecute / PlayerPriority / TamedPriority (the shared mode slots, out of `namespace aimode`); ScriptDefinition
+  AddParameterImpl; ClientSession ReadServerListImpl and BufferRatioImpl (a double returned in ST0, as before). The pointer
+  parameters dereferenced by the old shims (CTransformObject CopyTransform / CombineRotation / UpdateWorld, Terrain
+  CombineRotation, CEngineObject CopyFrom): the member takes a reference where the shim took a pointer, which is the same
+  argument; the members were renamed to `...Impl`, the shims deleted, the qualified base calls (`CTransformObject::CombineRotation
+  (parent)` in Terrain and CObject3D) and verify wrappers call `...Impl`.
+- New classes: `CClientSpecificManager` and `CEffectManager` (base_manager.h, both empty subclasses of CBaseManager) hold the
+  object factory 0042D700 and 0067E170 and, for the effect manager, its deleting destructor 0055F380. Nothing else about their
+  vtables is declared; the other slots of those managers stay free functions.
+- Skipped, with the reason: RasteriseFigureMesh (a parameter type, `IntPoint`, is local to the .cpp); FakeUnitLoadScene (the
+  helpers are in `namespace fakeunit` behind a typedef of the scene); WindowDrawBlended / WindowDrawAlphaRef (the class of
+  0062EFC0 / 0065A6D0 is not known); EquipBuild / QuickStripBuild (`int` to `bool` glue); AIViewer / AIAttention hooks (the shim
+  converts a memory pointer to the brain); CMemoryStream::Write and DriverLink::SendBytes (the shim returns a value for a void
+  slot / `bool ? 1 : 0`); the deleting destructors of imprecise classes (CUiWindow trade panel, CObject3DSpecific server,
+  WoundsMaterial, CCloudNoise base); string_map.cpp's panel (the class is file-local, `void*` selfs); the UI input shims and the
+  other `void*` selfs; ReadMobChunks / LoadMobFile (free functions over the generic `Chunk` reader); the acks / ChunkArchive field
+  readers; the rest are `XxxOriginal` call-through blocks and aliases of mfc / stlp templates.
+- Left: 905. What is left is almost only call-through blocks, UI input and `void*` selfs and template aliases: the pool of free
+  bodies with a known class is used up.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations: 4,774 method registrations). `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs,
+  all PASS; of the 56 goldens one differs, render_movie_present (vanilla), only in the script `#gobject` field (a heap-layout
+  field, SV7's); not chased.
+
+## C11 batch 8: constexpr address constants and own At() helpers (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...` constants: 369 before, 249 after (tools/progress.py); files defining their own `At()`: 4 before, 2
+after; reinterpret_cast 6,145 before, 6,083 after. Spelling only: no signature, argument order or float grouping changed. A script
+(`rep.py`, scratch) deleted the constant and replaced its uses by the home it stands for; the builds found the rest.
+- Vtables (about 60): the file-local constants of script_copy / script_destroy / script_blocks (`scriptvtable::k...` of script.h and
+  `mfc::impl::*Class::Vtable()`), fake_unit, magic_trap, map_spec, map_spec_unit, ai_join, ai_plan, ai_refresh, base_manager,
+  world_spells, world_loot, world_zone, unit_create, net_client_awards, particle_create, lightning_start, and `kLookArrayVtable` /
+  `kLookArrayBaseVtable` of unit_ai.h (six users and one verify file). The helpers that took the address as `uintptr_t` now take
+  `void*`; `ei::SetVtable(void*, const void*)` (vcall.h) and `CArray::Construct(const void*)` (mfc.h) take a vtable pointer, so
+  no cast is added. Two script argument-array classes (`ArgObjectsClass`, `ArgGroupsClass`, mfc_slots.h) were the only new homes of
+  this family. fake_unit, map_spec, map_spec_unit and particle_create lost their local `SetVtable` copies.
+- Strings: `game_strings.h` gained `QuestionMarkText`, `ZoneSuffix1/2/3Text` and six interface sound names (cancel, ok, select,
+  put on, put off, rotate) for the net_server_* / net_client_commands / ui_camp / ui_hero_screen_click / ui_menu_keys files; others
+  use the existing `NoneText`, `SpaceText`, `flowdata::kDot`, `kQuestVariablePrefix`, `kSlotFolder`.
+- Floats: `worlddata::One()` / `Zero()` and a new `Half()` (ai_footprint_shapes, ai_line_step, net_server_tick, ui_mesh_build).
+- unit_vitals: its fifteen constants are the `hpVal`, `mpVal` and `damageLevel*` members of `LogicSettings` at 007C53F8.
+- Globals: `TheGameFlow()`, `worlddata::InterfaceManager()` / `QuestBriefings()` / `FlushManipulator()`, `UiClientWorld()`,
+  `SkillDb()` / `unitdb::SkillLevels()`, `WorldServer()`, `gameapi::RegQueryValueExA` (hook/paths.cpp), and the
+  `BehaviourConstruct` / `BehaviourDestruct` functions called directly by the eh-vector iterators in map_spec_unit.
+- Own `At()`: atexit_400 uses `&ei::GameData<char>(address)`; ui_create_screen uses the new `ei::OffsetPtr(base, offset)`
+  (game_data.h). The two left are members, not raw-offset helpers: `RecordTable::At` (item_db.h, about 110 call sites) and
+  `CMap::At` (mfc_list.h); renaming them to `RecordAt` / `ElementAt` is a later batch.
+- Local renames: `near` / `far` locals in particle_create and unit_ai_modes (the Windows macros come in with mfc_array.h).
+- Left, by family (249): class `kVtableAddress` statics (about 70, already the class's home); vtables with no home (map_spec*,
+  ui_layouts, ui_scroll_text, resource_stream, misc_400, net_coder / net_link / core_streams / console shared constants);
+  strings (map_database 24, quest_database 10, ui_saveload, menu_rects, world_briefing, unit_equipment, world_zone, the
+  net_session_tick / net_connection log texts, ui_console_window / ui_text newlines); float constants in the effect headers
+  (spell_effect_internal.h, world_effect_internal.h), spell_effect_update, options, ui_mesh_build, ai_refresh tables; function
+  addresses (at-exit destructors, eh-vector callbacks that are members or live in src/standalone); image addresses in hook/ and
+  standalone/; globals with no accessor reachable from the file (unit_ai.cpp's world and game time: world.h clashes with its local
+  `GameTime()`, console stream, the candidates list, the script queue, net_server_tick's master host).
+- Verification: build verify and release with no errors or warnings on the merged tree, every check at 0 (check_stolen, check_x87,
+  check_signatures, check_thunks, check_registrations: 4,774 method registrations, check_cleanup, ei_vectors).
+  `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
+
+## C11 batch 9: the last own At() members and string constants with typed homes (2026-10-15)
+
+Files defining their own `At()`: 2 before, 0 after (tools/progress.py). `constexpr uintptr_t kX = 0x00...`: 249 before, 187 after.
+Spelling only: no signature, argument order or float grouping changed.
+- `RecordTable::At` (item_db.h) is now `RecordAt` (125 call sites in src/ and tests/, including the unqualified calls of
+  `UiRecordTable`, which derives from it; `UnitPrototypeTable::At` and `CMapPtrToPtr::At` are other classes and keep their name).
+  `CMap::At` (mfc_list.h, the hash map's `operator[]`) is now `ElementAt`, with `Abi::ElementAt` in mfc_slots.h and the mfc_list /
+  mfc_serialize verify tests. The verify-test files with their own `At<T>(object, offset)` helpers are not in the count (tests/).
+- String constants of five files moved into `game_strings.h` as accessors in a namespace each (they return `Text(address)`, so
+  ei_vectors still reads the stand-in data): `game::mapwords` (map_database, 23 words; "none" uses `NoneText()`),
+  `game::questwords` (quest_database, 10 names plus `ListKey(i)` for the six briefing list keys), `game::savewords` (ui_saveload,
+  12), `game::briefingwords` (world_briefing, 8), `game::zonetexts` (world_zone, 4 error texts), `game::equipmenttexts`
+  (unit_equipment, 4). The helpers that took the string's address as `uintptr_t` (map_database `Is`, quest_database
+  `ReadBriefingHeader` / `ReadListInline`) take `const char*`. `ListKey` is a switch, not an array of addresses, so
+  check_cleanup's raw-address count stays down (834 from 902 at the start of the batch).
+- Left (187): the families of batch 8 minus the strings above; menu_rects (its `Text(file ? kCantParse : kCantOpen)` needs a
+  small rewrite), net_session_tick / net_connection log texts, net_messages.h (17), spell_effect_internal.h and
+  world_effect_internal.h floats, class `kVtableAddress` statics, function addresses.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.

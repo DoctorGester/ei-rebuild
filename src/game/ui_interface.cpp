@@ -198,8 +198,8 @@ EI_REPLACE_METHOD(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------
 
-char* UiRecordTable::SpellAt(std::uint32_t index) const { return At(index, 0x84); }
+char* UiRecordTable::SpellAt(std::uint32_t index) const { return RecordAt(index, 0x84); }
 EI_REPLACE_METHOD(0x005F2EA0, UiRecordTable::SpellAt);
 
-char* UiRecordTable::ModifierAt(std::uint32_t index) const { return At(index, 0x24); }
+char* UiRecordTable::ModifierAt(std::uint32_t index) const { return RecordAt(index, 0x24); }
 EI_REPLACE_METHOD(0x005F2EE0, UiRecordTable::ModifierAt);

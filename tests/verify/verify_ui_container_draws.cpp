@@ -5,6 +5,7 @@
 // differential on the real device.
 #include "verify.h"
 
+#include "../../src/game/ui_briefing.h"
 #include "../../src/game/ui_camp.h"
 
 #include <cstdint>
@@ -27,12 +28,11 @@ std::uint32_t RenderState(void* d3d, std::uint32_t state) {
 
 // 00600EF0 (every container window: escape menu, save / load, options, battle screen, camp; all
 // ui_* and render_* scenarios). Checked: result 1, the children array unchanged.
-int __fastcall UiContainerDraw(CUiWindow* self, void*, int pass);
 static void* s_containerDraw;
 static int __fastcall UiContainerDrawVerify(CUiWindow* self, void*, int pass) {
     void* children = At<void*>(self, 0x148);
     int count = At<int>(self, 0x14C);
-    int result = UiContainerDraw(self, nullptr, pass);
+    int result = static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
     bool ok = result == 1 && At<void*>(self, 0x148) == children && At<int>(self, 0x14C) == count;
     ei::verify::Check("CUiContainer::Draw", true, ok, "result %d, children %d -> %d", result, count, At<int>(self, 0x14C));
     return result;
@@ -41,19 +41,16 @@ EI_VERIFY(0x00600EF0, UiContainerDrawVerify, 0, s_containerDraw);
 
 // 00602BF0 / 00632A90 (screens 3 and 2; no scenario reaches them: they need a "brief" zone or the
 // server's screen 2). Checked: result 1.
-int __fastcall UiBriefingScreenDraw(CUiWindow* self, void*, int pass);
 static void* s_briefingDraw;
 static int __fastcall UiBriefingScreenDrawVerify(CUiWindow* self, void*, int pass) {
-    int result = UiBriefingScreenDraw(self, nullptr, pass);
+    int result = static_cast<CBriefingScreen*>(self)->DrawImpl(pass);
     ei::verify::Check("UiBriefingScreenDraw", true, result == 1, "result %d", result);
     return result;
 }
 EI_VERIFY(0x00602BF0, UiBriefingScreenDrawVerify, 0, s_briefingDraw);
-
-int __fastcall UiScreen2Draw(CUiWindow* self, void*, int pass);
 static void* s_screen2Draw;
 static int __fastcall UiScreen2DrawVerify(CUiWindow* self, void*, int pass) {
-    int result = UiScreen2Draw(self, nullptr, pass);
+    int result = static_cast<CMainMenu*>(self)->DrawImpl(pass);
     ei::verify::Check("UiScreen2Draw", true, result == 1, "result %d", result);
     return result;
 }
@@ -62,10 +59,9 @@ EI_VERIFY(0x00632A90, UiScreen2DrawVerify, 0, s_screen2Draw);
 // 00622420 (the camp: ui_camp, frames_basic, render_present, render_present_cpuwindows). Checked:
 // result 1, the two highlight frames shown exactly when the original's conditions hold, and with
 // the body the last depth clear's result a success (0 in the switch-over, where it is skipped).
-int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass);
 static void* s_equipDraw;
 static int __fastcall HeroEquipPanelDrawVerify(CHeroEquipPanel* self, void*, int pass) {
-    int result = HeroEquipPanelDraw(self, nullptr, pass);
+    int result = self->DrawImpl(pass);
     void* owner = At<void*>(self, 0x14C);
     using HeroFn = std::uint8_t*(__fastcall*)(void*, void*);
     auto* hero = reinterpret_cast<HeroFn>((*static_cast<void***>(owner))[0xCC / 4])(owner, nullptr);

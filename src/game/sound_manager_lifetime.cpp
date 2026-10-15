@@ -513,6 +513,18 @@ unsigned __cdecl StreamThreadEntry(void* manager) {
 }
 EI_REPLACE(0x006B6A10, StreamThreadEntry);
 
+// 006B68A0 (kDeviceCallback; no Ghidra function, S16c): DirectSoundEnumerateA's callback in Open. The
+// device's GUID pointer is appended to the aligned array `devices` (its SetSize by one, inlined in the
+// original); the enumeration goes on (TRUE).
+int __stdcall AddSoundDevice(void* guid, const char*, const char*, void* devices) {
+    auto* list = static_cast<lib::AlignedArray<int>*>(devices);
+    const int at = list->size;
+    list->SetSize(at + 1);
+    (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
+    return 1;
+}
+EI_REPLACE(0x006B68A0, AddSoundDevice);
+
 // --- A-H26: the stream's reader -----------------------------------------------------------------------
 
 namespace {

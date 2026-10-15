@@ -261,6 +261,10 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     g_commandLine = std::string("\"") + exePath + "\"" + (hasArguments ? " " : "") + (hasArguments ? arguments : "");
     g_argumentsAt = std::strlen(exePath) + 2 + (hasArguments ? 1 : 0);
     SetProcessDPIAware();
+    // The missing-code report first: InstallHooks runs the startup actions (WideScreen's parses its
+    // resolution there, S16b), so an INT3 hit before WinMain is named too, not a silent end (S16c).
+    AddVectoredExceptionHandler(1, OnBreakpoint);
+    SetUnhandledExceptionFilter(OnUnhandled);
     const int installed = InstallHooks();
     const int bad = CheckJumps();
     const bool winMain = *reinterpret_cast<const unsigned char*>(kWinMain) == 0xE9;
@@ -272,8 +276,6 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     // What the static initialisers call that has no code yet (logged; not a failure of the check).
     static_init::ReportMissingTargets();
     if (!run) return installed > 0 && bad == 0 && winMain && routed ? 0 : 1;
-    AddVectoredExceptionHandler(1, OnBreakpoint);
-    SetUnhandledExceptionFilter(OnUnhandled);
     // As the CRT's start-up: the multibyte code page (__initmbctable, the C initialiser 00783BC0), the
     // static initialisers, WinMain, then exit with its result (the CRT's exit runs the functions the
     // initialisers registered with atexit).

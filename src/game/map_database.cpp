@@ -64,34 +64,10 @@ __declspec(naked) void __cdecl StoreRadians(void* /*out*/, const char* /*text*/)
     }
 }
 
-bool Is(const char* word, std::uintptr_t text) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(word), reinterpret_cast<const unsigned char*>(game::Text(text))) == 0;
+bool Is(const char* word, const char* text) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(word), reinterpret_cast<const unsigned char*>(text)) == 0;
 }
 
-constexpr std::uintptr_t kAllodText = 0x00785768;     // "#allod"
-constexpr std::uintptr_t kZoneText = 0x00785760;      // "#zone"
-constexpr std::uintptr_t kGameText = 0x00785758;      // "game"
-constexpr std::uintptr_t kBriefText = 0x00785750;     // "brief"
-constexpr std::uintptr_t kEdgeText = 0x00785748;      // "edge"
-constexpr std::uintptr_t kResText = 0x00785740;       // "#res"
-constexpr std::uintptr_t kCameraText = 0x00785738;    // "#camera"
-constexpr std::uintptr_t kMapsText = 0x00785730;      // "#maps"
-constexpr std::uintptr_t kFigureText = 0x00785728;    // "#figure"
-constexpr std::uintptr_t kWeatherText = 0x0078571C;   // "#weather"
-constexpr std::uintptr_t kNoneText = 0x007846F0;      // "none"
-constexpr std::uintptr_t kSnowText = 0x00785714;      // "snow"
-constexpr std::uintptr_t kTornadoText = 0x0078570C;   // "tornado"
-constexpr std::uintptr_t kCageText = 0x00785704;      // "#cage"
-constexpr std::uintptr_t kRestrictText = 0x007856F8;  // "#restrict"
-constexpr std::uintptr_t kSkyText = 0x007856F0;       // "#sky"
-constexpr std::uintptr_t kCaveText = 0x007856E8;      // "cave"
-constexpr std::uintptr_t kExitText = 0x007856E0;      // "#exit"
-constexpr std::uintptr_t kDeployText = 0x007856D8;    // "#deploy"
-constexpr std::uintptr_t kRemoveText = 0x007856D0;    // "#remove"
-constexpr std::uintptr_t kPassTimeText = 0x007856C4;  // "#passtime"
-constexpr std::uintptr_t kViewText = 0x007856BC;      // "#view"
-constexpr std::uintptr_t kZeroText = 0x007856B8;      // "0"
-constexpr std::uintptr_t kDeployAngleText = 0x007856A8;   // "#deployangle"
 
 // The body of an MFC CArray (after its vtable).
 struct ArrayBody {
@@ -198,9 +174,9 @@ void Loader::AddMap() {
         SetAtGrowDword(mapList, nullptr, Body(mapList).size, static_cast<std::uint32_t>(map_));
         break;
     }
-    if (Is(Word(3), kGameText)) Set<int>(Map(), map::kKind, 0);
-    else if (Is(Word(3), kBriefText)) Set<int>(Map(), map::kKind, 2);
-    else if (Is(Word(3), kEdgeText)) Set<int>(Map(), map::kKind, 1);
+    if (Is(Word(3), game::mapwords::Game())) Set<int>(Map(), map::kKind, 0);
+    else if (Is(Word(3), game::mapwords::Brief())) Set<int>(Map(), map::kKind, 2);
+    else if (Is(Word(3), game::mapwords::Edge())) Set<int>(Map(), map::kKind, 1);
     Set<int>(Map(), map::kWeather, 1);
     Set<int>(Map(), map::kCave, 0);
     Set<std::uint8_t>(Map(), map::kRestricted, 0);
@@ -223,16 +199,16 @@ void Loader::AddExit() {
 
 // A line of the current map. Returns false if the word is no map directive.
 bool Loader::MapLine(const char* word) {
-    if (Is(word, kResText)) {
+    if (Is(word, game::mapwords::Res())) {
         Split();
         if (Count() > 1) {
             StringAt(Map(), map::kRes1) = words_[0];
             StringAt(Map(), map::kRes2) = words_[1];
         }
-    } else if (Is(word, kCameraText)) {
+    } else if (Is(word, game::mapwords::Camera())) {
         Split();
         if (Count() > 0) StringAt(Map(), map::kCamera) = words_[0];
-    } else if (Is(word, kMapsText)) {
+    } else if (Is(word, game::mapwords::Maps())) {
         Split();
         if (Count() > 1) {
             Set<int>(Map(), map::kSizeX, GameAtoi(Word(0)));
@@ -243,29 +219,29 @@ bool Loader::MapLine(const char* word) {
             StringAt(Map(), map::kMaps1) = words_[0];
             StringAt(Map(), map::kMaps2) = words_[1];
         }
-    } else if (Is(word, kFigureText)) {
+    } else if (Is(word, game::mapwords::Figure())) {
         Split();
         if (Count() > 0) StringAt(Map(), map::kFigure) = words_[0];
-    } else if (Is(word, kWeatherText)) {
+    } else if (Is(word, game::mapwords::Weather())) {
         Split();
         if (Count() > 0) {
-            if (Is(Word(0), kNoneText)) Set<int>(Map(), map::kWeather, 0);
-            else if (Is(Word(0), kSnowText)) Set<int>(Map(), map::kWeather, 2);
-            else if (Is(Word(0), kTornadoText)) Set<int>(Map(), map::kWeather, 3);
+            if (Is(Word(0), game::NoneText())) Set<int>(Map(), map::kWeather, 0);
+            else if (Is(Word(0), game::mapwords::Snow())) Set<int>(Map(), map::kWeather, 2);
+            else if (Is(Word(0), game::mapwords::Tornado())) Set<int>(Map(), map::kWeather, 3);
             else Set<int>(Map(), map::kWeather, 1);
         }
-    } else if (Is(word, kCageText)) {
+    } else if (Is(word, game::mapwords::Cage())) {
         Set<std::uint8_t>(Map(), map::kCage, 1);
-    } else if (Is(word, kRestrictText)) {
+    } else if (Is(word, game::mapwords::Restrict())) {
         Split();
         if (Count() > 2) {
             Set<std::uint8_t>(Map(), map::kRestricted, 1);
             for (int i = 0; i < 3; ++i) Set<float>(Map(), map::kRestrict + i * 4, static_cast<float>(GameAtof(Word(i))));
         }
-    } else if (Is(word, kSkyText)) {
+    } else if (Is(word, game::mapwords::Sky())) {
         Split();
-        if (Count() > 0) Set<int>(Map(), map::kCave, Is(Word(0), kCaveText) ? 1 : 0);
-    } else if (Is(word, kExitText)) {
+        if (Count() > 0) Set<int>(Map(), map::kCave, Is(Word(0), game::mapwords::Cave()) ? 1 : 0);
+    } else if (Is(word, game::mapwords::Exit())) {
         AddExit();
     } else {
         return false;
@@ -275,8 +251,8 @@ bool Loader::MapLine(const char* word) {
 
 // A line of the current exit.
 void Loader::ExitLine(const char* word) {
-    bool deploy = Is(word, kDeployText);
-    if (deploy || Is(word, kRemoveText)) {
+    bool deploy = Is(word, game::mapwords::Deploy());
+    if (deploy || Is(word, game::mapwords::Remove())) {
         // "#deploy" sets both quadruples, "#remove" only the second.
         Split();
         if (Count() > 3) {
@@ -288,26 +264,26 @@ void Loader::ExitLine(const char* word) {
             Set<int>(Exit(), exit::kAngle, 0);
         }
         if (Count() > 4) StoreRadians(Exit() + exit::kAngle, Word(4));
-    } else if (Is(word, kPassTimeText)) {
+    } else if (Is(word, game::mapwords::PassTime())) {
         Split();
         if (Count() > 0) Set<float>(Exit(), exit::kPassTime, static_cast<float>(GameAtof(Word(0))));
-    } else if (Is(word, kViewText)) {
+    } else if (Is(word, game::mapwords::View())) {
         Split();
-        words_.SetAtGrow(Count(), game::Text(kZeroText));
+        words_.SetAtGrow(Count(), game::mapwords::Zero());
         StoreRadians(Exit() + exit::kView, Word(0));
-    } else if (Is(word, kDeployAngleText)) {
+    } else if (Is(word, game::mapwords::DeployAngle())) {
         Set<std::uint8_t>(Exit(), exit::kHasDeployAngle, 1);
         Split();
-        words_.SetAtGrow(Count(), game::Text(kZeroText));
+        words_.SetAtGrow(Count(), game::mapwords::Zero());
         StoreRadians(Exit() + exit::kDeployAngle, Word(0));
     }
 }
 
 void Loader::Line() {
     Split();
-    if (Is(Word(0), kAllodText) && Count() > 1) {
+    if (Is(Word(0), game::mapwords::Allod()) && Count() > 1) {
         AddAllod();
-    } else if (Is(Word(0), kZoneText) && Count() > 3) {
+    } else if (Is(Word(0), game::mapwords::Zone()) && Count() > 3) {
         AddMap();
     } else if (map_ >= 0) {
         if (!MapLine(Word(0)) && exit_ >= 0) ExitLine(Word(0));
