@@ -91,6 +91,9 @@ int InstallHooks();
 bool Standalone();
 // The game.exe file the standalone host built the image from.
 const char* StandaloneExePath();
+// Called with a line naming it when the standalone image reaches game code that has no rewrite (an INT3
+// of the blank code section), before the process ends: the harness (verify build) puts it in its report.
+void SetMissingCodeHandler(void (*handler)(const char* what));
 
 // A check that runs once, right after the hooks are installed (the entry of WinMain). For code that
 // only runs before that, the game's static initialisers: what they built is still there, and the

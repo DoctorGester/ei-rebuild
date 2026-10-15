@@ -1593,7 +1593,7 @@ note = "Sites that read the exe's code bytes (the camera call target 00457595, a
 id = "S15"
 title = "Harness: run_all --standalone"
 group = "standalone"
-status = "running"
+status = "review"
 size = 0.5
 depends = ["S1"]
 files = ["tools/launcher/launch.cpp", "tools/run_all.py", "tools/work.py"]
@@ -1651,6 +1651,16 @@ status = "later"
 size = 0.5
 files = ["src/game/short_functions.cpp", "tools/gen_short_functions.py"]
 note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis, reading the object as dwords (the vtable each sits in is named in the comment). Where the class is declared in src/game, register a member getter instead (EI_REPLACE_SHORT with a method) and drop the generic one; gen_short_functions.py then skips it as ported elsewhere only if the check accepts EI_REPLACE_SHORT on methods. Cleanup only, no effect on the image."
+
+[[ticket]]
+id = "S15a"
+title = "Harness in the standalone image: capture, held updates, countdowns"
+group = "standalone"
+status = "queued"
+size = 0.5
+depends = ["S15"]
+files = ["tests/verify/harness.cpp", "tests/verify/harness_capture.cpp"]
+note = "The harness patches call sites inside the original code: frame capture (004580D7 in 00458010), held server update (00457314) and client segment (00457368), the 8 update countdown sites (0058D4FA...). The image has INT3 there, so in a standalone run they log 'unexpected code' and do nothing: capture fails, freeze and the virtual clock's countdowns are off. Hook our rewritten callers instead (or a hook point in them) so standalone runs capture and repeat like hooked ones; needed before S17's goldens."
 
 # ---------------------------------------------------------------- Lua
 

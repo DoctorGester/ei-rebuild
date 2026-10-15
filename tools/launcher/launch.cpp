@@ -4,13 +4,17 @@
 //
 // usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>]
 //                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
-//                  [game args...]
+//                  [--standalone] [game args...]
 // --out puts what the run writes (ei_hook.log, the harness report and saves, ...) in <dir> instead
 // of next to ei_hook.dll (EI_OUT_DIR), so several runs can go at once.
 // --no-hooks loads ei_hook.dll (so the harness still runs) but installs none of the rewritten
 // functions: a baseline run of the original code.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
+// --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
+// it lays out game.exe's data without its code and loads ei_hook.dll itself (--run), with the same
+// environment, working directory, output folder, job object and time limits as a hooked run. Its own
+// output (imports, the INT3 hit) comes through ei_launch's. No game args (WinMain gets an empty line).
 //
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
@@ -111,6 +115,40 @@ static int Fail(const wchar_t* what) {
     return 1;
 }
 
+// Loads the DLL into the suspended game with a remote LoadLibraryW call. ei_launch is 32-bit like the game,
+// so kernel32's address is the same in both processes. 0, or ei_launch's exit code after ending the game.
+static int InjectDll(HANDLE process, const std::wstring& dll) {
+    std::size_t bytes = (dll.size() + 1) * sizeof(wchar_t);
+    void* remote = VirtualAllocEx(process, nullptr, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (!remote || !WriteProcessMemory(process, remote, dll.c_str(), bytes, nullptr)) {
+        TerminateProcess(process, 1);
+        return Fail(L"writing DLL path");
+    }
+    auto loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(
+        GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW"));
+    HANDLE thread = CreateRemoteThread(process, nullptr, 0, loadLibrary, remote, 0, nullptr);
+    if (!thread) {
+        TerminateProcess(process, 1);
+        return Fail(L"CreateRemoteThread");
+    }
+    if (WaitForSingleObject(thread, 60000) != WAIT_OBJECT_0) {
+        // The DLL's start-up hangs inside the game (the game is still suspended): end it, do not wait for ever.
+        std::fwprintf(stderr, L"ei_launch: loading %s did not finish in 60 s; terminating the game\n", dll.c_str());
+        TerminateProcess(process, 3);
+        return kExitTimeout;
+    }
+    DWORD module = 0;
+    GetExitCodeThread(thread, &module);
+    CloseHandle(thread);
+    VirtualFreeEx(process, remote, 0, MEM_RELEASE);
+    if (!module) {
+        TerminateProcess(process, 1);
+        std::fwprintf(stderr, L"ei_launch: LoadLibrary of %s failed inside the game\n", dll.c_str());
+        return 1;
+    }
+    return 0;
+}
+
 int wmain(int argc, wchar_t** argv) {
     wchar_t self[MAX_PATH];
     GetModuleFileNameW(nullptr, self, MAX_PATH);
@@ -121,6 +159,7 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring harness;
     std::wstring outDir;
     bool wait = false;
+    bool standalone = false;
     std::wstring gameArgs;
     for (int i = 1; i < argc; ++i) {
         std::wstring a = argv[i];
@@ -132,6 +171,7 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--no-hooks") SetEnvironmentVariableW(L"EI_NO_HOOKS", L"1");
         else if (a == L"--rebirth" && i + 1 < argc) SetEnvironmentVariableW(L"EI_REBIRTH", argv[++i]);
         else if (a == L"--out" && i + 1 < argc) outDir = argv[++i];
+        else if (a == L"--standalone") standalone = true;
         else gameArgs += L" \"" + a + L"\"";
     }
     wchar_t full[MAX_PATH];
@@ -170,10 +210,27 @@ int wmain(int argc, wchar_t** argv) {
     DeleteFileW((outDir + L"\\harness_quit").c_str());
     if (!harness.empty()) DeleteFileW((outDir + L"\\harness_report.txt").c_str());
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
-
+    std::wstring program = exe;
     STARTUPINFOW si{sizeof(si)};
+    BOOL inherit = FALSE;
+    if (standalone) {
+        if (!gameArgs.empty()) {
+            std::fwprintf(stderr, L"ei_launch: --standalone takes no game args\n");
+            return 2;
+        }
+        GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
+        program = Dir(self) + L"\\ei_standalone.exe";
+        cmd = L"\"" + program + L"\" --exe \"" + full + L"\" --dll \"" + dll + L"\" --run";
+        // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
+        si.dwFlags = STARTF_USESTDHANDLES;
+        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+        si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+        inherit = TRUE;
+    }
+
     PROCESS_INFORMATION pi{};
-    if (!CreateProcessW(exe.c_str(), cmd.data(), nullptr, nullptr, FALSE, CREATE_SUSPENDED, nullptr,
+    if (!CreateProcessW(program.c_str(), cmd.data(), nullptr, nullptr, inherit, CREATE_SUSPENDED, nullptr,
                         gameDir.c_str(), &si, &pi))
         return Fail(L"CreateProcess");
 
@@ -192,39 +249,14 @@ int wmain(int argc, wchar_t** argv) {
         }
     }
 
-    // Load the DLL with a remote LoadLibraryW call. ei_launch is 32-bit like the game, so
-    // kernel32's address is the same in both processes.
-    std::size_t bytes = (dll.size() + 1) * sizeof(wchar_t);
-    void* remote = VirtualAllocEx(pi.hProcess, nullptr, bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    if (!remote || !WriteProcessMemory(pi.hProcess, remote, dll.c_str(), bytes, nullptr)) {
-        TerminateProcess(pi.hProcess, 1);
-        return Fail(L"writing DLL path");
-    }
-    auto loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(
-        GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "LoadLibraryW"));
-    HANDLE thread = CreateRemoteThread(pi.hProcess, nullptr, 0, loadLibrary, remote, 0, nullptr);
-    if (!thread) {
-        TerminateProcess(pi.hProcess, 1);
-        return Fail(L"CreateRemoteThread");
-    }
-    if (WaitForSingleObject(thread, 60000) != WAIT_OBJECT_0) {
-        // The DLL's start-up hangs inside the game (the game is still suspended): end it, do not wait for ever.
-        std::fwprintf(stderr, L"ei_launch: loading %s did not finish in 60 s; terminating the game\n", dll.c_str());
-        TerminateProcess(pi.hProcess, 3);
-        return kExitTimeout;
-    }
-    DWORD module = 0;
-    GetExitCodeThread(thread, &module);
-    CloseHandle(thread);
-    VirtualFreeEx(pi.hProcess, remote, 0, MEM_RELEASE);
-    if (!module) {
-        TerminateProcess(pi.hProcess, 1);
-        std::fwprintf(stderr, L"ei_launch: LoadLibrary of %s failed inside the game\n", dll.c_str());
-        return 1;
+    // The standalone host loads ei_hook.dll itself.
+    if (!standalone) {
+        if (const int failed = InjectDll(pi.hProcess, dll)) return failed;
     }
 
     ResumeThread(pi.hThread);
-    std::wprintf(L"ei_launch: started game.exe (pid %lu) with %s\n", pi.dwProcessId, dll.c_str());
+    std::wprintf(L"ei_launch: started %s (pid %lu) with %s\n", standalone ? L"ei_standalone.exe" : L"game.exe",
+                 pi.dwProcessId, dll.c_str());
     CloseHandle(pi.hThread);
     if (!wait) {
         CloseHandle(pi.hProcess);
