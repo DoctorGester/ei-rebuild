@@ -16,6 +16,7 @@
 #include "stlp_alloc.h"
 #include "stlp_deque.h"
 #include "stlp_list.h"
+#include "stlp_tree.h"
 #include "stlp_vector.h"
 
 namespace stlp {
@@ -94,131 +95,8 @@ struct StringElement {
     }
 };
 
-// vector<T>: stlp_vector.h, list<T>: stlp_list.h, deque<T>: stlp_deque.h (included at the top).
-
-// map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
-// parent is the root, its left / right children the leftmost / rightmost node), the element count,
-// the empty compare object (one byte). Keys are ordered by operator<. Only the lookups are written
-// here; inserting and erasing (node allocation, rebalancing) stay with each instantiation's own
-// code, forwarded with this type (e.g. the global map's 006316E0 insert with a hint).
-template <typename K, typename V>
-class map {
-public:
-    struct Node {
-        std::uint32_t color;   // +0x00 (a bool and padding)
-        Node* parent;          // +0x04
-        Node* left;            // +0x08
-        Node* right;           // +0x0C
-        K first;               // +0x10
-        V second;
-    };
-
-    map() = default;
-    map(const map&) = delete;
-
-    Node* end() const { return header_; }
-    std::size_t size() const { return count_; }
-
-    // lower_bound (e.g. 00631C80): the first node whose key is not less than `key`, or end().
-    Node* lower_bound(const K& key) const {
-        Node* result = header_;
-        for (Node* n = header_->parent; n;) {
-            if (n->first < key) {
-                n = n->right;
-            } else {
-                result = n;
-                n = n->left;
-            }
-        }
-        return result;
-    }
-    // find (e.g. 00631C20): the node holding `key`, or end().
-    Node* find(const K& key) const {
-        Node* n = lower_bound(key);
-        return n == header_ || key < n->first ? header_ : n;
-    }
-    // upper_bound: the first node whose key is greater than `key`, or end(). With lower_bound, the
-    // equal range of a multimap (e.g. 004FB5E0).
-    Node* upper_bound(const K& key) const {
-        Node* result = header_;
-        for (Node* n = header_->parent; n;) {
-            if (key < n->first) {
-                result = n;
-                n = n->left;
-            } else {
-                n = n->right;
-            }
-        }
-        return result;
-    }
-    // clear()'s end, once the nodes are freed by the owner's code: the header links to itself, no
-    // root, no elements.
-    void ResetToEmpty() {
-        header_->left = header_;
-        header_->parent = nullptr;
-        header_->right = header_;
-        count_ = 0;
-    }
-    // The owner's constructor (e.g. 004F4F30 / 004F51B0 + 004F5190): a header node from the node
-    // pool, red, no root, its left / right linked to itself; no elements.
-    void Construct() {
-        header_ = static_cast<Node*>(allocate(sizeof(Node)));
-        header_->color = 0;
-        header_->parent = nullptr;
-        header_->left = header_;
-        header_->right = header_;
-        count_ = 0;
-    }
-    // clear() (e.g. 004F50E0): every node destroyed (EraseSubtree) and the tree emptied; nothing
-    // happens when there are no elements.
-    void Clear() {
-        if (count_ == 0) return;
-        EraseSubtree(header_->parent);
-        ResetToEmpty();
-    }
-    // The destructor: Clear, then the header node back to the pool (e.g. 004F53B0 / 004F5360).
-    void Destroy() {
-        Clear();
-        deallocate(header_, sizeof(Node));
-    }
-    // _M_erase (e.g. 004F53F0): the right subtrees recursively, the left spine iteratively; each
-    // node's key and value destroyed and the node returned to the pool.
-    static void EraseSubtree(Node* n) {
-        while (n) {
-            EraseSubtree(n->right);
-            Node* left = n->left;
-            n->first.~K();
-            n->second.~V();
-            deallocate(n, sizeof(Node));
-            n = left;
-        }
-    }
-    // The element count and the compare byte by reference, for owners whose constructors set them
-    // by hand (the connection's trees).
-    std::size_t& Count() { return count_; }
-    std::uint8_t& Compare() { return compare_; }
-    // The first node in key order (end() when empty) and the in-order successor (0043DBE0).
-    Node* begin() const { return header_->left; }
-    static Node* Next(Node* n) {
-        if (n->right) {
-            n = n->right;
-            while (n->left) n = n->left;
-            return n;
-        }
-        Node* up = n->parent;
-        while (n == up->right) {
-            n = up;
-            up = up->parent;
-        }
-        return n->right != up ? up : n;
-    }
-
-private:
-    Node* header_ = nullptr;
-    std::size_t count_ = 0;
-    std::uint8_t compare_ = 0;
-    std::uint8_t unused_09[3] = {};
-};
+// vector<T>: stlp_vector.h, list<T>: stlp_list.h, deque<T>: stlp_deque.h, map<K, V>: stlp_tree.h
+// (included at the top).
 
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {

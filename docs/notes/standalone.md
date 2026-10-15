@@ -377,6 +377,19 @@ elements after every step; 384 cases, 0 mismatches). Per call: the constructor a
 `_M_initialize_map` against the original on a scratch deque (same map block), the rest ours only.
 The standalone boot gets past 00411AB0 and stops at 006FE8EF, MFC's `CPlex::Create`, from
 `CFixedAlloc::Alloc` (mfc_string.cpp).
+**S12 group 2.** The tree's node-only half (src/lib/stlp_tree.h, stlp_tree.cpp; `map<K, V>` moved there
+from stlp.h, its node colour now the original's byte): `_Rb_global` increment 0043DBE0, decrement
+0043FBE0, the rotations 0043E300 / 0043E350, `_Rebalance` 0043FE90 and `_Rebalance_for_erase` 0043D830
+(fastcall: node in ECX, root reference in EDX), registered in both builds. The exe's tree is SGI's 3.x
+one (`_M_insert(x, y, v)`, RET 0x10, no hint argument; the hint insert falls back to
+`insert_unique(v)`); `map` now has the members on top (`Insert`, `InsertUnique` with and without a
+hint, `InsertEqual`, `Erase` of a node / range / key, `At` for operator[], node policies like the
+list's). Checks (tests/verify/verify_stlp_tree.cpp), all against the original: the iterators are pure;
+rotations and rebalances save the nodes they can touch (the path to the root and the header, three
+levels below each), run the original, put the nodes back and run ours (same bytes, words, result).
+A start-up check fills a map<int, int> with random keys and erases them all through the
+`_Rebalance_for_erase` check with the red-black invariants after each step (the suite erases little):
+smoke 2,136 erases, the suite's rebalances and rotations, 0 mismatches.
 
 ## 3. Runtime: MFC, STLport, CRT
 
