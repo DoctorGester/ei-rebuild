@@ -65,7 +65,8 @@ public:
     };
 
     // Key -> object: while loading, the objects the index names (by the key their records are
-    // stored under); while saving, the objects already listed (value: the archive itself).
+    // stored under); while saving, the objects already listed (value: the object's number by first
+    // save, which ours writes as its key where the original wrote its address; SV7b2a).
     using ObjectMap = stlp::hash_map<std::uint32_t, CRefObject*, stlp::IntHash>;
 
     // The classes an archive can hold (a global, 0079B270; built by the static initialiser
@@ -104,7 +105,7 @@ public:
     void CStringField(int id, mfc::CString* s);       // 004093A0 (written with its terminator)
     void StringField(int id, stlp::string* s);        // 00409470
     void StreamField(int id, CMemoryStream* s);       // 00409640: chunk `id` {1: size, 2: bytes}
-    void SaveObjectRef(int id, CRefObject* object);   // 0040A440: object pointer, object kept for Close
+    void SaveObjectRef(int id, CRefObject* object);   // 0040A440: object's number, object kept for Close
     CRefObject* ObjectRef(int id);                    // 0040A5A0: the object a saved key stands for
 
     // 00409AE0. Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the

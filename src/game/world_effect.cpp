@@ -116,7 +116,7 @@ void CEffectSound::Reset() {
     if (sound_ != -1 && looping_ != 0) SoundStop(SoundSystem(), nullptr, sound_);
     sound_ = -1;
     looping_ = 1;
-    name_[0] = '\0';
+    std::memset(name_, 0, sizeof(name_));   // SV7b2a: the original clears name_[0] (the harness all of it)
     volume_ = 0.0f;
     radius_ = 0.0f;
     noFade_ = 0;
