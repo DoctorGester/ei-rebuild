@@ -189,6 +189,9 @@ void CopyVisitedZones(const mfc::CString& slotFolder, const mfc::CString& curren
 
 } // namespace
 
+// The game's save stream (declared in core_streams.h).
+CMemoryStream* GameSaveStream() { return reinterpret_cast<CMemoryStream*>(0x007AFDF8); }
+
 int GameFlow::SaveGame(const char* slot) {
     LocalFileStream file;
     mfc::CString zone;          // [0x14]
@@ -1377,9 +1380,9 @@ int __stdcall LoadMission(void* file) {
     if (version < kVersionGlobalsInMission) GlobalsLoad(reinterpret_cast<void*>(0x0079B2A8), nullptr, &mission.s);
     if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
-        reinterpret_cast<CMemoryStream*>(0x007AFDF8)->Resize(0);
+        GameSaveStream()->Resize(0);
         InputLoad(reinterpret_cast<void*>(0x007C7D50), nullptr, &mission.s);
-        StreamCopyRest(&mission.s, nullptr, reinterpret_cast<void*>(0x007AFDF8));
+        StreamCopyRest(&mission.s, nullptr, GameSaveStream());
         *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.version_;
     }
     return LoadSaveAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission.s, nullptr);

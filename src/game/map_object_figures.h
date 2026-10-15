@@ -28,9 +28,6 @@ struct tagRECT;           // windows.h
 using AlignedPtrArray = lib::AlignedArray<void*>;
 
 class CFigureMesh;      // figure_mesh.h: a part of an object's figure
-// The old name of an object's figure part, still used by files other tickets have open
-// (ui_model.cpp, player_client.cpp); the type is CFigureMesh.
-using FigurePart = CFigureMesh;
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 
 // One animation of a figure's animation database (0x58 bytes).

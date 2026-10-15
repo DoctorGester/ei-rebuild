@@ -204,6 +204,9 @@ struct QueueStream {
 };
 static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 
+// The game's save stream: the global CMemoryStream at 007AFDF8 (defined in world_game.cpp).
+CMemoryStream* GameSaveStream();
+
 constexpr std::uintptr_t kRefObjectRootVtable = 0x0073BB68;
 constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
 // The stream vtables under the names the world_* and net_* code uses.
