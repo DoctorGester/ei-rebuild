@@ -2159,11 +2159,10 @@ static_assert(sizeof(SavedPartyEntry) == 0x74);
 namespace {
 
 // The vector's element copy loop (ECX first, EDX last, destination on the stack; returns the end),
-// element destructor (00664AE0, flag 0), the records' copy constructor (006613C0) and the
-// insert overflow (00619920, originals_gameplay.h).
+// element destructor (00664AE0, flag 0); the records' copy constructor (006613C0) and the
+// insert overflow (00619920) are in originals_gameplay.h.
 __declspec(naked) SavedPartyEntry* __fastcall PartyEntriesCopy(SavedPartyEntry*, SavedPartyEntry*, SavedPartyEntry*) EI_ORIGINAL(0x00664410)
 __declspec(naked) void __fastcall PartyEntryDestroy(SavedPartyEntry*, void*, int) EI_ORIGINAL(0x00664AE0)
-__declspec(naked) void __fastcall PartyRecordsCopy(PartyRecords*, void*, const PartyRecords*) EI_ORIGINAL(0x006613C0)
 // 00662DD0 (RET 4): the records read a party file from `folder` (their +0x68 names the file).
 __declspec(naked) bool __fastcall PartyRecordsLoad(void*, void*, const char*) EI_ORIGINAL(0x00662DD0)
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
@@ -2235,7 +2234,7 @@ void SavedParties::Reload() {
                 SavedPartyEntry* eos = eos_;
                 if (finish != eos) {
                     if (finish) {
-                        PartyRecordsCopy(&finish->records, nullptr, &entry->records);
+                        PartyCopyConstructOriginal(&finish->records, nullptr, &entry->records);
                         new (&finish->fileName) mfc::CString(AsCString(entry->fileName));
                     }
                     ++finish;
