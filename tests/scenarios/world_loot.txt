@@ -1,0 +1,43 @@
+# Looting the dead and the camp's debug fill (SV5's coverage list: CWorldServer::LootDeadUnits 00593D60
+# and the console's "lootall" 005DF5B0 were reached by no scenario, CWorldServer::Loot 005942D0 only by
+# two without a golden, CCampPages::DebugFill 00612CF0 by none). Three wolves die (two spawned, one of
+# zone1's own, 1804, with its loot), "lootall" moves every dead unit's items to player 0 (Loot) and
+# removes the dead; then the camp's page gets "give 0 assortment" (the active window's debug fill).
+# No `speed`, so a golden can be recorded (standalone-verification.md, SV3).
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("LootWolf1","WolfTutor","LootWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("LootWolf2","WolfGreyF1","LootWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+waitfor 10 Mul(IsAlive(GetObjectByName("LootWolf1")),IsAlive(GetObjectByName("LootWolf2")))
+check IsAlive(GetObject(1804))
+console #GetMoney(0)
+console @InflictDamage(GetObjectByName("LootWolf1"),100000)
+console @InflictDamage(GetObjectByName("LootWolf2"),100000)
+console @InflictDamage(GetObject(1804),100000)
+waitfor 10 IsDead(GetObject(1804))
+waitfor 10 Mul(IsDead(GetObjectByName("LootWolf1")),IsDead(GetObjectByName("LootWolf2")))
+frames 10
+console lootall
+waitline 10 Looting...
+frames 10
+check Not(IsAlive(GetObject(1804)))
+console #GetMoney(0)
+
+# The camp, and its page's debug fill.
+screen 5
+waitwindow 15 camp
+console give 0 assortment
+frames 10
+key esc
+waitwindow 15 battle
+check IsAlive(GetLeader())
+report
+quit

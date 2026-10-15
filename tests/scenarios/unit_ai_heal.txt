@@ -1,0 +1,35 @@
+# The AI's heal option (SV5's coverage list: UnitStats::ReduceKind1 00524020 had a vector check but no
+# scenario reached it). AIAttention::Build (005CEE80, from AIBrain::ApplyBehaviour 005D6630) turns a
+# healing spell (type 0x18) into an option of kind 7; AIAttention::Choose (005D0030) scores every
+# spell option on the unit itself and its allies in sight, and Score (005CF9A0) reduces a candidate's
+# maximum hit points through ReduceKind1 for kind 7.
+#
+# Build gives units with script ids (1000000000 and up: AddUnitToServer) their weapon only, so the
+# healer is one of zone1's own wolves (1804, which patrols towards the hero's start). GiveUnitSpell
+# puts the spell into its slots; an alarm of slot 0 at the wolf (HearAlarm 005D5940 applies slot 0's
+# behaviour whatever its record says) rebuilds its options. The hero (in god mode) then walks to it,
+# and the wolf's target choice scores the heal on itself on every think. No `speed`: the virtual
+# clock's default update length, so a golden can be recorded (standalone-verification.md, SV3).
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsAlive(GetObject(1804))
+check IsEnemy(GetObject(1804),0)
+
+console @GiveUnitSpell(GetObject(1804),"healing{e2;e2}")
+console @InvokeAlarm(0,GetX(GetObject(1804)),GetY(GetObject(1804)))
+frames 2
+console @MoveToObject(GetLeader(),GetObject(1804))
+waitfor 40 IsLess(DistanceUnitUnit(GetLeader(),GetObject(1804)),5)
+wait 5000
+console #HP(GetObject(1804))
+console #Mana(GetObject(1804))
+check IsAlive(GetLeader())
+report
+quit

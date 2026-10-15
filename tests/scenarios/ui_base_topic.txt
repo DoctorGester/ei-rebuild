@@ -1,0 +1,46 @@
+# A base dialogue with a topic (SV5's coverage list: the briefing screen's dialogue, 006064E0
+# StartDialogue, 00604C50 NextPhrase, 00608450 FinishDialogue and the server's CompleteBriefing 00592090,
+# were reached by no scenario: ui_base_dialogue's Smith has no topic after a new game, so OpenTopics
+# 00608B60 finds none and the topic click hits no region). A person's topics are the script variables
+# "b.<person>.<topic>" that are 1 (FindTopics 00607360); the topic's phrases are texts.res's "briefing
+# <topic>" ("M4": the hero and Smith, and two items shown with "#show", ShowItem 00605DE0). So the
+# scenario sets "b.Smith.M4", walks the leader to Smith in bz1g, clicks him (the topics, state 1),
+# clicks the first topic (the dialogue: the people walk to their places, state 2, then the phrases,
+# state 3), clicks through the phrases, and Esc twice (the rest of the phrases, then the rewards:
+# FinishDialogue completes the topic). No `speed`, so a golden can be recorded
+# (standalone-verification.md, SV3).
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObjectByName("Smith"))
+console @GSSetVar(0,"b.Smith.M4",1)
+console #GSGetVar(0,"b.Smith.M4")
+console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
+waitfor 30 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
+waitunit 10 Smith
+clickunit Smith
+frames 10
+clickregion 0
+# the people walk to their places (state 2) before the phrases start (00608210)
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+# Esc skips the rest of the phrases (00604C50 with 1, state 4), the second takes the rewards (00608450)
+key esc
+wait 800
+key esc
+wait 800
+console #GSGetVar(0,"b.Smith.M4")
+check IsAlive(GetLeader())
+report
+quit

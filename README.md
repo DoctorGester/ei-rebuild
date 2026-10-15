@@ -121,6 +121,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   to the run's `vectors/` folder; `python tools\vectors.py merge <run folders>` keeps them in
   `tests/vectors/data`, and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
   game (docs/notes/standalone-verification.md, SV4).
+- Coverage (`tools/coverage.py`): with `EI_COVER=hooks` the hook build logs the first call of every
+  hook and of its replacement; `coverage.py collect <run folders>` keeps which scenarios reach each one in
+  `tests/coverage/reach.txt`, `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector,
+  suite only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps (SV5).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the

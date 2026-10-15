@@ -648,10 +648,11 @@ done = "2026-10-15"
 id = "SV5"
 title = "Coverage list and scenarios for what it shows uncovered"
 group = "verification"
-status = "running"
+status = "done"
 size = 1
 depends = ["SV3"]
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV1a"
@@ -837,6 +838,42 @@ group = "verification"
 status = "queued"
 depends = ["SV2a"]
 note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread."
+
+[[ticket]]
+id = "SV5a"
+title = "Coverage: scenarios for the next ranked gaps (camp crafting, magic trap victims, AI modes, item info)"
+group = "verification"
+status = "queued"
+size = 1
+depends = ["SV5"]
+note = "From tests/coverage (python tools/coverage.py top): CCampPages::CanMakeItem / CanMakeSpell / CampDeconstructItem / SpellMakerDraw (the camp's maker pages), MagicTrap::UpdateVictims and CTrapObject::UpdateTrap (magic_traps means to reach them but does not), SuspectionMode::Execute, PatrolPointArray::Add / SetAtGrow, LookAroundHook, SeeCorpseHook, AICallArray::Add (AI modes on zone units: script units get no spell options and differ), CItemInfoPanel::DescribeBlueprint / DescribeMaterial / DescribeSpellRecord, CUnitServer::TryTame and OrderCastAt. Each new scenario without speed; collect with EI_COVER=hooks and coverage.py collect --add. See standalone-verification.md SV5."
+
+[[ticket]]
+id = "SV5b"
+title = "LockKey::Opens: a quest item used on a locked lever"
+group = "verification"
+status = "queued"
+size = 1
+depends = ["SV5"]
+note = "LockKey::Opens (00522A80) has a vector check but no data: only Lever::KeyOpens (slot 42, the battle screen's mode 6 hover and click, ui_hud.cpp) and Lever::ApplyKey (slot 41, the unit's use action, combat_actions.cpp) call it. A scenario: SetScience(lever, 8, <quest item id>, ...) on zone1's gate 1889, GiveQuestItem to the hero, the quick item panel's item (mode 6, CHudQuickItems::OnMouseUp) and a click on the lever; then record its vectors (vectors.py merge into a scratch folder, copy the one file)."
+
+[[ticket]]
+id = "SV5c"
+title = "Fake unit scenes (class 0x39, .amf) and MultiplyByConjugate: reachable or not"
+group = "verification"
+status = "queued"
+size = 1
+depends = ["SV5"]
+note = "No scenario creates a class 0x39 map object (CFakeUnit), so the scene loader (SceneInfo::Load, LoadFakeUnitScene, BuildSkeleton, BuildBone, MakeFrameRelative, the scene meshes, normals, weld, registry), the skin rewind and MultiplyByConjugate (only MakeFrameRelative calls it) are unreached. Find a zone or mob with such an object (the factory 00512730, class 0x39; scenes\\*.amf), or show that the shipped data has none and list them in tests/coverage/unreachable.txt as dead; then MultiplyByConjugate's vectors need a source or the check goes."
+
+[[ticket]]
+id = "SV5d"
+title = "Coverage of multiplayer-only code needs a two-client harness"
+group = "verification"
+status = "queued"
+size = 2
+depends = ["SV5"]
+note = "The coverage list's largest uncovered area is network play: net_messages.cpp (117 functions), net_client_handlers, net_link, net_lobby, net_connection, ui_connect_screen, player_server_handlers, world_game's multiplayer zone switch and ServerSession. The harness starts only the lobby (standalone-verification.md, 'Multiplayer is not covered'). A second game joining the first (harness_net.h gives each game its own port) would reach them; then golden runs for both clients."
 
 # ---------------------------------------------------------------- harness and suite
 
