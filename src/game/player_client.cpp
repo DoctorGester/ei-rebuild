@@ -415,7 +415,7 @@ int CPlayerClient::OnParty() {
     {
         MemoryStream block;
         in_.ReadSized(block.Get());
-        block.Get()->CMemoryStream::Seek(0);
+        block.Get()->CMemoryStream::SeekImpl(0);
         if (in_.ok_) {
             party->LoadParty(block.Get(), 1);
             mfc::CTypedPtrList<void>& recharging = Owner()->objects_;
@@ -448,7 +448,7 @@ int CPlayerClient::OnParty() {
 int CPlayerClient::OnPartyUpdate() {
     MemoryStream block;
     in_.ReadSized(block.Get());
-    block.Get()->CMemoryStream::Seek(0);
+    block.Get()->CMemoryStream::SeekImpl(0);
     if (in_.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
     return 1;
 }

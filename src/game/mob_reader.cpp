@@ -123,7 +123,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadHeader();
     chunk.ReadFloat();
     CWorldServer* server = WorldServer();
-    server->CWorldServer::SetTime(time);
+    server->CWorldServer::SetTimeImpl(time);
     float limit = MobWindLimit();
     server->ChangeWind(&direction, !(limit >= strength) ? limit : strength);
     chunk.Destruct();

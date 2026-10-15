@@ -171,7 +171,7 @@ EI_REPLACE_METHOD(0x005627A0, CParticleManager::DeletingDestruct);
 
 void Terrain::Destruct() {
     ei::SetVtable(this, worlddata::kTerrainVtable);
-    Terrain::Destroy();
+    Terrain::DestroyImpl();
     waterLevels.vtable = reinterpret_cast<void*>(kWaterLevelsVtable);
     waterLevels.FreeData();
     records::AsCString(textAE0).~CString();

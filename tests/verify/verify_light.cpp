@@ -141,14 +141,14 @@ CLightFactory* __fastcall ManagerDeleteVerify(CLightFactory* self, void*, unsign
     return result;
 }
 CEngineObject* __fastcall ManagerNewObjectVerify(CLightFactory* self, void*, int type) {
-    CEngineObject* object = self->CLightFactory::NewObject(type);
+    CEngineObject* object = self->CLightFactory::NewObjectImpl(type);
     bool known = type == 0x2E || type == 0x31;
     bool ok = object ? known && VtableOf(object) == CLight::kVtableAddress && object->type_ == type : !known;
     ei::verify::Check("CLightFactory::NewObject", true, ok, "manager %p type 0x%X -> %p", self, type, object);
     return object;
 }
 CEngineObject* __fastcall ManagerCreateObjectVerify(CLightFactory* self, void*, int type, int id) {
-    CEngineObject* object = self->CLightFactory::CreateObject(type, id);
+    CEngineObject* object = self->CLightFactory::CreateObjectImpl(type, id);
     bool ok = (object->flags_ & 0x80) == 0 && object->owner_ == self && (id == -1 || object->id_ == id);
     ei::verify::Check("CLightFactory::CreateObject", true, ok, "manager %p type 0x%X id %d -> %p", self, type, id, object);
     return object;

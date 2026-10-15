@@ -51,10 +51,6 @@ void* __fastcall DeviceDelete(void* self, void*, unsigned flags);
 void* __fastcall DirectDrawHolderDelete(void* self, void*, unsigned flags);
 void* __fastcall RenderHelperDelete(void* self, void*, unsigned flags);
 void* __fastcall TlLibraryDelete(void* self, void*, unsigned flags);
-CRenderPreset* __fastcall RenderHelperRecord(CRenderHelper* self, void*,
-                                             const stlp::vector<RenderPresetRecord::State>* states, int index,
-                                             bool singleStage);
-void __fastcall RenderHelperReleaseBlock(CRenderHelper* self, void*, CRenderPreset* preset);
 void __fastcall RenderHelperDestruct(CRenderHelper* self);
 
 namespace {
@@ -123,7 +119,7 @@ bool Recorded(CRenderHelper* self, const StateVector* states, int index, CRender
 CRenderPreset* __fastcall RecordVerify(CRenderHelper* self, void*, const StateVector* states, int index,
                                        bool singleStage) {
     if (s_original) return s_record(self, nullptr, states, index, singleStage);
-    CRenderPreset* result = RenderHelperRecord(self, nullptr, states, index, singleStage);
+    CRenderPreset* result = self->CRenderHelper::RecordImpl(states, index, singleStage);
     ei::verify::Check("CRenderHelper slot 1 (004FD2A0)", true, Recorded(self, states, index, result),
                       "preset %d: %u states, %d stages", index, static_cast<unsigned>(states->size()),
                       result ? result->stages_ : -1);
@@ -137,7 +133,7 @@ void __fastcall ReleaseBlockVerify(CRenderHelper* self, void*, CRenderPreset* pr
     }
     const std::size_t before = self->records_.Size();
     const bool known = self->records_.Find(preset) != nullptr;
-    RenderHelperReleaseBlock(self, nullptr, preset);
+    self->CRenderHelper::ReleaseBlockImpl(preset);
     const bool gone = self->records_.Find(preset) == nullptr && self->records_.Size() == before - (known ? 1 : 0);
     ei::verify::Check("CRenderHelper slot 3 (004FD9D0)", true, gone, "known %d, %u records left", known ? 1 : 0,
                       static_cast<unsigned>(self->records_.Size()));
@@ -312,7 +308,7 @@ void CompareOnFakeDevice(const D3DDEVICEDESC7& caps, std::uint32_t flag, const c
         s_original = false;
         expected = std::move(fake.calls);
         fake.calls.clear();
-        RenderHelperReleaseBlock(ours, nullptr, b);
+        ours->CRenderHelper::ReleaseBlockImpl(b);
         if (!SameCalls(expected, fake.calls)) note("slot 3 calls");
         if (theirs->presets_[index] || ours->presets_[index] || theirs->records_.Size() != ours->records_.Size() ||
             theirs->records_.Find(a) || ours->records_.Find(b))

@@ -11,22 +11,12 @@
 namespace {
 
 // Virtual slots are registered through shims (rewrite-guide rule 4).
-std::uint32_t __fastcall MemoryStreamReadHook(CMemoryStream* self, void*, void* buffer, std::uint32_t size) {
-    return self->CMemoryStream::Read(buffer, size);
-}
 // The slot is void, but 004A53F0 leaves the new position in EAX and callers return it
 // (CPlayerClient::SendResume, TakeExit, ...).
 std::uint32_t __fastcall MemoryStreamWriteHook(CMemoryStream* self, void*, const void* buffer, std::uint32_t size) {
     self->CMemoryStream::Write(buffer, size);
     return self->position_;
 }
-void __fastcall MemoryStreamSeekHook(CMemoryStream* self, void*, std::uint32_t position) {
-    self->CMemoryStream::Seek(position);
-}
-void __fastcall MemoryStreamCopyFromHook(CMemoryStream* self, void*, CStream* source) {
-    self->CMemoryStream::CopyFrom(source);
-}
-void __fastcall StreamCopyFromHook(CStream* self, void*, CStream* source) { self->CStream::CopyFrom(source); }
 
 // The format header's magic number and version are written and read as four bytes each.
 constexpr std::uint32_t kHeaderFieldBytes = 4;
@@ -37,7 +27,7 @@ constexpr std::int32_t kShortSizeLimit = 30000;
 
 // --- CMemoryStream slots -----------------------------------------------------------------------
 
-std::uint32_t CMemoryStream::Read(void* buffer, std::uint32_t size) {
+std::uint32_t CMemoryStream::ReadImpl(void* buffer, std::uint32_t size) {
     if (position_ + size > size_) {
         std::uint32_t left = size_ - position_;
         ok_ = 0;
@@ -49,7 +39,7 @@ std::uint32_t CMemoryStream::Read(void* buffer, std::uint32_t size) {
     position_ += size;
     return size;
 }
-EI_REPLACE(0x004A5380, MemoryStreamReadHook);
+EI_REPLACE_METHOD(0x004A5380, CMemoryStream::ReadImpl);
 
 void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
     if (position_ + size > capacity_) {
@@ -66,19 +56,19 @@ void CMemoryStream::Write(const void* buffer, std::uint32_t size) {
 }
 EI_REPLACE(0x004A53F0, MemoryStreamWriteHook);
 
-void CMemoryStream::Seek(std::uint32_t position) {
+void CMemoryStream::SeekImpl(std::uint32_t position) {
     position_ = position;
     EndBits();
 }
-EI_REPLACE(0x004A5490, MemoryStreamSeekHook);
+EI_REPLACE_METHOD(0x004A5490, CMemoryStream::SeekImpl);
 
-void CMemoryStream::CopyFrom(CStream* source) {
+void CMemoryStream::CopyFromImpl(CStream* source) {
     source->Seek(0);
     Resize(source->Size());
     source->Read(data_, size_);
     Seek(0);
 }
-EI_REPLACE(0x004A55D0, MemoryStreamCopyFromHook);
+EI_REPLACE_METHOD(0x004A55D0, CMemoryStream::CopyFromImpl);
 
 // --- CMemoryStream sizes and bits --------------------------------------------------------------
 
@@ -136,7 +126,7 @@ EI_REPLACE_METHOD(0x004A5650, CMemoryStream::EndBits);
 
 // --- CStream helpers ---------------------------------------------------------------------------
 
-void CStream::CopyFrom(CStream* source) {
+void CStream::CopyFromImpl(CStream* source) {
     std::uint8_t chunk[0x400];
     source->Seek(0);
     source->reading_ = 1;
@@ -147,7 +137,7 @@ void CStream::CopyFrom(CStream* source) {
         Write(chunk, read);
     }
 }
-EI_REPLACE(0x004A4D40, StreamCopyFromHook);
+EI_REPLACE_METHOD(0x004A4D40, CStream::CopyFromImpl);
 
 void CStream::ReadSized(CStream* to) {
     std::uint32_t size = 0;

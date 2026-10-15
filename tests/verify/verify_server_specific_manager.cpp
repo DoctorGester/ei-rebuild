@@ -29,7 +29,7 @@ EI_VERIFY(0x004D6900, ConstructVerify, 0, s_construct);
 // its vtable, an empty name and its Create's values; any other type gives null.
 static CEngineObject* (__fastcall* s_newObject)(CServerSpecificManager*, void*, int);
 static CEngineObject* __fastcall NewObjectVerify(CServerSpecificManager* self, void*, int type) {
-    CEngineObject* object = self->CServerSpecificManager::NewObject(type);
+    CEngineObject* object = self->CServerSpecificManager::NewObjectImpl(type);
     const bool known = type >= 0x46 && type <= 0x4B && type != 0x4A;
     bool ok = known ? object && object->refCount_ == 0 && object->id_ == -1 && object->owner_ == nullptr : !object;
     if (ok && type == 0x4B) {

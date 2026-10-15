@@ -35,7 +35,7 @@ constexpr std::uintptr_t kWorld = 0x007AFE20;
 // 0041A7E0 (slot 15): makes `*out` a new server entry: the name, the kind, the current map's title
 // as the description when a map message is held (else empty), the number of clients, the maximum
 // and whether a password is set.
-void ServerSession::Describe(RefPtr* out) {
+void ServerSession::DescribeImpl(RefPtr* out) {
     auto* entry = NewMessageMemory<ServerEntry>();
     if (entry) {
         entry->ConstructBase();
@@ -98,9 +98,8 @@ void ServerSession::SetPublic(bool announce) {
 }
 
 namespace {
-void __fastcall DescribeHook(ServerSession* self, void*, RefPtr* out) { self->ServerSession::Describe(out); }
 } // namespace
-EI_REPLACE(0x0041A7E0, DescribeHook);
+EI_REPLACE_METHOD(0x0041A7E0, ServerSession::DescribeImpl);
 EI_REPLACE_METHOD(0x00417E10, ServerSession::SetPublic);
 
 } // namespace net

@@ -113,6 +113,7 @@ public:
     // slot 19, 00516D50, which takes type 0x46 objects at +0x94). Returns the companion's new
     // reference count, or what 00516D50 leaves.
     virtual std::uintptr_t AttachObject(CEngineObject* object);
+    std::uintptr_t AttachObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
     virtual void CopyFigure();         // 20: CObject3D 005161E0
     virtual bool InvisibleSlot();   // 21 (0x54): 0050FA10 IsInvisible
     // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
@@ -151,12 +152,14 @@ public:
     // BuildFromPrototype, 005136D0, asked for no statistics) packed into +0x17C. The vitals are a
     // local the original does not clear either.
     virtual void TakePrototype(const char* prototype);
+    void TakePrototypeImpl(const char* prototype);   // body of the slot above (registered by member pointer)
     // 35 (0x8C): 0050E480 empty; units 00530A20: a CUnitServer controller (class 0x3E) copies the
     // statistics (00552F40, CUnitServer::SetStats).
     virtual std::uintptr_t SetStats(const UnitStats* stats);
     // 36 (RET 4): 0050F050 (map_object.cpp) hands `data` (0x58 bytes) to a CMapObjectServer companion.
     // Returns what the original leaves in EAX.
     virtual std::uintptr_t SetServerData(const void* data);
+    std::uintptr_t SetServerDataImpl(const void* data);   // body of the slot above (registered by member pointer)
     // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
     virtual std::uintptr_t UpdateSizeClasses();
     virtual int IsUsable();            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
@@ -165,6 +168,7 @@ public:
     // 41 (a skill used on the object; traps Disarm, levers ApplyKey). 0050F0F0 (object_small_slots.cpp):
     // logs "Science is applied on wrong object" (0044C470) and returns false (AL). Both arguments unread.
     virtual bool ApplyScience(int first, int second);
+    bool ApplyScienceImpl(int first, int second);   // body of the slot above (registered by member pointer)
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key);
     // 43 (0xAC): AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess. The AI map's MarkFootprint
@@ -182,6 +186,7 @@ public:
     // is dropped) and, for an effect lasting more than one tick, removes older ones of the same type,
     // end flag and +0x0C (within 0.001) that last no longer and are no stronger.
     virtual std::uintptr_t AddEffect(const MapEffect* effect);
+    std::uintptr_t AddEffectImpl(const MapEffect* effect);   // body of the slot above (registered by member pointer)
     virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 (the new flags_)
     virtual int SetVisibilityMode(int mode);    // 47 (0xBC): 004467C0 hands it to the companion
     virtual Vector3* EyePoint(Vector3* out);        // 48 (0xC0): where the object sees from; returns `out`
@@ -189,6 +194,7 @@ public:
     virtual void WriteNetState();      // 50: 0050EAF0 (units 0052EC70)
     // 51 (RET 4; units 0052F740). 0050F020 (map_object.cpp): z = ground height at (x, y) + `offset`.
     virtual void PlaceOnGround(float offset);
+    void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
     // ignore the time, GetPosition). Returns `out`.
     virtual Vector3* PositionAt(Vector3* out, int time);

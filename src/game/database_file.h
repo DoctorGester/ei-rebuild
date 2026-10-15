@@ -40,7 +40,7 @@ struct LocalStream {
 inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
     stream.reading_ = 0;
     stream.CMemoryStream::Write(data, size);
-    stream.CMemoryStream::Seek(0);
+    stream.CMemoryStream::SeekImpl(0);
     stream.reading_ = 1;
 }
 

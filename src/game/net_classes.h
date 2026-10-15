@@ -497,12 +497,19 @@ public:
 
     // 0: 00417A10 deleting destructor (DeletingDestruct).
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;    // 10: 0041ACA0
+    void OnMasterImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnClientLost(Connection* connection) override;                       // 11: 0041A700 (text 4)
+    void OnClientLostImpl(Connection* connection);   // body of the slot above (registered by member pointer)
     void OnClientLeft(Connection* connection) override;                       // 12: 0041A770 (text 1)
+    void OnClientLeftImpl(Connection* connection);   // body of the slot above (registered by member pointer)
     void CollectReplicated(ReplicatedVector** out) override;                  // 13: 00417EB0
+    void CollectReplicatedImpl(ReplicatedVector** out);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                            // 14: 004182E0
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void Describe(RefPtr* out) override;                                      // 15: 0041A7E0
+    void DescribeImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
     bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) override;   // 16: 0041A050
+    bool AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
     // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
     ServerSession* Construct(std::uint32_t kind);
@@ -714,9 +721,12 @@ public:
 
     // 0: 0041C8B0 deleting destructor (DeletingDestruct).
     void CollectReplicated(ReplicatedVector** out) override;   // 13: 0041D050
+    void CollectReplicatedImpl(ReplicatedVector** out);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                             // 14: 0041CCD0
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void OnJoined() override;                                  // 15: 0041D410
     void CreateEntry(RefPtr* out) override;                    // 16: 0041D420
+    void CreateEntryImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
 
     // 0041BC40. The constructor (the caller allocated 0x2700 bytes and cleared +4); returns this.
     ClientSession* Construct();

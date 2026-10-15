@@ -50,7 +50,7 @@ static void __fastcall MakeLayerVerify(CCloudNoise* self, void*, std::uint8_t* o
     std::vector<std::int32_t> expectedNoise(self->noise_, self->noise_ + cells);
     IsaacSnapshot after;
     before.Restore();
-    self->CCloudNoise::MakeLayer(out);
+    self->CCloudNoise::MakeLayerImpl(out);
     ei::verify::Check("CloudNoise::MakeLayer", 0, std::memcmp(expected.data(), out, 0x400), "%d");
     ei::verify::Check("CloudNoise::MakeLayer noise", 0,
                       std::memcmp(expectedNoise.data(), self->noise_, cells * sizeof(std::int32_t)), "%d");
@@ -63,12 +63,12 @@ EI_VERIFY(0x0049A090, MakeLayerVerify, 8, s_makeLayer);
 static void (__fastcall* s_generate)(CCloudNoise*, void*, std::uint8_t*, int);
 static void __fastcall GenerateVerify(CCloudNoise* self, void*, std::uint8_t* out, int step) {
     if (step < 7 || step > 14 || self->size_ != 0x100) {
-        self->CCloudNoise::Generate(out, step);
+        self->CCloudNoise::GenerateImpl(out, step);
         return;
     }
     std::vector<std::uint8_t> expected(0x10000);
     s_generate(self, nullptr, expected.data(), step);
-    self->CCloudNoise::Generate(out, step);
+    self->CCloudNoise::GenerateImpl(out, step);
     const int offset = (step - 7) << 13;
     ei::verify::Check("CloudNoise::Generate", 0, std::memcmp(expected.data() + offset, out + offset, 0x2000),
                       "step %d", step);

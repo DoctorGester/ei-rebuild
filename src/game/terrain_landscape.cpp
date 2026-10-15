@@ -218,7 +218,7 @@ __declspec(naked) void __fastcall ClearMapAt(Terrain*) EI_ORIGINAL(0x006C7750)
 
 } // namespace
 
-int Terrain::Create() {
+int Terrain::CreateImpl() {
     LandscapeResetOriginal(this);
     BuildVertexTilesAt(this);
     BuildWavePhasesAt(this);
@@ -228,7 +228,7 @@ int Terrain::Create() {
     return 1;
 }
 
-void Terrain::Destroy() {
+void Terrain::DestroyImpl() {
     ClearMapAt(this);
     for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) node->value.light->Release();
     maxLightId = 0;
@@ -647,10 +647,8 @@ void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float si
 }
 EI_REPLACE_METHOD(0x006C7940, Terrain::BuildTileUv);
 
-int __fastcall CreateHook(Terrain* self, void*) { return self->Terrain::Create(); }
-void __fastcall DestroyHook(Terrain* self, void*) { self->Terrain::Destroy(); }
-EI_REPLACE(0x006C5430, CreateHook);
-EI_REPLACE(0x006C54D0, DestroyHook);
+EI_REPLACE_METHOD(0x006C5430, Terrain::CreateImpl);
+EI_REPLACE_METHOD(0x006C54D0, Terrain::DestroyImpl);
 void __fastcall CombineRotationHook(Terrain* self, void*, const Quaternion* parent) {
     self->Terrain::CombineRotation(*parent);
 }

@@ -119,7 +119,7 @@ void* Next(void* node) { return *static_cast<void**>(node); }
 // queued maps for the host, the host message and the map message, the awards for this connection,
 // the trade offers to the player whose members all exist (the offer and its members), and the
 // trades naming the player. Priority 2 unless noted.
-void ServerSession::CollectReplicated(ReplicatedVector** out) {
+void ServerSession::CollectReplicatedImpl(ReplicatedVector** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
     for (void* n = Next(Head(&players_)); n != Head(&players_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
@@ -186,10 +186,7 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
     }
 }
 namespace {
-void __fastcall ServerCollectReplicatedHook(ServerSession* self, void*, ReplicatedVector** out) {
-    self->ServerSession::CollectReplicated(out);
-}
 } // namespace
-EI_REPLACE(0x00417EB0, ServerCollectReplicatedHook);
+EI_REPLACE_METHOD(0x00417EB0, ServerSession::CollectReplicatedImpl);
 
 } // namespace net

@@ -167,7 +167,7 @@ EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 // 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
 // mode 3 when player 0 exists with its connection in state 1 and 007B00BC is set.
-void ClientSession::Tick(double dt) {
+void ClientSession::TickImpl(double dt) {
     ClientSession* self = this;
     ClientBaseTick(self, nullptr, dt);
     void* timers = &self->timers_;
@@ -194,8 +194,7 @@ void ClientSession::Tick(double dt) {
     ApplyAwards();
 }
 namespace {
-void __fastcall ClientTickHook(ClientSession* self, void*, double dt) { self->ClientSession::Tick(dt); }
 } // namespace
-EI_REPLACE(0x0041CCD0, ClientTickHook);
+EI_REPLACE_METHOD(0x0041CCD0, ClientSession::TickImpl);
 
 } // namespace net

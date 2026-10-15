@@ -101,7 +101,7 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
 }
 } // namespace
 
-std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
+std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {
     bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
     if (rebirth && effectCount >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
     int count = effectCount;
@@ -126,10 +126,7 @@ std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     if (rebirth && effect->ticksLeft > 1) RemoveOutdatedEffects(this, effect);
     return result;
 }
-std::uintptr_t __fastcall AddEffectHook(CMapObject* self, void*, const MapEffect* effect) {
-    return self->CMapObject::AddEffect(effect);
-}
-EI_REPLACE(0x0050F1E0, AddEffectHook);
+EI_REPLACE_METHOD(0x0050F1E0, CMapObject::AddEffectImpl);
 // Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is
 // in CWorldServer::UpdateUnits (0058D670, original).
 EI_REBIRTH_IMPLEMENTS(0x0050F1E0, ei::rebirth::Patch::FixSpellEffectsOverflow);
@@ -233,12 +230,11 @@ float* CMapObject::GroundPoint(float* out) {
 }
 EI_REPLACE_METHOD(0x0050F730, CMapObject::GroundPoint);
 
-void CMapObject::PlaceOnGround(float offset) {
+void CMapObject::PlaceOnGroundImpl(float offset) {
     double height = GroundHeight(World(), position.x, position.y);
     position.z = static_cast<float>(height + offset);
 }
-void __fastcall PlaceOnGroundHook(CMapObject* self, void*, float offset) { self->CMapObject::PlaceOnGround(offset); }
-EI_REPLACE(0x0050F020, PlaceOnGroundHook);
+EI_REPLACE_METHOD(0x0050F020, CMapObject::PlaceOnGroundImpl);
 
 // --- Companion -------------------------------------------------------------------------------
 
@@ -247,15 +243,12 @@ namespace {
 __declspec(naked) std::uintptr_t __fastcall ServerSetData(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00515950)
 } // namespace
 
-std::uintptr_t CMapObject::SetServerData(const void* data) {
+std::uintptr_t CMapObject::SetServerDataImpl(const void* data) {
     int classId = companion->GetClassId();
     if (classId != kClassMapObjectServer) return static_cast<std::uintptr_t>(classId);
     return ServerSetData(companion, nullptr, data);
 }
-std::uintptr_t __fastcall SetServerDataHook(CMapObject* self, void*, const void* data) {
-    return self->CMapObject::SetServerData(data);
-}
-EI_REPLACE(0x0050F050, SetServerDataHook);
+EI_REPLACE_METHOD(0x0050F050, CMapObject::SetServerDataImpl);
 
 void CMapObject::AttachCompanion(CEngineObject* object) {
     if (companion) {
@@ -279,7 +272,7 @@ __declspec(naked) std::uintptr_t __fastcall Object3DAttach(CMapObject*, void*, C
 __declspec(naked) void* __fastcall PackVitalsAt(UnitVitals*, void*, UnitVitalsPacked*) EI_ORIGINAL(0x00522C50)
 } // namespace
 
-std::uintptr_t CMapObject::AttachObject(CEngineObject* object) {
+std::uintptr_t CMapObject::AttachObjectImpl(CEngineObject* object) {
     if (!object || object->type_ != kTypeMapCompanion) return Object3DAttach(this, nullptr, object);
     if (companion) {
         CompanionOwner(companion) = nullptr;
@@ -289,10 +282,7 @@ std::uintptr_t CMapObject::AttachObject(CEngineObject* object) {
     CompanionOwner(object) = this;
     return static_cast<std::uintptr_t>(++companion->refCount_);
 }
-std::uintptr_t __fastcall AttachObjectHook(CMapObject* self, void*, CEngineObject* object) {
-    return self->CMapObject::AttachObject(object);
-}
-EI_REPLACE(0x0050E890, AttachObjectHook);
+EI_REPLACE_METHOD(0x0050E890, CMapObject::AttachObjectImpl);
 
 int CMapObject::PackVitals() {
     if (companion->GetClassId() != kClassMapObjectServer) return 0;
