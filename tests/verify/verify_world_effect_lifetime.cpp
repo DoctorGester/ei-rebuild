@@ -279,7 +279,7 @@ CEffectTornado* __fastcall TornadoDeleteVerify(CEffectTornado* self, void*, unsi
 // The factory (every effect created; scenarios spells, effects): ours only (it allocates). A new
 // object reports the requested class id (slot 12) and carries it in type_.
 CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, int type) {
-    CEngineObject* object = EffectNewObject(manager, nullptr, type);
+    CEngineObject* object = static_cast<CEffectManager*>(manager)->NewObjectImpl(type);
     bool ok = object == nullptr || (object->type_ == type && object->GetClassId() == type);
     ei::verify::Check("EffectNewObject", true, ok, "type %X object %p", type, object);
     return object;

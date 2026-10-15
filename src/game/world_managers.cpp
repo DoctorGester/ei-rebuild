@@ -99,14 +99,14 @@ void __fastcall EffectManagerDestruct(CBaseManager* self) {   // 0055F3A0
     ei::SetVtable(self, kEffectManagerVtable);
     self->DestructBody();
 }
-CBaseManager* __fastcall EffectManagerDelete(CBaseManager* self, void*, unsigned flags) {   // 0055F380
-    EffectManagerDestruct(self);
-    return DeleteIf(self, flags);
+CBaseManager* CEffectManager::DeleteScalar(unsigned flags) {   // 0055F380
+    EffectManagerDestruct(this);
+    return DeleteIf(this, flags);
 }
 EI_REPLACE(0x0055F360, EffectManagerClassName);
 EI_REPLACE(0x0055F370, EffectManagerClassId);
 EI_REPLACE(0x0055F3A0, EffectManagerDestruct);
-EI_REPLACE(0x0055F380, EffectManagerDelete);
+EI_REPLACE_METHOD(0x0055F380, CEffectManager::DeleteScalar);
 // 0067E150 (slot 2; A-H24): CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's).
 BOOL __fastcall EffectManagerCreate(CBaseManager* self) { return self->CBaseManager::Create() != 0 ? 1 : 0; }
 EI_REPLACE(0x0067E150, EffectManagerCreate);

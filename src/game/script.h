@@ -681,6 +681,7 @@ struct ScriptDefinition {
     void BindCall(const SSCCmd* call);
     // 004BB800. Adds a parameter variable and its type letter to `params`; 0 if the name exists.
     BOOL AddParameter(const mfc::CString& name, int type);
+    BOOL AddParameterImpl(const mfc::CString* name, int type);   // body of the slot above (registered by member pointer)
     // 004CB460 (RET 4; script_copy.cpp). Assignment, returns this: index, name and parameters, the if-then
     // pairs (SetSize 004C59C0, copied as words), the variables as ScriptVars::operator= copies them.
     ScriptDefinition* ScriptDefinitionAssign(const ScriptDefinition* other);
@@ -755,11 +756,6 @@ void __fastcall ScriptQuestFinish(CScript* script);
 // globals, areas, the FX / particle / lightning lists and the point lights' objects (the slots
 // stay, zeroed), shrinks the temporaries to their one empty entry and sets +0x68 / +0x6C to -2.
 void __fastcall ScriptReset(CScript* script);
-
-// 004BB800 (ScriptDefinition::AddParameter, __thiscall). Adds variable `name` of `type` (1..4)
-// to the definition's variables and its letter (f s o g) to `params`; 0 when a variable of that
-// type has the name. Another type adds nothing and returns the name's address (nonzero).
-BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void* edx, const mfc::CString* name, int type);
 
 // ---- Saving (script_save.cpp) -------------------------------------------------------------------
 

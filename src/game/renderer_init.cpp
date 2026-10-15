@@ -82,7 +82,6 @@ __declspec(naked) void __fastcall RendererAddLight(CSceneRenderer*, void*, CLigh
 __declspec(naked) CRenderHelper* __fastcall HelperConstruct(void*, void*, IDirect3DDevice7* /*device*/,
                                                             std::uint32_t /*flag dword*/) EI_ORIGINAL(0x004FCA60)
 
-
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
 static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
@@ -268,9 +267,9 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 } // namespace
 
 // 00500B70 (thiscall, RET 8).
-void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, GameOptions* settings) {
+void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
-    renderer->CreateBase(window, settings);
+    CreateBase(window, settings);
     // In the switch-over (the new renderer presents, device.h) no DirectDraw driver is listed or
     // tried: the device object is built without one (the primary display's, should the new
     // renderer fail to start and DirectDraw be used after all).
@@ -295,19 +294,19 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
         device = DeviceConstruct(memory, nullptr, window, driverId, settings->fullScreen_, settings->resolutionX_,
                                  settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     }
-    HolderAssign(&renderer->device_, nullptr, device);
-    DeviceSetPipeline(&renderer->device_->pipeline_, renderer->pipeline_);
+    HolderAssign(&device_, nullptr, device);
+    DeviceSetPipeline(&device_->pipeline_, pipeline_);
 
-    FillMatrixStacks(renderer);
-    SetViewport(renderer, settings);
-    SetRenderState(renderer, D3DRENDERSTATE_ZENABLE, renderer->device_->zEnable_);
-    SetRenderState(renderer, D3DRENDERSTATE_ZWRITEENABLE, 1);
-    SetRenderState(renderer, D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
-    SetRenderState(renderer, D3DRENDERSTATE_SHADEMODE, D3DSHADE_GOURAUD);
+    FillMatrixStacks(this);
+    SetViewport(this, settings);
+    SetRenderState(this, D3DRENDERSTATE_ZENABLE, device_->zEnable_);
+    SetRenderState(this, D3DRENDERSTATE_ZWRITEENABLE, 1);
+    SetRenderState(this, D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
+    SetRenderState(this, D3DRENDERSTATE_SHADEMODE, D3DSHADE_GOURAUD);
 
     // The device's capabilities, then DirectDraw's (driver and emulation, 0x17C bytes each).
     D3DDEVICEDESC7 deviceDesc;   // not cleared, as in the original
-    CTextureDevice* holder = renderer->device_;
+    CTextureDevice* holder = device_;
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(holder->d3dDevice_), &deviceDesc);
     holder->lastLoadResult_ = result;
     if (result != 0) FatalDirectX(result, game::Text(0x0078EE20));   // "Can't get device description"
@@ -315,34 +314,34 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);
     emulationCaps.dwSize = sizeof(DDCAPS);
-    device::GetCaps(static_cast<IDirectDraw7*>(renderer->device_->ddraw_), &driverCaps, &emulationCaps);
+    device::GetCaps(static_cast<IDirectDraw7*>(device_->ddraw_), &driverCaps, &emulationCaps);
     if (!(driverCaps.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) settings->mipmapping_ = 0;
 
-    SetTextureStages(renderer, settings, deviceDesc);
-    SetRenderStates(renderer, settings);
+    SetTextureStages(this, settings, deviceDesc);
+    SetRenderStates(this, settings);
 
-    renderer->frameTime_ = 0;
-    renderer->flags_ |= 2;
-    renderer->shortestFrame_ = 0x80000000;
-    renderer->longestFrame_ = 0;
-    renderer->totalTime_ = 0;
-    renderer->frameCount_ = 0;
-    renderer->averageFrame_ = 0;
-    renderer->lastFrameStart_ = gameapi::timeGetTime();
-    renderer->windowTime_ = 0;
-    renderer->windowFrames_ = 0;
-    AddDefaultLight(renderer);
+    frameTime_ = 0;
+    flags_ |= 2;
+    shortestFrame_ = 0x80000000;
+    longestFrame_ = 0;
+    totalTime_ = 0;
+    frameCount_ = 0;
+    averageFrame_ = 0;
+    lastFrameStart_ = gameapi::timeGetTime();
+    windowTime_ = 0;
+    windowFrames_ = 0;
+    AddDefaultLight(this);
 
     // The ambient colour (slot 7): grey 50 from three FISTPs of 50.0.
     std::uint32_t r = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t g = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t b = static_cast<std::uint32_t>(x87::fistp(50.0f));
     std::uint32_t ambient = ((((r | 0xFFFFFF00u) << 8) | g) << 8) | b;
-    renderer->SetColour(ambient);
+    SetColour(ambient);
 
-    CreateHelper(renderer, settings);
+    CreateHelper(this, settings);
 }
-EI_REPLACE(0x00500B70, RendererCreate);
+EI_REPLACE_METHOD(0x00500B70, CSceneRenderer::CreateRendererImpl);
 
 // 00501980 (ECX = the matrix; only SetView calls it). Transposes a 4x4 matrix in place.
 void __fastcall MatrixTransposeInPlace(float* m) { Transpose(m); }

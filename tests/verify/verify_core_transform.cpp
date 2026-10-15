@@ -26,7 +26,7 @@ CTransformObject*(__fastcall* s_copy)(CTransformObject*, void*, const CTransform
 CTransformObject* __fastcall CopyVerify(CTransformObject* self, void*, const CTransformObject* other) {
     TransformCopy actual;
     std::memcpy(actual.bytes, self, sizeof(actual.bytes));
-    bool retOk = actual.get()->CTransformObject::CopyTransform(*other) == actual.get();
+    bool retOk = actual.get()->CopyTransformImpl(*other) == actual.get();
     CTransformObject* expectedRet = s_copy(self, nullptr, other);
     bool same = retOk && expectedRet == self && std::memcmp(self, actual.bytes, sizeof(actual.bytes)) == 0;
     ei::verify::Check("CTransformObject::CopyTransform", true, same, "");
@@ -38,7 +38,7 @@ void(__fastcall* s_combine)(CTransformObject*, void*, const Quaternion*);
 void __fastcall CombineVerify(CTransformObject* self, void*, const Quaternion* parent) {
     TransformCopy actual;
     std::memcpy(actual.bytes, self, sizeof(actual.bytes));
-    actual.get()->CTransformObject::CombineRotation(*parent);
+    actual.get()->CombineRotationImpl(*parent);
     Quaternion p = *parent;
     s_combine(self, nullptr, parent);
     ei::verify::Check("CTransformObject::CombineRotation", true,
@@ -57,7 +57,7 @@ void __fastcall UpdateVerify(CTransformObject* self, void*, const Quaternion* ro
     *reinterpret_cast<std::uintptr_t*>(expected.bytes) = kBaseTransformVtable;
     s_update(expected.get(), nullptr, rotation, position);
     bool baseSlot = (*reinterpret_cast<std::uintptr_t* const*>(self))[14] == kCombineRotation;
-    self->CTransformObject::UpdateWorld(*rotation, *position);
+    self->UpdateWorldImpl(*rotation, *position);
     const std::size_t from = offsetof(CTransformObject, worldPosition_);
     const std::size_t to = baseSlot ? sizeof(CTransformObject) : from + sizeof(Vector3);
     bool same = std::memcmp(reinterpret_cast<const char*>(self) + from, expected.bytes + from, to - from) == 0 &&

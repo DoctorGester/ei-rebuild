@@ -583,8 +583,8 @@ EI_REPLACE_METHOD(0x006C68B0, Terrain::LoadMap);
 
 // ---- The world matrix, the light interval, water levels, tile texture coordinates -------------------
 
-void Terrain::CombineRotation(const Quaternion& parent) {
-    CTransformObject::CombineRotation(parent);
+void Terrain::CombineRotationImpl(const Quaternion& parent) {
+    CTransformObject::CombineRotationImpl(parent);
     WorldMatrix(worldMatrix.m);
 }
 
@@ -649,10 +649,7 @@ EI_REPLACE_METHOD(0x006C7940, Terrain::BuildTileUv);
 
 EI_REPLACE_METHOD(0x006C5430, Terrain::CreateImpl);
 EI_REPLACE_METHOD(0x006C54D0, Terrain::DestroyImpl);
-void __fastcall CombineRotationHook(Terrain* self, void*, const Quaternion* parent) {
-    self->Terrain::CombineRotation(*parent);
-}
-EI_REPLACE(0x006C6070, CombineRotationHook);
+EI_REPLACE_METHOD(0x006C6070, Terrain::CombineRotationImpl);
 EI_REPLACE_METHOD(0x006C5620, Terrain::Reset);
 EI_REPLACE_METHOD(0x006C57E0, Terrain::BuildWavePhases);
 EI_REPLACE_METHOD(0x006C7D70, Terrain::SetWaveStrength);

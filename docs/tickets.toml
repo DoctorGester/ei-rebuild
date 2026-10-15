@@ -978,6 +978,15 @@ group = "verification"
 depends = ["SV7a"]
 note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
 
+[[ticket]]
+id = "SV3l"
+title = "CInterface3D::Update check flakes: mouse 1920,1260"
+group = "verification"
+size = 0.25
+model = "sonnet"
+files = ["tests/verify/verify_ui_base.cpp"]
+note = "render_cursor_present vanilla failed twice on main (2026-10-15, after the SV3c1 merge) and once on S16a with 'MISMATCH CInterface3D::Update: mouse 1920,1260' (1 of ~10187). InterfaceUpdateVerify (tests/verify/verify_ui_base.cpp) compares the interface's mouse position with the window procedure's stored one (007C7C50/54) after Update; 1920,1260 is outside the game window, so a WM_MOUSEMOVE from the real cursor probably lands while a window's update pumps messages. Confirm (log both values), then make the check robust (compare against the stored value as of Update's own read, or skip when the stored value changed during the call). Harness inputs only; no game change."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1262,7 +1271,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 6 merged 2026-10-15: 64 virtual-slot shims to Impl members; 952 shims left. The virtual-slot forwarder pool is used up; what is left is mostly call-through blocks, UI input shims, free __fastcall bodies of slots with no member yet, and shims that dereference a pointer parameter (see docs/notes/cleanup-units.md, C11 batch 6)."
+note = "Batch 7 merged 2026-10-15: 47 free slot bodies and pointer-parameter shims to Impl members; 908 shims left. Both easy pools are used up; what is left is call-through blocks, UI input shims and void* selfs, template aliases (C11 batch 7 in docs/notes/cleanup-units.md). Next batch: the constexpr addresses and per-file At() copies part of this ticket, or the UI input shims as one family."
 
 [[ticket]]
 id = "C12"

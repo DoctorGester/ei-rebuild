@@ -282,17 +282,21 @@ void __fastcall DestroyModelSlot(UnitModelSlot* slot) { DestroyString(&slot->lev
 
 void __fastcall DestroyLevelRecord(UnitLevelRecord* record) { DestroyString(&record->name); }
 
-UnitLevelRecord* __fastcall DeleteLevelRecord(UnitLevelRecord* self, void*, unsigned flags) {
-    DestroyLevelRecord(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+} // namespace unitdb
+
+UnitLevelRecord* UnitLevelRecord::DeleteScalar(unsigned flags) {
+    unitdb::DestroyLevelRecord(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
 
-UnitPrototypeRecord* __fastcall DeletePrototypeRecord(UnitPrototypeRecord* self, void*, unsigned flags) {
-    DestroyPrototypeRecord(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+UnitPrototypeRecord* UnitPrototypeRecord::DeleteScalar(unsigned flags) {
+    unitdb::DestroyPrototypeRecord(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
+
+namespace unitdb {
 
 void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last) {
     for (; first != last; ++first) DestroyString(first);
@@ -382,6 +386,6 @@ EI_REPLACE(0x00539B20, unitdb::DestroyPrototypeTable);
 EI_REPLACE(0x00539E70, unitdb::DestroyModelTable);
 EI_REPLACE(0x00539A10, unitdb::ConstructUnitDatabase);
 EI_REPLACE(0x0053EFF0, unitdb::DestroyLevelRecord);
-EI_REPLACE(0x00540840, unitdb::DeleteLevelRecord);
-EI_REPLACE(0x005407E0, unitdb::DeletePrototypeRecord);
+EI_REPLACE_METHOD(0x00540840, UnitLevelRecord::DeleteScalar);
+EI_REPLACE_METHOD(0x005407E0, UnitPrototypeRecord::DeleteScalar);
 EI_REPLACE(0x005214B0, unitdb::DestroyStringRange);

@@ -410,7 +410,7 @@ void __fastcall CombineRotationVerify(Terrain* self, void*, const Quaternion* pa
     const Result expected = {self->worldRotation_, self->worldMatrix};
     self->worldRotation_ = before.rotation;
     self->worldMatrix = before.matrix;
-    self->Terrain::CombineRotation(*parent);
+    self->CombineRotationImpl(*parent);
     const Result actual = {self->worldRotation_, self->worldMatrix};
     const int bad = FirstFar(&expected.rotation.w, &actual.rotation.w, sizeof(Result) / sizeof(float));
     ei::verify::Check("Terrain::CombineRotation", -1, bad, "first differing float");

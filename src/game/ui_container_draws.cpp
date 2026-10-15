@@ -15,6 +15,7 @@
 // there reads its depth buffer (its interface and world meshes are off). The item models go through
 // 005ECA10 and the mesh draws, which hand over already.
 #include "ui.h"
+#include "ui_briefing.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "originals_ui.h"
@@ -83,37 +84,37 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
 } // namespace
 
 // 00600EF0. Nothing when the interface's +0x30 is clear. Returns 1.
-int __fastcall UiContainerDraw(CUiWindow* self, void*, int pass) {
-    if (!self->interface_->drawing_) return 1;
-    UiRenderer* device = DeviceOf(self);
+int CUiContainer::DrawContainerImpl(int pass) {
+    if (!interface_->drawing_) return 1;
+    UiRenderer* device = DeviceOf(this);
     std::uint32_t handle = GameValue<std::uint32_t>(kStateBlockAlpha);
     device->result_ = device->device_->ApplyStateBlock(handle);
     render::state::Block(handle);
-    self->DrawBase(pass);
-    CUiContainer* container = static_cast<CUiContainer*>(self);
+    DrawBase(pass);
+    CUiContainer* container = static_cast<CUiContainer*>(this);
     for (int i = 0; i < container->children_.size; ++i) {
         CUiWindow* child = container->children_.data[i];
         if (child->enabled_) child->VirtualDraw(pass);
     }
     return 1;
 }
-EI_REPLACE(0x00600EF0, UiContainerDraw);
+EI_REPLACE_METHOD(0x00600EF0, CUiContainer::DrawContainerImpl);
 
 // 00602BF0 (screen 3, the base / briefing screen). Returns 00600EF0's result.
-int __fastcall UiBriefingScreenDraw(CUiWindow* self, void*, int pass) { return ScreenDraw(self, pass, true); }
-EI_REPLACE(0x00602BF0, UiBriefingScreenDraw);
+int CBriefingScreen::DrawImpl(int pass) { return ScreenDraw(this, pass, true); }
+EI_REPLACE_METHOD(0x00602BF0, CBriefingScreen::DrawImpl);
 
 // 00632A90 (screen 2). Returns 00600EF0's result.
-int __fastcall UiScreen2Draw(CUiWindow* self, void*, int pass) { return ScreenDraw(self, pass, false); }
-EI_REPLACE(0x00632A90, UiScreen2Draw);
+int CMainMenu::DrawImpl(int pass) { return ScreenDraw(this, pass, false); }
+EI_REPLACE_METHOD(0x00632A90, CMainMenu::DrawImpl);
 
 // 00622420. The owner (+0x14C) slot 51 gives the hero's data: +0x730 / +0x734 the quick items
 // (the strip's left part), +0x740 / +0x744 the other list (from the right), +0x750 / +0x754 the
 // worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.
-int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
-    PartyUnitRecord* hero = ShownHero(self->owner_);
-    auto frame = [self](int i) { return reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[i]); };
+int CHeroEquipPanel::DrawImpl(int pass) {
+    PartyUnitRecord* hero = ShownHero(owner_);
+    auto frame = [this](int i) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[i]); };
     std::uint32_t quick = hero->weaponIndex;
     if (quick < hero->weaponCount) {
         frame(0)->visible_ = 1;
@@ -122,26 +123,26 @@ int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
     } else {
         frame(0)->visible_ = 0;
     }
-    int selected = self->selected_;
+    int selected = selected_;
     if (selected >= 0 && selected < static_cast<int>(hero->quickItemCount)) {
         frame(1)->visible_ = 1;
         frame(1)->Place(static_cast<float>(750 - selected * 100), 50.0f, 3.0f);
     } else {
         frame(1)->visible_ = 0;
     }
-    self->DrawBase(pass);
-    auto* owner = reinterpret_cast<CItemScreen*>(self->owner_);
+    DrawBase(pass);
+    auto* owner = reinterpret_cast<CItemScreen*>(owner_);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
         ItemCell cell{static_cast<CItem*>(hero->weapons[i]), static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
-                      self->mode_};
+                      mode_};
         ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
     }
     for (int i = 0; i < static_cast<int>(hero->quickItemCount); ++i) {
         ItemCell cell{static_cast<CItem*>(hero->quickItems[i]), static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
-                      self->mode_};
+                      mode_};
         ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
     }
-    if (!self->body_) return 1;
+    if (!body_) return 1;
 
     // The seven body slots' rectangles: 70 x 70 around the centres 00741EC4 / 00741EE0 (layout).
     const int* centreX = reinterpret_cast<const int*>(0x00741EC4);
@@ -149,25 +150,25 @@ int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
     RECT slots[7];
     for (int i = 0; i < 7; ++i) {
         RECT r{centreX[i] - 35, centreY[i] - 35, centreX[i] + 35, centreY[i] + 35};
-        self->interface_->CallScaleRectToScreen(&r);
+        interface_->CallScaleRectToScreen(&r);
         slots[i] = r;
     }
-    Flush(DeviceOf(self));
-    ClearDepth(DeviceOf(self), 0, nullptr, 0.0f);
-    ClearDepth(DeviceOf(self), 7, slots, 1.0f);
+    Flush(DeviceOf(this));
+    ClearDepth(DeviceOf(this), 0, nullptr, 0.0f);
+    ClearDepth(DeviceOf(this), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
         CItem* item = static_cast<CItem*>(hero->armor[i]);
         int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
-                      self->mode_};
+                      mode_};
         ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
     }
-    Flush(DeviceOf(self));
-    ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
-    Flush(DeviceOf(self));
+    Flush(DeviceOf(this));
+    ClearDepth(DeviceOf(this), 0, nullptr, 1.0f);
+    Flush(DeviceOf(this));
     return 1;
 }
-EI_REPLACE(0x00622420, HeroEquipPanelDraw);
+EI_REPLACE_METHOD(0x00622420, CHeroEquipPanel::DrawImpl);
 
 // 0064D970 (the objectives window's). Returns SetRenderState's result (not stored in the device object).
 long __fastcall WindowSetAlphaRef(CUiWindow* self) {

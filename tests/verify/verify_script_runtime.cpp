@@ -118,7 +118,7 @@ BOOL __fastcall AddParameterVerify(ScriptDefinition* self, void*, const mfc::CSt
     int values = known ? *valuesOf[type - 1] : 0;
     bool existed = known && FindName(*namesOf[type - 1], text.c_str()) >= 0;
 
-    BOOL result = ScriptAddParameter(self, nullptr, name, type);
+    BOOL result = self->AddParameterImpl(name, type);
 
     bool ok;
     std::string now = static_cast<const char*>(self->params);

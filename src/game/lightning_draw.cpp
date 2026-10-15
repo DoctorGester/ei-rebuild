@@ -58,7 +58,6 @@ std::uint8_t& GlowGuards() { return *reinterpret_cast<std::uint8_t*>(0x0079C1F4)
 void SizeSprites() { Sprites().SetSize(8); }
 void SizePoints() { GlowPoints().SetSize(8); }
 
-
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
     return static_cast<float>(static_cast<int>(Rng()->Next() & 3)) * GameFloat(0x0073C3B0);
@@ -125,46 +124,46 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
 EI_REPLACE_METHOD(0x00467590, CLightning::DrawGlow);
 
 // 00467AD0. 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
-int __fastcall DrawLightning(CLightning* self, void*, void* device) {
-    auto** holder = reinterpret_cast<void**>(&self->texture_);
+int CLightning::DrawImpl(void* device) {
+    auto** holder = reinterpret_cast<void**>(&texture_);
     EnsureTextureLoaded(holder);
     auto* renderer = static_cast<CSceneRenderer*>(device);
     if (!renderer->SetTexture(0, *holder)) return 0;
-    int visibility = ClipTest(renderer->pipeline_, nullptr, reinterpret_cast<const ClipBounds*>(&self->boundsKind_));
+    int visibility = ClipTest(renderer->pipeline_, nullptr, reinterpret_cast<const ClipBounds*>(&boundsKind_));
     if (visibility == 2) return 1;
     const float zero = GameFloat(0x0073B858);
-    if (self->power_ >= zero) self->Animate();
+    if (power_ >= zero) Animate();
     const float slant = GameFloat(0x0073C3B0);   // 0.25
-    if (!(self->power_ >= zero)) {   // negative (or NaN): untextured lengthwise
-        renderer->DrawStrip(&self->main_.points, self->main_.width, visibility, 0.0f, 0.0f, slant);
-        for (LightningSegment& b : self->branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
+    if (!(power_ >= zero)) {   // negative (or NaN): untextured lengthwise
+        renderer->DrawStrip(&main_.points, main_.width, visibility, 0.0f, 0.0f, slant);
+        for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(self->main_.step) * static_cast<float>(self->main_.points.size) * GameFloat(0x0073C4FC);   // 0.6
-        renderer->DrawStrip(&self->main_.points, self->main_.width, visibility, span, offset, slant);
-        for (LightningSegment& b : self->branches_) {
+        float span = LengthZXY(main_.step) * static_cast<float>(main_.points.size) * GameFloat(0x0073C4FC);   // 0.6
+        renderer->DrawStrip(&main_.points, main_.width, visibility, span, offset, slant);
+        for (LightningSegment& b : branches_) {
             offset = RandomOffset();
             span = LengthZXY(b.step) * static_cast<float>(b.points.size) * GameFloat(0x0073C4FC);
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
 
-    float count = static_cast<float>(self->main_.points.size);
-    Vector3 start = self->main_.start;
-    Vector3 run{count * self->main_.step.x, count * self->main_.step.y, count * self->main_.step.z};
+    float count = static_cast<float>(main_.points.size);
+    Vector3 start = main_.start;
+    Vector3 run{count * main_.step.x, count * main_.step.y, count * main_.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
-    int frameCounter = static_cast<int*>(ObjectWorld(self))[0x64 / 4];
+    int frameCounter = static_cast<int*>(ObjectWorld(this))[0x64 / 4];
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
     float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C528);   // 0.11
     int phase = (frameCounter / 2) % 15;
-    if (self->power_ > zero) {
+    if (power_ > zero) {
         // Clamped to [0.5, 1.2] with the original's selects (NaN keeps the size).
         float low = 0.5f, high = 1.2f;
         size = !(low >= size) ? size : low;
         size = !(size >= high) ? size : high;
     }
-    if (self->power_ >= zero) DrawGlowAt(self, nullptr, device, &end, phase, size);
-    if (!(self->power_ < zero) && !(self->power_ > zero)) DrawGlowAt(self, nullptr, device, &start, phase, size);   // zero (or NaN)
+    if (power_ >= zero) DrawGlowAt(this, nullptr, device, &end, phase, size);
+    if (!(power_ < zero) && !(power_ > zero)) DrawGlowAt(this, nullptr, device, &start, phase, size);   // zero (or NaN)
     return 1;
 }
-EI_REPLACE(0x00467AD0, DrawLightning);
+EI_REPLACE_METHOD(0x00467AD0, CLightning::DrawImpl);

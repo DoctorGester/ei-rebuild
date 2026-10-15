@@ -293,7 +293,7 @@ CEngineObject* NewEffect() {
 
 } // namespace
 
-CEngineObject* __fastcall EffectNewObject(CBaseManager*, void*, int type) {
+CEngineObject* CEffectManager::NewObjectImpl(int type) {
     CEngineObject* object;
     switch (type) {
     case 0x48: object = NewEffect<CEffectSound>(); break;
@@ -313,4 +313,4 @@ CEngineObject* __fastcall EffectNewObject(CBaseManager*, void*, int type) {
     if (object != nullptr) object->type_ = type;
     return object;
 }
-EI_REPLACE(0x0067E170, EffectNewObject);
+EI_REPLACE_METHOD(0x0067E170, CEffectManager::NewObjectImpl);

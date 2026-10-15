@@ -265,7 +265,7 @@ EI_VERIFY(0x005D7790, StopActionVerify, 0, s_unused);
 static int(__fastcall* s_priority50)(AIMode*, void*, AIBrain*);
 static int __fastcall Priority50Verify(AIMode* self, void*, AIBrain* brain) {
     int expected = s_priority50(self, nullptr, brain);
-    ei::verify::Check("aimode::Priority50", expected, aimode::Priority50(self, nullptr, brain), "mode %p", self);
+    ei::verify::Check("aimode::Priority50", expected, self->Priority50(brain), "mode %p", self);
     return expected;
 }
 EI_VERIFY(0x005D0A80, Priority50Verify, 5, s_priority50);
@@ -273,7 +273,7 @@ EI_VERIFY(0x005D0A80, Priority50Verify, 5, s_priority50);
 // 005D0AF0 EnterIdle: ours only (releases the target, draws a random number). The decay must be
 // 0.8 + 0.4 * r for some 32-bit r, i.e. within [0.8, 1.2].
 static void __fastcall EnterIdleVerify(AIMode* self, void*, AIBrain* brain) {
-    aimode::EnterIdle(self, nullptr, brain);
+    self->EnterIdle(brain);
     bool ok = brain->target == nullptr && brain->action == 0 && brain->owner->busy == 0 && brain->decay >= 0.79f &&
               brain->decay <= 1.21f;
     ei::verify::Check("aimode::EnterIdle", true, ok, "brain %p decay %08X", brain, Bits(brain->decay));
@@ -281,7 +281,7 @@ static void __fastcall EnterIdleVerify(AIMode* self, void*, AIBrain* brain) {
 EI_VERIFY(0x005D0AF0, EnterIdleVerify, 0, s_unused);
 
 static void __fastcall ClearActionVerify(AIMode* self, void*, AIBrain* brain) {
-    aimode::ClearAction(self, nullptr, brain);
+    self->ClearAction(brain);
     ei::verify::Check("aimode::ClearAction", true, brain->target == nullptr && brain->action == 0, "brain %p", brain);
 }
 EI_VERIFY(0x005D0A50, ClearActionVerify, 0, s_unused);
