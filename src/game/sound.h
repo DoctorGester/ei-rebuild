@@ -137,6 +137,10 @@ struct WaveRecord {
     std::uint32_t lastUsed;     // +0x10 GetTickCount()
     std::int32_t size;          // +0x14 bytes
     std::int32_t uses;          // +0x18 voices playing it (CacheEntry's +0x20 is this field of the node)
+
+    // 006BD1B0 (RET 4; S13, sound_manager.cpp; the compiler's operator=): the data pointer, the
+    // name by STLport's assign (unless it is the same string), the three counters. Returns this.
+    WaveRecord* Assign(const WaveRecord* from);
 };
 static_assert(sizeof(WaveRecord) == 0x1C);
 // CList<WaveRecord> (0x1C bytes). Its NewNode / FreeNode stay the instantiation's (006BD4F0 /

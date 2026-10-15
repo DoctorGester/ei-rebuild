@@ -12,6 +12,9 @@
 // load, the shared objects when a saved game is loaded.
 #include "verify.h"
 
+#include "../../src/game/acks_db.h"
+#include "../../src/game/ai_shape_cache.h"
+#include "../../src/game/core_refcount.h"
 #include "../../src/game/core_streams.h"
 #include "../../src/game/engine_object.h"
 #include "../../src/game/item_db.h"
@@ -191,6 +194,53 @@ CEngineObject* __fastcall PartyBaseDeleteVerify(CEngineObject* self, void*, unsi
     return result;
 }
 
+// ---- Ack records, wave records, the shape map's pairs ------------------------------------------
+
+template <typename Lists>
+bool ListsOrdered(const Lists& lists) {
+    for (const auto& list : lists)
+        if (!Ordered(list)) return false;
+    return true;
+}
+void __fastcall UnitAcksDestructVerify(acks::UnitAcks* self) {
+    bool ok = ListsOrdered(self->lists) && Ordered(self->environmentSpeeches) && Ordered(self->namedSpeeches);
+    CheckDestruct("UnitAcks::Destruct", self, ok, [](acks::UnitAcks* r) { r->Destruct(); });
+}
+void __fastcall ModelAcksDestructVerify(acks::ModelAcks* self) {
+    CheckDestruct("ModelAcks::Destruct", self, ListsOrdered(self->lists), [](acks::ModelAcks* r) { r->Destruct(); });
+}
+void __fastcall ExtraAcksDestructVerify(acks::ExtraAcks* self) {
+    CheckDestruct("ExtraAcks::Destruct", self, ListsOrdered(self->lists), [](acks::ExtraAcks* r) { r->Destruct(); });
+}
+
+WaveRecord* __fastcall WaveAssignVerify(WaveRecord* self, void*, const WaveRecord* from) {
+    WaveRecord* result = self->Assign(from);
+    const auto& a = *reinterpret_cast<const stlp::string*>(self->name);
+    const auto& b = *reinterpret_cast<const stlp::string*>(from->name);
+    bool ok = result == self && self->data == from->data && a == b && self->lastUsed == from->lastUsed &&
+              self->size == from->size && self->uses == from->uses;
+    ei::verify::Check("WaveRecord::Assign", true, ok, "wave %.*s", static_cast<int>(b.size()), b.data());
+    return result;
+}
+
+using ShapePairT = UnitShapeCache::Map::Pair;
+ShapePairT* __fastcall ShapePairConstructVerify(ShapePairT* self, void*, const ShapeCacheHandle* key,
+                                                const RefPtr* value) {
+    int refsBefore = key->ref ? key->ref->refs_ : 0;
+    ShapePairT* result = ConstructShapePair(self, nullptr, key, value);
+    CRefObject* shared = self->value.ptr;
+    bool ok = result == self && std::memcmp(&self->key, key, sizeof(*key)) == 0 &&
+              (!key->ref || key->ref->refs_ == refsBefore + 1) &&
+              (shared ? (shared->flags6_ & CRefObject::kCopyOnShare) != 0 && shared->refs_ > 0
+                      : !value->ptr || (value->ptr->flags7_ & CRefObject::kDetached) != 0);
+    ei::verify::Check("ConstructShapePair", true, ok, "key %08X", key->key);
+    return result;
+}
+void __fastcall ShapePairDestroyVerify(ShapePairT* self) {
+    bool ok = (!self->key.ref || self->key.ref->refs_ > 0) && (!self->value.ptr || self->value.ptr->refs_ > 0);
+    CheckDestruct("DestroyShapePair", self, ok, [](ShapePairT* p) { DestroyShapePair(p); });
+}
+
 } // namespace
 
 EI_VERIFY(0x006A8950, HeadDestructVerify, 0, s_unused);
@@ -218,3 +268,9 @@ EI_VERIFY(0x005AE5B0, PairDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005AE5D0, PairDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005B3570, ShapeDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006611B0, PartyBaseDeleteVerify, 0, s_unused);
+EI_VERIFY(0x006DC390, UnitAcksDestructVerify, 0, s_unused);
+EI_VERIFY(0x006DC920, ModelAcksDestructVerify, 0, s_unused);
+EI_VERIFY(0x006DCAF0, ExtraAcksDestructVerify, 0, s_unused);
+EI_VERIFY(0x006BD1B0, WaveAssignVerify, 0, s_unused);
+EI_VERIFY(0x005BE370, ShapePairConstructVerify, 0, s_unused);
+EI_VERIFY(0x005BE280, ShapePairDestroyVerify, 0, s_unused);
