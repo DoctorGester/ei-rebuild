@@ -7,14 +7,21 @@
 //   a CALL, too short to steal).
 // - strncpy: the n bytes and the result; _itoa: the text and the result; _splitpath: the four parts.
 // - memmove: ours only; the destination afterwards holds the source as it was before.
+// - rand, srand: ours only; the result and the seed in the game CRT's thread data.
+// - ceil, modf: the bits of the results; _controlfp: the result and the control word after.
+// The node allocator, the eh vector iterators and set_new_handler change state and have none: every
+// container and array of the game runs through them.
 // The import thunks (WSOCK32, DirectInputCreateEx) are a jump through the import slot and have none.
 // Reached by every scenario (name compares, text parsing, the file and save paths, the network
 // lobby for strncmp).
 #include "verify.h"
 
 #include "../../src/lib/crt.h"
+#include "../../src/game/originals_library.h"
 
+#include <cfloat>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <vector>
 
@@ -240,5 +247,76 @@ void __cdecl QsortVerify(void* base, std::size_t count, std::size_t width, Compa
 }
 // 006E88FC: PUSH EBP; MOV EBP,ESP; SUB ESP,0xF8 (9 bytes).
 EI_VERIFY(0x006E88FC, QsortVerify, 9, s_qsort);
+
+// rand and srand start with CALL _getptd: ours only, against the seed in the game CRT's thread data.
+struct ThreadDataHead {
+    unsigned long words[5];
+    unsigned randSeed;   // +0x14
+};
+unsigned& GameRandSeed() { return static_cast<ThreadDataHead*>(CrtThreadDataOriginal())->randSeed; }
+
+int(__cdecl* s_unusedRand)();
+int __cdecl RandVerify() {
+    const unsigned before = GameRandSeed();
+    const unsigned expectedSeed = before * 0x343FDu + 0x269EC3u;
+    const int actual = libcrt::Rand();
+    Check("rand", static_cast<int>((expectedSeed >> 16) & 0x7FFF), actual, "seed %08X", before);
+    Check("rand seed", expectedSeed, GameRandSeed(), "seed %08X", before);
+    return actual;
+}
+EI_VERIFY(0x006E77F7, RandVerify, 0, s_unusedRand);
+
+void(__cdecl* s_unusedSrand)(unsigned);
+void __cdecl SrandVerify(unsigned seed) {
+    libcrt::Srand(seed);
+    Check("srand", seed, GameRandSeed(), "seed %08X", seed);
+}
+EI_VERIFY(0x006E77EA, SrandVerify, 0, s_unusedSrand);
+
+std::uint64_t Bits(double value) {
+    std::uint64_t bits;
+    std::memcpy(&bits, &value, sizeof bits);
+    return bits;
+}
+
+double(__cdecl* s_ceil)(double);
+double __cdecl CeilVerify(double value) {
+    const double expected = s_ceil(value);
+    const double actual = libcrt::Ceil(value);
+    Check("ceil", Bits(expected), Bits(actual), "%.17g: %.17g, ours %.17g", value, expected, actual);
+    return actual;
+}
+// 006E8B1F: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ECX (5 bytes).
+EI_VERIFY(0x006E8B1F, CeilVerify, 5, s_ceil);
+
+double(__cdecl* s_modf)(double, double*);
+double __cdecl ModfVerify(double value, double* whole) {
+    double expectedWhole = 0;
+    const double expected = s_modf(value, &expectedWhole);
+    const double actual = libcrt::Modf(value, whole);
+    Check("modf", Bits(expected), Bits(actual), "%.17g: %.17g, ours %.17g", value, expected, actual);
+    Check("modf whole", Bits(expectedWhole), Bits(*whole), "%.17g: %.17g, ours %.17g", value, expectedWhole, *whole);
+    return actual;
+}
+// 006EAD0B: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ECX (5 bytes).
+EI_VERIFY(0x006EAD0B, ModfVerify, 5, s_modf);
+
+// _controlfp: the result and the control word after, from the same control word before.
+unsigned(__cdecl* s_controlfp)(unsigned, unsigned);
+unsigned __cdecl ControlfpVerify(unsigned value, unsigned mask) {
+    constexpr unsigned kAll = _MCW_EM | _MCW_RC | _MCW_PC | _MCW_IC;
+    unsigned before = 0, expectedWord = 0, actualWord = 0;
+    __control87_2(0, 0, &before, nullptr);
+    const unsigned expected = s_controlfp(value, mask);
+    __control87_2(0, 0, &expectedWord, nullptr);
+    __control87_2(before, kAll, &actualWord, nullptr);
+    const unsigned actual = libcrt::Controlfp(value, mask);
+    __control87_2(0, 0, &actualWord, nullptr);
+    Check("_controlfp", expected, actual, "%08X %08X from %08X", value, mask, before);
+    Check("_controlfp word", expectedWord, actualWord, "%08X %08X from %08X", value, mask, before);
+    return actual;
+}
+// 006EBBB4: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ESI (5 bytes).
+EI_VERIFY(0x006EBBB4, ControlfpVerify, 5, s_controlfp);
 
 } // namespace

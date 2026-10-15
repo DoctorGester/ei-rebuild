@@ -120,6 +120,20 @@ qsort sorts the caller's array twice (comparators such as CompareSlots read thro
 address). 0 mismatches in 20 runs (10 scenarios, both installs), e.g. toupper 4.7M, tolower 3.7M,
 _splitpath 1.6M, _strnicmp 1.3M, qsort 6.7k calls. The thunks have no wrapper (a jump through the slot).
 
+**S4 group 2.** Registered in both builds: rand / srand (the seed is the game CRT's `_holdrand`,
+`_getptd`+0x14, in the hook build, which the harness reads and seeds; a thread_local in the image),
+ceil, modf, _controlfp (x87 word only), set_new_handler, the eh vector constructor / destructor
+iterators (a guard object unwinds like `__ArrayUnwind`; C++ exceptions only, not SEH), and the STLport
+node allocator 00405950 / 00404D70 with its refill 004060E0 and chunk_alloc 00406B70, ported exactly
+because the pool is the exe's data and original code pushes and pops its free lists inline.
+`EI_REPLACE_STANDALONE` (include/ei/hook.h) registers in the image only: malloc, free, operator new
+(MFC handler loop), operator delete, _onexit, atexit and exit (our list, then the host CRT's exit; the
+exe's __xp / __xt terminators are for the game CRT's streams). The hook build keeps the exe's heap
+and atexit list, which other unported CRT code (realloc, calloc, _strdup, the stream table) shares.
+acos, asin and fmod have no callers (the game calls the _CI forms) and are not ported. Full suite
+(127 runs): all pass but zone_gz15h_tornado rebirth (times out on main too); 0 mismatches, e.g. modf
+9.5M, _controlfp 698k, rand 351k calls; the image check installs every registration.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

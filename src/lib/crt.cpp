@@ -4,6 +4,14 @@
 #include "game/originals_library.h"
 #include "gameapi.h"
 
+#include <cfloat>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <mutex>
+#include <new>
+#include <vector>
+
 namespace gamecrt {
 
 #ifndef EI_VECTORS_REPLAY   // ei_vectors defines these (crt.h)
@@ -514,6 +522,326 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
     }
 }
 EI_REPLACE(0x006E88FC, libcrt::Qsort);
+
+// ---- rand / srand ----
+
+namespace {
+// The head of the CRT's per-thread block (_tiddata) up to the rand seed.
+struct CrtThreadData {
+    unsigned long threadId;
+    void* threadHandle;
+    int errnoValue;
+    unsigned long doserrnoValue;
+    void* floatingPointData;
+    unsigned randSeed;          // +0x14 (_holdrand)
+};
+
+bool InStandalone() {
+    static const bool standalone = ei::Standalone();
+    return standalone;
+}
+
+// The seed rand advances: the game CRT's own in the hook build (the harness reads and seeds it there),
+// one per thread in the image, where _getptd has no code.
+unsigned& RandSeed() {
+    thread_local unsigned standaloneSeed = 1;
+    if (InStandalone()) return standaloneSeed;
+    return static_cast<CrtThreadData*>(CrtThreadDataOriginal())->randSeed;
+}
+} // namespace
+
+int __cdecl Rand() {
+    unsigned& seed = RandSeed();
+    seed = seed * 214013u + 2531011u;
+    return static_cast<int>((seed >> 16) & 0x7FFF);
+}
+EI_REPLACE(0x006E77F7, libcrt::Rand);
+
+void __cdecl Srand(unsigned seed) { RandSeed() = seed; }
+EI_REPLACE(0x006E77EA, libcrt::Srand);
+
+// ---- Maths ----
+
+double __cdecl Ceil(double value) { return std::ceil(value); }
+EI_REPLACE(0x006E8B1F, libcrt::Ceil);
+
+// modf: the whole part truncated, the fraction value - whole (+0 for a negative whole number, where
+// std::modf gives -0); zero, infinity and NaN keep the value as the whole part, and the fraction is
+// the value itself (zero, NaN) or a zero of its sign (infinity).
+double __cdecl Modf(double value, double* whole) {
+    std::uint64_t bits;
+    std::memcpy(&bits, &value, sizeof bits);
+    const unsigned exponent = static_cast<unsigned>(bits >> 52) & 0x7FF;
+    if (exponent == 0x7FF) {
+        *whole = value;
+        if (bits & 0x000FFFFFFFFFFFFFull) return value;   // NaN
+        return std::copysign(0.0, value);
+    }
+    if ((bits << 1) == 0) {
+        *whole = value;
+        return value;
+    }
+    *whole = std::trunc(value);
+    return value - *whole;
+}
+EI_REPLACE(0x006EAD0B, libcrt::Modf);
+
+// _controlfp: the control word's abstract form with the masked bits replaced, set and returned.
+unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
+    constexpr unsigned kAll = _MCW_EM | _MCW_RC | _MCW_PC | _MCW_IC;
+    unsigned current = 0;
+    __control87_2(0, 0, &current, nullptr);
+    const unsigned word = (current & ~mask) | (value & mask);
+    __control87_2(word, kAll, &current, nullptr);
+    return word;
+}
+EI_REPLACE(0x006EBBB4, libcrt::Controlfp);
+
+// ---- eh vector constructor / destructor iterator ----
+
+namespace {
+// Destroys `left` elements below `end`, last first, when the loop it guards is left by an exception
+// (__ArrayUnwind).
+struct ArrayUnwind {
+    char*& end;
+    std::size_t size;
+    int& left;
+    ElementFunction destroy;
+    bool done = false;
+    ~ArrayUnwind() {
+        if (done) return;
+        char* p = end;
+        while (--left >= 0) {
+            p -= size;
+            destroy(p, nullptr);
+        }
+    }
+};
+} // namespace
+
+void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
+                                 ElementFunction destroy) {
+    char* p = static_cast<char*>(array);
+    int constructed = 0;
+    ArrayUnwind unwind{p, size, constructed, destroy};
+    for (; constructed < count; ++constructed) {
+        construct(p, nullptr);
+        p += size;
+    }
+    unwind.done = true;
+}
+EI_REPLACE(0x006E8693, libcrt::ConstructElements);
+
+void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
+    char* p = static_cast<char*>(array) + size * count;
+    ArrayUnwind unwind{p, size, count, destroy};
+    while (--count >= 0) {
+        p -= size;
+        destroy(p, nullptr);
+    }
+    unwind.done = true;
+}
+EI_REPLACE(0x006E859F, libcrt::DestroyElements);
+
+// ---- The runtime the image owns (EI_REPLACE_STANDALONE: the hook build keeps the exe's) ----
+
+namespace {
+// MFC's new handler (_afxNewHandler, 00796E14) and the CRT's (_pnhHeap, 007CAAD8), with _newmode
+// (007CAC7C), which says whether malloc calls the CRT's too.
+gamecrt::NewHandler& AfxNewHandler() { return *reinterpret_cast<gamecrt::NewHandler*>(0x00796E14); }
+gamecrt::NewHandler& HeapNewHandler() { return *reinterpret_cast<gamecrt::NewHandler*>(0x007CAAD8); }
+int NewMode() { return *reinterpret_cast<const int*>(0x007CAC7C); }
+constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
+} // namespace
+
+void* __cdecl Malloc(std::size_t size) {
+    for (;;) {
+        if (size <= kHeapMaxRequest) {
+            if (void* p = std::malloc(size)) return p;
+        }
+        if (!NewMode()) return nullptr;
+        const gamecrt::NewHandler handler = HeapNewHandler();
+        if (!handler || !handler(size)) return nullptr;
+    }
+}
+EI_REPLACE_STANDALONE(0x006EABD1, libcrt::Malloc);
+
+void __cdecl Free(void* p) { std::free(p); }
+EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
+
+gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
+    const gamecrt::NewHandler old = HeapNewHandler();
+    HeapNewHandler() = handler;
+    return old;
+}
+EI_REPLACE(0x006E8D35, libcrt::SetNewHandler);
+
+void* __cdecl OperatorNew(std::size_t size) {
+    for (;;) {
+        if (void* p = Malloc(size)) return p;
+        const gamecrt::NewHandler handler = AfxNewHandler();
+        if (!handler || !handler(size)) return nullptr;
+    }
+}
+EI_REPLACE_STANDALONE(0x007005AF, libcrt::OperatorNew);
+
+void __cdecl OperatorDelete(void* p) { Free(p); }
+EI_REPLACE_STANDALONE(0x007005D8, libcrt::OperatorDelete);
+
+// ---- The STLport node allocator (__node_alloc<true, 0>, no lock) ----
+//
+// Blocks of up to 128 bytes come from 16 free lists by 8-byte size class; an empty list is refilled
+// with 20 blocks cut from a chunk the allocator keeps (asking operator new for twice the need plus a
+// sixteenth of all it has taken so far). Its state is the exe's, which original code also pushes to
+// inline, so these run in both builds.
+
+namespace {
+struct FreeBlock {
+    FreeBlock* next;
+};
+constexpr std::size_t kMaxPooled = 128;
+FreeBlock*& FreeListFor(std::size_t bytes) {
+    return reinterpret_cast<FreeBlock**>(0x0079B224)[(bytes - 1) >> 3];
+}
+std::size_t& PoolHeapSize() { return *reinterpret_cast<std::size_t*>(0x0079B264); }
+char*& ChunkStart() { return *reinterpret_cast<char**>(0x0079B268); }
+char*& ChunkEnd() { return *reinterpret_cast<char**>(0x0079B26C); }
+std::size_t RoundUp(std::size_t bytes) { return (bytes + 7) & ~std::size_t{7}; }
+} // namespace
+
+char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
+    for (;;) {
+        const std::size_t total = size * static_cast<std::size_t>(*count);
+        std::size_t left = static_cast<std::size_t>(ChunkEnd() - ChunkStart());
+        if (left >= total) {
+            char* result = ChunkStart();
+            ChunkStart() += total;
+            return result;
+        }
+        if (left >= size) {
+            *count = static_cast<int>(left / size);
+            char* result = ChunkStart();
+            ChunkStart() += size * static_cast<std::size_t>(*count);
+            return result;
+        }
+        const std::size_t request = 2 * total + RoundUp(PoolHeapSize() >> 4);
+        if (left > 0) {   // the rest of the old chunk goes to the list of its size
+            FreeBlock*& list = FreeListFor(left);
+            reinterpret_cast<FreeBlock*>(ChunkStart())->next = list;
+            list = reinterpret_cast<FreeBlock*>(ChunkStart());
+        }
+        ChunkStart() = static_cast<char*>(gamecrt::operator_new(request));
+        if (!ChunkStart()) {
+            // Out of memory: a free block of this size or larger becomes the chunk.
+            bool found = false;
+            for (std::size_t bytes = size; bytes <= kMaxPooled; bytes += 8) {
+                FreeBlock*& list = FreeListFor(bytes);
+                if (FreeBlock* block = list) {
+                    list = block->next;
+                    ChunkStart() = reinterpret_cast<char*>(block);
+                    ChunkEnd() = ChunkStart() + bytes;
+                    found = true;
+                    break;
+                }
+            }
+            if (found) continue;
+            ChunkEnd() = nullptr;
+            ChunkStart() = static_cast<char*>(gamecrt::operator_new(request));
+        }
+        PoolHeapSize() += request;
+        ChunkEnd() = ChunkStart() + request;
+    }
+}
+EI_REPLACE(0x00406B70, libcrt::NodeChunkAlloc);
+
+void* __fastcall NodeRefill(std::size_t bytes) {
+    const std::size_t size = RoundUp(bytes);
+    int count = 20;
+    char* chunk = NodeChunkAlloc(size, &count);
+    if (count == 1) return chunk;
+    FreeBlock* next = reinterpret_cast<FreeBlock*>(chunk + size);
+    FreeListFor(size) = next;
+    for (int i = 1;; ++i) {
+        FreeBlock* current = next;
+        next = reinterpret_cast<FreeBlock*>(reinterpret_cast<char*>(current) + size);
+        if (i == count - 1) {
+            current->next = nullptr;
+            break;
+        }
+        current->next = next;
+    }
+    return chunk;
+}
+EI_REPLACE(0x004060E0, libcrt::NodeRefill);
+
+void* __fastcall NodeAllocate(std::size_t bytes) {
+    if (bytes > kMaxPooled) return gamecrt::operator_new(bytes);
+    FreeBlock*& list = FreeListFor(bytes);
+    if (FreeBlock* block = list) {
+        list = block->next;
+        return block;
+    }
+    return NodeRefill(bytes);
+}
+EI_REPLACE(0x00405950, libcrt::NodeAllocate);
+
+void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
+    if (bytes > kMaxPooled) {
+        gamecrt::operator_delete(p);
+        return;
+    }
+    FreeBlock*& list = FreeListFor(bytes);
+    static_cast<FreeBlock*>(p)->next = list;
+    list = static_cast<FreeBlock*>(p);
+}
+EI_REPLACE(0x00404D70, libcrt::NodeDeallocate);
+
+namespace {
+// The onexit list, run last-registered first by exit (functions registered while it runs, too).
+std::mutex& ExitLock() {
+    static std::mutex lock;
+    return lock;
+}
+std::vector<ExitFunction>& ExitFunctions() {
+    static std::vector<ExitFunction> functions;
+    return functions;
+}
+} // namespace
+
+ExitFunction __cdecl OnExit(ExitFunction function) {
+    std::lock_guard<std::mutex> hold(ExitLock());
+    try {
+        ExitFunctions().push_back(function);
+    } catch (const std::bad_alloc&) {
+        return nullptr;
+    }
+    return function;
+}
+EI_REPLACE_STANDALONE(0x006E71FD, libcrt::OnExit);
+
+int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
+EI_REPLACE_STANDALONE(0x006E727B, libcrt::AtExit);
+
+// exit: the onexit list, then the host CRT's exit. The exe's own terminators (__xp / __xt, for the
+// game CRT's streams) have nothing to do in the image, where the streams are the host's.
+void __cdecl Exit(int code) {
+    static bool exiting = false;
+    if (!exiting) {
+        exiting = true;
+        for (;;) {
+            ExitFunction function = nullptr;
+            {
+                std::lock_guard<std::mutex> hold(ExitLock());
+                if (ExitFunctions().empty()) break;
+                function = ExitFunctions().back();
+                ExitFunctions().pop_back();
+            }
+            if (function) function();
+        }
+    }
+    std::exit(code);
+}
+EI_REPLACE_STANDALONE(0x006E8DA7, libcrt::Exit);
 
 } // namespace libcrt
 

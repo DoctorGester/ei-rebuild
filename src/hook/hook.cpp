@@ -413,11 +413,15 @@ int InstallHooks() {
     if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
     TextUnprotect text(nt);
-    int installed = 0, shortLeft = 0;
+    int installed = 0, shortLeft = 0, runtimeLeft = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (IsDisabled(h->address)) continue;
         if (h->shortFunction && !standalone) {
             ++shortLeft;
+            continue;
+        }
+        if (h->standaloneOnly && !standalone) {
+            ++runtimeLeft;
             continue;
         }
         // In record mode a recorder is the only hook at its address; otherwise recorders are left out.
@@ -500,6 +504,7 @@ int InstallHooks() {
     }
     text.Restore();
     if (shortLeft) Log("%d function(s) under 5 bytes left to the original (EI_REPLACE_SHORT)", shortLeft);
+    if (runtimeLeft) Log("%d runtime function(s) left to the original (EI_REPLACE_STANDALONE)", runtimeLeft);
     if (standalone) return installed;
     // The game's static initialisers have run and nothing else yet: their results are compared now.
     for (StartupCheck* check = g_startupChecks; check; check = check->next) {

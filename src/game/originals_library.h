@@ -65,6 +65,8 @@ __declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x0
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 __declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
+// The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
+__declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 __declspec(naked) inline const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
 __declspec(naked) inline int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)

@@ -146,6 +146,48 @@ void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, cha
 // first): equal elements end up in the same order as in the game.
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
 
+// rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread: in the hook build the
+// game CRT's own (_tiddata::_holdrand, +0x14 of _getptd's block, which the harness and the verify
+// wrappers save and restore), in the standalone image a thread_local starting at 1.
+int __cdecl Rand();                                                             // 006E77F7
+void __cdecl Srand(unsigned seed);                                              // 006E77EA
+
+// Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
+// have no callers: the game calls the _CI forms.)
+double __cdecl Ceil(double value);                                              // 006E8B1F
+double __cdecl Modf(double value, double* whole);                               // 006EAD0B
+// _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
+unsigned __cdecl Controlfp(unsigned value, unsigned mask);                      // 006EBBB4
+
+// The compiler's array helpers, `eh vector constructor / destructor iterator`: the element's
+// constructor or destructor (thiscall, called as fastcall) on each of `count` elements of `size`
+// bytes, construction from the first, destruction from the last; when one throws, the elements done
+// so far (construction) or still left (destruction) are destroyed and the exception goes on.
+using ElementFunction = void(__fastcall*)(void* element, void* unused);
+void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
+                                 ElementFunction destroy);                      // 006E8693
+void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy); // 006E859F
+
+// The STLport node allocator (__node_alloc<true, 0>): its pool is the exe's data, so the same in
+// both builds.
+void* __fastcall NodeAllocate(std::size_t bytes);                               // 00405950
+void __fastcall NodeDeallocate(void* p, std::size_t bytes);                     // 00404D70
+void* __fastcall NodeRefill(std::size_t bytes);                                 // 004060E0 (_S_refill)
+char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // 00406B70 (_S_chunk_alloc)
+
+gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler);         // 006E8D35
+
+// The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
+// heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
+void* __cdecl OperatorNew(std::size_t size);                                    // 007005AF
+void __cdecl OperatorDelete(void* p);                                           // 007005D8
+void* __cdecl Malloc(std::size_t size);                                         // 006EABD1
+void __cdecl Free(void* p);                                                     // 006EA8AD
+using ExitFunction = void(__cdecl*)();
+ExitFunction __cdecl OnExit(ExitFunction function);                             // 006E71FD
+int __cdecl AtExit(ExitFunction function);                                      // 006E727B
+void __cdecl Exit(int code);                                                    // 006E8DA7
+
 } // namespace libcrt
 
 namespace game {
