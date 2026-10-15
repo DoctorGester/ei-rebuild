@@ -50,14 +50,14 @@ struct SlotState {
     RECT bounds;
 };
 SlotState Capture(CUiMesh* sprite, CUiRegion* region) {
-    return {sprite->position_, {sprite->ScaleX(), sprite->ScaleY(), sprite->ScaleZ()}, sprite->colour_, region->bounds_};
+    return {sprite->localPosition_, {sprite->ScaleX(), sprite->ScaleY(), sprite->ScaleZ()}, sprite->flatSpecular_, region->bounds_};
 }
 void Restore(CUiMesh* sprite, CUiRegion* region, const SlotState& state) {
-    sprite->position_ = state.position;
+    sprite->localPosition_ = state.position;
     sprite->ScaleX() = state.scale[0];
     sprite->ScaleY() = state.scale[1];
     sprite->ScaleZ() = state.scale[2];
-    sprite->colour_ = state.colour;
+    sprite->flatSpecular_ = state.colour;
     region->bounds_ = state.bounds;
 }
 
@@ -66,9 +66,9 @@ void Restore(CUiMesh* sprite, CUiRegion* region, const SlotState& state) {
 void CheckIcon(const char* name, CUiMesh* sprite, int n, int firstColumn) {
     float u = static_cast<float>(firstColumn + (n / 4) * 0x40) * kTexel;
     float v = static_cast<float>((n % 4) * 0x40 + 0x40) * kTexel;
-    ei::verify::CheckNear(name, u, sprite->uOffset_, "u of picture %d", n);
-    ei::verify::CheckNear(name, v, sprite->vOffset_, "v of picture %d", n);
-    ei::verify::Check(name, true, sprite->plainColour_ == kWhite && (sprite->flags_ & kPlainFlag) != 0, "plain, picture %d",
+    ei::verify::CheckNear(name, u, sprite->textureOffsetU_, "u of picture %d", n);
+    ei::verify::CheckNear(name, v, sprite->textureOffsetV_, "v of picture %d", n);
+    ei::verify::Check(name, true, sprite->flatColour_ == kWhite && (sprite->flags_ & kPlainFlag) != 0, "plain, picture %d",
                       n);
 }
 } // namespace
@@ -136,12 +136,12 @@ static void __fastcall WeaponBarAddVerify(CHudWeaponBar* self, void*, const char
     CUiMesh* sprite = Sprite(self, sprites);
     float u = static_cast<float>(count >= 2 ? 0x2A : 0) * kTexel;
     float v = static_cast<float>(((count & 1) ? 0x80 : 0) + 0x80) * kTexel;
-    ei::verify::CheckNear("CHudWeaponBar::AddWeapon u", u, sprite->uOffset_, "slot %d", count);
-    ei::verify::CheckNear("CHudWeaponBar::AddWeapon v", v, sprite->vOffset_, "slot %d", count);
+    ei::verify::CheckNear("CHudWeaponBar::AddWeapon u", u, sprite->textureOffsetU_, "slot %d", count);
+    ei::verify::CheckNear("CHudWeaponBar::AddWeapon v", v, sprite->textureOffsetV_, "slot %d", count);
     // Shown not highlighted: black, the region from y 520 down.
     ei::verify::Check("CHudWeaponBar::AddWeapon shown", true,
-                      sprite->plainColour_ == kWhite && (sprite->flags_ & kPlainFlag) != 0 && sprite->colour_ == kColourOff,
-                      "slot %d colour %08X", count, sprite->colour_);
+                      sprite->flatColour_ == kWhite && (sprite->flags_ & kPlainFlag) != 0 && sprite->flatSpecular_ == kColourOff,
+                      "slot %d colour %08X", count, sprite->flatSpecular_);
     CheckOffsetCleared("CHudWeaponBar::AddWeapon");
 }
 EI_VERIFY(0x0063BCC0, WeaponBarAddVerify, 0, s_unused);
@@ -207,7 +207,7 @@ static void __fastcall SpellColumnAddVerify(CHudSpellColumn* self, void*, const 
     if (!ok) return;
     if (count < 8) CheckIcon("CHudSpellColumn::AddSpell picture", Sprite(self, sprites), count, 0x80);
     if (count < self->sceneObjects_.size)
-        ei::verify::Check("CHudSpellColumn::AddSpell colour", kColourOff, Sprite(self, count)->colour_, "button %d", count);
+        ei::verify::Check("CHudSpellColumn::AddSpell colour", kColourOff, Sprite(self, count)->flatSpecular_, "button %d", count);
     CheckOffsetCleared("CHudSpellColumn::AddSpell");
 }
 EI_VERIFY(0x0063E4B0, SpellColumnAddVerify, 0, s_unused);
@@ -242,6 +242,6 @@ static void __fastcall ActionColumnAddVerify(CHudActionColumn* self, void*, cons
     if (!ok) return;
     if (count < 8) CheckIcon("CHudActionColumn::AddAction picture", Sprite(self, sprites), count, 0);
     if (count < self->sceneObjects_.size)
-        ei::verify::Check("CHudActionColumn::AddAction colour", kColourOff, Sprite(self, count)->colour_, "button %d", count);
+        ei::verify::Check("CHudActionColumn::AddAction colour", kColourOff, Sprite(self, count)->flatSpecular_, "button %d", count);
 }
 EI_VERIFY(0x0063F500, ActionColumnAddVerify, 0, s_unused);

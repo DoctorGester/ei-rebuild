@@ -24,7 +24,7 @@ static void __fastcall RefreshListVerify(CSaveLoadWindow* self) {
     CUiMesh* marker = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[kMarkerSprite]);
     const int cursor = self->cursor_;
     const int visible = marker->visible_;
-    const Vector3 position = marker->position_;
+    const Vector3 position = marker->localPosition_;
 
     int expectedCursor = cursor;
     int expectedVisible = visible;
@@ -32,7 +32,7 @@ static void __fastcall RefreshListVerify(CSaveLoadWindow* self) {
     auto restore = [&] {
         self->cursor_ = cursor;
         marker->visible_ = visible;
-        marker->position_ = position;
+        marker->localPosition_ = position;
     };
     CUiSurface* surface = self->surfaces_.size > 0 ? self->surfaces_.data[0] : nullptr;
     ei::verify::gdi::DrawComparison c = ei::verify::gdi::CompareSurfaceDraws(
@@ -42,21 +42,21 @@ static void __fastcall RefreshListVerify(CSaveLoadWindow* self) {
             s_refreshList(self);
             expectedCursor = self->cursor_;
             expectedVisible = marker->visible_;
-            expectedPosition = marker->position_;
+            expectedPosition = marker->localPosition_;
         },
         [&] {
             restore();
             self->CSaveLoadWindow::RefreshListVanilla();
         });
     const bool ok = self->cursor_ == expectedCursor && marker->visible_ == expectedVisible &&
-                    Near(marker->position_.x, expectedPosition.x) && Near(marker->position_.y, expectedPosition.y) &&
-                    Near(marker->position_.z, expectedPosition.z) && c.diff.count == 0;
+                    Near(marker->localPosition_.x, expectedPosition.x) && Near(marker->localPosition_.y, expectedPosition.y) &&
+                    Near(marker->localPosition_.z, expectedPosition.z) && c.diff.count == 0;
     ei::verify::Check("CSaveLoadWindow::RefreshList", true, ok,
                       "selected %d of %d from %d: caret %d -> %d / %d, marker %d / %d at (%g, %g) / (%g, %g); %d pixels differ "
                       "in %d,%d-%d,%d%s",
                       self->selected_, self->EntryCount(), self->firstVisible_, cursor, expectedCursor, self->cursor_,
-                      expectedVisible, marker->visible_, expectedPosition.x, expectedPosition.y, marker->position_.x,
-                      marker->position_.y, c.diff.count, c.diff.left, c.diff.top, c.diff.right, c.diff.bottom,
+                      expectedVisible, marker->visible_, expectedPosition.x, expectedPosition.y, marker->localPosition_.x,
+                      marker->localPosition_.y, c.diff.count, c.diff.left, c.diff.top, c.diff.right, c.diff.bottom,
                       ei::verify::gdi::Unread(c));
 }
 EI_VERIFY(0x006567A0, RefreshListVerify, 6, s_refreshList);

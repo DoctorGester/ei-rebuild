@@ -88,8 +88,8 @@ void CHudClock::SetupVanilla(int fast) {
     SetHand(AddSprite(nullptr));
     for (int i = 0; i < 4; ++i) {
         CUiMesh* arrow = AddSprite(ArrowSprite());
-        arrow->uOffset_ = 0.22265625f;
-        arrow->vOffset_ = 0.140625f;
+        arrow->textureOffsetU_ = 0.22265625f;
+        arrow->textureOffsetV_ = 0.140625f;
         SpritePlaceOriginal(arrow, nullptr, 1000.0f, 1000.0f, kArrowDepth);
         arrow->SetScale(0.4f);
     }
@@ -172,7 +172,7 @@ void CHudMovePanel::SetupVanilla() {
     Builder(AddSprite(nullptr))->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
     ShowMode(-1);
     flag_ = -1;
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->uOffset_ = 0.48046875f;
+    reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->textureOffsetU_ = 0.48046875f;
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x00649190, CHudMovePanel::SetupVanilla);

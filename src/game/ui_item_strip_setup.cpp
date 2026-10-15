@@ -88,8 +88,8 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));
-    Sprite(window, 0)->uOffset_ = position_[tab_] > kZero ? std::bit_cast<float>(kDimmed) : 0.0f;
-    Sprite(window, 1)->uOffset_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
+    Sprite(window, 0)->textureOffsetU_ = position_[tab_] > kZero ? std::bit_cast<float>(kDimmed) : 0.0f;
+    Sprite(window, 1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
     Sprite(window, 9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
         Sprite(window, 10 + i)->Place(((static_cast<float>(i) - frac) + kOne) * kCell, static_cast<float>(top_) + kHalfCell,

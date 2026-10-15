@@ -50,8 +50,8 @@ LayoutState CaptureLayout(CUiWindow* w) {
     s.sprites = w->sceneObjects_.size < kMaxSprites ? w->sceneObjects_.size : kMaxSprites;
     s.regions = w->regions_.size < kMaxRegions ? w->regions_.size : kMaxRegions;
     for (int i = 0; i < s.sprites; ++i) {
-        s.positions[i] = Sprite(w, i)->position_;
-        s.turns[i] = Sprite(w, i)->orientation_;
+        s.positions[i] = Sprite(w, i)->localPosition_;
+        s.turns[i] = Sprite(w, i)->localRotation_;
     }
     for (int i = 0; i < s.regions; ++i) {
         s.offsets[i][0] = w->regions_.data[i]->offsetX_;
@@ -63,8 +63,8 @@ LayoutState CaptureLayout(CUiWindow* w) {
 
 void RestoreLayout(CUiWindow* w, const LayoutState& s) {
     for (int i = 0; i < s.sprites; ++i) {
-        Sprite(w, i)->position_ = s.positions[i];
-        Sprite(w, i)->orientation_ = s.turns[i];
+        Sprite(w, i)->localPosition_ = s.positions[i];
+        Sprite(w, i)->localRotation_ = s.turns[i];
     }
     for (int i = 0; i < s.regions; ++i) {
         w->regions_.data[i]->offsetX_ = s.offsets[i][0];

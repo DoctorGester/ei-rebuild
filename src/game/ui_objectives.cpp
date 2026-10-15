@@ -206,13 +206,13 @@ CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, co
 
 // Sprite fields the builder sets directly.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
-void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->plainColour_ = argb; }
+void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
 void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 void Turn(CUiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(&sprite->orientation_, &q, sizeof(q));
+    std::memcpy(&sprite->localRotation_, &q, sizeof(q));
 }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
@@ -785,8 +785,8 @@ void CObjectivesWindow::DrawQuestList() {
         else title = (*quests)[row];
         variable.Format(game::Text(0x0079469C), shownZone_, static_cast<const char*>((*quests)[row]));   // "q.%s.%s"
         int state = static_cast<int>(LocalPlayerVariable(variable));
-        if (state == 2) mark->uOffset_ = 0.265625f;
-        else if (state == 3) mark->uOffset_ = 0.0f;
+        if (state == 2) mark->textureOffsetU_ = 0.265625f;
+        else if (state == 3) mark->textureOffsetU_ = 0.0f;
         else mark->visible_ = 0;
         if (row == selectedQuest_) {
             SpritePlaceOriginal(mesh(2), nullptr, 215.0f, static_cast<float>(y + 29), 3.0f);

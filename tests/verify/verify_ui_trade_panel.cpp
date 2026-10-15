@@ -83,15 +83,15 @@ std::vector<std::uint8_t> SpriteBytes(CUiWindow* window, int first) {
     std::vector<std::uint8_t> out;
     for (int i = first; i < window->sceneObjects_.size; ++i) {
         auto* mesh = reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[i]);
-        int counts[2] = {mesh ? mesh->quadCount_ : -1, mesh ? mesh->uvCount_ : -1};
+        int counts[2] = {mesh ? mesh->vertices_.size : -1, mesh ? mesh->texCoords_.size : -1};
         out.insert(out.end(), reinterpret_cast<std::uint8_t*>(counts), reinterpret_cast<std::uint8_t*>(counts + 2));
         if (!mesh) continue;
-        for (int q = 0; q < mesh->quadCount_; ++q) {
-            auto* quad = reinterpret_cast<const std::uint8_t*>(&mesh->quads_[q]);
+        for (int q = 0; q < mesh->vertices_.size; ++q) {
+            auto* quad = reinterpret_cast<const std::uint8_t*>(&mesh->Quads()[q]);
             out.insert(out.end(), quad, quad + 0x20);   // four x then four y
         }
-        auto* uv = reinterpret_cast<const std::uint8_t*>(mesh->uvs_);
-        if (uv) out.insert(out.end(), uv, uv + mesh->uvCount_ * 8);
+        auto* uv = reinterpret_cast<const std::uint8_t*>(mesh->Texels().data);
+        if (uv) out.insert(out.end(), uv, uv + mesh->texCoords_.size * 8);
     }
     return out;
 }

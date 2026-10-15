@@ -34,7 +34,7 @@ void SetSpriteScale(CUiMesh* sprite, float scale) {
 void HighlightButton(CUiWindow* column, int* selected, int index, int on) {
     CUiMesh* sprite = Sprite(column, index);
     SetSpriteScale(sprite, on ? kButtonScaleOn : kButtonScaleOff);
-    sprite->colour_ = on ? kColourOn : kColourOff;
+    sprite->flatSpecular_ = on ? kColourOn : kColourOff;
     *selected = index;
 }
 
@@ -44,7 +44,7 @@ void ClearButtons(CUiWindow* column, int count, int* selected) {
     for (int i = 0; i < count; ++i) {
         CUiMesh* sprite = Sprite(column, i);
         SetSpriteScale(sprite, kButtonScaleOff);
-        sprite->colour_ = kColourOff;
+        sprite->flatSpecular_ = kColourOff;
         *selected = i;
     }
     *selected = -1;
@@ -73,10 +73,10 @@ void CHudQuickItems::Highlight(int slot, int on) {
     else
         SetSpriteScale(mesh, on ? kOwnScaleOn : kOwnScaleOff);
     if (on) {
-        mesh->colour_ = kColourOn;
+        mesh->flatSpecular_ = kColourOn;
         selected_ = slot;
     } else {
-        mesh->colour_ = kColourOff;
+        mesh->flatSpecular_ = kColourOff;
     }
 }
 EI_REPLACE_METHOD(0x0063CD20, CHudQuickItems::Highlight);

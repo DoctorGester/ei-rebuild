@@ -91,7 +91,7 @@ CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(objec
 using SpriteQuery = SpritePositionOriginal;   // 005E7010: the sprite's layout position (x, y) and depth
 
 Quaternion* RotationOf(CEngineObject* object) {
-    return &Sprite(object)->orientation_;
+    return &Sprite(object)->localRotation_;
 }
 
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
@@ -99,12 +99,12 @@ void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint3
     CUiMesh* bar = Sprite(object);
     float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
     double right = fraction - kHalf;
-    bar->quads_[0].x[2] = static_cast<float>(right);
-    bar->quads_[0].x[3] = static_cast<float>(right);
-    bar->uvs_[4] = u;
-    bar->uvs_[5] = FloatFromBits(v0);
-    bar->uvs_[6] = u;
-    bar->uvs_[7] = FloatFromBits(v1);
+    bar->Quads()[0].x[2] = static_cast<float>(right);
+    bar->Quads()[0].x[3] = static_cast<float>(right);
+    bar->Texels()[2].u = u;
+    bar->Texels()[2].v = FloatFromBits(v0);
+    bar->Texels()[3].u = u;
+    bar->Texels()[3].v = FloatFromBits(v1);
 }
 
 // The original inlines three quaternion products, each with its own operand order; every
@@ -209,7 +209,7 @@ void CHudPortraits::Update() {
             Sprite(flash)->visible_ = 1;
             int alpha = GameFtol(D(slot.flash_) * kFlashAlpha);
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
-            Sprite(flash)->plainColour_ = colour;
+            Sprite(flash)->flatColour_ = colour;
         } else {
             Sprite(flash)->visible_ = 0;
         }

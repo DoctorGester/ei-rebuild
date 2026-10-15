@@ -586,7 +586,7 @@ static_assert(offsetof(UnitSoundBank, entries) == 0x1AC);
 // tabs, password and "unlisted" switch). Regions (Create 0061B2C0, Rebirth-patched): 0 connect /
 // host, 1 back, 2 ask the master server, 3 add / forget an address, 4 the unlisted switch, 5 the
 // password, 6-9 the sort columns, 10-13 the game type tabs, 14 and up the list rows. Sprites
-// (scene objects): 4 the unlisted switch, 5 the password's, 6-9 the game type tabs (uOffset_ 0.09
+// (scene objects): 4 the unlisted switch, 5 the password's, 6-9 the game type tabs (textureOffsetU_ 0.09
 // selected). The list is drawn by 0061D780 (Rebirth-patched, called by address). Multiplayer only.
 
 // An entry of the connection screen's list (0x34 bytes; a vector<MpAddressEntry> at +0x168).

@@ -47,7 +47,7 @@ static void __fastcall UpdateVerify(CHelpWindow* self) {
     std::uint32_t colour = 0;
     bool first = true;
     for (auto* node = self->pulsing_.First(); ok && node != self->pulsing_.End(); node = node->next) {
-        std::uint32_t c = node->data->plainColour_;
+        std::uint32_t c = node->data->flatColour_;
         if (first) colour = c;
         first = false;
         auto within1 = [](int x, int y) { return x - y <= 1 && y - x <= 1; };

@@ -30,18 +30,19 @@ void ResetVertexColours(CUiMesh* mesh) {
     mesh->normals_.SetSize(1, -1);
     mesh->colorsA_.SetSize(4, -1);
     mesh->colorsB_.SetSize(4, -1);
-    UiQuadBlock& block = mesh->normals_[0];
+    constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
+    NormalPacket& block = mesh->normals_[0];
     for (int i = 0; i < 4; ++i) {
-        block.x[i] = 0.0f;
-        block.y[i] = 0.0f;
-        block.z[i] = 1.0f;
-        block.w[i] = 1.0f;
+        block.w[i] = 0;
+        block.w[4 + i] = 0;
+        block.w[8 + i] = kOneBits;
+        block.w[12 + i] = kOneBits;
     }
 }
 
 // A vertex record: the position it uses, 0, and the texture coordinates' index.
 void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
-    UiMeshVertex& v = mesh->vertices_[index];
+    UiMeshVertex& v = mesh->Vertices()[index];
     v.position = static_cast<std::int16_t>(position);
     v.normal = 0;
     v.frame = static_cast<std::int16_t>(uv);
@@ -50,18 +51,18 @@ void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
 // Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
 // original mixes both).
 void AppendBySize(IndexArray* indices, CUiMesh* mesh, int value) {
-    int at = mesh->indexCount_;
+    int at = mesh->indices_.size;
     indices->SetSize(at + 1, -1);
     mesh->indices_[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetAtGrow(mesh->indexCount_, static_cast<std::uint16_t>(value)); }
+void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetAtGrow(mesh->indices_.size, static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {
     double half = D(worlddata::HalfTexel());
-    for (int i = 0; i < mesh->uvCount_; ++i) {
-        mesh->uvs_[2 * i] = static_cast<float>(D(mesh->uvs_[2 * i]) + half);
-        mesh->uvs_[2 * i + 1] = static_cast<float>(D(mesh->uvs_[2 * i + 1]) - half);
+    for (int i = 0; i < mesh->texCoords_.size; ++i) {
+        mesh->Texels()[i].u = static_cast<float>(D(mesh->Texels()[i].u) + half);
+        mesh->Texels()[i].v = static_cast<float>(D(mesh->Texels()[i].v) - half);
     }
     mesh->Commit();
 }
@@ -77,9 +78,9 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
-    mesh->position_.x = static_cast<float>((x - D(worlddata::One())) * D(worlddata::InterfaceView()) * D(depth));
-    mesh->position_.y = static_cast<float>((y - D(worlddata::ThreeQuarters())) * D(worlddata::InterfaceView()) * D(depth));
-    std::memcpy(&mesh->position_.z, &depth, 4);
+    mesh->localPosition_.x = static_cast<float>((x - D(worlddata::One())) * D(worlddata::InterfaceView()) * D(depth));
+    mesh->localPosition_.y = static_cast<float>((y - D(worlddata::ThreeQuarters())) * D(worlddata::InterfaceView()) * D(depth));
+    std::memcpy(&mesh->localPosition_.z, &depth, 4);
 }
 
 // --- Points on a circle, as the original computes them on the FPU ------------------------------------
@@ -191,29 +192,29 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     SetUvCount(8);
     double texel = D(worlddata::Texel());
     double one = D(worlddata::One());
-    float* uv = uvs_;
+    UiTexel* uv = Texels().data;
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
     float outerV1 = static_cast<float>(one - static_cast<double>(v1) * texel);
-    uv[0] = static_cast<float>(static_cast<double>(u0) * texel);
-    uv[1] = outerV0;
-    uv[2] = uv[0];
-    uv[3] = outerV1;
-    uv[4] = static_cast<float>(static_cast<double>(u1) * texel);
-    uv[5] = outerV0;
-    uv[6] = uv[4];
-    uv[7] = outerV1;
+    uv[0].u = static_cast<float>(static_cast<double>(u0) * texel);
+    uv[0].v = outerV0;
+    uv[1].u = uv[0].u;
+    uv[1].v = outerV1;
+    uv[2].u = static_cast<float>(static_cast<double>(u1) * texel);
+    uv[2].v = outerV0;
+    uv[3].u = uv[2].u;
+    uv[3].v = outerV1;
     float innerV0 = static_cast<float>(one - (static_cast<double>(static_cast<float>(v0)) + D(dv)) * texel);
-    uv[8] = static_cast<float>((static_cast<double>(u0) + D(du)) * texel);
-    uv[9] = innerV0;
-    uv[10] = uv[8];
-    uv[11] = static_cast<float>(one - (static_cast<double>(static_cast<float>(v1)) - D(dv)) * texel);
-    uv[12] = static_cast<float>((static_cast<double>(static_cast<float>(u1)) - D(du)) * texel);
-    uv[13] = innerV0;
-    uv[14] = uv[12];
-    uv[15] = uv[11];
+    uv[4].u = static_cast<float>((static_cast<double>(u0) + D(du)) * texel);
+    uv[4].v = innerV0;
+    uv[5].u = uv[4].u;
+    uv[5].v = static_cast<float>(one - (static_cast<double>(static_cast<float>(v1)) - D(dv)) * texel);
+    uv[6].u = static_cast<float>((static_cast<double>(static_cast<float>(u1)) - D(du)) * texel);
+    uv[6].v = innerV0;
+    uv[7].u = uv[6].u;
+    uv[7].v = uv[5].v;
 
     // The frame's eight triangles between the outer (0-3) and inner (4-7) corners.
-    auto* indices = &Indices();
+    auto* indices = &indices_;
     indices->SetSize(0, -1);
     static const int kFrame[24] = {0, 4, 2, 4, 6, 2, 2, 6, 3, 6, 7, 3, 3, 7, 1, 7, 5, 1, 1, 5, 0, 5, 4, 0};
     for (int index : kFrame) AppendByGrow(indices, this, index);
@@ -225,8 +226,8 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     SetQuadCount(2);
     for (int q = 0; q < 2; ++q) {
         for (int i = 0; i < 4; ++i) {
-            reinterpret_cast<float*>(&quads_[q])[8 + i] = 0.0f;
-            reinterpret_cast<float*>(&quads_[q])[12 + i] = 1.0f;
+            Quads()[q].z[i] = 0.0f;
+            Quads()[q].w[i] = 1.0f;
         }
     }
     double half = D(worlddata::Half());
@@ -236,7 +237,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     float outerY = static_cast<float>(halfHeight / D(scale));
     float innerX = static_cast<float>((D(static_cast<float>(halfWidth)) - D(border)) / D(scale));
     float innerY = static_cast<float>((halfHeight - D(border)) / D(scale));
-    UiQuadBlock& outer = quads_[0];
+    UiQuadBlock& outer = Quads()[0];
     outer.x[0] = static_cast<float>(-outerX);
     outer.y[0] = -outerY;
     outer.x[1] = static_cast<float>(-outerX);
@@ -245,7 +246,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     outer.y[2] = -outerY;
     outer.x[3] = static_cast<float>(outerX);
     outer.y[3] = outerY;
-    UiQuadBlock& inner = quads_[1];
+    UiQuadBlock& inner = Quads()[1];
     inner.x[0] = -innerX;
     inner.y[0] = -innerY;
     inner.x[1] = -innerX;
@@ -272,11 +273,11 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     for (int i = 0; i < count; ++i) SetVertex(this, i, i, i);
     SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        uvs_[2 * i] = CircleTexel(i, count, false, uvRadius, u);
-        uvs_[2 * i + 1] = CircleTexel(i, count, true, uvRadius, v);
+        Texels()[i].u = CircleTexel(i, count, false, uvRadius, u);
+        Texels()[i].v = CircleTexel(i, count, true, uvRadius, v);
     }
     // A fan around point 0.
-    auto* indices = &Indices();
+    auto* indices = &indices_;
     indices->SetSize(0, -1);
     for (int i = 1; i < count - 1; ++i) {
         AppendByGrow(indices, this, 0);
@@ -289,7 +290,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     int j = 0;
     for (int q = 0; q < quadCount; ++q) {
         for (int i = 0; i < 4; ++i, ++j) {
-            UiQuadBlock& block = quads_[q];
+            UiQuadBlock& block = Quads()[q];
             block.x[i] = CircleScaled(j, count, false, &radius, &scale);
             block.y[i] = CircleScaled(j, count, true, &radius, &scale);
             reinterpret_cast<float*>(&block)[8 + i] = 0.0f;
@@ -319,24 +320,24 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
         SetVertex(this, 4 * i + 3, 2 * i + 3, 3);
     }
     // (Written even without segments, before the array, as the original.)
-    vertices_[count * 4 - 2].position = 0;
-    vertices_[count * 4 - 1].position = 1;
+    Vertices()[count * 4 - 2].position = 0;
+    Vertices()[count * 4 - 1].position = 1;
 
     SetUvCount(4);
     double texel = D(worlddata::Texel());
     double one = D(worlddata::One());
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
-    uvs_[0] = static_cast<float>(static_cast<double>(u0) * texel);
-    uvs_[1] = outerV0;
-    uvs_[2] = uvs_[0];
-    uvs_[3] = static_cast<float>(one - static_cast<double>(v1) * texel);
-    uvs_[4] = static_cast<float>(static_cast<double>(u1) * texel);
-    uvs_[5] = outerV0;
-    uvs_[6] = uvs_[4];
-    uvs_[7] = uvs_[3];
+    Texels()[0].u = static_cast<float>(static_cast<double>(u0) * texel);
+    Texels()[0].v = outerV0;
+    Texels()[1].u = Texels()[0].u;
+    Texels()[1].v = static_cast<float>(one - static_cast<double>(v1) * texel);
+    Texels()[2].u = static_cast<float>(static_cast<double>(u1) * texel);
+    Texels()[2].v = outerV0;
+    Texels()[3].u = Texels()[2].u;
+    Texels()[3].v = Texels()[1].v;
 
     // Two triangles per segment.
-    auto* indices = &Indices();
+    auto* indices = &indices_;
     indices->SetSize(0, -1);
     for (int i = 0; i < count; ++i) {
         int base = 4 * i;
@@ -353,7 +354,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     SetQuadCount(quadCount);
     int j = 0;
     for (int q = 0; q < quadCount; ++q) {
-        UiQuadBlock& block = quads_[q];
+        UiQuadBlock& block = Quads()[q];
         float* z = reinterpret_cast<float*>(&block) + 8;
         float* w = reinterpret_cast<float*>(&block) + 12;
         block.x[0] = CircleScaled(j, count, false, &radius, &scale);

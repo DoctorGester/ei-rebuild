@@ -140,7 +140,7 @@ static void __fastcall ObjectivesSelectExitVerify(CObjectivesWindow* self, void*
     self->SelectExit(index);
     bool ok = self->nearestExit_ == index && SpriteOf(self, 4)->visible_ == 0 && SpriteOf(self, 5)->visible_ == 0;
     for (int i = 0; ok && i < self->exits_.size; ++i) {
-        float u = SpriteOf(self, 21 + i)->uOffset_;
+        float u = SpriteOf(self, 21 + i)->textureOffsetU_;
         ok = i == index || self->exits_[i].flag_ ? u == 0.0f : u == -0.125f;
     }
     if (ok && index >= 0 && index < self->exits_.size) ok = self->blinkTime_ == 0.0f;
@@ -167,7 +167,7 @@ static void __fastcall ObjectivesUpdateVerify(CObjectivesWindow* self, void*) {
     bool ok = true;
     for (int i = 21; ok && i < self->sceneObjects_.size; ++i) {
         const CUiMesh* sprite = SpriteOf(self, i);
-        std::uint32_t rgb = sprite->plainColour_ & 0xFFFFFF;
+        std::uint32_t rgb = sprite->flatColour_ & 0xFFFFFF;
         std::uint32_t expected = i >= 21 + self->exits_.size ? 0xFF0000u : i - 21 == self->nearestExit_ ? 0xFFFFFFu : 0xC8C8C8u;
         ok = (sprite->flags_ & 0x100) != 0 && rgb == expected;
     }

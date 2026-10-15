@@ -86,7 +86,7 @@ void Turn(CEngineObject* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(&Sprite(object)->orientation_, &q, sizeof(q));
+    std::memcpy(&Sprite(object)->localRotation_, &q, sizeof(q));
 }
 
 std::uint32_t Bits(float f) {
@@ -221,7 +221,7 @@ void CHudTopPanel::Update() {
             Turn(sling, 1.0f, Pi());
             y = kSlingInY;
         } else {
-            std::memcpy(&Sprite(sling)->orientation_, SlingRestRotation(), 16);
+            std::memcpy(&Sprite(sling)->localRotation_, SlingRestRotation(), 16);
             y = kSlingOutY;
         }
         Sprite(sling)->Place(kSlingX, y, FloatFromBits(kSpriteDepth));

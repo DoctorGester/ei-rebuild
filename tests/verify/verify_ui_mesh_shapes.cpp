@@ -25,8 +25,6 @@
 
 namespace {
 
-CFigureMesh* Figure(CUiMesh* sprite) { return reinterpret_cast<CFigureMesh*>(sprite); }
-
 template <typename T>
 void Copy(std::vector<std::uint8_t>& to, const T* from, int count) {
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(from);
@@ -42,37 +40,37 @@ struct Shape {
     std::vector<std::uint8_t> points, normals, corners, indices, texels;
 
     void Read(CUiMesh* sprite) {
-        CFigureMesh* mesh = Figure(sprite);
-        position = sprite->position_;
+        CFigureMesh* mesh = sprite;
+        position = sprite->localPosition_;
         scale = Vector3{sprite->ScaleX(), sprite->ScaleY(), sprite->ScaleZ()};
-        const int sizes[7] = {sprite->quadCount_,   sprite->vertexCount_, sprite->indexCount_, sprite->uvCount_,
+        const int sizes[7] = {sprite->vertices_.size,   sprite->corners_.size, sprite->indices_.size, sprite->texCoords_.size,
                               mesh->normals_.size, mesh->colorsA_.size,  mesh->colorsB_.size};
         std::memcpy(counts, sizes, sizeof(counts));
         const MeshBuffers& b = mesh->buffers_;
         const int given[6] = {b.vertexCount, b.normalCount, b.texCoordCount, b.cornerCount, b.wordCount, b.indexCount};
         std::memcpy(handed, given, sizeof(handed));
-        Copy(points, sprite->quads_, sprite->quadCount_);
+        Copy(points, sprite->Quads().data, sprite->vertices_.size);
         Copy(normals, mesh->normals_.data, mesh->normals_.size);
-        Copy(corners, sprite->vertices_, sprite->vertexCount_);
-        Copy(indices, sprite->indices_, sprite->indexCount_);
-        Copy(texels, sprite->Texels().data, sprite->uvCount_);
+        Copy(corners, sprite->Vertices().data, sprite->corners_.size);
+        Copy(indices, sprite->indices_.data, sprite->indices_.size);
+        Copy(texels, sprite->Texels().data, sprite->texCoords_.size);
     }
 };
 
 // The parts a shape writes, given other values (the sizes stay).
 void Scramble(CUiMesh* sprite, const Vector3& position, const Vector3& scale) {
-    CFigureMesh* mesh = Figure(sprite);
-    sprite->position_ = position;
+    CFigureMesh* mesh = sprite;
+    sprite->localPosition_ = position;
     sprite->ScaleX() = scale.x;
     sprite->ScaleY() = scale.y;
     sprite->ScaleZ() = scale.z;
     auto fill = [](void* data, std::size_t bytes) {
         if (data && bytes) std::memset(data, 0x5A, bytes);
     };
-    fill(sprite->quads_, static_cast<std::size_t>(sprite->quadCount_) * sizeof(UiQuadBlock));
+    fill(sprite->Quads().data, static_cast<std::size_t>(sprite->vertices_.size) * sizeof(UiQuadBlock));
     fill(mesh->normals_.data, static_cast<std::size_t>(mesh->normals_.size) * sizeof(NormalPacket));
-    fill(sprite->vertices_, static_cast<std::size_t>(sprite->vertexCount_) * sizeof(UiMeshVertex));
-    fill(sprite->Texels().data, static_cast<std::size_t>(sprite->uvCount_) * sizeof(UiTexel));
+    fill(sprite->Vertices().data, static_cast<std::size_t>(sprite->corners_.size) * sizeof(UiMeshVertex));
+    fill(sprite->Texels().data, static_cast<std::size_t>(sprite->texCoords_.size) * sizeof(UiTexel));
 }
 
 // Float arrays within 4 ULPs of each other (NaNs and infinities, a grid without cells, by bits).
@@ -96,7 +94,7 @@ bool NearVector(const Vector3& a, const Vector3& b) {
 template <typename Original, typename Ours>
 void SideBySide(const char* name, CUiMesh* sprite, Original original, Ours ours) {
     static Shape expected, actual;
-    Vector3 position = sprite->position_;
+    Vector3 position = sprite->localPosition_;
     Vector3 scale{sprite->ScaleX(), sprite->ScaleY(), sprite->ScaleZ()};
     original();
     expected.Read(sprite);

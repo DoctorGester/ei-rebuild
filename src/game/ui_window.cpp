@@ -445,10 +445,10 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         auto* old = reinterpret_cast<CUiMesh*>(object);
         sprite->material_ = blackMaterial_;
         sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
-        std::memcpy(&sprite->position_, &old->position_, 12);
-        CopyFloat(&sprite->uOffset_, &old->uOffset_);
-        CopyFloat(&sprite->vOffset_, &old->vOffset_);
-        std::memcpy(&sprite->orientation_, &old->orientation_, 16);
+        std::memcpy(&sprite->localPosition_, &old->localPosition_, 12);
+        CopyFloat(&sprite->textureOffsetU_, &old->textureOffsetU_);
+        CopyFloat(&sprite->textureOffsetV_, &old->textureOffsetV_);
+        std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
         sprite->texture_ = old->texture_;
         float scale = static_cast<float>(SpriteScale(old));
         SetSpriteScale(made, nullptr, scale);

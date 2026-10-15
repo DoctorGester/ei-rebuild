@@ -125,7 +125,7 @@ void AdvanceSlide(Panel* panel) {
 void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    reinterpret_cast<CUiMesh*>(sling)->orientation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
+    reinterpret_cast<CUiMesh*>(sling)->localRotation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
     SpritePlaceOriginal(sling, nullptr, x, kSlingY, FromBits(kSlingDepthBits));
 }
 
@@ -260,7 +260,7 @@ constexpr int kUnitTravel = 180;
 constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
 constexpr int kWideUnitRight = 52;
 constexpr int kInfoTexts = 18;
-constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in plainColour_
+constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in flatColour_
 } // namespace
 
 void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
@@ -295,17 +295,17 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
     back->texture_ = nullptr;
     back->flags_ |= kPlainColour;
-    back->plainColour_ = 0x50000000;
+    back->flatColour_ = 0x50000000;
     back->visible_ = 0;
     CUiMesh* edge = AddSprite(nullptr);
     edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
     edge->texture_ = nullptr;
     edge->flags_ |= kPlainColour;
-    edge->plainColour_ = 0xB4000000;
+    edge->flatColour_ = 0xB4000000;
     // 2: the sling button.
     CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
-    slingButton->uOffset_ = 0.22265625f;
-    slingButton->vOffset_ = 0.140625f;
+    slingButton->textureOffsetU_ = 0.22265625f;
+    slingButton->textureOffsetV_ = 0.140625f;
     PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), SlingTurn(), -50.0f);
     slingButton->SetScale(0.8f);
     // 3-6: the body part buttons; 7: the frame.
@@ -411,7 +411,7 @@ CUiMeshBuilder* Builder(CUiMesh* sprite) { return static_cast<CUiMeshBuilder*>(s
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
     sprite->texture_ = nullptr;
     sprite->flags_ |= kPlainColour;
-    sprite->plainColour_ = colour;
+    sprite->flatColour_ = colour;
 }
 } // namespace
 
@@ -502,8 +502,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     SetPlain(edge, 0xB4000000);
     // 5: the sling button.
     CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
-    slingButton->uOffset_ = 0.22265625f;
-    slingButton->vOffset_ = 0.140625f;
+    slingButton->textureOffsetU_ = 0.22265625f;
+    slingButton->textureOffsetV_ = 0.140625f;
     PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), static_cast<float>(Pi() * SlingQuarter()), 850.0f);
     slingButton->SetScale(0.8f);
     // 6 and 7: the view buttons; 8: the ring round the map; 9: the frame; 10: the compass needle;
@@ -513,8 +513,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     Builder(AddSprite(nullptr))->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
     AddSprite(nullptr)->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     CUiMesh* needle = AddSprite(game::Text(kArrowSprite));
-    needle->uOffset_ = 0.22265625f;
-    needle->vOffset_ = 0.140625f;
+    needle->textureOffsetU_ = 0.22265625f;
+    needle->textureOffsetV_ = 0.140625f;
     SpritePlaceOriginal(needle, nullptr, 900.0f, 80.0f, FromBits(kSlingDepthBits));
     needle->SetScale(0.8f);
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
@@ -531,7 +531,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     const CUiMesh* disc = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
     for (int block = 0; block < kOutlinePoints / 4; ++block) {
         for (int corner = 0; corner < 4; ++corner)
-            viewPolygon_.Add(UiPointF{disc->quads_[block].x[corner], disc->quads_[block].y[corner]});
+            viewPolygon_.Add(UiPointF{disc->Quads()[block].x[corner], disc->Quads()[block].y[corner]});
     }
     MapUpdateViewAt(this);
     MapBuildMarkersAt(this);

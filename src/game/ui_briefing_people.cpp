@@ -181,7 +181,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         back->SetRectangle(20.0f, 100.0f, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, 0x100, 0x100);
         back->texture_ = nullptr;
         back->flags_ |= kPlainFlag;
-        back->plainColour_ = kSlotBackdrop;
+        back->flatColour_ = kSlotBackdrop;
         frame = AddSprite(nullptr);
         frame->SetFrame(20.0f, 100.0f, x - kSlotFrame, y - kSlotFrame, x + kSlotFrame, y + kSlotFrame, 5.0f, 2, 0xFE, 0xB4,
                         0xF9);
@@ -195,7 +195,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         return;
     }
     if (index >= kTintFrom) {
-        item->plainColour_ = kTintedItem;
+        item->flatColour_ = kTintedItem;
         item->flags_ |= kPlainFlag;
     }
     mfc::CString image;
@@ -206,7 +206,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     item->Place(x, y, kItemDepth);
     Quaternion turn;
     turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, TurnedOver());
-    item->orientation_ = turn;
+    item->localRotation_ = turn;
 
     // list::push_front of {name, item, back, frame} (node pool 0x18).
     auto* node = static_cast<BriefingShownItem*>(stlp::allocate(sizeof(BriefingShownItem)));

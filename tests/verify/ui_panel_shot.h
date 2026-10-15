@@ -79,24 +79,25 @@ inline PanelShot TakePanel(CUiWindow* w) {
     for (int i = 0; i < w->sceneObjects_.size; ++i) {
         CUiMesh* sprite = reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[i]);
         SpriteShot s = {};
-        s.position = sprite->position_;
-        s.frame[0] = sprite->uOffset_;
-        s.frame[1] = sprite->vOffset_;
+        s.position = sprite->localPosition_;
+        s.frame[0] = sprite->textureOffsetU_;
+        s.frame[1] = sprite->textureOffsetV_;
         std::memcpy(s.tint, sprite->tint_, sizeof(s.tint));
         s.scale = sprite->ScaleX();
-        s.sizes[0] = sprite->quadCount_;
-        s.sizes[1] = sprite->vertexCount_;
-        s.sizes[2] = sprite->indexCount_;
-        s.sizes[3] = sprite->uvCount_;
+        s.sizes[0] = sprite->vertices_.size;
+        s.sizes[1] = sprite->corners_.size;
+        s.sizes[2] = sprite->indices_.size;
+        s.sizes[3] = sprite->texCoords_.size;
         s.visible = sprite->visible_;
-        s.orientation = sprite->orientation_;
+        s.orientation = sprite->localRotation_;
         s.flags = sprite->flags_;
-        s.plainColour = sprite->plainColour_;
+        s.plainColour = sprite->flatColour_;
         s.texture = sprite->texture_;
-        if (sprite->quadCount_ == 1 && sprite->vertexCount_ == 4 && sprite->indexCount_ == 6 && sprite->uvCount_ == 4) {
-            const float* corners = reinterpret_cast<const float*>(sprite->quads_);
+        if (sprite->vertices_.size == 1 && sprite->corners_.size == 4 && sprite->indices_.size == 6 && sprite->texCoords_.size == 4) {
+            const float* corners = reinterpret_cast<const float*>(sprite->Quads().data);
             s.shape.assign(corners, corners + sizeof(UiQuadBlock) / sizeof(float));
-            s.shape.insert(s.shape.end(), sprite->uvs_, sprite->uvs_ + 8);
+            const float* texels = &sprite->Texels().data->u;   // four (u, v) pairs
+            s.shape.insert(s.shape.end(), texels, texels + 8);
         }
         shot.sprites.push_back(s);
     }

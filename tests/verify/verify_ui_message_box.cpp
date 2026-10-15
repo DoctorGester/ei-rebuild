@@ -90,16 +90,16 @@ struct ChoiceState {
     static ChoiceState Take(const CDifficultyBox* box) {
         ChoiceState s{};
         s.easy = box->easy_;
-        std::memcpy(&s.easyOffset, &box->EasyBox()->uOffset_, 4);
-        std::memcpy(&s.hardOffset, &box->HardBox()->uOffset_, 4);
+        std::memcpy(&s.easyOffset, &box->EasyBox()->textureOffsetU_, 4);
+        std::memcpy(&s.hardOffset, &box->HardBox()->textureOffsetU_, 4);
         s.pending = TakePending(box->interface_);
         s.difficulty = GameDifficulty();
         return s;
     }
     void Put(CDifficultyBox* box) const {
         box->easy_ = easy;
-        std::memcpy(&box->EasyBox()->uOffset_, &easyOffset, 4);
-        std::memcpy(&box->HardBox()->uOffset_, &hardOffset, 4);
+        std::memcpy(&box->EasyBox()->textureOffsetU_, &easyOffset, 4);
+        std::memcpy(&box->HardBox()->textureOffsetU_, &hardOffset, 4);
         box->interface_->pendingValue_ = pending.value;
         box->interface_->pendingFlag_ = pending.flag != 0;
         GameDifficulty() = difficulty;

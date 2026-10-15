@@ -206,7 +206,7 @@ void CMpHeroScreen::Create() {
     auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
         mesh->texture_ = nullptr;
         mesh->flags_ |= kPlainSprite;
-        mesh->plainColour_ = colour;
+        mesh->flatColour_ = colour;
     };
     auto texture = [this](int index) { return window.objects_.data[index]; };
     // 0, 1: the two buttons under the list; 2: the selection frame.

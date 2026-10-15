@@ -120,7 +120,7 @@ MapState Snapshot(CGlobalMap* self, bool withWeather) {
     MapState s;
     for (int i = 0; i < MarkerCount(self); ++i) {
         CUiMesh* m = self->Marker(i);
-        s.markers.push_back(MarkerState{m->texture_, m->flags_, {m->tint_[0], m->tint_[1], m->tint_[2]}, m->plainColour_});
+        s.markers.push_back(MarkerState{m->texture_, m->flags_, {m->tint_[0], m->tint_[1], m->tint_[2]}, m->flatColour_});
     }
     s.displayColour = *DisplayColour();
     std::memset(s.weather, 0, sizeof(s.weather));
@@ -135,7 +135,7 @@ void Restore(CGlobalMap* self, const MapState& s, bool withWeather) {
         m->texture_ = k.texture;
         m->flags_ = k.flags;
         for (int c = 0; c < 3; ++c) m->tint_[c] = k.tint[c];
-        m->plainColour_ = k.plain;
+        m->flatColour_ = k.plain;
     }
     *DisplayColour() = s.displayColour;
     if (withWeather) std::memcpy(self->weather_, s.weather, sizeof(s.weather));

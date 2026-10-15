@@ -255,11 +255,11 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     Pulse pulse = Advance(this);
     if (!hasContainer) {
         if (hasSpell) {
-            highlight->plainColour_ = Colour(pulse.alpha, pulse.low, pulse.high);
+            highlight->flatColour_ = Colour(pulse.alpha, pulse.low, pulse.high);
             for (int x = 450; x < 650; x += 100)
                 for (int y = 150; y < 550; y += 100) DrawSprite(highlight, pass, static_cast<float>(x), static_cast<float>(y));
         } else {
-            highlight->plainColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
+            highlight->flatColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
             DrawSprite(highlight, pass, 250.0f, 300.0f);
             DrawSprite(highlight, pass, 350.0f, 300.0f);
         }
@@ -341,7 +341,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
     CUiMesh* highlight = Highlight(this);
     highlight->visible_ = 1;
     Pulse pulse = Advance(this);
-    highlight->plainColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
+    highlight->flatColour_ = Colour(pulse.alpha, pulse.high, pulse.low);
     if (!hasBlueprint) {
         if (!hasPart) {
             DrawSprite(highlight, pass, 250.0f, 300.0f);
@@ -362,7 +362,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
             }
             if (none) {
                 // Full: the container slot, with the colour's values the other way round.
-                highlight->plainColour_ = Colour(pulse.alpha, pulse.low, pulse.high);
+                highlight->flatColour_ = Colour(pulse.alpha, pulse.low, pulse.high);
                 DrawSprite(highlight, pass, 350.0f, 350.0f);
             }
         }

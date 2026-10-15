@@ -183,7 +183,7 @@ void CUiItemStrip::SetFilter(int filter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        std::memcpy(&window.SceneMesh(i)->uOffset_, &column, sizeof(column));
+        std::memcpy(&window.SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
         SetRegionTip(window.regions_.data[i], nullptr, tipBase + i, 1, 0);
     }
 }

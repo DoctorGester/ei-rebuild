@@ -147,7 +147,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
         face->SetScale(width < 0x32 ? 0.22f : 0.3f);
         Quaternion turn;
         slots_[count_].restA_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
-        face->orientation_ = slots_[count_].restA_;
+        face->localRotation_ = slots_[count_].restA_;
     } else {
         face = AddSprite(nullptr);
         face->SetRectangle(7.0f, 100.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 580.0f, 0, 0, 0x80,
@@ -162,8 +162,8 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
         face->tint_[1] = 0.5f;
         face->tint_[2] = 0.5f;
     }
-    face->uOffset_ = static_cast<float>(u) * Texel();
-    face->vOffset_ = static_cast<float>(v + 0x80) * Texel();
+    face->textureOffsetU_ = static_cast<float>(u) * Texel();
+    face->textureOffsetV_ = static_cast<float>(v + 0x80) * Texel();
     face->texture_ = objects_.data[objects_.size - 1];
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.

@@ -37,27 +37,27 @@ struct BarState {
 BarState ReadBar(CUiMesh* m) {
     BarState s{};
     s.visible = m->visible_;
-    s.vOffset = m->vOffset_;
-    if (m->quads_) {
-        s.quad[0] = m->quads_[0].x[2];
-        s.quad[1] = m->quads_[0].x[3];
-        s.quad[2] = m->quads_[0].y[2];
-        s.quad[3] = m->quads_[0].y[3];
+    s.vOffset = m->textureOffsetV_;
+    if (m->Quads().data) {
+        s.quad[0] = m->Quads()[0].x[2];
+        s.quad[1] = m->Quads()[0].x[3];
+        s.quad[2] = m->Quads()[0].y[2];
+        s.quad[3] = m->Quads()[0].y[3];
     }
-    if (m->uvs_ && m->uvCount_ >= 4) std::memcpy(s.uv, m->uvs_ + 4, sizeof(s.uv));
+    if (m->Texels().data && m->texCoords_.size >= 4) std::memcpy(s.uv, m->Texels().data + 2, sizeof(s.uv));
     return s;
 }
 
 void WriteBar(CUiMesh* m, const BarState& s) {
     m->visible_ = s.visible;
-    m->vOffset_ = s.vOffset;
-    if (m->quads_) {
-        m->quads_[0].x[2] = s.quad[0];
-        m->quads_[0].x[3] = s.quad[1];
-        m->quads_[0].y[2] = s.quad[2];
-        m->quads_[0].y[3] = s.quad[3];
+    m->textureOffsetV_ = s.vOffset;
+    if (m->Quads().data) {
+        m->Quads()[0].x[2] = s.quad[0];
+        m->Quads()[0].x[3] = s.quad[1];
+        m->Quads()[0].y[2] = s.quad[2];
+        m->Quads()[0].y[3] = s.quad[3];
     }
-    if (m->uvs_ && m->uvCount_ >= 4) std::memcpy(m->uvs_ + 4, s.uv, sizeof(s.uv));
+    if (m->Texels().data && m->texCoords_.size >= 4) std::memcpy(m->Texels().data + 2, s.uv, sizeof(s.uv));
 }
 
 // A recognisable spoiled state: what a bar display may write is set to values it never writes
@@ -180,8 +180,8 @@ EffectsState TakeEffects(CHudUnitPanel* self) {
     for (int i = 0; i < 6; ++i) {
         state.kept[i] = self->effectIcons_[i];
         state.visible[i] = Sprite(self, 26 + i)->visible_;
-        state.u[i] = Sprite(self, 26 + i)->uOffset_;
-        state.v[i] = Sprite(self, 26 + i)->vOffset_;
+        state.u[i] = Sprite(self, 26 + i)->textureOffsetU_;
+        state.v[i] = Sprite(self, 26 + i)->textureOffsetV_;
     }
     return state;
 }
@@ -191,8 +191,8 @@ void SpoilEffects(CHudUnitPanel* self, const EffectsState& before) {
     for (int i = 0; i < 6; ++i) {
         self->effectIcons_[i] = before.kept[i];
         Sprite(self, 26 + i)->visible_ = kSpoiledInt;
-        Sprite(self, 26 + i)->uOffset_ = kSpoiledFloat;
-        Sprite(self, 26 + i)->vOffset_ = kSpoiledFloat;
+        Sprite(self, 26 + i)->textureOffsetU_ = kSpoiledFloat;
+        Sprite(self, 26 + i)->textureOffsetV_ = kSpoiledFloat;
     }
 }
 
@@ -211,8 +211,8 @@ void __fastcall ShowEffectsVerify(CHudUnitPanel* self, void*, CUnit* unit) {
     for (int i = 0; i < 6; ++i) {
         CUiMesh* icon = Sprite(self, 26 + i);
         if (actual.visible[i] == kSpoiledInt) icon->visible_ = before.visible[i];
-        if (actual.u[i] == kSpoiledFloat) icon->uOffset_ = before.u[i];
-        if (actual.v[i] == kSpoiledFloat) icon->vOffset_ = before.v[i];
+        if (actual.u[i] == kSpoiledFloat) icon->textureOffsetU_ = before.u[i];
+        if (actual.v[i] == kSpoiledFloat) icon->textureOffsetV_ = before.v[i];
     }
     int first = -1;
     for (int i = 5; i >= 0; --i)
@@ -237,7 +237,7 @@ void __fastcall ToggleFlagVerify(CHudMovePanel* self, void*) {
         CUnit* unit = self->owner_->party_[i];
         if ((unit->flags_ & 0x10) && unit->fightAtWill != self->flag_) ok = false;
     }
-    float frame = Sprite(self, 5)->uOffset_;
+    float frame = Sprite(self, 5)->textureOffsetU_;
     ok = ok && frame == (self->flag_ == 0 ? 0.3359375f : 0.0f);
     ei::verify::Check("CHudMovePanel::ToggleFlag", true, ok, "flag %d frame %g", self->flag_, frame);
 }

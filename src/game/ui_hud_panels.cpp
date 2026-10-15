@@ -44,12 +44,12 @@ void FillBar(CUiMesh* bar, float ratio, float width, float top, float bottom) {
     bar->visible_ = 1;
     float u = (ratio * width + 64.0f) * (1.0f / 256.0f) + (1.0f / 512.0f);
     float edge = ratio - 0.5f;
-    bar->quads_[0].x[2] = edge;
-    bar->quads_[0].x[3] = edge;
-    bar->uvs_[4] = u;
-    bar->uvs_[5] = top;
-    bar->uvs_[6] = u;
-    bar->uvs_[7] = bottom;
+    bar->Quads()[0].x[2] = edge;
+    bar->Quads()[0].x[3] = edge;
+    bar->Texels()[2].u = u;
+    bar->Texels()[2].v = top;
+    bar->Texels()[3].u = u;
+    bar->Texels()[3].v = bottom;
 }
 
 // `value` / `maximum` clamped to 1, or 0 when the bar is not filled (the original also leaves
@@ -123,7 +123,7 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
         else
             bar->visible_ = 0;
         // The bar's colour row: green above 2/3, yellow above 1/3, else red.
-        bar->vOffset_ = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
+        bar->textureOffsetV_ = ratio > 2.0f / 3.0f ? 0.0f : ratio > 1.0f / 3.0f ? -0.02734375f : -0.0546875f;
 
         mfc::CString name;
         name = reinterpret_cast<UnitModelRecord*>(unit->GetPrototypeModel())->slots[i].levelName;
@@ -161,7 +161,7 @@ void CHudMovePanel::ToggleFlag() {
     }
     flag_ = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
-    Sprite(this, 5)->uOffset_ = value == 0 ? 0.3359375f : 0.0f;
+    Sprite(this, 5)->textureOffsetU_ = value == 0 ? 0.3359375f : 0.0f;
 }
 EI_REPLACE_METHOD(0x00649810, CHudMovePanel::ToggleFlag);
 
@@ -238,8 +238,8 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         }
         CUiMesh* icon = Sprite(this, kFirstIcon + i);
         icon->visible_ = 1;
-        icon->uOffset_ = static_cast<float>(x) * (1.0f / 256.0f);
-        icon->vOffset_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
+        icon->textureOffsetU_ = static_cast<float>(x) * (1.0f / 256.0f);
+        icon->textureOffsetV_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
     }
 }
 EI_REPLACE_METHOD(0x00646B90, CHudUnitPanel::ShowEffects);

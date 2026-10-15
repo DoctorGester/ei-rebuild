@@ -42,8 +42,8 @@ std::vector<std::uint8_t> StripState(CUiItemStrip* strip, int regions, int objec
         Append(out, sprite + 0x220, 4);
         Append(out, sprite + 0x280, 4);
         const CUiMesh* mesh = reinterpret_cast<const CUiMesh*>(sprite);
-        Append(out, &mesh->quadCount_, 4);
-        for (int q = 0; q < mesh->quadCount_ && mesh->quads_; ++q) Append(out, &mesh->quads_[q], 0x20);
+        Append(out, &mesh->vertices_.size, 4);
+        for (int q = 0; q < mesh->vertices_.size && mesh->Quads().data; ++q) Append(out, &mesh->Quads()[q], 0x20);
     }
     return out;
 }

@@ -88,8 +88,8 @@ static BOOL __fastcall DrawFiguresVerify(CUiItemStrip* self, void*, int pass) {
     const float position = self->position_[self->tab_];
     const int first = static_cast<int>(position);
     const std::uint32_t dim = 0x3E480000;
-    std::uint32_t left = std::bit_cast<std::uint32_t>(sprite(0)->uOffset_);
-    std::uint32_t right = std::bit_cast<std::uint32_t>(sprite(1)->uOffset_);
+    std::uint32_t left = std::bit_cast<std::uint32_t>(sprite(0)->textureOffsetU_);
+    std::uint32_t right = std::bit_cast<std::uint32_t>(sprite(1)->textureOffsetU_);
     int cell = self->selected_ - first;
     int shown = self->selected_ >= 0 && self->selected_ < self->count_ && cell >= 0 && cell < 8 ? 1 : 0;
     ei::verify::Check("CUiItemStrip::DrawFigures", true,

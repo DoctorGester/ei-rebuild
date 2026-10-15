@@ -21,12 +21,12 @@ struct SpriteState {
     float scale[3];
     std::uint32_t colour;
 };
-SpriteState Read(CUiMesh* m) { return SpriteState{{m->ScaleX(), m->ScaleY(), m->ScaleZ()}, m->colour_}; }
+SpriteState Read(CUiMesh* m) { return SpriteState{{m->ScaleX(), m->ScaleY(), m->ScaleZ()}, m->flatSpecular_}; }
 void Write(CUiMesh* m, const SpriteState& s) {
     m->ScaleX() = s.scale[0];
     m->ScaleY() = s.scale[1];
     m->ScaleZ() = s.scale[2];
-    m->colour_ = s.colour;
+    m->flatSpecular_ = s.colour;
 }
 
 // The panel's sprites 0 .. count - 1 and its selection.

@@ -68,9 +68,9 @@ static void __fastcall RefreshSelectionVerify(CGlobalMap* self, void*) {
         bool selectable = state >= 0 && state <= 2;
         CEngineObject* texture = state == 0 ? self->objects_.data[2] : selectable ? self->objects_.data[0] : nullptr;
         ei::verify::Check(name, true,
-                          marker->plainColour_ == PickColour(i) && marker->texture_ == texture &&
+                          marker->flatColour_ == PickColour(i) && marker->texture_ == texture &&
                               ((marker->flags_ & 0x100u) != 0) == !selectable,
-                          "zone %d state %d colour %08X flags %08X", i, state, marker->plainColour_, marker->flags_);
+                          "zone %d state %d colour %08X flags %08X", i, state, marker->flatColour_, marker->flags_);
     }
 }
 EI_VERIFY(0x00630670, RefreshSelectionVerify, 0, s_unused);

@@ -17,16 +17,16 @@ void* s_unused;
 
 bool PlacementOk(const CUiMesh* self) {
     float expected[16];
-    std::memcpy(expected, &self->placement_, sizeof(expected));
-    QuaternionToMatrixOriginal(&self->orientation_, nullptr, expected);
-    expected[3] = self->position_.x;
-    expected[7] = self->position_.y;
-    expected[11] = self->position_.z;
+    std::memcpy(expected, &self->worldMatrix_, sizeof(expected));
+    QuaternionToMatrixOriginal(&self->localRotation_, nullptr, expected);
+    expected[3] = self->localPosition_.x;
+    expected[7] = self->localPosition_.y;
+    expected[11] = self->localPosition_.z;
     expected[12] = 0.0f;
     expected[13] = 0.0f;
     expected[14] = 0.0f;
     expected[15] = 1.0f;
-    return std::memcmp(expected, &self->placement_, sizeof(expected)) == 0;
+    return std::memcmp(expected, &self->worldMatrix_, sizeof(expected)) == 0;
 }
 } // namespace
 
@@ -53,8 +53,8 @@ static int __fastcall SpriteCreateVerify(CUiMesh* self) {
     for (int i = 0; i < 16; ++i) identity = identity && m[i] == ((i % 5 == 0) ? 1.0f : 0.0f);
     const Quaternion& q = *reinterpret_cast<const Quaternion*>(0x007C7CD8);
     const bool ok = result == 1 && identity && !self->material_ && !self->texture_ && self->tint_[0] == 1.0f &&
-                    self->tint_[2] == 1.0f && std::memcmp(&self->orientation_, &q, sizeof(q)) == 0 &&
-                    self->position_.z == 10.0f && self->colour_ == 0xFF000000 && self->plainColour_ == 0xFF000000 &&
+                    self->tint_[2] == 1.0f && std::memcmp(&self->localRotation_, &q, sizeof(q)) == 0 &&
+                    self->localPosition_.z == 10.0f && self->flatSpecular_ == 0xFF000000 && self->flatColour_ == 0xFF000000 &&
                     self->visible_ == 1;
     ei::verify::Check("CUiMesh::CreateSprite", true, ok, "");
     return result;
@@ -102,7 +102,7 @@ static void __fastcall VertexCountVerify(CUiMesh* self, void*, int count) {
 }
 EI_VERIFY(0x005EA600, VertexCountVerify, 0, s_unused);
 static void __fastcall IndexCountVerify(CUiMesh* self, void*, int count) {
-    CheckSetSize("CUiMesh::SetIndexCount", self->Indices(), count, &CUiMesh::SetIndexCount, self, NoExtra{});
+    CheckSetSize("CUiMesh::SetIndexCount", self->indices_, count, &CUiMesh::SetIndexCount, self, NoExtra{});
 }
 EI_VERIFY(0x005EA4C0, IndexCountVerify, 0, s_unused);
 static void __fastcall UvCountVerify(CUiMesh* self, void*, int count) {

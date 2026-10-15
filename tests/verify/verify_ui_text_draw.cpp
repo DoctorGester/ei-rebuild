@@ -64,14 +64,14 @@ EI_VERIFY(0x005F8340, TextExtentVerify, 7, s_textExtent);
 // SUB ESP,0xC; FLD dword ptr [ESP+0x10] (7 bytes).
 static void(__fastcall* s_place)(CUiMesh*, void*, float, float, float);
 static void __fastcall MeshPlaceVerify(CUiMesh* self, void*, float x, float y, float depth) {
-    Vector3 before = self->position_;
+    Vector3 before = self->localPosition_;
     s_place(self, nullptr, x, y, depth);
-    Vector3 expected = self->position_;
-    self->position_ = before;
+    Vector3 expected = self->localPosition_;
+    self->localPosition_ = before;
     self->PlaceBody(x, y, depth);
-    ei::verify::CheckNear("CUiMesh::PlaceBody x", expected.x, self->position_.x, "x %f depth %f", double(x), double(depth));
-    ei::verify::CheckNear("CUiMesh::PlaceBody y", expected.y, self->position_.y, "y %f depth %f", double(y), double(depth));
-    ei::verify::Check("CUiMesh::PlaceBody z", true, std::memcmp(&expected.z, &self->position_.z, sizeof(float)) == 0,
+    ei::verify::CheckNear("CUiMesh::PlaceBody x", expected.x, self->localPosition_.x, "x %f depth %f", double(x), double(depth));
+    ei::verify::CheckNear("CUiMesh::PlaceBody y", expected.y, self->localPosition_.y, "y %f depth %f", double(y), double(depth));
+    ei::verify::Check("CUiMesh::PlaceBody z", true, std::memcmp(&expected.z, &self->localPosition_.z, sizeof(float)) == 0,
                       "");
 }
 EI_VERIFY(0x005E6FA0, MeshPlaceVerify, 7, s_place);

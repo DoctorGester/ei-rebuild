@@ -150,15 +150,15 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
         Vector3 axis{1.0f, 0.0f, 0.0f};
         Quaternion turn;
         // pi (007410D0) * 1.05 (0073CEE0), passed as a float.
-        sprite->orientation_ =
+        sprite->localRotation_ =
             *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, GameFloat(0x007410D0) * GameFloat(0x0073CEE0));
     } else {
         sprite = AddSprite(nullptr);
         sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
                              0x80);
     }
-    sprite->uOffset_ = static_cast<float>(u) * GameFloat(0x0073EEB8);          // / 256
-    sprite->vOffset_ = static_cast<float>(v + 0x80) * GameFloat(0x0073EEB8);
+    sprite->textureOffsetU_ = static_cast<float>(u) * GameFloat(0x0073EEB8);          // / 256
+    sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * GameFloat(0x0073EEB8);
     sprite->texture_ = objects_.data[objects_.size - 1];
     ++portraits_;
     AddRegion()->CallSetRect(left, 0, right, 0x50);

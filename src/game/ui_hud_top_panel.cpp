@@ -59,18 +59,18 @@ void CHudTopPanel::Build(int page, int shown) {
     back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);
     back->texture_ = nullptr;
     back->flags_ |= 0x100;
-    back->plainColour_ = 0x50000000;
+    back->flatColour_ = 0x50000000;
     CUiMesh* bar = AddSprite(nullptr);
     bar->SetRectangle(20.0f, 100.0f, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, 0x100, 0x100);
     bar->texture_ = nullptr;
     bar->flags_ |= 0x100;
-    bar->plainColour_ = 0xB4000000;
+    bar->flatColour_ = 0xB4000000;
 
     CUiMesh* arrow = AddSprite(game::Text(0x007945B0));   // "in25arrow"
-    arrow->uOffset_ = 0.22265625f;
-    arrow->vOffset_ = 0.140625f;
+    arrow->textureOffsetU_ = 0.22265625f;
+    arrow->textureOffsetV_ = 0.140625f;
     Quaternion turn;
-    arrow->orientation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
+    arrow->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
     arrow->Place(400.0f, -52.0f, FloatFromBits(0x4101B287));
     arrow->SetScale(0.8f);
 

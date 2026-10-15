@@ -23,16 +23,16 @@ struct MeshCopy {
 
 MeshCopy Copy(const CUiMesh* mesh) {
     MeshCopy c;
-    c.quadCount = mesh->quadCount_;
-    c.vertexCount = mesh->vertexCount_;
-    c.indexCount = mesh->indexCount_;
+    c.quadCount = mesh->vertices_.size;
+    c.vertexCount = mesh->corners_.size;
+    c.indexCount = mesh->indices_.size;
     auto take = [](std::vector<std::uint8_t>& v, const void* p, std::size_t n) {
         v.resize(n);
         if (n) std::memcpy(v.data(), p, n);
     };
-    take(c.quads, mesh->quads_, c.quadCount * sizeof(UiQuadBlock));
-    take(c.vertices, mesh->vertices_, c.vertexCount * sizeof(UiMeshVertex));
-    take(c.indices, mesh->indices_, c.indexCount * sizeof(std::uint16_t));
+    take(c.quads, mesh->Quads().data, c.quadCount * sizeof(UiQuadBlock));
+    take(c.vertices, mesh->Vertices().data, c.vertexCount * sizeof(UiMeshVertex));
+    take(c.indices, mesh->indices_.data, c.indexCount * sizeof(std::uint16_t));
     take(c.render, reinterpret_cast<const std::uint8_t*>(mesh) + 0x9C, 0xCC - 0x9C);   // Commit
     return c;
 }
@@ -105,15 +105,15 @@ ViewCopy CopyView(CHudMap* map) {
     if (c.polygonSize) std::memcpy(c.polygon.data(), map->visibleArea_.data, c.polygon.size());
     auto* area = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data[1]);
     c.area = Copy(area);
-    c.uvCount = area->uvCount_;
+    c.uvCount = area->texCoords_.size;
     c.uvs.resize(c.uvCount * 8);
-    if (c.uvCount) std::memcpy(c.uvs.data(), area->uvs_, c.uvs.size());
+    if (c.uvCount) std::memcpy(c.uvs.data(), area->Texels().data, c.uvs.size());
     auto* bounds = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data[0]);
     c.boundsVisible = bounds->visible_;
     std::memset(c.boundsQuad, 0, sizeof(c.boundsQuad));
     std::memset(c.boundsUv, 0, sizeof(c.boundsUv));
-    if (bounds->quads_) std::memcpy(c.boundsQuad, bounds->quads_, sizeof(c.boundsQuad));
-    if (bounds->uvs_) std::memcpy(c.boundsUv, bounds->uvs_, sizeof(c.boundsUv));
+    if (bounds->Quads().data) std::memcpy(c.boundsQuad, bounds->Quads().data, sizeof(c.boundsQuad));
+    if (bounds->Texels().data) std::memcpy(c.boundsUv, bounds->Texels().data, sizeof(c.boundsUv));
     return c;
 }
 } // namespace

@@ -478,7 +478,7 @@ namespace {
 void TurnQuarter(CUiMesh* sprite) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    sprite->orientation_ = *turn.SetAxisAngle(axis, QuarterTurn());
+    sprite->localRotation_ = *turn.SetAxisAngle(axis, QuarterTurn());
 }
 } // namespace
 

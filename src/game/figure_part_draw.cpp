@@ -24,6 +24,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -480,6 +481,8 @@ struct Part {
 const void* Allocator(Part& part) { return reinterpret_cast<char*>(&part.material) + 3; }
 
 // A pointer passed to the device's draws as a dword.
+// A texture offset as the draws take it (its bits).
+std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(offset); }
 std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
 // Flat meshes (flag 0x100): the figure fills the colours (its FlatColours), else every colour is
@@ -581,13 +584,13 @@ void DrawThroughDevice(Part& part) {
         result = DrawMesh2(part.device, nullptr, part.textureA->surface_, part.textureB->surface_, positions, blocks,
                            Word(b.normals), b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data),
                            Word(b.texCoords), b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words),
-                           b.wordCount, Word(b.indices), b.indexCount, mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha,
+                           b.wordCount, Word(b.indices), b.indexCount, OffsetBits(mesh->textureOffsetU_), OffsetBits(mesh->textureOffsetV_), part.alpha,
                            part.drawFlags);
     } else {
         result = DrawMesh(reinterpret_cast<char*>(part.device), nullptr, positions, blocks, Word(b.normals),
                           b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data), Word(b.texCoords),
                           b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words), b.wordCount, Word(b.indices),
-                          b.indexCount, mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
+                          b.indexCount, OffsetBits(mesh->textureOffsetU_), OffsetBits(mesh->textureOffsetV_), part.alpha, part.drawFlags);
     }
     if (!part.rect) return;
     RECT* own = &part.node->screen_;
@@ -619,8 +622,8 @@ void DrawThroughFigure(Part& part) {
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
     }
     mesh = part.Mesh();
-    std::uint32_t u = mesh->textureOffsetU_;
-    std::uint32_t v = mesh->textureOffsetV_;
+    std::uint32_t u = OffsetBits(mesh->textureOffsetU_);
+    std::uint32_t v = OffsetBits(mesh->textureOffsetV_);
     ColourArray* colours = &part.Colours();
     ColourArray* speculars = &part.Speculars();
     lib::AlignedArray<Vector3>* offsets = &mesh->offsets_;

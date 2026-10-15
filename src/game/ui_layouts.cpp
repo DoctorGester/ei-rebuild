@@ -59,7 +59,7 @@ namespace {
 
 // Fields of an interface sprite set directly by the builders.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
-void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->plainColour_ = argb; }
+void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->flatColour_ = argb; }
 // Flag 0x100 of the object flags: drawn with the plain colour, untextured.
 void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 
@@ -647,7 +647,7 @@ void CDifficultyBox::Build() {
     CUiMesh* hardBox = AddSprite(0);
     hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
-    hardBox->uOffset_ = kCheckedOffset;
+    hardBox->textureOffsetU_ = kCheckedOffset;
 
     int bottom = top + total;
     Shade(this, 3.0f, 200.0f, static_cast<float>(top), 600.0f, static_cast<float>(bottom));

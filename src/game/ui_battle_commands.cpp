@@ -90,7 +90,7 @@ void DropColumn(Column* panel, bool inlinePanels, void(__fastcall* setPanel)(CUi
         if (inlinePanels) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i]);
             SpriteSetScale(sprite, nullptr, kScaleOne);
-            sprite->colour_ = kSpriteOpaque;
+            sprite->flatSpecular_ = kSpriteOpaque;
             panel->selected_ = i;
         } else {
             setPanel(panel, nullptr, i, 0);

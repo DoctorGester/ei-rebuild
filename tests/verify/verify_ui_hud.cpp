@@ -627,8 +627,8 @@ MoveModeState CaptureMoveMode(CHudMovePanel* w) {
     auto* marker = reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[0]);
     s.mode = w->mode_;
     s.visible = marker->visible_;
-    s.orientation = marker->orientation_;
-    s.position = marker->position_;
+    s.orientation = marker->localRotation_;
+    s.position = marker->localPosition_;
     for (int i = 0; i < 4; ++i)
         for (int k = 0; k < 3; ++k) s.tints[i][k] = TintBits(w->sceneObjects_.data[1 + i], k);
     return s;
@@ -637,8 +637,8 @@ void RestoreMoveMode(CHudMovePanel* w, const MoveModeState& s) {
     auto* marker = reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[0]);
     w->mode_ = s.mode;
     marker->visible_ = s.visible;
-    marker->orientation_ = s.orientation;
-    marker->position_ = s.position;
+    marker->localRotation_ = s.orientation;
+    marker->localPosition_ = s.position;
     for (int i = 0; i < 4; ++i)
         std::memcpy(reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[1 + i])->tint_, s.tints[i], sizeof(s.tints[i]));
 }

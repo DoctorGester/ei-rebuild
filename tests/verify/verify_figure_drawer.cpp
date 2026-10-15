@@ -17,6 +17,7 @@
 #include "../../src/game/figure_mesh.h"
 #include "../../src/game/link_figure.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -27,13 +28,15 @@ void(__fastcall* s_animate)(FigureMeshDrawer*, void*, float);
 
 void __fastcall AnimateVerify(FigureMeshDrawer* self, void*, float time) {
     CFigureMesh* mesh = self->mesh_;
-    const std::uint32_t u = mesh->textureOffsetU_, v = mesh->textureOffsetV_;
+    auto bits = [](float value) { return std::bit_cast<std::uint32_t>(value); };
+    const float u = mesh->textureOffsetU_, v = mesh->textureOffsetV_;
     s_animate(self, nullptr, time);
-    const std::uint32_t expectedU = mesh->textureOffsetU_, expectedV = mesh->textureOffsetV_;
-    mesh->textureOffsetU_ = u;
-    mesh->textureOffsetV_ = v;
+    const std::uint32_t expectedU = bits(mesh->textureOffsetU_), expectedV = bits(mesh->textureOffsetV_);
+    std::memcpy(&mesh->textureOffsetU_, &u, 4);
+    std::memcpy(&mesh->textureOffsetV_, &v, 4);
     self->Animate(time);
-    ei::verify::Check("FigureMeshDrawer::Animate", true, mesh->textureOffsetU_ == expectedU && mesh->textureOffsetV_ == expectedV,
+    ei::verify::Check("FigureMeshDrawer::Animate", true,
+                      bits(mesh->textureOffsetU_) == expectedU && bits(mesh->textureOffsetV_) == expectedV,
                       "type %u time %g", mesh->meshType_, static_cast<double>(time));
 }
 

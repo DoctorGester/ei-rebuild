@@ -37,7 +37,7 @@ CUiMesh* Sprite(CUiScrollbar* self, int i) { return reinterpret_cast<CUiMesh*>(s
 BarState Take(CUiScrollbar* self) {
     BarState s{self->maxPosition_, self->position_, self->moved_, self->thumb_, {}, {}};
     for (int i = 0; i < kSprites; ++i) s.visible[i] = Sprite(self, i)->visible_;
-    std::memcpy(&s.thumbSprite, &Sprite(self, 1)->position_, sizeof(Vector3));
+    std::memcpy(&s.thumbSprite, &Sprite(self, 1)->localPosition_, sizeof(Vector3));
     return s;
 }
 void Put(CUiScrollbar* self, const BarState& s) {
@@ -46,7 +46,7 @@ void Put(CUiScrollbar* self, const BarState& s) {
     self->moved_ = s.moved;
     self->thumb_ = s.thumb;
     for (int i = 0; i < kSprites; ++i) Sprite(self, i)->visible_ = s.visible[i];
-    std::memcpy(&Sprite(self, 1)->position_, &s.thumbSprite, sizeof(Vector3));
+    std::memcpy(&Sprite(self, 1)->localPosition_, &s.thumbSprite, sizeof(Vector3));
 }
 bool Same(const BarState& a, const BarState& b) {
     return a.maximum == b.maximum && a.position == b.position && a.moved == b.moved &&

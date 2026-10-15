@@ -92,7 +92,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (last >= 0 && last < shownCount_) {
             CEngineObject* shown = sceneObjects_.data[last];
             SpriteScale(shown, nullptr, slot < 4 ? 0.55f : 0.85f);
-            SceneMesh(last)->colour_ = 0xFF000000;
+            SceneMesh(last)->flatSpecular_ = 0xFF000000;
         }
     };
 

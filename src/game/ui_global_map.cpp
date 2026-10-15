@@ -195,7 +195,7 @@ CSceneRenderer* Renderer() { return reinterpret_cast<CSceneRenderer*>(0x007AF060
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 void SetTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
 void SetPlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
-void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->position_, &p, 12); }
+void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->localPosition_, &p, 12); }
 void SetWhite(CUiMesh* sprite) {
     for (float& tint : sprite->tint_) SetBits(tint, 0x3F800000);
 }
@@ -230,7 +230,7 @@ public:
         AddVectors(&out, centre, turned);
         return out;
     }
-    void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->orientation_, &map_->turn_, 16); }
+    void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->localRotation_, &map_->turn_, 16); }
     CEngineObject* Texture(int index) const { return map_->objects_.data[index]; }
 
     // A marker of the map model: the figure at `local`, scaled, turned, white; returns the sprite.
@@ -492,15 +492,15 @@ void CGlobalMap::Create() {
     // Three plain layers over the model (shadow, haze, glow).
     {
         CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, Bits(0xBF000000));   // -0.5
-        shadow->plainColour_ = 0xA08200C8;
-        SetBits(shadow->vOffset_, 0x3E99999A);   // 0.3
+        shadow->flatColour_ = 0xA08200C8;
+        SetBits(shadow->textureOffsetV_, 0x3E99999A);   // 0.3
         SetPlain(shadow);
         CUiMesh* haze = builder.Layer(0, 0x100, 0x100, Bits(0x3F333333));    // 0.7
-        haze->plainColour_ = 0xF0B400FF;
-        SetBits(haze->vOffset_, 0x3F19999A);     // 0.6
+        haze->flatColour_ = 0xF0B400FF;
+        SetBits(haze->textureOffsetV_, 0x3F19999A);     // 0.6
         SetPlain(haze);
         CUiMesh* glow = builder.Layer(0, 0x100, 0x100, Bits(0x40000000));    // 2.0
-        glow->plainColour_ = 0x4BFFFFFF;
+        glow->flatColour_ = 0x4BFFFFFF;
         glow->visible_ = 0;
         SetPlain(glow);
     }
@@ -515,7 +515,7 @@ void CGlobalMap::Create() {
         CUiMesh* shade = AddSprite(0);
         SetTexture(shade, nullptr);
         SetPlain(shade);
-        shade->plainColour_ = 0xA0000000;
+        shade->flatColour_ = 0xA0000000;
         shade->visible_ = 0;
         CUiMesh* picture = AddSprite(0);
         picture->visible_ = 0;
@@ -532,7 +532,7 @@ void CGlobalMap::Create() {
         CUiMesh* shade = AddSprite(0);
         shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
         SetTexture(shade, nullptr);
-        shade->plainColour_ = 0xA0000000;
+        shade->flatColour_ = 0xA0000000;
         SetPlain(shade);
         CUiMesh* frame = AddSprite(0);
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
@@ -679,7 +679,7 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
     int whole = GameFtol(v);
     float fraction = static_cast<float>(v - static_cast<double>(whole));
-    std::memcpy(&reinterpret_cast<CUiMesh*>(layer)->uOffset_, &fraction, 4);
+    std::memcpy(&reinterpret_cast<CUiMesh*>(layer)->textureOffsetU_, &fraction, 4);
 }
 
 } // namespace

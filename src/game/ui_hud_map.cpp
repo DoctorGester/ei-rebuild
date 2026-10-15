@@ -70,7 +70,7 @@ public:
 
     // A unit's arrow: triangle (1, 2, 3) of the entry's vertices.
     void BeginUnit() {
-        std::uint16_t* index = mesh_->indices_ + indexPos_;
+        std::uint16_t* index = mesh_->indices_.data + indexPos_;
         index[0] = static_cast<std::uint16_t>(vertex_ + 1);
         index[1] = static_cast<std::uint16_t>(vertex_ + 2);
         index[2] = static_cast<std::uint16_t>(vertex_ + 3);
@@ -78,7 +78,7 @@ public:
     }
     // A square or diamond: triangles (0, 2, 1) and (1, 2, 3).
     void BeginQuad() {
-        std::uint16_t* index = mesh_->indices_ + indexPos_;
+        std::uint16_t* index = mesh_->indices_.data + indexPos_;
         index[0] = static_cast<std::uint16_t>(vertex_);
         index[1] = static_cast<std::uint16_t>(vertex_ + 2);
         index[2] = static_cast<std::uint16_t>(vertex_ + 1);
@@ -88,12 +88,12 @@ public:
         indexPos_ += 6;
     }
 
-    UiQuadBlock& Block() { return mesh_->quads_[entry_]; }
+    UiQuadBlock& Block() { return mesh_->Quads()[entry_]; }
 
     // The entry's four vertices use their own positions and `frame`.
     void Show(std::int16_t frame) {
         for (int k = 0; k < 4; ++k) {
-            UiMeshVertex& v = mesh_->vertices_[vertex_ + k];
+            UiMeshVertex& v = mesh_->Vertices()[vertex_ + k];
             v.position = static_cast<std::int16_t>(vertex_ + k);
             v.frame = frame;
         }
@@ -102,7 +102,7 @@ public:
     // Not shown: the vertex records are cleared, the positions are left as they were.
     void Hide() {
         for (int k = 0; k < 4; ++k) {
-            UiMeshVertex& v = mesh_->vertices_[vertex_ + k];
+            UiMeshVertex& v = mesh_->Vertices()[vertex_ + k];
             v.position = 0;
             v.frame = 0;
         }
@@ -436,7 +436,7 @@ void CHudMap::UpdateView() {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
-    std::memcpy(&SceneMesh(10)->orientation_, &turn, sizeof(turn));
+    std::memcpy(&SceneMesh(10)->localRotation_, &turn, sizeof(turn));
 
     // The view polygon in world units.
     auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
@@ -491,13 +491,13 @@ void CHudMap::UpdateView() {
     count = points.size;
     area->SetVertexCount(count);
     for (int i = 0; i < count; ++i) {
-        area->vertices_[i].position = static_cast<std::int16_t>(i);
-        area->vertices_[i].frame = static_cast<std::int16_t>(i);
+        area->Vertices()[i].position = static_cast<std::int16_t>(i);
+        area->Vertices()[i].frame = static_cast<std::int16_t>(i);
     }
     area->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->uvs_[i * 2] = static_cast<float>(D(points.data[i].x) / D(textureSize_));
-        area->uvs_[i * 2 + 1] = static_cast<float>(D(points.data[i].y) / D(textureSize_));
+        area->Texels()[i].u = static_cast<float>(D(points.data[i].x) / D(textureSize_));
+        area->Texels()[i].v = static_cast<float>(D(points.data[i].y) / D(textureSize_));
     }
     if (count > 2) {
         area->SetIndexCount((count - 2) * 3);
@@ -527,8 +527,8 @@ void CHudMap::UpdateView() {
             double x = (D(v.x) - D(centreX_)) * D(scale_);
             float y = static_cast<float>(-((D(v.y) - D(centreY_)) * D(scale_)));
             float mapY = static_cast<float>(D(y) * D(zoom_));
-            area->quads_[q].x[k] = static_cast<float>(x * D(zoom_));
-            area->quads_[q].y[k] = mapY;
+            area->Quads()[q].x[k] = static_cast<float>(x * D(zoom_));
+            area->Quads()[q].y[k] = mapY;
         }
     }
     area->Commit();
@@ -549,7 +549,7 @@ void CHudMap::UpdateView() {
         return;
     }
     bounds->visible_ = 1;
-    UiQuadBlock& b = bounds->quads_[0];
+    UiQuadBlock& b = bounds->Quads()[0];
     b.x[0] = left;
     b.y[0] = bottom;
     b.x[1] = left;
@@ -562,15 +562,15 @@ void CHudMap::UpdateView() {
     float vTop = static_cast<float>(D(static_cast<float>(D(centreY_) - D(top) / D(scale_))) / D(textureSize_));
     float u1 = static_cast<float>((D(right) / D(scale_) + D(centreX_)) / D(textureSize_));
     float vBottom = static_cast<float>(D(static_cast<float>(D(centreY_) - D(bottom) / D(scale_))) / D(textureSize_));
-    float* uv = bounds->uvs_;
-    uv[0] = u0;
-    uv[1] = vBottom;
-    uv[2] = u0;
-    uv[3] = vTop;
-    uv[4] = u1;
-    uv[5] = vBottom;
-    uv[6] = u1;
-    uv[7] = vTop;
+    UiTexel* uv = bounds->Texels().data;
+    uv[0].u = u0;
+    uv[0].v = vBottom;
+    uv[1].u = u0;
+    uv[1].v = vTop;
+    uv[2].u = u1;
+    uv[2].v = vBottom;
+    uv[3].u = u1;
+    uv[3].v = vTop;
 }
 EI_REPLACE_METHOD(0x00642E80, CHudMap::UpdateView);
 

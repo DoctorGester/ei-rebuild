@@ -115,7 +115,7 @@ void CUiItemStrip::Build(char top) {
     StripFrame(frame, nullptr, scale_ * GameFloat(0x0073CD70), 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100,
                0x100);
     frame->flags_ |= 0x100;
-    frame->plainColour_ = 0xFF8B8B37;
+    frame->flatColour_ = 0xFF8B8B37;
     frame->texture_ = nullptr;
     frame->visible_ = 0;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.

@@ -380,7 +380,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
         auto* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpritePassword]);
-        sprite->uOffset_ = hostPassword_.GetLength() == 0 ? FrameOff() : FrameOn();
+        sprite->textureOffsetU_ = hostPassword_.GetLength() == 0 ? FrameOff() : FrameOn();
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
         GameFlowJoin(TheGameFlow(), nullptr, &entries_[selected_].address, boxText_);
         net::GameClient()->gameType_ = entries_[selected_].gameType;
@@ -411,7 +411,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     case kRegionUnlisted: {
         unlisted_ = !unlisted_;
         auto* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteUnlisted]);
-        sprite->uOffset_ = unlisted_ ? FrameOn() : FrameOff();
+        sprite->textureOffsetU_ = unlisted_ ? FrameOn() : FrameOff();
         break;
     }
     case kRegionPassword:
@@ -420,7 +420,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
             OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxPassword, kBoxFlagsEdit);
         } else {
             hostPassword_.Empty();
-            reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpritePassword])->uOffset_ = 0.0f;
+            reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpritePassword])->textureOffsetU_ = 0.0f;
         }
         break;
     case kRegionSortFirst:
@@ -439,8 +439,8 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
             if (selected_ == 0) {
                 gameType_ = region - kRegionTabFirst;
                 for (int i = 0; i < kTabs; ++i)
-                    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst + i])->uOffset_ = 0.0f;
-                reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst + gameType_])->uOffset_ = kTabSelected;
+                    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst + i])->textureOffsetU_ = 0.0f;
+                reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst + gameType_])->textureOffsetU_ = kTabSelected;
             }
         } else if (region >= kRegionRowFirst) {
             unsigned row = static_cast<unsigned>(scrollTop_ + region - kRegionRowFirst);
@@ -719,7 +719,7 @@ void CMpConnectScreen::Create() {
     auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
         mesh->texture_ = nullptr;
         mesh->flags_ |= kPlainSprite;
-        mesh->plainColour_ = colour;
+        mesh->flatColour_ = colour;
     };
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
@@ -734,7 +734,7 @@ void CMpConnectScreen::Create() {
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
         arrow->visible_ = 0;
     }
-    sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->uOffset_ = -kTabSelected;
+    sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
     void* texts = GameFlowOriginal();   // 00578E20: the client's text table
@@ -747,7 +747,7 @@ void CMpConnectScreen::Create() {
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
         region(460, top, 670, bottom, 0);
     }
-    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst])->uOffset_ = kTabSelected;
+    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst])->textureOffsetU_ = kTabSelected;
     gameType_ = 0;
     unlisted_ = true;
     hostPassword_.Empty();
@@ -874,7 +874,7 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
     bar_ = AddSprite(nullptr);
     bar_->texture_ = nullptr;
     bar_->flags_ |= kPlainSprite;
-    bar_->plainColour_ = kBarColour;
+    bar_->flatColour_ = kBarColour;
     BufferPut(&link_.out, &extra, sizeof(extra));
     return this;
 }

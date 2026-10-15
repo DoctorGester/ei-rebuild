@@ -580,7 +580,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
-        marker->orientation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
+        marker->localRotation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
         const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
         const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
         SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
@@ -612,9 +612,9 @@ void CHudMovePanel::Update() {
     }
     ShowMode(mode);
     flag_ = flag;
-    // Scene object 5 shows the flag through its texture offset (uOffset_, +0xCC).
+    // Scene object 5 shows the flag through its texture offset (textureOffsetU_, +0xCC).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
-    std::memcpy(&reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->uOffset_, &bits, 4);
+    std::memcpy(&reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->textureOffsetU_, &bits, 4);
 }
 EI_REPLACE_METHOD(0x00649550, CHudMovePanel::Update);
 
@@ -929,7 +929,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             if (slot < 0 || slot >= quick->shownCount_) continue;
             CEngineObject* sprite = quick->sceneObjects_.data[slot];
             SpriteSetScale(sprite, nullptr, i < 4 ? kScaleSmall : kScaleLarge);
-            reinterpret_cast<CUiMesh*>(sprite)->colour_ = kSpriteOpaque;
+            reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
         }
         quick->selected_ = -1;
         // The spell and action columns (the same layout: count_, selected_, the sprites).
@@ -937,7 +937,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             for (int i = 0; i < panel->count_; ++i) {
                 CEngineObject* sprite = panel->sceneObjects_.data[i];
                 SpriteSetScale(sprite, nullptr, kScaleOne);
-                reinterpret_cast<CUiMesh*>(sprite)->colour_ = kSpriteOpaque;
+                reinterpret_cast<CUiMesh*>(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;
             }
             panel->selected_ = -1;

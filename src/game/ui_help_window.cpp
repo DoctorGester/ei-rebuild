@@ -111,7 +111,7 @@ void CHelpWindow::Update() {
     std::uint32_t r = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest + alphaStored)));
     std::uint32_t gb = static_cast<std::uint32_t>(Clamp255(static_cast<int>(rest)));
     std::uint32_t colour = a << 24 | r << 16 | gb << 8 | gb;
-    for (auto* node = pulsing_.First(); node != pulsing_.End(); node = node->next) node->data->plainColour_ = colour;
+    for (auto* node = pulsing_.First(); node != pulsing_.End(); node = node->next) node->data->flatColour_ = colour;
 }
 EI_REPLACE_METHOD(0x0065A5E0, CHelpWindow::Update);
 

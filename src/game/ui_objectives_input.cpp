@@ -188,7 +188,7 @@ constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest p
 constexpr int kVisibleRows = 5;
 constexpr float kNearestScale = 1.2f;    // 0073CDF4
 constexpr float kOtherExitU = -0.125f;   // 0xBE000000
-constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in plainColour_
+constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 // The blink: (cos(rate x t) x amplitude + base) x 255 (0073CE18 2.5, 0073C54C 0.3, 0073B86C 0.5;
 // 0073BF34 5.0, 0073B868 0.4, 0073CDE0 0.6; 0073C370 255).
 constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
@@ -206,11 +206,11 @@ void CObjectivesWindow::SelectExit(int index) {
         CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
         if (i == index) {
             marker->SetScale(markerScale_ * kNearestScale);
-            marker->uOffset_ = 0.0f;
+            marker->textureOffsetU_ = 0.0f;
             blinkTime_ = 0.0f;
         } else {
             marker->SetScale(markerScale_);
-            marker->uOffset_ = exits_[i].flag_ ? 0.0f : kOtherExitU;
+            marker->textureOffsetU_ = exits_[i].flag_ ? 0.0f : kOtherExitU;
         }
     }
     Sprite(this, 4)->visible_ = 0;
@@ -248,12 +248,12 @@ void CObjectivesWindow::Update() {
     for (int i = exits_.size + kFirstExitSprite; i < sceneObjects_.size; ++i) {
         CUiMesh* place = Sprite(this, i);
         place->flags_ |= kPlainColour;
-        place->plainColour_ = fast << 24 | 0xFF0000u;
+        place->flatColour_ = fast << 24 | 0xFF0000u;
     }
     for (int i = 0; i < exits_.size; ++i) {
         CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
         marker->flags_ |= kPlainColour;
-        marker->plainColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
+        marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
     }
 }
 EI_REPLACE_METHOD(0x0064E760, CObjectivesWindow::Update);

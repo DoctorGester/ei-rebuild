@@ -31,8 +31,6 @@ constexpr std::uint32_t kOneBits = 0x3F800000;
 // The two triangles of a quad whose corners are numbered down the left side, then down the right.
 constexpr std::uint16_t kQuadCorners[] = {0, 1, 2, 1, 3, 2};
 
-CFigureMesh* Figure(CUiMesh* sprite) { return reinterpret_cast<CFigureMesh*>(sprite); }
-
 // One packet of normals facing the viewer (0, 0, 1; the fourth row 1) and a colour pair per corner.
 void SetFlatNormals(CFigureMesh* mesh, int corners) {
     mesh->normals_.SetSize(1);
@@ -67,7 +65,7 @@ void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
 
 // Every texture coordinate moved half a texel into its texel.
 void InsetTexels(CUiMesh* sprite) {
-    for (int i = 0; i < sprite->uvCount_; ++i) {
+    for (int i = 0; i < sprite->texCoords_.size; ++i) {
         UiTexel* texel = sprite->Texels().data + i;
         texel->u = texel->u + HalfTexel();
         texel->v = texel->v - HalfTexel();
@@ -76,7 +74,7 @@ void InsetTexels(CUiMesh* sprite) {
 
 // Corner `corner` of the sprite: point `point` with texture corner `texel`.
 void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
-    UiMeshVertex& vertex = sprite->vertices_[corner];
+    UiMeshVertex& vertex = sprite->Vertices()[corner];
     vertex.position = static_cast<std::int16_t>(point);
     vertex.frame = static_cast<std::int16_t>(texel);
     vertex.normal = 0;
@@ -85,7 +83,7 @@ void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
 // The two triangles of the quad whose four corners start at `first`, appended to the indices.
 void AddQuadIndices(CUiMesh* sprite, int first) {
     for (std::uint16_t corner : kQuadCorners)
-        sprite->Indices().SetAtGrow(sprite->Indices().size, static_cast<std::uint16_t>(first + corner));
+        sprite->indices_.SetAtGrow(sprite->indices_.size, static_cast<std::uint16_t>(first + corner));
 }
 
 // `count` packets of points on the sprite's plane (z 0, the fourth row 1).
@@ -93,8 +91,8 @@ void SetFlatPackets(CUiMesh* sprite, int count) {
     sprite->Quads().SetSize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
-            sprite->quads_[i].z[k] = 0.0f;
-            sprite->quads_[i].w[k] = 1.0f;
+            sprite->Quads()[i].z[k] = 0.0f;
+            sprite->Quads()[i].w[k] = 1.0f;
         }
 }
 
@@ -114,7 +112,7 @@ float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset())
 
 void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0,
                                   int v0, int u1, int v1) {
-    SetFlatNormals(Figure(this), 4);
+    SetFlatNormals(this, 4);
     Vertices().SetSize(4);
     for (int i = 0; i < 4; ++i) SetCorner(this, i, i, i);
     // A mirrored picture starts a texel further left.
@@ -123,11 +121,11 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
         --u1;
     }
     SetTexelCorners(this, u0, v0, u1, v1);
-    Indices().SetSize(0);
+    indices_.SetSize(0);
     AddQuadIndices(this, 0);
 
     SetFlatPackets(this, 1);
-    UiQuadBlock& quad = quads_[0];
+    UiQuadBlock& quad = Quads()[0];
     // The rectangle about its centre, in units of `scale`.
     float halfWidth = (right - left) * Half() / scale;
     float halfHeight = (bottom - top) * Half() / scale;
@@ -146,7 +144,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
     float x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
     Vector3 centre;
-    position_ = *centre.Construct(x, y, depth);
+    localPosition_ = *centre.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     Commit();
@@ -156,7 +154,7 @@ EI_REBIRTH_IMPLEMENTS(0x005E70E0, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
-    SetFlatNormals(Figure(this), 4);
+    SetFlatNormals(this, 4);
     // The points, row by row from the top left, a cell apart in units of `scale`.
     float stepX = (right - left) / scale / static_cast<float>(columns);
     float stepY = (bottom - top) / scale / static_cast<float>(rows);
@@ -166,7 +164,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     int column = 0;
     int row = 0;
     for (int i = 0; i < packets; ++i) {
-        UiQuadBlock& packet = quads_[i];
+        UiQuadBlock& packet = Quads()[i];
         for (int k = 0; k < 4; ++k) {
             packet.x[k] = static_cast<float>(column) * stepX;
             packet.y[k] = static_cast<float>(row) * stepY;
@@ -182,7 +180,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     SetTexelCorners(this, u0, v0, u1, v1);
     // Every cell is a quad showing the whole picture.
     Vertices().SetSize(columns * rows * 4);
-    Indices().SetSize(0);
+    indices_.SetSize(0);
     int first = 0;
     int point = 0;
     for (int r = 0; r < rows; ++r) {
@@ -200,9 +198,9 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     // The top left corner in front of the interface camera.
     // WideScreen (005E7C8D, addon's 100231CA): the left edge moved.
     const float gridLeft = widescreen::Active() ? MovedX(left) : left;
-    position_.x = (gridLeft * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
-    position_.y = (top * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
-    position_.z = depth;
+    localPosition_.x = (gridLeft * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
+    localPosition_.y = (top * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
+    localPosition_.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     Commit();
@@ -212,16 +210,16 @@ EI_REBIRTH_IMPLEMENTS(0x005E7680, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
-    SetFlatNormals(Figure(this), 4);
+    SetFlatNormals(this, 4);
     // Four quads round the frame; each joins an outer and an inner corner to the next pair, the
     // last one back to the first.
     Vertices().SetSize(16);
     for (int side = 0; side < 4; ++side)
         for (int k = 0; k < 4; ++k) SetCorner(this, side * 4 + k, side * 2 + k, k);
-    vertices_[14].position = 0;
-    vertices_[15].position = 1;
+    Vertices()[14].position = 0;
+    Vertices()[15].position = 1;
     SetTexelCorners(this, u0, v0, u1, v1);
-    Indices().SetSize(0);
+    indices_.SetSize(0);
     for (int side = 0; side < 4; ++side) AddQuadIndices(this, side * 4);
 
     SetFlatPackets(this, 2);
@@ -232,7 +230,7 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     float outerY = halfHeight / scale;
     float innerX = (halfWidth - border) / scale;
     float innerY = (halfHeight - border) / scale;
-    UiQuadBlock& upper = quads_[0];
+    UiQuadBlock& upper = Quads()[0];
     upper.x[0] = -outerX;
     upper.y[0] = -outerY;
     upper.x[1] = -innerX;
@@ -241,7 +239,7 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     upper.y[2] = -outerY;
     upper.x[3] = innerX;
     upper.y[3] = -innerY;
-    UiQuadBlock& lower = quads_[1];
+    UiQuadBlock& lower = Quads()[1];
     lower.x[0] = outerX;
     lower.y[0] = outerY;
     lower.x[1] = innerX;
@@ -253,9 +251,9 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     // WideScreen (005E835E, addon's 100231FA): both edges moved.
     float sumX = left + right;
     if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
-    position_.x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
-    position_.y = ((top + bottom) * GameFloat(0x00740164) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
-    position_.z = depth;
+    localPosition_.x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
+    localPosition_.y = ((top + bottom) * GameFloat(0x00740164) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
+    localPosition_.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     Commit();
@@ -265,7 +263,7 @@ EI_REBIRTH_IMPLEMENTS(0x005E7D60, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
-    SetFlatNormals(Figure(this), 4);
+    SetFlatNormals(this, 4);
     Vertices().SetSize(4);
     for (int i = 0; i < 4; ++i) SetCorner(this, i, i, i);
     Texels().SetSize(4);
@@ -278,12 +276,12 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     texels[2].v = One() - v2 * Texel();
     texels[3].u = 0.0f;
     texels[3].v = 0.0f;
-    Indices().SetSize(0);
-    for (std::uint16_t corner = 0; corner < 3; ++corner) Indices().SetAtGrow(Indices().size, corner);
+    indices_.SetSize(0);
+    for (std::uint16_t corner = 0; corner < 3; ++corner) indices_.SetAtGrow(indices_.size, corner);
 
     SetFlatPackets(this, 1);
     // The first point is the origin; the fourth is not drawn.
-    UiQuadBlock& points = quads_[0];
+    UiQuadBlock& points = Quads()[0];
     points.x[0] = 0.0f;
     points.y[0] = 0.0f;
     points.x[1] = (x1 - x0) / scale;
@@ -297,7 +295,7 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     const float firstX = widescreen::Active() ? MovedX(x0) : x0;
     float x = (firstX * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
     Vector3 first;
-    position_ = *first.Construct(x, y, depth);
+    localPosition_ = *first.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
     Commit();

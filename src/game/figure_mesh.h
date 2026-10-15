@@ -200,10 +200,11 @@ public:
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* object_;                 // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
-    // +0x0CC / +0x0D0 passed to the draws after the buffers: the texture offset (u, v float bits)
-    // an animated mesh's drawer sets per frame (FigureMeshDrawer::Animate).
-    std::uint32_t textureOffsetU_;
-    std::uint32_t textureOffsetV_;
+    // +0x0CC / +0x0D0 passed to the draws after the buffers (as their bits): the texture offset
+    // (u, v) an animated mesh's drawer sets per frame (FigureMeshDrawer::Animate); an interface
+    // sprite's frame of its sprite sheet (CUiMesh, ui.h).
+    float textureOffsetU_;
+    float textureOffsetV_;
     // +0x0D4 / +0x0D8 every colour / specular of a flat mesh (flags_ 0x100); set for every part of
     // an object by CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
     std::uint32_t flatColour_;

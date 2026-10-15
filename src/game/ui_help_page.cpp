@@ -44,7 +44,7 @@ constexpr std::uintptr_t kSpace = std::uintptr_t(0x0078DA40);             // " "
 float Texel() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0073EEB8)); }
 
 constexpr char kHelpAction = ';';                  // the help key's action (KeyActions)
-constexpr std::uint32_t kPlainColour = 0x100;      // CUiMesh::flags_: drawn in plainColour_
+constexpr std::uint32_t kPlainColour = 0x100;      // CUiMesh::flags_: drawn in flatColour_
 constexpr COLORREF kTitleColour = 0x82F5FF;
 constexpr COLORREF kTextColour = 0xBBF9FF;
 constexpr int kStripHeight = 55;                   // the title's and the buttons' strips
@@ -71,7 +71,7 @@ void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1]
 void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
     sprite->texture_ = nullptr;
     sprite->flags_ |= kPlainColour;
-    sprite->plainColour_ = colour;
+    sprite->flatColour_ = colour;
 }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -166,7 +166,7 @@ void CHelpWindow::ShowPageVanilla() {
     CUiMesh* back = AddSprite(nullptr);
     SetPlain(back, message_ ? 0xFF282313 : 0xFF211B11);
     CUiMesh* frame = AddSprite(nullptr);
-    if (message_) frame->vOffset_ = 0.02734375f;
+    if (message_) frame->textureOffsetV_ = 0.02734375f;
     CUiMesh* previous = AddSprite(nullptr);
     if (page_ <= 0) previous->visible_ = 0;
     SetTint(previous, 0.6f);
@@ -248,8 +248,8 @@ void CHelpWindow::ShowPageVanilla() {
                     }
                     CUiMesh* picture = AddSprite(nullptr);
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
-                    picture->uOffset_ = static_cast<float>(cellX) * Texel();
-                    picture->vOffset_ = static_cast<float>(cellY + kPictureSize) * Texel();
+                    picture->textureOffsetU_ = static_cast<float>(cellX) * Texel();
+                    picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * Texel();
                     SpritePlaceOriginal(picture, nullptr, static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_.data[1];

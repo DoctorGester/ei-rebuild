@@ -373,7 +373,7 @@ void CHeroEquipPanel::Build(bool body) {
         CUiMesh* frame = AddSprite(0);
         Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
         SetPlainFlag(frame);
-        frame->plainColour_ = 0xFF8B8B37;
+        frame->flatColour_ = 0xFF8B8B37;
         frame->texture_ = nullptr;
         frame->visible_ = 0;
     }
@@ -522,7 +522,7 @@ void CHeroQuickStrip::Build(bool top) {
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
     CUiMesh* frame = AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-    frame->plainColour_ = 0xFF8B8B37;
+    frame->flatColour_ = 0xFF8B8B37;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;
     frame->visible_ = 0;
@@ -554,7 +554,7 @@ void AddMakerPictures(CConstructorPage* page) {
     }
     CUiMesh* frame = page->AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-    frame->plainColour_ = 0x96FFFFFF;
+    frame->flatColour_ = 0x96FFFFFF;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;
     frame->visible_ = 0;

@@ -49,8 +49,8 @@ PortraitsCopy CopyPortraits(CHudPortraits* p) {
         put(Bytes(o[1]) + 0x34, 16);
         for (int k = 2; k <= 3; ++k) {
             auto* bar = reinterpret_cast<CUiMesh*>(o[k]);
-            put(&bar->quads_[0].x[2], 8);
-            put(bar->uvs_ + 4, 16);
+            put(&bar->Quads()[0].x[2], 8);
+            put(bar->Texels().data + 2, 16);
         }
         put(Bytes(o[5]) + 0x220, 4);
         put(Bytes(o[5]) + 0xD4, 4);

@@ -17,6 +17,7 @@
 #include "originals_render.h"
 #include "texture.h"           // CTextureDevice
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -125,8 +126,8 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
                           Word(m->colorsA_.data), Word(m->colorsB_.data), Word(b.texCoords),
                           static_cast<std::uint32_t>(b.texCoordCount), Word(b.corners),
                           static_cast<std::uint32_t>(b.cornerCount), Word(b.words), static_cast<std::uint32_t>(b.wordCount),
-                          Word(b.indices), static_cast<std::uint32_t>(b.indexCount), m->textureOffsetU_,
-                          m->textureOffsetV_, alpha, drawFlags);
+                          Word(b.indices), static_cast<std::uint32_t>(b.indexCount), std::bit_cast<std::uint32_t>(m->textureOffsetU_),
+                          std::bit_cast<std::uint32_t>(m->textureOffsetV_), alpha, drawFlags);
     if (rect) {
         RECT* own = &screen_;
         if (result == 2) {

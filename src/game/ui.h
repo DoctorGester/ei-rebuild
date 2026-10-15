@@ -9,6 +9,7 @@
 
 #include "core_transform.h"
 #include "engine_object.h"
+#include "figure_mesh.h"
 #include "game_data.h"
 #include "item_db.h"
 #include "unit.h"   // LockKey
@@ -1589,9 +1590,10 @@ public:
 };
 static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 
-// A 2D mesh of the interface (the sprite objects 005E70E0 and its siblings set up). Positions
-// are kept per quad as four x then four y floats; each vertex has a 6-byte record (the position
-// it uses and a frame of the texture); indices are 16 bits. The arrays grow like UiPtrArray.
+// A 2D mesh of the interface (the sprite objects 005E70E0 and its siblings set up): a figure
+// mesh (CFigureMesh, figure_mesh.h) whose arrays it fills with these views of their elements.
+// Positions are kept per quad as four x then four y floats (VertexPacket); each vertex has a
+// 6-byte record (MeshCorner: the position it uses and a frame of the texture); indices are 16 bits.
 struct UiQuadBlock {
     float x[4];
     float y[4];
@@ -1609,7 +1611,7 @@ struct UiMeshVertex {
     std::int16_t frame;              // +4 texture frame (the minimap's marker kinds)
 };
 static_assert(sizeof(UiMeshVertex) == 6);
-class CUiMesh {
+class CUiMesh : public CFigureMesh {
 public:
     // The array sizes (RET 4; ui_mesh_draw.cpp): each is the aligned array's SetSize(count); the
     // quads (005EA210) then get z 0 and w 1 in every block, the vertices (005EA600) +2 zero in
@@ -1618,11 +1620,15 @@ public:
     void SetVertexCount(int count);
     void SetIndexCount(int count);
     void SetUvCount(int count);
-    // The four arrays as the engine's aligned arrays (the fields below are their data and size).
-    lib::AlignedArray<UiQuadBlock>& Quads() { return *reinterpret_cast<lib::AlignedArray<UiQuadBlock>*>(&quads_); }
-    lib::AlignedArray<UiMeshVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<UiMeshVertex>*>(&vertices_); }
-    lib::AlignedArray<std::uint16_t>& Indices() { return *reinterpret_cast<lib::AlignedArray<std::uint16_t>*>(&indices_); }
-    lib::AlignedArray<UiTexel>& Texels() { return *reinterpret_cast<lib::AlignedArray<UiTexel>*>(&uvs_); }
+    // The figure mesh's arrays with the elements as the interface writes them: the positions
+    // (vertices_), the vertex records (corners_) and the texture coordinates (texCoords_); the
+    // indices are indices_ itself.
+    lib::AlignedArray<UiQuadBlock>& Quads() { return *reinterpret_cast<lib::AlignedArray<UiQuadBlock>*>(&vertices_); }
+    lib::AlignedArray<UiMeshVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<UiMeshVertex>*>(&corners_); }
+    lib::AlignedArray<UiTexel>& Texels() { return *reinterpret_cast<lib::AlignedArray<UiTexel>*>(&texCoords_); }
+    const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
+    const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
+    const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
     // Not rewritten: Commit (005EA150), which hands the arrays to the renderer fields
     // (+0x9C..+0xC8) and returns the index count.
     int Commit();
@@ -1693,45 +1699,14 @@ public:
     // orientation (007C7CD8), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
     int CreateSprite();
 
-    std::uint8_t unused_000[0x08];
-    std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
-    std::uint8_t unused_00C[0x1C - 0x0C];
-    Vector3 position_;               // +0x1C (Place)
-    std::uint8_t unused_028[0x34 - 0x28];
-    Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
-    std::uint8_t unused_044[0x54 - 0x44];
-    Matrix4 placement_;              // +0x54 row-major 4x4: orientation and position (Draw writes it)
-    std::uint8_t unused_094[0xCC - 0x94];   // CFigureMesh (figure_mesh.h): drawer_, object_, buffers_
-    float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
-    float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
-    std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
-    std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
-    std::uint8_t unused_0DC[0x138 - 0xDC];   // CFigureMesh: spareDC_, poseMatrix_, name_, directory_, offsets_
-    // The figure mesh's per-normal colour arrays (CFigureMesh::colorsA_ / colorsB_, figure_mesh.h);
-    // the shape builders size them to four entries.
-    lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138
-    lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148
-    std::uint8_t unused_158[0x1C0 - 0x158];   // CFigureMesh: materialValue_ .. boxPivot_
-    UiQuadBlock* quads_;             // +0x1C0
-    int quadCount_;                  // +0x1C4
-    int quadCapacity_;               // +0x1C8
-    int quadGrowBy_;                 // +0x1CC
-    // The normal packets (CFigureMesh::normals_): the shape builders keep one, (0, 0, 1) for the
-    // four corners with w 1.
-    lib::AlignedArray<UiQuadBlock> normals_;     // +0x1D0
-    UiMeshVertex* vertices_;         // +0x1E0
-    int vertexCount_;                // +0x1E4
-    int vertexCapacity_;             // +0x1E8
-    int vertexGrowBy_;               // +0x1EC
-    std::uint8_t unused_1F0[0x200 - 0x1F0];   // CFigureMesh: words_
-    std::uint16_t* indices_;         // +0x200
-    int indexCount_;                 // +0x204
-    int indexCapacity_;              // +0x208
-    int indexGrowBy_;                // +0x20C
-    float* uvs_;                     // +0x210 u, v per vertex
-    int uvCount_;                    // +0x214
-    int uvCapacity_;                 // +0x218
-    int uvGrowBy_;                   // +0x21C
+    // CFigureMesh's fields as a sprite uses them: flags_ (0x100: drawn in the plain colour
+    // flatColour_), localPosition_ (Place), localRotation_ (the HUD's face models turn with it),
+    // worldMatrix_ (row-major: orientation and position, Draw writes it), textureOffsetU_ /
+    // textureOffsetV_ (a frame of the sprite sheet: the HUD buttons' states, the bars' colours),
+    // flatColour_ (ARGB: the global map's layers and its pick render), flatSpecular_ (ARGB: the HUD
+    // buttons, 0xFF404040 highlighted, 0xFF000000 not), colorsA_ / colorsB_ (the shape builders
+    // size them to four entries), normals_ (the shape builders keep one packet: (0, 0, 1) for the
+    // four corners with w 1) and the arrays above.
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
     float tintSpare_[3];             // +0x230 0 from CreateSprite; Draw reads only tint_ (nothing reads it)
@@ -1744,24 +1719,12 @@ public:
     CEngineObject* material_;        // +0x27C the window's black material (CUiWindow +0xEC)
     CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };
-static_assert(offsetof(CUiMesh, colour_) == 0xD8);
+static_assert(offsetof(CUiMesh, visible_) == 0x220 && offsetof(CUiMesh, tint_) == 0x224);
 static_assert(offsetof(CUiMesh, scaleMatrix_) == 0x23C && offsetof(CUiMesh, material_) == 0x27C);
-static_assert(offsetof(CUiMesh, position_) == 0x1C && offsetof(CUiMesh, placement_) == 0x54);
-static_assert(offsetof(CUiMesh, colorsA_) == 0x138 && offsetof(CUiMesh, colorsB_) == 0x148);
-static_assert(offsetof(CUiMesh, quads_) == 0x1C0 && offsetof(CUiMesh, normals_) == 0x1D0);
-static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
-static_assert(offsetof(CUiMesh, indices_) == 0x200);
-static_assert(offsetof(CUiMesh, uvs_) == 0x210 && offsetof(CUiMesh, uvGrowBy_) == 0x21C);
-static_assert(offsetof(CUiMesh, quadGrowBy_) == 0x1CC && offsetof(CUiMesh, vertexGrowBy_) == 0x1EC &&
-              offsetof(CUiMesh, indexGrowBy_) == 0x20C);
-static_assert(offsetof(CUiMesh, visible_) == 0x220);
-static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
-static_assert(offsetof(CUiMesh, tint_) == 0x224);
-static_assert(offsetof(CUiMesh, flags_) == 0x08);
-static_assert(offsetof(CUiMesh, orientation_) == 0x34);
-static_assert(offsetof(CUiMesh, plainColour_) == 0xD4);
-static_assert(offsetof(CUiMesh, texture_) == 0x280);
-static_assert(offsetof(CUiMesh, material_) == 0x27C);
+static_assert(offsetof(CUiMesh, texture_) == 0x280 && sizeof(CUiMesh) == 0x284);
+static_assert(offsetof(CUiMesh, flatSpecular_) == 0xD8 && offsetof(CUiMesh, textureOffsetU_) == 0xCC);
+static_assert(offsetof(CUiMesh, vertices_) == 0x1C0 && offsetof(CUiMesh, corners_) == 0x1E0);
+static_assert(offsetof(CUiMesh, indices_) == 0x200 && offsetof(CUiMesh, texCoords_) == 0x210);
 
 // A growable array of 2D points with the interface arrays' 32-byte alignment.
 struct UiPointF {

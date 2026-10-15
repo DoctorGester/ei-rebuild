@@ -196,7 +196,7 @@ static CMasterRequestBox* __fastcall MasterBoxConstructVerify(CMasterRequestBox*
                                                               const net::NetAddress* address, std::uint32_t extra) {
     CMasterRequestBox* box = self->Construct(ui, title, text, result, address, extra);
     bool ok = box == self && self->vtable_ == CMasterRequestBox::Vtable() && self->bar_ &&
-              self->bar_->plainColour_ == 0xFFA06800u && self->result_ == result;
+              self->bar_->flatColour_ == 0xFFA06800u && self->result_ == result;
     ei::verify::Check("CMasterRequestBox::Construct", true, ok, "");
     return box;
 }
@@ -232,7 +232,7 @@ void CompareList(CMpConnectScreen* self, const char* what) {
     const std::uint32_t colourBefore = colour;
     const bool tips = self->newGameTips_;
     SpriteState before[kEnd - kFirst], expected[kEnd - kFirst];
-    for (int i = kFirst; i < kEnd; ++i) before[i - kFirst] = {sprite(i)->visible_, sprite(i)->position_};
+    for (int i = kFirst; i < kEnd; ++i) before[i - kFirst] = {sprite(i)->visible_, sprite(i)->localPosition_};
     bool expectedTips = tips;
     std::uint32_t expectedColour = colourBefore;
     auto restore = [&] {
@@ -240,7 +240,7 @@ void CompareList(CMpConnectScreen* self, const char* what) {
         colour = colourBefore;
         for (int i = kFirst; i < kEnd; ++i) {
             sprite(i)->visible_ = before[i - kFirst].visible;
-            sprite(i)->position_ = before[i - kFirst].position;
+            sprite(i)->localPosition_ = before[i - kFirst].position;
         }
     };
     CUiSurface* surface = self->surfaces_.size > 0 ? self->surfaces_.data[0] : nullptr;
@@ -251,7 +251,7 @@ void CompareList(CMpConnectScreen* self, const char* what) {
             s_drawList(self);
             expectedTips = self->newGameTips_;
             expectedColour = colour;
-            for (int i = kFirst; i < kEnd; ++i) expected[i - kFirst] = {sprite(i)->visible_, sprite(i)->position_};
+            for (int i = kFirst; i < kEnd; ++i) expected[i - kFirst] = {sprite(i)->visible_, sprite(i)->localPosition_};
         },
         [&] {
             restore();
@@ -261,9 +261,9 @@ void CompareList(CMpConnectScreen* self, const char* what) {
     for (int i = kFirst; i < kEnd; ++i) {
         const SpriteState& e = expected[i - kFirst];
         const CUiMesh* mesh = sprite(i);
-        if (mesh->visible_ != e.visible || !ei::verify::NearlyEqual<float>(mesh->position_.x, e.position.x, 4, 1e-5f) ||
-            !ei::verify::NearlyEqual<float>(mesh->position_.y, e.position.y, 4, 1e-5f) ||
-            !ei::verify::NearlyEqual<float>(mesh->position_.z, e.position.z, 4, 1e-5f))
+        if (mesh->visible_ != e.visible || !ei::verify::NearlyEqual<float>(mesh->localPosition_.x, e.position.x, 4, 1e-5f) ||
+            !ei::verify::NearlyEqual<float>(mesh->localPosition_.y, e.position.y, 4, 1e-5f) ||
+            !ei::verify::NearlyEqual<float>(mesh->localPosition_.z, e.position.z, 4, 1e-5f))
             ++mismatches;
     }
     const bool ok = mismatches == 0 && self->newGameTips_ == expectedTips && colour == expectedColour && c.diff.count == 0 && c.compared && !c.unstable;

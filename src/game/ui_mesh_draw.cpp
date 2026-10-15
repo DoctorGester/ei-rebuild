@@ -46,9 +46,9 @@ float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatil
 } // namespace
 
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
-    *x = (position_.x / position_.z / GameFloat(0x00740158) + GameFloat(0x0073B84C)) * GameFloat(0x00740160);
-    *y = position_.y / position_.z / GameFloat(0x00740158) * GameFloat(0x00740160) + GameFloat(0x0073FA98);
-    std::memcpy(depth, &position_.z, sizeof(float));
+    *x = (localPosition_.x / localPosition_.z / GameFloat(0x00740158) + GameFloat(0x0073B84C)) * GameFloat(0x00740160);
+    *y = localPosition_.y / localPosition_.z / GameFloat(0x00740158) * GameFloat(0x00740160) + GameFloat(0x0073FA98);
+    std::memcpy(depth, &localPosition_.z, sizeof(float));
 }
 EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
 
@@ -59,9 +59,9 @@ void CUiMesh::PlaceBody(float x, float y, float depth) {
     if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
     float placedX = (x * GameFloat(0x0074015C) - GameFloat(0x0073B84C)) * GameFloat(0x00740158) * depth;
     float placedY = (y * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * GameFloat(0x00740158) * depth;
-    position_.x = placedX;
-    position_.y = placedY;
-    std::memcpy(&position_.z, &depth, sizeof(float));
+    localPosition_.x = placedX;
+    localPosition_.y = placedY;
+    std::memcpy(&localPosition_.z, &depth, sizeof(float));
 }
 EI_REPLACE_METHOD(0x005E6FA0, CUiMesh::PlaceBody);
 EI_REBIRTH_IMPLEMENTS(0x005E6FA0, ei::rebirth::Patch::WideScreen);
@@ -76,16 +76,16 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     if (!renderer->SetTexture(0, texture_)) return game::FatalError(SetTextureFailed());
 
-    orientation_.ToMatrix(placement_.m);
-    placement_.m[3] = position_.x;
-    placement_.m[7] = position_.y;
-    placement_.m[11] = position_.z;
-    placement_.m[12] = 0.0f;
-    placement_.m[13] = 0.0f;
-    placement_.m[14] = 0.0f;
-    std::memcpy(&placement_.m[15], &kOne, sizeof(kOne));
+    localRotation_.ToMatrix(worldMatrix_.m);
+    worldMatrix_.m[3] = localPosition_.x;
+    worldMatrix_.m[7] = localPosition_.y;
+    worldMatrix_.m[11] = localPosition_.z;
+    worldMatrix_.m[12] = 0.0f;
+    worldMatrix_.m[13] = 0.0f;
+    worldMatrix_.m[14] = 0.0f;
+    std::memcpy(&worldMatrix_.m[15], &kOne, sizeof(kOne));
     Matrix4 placement;
-    std::memcpy(&placement, &placement_, sizeof(placement));
+    std::memcpy(&placement, &worldMatrix_, sizeof(placement));
     pipeline->PushMatrix(placement.m, kStackView);
     pipeline->PushMatrix(placement.m, kStackWorld);
     pipeline->PushMatrix(scaleMatrix_.m, kStackView);
@@ -126,12 +126,12 @@ int CUiMesh::CreateSprite() {
     tintSpare_[0] = 0.0f;
     tintSpare_[1] = 0.0f;
     tintSpare_[2] = 0.0f;
-    orientation_ = IdentityOrientation();
-    position_.x = 0.0f;
-    position_.y = 0.0f;
-    position_.z = kSpriteDepth;
-    plainColour_ = kOpaqueBlack;
-    colour_ = kOpaqueBlack;
+    localRotation_ = IdentityOrientation();
+    localPosition_.x = 0.0f;
+    localPosition_.y = 0.0f;
+    localPosition_.z = kSpriteDepth;
+    flatColour_ = kOpaqueBlack;
+    flatSpecular_ = kOpaqueBlack;
     visible_ = 1;
     return 1;
 }
@@ -143,19 +143,19 @@ void CUiMesh::SetQuadCount(int count) {
     Quads().SetSize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
-            quads_[i].z[k] = 0.0f;
-            quads_[i].w[k] = 1.0f;
+            Quads()[i].z[k] = 0.0f;
+            Quads()[i].w[k] = 1.0f;
         }
 }
 EI_REPLACE_METHOD(0x005EA210, CUiMesh::SetQuadCount);
 
 void CUiMesh::SetVertexCount(int count) {
     Vertices().SetSize(count);
-    for (int i = 0; i < count; ++i) vertices_[i].normal = 0;
+    for (int i = 0; i < count; ++i) Vertices()[i].normal = 0;
 }
 EI_REPLACE_METHOD(0x005EA600, CUiMesh::SetVertexCount);
 
-void CUiMesh::SetIndexCount(int count) { Indices().SetSize(count); }
+void CUiMesh::SetIndexCount(int count) { indices_.SetSize(count); }
 EI_REPLACE_METHOD(0x005EA4C0, CUiMesh::SetIndexCount);
 
 void CUiMesh::SetUvCount(int count) { Texels().SetSize(count); }

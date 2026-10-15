@@ -100,13 +100,13 @@ void CDifficultyBox::OnLButtonDown(int, int x, int y) {
         interface_->SetPendingValue(result_ | kAnswerCancel);
         break;
     case 2:
-        EasyBox()->uOffset_ = kCheckedOffset;
-        HardBox()->uOffset_ = 0.0f;
+        EasyBox()->textureOffsetU_ = kCheckedOffset;
+        HardBox()->textureOffsetU_ = 0.0f;
         easy_ = 1;
         break;
     case 3:
-        HardBox()->uOffset_ = kCheckedOffset;
-        EasyBox()->uOffset_ = 0.0f;
+        HardBox()->textureOffsetU_ = kCheckedOffset;
+        EasyBox()->textureOffsetU_ = 0.0f;
         easy_ = 0;
         break;
     default:

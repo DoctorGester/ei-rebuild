@@ -159,7 +159,7 @@ void CGlobalMap::RefreshSelection() {
         CUiMesh* marker = Marker(i);
         std::uint32_t level = 0x18u + 0x10u * static_cast<std::uint32_t>(i);
         marker->texture_ = nullptr;
-        marker->plainColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
+        marker->flatColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
         marker->flags_ |= 0x100u;
     }
     surfaces_.data[1]->Freeze(0, 0);
@@ -189,11 +189,11 @@ void CGlobalMap::SetWeather() {
     if (index < 4) {
         Display()->colour = Argb(&weatherTable_[0]);
     } else if (index < 8) {
-        Marker(markerCount_)->plainColour_ = Argb(&weatherTable_[4]);
+        Marker(markerCount_)->flatColour_ = Argb(&weatherTable_[4]);
     } else if (index < 12) {
-        Marker(markerCount_ + 1)->plainColour_ = Argb(&weatherTable_[8]);
+        Marker(markerCount_ + 1)->flatColour_ = Argb(&weatherTable_[8]);
     } else if (index < 16) {
-        Marker(markerCount_ + 2)->plainColour_ = Argb(&weatherTable_[12]);
+        Marker(markerCount_ + 2)->flatColour_ = Argb(&weatherTable_[12]);
     } else {
         WeatherSetRampOriginal(weather_, nullptr, weatherTable_[16], weatherTable_[17], 2.0f);
     }

@@ -56,7 +56,7 @@ __declspec(naked) CUiWindow* __fastcall ChatWindowConstruct(void* /*memory*/, vo
 constexpr int kFromCamp = 5;              // WorldPlayer::lastScreen
 constexpr float kEdgeFade = 4.0f;
 constexpr int kTextureKind = 3;
-constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in plainColour_
+constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kDarkBackdrop = 0x80000000;
 constexpr std::uint32_t kTextBackdrop = 0xA0000000;
 constexpr int kSurfaceFormat = 5;
@@ -195,12 +195,12 @@ void CBriefingScreen::Create() {
     sprite->SetRectangle(20.0f, 100.0f, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, 0x100, 0x100);
     sprite->texture_ = nullptr;
     sprite->flags_ |= kPlainFlag;
-    sprite->plainColour_ = kDarkBackdrop;
+    sprite->flatColour_ = kDarkBackdrop;
     AddSprite(nullptr)->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     sprite = AddSprite(nullptr);
     sprite->SetRectangle(20.0f, 100.0f, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, 0x100, 0x100);
     sprite->texture_ = nullptr;
-    sprite->plainColour_ = kTextBackdrop;
+    sprite->flatColour_ = kTextBackdrop;
     sprite->flags_ |= kPlainFlag;
     AddSprite(nullptr)->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 

@@ -34,7 +34,7 @@ float ColumnBottom() { return GameFloat(0x00742948); }
 constexpr std::uintptr_t kQuickEntriesVtable = std::uintptr_t(0x007428A0);
 constexpr std::uintptr_t kDwordArrayVtable = std::uintptr_t(0x0073C3D0);
 
-constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in plainColour_
+constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
 constexpr std::uint32_t kColourOn = 0xFF282828;    // the weapon bar's highlighted slot
 constexpr std::uint32_t kColourOff = 0xFF000000;
@@ -66,12 +66,12 @@ struct IconPlace {
 IconPlace IconAt(int n, int firstColumn) { return {firstColumn + (n / 4) * kIconSize, (n % 4) * kIconSize}; }
 
 void SetOffsets(CUiMesh* sprite, int x, int bottom) {
-    sprite->uOffset_ = static_cast<float>(x) * TexelStep();
-    sprite->vOffset_ = static_cast<float>(bottom) * TexelStep();
+    sprite->textureOffsetU_ = static_cast<float>(x) * TexelStep();
+    sprite->textureOffsetV_ = static_cast<float>(bottom) * TexelStep();
 }
 
 void MakePlain(CUiMesh* sprite) {
-    sprite->plainColour_ = kWhite;
+    sprite->flatColour_ = kWhite;
     sprite->flags_ |= kPlainFlag;
 }
 
@@ -140,7 +140,7 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
         float x = static_cast<float>(index) * GameFloat(0x0073D72C) + GameFloat(0x0073BAB0);   // 40, 100
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
-        sprite->colour_ = kColourOn;
+        sprite->flatSpecular_ = kColourOn;
         regions_.data[index]->CallSetRect(left, 495, right, 600);
         widescreen::LeavePanel();
         return;
@@ -152,7 +152,7 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
     float x = static_cast<float>(index) * GameFloat(0x0073D72C) + GameFloat(0x0073BAB0);
     sprite->Place(x, 560.0f, depth);
     sprite->SetScale(scale);
-    sprite->colour_ = kColourOff;
+    sprite->flatSpecular_ = kColourOff;
     regions_.data[index]->CallSetRect(left, 520, right, 600);
     widescreen::LeavePanel();
 }
@@ -174,7 +174,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
         second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * GameFloat(0x00742800));
         Quaternion both = ProductFirst(first, second);
         third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * GameFloat(0x0073C524));
-        sprite->orientation_ = ProductSecond(both, third);
+        sprite->localRotation_ = ProductSecond(both, third);
     } else {
         sprite = AddSprite(nullptr);
         // 80 and 120; WideScreen: both less the shift (addon points the FADDs at its two floats
@@ -234,7 +234,7 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
         Quaternion turn;
-        sprite->orientation_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
+        sprite->localRotation_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
     } else {
         sprite = AddSprite(nullptr);
         const float shift = static_cast<float>(widescreen::EdgeShift());   // WideScreen: 0063CC13 / 0063CC07
@@ -287,14 +287,14 @@ void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
-    sprite->orientation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
+    sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
     sprite->Place(780.0f, 490.0f, 40.0f);
     MakePlain(sprite);
     int index = count_;
     count_ = index + 1;
     CUiMesh* button = Sprite(this, index);
     button->SetScale(1.0f);
-    button->colour_ = kColourOff;
+    button->flatSpecular_ = kColourOff;
     selected_ = index;
     widescreen::LeavePanel();
 }
@@ -338,7 +338,7 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
-    sprite->orientation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
+    sprite->localRotation_ = *turn.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi());
     float y = ColumnBottom() - static_cast<float>(count_ * kStep);
     sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen: 0063F633
     MakePlain(sprite);
@@ -349,7 +349,7 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     count_ = index + 1;
     CUiMesh* button = Sprite(this, index);
     button->SetScale(1.0f);
-    button->colour_ = kColourOff;
+    button->flatSpecular_ = kColourOff;
     selected_ = index;
 }
 EI_REPLACE_METHOD(0x0063F500, CHudActionColumn::AddAction);

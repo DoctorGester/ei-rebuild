@@ -38,14 +38,14 @@ struct ScrollPosition {
 };
 ScrollPosition Take(CUiScrollbar* self) {
     ScrollPosition s{self->position_, self->moved_, self->thumb_, {}};
-    std::memcpy(&s.sprite, &reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[1])->position_, sizeof(Vector3));
+    std::memcpy(&s.sprite, &reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[1])->localPosition_, sizeof(Vector3));
     return s;
 }
 void Put(CUiScrollbar* self, const ScrollPosition& s) {
     self->position_ = s.position;
     self->moved_ = s.moved;
     self->thumb_ = s.thumb;
-    std::memcpy(&reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[1])->position_, &s.sprite, sizeof(Vector3));
+    std::memcpy(&reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[1])->localPosition_, &s.sprite, sizeof(Vector3));
 }
 bool Same(const ScrollPosition& a, const ScrollPosition& b) {
     return a.position == b.position && a.moved == b.moved && std::memcmp(&a.thumb, &b.thumb, sizeof(RECT)) == 0 &&
