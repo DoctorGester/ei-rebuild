@@ -57,7 +57,7 @@ __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, voi
     EI_ORIGINAL(0x00661700)
 // 00619920: the insert overflow of a vector of party file entries (0x74 bytes: the records and a CString file name;
 // the multiplayer heroes 007C82A4, the world's party list): `count` copies of `value` at `position` in a new block
-// (RET 0xC, no result).
+// (RET 0xC, no result). Rewritten in library_containers.cpp (S12f); through its address so its check runs.
 __declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void* /*vector*/, void*, void* /*position*/,
                                                                             const void* /*value*/, unsigned /*count*/)
     EI_ORIGINAL(0x00619920)
@@ -91,6 +91,10 @@ __declspec(naked) inline void* __fastcall FactoryMakeItemOriginal(void* /*factor
 __declspec(naked) inline void* __fastcall FactoryCreateSpellOriginal(void* /*factory*/, void*, const char* /*name*/,
                                                                      void* /*owner*/) EI_ORIGINAL(0x006AD1E0)
 __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*party*/) EI_ORIGINAL(0x006611D0)
+// 006613C0 (RET 4; CParty::CopyConstruct, party_save.cpp): the party copy-constructed from `source` (which it
+// reads non-const); returns the party. Through its address so its check runs.
+__declspec(naked) inline void* __fastcall PartyCopyConstructOriginal(void* /*party*/, void*, const void* /*source*/)
+    EI_ORIGINAL(0x006613C0)
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)

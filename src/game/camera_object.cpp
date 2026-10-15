@@ -51,12 +51,12 @@ void __fastcall TransformDestruct(CTransformObject* self) {
     self->DestructBase();
 }
 EI_REPLACE(0x0040CB70, TransformDestruct);
-CTransformObject* __fastcall TransformDeletingDestructor(CTransformObject* self, void*, unsigned flags) {
-    TransformDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CTransformObject* CTransformObject::DeleteScalar(unsigned flags) {
+    TransformDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0040CB50, TransformDeletingDestructor);
+EI_REPLACE_METHOD(0x0040CB50, CTransformObject::DeleteScalar);
 
 // 0040C8B0: the constructor. Identity rotations, eight saved views (distance 30, pitch 45 degrees),
 // the shake list and view stack, no camera file, the focus at (10, 10, 2) two above the ground,
@@ -134,12 +134,12 @@ void CCamera::Destruct() {
 EI_REPLACE_METHOD(0x0040CE60, CCamera::Destruct);
 
 // 0040CE10 (slot 0): the deleting destructor.
-CCamera* __fastcall CameraDeletingDestructor(CCamera* self, void*, unsigned flags) {
-    self->Destruct();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CCamera* CCamera::DeleteScalar(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0040CE10, CameraDeletingDestructor);
+EI_REPLACE_METHOD(0x0040CE10, CCamera::DeleteScalar);
 
 // Slots 11 / 12 (class name "CCamera", class id 0x43), slot 2 Create, slot 3 Destroy and the slot
 // that only returns 1 (0040E900).

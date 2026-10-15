@@ -32,7 +32,7 @@ constexpr std::size_t kCoderSize = 0x2828;
 void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
     if (buffer->cur + size > buffer->high) BufferReadPastEnd(buffer, nullptr, to, size);
     else if (buffer->cur + size > buffer->end) buffer->ReadMore(to, size);
-    else BufferCopyOut(buffer, nullptr, to, size);
+    else buffer->CopyOut(to, size);
 }
 
 std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {

@@ -108,20 +108,20 @@ EI_REPLACE(0x0051E1C0, MatrixSetIdentity);
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
 // 0051AC60 (slot 19, RET 8): nothing is drawn; 0.
-int __fastcall SpecificBaseDraw(CObject3DSpecific*, void*, void* /*context*/, int* /*dirty*/) { return 0; }
-EI_REPLACE(0x0051AC60, SpecificBaseDraw);
+int CObject3DSpecific::DrawNothing(void* /*context*/, int* /*dirty*/) { return 0; }
+EI_REPLACE_METHOD(0x0051AC60, CObject3DSpecific::DrawNothing);
 // 0051AC70 (slot 20), 0051AC90 / 0051ACB0 / 0051ACA0 (slots 22-24), and the server half's part
 // slots 0051F270 / 0051F290 / 0051F280 / 0051F2B0 / 0051F2A0 (13-17), all RET 4: 0.
-int __fastcall SpecificBaseZero(CObject3DSpecific*, void*, void*) { return 0; }
-EI_REPLACE(0x0051AC70, SpecificBaseZero);
-EI_REPLACE(0x0051AC90, SpecificBaseZero);
-EI_REPLACE(0x0051ACB0, SpecificBaseZero);
-EI_REPLACE(0x0051ACA0, SpecificBaseZero);
-EI_REPLACE(0x0051F270, SpecificBaseZero);
-EI_REPLACE(0x0051F290, SpecificBaseZero);
-EI_REPLACE(0x0051F280, SpecificBaseZero);
-EI_REPLACE(0x0051F2B0, SpecificBaseZero);
-EI_REPLACE(0x0051F2A0, SpecificBaseZero);
+int CObject3DSpecific::ReturnZero(void*) { return 0; }
+EI_REPLACE_METHOD(0x0051AC70, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051AC90, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051ACB0, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051ACA0, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051F270, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051F290, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051F280, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051F2B0, CObject3DSpecific::ReturnZero);
+EI_REPLACE_METHOD(0x0051F2A0, CObject3DSpecific::ReturnZero);
 // 0051AC80 (slot 21): nothing. One byte, as 0051E830 (the empty destroy step the containers of
 // plain elements call): too short to hook, registered so the address is known.
 void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
@@ -129,9 +129,9 @@ EI_REPLACE(0x0051AC80, SpecificBaseNothing);
 void __cdecl DestroyNothing() {}
 EI_REPLACE(0x0051E830, DestroyNothing);
 // 0051ACC0 / 0051ACD0 (slots 25 / 26, RET 4): nothing.
-void __fastcall SpecificBaseIgnore(CObject3DSpecific*, void*, int) {}
-EI_REPLACE(0x0051ACC0, SpecificBaseIgnore);
-EI_REPLACE(0x0051ACD0, SpecificBaseIgnore);
+void CObject3DSpecific::IgnoreArgument(int) {}
+EI_REPLACE_METHOD(0x0051ACC0, CObject3DSpecific::IgnoreArgument);
+EI_REPLACE_METHOD(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 

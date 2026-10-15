@@ -105,7 +105,7 @@ void(__fastcall* s_reserveRead)(BufferedStream*, void*, std::int32_t);
 void __fastcall ReserveReadVerify(BufferedStream* self, void*, std::int32_t size) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    BufferedStreamReserveRead(self, nullptr, size);
+    self->ReserveReadWindow(size);
     expected.Clone();
     s_reserveRead(expected.get(), nullptr, size);
     Report("BufferedStreamReserveRead", SameState(expected.get(), self, count), self);
@@ -116,7 +116,7 @@ void(__fastcall* s_reserveWrite)(BufferedStream*, void*, std::int32_t);
 void __fastcall ReserveWriteVerify(BufferedStream* self, void*, std::int32_t size) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    BufferedStreamReserveWrite(self, nullptr, size);
+    self->ReserveWriteWindow(size);
     expected.Clone();
     s_reserveWrite(expected.get(), nullptr, size);
     Report("BufferedStreamReserveWrite", SameState(expected.get(), self, count), self);
@@ -128,7 +128,7 @@ int __fastcall ReadMoreVerify(BufferedStream* self, void*, void* to, std::uint32
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
     std::vector<unsigned char> expectedBytes(size + 1);
-    int actualRet = BufferedStreamReadMore(self, nullptr, to, size);
+    int actualRet = self->ReadMoreWindow(to, size);
     expected.Clone();
     int expectedRet = s_readMore(expected.get(), nullptr, expectedBytes.data(), size);
     bool same = expectedRet == actualRet && SameState(expected.get(), self, count) &&
@@ -142,7 +142,7 @@ int(__fastcall* s_writeMore)(BufferedStream*, void*, const void*, std::uint32_t)
 int __fastcall WriteMoreVerify(BufferedStream* self, void*, const void* from, std::uint32_t size) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    int actualRet = BufferedStreamWriteMore(self, nullptr, from, size);
+    int actualRet = self->WriteMoreWindow(from, size);
     expected.Clone();
     int expectedRet = s_writeMore(expected.get(), nullptr, from, size);
     Report("BufferedStreamWriteMore", expectedRet == actualRet && SameState(expected.get(), self, count), self);
@@ -155,7 +155,7 @@ std::uint8_t* __fastcall SeekVerify(BufferedStream* self, void*, std::int32_t po
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
     std::uint32_t oldCur = self->begin ? Offset(self, self->cur) : 0;
-    std::uint8_t* actualRet = BufferedStreamSeek(self, nullptr, position);
+    std::uint8_t* actualRet = self->SeekWindow(position);
     expected.Clone();
     std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
     bool inWindow = expected.get()->base == self->base;
@@ -170,10 +170,10 @@ std::uint8_t* __fastcall SeekVerify(BufferedStream* self, void*, std::int32_t po
 int(__fastcall* s_readAt)(BufferedFile*, void*, std::int32_t, void*, std::uint32_t);
 int __fastcall ReadAtVerify(BufferedFile* self, void*, std::int32_t position, void* to, std::uint32_t size) {
     // A negative count (min(capacity, high - cur) can be) reads nothing useful: no comparison copy.
-    if (size > 0x10000000) return BufferedFileReadAt(self, nullptr, position, to, size);
+    if (size > 0x10000000) return self->ReadAtFile(position, to, size);
     std::vector<unsigned char> expectedBytes(size + 1);
     int expectedRet = s_readAt(self, nullptr, position, expectedBytes.data(), size);
-    int actualRet = BufferedFileReadAt(self, nullptr, position, to, size);
+    int actualRet = self->ReadAtFile(position, to, size);
     bool same = expectedRet == actualRet &&
                 (actualRet <= 0 || std::memcmp(expectedBytes.data(), to, static_cast<std::uint32_t>(actualRet)) == 0);
     ei::verify::Check("BufferedFileReadAt", true, same, "position %d size %u read %d / %d", position, size,
@@ -185,7 +185,7 @@ int __fastcall ReadAtVerify(BufferedFile* self, void*, std::int32_t position, vo
 int(__fastcall* s_writeAt)(BufferedFile*, void*, std::int32_t, const void*, std::uint32_t);
 int __fastcall WriteAtVerify(BufferedFile* self, void*, std::int32_t position, const void* from, std::uint32_t size) {
     int expectedRet = s_writeAt(self, nullptr, position, from, size);
-    int actualRet = BufferedFileWriteAt(self, nullptr, position, from, size);
+    int actualRet = self->WriteAtFile(position, from, size);
     ei::verify::Check("BufferedFileWriteAt", expectedRet, actualRet, "position %d size %u", position, size);
     return actualRet;
 }

@@ -8,8 +8,6 @@
 #include "../../src/game/core_refcount.h"
 
 namespace net {
-RefPtr* __fastcall RefPtrCopyPlain(RefPtr* self, void*, const RefPtr* other);
-RefPtr* __fastcall RefPtrAssignCounted(RefPtr* self, void*, const RefPtr* other);
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message);
 void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message);
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message);
@@ -29,7 +27,7 @@ void* __fastcall FindTradeVerify(net::ServerSession* self, void*, void* offer, v
 }
 
 RefPtr* __fastcall CopyPlainVerify(RefPtr* self, void*, const RefPtr* other) {
-    RefPtr* result = net::RefPtrCopyPlain(self, nullptr, other);
+    RefPtr* result = self->CopyPlain(other);
     ei::verify::Check("RefPtrCopyPlain", true, result == self && self->ptr == other->ptr, "");
     return result;
 }
@@ -40,7 +38,7 @@ RefPtr* __fastcall AssignCountedVerify(RefPtr* self, void*, const RefPtr* other)
     CRefObject* object = other->ptr;
     CRefObject* old = self->ptr;
     int refs = object ? object->refs_ : 0;
-    RefPtr* result = net::RefPtrAssignCounted(self, nullptr, other);
+    RefPtr* result = self->AssignCounted(other);
     bool ok = result == self && self->ptr == object && (!object || object == old || object->refs_ == refs + 1);
     ei::verify::Check("RefPtrAssignCounted", true, ok, "");
     return result;

@@ -68,26 +68,34 @@ void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
 
 } // namespace
 
+} // namespace net
+
 // 004263B0: a counted pointer copy (a reference added, no copy-on-share handling).
-RefPtr* __fastcall RefPtrCopyPlain(RefPtr* self, void*, const RefPtr* other) {
+RefPtr* RefPtr::CopyPlain(const RefPtr* other) {
     CRefObject* object = other->ptr;
-    self->ptr = object;
+    ptr = object;
     if (object) ++object->refs_;
-    return self;
+    return this;
 }
-EI_REPLACE(0x004263B0, RefPtrCopyPlain);
-EI_REPLACE(0x00429910, RefPtrCopyPlain);   // byte-identical copy
-EI_REPLACE(0x00609960, RefPtrCopyPlain);   // byte-identical copy (the lobby's player list)
-EI_REPLACE(0x005BEF50, RefPtrCopyPlain);   // byte-identical copy (A-W12)
+
+namespace net {
+EI_REPLACE_METHOD(0x004263B0, RefPtr::CopyPlain);
+EI_REPLACE_METHOD(0x00429910, RefPtr::CopyPlain);   // byte-identical copy
+EI_REPLACE_METHOD(0x00609960, RefPtr::CopyPlain);   // byte-identical copy (the lobby's player list)
+EI_REPLACE_METHOD(0x005BEF50, RefPtr::CopyPlain);   // byte-identical copy (A-W12)
+
+} // namespace net
 
 // 00609D40: the counted pointer's assignment from another holder (the chat window's player list
 // 006091C0): RefPtr::Assign of the other's object (a reference added, the old one released, even
 // for the same object; no copy-on-share handling). Returns the holder.
-RefPtr* __fastcall RefPtrAssignCounted(RefPtr* self, void*, const RefPtr* other) {
-    self->Assign(other->ptr);
-    return self;
+RefPtr* RefPtr::AssignCounted(const RefPtr* other) {
+    Assign(other->ptr);
+    return this;
 }
-EI_REPLACE(0x00609D40, RefPtrAssignCounted);
+
+namespace net {
+EI_REPLACE_METHOD(0x00609D40, RefPtr::AssignCounted);
 
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {
@@ -206,7 +214,7 @@ void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) 
             RefPtr trade;
         } entry;
         entry.delay = kFinishedDelay;
-        RefPtrCopyPlain(&entry.trade, nullptr, &held);
+        entry.trade.CopyPlain(&held);
         FinishedPushBack(&self->finishedTrades_, nullptr, &entry);
         if (entry.trade.ptr) entry.trade.ptr->Release();
         ReleaseInline(held.ptr);

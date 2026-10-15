@@ -110,15 +110,15 @@ void __fastcall SpecificBaseDestruct(CObject3DClientSpecific* self) {
     self->object = nullptr;
     self->DestructBase();
 }
-CObject3DClientSpecific* __fastcall SpecificBaseDelete(CObject3DClientSpecific* self, void*, unsigned flags) {
-    SpecificBaseDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CObject3DClientSpecific* CObject3DClientSpecific::DeleteScalar(unsigned flags) {
+    SpecificBaseDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
 EI_REPLACE(0x0051AD50, ClientSpecificClassName);
 EI_REPLACE(0x0051AD60, ClientSpecificClassId);
 EI_REPLACE(0x0051AD00, SpecificBaseDestruct);
-EI_REPLACE(0x0051ACE0, SpecificBaseDelete);
+EI_REPLACE_METHOD(0x0051ACE0, CObject3DClientSpecific::DeleteScalar);
 
 namespace {
 constexpr float kNoScale = 1.0f;

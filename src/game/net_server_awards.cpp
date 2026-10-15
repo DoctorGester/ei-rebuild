@@ -73,13 +73,17 @@ void EmptyAwardText(StringRep* s) {
 
 } // namespace
 
+} // namespace net
+
 // 004263F0: the counted pointer copy constructor (the same as Share with the other's object).
-RefPtr* __fastcall RefPtrCopyConstruct(RefPtr* self, void*, const RefPtr* other) {
-    self->Share(other->ptr);
-    return self;
+RefPtr* RefPtr::CopyShared(const RefPtr* other) {
+    Share(other->ptr);
+    return this;
 }
-EI_REPLACE(0x004263F0, RefPtrCopyConstruct);
-EI_REPLACE(0x004250A0, RefPtrCopyConstruct);   // byte-identical copy
+
+namespace net {
+EI_REPLACE_METHOD(0x004263F0, RefPtr::CopyShared);
+EI_REPLACE_METHOD(0x004250A0, RefPtr::CopyShared);   // byte-identical copy
 
 // 00419D90: queues an award message for `connection` on the pending awards (+0x25B4) with a 60
 // second delay. `text` is the caller's string, destroyed here.
@@ -126,7 +130,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     shared.Share(award);
     TimedEntry entry;
     entry.secondsBits = kAwardDelay;
-    RefPtrCopyConstruct(&entry.object, nullptr, &shared);
+    entry.object.CopyShared(&shared);
     AwardsPushBack(&awards_, nullptr, &entry);
     entry.object.Destroy();
     DestroyInline(&shared);

@@ -147,6 +147,7 @@ struct TileListElements {
 // A 32x32-cell block of terrain (0x394 bytes, constructed by 006BF5F0). Each sector holds two
 // layers of 33x33 vertices (x, y, z): the ground, and the water surface when the sector has water.
 struct SectorData {
+    int DrawPage(void* context, void* /*unused*/, int page, int /*unused*/);
     std::uint8_t hasSpecular;           // +0x000 a specular light reached a vertex (Light clears it)
     std::uint8_t pad_001[3];
     std::uint32_t built;                // +0x004 1 loaded, 2 geometry, 4 lit

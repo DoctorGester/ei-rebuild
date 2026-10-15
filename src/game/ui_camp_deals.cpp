@@ -194,14 +194,12 @@ bool CCampPages::DeconstructItem() {
 }
 
 namespace {
-bool __fastcall CampDeconstructItem(CCampPages* self, void*) { return self->DeconstructItem(); }
-bool __fastcall CampDeconstructSpell(CCampPages* self, void*) { return self->DeconstructSpell(); }
 // 00612500 / 006129C0 through their address (their wrappers run).
 __declspec(naked) bool __fastcall DeconstructSpellAt(CCampPages*) EI_ORIGINAL(0x00612500)
 __declspec(naked) bool __fastcall DeconstructItemAt(CCampPages*) EI_ORIGINAL(0x006129C0)
 } // namespace
-EI_REPLACE(0x00612500, CampDeconstructSpell);
-EI_REPLACE(0x006129C0, CampDeconstructItem);
+EI_REPLACE_METHOD(0x00612500, CCampPages::DeconstructSpell);
+EI_REPLACE_METHOD(0x006129C0, CCampPages::DeconstructItem);
 
 // --- 00611220: the first action button ---------------------------------------------------------
 

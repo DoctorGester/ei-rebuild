@@ -84,14 +84,14 @@ void __fastcall PlayerManagerDestruct(CPlayerManager* self) {   // 0055F350
     ei::SetVtable(self, CPlayerManager::kVtableAddress);
     self->DestructBody();
 }
-CPlayerManager* __fastcall PlayerManagerDelete(CPlayerManager* self, void*, unsigned flags) {   // 0055F330
-    PlayerManagerDestruct(self);
-    return DeleteIf(self, flags);
+CPlayerManager* CPlayerManager::DeleteScalar(unsigned flags) {   // 0055F330
+    PlayerManagerDestruct(this);
+    return DeleteIf(this, flags);
 }
 EI_REPLACE(0x0055F310, PlayerManagerClassName);
 EI_REPLACE(0x0055F320, PlayerManagerClassId);
 EI_REPLACE(0x0055F350, PlayerManagerDestruct);
-EI_REPLACE(0x0055F330, PlayerManagerDelete);
+EI_REPLACE_METHOD(0x0055F330, CPlayerManager::DeleteScalar);
 
 const char* __fastcall EffectManagerClassName(CBaseManager*) { return reinterpret_cast<const char*>(kEffectManagerName); }
 int __fastcall EffectManagerClassId(CBaseManager*) { return kEffectManagerId; }
@@ -117,11 +117,11 @@ void __fastcall ItemManagerDestruct(CItemManager* self) {   // 0055F400
     ei::SetVtable(self, CItemManager::kVtableAddress);
     self->CResourceManager::Destruct();
 }
-CItemManager* __fastcall ItemManagerDelete(CItemManager* self, void*, unsigned flags) {   // 0055F3E0
-    ItemManagerDestruct(self);
-    return DeleteIf(self, flags);
+CItemManager* CItemManager::DeleteScalar(unsigned flags) {   // 0055F3E0
+    ItemManagerDestruct(this);
+    return DeleteIf(this, flags);
 }
 EI_REPLACE(0x0055F3C0, ItemManagerClassName);
 EI_REPLACE(0x0055F3D0, ItemManagerClassId);
 EI_REPLACE(0x0055F400, ItemManagerDestruct);
-EI_REPLACE(0x0055F3E0, ItemManagerDelete);
+EI_REPLACE_METHOD(0x0055F3E0, CItemManager::DeleteScalar);

@@ -227,37 +227,37 @@ constexpr int kContextDraw = 12;      // (vertices, count, indices, index count)
 } // namespace
 
 // 006BFF40. Returns 1, or 0 when the context fails to draw.
-int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unused*/, int page, int /*unused*/) {
+int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int /*unused*/) {
     void* clipper = *reinterpret_cast<void**>(*reinterpret_cast<char**>(static_cast<char*>(context) + 8) + 0xC);
-    if (s->clipMode == 2) return 1;
+    if (clipMode == 2) return 1;
     EnsureStatics();
-    if (s->hasWater) ApplyWaterLevels(s);
+    if (hasWater) ::ApplyWaterLevels(this);
     // The new renderer (src/render) takes the page; with "noterrain" the old path stops here. The
     // water levels above stay: they move the water surface that height queries read.
-    if (render::Active()) render::TerrainPage(s, context, page);
+    if (render::Active()) render::TerrainPage(this, context, page);
     if (!render::DrawOldTerrain()) return 1;
 
     for (int quarter = 0; quarter < 4; ++quarter) {
-        int mode = s->quarterMode[quarter];
+        int mode = quarterMode[quarter];
         if (mode == 2) continue;   // hidden
         bool clip = mode == 1;
-        const terrain::TileList& list = s->tiles[quarter].data[page];
-        int tiles = list.size / 9;
-        if (tiles == 0) continue;
-        int lod = s->detail;
-        int vertices = VerticesPerTile(lod) * tiles;
-        int indexCapacity = TrianglesPerTile(lod) * tiles * 3;
-        SizeVertices(vertices * 4);
-        ByteArraySetSize(&Flags(), nullptr, vertices * 4, -1);
+        const terrain::TileList& list = this->tiles[quarter].data[page];
+        int tileCount = list.size / 9;
+        if (tileCount == 0) continue;
+        int lod = detail;
+        int vertexTotal = VerticesPerTile(lod) * tileCount;
+        int indexCapacity = TrianglesPerTile(lod) * tileCount * 3;
+        SizeVertices(vertexTotal * 4);
+        ByteArraySetSize(&Flags(), nullptr, vertexTotal * 4, -1);
         WordArraySetSize(&Indices(), nullptr, indexCapacity, -1);
         WordArraySetSize(&ClippedIndices(), nullptr, indexCapacity * 4, -1);
-        FillVertices(lod, list.data, tiles, vertices);
+        FillVertices(lod, list.data, tileCount, vertexTotal);
 
         // The tile edge flags are only looked at when a neighbouring quarter is coarser.
         const std::uint8_t* edges = nullptr;
-        if (lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0)) edges = s->tileFlags[quarter].data[page].data;
+        if (lod != 2 && (seamBefore != 0 || seamAfter != 0)) edges = tileFlags[quarter].data[page].data;
         int vertexCount = 0;
-        int indexCount = FillIndices(s, lod, tiles, edges, vertexCount);
+        int indexCount = FillIndices(this, lod, tileCount, edges, vertexCount);
         if (!(indexCount > 0)) continue;
         if (clip) {
             ThisCall<void>(clipper, kClipperClip, Vertices().data, Flags().data, Indices().data, ClippedIndices().data,
@@ -273,4 +273,4 @@ int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unuse
     }
     return 1;
 }
-EI_REPLACE(0x006BFF40, DrawSectorPage);
+EI_REPLACE_METHOD(0x006BFF40, terrain::SectorData::DrawPage);

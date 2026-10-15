@@ -842,10 +842,10 @@ void __fastcall ConnectionDestructBody(CPlayerConnection* self) {
     self->player_ = nullptr;
     self->DestructBase();
 }
-CPlayerConnection* __fastcall ConnectionDeletingDestruct(CPlayerConnection* self, void*, unsigned flags) {
-    ConnectionDestructBody(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CPlayerConnection* CPlayerConnection::DeleteScalar(unsigned flags) {
+    ConnectionDestructBody(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
 
 // 00666F90 / 00666FA0 (slots of CEngineObject): "CPlayerClient", class id 0x3C.
@@ -856,7 +856,7 @@ EI_REPLACE_METHOD(0x00666D10, CPlayerClient::Construct);
 EI_REPLACE_METHOD(0x00666FD0, CPlayerClient::DestructBody);
 EI_REPLACE_METHOD(0x00666FB0, CPlayerClient::DeletingDestruct);
 EI_REPLACE(0x00666EC0, ConnectionDestructBody);
-EI_REPLACE(0x00666F70, ConnectionDeletingDestruct);
+EI_REPLACE_METHOD(0x00666F70, CPlayerConnection::DeleteScalar);
 EI_REPLACE(0x00666F90, PlayerClientClassName);
 EI_REPLACE(0x00666FA0, PlayerClientClassId);
 

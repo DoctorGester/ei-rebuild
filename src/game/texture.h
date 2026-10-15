@@ -308,6 +308,7 @@ DirectDrawDriver* __fastcall DriverAt(int index);
 // the reference count, the last DirectDraw result, the device object, the IDirectDrawSurface7*,
 // width, height and bits per pixel.
 struct CDXSurface {
+    CDXSurface* DeleteScalar(unsigned flags);
     // 004EF7B0 (dx_surface.cpp, thiscall). The constructor for an off-screen surface of the screen's
     // format; returns this. Throws the game's error object when the surface cannot be made.
     CDXSurface* Construct(CTextureDevice* device, int width, int height);

@@ -309,7 +309,7 @@ void __fastcall ConnectionDestructVerify(CPlayerConnection* self) {
     ei::verify::Check("CPlayerConnection::DestructBody", true, self->player_ == nullptr, "connection %p", self);
 }
 CPlayerConnection* __fastcall ConnectionDeleteVerify(CPlayerConnection* self, void*, unsigned flags) {
-    CPlayerConnection* result = ConnectionDeletingDestruct(self, nullptr, flags);
+    CPlayerConnection* result = self->DeleteScalar(flags);
     ei::verify::Check("CPlayerConnection::DeletingDestruct", true, result == self, "connection %p", self);
     return result;
 }

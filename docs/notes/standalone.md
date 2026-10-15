@@ -982,6 +982,44 @@ the start-up check); 006BD060, 00663330 and the hero caches are reached, 004E2F0
 string sorts (0060B330 / 0060B440 over stlp::string by _stricmp, 0061A240 / 0061A300 over CString),
 the spell lookup 00613920 and the party entries' insert_overflow 00619920.
 
+**S12f (2026-10-15).** S12e's leftovers, 6 addresses. The sorts (src/game/stl_sorts.cpp on
+`stlp::Sort`): a network client's briefing topics, vector<stlp::string> by _stricmp of the texts,
+introsort loop 0060B330 (RET 0xC) and final insertion sort 0060B440 (RET 4), with
+`stlp::StringElement` as the element policy (copy constructor 004A8930, assign(first, last)
+0042A4F0, the swap's string(first, last) is the same block size; the partition 0060B990 takes the
+pivot by value and frees it before returning, as `Held`); the hero screen's figure names,
+vector<CString> by _mbscmp, 0061A240 (RET 8) / 0061A300 (plain RET), `ValueOps<CString>` (copies
+only share). The spell prototypes by name 00613920 is the same code as the quick items' 00613820
+with the spell map's find_or_insert 00613C20 in place of 00613B70: registered as
+`stlp::RecordNamed` (stlp_hash.cpp; 00613C20 itself stays unregistered, no code of ours calls it).
+vector<MpHeroRecord>::_M_insert_overflow 00619920 (library_containers.cpp, `HeroRecordElement` on
+stlp_vector.h's InsertOverflow: a record copied as CParty's copy constructor 006613C0 by address,
+now shared as `PartyCopyConstructOriginal` in originals_gameplay.h, then the name's CString copy;
+destroyed as MpHeroRecord::Destruct). Checks, ours first (SV2f): the topics keep their texts in our
+memory, ours sorts the range, then the original a twin of game strings made from the texts (freed
+last to first), compared text by text; the names as the quests (the copy the original sorts is
+made before ours, references only; compared by data pointer); 00613920 runs ours on the table, then
+the original on the same table, which only finds the name (its two temporaries made and freed),
+both results the mapped value and the count one more only for a new name. 00619920 ours only:
+every record copy is CParty's copy constructor, which saves the party with a fresh ISAAC key and
+makes managers, so a twin run of the original would draw and allocate where the game does not; by
+effect (size, capacity, the names in order) and each copy by 006613C0's own wrapper. A start-up
+check sorts 200 random name lists both ways (depth limits that reach the heap sort), each
+position's data pointer compared; the names are CStrings over headers in our memory with a count no
+sort brings to zero, so nothing reaches the game's allocators. The same lists as topics (texts
+equal but for case, '[' '_' '`' between the cases; each position's text and capacity) run only
+with `EI_TOPIC_SORT_CHECK` set: every copy the original's topic sort makes is a game block, and a
+start-up check must leave the allocators as they were. Short topics at start-up refilled the node
+pool and CString's fixed pools (in the first version the names were game CStrings too), and
+ui_widescreen_hud / ui_widescreen_more (Rebirth) parted from their goldens at world update 80
+(cunit148 #place); topics over 128 bytes (operator new, all freed before the check ended) still
+moved the CRT heap's later blocks and levers parted (script #gobject, as SV2h1b's two). With
+`EI_TOPIC_SORT_CHECK=1` smoke and console (both installs) give 0 mismatches. In the suite
+the names sort on the hero screen (ui_hero_*, ui_mp_host), the insert overflow on the hero list
+and the saved parties' reload; the topics in no run (only a network client's briefing sorts them;
+the opt-in check above); 00613920 through ItemStock::GenerateSpells
+(trader_stock).
+
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
 006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot

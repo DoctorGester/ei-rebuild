@@ -215,3 +215,48 @@ callers skipped in batches 1 and 2 are converted. Release objects differ only in
 - Left: 1,034, mostly the categories above. What remains of the convertible pool is small: the virtual-slot shims need a
   different approach than member registration (a registration that bypasses the vtable thunk), and the call-through
   blocks go as their originals are ported.
+
+## C11 batch 4: shims to member functions (2026-10-15)
+
+103 more shims became members (tools/progress.py: 1,234 before, 1,131 after). Spelling only; the release objects
+differ in the registration thunks and the removed `xor edx, edx` at the callers, as before.
+- Class B (forwarder deleted, existing non-virtual member registered), 22: CCameraInput OnKeyUp / OnRightDown /
+  OnRightUp / OnMouseMove / OnWheel; CCampPages DeconstructItem / DeconstructSpell; CConstructorPage SpellMakerItemAt /
+  ItemMakerItemAt; CCreditsScreen::Draw; CHudWeaponBar / QuickItems / SpellColumn / ActionColumn Draw; CSaveLoadWindow
+  Draw / Update / CloseDialog / OnDialogResult; COptionsWindow Draw / Redraw / OnDialogResult / HelpTopic. The UI window
+  classes declare these as non-virtual members, so their slot forwarders were plain class B.
+- Class A (body moved into the member), 81:
+  - Deleting destructors, all named `DeleteScalar` (slot 0 of the vtable, RET 4, `flags` bit 0 frees): AIRef,
+    AICallRecord, ScriptPointLight, CFigureManager, mapspec::Behaviour, CTransformObject, CCamera, CHoover, CLightning,
+    CDXSurface, GameError (also `DeleteScalarBase`), scene::FakeUnitScene, UnitSpec, CObject3DClientSpecific,
+    CPlayerConnection, CSysInfo, CUnitController, CPlayerManager, CItemManager, CRenderPreset, LeverRecord, plus
+    RefPtr::DeleteDestroyed / DeleteReleased. A slot shim becomes a non-virtual member with a distinct name (the
+    precedent is CMapObject::DeleteMapObject), so the registration cannot hit a vtable thunk.
+  - Slot implementations with distinct names: CUnitController IgnoreArgument / IgnoreTwoArguments / IgnoreThreeArguments /
+    ReturnZeroOne / ReturnZeroThree / ReturnFalse; CMapObject IgnoreArgument / AcceptsNoKey / AcceptsAnyAnimation /
+    ScaleEffectChangedDefault; CMapObjectCompanion IgnoreArgument / QueryNothing / HitNothing; CObject3DSpecific DrawNothing /
+    ReturnZero / IgnoreArgument; CItem EmptyName / NoUse; GameBuffer NothingMore / WriteMoreGrowing / SeekGrowing /
+    ReserveGrowing / DeleteGrowing / SeekView / DeleteView / DeleteViewBase; CRenderHelper ReleasePresetRecord /
+    PresetBlockOf / PresetAt / PresetStatesOf / BuiltInStatesOf; BufferedStream ReserveReadWindow / ReserveWriteWindow /
+    ReadMoreWindow / WriteMoreWindow / SeekWindow; BufferedFile ReadAtFile / WriteAtFile.
+  - Others: RefPtr CopyShared / CopyPlain / AssignCounted; SessionBase Register{Request,Party,Member,Map,Variable,File,
+    Chunk,Award,Trade}Handler (the callers in net_client.cpp / net_server.cpp pass `(channel, handler)` now);
+    LeverRecord Archive / CopyConstruct / Assign; GameBuffer CopyOut / ReadBytes (the old BufferRead); CTradeGrid::DrawGrid;
+    terrain::SectorData::DrawPage.
+  Rules as in batch 3. Parameters or locals that hid a data member got new names (`deleteFlags`, `tileCount`,
+  `vertexTotal`). A member defined for a class in `namespace net` / `app` / `scene` closes and reopens the surrounding
+  namespace or is qualified; a member of the same name as a file-local helper hides it (`::Reallocate(this, grown)`,
+  `::ApplyWaterLevels(this)`, `app::RecordDestruct`). app_device_list.cpp was restructured by hand around LeverRecord.
+- Verify wrappers: the calls became member calls; verify_world_deleting_destructors.cpp has an `EI_DELETE_MEMBER_CHECK`
+  next to `EI_DELETE_CHECK` (still used by ObjectHolderDelete); verify_net_handler_registrars.cpp uses member pointers;
+  verify_render_helper.cpp and verify_game_buffer.cpp call the members directly. Added includes where a test only
+  forward-declared the class.
+- Skipped, with the reason: virtual-declared members (item name slots, Hook shims, Load / Save / IsSameAs / CopyTo /
+  InitFromRecord, the CSceneRenderer draws, TakeHit / SetScriptName / SetVisibilityMode / MoveObject); aliases of mfc /
+  stlp templates; `void*` / `uint8_t*` selfs; pointer-to-pointer selfs (TerrainTypeAt, UnitModelAt, ObjectHolderDelete and
+  the pointer assigns); EquipBuild / QuickStripBuild (`int` against `bool`); AIViewer Refresh / See / Update;
+  ScaleRect*Entry (the `!self` test); CScript NewWorldScript / RunWorldScript (member signature differs); ChunkArchive
+  speech fields (namespace acks); FakeUnitScene::LoadScene; Quaternion rotate / axis; ClientBufferRatio; DrawLightning;
+  CFigureMesh Rasterise; the aimode:: shims (namespace-level helpers); the deleting destructors with imprecise self types
+  (CUiWindow, CBaseManager / EffectManager, CObject3DSpecific server / WoundsMaterial / CCloudNoise).
+- Left: 1,131. The files S16a / S12f edit (lib/stlp_*, stl_sorts, library_*, world_sync) were not touched.

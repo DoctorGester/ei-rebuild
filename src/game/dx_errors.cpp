@@ -281,16 +281,16 @@ void __fastcall GameErrorDestruct(GameError* error) {
 }
 EI_REPLACE(0x004815D0, GameErrorDestruct);
 
-GameError* __fastcall GameErrorDeletingDestruct(GameError* error, void*, int flags) {
-    GameErrorDestruct(error);
-    if (flags & 1) gamecrt::operator_delete(error);
-    return error;
+GameError* GameError::DeleteScalar(int flags) {
+    GameErrorDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004815B0, GameErrorDeletingDestruct);
+EI_REPLACE_METHOD(0x004815B0, GameError::DeleteScalar);
 
-GameError* __fastcall GameErrorBaseDeletingDestruct(GameError* error, void*, int flags) {
-    GameErrorDestruct(error);
-    if (flags & 1) gamecrt::operator_delete(error);
-    return error;
+GameError* GameError::DeleteScalarBase(int flags) {
+    GameErrorDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00481580, GameErrorBaseDeletingDestruct);
+EI_REPLACE_METHOD(0x00481580, GameError::DeleteScalarBase);

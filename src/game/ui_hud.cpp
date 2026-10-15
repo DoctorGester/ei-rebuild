@@ -185,8 +185,7 @@ BOOL CHudWeaponBar::Draw(int pass) {
     SetRenderState(interface_->renderer_->device_, kRenderStateSpecular, 0);
     return 1;
 }
-static BOOL __fastcall WeaponBarDraw(CHudWeaponBar* self, void*, int pass) { return self->CHudWeaponBar::Draw(pass); }
-EI_REPLACE(0x0063C4F0, WeaponBarDraw);
+EI_REPLACE_METHOD(0x0063C4F0, CHudWeaponBar::Draw);
 
 // The three other panels draw the same way, with specular on (slot 20).
 namespace {
@@ -201,12 +200,9 @@ BOOL DrawWithSpecular(CUiWindow* window, int pass) {
 BOOL CHudQuickItems::Draw(int pass) { return DrawWithSpecular(this, pass); }
 BOOL CHudSpellColumn::Draw(int pass) { return DrawWithSpecular(this, pass); }
 BOOL CHudActionColumn::Draw(int pass) { return DrawWithSpecular(this, pass); }
-static BOOL __fastcall QuickItemsDraw(CHudQuickItems* self, void*, int pass) { return self->CHudQuickItems::Draw(pass); }
-static BOOL __fastcall SpellColumnDraw(CHudSpellColumn* self, void*, int pass) { return self->CHudSpellColumn::Draw(pass); }
-static BOOL __fastcall ActionColumnDraw(CHudActionColumn* self, void*, int pass) { return self->CHudActionColumn::Draw(pass); }
-EI_REPLACE(0x0063CDC0, QuickItemsDraw);
-EI_REPLACE(0x0063F190, SpellColumnDraw);
-EI_REPLACE(0x0063FD50, ActionColumnDraw);
+EI_REPLACE_METHOD(0x0063CDC0, CHudQuickItems::Draw);
+EI_REPLACE_METHOD(0x0063F190, CHudSpellColumn::Draw);
+EI_REPLACE_METHOD(0x0063FD50, CHudActionColumn::Draw);
 
 // --- Quick items -------------------------------------------------------------------------------
 

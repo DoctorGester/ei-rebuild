@@ -15,15 +15,6 @@
 
 namespace net {
 
-// The handler registration templates (net_handler_registrars.cpp).
-void __fastcall RegisterMapHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterVariableHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterFileHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterChunkHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterAwardHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterPartyHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterTradeHandler(SessionBase* self, void*, int channel, void* handler);
 
 namespace {
 
@@ -131,25 +122,25 @@ ClientSession* ClientSession::Construct() {
     RegisterInline<ZoneMessage>(this, 0, 0x0041E790);
     RegisterInline<ZoneMessage>(this, 2, 0x0041E850);
 
-    RegisterMapHandler(this, nullptr, 0, Handler(0x0041E900));
-    RegisterMapHandler(this, nullptr, 2, Handler(0x0041E960));
-    RegisterVariableHandler(this, nullptr, 0, Handler(0x0041E990));
-    RegisterVariableHandler(this, nullptr, 1, Handler(0x0041EA10));
-    RegisterVariableHandler(this, nullptr, 2, Handler(0x0041EA20));
-    RegisterFileHandler(this, nullptr, 0, Handler(0x0041EAC0));
-    RegisterFileHandler(this, nullptr, 2, Handler(0x0041EBF0));
-    RegisterChunkHandler(this, nullptr, 0, Handler(0x0041ECC0));   // patched by Rebirth: passed by address
-    RegisterChunkHandler(this, nullptr, 2, Handler(0x0041EF10));
-    RegisterAwardHandler(this, nullptr, 0, Handler(0x0041EF90));
-    RegisterPartyHandler(this, nullptr, 0, Handler(0x0041EFF0));
-    RegisterPartyHandler(this, nullptr, 1, Handler(0x0041F090));
-    RegisterPartyHandler(this, nullptr, 2, Handler(0x0041F0D0));
-    RegisterMemberHandler(this, nullptr, 0, Handler(0x0041F150));
-    RegisterMemberHandler(this, nullptr, 1, Handler(0x0041F180));
-    RegisterMemberHandler(this, nullptr, 2, Handler(0x0041F1B0));
-    RegisterTradeHandler(this, nullptr, 0, Handler(0x0041F1E0));
-    RegisterTradeHandler(this, nullptr, 1, Handler(0x0041F270));
-    RegisterTradeHandler(this, nullptr, 2, Handler(0x0041F3A0));
+    RegisterMapHandler(0, Handler(0x0041E900));
+    RegisterMapHandler(2, Handler(0x0041E960));
+    RegisterVariableHandler(0, Handler(0x0041E990));
+    RegisterVariableHandler(1, Handler(0x0041EA10));
+    RegisterVariableHandler(2, Handler(0x0041EA20));
+    RegisterFileHandler(0, Handler(0x0041EAC0));
+    RegisterFileHandler(2, Handler(0x0041EBF0));
+    RegisterChunkHandler(0, Handler(0x0041ECC0));   // patched by Rebirth: passed by address
+    RegisterChunkHandler(2, Handler(0x0041EF10));
+    RegisterAwardHandler(0, Handler(0x0041EF90));
+    RegisterPartyHandler(0, Handler(0x0041EFF0));
+    RegisterPartyHandler(1, Handler(0x0041F090));
+    RegisterPartyHandler(2, Handler(0x0041F0D0));
+    RegisterMemberHandler(0, Handler(0x0041F150));
+    RegisterMemberHandler(1, Handler(0x0041F180));
+    RegisterMemberHandler(2, Handler(0x0041F1B0));
+    RegisterTradeHandler(0, Handler(0x0041F1E0));
+    RegisterTradeHandler(1, Handler(0x0041F270));
+    RegisterTradeHandler(2, Handler(0x0041F3A0));
 
     parties_[0].Party()->Create();
     parties_[1].Party()->Create();

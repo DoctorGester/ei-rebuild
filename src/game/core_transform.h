@@ -12,6 +12,7 @@
 // Slots 0-12 are CEngineObject's (CopyFrom 00402D40, Release 00455980, empty Load/Save).
 class CTransformObject : public CEngineObject {
 public:
+    CTransformObject* DeleteScalar(unsigned flags);
     static constexpr std::uintptr_t kVtableAddress = 0x0073BA38;
 
     // 13: 00401490. Copies the local and world transform; returns this.

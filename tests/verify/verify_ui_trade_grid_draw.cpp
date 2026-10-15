@@ -3,7 +3,6 @@
 
 #include "../../src/game/ui_camp.h"
 
-int __fastcall TradeGridDraw(CTradeGrid* self, void*, int pass);
 
 // 00627390 draws (Direct3D clears, models, surface text): ours only. Checked: the result is 1, the
 // last Direct3D result (+8 of the renderer, the final depth clear) is a success, and the item lists
@@ -12,7 +11,7 @@ static void* s_tradeGridDraw;
 static int __fastcall TradeGridDrawVerify(CTradeGrid* self, void*, int pass) {
     void* bought = self->bought_;
     void* sold = self->sold_;
-    int result = TradeGridDraw(self, nullptr, pass);
+    int result = self->DrawGrid(pass);
     long hr = *reinterpret_cast<long*>(reinterpret_cast<unsigned char*>(self->interface_->renderer_) + 8);
     bool ok = result == 1 && hr >= 0 && self->bought_ == bought && self->sold_ == sold;
     ei::verify::Check("CTradeGrid::Draw", true, ok, "result %d, clear %08lX", result, static_cast<unsigned long>(hr));

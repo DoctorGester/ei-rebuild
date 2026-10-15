@@ -164,12 +164,12 @@ EI_REPLACE_METHOD(0x004E7E00, CTextureDevice::AppendBatchIndices);
 // 004EF790 (RET 4): CDXSurface's (vtable 0073D774, slot 0): the destructor body 004EFD20, then the
 // block freed when bit 0 of `flags` is set. Returns the object.
 void __fastcall DXSurfaceDestroy(CDXSurface* holder);   // dx_surface.cpp
-CDXSurface* __fastcall DXSurfaceDelete(CDXSurface* holder, void*, unsigned flags) {
-    DXSurfaceDestroy(holder);
-    if (flags & 1) gamecrt::operator_delete(holder);
-    return holder;
+CDXSurface* CDXSurface::DeleteScalar(unsigned flags) {
+    DXSurfaceDestroy(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004EF790, DXSurfaceDelete);
+EI_REPLACE_METHOD(0x004EF790, CDXSurface::DeleteScalar);
 
 // 004E7800 (RET 4): the renderer's counted base (vtable 0073D768, slot 0): nothing to destroy. No
 // object keeps this vtable while it can be released, so nothing calls it.

@@ -49,20 +49,20 @@ EI_REPLACE_METHOD(0x00510760, CMapObjectCompanion::DestroyCompanion);
 int CMapObjectCompanion::UpdateCompanion() { return 0; }
 EI_REPLACE_METHOD(0x005106E0, CMapObjectCompanion::UpdateCompanion);
 // 005106D0 (slot 13 EffectsChanged; the server's too) and 00510700 (slot 19), RET 4: nothing.
-void __fastcall CompanionIgnore(CMapObjectCompanion*, void*, int) {}
-EI_REPLACE(0x005106D0, CompanionIgnore);
-EI_REPLACE(0x00510700, CompanionIgnore);
+void CMapObjectCompanion::IgnoreArgument(int) {}
+EI_REPLACE_METHOD(0x005106D0, CMapObjectCompanion::IgnoreArgument);
+EI_REPLACE_METHOD(0x00510700, CMapObjectCompanion::IgnoreArgument);
 // 005104B0 (slot 14; the client's too) and the server's 00515810: nothing. One byte each (too short
 // to hook).
 void __fastcall CompanionNothing(CMapObjectCompanion*) {}
 EI_REPLACE(0x005104B0, CompanionNothing);
 EI_REPLACE(0x00515810, CompanionNothing);
 // 005104C0 (slot 15 Query, RET 8; all three classes): 0.
-int __fastcall CompanionQuery(CMapObjectCompanion*, void*, int, int) { return 0; }
-EI_REPLACE(0x005104C0, CompanionQuery);
+int CMapObjectCompanion::QueryNothing(int, int) { return 0; }
+EI_REPLACE_METHOD(0x005104C0, CMapObjectCompanion::QueryNothing);
 // 005106F0 (slot 16 Hit, RET 8; the server's too): nothing.
-void __fastcall CompanionHit(CMapObjectCompanion*, void*, int, int) {}
-EI_REPLACE(0x005106F0, CompanionHit);
+void CMapObjectCompanion::HitNothing(int, int) {}
+EI_REPLACE_METHOD(0x005106F0, CMapObjectCompanion::HitNothing);
 
 // --- The client's and the server's ---------------------------------------------------------------------
 

@@ -106,13 +106,17 @@ void __fastcall FakeUnitDestruct(FakeUnitScene* self) {
 }
 EI_REPLACE(0x00446910, FakeUnitDestruct);
 
+} // namespace fakeunit
+
 // 004468F0: the scalar deleting destructor.
-void* __fastcall FakeUnitDelete(FakeUnitScene* self, void*, unsigned flags) {
-    FakeUnitDestructAt(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+void* scene::FakeUnitScene::DeleteScalar(unsigned flags) {
+    fakeunit::FakeUnitDestructAt(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004468F0, FakeUnitDelete);
+
+namespace fakeunit {
+EI_REPLACE_METHOD(0x004468F0, scene::FakeUnitScene::DeleteScalar);
 
 // 00446B20 (slot 3): Destroy: as the destructor's start, then the figures destroyed (slot 0 with 0)
 // and their array emptied.

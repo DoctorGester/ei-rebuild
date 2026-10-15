@@ -244,27 +244,12 @@ BOOL CCameraInput::OnWheel(int, int delta, int, int) {
 }
 
 namespace {
-void __fastcall CameraInputKeyUp(CCameraInput* self, void*, int key, int repeat, int flags) {
-    self->OnKeyUp(key, repeat, flags);
-}
-void __fastcall CameraInputRightDown(CCameraInput* self, void*, int buttons, int x, int y) {
-    self->OnRightDown(buttons, x, y);
-}
-void __fastcall CameraInputRightUp(CCameraInput* self, void*, int buttons, int x, int y) {
-    self->OnRightUp(buttons, x, y);
-}
-void __fastcall CameraInputMouseMove(CCameraInput* self, void*, int buttons, int x, int y) {
-    self->OnMouseMove(buttons, x, y);
-}
 void __fastcall CameraInputDeactivate(CCameraInput* self) { self->OnDeactivate(); }
-BOOL __fastcall CameraInputWheel(CCameraInput* self, void*, int keys, int delta, int x, int y) {
-    return self->OnWheel(keys, delta, x, y);
-}
 } // namespace
-EI_REPLACE(0x005EB090, CameraInputKeyUp);
-EI_REPLACE(0x005EAD00, CameraInputRightDown);
-EI_REPLACE(0x005EAD50, CameraInputRightUp);
-EI_REPLACE(0x005EB210, CameraInputMouseMove);
+EI_REPLACE_METHOD(0x005EB090, CCameraInput::OnKeyUp);
+EI_REPLACE_METHOD(0x005EAD00, CCameraInput::OnRightDown);
+EI_REPLACE_METHOD(0x005EAD50, CCameraInput::OnRightUp);
+EI_REPLACE_METHOD(0x005EB210, CCameraInput::OnMouseMove);
 EI_REBIRTH_IMPLEMENTS(0x005EB210, ei::rebirth::Patch::WideScreen);
 EI_REPLACE(0x005EB580, CameraInputDeactivate);
-EI_REPLACE(0x005EB540, CameraInputWheel);
+EI_REPLACE_METHOD(0x005EB540, CCameraInput::OnWheel);

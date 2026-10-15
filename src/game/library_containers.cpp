@@ -3,11 +3,14 @@
 #include "library_containers.h"
 
 #include "link_figure.h"
+#include "originals_gameplay.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp_list_refs.h"
+
+#include <new>
 
 namespace libcontainers {
 
@@ -77,6 +80,16 @@ void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self) {
 
 void __fastcall DestroyPrintName(PrintRecord* self) { self->name.~string(); }
 
+void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
+    PartyCopyConstructOriginal(to->party, nullptr, from.party);
+    new (&to->file) mfc::CString(from.file);
+}
+
+void __fastcall InsertHeroRecordsOverflow(HeroRecords* self, void*, MpHeroRecord* pos, const MpHeroRecord* x,
+                                          std::size_t n) {
+    self->InsertOverflow<HeroRecordElement>(pos, *x, n);
+}
+
 } // namespace libcontainers
 
 using namespace libcontainers;
@@ -109,3 +122,4 @@ EI_REPLACE(0x005E0550, TimeMinusSpan);
 EI_REPLACE(0x0041AC30, DestroyGameInfoRecord);   // the server list's records (S12e)
 EI_REPLACE(0x006D29A0, DestroyPrintName);        // the print records' arrays (S12e)
 EI_REPLACE(0x006D29E0, DestroyPrintName);
+EI_REPLACE(0x00619920, InsertHeroRecordsOverflow);   // the heroes and saved parties (S12f)

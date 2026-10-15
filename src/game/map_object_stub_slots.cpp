@@ -35,11 +35,11 @@ EI_REPLACE(0x0050E530, MapObjectNothing);
 
 // Nothing with one argument (RET 4): 25 AdvanceTime 0050E410, 35 SetStats 0050E480, 46 SetStunned
 // 0050E4A0, 56 ForgetObject 0050E510.
-void __fastcall MapObjectIgnore(CMapObject*, void*, int) {}
-EI_REPLACE(0x0050E410, MapObjectIgnore);
-EI_REPLACE(0x0050E480, MapObjectIgnore);
-EI_REPLACE(0x0050E4A0, MapObjectIgnore);
-EI_REPLACE(0x0050E510, MapObjectIgnore);
+void CMapObject::IgnoreArgument(int) {}
+EI_REPLACE_METHOD(0x0050E410, CMapObject::IgnoreArgument);
+EI_REPLACE_METHOD(0x0050E480, CMapObject::IgnoreArgument);
+EI_REPLACE_METHOD(0x0050E4A0, CMapObject::IgnoreArgument);
+EI_REPLACE_METHOD(0x0050E510, CMapObject::IgnoreArgument);
 
 // 0: 38 IsUsable 0050F0C0, 39 IsDirectUseBlocked 0050F0D0, 54 IsLargeUnit 0050E4F0.
 int __fastcall MapObjectZero(CMapObject*) { return 0; }
@@ -48,16 +48,16 @@ EI_REPLACE(0x0050F0D0, MapObjectZero);
 EI_REPLACE(0x0050E4F0, MapObjectZero);
 
 // 0050F110 (slot 42, RET 4): no key is accepted.
-int __fastcall MapObjectAcceptsKey(CMapObject*, void*, const void* /*key*/) { return 0; }
-EI_REPLACE(0x0050F110, MapObjectAcceptsKey);
+int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
+EI_REPLACE_METHOD(0x0050F110, CMapObject::AcceptsNoKey);
 
 // 0050E400 (slot 18, RET 4; AL): any animation may be played.
-bool __fastcall MapObjectAcceptsAnimation(CMapObject*, void*, const void* /*animation*/) { return true; }
-EI_REPLACE(0x0050E400, MapObjectAcceptsAnimation);
+bool CMapObject::AcceptsAnyAnimation(const void* /*animation*/) { return true; }
+EI_REPLACE_METHOD(0x0050E400, CMapObject::AcceptsAnyAnimation);
 
 // 0050E960 (slot 33, RET 4): a scaling effect came or went; 1.
-int __fastcall MapObjectScaleEffectChanged(CMapObject*, void*, int /*scaleEffect*/) { return 1; }
-EI_REPLACE(0x0050E960, MapObjectScaleEffectChanged);
+int CMapObject::ScaleEffectChangedDefault(int /*scaleEffect*/) { return 1; }
+EI_REPLACE_METHOD(0x0050E960, CMapObject::ScaleEffectChangedDefault);
 
 // 0050F0E0 (slot 40): the key the object asks for; none.
 int __fastcall MapObjectKeyId(CMapObject*) { return kNoKey; }

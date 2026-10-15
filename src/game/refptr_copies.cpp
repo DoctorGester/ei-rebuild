@@ -164,12 +164,12 @@ EI_REPLACE(0x0047A6A0, RefPtrFromRaw);
 
 // The released holder's scalar deleting destructor (0047A6D0: the release 0047A430, then the
 // holder freed when bit 0 of the flags is set); returns the holder.
-RefPtr* __fastcall RefPtrReleaseDelete(RefPtr* self, void*, unsigned flags) {
-    RefPtrRelease(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+RefPtr* RefPtr::DeleteReleased(unsigned flags) {
+    RefPtrRelease(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0047A6D0, RefPtrReleaseDelete);
+EI_REPLACE_METHOD(0x0047A6D0, RefPtr::DeleteReleased);
 
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* RefPtr::FromRawCounted(CRefObject* object) {

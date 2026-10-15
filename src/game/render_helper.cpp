@@ -420,40 +420,39 @@ EI_REPLACE(0x004FCD50, RenderHelperDestruct);
 // ---- The helper's table slots -----------------------------------------------------------------------
 
 // 004FDB00 (slot 2, RET 4).
-void __fastcall RenderHelperReleasePreset(CRenderHelper* self, void*, CRenderPreset* preset) {
-    if (auto* node = self->records_.Find(preset)) self->ReleaseBlock(node->value.preset);
+void CRenderHelper::ReleasePresetRecord(CRenderPreset* preset) {
+    if (auto* node = records_.Find(preset)) ReleaseBlock(node->value.preset);
 }
-EI_REPLACE(0x004FDB00, RenderHelperReleasePreset);
+EI_REPLACE_METHOD(0x004FDB00, CRenderHelper::ReleasePresetRecord);
 
 // 004FDB50 (slot 4, RET 4).
-void* __fastcall RenderHelperPresetBlock(CRenderHelper* self, void*, CRenderPreset* preset) {
-    auto* node = self->records_.Find(preset);
+void* CRenderHelper::PresetBlockOf(CRenderPreset* preset) {
+    auto* node = records_.Find(preset);
     return node ? node->value.preset : nullptr;
 }
-EI_REPLACE(0x004FDB50, RenderHelperPresetBlock);
+EI_REPLACE_METHOD(0x004FDB50, CRenderHelper::PresetBlockOf);
 
 // 004FDBA0 (slot 5, RET 4).
-CRenderPreset* __fastcall RenderHelperPreset(CRenderHelper* self, void*, unsigned index) {
-    return index < CRenderHelper::kPresetCount ? self->presets_[index] : nullptr;
+CRenderPreset* CRenderHelper::PresetAt(unsigned index) {
+    return index < CRenderHelper::kPresetCount ? presets_[index] : nullptr;
 }
-EI_REPLACE(0x004FDBA0, RenderHelperPreset);
+EI_REPLACE_METHOD(0x004FDBA0, CRenderHelper::PresetAt);
 
 // 004FDBC0 (slot 6, RET 8). Only AL is the result.
-bool __fastcall RenderHelperPresetStates(CRenderHelper* self, void*, CRenderPreset* preset, StateVector* out) {
-    auto* node = self->records_.Find(preset);
+bool CRenderHelper::PresetStatesOf(CRenderPreset* preset, StateVector* out) {
+    auto* node = records_.Find(preset);
     if (!node) return false;
     AssignStates(out, node->value.states);
     return true;
 }
-EI_REPLACE(0x004FDBC0, RenderHelperPresetStates);
+EI_REPLACE_METHOD(0x004FDBC0, CRenderHelper::PresetStatesOf);
 
 // 004FDD80 (slot 7, RET 8). Only AL is the result.
-bool __fastcall RenderHelperBuiltInStates(CRenderHelper* self, void*, unsigned index,
-                                          stlp::vector<RenderPresetRecord::State>* out) {
-    if (index >= CRenderHelper::kPresetCount || !self->presets_[index]) return false;
-    return self->PresetStates(self->presets_[index], out);
+bool CRenderHelper::BuiltInStatesOf(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
+    if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
+    return PresetStates(presets_[index], out);
 }
-EI_REPLACE(0x004FDD80, RenderHelperBuiltInStates);
+EI_REPLACE_METHOD(0x004FDD80, CRenderHelper::BuiltInStatesOf);
 
 // ---- The preset -------------------------------------------------------------------------------------
 
@@ -465,11 +464,11 @@ void __fastcall RenderPresetDestruct(CRenderPreset* self) {
 EI_REPLACE(0x004FD8B0, RenderPresetDestruct);
 
 // 004FD880 (slot 0, RET 4).
-void* __fastcall RenderPresetDelete(CRenderPreset* self, void*, unsigned flags) {
-    RenderPresetDestruct(self);
-    return DeleteIf(self, flags);
+void* CRenderPreset::DeleteScalar(unsigned flags) {
+    RenderPresetDestruct(this);
+    return DeleteIf(this, flags);
 }
-EI_REPLACE(0x004FD880, RenderPresetDelete);
+EI_REPLACE_METHOD(0x004FD880, CRenderPreset::DeleteScalar);
 
 // ---- Deleting destructors (slot 0, RET 4) -------------------------------------------------------------
 

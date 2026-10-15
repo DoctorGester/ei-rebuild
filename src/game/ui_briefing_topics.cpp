@@ -30,10 +30,10 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-// The STLport sort<string*> pieces a network client's topics go through (not rewritten): the
-// introsort loop (RET 0xC: an unused word, the depth limit, the comparator) and the final
-// insertion sort (RET 4: the comparator). The comparator is an empty object; the original passes
-// the person's id in its slot.
+// The STLport sort<string*> pieces a network client's topics go through, at their addresses
+// (stl_sorts.cpp, TopicIntroSort / TopicFinalSort, so their checks run): the introsort loop (RET
+// 0xC: an unused word, the depth limit, the comparator) and the final insertion sort (RET 4: the
+// comparator). The comparator is an empty object; the original passes the person's id in its slot.
 __declspec(naked) void __fastcall TopicIntroSortAt(stlp::string* /*first*/, stlp::string* /*last*/, int, int /*depth*/,
                                                    int /*comparator*/) EI_ORIGINAL(0x0060B330)
 __declspec(naked) void __fastcall TopicFinalSortAt(stlp::string* /*first*/, stlp::string* /*last*/, int /*comparator*/)

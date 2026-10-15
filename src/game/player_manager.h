@@ -12,6 +12,7 @@
 
 class CPlayerManager : public CBaseManager {
 public:
+    CPlayerManager* DeleteScalar(unsigned flags);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F328);
 
     // 0066C0F0 (slot 2). CBaseManager's Create, its result made 0 / 1.

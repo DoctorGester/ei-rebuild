@@ -78,8 +78,8 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
 } // namespace
 
 // 00627390. Returns 1.
-int __fastcall TradeGridDraw(CTradeGrid* self, void*, int pass) {
-    CInterface3D* ui = self->interface_;
+int CTradeGrid::DrawGrid(int pass) {
+    CInterface3D* ui = interface_;
     ui->renderer_->FlushBatchA();
     ui->renderer_->FlushBatchB();
     RECT grid{200, 100, 600, 500};
@@ -90,22 +90,22 @@ int __fastcall TradeGridDraw(CTradeGrid* self, void*, int pass) {
     ClearDepth(ui->renderer_, &inside, 1.0f);
     ui->renderer_->FlushBatchA();
     ui->renderer_->FlushBatchB();
-    self->DrawBase(pass);
+    DrawBase(pass);
 
     mfc::CString text;
-    auto* surface = reinterpret_cast<SurfaceText*>(self->surfaces_.data[0]);
+    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
-    DrawItems(self, pass, self->bought_, surface, text, GameFloat(0x0073D618), 48.0f, 24.0f, 0x0F, 0x41,
-              self->buyKind_);
-    DrawItems(self, pass, self->sold_, surface, text, GameFloat(0x00741F18), 12.0f, 6.0f, 0xD7, 0x109,
-              self->sellKind_);
+    DrawItems(this, pass, bought_, surface, text, GameFloat(0x0073D618), 48.0f, 24.0f, 0x0F, 0x41,
+              buyKind_);
+    DrawItems(this, pass, sold_, surface, text, GameFloat(0x00741F18), 12.0f, 6.0f, 0xD7, 0x109,
+              sellKind_);
     surface->End();
-    ui = self->interface_;
+    ui = interface_;
     ui->renderer_->FlushBatchA();
     ui->renderer_->FlushBatchB();
     RECT whole{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
 }
-EI_REPLACE(0x00627390, TradeGridDraw);
+EI_REPLACE_METHOD(0x00627390, CTradeGrid::DrawGrid);

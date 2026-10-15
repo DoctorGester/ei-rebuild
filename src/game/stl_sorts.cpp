@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/stlp.h"
 #include "lib/stlp_algo.h"
 
 #include <cstdint>
@@ -87,6 +88,16 @@ struct NotOlder {
 };
 using SaveSort = stlp::Sort<SaveEntry, NotOlder, SaveEntryOps>;
 
+struct ByTextIgnoringCase {
+    bool operator()(const stlp::string& a, const stlp::string& b) const { return gamecrt::stricmp(a.data(), b.data()) < 0; }
+};
+using TopicSort = stlp::Sort<stlp::string, ByTextIgnoringCase, stlp::StringElement>;
+
+struct ByName {
+    bool operator()(const mfc::CString& a, const mfc::CString& b) const { return CompareNames(a, b) < 0; }
+};
+using NameSort = stlp::Sort<mfc::CString, ByName>;
+
 } // namespace
 
 void __fastcall ChunkIntroSort(net::FileChunkMessage** first, net::FileChunkMessage** last, void*, int depth, int) {
@@ -145,6 +156,18 @@ SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEn
     return stlp::CopyBackward<SaveEntry, SaveEntryOps>(first, last, result);
 }
 
+void __fastcall TopicIntroSort(stlp::string* first, stlp::string* last, int, int depth, int) {
+    TopicSort::IntroLoop(first, last, depth, ByTextIgnoringCase());
+}
+void __fastcall TopicFinalSort(stlp::string* first, stlp::string* last, int) {
+    TopicSort::FinalInsertionSort(first, last, ByTextIgnoringCase());
+}
+
+void __fastcall NameIntroSort(mfc::CString* first, mfc::CString* last, mfc::CString*, int depth) {
+    NameSort::IntroLoop(first, last, depth, ByName());
+}
+void __fastcall NameFinalSort(mfc::CString* first, mfc::CString* last) { NameSort::FinalInsertionSort(first, last, ByName()); }
+
 EI_REPLACE(0x0042A020, ChunkIntroSort);
 EI_REPLACE(0x0042A150, ChunkFinalSort);
 EI_REPLACE(0x0043F870, ReplicatedIntroSort);
@@ -163,5 +186,9 @@ EI_REPLACE(0x0064FBD0, QuestUnguardedInsertionSort);
 EI_REPLACE(0x00657DF0, SaveIntroSort);
 EI_REPLACE(0x00657F10, SaveFinalSort);
 EI_REPLACE(0x00657D50, SaveCopyBackward);
+EI_REPLACE(0x0060B330, TopicIntroSort);   // S12f
+EI_REPLACE(0x0060B440, TopicFinalSort);
+EI_REPLACE(0x0061A240, NameIntroSort);
+EI_REPLACE(0x0061A300, NameFinalSort);
 
 } // namespace stl_sorts

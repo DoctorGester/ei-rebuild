@@ -84,12 +84,12 @@ void GameBuffer::DestructGrowing() {
 }
 EI_REPLACE_METHOD(0x004DA910, GameBuffer::DestructGrowing);
 
-GameBuffer* __fastcall GrowingBufferDeletingDestructor(GameBuffer* self, void*, unsigned flags) {
-    self->DestructGrowing();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+GameBuffer* GameBuffer::DeleteGrowing(unsigned deleteFlags) {
+    DestructGrowing();
+    if (deleteFlags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004DA8F0, GrowingBufferDeletingDestructor);
+EI_REPLACE_METHOD(0x004DA8F0, GameBuffer::DeleteGrowing);
 
 // --- Growing -------------------------------------------------------------------------------------
 
@@ -107,34 +107,34 @@ void GameBuffer::Reallocate(std::uint32_t capacity) {
 void GameBuffer::Grow(std::uint32_t size) { Reallocate(size * 2 + kGrowthSlack); }
 EI_REPLACE_METHOD(0x004DA5C0, GameBuffer::Grow);
 
-void __fastcall GrowingBufferReserve(GameBuffer* self, void*, std::int32_t size) {
-    self->Reallocate(GrownCapacity(self, static_cast<std::uint32_t>(size)));
+void GameBuffer::ReserveGrowing(std::int32_t size) {
+    Reallocate(GrownCapacity(this, static_cast<std::uint32_t>(size)));
 }
-EI_REPLACE(0x004DA630, GrowingBufferReserve);
-EI_REPLACE(0x004DA6B0, GrowingBufferReserve);   // byte-identical copy (slot 1)
+EI_REPLACE_METHOD(0x004DA630, GameBuffer::ReserveGrowing);
+EI_REPLACE_METHOD(0x004DA6B0, GameBuffer::ReserveGrowing);   // byte-identical copy (slot 1)
 
-int __fastcall GrowingBufferWriteMore(GameBuffer* self, void*, const void* from, std::uint32_t size) {
-    self->Reallocate(GrownCapacity(self, size));
-    std::memcpy(self->cur, from, size);
-    self->cur += size;
+int GameBuffer::WriteMoreGrowing(const void* from, std::uint32_t size) {
+    Reallocate(GrownCapacity(this, size));
+    std::memcpy(cur, from, size);
+    cur += size;
     return static_cast<int>(size);
 }
-EI_REPLACE(0x004DA740, GrowingBufferWriteMore);
+EI_REPLACE_METHOD(0x004DA740, GameBuffer::WriteMoreGrowing);
 
-std::uint8_t* __fastcall GrowingBufferSeek(GameBuffer* self, void*, std::int32_t position) {
-    if (self->cur > self->high) self->high = self->cur;
-    self->cur = self->begin + position;
-    if (!(self->cur > self->end)) return self->cur;
-    std::uint32_t capacity = Distance(self->begin, self->cur) * 2 + kGrowthSlack;
-    self->Reallocate(capacity);
+std::uint8_t* GameBuffer::SeekGrowing(std::int32_t position) {
+    if (cur > high) high = cur;
+    cur = begin + position;
+    if (!(cur > end)) return cur;
+    std::uint32_t capacity = Distance(begin, cur) * 2 + kGrowthSlack;
+    Reallocate(capacity);
     return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(capacity));
 }
-EI_REPLACE(0x004DA860, GrowingBufferSeek);
+EI_REPLACE_METHOD(0x004DA860, GameBuffer::SeekGrowing);
 
-int __fastcall BufferNothingMore(GameBuffer*, void*, const void*, std::uint32_t) { return 0; }
-EI_REPLACE(0x004DA5A0, BufferNothingMore);   // the view's slot 3
-EI_REPLACE(0x004DA5B0, BufferNothingMore);   // the view's slot 4
-EI_REPLACE(0x004DA730, BufferNothingMore);   // the growing buffer's slot 3
+int GameBuffer::NothingMore(const void*, std::uint32_t) { return 0; }
+EI_REPLACE_METHOD(0x004DA5A0, GameBuffer::NothingMore);   // the view's slot 3
+EI_REPLACE_METHOD(0x004DA5B0, GameBuffer::NothingMore);   // the view's slot 4
+EI_REPLACE_METHOD(0x004DA730, GameBuffer::NothingMore);   // the growing buffer's slot 3
 
 // --- Reading past the end and the cursor binding -------------------------------------------------
 

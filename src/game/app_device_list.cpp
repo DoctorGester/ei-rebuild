@@ -37,20 +37,7 @@ void CopyPlain(LeverRecord* to, const LeverRecord* from) {
 }
 } // namespace
 
-// 00463030: the record's fields 0 .. 7 (strings 0, 5, 6, 7).
-void __fastcall RecordArchive(LeverRecord* self, void*, ChunkArchive* archive) {
-    ArchiveString(archive, nullptr, 0, &self->name);
-    ArchiveField(archive, nullptr, 1, self->spots, 0x10);
-    ArchiveField(archive, nullptr, 2, &self->spotCount, 4);
-    ArchiveField(archive, nullptr, 3, &self->farScale, 4);
-    ArchiveField(archive, nullptr, 4, &self->duration, 4);
-    ArchiveString(archive, nullptr, 5, &self->text20);
-    ArchiveString(archive, nullptr, 6, &self->sound);
-    ArchiveString(archive, nullptr, 7, &self->text28);
-}
-EI_REPLACE(0x00463030, RecordArchive);
-
-// 004652A0 / 004657E0: destructor, deleting destructor.
+// 004652A0: the destructor.
 void __fastcall RecordDestruct(LeverRecord* self) {
     self->text28.~CString();
     self->sound.~CString();
@@ -58,38 +45,56 @@ void __fastcall RecordDestruct(LeverRecord* self) {
     self->name.~CString();
 }
 EI_REPLACE(0x004652A0, RecordDestruct);
-LeverRecord* __fastcall RecordDelete(LeverRecord* self, void*, unsigned flags) {
-    RecordDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+} // namespace app
+
+// 00463030: the record's fields 0 .. 7 (strings 0, 5, 6, 7).
+void LeverRecord::Archive(ChunkArchive* archive) {
+    ArchiveString(archive, nullptr, 0, &name);
+    ArchiveField(archive, nullptr, 1, spots, 0x10);
+    ArchiveField(archive, nullptr, 2, &spotCount, 4);
+    ArchiveField(archive, nullptr, 3, &farScale, 4);
+    ArchiveField(archive, nullptr, 4, &duration, 4);
+    ArchiveString(archive, nullptr, 5, &text20);
+    ArchiveString(archive, nullptr, 6, &sound);
+    ArchiveString(archive, nullptr, 7, &text28);
 }
-EI_REPLACE(0x004657E0, RecordDelete);
+EI_REPLACE_METHOD(0x00463030, LeverRecord::Archive);
+
+// 004657E0: the deleting destructor.
+LeverRecord* LeverRecord::DeleteScalar(unsigned flags) {
+    app::RecordDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x004657E0, LeverRecord::DeleteScalar);
 
 // 00465A70 / 00465BC0: copy constructor and assignment; both return this.
-LeverRecord* __fastcall RecordCopyConstruct(LeverRecord* self, void*, const LeverRecord* from) {
-    new (&self->name) mfc::CString(from->name);
-    CopyPlain(self, from);
-    new (&self->text20) mfc::CString(from->text20);
-    new (&self->sound) mfc::CString(from->sound);
-    new (&self->text28) mfc::CString(from->text28);
-    return self;
+LeverRecord* LeverRecord::CopyConstruct(const LeverRecord* from) {
+    new (&name) mfc::CString(from->name);
+    app::CopyPlain(this, from);
+    new (&text20) mfc::CString(from->text20);
+    new (&sound) mfc::CString(from->sound);
+    new (&text28) mfc::CString(from->text28);
+    return this;
 }
-EI_REPLACE(0x00465A70, RecordCopyConstruct);
-LeverRecord* __fastcall RecordAssign(LeverRecord* self, void*, const LeverRecord* from) {
-    self->name = from->name;
-    CopyPlain(self, from);
-    self->text20 = from->text20;
-    self->sound = from->sound;
-    self->text28 = from->text28;
-    return self;
+EI_REPLACE_METHOD(0x00465A70, LeverRecord::CopyConstruct);
+LeverRecord* LeverRecord::Assign(const LeverRecord* from) {
+    name = from->name;
+    app::CopyPlain(this, from);
+    text20 = from->text20;
+    sound = from->sound;
+    text28 = from->text28;
+    return this;
 }
-EI_REPLACE(0x00465BC0, RecordAssign);
+EI_REPLACE_METHOD(0x00465BC0, LeverRecord::Assign);
+
+namespace app {
 
 // 00465B20 (library, STLport's copy for the records; RET 0xC, the last two arguments its tags):
 // each record of [first, last) assigned to the next of `result`, first to last (the assignment
 // inline); returns the end of the copy.
 LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last, LeverRecord* result, const void*, int) {
-    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) RecordAssign(result, nullptr, first);
+    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) result->Assign(first);
     return result;
 }
 EI_REPLACE(0x00465B20, RecordsCopyForward);

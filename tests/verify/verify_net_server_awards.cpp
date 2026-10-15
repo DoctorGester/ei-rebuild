@@ -13,7 +13,6 @@
 #include <cstring>
 
 namespace net {
-RefPtr* __fastcall RefPtrCopyConstruct(RefPtr* self, void*, const RefPtr* other);
 }
 
 namespace {
@@ -23,7 +22,7 @@ RefPtr* __fastcall CopyVerify(RefPtr* self, void*, const RefPtr* other) {
     CRefObject* source = other->ptr;
     bool live = source && !(source->flags7_ & CRefObject::kDetached);
     bool copied = live && (source->flags6_ & CRefObject::kCopyOnShare);
-    RefPtr* result = net::RefPtrCopyConstruct(self, nullptr, other);
+    RefPtr* result = self->CopyShared(other);
     bool ok = result == self;
     if (!live) ok = ok && self->ptr == nullptr;
     else ok = ok && self->ptr && (copied || self->ptr == source) && (self->ptr->flags6_ & CRefObject::kCopyOnShare);
