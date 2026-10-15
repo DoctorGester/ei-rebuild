@@ -838,3 +838,5 @@ address,size,note
 005DF3A0,230,console command handler body: join (no Ghidra function; S16b)
 005DF490,266,console command handler body: server (no Ghidra function; S16b)
 005DF5A0,5,console command handler: memusage, a jump to the empty 00455CD0 (no Ghidra function; S16b)
+004389C0,64,~_Vector_base of the session's handler vectors (no Ghidra function; S16b)
+006B89B0,59,the sound loader's AIL_decompress_ASI callback (no Ghidra function; S16b)

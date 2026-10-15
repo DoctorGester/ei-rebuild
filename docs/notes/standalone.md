@@ -1210,6 +1210,36 @@ filed as S16b: 0069D9A0 (ui_camp_deals: the item stock's pointer vector allocate
 (ui_saveload_delete: the save entries' copy constructor), 00424E40 (ui_mp_host: the net strings' block
 allocation).
 
+**S16b (2026-10-15).** The three stops S16a left (0069D9A0, 00657C60, 00424E40) came with S12g from main
+(also 00427D60 / 00427FA0, the net strings' operator+ and ==; 00421A50, ~list<SharedRef>; 0069DC70 /
+0069DDD0, the stock's spell and modifier vectors' allocate-and-copy; 0060A660 / 0060AB00, the briefing
+speakers' insert overflow and _Construct), which this branch had ported the same way and dropped at the
+merge. Then every scenario was run under `--standalone` and the loop continued. Ported here, each at its
+address with a check (ours only unless said):
+- 005DF3A0 / 005DF490 / 005DF5A0: the console's join, server and memusage (console_commands.cpp; no
+  Ghidra functions, size rows by hand). join / server build a one-member party on the stack (Construct,
+  AddMember("F", "Human Hero", "Hercules" / "Serv")), hand it with the map name to the flow's request 5 / 6
+  (00581730 / 00581760), destroy it; server prints "Starting up a server" first; with not exactly one
+  argument the usage line (server's says "Join has 1 parameter, map name", as the original). memusage is a
+  jump to an empty function: ours is empty. The check: usage alone, or the flow's state and target after.
+  net_lobby reaches server. disconnect (005DFC10, a jump to 00581620 -> the client world's 00566E00) is
+  not reached by any scenario and stays unported (S16c).
+- 005E52A0: the cursor thread's AfxBeginThread procedure (CursorThread, exit code 0; ui_cursor_frame.cpp).
+- 005B80D0: counted_ptr's release, the exit function of 007C2F64 (RefPtrRelease, like 004A5D70).
+- 006B89B0: the sound loader's AIL_decompress_ASI callback (sound_manager.cpp
+  `SoundDecompressCallback`): at state 1 it sets "Requested bit width" 16, "Requested sample rate" 44100,
+  "Requested # of channels" 2 through the decoder's setter; returns 1. The check records the setter's calls
+  through a stand-in (1223 calls in ui_base_topic, 0 mismatches).
+- 004389C0 / 004336D0: ~_Vector_base of 4- and 2-byte elements (the session's handler vectors, the
+  connection's id pools; the latter only at exit), against the original's free.
+- ui_widescreen*: the image died silently at the startup action (`RESULT: RUNNING`, no INT3 report):
+  WideScreen's Startup parses VIDEORESOLUTION with sscanf before the hooks are in, and the image had no code
+  at 006EAEEC yet. Resolution() now calls libcrt::Sscanf directly (the same _input, S16's battery).
+All 98 scenarios pass under `--standalone` (`work.py test S16b <all> --standalone --jobs 4`). Hooked
+vanilla runs of net_lobby, console, render_cursor_present, ui_base_topic, ui_camp_deals, ui_mp_host and
+ui_widescreen: 0 mismatches. Risk seen: an INT3 hit before the missing-code handler is active (startup
+actions, static initialisers) is not reported; it ends the run as RUNNING with nothing logged.
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return
