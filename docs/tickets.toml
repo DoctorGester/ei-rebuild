@@ -672,9 +672,10 @@ done = "2026-10-15"
 id = "SV2a"
 title = "Digest: the client world, missiles, timed objects, script queues"
 group = "verification"
-status = "queued"
+status = "running"
 depends = ["SV2"]
 note = "SV2's digest (tests/verify/harness_digest.cpp) reads the server world only. Not yet in it: the client world's units (positions the screen shows), each missile's position and target (Projectile 0xA8 bytes, layout unknown), timed objects' own state (spells, effects: class/flags/type only), the script command queues and countdowns, the AI event table. Add what a parting run needs first."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV1f"
