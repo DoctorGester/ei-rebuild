@@ -1690,11 +1690,12 @@ note = "Call targets of the generated static initialisers (src/standalone/static
 id = "S15a"
 title = "Harness in the standalone image: capture, held updates, countdowns"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 0.5
 depends = ["S15"]
 files = ["tests/verify/harness.cpp", "tests/verify/harness_capture.cpp"]
 note = "The harness patches call sites inside the original code: frame capture (004580D7 in 00458010), held server update (00457314) and client segment (00457368), the 8 update countdown sites (0058D4FA...). The image has INT3 there, so in a standalone run they log 'unexpected code' and do nothing: capture fails, freeze and the virtual clock's countdowns are off. Hook our rewritten callers instead (or a hook point in them) so standalone runs capture and repeat like hooked ones; needed before S17's goldens."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S3c"
