@@ -48,6 +48,9 @@ bool BaseState(const CEngineObject* object) {
 // 00515BD0: PUSH -1; PUSH 0x71D526 (7 bytes).
 static CObject3D*(__fastcall* s_constructObject3D)(void*);
 static CObject3D* __fastcall ConstructObject3DVerify(CObject3D* self) {
+    // Ours starts the view position at zero, the original leaves it (the harness zeroes it after
+    // the original's construction, harness_leftovers.cpp): both start from zero here.
+    std::memset(&self->viewPosition, 0, sizeof(self->viewPosition));
     return SameConstruction<sizeof(CObject3D)>("CObject3D::Construct", self, s_constructObject3D, &CObject3D::Construct);
 }
 EI_VERIFY(0x00515BD0, ConstructObject3DVerify, 7, s_constructObject3D);

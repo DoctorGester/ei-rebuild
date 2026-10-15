@@ -120,6 +120,45 @@ void CompareSort(const char* name, Obj* first, Obj* last, Original original, Our
 }
 } // namespace
 
+// DrawPass's lists before each UnitOrderLess sort (g_drawSortCheck; ours only, also in the standalone
+// image, which has no verify wrappers): every element non-null, with a model and a view depth that
+// is not NaN (S17a: objects listed only for their shadow before they were ever in view sorted on the
+// heap's leftover there, now zero). A bad list is logged whole: each element's keys and whether
+// CollectVisible marked it visible this frame (flag 0x20; a shadow-only entry keeps the view depth
+// of its last frame in view).
+namespace {
+const char* FrameListName(FrameList list) {
+    static const char* const kNames[] = {"TouchedModels", "Shadow52",    "ShadowUnits", "Shadow5D",
+                                         "ShadowOther",   "Shadow54",    "Visible52",   "VisibleUnits",
+                                         "Visible5D",     "VisibleOther", "Visible54"};
+    const int i = static_cast<int>(list);
+    return i >= 0 && i < static_cast<int>(sizeof(kNames) / sizeof(kNames[0])) ? kNames[i] : "?";
+}
+
+void DrawSortCheck(FrameList list, Obj* first, Obj* last) {
+    const int bad = Suspicious(first, last);
+    ei::verify::Check("DrawPass sort list", -1, bad, "%s: element %d of %d not orderable", FrameListName(list), bad,
+                      static_cast<int>(last - first));
+    if (bad < 0) return;
+    static int s_lists = 0;
+    if (s_lists >= 5) return;
+    ++s_lists;
+    ei::Log("DrawPass sort list %s: %d elements, element %d not orderable", FrameListName(list),
+            static_cast<int>(last - first), bad);
+    for (Obj* p = first; p != last; ++p) {
+        char keys[96];
+        DescribeByModel(*p, keys, sizeof(keys));
+        const std::uint32_t flags = *p ? (*p)->flags_ : 0;
+        ei::Log("  %3d %s flags %08X%s", static_cast<int>(p - first), keys, flags,
+                (flags & 0x20) ? " visible" : " shadow only");
+    }
+}
+
+struct InstallDrawSortCheck {
+    InstallDrawSortCheck() { g_drawSortCheck = &DrawSortCheck; }
+} s_installDrawSortCheck;
+} // namespace
+
 // 005740D0: SUB ESP,0x18; PUSH EBX; PUSH EBP (5 bytes). Output only (the array is reordered).
 static void(__fastcall* s_introByModel)(Obj*, Obj*, void*, int, int);
 static void __fastcall IntroByModelVerify(Obj* first, Obj* last, void* valueType, int depth, int comp) {
