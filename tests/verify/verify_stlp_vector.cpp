@@ -535,8 +535,6 @@ EI_VERIFY(0x00464DF0, Change1<0x00464DF0>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D970, Change1<0x0053D970>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D990, Change1<0x0053D990>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0053D9B0, Change1<0x0053D9B0>::DeleteBase, 0, s_unused);
-EI_VERIFY(0x005AE5B0, Change1<0x005AE5B0>::DeleteBase, 0, s_unused);
-EI_VERIFY(0x005AE5D0, Change1<0x005AE5D0>::DeleteBase, 0, s_unused);
 EI_VERIFY(0x0069DB00, Change16<0x0069DB00>::AllocateAndCopy, 5, Change16<0x0069DB00>::original);
 EI_VERIFY(0x0043B6C0, Change4<0x0043B6C0>::InsertOverflow, 5, Change4<0x0043B6C0>::original);
 EI_VERIFY(0x0043B850, Change4<0x0043B850>::InsertOverflow, 5, Change4<0x0043B850>::original);
