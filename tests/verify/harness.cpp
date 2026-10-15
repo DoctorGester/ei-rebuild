@@ -199,6 +199,7 @@
 #include "harness_leftovers.h"
 #include "harness_path_cells.h"
 #include "harness_savetrace.h"
+#include "harness_script_order.h"
 #include "harness_watch.h"
 #include "harness_hooks.h"
 #include "harness_starter.h"
@@ -2616,6 +2617,7 @@ bool HoldMessagesForCloseAll(const void* returnAddress) {
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
     heap::SettleCrt();
+    script_order::PatchOriginal();
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
@@ -2800,6 +2802,7 @@ struct Harness {
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
+            if (!g_keepHeap) script_order::Install();   // script groups by object id (harness_script_order.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)

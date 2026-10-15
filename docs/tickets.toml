@@ -1041,6 +1041,22 @@ group = "verification"
 depends = ["SV7d1"]
 note = "User 2026-10-15 questioned /fp:fast. Redirected: try /fp:precise as the project default (x87), compare verify mismatches and goldens with main; keep it if equal or better, then the regrouping audit is moot."
 
+[[ticket]]
+id = "SV7b7"
+title = "unmoto path reads uninitialised memory under EI_HEAP_JITTER=3,fill"
+group = "verification"
+size = 1
+depends = ["SV7a"]
+note = "From SV7b1: with 3,fill, vanilla gz1g --no-hooks runs part at world update 40: isaac.count 38 / 161, unmoto obj1937's path (pos, motion waypoints, ai.point, ai.looks) and ai.decay of obj1804 / 1890 / 1936. Hits different scenarios on each repeat (levers, party_records, render_terrain, harness_digest, sandbox_actions, ui_objectives, ui_quest_notice, ui_trade_restore), never with seed 3 without fill: an uninitialised read whose garbage decides, not an address order. Also SV7a's one-off ui_widescreen_more (Rebirth); probably what SV7d saw with 2,fill (noted on SV7d4). Recheck after SV7b3 (zeroed unit statistics may cover it). Find the reader (fill a known pattern, heaptrace the block), canonicalise in both sides as SV7b1 did."
+
+[[ticket]]
+id = "SV7b8"
+title = "Vanilla menu unit unmoco2 orientation under EI_HEAP_JITTER=2"
+group = "verification"
+size = 0.5
+depends = ["SV7a"]
+note = "From SV7b1: with seed 2, vanilla --no-hooks ui_hero_screen (update 620), ui_hero_stats (500), ui_screens (100): cunit2 unmoco2 rot.w/x/y/z differ (ulps to 1e-4); repeats. None has a vanilla golden. Hooked vanilla runs differ from --no-hooks on menu units' rot in the last place too (ui_container_input, ui_screens, ui_widescreen_hud, ui_widescreen_more; cunit187 unmoog1, cunit129 flags 0xA2 / 0x4A2). Likely the UnitStats leftovers (SV7b3: unmoco2's NaN hp) or SV7b4's writer; recheck now that SV7b3 landed."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
