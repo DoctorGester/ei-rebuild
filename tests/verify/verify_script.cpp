@@ -79,7 +79,7 @@ bool SameGroup(const ScriptGroup& a, const ScriptGroup& b) {
 
 bool Sorted(const ScriptGroup& g) {
     for (int i = 1; i < g.size; ++i)
-        if (reinterpret_cast<std::uintptr_t>(g.data[i - 1].object) >= reinterpret_cast<std::uintptr_t>(g.data[i].object))
+        if (g.data[i - 1].object == g.data[i].object || ScriptGroup::After(g.data[i - 1].object, g.data[i].object))
             return false;
     return true;
 }

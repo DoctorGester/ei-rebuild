@@ -91,16 +91,29 @@ struct ScriptObjectRef {
 };
 static_assert(sizeof(ScriptObjectRef) == 4);
 
-// Script group: CArray<ScriptObjectRef, ScriptObjectRef&> (vtable 0073D110) kept sorted by object
-// address (unsigned), without duplicates. The set operations build the result in `this`.
+// Script group: CArray<ScriptObjectRef, ScriptObjectRef&> (vtable 0073D110) kept sorted, without
+// duplicates. The set operations build the result in `this`. The game sorts by object address
+// (unsigned), so which unit a script's "n-th of group" gets follows the heap layout (SV7a); ours sorts
+// by object id instead once OrderById is called (harness runs, whose patch makes the original do the
+// same: tests/verify/harness_script_order.cpp) and always in the standalone (SV7b1).
 struct ScriptGroup : mfc::CArray<ScriptObjectRef> {
+    // Whether `x` sorts after `y` (two different objects) in the order this run uses: by address, or
+    // by id with null first (IdAfter).
+    static bool After(const CEngineObject* x, const CEngineObject* y);
+    // The id order: null before every object, then CEngineObject::id_ (signed). World objects' ids are
+    // unique and never handed out again while an object lives (CBaseManager::NextFreeId counts up from
+    // the highest id), so two members never tie.
+    static bool IdAfter(const CEngineObject* x, const CEngineObject* y);
+    // From now on ours orders by id (the harness, before the game starts).
+    static void OrderById();
+
     // 004B2620. this = a + b (GroupAdd).
     void Union(const ScriptGroup& a, const ScriptGroup& b);
     // 004B2920. this = a - b (GroupSub).
     void Difference(const ScriptGroup& a, const ScriptGroup& b);
     // 004B2B60. this = a & b (GroupCross).
     void Intersection(const ScriptGroup& a, const ScriptGroup& b);
-    // 004B2D60. Sorts by object address with the comparator at 004B2D80.
+    // 004B2D60. Sorts with the comparator at 004B2D80 (by address; ours: After).
     void Sort();
     // 004B2DA0. Index of `ref`'s object, -1 if absent (linear search).
     int IndexOf(const ScriptObjectRef& ref) const;
