@@ -184,4 +184,22 @@ EI_REPLACE(0x004CEE80, QuestObjectives::ConstructElements);
 EI_REPLACE(0x004CC9B0, ScriptGroups::ConstructElements);
 EI_REPLACE(0x005124D0, Particles::ConstructElements);
 
+// ---- Elements that own their array (destroyed here too) -------------------------------------------
+
+// The element destructors.
+void __fastcall DestroyPatrol(PatrolElement* p) { DestroyArrayAt<PatrolElement, 0xC, ArrayBaseClass>(p); }
+EI_REPLACE(0x0045E1E0, DestroyPatrol);
+void __fastcall DestroyAiLookRecord(AiLookElement* p) { DestroyArrayAt<AiLookElement, 0xC, AiLookArrayClass>(p); }
+EI_REPLACE(0x004C9AF0, DestroyAiLookRecord);
+void __fastcall DestroyAllod(AllodElement* p) { DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>(p); }
+EI_REPLACE(0x004608D0, DestroyAllod);
+EI_REPLACE(0x0045E250, ArrayHeader<ArrayBaseClass>::Destruct);   // an array of the base class itself
+
+// Patrols, the AI's look records, the allods.
+EI_REPLACE(0x0045DAE0, OwnedPatrols::SetSize);
+EI_REPLACE(0x0046F0B0, OwnedPatrols::DestructElements);
+EI_REPLACE(0x004C9970, AiLookRecords::SetSize);
+EI_REPLACE(0x004CDE30, AiLookRecords::ConstructElements);
+EI_REPLACE(0x004606F0, OwnedAllods::DestructElements);
+
 } // namespace mfc::impl

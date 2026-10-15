@@ -236,6 +236,12 @@ struct CellRowArrayClass {   // the AI map's cell rows
 struct AreaListClass {   // the AI map's area lists
     static void* Vtable() { return reinterpret_cast<void*>(0x0073F9E0); }
 };
+struct ArrayBaseClass {   // the base vtable the element arrays' destructors restore (patrols, motion records)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C388); }
+};
+struct AiLookRecordArrayClass {   // the array inside the AI's 32-byte look records (base AiLookArrayClass)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D4B4); }
+};
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -367,6 +373,21 @@ inline void InitParticle16(Particle16* p) {
     p->present = 0;
 }
 
+// The destructors of elements that hold an array header at `ArrayAt` (0045E1E0, 004C9AF0): the
+// vtable of `BaseClass`, the storage freed, the fields left. With `Strings` CStrings from +0 (004608D0):
+// those destroyed afterwards, the last first.
+template <typename E, std::size_t ArrayAt, typename BaseClass>
+void __fastcall DestroyArrayAt(E* p) {
+    auto* header = reinterpret_cast<CArray<Bytes<1>>*>(reinterpret_cast<std::uint8_t*>(p) + ArrayAt);
+    header->vtable = BaseClass::Vtable();
+    if (header->data) gamecrt::operator_delete(header->data);
+}
+template <typename E, int Strings, std::size_t ArrayAt, typename BaseClass>
+void __fastcall DestroyStringsAndArray(E* p) {
+    DestroyArrayAt<E, ArrayAt, BaseClass>(p);
+    for (int i = Strings; i-- > 0;) reinterpret_cast<CString*>(reinterpret_cast<std::uint8_t*>(p) + 4 * i)->~CString();
+}
+
 // ---- The instantiations --------------------------------------------------------------------------
 
 using Plain4 = ArrayAbi<Bytes<4>>;
@@ -432,5 +453,21 @@ struct AnimationStepListAbi {
         return self;
     }
 };
+
+// Elements that own their array: built as above, destroyed by the destructors above.
+using PatrolElement = WithArray<0x20, 0xC, WaypointArrayClass>;
+using OwnedPatrols = ArrayAbi<PatrolElement, EachElements<PatrolElement, InitWithArray<0x20, 0xC, WaypointArrayClass>,
+                                                        DestroyArrayAt<PatrolElement, 0xC, ArrayBaseClass>>>;
+using AiLookElement = WithArray<0x20, 0xC, AiLookRecordArrayClass>;
+using AiLookRecords = ArrayAbi<AiLookElement, EachElements<AiLookElement, InitWithArray<0x20, 0xC, AiLookRecordArrayClass>,
+                                                          DestroyArrayAt<AiLookElement, 0xC, AiLookArrayClass>>>;
+using AllodElement = StringsAndArray<0x2C, 6, 0x18, IntArrayClass>;
+using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
+                                                       DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>>>;
+
+// mfc_array.cpp: the element destructors registered on their own (0045E1E0, 004C9AF0, 004608D0).
+void __fastcall DestroyPatrol(PatrolElement* p);
+void __fastcall DestroyAiLookRecord(AiLookElement* p);
+void __fastcall DestroyAllod(AllodElement* p);
 
 } // namespace mfc::impl

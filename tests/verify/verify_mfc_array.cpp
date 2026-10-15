@@ -273,6 +273,17 @@ struct OursDestructElements {
     }
 };
 
+// An element destructor: ours only (counted).
+template <std::uintptr_t Address, typename E, void(__fastcall* Fn)(E*)>
+struct OursDestroy {
+    static inline void* original;
+    static void __fastcall Run(E* p) {
+        static const char* name = Name("element destructor", Address);
+        Fn(p);
+        Check(name, true, true, "");
+    }
+};
+
 template <std::uintptr_t Address, typename Class>
 struct TwinConstruct {
     using Array = mfc::CArray<Bytes<1>>;
@@ -585,3 +596,22 @@ using A004607B0 = OursDestructElements<0x004607B0, gamearrays::ZoneRecords>;
 EI_VERIFY(0x004607B0, A004607B0::Run, 0, A004607B0::original);
 using A004CC980 = OursDestructElements<0x004CC980, gamearrays::Groups>;
 EI_VERIFY(0x004CC980, A004CC980::Run, 0, A004CC980::original);
+
+// Batch 4: elements that own their array.
+using A0045DAE0 = TwinSetSizeGrow<0x0045DAE0, OwnedPatrols>;
+EI_VERIFY(0x0045DAE0, A0045DAE0::Run, 5, A0045DAE0::original);
+using A004C9970 = TwinSetSizeGrow<0x004C9970, AiLookRecords>;
+EI_VERIFY(0x004C9970, A004C9970::Run, 5, A004C9970::original);
+using A004CDE30 = TwinConstructElements<0x004CDE30, AiLookRecords>;
+EI_VERIFY(0x004CDE30, A004CDE30::Run, 6, A004CDE30::original);
+using A0046F0B0 = OursDestructElements<0x0046F0B0, OwnedPatrols>;
+EI_VERIFY(0x0046F0B0, A0046F0B0::Run, 0, A0046F0B0::original);
+using A004606F0 = OursDestructElements<0x004606F0, OwnedAllods>;
+EI_VERIFY(0x004606F0, A004606F0::Run, 0, A004606F0::original);
+EI_VERIFY(0x0045E250, HeaderChecks<ArrayBaseClass>::Destruct, 0, s_unused);
+using A0045E1E0 = OursDestroy<0x0045E1E0, PatrolElement, DestroyPatrol>;
+EI_VERIFY(0x0045E1E0, A0045E1E0::Run, 0, A0045E1E0::original);
+using A004C9AF0 = OursDestroy<0x004C9AF0, AiLookElement, DestroyAiLookRecord>;
+EI_VERIFY(0x004C9AF0, A004C9AF0::Run, 0, A004C9AF0::original);
+using A004608D0 = OursDestroy<0x004608D0, AllodElement, DestroyAllod>;
+EI_VERIFY(0x004608D0, A004608D0::Run, 0, A004608D0::original);
