@@ -255,4 +255,86 @@ EI_REPLACE(0x006CDBF0, ScalarDelete<&ArrayHeader<TerrainArrayBClass>::Destruct>)
 EI_REPLACE(0x006CDC10, ScalarDelete<&ArrayHeader<TerrainArrayCClass>::Destruct>);   // 006CDA20
 EI_REPLACE(0x004CAFD0, ScalarDelete<&Strings::Destruct<StringArrayClass>>);   // 004C26A0
 
+// ---- Serialize (vtable slot 2) -------------------------------------------------------------------
+
+// Arrays of plain elements (zero filled when SetSize builds them; the comment names the vtable).
+EI_REPLACE(0x0044F650, SerializeCArray<Plain12>);   // Vector3ArrayClass
+EI_REPLACE(0x00450A00, SerializeCArray<Plain20>);   // NodeItemsAClass
+EI_REPLACE(0x00450BB0, SerializeCArray<Plain24>);   // NodeItemsBClass
+EI_REPLACE(0x004511F0, SerializeCArray<Plain4>);   // NodeItemsCClass
+EI_REPLACE(0x00451850, SerializeCArray<Plain8>);   // TextureLinkArrayClass
+EI_REPLACE(0x00451EE0, SerializeCArray<Plain16>);   // MeshCornerArrayClass
+EI_REPLACE(0x0045D950, SerializeCArray<Plain20>);   // ArrayBaseClass
+EI_REPLACE(0x0045FA40, SerializeCArray<Plain4>);   // IntArrayClass
+EI_REPLACE(0x00468DA0, SerializeCArray<Plain8>);   // SpriteArrayClass
+EI_REPLACE(0x0046EC10, SerializeCArray<Plain12>);   // TrapCircleArrayClass
+EI_REPLACE(0x0046EDA0, SerializeCArray<Plain8>);   // TrapPointArrayClass
+EI_REPLACE(0x00474F50, SerializeCArray<Plain12>);   // FilePointArrayClass
+EI_REPLACE(0x00475130, SerializeCArray<Plain12>);   // FileUvArrayClass
+EI_REPLACE(0x00475310, SerializeCArray<Plain28>);   // FileFaceArrayClass
+EI_REPLACE(0x004756A0, SerializeCArray<Plain20>);   // RotKeyArrayClass
+EI_REPLACE(0x00475A00, SerializeCArray<Plain24>);   // PosKeyArrayClass
+EI_REPLACE(0x00475D60, SerializeCArray<Plain8>);   // MorphHeadArrayClass
+EI_REPLACE(0x004767A0, SerializeCArray<Plain4>);   // IndexArrayClass
+EI_REPLACE(0x00476AD0, SerializeCArray<Plain20>);   // NormalArrayClass
+EI_REPLACE(0x00498EA0, SerializeCArray<Plain8>);   // Array0498Class
+EI_REPLACE(0x004C1E70, SerializeCArray<Plain20>);   // ScriptAreaClass
+EI_REPLACE(0x004C29E0, SerializeCArray<Plain4>);   // ScriptFloatsClass
+EI_REPLACE(0x004C4560, SerializeCArray<Plain4>);   // FloatArrayClass
+EI_REPLACE(0x004C4860, SerializeCArray<Plain4>);   // ArgObjectsBaseClass
+EI_REPLACE(0x004C4B50, SerializeCArray<Plain4>);   // ArgGroupsBaseClass
+EI_REPLACE(0x004C4E40, SerializeCArray<Plain12>);   // BindingsBaseClass
+EI_REPLACE(0x004C5B10, SerializeCArray<Plain8>);   // ScriptIfThenArrayClass
+EI_REPLACE(0x004C9B10, SerializeCArray<Plain16>);   // AiLookArrayClass
+EI_REPLACE(0x0050FFD0, SerializeCArray<Plain20>);   // EffectArrayClass
+EI_REPLACE(0x00532E70, SerializeCArray<Plain28>);   // MotionPointArrayClass
+EI_REPLACE(0x00533030, SerializeCArray<Plain12>);   // MotionWaypointBaseClass
+EI_REPLACE(0x005331E0, SerializeCArray<Plain4>);   // CarriedArrayClass
+EI_REPLACE(0x00533390, SerializeCArray<Plain4>);   // IdArrayClass
+EI_REPLACE(0x00557270, SerializeCArray<Plain8>);   // PointArrayClass
+EI_REPLACE(0x00557430, SerializeCArray<Plain40>);   // AttackOptionArrayClass
+EI_REPLACE(0x00560200, SerializeCArray<Plain16>);   // CountdownArrayClass
+EI_REPLACE(0x005991A0, SerializeCArray<Plain4>);   // CellRowArrayClass
+EI_REPLACE(0x005997C0, SerializeCArray<Plain8>);   // AreaListClass
+EI_REPLACE(0x0059B0D0, SerializeCArray<Plain4>);   // PartyUnitArrayClass
+EI_REPLACE(0x005C1900, SerializeCArray<Plain4>);   // SectorCellArrayClass
+EI_REPLACE(0x005C4D80, SerializeCArray<Plain8>);   // SmoothRowArrayClass
+EI_REPLACE(0x005C5070, SerializeCArray<Plain20>);   // SmoothEdgeArrayClass
+EI_REPLACE(0x005C5360, SerializeCArray<Plain8>);   // SmoothCopyArrayClass
+EI_REPLACE(0x005C5670, SerializeCArray<Plain36>);   // SmoothStepArrayClass
+EI_REPLACE(0x005EBC00, SerializeCArray<Plain4>);   // UnitPtrArrayClass
+EI_REPLACE(0x0060A890, SerializeCArray<Plain28>);   // ObjectiveExitArrayClass
+EI_REPLACE(0x00613690, SerializeCArray<Plain4>);   // ItemStripArrayClass
+EI_REPLACE(0x0064B1E0, SerializeCArray<Plain12>);   // QuickEntryArrayClass
+EI_REPLACE(0x0065DC90, SerializeCArray<Plain4>);   // TokenPtrArrayClass
+EI_REPLACE(0x0065DE40, SerializeCArray<Plain4>);   // LinePtrArrayClass
+EI_REPLACE(0x006CD6F0, SerializeCArray<Plain4>);   // TerrainArrayAClass
+EI_REPLACE(0x006CDA40, SerializeCArray<Plain4>);   // TerrainArrayCClass
+
+// Lists of plain elements.
+EI_REPLACE(0x00405190, SerializeCList<PtrList>);   // TempListClass
+EI_REPLACE(0x00427890, SerializeCList<PtrList>);   // ItemListClass
+EI_REPLACE(0x00498D00, SerializeCList<PtrList>);   // ClientListClass
+EI_REPLACE(0x004C9750, SerializeCList<PtrList>);   // PtrListClass
+EI_REPLACE(0x0050DC20, SerializeCList<PtrList>);   // BoneListClass
+EI_REPLACE(0x0050DE90, SerializeCList<PtrList>);   // AnimationStateListClass
+EI_REPLACE(0x005198D0, SerializeCList<PtrList>);   // Object3DListClass
+EI_REPLACE(0x00539440, SerializeCList<List8>);   // CellListClass
+EI_REPLACE(0x005584D0, SerializeCList<PtrList>);   // LootListClass
+EI_REPLACE(0x00570570, SerializeCList<PtrList>);   // ClientObjectListClass
+EI_REPLACE(0x00570F30, SerializeCList<PtrList>);   // ClientList2Class
+EI_REPLACE(0x00571660, SerializeCList<PtrList>);   // ClientList3Class
+EI_REPLACE(0x00599640, SerializeCList<List1C>);   // NodeListClass
+EI_REPLACE(0x0059B2C0, SerializeCList<List8>);   // ExperienceListClass
+EI_REPLACE(0x00666050, SerializeCList<PtrList>);   // PlayerListClass
+EI_REPLACE(0x006941C0, SerializeCList<PtrList>);   // TextureListClass
+EI_REPLACE(0x006BC5D0, SerializeCList<PtrList>);   // SoundListClass
+
+// CMap<DWORD, DWORD> and the corner maps (64-bit keys).
+EI_REPLACE(0x00451CC0, SerializeCMap<Map32>);   // FigureRegistryMapClass
+EI_REPLACE(0x00452110, SerializeCMap<Map64x64>);   // CornerMapAClass
+EI_REPLACE(0x004523B0, SerializeCMap<Map64x32>);   // CornerMapBClass
+EI_REPLACE(0x00452650, SerializeCMap<Map32>);   // CornerMapCClass
+EI_REPLACE(0x004761C0, SerializeCMap<Map32>);   // DwordMapClass
+
 } // namespace mfc::impl

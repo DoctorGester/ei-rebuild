@@ -6,6 +6,7 @@
 // mfc_slots.cpp registers the instantiations whose elements need nothing of the game,
 // src/game/game_slots.cpp the others. Checked by tests/verify/verify_mfc_slots.cpp.
 
+#include "mfc_archive.h"
 #include "mfc_list.h"
 
 namespace mfc::impl {
@@ -30,6 +31,65 @@ void* __fastcall ScalarDelete(void* self, void*, unsigned flags) {
 // std::exception's destructor (006E7DA8), which the exception classes' own destructors jump to (0040C4A0,
 // 0040C4D0, 0040C500, 0041F760).
 void __fastcall ExceptionDestruct(libcrt::Exception* self);
+
+// ---- Serialize (vtable slot 2, RET 4) --------------------------------------------------------------
+//
+// afxtempl.h's Serialize with the default SerializeElements: each element as its raw bytes (ar.Write
+// / ar.Read of sizeof(TYPE)), whatever it holds. CObject::Serialize first is empty. `Abi` is the
+// instantiation's (mfc_array.h, mfc_list.h): its element and how SetSize / NewNode build one.
+
+// The count (loading: ReadCount, then SetSize(count, -1)), then the elements in one block.
+template <typename Abi>
+void __fastcall SerializeCArray(typename Abi::Array* self, void*, CArchive* ar) {
+    if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(self->size));
+    else self->SetSize(static_cast<int>(ar->ReadCount()), -1);
+    unsigned bytes = static_cast<unsigned>(self->size) * static_cast<unsigned>(sizeof(typename Abi::Element));
+    if (!ar->IsLoading()) ar->Write(self->data, bytes);
+    else ar->Read(self->data, bytes);
+}
+
+// The count, then each element from the head. Loading reads each into a local and adds it at the
+// tail (the node's element constructed, then assigned).
+template <typename Abi>
+void __fastcall SerializeCList(typename Abi::List* self, void*, CArchive* ar) {
+    using T = typename Abi::Element;
+    if (!ar->IsLoading()) {
+        ar->WriteCount(static_cast<unsigned long>(self->count));
+        for (auto* node = self->head; node; node = node->next) ar->Write(&node->data, sizeof(T));
+    } else {
+        for (unsigned long n = ar->ReadCount(); n--;) {
+            T value;
+            ar->Read(&value, sizeof(T));
+            self->AddTail(value);
+        }
+    }
+}
+
+// The count, then (when there are any) key and value of each association, bucket by bucket. Loading
+// reads each pair and sets it (operator[]).
+template <typename Abi>
+void __fastcall SerializeCMap(typename Abi::Map* self, void*, CArchive* ar) {
+    using Assoc = typename Abi::Assoc;
+    using K = decltype(Assoc::key);
+    using V = decltype(Assoc::value);
+    if (!ar->IsLoading()) {
+        ar->WriteCount(static_cast<unsigned long>(self->count));
+        if (self->count == 0) return;
+        for (std::uint32_t bucket = 0; bucket < self->hashSize; ++bucket)
+            for (Assoc* assoc = self->table[bucket]; assoc; assoc = assoc->next) {
+                ar->Write(&assoc->key, sizeof(K));
+                ar->Write(&assoc->value, sizeof(V));
+            }
+    } else {
+        for (unsigned long n = ar->ReadCount(); n--;) {
+            K key;
+            V value;
+            ar->Read(&key, sizeof(K));
+            ar->Read(&value, sizeof(V));
+            *Abi::At(self, nullptr, &key) = value;
+        }
+    }
+}
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
@@ -274,5 +334,7 @@ using MemoryRecords = StringsAt<0x18, 0x14>;
 using NamedRecords = StringsAt<0xC, 4>;
 using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
 using GlobalMapZones = StringsAt<0x10, 0xC, 8>;
+
+using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 
 } // namespace mfc::impl
