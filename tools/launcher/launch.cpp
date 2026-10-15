@@ -36,6 +36,50 @@ static std::wstring Dir(const std::wstring& path) {
     return path.substr(0, path.find_last_of(L"\\/"));
 }
 
+static bool ReadAll(const std::wstring& path, std::vector<char>& out) {
+    HANDLE h = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return false;
+    LARGE_INTEGER size{};
+    bool ok = GetFileSizeEx(h, &size) && size.QuadPart < (64 << 20);
+    if (ok) {
+        out.resize(static_cast<std::size_t>(size.QuadPart));
+        DWORD got = 0;
+        ok = out.empty() || (ReadFile(h, out.data(), static_cast<DWORD>(out.size()), &got, nullptr) && got == out.size());
+    }
+    CloseHandle(h);
+    return ok;
+}
+
+static bool SameFile(const std::wstring& a, const std::wstring& b) {
+    std::vector<char> x, y;
+    return ReadAll(a, x) && ReadAll(b, y) && x == y;
+}
+
+// Windows Firewall asks about every new program path that opens a socket, and each worktree builds its own
+// ei_standalone.exe. Runs start one shared copy instead, in the resolved run folder that holds game.exe's
+// install folder (run\standalone\ei_standalone.exe), so the firewall asks once. The copy is refreshed when
+// the built host differs; while a running game still holds an older copy, the run uses its own build's host.
+static std::wstring SharedStandaloneHost(const std::wstring& built, const std::wstring& gameExe) {
+    HANDLE h = CreateFileW(Dir(Dir(gameExe)).c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                           OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return built;
+    wchar_t resolved[MAX_PATH];
+    const DWORD n = GetFinalPathNameByHandleW(h, resolved, MAX_PATH, FILE_NAME_NORMALIZED);
+    CloseHandle(h);
+    if (n == 0 || n >= MAX_PATH) return built;
+    std::wstring dir = resolved;
+    if (dir.rfind(L"\\\\?\\", 0) == 0 && dir.rfind(L"\\\\?\\UNC\\", 0) != 0) dir = dir.substr(4);
+    dir += L"\\standalone";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    const std::wstring shared = dir + L"\\ei_standalone.exe";
+    if (SameFile(built, shared)) return shared;
+    const std::wstring temp = shared + L"." + std::to_wstring(GetCurrentProcessId()) + L".tmp";
+    if (CopyFileW(built.c_str(), temp.c_str(), FALSE) && MoveFileExW(temp.c_str(), shared.c_str(), MOVEFILE_REPLACE_EXISTING))
+        return shared;
+    DeleteFileW(temp.c_str());
+    return SameFile(built, shared) ? shared : built;
+}
+
 // The windows a game still has open when it is terminated (a dialog it waits on says why), one line
 // each: class, title and the text of its child controls.
 static void PrintOpenWindows(DWORD pid) {
@@ -296,7 +340,7 @@ int wmain(int argc, wchar_t** argv) {
     BOOL inherit = FALSE;
     if (standalone) {
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
-        program = Dir(self) + L"\\ei_standalone.exe";
+        program = SharedStandaloneHost(Dir(self) + L"\\ei_standalone.exe", full);
         cmd = L"\"" + program + L"\" --exe \"" + full + L"\" --dll \"" + dll + L"\" --run";
         if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
