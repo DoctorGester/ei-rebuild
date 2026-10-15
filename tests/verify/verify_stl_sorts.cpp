@@ -52,6 +52,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace stl_sorts;
@@ -795,6 +796,15 @@ EI_STARTUP_CHECK(SaveSortStartupCheck);
 // on random texts from a small set: texts equal but for case (the topics' order of equals), the
 // characters between 'Z' and 'a' (_stricmp lowers before comparing) and several lengths. Topics:
 // each position's text and capacity; names: each position's string (data pointer).
+//
+// Neither leaves anything in the game's allocators (a first version with short game strings and
+// CStrings refilled the node pool and CString's fixed pools before the game ran, and moved the
+// addresses the game's own blocks got later: ui_widescreen_hud / _more on Rebirth parted from
+// their goldens). Every topic starts with kTopicPrefix characters, so each string's block (and
+// every copy the sorts make) is over the node allocator's 128 bytes: operator new, freed again
+// before the check ends. The names are CStrings over headers in our memory with a count no sort
+// brings to zero: copies, assignments and destructions only move counts.
+constexpr std::size_t kTopicPrefix = 130;
 const char* const kSortWords[] = {"a",  "A", "ab", "AB", "aB", "abc", "Abc", "b",  "B", "zeta", "Zeta", "_x", "[", "\x60",
                                   "Z", "y_", "Y[", "long topic text", "LONG TOPIC TEXT", ""};
 
@@ -808,6 +818,29 @@ std::vector<std::string> RandomWords(Random& random, std::size_t n) {
     return texts;
 }
 
+// CStringData headers (count, length, allocated length) and their texts in our memory; `texts` holds
+// each one's characters, the word a CString is.
+struct LocalNames {
+    static constexpr std::int32_t kCount = 0x10000000;
+    std::vector<std::vector<std::int32_t>> blocks;
+    std::vector<char*> texts;
+    explicit LocalNames(const std::vector<std::string>& from) {
+        blocks.reserve(from.size());
+        for (const std::string& t : from) {
+            std::int32_t length = static_cast<std::int32_t>(t.size());
+            std::vector<std::int32_t> block(3 + (t.size() + 4) / 4, 0);
+            block[0] = kCount;
+            block[1] = length;
+            block[2] = length;
+            std::memcpy(&block[3], t.c_str(), t.size() + 1);
+            blocks.push_back(std::move(block));
+            texts.push_back(reinterpret_cast<char*>(&blocks.back()[3]));
+        }
+    }
+};
+static_assert(sizeof(mfc::CString) == sizeof(char*));
+mfc::CString* AsNames(std::vector<char*>& words) { return reinterpret_cast<mfc::CString*>(words.data()); }
+
 void TopicNameStartupCheck() {
     if (!s_topicIntro || !s_topicFinal || !s_nameIntro || !s_nameFinal) return;
     int cases = 0, failed = -1;
@@ -817,8 +850,10 @@ void TopicNameStartupCheck() {
         std::size_t n = random.Next() % 120;
         int depth = Depth(n, random.Next());
         std::vector<std::string> texts = RandomWords(random, n);
+        std::vector<std::string> topics(texts.size());
+        for (std::size_t i = 0; i < n; ++i) topics[i] = std::string(kTopicPrefix, '.') + texts[i];
 
-        std::vector<stlp::string> theirs = GameStrings(texts), ours = GameStrings(texts);
+        std::vector<stlp::string> theirs = GameStrings(topics), ours = GameStrings(topics);
         if (n != 0) {
             s_topicIntro(theirs.data(), theirs.data() + n, 0, depth, 0);
             s_topicFinal(theirs.data(), theirs.data() + n, 0);
@@ -838,18 +873,16 @@ void TopicNameStartupCheck() {
         PopAll(theirs);
         if (failed >= 0) break;
 
-        std::vector<mfc::CString> names;
-        names.reserve(n);
-        for (const std::string& t : texts) names.emplace_back(t.c_str());
-        std::vector<mfc::CString> sorted(names);
+        LocalNames names(texts);
+        std::vector<char*> theirNames = names.texts, ourNames = names.texts;
         if (n != 0) {
-            s_nameIntro(names.data(), names.data() + n, nullptr, depth);
-            s_nameFinal(names.data(), names.data() + n);
-            NameIntroSort(sorted.data(), sorted.data() + n, nullptr, depth);
-            NameFinalSort(sorted.data(), sorted.data() + n);
+            s_nameIntro(AsNames(theirNames), AsNames(theirNames) + n, nullptr, depth);
+            s_nameFinal(AsNames(theirNames), AsNames(theirNames) + n);
+            NameIntroSort(AsNames(ourNames), AsNames(ourNames) + n, nullptr, depth);
+            NameFinalSort(AsNames(ourNames), AsNames(ourNames) + n);
         }
         for (std::size_t i = 0; i < n && failed < 0; ++i)
-            if (static_cast<const char*>(names[i]) != static_cast<const char*>(sorted[i])) {
+            if (theirNames[i] != ourNames[i]) {
                 failed = static_cast<int>(seed);
                 which = "names";
             }

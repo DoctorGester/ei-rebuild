@@ -1006,7 +1006,12 @@ makes managers, so a twin run of the original would draw and allocate where the 
 effect (size, capacity, the names in order) and each copy by 006613C0's own wrapper. A start-up
 check sorts 200 random topic and name lists both ways (texts equal but for case, '[' '_' '`'
 between the cases, depth limits that reach the heap sort): each topic's text and capacity, each
-name's data pointer. In the suite the names sort on the hero screen (ui_hero_*, ui_mp_host), the
+name's data pointer. It leaves nothing in the game's allocators: a first version with short game
+strings and CStrings at start-up refilled the node pool and CString's fixed pools before the game
+ran, and ui_widescreen_hud / ui_widescreen_more (Rebirth) parted from their goldens at world update
+80 (cunit148 #place); every topic now starts with 130 characters (each block and copy over the
+node allocator's 128 bytes: operator new, freed before the check ends) and the names are CStrings
+over headers in our memory with a count no sort brings to zero. In the suite the names sort on the hero screen (ui_hero_*, ui_mp_host), the
 insert overflow on the hero list and the saved parties' reload; the topics only in the start-up
 check (no network client briefing in the suite); 00613920 through ItemStock::GenerateSpells
 (trader_stock).
