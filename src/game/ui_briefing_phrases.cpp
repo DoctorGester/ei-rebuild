@@ -109,8 +109,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
     float height = 0.0f;
 
     // The lines up to the next phrase (the cursor stands after the previous one).
-    while (TextFindLine(texts, nullptr, nullptr)) {
-        TextSplit(texts, nullptr, &words, 1);
+    while (texts->FindLine(nullptr)) {
+        texts->Split(&words, 1);
         if (Compare(words[0], NoLipsCommand()) == 0) {
             lips = false;
             continue;
@@ -155,11 +155,11 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 speaker = node == personTexts_.end() ? words[1] : node->second;
             }
         }
-        TextReadToHash(texts, nullptr, &phrase, 1);
+        texts->ReadToHash(&phrase, 1);
         phrase = mfc::CString(PhraseHead()) + speaker + (lips ? PhraseBodyLips() : PhraseBodyNoLips()) + phrase + LineEnd();
         dialogueText_ += phrase;
         const char* cursor = texts->cursor_;
-        if (TextFindLine(texts, nullptr, PhraseCommand())) last = false;
+        if (texts->FindLine(PhraseCommand())) last = false;
         texts->cursor_ = cursor;
         if (voice_ != -1) sound::Manager()->StopSound(voice_);
         voice_ = -1;
@@ -211,8 +211,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
                     StringSplit(*it, &parts, '.');
                     if (parts.GetSize() != kQuestNameParts) continue;
-                    if (!TextOpen(texts, nullptr, mfc::CString(QuestSection()) + parts[2])) continue;
-                    TextReadLine(texts, nullptr, &name, 1);
+                    if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
+                    texts->ReadLine(&name, 1);
                     line.Format(NameLine(), static_cast<const char*>(label), static_cast<const char*>(name));
                     add();
                 }

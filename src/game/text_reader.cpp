@@ -110,22 +110,22 @@ void SkipToNextLine(CTextManager* t, const AdvanceKind& first, const AdvanceKind
 
 } // namespace
 
-BOOL __fastcall TextOpen(CTextManager* self, void*, const char* key) {
-    if (self->text_) {
-        self->text_ = nullptr;
-        self->cursor_ = nullptr;
+BOOL CTextManager::Open(const char* key) {
+    if (text_) {
+        text_ = nullptr;
+        cursor_ = nullptr;
     }
     const char* text = nullptr;
-    for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
+    for (CTextManager::SourceNode* node = sources_.head->next; node != sources_.head; node = node->next) {
         // The archive's GetFile (slot 5): the file's data or null.
-        text = static_cast<const char*>(node->data.source->GetFile(key, &self->length_));
+        text = static_cast<const char*>(node->data.source->GetFile(key, &length_));
         if (text) break;
     }
-    self->cursor_ = text;
-    self->text_ = text;
-    return text && self->length_ != 0;
+    cursor_ = text;
+    text_ = text;
+    return text && length_ != 0;
 }
-EI_REPLACE(0x004DEFC0, TextOpen);
+EI_REPLACE_METHOD(0x004DEFC0, CTextManager::Open);
 
 BOOL __fastcall TextClose(CTextManager* self) {
     self->text_ = nullptr;
@@ -182,45 +182,45 @@ BOOL __fastcall TextNextLine(CTextManager* self) {
 }
 EI_REPLACE(0x004DF510, TextNextLine);
 
-BOOL __fastcall TextReadLine(CTextManager* self, void*, mfc::CString* out, BOOL advance) {
+BOOL CTextManager::ReadLine(mfc::CString* out, BOOL advance) {
     mfc::CString tmp;
-    const char* p = self->cursor_;
+    const char* p = cursor_;
     out->Empty();
-    if (!Inside(self, p)) return 0;
-    while (Inside(self, p)) {
+    if (!Inside(this, p)) return 0;
+    while (Inside(this, p)) {
         int code = CharCode(p);
         if (code == 10 || code == 13) break;
         AppendCharAt(out, tmp, p);
         p = MbsInc(p);
     }
-    if (advance) SkipToNextLine(self, kAfterRead, kInline);
+    if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
 }
-EI_REPLACE(0x004DF8D0, TextReadLine);
+EI_REPLACE_METHOD(0x004DF8D0, CTextManager::ReadLine);
 
-BOOL __fastcall TextReadToHash(CTextManager* self, void*, mfc::CString* out, BOOL advance) {
+BOOL CTextManager::ReadToHash(mfc::CString* out, BOOL advance) {
     mfc::CString tmp;
-    const char* p = self->cursor_;
+    const char* p = cursor_;
     out->Empty();
-    if (!Inside(self, p)) return 0;
-    while (Inside(self, p)) {
+    if (!Inside(this, p)) return 0;
+    while (Inside(this, p)) {
         if (CharCode(p) == '#') break;
         AppendCharAt(out, tmp, p);
         p = MbsInc(p);
     }
-    if (advance) self->cursor_ = p;
+    if (advance) cursor_ = p;
     return 1;
 }
-EI_REPLACE(0x004DFB80, TextReadToHash);
+EI_REPLACE_METHOD(0x004DFB80, CTextManager::ReadToHash);
 
-BOOL __fastcall TextSplit(CTextManager* self, void*, console::CStringArray* words, BOOL advance) {
+BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
     mfc::CString tmp;
     mfc::CString word;
     bool inWord = false;
-    const char* p = self->cursor_;
+    const char* p = cursor_;
     words->SetSize(0, -1);
-    if (!Inside(self, p)) return 0;
-    while (Inside(self, p)) {
+    if (!Inside(this, p)) return 0;
+    while (Inside(this, p)) {
         int code = CharCode(p);
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
@@ -244,44 +244,44 @@ BOOL __fastcall TextSplit(CTextManager* self, void*, console::CStringArray* word
         }
         p = MbsInc(p);
     }
-    if (advance) SkipToNextLine(self, kAfterRead, kInline);
+    if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
 }
-EI_REPLACE(0x004DFCB0, TextSplit);
+EI_REPLACE_METHOD(0x004DFCB0, CTextManager::Split);
 
-BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
+BOOL CTextManager::FindLine(const char* key) {
     console::CStringArray keyWords;
     console::CStringArray lineWords;
     mfc::CString word;
     if (!key) {
         // The next "#" header line (not a "##" comment).
-        while (PeekWordCall(self, nullptr, &word)) {
+        while (PeekWordCall(this, nullptr, &word)) {
             bool header;
             {
                 mfc::CString first = word.Left(1);
                 header = MbsCmp(first, kHeader) == 0 && !IsComment(word);
             }
             if (header) return 1;
-            Advance(self, kFindFirst);
+            Advance(this, kFindFirst);
         }
         return 0;
     }
     StringSplit(key, &keyWords, ' ');
     if (keyWords.size <= 1) {
         // One word: the line whose first word is the key.
-        while (PeekWordCall(self, nullptr, &word)) {
+        while (PeekWordCall(this, nullptr, &word)) {
             if (MbsCmp(word, key) == 0) return 1;
             mfc::CString next;
-            Advance(self, kFindFirst);
-            while (PeekWordCall(self, nullptr, &next)) {
+            Advance(this, kFindFirst);
+            while (PeekWordCall(this, nullptr, &next)) {
                 if (!IsComment(next)) break;
-                Advance(self, kFindComment);
+                Advance(this, kFindComment);
             }
         }
         return 0;
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
-    while (ReaderSplit(self, nullptr, &lineWords, 0)) {
+    while (ReaderSplit(this, nullptr, &lineWords, 0)) {
         if (lineWords.size >= keyWords.size) {
             int i = 0;
             if (keyWords.size <= 0) return 1;
@@ -293,12 +293,12 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
             }
         }
         mfc::CString next;
-        Advance(self, kFindMulti);
-        while (PeekWordCall(self, nullptr, &next)) {
+        Advance(this, kFindMulti);
+        while (PeekWordCall(this, nullptr, &next)) {
             if (!IsComment(next)) break;
-            SkipLineCall(self);
+            SkipLineCall(this);
         }
     }
     return 0;
 }
-EI_REPLACE(0x004DF030, TextFindLine);
+EI_REPLACE_METHOD(0x004DF030, CTextManager::FindLine);

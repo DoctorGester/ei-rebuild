@@ -17,7 +17,6 @@
 #include <windows.h>
 
 void __fastcall RefPtrRelease(RefPtr* self);   // refptr_copies.cpp
-RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
 void __fastcall PairReleaseSecond(void* self);                                    // refptr_copies.cpp
 void __fastcall PairDestroySecond(void* self);                                    // refptr_copies.cpp
 void __fastcall ReleaseThird(void* self);                                         // refptr_copies.cpp
@@ -183,7 +182,7 @@ void CheckShare(const char* name, ShareFn original, RefPtr* self, CRefObject* ob
         RefPtr holder{nullptr};
         CRefObject* arg = object ? reinterpret_cast<CRefObject*>(&run.object) : nullptr;
         g_run = &run;
-        RefPtr* r = k == 0 ? original(&holder, nullptr, arg) : RefPtrShareReturn(&holder, nullptr, arg);
+        RefPtr* r = k == 0 ? original(&holder, nullptr, arg) : holder.ShareReturn(arg);
         g_run = nullptr;
         returned[k] = r == &holder;
         index[k] = SharedIndex(run, holder);
@@ -191,7 +190,7 @@ void CheckShare(const char* name, ShareFn original, RefPtr* self, CRefObject* ob
     bool same = Same(expected, actual) && std::memcmp(&expected.clone.refs, &actual.clone.refs, 4) == 0 &&
                 index[0] == index[1] && returned[0] && returned[1];
     ei::verify::Check(name, true, same, "%p", object);
-    RefPtrShareReturn(self, nullptr, object);
+    self->ShareReturn(object);
 }
 
 #define EI_SHARE_COPY(addr)                                                                      \

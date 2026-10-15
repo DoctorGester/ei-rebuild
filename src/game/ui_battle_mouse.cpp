@@ -107,6 +107,6 @@ void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
     out->Empty();
     name = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name;
     ReplaceChar(&name, ' ', '_');
-    if (TextOpen(texts, nullptr, mfc::CString(kUnitTextPrefix) + name)) TextReadLine(texts, nullptr, out, 1);
+    if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }
 EI_REPLACE_METHOD(0x0063B920, CBattleScreenSetup::UnitName);

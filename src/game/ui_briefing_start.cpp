@@ -129,14 +129,14 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     third_ = nullptr;
     CTextManager* texts = GameTexts();
     mfc::CString key(BriefingSection());
-    if (!TextOpen(texts, nullptr, key + topic_)) {
+    if (!texts->Open(key + topic_)) {
         state_ = 0;
         briefingStarted_ = false;
         return;
     }
     console::CStringArray words;
-    while (TextFindLine(texts, nullptr, ShowLine())) {
-        TextSplit(texts, nullptr, &words, 1);
+    while (texts->FindLine(ShowLine())) {
+        texts->Split(&words, 1);
         if (words.GetSize() < 2) continue;
         int id = TextKeyFromName(words[1]);
         if (id == leader_->id_) continue;

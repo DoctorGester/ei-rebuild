@@ -19,6 +19,7 @@
 #include "lib/stlp.h"
 
 class CMappedResource;
+namespace console { class CStringArray; }
 
 // An archive the texts are looked up in: the pair<string, CMappedResource*> of the archive list.
 struct TextSource {
@@ -55,9 +56,23 @@ public:
     // when the item's +0x48 is above 1) applied to the kind and the name.
     BOOL FormatItemName(CItem* item, mfc::CString* out);
 
-    // Not rewritten (other range; forwarders).
-    BOOL ReadLine(mfc::CString* out, BOOL advance);    // 004DF8D0: up to CR/LF, skips "##" lines
-    BOOL ReadToHash(mfc::CString* out, BOOL advance);  // 004DFB80: up to '#'
+    // The line reader (text_reader.cpp).
+    // 004DEFC0. Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
+    // start. True when found and not empty.
+    BOOL Open(const char* key);
+    // 004DF8D0. The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
+    // then moves to the next line that is not a comment. 0 when the cursor is at the end.
+    BOOL ReadLine(mfc::CString* out, BOOL advance);
+    // 004DFB80. The text up to the next '#' into `out`; with `advance` the cursor moves there.
+    BOOL ReadToHash(mfc::CString* out, BOOL advance);
+    // 004DFCB0. The current line's words (separated by spaces and tabs; a word still open when the
+    // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
+    // a comment. 0 when the cursor is at the end.
+    BOOL Split(console::CStringArray* words, BOOL advance);
+    // 004DF030. Moves the cursor to the line that starts with `key`: null finds the next "#..." header
+    // (not a "##" comment); one word compares the line's first word; several words (split at spaces)
+    // compare the line's words, lower-cased, with them. 1 when found, else 0 (cursor at the end).
+    BOOL FindLine(const char* key);
 
     // The archive list (text_sources.cpp): 004DEDB0 sources_.Add(path, 0) (RET 4), 004DEDD0
     // sources_.Remove(path) (RET 4), 004DED40 (vtable 0073F6F0 slot 3) sources_.Clear().

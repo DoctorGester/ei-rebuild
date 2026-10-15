@@ -37,7 +37,7 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     mfc::CString text;
     text.Format(kTipText, textId);
     CTextManager* texts = GameTexts();
-    if (TextOpen(texts, nullptr, text)) TextReadToHash(texts, nullptr, &text, 1);
+    if (texts->Open(text)) texts->ReadToHash(&text, 1);
     if (tip_) tip_->Delete();
     tip_ = NewTooltip(this, text, flag, extra);
 }

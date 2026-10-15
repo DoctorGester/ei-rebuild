@@ -10,7 +10,7 @@
 // 004A6DC0: both stocks hold the 8 base and 8 scroll levels given.
 static void (__fastcall* s_setLevels)(ClassTemplate*, void*, const float*, const float*);
 static void __fastcall SetLevelsVerify(ClassTemplate* t, void*, const float* base, const float* scroll) {
-    ClassTemplateSetLevels(t, nullptr, base, scroll);
+    t->SetLevels(base, scroll);
     bool same = std::memcmp(t->allowed.baseLevels, base, 32) == 0 && std::memcmp(t->allowed.scrollLevels, scroll, 32) == 0 &&
                 std::memcmp(t->magic.baseLevels, base, 32) == 0 && std::memcmp(t->magic.scrollLevels, scroll, 32) == 0;
     ei::verify::Check("ClassTemplateSetLevels", true, same, "levels copied to both stocks");

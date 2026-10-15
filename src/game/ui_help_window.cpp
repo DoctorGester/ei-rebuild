@@ -42,10 +42,10 @@ void ReadTutorText(CTextManager* texts, const mfc::CString& key, mfc::CString* t
     BOOL found;
     {
         mfc::CString section = mfc::CString(TutorSection()) + key;
-        found = TextOpen(texts, nullptr, section);
+        found = texts->Open(section);
     }
     if (!found) return;
-    TextReadToHash(texts, nullptr, text, 1);
+    texts->ReadToHash(text, 1);
     text->TrimRight(LineEnds());
 }
 
@@ -62,17 +62,17 @@ void CHelpWindow::Build() {
     BOOL found;
     {
         mfc::CString section = mfc::CString(TutorialSection()) + text_;
-        found = TextOpen(texts, nullptr, section);
+        found = texts->Open(section);
     }
     if (!found) {
         interface_->SetPendingValue(0);
         return;
     }
-    TextReadLine(texts, nullptr, &title_, 1);
+    texts->ReadLine(&title_, 1);
     mfc::CString line;
-    while (TextFindLine(texts, nullptr, ScreenLine())) {
+    while (texts->FindLine(ScreenLine())) {
         TextNextLine(texts);
-        TextReadLine(texts, nullptr, &line, 1);
+        texts->ReadLine(&line, 1);
         lines_.SetAtGrow(lines_.size, line);
     }
     if (lines_.size == 0) {

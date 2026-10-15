@@ -13,8 +13,6 @@ using namespace itemdb;
 
 #pragma warning(disable : 4740) // naked forwarders
 
-BOOL CTextManager::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
-__declspec(naked) BOOL CTextManager::ReadToHash(mfc::CString*, BOOL) EI_ORIGINAL(0x004DFB80)
 __declspec(naked) BOOL __fastcall ReplaceChar(mfc::CString*, char, char) EI_ORIGINAL(0x004DC400)
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x004DEAB0)
 // 004E15C0 (RET 4): allocates a node and copy-constructs the pair.
