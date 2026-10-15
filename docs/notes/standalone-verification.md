@@ -1639,3 +1639,35 @@ files, then reverting each constant); with the float the goldens are the same ag
 (main's last 138 runs: 0); goldens 54 the same, levers and ui_saveload_delete differ only in `#gobject` (SV7b1, as on
 main). No golden re-recorded. After merging main (SV7b1, SV7b4a's re-recorded goldens): 128 runs ALL PASS, 0 verify
 mismatches, all 56 goldens the same; `--standalone --golden` on the 44 scenarios with a vanilla golden: 44 the same.
+
+## SV5a: camp crafting, magic trap victims, AI modes, item info (2026-10-15)
+
+Four scenarios, each about 15-27 s, none with `speed`; goldens recorded on vanilla and Rebirth (each passed twice
+with the same digest). Reached, by `EI_COVER=hooks` (`coverage.py collect --add`, now 101 scenarios):
+
+| scenario | reaches |
+| --- | --- |
+| ui_camp_make | CCampPages::CanMakeSpell, CanMakeItem, DeconstructItem (and the spell deconstruct), CConstructorPage::DrawSpellMaker, CItemInfoPanel::DescribeBlueprint / DescribeMaterial / DescribeSpellRecord. Class-3 camp (`screen 5 3`), spell page (fire tab, rune tab, two runes, make, finished tab, deconstruct) and item page (instruction, materials, arrow, make, deconstruct). |
+| magic_traps_victims | MagicTrap::UpdateVictims. `# prepare: make_trap_mob.py --interval 0` writes zone2's seven traps with period 0 (the game's own are 15-150; only period 0 asks for newcomers each tick); two wolves enter trap 30004's circle. |
+| unit_cast_at | CUnitServer::OrderCastAt, AIBrain::CastAt (script `Cast(unit,x,y)`; the wolf casts fireball at points). The hero cannot be cast: healing at a point has no target and StartHealing dereferences it (the original crashes too). |
+| unit_ai_corpse | zone1 wolf 1804 sees a dead wolf, hears a blast and a fight (SeeCorpse logic, noise handlers). It reaches no listed function that was not reached before (see below) but adds AI-mode paths to the goldens. |
+
+Tool change: `prepare_scenario.prepare()` takes the tools folder and run_all passes the checkout's own (`# prepare:`
+tools used to resolve against the scheduler's checkout, i.e. main's, so a new option in a prepared tool needed a
+merge before the scenario could pass through `work.py test`).
+
+Not reached, with reasons:
+- CUnitServer::TryTame: charm costs far more mana than the hero's 56; the AI never chooses charm for a wolf. Needs a
+  high-mana caster (a unit with intelligence and the astral skill raised through script).
+- SuspectionMode::Execute / Enter / Leave: Enter never fires; the brain keeps the notices in the other modes.
+- LookAroundHook, SeeCorpseHook, AICallArray::Add: only the game's addresses count; our code calls the methods
+  directly (or inlined), so the cover INT3 never fires. SeeCorpse logic itself runs ("sees corpse" in the log).
+  SeeCorpseHook needs a controlled party member to die; `AddUnitUnderControl` causes that but trips the
+  `CUnit::SetPlayer` verify wrapper (ours-only PlayerOwnsUnit check).
+- PatrolPointArray::Add / SetAtGrow: no patrol unit was found in the zones; not investigated further.
+- CTrapObject::UpdateTrap: needs a trap object with a category-2 consumable; none found.
+- UseOnUnit with a potion (quick item category 8) fails the `CBattleScreenSetup::UseOnUnit` wrapper: the potion is
+  consumed synchronously, so the member does not nod. Scenario dropped.
+
+Suite: `work.py test SV5a --golden --jobs 4` and `--standalone --golden` on the four new scenarios: all pass, goldens
+the same (8 runs standalone, vanilla and Rebirth).

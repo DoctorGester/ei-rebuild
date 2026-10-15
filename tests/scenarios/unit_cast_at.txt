@@ -1,0 +1,25 @@
+# Casts at a point as script orders (SV5a: CUnitServer::OrderCastAt 00554D00 and AIBrain::CastAt
+# 005D7DA0 were reached by no scenario): the script command Cast(unit, x, y) has the unit cast its
+# first spell at the ground there. Zone1's wolf 1804 gets a fireball (as unit_ai_cast.txt; units with
+# a script id get no spell options, the spell itself is fine). The hero is left out: its first spell is
+# healing, which StartHealing casts on a target, and a cast at a point has none (the original crashes
+# there too). The hero is in god mode, the wolf casts at it and at a point of its own. No `speed`.
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GiveIntelligence(GetObject(1804),60)
+console @GiveSkill(GetObject(1804),"elemental",5)
+console @GiveUnitSpell(GetObject(1804),"fireball{e2}")
+console @Cast(GetObject(1804),Add(GetX(GetLeader()),4),GetY(GetLeader()))
+wait 2000
+console @Cast(GetObject(1804),GetX(GetObject(1804)),Add(GetY(GetObject(1804)),5))
+wait 3000
+check IsAlive(GetLeader())
+report
+quit
