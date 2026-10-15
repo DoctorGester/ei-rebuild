@@ -57,23 +57,25 @@ EI_REPLACE_METHOD(0x004D6940, CServerSpecificManager::DeletingDestruct);
 const char* CServerSpecificManager::GetClassName() { return reinterpret_cast<const char*>(kManagerClassName); }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 
+// Every object starts zeroed (operator_new_zeroed): CUnitServer's constructor leaves waitFrame (+0x93C),
+// which ResolveBlocker reads, and others the saves write (SV7d3, SV7b2).
 CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
     switch (type) {
     case kObject3DServer:
-        if (void* p = gamecrt::operator_new(0x20)) return Object3DServerConstruct(p);
+        if (void* p = gamecrt::operator_new_zeroed(0x20)) return Object3DServerConstruct(p);
         return nullptr;
     case kMapObjectServer:
-        if (void* p = gamecrt::operator_new(sizeof(CMapObjectServer)))
+        if (void* p = gamecrt::operator_new_zeroed(sizeof(CMapObjectServer)))
             return static_cast<CMapObjectServer*>(p)->Construct();
         return nullptr;
     case kUnitServer:
-        if (void* p = gamecrt::operator_new(0xB20)) return UnitServerConstruct(p);
+        if (void* p = gamecrt::operator_new_zeroed(0xB20)) return UnitServerConstruct(p);
         return nullptr;
     case kPlayerServer:
-        if (void* p = gamecrt::operator_new(0x5128)) return PlayerServerConstruct(p);
+        if (void* p = gamecrt::operator_new_zeroed(0x5128)) return PlayerServerConstruct(p);
         return nullptr;
     case kTorchObjectSpec: {
-        auto* spec = static_cast<CTorchObjectSpec*>(gamecrt::operator_new(sizeof(CTorchObjectSpec)));
+        auto* spec = static_cast<CTorchObjectSpec*>(gamecrt::operator_new_zeroed(sizeof(CTorchObjectSpec)));
         if (!spec) return nullptr;
         ei::SetVtable(spec, CEngineObject::kVtableAddress);
         spec->refCount_ = 0;

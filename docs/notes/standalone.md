@@ -1343,7 +1343,7 @@ the image is the host's malloc; a NaN there makes Less(x, x) true and a NaN pivo
 the list. Nothing else reads viewPosition.
 - Fix: the view position starts at zero, in ours (CObject3D::Construct) and in the original through a harness site
   (harness_leftovers.cpp: CMapObject::Construct's CALL 0050E2F2 of 00515BD0, its one caller, zeroes it after the
-  original's construction; EI_LEFTOVERS bit 10). The comparator is unchanged. The constructor's verify zeroes the
+  original's construction; EI_LEFTOVERS family bit 6 since SV7b2). The comparator is unchanged. The constructor's verify zeroes the
   object's +0x28 before comparing.
 - Check kept: `g_drawSortCheck` (world.h), called by DrawPass before each UnitOrderLess sort, installed by the verify
   build (verify_world_client.cpp, ours only, so also in the image, which has no verify wrappers): `DrawPass sort list`

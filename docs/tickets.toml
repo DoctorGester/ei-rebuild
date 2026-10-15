@@ -1085,6 +1085,19 @@ group = "verification"
 depends = ["SV4c"]
 note = "SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
 
+[[ticket]]
+id = "SV7b2a"
+title = "Save-only stack leftovers and chunk archive keys"
+group = "verification"
+depends = ["SV7b2"]
+note = "From SV7b2 (notes: SV7b2 / SV7d3 / SV7d4). savefile.py still leaves out: controller.queue.stepN.padding (BuildTransition 005516D0, BuildOrderSteps 00550100, BuildAttackSteps 0054F970 build stack AnimationSteps inline, no call to redirect; ours zero them), an arrow figure's hit.pad (DamageInfo +0x39, DeliverAttack 0054F450's stack copy), script areas.N.partN.pad (AddRect 004B1ED0 / AddRound 004B2070 stack parts), a sound effect's nameTail, the item stock's stackTail (ItemStock::SaveLists 0069BAC0), and scenario.sav's chunk archive identities (SaveObjectRef 0040A440 writes template / record / party addresses; Close iterates the pointer-keyed hash). None varied in SV7b2's passes. Options: patch the inline stores (byte patches, not call redirects) or accept them as rules; for the archive, number keys by first save and order Close's records by that number in both sides (no format change: the loader maps any key)."
+
+[[ticket]]
+id = "SV7d6"
+title = "savefile.py: saveb scenario.sav screen block decodes 0x12 bytes past its end"
+group = "verification"
+note = "From SV7b2: the non-golden scenarios frames_basic, render_cpuwindows and render_present (vanilla) leave harness_saves\\saveb\\scenario.sav whose screen block (CBattleScreenSetup::SaveState 00635080 through the save stream) savefile_scenario.py reads to 0x1fac where the block ends at 0x1f9a. Find the reader branch that a second save (or these screens' state) takes and fix it; needed before S20 records goldens for every scenario."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1330,6 +1343,14 @@ size = 0.5
 model = "sonnet"
 files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
 note = "Cause: not the port (N0c's per-game port is in; two batches of ui_mp_host, 4 games at once, all PASS). The scenario takes 36-49 s on a busy machine and 61-67 s when suites overlap, past the default 60 s limit (frames ~1 s each). Fix: timeout 120 in ui_mp_host.txt; no scheduler change."
+
+[[ticket]]
+id = "I13"
+title = "Read-before-write detector: trap the first read of never-written heap bytes"
+group = "harness"
+size = 1
+model = "opus"
+note = "From SV7b7 (4.5 h, ~140 batches, a 24-step bisection over heap block indices plus one false lead to find one uninitialised read). A harness mode that gives chosen fresh CRT blocks (by size, call site or block index) guard pages or a shadow 'written' bitmap with hardware/PAGE_GUARD traps, and logs the first read of a never-written byte with its EIP, the block's allocation call stack and offset. One run instead of a bisection; works for the original and ours. Keep it in the slim harness that survives S21 (goldens are recorded from the original)."
 
 [[ticket]]
 id = "T2f"

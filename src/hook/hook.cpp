@@ -237,7 +237,7 @@ struct HarnessPatch {
     std::size_t size;
     const char* what;
 };
-static HarnessPatch g_harnessPatches[64];
+static HarnessPatch g_harnessPatches[256];
 static int g_harnessPatchCount = 0;
 
 void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what) {
