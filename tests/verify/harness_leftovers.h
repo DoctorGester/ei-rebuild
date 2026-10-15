@@ -20,6 +20,12 @@
 // fills: the party members' and so the heroes' statistics). Left alone: the resets of blocks that
 // live in objects (CUnitServer::ResetController 00546480, the CMapObjectServer lifetime
 // 00515610..005157E0).
+//
+// Also (S17a) CObject3D::Construct 00515BD0 leaves the view position (+0x28), which the draw sorts
+// read for an object listed only for its shadow before it was ever in view (a NaN there makes
+// UnitOrderLess irreflexive and STLport's unguarded scans run off the list). Ours zeroes it; its one
+// caller, CMapObject::Construct's CALL at 0050E2F2, goes through a harness function that zeroes it
+// after the original's construction (EI_LEFTOVERS bit 10).
 
 namespace ei::verify::leftovers {
 

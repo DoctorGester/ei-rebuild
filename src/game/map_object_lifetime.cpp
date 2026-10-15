@@ -168,6 +168,11 @@ CObject3D* CObject3D::Construct() {
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
     std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));
+    // The original leaves the view position as the heap held it, and the draw sorts read it for an
+    // object listed only for its shadow before it was ever in view (a NaN there made UnitOrderLess
+    // irreflexive: S17a). It starts at zero here, and in the original through a harness patch
+    // (harness_leftovers.cpp).
+    std::memset(&viewPosition, 0, sizeof(viewPosition));
     return this;
 }
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
