@@ -825,3 +825,19 @@ the harness's RedirectCall / JumpTo / JumpFrom / capture CALL / countdown sites;
 a Rebirth site the rewrite does not implement, and, in a Rebirth launch only, a byte that differs outside every known
 site. Anything else (unknown start, short without padding, a second registration, thunk, dispatch, trampoline) is
 logged with " (unexpected)", counted, summed up in the log, and the harness report gets a FAILED line, so the run fails.
+
+## SV6a: zone_gz15h_tornado ran 1.6 times slower on Rebirth (2026-10-15)
+
+Same 2805 world ticks and 563 frames on both installs, but Rebirth lights 2.5 times as many terrain sectors
+(SectorData::Light 44198 calls against 17734; its map has more moving point lights), and every light call runs
+through the nested LightVertex / ShadeSun / AddDirectional verify wrappers: 88 million Check calls in the Rebirth run.
+EI_PROFILE=1 put about half of the main thread in ei::verify::Report, not in the lighting: it built a std::string
+and walked a std::map per check (and Check zeroed a 256-byte buffer). Report now finds its entry through a table keyed
+by the name literal's address (confirmed by comparing the text), Check/CheckNear leave the detail buffer unset.
+The wait of 150000 went from 88 s to 45-49 s on Rebirth (whole run 105 s -> 62-68 s, vanilla 65 s -> 42 s, 2 at once,
+profiled); the 120 s limit and the 150 s wait stay.
+
+The scenario reaches CEffectTornado (Launch, Tick, Reset) on Rebirth only, and not in every run: a strike needs open
+ground at a random point (about 3 % of the 64-tick weather updates, 44 in the wait), so runs with 72 to 90 s waited
+launched one in about half the cases and the 150 s wait is what makes it likely. Vanilla did not launch one in any run.
+Shortening the wait would lose the coverage; no golden is recorded for it (the strikes differ between runs).
