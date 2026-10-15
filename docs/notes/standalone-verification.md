@@ -731,7 +731,7 @@ modes that only zone units take (SV5a).
   `CubicSegment__Evaluate.vec` (256 records) now has data. SetBSpline's check stays without data.
 - UnitStats::ReduceKind1: recorded from the new unit_ai_heal (one distinct call).
 - MultiplyByConjugate: only MakeFrameRelative calls it, inside the fake unit (class 0x39, .amf) scene
-  loader, which no scenario reaches (SV5c).
+  loader: dead, see SV5c (its vector check is gone).
 - LockKey::Opens: only Lever::KeyOpens and Lever::ApplyKey call it, a quest item used on a locked
   lever from the quick item panel (SV5b).
 
@@ -1760,6 +1760,33 @@ Vectors: `LockKey::Opens` 8 records (tests/vectors/data/stats), replayed with 0 
 Goldens: not recorded. The original and ours each repeat, but ours differs from the original at update 60 in
 `isaac.count` and zone1's idle wolf obj1936 `ai.standCooldown` (ours took 250, 11 and 180 draws against the original's
 57 in three runs: the SV1j family, ours flipping), so `golden.py record` refuses it.
+
+
+## SV5c: the fake unit and its scene loader are dead (2026-10-15)
+
+**Question.** Does shipped data ever make a class 0x39 map object (CFakeUnit) and so reach the scene loader
+(LoadFakeUnitScene, SceneInfo::Load, BuildSkeleton, BuildBone, MakeFrameRelative, the meshes, normals, weld, registry,
+the skin rewind) and MultiplyByConjugate? **No.**
+
+**Evidence** (read-only, scratch scripts under build\SV5c; the .res and .mob formats as tools/make_test_mod.py and
+tools/make_trap_mob.py describe them):
+- Class ids reach the factory 00512730 from two data sources: the models of units.udb (PrototypeObjectClass
+  00513240, field 1) and a .mob record's field 0xB003 (CWorldServer::CreateObject 005927C0). Every model in every
+  database.res / databaselmp.res of the vanilla install, the Rebirth install and its mods (AllHeroes, IronMod,
+  LostInAstral) and the add-on install is 0x32-0x34. The 438 .mob files hold classes 0x32-0x37, 0x3A, 0x3B and 0x3C
+  only (two trap records of Rebirth mods do not parse as chunks, and are traps). game.exe has no immediate 0x39
+  that reaches a factory call.
+- The loader's only entry is CFakeUnit virtual slot 62 (00446BA0 -> 00446C10): game.exe has no `call [reg+0xF8]`
+  or `jmp [reg+0xF8]` anywhere and no direct call of 00446BA0. Even a class 0x39 object would not load a scene.
+- No .amf exists in any archive (83 .res / .mmp scanned) or folder of the three installs; the ".amf" string
+  (00784338) belongs to the loader.
+- The callers of the 35 functions (found in the unpatched exe): the factory's case 0x39, CFakeUnit's vtable and each
+  other, plus the exception unwind funclet of the skin (007132B8).
+
+**Result.** The 35 functions are `dead` in tests/coverage/unreachable.txt (CFakeUnit's constructor, destructor and
+vtable slots, the scene loader and its callees, the skin's lifetime and rewind, Quaternion::PreMultiplyConjugate and
+MultiplyByConjugate). MultiplyByConjugate's vector family (record, replay, ConjugateCall) was removed: it had no
+source and could not get one from the game. Its verify wrapper stays (ours against the original), never reached.
 
 ## SV7b7: a particle source's emission point read before it is set (2026-10-15)
 

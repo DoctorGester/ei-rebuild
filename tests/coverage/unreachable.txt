@@ -10,3 +10,50 @@
 0067E4E0 startup the footprint cell set (FootprintSetStartupCheck)
 0040E3D0 dead its only caller, 0040DEB0, is not referenced anywhere in game.exe
 0040E440 dead its only caller is 0040DEB0; the byte-for-byte copy 004E5660 runs ours too, so it shows as reached
+#
+# The fake unit (CFakeUnit, class 0x39, vtable 0073BFE8) and its scene loader (SV5c). Dead: no shipped data makes a
+# class 0x39 object, and the loader's only entry is virtual slot 62 (00446BA0), which nothing calls.
+#   - class ids come from the units database (PrototypeObjectClass 00513240: the models' field 1) and a .mob record's
+#     field 0xB003 (CWorldServer::CreateObject 005927C0); game.exe passes no immediate 0x39 to a factory (00512730).
+#     Every model of units.udb in each database.res / databaselmp.res of the vanilla, Rebirth (and its mods) and
+#     add-on installs is 0x32-0x34, and the .mob files (438, two mod trap records unparsed) hold only 0x32-0x37,
+#     0x3A, 0x3B and 0x3C.
+#   - game.exe has no `call [reg+0xF8]` (slot 62) at all, no direct call of 00446BA0, and 00446C10 is called only by
+#     00446BA0; no archive or folder of any install holds a .amf (the loader's ".amf" at 00784338 is its only use).
+#   - the rest is reached only from these (callers checked in game.exe): the factory's case 0x39 (005128AD),
+#     CFakeUnit's vtable slots and each other.
+004466D0 dead CFakeUnit constructor: the factory 00512730 case 0x39 only; no data makes a class 0x39 object
+00446910 dead CFakeUnit destructor: called by its scalar deleting destructor 004468F0 (vtable slot 0) only; no data makes a class 0x39 object
+004468D0 dead CFakeUnit vtable slot (FakeUnitGetClassName); reached only through a class 0x39 object
+004468E0 dead CFakeUnit vtable slot (FakeUnitClassId); reached only through a class 0x39 object
+004468F0 dead CFakeUnit vtable slot (FakeUnitDelete); reached only through a class 0x39 object
+00446AF0 dead CFakeUnit vtable slot (FakeUnitCreate); reached only through a class 0x39 object
+00446B20 dead CFakeUnit vtable slot (FakeUnitDestroy); reached only through a class 0x39 object
+00446BA0 dead CFakeUnit vtable slot (FakeUnitLoadScene); reached only through a class 0x39 object; slot 62, no call [reg+0xF8] in game.exe
+00446C10 dead scene loader (LoadFakeUnitScene): reached only from the fake unit and its loader
+00448A40 dead scene loader (BuildSkeleton): reached only from the fake unit and its loader
+00449030 dead scene loader (FindRootNode): reached only from the fake unit and its loader
+004491C0 dead scene loader (CopyRestPose): reached only from the fake unit and its loader
+00449240 dead scene loader (BuildRootBone): reached only from the fake unit and its loader
+004492F0 dead scene loader (BuildBone): reached only from the fake unit and its loader
+0044A2A0 dead scene loader (ParseMaterial): reached only from the fake unit and its loader
+0044B980 dead scene loader (LoadFigureRegistry): reached only from the fake unit and its loader
+0044C4A0 dead scene loader (WeldMeshVertices): reached only from the fake unit and its loader
+0044CFF0 dead scene loader (IndexMeshCorners): reached only from the fake unit and its loader
+0044DCF0 dead scene loader (ComputeMeshNormals): reached only from the fake unit and its loader
+0044E3B0 dead scene loader (PackMeshPositions): reached only from the fake unit and its loader
+0044E8A0 dead scene loader (ComputeMeshBounds): reached only from the fake unit and its loader
+0044EB60 dead scene loader (MakeFrameRelative): reached only from the fake unit and its loader
+00471B10 dead scene loader (SceneInfo::Load): reached only from the fake unit and its loader
+0049E870 dead scene loader (Quaternion::PreMultiplyConjugate): reached only from the fake unit and its loader
+0049E950 dead scene loader (MultiplyByConjugate): reached only from the fake unit and its loader (MakeFrameRelative); its vector check was removed
+00507C50 dead scene loader (CAnimationNode::AttachMeshes): reached only from the fake unit and its loader
+00507E80 dead scene loader (CAnimationNode::ResetPose): reached only from the fake unit and its loader
+005081C0 dead scene loader (CAnimationNode::Rewind): reached only from the fake unit and its loader
+00508700 dead scene loader (SceneSkin::Construct): reached only from the fake unit and its loader
+005087B0 dead scene loader (SceneSkin::Destruct): reached only from the fake unit and its loader
+00508870 dead scene loader (SceneSkin::Create): reached only from the fake unit and its loader
+005088E0 dead scene loader (SceneSkin::Clear): reached only from the fake unit and its loader
+00508930 dead scene loader (SceneSkin::SetOwner): reached only from the fake unit and its loader
+00508990 dead scene loader (SceneSkin::Rewind): reached only from the fake unit and its loader
+00508BF0 dead scene loader (SceneSkin::BindMeshes): reached only from the fake unit and its loader
