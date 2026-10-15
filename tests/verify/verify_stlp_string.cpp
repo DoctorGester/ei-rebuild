@@ -11,6 +11,13 @@
 // A start-up check runs the originals against ours: two strings driven by one random script
 // (construct, assign, append, erase, reserve, push_back, substr, copy), after every step the same
 // bytes, length and capacity.
+// S12g: _M_allocate_block builds (the original first, its block freed); operator== is pure;
+// both operator+ run ours only per call (two blocks each: a temporary and the result, which the
+// original's run could not hand back in order) and against the original in a start-up check;
+// __stl_throw_out_of_range is driven by that start-up check too (no scenario takes a substr past
+// the end): each throw caught by a filter that keeps the thrown object's 0x10C bytes and its throw
+// information, the two compared, and the temporary string's block back on its free list after the
+// unwind.
 #include "verify.h"
 
 #include "stlp_list_verify.h"
@@ -21,6 +28,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+
+#define NOMINMAX
+#include <windows.h>
 
 namespace {
 
@@ -250,6 +260,46 @@ struct StringCheck {
         ei::verify::Report(Name<A>("stlp::basic_string::`scalar deleting destructor'"), result == self, "");
         return result;
     }
+
+    // --- S12g ---
+    static bool __fastcall Equals(const stlp::string* a, const stlp::string* b) {
+        bool theirs = Original<decltype(&StringAbi::Equals)>()(a, b);
+        bool ours = StringAbi::Equals(a, b);
+        ei::verify::Check(Name<A>("stlp::operator==(string, string)"), theirs, ours, "");
+        return ours;
+    }
+    static void __fastcall AllocateBlock(stlp::string* self, void*, std::size_t n) {
+        Built("stlp::_String_base::_M_allocate_block", self, [&](bool orig) {
+            (orig ? Original<decltype(&StringAbi::AllocateBlock)>() : &StringAbi::AllocateBlock)(self, nullptr, n);
+        }, false);
+    }
+    // operator+: `out` holds the head's bytes then the tail's, in a block of exactly size + 1.
+    static void Joined(const char* kind, const stlp::string& out, const char* head, std::size_t headSize,
+                       const char* tail, std::size_t tailSize) {
+        bool ok = Size(out) == headSize + tailSize && Capacity(out) == headSize + tailSize + 1 &&
+                  std::memcmp(StringAbi::Start(out), head, headSize) == 0 &&
+                  std::memcmp(StringAbi::Start(out) + headSize, tail, tailSize) == 0 &&
+                  StringAbi::Start(out)[headSize + tailSize] == 0;
+        char detail[64] = "";
+        if (!ok)
+            std::snprintf(detail, sizeof(detail), "%u + %u bytes: size %u, capacity %u", static_cast<unsigned>(headSize),
+                          static_cast<unsigned>(tailSize), static_cast<unsigned>(Size(out)),
+                          static_cast<unsigned>(Capacity(out)));
+        ei::verify::Report(Name<A>(kind), ok, detail);
+    }
+    static stlp::string* __fastcall PlusText(stlp::string* out, const stlp::string* a, const char* text) {
+        const char* head = StringAbi::Start(*a);
+        const std::size_t headSize = Size(*a);
+        const std::size_t tailSize = std::strlen(text);
+        stlp::string* result = StringAbi::PlusText(out, a, text);
+        Joined("stlp::operator+(string, const char*)", *out, head, headSize, text, tailSize);
+        return result;
+    }
+    static stlp::string* __fastcall PlusString(stlp::string* out, const stlp::string* a, const stlp::string* b) {
+        stlp::string* result = StringAbi::PlusString(out, a, b);
+        Joined("stlp::operator+(string, string)", *out, StringAbi::Start(*a), Size(*a), StringAbi::Start(*b), Size(*b));
+        return result;
+    }
 };
 
 // --- Start-up check -----------------------------------------------------------------------------
@@ -366,9 +416,117 @@ void StringStartupCheck() {
     ei::verify::Report("stlp::basic_string start-up (original against ours)", failedStep < 0, detail);
 }
 
+// --- S12g: operator+, operator==, _M_allocate_block and the out_of_range throw ----------------------
+
+// What a throw left: the thrown object's bytes and its throw information (MSVC's C++ exception code
+// 0xE06D7363; ExceptionInformation[1] the object, [2] the throw information).
+struct Thrown {
+    bool caught = false;
+    const void* info = nullptr;
+    unsigned char object[0x10C] = {};
+};
+
+int KeepThrown(const EXCEPTION_POINTERS* pointers, Thrown* out) {
+    const EXCEPTION_RECORD* record = pointers->ExceptionRecord;
+    if (record->ExceptionCode != 0xE06D7363 || record->NumberParameters < 3) return EXCEPTION_CONTINUE_SEARCH;
+    out->caught = true;
+    out->info = reinterpret_cast<const void*>(record->ExceptionInformation[2]);
+    std::memcpy(out->object, reinterpret_cast<const void*>(record->ExceptionInformation[1]), sizeof(out->object));
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+// No C++ objects in this frame (__try): the frames in between are unwound by their own handlers.
+void CatchThrow(void(__fastcall* thrower)(), Thrown* out) {
+    __try {
+        thrower();
+    } __except (KeepThrown(GetExceptionInformation(), out)) {
+    }
+}
+
+bool SameThrow(const Thrown& theirs, const Thrown& ours) {
+    return theirs.caught && ours.caught && theirs.info == ours.info &&
+           std::memcmp(theirs.object, ours.object, sizeof(theirs.object)) == 0;
+}
+
+void(__fastcall* s_throwOutOfRange)();
+
+// 004410A0: when the game takes it, both throws are caught and compared first, then ours throws for
+// the game.
+[[noreturn]] void __fastcall ThrowOutOfRangeVerify() {
+    Thrown theirs;
+    Thrown ours;
+    CatchThrow(s_throwOutOfRange, &theirs);
+    CatchThrow(&stlp::ThrowOutOfRange, &ours);
+    ei::verify::Report("stlp::__stl_throw_out_of_range 004410A0", SameThrow(theirs, ours), "");
+    stlp::ThrowOutOfRange();
+}
+
+void StringJoinStartupCheck() {
+    const auto plusText = OriginalOf<0x00427D60>(&StringAbi::PlusText);
+    const auto plusString = OriginalOf<0x00427E80>(&StringAbi::PlusString);
+    const auto equals = OriginalOf<0x00427FA0>(&StringAbi::Equals);
+    const auto allocateBlock = OriginalOf<0x00424E40>(&StringAbi::AllocateBlock);
+    static const char* const kTexts[] = {"", "a", "basic_string", "the quick brown fox jumps over the lazy dog"};
+    const char allocator = 0;
+    alignas(4) unsigned char storage[4][sizeof(stlp::string)];
+    auto* a = reinterpret_cast<stlp::string*>(storage[0]);
+    auto* b = reinterpret_cast<stlp::string*>(storage[1]);
+    auto* theirs = reinterpret_cast<stlp::string*>(storage[2]);
+    auto* ours = reinterpret_cast<stlp::string*>(storage[3]);
+    int failed = -1;
+    for (int i = 0; i < 16; ++i) {
+        StringAbi::ConstructFromText(a, nullptr, kTexts[i / 4], &allocator);
+        StringAbi::ConstructFromText(b, nullptr, kTexts[i % 4], &allocator);
+        for (int op = 0; op < 2; ++op) {
+            if (op == 0) {
+                plusText(theirs, a, kTexts[i % 4]);
+                StringAbi::PlusText(ours, a, kTexts[i % 4]);
+            } else {
+                plusString(theirs, a, b);
+                StringAbi::PlusString(ours, a, b);
+            }
+            bool same = State::Of(*theirs).SameText(State::Of(*ours)) && equals(theirs, ours) &&
+                        StringAbi::Equals(theirs, ours) && StringAbi::Equals(a, b) == equals(a, b);
+            if (!same && failed < 0) failed = i * 2 + op;
+            Release(theirs);
+            Release(ours);
+        }
+        Release(a);
+        Release(b);
+    }
+    for (std::size_t n : {std::size_t(0), std::size_t(1), std::size_t(24)}) {
+        allocateBlock(theirs, nullptr, n);
+        StringAbi::AllocateBlock(ours, nullptr, n);
+        bool same = State::Of(*theirs, false).SameText(State::Of(*ours, false)) && Size(*ours) == 0 &&
+                    (n == 0) == (StringAbi::Start(*ours) == nullptr);
+        if (!same && failed < 0) failed = 100 + static_cast<int>(n);
+        Release(theirs);
+        Release(ours);
+    }
+    char detail[32] = "";
+    if (failed >= 0) std::snprintf(detail, sizeof(detail), "case %d", failed);
+    ei::verify::Report("stlp::basic_string operator+ / == / _M_allocate_block start-up (original against ours)",
+                       failed < 0, detail);
+
+    // The temporary string's block is freed as each throw unwinds: the free list's top as before.
+    void** list = stlp_verify::FreeList(sizeof("basic_string"));
+    void* top = *list;
+    Thrown expected;
+    Thrown actual;
+    CatchThrow(s_throwOutOfRange, &expected);
+    bool unwound = *list == top;
+    CatchThrow(&stlp::ThrowOutOfRange, &actual);
+    unwound = unwound && *list == top;
+    char where[64] = "";
+    if (!unwound) std::snprintf(where, sizeof(where), "the free list's top %p, was %p", *list, top);
+    ei::verify::Report("stlp::__stl_throw_out_of_range start-up (original against ours)",
+                       SameThrow(expected, actual) && unwound, where);
+}
+
 } // namespace
 
 EI_STARTUP_CHECK(StringStartupCheck);
+EI_STARTUP_CHECK(StringJoinStartupCheck);
 
 EI_VERIFY(0x00428DF0, StringCheck<0x00428DF0>::RangeInitialize, 5, StringCheck<0x00428DF0>::original);
 EI_VERIFY(0x00428F10, StringCheck<0x00428F10>::RangeInitialize, 5, StringCheck<0x00428F10>::original);
@@ -396,3 +554,10 @@ EI_VERIFY(0x0069BF10, StringCheck<0x0069BF10>::PushBack, 6, StringCheck<0x0069BF
 EI_VERIFY(0x00445780, StringCheck<0x00445780>::Less, 6, StringCheck<0x00445780>::original);
 EI_VERIFY(0x00445810, StringCheck<0x00445810>::Compare, 6, StringCheck<0x00445810>::original);
 EI_VERIFY(0x004DDC90, StringCheck<0x004DDC90>::DeletingDestructor, 0, StringCheck<0x004DDC90>::original);
+// S12g. push ecx; push ebp; mov ebp,[esp+0xC] (6 bytes); push -1; push imm32 (7); mov eax,[edx+4];
+// push esi; mov esi,[ecx] (6).
+EI_VERIFY(0x00424E40, StringCheck<0x00424E40>::AllocateBlock, 6, StringCheck<0x00424E40>::original);
+EI_VERIFY(0x00427D60, StringCheck<0x00427D60>::PlusText, 7, StringCheck<0x00427D60>::original);
+EI_VERIFY(0x00427E80, StringCheck<0x00427E80>::PlusString, 7, StringCheck<0x00427E80>::original);
+EI_VERIFY(0x00427FA0, StringCheck<0x00427FA0>::Equals, 6, StringCheck<0x00427FA0>::original);
+EI_VERIFY(0x004410A0, ThrowOutOfRangeVerify, 7, s_throwOutOfRange);
