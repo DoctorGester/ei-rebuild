@@ -96,6 +96,9 @@ struct QuestDatabase {
     // 006AE0F0 (database_construct.cpp; the static initialiser 006ADF10). Both vectors empty, both
     // indexes with 100 buckets (193). Returns this.
     QuestDatabase* Construct();
+    // 006ADF40 (database_destruct.cpp, S3c; the exit function 006ADF30). The members from the
+    // last: each index's nodes and buckets, then its records and their storage.
+    void Destruct();
 
     stlp::vector<QuestRecord> quests;   // +0x00
     QuestIndex questsByName;            // +0x0C

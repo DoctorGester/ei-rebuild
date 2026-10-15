@@ -40,7 +40,7 @@ static WinThread* __fastcall ConstructCheck(WinThread* self, void*, mfc::impl::T
     Check("CWinThread::CWinThread", true,
           result == self && self->base.vtable == WinThread::Vtable() && self->threadProc == procedure &&
               self->threadParams == parameter && self->autoDelete == TRUE && self->thread == nullptr &&
-              self->base.dwRef == 1,
+              self->base.refCount == 1,
           "");
     return result;
 }
@@ -56,6 +56,10 @@ UINT __cdecl TestProcedure(void* parameter) {
 }
 
 void ThreadStartupCheck() {
+    WinThread scratch;
+    std::memset(&scratch, 0xCD, sizeof(scratch));
+    CommonConstructCheck(&scratch);   // ours runs it directly from the constructor
+
     int marker = 0;
     WinThread* thread = mfc::impl::AfxBeginThread(&TestProcedure, &marker, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED,
                                                   nullptr);

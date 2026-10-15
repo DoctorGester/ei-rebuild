@@ -212,6 +212,24 @@ and random digit strings): 0 mismatches. Full suite (128 runs): 0 mismatches, on
 zone_gz15h_tornado rebirth timeout; fprintf / printf are not reached (debug output). Follow-up: S4a1
 (a function-vector family for the conversions).
 
+**S4a1 (2026-10-15): function vectors for the conversions.** In the "crt" family (tests/vectors/
+crt_format_vectors.h, record_crt_format.cpp, replay_crt_format.cpp): the fixture "@CrtFormatLocale" (the
+decimal point 00797FE8 and _pctype's class words for 0..255, taken at the first call after the game set
+LC_CTYPE; a call under another locale is not recorded), "vsprintf" (sprintf's calls too: both run the
+original _output 006F17D4 on an unbounded string FILE, no trampolines) and "atof" (trampoline, 6 bytes).
+The recorder walks the format as _output does (its __lookuptable read from 007476D0) and stores the
+arguments read, in order (int, __int64, the double's bits, a %s text up to the precision, null); the
+replay lays them out as an x86 va_list. Not recorded: %n, %Z, wide text, outputs over 4 KB, and calls
+whose output overlaps the format or a text argument. crt_format.cpp now reads the locale through
+GameData and links into ei_vectors (its tolower for _forcdecpt answers from "@GameCrtCtype"; hook_stub's
+Standalone() is true there, so WideToBytes leaves the game CRT's errno alone). In record mode the
+start-up battery's atof part is skipped (the recorder holds 006E911A, the verify wrapper has no
+trampoline). Recorded from ui_hero_stats, ui_hud, items, ui_trade_hold, ui_camp, combat, spells_cast and
+ui_main_menu (vanilla): vsprintf 258 records (846 distinct of 1,705 kept per run; 58 with a float: %g,
+%.6g, %.1f, %*.*f, %f), atof 200 (220 distinct, all plain decimals: the game data has no exponents),
+19 KB in all; every record replays the same. Corrupted copies (one byte of a %.6g output, one bit of an
+atof result, the decimal point) fail.
+
 **S4b (2026-10-15).** Image only (`EI_REPLACE_STANDALONE`; the hook build keeps the exe's FILE table,
 descriptors and heap, which MFC's CStdioFile shares). Heap (crt.cpp): realloc 006ED69A, calloc 006F0317
 (count * size unchecked, as VC6), _msize 006EEC7B, _strdup 006EEC50 on the host heap, retried through the
@@ -366,6 +384,34 @@ and ui_mp_host, both installs. The image then lacks 25 call targets, all library
 WSAStartup thunk 006E6106; S11 hashtables 004DC830, 0066B320; S12 STLport 00455E50, 004ED540, 0056A410,
 005E0A90. The world constructors also call GridAllocate 00572820 / 005728D0, CStringArray 006FE925 and
 CString::operator= 00700AF9 at their addresses.
+
+**S3c (2026-10-15).** The game-side callees of the exit functions. The worlds' destructors (00561B00,
+0058AAD0) were S13a's. The five database destructors (src/game/database_destruct.cpp): the map
+database 0045E6F0 (the maps' array through gamearrays::ZoneRecords, then the allods': each allod's
+CDWordArray of map indices and its six CStrings from the last; AllodRecord now declares them), the
+spell tables 00684390 (SpellDatabase::Reset now calls it, then Construct), quests 006ADF40, prints
+006D00E0 and acks 006D70B0 (each table's index hash_map::Destroy, then its records through the
+record_vectors.h policy, last member first). Library instantiations nobody forwarded, registered
+where their families live: ~vector of pointers 0056E800 (the eleven frame lists) / 0069BE20 (the
+item stock's candidates) as Vector4::DestroyBase (stlp_vector.cpp: ~vector with ~_Vector_base
+inlined); ~list 004584E0 (the protection check list, bytes) / 004F0520 (the DirectDraw drivers:
+description, then name) as stlp::ListAbi<T>::Destruct (static_lists.cpp); the CArray destructors
+005BF870 (the spiral radius tree's keys, CArray<float>) / 005C4490 (the path smoother's node pool,
+vtable 0073FE34, SmoothNodeArrayClass in game_arrays.h) as ArrayHeader<Class>::Destruct
+(game_arrays.cpp). The six without a Ghidra function have rows in extra_function_sizes.csv. Checks
+(ours only, tests/verify/verify_exit_destructors.cpp, the vectors in verify_stlp_vector.cpp): the
+shape before; after, the indexes' counts zero, the arrays' vtables back, a list's sentinel on top
+of its free list. They run at exit, after harness_report.txt: their counts are in ei_hook.log.
+Group 2, the other game-side exit callees the standalone check listed (Ghidra has their sizes):
+CArray destructors 00498E80 (particle draw order), 005C18E0 (spiral offsets), 004C9DB0 (the script
+quest's objectives, gamearrays::Objectives); vectors 004A8C60 / 004A8D00 / 004A8D50 (pointers) and
+004A8CB0 (16-byte entries: the item stock's scratch vectors), 00421260 (vector<stlp::string>, the
+quest files and folders), 00583920 (the zone table, recordvec::ZoneTableVector); the deferred unit
+list 0056DEF0 (SectorListDestruct: each object released) and the AI event pool's CList 005CDBA0
+(AIEventPoolDestruct). Left: the console's command maps 005DC080 (a tree, S12a) and the MFC
+internals (S3d): 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48 (CThreadLocal / CProcessLocal
+destructors, jmps to 0070CA59 / 0070CAD2), 0070E181 (AfxDeleteObject of the handle at +0x50 of
+007C90C8), 006E690F, 006E695C, 006E6B30, 006E6B7D (base vtable stores) and 00704FE3.
 
 **S9 (2026-10-15).** STLport `list<T>` (src/lib/stlp_list.h, stlp_list.cpp): one body per member,
 `ListAbi<T, Policy>` shims with the instantiations' calling conventions, the element copy / destroy
@@ -653,6 +699,143 @@ SetBkMode / MoveTo / LineTo / FillSolidRect. Checks: pure functions against the 
 CFileFind getters, CTime, CFile Read / Open / lengths on a twin or read twice, CStdioFile line
 reads read twice), the rest ours only; start-up checks throw each exception, run files through a
 temporary folder and an archive round trip with a 16-byte buffer. Left: S8a.
+
+**S8a (2026-10-15).** MFC's handle maps and the GDI objects, 35 addresses (size rows added; 0070AB1A,
+0070BFD7 and 0070C028 have no Ghidra function: decoded sizes). src/lib/mfc_handle_map: CMapPtrToPtr
+(constructor, destructors, InitHashTable, RemoveAll, NewAssoc, FreeAssoc (the last one empties the
+map), GetAssocAt, GetValueAt, operator[], RemoveKey; its association has no hash field, unlike
+CMap's), CHandleMap's constructor and FromHandle (an unknown handle gets a temporary object of the
+map's class under AfxCriticalNewHandler, rethrown after the handler is put back),
+CRuntimeClass::CreateObject (a CException on the way is deleted, null returned), AfxSetNewHandler
+(_afxNewHandler 00796E14); mfc_exception: AfxThrowMemoryException / AfxThrowResourceException (the
+static objects 007C8DE8 / 007C8C58). mfc_gdi: CDC's constructor (CDC is 0x10 bytes: m_bPrinting),
+CDC::FromHandle, SelectObject (00708F5A for CPen*, 00708FE6 = slot 10 for CFont*, one body),
+SetTextColor (slot 12), DrawText (slot 26), CGdiObject FromHandle / Attach / Detach / DeleteObject,
+CPen(style, width, colour), CFont::CreatePointFont / CreatePointFontIndirect, and the create functions
+of CTempDC (0070BFD7, fixed allocator 007C8D18, vtable 007463E4) and CTempGdiObject (0070C028,
+007C8CF0, 0074645C). The maps are the module thread state's: the hook build keeps the original's
+afxMapHDC / afxMapHGDIOBJ (our code calls their addresses), the image registers its own
+(`EI_REPLACE_STANDALONE`, a `thread_local` map per thread, never freed) and AfxCriticalNewHandler
+(no CWinThread, so no safety pool: it throws a CMemoryException). The game has no CWinApp, so the
+temporary maps are never emptied (no OnIdle): every distinct surface DC leaves a CTempDC behind, in
+the original as here. Checks (tests/verify/verify_mfc_handle_map.cpp, verify_mfc_gdi.cpp):
+GetAssocAt / GetValueAt and CDC's constructor against the original; the point fonts run the original
+into a scratch CFont and compare the LOGFONTs; the rest ours only against the original's maps (Attach
+puts the object in the permanent map, Detach takes it out, FromHandle's object carries the handle) and
+the DC's state (current object, text colour); a start-up check runs 4,000 random map operations
+through the originals and ours side by side (every bucket chain compared after each), builds a handle
+map both ways, makes temporary and permanent objects in ours, builds the image's map of GDI objects and
+throws both static exceptions. smoke, console, ui_main_menu, ui_saveload(_delete), both installs: 0
+mismatches (SelectObject(CFont*) 2.7k, CDC::FromHandle 1.4k, DrawText 1.1k, NewAssoc 2k calls in
+console). The image installs all five image-only registrations; `--standalone` boot still stops at
+005AF580. Left: S8b (resource strings, the exceptions' error messages and ReportError, CFile's name
+slots 4-6; they need the module state's resource handle and game.exe's string table in the image).
+
+**S6a (2026-10-15).** The CArray / CList / CMap functions only the exe's vtables point at, 400
+addresses (src/lib/mfc_slots.*, game-element ones in src/game/game_slots.*). Scalar deleting
+destructors (slot 1) are one template, `ScalarDelete<&Destruct>`, over each instantiation's
+destructor (S6 / S7 policies; new ones for elements destroyed through their vtable, aligned blocks
+and CStrings at fixed offsets); the four exception classes' destructors are jumps to std::exception's.
+Serialize (slot 2) is afxtempl's with the default SerializeElements (each element's raw bytes,
+whatever it holds) over S8's CArchive: `SerializeCArray / SerializeCList / SerializeCMap<Abi>`; the
+element policy must be the one the instantiation's inlined SetSize / NewNode uses, which is not always
+its destructor's (00450570 builds bone-link arrays its destructor deletes through slot 1). Checks:
+destructors ours only (vtable left, header emptied, slot owner); every Serialize at start-up next to
+the original (stolen bytes) on memory archives: the stored bytes, and loads into empty, growing and
+shrinking objects. No suite scenario calls a Serialize. Left: S6c (33 Serialize whose elements are
+counted references or script records, about 20 destructors).
+
+**S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
+`TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
+the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a
+link mesh's part headers and ranges, the link loader's mesh cache (a multimap of counted
+references: `equal_range`, `insert_equal`), the item screens' model and texture caches (two copies
+of every member), the console's command maps and the interface's help topics (CString keys:
+`map`'s third argument is now the key order, `stlp::CStringLess` is `_mbscmp < 0`,
+stlp_tree_cstring.h), the "pers" texts and the global map's arrivals; 213 addresses, plus the four
+connection maps' destructors (00433710 ...) and the 0x30-byte list constructors 00478D50 / 00479150 /
+005F90E0 (library.csv calls them `_Rb_tree`; they build a list sentinel: stlp_list.cpp `List48`).
+`TreeElement` builds a pair from key and value (`Make`), so operator[] constructs its value in
+place and destroys the temporary once; `PairElement` destroys the value, then the key. New
+`TreeAbi` members: the pair's destructor and scalar deleting destructor, `_M_destroy_node`,
+`insert_equal`, `equal_range`; `TreeWordPairConstruct` (pair<dword, dword>). 004F4CD0
+(`LinkPartHeader()`, 0x50 bytes zeroed) and 005F8FC0 (the model cache's destructor in the item
+screens' unwinding: each model released, then the map) are plain functions. Six game-kind rows the
+tint-list map uses got library.csv rows (00482570 ... 004827C0). Checks
+(tests/verify/verify_library_trees.cpp, sharing tests/verify/stlp_tree_verify.h with the
+connection maps): the per-call wrappers as for S12 group 3, and a start-up script per map
+(4 x 400 steps through its registered originals - insert, hint insert, operator[], erase at a
+position, clear, destroy - and ours side by side; strings with high bytes, ASCII CStrings, lists by
+their elements, null references). Left in the ticket's ranges: 95 rows that are lists,
+hashtables, vectors, CArrays and unwind helpers (S12c).
+
+**S12b group 1 (2026-10-15).** STLport's sort internals moved from src/game/stl_sort.h to
+src/lib/stlp_algo.h (`stlp::Sort<T, Less>`: median of three returning a reference, the pivot copied
+once, unguarded partition and inserts, heap sort at depth 0, the final insertion sort), now for
+element types by value too. src/game/stl_sorts.cpp registers the sorts our code forwards to, 12
+addresses: the file chunks by index 0042A020 / 0042A150, CollectChanges's {object, priority} pairs
+by the object's address 0043F870 / 0043F9B0, the picking hits with DepthLess 00573740 / 00575BC0 /
+00576D40 (the original inlines the comparison in the scans; its sums only swap the first two terms,
+so `DepthLess::Less` serves), the battle screen's ids 0060B1E0 / 0064B750 (less<int>), the
+connection screen's server list by its sort key 0061EF60 / 0061F6F0 / 0061FB00 (keys 1-8 the column
+pairs, names by `_mbscmp`; copies only share the CStrings). Checks (tests/verify/verify_stl_sorts.cpp),
+all against the original: it sorts a copy, ours the range, the orders compared element by element
+(the original's recursion re-enters the wrapper); the unguarded insertion sorts copy from 16 before
+`first`; hits with a missing object or a non-finite depth go to the original alone (logged). The
+suite sorts short ranges only, so a start-up check sorts 300 random arrays of ids, pairs (equal
+objects, distinct priorities) and chunk pointers and 200 server lists (empty strings, keys 3-9)
+through the originals and ours, a quarter with depth limits that reach the heap sort. smoke,
+console, camera, combat, net_lobby, ui_mp_host: 0 mismatches. Their inner helpers (median,
+partition, heap, linear insert) are reached only from the replaced loops: dead in both builds. Not
+done: the objectives window's CString sort 0064F310 / 0064F9A0 / 0064FBD0 (its comparison builds
+strings and looks them up in the quest map 007C87B4, allocating on every call) and the save list's
+SaveEntry sort 00657DF0 / 00657F10 with copy_backward 00657D50 (its copies allocate CStringArrays).
+
+**S12b group 2.** STLport pair members (src/lib/stlp_pair.*, `PairAbi`), 10 addresses: the dword
+pairs' constructor 00407DE0 / 0040A9D0, pair<string, dword>(const string&, const dword&) 005729D0
+00689950 006BC140 0064F880 006A7710 (one body; 0064F880 is reached from the objectives window's
+quest sort, still the original's), pair<string, string>(const string&, const string&) 00445170
+(library.csv calls it the copy constructor), its destructor 00445040 (the second string first; the
+row's name is "unreviewed family") and scalar deleting destructor 004457F0. Checks
+(tests/verify/verify_stlp_pair.cpp): the dword pairs against the original into a scratch pair; the
+string pairs' constructors original first, its blocks back on their free lists (the last allocated
+first), then ours (same blocks, words, bytes, dword); the destructors ours only (the first string's
+pool block on top of its free list; 004457F0 starts with a CALL inside five bytes, so no trampoline).
+smoke, console, camera, combat, ui_objectives, ui_saveload, harness_digest with goldens: 14 the
+same, 0 mismatches; 0040A9D0, 00689950, 0064F880 and 004457F0 not reached. The full `--golden` suite: 128 runs pass
+(rebirth_flags vanilla's known first-run DistancePointPoint flake), 54 goldens the same; ui_widescreen_hud
+and ui_widescreen_more (rebirth) differ at world update 80 (cunit148 #place) with all 22 S12b addresses
+in disabled.txt too, so not from S12b. The sort start-up check skips itself when a sort is disabled
+(no trampoline). Left for S12d: the allocating sorts (objectives, save list), pair<string, list<T>>
+0069C1C0 and the unclassified container rows.
+
+**S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
+extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
+006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot
+(0070C71F), CThreadLocalObject's destructor (0070CA59 and the CThreadLocal<T> jmp thunks 0070CC2D /
+0070D5F9, registered at their own addresses), CProcessLocalObject's (0070CAD2; thunks 0070CE77,
+0070D61F, 0070DC48), AfxDeleteObject (0070AA54) and AUX_DATA (afxData 007C90C8): its constructor
+0070D1AA (a static initialiser's call target), destructor 0070E181 (the menu-dot bitmap),
+UpdateSysColors 00703E12, UpdateSysMetrics 00703E56 and the two scroll-metric helpers 0070D158 /
+0070D188 (cdecl on afxData in the original; ours take `this`, the same object). mfc_exception: the
+four simple exceptions' destructors (006E690F, 006E695C, 006E6B30, 006E6B7D: each stores its own
+vtable). mfc_window: CWnd's destructor 00704FE3 (the ticket's "CStdioFile-like" one: the four objects it
+skips are wndTop / wndBottom / wndTopMost / wndNoTopMost) and CCmdTarget's 00703EC8; CWnd::DestroyWindow
+007051A1 stays a forwarder (originals_library.h): no game window is a CWnd, the image reports it if
+reached. The locals hang off the original's state in the hook build; in the image nothing fills them
+(S8a's maps are thread_local), so the destructors find slot 0 / no object. Not registered:
+0070CD25 (another ~CThreadLocal thunk, no exit function calls it). Checks
+(tests/verify/verify_mfc_state.cpp): a start-up check runs FreeSlot, ~CProcessLocalObject,
+AfxDeleteObject (by the process's GDI object count: GetObjectType still typed deleted bitmaps), the
+exception destructors, ~CWnd and ~CCmdTarget on twins through the trampolines and ours, and AUX_DATA's
+constructor both ways (also against afxData without the metrics: InstallHooks makes the process DPI
+aware after the static initialiser ran); the exit wrappers check the slot freed, the object kept,
+CWnd's vtable and the control site. smoke, ui_main_menu, console, ui_saveload, both installs: 0
+mismatches. Seen, not caused here: on Rebirth the exit stops after the handle maps' ~CMapPtrToPtr
+(an access violation in Riched20.dll, or the game still running at the harness's 3 s limit); main's
+own runs end the same way (S3e). `--standalone`: the only exit callee without code left is 005DC080
+(S12a); the MFC constructors the static initialisers still call (the four exceptions', CWnd(HWND),
+0070B600, 0070DC4D, 00700674) are S3f. The boot still stops at 005AF580.
 
 ## 3. Runtime: MFC, STLport, CRT
 

@@ -75,13 +75,23 @@ inline RbNodeBase* Previous(RbNodeBase* n) {
 template <typename T>
 struct TreeElement {
     static void Copy(T* to, const T& from) { new (to) T(from); }
+    // pair(key, value) in place (e.g. 00445170): the key copied, then the value.
+    template <typename K, typename V>
+    static void Make(T* to, const K& key, const V& value) { new (to) T{key, value}; }
     static void Destroy(T* p) { p->~T(); }
 };
 
-// map<K, V> (and multimap): keys ordered by operator< (signed for int keys, unsigned for pointers
-// and unsigned keys, bytes for stlp::string). V is the mapped type; the node's value is the pair
+// The key order of a map: operator< (signed for int keys, unsigned for pointers and unsigned keys,
+// bytes for stlp::string). Keys without one (MFC's CString, compared with _mbscmp) get an order of
+// their own as map's third argument.
+template <typename K>
+struct TreeLess {
+    static bool Less(const K& a, const K& b) { return a < b; }
+};
+
+// map<K, V> (and multimap): keys ordered by L. V is the mapped type; the node's value is the pair
 // {first, second}.
-template <typename K, typename V>
+template <typename K, typename V, typename L = TreeLess<K>>
 class map {
 public:
     struct Node {
@@ -105,6 +115,9 @@ public:
     using key_type = K;
     using mapped_type = V;
 
+    static bool KeyLess(const K& a, const K& b) { return L::Less(a, b); }
+    static bool SameKey(const K& a, const K& b) { return !L::Less(a, b) && !L::Less(b, a); }
+
     map() = default;
     map(const map&) = delete;
 
@@ -118,7 +131,7 @@ public:
     Node* lower_bound(const K& key) const {
         Node* result = header_;
         for (Node* n = header_->parent; n;) {
-            if (n->first < key) {
+            if (KeyLess(n->first, key)) {
                 n = n->right;
             } else {
                 result = n;
@@ -130,14 +143,14 @@ public:
     // find (e.g. 0043CE70): the node holding `key`, or end().
     Node* find(const K& key) const {
         Node* n = lower_bound(key);
-        return n == header_ || key < n->first ? header_ : n;
+        return n == header_ || KeyLess(key, n->first) ? header_ : n;
     }
     // upper_bound: the first node whose key is greater than `key`, or end(). With lower_bound, the
     // equal range of a multimap (e.g. 004FB5E0).
     Node* upper_bound(const K& key) const {
         Node* result = header_;
         for (Node* n = header_->parent; n;) {
-            if (key < n->first) {
+            if (KeyLess(key, n->first)) {
                 result = n;
                 n = n->left;
             } else {
@@ -257,7 +270,7 @@ public:
     template <typename E = Element>
     Node* Insert(Node* x, Node* y, const Value& v) {
         Node* z;
-        if (y == header_ || x || v.first < y->first) {
+        if (y == header_ || x || KeyLess(v.first, y->first)) {
             z = CreateNode<E>(v);
             y->left = z;   // also the leftmost when y is the header
             if (y == header_) {
@@ -287,7 +300,7 @@ public:
         bool comp = true;
         while (x) {
             y = x;
-            comp = v.first < x->first;
+            comp = KeyLess(v.first, x->first);
             x = comp ? x->left : x->right;
         }
         Node* j = y;
@@ -295,7 +308,7 @@ public:
             if (j == header_->left) return {Insert<E>(x, y, v), true};
             j = Node::From(rb::Previous(j->Base()));
         }
-        if (j->first < v.first) return {Insert<E>(x, y, v), true};
+        if (KeyLess(j->first, v.first)) return {Insert<E>(x, y, v), true};
         return {j, false};
     }
     // insert_unique(hint, v) (e.g. 0043CBC0; RET 0xC): at the hint when v goes right before it (or
@@ -303,15 +316,15 @@ public:
     template <typename E = Element>
     Node* InsertUnique(Node* position, const Value& v) {
         if (position == header_->left) {   // begin()
-            if (count_ > 0 && v.first < position->first) return Insert<E>(position, position, v);
+            if (count_ > 0 && KeyLess(v.first, position->first)) return Insert<E>(position, position, v);
             return InsertUnique<E>(v).first;
         }
         if (position == header_) {   // end()
-            if (header_->right->first < v.first) return Insert<E>(nullptr, header_->right, v);
+            if (KeyLess(header_->right->first, v.first)) return Insert<E>(nullptr, header_->right, v);
             return InsertUnique<E>(v).first;
         }
         Node* before = Node::From(rb::Previous(position->Base()));
-        if (before->first < v.first && v.first < position->first) {
+        if (KeyLess(before->first, v.first) && KeyLess(v.first, position->first)) {
             if (!before->right) return Insert<E>(nullptr, before, v);
             return Insert<E>(position, position, v);
         }
@@ -324,10 +337,12 @@ public:
         Node* x = header_->parent;
         while (x) {
             y = x;
-            x = v.first < x->first ? x->left : x->right;
+            x = KeyLess(v.first, x->first) ? x->left : x->right;
         }
         return Insert<E>(x, y, v);
     }
+    // equal_range(key) (e.g. 004FB5E0): lower_bound, then upper_bound.
+    std::pair<Node*, Node*> equal_range(const K& key) const { return {lower_bound(key), upper_bound(key)}; }
     // erase(position) (e.g. 004450F0): unlinked by _Rebalance_for_erase, the node destroyed and
     // freed, counted down.
     template <typename E = Element>
@@ -366,10 +381,12 @@ public:
     template <typename E = Element>
     V& Subscript(const K& key) {
         Node* i = lower_bound(key);
-        if (i == header_ || key < i->first) {
-            Value v{key, V()};
-            i = InsertUnique<E>(i, v);
-            E::Destroy(&v);
+        if (i == header_ || KeyLess(key, i->first)) {
+            alignas(Value) unsigned char storage[sizeof(Value)];
+            Value* v = reinterpret_cast<Value*>(storage);
+            E::Make(v, key, V());
+            i = InsertUnique<E>(i, *v);
+            E::Destroy(v);
         }
         return i->second;
     }

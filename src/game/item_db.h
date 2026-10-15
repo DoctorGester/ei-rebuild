@@ -518,6 +518,9 @@ struct SpellDatabase {
     // then the storage), the modifiers and the spells (the index's nodes and buckets, then the
     // records and their storage); then Construct.
     void Reset();
+    // 00684390 (database_destruct.cpp, S3c; the exit function 00684380). The destruction half of
+    // Reset: the three lists from the last, the modifiers, the spells.
+    void Destruct();
 
     CodeIndexedTable spells;                    // +0x00 kSpellSize records
     CodeIndexedTable modifiers;                 // +0x20 kSpellModifierSize

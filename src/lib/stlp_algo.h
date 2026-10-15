@@ -1,13 +1,19 @@
 #pragma once
 
-// STLport's sort internals (introsort with a final insertion sort) as the original instantiates
-// them for arrays of pointers: the draw lists (world_client_view.cpp) and the changed variables
-// (world_stamp_sort.cpp). Every scan the original leaves unguarded is unguarded here too: with a
-// comparator that is not a strict weak ordering they run off the array.
+// STLport's sort internals (introsort with a final insertion sort, heap sort at depth 0) as the
+// exe instantiates them, one comparator per instantiation: the draw lists (world_client_view.cpp),
+// the changed variables (world_stamp_sort.cpp) and the instantiations registered at their library
+// addresses (game/stl_sorts.cpp). sort() is unstable, so the order of equal elements is part of the
+// behaviour: every step follows STLport's (same comparisons in the same order, same moves). Every
+// scan the original leaves unguarded is unguarded here too: with a comparator that is not a strict
+// weak ordering they run off the array.
+
+namespace stlp {
 
 template <typename T, typename Less>
-struct StlSort {
-    static T Median(T a, T b, T c, Less less) {
+struct Sort {
+    // __median: the value of the median of three (STLport returns a reference; the callers copy it).
+    static const T& Median(const T& a, const T& b, const T& c, Less less) {
         if (less(a, b)) {
             if (less(b, c)) return b;
             if (less(a, c)) return c;
@@ -91,8 +97,7 @@ struct StlSort {
                 return;
             }
             --depthLimit;
-            T pivot = Median(*first, first[(last - first) / 2], last[-1], less);
-            T* cut = UnguardedPartition(first, last, pivot, less);
+            T* cut = UnguardedPartition(first, last, T(Median(*first, first[(last - first) / 2], last[-1], less)), less);
             IntroLoop(cut, last, depthLimit, less);
             last = cut;
         }
@@ -121,12 +126,19 @@ struct StlSort {
         }
     }
 
+    // __unguarded_insertion_sort(first, last): every element has a smaller one before the range.
+    static void UnguardedInsertionSort(T* first, T* last, Less less) {
+        for (T* i = first; i != last; ++i) UnguardedLinearInsert(i, *i, less);
+    }
+
     static void FinalInsertionSort(T* first, T* last, Less less) {
         if (last - first > 16) {
             InsertionSort(first, first + 16, less);
-            for (T* i = first + 16; i != last; ++i) UnguardedLinearInsert(i, *i, less);
+            UnguardedInsertionSort(first + 16, last, less);
         } else {
             InsertionSort(first, last, less);
         }
     }
 };
+
+} // namespace stlp

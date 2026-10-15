@@ -677,6 +677,9 @@ struct PrintsDatabase {
     // 006D0250 (database_construct.cpp; the static initialiser 006D00B0). The three tables empty,
     // each index with 100 buckets (193). Returns this.
     PrintsDatabase* Construct();
+    // 006D00E0 (database_destruct.cpp, S3c; the exit function 006D00D0). The tables from the
+    // last: the index's nodes and buckets, then the records and their storage.
+    void Destruct();
 
     stlp::vector<PrintRecord> blood;          // +0x00
     NameIndex<PrintRecord> bloodByName;       // +0x0C

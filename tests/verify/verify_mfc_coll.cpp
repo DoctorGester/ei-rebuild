@@ -8,6 +8,7 @@
 #include "../../src/lib/mfc_coll.h"
 
 #include <cstring>
+#include <vector>
 
 using mfc::impl::CString;
 using mfc::impl::CStringArray;
@@ -20,17 +21,29 @@ void* s_unused;
 
 // ---- The plain arrays ---------------------------------------------------------------------------
 
-// A copy with its own storage of the same allocated size.
+// The header and elements before a call, kept in our memory: ours runs first, so that what it
+// allocates lands where the original's would without the check (the game reads the heap's address
+// order, SV2f); the original then runs on a twin made from this (its own copy of the storage, the
+// same allocated size) and the twin's storage is freed after.
 template <typename Array>
-Array Twin(const Array& a) {
-    Array twin = a;
-    if (a.data) {
-        using T = std::remove_pointer_t<decltype(a.data)>;
-        twin.data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(a.maxSize) * sizeof(T)));
-        std::memcpy(twin.data, a.data, static_cast<std::size_t>(a.size) * sizeof(T));
+struct Before {
+    using T = std::remove_pointer_t<decltype(Array::data)>;
+    Array header;
+    std::vector<std::uint8_t> bytes;
+    explicit Before(const Array& a) : header(a) {
+        if (a.data)
+            bytes.assign(reinterpret_cast<const std::uint8_t*>(a.data),
+                         reinterpret_cast<const std::uint8_t*>(a.data) + static_cast<std::size_t>(a.size) * sizeof(T));
     }
-    return twin;
-}
+    Array Twin() const {
+        Array twin = header;
+        if (header.data) {
+            twin.data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(header.maxSize) * sizeof(T)));
+            if (!bytes.empty()) std::memcpy(static_cast<void*>(twin.data), bytes.data(), bytes.size());
+        }
+        return twin;
+    }
+};
 
 template <typename Array>
 bool Same(const Array& expected, const Array& actual) {
@@ -50,18 +63,20 @@ struct Checks {
     static inline const char* name;
 
     static void __fastcall SetSize(Array* self, void*, int newSize, int newGrowBy) {
-        Array twin = Twin(*self);
-        setSize(&twin, nullptr, newSize, newGrowBy);
+        Before<Array> before(*self);
         self->SetSize(newSize, newGrowBy);
+        Array twin = before.Twin();
+        setSize(&twin, nullptr, newSize, newGrowBy);
         Check(name, true, Same(twin, *self), "SetSize %d, %d: %d / %d (original %d / %d)", newSize, newGrowBy, self->size,
               self->maxSize, twin.size, twin.maxSize);
         gamecrt::operator_delete(twin.data);
     }
 
     static void __fastcall SetAtGrow(Array* self, void*, int index, T value) {
-        Array twin = Twin(*self);
-        setAtGrow(&twin, nullptr, index, value);
+        Before<Array> before(*self);
         self->SetAtGrow(index, value);
+        Array twin = before.Twin();
+        setAtGrow(&twin, nullptr, index, value);
         Check(name, true, Same(twin, *self), "SetAtGrow %d: %d / %d", index, self->size, self->maxSize);
         gamecrt::operator_delete(twin.data);
     }

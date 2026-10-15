@@ -67,7 +67,7 @@ BOOL CreateThread(WinThread* thread, DWORD flags, UINT stackSize, LPSECURITY_ATT
 } // namespace
 
 WinThread* WinThread::Construct(ThreadProc procedure, void* parameter) {
-    base.Construct();
+    ConstructCmdTarget(&base);
     base.vtable = Vtable();
     threadProc = procedure;
     threadParams = parameter;

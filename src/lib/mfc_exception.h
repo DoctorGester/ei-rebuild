@@ -98,6 +98,15 @@ struct CArchiveException {
 };
 static_assert(sizeof(CArchiveException) == 0x10);
 
+// The destructors of the simple exceptions (CSimpleException's and CException's are empty): each
+// stores its class's vtable. The exit functions run them on MFC's static objects
+// (_simpleResourceException 007C8C58, _simpleUserException 007C8BC0, _simpleMemoryException 007C8DE8,
+// _simpleNotSupportedException 007C8D50); their deleting destructors call them too.
+void __fastcall ResourceExceptionDestruct(CException* self);       // 006E690F (vtable 0074646C)
+void __fastcall UserExceptionDestruct(CException* self);           // 006E695C (vtable 00746484)
+void __fastcall MemoryExceptionDestruct(CException* self);         // 006E6B30 (vtable 007465F8)
+void __fastcall NotSupportedExceptionDestruct(CException* self);   // 006E6B7D (vtable 00746610)
+
 // CFileException::OsErrorToException: a Win32 error code as a cause (generic for the rest).
 int __stdcall OsErrorToException(long osError);                                   // 00703296
 // AfxThrowFileException: a new CFileException thrown as a pointer.
@@ -108,6 +117,10 @@ void __stdcall ThrowOsError(long osError, const char* fileName);                
 void __stdcall ThrowArchiveException(int cause, const char* fileName);             // 0070A835
 // AfxThrowNotSupportedException: MFC's one static CNotSupportedException (not auto-deleted).
 void __stdcall ThrowNotSupported();                                                // 006FE3A2
+// AfxThrowMemoryException: MFC's one static CMemoryException (not auto-deleted).
+__declspec(noreturn) void __stdcall ThrowMemoryException();                         // 006FE389
+// AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
+__declspec(noreturn) void __stdcall ThrowResourceException();                       // 0070A29E
 
 // GetRuntimeClass of the two exception classes (their CRuntimeClass in the exe's data).
 void* __fastcall FileExceptionRuntimeClass(const void* self);     // 0070CF4C

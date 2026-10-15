@@ -108,6 +108,9 @@ __declspec(naked) inline void* __cdecl GameMemmove(void* /*to*/, const void* /*f
 // mfc::CString::~CString (00700970) on a string given as raw memory.
 inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString(); }
 __declspec(naked) inline int __stdcall AfxMessageBox(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
+// MFC CWnd::DestroyWindow 007051A1 (plain RET; nonzero when the window was destroyed): CWnd's destructor
+// (mfc::impl::CWnd, src/lib/mfc_window.cpp) on a window still attached; no game window is a CWnd.
+__declspec(naked) inline int __fastcall CWndDestroyWindow(void* /*wnd*/) EI_ORIGINAL(0x007051A1)
 
 // STLport std::list constructor for a list of pointers on the 12-byte node allocator (RET 4).
 __declspec(naked) inline void __fastcall ListConstruct411850(void* /*list*/, void*, const void* /*alloc*/)

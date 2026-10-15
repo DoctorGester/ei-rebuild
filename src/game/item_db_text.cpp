@@ -15,6 +15,9 @@ using namespace itemdb;
 
 __declspec(naked) BOOL __fastcall ReplaceChar(mfc::CString*, char, char) EI_ORIGINAL(0x004DC400)
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x004DEAB0)
+// 004E15C0 through its address (the verify wrapper stays in the path).
+__declspec(naked) TextSourceNode* __fastcall CreateNodeAt(TextSourceList*, void*, const TextSource*)
+    EI_ORIGINAL(0x004E15C0)
 
 namespace {
 
@@ -289,7 +292,7 @@ EI_REPLACE(0x004E15C0, TextSourcesCreateNode);
 
 TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos,
                                               const TextSource* value) {
-    TextSourceNode* node = TextSourcesCreateNode(list, nullptr, value);
+    TextSourceNode* node = CreateNodeAt(list, nullptr, value);
     node->next = pos;
     node->prev = pos->prev;
     pos->prev->next = node;

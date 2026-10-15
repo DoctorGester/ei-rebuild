@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace ei::verify::heap {
 
@@ -82,8 +83,39 @@ bool ReturnAddress(std::uintptr_t v) {
     return code[-5] == 0xE8 || code[-6] == 0xFF || code[-3] == 0xFF || code[-2] == 0xFF;
 }
 
+// The sequence (EI_HEAPSEQ): the trace's events kept in memory (no file writes while the game runs,
+// which changed its timing), written to heapseq.txt at the end.
+struct SeqEvent {
+    char op;
+    bool other;
+    unsigned bytes, in, out;
+    unsigned callers[6];
+};
+SeqEvent* g_seq;
+unsigned g_seqCount;
+unsigned g_seqCapacity;
+std::string* g_seqNotes;
+
+void Sequence(char op, SIZE_T bytes, const void* in, const void* out, void* const* frame) {
+    if (g_seqCount >= g_seqCapacity) return;
+    SeqEvent& e = g_seq[g_seqCount++];
+    e.op = op;
+    e.other = GetCurrentThreadId() != g_mainThread;
+    e.bytes = unsigned(bytes);
+    e.in = TracePlace(in);
+    e.out = TracePlace(out);
+    int found = 0;
+    const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
+    for (int i = 0; i < 96 && found < 6 && frame + i < top; ++i) {
+        const auto v = reinterpret_cast<std::uintptr_t>(frame[i]);
+        if (ReturnAddress(v)) e.callers[found++] = unsigned(v >= g_selfBase && v < g_selfEnd ? v - g_selfBase + 0x10000000 : v);
+    }
+    for (; found < 6; ++found) e.callers[found] = 0;
+}
+
 // `op` a(lloc), f(ree), r(ealloc); the callers: the first return addresses on the stack from `frame`.
 void Trace(char op, SIZE_T bytes, const void* in, const void* out, void* const* frame) {
+    if (g_seq) Sequence(op, bytes, in, out, frame);
     if (!g_trace) return;
     std::uintptr_t callers[10] = {};
     int found = 0;
@@ -306,9 +338,30 @@ void StartTrace(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
     Log("harness: heap trace into heaptrace.txt until world update %u", g_traceUntil);
 }
 
-unsigned TraceUntil() { return g_trace ? g_traceUntil : 0; }
+void StartSequence(std::uintptr_t selfBase, std::uintptr_t selfEnd) {
+    char until[16] = "";
+    if (CrtHeap() || g_trace || !GetEnvironmentVariableA("EI_HEAPSEQ", until, sizeof(until))) return;
+    g_traceUntil = static_cast<unsigned>(std::strtoul(until, nullptr, 10));
+    if (!g_traceUntil) g_traceUntil = 40;
+    g_seqCapacity = 4u << 20;
+    g_seq = static_cast<SeqEvent*>(VirtualAlloc(nullptr, g_seqCapacity * sizeof(SeqEvent), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+    if (!g_seq) return;
+    g_seqNotes = new std::string;
+    g_selfBase = selfBase;
+    g_selfEnd = selfEnd;
+    Log("harness: heap sequence in memory until world update %u (heapseq.txt)", g_traceUntil);
+}
+
+unsigned TraceUntil() { return g_trace || g_seq ? g_traceUntil : 0; }
 
 void Note(const char* text) {
+    if (g_seq) {
+        EnterCriticalSection(&g_lock);
+        *g_seqNotes += "# ";
+        *g_seqNotes += text;
+        *g_seqNotes += '\n';
+        LeaveCriticalSection(&g_lock);
+    }
     if (!g_trace) return;
     EnterCriticalSection(&g_lock);
     std::fprintf(g_trace, "# %s\n", text);
@@ -316,6 +369,27 @@ void Note(const char* text) {
 }
 
 void StopTrace() {
+    if (g_seq) {
+        EnterCriticalSection(&g_lock);
+        SeqEvent* seq = g_seq;
+        const unsigned count = g_seqCount;
+        g_seq = nullptr;
+        LeaveCriticalSection(&g_lock);
+        char path[MAX_PATH];
+        ei::OutputPath("heapseq.txt", path);
+        FILE* f = nullptr;
+        if (fopen_s(&f, path, "w") == 0 && f) {
+            for (unsigned i = 0; i < count; ++i) {
+                const SeqEvent& e = seq[i];
+                std::fprintf(f, "%u %c%s %u %08X %08X %08X %08X %08X %08X %08X %08X\n", i, e.op, e.other ? "*" : "",
+                             e.bytes, e.in, e.out, e.callers[0], e.callers[1], e.callers[2], e.callers[3],
+                             e.callers[4], e.callers[5]);
+            }
+            std::fputs(g_seqNotes->c_str(), f);
+            std::fclose(f);
+        }
+        VirtualFree(seq, 0, MEM_RELEASE);
+    }
     if (!g_trace) return;
     EnterCriticalSection(&g_lock);
     std::fclose(g_trace);

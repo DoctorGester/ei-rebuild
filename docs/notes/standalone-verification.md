@@ -892,3 +892,41 @@ Shortening the wait would lose the coverage; no golden is recorded for it (the s
 - Full verify suite (128 runs, 4 at once) passed; zone_gz15h_tornado-vanilla passed on its retry after the first
   attempt crashed at startup inside AIL_waveOutOpen (the harness's MutedWaveOutOpen from CSoundManager::Open, main
   thread, EIP 00007EBC, no module): not seen before in the board's history; on watch (SV6c).
+
+## SV2f: S7's verify wrappers moved the game's heap blocks (2026-10-15)
+
+Main's batch 632 had five Rebirth zone1 new games (ground_prints, harness_digest, map_objects, script_parse,
+ui_trade_restore) part from their goldens at world update 40 with the same hashes (176 more ISAAC draws; obj1804, 1890,
+1936, 1937 `#ai`). In a worktree the five mostly matched, but plain full `--golden` suites had render_scene and
+render_movie (vanilla) part the same way. Disabling S7's 104 addresses, then halves, then single ones, narrowed it to
+the checks: disabling only 005BE7B0 (List1C::NewNode) made render_scene match. The goldens are right.
+
+The cause was the check order, not S7's code. A twin check that grows the list (NewNode, AddTail / AddHead, NewAssoc
+with the free list empty) ran the original first on the twin header, so the original's CPlex block took the address the
+block gets in a `--no-hooks` run, ours took the next one and the twin's was freed, leaving a hole. InitHashTable copied
+the old table into a game-heap block before either ran, and ConstructElements' twin buffer was a game-heap block too.
+The game reads the heap's address order (ISAAC is shared by the client's particles and the server's AI, so one draw
+moved changes the AI), and whether zone1's start went the other way then depended on timing. Now ours runs first when a
+block is carved (the original second, on the twin, its block compared by position and freed), InitHashTable runs ours
+first and copies the old table for the original afterwards, and ConstructElements' twin is our memory. The CArray and
+plain-array checks (S5, S6) had the same order and now run ours first too, the twin made afterwards from a copy kept in
+our memory. Rule for twin
+checks of allocating functions: ours allocates first, the original's allocations come after and are freed.
+
+Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six deep) and writes heapseq.txt at that
+update, so tracing does not slow the run down.
+
+## SV6d: one registration per address, at build time
+
+`tools/check_registrations.py` (run by build.cmd after the link, both configurations) fails the build
+when one address has two registrations that InstallHooks would both take: two plain replacements
+(EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, _SHORT count together), two EI_VERIFY wrappers or two
+recorders. A replacement with a verify wrapper at the same address is normal. It reads the built
+ei_hook.dll, not the sources: every registration macro in include/ei/hook.h also leaves a
+`RegRecord` (address, kind, `__FILE__`, `__LINE__` of the expansion) in the section `.eireg`, so
+macro-generated registrations count and registrations left out by `#if` do not. The record is a
+non-const static: a const one is dropped by the compiler. The linker pads between modules' parts of
+the section with zero words, which the reader skips. Output names every file:line of the address;
+about 0.15 s. When it first ran it found six addresses registered twice on main (S6a vs S13b:
+004CB150 / 004CB310 / 004CB650; S12a vs S12b: 00445040 / 00445170 / 004457F0); the later
+registrations (game_slots.cpp, mfc_slots.cpp, stlp_pair.cpp and its verify wrappers) were dropped.

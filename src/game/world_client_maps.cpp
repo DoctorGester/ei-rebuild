@@ -1248,6 +1248,9 @@ SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flag
     if (flags & 1) gamecrt::operator_delete(cells);
     return cells;
 }
+void __fastcall SectorListDestruct(SectorList* list) { DestroySectorList(list); }
+EI_REPLACE(0x0056DEF0, SectorListDestruct);
+
 EI_REPLACE(0x00572B30, SectorListsDelete);
 EI_REPLACE(0x00572C50, SectorListsDelete);
 

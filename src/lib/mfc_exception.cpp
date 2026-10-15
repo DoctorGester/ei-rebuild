@@ -21,6 +21,12 @@ const void* ArchiveExceptionThrowInfo() { return reinterpret_cast<const void*>(0
 // CNotSupportedException*.
 void* SimpleNotSupportedException() { return reinterpret_cast<void*>(0x007C8D50); }
 const void* NotSupportedThrowInfo() { return reinterpret_cast<const void*>(0x0077EE80); }
+// _simpleMemoryException and _simpleResourceException (static, not auto-deleted) and the throw
+// information of a CMemoryException* and a CResourceException*.
+void* SimpleMemoryException() { return reinterpret_cast<void*>(0x007C8DE8); }
+const void* MemoryThrowInfo() { return reinterpret_cast<const void*>(0x0077EE38); }
+void* SimpleResourceException() { return reinterpret_cast<void*>(0x007C8C58); }
+const void* ResourceThrowInfo() { return reinterpret_cast<const void*>(0x0077EC28); }
 
 // The two classes' CRuntimeClass records.
 void* FileExceptionClass() { return reinterpret_cast<void*>(0x00746820); }
@@ -68,6 +74,11 @@ CArchiveException* CArchiveException::DeletingDestructor(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
+
+void __fastcall ResourceExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x0074646C); }
+void __fastcall UserExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x00746484); }
+void __fastcall MemoryExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x007465F8); }
+void __fastcall NotSupportedExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x00746610); }
 
 int __stdcall OsErrorToException(long osError) {
     switch (static_cast<unsigned long>(osError)) {
@@ -190,6 +201,18 @@ void __stdcall ThrowNotSupported() {
     CxxThrowException(&thrown, NotSupportedThrowInfo());
 }
 
+void __stdcall ThrowMemoryException() {
+    void* thrown = SimpleMemoryException();
+    CxxThrowException(&thrown, MemoryThrowInfo());
+    __assume(false);
+}
+
+void __stdcall ThrowResourceException() {
+    void* thrown = SimpleResourceException();
+    CxxThrowException(&thrown, ResourceThrowInfo());
+    __assume(false);
+}
+
 void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
 void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
 
@@ -216,11 +239,17 @@ EI_REPLACE_METHOD(0x006E6335, CFileException::Destruct);
 EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);
 EI_REPLACE_METHOD(0x006E6BA1, CArchiveException::Destruct);
 EI_REPLACE_METHOD(0x006E6B85, CArchiveException::DeletingDestructor);
+EI_REPLACE(0x006E690F, ResourceExceptionDestruct);
+EI_REPLACE(0x006E695C, UserExceptionDestruct);
+EI_REPLACE(0x006E6B30, MemoryExceptionDestruct);
+EI_REPLACE(0x006E6B7D, NotSupportedExceptionDestruct);
 EI_REPLACE(0x00703296, OsErrorToException);
 EI_REPLACE(0x007031D5, ThrowFileException);
 EI_REPLACE(0x007030F0, ThrowOsError);
 EI_REPLACE(0x0070A835, ThrowArchiveException);
 EI_REPLACE(0x006FE3A2, ThrowNotSupported);
+EI_REPLACE(0x006FE389, ThrowMemoryException);
+EI_REPLACE(0x0070A29E, ThrowResourceException);
 EI_REPLACE(0x0070CF4C, FileExceptionRuntimeClass);
 EI_REPLACE(0x0070CF46, ArchiveExceptionRuntimeClass);
 

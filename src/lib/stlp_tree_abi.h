@@ -6,22 +6,33 @@
 // E is how a value is copied into a node and destroyed (the instantiation's pair copy and
 // destructor).
 
+#include "crt.h"
 #include "stlp_tree.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <new>
+#include <utility>
 
 namespace stlp {
 
-// value_type pair<const K, V> whose key is plain and whose mapped value has a policy of its own
-// (Copy / Destroy, e.g. stlp_list_refs.h's CountedRef and SharedRef).
+// value_type pair<const K, V> whose key is copied and destroyed as itself and whose mapped value
+// has a policy of its own (Copy / Destroy, e.g. stlp_list_refs.h's CountedRef and SharedRef): the
+// key first, then the value; destroyed value first (the pair's destructor).
 template <typename Value, typename Second>
 struct PairElement {
-    static void Copy(Value* to, const Value& from) {
-        to->first = from.first;
-        Second::Copy(&to->second, from.second);
+    using Key = decltype(Value::first);
+
+    static void Copy(Value* to, const Value& from) { Make(to, from.first, from.second); }
+    template <typename V>
+    static void Make(Value* to, const Key& key, const V& value) {
+        new (&to->first) Key(key);
+        Second::Copy(&to->second, value);
     }
-    static void Destroy(Value* p) { Second::Destroy(&p->second); }
+    static void Destroy(Value* p) {
+        Second::Destroy(&p->second);
+        p->first.~Key();
+    }
 };
 
 template <typename Map, typename E = typename Map::Element>
@@ -146,9 +157,31 @@ struct TreeAbi {
     // pair<const K, V>(const K&, const V&) (e.g. 0043A050; RET 8): the key, then the value
     // copied as a node's value is.
     static Value* __fastcall MakeValue(Value* self, void*, const K* key, const V* value) {
-        Value from{*key, *value};
-        E::Copy(self, from);
+        E::Make(self, *key, *value);
         return self;
+    }
+    // ~pair (e.g. 00445040): the value's destructor.
+    static void __fastcall DestroyValue(Value* self) { E::Destroy(self); }
+    // The pair's scalar deleting destructor (e.g. 004457F0; RET 4): the destructor, then operator
+    // delete when bit 0 of the flags is set.
+    static Value* __fastcall DeletingDestroyValue(Value* self, void*, unsigned flags) {
+        E::Destroy(self);
+        if (flags & 1) gamecrt::operator_delete(self);
+        return self;
+    }
+    // _M_destroy_node(p) (e.g. 004F5F00; RET 4): the value destroyed, the node back to the pool.
+    static void __fastcall DestroyNode(Map*, void*, Node* p) { Map::template DestroyNode<E>(p); }
+    // insert_equal(v) (e.g. 004FBD80; RET 8): a multimap's insert, equal keys after the others.
+    static Node** __fastcall InsertEqual(Map* self, void*, Node** out, const Value* v) {
+        *out = self->template InsertEqual<E>(*v);
+        return out;
+    }
+    // equal_range(key) (e.g. 004FB5E0; RET 8): the pair of iterators through the hidden pointer.
+    static Node** __fastcall EqualRange(const Map* self, void*, Node** out, const K* key) {
+        std::pair<Node*, Node*> r = self->equal_range(*key);
+        out[0] = r.first;
+        out[1] = r.second;
+        return out;
     }
 };
 
@@ -184,6 +217,14 @@ inline std::uint8_t* __fastcall TreeGetAllocator(const std::uint8_t* self, void*
 inline void** __fastcall TreeAllocProxyConstruct(void** self, void*, const std::uint8_t* alloc, void* const* value) {
     *reinterpret_cast<std::uint8_t*>(self) = *alloc;
     *self = *value;
+    return self;
+}
+
+// pair<A, B>(const A&, const B&) of two words (e.g. 005F3CD0; RET 8): both copied as they are.
+inline std::uint32_t* __fastcall TreeWordPairConstruct(std::uint32_t* self, void*, const std::uint32_t* first,
+                                                       const std::uint32_t* second) {
+    self[0] = *first;
+    self[1] = *second;
     return self;
 }
 

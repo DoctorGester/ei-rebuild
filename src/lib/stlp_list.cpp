@@ -38,6 +38,7 @@ using List16 = stlp::ListAbi<stlp::Opaque<8>>;
 using List24 = stlp::ListAbi<stlp::Opaque<16>>;
 using List40 = stlp::ListAbi<stlp::Opaque<32>>;
 using List352 = stlp::ListAbi<stlp::Opaque<0x158>>;
+using List48 = stlp::ListAbi<stlp::Opaque<0x28>>;
 
 } // namespace
 
@@ -121,8 +122,12 @@ EI_REPLACE(0x004A94A0, List24::Construct);
 EI_REPLACE(0x005F9300, List24::Construct);
 EI_REPLACE(0x00634300, List24::Construct);
 EI_REPLACE(0x00562A80, List24::ConstructDefault);
-// With 40-byte and 0x160-byte nodes.
+// With 40-byte, 0x30-byte and 0x160-byte nodes (the 0x30-byte ones: the link's send queues
+// (net_link.cpp) and the create screen's list, 005F90E0).
 EI_REPLACE(0x0041FD30, List40::Construct);
+EI_REPLACE(0x00478D50, List48::Construct);
+EI_REPLACE(0x00479150, List48::Construct);
+EI_REPLACE(0x005F90E0, List48::Construct);
 EI_REPLACE(0x004249E0, List352::Construct);
 
 // ~list() of plain elements (nothing to destroy; Ghidra's names say clear): 5 instantiations.
