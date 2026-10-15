@@ -25,6 +25,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/unit_db.h"
 #include "../../src/game/world.h"
+#include "../../src/game/world_deleting_destructors.h"
 
 #include <cstring>
 
@@ -241,6 +242,22 @@ void __fastcall ShapePairDestroyVerify(ShapePairT* self) {
     CheckDestruct("DestroyShapePair", self, ok, [](ShapePairT* p) { DestroyShapePair(p); });
 }
 
+void __fastcall SkillResetVerify(SkillDatabase* self) {
+    bool ok = Ordered(self->skills) && Ordered(self->levels);
+    self->Reset();
+    ok = ok && !self->skills.Start() && !self->skills.Finish() && !self->skills.EndOfStorage() &&
+         !self->levels.Start() && !self->levels.Finish() && !self->levels.EndOfStorage();
+    ei::verify::Check("SkillDatabase::Reset", true, ok, "database %p", static_cast<void*>(self));
+}
+
+// The MFC collections' deleting destructors: the object back.
+template <void* (__fastcall* Ours)(void*, void*, unsigned)>
+void* __fastcall CollectionDeleteVerify(void* self, void*, unsigned flags) {
+    void* result = Ours(self, nullptr, flags);
+    ei::verify::Check("collection deleting destructor", true, result == self, "object %p, flags %u", self, flags);
+    return result;
+}
+
 } // namespace
 
 EI_VERIFY(0x006A8950, HeadDestructVerify, 0, s_unused);
@@ -274,3 +291,11 @@ EI_VERIFY(0x006DCAF0, ExtraAcksDestructVerify, 0, s_unused);
 EI_VERIFY(0x006BD1B0, WaveAssignVerify, 0, s_unused);
 EI_VERIFY(0x005BE370, ShapePairConstructVerify, 0, s_unused);
 EI_VERIFY(0x005BE280, ShapePairDestroyVerify, 0, s_unused);
+EI_VERIFY(0x0057CD60, SkillResetVerify, 0, s_unused);
+EI_VERIFY(0x00571E50, CollectionDeleteVerify<PlatformListDelete>, 0, s_unused);
+EI_VERIFY(0x00571ED0, CollectionDeleteVerify<ClientArrayDelete>, 0, s_unused);
+EI_VERIFY(0x0059B430, CollectionDeleteVerify<SectorArrayDelete>, 0, s_unused);
+EI_VERIFY(0x0059B4F0, CollectionDeleteVerify<ArrayElementListDelete>, 0, s_unused);
+EI_VERIFY(0x005B1B30, CollectionDeleteVerify<BlockCostListDelete>, 0, s_unused);
+EI_VERIFY(0x005B1B50, CollectionDeleteVerify<AIMapListDelete>, 0, s_unused);
+EI_VERIFY(0x005BE070, CollectionDeleteVerify<WaypointListDelete>, 0, s_unused);

@@ -352,6 +352,10 @@ struct SkillDatabase {
     // (chunk 2, one chunk 1 each). Returns 1, or what the fatal error report returns when the
     // archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
+    // 0057CD60 (S13; the compiler's destruction and construction in place, which the resource
+    // switch 0057CB50 runs): the level records destroyed (00520DE0) and their storage freed, then
+    // the skills (00520D20 through their deleting destructor 00521FA0 with 0); both vectors empty.
+    void Reset();
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C

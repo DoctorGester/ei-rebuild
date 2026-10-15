@@ -310,6 +310,16 @@ void SkillLevelRecord::Destruct() {
 }
 EI_REPLACE_METHOD(0x00520DE0, SkillLevelRecord::Destruct);
 
+void SkillDatabase::Reset() {
+    for (SkillLevelRecord* p = levels.begin(); p != levels.end(); ++p) p->Destruct();
+    levels.FreeStorage();
+    for (SkillRecord* p = skills.begin(); p != skills.end(); ++p) p->Destruct();
+    skills.FreeStorage();
+    skills.Start() = skills.Finish() = skills.EndOfStorage() = nullptr;
+    levels.Start() = levels.Finish() = levels.EndOfStorage() = nullptr;
+}
+EI_REPLACE_METHOD(0x0057CD60, SkillDatabase::Reset);
+
 void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void*) {
     if (!ArchiveEnter(this, nullptr, id)) return;
     int count;
