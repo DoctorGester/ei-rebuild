@@ -59,6 +59,7 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 
 Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `run_all --widescreen` compares with addon.
 
+- **W4c** EI_Plugin NPlayers above 7: AddPortrait's six sites (later; sonnet, 0.25 sessions). From W4b: AddPortrait (00640060) holds six sites active only when EI_Plugin.ini NPlayers > 7; not reproduced. A Rebirth launch with NPlayers > 7 keeps the original there (rebirth_hook Check skips the function); the standalone treats NPlayers > 7 as 7 in the portraits. Port if anyone plays with more than 7.
 - **W1** Layout widths, scaling functions, harness resolution steps (done 2026-10-14). SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; run_all --widescreen within tolerance. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off).
 - **W2** Sprite shapes, text extent and text draw, control rectangles (done 2026-10-14; opus). Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip. After: W1.
 - **W3** Battle-screen panel builders (done 2026-10-14; opus). Then widescreen::SetPanelOffset replaces addon's variable. After: W2.
