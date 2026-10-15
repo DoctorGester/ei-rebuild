@@ -629,9 +629,10 @@ done = "2026-10-15"
 id = "SV5"
 title = "Coverage list and scenarios for what it shows uncovered"
 group = "verification"
-status = "queued"
+status = "running"
 size = 1
 depends = ["SV3"]
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV1a"
