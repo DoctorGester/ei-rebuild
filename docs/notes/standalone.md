@@ -1273,6 +1273,8 @@ of what the image could still hit as INT3.
   CWnd::DestroyWindow (all behind `ei::Standalone()`: hook build only), the five code-byte reads of S14,
   and 226 library function starts in data (MFC vtable slots, CRT tables; 00460110 the map database
   CArray's deleting destructor, never deleted through its vtable): S16d.
+After merging main: `work.py test S16c --golden --jobs 4` 128 runs pass, 56 goldens the same; all 98
+scenarios pass under `--standalone`.
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
