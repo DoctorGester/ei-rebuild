@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 78C951A2 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
 + world world
 world tick 20
 world updates 20
@@ -541,11 +541,11 @@ cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
-cunit129 #place A93B71E5
+cunit129 #place CC95DED6
 cunit129 #unit F0D31922
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 40A0CCA1
+cunit148 #place CE270717
 cunit148 #unit 41270B60
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -556,7 +556,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash 650CC883 n 172
+@ 1 update 40 frame 7 tick 20 zone - hash 39867808 n 172
 world updates 40
 world paused 1
 random isaac.count 25
@@ -566,11 +566,11 @@ client ticksRun 37
 cunit2 #place 85C53A26
 cunit129 #place 3A9D2F98
 cunit129 #unit 4AE175BE
-cunit148 #place 2014D90D
+cunit148 #place EC5D6FDB
 cunit148 #unit A13719CF
 cunit187 #place B7CE4832
-cunit388 #place 2E5E17C8
-@ 2 update 60 frame 11 tick 20 zone - hash B19D7240 n 172
+cunit388 #place C2155DED
+@ 2 update 60 frame 11 tick 20 zone - hash ED17C2CB n 172
 world updates 60
 random isaac.count 234
 random isaac.a 0xAD54DD2B
@@ -579,19 +579,19 @@ random isaac.c 0x00000010
 random isaac.results 0xEDE387CF
 random isaac.memory 0x679D48CE
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash 40CD34AD n 172
+@ 3 update 80 frame 15 tick 20 zone - hash 1C478426 n 172
 world updates 80
 random isaac.count 155
 client ticksRun 77
-@ 4 update 100 frame 19 tick 20 zone - hash BDA9A273 n 172
+@ 4 update 100 frame 19 tick 20 zone - hash E12312F8 n 172
 world updates 100
 random isaac.count 88
 client ticksRun 97
-@ 5 update 120 frame 23 tick 20 zone - hash D8EECA19 n 172
+@ 5 update 120 frame 23 tick 20 zone - hash 84647A92 n 172
 world updates 120
 random isaac.count 23
 client ticksRun 117
-@ 6 update 140 frame 27 tick 20 zone - hash D4F48239 n 172
+@ 6 update 140 frame 27 tick 20 zone - hash 887E32B2 n 172
 world updates 140
 random isaac.count 195
 random isaac.a 0x59688C84
@@ -600,15 +600,15 @@ random isaac.c 0x00000011
 random isaac.results 0x3985745C
 random isaac.memory 0xD598B619
 client ticksRun 137
-@ 7 update 160 frame 31 tick 20 zone - hash 2F0546EC n 172
+@ 7 update 160 frame 31 tick 20 zone - hash 738FF667 n 172
 world updates 160
 random isaac.count 118
 client ticksRun 157
-@ 8 update 180 frame 35 tick 20 zone - hash 3CFE09F2 n 172
+@ 8 update 180 frame 35 tick 20 zone - hash 6074B979 n 172
 world updates 180
 random isaac.count 38
 client ticksRun 177
-@ 9 update 200 frame 39 tick 25 zone - hash 80B8BC0D n 172
+@ 9 update 200 frame 39 tick 25 zone - hash 9ACB7161 n 172
 world tick 25
 world updates 200
 world paused 0
@@ -635,5 +635,3 @@ client tick 25
 client paused 0
 client ticksRun 197
 cunit2 #unit 0370F4FB
-cunit148 #place CD5AB58B
-cunit388 #place 322B9A6A

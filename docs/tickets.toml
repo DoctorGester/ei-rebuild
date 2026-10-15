@@ -730,7 +730,7 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "Probably the same effect as SV7b4 (DrawShadow's inexact round trip plus whatever flips its count); not fixed. See SV7b4a."
+note = "Settled by SV7b4a: the shadow round trip (DrawShadow 0051D479 / 0051D4E0) is exact in both (orientation kept and restored); hooked runs now match the original on client unit rotation in all golden scenarios."
 
 [[ticket]]
 id = "SV3g"
@@ -1055,7 +1055,13 @@ title = "Vanilla menu unit unmoco2 orientation under EI_HEAP_JITTER=2"
 group = "verification"
 size = 0.5
 depends = ["SV7a"]
-note = "From SV7b1: with seed 2, vanilla --no-hooks ui_hero_screen (update 620), ui_hero_stats (500), ui_screens (100): cunit2 unmoco2 rot.w/x/y/z differ (ulps to 1e-4); repeats. None has a vanilla golden. Hooked vanilla runs differ from --no-hooks on menu units' rot in the last place too (ui_container_input, ui_screens, ui_widescreen_hud, ui_widescreen_more; cunit187 unmoog1, cunit129 flags 0xA2 / 0x4A2). Likely the UnitStats leftovers (SV7b3: unmoco2's NaN hp) or SV7b4's writer; recheck now that SV7b3 landed."
+note = "SV7b4a: the rotation parts are settled (shadow round trip exact in both): seed 2 vanilla ui_hero_screen, ui_hero_stats, ui_screens match the plain run, and hooked runs match --no-hooks on menu unit rot. Left: cunit129 flags 0xA2 / 0x4A2 in hooked vanilla ui_widescreen_hud / ui_widescreen_more, moved to SV7b8a."
+
+[[ticket]]
+id = "SV7b8a"
+title = "Vanilla widescreen menu unit cunit129 flags 0xA2 / 0x4A2 hooked"
+group = "verification"
+note = "From SV7b4a (docs/notes/standalone-verification.md, 'SV7b4a / SV3f'): hooked vanilla ui_widescreen_hud and ui_widescreen_more have cunit129 (unanwibo) flags 0x4A2 where the patched original has 0xA2 from update 60, then the zone diverges (isaac.count 69 / 89 at update 180, obj1000011214 nextCommand). No vanilla golden for either. Repeats in two rounds; not an orientation ulp (the shadow round trip is exact now). Find which rewrite sets 0x400 on the menu unit."
 
 # ---------------------------------------------------------------- harness and suite
 
