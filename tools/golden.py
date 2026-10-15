@@ -649,6 +649,15 @@ def snapshot(args):
     return 0
 
 
+def flagged(name, root=ROOT):
+    """Does the scenario turn Rebirth patch flags on (a `rebirthflags` line)?"""
+    path = os.path.join(root, 'tests', 'scenarios', name + '.txt')
+    if not os.path.exists(path):
+        return False
+    with open(path, encoding='utf-8', errors='replace') as f:
+        return any(line.split()[:1] == ['rebirthflags'] for line in f)
+
+
 def record(args):
     dirs = args.runs or [os.path.join(run_all.BUILD, 'runs')]
     names = args.scenarios or sorted(d[:-len(args.install) - 1] for d in os.listdir(dirs[0])
@@ -665,6 +674,9 @@ def record(args):
             problem = [f'{folders[0]} has no digest.txt (run it with EI_DIGEST=<N>)']
         elif 'hooks off' not in Digest(digest).title:
             problem = [f'{folders[0]} ran with our hooks; a golden is the original code (--no-hooks)']
+        elif args.install == 'vanilla' and flagged(name):
+            problem = ['its rebirthflags line turns on in our code what the vanilla original does not have, so '
+                       'hooked vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
         for other in folders[1:]:
             if problem:
                 break

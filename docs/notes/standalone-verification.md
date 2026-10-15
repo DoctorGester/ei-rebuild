@@ -1551,3 +1551,15 @@ cunit187 now keep their orientation) with `golden.py record --runs` over the fiv
 saves are unchanged (no store entry changed).
 
 Final check (after merging main again): `work.py test SV7b4a --golden --jobs 4`: 128 runs all pass, the 56 goldens it reaches the same.
+
+## SV7b8a / SV3g: cunit129's 0x400 is the WideScreen flag, not a bug (2026-10-15)
+
+`EI_WATCH_CUNIT=129,flags` (harness_watch.h) logs the writes that change a client unit's flags_. The 0x400 is the
+object-static bit of the client draw (CObject3DClientSpecific::Draw 0051B7E0, set at 0051C030; ours
+map_object_draw.cpp): every draw clears it and sets it again when every part was lit (mesh flag 0x10, set by the lit
+draw 005A7A70 unless ClipTest 004F16A0 puts the part outside the view). From update 45 one of cunit129's parts is
+outside vanilla's 4:3 view, so the original ends each draw with 0xA2; with the scenarios' `rebirthflags WideScreen`
+our code draws the wider view, every part is lit and 0x4A2 stays. Rebirth's original (addon's WideScreen, --no-hooks)
+keeps 0x4A2 too, and a copy of the menu part without the `rebirthflags` line gives 0xA2 hooked as well. So ours is
+right; the vanilla original simply has no WideScreen. The four ui_widescreen* scenarios get Rebirth goldens only:
+`golden.py record` now refuses a vanilla golden for a scenario with a `rebirthflags` line.
