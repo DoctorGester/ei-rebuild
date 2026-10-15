@@ -343,7 +343,7 @@ void CBaseManager::Destroy() {
     IdsFreeNode(&ids, nullptr, ids.head, 1);
 }
 
-BOOL CBaseManager::Init(void* context) {
+BOOL CBaseManager::InitImpl(void* context) {
     context_ = context;
     if (Create()) return 1;
     context_ = nullptr;
@@ -367,17 +367,17 @@ void CBaseManager::DestroyAll() {
 // --- Slots 16-22: no archives -------------------------------------------------------------------
 // 18 (00402D80) and 22 (00402DC0) are shorter than the hook's jump and stay original.
 
-BOOL CBaseManager::AddArchive(const char*) { return 0; }
-BOOL CBaseManager::RemoveArchive(const char*) { return 0; }
+BOOL CBaseManager::AddArchiveImpl(const char*) { return 0; }
+BOOL CBaseManager::RemoveArchiveImpl(const char*) { return 0; }
 BOOL CBaseManager::RemoveAllArchives() { return 0; }
-void* CBaseManager::GetFile(const char*, std::uint32_t*) { return nullptr; }
-bool CBaseManager::CloseFile(void*) { return false; }
-BOOL CBaseManager::HasFile(const char*) { return 0; }
+void* CBaseManager::GetFileImpl(const char*, std::uint32_t*) { return nullptr; }
+bool CBaseManager::CloseFileImpl(void*) { return false; }
+BOOL CBaseManager::HasFileImpl(const char*) { return 0; }
 void CBaseManager::FreeAllFiles() {}
 
 // --- Slots 23, 24: objects in and out -----------------------------------------------------------
 
-CEngineObject* CBaseManager::CreateObject(int type, int id) {
+CEngineObject* CBaseManager::CreateObjectImpl(int type, int id) {
     int key = type;
     CEngineObject* object = nullptr;
     if (*SpareCountAt(&spareCounts_, nullptr, &key) > 0) {
@@ -426,7 +426,7 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
     return object;
 }
 
-int CBaseManager::ReleaseObject(CEngineObject* object) {
+int CBaseManager::ReleaseObjectImpl(CEngineObject* object) {
     if (!object || object->refCount_ != 0) return 0;
     ForgetPosition(this, object->id_);
     object->Destroy();
@@ -438,39 +438,21 @@ namespace {
 // The virtual slots' entry points (rewrite-guide rule 4).
 int __fastcall CreateHook(CBaseManager* self) { return self->CBaseManager::Create(); }
 void __fastcall DestroyHook(CBaseManager* self) { self->CBaseManager::Destroy(); }
-void __fastcall LoadHook(CBaseManager* self, void*, void* stream) { self->CBaseManager::Load(stream); }
-void __fastcall SaveHook(CBaseManager* self, void*, void* stream) { self->CBaseManager::Save(stream); }
-BOOL __fastcall InitHook(CBaseManager* self, void*, void* context) { return self->CBaseManager::Init(context); }
 void __fastcall DestroyAllHook(CBaseManager* self) { self->CBaseManager::DestroyAll(); }
-BOOL __fastcall AddArchiveHook(CBaseManager* self, void*, const char* path) { return self->CBaseManager::AddArchive(path); }
-BOOL __fastcall RemoveArchiveHook(CBaseManager* self, void*, const char* path) {
-    return self->CBaseManager::RemoveArchive(path);
-}
-void* __fastcall GetFileHook(CBaseManager* self, void*, const char* name, std::uint32_t* size) {
-    return self->CBaseManager::GetFile(name, size);
-}
-bool __fastcall CloseFileHook(CBaseManager* self, void*, void* data) { return self->CBaseManager::CloseFile(data); }
-BOOL __fastcall HasFileHook(CBaseManager* self, void*, const char* name) { return self->CBaseManager::HasFile(name); }
-CEngineObject* __fastcall CreateObjectHook(CBaseManager* self, void*, int type, int id) {
-    return self->CBaseManager::CreateObject(type, id);
-}
-int __fastcall ReleaseObjectHook(CBaseManager* self, void*, CEngineObject* object) {
-    return self->CBaseManager::ReleaseObject(object);
-}
 } // namespace
 EI_REPLACE(0x00403020, CreateHook);
 EI_REPLACE(0x004031E0, DestroyHook);
-EI_REPLACE(0x004046E0, LoadHook);
-EI_REPLACE(0x00404760, SaveHook);
-EI_REPLACE(0x004031B0, InitHook);
+EI_REPLACE_METHOD(0x004046E0, CBaseManager::LoadImpl);
+EI_REPLACE_METHOD(0x00404760, CBaseManager::SaveImpl);
+EI_REPLACE_METHOD(0x004031B0, CBaseManager::InitImpl);
 EI_REPLACE(0x004034E0, DestroyAllHook);
-EI_REPLACE(0x00402D60, AddArchiveHook);
-EI_REPLACE(0x00402D70, RemoveArchiveHook);
-EI_REPLACE(0x00402D90, GetFileHook);
-EI_REPLACE(0x00402DA0, CloseFileHook);
-EI_REPLACE(0x00402DB0, HasFileHook);
-EI_REPLACE(0x00403730, CreateObjectHook);
-EI_REPLACE(0x00403AE0, ReleaseObjectHook);
+EI_REPLACE_METHOD(0x00402D60, CBaseManager::AddArchiveImpl);
+EI_REPLACE_METHOD(0x00402D70, CBaseManager::RemoveArchiveImpl);
+EI_REPLACE_METHOD(0x00402D90, CBaseManager::GetFileImpl);
+EI_REPLACE_METHOD(0x00402DA0, CBaseManager::CloseFileImpl);
+EI_REPLACE_METHOD(0x00402DB0, CBaseManager::HasFileImpl);
+EI_REPLACE_METHOD(0x00403730, CBaseManager::CreateObjectImpl);
+EI_REPLACE_METHOD(0x00403AE0, CBaseManager::ReleaseObjectImpl);
 
 // --- Registration (non-virtual) -----------------------------------------------------------------
 
@@ -603,7 +585,7 @@ EI_REPLACE_METHOD(0x00404410, CBaseManager::FreeSpares);
 // --- Saving and loading -------------------------------------------------------------------------
 
 // The spares are freed; then `count` records {id, type, prototypeId_} each create an object (slot 23).
-void CBaseManager::Load(void* stream) {
+void CBaseManager::LoadImpl(void* stream) {
     auto* in = static_cast<CStream*>(stream);
     FreeSpares();
     int count;
@@ -619,7 +601,7 @@ void CBaseManager::Load(void* stream) {
 }
 
 // The object list's count, then {id, type, prototypeId_} per object.
-void CBaseManager::Save(void* stream) {
+void CBaseManager::SaveImpl(void* stream) {
     auto* out = static_cast<CStream*>(stream);
     int count = objectList_.count;
     out->Write(&count, 4);

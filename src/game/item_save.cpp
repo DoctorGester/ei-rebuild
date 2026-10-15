@@ -22,7 +22,7 @@ std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(re
 
 } // namespace
 
-void CItem::Load(void* data) {
+void CItem::LoadImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
     stream->Read(&prototypeId_, kDword);
     stream->Read(&condition_, kDword);
@@ -45,7 +45,7 @@ void CItem::Load(void* data) {
     stream->Read(&magicLevel_, kDword);
 }
 
-void CItem::Save(void* data) {
+void CItem::SaveImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
     stream->Write(&prototypeId_, kDword);
     stream->Write(&condition_, kDword);
@@ -62,65 +62,65 @@ void CItem::Save(void* data) {
     stream->Write(&magicLevel_, kDword);
 }
 
-void CItemWeapon::Load(void* data) {
+void CItemWeapon::LoadImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Load(stream);
+    CItem::LoadImpl(stream);
     stream->Read(&actionValue_, kDword);
     stream->Read(&damage_, kDword);
     stream->Read(&damageSpread_, kDword);
     stream->Read(&reach_, kDword);
 }
 
-void CItemWeapon::Save(void* data) {
+void CItemWeapon::SaveImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Save(stream);
+    CItem::SaveImpl(stream);
     stream->Write(&actionValue_, kDword);
     stream->Write(&damage_, kDword);
     stream->Write(&damageSpread_, kDword);
     stream->Write(&reach_, kDword);
 }
 
-void CItemArmor::Load(void* data) {
+void CItemArmor::LoadImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Load(stream);
+    CItem::LoadImpl(stream);
     stream->Read(absorb_[0], sizeof(absorb_[0]));
     stream->Read(absorb_[1], sizeof(absorb_[1]));
 }
 
-void CItemArmor::Save(void* data) {
+void CItemArmor::SaveImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Save(stream);
+    CItem::SaveImpl(stream);
     stream->Write(absorb_[0], sizeof(absorb_[0]));
     stream->Write(absorb_[1], sizeof(absorb_[1]));
 }
 
-void CItemQuick::Load(void* data) {
+void CItemQuick::LoadImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Load(stream);
+    CItem::LoadImpl(stream);
     stream->Read(&actionValue_, kDword);
 }
 
-void CItemQuick::Save(void* data) {
+void CItemQuick::SaveImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Save(stream);
+    CItem::SaveImpl(stream);
     stream->Write(&actionValue_, kDword);
 }
 
-void CItemQuest::Load(void* data) {
+void CItemQuest::LoadImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Load(stream);
+    CItem::LoadImpl(stream);
     stream->Read(&questItemId_, kDword);
 }
 
-void CItemQuest::Save(void* data) {
+void CItemQuest::SaveImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Save(stream);
+    CItem::SaveImpl(stream);
     stream->Write(&questItemId_, kDword);
 }
 
-void CItemLoot::Load(void* data) {
+void CItemLoot::LoadImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Load(stream);
+    CItem::LoadImpl(stream);
     std::uint32_t value = StreamSlot(stream);
     stream->Read(&value, kDword);
     kind_ = value;
@@ -129,9 +129,9 @@ void CItemLoot::Load(void* data) {
     stream->Read(&index_, kDword);
 }
 
-void CItemLoot::Save(void* data) {
+void CItemLoot::SaveImpl(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    CItem::Save(stream);
+    CItem::SaveImpl(stream);
     stream->Write(&kind_, kDword);
     stream->Write(&recordType_, kDword);
     stream->Write(&index_, kDword);
@@ -139,29 +139,15 @@ void CItemLoot::Save(void* data) {
 
 // --- The virtual slots' entry points (rule 4) -----------------------------------------------------
 
-namespace {
-void __fastcall ItemLoadHook(CItem* self, void*, void* stream) { self->CItem::Load(stream); }
-void __fastcall ItemSaveHook(CItem* self, void*, void* stream) { self->CItem::Save(stream); }
-void __fastcall WeaponLoadHook(CItemWeapon* self, void*, void* stream) { self->CItemWeapon::Load(stream); }
-void __fastcall WeaponSaveHook(CItemWeapon* self, void*, void* stream) { self->CItemWeapon::Save(stream); }
-void __fastcall ArmorLoadHook(CItemArmor* self, void*, void* stream) { self->CItemArmor::Load(stream); }
-void __fastcall ArmorSaveHook(CItemArmor* self, void*, void* stream) { self->CItemArmor::Save(stream); }
-void __fastcall QuickLoadHook(CItemQuick* self, void*, void* stream) { self->CItemQuick::Load(stream); }
-void __fastcall QuickSaveHook(CItemQuick* self, void*, void* stream) { self->CItemQuick::Save(stream); }
-void __fastcall QuestLoadHook(CItemQuest* self, void*, void* stream) { self->CItemQuest::Load(stream); }
-void __fastcall QuestSaveHook(CItemQuest* self, void*, void* stream) { self->CItemQuest::Save(stream); }
-void __fastcall LootLoadHook(CItemLoot* self, void*, void* stream) { self->CItemLoot::Load(stream); }
-void __fastcall LootSaveHook(CItemLoot* self, void*, void* stream) { self->CItemLoot::Save(stream); }
-} // namespace
-EI_REPLACE(0x006A0270, ItemLoadHook);
-EI_REPLACE(0x006A0360, ItemSaveHook);
-EI_REPLACE(0x006A2E60, WeaponLoadHook);
-EI_REPLACE(0x006A2EB0, WeaponSaveHook);
-EI_REPLACE(0x006A3A70, ArmorLoadHook);
-EI_REPLACE(0x006A3AA0, ArmorSaveHook);
-EI_REPLACE(0x006A3C80, QuickLoadHook);
-EI_REPLACE(0x006A3CA0, QuickSaveHook);
-EI_REPLACE(0x006A4570, QuestLoadHook);
-EI_REPLACE(0x006A4590, QuestSaveHook);
-EI_REPLACE(0x006A5630, LootLoadHook);
-EI_REPLACE(0x006A5680, LootSaveHook);
+EI_REPLACE_METHOD(0x006A0270, CItem::LoadImpl);
+EI_REPLACE_METHOD(0x006A0360, CItem::SaveImpl);
+EI_REPLACE_METHOD(0x006A2E60, CItemWeapon::LoadImpl);
+EI_REPLACE_METHOD(0x006A2EB0, CItemWeapon::SaveImpl);
+EI_REPLACE_METHOD(0x006A3A70, CItemArmor::LoadImpl);
+EI_REPLACE_METHOD(0x006A3AA0, CItemArmor::SaveImpl);
+EI_REPLACE_METHOD(0x006A3C80, CItemQuick::LoadImpl);
+EI_REPLACE_METHOD(0x006A3CA0, CItemQuick::SaveImpl);
+EI_REPLACE_METHOD(0x006A4570, CItemQuest::LoadImpl);
+EI_REPLACE_METHOD(0x006A4590, CItemQuest::SaveImpl);
+EI_REPLACE_METHOD(0x006A5630, CItemLoot::LoadImpl);
+EI_REPLACE_METHOD(0x006A5680, CItemLoot::SaveImpl);

@@ -28,11 +28,16 @@ public:
     // 3: 00674F40. Closes and deletes every archive, then CBaseManager::Destroy.
     void Destroy() override;
     BOOL AddArchive(const char* path) override;                     // 16: 00675050
+    BOOL AddArchiveImpl(const char* path);   // body of the slot above (registered by member pointer)
     BOOL RemoveArchive(const char* path) override;                  // 17: 00675200
+    BOOL RemoveArchiveImpl(const char* path);   // body of the slot above (registered by member pointer)
     BOOL RemoveAllArchives() override;                              // 18: 00675340
     void* GetFile(const char* name, std::uint32_t* size) override;  // 19: 00675440
+    void* GetFileImpl(const char* name, std::uint32_t* size);   // body of the slot above (registered by member pointer)
     bool CloseFile(void* data) override;                            // 20: 00675490
+    bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     BOOL HasFile(const char* name) override;                        // 21: 006754E0
+    BOOL HasFileImpl(const char* name);   // body of the slot above (registered by member pointer)
     void FreeAllFiles() override;                                   // 22: 00675530
 
     // 005AA360: CFigureManager's slot 16, AddArchive with memory-mapped archives.

@@ -118,13 +118,13 @@ FileStream* FileStream::DeletingDestruct(unsigned flags) {   // 00477F90
 }
 EI_REPLACE_METHOD(0x00477F90, FileStream::DeletingDestruct);
 
-std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {   // 00477F00
+std::uint32_t FileStream::ReadImpl(void* buffer, std::uint32_t size) {   // 00477F00
     std::uint32_t read = File()->Read(buffer, size);
     ok_ = static_cast<std::uint8_t>(ok_ & (read == size ? 1 : 0));
     return read;
 }
 
-void FileStream::Write(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }   // 00477F30
+void FileStream::WriteImpl(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }   // 00477F30
 
 long FileStream::SeekFrom(long position) { return File()->Seek(position, 0u); }   // 00477F50
 EI_REPLACE_METHOD(0x00477F50, FileStream::SeekFrom);
@@ -141,13 +141,11 @@ EI_REPLACE_METHOD(0x00477EE0, FileStream::Restart);
 void FileStream::Clear() { Restart(); }
 
 namespace {
-std::uint32_t __fastcall FileStreamReadHook(FileStream* self, void*, void* buffer, std::uint32_t size) { return self->FileStream::Read(buffer, size); }
-void __fastcall FileStreamWriteHook(FileStream* self, void*, const void* buffer, std::uint32_t size) { self->FileStream::Write(buffer, size); }
 std::uint32_t __fastcall FileStreamSizeHook(FileStream* self) { return self->FileStream::Size(); }
 std::uint32_t __fastcall FileStreamPositionHook(FileStream* self) { return self->FileStream::Position(); }
 } // namespace
-EI_REPLACE(0x00477F00, FileStreamReadHook);
-EI_REPLACE(0x00477F30, FileStreamWriteHook);
+EI_REPLACE_METHOD(0x00477F00, FileStream::ReadImpl);
+EI_REPLACE_METHOD(0x00477F30, FileStream::WriteImpl);
 EI_REPLACE(0x00477F70, FileStreamSizeHook);
 EI_REPLACE(0x00477F80, FileStreamPositionHook);
 
@@ -185,9 +183,9 @@ NetLink* NetLink::DeletingDestruct(unsigned flags) {   // 00478030
 EI_REPLACE_METHOD(0x00478030, NetLink::DeletingDestruct);
 
 int NetLink::IncomingCount() { return HasIncoming() ? 1 : 0; }   // 00478000
-bool NetLink::Send(CStream*) { return true; }                    // 00478100
+bool NetLink::SendImpl(CStream*) { return true; }                    // 00478100
 
-bool NetLink::Receive(CStream* stream) {   // 00478110
+bool NetLink::ReceiveImpl(CStream* stream) {   // 00478110
     Record(stream);
     return true;
 }
@@ -217,12 +215,10 @@ EI_REPLACE_METHOD(0x004780E0, NetLink::CloseRecording);
 
 namespace {
 int __fastcall LinkIncomingCountHook(NetLink* self) { return self->NetLink::IncomingCount(); }
-bool __fastcall LinkSendHook(NetLink* self, void*, CStream* stream) { return self->NetLink::Send(stream); }
-bool __fastcall LinkReceiveHook(NetLink* self, void*, CStream* stream) { return self->NetLink::Receive(stream); }
 } // namespace
 EI_REPLACE(0x00478000, LinkIncomingCountHook);
-EI_REPLACE(0x00478100, LinkSendHook);
-EI_REPLACE(0x00478110, LinkReceiveHook);
+EI_REPLACE_METHOD(0x00478100, NetLink::SendImpl);
+EI_REPLACE_METHOD(0x00478110, NetLink::ReceiveImpl);
 
 // ================================================================================================
 // LoopbackLink (0073C8F8)
@@ -340,7 +336,7 @@ int LoopbackLink::IncomingCount() {   // 00478760
 
 // A new empty stream at the end of the peer's queue takes a copy of `stream` (its slot 7). False
 // without a live peer.
-bool LoopbackLink::Send(CStream* stream) {   // 00478220
+bool LoopbackLink::SendImpl(CStream* stream) {   // 00478220
     LoopbackLink* peer = peer_;
     if (!IsLive(peer)) return false;
     QueueNode* inserted;
@@ -352,7 +348,7 @@ bool LoopbackLink::Send(CStream* stream) {   // 00478220
 
 // The front of the queue copied into `stream` (its slot 7) and dropped, then recorded as the base
 // does. False when nothing is queued.
-bool LoopbackLink::Receive(CStream* stream) {   // 00478270
+bool LoopbackLink::ReceiveImpl(CStream* stream) {   // 00478270
     if (queue_->next == queue_) return false;
     stream->CopyFrom(&queue_->next->stream);
     QueueNode* next;
@@ -379,8 +375,6 @@ int __fastcall LoopbackConnectedHook(LoopbackLink* self) { return self->Loopback
 int __fastcall LoopbackAliveHook(LoopbackLink* self) { return self->LoopbackLink::Alive() ? 1 : 0; }
 bool __fastcall LoopbackHasIncomingHook(LoopbackLink* self) { return self->LoopbackLink::HasIncoming(); }
 int __fastcall LoopbackIncomingCountHook(LoopbackLink* self) { return self->LoopbackLink::IncomingCount(); }
-bool __fastcall LoopbackSendHook(LoopbackLink* self, void*, CStream* stream) { return self->LoopbackLink::Send(stream); }
-bool __fastcall LoopbackReceiveHook(LoopbackLink* self, void*, CStream* stream) { return self->LoopbackLink::Receive(stream); }
 void __fastcall LoopbackDisconnectHook(LoopbackLink* self) { self->LoopbackLink::Disconnect(); }
 } // namespace
 EI_REPLACE(0x00478610, LoopbackResetHook);
@@ -389,8 +383,8 @@ EI_REPLACE(0x00478710, LoopbackConnectedHook);
 EI_REPLACE(0x00478730, LoopbackAliveHook);
 EI_REPLACE(0x00478750, LoopbackHasIncomingHook);
 EI_REPLACE(0x00478760, LoopbackIncomingCountHook);
-EI_REPLACE(0x00478220, LoopbackSendHook);
-EI_REPLACE(0x00478270, LoopbackReceiveHook);
+EI_REPLACE_METHOD(0x00478220, LoopbackLink::SendImpl);
+EI_REPLACE_METHOD(0x00478270, LoopbackLink::ReceiveImpl);
 EI_REPLACE(0x00478140, LoopbackDisconnectHook);
 
 // ================================================================================================
@@ -458,7 +452,7 @@ bool ReplayLink::Alive() {   // 00478C30
 bool ReplayLink::HasIncoming() { return ReplayLink::Alive(); }   // 00478C50
 
 // The next recorded message into `stream`; the replay stream's ok.
-bool ReplayLink::Receive(CStream* stream) {   // 00478C70
+bool ReplayLink::ReceiveImpl(CStream* stream) {   // 00478C70
     StreamReadSized(&replay_, nullptr, stream);
     return replay_.ok_ != 0;
 }
@@ -470,14 +464,13 @@ int __fastcall ReplayResetHook(ReplayLink* self) { return self->ReplayLink::OnSh
 ReplayLink* __fastcall ReplayCloneHook(ReplayLink* self) { return self->ReplayLink::Clone(); }
 int __fastcall ReplayAliveHook(ReplayLink* self) { return self->ReplayLink::Alive() ? 1 : 0; }
 int __fastcall ReplayHasIncomingHook(ReplayLink* self) { return self->ReplayLink::HasIncoming() ? 1 : 0; }
-bool __fastcall ReplayReceiveHook(ReplayLink* self, void*, CStream* stream) { return self->ReplayLink::Receive(stream); }
 void __fastcall ReplayDisconnectHook(ReplayLink* self) { self->ReplayLink::Disconnect(); }
 } // namespace
 EI_REPLACE(0x00478B10, ReplayResetHook);
 EI_REPLACE(0x00478A50, ReplayCloneHook);
 EI_REPLACE(0x00478C30, ReplayAliveHook);
 EI_REPLACE(0x00478C50, ReplayHasIncomingHook);
-EI_REPLACE(0x00478C70, ReplayReceiveHook);
+EI_REPLACE_METHOD(0x00478C70, ReplayLink::ReceiveImpl);
 EI_REPLACE(0x00478C90, ReplayDisconnectHook);
 
 // ================================================================================================
@@ -554,7 +547,7 @@ int FramedLink::IncomingCount() {   // 0047BA40
 // The message framed (its length, then its bytes, read from the start) in a stack buffer and
 // handed to slot 13; when that fails the link disconnects (slot 11). False for a message over
 // 0x7FFC bytes or a failed send.
-bool FramedLink::Send(CStream* stream) {   // 0047BAD0
+bool FramedLink::SendImpl(CStream* stream) {   // 0047BAD0
     std::uint8_t buffer[kMaxMessage + 4];
     if (stream->Size() > kMaxMessage) return false;
     std::uint32_t size = stream->Size();
@@ -570,7 +563,7 @@ bool FramedLink::Send(CStream* stream) {   // 0047BAD0
 
 // The first message's bytes into `stream` (a memory stream, resized to them), the rest of the inbox
 // moved to its start. False when no whole message is there.
-bool FramedLink::Receive(CStream* to) {   // 0047BB70
+bool FramedLink::ReceiveImpl(CStream* to) {   // 0047BB70
     auto* stream = static_cast<CMemoryStream*>(to);
     CStream* inbox = &inbox_;
     std::uint32_t length = 0;
@@ -589,13 +582,11 @@ bool FramedLink::Receive(CStream* to) {   // 0047BB70
 namespace {
 int __fastcall FramedHasIncomingHook(FramedLink* self) { return self->FramedLink::HasIncoming() ? 1 : 0; }
 int __fastcall FramedIncomingCountHook(FramedLink* self) { return self->FramedLink::IncomingCount(); }
-bool __fastcall FramedSendHook(FramedLink* self, void*, CStream* stream) { return self->FramedLink::Send(stream); }
-bool __fastcall FramedReceiveHook(FramedLink* self, void*, CStream* stream) { return self->FramedLink::Receive(stream); }
 } // namespace
 EI_REPLACE(0x0047B9F0, FramedHasIncomingHook);
 EI_REPLACE(0x0047BA40, FramedIncomingCountHook);
-EI_REPLACE(0x0047BAD0, FramedSendHook);
-EI_REPLACE(0x0047BB70, FramedReceiveHook);
+EI_REPLACE_METHOD(0x0047BAD0, FramedLink::SendImpl);
+EI_REPLACE_METHOD(0x0047BB70, FramedLink::ReceiveImpl);
 
 // ================================================================================================
 // DriverLink (0073C990)

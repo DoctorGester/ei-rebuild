@@ -181,7 +181,7 @@ GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, flo
     return this;
 }
 
-int GroundPrint::Tick() {
+int GroundPrint::TickImpl() {
     --life_;
     halfWidth_ = halfWidth_ + growth_;
     halfLength_ = halfLength_ + growth_;
@@ -192,7 +192,7 @@ int GroundPrint::Tick() {
     return life_;
 }
 
-void GroundPrint::Load(CStream* stream) {
+void GroundPrint::LoadImpl(CStream* stream) {
     Read(stream, &position_.x);
     Read(stream, &position_.y);
     Read(stream, &halfWidth_);
@@ -215,7 +215,7 @@ void GroundPrint::Load(CStream* stream) {
     built_ = false;
 }
 
-void GroundPrint::Save(CStream* stream) {
+void GroundPrint::SaveImpl(CStream* stream) {
     Write(stream, position_.x);
     Write(stream, position_.y);
     Write(stream, halfWidth_);
@@ -337,14 +337,14 @@ Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLen
     return this;
 }
 
-void Footprint::Load(CStream* stream) {
-    GroundPrint::Load(stream);
+void Footprint::LoadImpl(CStream* stream) {
+    GroundPrint::LoadImpl(stream);
     Read(stream, &scale_);
     Read(stream, &kind_);
 }
 
-void Footprint::Save(CStream* stream) {
-    GroundPrint::Save(stream);
+void Footprint::SaveImpl(CStream* stream) {
+    GroundPrint::SaveImpl(stream);
     Write(stream, scale_);
     Write(stream, kind_);
 }
@@ -381,23 +381,23 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     return this;
 }
 
-int BloodPrint::Tick() {
+int BloodPrint::TickImpl() {
     if (--spreadTicks_ < 0) growth_ = 0.0f;
     else built_ = false;
     angle_ = angle_ + spin_;
-    return GroundPrint::Tick();
+    return GroundPrint::TickImpl();
 }
 
-void BloodPrint::Load(CStream* stream) {
-    GroundPrint::Load(stream);
+void BloodPrint::LoadImpl(CStream* stream) {
+    GroundPrint::LoadImpl(stream);
     Read(stream, &spin_);
     Read(stream, &spreadTicks_);
     Read(stream, &kind_);
     Read(stream, &fresh_);
 }
 
-void BloodPrint::Save(CStream* stream) {
-    GroundPrint::Save(stream);
+void BloodPrint::SaveImpl(CStream* stream) {
+    GroundPrint::SaveImpl(stream);
     Write(stream, spin_);
     Write(stream, spreadTicks_);
     Write(stream, kind_);
@@ -474,23 +474,15 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
 // ---- Registration -------------------------------------------------------------------------------
 
 // The virtual slots (rewrite-guide rule 4).
-int __fastcall PrintTickHook(GroundPrint* self, void*) { return self->GroundPrint::Tick(); }
-void __fastcall PrintLoadHook(GroundPrint* self, void*, CStream* stream) { self->GroundPrint::Load(stream); }
-void __fastcall PrintSaveHook(GroundPrint* self, void*, CStream* stream) { self->GroundPrint::Save(stream); }
-void __fastcall FootprintLoadHook(Footprint* self, void*, CStream* stream) { self->Footprint::Load(stream); }
-void __fastcall FootprintSaveHook(Footprint* self, void*, CStream* stream) { self->Footprint::Save(stream); }
-int __fastcall BloodPrintTickHook(BloodPrint* self, void*) { return self->BloodPrint::Tick(); }
-void __fastcall BloodPrintLoadHook(BloodPrint* self, void*, CStream* stream) { self->BloodPrint::Load(stream); }
-void __fastcall BloodPrintSaveHook(BloodPrint* self, void*, CStream* stream) { self->BloodPrint::Save(stream); }
 
-EI_REPLACE(0x006CECD0, PrintTickHook);
-EI_REPLACE(0x006CF4F0, PrintLoadHook);
-EI_REPLACE(0x006CF370, PrintSaveHook);
-EI_REPLACE(0x006CFE60, FootprintLoadHook);
-EI_REPLACE(0x006CFE10, FootprintSaveHook);
-EI_REPLACE(0x006CFA20, BloodPrintTickHook);
-EI_REPLACE(0x006CFB40, BloodPrintLoadHook);
-EI_REPLACE(0x006CFAC0, BloodPrintSaveHook);
+EI_REPLACE_METHOD(0x006CECD0, GroundPrint::TickImpl);
+EI_REPLACE_METHOD(0x006CF4F0, GroundPrint::LoadImpl);
+EI_REPLACE_METHOD(0x006CF370, GroundPrint::SaveImpl);
+EI_REPLACE_METHOD(0x006CFE60, Footprint::LoadImpl);
+EI_REPLACE_METHOD(0x006CFE10, Footprint::SaveImpl);
+EI_REPLACE_METHOD(0x006CFA20, BloodPrint::TickImpl);
+EI_REPLACE_METHOD(0x006CFB40, BloodPrint::LoadImpl);
+EI_REPLACE_METHOD(0x006CFAC0, BloodPrint::SaveImpl);
 EI_REPLACE_METHOD(0x006CEDE0, GroundPrint::Draw);
 EI_REPLACE_METHOD(0x006CF960, GroundPrint::Destruct);
 EI_REPLACE_METHOD(0x0056D080, GroundPrint::Destruct);

@@ -125,7 +125,7 @@ EI_REPLACE_METHOD(0x00512660, CMapObjectManager::CreateManager);
 
 CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
     CResourceManager* manager = AsResourceManager(this);
-    CEngineObject* object = manager->CBaseManager::CreateObject(classId, id);
+    CEngineObject* object = manager->CBaseManager::CreateObjectImpl(classId, id);
     if (!object) return nullptr;
     auto* figures = static_cast<CBaseManager*>(static_cast<CWorld*>(manager->context_)->FigureManager());
     static_cast<CMapObject*>(object)->SetAnimationState(

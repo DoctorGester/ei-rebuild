@@ -223,7 +223,7 @@ void __fastcall UpdateScreenRectVerify(CLinkMesh* self) {
 bool(__fastcall* s_hasPart)(CLinkMesh*, void*, const stlp::string*);
 bool __fastcall HasPartVerify(CLinkMesh* self, void*, const stlp::string* name) {
     bool expected = s_hasPart(self, nullptr, name);
-    bool actual = self->CLinkMesh::HasPart(name);
+    bool actual = self->CLinkMesh::HasPartImpl(name);
     ei::verify::Check("CLinkMesh::HasPart", expected, actual, "\"%.*s\"", static_cast<int>(name->size()), name->data());
     return actual;
 }
@@ -239,7 +239,7 @@ bool __fastcall GetPartDataVerify(CLinkMesh* self, void*, const stlp::string* na
     int evc = -1;
     int eic = -1;
     bool expected = s_getPartData(self, nullptr, name, &ev, &ec, &eix, &evc, &eic);
-    bool actual = self->CLinkMesh::GetPartData(name, vertices, corners, indices, vertexCount, indexCount);
+    bool actual = self->CLinkMesh::GetPartDataImpl(name, vertices, corners, indices, vertexCount, indexCount);
     bool same = expected == actual && (!actual || (ev == *vertices && ec == *corners && eix == *indices &&
                                                    evc == *vertexCount && eic == *indexCount));
     ei::verify::Check("CLinkMesh::GetPartData", true, same, "\"%.*s\" result %d / %d", static_cast<int>(name->size()),
@@ -253,7 +253,7 @@ void __fastcall CollectPartNamesVerify(CLinkMesh* self, void*, stlp::vector<stlp
     std::size_t before = out->size();
     stlp::vector<stlp::string> expected;
     s_collectNames(self, nullptr, &expected);
-    self->CLinkMesh::CollectPartNames(out);
+    self->CLinkMesh::CollectPartNamesImpl(out);
     bool same = out->size() - before == expected.size();
     for (std::size_t i = 0; same && i < expected.size(); ++i) same = expected.begin()[i] == out->begin()[before + i];
     ei::verify::Check("CLinkMesh::CollectPartNames", true, same, "%u names, %u before",
@@ -266,8 +266,8 @@ void* s_unused;   // registrations without a trampoline
 
 // 004F30D0 (ours only: the loader reads files and changes the mesh). A loaded part is a part afterwards.
 bool __fastcall LoadPartVerify(CLinkMesh* self, void*, const stlp::string* name) {
-    bool loaded = self->CLinkMesh::LoadPart(name);
-    ei::verify::Check("CLinkMesh::LoadPart", true, !loaded || self->CLinkMesh::HasPart(name), "\"%.*s\"",
+    bool loaded = self->CLinkMesh::LoadPartImpl(name);
+    ei::verify::Check("CLinkMesh::LoadPart", true, !loaded || self->CLinkMesh::HasPartImpl(name), "\"%.*s\"",
                       static_cast<int>(name->size()), name->data());
     return loaded;
 }
@@ -279,7 +279,7 @@ bool __fastcall RemovePartVerify(CLinkMesh* self, void*, const stlp::string* nam
     Sizes before(self);
     LinkPartRanges removed{};
     if (present) removed = *LinkRangeMapAtOriginal(&self->ranges_, nullptr, name);
-    bool result = self->CLinkMesh::RemovePart(name);
+    bool result = self->CLinkMesh::RemovePartImpl(name);
     Sizes after(self);
     bool same = result == present && !HasPart(self, name) &&
                 (!present || (after.vertices == before.vertices - removed.vertices.count &&

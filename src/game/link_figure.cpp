@@ -133,13 +133,12 @@ CLinkMesh* CLinkMesh::DeletingDestructBase(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x004F2E00, CLinkMesh::DeletingDestructBase);
 
-void* CLinkMesh::DeleteThis(unsigned flags) {
+void* CLinkMesh::DeleteThisImpl(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-void* __fastcall LinkMeshDeleteThis(CLinkMesh* self, void*, unsigned flags) { return self->CLinkMesh::DeleteThis(flags); }
-EI_REPLACE(0x004F2E20, LinkMeshDeleteThis);
+EI_REPLACE_METHOD(0x004F2E20, CLinkMesh::DeleteThisImpl);
 
 bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
@@ -347,24 +346,19 @@ void CLinkMesh::UpdateScreenRect() {
 void __fastcall LinkMeshUpdateScreenRect(CLinkMesh* self) { self->CLinkMesh::UpdateScreenRect(); }
 EI_REPLACE(0x004F45E0, LinkMeshUpdateScreenRect);
 
-bool CLinkMesh::HasPart(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
-bool __fastcall LinkMeshHasPart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::HasPart(name); }
-EI_REPLACE(0x004F3040, LinkMeshHasPart);
+bool CLinkMesh::HasPartImpl(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
+EI_REPLACE_METHOD(0x004F3040, CLinkMesh::HasPartImpl);
 
-void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) {
+void CLinkMesh::CollectPartNamesImpl(stlp::vector<stlp::string>* out) {
     for (LinkRangeMap::Node* node = ranges_.begin(); node != ranges_.end(); node = LinkRangeMap::Next(node))
         out->push_back(node->first);
 }
-void __fastcall LinkMeshCollectPartNames(CLinkMesh* self, void*, stlp::vector<stlp::string>* out) {
-    self->CLinkMesh::CollectPartNames(out);
-}
-EI_REPLACE(0x004F2FB0, LinkMeshCollectPartNames);
+EI_REPLACE_METHOD(0x004F2FB0, CLinkMesh::CollectPartNamesImpl);
 
-bool CLinkMesh::LoadPart(const stlp::string* name) { return LoaderLoadPart(loader_, nullptr, this, name); }
-bool __fastcall LinkMeshLoadPart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::LoadPart(name); }
-EI_REPLACE(0x004F30D0, LinkMeshLoadPart);
+bool CLinkMesh::LoadPartImpl(const stlp::string* name) { return LoaderLoadPart(loader_, nullptr, this, name); }
+EI_REPLACE_METHOD(0x004F30D0, CLinkMesh::LoadPartImpl);
 
-bool CLinkMesh::RemovePart(const stlp::string* name) {
+bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
     LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     LinkPartRanges removed = node->second;
@@ -389,10 +383,9 @@ bool CLinkMesh::RemovePart(const stlp::string* name) {
     }
     return true;
 }
-bool __fastcall LinkMeshRemovePart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::RemovePart(name); }
-EI_REPLACE(0x004F3530, LinkMeshRemovePart);
+EI_REPLACE_METHOD(0x004F3530, CLinkMesh::RemovePartImpl);
 
-bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
+bool CLinkMesh::GetPartDataImpl(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                             std::uint16_t** indices, int* vertexCount, int* indexCount) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -404,8 +397,4 @@ bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, M
     *vertexCount = r.vertices.count;
     return true;
 }
-bool __fastcall LinkMeshGetPartData(CLinkMesh* self, void*, const stlp::string* name, VertexPacket** vertices,
-                                    MeshCorner** corners, std::uint16_t** indices, int* vertexCount, int* indexCount) {
-    return self->CLinkMesh::GetPartData(name, vertices, corners, indices, vertexCount, indexCount);
-}
-EI_REPLACE(0x004F3780, LinkMeshGetPartData);
+EI_REPLACE_METHOD(0x004F3780, CLinkMesh::GetPartDataImpl);

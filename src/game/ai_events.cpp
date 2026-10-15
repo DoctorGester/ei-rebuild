@@ -202,7 +202,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     void* data = nullptr;
     const char* error = game::Text(kCantReadAiInfo);
     if (!failed) {
-        data = archive->CMappedResource::GetFile(game::Text(kNormalFile), nullptr);
+        data = archive->CMappedResource::GetFileImpl(game::Text(kNormalFile), nullptr);
         error = game::Text(kCantOpenNormal);
     }
     if (!data) {
@@ -211,7 +211,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
         return result;
     }
     std::memcpy(reinterpret_cast<void*>(kNormalTable), data, kNormalTableSize);
-    archive->CMappedResource::CloseFile(data);
+    archive->CMappedResource::CloseFileImpl(data);
     MappedResourceDestroyOriginal(archive);
     return 1;
 }
