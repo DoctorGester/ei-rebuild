@@ -18,7 +18,7 @@ int WorldToCell(float world) {
 
 namespace {
 // Standing heights of the 8 size classes (00791 69C).
-const float* SizeClassHeights() { return reinterpret_cast<const float*>(0x0079169C); }
+const float* SizeClassHeights() { return ei::GameData<const float[8]>(0x0079169C); }
 
 // Cell centre to world coordinate, as FindFreeCellNear computes it.
 float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f * 0.5f); }
@@ -369,11 +369,11 @@ namespace {
 
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius
 // (compared as raw float bits) to the number of offsets within it.
-int SpiralDepth() { return *reinterpret_cast<const int*>(0x007C2FEC); }
-const int* SpiralKeys() { return *reinterpret_cast<const int* const*>(0x007C2FDC); }
-std::uint32_t SpiralMask() { return *reinterpret_cast<const std::uint32_t*>(0x007C2FF0); }
-const int* SpiralLengthTable() { return *reinterpret_cast<const int* const*>(0x007C2FC4); }
-const std::int16_t* SpiralOffsets() { return *reinterpret_cast<const std::int16_t* const*>(0x007C2FFC); }
+int SpiralDepth() { return ei::GameData<const int>(0x007C2FEC); }
+const int* SpiralKeys() { return ei::GameData<const int* const>(0x007C2FDC); }
+std::uint32_t SpiralMask() { return ei::GameData<const std::uint32_t>(0x007C2FF0); }
+const int* SpiralLengthTable() { return ei::GameData<const int* const>(0x007C2FC4); }
+const std::int16_t* SpiralOffsets() { return ei::GameData<const std::int16_t* const>(0x007C2FFC); }
 } // namespace
 
 const std::int16_t* SpiralCache::Get(float r, int* count) {
