@@ -33,7 +33,6 @@ __declspec(naked) void __fastcall RecordInsertOverflow(NamedPartyRecords*, void*
                                                        unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
-void __fastcall PartyAddMember(void* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
 void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 
 const char* const kHero = reinterpret_cast<const char*>(0x0078B0F4);           // "Hero"
@@ -84,7 +83,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     Release(temp);
 
     char* party = (*list->records.Start())->party;
-    PartyAddMember(party, nullptr, kHero, kHumanHero, game::EmptyText());
+    PartyAddMemberOriginal(party, nullptr, kHero, kHumanHero, game::EmptyText());
     CStringAssignTextOriginal(party + 0x68, nullptr, kFirstZone);
     *reinterpret_cast<int*>(party + 0x6C) = 0;
     PartySetVar(party + 0x54, nullptr, kGameTime, kSix);

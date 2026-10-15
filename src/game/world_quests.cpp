@@ -154,7 +154,6 @@ struct RawString {
     std::uint8_t bytes[12];
 };
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-inline BriefingRecord** __fastcall BriefingMapAt(void* a0, void*, const RawString* a2) { return static_cast<BriefingRecord**>(MapRegistryFindOriginal(a0, nullptr, a2)); }
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
 // 0057FB60 (RET 4). The client asks the server to complete briefing `name` (GameFlow::RequestBriefing).
 __declspec(naked) void __fastcall RequestBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FB60)
@@ -264,7 +263,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         RawString key;
         char allocator;
         RawStringInit(&key, nullptr, parts[2], &allocator);
-        record = *BriefingMapAt(worlddata::QuestBriefings(), nullptr, &key);
+        record = *(BriefingRecord**)MapRegistryFindOriginal(worlddata::QuestBriefings(), nullptr, &key);
         StlStringDestroy(&key);
     }
     WorldPlayer* player = nullptr;
@@ -511,7 +510,6 @@ CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) {
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
-void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
@@ -580,7 +578,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->link_));
         item->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
         if (link) ++link->references;
-        if (old) RefRelease(old, nullptr);
+        if (old) RefObjectRelease(old);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
         CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot);

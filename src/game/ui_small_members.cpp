@@ -190,11 +190,8 @@ EI_REPLACE_METHOD(0x005F7C80, CInterface3D::ChatKeyBackspace);
 
 void CCampPages::OnKeyUp(int key, int repeat, int flags) { InputOf(this)->BaseKeyUp(key, repeat, flags); }
 namespace {
-void __fastcall CampKeyUp(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CCampPages>(input)->OnKeyUp(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x0060F690, CampKeyUp);
+EI_REPLACE_METHOD(0x0060F690, InputForward<&CCampPages::OnKeyUp>::Call);
 
 int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     interface_->mouseCapture_ = nullptr;
@@ -203,11 +200,8 @@ int CHeroStatsPanel::OnLButtonUp(int, int, int) {
     return 0;
 }
 namespace {
-int __fastcall StatsPanelLButtonUp(void* input, void*, int buttons, int x, int y) {
-    return WindowFromInput<CHeroStatsPanel>(input)->OnLButtonUp(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00624A40, StatsPanelLButtonUp);
+EI_REPLACE_METHOD(0x00624A40, InputForward<&CHeroStatsPanel::OnLButtonUp>::Call);
 
 int CGlobalMap::OnLButtonUp(int, int, int) {
     if (turning_ != 0) selectPending_ = 1;
@@ -215,11 +209,8 @@ int CGlobalMap::OnLButtonUp(int, int, int) {
     return 0;
 }
 namespace {
-int __fastcall GlobalMapLButtonUp(void* input, void*, int buttons, int x, int y) {
-    return WindowFromInput<CGlobalMap>(input)->OnLButtonUp(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x0062FEF0, GlobalMapLButtonUp);
+EI_REPLACE_METHOD(0x0062FEF0, InputForward<&CGlobalMap::OnLButtonUp>::Call);
 
 void CEscMenu::OnClose() { window.models_.data[0]->Play(0); }
 EI_REPLACE_METHOD(0x0062ACB0, CEscMenu::OnClose);

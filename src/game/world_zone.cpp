@@ -58,7 +58,6 @@ char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* 
 __declspec(naked) bool __fastcall ReadMapObjectFile(Chunk*, void*, CWorldServer*, int /*keepIds*/)
     EI_ORIGINAL(0x00481660)
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
-void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 0059DDB0 (RET 4). Destructor of a counted pointer (releases through slot 4; flags & 1 frees it).
 __declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, unsigned /*flags*/)
     EI_ORIGINAL(0x0059DDB0)
@@ -209,7 +208,7 @@ void CWorldServer::ClearMapObjects() {
     }
 
     for (auto* node = projectiles_.head; node; node = node->next)
-        if (node->data) RefRelease(node->data, nullptr);
+        if (node->data) RefObjectRelease(node->data);
     projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)

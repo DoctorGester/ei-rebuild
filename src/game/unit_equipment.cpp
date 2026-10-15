@@ -29,7 +29,6 @@ constexpr int kManagerWorld = 0xAC;         // the manager's map object context 
 // item manager's item by name (item_constructor.cpp); 00480080 FatalError (app.cpp); CUnit's
 // EquipArmour / AddWeapon / AddSpell (unit_items.cpp, unit.cpp). 006AD1E0, the item manager's
 // spell by name (with world slot 22), is not rewritten.
-CEngineObject* __fastcall CreateSpellAt(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 
@@ -75,7 +74,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin()[i], spellOwner);
+        CEngineObject* spell = (CEngineObject*)FactoryCreateSpellOriginal(items, nullptr, prototype->spellNames.begin()[i], spellOwner);
         if (spell) UnitAddSpellOriginal(unit, nullptr, spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }

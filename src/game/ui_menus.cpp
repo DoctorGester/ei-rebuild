@@ -1,6 +1,7 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
 // drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
 #include "ui.h"
+#include "ui_screens.h"
 #include "sound.h"
 
 #include "ei/hook.h"
@@ -192,16 +193,10 @@ W* FromInput(void* input) {
     return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - 0x94);
 }
 
-void __fastcall SaveLoadMouseDown(void* input, void*, int buttons, int x, int y) {
-    FromInput<CSaveLoadWindow>(input)->OnMouseDown(buttons, x, y);
-}
-void __fastcall SaveLoadDoubleClick(void* input, void*, int buttons, int x, int y) {
-    FromInput<CSaveLoadWindow>(input)->OnDoubleClick(buttons, x, y);
-}
 } // namespace
 
-EI_REPLACE(0x00654660, SaveLoadMouseDown);
-EI_REPLACE(0x006547B0, SaveLoadDoubleClick);
+EI_REPLACE_METHOD(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
+EI_REPLACE_METHOD(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
 EI_REPLACE_METHOD(0x006544A0, CSaveLoadWindow::Draw);
 EI_REPLACE_METHOD(0x006545E0, CSaveLoadWindow::Update);
 EI_REPLACE_METHOD(0x00654430, CSaveLoadWindow::CloseDialog);
@@ -371,16 +366,10 @@ void COptionsWindow::Update() {
 #pragma float_control(pop)
 
 namespace {
-void __fastcall OptionsMouseDown(void* input, void*, int buttons, int x, int y) {
-    FromInput<COptionsWindow>(input)->OnMouseDown(buttons, x, y);
-}
-void __fastcall OptionsDoubleClick(void* input, void*, int buttons, int x, int y) {
-    FromInput<COptionsWindow>(input)->OnDoubleClick(buttons, x, y);
-}
 } // namespace
 
-EI_REPLACE(0x00650C20, OptionsMouseDown);
-EI_REPLACE(0x00650D70, OptionsDoubleClick);
+EI_REPLACE_METHOD(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
+EI_REPLACE_METHOD(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
 EI_REPLACE_METHOD(0x00650920, COptionsWindow::Draw);
 EI_REPLACE_METHOD(0x00650A20, COptionsWindow::Redraw);
 EI_REPLACE_METHOD(0x006508E0, COptionsWindow::OnDialogResult);
@@ -469,18 +458,12 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
 }
 
 namespace {
-void __fastcall ScrollbarMouseDown(void* input, void*, int buttons, int x, int y) {
-    FromInput<CUiScrollbar>(input)->OnMouseDown(buttons, x, y);
-}
-void __fastcall ScrollbarMouseUp(void* input, void*, int buttons, int x, int y) {
-    FromInput<CUiScrollbar>(input)->OnMouseUp(buttons, x, y);
-}
 } // namespace
 
 EI_REPLACE_METHOD(0x0065B090, CUiScrollbar::TakePosition);
 EI_REPLACE_METHOD(0x0065B360, CUiScrollbar::Update);
-EI_REPLACE(0x0065B240, ScrollbarMouseDown);
-EI_REPLACE(0x0065B340, ScrollbarMouseUp);
+EI_REPLACE_METHOD(0x0065B240, InputForward<&CUiScrollbar::OnMouseDown>::Call);
+EI_REPLACE_METHOD(0x0065B340, InputForward<&CUiScrollbar::OnMouseUp>::Call);
 
 // --- Tooltip -----------------------------------------------------------------------------------
 

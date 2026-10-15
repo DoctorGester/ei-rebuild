@@ -13,6 +13,7 @@
 #include "player_client.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
+#include "ui_screens.h"
 #include "ui_widescreen.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -50,12 +51,6 @@ CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient
 
 // The multiplayer session's player records (STLport list of PlayerMessage pointers).
 using SessionPlayerList = stlp::list<net::PlayerMessage*>;
-
-// The panel window whose input side is `input` (handlers get window + 0x94 as `this`).
-template <typename W>
-W* FromInput(void* input) {
-    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_));
-}
 
 // IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
@@ -97,20 +92,10 @@ constexpr int kMapCentreX = 700;
 constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
-// Shim from the input-side `this` to a panel member taking (buttons, x, y).
-#define UI_INPUT_HANDLER(addr, Class, Method)                                                     \
-    static void __fastcall Class##_##Method(void* input, void*, int buttons, int x, int y) {      \
-        FromInput<Class>(input)->Method(buttons, x, y);                                           \
-    }                                                                                             \
-    EI_REPLACE(addr, Class##_##Method)
-
-// Same for the wheel handlers (buttons, delta, x, y), which return BOOL.
-#define UI_WHEEL_HANDLER(addr, Class, Method)                                                     \
-    static BOOL __fastcall Class##_##Method(void* input, void*, int buttons, int delta, int x,     \
-                                            int y) {                                              \
-        return FromInput<Class>(input)->Method(buttons, delta, x, y);                             \
-    }                                                                                             \
-    EI_REPLACE(addr, Class##_##Method)
+// A panel member taking (buttons, x, y) as the handler of its input side; the wheel handlers
+// (buttons, delta, x, y) return BOOL.
+#define UI_INPUT_HANDLER(addr, Class, Method) EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call)
+#define UI_WHEEL_HANDLER(addr, Class, Method) EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call)
 } // namespace
 
 // --- Forwarders --------------------------------------------------------------------------------

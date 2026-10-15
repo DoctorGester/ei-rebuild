@@ -93,11 +93,8 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
     }
 }
 namespace {
-void __fastcall ExchangeLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CExchangeScreen>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x0062CF70, ExchangeLButtonDown);
+EI_REPLACE_METHOD(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Call);
 
 // --- 0062D210: the exchange went through (slot 37) -------------------------------------------------
 

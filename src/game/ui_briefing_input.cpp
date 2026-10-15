@@ -274,18 +274,9 @@ void CBriefingScreen::DrawTopics() {
 }
 
 namespace {
-void __fastcall BriefingLeftDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBriefingScreen>(input)->OnLeftDown(buttons, x, y);
-}
-void __fastcall BriefingMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBriefingScreen>(input)->OnMouseMove(buttons, x, y);
-}
-void __fastcall BriefingLeftDouble(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBriefingScreen>(input)->OnLeftDouble(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x006030F0, BriefingLeftDown);
-EI_REPLACE(0x00603360, BriefingLeftDouble);
-EI_REPLACE(0x00603D00, BriefingMouseMove);
+EI_REPLACE_METHOD(0x006030F0, InputForward<&CBriefingScreen::OnLeftDown>::Call);
+EI_REPLACE_METHOD(0x00603360, InputForward<&CBriefingScreen::OnLeftDouble>::Call);
+EI_REPLACE_METHOD(0x00603D00, InputForward<&CBriefingScreen::OnMouseMove>::Call);
 EI_REPLACE_METHOD(0x00608B60, CBriefingScreen::OpenTopics);
 EI_REPLACE_METHOD(0x006071E0, CBriefingScreen::DrawTopics);
