@@ -393,8 +393,8 @@ screen are in section 3.
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`)
 
 Screen 3 of a "brief" zone (zone_base_bz1g: Create 006024B0, Update 00604130, Draw 00602BF0). States +0x16C: 0 walking, 1 topic
-choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario `ui_base_dialogue`: the leader walks to Smith (MoveToObject),
-`clickunit Smith`, region 0 (the first topic), waits 4 s, clicks through the phrases, Esc, a second Esc takes the rewards. A
+choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario `ui_base_dialogue` (sets "b.Smith.M4" first: Smith has no topic after a new game): the leader walks to Smith
+(MoveToObject), `clickunit Smith`, region 0 (the first topic), waits 4 s, clicks through the phrases, Esc, a second Esc takes the rewards. A
 person can talk when its server controller's command is 0 or 0xB and the next one 9 (or it has none). All O unless marked.
 
 | Address | Name |

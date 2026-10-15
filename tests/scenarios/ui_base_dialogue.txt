@@ -1,25 +1,31 @@
-# The base screen's dialogue (ticket A-I10). bz1g is a "brief" zone: its screen is the briefing /
+# The base screen's dialogue (ticket A-I10, T2a). bz1g is a "brief" zone: its screen is the briefing /
 # base screen (id 3, Create 006024B0, Update 00604130). A left click on a person (input slot 2,
 # 006030F0, dialogue state +0x16C = 0) picks the client object (00565D00); a unit whose brain is
 # idle starts the dialogue (00608B60: the person's topics (00607360) as five regions plus
-# "goodbye", state 1). A click on a topic region starts it (006064E0, state 3: phrases, each click
-# 00604C50), then rewards (state 4, 00608450). The leader walks to Smith first so that the base
-# camera (it follows the leader) has him on screen; the verify counts show how far it got.
+# "goodbye", state 1). Smith has no topic after a new game (OpenTopics finds none, so a click on
+# region 0 hits nothing), so the scenario sets the script variable "b.Smith.M4" (FindTopics reads
+# "b.<person>.<topic>" = 1) with the console, as ui_base_topic does. A click on the topic region
+# starts it (006064E0, state 3: phrases, each click 00604C50), then rewards (state 4, 00608450,
+# which completes the topic). A second click on Smith finds no topic left: only "goodbye" (region
+# 0), which closes the dialogue. The leader walks to Smith first so that the base camera (it
+# follows the leader) has him on screen. No `speed`, so a golden can be recorded (SV3).
+reject Script error
 waitmenu
 console thingamabob
 newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
-waitfor 15 IsUnitBlocked(GetLeader())
+waitfor 40 IsUnitBlocked(GetLeader())
 zone bz1g 0
 waitzone 20 bz1g
 waitfor 15 IsGreater(HP(GetLeader()),0)
 check IsAlive(GetObjectByName("Smith"))
+console @GSSetVar(0,"b.Smith.M4",1)
+console #GSGetVar(0,"b.Smith.M4")
 console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
-waitfor 20 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
-speed 55
+waitfor 30 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
 waitunit 10 Smith
 clickunit Smith
-wait 1500
+frames 10
 clickregion 0
 # the people walk to their places (state 2) before the phrases start (00608210)
 wait 4000
@@ -35,6 +41,11 @@ wait 800
 key esc
 wait 800
 key esc
+wait 800
+console #GSGetVar(0,"b.Smith.M4")
+clickunit Smith
+frames 10
+clickregion 0
 wait 800
 check IsAlive(GetLeader())
 report

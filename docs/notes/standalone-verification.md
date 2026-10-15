@@ -816,7 +816,7 @@ OnUnitLeft, SoundStreamRead, speech and attack-param groups).
   (-2.5%), because most of a run is its start. Wall seconds are too noisy under load to compare
   (batch 280 1586 s with 4 at once, batch 438 2050 s while other batches ran; the suite itself took
   148 s of scheduler time on idle slots).
-- Open: ui_base_dialogue (Smith has no topics, T2a), a hero attack on a removed target gives a
+- Open: ui_base_dialogue reached no dialogue (Smith has no topics; T2a: it now sets b.Smith.M4, golden blocked by T2f), a hero attack on a removed target gives a
   PlayerMode::UpdateCombat mismatch (T2b), goldens to record again (T2d), rebirth_flags'
   `DistancePointPoint(3,4)` check prints 0 on a first run now and then (T2e, unchanged scenario).
 
@@ -1729,3 +1729,16 @@ which precise does not give); the x87:: helpers; crt_x87's conditional `Round`.
 
 **Suite** (`work.py test SV7d1a1 --golden --jobs 4`, 128 runs): ALL PASS, no verify mismatches, 56 goldens the same;
 `--standalone --vanilla-only --golden` on the 44 scenarios with a vanilla golden: 44 the same.
+
+## T2a: ui_base_dialogue reaches the dialogue (2026-10-15)
+
+`ui_base_dialogue` now sets the script variable `b.Smith.M4` (console `GSSetVar`, as ui_base_topic does), so OpenTopics finds
+a topic: StartDialogue, StartPhrases, NextPhrase (13), ShowItem, FinishDialogue and CompleteBriefing are reached (verify
+counts above, vanilla and Rebirth), then a second click on Smith has no topic left and region 0 is "goodbye" (OpenTopics 2
+calls). No `speed` any more (33 s with hooks, 7 s plain). Passes vanilla, Rebirth and `--standalone`.
+
+Golden not recorded: the original repeats (5 of 5 runs, both installs, same digest) but ours (hooked verify, `--dgvoodoo`,
+standalone) parts from it in `isaac.count` at update 80 or 100 in bz1g and alternates between a few values (vanilla
+118 / 193 at update 80 / 100, original 57 / 193; standalone matches at 80 and parts at 100: 56 against 193). Ours draws three
+more ambience sounds in frame 15 (`Terrain::PlayAmbience`, `MaybeRemark`, the sector votes) than the original, the same
+family as zone_base_bz1g and ui_base_topic (T2f).
