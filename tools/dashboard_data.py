@@ -70,7 +70,7 @@ AREAS = [
 ]
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
-REPLACE = re.compile(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)')
+REPLACE = re.compile(r'EI_REPLACE(?:_METHOD|_SHORT)?\(\s*0x([0-9A-Fa-f]+)')
 HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
 CLEANUP = {
