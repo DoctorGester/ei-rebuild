@@ -1041,6 +1041,13 @@ group = "verification"
 depends = ["SV7d1"]
 note = "From SV7d1: under /fp:fast, MSVC compiled FearMode's (30x + d) * (1/31) as 30/31 x + d/31, and the result drifted by an ulp to a different fixed point. Any rewrite that multiplies an unrounded sum by a constant may be distributed or folded the same way. Scan the verify DLL's compiled code for products whose order differs from the original's (the original does FADD then FMUL; ours does FMUL, FMUL, FADD), and round the sum first with the volatile store helper. CheckNear hides these; a save or digest shows them only when the error accumulates."
 
+[[ticket]]
+id = "SV7d1a1"
+title = "Drop the fp:fast workarounds now that the build is /fp:precise"
+group = "verification"
+depends = ["SV7d1a"]
+note = "From SV7d1a: the build is /fp:precise. The 87 float_control(precise, on) pragmas and the volatile float store helpers (StoreFloat, RoundToFloat, Round, ...) written only to defeat /fp:fast's regrouping and unrounded float locals are redundant. Remove them where they only did that (a store the original does is a plain float assignment now), keeping x87::FromUnsigned, IsNaN and the x87:: transcendental helpers. check_cleanup's float_control count goes down. Suite with --golden; behaviour must not change."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
