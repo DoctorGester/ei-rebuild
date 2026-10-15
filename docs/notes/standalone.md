@@ -256,6 +256,14 @@ within 4 + |y| / 2 double units and acos / asin within 4 (1,758 results not bit-
 within tolerance (the original's _87except may flush them). smoke vanilla: 0 mismatches; the image installs
 all five.
 
+**S4c group 2: exceptions.** src/lib/crt_except.cpp, both builds (no state of their own): _CxxThrowException
+006E7819 raises 0xE06D7363 (not continuable, {0x19930520, object, ThrowInfo}) with the thrower's own
+ThrowInfo, so the exe's catch tables and ours (verify_mfc_try) both match it; MSVC 6 std::exception
+{vtable 00747290, text, owned} (constructor, copy, operator=, destructor, deleting destructor, what with
+"Unknown exception" 00747298). check_returns allows 006E7819 (it does not return). Check:
+tests/verify/verify_crt_except.cpp (constructor, copy and what against the originals; a start-up check drives
+all six, since the suite throws none).
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on

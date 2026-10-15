@@ -244,6 +244,26 @@ double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
 double __cdecl CiFmod(double x, double y);
 
+// C++ exceptions (S4c, src/lib/crt_except.cpp). _CxxThrowException: RaiseException(0xE06D7363, not
+// continuable, {0x19930520, object, throw info}); the throw information is VC6's layout, which this
+// compiler's frame handler reads too (src/lib/mfc_try.h). Does not return.
+void __stdcall CxxThrowException(void* object, const void* throwInfo);         // 006E7819
+// MSVC 6's std::exception: the exe's vtable (00747290), the text, and whether the object owns (and frees)
+// it. The const char* constructor (006E7D02) has no callers.
+struct Exception {
+    Exception* Construct();                                   // 006E7CD5 exception(): no text
+    Exception* CopyConstruct(const Exception& source);        // 006E7D3F (RET 4)
+    Exception* Assign(const Exception& source);               // 006E7D89 operator= (RET 4)
+    void Destruct();                                          // 006E7DA8 ~exception
+    Exception* DeletingDestruct(unsigned flags);              // 006E7CE6 (vtable slot 0, RET 4)
+    const char* What() const;                                 // 006E7DBE (slot 1): "Unknown exception" without text
+
+    const void* vtable;
+    const char* text;
+    int ownsText;
+};
+static_assert(sizeof(Exception) == 12);
+
 // The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
 // heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.
 void* __cdecl OperatorNew(std::size_t size);                                    // 007005AF
