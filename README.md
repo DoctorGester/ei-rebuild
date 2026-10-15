@@ -162,7 +162,7 @@ registry, every game hosts and joins on a UDP port of its own instead of 8888 (`
 side by side otherwise join each other's servers), Rebirth's starter switch CtfMon is answered off (addon.dll would otherwise close the user's ctfmon at start and
 restart it from its DLL_PROCESS_DETACH, which hung every exit), and a game that hangs on exit is ended 3 s after
 the scenario quits (where its threads were: `exit_hang.txt` in the run folder). When the game crashes,
-the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions. A run that exceeds its time
+the stack is in `ei_hook.log`; run_all prints it by function names under the run's line (`stack: ... -> ComposeTexture -> CFile::Write -> CxxThrowException`, outermost first, stale words dropped) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word). A run that exceeds its time
 limit logs where the main thread waits (instruction pointer and return addresses, as module+offset). No game outlives its limit:
 the watchdog thread in the game ends it at the scenario's `timeout` (60 s unless the scenario says more); if that
 thread cannot run, `ei_launch` ends the game 20 s later (and the game runs in a job object that dies with

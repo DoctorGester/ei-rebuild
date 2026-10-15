@@ -193,7 +193,7 @@ class Board:
         for t in tickets:
             a = assign.get(t['id']) or ended.get(t['id'])
             out.append({'id': t['id'], 'title': t['title'], 'group': t['group'], 'group_name': gname.get(t['group'], t['group']),
-                        'state': t['state'], 'status': t['status'], 'size': t.get('size'), 'model': t.get('model'),
+                        'state': t['state'], 'status': t['status'], 'size': t.get('size'), 'model': (a['model'] if a else None) or t.get('model'),
                         'depends': t.get('depends', []), 'note': t.get('note', ''), 'files': t.get('files', []),
                         'started': t.get('started'), 'done': t.get('done'),
                         'assignment': assignment(a) if a else None, 'notes': notes.get(t['id'], []),
@@ -203,7 +203,7 @@ class Board:
         for tid, a in assign.items():       # assigned with `work.py start --force`: an id the toml does not have
             if tid not in known:
                 out.append({'id': tid, 'title': '(not in docs/tickets.toml)', 'group': '', 'group_name': '', 'state': 'running',
-                            'status': 'running', 'size': None, 'model': None, 'depends': [], 'note': '', 'files': [],
+                            'status': 'running', 'size': None, 'model': a['model'], 'depends': [], 'note': '', 'files': [],
                             'started': None, 'done': None, 'assignment': assignment(a), 'notes': notes.get(tid, []),
                             'commit': branches.get(a['branch']), 'batch': latest.get(tid)})
         return {'groups': groups, 'tickets': out}

@@ -135,6 +135,10 @@ MIGRATIONS = [
         author    TEXT
     );
     """,
+    # 5: the model the coordinator gave the worker (`work.py start --model`); NULL: the ticket's planned model applies.
+    """
+    ALTER TABLE assignment ADD COLUMN model TEXT;
+    """,
 ]
 
 
@@ -415,7 +419,8 @@ def cmd_start(db, args):
     with transaction(db):
         old = db.execute('SELECT * FROM assignment WHERE ticket = ? AND ended IS NULL', (args.id,)).fetchone()
         if old and old['worktree'] == worktree:
-            db.execute('UPDATE assignment SET branch = ?, agent = ? WHERE id = ?', (branch, agent, old['id']))
+            db.execute('UPDATE assignment SET branch = ?, agent = ?, model = coalesce(?, model) WHERE id = ?',
+                       (branch, agent, args.model, old['id']))
             print(f'{args.id}: already assigned to {agent} since {old["started"]} ({worktree}, {branch})')
         else:
             t = now()
@@ -424,8 +429,8 @@ def cmd_start(db, args):
                 db.execute('INSERT INTO note (ticket, time, author, text) VALUES (?, ?, ?, ?)',
                            (args.id, t, agent, f'took over from {old["agent"]} ({old["worktree"]})'))
                 print(f'{args.id}: was assigned to {old["agent"]} ({old["worktree"]}) since {old["started"]}; taken over')
-            db.execute('INSERT INTO assignment (ticket, worktree, branch, agent, started) VALUES (?, ?, ?, ?, ?)',
-                       (args.id, worktree, branch, agent, t))
+            db.execute('INSERT INTO assignment (ticket, worktree, branch, agent, started, model) VALUES (?, ?, ?, ?, ?, ?)',
+                       (args.id, worktree, branch, agent, t, args.model))
             print(f'{args.id}: assigned to {agent} ({worktree}, {branch})')
     set_ticket_status(db, args.id, 'running', agent)
     return 0
@@ -571,6 +576,7 @@ def main():
     sub = ap.add_subparsers(dest='cmd', required=True)
     p = sub.add_parser('start', help='assign a ticket to this checkout')
     p.add_argument('id'); p.add_argument('--worktree'); p.add_argument('--branch'); p.add_argument('--agent')
+    p.add_argument('--model', help="the model the worker runs on (shown on the board over the ticket's planned one)")
     p.add_argument('--force', action='store_true', help='assign an id tickets.toml does not have')
     p = sub.add_parser('note', help='a progress line'); p.add_argument('id'); p.add_argument('text', nargs='+')
     p.add_argument('--author')
