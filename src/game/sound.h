@@ -501,6 +501,12 @@ int __fastcall SoundManagerClassId(CSoundManager* self);
 // `size` bytes, cut at the end of the file. Returns the byte count (0 when the read fails); the
 // read position advances by it.
 int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset);
+// 006B89B0 (__stdcall, RET 8; no Ghidra function; S16b). The callback the speech and sound loader
+// hands to Miles's AIL_decompress_ASI (006B8xxx's .mp3 path): at state 1 it asks the decoder through
+// `set` (name, value) for "Requested bit width" 16, "Requested sample rate" 44100 and "Requested # of
+// channels" 2. Returns 1.
+using DecoderPropertyFn = int(__stdcall*)(const char* name, std::uint32_t value);
+int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
 int __fastcall MusicSystemClassId(CMusicSystem* self);
 
 namespace sound {

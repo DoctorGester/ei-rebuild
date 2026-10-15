@@ -16,13 +16,13 @@ namespace {
 constexpr int kSpecificType = 0x46;   // the side halves' type_
 } // namespace
 
-void CObject3D::CombineRotation3D(const Quaternion* parent) { Transform()->CTransformObject::CombineRotation(*parent); }
+void CObject3D::CombineRotation3D(const Quaternion* parent) { Transform()->CombineRotationImpl(*parent); }
 EI_REPLACE_METHOD(0x00516370, CObject3D::CombineRotation3D);
 
 void CObject3D::CopyFigure(const CObject3D* other) {
     parts.SetSize(other->parts.size, -1);
     std::memcpy(parts.data, other->parts.data, static_cast<std::size_t>(other->parts.size & 0x3FFFFFFF) * sizeof(void*));
-    Transform()->CTransformObject::CopyTransform(*other->Transform());
+    Transform()->CopyTransformImpl(*other->Transform());
 }
 EI_REPLACE_METHOD(0x005161E0, CObject3D::CopyFigure);
 

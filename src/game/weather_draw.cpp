@@ -35,20 +35,20 @@ void HandOver(CRainSnow* weather, CSceneRenderer* renderer) {
 
 // 004E5680. Returns what the rain / snow draw returned, 1 when there is nothing to draw, 0 without
 // a world or with an unknown mode.
-int __fastcall WeatherDraw(CRainSnow* self, void*, CSceneRenderer* renderer) {
-    CWorld* world = self->world;
-    if (!world) return 0;
-    if (self->mode == 0) return 1;
-    WeatherStep(self, nullptr, static_cast<float>(world->tick_));
-    if (self->mode == 0) return 1;
-    TextureEnsureLoadedOriginal(&self->texture);
-    renderer->SetTexture(0, self->texture);
-    int mode = self->mode;
+int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
+    CWorld* currentWorld = world;
+    if (!currentWorld) return 0;
+    if (this->mode == 0) return 1;
+    WeatherStep(this, nullptr, static_cast<float>(currentWorld->tick_));
+    if (this->mode == 0) return 1;
+    TextureEnsureLoadedOriginal(&texture);
+    renderer->SetTexture(0, texture);
+    int currentMode = mode;
     int result;
-    if (mode == 1) result = DrawRain(self, nullptr, renderer);
-    else if (mode == 2) result = DrawSnow(self, nullptr, renderer);
+    if (currentMode == 1) result = ::DrawRain(this, nullptr, renderer);
+    else if (currentMode == 2) result = ::DrawSnow(this, nullptr, renderer);
     else return 0;
-    if (render::Active()) HandOver(self, renderer);
+    if (render::Active()) HandOver(this, renderer);
     return result;
 }
-EI_REPLACE(0x004E5680, WeatherDraw);
+EI_REPLACE_METHOD(0x004E5680, CRainSnow::DrawImpl);

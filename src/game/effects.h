@@ -418,6 +418,8 @@ ParticleElement* __fastcall AllocateElements(int count);
 // whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
 class CRainSnow : public CEngineObject {
 public:
+    // Body of the slot at 004E5680 (registered by member pointer).
+    int DrawImpl(CSceneRenderer* renderer);
     static constexpr std::uintptr_t kRainSnowVtable = std::uintptr_t(0x0073F4C8);
 
     // 005616C0. The destructor's body: Clear, the work arrays freed (last member first), the texture

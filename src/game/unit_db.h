@@ -47,6 +47,8 @@ struct UnitGoldRoll {
 static_assert(sizeof(UnitGoldRoll) == 0x10);
 
 struct UnitPrototypeRecord {
+    // Body of the slot at 005407E0 (registered by member pointer).
+    UnitPrototypeRecord* DeleteScalar(unsigned flags);
     // 0052D740 (RET 4). Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
 
@@ -210,6 +212,8 @@ static_assert(offsetof(UnitModelRecord, soundCounts) == 0x144);
 
 // A unit database level record (0x44 bytes; the fourth table, 0053E1B0).
 struct UnitLevelRecord {
+    // Body of the slot at 00540840 (registered by member pointer).
+    UnitLevelRecord* DeleteScalar(unsigned flags);
     // 0052DEE0 (RET 4; A-U11). The name as field 0, the seven dwords at +0x08 / +0x24 as fields
     // 1 / 2, +0x40 as 3 and +0x04 as 4.
     void Serialize(ChunkArchive* ar);
@@ -232,10 +236,6 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record);
 void __fastcall DestroyModelSlot(UnitModelSlot* slot);
 // 0053EFF0 (thiscall; S16a): a level record's destructor (its name; a jump to ~CString).
 void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
-// 00540840 / 005407E0 (RET 4; S16a): the level and prototype records' scalar deleting destructors
-// (the destructor, then operator delete when bit 0 of `flags` is set). Return the record.
-UnitLevelRecord* __fastcall DeleteLevelRecord(UnitLevelRecord* self, void*, unsigned flags);
-UnitPrototypeRecord* __fastcall DeletePrototypeRecord(UnitPrototypeRecord* self, void*, unsigned flags);
 // 005214B0 (ECX first, EDX last; S16a): stlp::_Destroy over CStrings, first to last.
 void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 } // namespace unitdb

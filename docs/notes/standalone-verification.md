@@ -793,6 +793,22 @@ Checked: flags off, the ten Rebirth goldens the same (console's random trace mak
 same frame); flags on and vanilla, 19 goldens of 12 scenarios the same.
 
 
+### SV3c1: the scan as a build check (2026-10-15)
+
+`tools/check_patched_calls.py` (run by build.cmd after check_registrations, release and verify; skipped in debug,
+whose unoptimised code leaves calls the optimised builds inline) is the scan above kept: capstone-checked E8 / E9 sites
+in ei_hook.dll's .text (outside the incremental-link thunk table) whose target is our replacement of an address in
+docs/rebirth-patched-functions.txt, or the thunk of one; the caller is named from ei_hook.map. Our replacement of an
+address comes from the EI_REPLACE / EI_REPLACE_METHOD lines naming it; only those symbols (and the callers) are undecorated
+(the decorated name's prefix finds them), so it takes about 1 s (the whole-map version took 47 s). Allowed without a
+line: callers in tests/verify and tests/vectors, a function calling itself. Everything else is in
+`tools/check_patched_calls_allow.txt` with its reason: the script parser / evaluator family (AddNewScriptCommands, one
+flag), ProcessRequest -> StartNewGame and CMMIOResource::Destroy -> CMappedResource::Destroy (inlined in the original).
+Main had no other hit. Not seen: calls the compiler inlined, vtable and function-pointer calls, and a call to the
+implementation behind a registered entry function (a registered `FooEntry` that calls `FooImpl`, with other code calling
+`FooImpl`).
+
+
 ## SV3e: stored script runs clear their kill flag (2026-10-15)
 
 004BC420 sets its local run's kill flag to 0 after Execute returns unfinished, before the copy into the run list

@@ -53,11 +53,30 @@ struct StringAbi {
     static int __fastcall Compare(const char* first1, const char* last1, const char* first2, const char* last2);
     // The scalar deleting destructor (004DDC90; RET 4).
     static string* __fastcall DeletingDestructor(string* self, void*, unsigned flags);
+    // _String_base::_M_allocate_block(n) (00424E40; RET 4): a block of n bytes (none for 0), the
+    // string empty at its start; the terminator is not written.
+    static void __fastcall AllocateBlock(string* self, void*, std::size_t n);
+    // operator+(const string&, const char*) (00427D60; out in ECX, a in EDX, RET 4) and
+    // operator+(const string&, const string&) (00427E80): Join. Return out.
+    static string* __fastcall PlusText(string* out, const string* a, const char* text);
+    static string* __fastcall PlusString(string* out, const string* a, const string* b);
+    // operator==(a, b) (00427FA0; a in ECX, b in EDX): the same size and bytes.
+    static bool __fastcall Equals(const string* a, const string* b);
+    // The body of both operator+: a temporary with room for exactly a and [first, last) and the
+    // terminator (a's bytes appended, then the range), then `out` made as a copy of it (a block of
+    // its own), then the temporary's block freed.
+    static void Join(string* out, const string& a, const char* first, const char* last);
 
     // The three words, for checks.
     static char* Start(const string& s) { return s.start_; }
     static char* Finish(const string& s) { return s.finish_; }
     static char* EndOfStorage(const string& s) { return s.eos_; }
 };
+
+// __stl_throw_out_of_range("basic_string") (004410A0; substr past the end): the text as a string,
+// MSVC 6's out_of_range made on the stack from it (the exe's __Named_exception vtable 0073B994, its
+// 256-byte name, then out_of_range's vtable 0073BE8C) and thrown with the exe's throw information
+// 0074C640 through _CxxThrowException; the string's block is freed as the throw unwinds this frame.
+[[noreturn]] void __fastcall ThrowOutOfRange();
 
 } // namespace stlp

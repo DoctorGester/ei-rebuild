@@ -133,10 +133,10 @@ constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;
 
 // --- Shared slots --------------------------------------------------------------------------------
 
-int __fastcall aimode::Priority50(AIMode*, void*, AIBrain*) { return kPriority; }
-EI_REPLACE(0x005D0A80, aimode::Priority50);
+int AIMode::Priority50(AIBrain*) { return kPriority; }
+EI_REPLACE_METHOD(0x005D0A80, AIMode::Priority50);
 
-void __fastcall aimode::EnterIdle(AIMode*, void*, AIBrain* brain) {
+void AIMode::EnterIdle(AIBrain* brain) {
     ReleaseRef(brain->target);
     brain->action = AIBrain::kActionNone;
     std::uint32_t roll = GameRandom()->Next();
@@ -144,13 +144,13 @@ void __fastcall aimode::EnterIdle(AIMode*, void*, AIBrain* brain) {
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->busy = 0;
 }
-EI_REPLACE(0x005D0AF0, aimode::EnterIdle);
+EI_REPLACE_METHOD(0x005D0AF0, AIMode::EnterIdle);
 
-void __fastcall aimode::ClearAction(AIMode*, void*, AIBrain* brain) {
+void AIMode::ClearAction(AIBrain* brain) {
     ReleaseRef(brain->target);
     brain->action = AIBrain::kActionNone;
 }
-EI_REPLACE(0x005D0A50, aimode::ClearAction);
+EI_REPLACE_METHOD(0x005D0A50, AIMode::ClearAction);
 
 // --- Guard ---------------------------------------------------------------------------------------
 
@@ -640,7 +640,6 @@ EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 
 // --- Player --------------------------------------------------------------------------------------
 
-
 void PlayerMode::Execute(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
     // The player controls this unit directly.
@@ -729,7 +728,6 @@ void PlayerMode::Execute(AIBrain* brain) {
     brain->action = AIBrain::kActionNone;
 }
 EI_REPLACE_METHOD(0x005D4A90, PlayerMode::Execute);
-
 
 namespace {
 // Does the player control the unit directly?

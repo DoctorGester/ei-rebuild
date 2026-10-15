@@ -979,6 +979,15 @@ depends = ["SV7a"]
 note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
 
 [[ticket]]
+id = "SV3l"
+title = "CInterface3D::Update check flakes: mouse 1920,1260"
+group = "verification"
+size = 0.25
+model = "sonnet"
+files = ["tests/verify/verify_ui_base.cpp"]
+note = "render_cursor_present vanilla failed twice on main (2026-10-15, after the SV3c1 merge) and once on S16a with 'MISMATCH CInterface3D::Update: mouse 1920,1260' (1 of ~10187). InterfaceUpdateVerify (tests/verify/verify_ui_base.cpp) compares the interface's mouse position with the window procedure's stored one (007C7C50/54) after Update; 1920,1260 is outside the game window, so a WM_MOUSEMOVE from the real cursor probably lands while a window's update pumps messages. Confirm (log both values), then make the check robust (compare against the stored value as of Update's own read, or skip when the stored value changed during the call). Harness inputs only; no game change."
+
+[[ticket]]
 id = "SV7d1"
 title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
 group = "verification"
@@ -1302,7 +1311,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 6 merged 2026-10-15: 64 virtual-slot shims to Impl members; 952 shims left. The virtual-slot forwarder pool is used up; what is left is mostly call-through blocks, UI input shims, free __fastcall bodies of slots with no member yet, and shims that dereference a pointer parameter (see docs/notes/cleanup-units.md, C11 batch 6)."
+note = "Batch 7 merged 2026-10-15: 47 free slot bodies and pointer-parameter shims to Impl members; 908 shims left. Both easy pools are used up; what is left is call-through blocks, UI input shims and void* selfs, template aliases (C11 batch 7 in docs/notes/cleanup-units.md). Next batch: the constexpr addresses and per-file At() copies part of this ticket, or the UI input shims as one family."
 
 [[ticket]]
 id = "C12"
@@ -1913,7 +1922,14 @@ title = "Standalone: the next stops after the zone (0069D9A0, 00657C60, 00424E40
 group = "standalone"
 depends = ["S16a"]
 files = ["src/game/item_stock.cpp", "src/game/ui_saveload.cpp", "src/game/originals_library.h"]
-note = "S16a's loop left three stops (docs/notes/standalone.md S16a): 0069D9A0 (ui_camp_deals: the item stock's vector<char*> allocate-and-copy, from item_stock.cpp AssignPointers), 00657C60 (ui_saveload_delete: SaveEntry's copy constructor, from CSaveLoadWindow::FillEntries), 00424E40 (ui_mp_host: the net strings' StringAllocateBlock, from net::StringEmpty). Grep main first (S12e / S12f work on STLport rows). Then run the scenarios not yet run standalone (work.py test S16b <names> --standalone --jobs 4; 32 of 98 sampled so far) and continue the loop."
+note = "S16a's loop left three stops (docs/notes/standalone.md S16a): 0069D9A0 (ui_camp_deals: the item stock's vector<char*> allocate-and-copy, from item_stock.cpp AssignPointers), 00657C60 (ui_saveload_delete: SaveEntry's copy constructor, from CSaveLoadWindow::FillEntries), 00424E40 (ui_mp_host: the net strings' StringAllocateBlock, from net::StringEmpty). Grep main first (S12e / S12f work on STLport rows). Then run the scenarios not yet run standalone (work.py test S16b <names> --standalone --jobs 4; 32 of 98 sampled so far) and continue the loop. S12g (2026-10-15) registered the three stops named here (0069D9A0, 00657C60, 00424E40) with the rest of the library forwarders; start from the suite run."
+
+[[ticket]]
+id = "S16c"
+title = "Standalone: console disconnect (005DFC10 -> 00581620 -> 00566E00) and reporting INT3 hits before the missing-code handler"
+group = "standalone"
+depends = ["S16b"]
+note = "S16b left: the console's disconnect (005DFC10, a jump to GameFlow 00581620, itself a jump to the client world's 00566E00, unported) is reached by no scenario. And an INT3 hit in the image before the missing-code handler is active (startup actions, static initialisers) ends the run silently as RUNNING with nothing logged (seen with ui_widescreen's sscanf, docs/notes/standalone.md S16b): install the handler first, or report from ei_launch."
 
 # ---------------------------------------------------------------- Lua
 

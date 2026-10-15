@@ -284,6 +284,9 @@ void __fastcall LastFps(CStringArray* args);       // 005DEEE0 lastfps
 void __fastcall Exec(CStringArray* args);          // 005DEF50 exec, execute
 void __fastcall Give(CStringArray* args);          // 005DF0F0 give
 void __fastcall LootAll(CStringArray* args);       // 005DF5B0 lootall
+void __fastcall Join(CStringArray* args);          // 005DF3A0 join (S16b)
+void __fastcall HostServer(CStringArray* args);    // 005DF490 server (S16b)
+void __fastcall MemUsage(CStringArray* args);      // 005DF5A0 memusage (S16b)
 void __fastcall FadeOut(CStringArray* args);       // 005DF8E0 fadeout
 void __fastcall Net(CStringArray* args);           // 005DF9B0 net
 void __fastcall GenerateAcks(CStringArray* args);  // 005DFDA0 generateacks

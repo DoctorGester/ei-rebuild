@@ -55,8 +55,11 @@ void Resolution(int* width, int* height) {
     DWORD size = sizeof(text) - 1, type = 0;
     if (gameapi::RegQueryValueExA(key, "VIDEORESOLUTION", nullptr, &type, reinterpret_cast<BYTE*>(text), &size) ==
             ERROR_SUCCESS &&
-        type == REG_SZ)
-        gamecrt::sscanf(text, "%dx%d", width, height);   // addon: its own CRT's sscanf
+        type == REG_SZ) {
+        // addon: its own CRT's sscanf. Ours directly (S16b): this runs before the hooks are in, when
+        // the standalone image has no code at 006EAEEC yet.
+        libcrt::Sscanf(text, "%dx%d", width, height);
+    }
     gameapi::RegCloseKey(key);
 }
 

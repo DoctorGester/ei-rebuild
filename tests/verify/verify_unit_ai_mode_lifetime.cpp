@@ -15,7 +15,7 @@ void* s_unused;
 // 005D0A90 LookAroundExecute: draws a random number and may attack, so ours only: an attack has
 // a target afterwards.
 static void __fastcall LookAroundExecuteVerify(AIMode* self, void*, AIBrain* brain) {
-    aimode::LookAroundExecute(self, nullptr, brain);
+    self->LookAroundExecute(brain);
     bool ok = !(brain->action == AIBrain::kActionAttack && brain->target == nullptr);
     ei::verify::Check("aimode::LookAroundExecute", true, ok, "brain %p action %d", brain, brain->action);
 }

@@ -248,6 +248,14 @@ void __fastcall CursorThread(CCursor* self) {
 }
 EI_REPLACE(0x005E5690, CursorThread);
 
+// 005E52A0 (cdecl; no Ghidra function; S16b): the procedure AfxBeginThread starts (the cursor as its
+// parameter): CursorThread, then exit code 0.
+unsigned __cdecl CursorThreadEntry(void* cursor) {
+    CursorThread(static_cast<CCursor*>(cursor));
+    return 0;
+}
+EI_REPLACE(0x005E52A0, CursorThreadEntry);
+
 // 005E6630 (thiscall, RET 4): the part of the drawn rectangle inside `bounds_` is copied from the
 // primary (`fromPrimary`) or the render target into the background surface, as the screen under the
 // cursor changed (the movie players after their blits to the primary).

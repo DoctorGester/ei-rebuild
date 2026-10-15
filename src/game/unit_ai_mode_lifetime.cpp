@@ -19,11 +19,11 @@ constexpr int kTypePatrol = 1;
 constexpr int kTypeFear = 7;
 } // namespace
 
-void __fastcall aimode::LookAroundExecute(AIMode*, void*, AIBrain* brain) {
+void AIMode::LookAroundExecute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->Say(kRemarkIdle);
     brain->LookAround(0);
 }
-EI_REPLACE(0x005D0A90, aimode::LookAroundExecute);
+EI_REPLACE_METHOD(0x005D0A90, AIMode::LookAroundExecute);
 
 int __fastcall aimode::PatrolType(AIMode*) { return kTypePatrol; }
 EI_REPLACE(0x005D1210, aimode::PatrolType);

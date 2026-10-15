@@ -73,10 +73,6 @@ CBaseManager* __fastcall WorldClientLightManager(CWorldClient*);     // 005619A0
 CParticleManager* __fastcall WorldClientParticleManager(CWorldClient*);   // 005619B0
 CEngineObject* __fastcall WorldClientManager194(CWorldClient*);      // 005619C0
 CEngineObject* __fastcall WorldClientManager198(CWorldClient*);      // 005619D0
-// 005618A0 / 005618C0 (RET 8): slots 41 / 42 move `object` in the object grid (+0x120) / the
-// second grid (+0x150).
-void __fastcall WorldClientMoveObject(CWorldClient*, void*, CEngineObject* object, const float* position);
-void __fastcall WorldClientMoveObject2(CWorldClient*, void*, CEngineObject* object, const float* position);
 
 // 00562D70 / 00562DA0 (RET 4): slot 13 (Init) of the lightning and fog managers is CBaseManager::InitImpl
 // (004031B0), registered at both addresses in world_class_slots.cpp.

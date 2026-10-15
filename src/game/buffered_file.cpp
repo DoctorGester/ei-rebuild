@@ -254,6 +254,6 @@ EI_REPLACE_METHOD(0x004DB700, BufferedFile::Open);
 // --- The fixed view's empty slots ----------------------------------------------------------------
 
 // 004DA580 / 004DA590 (slots 0 / 1 of the view vtable 0073CA64, RET 4): nothing to reserve.
-void __fastcall BufferViewReserve(GameBuffer*, void*, std::int32_t) {}
-EI_REPLACE(0x004DA580, BufferViewReserve);
-EI_REPLACE(0x004DA590, BufferViewReserve);
+void GameBuffer::ReserveViewImpl(std::int32_t) {}
+EI_REPLACE_METHOD(0x004DA580, GameBuffer::ReserveViewImpl);
+EI_REPLACE_METHOD(0x004DA590, GameBuffer::ReserveViewImpl);

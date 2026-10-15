@@ -51,7 +51,7 @@ static int __fastcall RendererPolylineVerify(CSceneRenderer* renderer, void*, co
     CTextureDevice* device = renderer->device_;
     Counters before = Read(device);
     int count = points->count;
-    int result = RendererPolyline(renderer, nullptr, points, colour);
+    int result = renderer->PolylineImpl(points, colour);
     Counters after = Read(device);
     bool ok = count < 2 ? result == 0 && after.calls == before.calls && after.vertices == before.vertices
                         : result == 1 && Counted(before, after, count) && StageModulates(device::D3D(device));

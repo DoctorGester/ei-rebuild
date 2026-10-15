@@ -11,7 +11,6 @@
 
 namespace {
 
-
 // The empty string constant the game assigns to clear string variables.
 
 // CStringArray-like helper of the variable set (004C2F80): *dst = strings[index], through a
@@ -111,11 +110,10 @@ mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, c
 
 // The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
 // strings and objects; for groups the names are grown with SetSize and the slot assigned.
-BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mfc::CString* name, int type) {
-    ScriptVars& vars = definition->vars;
+BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int type) {
     mfc::CString letter;
     BOOL result;
-    const char* text = *name;
+    const char* text = *parameterName;
     switch (type) {
     case kScriptFloat:
         if (FindName(vars.floatNames, text) >= 0) {
@@ -166,18 +164,18 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
     default:
         // The original leaves the name argument in the result register: nonzero, and `params`
         // gets the empty letter appended.
-        result = static_cast<BOOL>(reinterpret_cast<std::uintptr_t>(name));
+        result = static_cast<BOOL>(reinterpret_cast<std::uintptr_t>(parameterName));
         break;
     }
     if (result) {
         alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* sum = ConcatString(reinterpret_cast<mfc::CString*>(raw), &definition->params, &letter);
-        definition->params = *sum;
+        mfc::CString* sum = ConcatString(reinterpret_cast<mfc::CString*>(raw), &params, &letter);
+        params = *sum;
         sum->~CString();
     }
     return result;
 }
-EI_REPLACE(0x004BB800, ScriptAddParameter);
+EI_REPLACE_METHOD(0x004BB800, ScriptDefinition::AddParameterImpl);
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 

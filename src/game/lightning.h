@@ -85,6 +85,7 @@ public:
     void Reset();
     // 00467AD0. Draws the bolt (render device virtuals, glow sprites). Not rewritten.
     int Draw(void* device);
+    int DrawImpl(void* device);   // body of the slot above (registered by member pointer)
     // 00466FD0. Grows the bounding box by the points of one segment.
     void ExpandBounds(const LightningSegment* segment);
     // 00467150. Bounding box and sphere of all segments (centre, box relative to it, radius).
@@ -134,6 +135,8 @@ int __cdecl LoadLightningNoise();
 
 class CLightningManager : public CBaseManager {
 public:
+    // Body of the slot at 00468680 (registered by member pointer).
+    CLightning* NewObjectImpl(int /*type*/);
     // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);
