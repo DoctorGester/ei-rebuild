@@ -116,13 +116,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     controller->Brain()->Walk(&target, run, 0);
 }
 
-namespace {
-void __fastcall MovePersonHook(CBriefingScreen* self, void*, CUnit* unit, float x, float y, float z, float dx, float dy,
-                               float dz, bool waited, bool immediate, int run) {
-    self->MovePerson(unit, x, y, z, dx, dy, dz, waited, immediate, run);
-}
-} // namespace
-EI_REPLACE(0x006089D0, MovePersonHook);
+EI_REPLACE_METHOD(0x006089D0, CBriefingScreen::MovePerson);
 
 // --- 00605DE0 -----------------------------------------------------------------------------------
 

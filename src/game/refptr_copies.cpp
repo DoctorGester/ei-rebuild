@@ -182,20 +182,20 @@ EI_REPLACE_METHOD(0x0041DD50, RefPtr::FromRawCounted);
 
 // The owning pointer's constructor from a raw pointer (RefPtr::Share, 00418BE0, which returns
 // nothing) as the instantiations emit it out of line: the same body, returning the holder.
-// __fastcall shim of a thiscall with one stack argument. 9 copies.
-RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object) {
-    self->Share(object);
-    return self;
+// 9 copies.
+RefPtr* RefPtr::ShareReturn(CRefObject* object) {
+    Share(object);
+    return this;
 }
-EI_REPLACE(0x004292F0, RefPtrShareReturn);
-EI_REPLACE(0x00429350, RefPtrShareReturn);
-EI_REPLACE(0x00429430, RefPtrShareReturn);
-EI_REPLACE(0x00429710, RefPtrShareReturn);
-EI_REPLACE(0x00429930, RefPtrShareReturn);
-EI_REPLACE(0x00429990, RefPtrShareReturn);
-EI_REPLACE(0x004299F0, RefPtrShareReturn);
-EI_REPLACE(0x00429A50, RefPtrShareReturn);
-EI_REPLACE(0x00429AB0, RefPtrShareReturn);
+EI_REPLACE_METHOD(0x004292F0, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429350, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429430, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429710, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429930, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429990, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x004299F0, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429A50, RefPtr::ShareReturn);
+EI_REPLACE_METHOD(0x00429AB0, RefPtr::ShareReturn);
 
 // The plain release of the counted pointer at +8 (0043A120).
 void __fastcall ReleaseThird(void* self) {

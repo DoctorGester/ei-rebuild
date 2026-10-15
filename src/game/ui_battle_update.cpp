@@ -613,9 +613,9 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         {
             mfc::CString quest(game::Text(0x00790790));   // "quest "
             mfc::CString textKey = quest + parts[2];
-            found = TextOpen(texts, nullptr, textKey);
+            found = texts->Open(textKey);
         }
-        if (found) TextReadLine(texts, nullptr, &text, 1);
+        if (found) texts->ReadLine(&text, 1);
         mfc::CString colour(game::Text(0x00794370));   // colour code 0x31E3EE43 and a space
         text = colour + title + game::Text(0x0078DA40) + text;
     } else if (parts.size == 4) {
@@ -641,15 +641,15 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         {
             mfc::CString quest(game::Text(0x00790790));   // "quest "
             mfc::CString textKey = quest + parts[2];
-            if (TextOpen(texts, nullptr, textKey)) {
+            if (texts->Open(textKey)) {
                 mfc::CString sub(game::Text(0x00794320));   // "#subobj "
                 mfc::CString lineKey = sub + parts[3];
-                found = TextFindLine(texts, nullptr, lineKey) != 0;
+                found = texts->FindLine(lineKey) != 0;
             }
         }
         if (found) {
             TextNextLine(texts);
-            TextReadLine(texts, nullptr, &text, 1);
+            texts->ReadLine(&text, 1);
         }
         mfc::CString colour(game::Text(0x0079349C));   // colour code 0x31B3FF43 and a space
         text = colour + title + game::Text(0x0078DA40) + text;
@@ -668,12 +668,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     if (questSound_ > sound) sound = questSound_;
     questSound_ = sound;
 }
-namespace {
-void __fastcall BattleScreenQuestVariable(CBattleScreenSetup* self, void*, const char* name, float value) {
-    self->OnQuestVariable(name, value);
-}
-} // namespace
-EI_REPLACE(0x006369D0, BattleScreenQuestVariable);
+EI_REPLACE_METHOD(0x006369D0, CBattleScreenSetup::OnQuestVariable);
 
 // --- 00637DC0: the selection's refresh --------------------------------------------------------
 

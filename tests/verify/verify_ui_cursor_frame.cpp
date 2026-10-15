@@ -13,9 +13,7 @@
 #include <cstring>
 
 void __fastcall CursorDrawFrame(CCursor* self);
-long __fastcall HolderBlt(CDXSurface* self, void*, RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx);
 void __fastcall CursorThread(CCursor* self);
-void __fastcall CursorSaveBackground(CCursor* self, void*, char fromPrimary);
 
 // 005E54A0 blits: ours only. Checked: when it composed the cursor (an image shown and a non-empty
 // rectangle), the drawn rectangle is the cursor's rectangle afterwards.
@@ -37,7 +35,7 @@ static HolderBltFn s_holderBlt;
 static long __fastcall HolderBltVerify(CDXSurface* self, void*, RECT* to, CDXSurface* source, RECT* from, unsigned long flags,
                                        void* fx) {
     long expected = s_holderBlt(self, nullptr, to, source, from, flags, fx);
-    long result = HolderBlt(self, nullptr, to, source, from, flags, fx);
+    long result = self->Blt(to, source, from, flags, fx);
     ei::verify::Check("HolderBlt", expected, result, "result %08lX, original %08lX", static_cast<unsigned long>(result),
                       static_cast<unsigned long>(expected));
     return result;
@@ -61,7 +59,7 @@ EI_VERIFY(0x005E5690, CursorThreadVerify, 0, s_cursorThread);
 static void* s_saveBackground;
 static void __fastcall CursorSaveBackgroundVerify(CCursor* self, void*, char fromPrimary) {
     RECT drawn = self->drawn_, bounds = self->bounds_;
-    CursorSaveBackground(self, nullptr, fromPrimary);
+    self->SaveBackground(fromPrimary);
     bool ok = std::memcmp(&drawn, &self->drawn_, sizeof(RECT)) == 0 && std::memcmp(&bounds, &self->bounds_, sizeof(RECT)) == 0;
     ei::verify::Check("CursorSaveBackground", true, ok, "rectangles changed");
 }

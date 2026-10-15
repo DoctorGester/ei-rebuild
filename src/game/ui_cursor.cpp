@@ -110,12 +110,7 @@ void CCursor::Blit(CursorImage* image, RECT* to, RECT* from) {
     if (imageLocked) Unlock(image->holder);
 }
 
-namespace {
-void __fastcall CursorBlit(CCursor* self, void*, CursorImage* image, RECT* to, RECT* from) {
-    self->Blit(image, to, from);
-}
-} // namespace
-EI_REPLACE(0x005E5C40, CursorBlit);
+EI_REPLACE_METHOD(0x005E5C40, CCursor::Blit);
 
 // --- 005E4EB0: a cursor image ------------------------------------------------------------------------
 

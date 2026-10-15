@@ -204,8 +204,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     return kNoPriority;
 }
 
-int __fastcall FearEvaluateHook(FearMode* self, void*, AIBrain* brain) { return self->Evaluate(brain); }
-EI_REPLACE(0x005D2960, FearEvaluateHook);
+EI_REPLACE_METHOD(0x005D2960, FearMode::Evaluate);
 
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
@@ -309,8 +308,7 @@ void FearMode::Execute(AIBrain* brain) {
     LooksDestroyAt(&order.looks);
 }
 
-void __fastcall FearExecuteHook(FearMode* self, void*, AIBrain* brain) { self->Execute(brain); }
-EI_REPLACE(0x005D30A0, FearExecuteHook);
+EI_REPLACE_METHOD(0x005D30A0, FearMode::Execute);
 
 void AIBrain::ApplyAttack(const int* partAndObject) {
     auto* object = reinterpret_cast<CEngineObject*>(partAndObject[1]);

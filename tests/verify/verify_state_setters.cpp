@@ -52,10 +52,9 @@ static int __fastcall RendererSetBlendVerify(CSceneRenderer* renderer, void*, st
 }
 EI_VERIFY(0x00501C60, RendererSetBlendVerify, 7, s_blend);
 
-int __fastcall DeviceSetMaterial(CTextureDevice* device, void*, CDeviceMaterial* material);
 static void* s_material;
 static int __fastcall DeviceSetMaterialVerify(CTextureDevice* device, void*, CDeviceMaterial* material) {
-    int result = DeviceSetMaterial(device, nullptr, material);
+    int result = device->SetMaterial(material);
     bool ok = result == 1 && device->material_ == material;
     ei::verify::Check("DeviceSetMaterial", true, ok, "material %p", material);
     return result;

@@ -671,13 +671,13 @@ constexpr std::uintptr_t kFreeMovedPositions = std::uintptr_t(0x005A8AE0);
 // drawing context (flags, light vector), `alpha` the low byte for the speculars, `rect` (optional)
 // receives the screen rectangle, the textures (their surfaces) select the two-texture draw.
 // Returns 1.
-int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
+int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights,
                               CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
-    CFigureMesh* mesh = node->mesh_;
+    CFigureMesh* mesh = mesh_;
     mesh->flags_ &= ~0x40u;
-    if (node->mesh_->flags_ & 0x80) return 1;
-    CObject3D* owner = node->mesh_->object_;
-    Part part{node, device, lights, material, alpha, rect, textureA, textureB,
+    if (mesh_->flags_ & 0x80) return 1;
+    CObject3D* owner = mesh_->object_;
+    Part part{this, device, lights, material, alpha, rect, textureA, textureB,
               owner ? reinterpret_cast<CLinkMesh*>(owner->figure) : nullptr, 0};
     if (!(Guard() & 1)) {
         Guard() |= 1;
@@ -691,10 +691,10 @@ int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* dev
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);
-        node->flags_ |= AnimatedDrawerFlags();
+        flags_ |= AnimatedDrawerFlags();
         std::uint32_t bits;
         std::memcpy(&bits, &time, 4);
-        AnimateOriginal(reinterpret_cast<char*>(node), nullptr, bits);
+        AnimateOriginal(reinterpret_cast<char*>(this), nullptr, bits);
     }
 
     std::uint32_t meshFlags = part.Mesh()->flags_;
@@ -712,7 +712,7 @@ int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* dev
     } else {
         DrawThroughDevice(part);
     }
-    FinishDraw(reinterpret_cast<char*>(node), nullptr, SceneContext());
+    FinishDraw(reinterpret_cast<char*>(this), nullptr, SceneContext());
     return 1;
 }
-EI_REPLACE(0x005A7A70, DrawFigurePart);
+EI_REPLACE_METHOD(0x005A7A70, FigureMeshDrawer::DrawLit);

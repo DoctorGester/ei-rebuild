@@ -15,11 +15,6 @@
 #include <cstdint>
 #include <cstring>
 
-int __fastcall DeviceBoundsOfVertices(CTextureDevice* device, void*, const lib::AlignedArray<TLVertex>* vertices,
-                                      const std::uint8_t* outcodes);
-int __fastcall DeviceBoundsOfProjected(CTextureDevice* device, void*,
-                                       const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
-                                       const std::uint8_t* outcodes);
 
 namespace {
 
@@ -40,6 +35,17 @@ int Compare(const char* name, Fn original, Fn ours, CTextureDevice* device, cons
     return result;
 }
 
+// Ours, through the registered members.
+int __fastcall BoundsOfVerticesOurs(CTextureDevice* device, void*, const lib::AlignedArray<TLVertex>* vertices,
+                                    const std::uint8_t* outcodes) {
+    return device->BoundsOfVertices(vertices, outcodes);
+}
+int __fastcall BoundsOfProjectedOurs(CTextureDevice* device, void*,
+                                     const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
+                                     const std::uint8_t* outcodes) {
+    return device->BoundsOfProjected(positions, outcodes);
+}
+
 // 004E86B0: PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x30 (3).
 using VerticesFn = int(__fastcall*)(CTextureDevice*, void*, const lib::AlignedArray<TLVertex>*, const std::uint8_t*);
 VerticesFn s_vertices;
@@ -47,12 +53,12 @@ int __fastcall BoundsOfVerticesVerify(CTextureDevice* device, void*, const lib::
                                       const std::uint8_t* outcodes) {
     const RECT before = device->drawnRect_;
     if (outcodes) {
-        Compare("device bounds of TL vertices (004E86B0), no outcodes", s_vertices, &DeviceBoundsOfVertices, device,
+        Compare("device bounds of TL vertices (004E86B0), no outcodes", s_vertices, &BoundsOfVerticesOurs, device,
                 vertices, nullptr);
         device->drawnRect_ = before;
     }
     return Compare(outcodes ? "device bounds of TL vertices (004E86B0), outcodes" : "device bounds of TL vertices (004E86B0), no outcodes",
-                   s_vertices, &DeviceBoundsOfVertices, device, vertices, outcodes);
+                   s_vertices, &BoundsOfVerticesOurs, device, vertices, outcodes);
 }
 
 // 004E8900: PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x90 (6).
@@ -65,13 +71,13 @@ int __fastcall BoundsOfProjectedVerify(CTextureDevice* device, void*,
     const RECT before = device->drawnRect_;
     const int blocks = (positions->size + 3) & ~3;
     if (!outcodes && devicebuffers::Outcodes().data && devicebuffers::Outcodes().size >= blocks) {
-        Compare("device bounds of projected positions (004E8900), outcodes", s_projected, &DeviceBoundsOfProjected,
+        Compare("device bounds of projected positions (004E8900), outcodes", s_projected, &BoundsOfProjectedOurs,
                 device, positions, devicebuffers::Outcodes().data);
         device->drawnRect_ = before;
     }
     return Compare(outcodes ? "device bounds of projected positions (004E8900), outcodes"
                             : "device bounds of projected positions (004E8900), no outcodes",
-                   s_projected, &DeviceBoundsOfProjected, device, positions, outcodes);
+                   s_projected, &BoundsOfProjectedOurs, device, positions, outcodes);
 }
 
 } // namespace

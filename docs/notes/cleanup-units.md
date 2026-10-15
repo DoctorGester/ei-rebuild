@@ -169,3 +169,49 @@ item_*, script_* helper blocks; progress.py counts them but there is no body to 
 - Left: 1,135, almost all of them the categories listed at the top of this section. The next real gain is the ui_* / net_*
   callers after W2 / F5 (text_reader, ClassTemplate::SetLevels, RefPtrShareReturn), then the call-through blocks as
   their originals are ported.
+
+## C11 batch 3: shims to member functions (2026-10-15)
+
+100 more shims became members (tools/progress.py: 1,134 before, 1,034 after). W2 and F5 are done, so the ui_* / net_*
+callers skipped in batches 1 and 2 are converted. Release objects differ only in the registration thunks and the removed
+`xor edx, edx` at the callers, as before.
+- Class B (the shim only forwarded to an existing non-virtual member: deleted, member registered), 64 + 3: CInterface3D
+  Activate / PushWindow / CreateScreen / ShowMessage / OpenHelp / OnKeyDown / MessageText / LoadState; CBattleScreenSetup
+  OnUnitSpeech / UnitName / Create / OnQuestVariable; CBriefingScreen Create / Update / MovePerson; CCampPages DoAction /
+  UndoAction; CConstructorPage SpellMakerItemAt / ItemMakerItemAt / DrawSpellMaker / DrawItemMaker; CCreditsScreen and
+  CExchangeScreen Draw; CCursor::Blit; CHeroEquipPanel ShowWeapon / ShowArmour / ItemAt; CHeroQuickStrip ShowEntry / ItemAt /
+  Draw; CGlobalMap Create / Update; CMpHeroScreen Draw / Update / Close / MakePreview / ShowHero / ChooseFigure;
+  CHeroStatsPanel Build / Update / DrawRow / DrawPart; CTradeGrid / CRepairGrid ItemAt; CRepairGrid::Draw; CHudSpellColumn
+  Click / ClickAlternate; CHudActionColumn Select; CHudQuickItems Pick / UseNow; CItemInfoPanel Build / Draw; CUiItemStrip
+  Draw / DrawFigures; CUiWindow::CopyImage; CUiMeshBuilder Framed / Disc / Ring; CUiSurface FrameRect / Greyscale
+  (and the already-declared SwapContents / CaptureScreen / Rgb565Copy, whose three shims sat in one namespace block);
+  CTradePanel Settle / SelectHero; FearMode Evaluate / Execute; CLightning::Start; GameInfoRecord Write / Read.
+  Candidates were picked by tools-side scripts: the shim body is one call of `self->Member(args)` with the same
+  parameter types as the member's declaration, and tools/check_thunks.py's virtual test says the member is not virtual.
+- Class A (body moved into the member), 33: CTextManager Open / ReadLine / ReadToHash / Split / FindLine (text_reader.cpp;
+  the two forwarder members of item_db_text.cpp are gone, the callers in ui_* call the members), ClassTemplate::SetLevels,
+  RefPtr::ShareReturn (nine addresses), CDXSurface Construct / ConstructFromDesc / ConstructFromPicture / LoadPictureData /
+  Fill / Blt, CTextureDevice BoundsOfVertices / BoundsOfProjected / DrawIndexed / DrawTwoTextures / DrawMeshBlocks /
+  DrawMeshBlocks2 / DrawFlatBlocks / SetMaterial / DrawIndexedDirect (renderer_sprites.cpp, 00503680) / DrawTlTriangles,
+  FigureMeshDrawer DrawBounds / DrawLit / DrawPlain, CBinkVideo::Frame, CCursor::SaveBackground, CUiSurface::PixelAt,
+  CHudUnitPanel::DrawUnitInfo, ClientSession RecordTrade / StartParty, MasterLink::Construct.
+  Rules the conversion followed: `self->x` becomes `x`, or `this->x` when the function also has an unqualified `x`
+  (a local or parameter), so the meaning cannot change; parameters that hide a data member got an `In` suffix
+  (`deviceIn`, `widthIn`, ...) and the locals that did became `binkHandle`, `surfaceHolder`, `newSurface`, `owner`.
+  The device draws' members keep their file-local helper names free (`DrawMeshBlocks`, `DrawFlatBlocks`: the helpers
+  `DrawMesh` / `DrawFlat` in the same files would have been shadowed by members of those names).
+- Verify wrappers: the prototypes of the removed shims were deleted from the tests and the calls became member calls;
+  verify_figure_part_bounds.cpp and verify_device_bounds.cpp, which took the shim's address, got a small
+  `...Ours` function that calls the member. Added includes of texture.h / link_figure.h where a test only
+  forward-declared the class.
+- Skipped, with the reason: every shim of a virtual slot (the CSceneRenderer draws, Hook shims whose target is virtual
+  by check_thunks, GameBuffer / BufferedStream slots, deleting destructors); ClassTemplatesBuild / Find, ReportsAdd,
+  CallsHear, the TextSources* shims and the other shims on aliases of lib / mfc / stlp templates (no member can be added);
+  ScaleRectToScreenEntry and the four other CInterface3D entries (they test `!self` before calling: ECX 0 is reachable
+  with Rebirth's code); EquipBuild / QuickStripBuild (the shim takes `int`, the member `bool`: a signature change);
+  AIViewer Refresh / See / Update (`uint8_t*` memory against `AIBrain*`); ClientBufferRatio (unnamed self; the buffer is
+  the object); DeviceHolderAssign / TexturePointerAssign and the other pointer-to-pointer selfs; the shims with a
+  `void*` self (about 190 of the rest); the call-through blocks (`XxxOriginal(a0, nullptr, a2)`) that have no body.
+- Left: 1,034, mostly the categories above. What remains of the convertible pool is small: the virtual-slot shims need a
+  different approach than member registration (a registration that bypasses the vtable thunk), and the call-through
+  blocks go as their originals are ported.

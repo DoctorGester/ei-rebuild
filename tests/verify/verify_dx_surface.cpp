@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <cstring>
 
-CDXSurface* __fastcall DXSurfaceConstruct(CDXSurface* holder, void*, CTextureDevice* device, int width, int height);
 void __fastcall DXSurfaceDestroy(CDXSurface* holder);
 void* __fastcall UiSurfaceGetDC(CUiSurface* surface);
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
@@ -59,7 +58,7 @@ bool PrimaryFormat(const CDXSurface* holder) {
 static void* s_construct;
 static CDXSurface* __fastcall DXSurfaceConstructVerify(CDXSurface* holder, void*, CTextureDevice* device, int width,
                                                        int height) {
-    CDXSurface* result = DXSurfaceConstruct(holder, nullptr, device, width, height);
+    CDXSurface* result = holder->Construct(device, width, height);
     bool ok = result == holder && reinterpret_cast<std::uintptr_t>(holder->vtable) == 0x0073D774 && holder->device == device &&
               HasPixels(holder, true) && holder->width == width && holder->height == height;
     ei::verify::Check("DXSurfaceConstruct", true, ok, "%dx%d, surface %p, memory %d", width, height, holder->surface,
@@ -72,13 +71,11 @@ EI_VERIFY(0x004EF7B0, DXSurfaceConstructVerify, 0, s_construct);
 // 004EFC60: returns the holder with its vtable, the device and a surface of the picture's size
 // (+4 / +8 of the .mmp header), or only the new renderer's memory as 004EF7B0; the holder count one
 // higher.
-CDXSurface* __fastcall DXSurfaceFromPicture(CDXSurface* holder, void*, CTextureDevice* device, const void* picture,
-                                            int flag);
 static void* s_fromPicture;
 static CDXSurface* __fastcall DXSurfaceFromPictureVerify(CDXSurface* holder, void*, CTextureDevice* device,
                                                          const void* picture, int flag) {
     int count = *reinterpret_cast<int*>(0x007AEE94);
-    CDXSurface* result = DXSurfaceFromPicture(holder, nullptr, device, picture, flag);
+    CDXSurface* result = holder->ConstructFromPicture(device, picture, flag);
     const auto* header = static_cast<const int*>(picture);
     bool ok = result == holder && reinterpret_cast<std::uintptr_t>(holder->vtable) == 0x0073D774 && holder->device == device &&
               HasPixels(holder, (flag & 0xFF) == 0) && holder->width == header[1] && holder->height == header[2] &&
@@ -155,19 +152,18 @@ bool SamePixels(char* expected, char* actual, int rowBytes, int height, int* fir
 // and in the switch-over no DirectDraw surface besides it (ticket R7). Other calls (errors, a holder
 // with a surface: only the dead 004EFF30 / 004EFFF0) ours only; so is every call when the game has no
 // DirectDraw device (device.h: the original's CreateSurface is refused and it crashes; ticket R9a2).
-int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data, int flag);
 static void* s_loadPicture;
 static int __fastcall DXSurfaceLoadPictureVerify(char* holder, void*, const void* data, int flag) {
     auto* surfaceHolder = reinterpret_cast<CDXSurface*>(holder);
     const auto* header = static_cast<const std::uint32_t*>(data);
     bool compare = header && header[4] == 0x8888 && !*reinterpret_cast<void**>(holder + 0x10) &&
                    !render::SurfaceMemoryOf(holder) && *reinterpret_cast<char**>(holder + 0xC) && !device::WithoutDirectDraw();
-    if (!compare) return DXSurfaceLoadPicture(surfaceHolder, nullptr, data, flag);
+    if (!compare) return surfaceHolder->LoadPictureData(data, flag);
     alignas(4) char scratch[0x20];
     std::memcpy(scratch, holder, sizeof(scratch));
     using Fn = int(__fastcall*)(char*, void*, const void*, int);
     int expected = reinterpret_cast<Fn>(s_loadPicture)(scratch, nullptr, data, flag);
-    int actual = DXSurfaceLoadPicture(surfaceHolder, nullptr, data, flag);
+    int actual = surfaceHolder->LoadPictureData(data, flag);
     auto field = [](const char* h, int offset) { return *reinterpret_cast<const std::uint32_t*>(h + offset); };
     bool fields = expected == actual && field(scratch, 8) == field(holder, 8) && field(scratch, 0x14) == field(holder, 0x14) &&
                   field(scratch, 0x18) == field(holder, 0x18) && field(scratch, 0x1C) == field(holder, 0x1C);

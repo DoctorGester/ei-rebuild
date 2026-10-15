@@ -456,7 +456,7 @@ void CCampPages::BuildPages() {
                 if (highest[school] < skill) highest[school] = skill;
             }
         }
-        ClassTemplateSetLevels(constructor_, nullptr, lowest, highest);
+        constructor_->SetLevels(lowest, highest);
         ClassTemplateGenerateMagic(constructor_);
         ClassTemplateGenerateItems(constructor_);
         constructor_->flag38 = 0;

@@ -258,29 +258,29 @@ EI_REPLACE_METHOD(0x00440BE0, SocketDriver::Receive);
 // ---- The master server link ----------------------------------------------------------------------
 
 // 00440C60: a non-blocking TCP socket connecting to `address` (state 1), or state 0.
-MasterLink* __fastcall MasterLinkConstruct(MasterLink* self, void*, const void* address) {
-    GrowingBufferConstruct(&self->out);
-    GrowingBufferConstruct(&self->in);
-    self->socket = WsSocket(2, 1, 6);
-    if (self->socket == kNoSocket) {
-        self->state = 0;
-        return self;
+MasterLink* MasterLink::Construct(const void* address) {
+    GrowingBufferConstruct(&out);
+    GrowingBufferConstruct(&in);
+    socket = WsSocket(2, 1, 6);
+    if (socket == kNoSocket) {
+        state = 0;
+        return this;
     }
     std::uint8_t any[16] = {};
     any[0] = 2;
-    if (WsBind(self->socket, any, 0x10) != 0) {
-        if (self->socket != kNoSocket) WsCloseSocket(self->socket);
-        self->socket = kNoSocket;
-        self->state = 0;
-        return self;
+    if (WsBind(socket, any, 0x10) != 0) {
+        if (socket != kNoSocket) WsCloseSocket(socket);
+        socket = kNoSocket;
+        state = 0;
+        return this;
     }
     std::uint32_t one = 1;
-    WsIoctlSocket(self->socket, kNonBlocking, &one);
-    WsConnect(self->socket, address, 0x10);
-    self->state = 1;
-    return self;
+    WsIoctlSocket(socket, kNonBlocking, &one);
+    WsConnect(socket, address, 0x10);
+    state = 1;
+    return this;
 }
-EI_REPLACE(0x00440C60, MasterLinkConstruct);
+EI_REPLACE_METHOD(0x00440C60, MasterLink::Construct);
 
 // 00440D40: closes the socket (left as it is) and destroys the buffers.
 void __fastcall MasterLinkDestruct(MasterLink* self) {

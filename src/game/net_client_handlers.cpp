@@ -216,34 +216,34 @@ void ClearTradeRecords(ClientSession* self) {
 // 0041E0A0: records the trade the paired offer stands for: our offer accepts the other's current
 // revision (and changes), and unless a record of the two revisions exists one is added with copies
 // of the two parties (+0x2620, +0x2690) and `party`.
-void __fastcall ClientRecordTrade(ClientSession* self, void*, const void* party) {
-    auto* remote = static_cast<PartyMessage*>(ClientFindParty(self));
+void ClientSession::RecordTrade(const void* party) {
+    auto* remote = static_cast<PartyMessage*>(ClientFindParty(this));
     if (!remote) return;
-    if (!self->party_.ptr) return;
-    auto* ours = static_cast<PartyMessage*>(self->party_.ptr);
+    if (!party_.ptr) return;
+    auto* ours = static_cast<PartyMessage*>(party_.ptr);
     ours->accepted_ = 1;
     ours->acceptedRevision_ = remote->revision_;
     ++ours->version_;
     std::uint32_t a = ours->acceptedRevision_;
     std::uint32_t b = ours->revision_;
-    TradeRecordNode* sentinel = self->tradeRecords_;
+    TradeRecordNode* sentinel = tradeRecords_;
     for (TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next)
         if (node->revision == b && node->acceptedRevision == a) return;
     void* inserted;
-    TradesInsertDefault(&self->tradeRecords_, nullptr, &inserted, self->tradeRecords_);
-    TradeRecordNode* record = self->tradeRecords_->prev;   // the node just added
+    TradesInsertDefault(&tradeRecords_, nullptr, &inserted, tradeRecords_);
+    TradeRecordNode* record = tradeRecords_->prev;   // the node just added
     record->acceptedRevision = ours->acceptedRevision_;
     record->revision = ours->revision_;
-    PartyCopyFrom(&record->parties[0], nullptr, &self->parties_[0]);
-    PartyCopyFrom(&record->parties[1], nullptr, &self->parties_[1]);
+    PartyCopyFrom(&record->parties[0], nullptr, &parties_[0]);
+    PartyCopyFrom(&record->parties[1], nullptr, &parties_[1]);
     PartyCopyFrom(&record->parties[2], nullptr, party);
 }
-EI_REPLACE(0x0041E0A0, ClientRecordTrade);
+EI_REPLACE_METHOD(0x0041E0A0, ClientSession::RecordTrade);
 
 // 0041E270: starts our trade offer to `partner` when the binding (+0x25F0) and its player are
 // live: kept at +0x260C, from the binding's player.
-void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner) {
-    auto* binding = static_cast<BindingMessage*>(self->binding_);
+void ClientSession::StartParty(CRefObject* partner) {
+    auto* binding = static_cast<BindingMessage*>(binding_);
     if (!Live(binding)) return;
     if (!Live(binding->PlayerRef().ptr)) return;
     auto* party = NewMessageMemory<PartyMessage>();
@@ -262,7 +262,7 @@ void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner
         party->money_ = 0;
         party->trading_ = 0;
     }
-    auto* holder = &self->party_;
+    auto* holder = &party_;
     if (party != holder->ptr) {
         if (CRefObject* old = holder->ptr) {
             if (old->refs_ != 1) {
@@ -273,10 +273,10 @@ void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner
         }
         holder->Share(party);
     }
-    AssignRef(&static_cast<PartyMessage*>(self->party_.ptr)->player_, static_cast<BindingMessage*>(self->binding_)->PlayerRef().ptr);
-    AssignRef(&static_cast<PartyMessage*>(self->party_.ptr)->partner_, partner);
+    AssignRef(&static_cast<PartyMessage*>(party_.ptr)->player_, static_cast<BindingMessage*>(binding_)->PlayerRef().ptr);
+    AssignRef(&static_cast<PartyMessage*>(party_.ptr)->partner_, partner);
 }
-EI_REPLACE(0x0041E270, ClientStartParty);
+EI_REPLACE_METHOD(0x0041E270, ClientSession::StartParty);
 
 // 0041E3E0: drops the party description.
 void __fastcall ClientDropParty(ClientSession* self) { DropParty(self); }

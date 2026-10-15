@@ -148,11 +148,11 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `last` passed
 // to the projection, `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
 // visible, else 0.
-int __fastcall DeviceDrawFlat(CTextureDevice* device, void*, const void* positions, const char* uvs, int blocks,
+int CTextureDevice::DrawFlatBlocks(const void* positions, const char* uvs, int blocks,
                               const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
                               std::uint32_t last, float zScale) {
-    int result = DrawFlat(device, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
+    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
     render::EndMesh();
     return result;
 }
-EI_REPLACE(0x004EA4A0, DeviceDrawFlat);
+EI_REPLACE_METHOD(0x004EA4A0, CTextureDevice::DrawFlatBlocks);

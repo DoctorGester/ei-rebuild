@@ -276,13 +276,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-namespace {
-void __fastcall MeshFramed(CUiMeshBuilder* self, void*, float depth, float scale, float left, float top, float right,
-                           float bottom, float border, int u0, int v0, int u1, int v1) {
-    self->Framed(depth, scale, left, top, right, bottom, border, u0, v0, u1, v1);
-}
-} // namespace
-EI_REPLACE(0x005E8450, MeshFramed);
+EI_REPLACE_METHOD(0x005E8450, CUiMeshBuilder::Framed);
 
 // --- 005E8C60 -----------------------------------------------------------------------------------------
 
@@ -323,13 +317,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     reinterpret_cast<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
     NudgeAndCommit(this);
 }
-namespace {
-void __fastcall MeshDisc(CUiMeshBuilder* self, void*, float depth, float scale, float x, float y, float radius, int count,
-                         int u, int v, int uvRadius) {
-    self->Disc(depth, scale, x, y, radius, count, u, v, uvRadius);
-}
-} // namespace
-EI_REPLACE(0x005E8C60, MeshDisc);
+EI_REPLACE_METHOD(0x005E8C60, CUiMeshBuilder::Disc);
 
 // --- 005E91F0 -----------------------------------------------------------------------------------------
 
@@ -407,13 +395,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
 }
-namespace {
-void __fastcall MeshRing(CUiMeshBuilder* self, void*, float depth, float scale, float x, float y, float radius, int count,
-                         float width, int u0, int v0, int u1, int v1) {
-    self->Ring(depth, scale, x, y, radius, count, width, u0, v0, u1, v1);
-}
-} // namespace
-EI_REPLACE(0x005E91F0, MeshRing);
+EI_REPLACE_METHOD(0x005E91F0, CUiMeshBuilder::Ring);
 
 // --- 005E9F30 -----------------------------------------------------------------------------------------
 

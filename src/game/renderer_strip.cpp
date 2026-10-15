@@ -287,24 +287,24 @@ EI_REPLACE(0x00502AC0, EmitSection);
 // 00502A20 (thiscall on the device holder, the renderer's device_). Draws an indexed triangle list
 // of TL vertices under the device's critical section (007AEE78); with distanceFog_ set the
 // transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
-int __fastcall DrawTlTriangles(CTextureDevice* device, void*, TLVertex* vertices, int vertexCount,
+int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {
-    if (device->distanceFog_) device->pipeline_->transform_->FogVertices(vertices, vertexCount);
+    if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);
     // The new renderer (src/render) takes the draw (after the fog above); with the old path's
     // objects off it is skipped.
-    if (render::TlDraw(device, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
+    if (render::TlDraw(this, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
+        lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
             D3DPT_TRIANGLELIST, kFvfTlVertex, vertices, static_cast<DWORD>(vertexCount), indices,
             static_cast<DWORD>(indexCount), 0);
         gameapi::LeaveCriticalSection(device::Lock());
     }
-    device->vertexCount_ += vertexCount;
-    device->primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
-    device->drawCount_ += 1;
+    vertexCount_ += vertexCount;
+    primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
+    drawCount_ += 1;
     return 1;
 }
-EI_REPLACE(0x00502A20, DrawTlTriangles);
+EI_REPLACE_METHOD(0x00502A20, CTextureDevice::DrawTlTriangles);
 
 // 00501D90 (thiscall, RET 0x18). `points` is an array {data, count} of world points (16 bytes each:
 // x, y, z and one more); `width` scales the ribbon's screen width; `mode` 0 projects, 1 projects and
@@ -409,7 +409,7 @@ int __fastcall DrawRibbon(CSceneRenderer* renderer, void*, const int* points, fl
     device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-    int result = DrawTlTriangles(renderer->device_, nullptr, reinterpret_cast<TLVertex*>(Ribbon().data), Ribbon().size,
+    int result = renderer->device_->DrawTlTriangles(reinterpret_cast<TLVertex*>(Ribbon().data), Ribbon().size,
                                  reinterpret_cast<std::uint16_t*>(Indices().data), Indices().size);
     device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, savedSource);
     device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, savedDest);

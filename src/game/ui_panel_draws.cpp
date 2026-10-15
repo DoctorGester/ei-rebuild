@@ -83,10 +83,7 @@ BOOL CHeroQuickStrip::Draw(int pass) {
     }
     return DrawBase(pass);
 }
-namespace {
-BOOL __fastcall QuickStripDraw(CHeroQuickStrip* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x00622C10, QuickStripDraw);
+EI_REPLACE_METHOD(0x00622C10, CHeroQuickStrip::Draw);
 
 // --- 00627C90: the repair grid ------------------------------------------------------------------
 
@@ -134,10 +131,7 @@ BOOL CRepairGrid::Draw(int pass) {
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
 }
-namespace {
-BOOL __fastcall RepairGridDraw(CRepairGrid* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x00627C90, RepairGridDraw);
+EI_REPLACE_METHOD(0x00627C90, CRepairGrid::Draw);
 
 // --- 006284A0 / 00628F80: the constructors' second pages ----------------------------------------
 
@@ -279,10 +273,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     highlight->visible_ = 0;
     return 1;
 }
-namespace {
-BOOL __fastcall SpellMakerDraw(CConstructorPage* self, void*, int pass) { return self->DrawSpellMaker(pass); }
-} // namespace
-EI_REPLACE(0x006284A0, SpellMakerDraw);
+EI_REPLACE_METHOD(0x006284A0, CConstructorPage::DrawSpellMaker);
 
 namespace {
 // A slot's item drawn between depth clears: the screen to 0, the slot (layout `slot`) to 1, the
@@ -385,7 +376,4 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
     highlight->visible_ = 0;
     return 1;
 }
-namespace {
-BOOL __fastcall ItemMakerDraw(CConstructorPage* self, void*, int pass) { return self->DrawItemMaker(pass); }
-} // namespace
-EI_REPLACE(0x00628F80, ItemMakerDraw);
+EI_REPLACE_METHOD(0x00628F80, CConstructorPage::DrawItemMaker);

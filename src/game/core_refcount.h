@@ -52,6 +52,8 @@ struct RefPtr {
     // 00418BE0. Initialises to share `object`: null for a null or detached object, a clone for a
     // copy-on-share one. The result is marked copy-on-share.
     void Share(CRefObject* object);
+    // 004292F0 and eight identical copies (refptr_copies.cpp). The same, returning this.
+    RefPtr* ShareReturn(CRefObject* object);
     // 00413270. The owner's release: a still-shared object is detached and shut down first. The
     // pointer itself is left as it was.
     void Destroy();

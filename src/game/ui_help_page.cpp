@@ -123,7 +123,7 @@ void CHelpWindow::ShowPageVanilla() {
     BOOL found;
     {
         mfc::CString section = mfc::CString(game::Text(kTutorialSection)) + text_;
-        found = TextOpen(texts, nullptr, section);
+        found = texts->Open(section);
     }
     if (!found) {
         interface_->SetPendingValue(0);
@@ -131,7 +131,7 @@ void CHelpWindow::ShowPageVanilla() {
     }
     // The page's "#screen" line; the line after it is the page's title key.
     for (int i = page_ + 1; i != 0; --i) {
-        if (!TextFindLine(texts, nullptr, game::Text(kScreenLine))) {
+        if (!texts->FindLine(game::Text(kScreenLine))) {
             interface_->SetPendingValue(0);
             return;
         }
@@ -144,8 +144,8 @@ void CHelpWindow::ShowPageVanilla() {
     RECT page{200, 50, 600, 560};
     bool rowsGiven = false;
     const char* resume = texts->cursor_;
-    if (TextFindLine(texts, nullptr, game::Text(kPositionLine))) {
-        TextSplit(texts, nullptr, &words, 1);
+    if (texts->FindLine(game::Text(kPositionLine))) {
+        texts->Split(&words, 1);
         if (words.GetSize() > 3) {
             page.left = GameAtoi(words[1]);
             page.top = GameAtoi(words[2]);
@@ -192,8 +192,8 @@ void CHelpWindow::ShowPageVanilla() {
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     stlp::list<PageEntry> entries;
     entries.Construct();
-    while (TextFindLine(texts, nullptr, nullptr)) {
-        TextSplit(texts, nullptr, &words, 1);
+    while (texts->FindLine(nullptr)) {
+        texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.GetSize() > 4) {
             const int top = GameAtoi(words[2]);
@@ -214,7 +214,7 @@ void CHelpWindow::ShowPageVanilla() {
                 picture.Assign(name, name + std::strlen(name));
             }
             // The next line's first word is the text's key.
-            TextSplit(texts, nullptr, &words, 1);
+            texts->Split(&words, 1);
             if (words.GetSize() > 0) {
                 const char* key = words[0];
                 const PageEntry entry{stlp::string(key), picture};
@@ -267,9 +267,9 @@ void CHelpWindow::ShowPageVanilla() {
             BOOL open;
             {
                 mfc::CString section = mfc::CString(game::Text(kTutorSection)) + entry.key.data();
-                open = TextOpen(texts, nullptr, section);
+                open = texts->Open(section);
             }
-            if (open) TextReadToHash(texts, nullptr, &text, 1);
+            if (open) texts->ReadToHash(&text, 1);
             text.TrimRight(game::Text(kLineEnds));
             int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.

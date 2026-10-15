@@ -19,6 +19,8 @@ class CTransformPipeline;
 class CDeviceMaterial;   // device_material.h
 struct NamedTexture;   // ground_print.h
 struct Direct3DDeviceRecord;   // device.h
+struct TLVertex;               // clip.h
+namespace devicebuffers { struct ProjectedVertex; }   // device_buffers.h
 struct _DDSURFACEDESC2;        // ddraw.h (DDSURFACEDESC2)
 
 // A vertex buffer's holder, as the device's batches keep them (counted; slot 0 the deleting
@@ -55,6 +57,37 @@ static_assert(sizeof(DeviceVertexBatch) == 0x20 && offsetof(DeviceVertexBatch, i
 // interface, the primary surface's and the render target's holders and the screen rectangle.
 class CTextureDevice {
 public:
+    // 0x004EB170 (device_states.cpp).
+    int SetMaterial(CDeviceMaterial* material);
+    // 0x004EA4A0 (device_shadow.cpp).
+    int DrawFlatBlocks(const void* positions, const char* uvs, int blocks, const std::uint16_t* indices, int indexCount,
+                 std::uint32_t colour, std::uint32_t specular, std::uint32_t last, float zScale);
+    // 0x004E9A50 (device_mesh.cpp).
+    int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, int unused5,
+                  int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
+                  const void* corners, int cornerCount, int unused13, int unused14, std::uint16_t* indices,
+                  int indexCount, float uOffset, float vOffset, int alpha, int flags);
+    // 0x004E9010 (device_mesh.cpp).
+    int DrawMeshBlocks(const void* positions, int blocks, int unused5, int colourCount, std::uint32_t* colours,
+                 std::uint32_t* speculars, const void* uvs, int unused10, const void* corners, int cornerCount,
+                 int unused13, int unused14, std::uint16_t* indices, int indexCount, float uOffset, float vOffset,
+                 int alpha, int flags);
+    // 0x004EB370 (device_draw.cpp).
+    int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive, int fvf, void* vertices,
+                        int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags);
+    // 0x004EB550 (device_draw.cpp).
+    int DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
+                    unsigned indexCount, int flags);
+    // 0x004E8900 (device_bounds.cpp).
+    int BoundsOfProjected(const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
+                          const std::uint8_t* outcodes);
+    // 0x004E86B0 (device_bounds.cpp).
+    int BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices, const std::uint8_t* outcodes);
+    // 0x00502A20 (renderer_strip.cpp).
+    int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
+    // 0x00503680 (renderer_sprites.cpp).
+    int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
+                          int indexCount, int flags);
     // pixel_formats.cpp (A-S11).
     // 004E7C40 (RET 8). The texture format for an .mmp file's header: the format its id names
     // (formats_); for a DXT id the device does not have, the format its channel bit counts name
@@ -275,6 +308,23 @@ DirectDrawDriver* __fastcall DriverAt(int index);
 // the reference count, the last DirectDraw result, the device object, the IDirectDrawSurface7*,
 // width, height and bits per pixel.
 struct CDXSurface {
+    // 004EF7B0 (dx_surface.cpp, thiscall). The constructor for an off-screen surface of the screen's
+    // format; returns this. Throws the game's error object when the surface cannot be made.
+    CDXSurface* Construct(CTextureDevice* device, int width, int height);
+    // 004EFA60 (dx_surface.cpp, thiscall, RET 8): the constructor from a DDSURFACEDESC2 (as dwords): the
+    // surface made by the device's DirectDraw object and described. Throws the game's error object when
+    // there is no surface. Returns this.
+    CDXSurface* ConstructFromDesc(CTextureDevice* device, const std::uint32_t* desc);
+    // 004EFC60 (dx_surface.cpp, thiscall, RET 0xC): a holder whose surface shows an .mmp picture.
+    CDXSurface* ConstructFromPicture(CTextureDevice* device, const void* picture, int flag);
+    // 004F0060 (dx_surface.cpp, thiscall, RET 8): loads the picture data into the surface.
+    int LoadPictureData(const void* data, int flag);
+    // 005DB9E0 (bink_video.cpp, thiscall, RET 8): a colour fill of `rect` with `colour` (DDBLT_COLORFILL)
+    // under the device lock; returns Blt's result.
+    long Fill(RECT* rect, std::uint32_t colour);
+    // 005E5640 (ui_cursor_frame.cpp, thiscall, RET 0x14): Blt from `source`'s surface (rectangles, flags,
+    // effects) under the device lock; Blt's result.
+    long Blt(RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx);
     void* vtable;
     int refCount;               // +0x04
     long result;                // +0x08

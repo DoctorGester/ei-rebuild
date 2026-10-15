@@ -658,8 +658,8 @@ const mfc::CString& View(char* const& field) { return *reinterpret_cast<const mf
 mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
     mfc::CString line;
     CTextManager* texts = Texts();
-    BOOL found = TextOpen(texts, nullptr, mfc::CString(prefix) + suffix);
-    if (found) TextReadLine(texts, nullptr, &line, 1);
+    BOOL found = texts->Open(mfc::CString(prefix) + suffix);
+    if (found) texts->ReadLine(&line, 1);
     return line;
 }
 

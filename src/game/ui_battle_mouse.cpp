@@ -107,11 +107,6 @@ void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
     out->Empty();
     name = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name;
     ReplaceChar(&name, ' ', '_');
-    if (TextOpen(texts, nullptr, mfc::CString(kUnitTextPrefix) + name)) TextReadLine(texts, nullptr, out, 1);
+    if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }
-namespace {
-void __fastcall BattleScreenUnitName(CBattleScreenSetup* self, void*, CUnit* unit, mfc::CString* out) {
-    self->UnitName(unit, out);
-}
-} // namespace
-EI_REPLACE(0x0063B920, BattleScreenUnitName);
+EI_REPLACE_METHOD(0x0063B920, CBattleScreenSetup::UnitName);

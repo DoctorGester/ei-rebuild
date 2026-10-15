@@ -25,7 +25,7 @@ static int __fastcall DrawFigurePartPlainVerify(FigureMeshDrawer* node, void*, C
     std::uint32_t before = mesh->flags_;
     bool hidden = (before & 0x80) != 0;
     int visibility = hidden ? 2 : ClipTestAt(device->pipeline_, nullptr, &mesh->bounds_);
-    int result = DrawFigurePartPlain(node, nullptr, device, a, b, c, alpha, rect);
+    int result = node->DrawPlain(device, a, b, c, alpha, rect);
     std::uint32_t flags = node->mesh_->flags_;
     bool ok = result == 1 && (flags & 0x10) == (before & 0x10);
     if (hidden) {

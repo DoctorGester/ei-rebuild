@@ -198,9 +198,4 @@ void __fastcall LightningDestruct(CLightning* self) {
 }
 EI_REPLACE(0x00468810, LightningDestruct);
 
-namespace {
-void __fastcall StartHook(CLightning* self, void*, const Vector3* from, const Vector3* to, float power, bool demon) {
-    self->Start(from, to, power, demon);
-}
-} // namespace
-EI_REPLACE(0x004680D0, StartHook);
+EI_REPLACE_METHOD(0x004680D0, CLightning::Start);

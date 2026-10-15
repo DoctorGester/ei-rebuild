@@ -345,9 +345,6 @@ BOOL CBattleScreenSetup::Draw(void* target) {
     return 1;
 }
 
-namespace {
-void __fastcall BattleScreenCreate(CBattleScreenSetup* self, void*) { self->Create(); }
-} // namespace
-EI_REPLACE(0x00635250, BattleScreenCreate);
+EI_REPLACE_METHOD(0x00635250, CBattleScreenSetup::Create);
 EI_REPLACE_METHOD(0x00636020, CBattleScreenSetup::Draw);
 EI_REBIRTH_IMPLEMENTS(0x00636020, ei::rebirth::Patch::AddNewConsoleCommands);

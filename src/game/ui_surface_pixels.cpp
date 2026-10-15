@@ -373,11 +373,11 @@ void CUiSurface::SwapContents(int restore) {
 
 // 005FD240 (thiscall, RET 8). The pixel at (x, y) of the surface as 0x00RRGGBB (through the
 // format converter); 0 outside the surface or without one.
-std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
-    ObservePixels(self, "PixelAt", false, _AddressOfReturnAddress());
-    SurfaceHolder* holder = HolderOf(self);
+std::uint32_t CUiSurface::PixelAt(int x, int y) {
+    ObservePixels(this, "PixelAt", false, _AddressOfReturnAddress());
+    SurfaceHolder* holder = HolderOf(this);
     if (!holder || x < 0 || y < 0) return 0;
-    if (x >= self->width_ || y >= self->height_) return 0;
+    if (x >= width_ || y >= height_) return 0;
     gameapi::EnterCriticalSection(DeviceLock());
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
@@ -394,7 +394,7 @@ std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
     ChannelLayout converter;
     converter.Split(&desc[kDescFormat]);
     std::uint32_t rgb = converter.FromNative(value);
-    holder = HolderOf(self);
+    holder = HolderOf(this);
     gameapi::LeaveCriticalSection(DeviceLock());
     if (!direct) {
         long hr = UnlockSurface(holder->surface);
@@ -403,17 +403,9 @@ std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
     }
     return rgb;
 }
-EI_REPLACE(0x005FD240, SurfacePixelAt);
+EI_REPLACE_METHOD(0x005FD240, CUiSurface::PixelAt);
 
-namespace {
-void __fastcall SurfaceSwapContents(CUiSurface* self, void*, int restore) { self->SwapContents(restore); }
-void __fastcall SurfaceCaptureScreen(CUiSurface* self, void*) { self->CaptureScreen(); }
-std::uint16_t* __fastcall SurfaceRgb565Copy(CUiSurface* self, void*, int width, int height) {
-    return self->Rgb565Copy(width, height);
-}
-void __fastcall SurfaceGreyscale(CUiSurface* self, void*) { self->Greyscale(); }
-} // namespace
-EI_REPLACE(0x005FD7A0, SurfaceSwapContents);
-EI_REPLACE(0x005FD3D0, SurfaceCaptureScreen);
-EI_REPLACE(0x005FD440, SurfaceRgb565Copy);
-EI_REPLACE(0x005FE440, SurfaceGreyscale);
+EI_REPLACE_METHOD(0x005FD7A0, CUiSurface::SwapContents);
+EI_REPLACE_METHOD(0x005FD3D0, CUiSurface::CaptureScreen);
+EI_REPLACE_METHOD(0x005FD440, CUiSurface::Rgb565Copy);
+EI_REPLACE_METHOD(0x005FE440, CUiSurface::Greyscale);

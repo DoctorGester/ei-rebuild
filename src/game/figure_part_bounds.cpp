@@ -27,11 +27,10 @@ constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 } // namespace
 
 #pragma float_control(precise, on, push)
-
-void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* renderer) {
-    if (!(ContextOf(node)->flags_ & kShowBounds)) return;
+void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
+    if (!(ContextOf(this)->flags_ & kShowBounds)) return;
     LineBatch lines{-1, {nullptr, 0, 0, 0}, 0, 0xFFFF0000u, 0};
-    const ClipBounds& bounds = node->mesh_->bounds_;
+    const ClipBounds& bounds = mesh_->bounds_;
     const float* origin = &bounds.center.x;
     const float* nearExtent = &bounds.boxMin.x;
     const float* farExtent = &bounds.boxMax.x;
@@ -50,7 +49,7 @@ void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* re
 
 #pragma float_control(pop)
 
-EI_REPLACE(0x005A7290, DrawPartBounds);
+EI_REPLACE_METHOD(0x005A7290, FigureMeshDrawer::DrawBounds);
 
 // 005A75D0 (A-W14): the line batch's destructor: spare00 -1, the points' block freed, the array
 // empty. Only the unwind funclet 00726C10 of the original DrawPartBounds calls it (the rewritten

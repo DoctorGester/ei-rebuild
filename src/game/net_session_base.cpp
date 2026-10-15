@@ -11,8 +11,6 @@
 
 #include <cstring>
 
-RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
-
 namespace net {
 
 namespace {
@@ -146,7 +144,7 @@ EI_REPLACE_METHOD(0x004377D0, SessionBase::AddHandler);
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, void* handler) {
     RefPtr ref;
-    RefPtrShareReturn(&ref, nullptr, prototype);
+    ref.ShareReturn(prototype);
     int type = types_.TypeOf(reinterpret_cast<const std::uint32_t*>(ref.ptr));
     AddHandler(channel, static_cast<std::uint32_t>(type), handler);
     ref.Destroy();

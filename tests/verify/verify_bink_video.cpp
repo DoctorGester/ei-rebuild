@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <cstring>
 
-unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary);
 
 // 005DBD80 decodes and blits: ours only. Checked: the result is 0 or 1 and the video's handle and
 // surface are unchanged.
@@ -18,7 +17,7 @@ static void* s_binkFrame;
 static unsigned __fastcall BinkVideoFrameVerify(CBinkVideo* self, void*, char toPrimary) {
     CDXSurface* holder = self->holder;
     BinkHeader* bink = self->bink;
-    unsigned result = BinkVideoFrame(self, nullptr, toPrimary);
+    unsigned result = self->Frame(toPrimary);
     bool ok = (result & 0xFF) <= 1 && self->holder == holder && self->bink == bink;
     ei::verify::Check("CBinkVideo::Frame", true, ok, "result %08X", result);
     return result;
@@ -29,7 +28,6 @@ EI_VERIFY(0x005DBD80, BinkVideoFrameVerify, 0, s_binkFrame);
 
 char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
-long __fastcall HolderFill(CDXSurface* holder, void*, RECT* rect, std::uint32_t colour);
 void __fastcall ShowLoadingMovie(int progress);
 
 // 005DB3F0 plays a whole movie in its own message loop: ours only. Checked: the result is 0 or 1,
@@ -55,7 +53,7 @@ using HolderFillFn = long(__fastcall*)(CDXSurface*, void*, RECT*, std::uint32_t)
 static HolderFillFn s_holderFill;
 static long __fastcall HolderFillVerify(CDXSurface* holder, void*, RECT* rect, std::uint32_t colour) {
     long expected = s_holderFill(holder, nullptr, rect, colour);
-    long result = HolderFill(holder, nullptr, rect, colour);
+    long result = holder->Fill(rect, colour);
     ei::verify::Check("HolderFill", expected, result, "result %08lX, original %08lX", static_cast<unsigned long>(result),
                       static_cast<unsigned long>(expected));
     return result;

@@ -19,8 +19,6 @@ struct SpriteSortRecord {
 void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending);
 void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count);
-int __fastcall DrawIndexed(CTextureDevice* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
-                           std::uint16_t* indices, int indexCount, int flags);
 int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
                            const void* spriteArray);
 
@@ -63,7 +61,7 @@ static void* s_drawIndexed;
 static int __fastcall DrawIndexedVerify(CTextureDevice* device, void*, int primitive, int fvf, void* vertices,
                                         int vertexCount, std::uint16_t* indices, int indexCount, int flags) {
     int calls = device->drawCount_;
-    int result = DrawIndexed(device, nullptr, primitive, fvf, vertices, vertexCount, indices, indexCount, flags);
+    int result = device->DrawIndexedDirect(primitive, fvf, vertices, vertexCount, indices, indexCount, flags);
     ei::verify::Check("DrawIndexed", calls + 1, device->drawCount_, "vertices %d indices %d", vertexCount, indexCount);
     return result;
 }
