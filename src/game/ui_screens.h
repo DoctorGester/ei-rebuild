@@ -706,7 +706,8 @@ public:
     // written); another opens the address box (texts_[19]) with the row's address (empty for row 0).
     void EditAddress();
     // 0061D0D0. The master server request: the master address (the text at 0079BED8, port 28004)
-    // in a CMasterRequestBox (texts_[20]) with the client's queries' extra word.
+    // in a CMasterRequestBox (texts_[20]) with the client's queries' extra word (EI_Plugin's NewMaster
+    // with a second master set: the master tried first, net_second_master.h).
     void MasterRequest();
     // 0061D1C0. Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();

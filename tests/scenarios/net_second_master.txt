@@ -1,0 +1,51 @@
+# EI_Plugin NewMaster's second master server (S19c; src/game/net_second_master.h, docs/notes/rebirth.md),
+# on 127.0.0.1 only: the second master is 127.0.0.1:28123, the configured master 127.0.0.1:28124. The
+# Multiplayer click looks the second master up (CMainMenu::OnLButtonDown, at most 300 ms), the hero is made
+# as in ui_mp_host, the connection screen's master request (region 2, 0061D0D0) tries 28124 by TCP for 1 s
+# and falls back to 28123 (its box is then cancelled), and the hosted game, made public (region 4), announces
+# itself to 28124 (0041AA10) with the copy to 28123 (0xDEADBEEF, the players' names). Nothing listens there
+# in a suite run (the packets go nowhere); build\S19c\listener.py stands in for both masters to check them.
+timeout 120
+rebirthflags EiPluginNewMaster SecondMaster=127.0.0.1:28123
+reject Script error
+waitmenu
+masterhost 127.0.0.1:28124
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+# The master request: the probe (1 s), the fallback's link; then cancelled.
+clickregion 2
+wait 2500
+key esc
+waitwindow 5 00741CD0
+
+# Public, row 0 (the new game), host; the first announcement (before the host's player is bound: no names)
+# and, 20 s later, the second (one name).
+clickregion 4
+frames 5
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+wait 23000
+report
+quit

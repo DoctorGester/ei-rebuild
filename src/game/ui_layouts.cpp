@@ -10,11 +10,13 @@
 #include "item_db_text.h"
 #include "maths.h"
 #include "model.h"
+#include "net_second_master.h"
 #include "resource.h"
 #include "ui_screens.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -468,7 +470,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case 5: {
-        // Multiplayer: the hero screen (a server session starts).
+        // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up
+        // its second master server (its call at 006330A9, net_second_master.h).
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
         ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
@@ -501,6 +505,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 namespace {
 } // namespace
 EI_REPLACE_METHOD(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
+EI_REBIRTH_IMPLEMENTS(0x00632D70, ei::rebirth::Patch::EiPluginNewMaster);
 
 // --- Message box (00634790) -----------------------------------------------------------------------
 

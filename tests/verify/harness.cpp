@@ -70,6 +70,9 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
+//   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
+//                             master the connection screen asks and a public game announces itself to
+//                             (net_second_master: 127.0.0.1 only)
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -106,6 +109,7 @@
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
+//                             "SecondMaster=<host[:port]>" sets NewMaster's second master server.
 //   resolution <W>x<H>|desktop, widescreen 0|1
 //                             answer the game's VideoResolution and the starter's WideScreen setting
 //                             for this run (game.exe's and addon.dll's registry reads; read before
@@ -217,6 +221,7 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_cursor.h"
 #include "../../src/game/item.h"
+#include "../../src/game/options.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/originals_engine.h"
@@ -2065,6 +2070,8 @@ void RunSteps() {
             } else {
                 ui->root_->SetOpen(false);
             }
+        } else if (s.verb == "masterhost") {
+            options::TheOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";

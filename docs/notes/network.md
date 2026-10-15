@@ -244,9 +244,10 @@ All on the main thread (the session's tick from `net::Pump`); none is called fro
   announced to everybody (`Announce` with no player). Nothing without a live connection or binding. Ours
   only.
 - Rebirth: EI_Plugin's NewMaster has sites in 0041AA10 (0041ABDA, the send) and 0041ACA0 (0041ACB7), addon's
-  ChatLog one in 0041B1C0 (0041B25B, disabled in this install). The rewrites are the vanilla functions; the
-  installer does not hook a function with an active site. No scenario reaches any of the three (a master
-  server, or a second client's chat line, is needed).
+  ChatLog one in 0041B1C0 (0041B25B, disabled in this install). NewMaster's sites are reproduced behind its flag
+  (S19a, S19c: the copy to the second master server, net_second_master.cpp); ChatLog's is not, so 0041B1C0 is not
+  hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1);
+  nothing reaches 0041ACA0 or 0041B1C0 (a master server's answer, or a second client's chat line, is needed).
 - A-E2 (vanilla bodies, vanilla launch only; ours only, no scenario reaches them):
   - 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`; Rebirth's MQClient): collects a file's chunks,
     sorts and joins them and hands the file to the game flow (005813A0).
