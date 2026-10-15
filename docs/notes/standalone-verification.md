@@ -915,3 +915,18 @@ checks of allocating functions: ours allocates first, the original's allocations
 
 Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six deep) and writes heapseq.txt at that
 update, so tracing does not slow the run down.
+
+## SV6d: one registration per address, at build time
+
+`tools/check_registrations.py` (run by build.cmd after the link, both configurations) fails the build
+when one address has two registrations that InstallHooks would both take: two plain replacements
+(EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, _SHORT count together), two EI_VERIFY wrappers or two
+recorders. A replacement with a verify wrapper at the same address is normal. It reads the built
+ei_hook.dll, not the sources: every registration macro in include/ei/hook.h also leaves a
+`RegRecord` (address, kind, `__FILE__`, `__LINE__` of the expansion) in the section `.eireg`, so
+macro-generated registrations count and registrations left out by `#if` do not. The record is a
+non-const static: a const one is dropped by the compiler. The linker pads between modules' parts of
+the section with zero words, which the reader skips. Output names every file:line of the address;
+about 0.15 s. When it first ran it found six addresses registered twice on main (S6a vs S13b:
+004CB150 / 004CB310 / 004CB650; S12a vs S12b: 00445040 / 00445170 / 004457F0); the later
+registrations (game_slots.cpp, mfc_slots.cpp, stlp_pair.cpp and its verify wrappers) were dropped.

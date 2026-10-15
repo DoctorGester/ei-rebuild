@@ -116,7 +116,6 @@ EI_REPLACE(0x0045D8B0, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REPLACE(0x0045E090, OwnedPatrols::Destruct<PatrolArrayClass>);
 EI_REPLACE(0x0045FBD0, OwnedAllods::Destruct<AllodArrayClass>);
 EI_REPLACE(0x004BE430, ScriptAreas::Destruct<ScriptAreaArrayClass>);
-EI_REPLACE(0x004CB650, ScriptAreas::Destruct<ScriptAreaArrayClass>);
 
 // The exception classes' own destructors (a jump to std::exception's; their throw information's).
 EI_REPLACE(0x0040C4A0, ExceptionDestruct);

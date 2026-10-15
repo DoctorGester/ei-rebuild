@@ -58,7 +58,4 @@ EI_REPLACE(0x00689950, PairAbi::ConstructStringDword);
 EI_REPLACE(0x006BC140, PairAbi::ConstructStringDword);
 EI_REPLACE(0x0064F880, PairAbi::ConstructStringDword);
 EI_REPLACE(0x006A7710, PairAbi::ConstructStringDword);
-EI_REPLACE(0x00445170, PairAbi::ConstructStrings);
 EI_REPLACE(0x0069C1C0, PairAbi::ConstructStringList);
-EI_REPLACE(0x00445040, PairAbi::DestroyStrings);
-EI_REPLACE(0x004457F0, PairAbi::DeletingDestructor);

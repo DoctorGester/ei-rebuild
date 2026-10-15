@@ -37,10 +37,9 @@ EI_REPLACE(0x00598F40, gamelists::Refs::Destruct<RefListAClass>);
 EI_REPLACE(0x00599D60, gamelists::Refs::Destruct<RefListBClass>);
 
 // The script's point lights, effects, definitions, runs, groups and command blocks.
+// (The vtable destructors 004CB150 / 004CB310 / 004CB650 are registered in game_arrays.cpp; one registration per address.)
 EI_REPLACE(0x004BE250, gamearrays::PointLights::Destruct<PointLightArrayClass>);
-EI_REPLACE(0x004CB150, gamearrays::PointLights::Destruct<PointLightArrayClass>);
 EI_REPLACE(0x004BE2E0, Definitions::Destruct<DefinitionArrayClass>);
-EI_REPLACE(0x004CB310, Definitions::Destruct<DefinitionArrayClass>);
 EI_REPLACE(0x004C18E0, Commands::Destruct<CommandArrayClass>);
 
 // ---- Scalar deleting destructors (vtable slot 1) ---------------------------------------------------

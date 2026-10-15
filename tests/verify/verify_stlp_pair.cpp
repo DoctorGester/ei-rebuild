@@ -164,8 +164,4 @@ EI_VERIFY(0x00689950, PairCheck<0x00689950>::ConstructStringDword, 7, PairCheck<
 EI_VERIFY(0x006BC140, PairCheck<0x006BC140>::ConstructStringDword, 7, PairCheck<0x006BC140>::original);
 EI_VERIFY(0x0064F880, PairCheck<0x0064F880>::ConstructStringDword, 7, PairCheck<0x0064F880>::original);
 EI_VERIFY(0x006A7710, PairCheck<0x006A7710>::ConstructStringDword, 7, PairCheck<0x006A7710>::original);
-EI_VERIFY(0x00445170, PairCheck<0x00445170>::ConstructStrings, 7, PairCheck<0x00445170>::original);
 EI_VERIFY(0x0069C1C0, PairCheck<0x0069C1C0>::ConstructStringList, 7, PairCheck<0x0069C1C0>::original);
-// Ours only: 00445040 PUSH ESI; MOV ESI,ECX; MOV EAX,[ESI+0xC]; 004457F0 starts with a CALL at +3.
-EI_VERIFY(0x00445040, PairCheck<0x00445040>::DestroyStrings, 0, s_unused);
-EI_VERIFY(0x004457F0, PairCheck<0x004457F0>::DeletingDestructor, 0, s_unused);
