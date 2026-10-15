@@ -1012,6 +1012,15 @@ group = "verification"
 status = "queued"
 note = "From SV2b: script_copy vanilla with our hooks: the heap traces of two runs part at CMemoryStream::Resize from CodeStream / CompressTo in CPlayerServer::Flush (called from LeaveVerify): 1392 bytes in one run, 1408 in another (a third run matched the first), and every later block moves, so zone1's gobject.i differs at update 80. Something in the flushed stream is not the same between runs (an address of a block from the growable heap, a padding byte, real time); dump the stream before compression in two runs and diff."
 
+[[ticket]]
+id = "SV2f"
+title = "Five Rebirth goldens differ on main after S7 + SV2b (fewer random draws, AI state)"
+group = "verification"
+status = "queued"
+size = 0.5
+files = ["src/lib/mfc_list.cpp", "src/game/game_lists.cpp"]
+note = "work.py test MAIN --golden at ef377c81: ground_prints, harness_digest, map_objects, script_parse, ui_trade_restore (all rebirth) differ; common fields: random isaac.count 169 in the golden vs 89 in the run, obj1804 (unanwiwo) #ai, obj1937 (unmoto) #place / #vitals. SV2b recorded the goldens on a tree with everything up to SV6b; the only merge after that is S7 (MFC CList / CMap / CPlex, 28f434c4), so S7 is the suspect: FreePlexChain (006FE90F) returns 0 where the original leaves the caller's EAX / free's EAX; check the AI path / AI map lists S7 registered. Bisect by disabling S7's addresses (disabled.txt, see src/hook/hook.cpp) or by building 81a05a7d vs 28f434c4; fix the cause so the five match again without re-recording, unless the golden itself is wrong."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
