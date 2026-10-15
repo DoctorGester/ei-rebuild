@@ -65,13 +65,23 @@ static bool __fastcall CheapCellVerify(CAIMap* self, void*, CUnit* unit) {
 EI_VERIFY(0x005BA5A0, CheapCellVerify, 6, s_cheapCell);
 
 namespace {
+// A visibility grid before a call, its cells kept in our memory (a twin made from it afterwards).
+struct GridBefore {
+    VisibilityGrid header;
+    std::vector<std::uint8_t> cells;
+    explicit GridBefore(const VisibilityGrid& grid) : header(grid) {
+        if (grid.data && grid.width * grid.height > 0) cells.assign(grid.data, grid.data + grid.width * grid.height);
+    }
+};
+
 // A copy of a visibility grid with its own game-heap buffers, laid out as 005C8D40 allocates them.
-VisibilityGrid CloneGrid(const VisibilityGrid& grid) {
+VisibilityGrid CloneGrid(const GridBefore& before) {
+    const VisibilityGrid& grid = before.header;
     VisibilityGrid copy = grid;
     if (grid.data) {
         int size = grid.width * grid.height;
         copy.data = static_cast<std::uint8_t*>(gamecrt::operator_new(size > 0 ? size : 1));
-        std::memcpy(copy.data, grid.data, size);
+        if (!before.cells.empty()) std::memcpy(copy.data, before.cells.data(), before.cells.size());
     }
     if (grid.rows) {
         copy.rows = static_cast<std::uint8_t**>(gamecrt::operator_new((grid.height > 0 ? grid.height : 1) * 4));
@@ -87,15 +97,18 @@ bool SameGrid(const VisibilityGrid& a, const VisibilityGrid& b) {
 }
 } // namespace
 
-// 005BC970: PUSH EBP; MOV EBP,ESP; SUB ESP,0x3C (6 bytes). The original marks a copy of the grid
-// (with its own buffers, which it may reallocate), ours the real one; origin, size and marks compared.
+// 005BC970: PUSH EBP; MOV EBP,ESP; SUB ESP,0x3C (6 bytes). Ours marks the real grid, then the
+// original a copy of the grid as it was (with its own buffers, which it may reallocate; made after
+// ours ran, so that ours' blocks land where the original's would without the check, SV2f); origin,
+// size and marks compared.
 static void(__fastcall* s_markVisible)(CAIMap*, void*, const Vector3*, float, const Vector3*, float, float,
                                        VisibilityGrid*);
 static void __fastcall MarkVisibleVerify(CAIMap* self, void*, const Vector3* eye, float radius, const Vector3* look,
                                          float cosLimit, float targetHeight, VisibilityGrid* grid) {
-    VisibilityGrid copy = CloneGrid(*grid);
-    s_markVisible(self, nullptr, eye, radius, look, cosLimit, targetHeight, &copy);
+    GridBefore before(*grid);
     self->MarkVisibleCells(eye, radius, look, cosLimit, targetHeight, grid);
+    VisibilityGrid copy = CloneGrid(before);
+    s_markVisible(self, nullptr, eye, radius, look, cosLimit, targetHeight, &copy);
     ei::verify::Check("CAIMap::MarkVisibleCells", true, SameGrid(copy, *grid), "(%g,%g) r %g cos %g h %g", eye->x,
                       eye->y, radius, cosLimit, targetHeight);
     if (copy.data) gamecrt::operator_delete(copy.data);

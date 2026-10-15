@@ -1,6 +1,8 @@
 // Checks for the unit shapes (src/game/ai_unit_shape.cpp). All differential: the in-place ones
 // run the original on a copy of the shape, the creating ones compare the two new shapes' bytes
-// (the original's is then freed: it has no references and nothing to destroy). Reached when a
+// (the original's is then freed: it has no references and nothing to destroy). The creating ones
+// run ours first, so that its shape lands where the original's would without the check (the game
+// reads the heap's address order, SV2f). Reached when a
 // unit of a new radius first enters the AI map (every world load); Empty / Copy only when a
 // shared shape is shut down or shared copy-on-share.
 #include "verify.h"
@@ -56,8 +58,8 @@ EI_VERIFY(0x005B3540, EmptyVerify, 10, s_empty);
 // 005B34F0: PUSH EBX; MOV EBX,ECX; PUSH 0x10C (8).
 static CUnitShape*(__fastcall* s_copy)(CUnitShape*);
 static CUnitShape* __fastcall CopyVerify(CUnitShape* self) {
-    CUnitShape* expected = s_copy(self);
     CUnitShape* actual = self->Copy();
+    CUnitShape* expected = s_copy(self);
     ei::verify::Check("CUnitShape::Copy", true, expected && actual && SameShape(expected, actual), "radius %g",
                       static_cast<double>(self->radius));
     gamecrt::operator_delete(expected);
@@ -68,8 +70,8 @@ EI_VERIFY(0x005B34F0, CopyVerify, 8, s_copy);
 // 005B33D0: PUSH -1; PUSH imm32 (7).
 static CUnitShape*(__fastcall* s_create)(void*, void*, const UnitShapeHandle*);
 static CUnitShape* __fastcall CreateVerify(void* cache, void*, const UnitShapeHandle* handle) {
-    CUnitShape* expected = s_create(cache, nullptr, handle);
     CUnitShape* actual = CreateUnitShape(cache, nullptr, handle);
+    CUnitShape* expected = s_create(cache, nullptr, handle);
     ei::verify::Check("CreateUnitShape", true, expected && actual && SameShape(expected, actual),
                       "radius %g: %d levels differ", static_cast<double>(handle->height),
                       expected && actual ? DifferentLevels(expected, actual) : -1);

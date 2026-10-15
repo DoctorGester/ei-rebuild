@@ -1,5 +1,6 @@
 // Checks for the script-made unit modes' own slots (src/game/script_unit_modes.cpp, 004BA250-004BA9B0).
-// Clones: the original clones first, then ours; the two new modes must match byte for byte (except
+// Clones: ours clones first, then the original (so that ours' block lands where the original's would
+// without the check, SV2f); the two new modes must match byte for byte (except
 // Aggression's unwritten +0x0D..+0x0F); the original's reference on the leader / enemy is taken
 // back and its clone freed. Resets of the plain modes and the destructor bodies: the original on a
 // scratch copy, all bytes compared. Types: both, compared. Follow / Aggression resets and
@@ -29,9 +30,9 @@ template <typename T>
 T* CloneVerify(const char* name, T*(__fastcall* original)(const T*), T*(T::*ours)() const, const T* self,
                CEngineObject* referenced, std::size_t skipFrom = sizeof(T), std::size_t skipTo = sizeof(T)) {
     int refs = referenced ? referenced->refCount_ : 0;
+    T* result = (self->*ours)();
     T* expected = original(self);
     if (referenced) --referenced->refCount_;
-    T* result = (self->*ours)();
     bool ok = expected && result && SameBytes(expected, result, skipFrom, skipTo) &&
               (!referenced || referenced->refCount_ == refs + 1);
     ei::verify::Check(name, true, ok, "mode %p", static_cast<const void*>(self));

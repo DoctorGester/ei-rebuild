@@ -383,8 +383,9 @@ EI_VERIFY(0x005D0F90, PatrolCloneVerify, 0, s_unused);
 // made from a prototype with modes).
 static FearMode*(__fastcall* s_fearClone)(FearMode*);
 static FearMode* __fastcall FearCloneVerify(FearMode* self) {
-    FearMode* expected = s_fearClone(self);
+    // Ours first, so that its copy lands where the original's would without the check (SV2f).
     FearMode* clone = self->Clone();
+    FearMode* expected = s_fearClone(self);
     bool ok = expected && clone && clone != self && clone->vtable == expected->vtable && clone->refs == expected->refs &&
               clone->refsHigh == expected->refsHigh &&
               std::memcmp(&clone->distance, &expected->distance, offsetof(FearMode, flag) - offsetof(FearMode, distance)) == 0 &&

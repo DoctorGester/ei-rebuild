@@ -1,9 +1,10 @@
 // Checks for party_lifetime.cpp. Reached by every new game: the party record reset adds the hero's
 // record (006628D0: a record built on the stack, the party's record array grown, the record
 // destroyed); party_records and ui_camp add and remove more.
-// - PartyUnitRecord::Construct and ConstructPartyUnitRecords: the original on a scratch copy of the
-//   memory (seeded with the real bytes), ours on the real one; all bytes compared (a fresh record's
-//   lists are empty, so nothing is allocated or released).
+// - PartyUnitRecord::Construct and ConstructPartyUnitRecords: ours on the real one, then the original
+//   on a scratch copy of the memory (our memory, seeded with the real bytes); all bytes compared (a
+//   fresh record's lists are empty, so nothing is allocated or released). The constructors below
+//   likewise run ours first with the scratch in our memory (SV2f).
 // - Destruct, ClearItems, the record array's SetSize and the four AlignedPtrArray::SetSize copies
 //   release items or allocate: ours only, the state afterwards checked.
 // - CParty::Construct: the original on a scratch copy seeded with the real bytes; all bytes
@@ -24,6 +25,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -51,14 +53,15 @@ int FirstDifference(const void* a, const void* b, std::size_t size) {
 // 0065F5F0: PUSH -1; PUSH imm32 (7).
 PartyUnitRecord*(__fastcall* s_construct)(PartyUnitRecord*);
 PartyUnitRecord* __fastcall ConstructVerify(PartyUnitRecord* self) {
-    auto* scratch = static_cast<PartyUnitRecord*>(gamecrt::operator_new(sizeof(PartyUnitRecord)));
+    // Ours first, the scratch in our memory (the game reads the heap's address order, SV2f).
+    std::vector<unsigned char> scratchBytes(sizeof(PartyUnitRecord));
+    auto* scratch = reinterpret_cast<PartyUnitRecord*>(scratchBytes.data());
     std::memcpy(scratch, self, sizeof(PartyUnitRecord));
-    PartyUnitRecord* expected = s_construct(scratch);
     PartyUnitRecord* actual = self->Construct();
+    PartyUnitRecord* expected = s_construct(scratch);
     int diff = FirstDifference(scratch, self, sizeof(PartyUnitRecord));
     ei::verify::Check("PartyUnitRecord::Construct", true, diff < 0 && expected == scratch && actual == self,
                       "record %p: first difference at +0x%X", self, diff);
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 
@@ -66,14 +69,14 @@ PartyUnitRecord* __fastcall ConstructVerify(PartyUnitRecord* self) {
 void(__stdcall* s_constructRecords)(PartyUnitRecord*, int);
 void __stdcall ConstructRecordsVerify(PartyUnitRecord* records, int count) {
     std::size_t bytes = static_cast<std::size_t>(count) * sizeof(PartyUnitRecord);
-    void* scratch = gamecrt::operator_new(bytes);
+    std::vector<unsigned char> scratchBytes(bytes ? bytes : 1);
+    void* scratch = scratchBytes.data();
     std::memcpy(scratch, records, bytes);
-    s_constructRecords(static_cast<PartyUnitRecord*>(scratch), count);
     ConstructPartyUnitRecords(records, count);
+    s_constructRecords(static_cast<PartyUnitRecord*>(scratch), count);
     int diff = FirstDifference(scratch, records, bytes);
     ei::verify::Check("ConstructPartyUnitRecords", true, diff < 0, "%d records at %p: first difference at +0x%X", count,
                       records, diff);
-    gamecrt::operator_delete(scratch);
 }
 
 void __fastcall DestructVerify(PartyUnitRecord* self) {
@@ -150,15 +153,18 @@ bool EmptyMap(const Map& map) {
     return ok;
 }
 
-// The original constructor on scratch memory seeded with the object's bytes, ours on the object;
-// all bytes compared, except [skipFrom, skipTo).
+// Ours on the object, then the original constructor on scratch memory (`storage`, our memory)
+// seeded with the object's bytes, so that ours' blocks land where the original's would without the
+// check (the game reads the heap's address order, SV2f); all bytes compared, except
+// [skipFrom, skipTo).
 template <typename T>
 int ConstructBoth(T*(__fastcall* original)(T*), T* self, T** expected, T** actual, std::size_t skipFrom, std::size_t skipTo,
-                  T** scratchOut) {
-    auto* scratch = static_cast<T*>(gamecrt::operator_new(sizeof(T)));
+                  T** scratchOut, std::vector<unsigned char>& storage) {
+    storage.assign(sizeof(T), 0);
+    auto* scratch = reinterpret_cast<T*>(storage.data());
     std::memcpy(scratch, self, sizeof(T));
-    *expected = original(scratch);
     *actual = self->Construct();
+    *expected = original(scratch);
     *scratchOut = scratch;
     auto* x = reinterpret_cast<const unsigned char*>(scratch);
     auto* y = reinterpret_cast<const unsigned char*>(self);
@@ -174,30 +180,30 @@ CSpellConstructor*(__fastcall* s_spellConstructorConstruct)(CSpellConstructor*);
 
 CParty* __fastcall PartyConstructVerify(CParty* self) {
     CParty *expected, *actual, *scratch;
+    std::vector<unsigned char> storage;
     int diff = ConstructBoth(s_partyConstruct, self, &expected, &actual, offsetof(CParty, variables_),
-                             offsetof(CParty, zone_), &scratch);
+                             offsetof(CParty, zone_), &scratch, storage);
     bool ok = diff < 0 && expected == scratch && actual == self && EmptyMap(self->variables_) && EmptyMap(scratch->variables_);
     ei::verify::Check("CParty::Construct", true, ok, "party %p: first difference at +0x%X", self, diff);
     scratch->variables_.Destroy();
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 
 CItemConstructor* __fastcall ItemConstructorConstructVerify(CItemConstructor* self) {
     CItemConstructor *expected, *actual, *scratch;
-    int diff = ConstructBoth(s_itemConstructorConstruct, self, &expected, &actual, 0, 0, &scratch);
+    std::vector<unsigned char> storage;
+    int diff = ConstructBoth(s_itemConstructorConstruct, self, &expected, &actual, 0, 0, &scratch, storage);
     ei::verify::Check("CItemConstructor::Construct", true, diff < 0 && expected == scratch && actual == self,
                       "%p: first difference at +0x%X", self, diff);
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 
 CSpellConstructor* __fastcall SpellConstructorConstructVerify(CSpellConstructor* self) {
     CSpellConstructor *expected, *actual, *scratch;
-    int diff = ConstructBoth(s_spellConstructorConstruct, self, &expected, &actual, 0, 0, &scratch);
+    std::vector<unsigned char> storage;
+    int diff = ConstructBoth(s_spellConstructorConstruct, self, &expected, &actual, 0, 0, &scratch, storage);
     ei::verify::Check("CSpellConstructor::Construct", true, diff < 0 && expected == scratch && actual == self,
                       "%p: first difference at +0x%X", self, diff);
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 

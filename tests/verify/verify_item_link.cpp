@@ -38,8 +38,9 @@ void __fastcall ResetVerify(CItemLink* self) {
 
 CItemLink*(__fastcall* s_clone)(CItemLink*);
 CItemLink* __fastcall CloneVerify(CItemLink* self) {
-    CItemLink* expected = s_clone(self);
+    // Ours first, so that its copy lands where the original's would without the check (SV2f).
     CItemLink* copy = self->Clone();
+    CItemLink* expected = s_clone(self);
     bool ok = (expected == nullptr) == (copy == nullptr);
     if (ok && copy) ok = std::memcmp(expected, copy, sizeof(CItemLink)) == 0 && copy != self;
     ei::verify::Check("CItemLink::Clone", true, ok, "link %p value %u", self, self->value);

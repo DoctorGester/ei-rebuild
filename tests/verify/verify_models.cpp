@@ -69,16 +69,29 @@ private:
 
 // ---- TweenArray helpers -------------------------------------------------------------------------
 
-// A copy with its own buffer (same size as the real one), so original code can run on it.
-TweenArray Clone(const TweenArray& a) {
-    TweenArray c = a;
-    if (a.data) {
-        unsigned bytes = static_cast<unsigned>(a.maxSize) << 4;
-        c.data = static_cast<TweenEntry*>(gamecrt::operator_new(bytes));
-        std::memcpy(c.data, a.data, bytes);
+// An array's header and buffer kept in our memory before the kept side runs; Clone makes a copy
+// with its own buffer (same size as the real one, so original code can run on it) after it ran,
+// so that the kept side's blocks land where they would without the check (the game reads the
+// heap's address order, SV2f).
+struct KeptTween {
+    TweenArray header;
+    std::vector<unsigned char> bytes;
+    explicit KeptTween(const TweenArray& a) : header(a) {
+        if (a.data) {
+            const auto* p = reinterpret_cast<const unsigned char*>(a.data);
+            bytes.assign(p, p + (static_cast<unsigned>(a.maxSize) << 4));
+        }
     }
-    return c;
-}
+    TweenArray Clone() const {
+        TweenArray c = header;
+        if (header.data) {
+            unsigned size = static_cast<unsigned>(header.maxSize) << 4;
+            c.data = static_cast<TweenEntry*>(gamecrt::operator_new(size));
+            if (size) std::memcpy(c.data, bytes.data(), size);
+        }
+        return c;
+    }
+};
 
 void Free(TweenArray& a) {
     if (a.data) gamecrt::operator_delete(a.data);
@@ -324,9 +337,10 @@ EI_VERIFY(0x006D4270, Print2SerializeVerify, 8, s_print2Serialize);
 // 006D43E0: PUSH ESI; MOV ESI,ECX; PUSH EDI; XOR EDI,EDI (6 bytes).
 static void(__fastcall* s_removeAll)(TweenArray*, void*);
 static void __fastcall RemoveAllVerify(TweenArray* self, void*) {
-    TweenArray scratch = Clone(*self);
+    KeptTween before(*self);
+    self->RemoveAll();   // ours first (SV2f)
+    TweenArray scratch = before.Clone();
     s_removeAll(&scratch, nullptr);
-    self->RemoveAll();
     ei::verify::Check("TweenArray::RemoveAll", true, Same(scratch, *self), "size %d", self->size);
     Free(scratch);
 }
@@ -335,10 +349,11 @@ EI_VERIFY(0x006D43E0, RemoveAllVerify, 6, s_removeAll);
 // 006D4840: MOV EAX,[ESP+8]; PUSH EBX (5 bytes).
 static void(__fastcall* s_setSize)(TweenArray*, void*, int, int);
 static void __fastcall SetSizeVerify(TweenArray* self, void*, int count, int growBy) {
-    TweenArray scratch = Clone(*self);
+    KeptTween kept(*self);
     int before = self->size;
+    self->SetSize(count, growBy);   // ours first (SV2f)
+    TweenArray scratch = kept.Clone();
     s_setSize(&scratch, nullptr, count, growBy);
-    self->SetSize(count, growBy);
     ei::verify::Check("TweenArray::SetSize", true, Same(scratch, *self), "%d -> %d", before, count);
     Free(scratch);
 }
@@ -347,9 +362,10 @@ EI_VERIFY(0x006D4840, SetSizeVerify, 5, s_setSize);
 // 006D4410: SUB ESP,0x10; PUSH EBX; PUSH EBP (5 bytes).
 static void(__fastcall* s_setTarget)(TweenArray*, void*, int, float, int);
 static void __fastcall SetTargetVerify(TweenArray* self, void*, int key, float target, int steps) {
-    TweenArray scratch = Clone(*self);
+    KeptTween before(*self);
+    TweenSetTarget(self, nullptr, key, target, steps);   // ours first (SV2f)
+    TweenArray scratch = before.Clone();
     s_setTarget(&scratch, nullptr, key, target, steps);
-    TweenSetTarget(self, nullptr, key, target, steps);
     ei::verify::Check("TweenArray::SetTarget", true, Same(scratch, *self), "key %d target %g steps %d", key, target, steps);
     Free(scratch);
 }
@@ -358,9 +374,10 @@ EI_VERIFY(0x006D4410, SetTargetVerify, 5, s_setTarget);
 // 006D44E0: PUSH ECX; PUSH EBX; PUSH ESI; MOV ESI,ECX (5 bytes).
 static bool(__fastcall* s_tick)(TweenArray*, void*);
 static bool __fastcall TickVerify(TweenArray* self, void*) {
-    TweenArray scratch = Clone(*self);
+    KeptTween before(*self);
+    bool actual = TweenTick(self);   // ours first (SV2f)
+    TweenArray scratch = before.Clone();
     bool expected = s_tick(&scratch, nullptr);
-    bool actual = TweenTick(self);
     ei::verify::Check("TweenArray::Tick", true, expected == actual && Same(scratch, *self), "size %d", self->size);
     Free(scratch);
     return expected;
@@ -390,9 +407,10 @@ EI_VERIFY(0x006D47E0, Save2Verify, 5, s_save2);
 // 006D45D0: PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,[ESP+0x10] (7 bytes).
 static void(__fastcall* s_load)(TweenArray*, void*, ScriptStream*, void*);
 static void __fastcall LoadVerify(TweenArray* self, void*, ScriptStream* stream, void* world) {
-    TweenArray scratch = Clone(*self);
+    KeptTween before(*self);   // the copy is made after the original ran (the kept side, SV2f)
     RecordStream record(stream);
     s_load(self, nullptr, &record, world);
+    TweenArray scratch = before.Clone();
     ReplayStream replay(record.bytes);
     TweenReadEntries(scratch, &replay, reinterpret_cast<int>(&record));
     ei::verify::Check("TweenArray::Load", true, Same(scratch, *self) && replay.Consumed(), "size %d", self->size);
@@ -400,15 +418,16 @@ static void __fastcall LoadVerify(TweenArray* self, void*, ScriptStream* stream,
 }
 EI_VERIFY(0x006D45D0, LoadVerify, 7, s_load);
 
-// 006D4660: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes). Original on a copy from the real stream,
-// ours on the real array from the recorded bytes.
+// 006D4660: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes). Ours first on the real array from the real
+// stream (recorded), then the original on a copy (made after ours, SV2f) from the recorded bytes.
 static void(__fastcall* s_loadEntries)(TweenArray*, void*, ScriptStream*);
 static void __fastcall LoadEntriesVerify(TweenArray* self, void*, ScriptStream* stream) {
-    TweenArray scratch = Clone(*self);
+    KeptTween before(*self);
     RecordStream record(stream);
-    s_loadEntries(&scratch, nullptr, &record);
+    TweenLoadEntries(self, nullptr, &record);
+    TweenArray scratch = before.Clone();
     ReplayStream replay(record.bytes);
-    TweenLoadEntries(self, nullptr, &replay);
+    s_loadEntries(&scratch, nullptr, &replay);
     ei::verify::Check("TweenArray::LoadEntries", true, Same(scratch, *self) && replay.Consumed(), "size %d", self->size);
     Free(scratch);
 }

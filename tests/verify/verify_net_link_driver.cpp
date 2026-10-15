@@ -5,7 +5,9 @@
 //
 // Memory streams (the inbox at +0x28, the streams passed in) are deep-copied for the original's
 // run: header plus a private buffer from the game heap; compared field by field (the buffer
-// pointer excepted) and up to the size.
+// pointer excepted) and up to the size. Ours runs first: the copies' bytes are kept in our memory
+// before it and their game-heap buffers made after it (the game reads the heap's address order,
+// SV2f).
 //
 //  - The inbox's own work (append 0047B980, take everything 0047B9B0, has message, count,
 //    Receive): the original on a copy of the link with a deep copy of the inbox (and of a memory
@@ -37,6 +39,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -76,6 +79,31 @@ void FreeStream(CMemoryStream* s) {
     if (s->data_) gamecrt::operator_delete(s->data_);
     s->data_ = nullptr;
 }
+// A stream's fields and bytes kept in our memory before ours runs; CloneTo gives a copy of it a
+// game-heap buffer of its own afterwards (as CloneStream would have before), so that ours' blocks
+// land where the original's would without the check (the game reads the heap's address order,
+// SV2f).
+struct KeptStream {
+    alignas(8) std::uint8_t header[sizeof(CMemoryStream)];
+    std::vector<std::uint8_t> data;
+    std::uint32_t bytes = 0;
+    bool hasData = false;
+    explicit KeptStream(const CMemoryStream* src) {
+        std::memcpy(header, src, sizeof(header));
+        if (!src->data_) return;
+        hasData = true;
+        bytes = src->capacity_ > src->size_ ? src->capacity_ : src->size_;
+        if (bytes == 0) bytes = 1;
+        data.assign(src->data_, src->data_ + src->size_);
+    }
+    void CloneTo(CMemoryStream* dst) const {
+        std::memcpy(dst, header, sizeof(header));
+        if (!hasData) return;
+        dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
+        std::memset(dst->data_, 0, bytes);
+        if (!data.empty()) std::memcpy(dst->data_, data.data(), data.size());
+    }
+};
 bool SameBytes(const CMemoryStream* a, const CMemoryStream* b) {
     if (a->size_ != b->size_) return false;
     if (a->size_ == 0) return true;
@@ -102,13 +130,17 @@ bool FreshRecord(const FileStream& record) {
 
 bool Alive(const CRefObject* o) { return o && !(o->flags7_ & CRefObject::kDetached); }
 
-// A copy of a framed link (the driver's size) whose inbox has a buffer of its own.
+// A copy of a framed link (the driver's size) whose inbox has a buffer of its own. The constructor
+// keeps the bytes in our memory (taken before ours runs); Clone, called after ours ran, gives the
+// copy its game-heap inbox buffer (SV2f).
 struct LinkCopy {
     alignas(8) std::uint8_t bytes[sizeof(DriverLink)];
-    explicit LinkCopy(const FramedLink* link) {
+    KeptStream inbox;
+    explicit LinkCopy(const FramedLink* link) : inbox(&link->inbox_) {
         std::memcpy(bytes, link, sizeof(bytes));
-        CloneStream(&Link()->inbox_, &link->inbox_);
+        Link()->inbox_.data_ = nullptr;   // until Clone
     }
+    void Clone() { inbox.CloneTo(&Link()->inbox_); }
     ~LinkCopy() { FreeStream(&Link()->inbox_); }
     LinkCopy(const LinkCopy&) = delete;
     LinkCopy& operator=(const LinkCopy&) = delete;
@@ -167,8 +199,9 @@ void __fastcall FramedAppendVerify(FramedLink* self, void*, const void* data, un
         return;
     }
     LinkCopy copy(self);
-    s_append(copy.Link(), nullptr, data, size);
     self->Append(data, size);
+    copy.Clone();
+    s_append(copy.Link(), nullptr, data, size);
     ei::verify::Check("FramedAppend", true, SameStream(&copy.Link()->inbox_, &self->inbox_), "%u bytes", size);
 }
 
@@ -180,11 +213,13 @@ void __fastcall FramedTakeAllVerify(FramedLink* self, void*, void* out) {
         return;
     }
     LinkCopy copy(self);
-    CMemoryStream target;
-    CloneStream(&target, static_cast<CMemoryStream*>(out));
+    KeptStream keptTarget(static_cast<CMemoryStream*>(out));
     unsigned before = self->inbox_.size_;
-    s_takeAll(copy.Link(), nullptr, &target);
     self->TakeAll(static_cast<CStream*>(out));
+    copy.Clone();
+    CMemoryStream target;
+    keptTarget.CloneTo(&target);
+    s_takeAll(copy.Link(), nullptr, &target);
     bool same = SameStream(&copy.Link()->inbox_, &self->inbox_) && SameStream(&target, static_cast<CMemoryStream*>(out));
     ei::verify::Check("FramedTakeAll", true, same, "%u bytes", before);
     FreeStream(&target);
@@ -197,8 +232,9 @@ template <typename Ours, typename Original>
 int InboxQuery(const char* name, FramedLink* self, Ours ours, Original original) {
     if (!IsMemoryStream(&self->inbox_)) return ours(self);
     LinkCopy copy(self);
-    int expected = original(copy.Link());
     int actual = ours(self);
+    copy.Clone();
+    int expected = original(copy.Link());
     ei::verify::Check(name, true, expected == actual && SameStream(&copy.Link()->inbox_, &self->inbox_), "%d / %d, %u bytes", expected,
                       actual, self->inbox_.size_);
     return actual;
@@ -220,11 +256,13 @@ bool(__fastcall* s_receive)(FramedLink*, void*, CMemoryStream*);
 bool __fastcall FramedReceiveVerify(FramedLink* self, void*, CMemoryStream* stream) {
     if (!IsMemoryStream(&self->inbox_) || !IsMemoryStream(stream)) return self->FramedLink::Receive(stream);
     LinkCopy copy(self);
-    CMemoryStream target;
-    CloneStream(&target, stream);
+    KeptStream keptTarget(stream);
     unsigned before = self->inbox_.size_;
-    bool expected = s_receive(copy.Link(), nullptr, &target);
     bool actual = self->FramedLink::Receive(stream);
+    copy.Clone();
+    CMemoryStream target;
+    keptTarget.CloneTo(&target);
+    bool expected = s_receive(copy.Link(), nullptr, &target);
     bool same = expected == actual && SameStream(&copy.Link()->inbox_, &self->inbox_) && SameStream(&target, stream);
     ei::verify::Check("FramedReceive", true, same, "%d / %d, %u bytes queued", expected, actual, before);
     FreeStream(&target);
@@ -295,8 +333,7 @@ bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
     g_sendBusy = true;
     alignas(8) std::uint8_t copy[sizeof(DriverLink)];
     std::memcpy(copy, self, sizeof(copy));
-    CMemoryStream source;
-    CloneStream(&source, static_cast<CMemoryStream*>(stream));
+    KeptStream keptSource(static_cast<CMemoryStream*>(stream));
 
     auto* real = reinterpret_cast<void* const*>(vt);
     g_send.recording = true;
@@ -308,6 +345,8 @@ bool __fastcall FramedSendVerify(FramedLink* self, void*, void* stream) {
     SetVtablePtr(self, real);
 
     g_send.recording = false;
+    CMemoryStream source;
+    keptSource.CloneTo(&source);   // after ours (SV2f)
     SetVtablePtr(copy, RecorderVtable(real));
     bool expected = s_send(reinterpret_cast<FramedLink*>(copy), nullptr, &source);
     bool same = expected == actual && !g_send.mismatch && g_send.replayedSends == g_send.sends &&
@@ -350,13 +389,16 @@ void __fastcall DriverPumpVerify(DriverLink* self) {
         self->DriverLink::Pump();
         return;
     }
+    // Ours first (Pump only reads the player's incoming block and resets its fields), then the
+    // original on the copies taken before (SV2f).
     LinkCopy copy(self);
     std::memcpy(g_player, self->player_, sizeof(g_player));
     copy.Driver()->player_ = reinterpret_cast<net::Connection*>(g_player);
     GameBuffer& in = self->player_->reliableIn_;
     unsigned before = static_cast<unsigned>(in.cur - in.begin);
-    s_pump(copy.Driver());
     self->DriverLink::Pump();
+    copy.Clone();
+    s_pump(copy.Driver());
     const GameBuffer& expectedIn = reinterpret_cast<net::Connection*>(g_player)->reliableIn_;
     bool same = SameStream(&copy.Link()->inbox_, &self->inbox_) && SameBufferFields(expectedIn, in);
     ei::verify::Check("DriverPump", true, same, "%u bytes", before);
@@ -377,12 +419,26 @@ int __fastcall DriverSendBytesVerify(DriverLink* self, void*, const void* data, 
     std::memcpy(copy, self, sizeof(copy));
     std::memcpy(g_player, self->player_, sizeof(g_player));
     reinterpret_cast<DriverLink*>(copy)->player_ = reinterpret_cast<net::Connection*>(g_player);
-    GameBuffer& scratch = reinterpret_cast<net::Connection*>(g_player)->reliableOut_;
-    GameBufferCopy(&scratch, nullptr, &out);
-    scratch.base = out.base;
+    // The outgoing buffer is kept in our memory (its fields relocated into the kept bytes); ours
+    // runs first and the scratch's game-heap copy of it is made after (SV2f).
+    alignas(8) std::uint8_t keptRaw[sizeof(GameBuffer)];
+    std::memcpy(keptRaw, &out, sizeof(GameBuffer));
+    auto& keptOut = *reinterpret_cast<GameBuffer*>(keptRaw);
+    std::vector<std::uint8_t> keptBytes;
+    if (out.begin) {
+        keptBytes.assign(out.begin, out.end);
+        keptBytes.push_back(0);   // never empty
+        keptOut.cur = keptBytes.data() + (out.cur - out.begin);
+        keptOut.high = keptBytes.data() + (out.high - out.begin);
+        keptOut.end = keptBytes.data() + (out.end - out.begin);
+        keptOut.begin = keptBytes.data();
+    }
 
-    int expected = s_sendBytes(reinterpret_cast<DriverLink*>(copy), nullptr, data, size);
     int actual = (self->DriverLink::SendBytes(data, size) ? 1 : 0);
+    GameBuffer& scratch = reinterpret_cast<net::Connection*>(g_player)->reliableOut_;
+    GameBufferCopy(&scratch, nullptr, &keptOut);
+    scratch.base = keptOut.base;
+    int expected = s_sendBytes(reinterpret_cast<DriverLink*>(copy), nullptr, data, size);
     auto offset = [](const GameBuffer& b, const std::uint8_t* p) { return static_cast<std::ptrdiff_t>(p - b.begin); };
     bool same = expected == actual && VtableOf(&scratch) == VtableOf(&out) && offset(scratch, scratch.cur) == offset(out, out.cur) &&
                 offset(scratch, scratch.high) == offset(out, out.high) && offset(scratch, scratch.end) == offset(out, out.end) &&
@@ -473,8 +529,9 @@ bool SameCloneInbox(const CMemoryStream& a, const CMemoryStream& b) {
 DriverLink* __fastcall DriverCloneVerify(DriverLink* self) {
     if (!IsMemoryStream(&self->inbox_)) return self->DriverLink::Clone();
     LinkCopy source(self);
+    DriverLink* actual = self->DriverLink::Clone();   // ours first (SV2f)
+    source.Clone();
     DriverLink* expected = s_clone(source.Driver());
-    DriverLink* actual = self->DriverLink::Clone();
     if (expected && actual) {
         const auto* x = reinterpret_cast<const std::uint8_t*>(&expected->record_);
         const auto* y = reinterpret_cast<const std::uint8_t*>(&actual->record_);
