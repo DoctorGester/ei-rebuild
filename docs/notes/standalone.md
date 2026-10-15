@@ -945,6 +945,38 @@ and every Rebirth log ends with its `verify total` lines. The log's last "first 
 the last hooked function reached for the first time, not where it stopped. The Riched20 access violation of
 ui_main_menu-rebirth was not seen again in these runs. R9c6 and X32 are the same cause.
 
+**S8b (2026-10-15).** MFC's resource strings, the exceptions' error messages and CFile's name slots,
+17 addresses (size rows added, all Ghidra sizes). src/lib/mfc_resource: AfxLoadString 00702B92
+(LoadStringA on the module state's resource handle through the exe's import slot), AfxFormatStrings
+0070B1AD (lead bytes by _mbctype's _M1 bit; "%0" reads the pointer before the array, as the
+original), AfxFormatStrings(UINT) 0070B173 and AfxFormatString1 0070B2AC; mfc_string:
+CString::LoadString 00702B0E (`LoadResourceString`; CString(MAKEINTRESOURCE) now calls it directly);
+mfc_window: AfxMessageBox(UINT) 0070ACCC; mfc_exception: CException::ReportError 0070209C (slot 4 of
+all six exception vtables; the help context starts at 0 where the original's is unset), slot 3 of
+CFileException 00703135 / CArchiveException 0070A795 (prompt 0xF1A0 / 0xF1B0 + cause with the name,
+AFX_IDS_UNNAMED_FILE's text for none) and of the four simple exceptions 006FE346 with InitString
+006FE31D; mfc_file: CFile::GetFileName / GetFileTitle / GetFilePath 00702C31 / 00702CB3 / 00702D35,
+GetStatus 00702D64 (`CFileStatus`, 0x118 bytes), AfxGetFileName 0070D0D2 and AfxGetFileTitle 00701AC9
+(comdlg32's GetFileTitleA through import slot 0073B748; the thunk 006FC044 has no other caller and is
+not registered). The resource handle: the original's module state has instance and resource handles
+null (the game never runs AfxWinInit; a start-up check confirms it), so `ImageModuleState`'s null ones
+are already right: LoadStringA(NULL) loads from game.exe in a hooked run, and the image's LoadStringA
+wrapper (S14) maps NULL to game.exe loaded as a data file. game.exe's table has every MFC prompt the
+library loads (30 of the 32 ids the check asks for; the two missing are the check's made-up ids).
+Checks (tests/verify/verify_mfc_resource.cpp), ours first (SV2f / SV2h): LoadString, the format
+functions and the name getters fill the real string, the original a scratch one made afterwards; the
+cause messages into the caller's buffer and a host buffer; InitString and the simple exceptions'
+GetErrorMessage on a copy taken before ours ran (objects compared); GetStatus and the path parts into
+host memory. Ours only: AfxLoadString (a CALL in its first five bytes; buffer against length, the
+resource handle against the image's), AfxMessageBox(UINT) and ReportError (modal boxes). The suite
+reaches none of them (error paths), so a start-up check drives them through their addresses: 32 ids
+(also into an 8-byte buffer), nine format strings and four format ids, every file / archive cause with
+and without a name, copies of the four static exceptions (unloaded, loaded, a missing id), path parts
+of seven shapes and the three names of a temporary file (open, open without a name, closed). smoke,
+console, ui_main_menu, ui_saveload, both installs: 0 mismatches (AfxLoadString 222 calls,
+AfxFormatStrings 107, CFileException::GetErrorMessage 60). Not exercised: LoadString's growing loop
+(no string in the table comes within two bytes of 256).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

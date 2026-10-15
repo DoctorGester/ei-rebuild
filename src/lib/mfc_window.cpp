@@ -6,6 +6,7 @@
 #include "game/originals_library.h"   // CWndDestroyWindow
 #include "gameapi.h"
 #include "mfc.h"
+#include "mfc_string.h"
 
 namespace mfc::impl {
 
@@ -70,6 +71,14 @@ int __stdcall MessageBoxText(const char* text, unsigned type, unsigned) {
     return gameapi::MessageBoxA(nullptr, text, title, type);
 }
 
+int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
+    CString prompt;
+    prompt.LoadResourceString(promptId);
+    if (helpId == static_cast<unsigned>(-1)) helpId = promptId;
+    return MessageBoxText(prompt, type, helpId);
+}
+
 EI_REPLACE(0x0070AC94, MessageBoxText);
+EI_REPLACE(0x0070ACCC, MessageBoxId);
 
 } // namespace mfc::impl

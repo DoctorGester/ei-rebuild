@@ -4,6 +4,9 @@
 
 #include "ei/hook.h"
 #include "game/originals_library.h"   // CxxThrowException
+#include "gameapi.h"
+#include "mfc_resource.h"
+#include "mfc_window.h"
 
 #include <new>
 
@@ -33,6 +36,22 @@ void* FileExceptionClass() { return reinterpret_cast<void*>(0x00746820); }
 void* ArchiveExceptionClass() { return reinterpret_cast<void*>(0x007467D8); }
 
 mfc::CObjectVirtuals* Virtuals(CException* exception) { return reinterpret_cast<mfc::CObjectVirtuals*>(exception); }
+CExceptionVirtuals* Slots(CException* exception) { return reinterpret_cast<CExceptionVirtuals*>(exception); }
+
+// ReportError's message buffer.
+constexpr unsigned kReportLength = 512;
+
+// GetErrorMessage of the file and archive exceptions: prompt `base` + cause with the file's name.
+BOOL CauseMessage(unsigned base, int cause, const CString& fileName, char* error, unsigned maxError, unsigned* helpContext) {
+    const unsigned prompt = base + static_cast<unsigned>(cause);
+    if (helpContext) *helpContext = prompt;
+    CString message;
+    CString name(fileName);
+    if (name.IsEmpty()) name.LoadResourceString(kIdsUnnamedFile);
+    AfxFormatString1(message, prompt, name);
+    gameapi::lstrcpynA(error, message, static_cast<int>(maxError));
+    return TRUE;
+}
 
 } // namespace
 
@@ -44,6 +63,14 @@ CException* CException::Construct() {
 CException* CException::ConstructAutoDelete(BOOL autoDeleteFlag) {
     autoDelete = autoDeleteFlag;
     return this;
+}
+
+int CException::ReportError(unsigned type, unsigned error) {
+    char message[kReportLength];
+    unsigned helpContext = 0;
+    if (Slots(this)->GetErrorMessage(message, kReportLength, &helpContext)) return MessageBoxText(message, type, helpContext);
+    if (error == 0) error = kIdpNoErrorAvailable;
+    return MessageBoxId(error, type, helpContext);
 }
 
 CSimpleException* CSimpleException::Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable) {
@@ -66,6 +93,21 @@ CSimpleException* CSimpleException::ConstructMemory(BOOL autoDeleteFlag, unsigne
 }
 CSimpleException* CSimpleException::ConstructNotSupported(BOOL autoDeleteFlag, unsigned id) {
     return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x00746610));
+}
+
+void CSimpleException::InitString() {
+    initialized = TRUE;
+    loaded = AfxLoadString(resourceId, message, sizeof message) != 0 ? TRUE : FALSE;
+}
+
+BOOL CSimpleException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
+    if (helpContext) *helpContext = 0;
+    if (!initialized) InitString();
+    if (loaded)
+        gameapi::lstrcpynA(error, message, static_cast<int>(maxError));
+    else
+        error[0] = '\0';
+    return loaded;
 }
 
 void __fastcall DeleteException(CException* exception) {
@@ -91,6 +133,10 @@ CFileException* CFileException::DeletingDestructor(unsigned flags) {
     return this;
 }
 
+BOOL CFileException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
+    return CauseMessage(kIdpFileNone, cause, fileName, error, maxError, helpContext);
+}
+
 void CArchiveException::Destruct() {
     vtable = Vtable();
     fileName.~CString();
@@ -100,6 +146,10 @@ CArchiveException* CArchiveException::DeletingDestructor(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
+}
+
+BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
+    return CauseMessage(kIdpArchiveNone, cause, fileName, error, maxError, helpContext);
 }
 
 void __fastcall ResourceExceptionDestruct(CException* self) { self->vtable = reinterpret_cast<void*>(0x0074646C); }
@@ -250,6 +300,11 @@ EI_REPLACE_METHOD(0x006E6916, CSimpleException::ConstructUser);
 EI_REPLACE_METHOD(0x006E6AEA, CSimpleException::ConstructMemory);
 EI_REPLACE_METHOD(0x006E6B37, CSimpleException::ConstructNotSupported);
 EI_REPLACE(0x00702069, DeleteException);
+EI_REPLACE_METHOD(0x0070209C, CException::ReportError);
+EI_REPLACE_METHOD(0x006FE31D, CSimpleException::InitString);
+EI_REPLACE_METHOD(0x006FE346, CSimpleException::GetErrorMessage);
+EI_REPLACE_METHOD(0x00703135, CFileException::GetErrorMessage);
+EI_REPLACE_METHOD(0x0070A795, CArchiveException::GetErrorMessage);
 EI_REPLACE_METHOD(0x006E6335, CFileException::Destruct);
 EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);
 EI_REPLACE_METHOD(0x006E6BA1, CArchiveException::Destruct);
