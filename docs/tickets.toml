@@ -1047,11 +1047,12 @@ done = "2026-10-15"
 id = "C9c"
 title = "map_object_shadow.cpp: what C9b left raw"
 group = "cleanup"
-status = "queued"
+status = "running"
 size = 0.3
 model = "opus"
 files = ["src/game/map_object_shadow.cpp"]
 note = "From C9b (2026-10-15): the colour key read from CTexture::block_ (+0x60; for a keyed texture, flags 0x2000, its meaning needs recovering); reinterpret_cast<CUnit*>(object) to reach the controller (CObject3D / CMapObject relation); AlignedRecordBuffer and PointAt/PixelAt indexing (CLinkMesh::ProjectPart and RasterisePart take float* / int*, typing them changes signatures)."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
