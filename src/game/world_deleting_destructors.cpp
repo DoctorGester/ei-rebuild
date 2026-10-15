@@ -6,6 +6,7 @@
 #include "figure_manager.h"
 #include "map_spec.h"
 #include "script.h"
+#include "sector_map.h"
 #include "unit_ai.h"
 
 #include "ei/hook.h"
@@ -28,7 +29,9 @@ T* DestroyAndFree(T* self, unsigned flags, Body body) {
 // The MFC collection destructors the deleting destructors below run (library rows).
 __declspec(naked) void __fastcall PlatformListDestruct(void*) EI_ORIGINAL(0x0056FE40)
 __declspec(naked) void __fastcall ClientArrayDestruct(void*) EI_ORIGINAL(0x005711E0)
-void __fastcall SectorArrayDestruct(void* array) { SectorArrayDestructOriginal(array); }
+void __fastcall SectorArrayDestruct(void* array) {
+    CSectorMap::DestructSectors(static_cast<mfc::CArray<Sector, SectorElements>*>(array));
+}
 __declspec(naked) void __fastcall ArrayElementListDestruct(void*) EI_ORIGINAL(0x0059A3C0)
 __declspec(naked) void __fastcall BlockCostListDestruct(void*) EI_ORIGINAL(0x005B1810)
 __declspec(naked) void __fastcall AIMapListDestruct(void*) EI_ORIGINAL(0x005B19A0)

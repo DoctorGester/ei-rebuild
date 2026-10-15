@@ -79,6 +79,26 @@ using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullp
 using ObjectPtrs = ArrayAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, ReleaseOnly>>;
 using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nullptr, DestroyPointLight>>;
 
+// The script's areas (each area's parts array: its base vtable back, the storage freed) and
+// definitions (S13b).
+inline void DestroyArea(ScriptArea* p) {
+    mfc::impl::ArrayHeader<mfc::impl::ScriptAreaClass>::Destruct(reinterpret_cast<mfc::CArray<Bytes<1>>*>(&p->parts));
+}
+inline void DestroyDefinition(ScriptDefinition* p) { ScriptDefinitionDestruct(p); }
+using Areas = ArrayAbi<ScriptArea, EachElements<ScriptArea, nullptr, DestroyArea>>;
+using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, DestroyDefinition>>;
+
+// CScript's arrays' vtables (their destructors 004CB150, 004CB650, 004CB310).
+struct PointLightArrayClass {   // +0x00
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3A0); }
+};
+struct AreaArrayClass {   // +0x194
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3C4); }
+};
+struct DefinitionArrayClass {   // +0x8C
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D3B8); }
+};
+
 // The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
 struct ObjectPtrArrayBaseClass {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073FABC); }

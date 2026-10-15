@@ -393,6 +393,26 @@ the three resets, both worlds' bodies (exit and the start-up checks), the Terrai
 and Sector slot-0 destructors. The other bodies run inside ours, so their own checks count nothing;
 the worlds' slot-0 destructors are not called (exit functions destroy the globals).
 
+**S7a + S13b (2026-10-15).** Script lists with the game's copy semantics (src/game/game_lists.*):
+RemoveHead by value for command blocks / definitions / runs (004C69B0, 004C7A10, 004C82B0: the
+element copy-constructed into the result, then RemoveAt), AddHead 004C7C90 / 004C9210 / 004C8CE0,
+AddTail 004C8D80, RemoveTail 004C9100 / 004C8AF0, NewNode 004CD930 / 004CDA30 with
+ConstructElements 004CEB80 / 004CECB0, the command block element destructor 004C54A0 (004C8CE0 is
+AddHead; script_construct.cpp's comment says AddTail). Scene records (scene_loader.cpp): FaceGroup
+ConstructElements 00454DB0, CArray<FaceGroup> destructor 00454CE0 and the SceneNode destructor
+004543E0 (not a CMap). CScript::Destruct 0058A140 (world_destructors.cpp; the server calls it for
+both scripts, the second was inlined) with its eleven MFC rows (game_lists.cpp, game_arrays.cpp);
+DestructAIMap 0058A450 (ai_map_construct.cpp; the reset 005B5E10 is now it plus the constructor),
+LocalSearch::Destruct 0058AA60, CSectorMap::DestructSectors 00599330, SectorGrid::Allocate 00572820 /
+005728D0 and Resize 00572450 / 005724F0 (world_client_maps.cpp; the two list instantiations behave
+alike). Checks ours only, except ConstructElements 00454DB0 / 004CEB80 / 004CECB0 against the
+original on a twin. Suite (128 runs) 0 mismatches: the list copies reached (RemoveHead 004C69B0
+32709 calls, RemoveTail 004C9100 166867, ...), CWorldServer::Destruct 190 (it now checks both
+scripts and the AI map); SectorGrid::Resize only under Rebirth (vanilla's callers are ours). Not
+reached: the scene helpers, 004CECB0, and the eleven rows and other destructors through their own
+addresses (ours call each other directly). Left for S6b: wave records 006BE240 / 006BE210 /
+006B90C0, the DestructElements rows 004CD900 / 004CEC80 / 004CD740.
+
 **S10 (2026-10-15).** STLport `vector<T>` (src/lib/stlp_vector.h, stlp_vector.cpp): STLport's members
 (insert overflow, fill / range insert, erase, resize, reserve, push_back, operator=, the base
 constructors and destructors) as one body each over an element policy (`PlainElement`,

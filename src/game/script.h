@@ -355,6 +355,10 @@ public:
     // one null temporary reference, an empty error text, then the reset (ScriptReset). Returns this.
     // Only the world's constructor calls it, from a static initialiser (before the hooks).
     CScript* Construct();
+    // 0058A140 (S13b, world_destructors.cpp). The destructor (the server inlines it for its second
+    // script): the reset (ScriptReset), the error text, then the containers last to first through
+    // their instantiations' destructors (game_lists.h / game_arrays.h).
+    void Destruct();
     // 00456360 (RET 4). The error text (copy-constructed at `out`), code and line; returns out.
     ScriptErrorInfo* GetError(ScriptErrorInfo* out);
 
