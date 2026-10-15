@@ -4,6 +4,7 @@
 #include "../../src/game/originals_units.h"
 #include "../../src/game/unit.h"
 #include "../../src/hook/log.h"
+#include "../../src/lib/crt.h"
 #include "ei/hook.h"
 
 #include <windows.h>
@@ -20,6 +21,8 @@ constexpr std::uintptr_t kVitalsReset = 0x00523370;
 constexpr std::uintptr_t kStatsReset = 0x005233E0;
 constexpr std::uintptr_t kBuildFromPrototype = 0x005136D0;
 constexpr std::uintptr_t kPartyRecordConstruct = 0x0065F5F0;
+constexpr std::uintptr_t kPackedVitalsReset = 0x005233B0;
+constexpr std::uintptr_t kOperatorNew = 0x007005AF;
 
 void* __fastcall ZeroedVitalsReset(UnitVitals* vitals) {
     std::memset(vitals, 0, sizeof(UnitVitals));
@@ -45,6 +48,21 @@ PartyUnitRecord* __fastcall ZeroedRecordConstruct(PartyUnitRecord* record) {
     return PartyUnitRecordConstructOriginal(record);
 }
 
+// CMapObject::Construct's packed vitals (in the object): Reset leaves their second byte, which the network
+// state sends (SV7b7).
+int __fastcall ZeroedPackedReset(UnitVitalsPacked* packed) {
+    std::memset(packed, 0, sizeof(UnitVitalsPacked));
+    return UnitVitalsPackedReset(packed);
+}
+
+// NewParticleSource's block: the first Tick reads the emission point (+0x98) that nothing sets before Attach
+// (SV7b7).
+void* __cdecl ZeroedParticleSourceNew(std::size_t bytes) {
+    void* memory = gamecrt::operator_new(bytes);
+    if (memory) std::memset(memory, 0, bytes);
+    return memory;
+}
+
 struct Site {
     std::uintptr_t call;     // a CALL rel32
     std::uintptr_t target;   // what it calls
@@ -61,6 +79,8 @@ const Site kSites[] = {
     {0x0052EB8A, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset)},
     {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild)},   // CMapObject::TakePrototype
     {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct)},   // CParty::AddMember
+    {0x0050E3C4, kPackedVitalsReset, reinterpret_cast<const void*>(&ZeroedPackedReset)},   // CMapObject::Construct
+    {0x004981CD, kOperatorNew, reinterpret_cast<const void*>(&ZeroedParticleSourceNew)},   // NewParticleSource 004981B0
 };
 
 bool Redirect(const Site& site) {
@@ -73,7 +93,7 @@ bool Redirect(const Site& site) {
         return false;
     }
     rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(site.zeroed) - (site.call + 5));
-    ei::NoteHarnessPatch(site.call, 5, "a unit statistics stack copy zeroed first, SV7b3");
+    ei::NoteHarnessPatch(site.call, 5, "a block the game leaves partly unwritten zeroed first, SV7b3 / SV7b7");
     DWORD old;
     VirtualProtect(p + 1, 4, PAGE_EXECUTE_READWRITE, &old);
     std::memcpy(p + 1, &rel, 4);
@@ -97,7 +117,8 @@ void Install() {
     int patched = 0;
     for (int i = 0; i < static_cast<int>(sizeof(kSites) / sizeof(kSites[0])); ++i)
         if ((mask >> i & 1) && Redirect(kSites[i])) ++patched;
-    Log("harness: unit statistics stack copies zeroed first (%d of %d original sites)", patched,
+    Log("harness: unit statistics stack copies, packed vitals and particle sources zeroed first (%d of %d original "
+        "sites)", patched,
         static_cast<int>(sizeof(kSites) / sizeof(kSites[0])));
 }
 

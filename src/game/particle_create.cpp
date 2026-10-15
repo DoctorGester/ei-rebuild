@@ -920,6 +920,10 @@ constexpr std::uintptr_t kParticleSourceVtable = 0x0073CFD0;
 CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     void* memory = gamecrt::operator_new(sizeof(CParticleSource));
     if (!memory) return nullptr;
+    // The source starts zeroed (SV7b7): nothing here or in Reset sets the emission point (origin, +0x98) and
+    // the first Tick takes the motion from it, so a source never attached emitted distance / emitSpacing
+    // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
+    std::memset(memory, 0, sizeof(CParticleSource));
     auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);
     ConstructEngineObject(s);

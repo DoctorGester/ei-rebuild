@@ -97,9 +97,8 @@ void __fastcall Brain14Destroy(void* a0) { AiLookArrayDestructOriginal(a0); }
 inline void __fastcall ControllerListDestroy(void* list) { AnimationStepsDestroyOriginal(list); }
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
 // Rewritten elsewhere or here, through their game addresses (verify wrappers in the path):
-// 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,
-// 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
-__declspec(naked) int __fastcall ResetPackedVitals(void*) EI_ORIGINAL(0x005233B0)
+// 005233B0 UnitVitalsPacked::Reset (UnitVitalsPackedReset, originals_units.h), 00523370 UnitVitals::Reset,
+// 00523550 UnitParams::Reset, 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
 __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
@@ -233,7 +232,10 @@ CMapObject* CMapObject::Construct() {
     ResetNetRecords(records);
     SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
-    ResetPackedVitals(PackedVitals());
+    // Reset leaves the second byte (unused_01) as the heap held it, and the network state sends all 0x18 bytes
+    // (MapObjectWriteNetState field 0): it starts zeroed, as the harness has the original's (SV7b7).
+    packedVitals = UnitVitalsPacked{};
+    UnitVitalsPackedReset(PackedVitals());
     sectorCellX = -1;
     sectorCellY = -1;
     SetBits(animationSpeed, kOne);

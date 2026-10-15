@@ -20,6 +20,10 @@
 // fills: the party members' and so the heroes' statistics). Left alone: the resets of blocks that
 // live in objects (CUnitServer::ResetController 00546480, the CMapObjectServer lifetime
 // 00515610..005157E0).
+//
+// SV7b7 adds two heap blocks: NewParticleSource 004981B0's new source (zeroed after operator new: the first
+// Tick reads its emission point, which nothing sets before Attach) and CMapObject::Construct 0050E2D0's packed
+// vitals (zeroed before Reset 005233B0, which leaves their second byte; the network state sends it).
 
 namespace ei::verify::leftovers {
 

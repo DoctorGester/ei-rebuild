@@ -1393,3 +1393,32 @@ hooked build changes all of these. Stopped here as bounded (coordinator); follow
 The original's main-thread clock reads are all virtual (EI_HARNESS_CLOCK=virtual,clocktrace): only Miles
 (QueryPerformanceCounter on its own thread) and the game's sound stream thread (006BB910, timeGetTime / Sleep(100))
 read time on their own.
+
+## SV7b7: a particle source's emission point read before it is set (2026-10-15)
+
+**Symptom** (SV7b1, SV7d): under `EI_HEAP_JITTER=<seed>,fill` the original (`--no-hooks`) parts at update 40 of gz1g
+in some scenarios (isaac.count 38 / 161, ai.decay of obj1804 / 1890 / 1936, unmoto obj1937's path), a different set
+per seed and per load of the machine (the main thread's block order, and so the jitter's fill, follows timing).
+
+**Tool:** `EI_HEAP_FILL` (harness_heap.h; or `heapfill.txt` beside ei_hook.dll, since a variable of its own moves the
+blocks: the CRT copies the environment onto its heap) fills chosen blocks (by number), byte ranges and resized blocks'
+new bytes with a byte or seeded bytes; bisecting the block number, then the offset, names the field. Seeded bytes with resized blocks' tails and no jitter reproduce it in levers, ui_saveload, ui_saveload_delete,
+combat and combat_more every time.
+
+**Cause:** NewParticleSource 004981B0 neither constructs nor Resets (004847E0) the source's emission point `origin`
+(+0x98, the 0x1F0-byte block from operator new); only Attach 004849F0 sets it. A source ticked before Attach
+(00496EB0: Follow takes `motion = position - origin`) gets a motion as large as the leftover, so Emit tries
+distance / emitSpacing times (up to maxParticles), each a GlobalRandom draw: the ISAAC count the AI's decay draws
+then take from. The bisection's byte was +0x9B (origin.x's exponent).
+
+**Fix:** the source starts zeroed in ours (NewParticleSource, kept in the standalone) and, through
+harness_leftovers (the CALL of operator new at 004981CD), in the original. Also canonicalised (found first under
+`2,fill`, not a behaviour read by itself): the packed vitals' second byte (CMapObject +0x17D, UnitVitalsPacked
+`unused_01`), which Reset 005233B0 skips and the network state sends whole; CMapObject::Construct zeroes the block
+before Reset in ours, harness_leftovers the CALL at 0050E3C4 in the original.
+
+**Runs** (`--no-hooks`, vanilla, 44 goldens): plain all goldens the same (none re-recorded); seeded fill with tails
+and no jitter, before 5 differed at update 40, now none; `2,fill` and `3,fill` only SV7b1's script group order
+(`script #gobject`: levers, ground_prints, ui_saveload_delete). Rebirth `3,fill`: script group order only (5);
+`2,fill`: the menu unit cunit187's `#place` at update 20 in most runs (SV7b8's orientation family). Hooked
+`--golden` (128 runs): all pass, 54 the same, combat and ui_saveload_delete vanilla on the script group (SV7b1).

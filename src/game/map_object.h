@@ -60,7 +60,8 @@ struct UnitVitalsPacked {
     int Reset();
 
     std::uint8_t spare00;           // +0x00 0 after Reset; nothing reads it
-    std::uint8_t unused_01;
+    std::uint8_t unused_01;         // +0x01 never written by the game (Reset skips it); sent with the network
+                                    // state, so CMapObject::Construct zeroes it (SV7b7)
     std::int16_t hitPoints;         // +0x02
     std::int16_t maxHitPoints;      // +0x04
     std::uint16_t mana;             // +0x06 (read unsigned)
