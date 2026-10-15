@@ -587,7 +587,7 @@ list's members, not their order.
 **rebirth_flags** repeats on the fixed heap (the group order was by address). Its last difference
 was its own: `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its
 arguments (5, 1.#INF, or a NaN that made the variable's verify fail when stored); the scenario now
-checks `Not(IsLess(DistancePointPoint(3,4),0))`, true for any of them.
+checks `Not(IsLess(DistancePointPoint(3,4),0))`, true for any of them (not for a NaN: T2e below).
 
 Results (on top of SV1a): the four scenarios, three runs per side, repeat; combat, combat_more and
 sound print the same as the original. Left: in sound the digests part at update 272 in `crt.rand` only
@@ -915,3 +915,35 @@ checks of allocating functions: ours allocates first, the original's allocations
 
 Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six deep) and writes heapseq.txt at that
 update, so tracing does not slow the run down.
+
+## SV6d: one registration per address, at build time
+
+`tools/check_registrations.py` (run by build.cmd after the link, both configurations) fails the build
+when one address has two registrations that InstallHooks would both take: two plain replacements
+(EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, _SHORT count together), two EI_VERIFY wrappers or two
+recorders. A replacement with a verify wrapper at the same address is normal. It reads the built
+ei_hook.dll, not the sources: every registration macro in include/ei/hook.h also leaves a
+`RegRecord` (address, kind, `__FILE__`, `__LINE__` of the expansion) in the section `.eireg`, so
+macro-generated registrations count and registrations left out by `#if` do not. The record is a
+non-const static: a const one is dropped by the compiler. The linker pads between modules' parts of
+the section with zero words, which the reader skips. Output names every file:line of the address;
+about 0.15 s. When it first ran it found six addresses registered twice on main (S6a vs S13b:
+004CB150 / 004CB310 / 004CB650; S12a vs S12b: 00445040 / 00445170 / 004457F0); the later
+registrations (game_slots.cpp, mfc_slots.cpp, stlp_pair.cpp and its verify wrappers) were dropped.
+
+## T2e: rebirth_flags' DistancePointPoint check failed now and then (2026-10-15)
+
+`check Not(IsLess(DistancePointPoint(3,4),0))` printed 0 on some first runs, on both installs (addon.dll's
+handler and ours read the same way). The handler reads four floats where its signature has two: the
+parser sizes the arguments' CArray once at load (SetSize(2) on a new command: an 8-byte block), so the
+third and fourth floats are the 8 bytes after that heap block (the next block's header or a free block's
+contents), which change from run to run. The distance is then any value >= 0, 1.#INF or a NaN. For a NaN the game's comparison
+(FCOMP, Compare in script_eval.cpp) sets C0, C2 and C3 together, so IsLess(NaN,0) is 1 and Not makes it 0:
+not a difference in ours, a test that does not hold for every value addon can give. No IsLess / IsGreater /
+IsEqual test of one evaluation holds for all three cases (a NaN is less, equal and not greater at once).
+The scenario now checks `Or(DistancePointPoint(3,4),1)`: Or truncates each argument (cvttsd2si; a NaN or
+1.#INF gives 0x80000000) and its last 1 makes it true for any value, while the handler still runs.
+
+Shown under load (work.py test, 4 at once, `--retries 0`): 13 copies of the scenario on both installs passed
+26 of 26; then 12 copies running the old check and the new one in the same game: the old one printed 0 in 2
+of 24 (one on Rebirth, addon.dll's own handler, one on vanilla), the new one 1 in all 24.
