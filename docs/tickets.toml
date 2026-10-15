@@ -1745,10 +1745,11 @@ note = "S5 ported what our code reaches. Left as original code: CPtrList (vtable
 id = "S4a"
 title = "Standalone library: MSVC6 formatted text (sprintf family, atof)"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp"]
 note = "sprintf 006E8715, vsprintf 006ECC47 (mfc_string forwards to it), fprintf 006EAEB0, printf 006E955F, atof 006E911A: MSVC6 _output / _input as library code in src/lib/crt.cpp, registered at their addresses. Float digits: _fcvt-style rounding of the 17-digit string (round half up on the digit string), %g trimming, no inf/nan/hex; atof accepts a 'd' exponent. fprintf / printf write through the game's FILE (shared with S4b). Verify against the original into scratch buffers (tests/verify/verify_crt.cpp). standalone.md S4."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S4b"
