@@ -78,7 +78,6 @@ __declspec(naked) unsigned long* __cdecl GameDoserrno() EI_ORIGINAL(0x006ED347) 
 __declspec(naked) int __cdecl GameFputs(const char*, gamecrt::CrtFile*) EI_ORIGINAL(0x006ED484)      // fputs
 __declspec(naked) char* __cdecl GameFgets(char*, int, gamecrt::CrtFile*) EI_ORIGINAL(0x006ED4D2)     // fgets
 __declspec(naked) void __cdecl GameClearerr(gamecrt::CrtFile*) EI_ORIGINAL(0x006ED443)               // clearerr
-__declspec(naked) int __cdecl GameFflush(gamecrt::CrtFile*) EI_ORIGINAL(0x006ED534)                  // fflush
 __declspec(naked) char* __cdecl GameFullpath(char*, const char*, std::size_t) EI_ORIGINAL(0x006ECA0E) // _fullpath
 
 FILE* Host(gamecrt::CrtFile* stream) { return reinterpret_cast<FILE*>(stream); }
@@ -111,7 +110,7 @@ void Clearerr(gamecrt::CrtFile* stream) {
     if (InImage()) std::clearerr(Host(stream));
     else GameClearerr(stream);
 }
-int Fflush(gamecrt::CrtFile* stream) { return InImage() ? std::fflush(Host(stream)) : GameFflush(stream); }
+int Fflush(gamecrt::CrtFile* stream) { return InImage() ? std::fflush(Host(stream)) : gamecrt::fflush(stream); }
 bool AtEnd(gamecrt::CrtFile* stream) {
     if (InImage()) return std::feof(Host(stream)) != 0;
     return (reinterpret_cast<const GameStream*>(stream)->flags & kStreamEof) != 0;
