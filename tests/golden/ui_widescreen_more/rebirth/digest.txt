@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 5834DA80 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 78C951A2 n 172
 + world world
 world tick 20
 world updates 20
@@ -144,11 +144,10 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFE5
 obj2 #ai 713079FE
 obj2 #place 784FE175
 obj2 #unit 807D16EC
-obj2 #vitals E824DBAF
+obj2 #vitals CB4D8108
 + obj3 82 nafltr59
 obj3 # 85B0C8E0
 + obj4 82 nafltr59
@@ -540,7 +539,7 @@ client synchronised 6
 + cunit2 80 unmoco2 ""
 cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
-cunit2 #vitals E4AA905D
+cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
 cunit129 #place A93B71E5
 cunit129 #unit F0D31922
@@ -557,7 +556,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash 5E77F76B n 172
+@ 1 update 40 frame 7 tick 40 zone - hash 1CCF55C7 n 172
 world tick 40
 world updates 40
 random isaac.count 60
@@ -567,7 +566,7 @@ random isaac.c 0x00000013
 random isaac.results 0xA3299F22
 random isaac.memory 0xFA47C019
 random crt.rand 0xFF4C846B
-obj2 #vitals D6368087
+obj2 #vitals 9EA7DF96
 obj129 #ai 93DFA8A1
 obj129 #place B24EA1FB
 obj129 #vitals F7FE680B
@@ -587,7 +586,7 @@ cunit148 #place 5B57E87B
 cunit148 #unit D6FFF600
 cunit187 #place DAAE4E15
 cunit388 #place 9A3E625A
-@ 2 update 60 frame 11 tick 60 zone - hash 87B176FA n 172
+@ 2 update 60 frame 11 tick 60 zone - hash B8B85CCC n 172
 world tick 60
 world updates 60
 random isaac.count 230
@@ -597,7 +596,7 @@ random isaac.c 0x00000018
 random isaac.results 0x52789397
 random isaac.memory 0x287F676A
 random crt.rand 0x27427EBB
-obj2 #vitals 984E2F20
+obj2 #vitals BB277587
 obj129 #ai CD83E452
 obj129 #place F09335B8
 obj129 #vitals E4521614
@@ -617,7 +616,7 @@ cunit148 #place F4001718
 cunit148 #unit A13719CF
 cunit187 #place D260E701
 cunit388 #place CC64C5DC
-@ 3 update 80 frame 15 tick 80 zone - hash BEA0A5A7 n 172
+@ 3 update 80 frame 15 tick 80 zone - hash B3993460 n 172
 world tick 80
 world updates 80
 random isaac.count 170
@@ -627,7 +626,7 @@ random isaac.c 0x0000001C
 random isaac.results 0xDB40B418
 random isaac.memory 0x41B86A6E
 random crt.rand 0xC2C955E8
-obj2 #vitals E824DBAF
+obj2 #vitals CB4D8108
 obj129 #ai 3C217239
 obj129 #place 5B4B42E2
 obj129 #vitals 9438E29B
@@ -646,7 +645,7 @@ cunit148 #place BBFA71BE
 cunit148 #unit C73DF77E
 cunit187 #place 7589EF30
 cunit388 #place 7D666D45
-@ 4 update 100 frame 19 tick 100 zone - hash 685D1BCC n 172
+@ 4 update 100 frame 19 tick 100 zone - hash 2AE5B960 n 172
 world tick 100
 world updates 100
 random isaac.count 114
@@ -656,7 +655,7 @@ random isaac.c 0x00000020
 random isaac.results 0x544B45E0
 random isaac.memory 0xA175D1BB
 random crt.rand 0x2CDF8CB2
-obj2 #vitals D6368087
+obj2 #vitals 9EA7DF96
 obj129 #ai 2759F986
 obj129 #place 51391F30
 obj129 #vitals F7FE680B
@@ -676,7 +675,7 @@ cunit129 #unit 9ABF5A88
 cunit148 #place 6B7C650D
 cunit148 #unit FEF293E2
 cunit388 #place CC64C5DC
-@ 5 update 120 frame 23 tick 115 zone - hash C1ECDC0D n 173
+@ 5 update 120 frame 23 tick 115 zone - hash 15016FB7 n 173
 world tick 115
 world updates 120
 world paused 1
@@ -711,11 +710,11 @@ cunit388 #place 4A2F740B
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit A8586937
 cunit1000011214 #vitals 68D49C6E
-@ 6 update 140 frame 27 tick 115 zone - hash 07E0DAAF n 173
+@ 6 update 140 frame 27 tick 115 zone - hash D30D6915 n 173
 world updates 140
 random isaac.count 153
 client ticksRun 137
-@ 7 update 160 frame 31 tick 115 zone - hash 5F047D37 n 173
+@ 7 update 160 frame 31 tick 115 zone - hash 8BE9CE8D n 173
 world updates 160
 random isaac.count 96
 client ticksRun 157
@@ -723,12 +722,12 @@ client ticksRun 157
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 34EAA022
 cunit1000011214 #vitals A7CF3098
-@ 8 update 180 frame 35 tick 115 zone - hash 2D707648 n 173
+@ 8 update 180 frame 35 tick 115 zone - hash F99DC5F2 n 173
 world updates 180
 random isaac.count 34
 client ticksRun 177
 cunit1000011214 #unit CD1ECA41
-@ 9 update 200 frame 42 tick 115 zone - hash A7051CA8 n 173
+@ 9 update 200 frame 42 tick 115 zone - hash 73E8AF12 n 173
 world updates 200
 random isaac.count 235
 random isaac.a 0xD92912E2
@@ -737,16 +736,16 @@ random isaac.c 0x00000025
 random isaac.results 0xC6E75A46
 random isaac.memory 0x74617DB2
 client ticksRun 197
-@ 10 update 220 frame 49 tick 115 zone - hash 7FB352D1 n 173
+@ 10 update 220 frame 49 tick 115 zone - hash AB5EE16B n 173
 world updates 220
 random isaac.count 123
 client ticksRun 217
 cunit1000011214 #unit 83C56237
-@ 11 update 240 frame 53 tick 115 zone - hash E7A53DFE n 173
+@ 11 update 240 frame 53 tick 115 zone - hash 33488E44 n 173
 world updates 240
 random isaac.count 12
 client ticksRun 237
-@ 12 update 260 frame 57 tick 130 zone - hash 075FCB04 n 172
+@ 12 update 260 frame 57 tick 130 zone - hash 1E392573 n 172
 world tick 130
 world updates 260
 world paused 0
@@ -776,7 +775,7 @@ cunit129 #unit F0D31922
 cunit148 #place 353D5925
 cunit388 #place 2C65C503
 - cunit1000011214
-@ 13 update 280 frame 61 tick 150 zone - hash ACAF42B8 n 172
+@ 13 update 280 frame 61 tick 150 zone - hash BE41336A n 172
 world tick 150
 world updates 280
 random isaac.count 243
@@ -786,7 +785,7 @@ random isaac.c 0x0000002D
 random isaac.results 0x3B03A4DD
 random isaac.memory 0xCDFADB49
 random crt.rand 0x87B4A560
-obj2 #vitals 984E2F20
+obj2 #vitals BB277587
 obj129 #ai 3429CA02
 obj129 #place 0631A949
 obj129 #vitals E4521614

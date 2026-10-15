@@ -78,11 +78,8 @@ ADDRESS_DEPENDENT = None
 # Differences between our code and the original that are known, each with the ticket that fixes it: "<key> <field>"
 # patterns. A compact digest keeps these fields in clear next to the hashes, and the comparison with a golden
 # leaves them out (unless --strict), so the golden needs no re-recording when the ticket lands; drop the entry then.
-KNOWN = {
-    r'^obj2 hp$': "SV3h: the main menu unit unmoco2's hit points are the NaN its prototype-less stats' stack "
-                  "leftovers give; on SV2b's heap they differ by scenario and install in the original "
-                  "(0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth), ours keeps SV3a's 0xFFC00000",
-}   # SV2b (zone1's script variable i between our runs under Rebirth) fixed 2026-10-15
+KNOWN = {}   # SV2b (zone1's script variable i between our runs under Rebirth) fixed 2026-10-15; SV7b3 (obj2 hp:
+# unmoco2's prototype-less statistics, stack leftovers) 2026-10-15: both sides zero those stack copies
 # Known differences in decoded saves (tools/savefile.py's "<key> <field>"), each with its ticket: left out of save
 # comparisons unless --strict, so the goldens' saves need no re-recording when the ticket lands; drop the entry then.
 SAVES_KNOWN = {
@@ -99,6 +96,9 @@ SAVES_KNOWN = {
     r'^commands globals\.(groups\.3\.object[12]|objects\.2\.value)$':
         "SV7b1: render_movie_present's script group \"Peasans\" is [1884, 699, 702] in the original and "
         "[1884, 702, 699] in ours, so the loop variable i ends on the other id (members in address order)",
+    r'^commands globals\.groups\.5\.object[01]$':
+        "SV7b1: Rebirth ui_widescreen_more's script group 5 is [1901, 1913] in the original and [1913, 1901] in ours "
+        "(members in address order; seen re-recording for SV7b3)",
 }
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
