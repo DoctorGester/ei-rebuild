@@ -1106,29 +1106,36 @@ depends = ["SV5b"]
 note = "levers_key repeats on both sides but ours flips against the original at update 60 (isaac.count, zone1 wolf obj1936 ai.standCooldown: the SV1j family); record its goldens when that is settled (standalone-verification.md, SV5b)."
 
 [[ticket]]
-id = "S20a"
-title = "Goldens for the renderer-only scenarios (they fail on the original code)"
+id = "SV7c"
+title = "Goldens hold under heap jitter on both installs (SV7 step c)"
 group = "verification"
-note = "From S20: render_cursor_present (vanilla, Rebirth), render_device_lost, render_present_shot (vanilla, Rebirth) and render_present_window FAIL or TIMEOUT with --no-hooks (the original has no present thread / device-lost / shot path: 'cursorcheck: 0 presents', 'waitpresent: timed out', checkshot 100% differ), so golden.py refuses them (run must pass --no-hooks). Decide per scenario: a golden from a hooked run on the new renderer once the world state it digests no longer depends on the renderer (compare with a --no-hooks run of the same world steps), or leave them to their own checks and drop them from the golden count. Ids of the runs: build\\verify\\runs\\<scenario>-<install> of 'work.py test <ID> --no-hooks --fresh --golden --vanilla-only <names>'."
+size = 1
+model = "opus"
+note = "Last step of SV7. On main after SV7b7: run every golden scenario --no-hooks and hooked under EI_HEAP_JITTER 1, 2, 3 and 2,fill / 3,fill on vanilla AND Rebirth (SV7b7 ran vanilla only after its merge), plus EI_HEAP_FILL seeded fills; every golden must stay the same. Known open: Rebirth 2,fill menu unit cunit187 #place at update 20 (SV7b8's family). One follow-up per remaining family, canonicalised on both sides as SV7b1/SV7b2. Re-check after S20 and SV7b2a land so the new goldens are covered too."
 
 [[ticket]]
-id = "S20b"
-title = "render_present_fullscreen has no run of the original (full screen at its own display mode)"
+id = "SV5a1"
+title = "TryTame and the AI's charm: a caster with enough mana"
 group = "verification"
-note = "From S20: run_all leaves render_present_fullscreen-vanilla out of --no-hooks runs (full screen at its own mode without our renderer would switch the display; user rule: never an exclusive full screen at a non-native mode), so it has no golden. Either record its golden from a windowed or native-mode variant of the same world steps, or accept it as covered by its hooked check only."
+size = 1
+depends = ["SV5a"]
+note = "SV5a: CUnitServer::TryTame (00551AE0) stays unreached. The hero's 56 mana is far below charm's cost and the zone wolves never pick charm. Needs a script-raised caster (GiveIntelligence / GiveSkill astral, high mana) and a Cast order of charm at a unit, or an AI unit with charm among its spells; scratch tries are spells_charm and unit_ai_charm in standalone-verification.md SV5a."
 
 [[ticket]]
-id = "S20c"
-title = "Withheld goldens: ours' random draws alternate between runs (particles, zone_gz15h_tornado Rebirth, net_second_master Rebirth) or differ from the original (rebirth_flags Rebirth)"
+id = "SV5a2"
+title = "Hook-reach for AI hooks our code calls directly (LookAroundHook, SeeCorpseHook, AICallArray::Add, SuspectionMode)"
 group = "verification"
-depends = ["SV1k"]
-note = "From S20: goldens from two agreeing --no-hooks passes exist for these but ours (hooked and --standalone) does not match: particles (vanilla; isaac.count at update 60-140 differs between two hooked runs, 75 / 58 / 105 / 111 against the original's 215), zone_gz15h_tornado (Rebirth; crt.rand at update 120-220 alternates between runs; the vanilla golden matches), net_second_master (Rebirth; crt.rand / isaac.count at update 440-500 alternate), rebirth_flags (Rebirth; hooked is the same in repeated runs but isaac.count is 157 at update 340 where the original's is 249, standalone parts in crt.rand at 240). Same family as SV1k (effects, script_fx, ui_mp_host, unit_create) and SV3j (sound, zone_gz2g_traps, models), which have the same picture; the goldens of all of them were withheld to keep 'work.py test --golden' at 0 differ and are in git (commit c117730a, tests/golden/<scenario>/<install>; restore with git checkout c117730a -- <dir> once ours matches, then run 'work.py test <ID> --no-hooks --fresh --golden <scenario>' twice to check they still repeat). Use EI_HARNESS_CLOCK=virtual,randtrace and tools/randtrace.py. Withheld here: effects, models, particles, script_fx, sound, unit_create, zone_gz2g_traps (vanilla), ui_mp_host (vanilla, Rebirth), net_second_master, rebirth_flags, zone_gz15h_tornado (Rebirth). Also zone_gz2g_traps (SV3j): hooked and standalone part at update 80 in isaac.count, then the saves' moneyKey."
+size = 1
+depends = ["SV5a"]
+note = "SV5a: SuspectionMode::Execute/Enter/Leave, PatrolPointArray::Add/SetAtGrow, LookAroundHook (005CFE40), SeeCorpseHook (005CBE90), AICallArray::Add (005CD880) are unreached. SeeCorpse logic runs but our code calls the hook functions directly, so the cover INT3 on the game address never fires; decide whether coverage should count ours-to-ours calls via the first byte of our function, or a scenario with a controlled party member dying (AddUnitUnderControl trips the CUnit::SetPlayer verify wrapper: ours-only PlayerOwnsUnit check). CTrapObject::UpdateTrap needs a trap object with a category-2 consumable (none found)."
 
 [[ticket]]
-id = "S20d"
-title = "zone_gz2g_traps: standalone parts from the golden (isaac.count 253 / 251 at update 80, moneyKey in the saves)"
+id = "SV5a3"
+title = "Verify wrapper for UseOnUnit with a potion (synchronously consumed)"
 group = "verification"
-note = "Filed in error: zone_gz2g_traps is SV3j's (hooked and standalone both part from the original at update 80 in isaac.count, then every moneyKey in its saves; its golden is withheld, see S20c). Nothing to do here."
+size = 1
+depends = ["SV5a"]
+note = "SV5a: a quick-item potion (category 8) used on a unit fails the CBattleScreenSetup::UseOnUnit wrapper because the potion is consumed at once and the member does not nod (ours-vs-original mismatch). Make the wrapper tolerant or compare after the consume, then add a potion scenario (ui_quick_potion was dropped); also UseOnUnitVerify / SetPlayerVerify (ours-only PlayerOwnsUnit check) reject AddUnitUnderControl."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1382,7 +1389,7 @@ title = "Read-before-write detector: trap the first read of never-written heap b
 group = "harness"
 size = 1
 model = "opus"
-note = "From SV7b7 (4.5 h, ~140 batches, a 24-step bisection over heap block indices plus one false lead to find one uninitialised read). A harness mode that gives chosen fresh CRT blocks (by size, call site or block index) guard pages or a shadow 'written' bitmap with hardware/PAGE_GUARD traps, and logs the first read of a never-written byte with its EIP, the block's allocation call stack and offset. One run instead of a bisection; works for the original and ours. Keep it in the slim harness that survives S21 (goldens are recorded from the original)."
+note = "Parked 2026-10-15 (branch worktree-agent-aebf200856ca815e9, commit d4888138, unfinished, off by default). EI_HEAP_UNINIT=<size=|block=|site=[ei_hook+]hex|all>[,from=,updates=,reports=] (tests/verify/harness_uninit.h; hooks in harness_heap.cpp): picked blocks move to no-access pages of a two-view section, a VEH decodes each access (x86/x87/SSE/VEX), keeps a written bitmap, emulates plain MOV/MOVZX/MOVSX via the second view, single-steps the rest (REP MOVS/STOS as one range, bits carried block to block); reads of never-written bytes -> uninit.txt, tools/uninit_report.py names them. Works: levers --no-hooks site=004981D2 names 00496EB0+0x14D reading CParticleSource +0x98 (origin) in one 24 s run; hooked size=0x1F0 names CParticleSource::Tick+0x158 (plus verify-wrapper snapshot reads). Not done: broad selections too slow (all: stuck at game start; all,from=30,updates=20 on sandbox_actions: ~4M traps while the level loads, timeout at step 9; last run after adding CarryBits/NoteBusy timed out at step 5 with no traps after u30, possibly a hang to investigate); no golden check run yet; doc section in standalone-verification.md not written; SV7b7 also adds a block counter in RepeatableHeapAlloc (merge conflict expected)."
 
 [[ticket]]
 id = "T2f"

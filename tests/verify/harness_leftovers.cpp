@@ -1,4 +1,4 @@
-// Never-set bytes zeroed in the original (harness_leftovers.h; tickets SV7b3, SV7b2, SV7d3, SV7d4, S17a).
+// Never-set bytes zeroed in the original (harness_leftovers.h; tickets SV7b3, SV7b2, SV7d3, SV7d4, S17a, SV7b7).
 #include "harness_leftovers.h"
 
 #include "../../src/game/class_templates.h"
@@ -91,7 +91,10 @@ CObject3D* __fastcall ZeroedViewConstruct(CObject3D* object) {
 }
 
 // The families, one EI_LEFTOVERS bit each.
-enum Family { kStatsCopies, kServerObjects, kMapObjects, kSuspection, kFear, kTemplates, kViewPositions, kFamilies };
+enum Family {
+    kStatsCopies, kServerObjects, kMapObjects, kSuspection, kFear, kTemplates, kViewPositions, kParticleSources,
+    kFamilies
+};
 const char* const kFamilyNotes[kFamilies] = {
     "a unit statistics stack copy zeroed first, SV7b3",
     "a server object allocated zeroed, SV7b2 / SV7d3",
@@ -100,14 +103,15 @@ const char* const kFamilyNotes[kFamilies] = {
     "a Fear mode's fields zeroed first, SV7b2",
     "a class template's weights tail zeroed first, SV7b2",
     "a new 3D object's view position zeroed, S17a",
+    "a particle source allocated zeroed, SV7b7",
 };
 // The families patched only in runs without hooks (EI_NO_HOOKS=1). Their sites all sit in functions ours
 // replaces (NewObjectImpl, CreateObject, AddSuspectionMode, AddFearMode, ApplyBehaviour, SSCCmd::Execute,
-// the party manager's builder, CreateClassTemplate), and ours zeroes the same blocks; patched in a hooked
+// the party manager's builder, CreateClassTemplate, NewParticleSource), and ours zeroes the same blocks; patched in a hooked
 // run they would make InstallHooks leave those rewrites out (a harness patch in the body), so the
 // original would run in their place (SSCCmd::Execute without addon's commands on the vanilla install).
 constexpr unsigned kNoHooksOnly = 1u << kServerObjects | 1u << kMapObjects | 1u << kSuspection | 1u << kFear |
-                                  1u << kTemplates;
+                                  1u << kTemplates | 1u << kParticleSources;
 
 struct Site {
     std::uintptr_t call;     // a CALL rel32
@@ -183,6 +187,9 @@ const Site kSites[] = {
     {0x00457886, kTemplateConstruct, kTemplateZeroed, kTemplates},
     // CMapObject::Construct 0050E2D0's call of CObject3D::Construct (S17a).
     {0x0050E2F2, kObject3DConstruct, reinterpret_cast<const void*>(&ZeroedViewConstruct), kViewPositions},
+    // NewParticleSource 004981B0 (SV7b7): the first Tick reads the emission point (+0x98), which nothing sets
+    // before Attach.
+    {0x004981CD, kOperatorNew, kNew, kParticleSources},
 };
 
 bool Redirect(const Site& site) {
