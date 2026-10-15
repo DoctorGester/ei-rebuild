@@ -5,7 +5,7 @@ usage: python tools/test_frame_store.py
 import os, random, struct, subprocess, sys, tempfile, unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import compare_frames, frame_store
+import compare_frames, frame_store, run_all
 
 
 def bmp(width, height, bits=24, seed=1):
@@ -66,6 +66,24 @@ class FrameStoreTest(unittest.TestCase):
                               self.path('x'), self.path('y')], capture_output=True, text=True)
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertIn('f.bmp: 500x300, 0 pixels differ', run.stdout)
+
+    def test_run_packs_the_run_folder(self):
+        data = bmp(500, 300)
+
+        def fake_run_once(name, install, hooks, folder, root, build, *rest):
+            os.makedirs(os.path.join(build, 'runs', folder, 'frames'))
+            with open(os.path.join(build, 'runs', folder, 'frames', 'f.bmp'), 'wb') as f:
+                f.write(data)
+            return 'PASS', 1.0, [], {}, []
+        real = run_all.run_once
+        run_all.run_once = fake_run_once
+        try:
+            self.assertEqual(run_all.run('t', 'vanilla', True, build=self.tmp, root=self.tmp)[0], 'PASS')
+        finally:
+            run_all.run_once = real
+        frames = os.path.join(self.tmp, 'runs', 't-vanilla', 'frames')
+        self.assertEqual(os.listdir(frames), ['f.bmp.z'])
+        self.assertEqual(frame_store.read_frame(os.path.join(frames, 'f.bmp')), data)
 
 
 if __name__ == '__main__':
