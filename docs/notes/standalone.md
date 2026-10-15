@@ -1004,16 +1004,20 @@ both results the mapped value and the count one more only for a new name. 006199
 every record copy is CParty's copy constructor, which saves the party with a fresh ISAAC key and
 makes managers, so a twin run of the original would draw and allocate where the game does not; by
 effect (size, capacity, the names in order) and each copy by 006613C0's own wrapper. A start-up
-check sorts 200 random topic and name lists both ways (texts equal but for case, '[' '_' '`'
-between the cases, depth limits that reach the heap sort): each topic's text and capacity, each
-name's data pointer. It leaves nothing in the game's allocators: a first version with short game
-strings and CStrings at start-up refilled the node pool and CString's fixed pools before the game
-ran, and ui_widescreen_hud / ui_widescreen_more (Rebirth) parted from their goldens at world update
-80 (cunit148 #place); every topic now starts with 130 characters (each block and copy over the
-node allocator's 128 bytes: operator new, freed before the check ends) and the names are CStrings
-over headers in our memory with a count no sort brings to zero. In the suite the names sort on the hero screen (ui_hero_*, ui_mp_host), the
-insert overflow on the hero list and the saved parties' reload; the topics only in the start-up
-check (no network client briefing in the suite); 00613920 through ItemStock::GenerateSpells
+check sorts 200 random name lists both ways (depth limits that reach the heap sort), each
+position's data pointer compared; the names are CStrings over headers in our memory with a count no
+sort brings to zero, so nothing reaches the game's allocators. The same lists as topics (texts
+equal but for case, '[' '_' '`' between the cases; each position's text and capacity) run only
+with `EI_TOPIC_SORT_CHECK` set: every copy the original's topic sort makes is a game block, and a
+start-up check must leave the allocators as they were. Short topics at start-up refilled the node
+pool and CString's fixed pools (in the first version the names were game CStrings too), and
+ui_widescreen_hud / ui_widescreen_more (Rebirth) parted from their goldens at world update 80
+(cunit148 #place); topics over 128 bytes (operator new, all freed before the check ended) still
+moved the CRT heap's later blocks and levers parted (script #gobject, as SV2h1b's two). With
+`EI_TOPIC_SORT_CHECK=1` smoke and console (both installs) give 0 mismatches. In the suite
+the names sort on the hero screen (ui_hero_*, ui_mp_host), the insert overflow on the hero list
+and the saved parties' reload; the topics in no run (only a network client's briefing sorts them;
+the opt-in check above); 00613920 through ItemStock::GenerateSpells
 (trader_stock).
 
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in

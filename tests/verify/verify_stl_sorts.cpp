@@ -29,11 +29,12 @@
 //   kept in our memory, ours sorts the range, then the original sorts a twin of game strings made
 //   from the kept texts (freed last to first) and the two are compared text by text (texts equal
 //   but for case show the order of equals). Not reached in the suite (only a network client sorts
-//   them): a start-up check sorts random topics both ways, comparing each position's text and
-//   capacity (assignments keep a larger block, so capacities follow the moves).
+//   them): with EI_TOPIC_SORT_CHECK set, a start-up check sorts random topics both ways, comparing
+//   each position's text and capacity (assignments keep a larger block, so capacities follow the
+//   moves); off by default, as its game blocks move the game's later ones (see the check).
 // - The hero screen's figure names (CString by _mbscmp): copies only share the strings; the copy
 //   the original sorts is made before ours runs (references only) and compared by data pointer. A
-//   start-up check sorts random names both ways.
+//   start-up check sorts random names both ways (over string headers in our memory).
 #include "verify.h"
 
 #include "../../src/game/base_manager.h"
@@ -45,6 +46,8 @@
 #include "../../src/game/stl_sorts.h"
 #include "../../src/hook/log.h"
 #include "../../src/lib/stlp_string.h"
+
+#include <windows.h>
 
 #include <algorithm>
 #include <cstdint>
@@ -792,19 +795,26 @@ void SaveSortStartupCheck() {
 }
 EI_STARTUP_CHECK(SaveSortStartupCheck);
 
-// The topics and the names as their callers sort them (the introsort loop, then the final sort),
+// The names and the topics as their callers sort them (the introsort loop, then the final sort),
 // on random texts from a small set: texts equal but for case (the topics' order of equals), the
-// characters between 'Z' and 'a' (_stricmp lowers before comparing) and several lengths. Topics:
-// each position's text and capacity; names: each position's string (data pointer).
+// characters between 'Z' and 'a' (_stricmp lowers before comparing) and several lengths. Names:
+// each position's string (data pointer); topics: each position's text and capacity.
 //
-// Neither leaves anything in the game's allocators (a first version with short game strings and
-// CStrings refilled the node pool and CString's fixed pools before the game ran, and moved the
-// addresses the game's own blocks got later: ui_widescreen_hud / _more on Rebirth parted from
-// their goldens). Every topic starts with kTopicPrefix characters, so each string's block (and
-// every copy the sorts make) is over the node allocator's 128 bytes: operator new, freed again
-// before the check ends. The names are CStrings over headers in our memory with a count no sort
-// brings to zero: copies, assignments and destructions only move counts.
+// A start-up check must leave the game's allocators as they were. The names are CStrings over
+// headers in our memory with a count no sort brings to zero (copies, assignments and destructions
+// only move counts), so they run in every game. The topics cannot: every copy the original's sort
+// makes is a game block. Short ones refilled the node pool before the game ran and
+// ui_widescreen_hud / _more (Rebirth) parted from their goldens; long ones (operator new, freed
+// before the check ended) still moved the CRT heap's later blocks and levers parted (script
+// #gobject). So the topics run only with EI_TOPIC_SORT_CHECK set (any value), in runs without a
+// golden to keep. Every topic starts with kTopicPrefix characters (blocks over the node
+// allocator's 128 bytes, so the pool's lists stay as they are).
 constexpr std::size_t kTopicPrefix = 130;
+
+bool TopicCheckWanted() {
+    char value[8];
+    return GetEnvironmentVariableA("EI_TOPIC_SORT_CHECK", value, sizeof(value)) != 0;
+}
 const char* const kSortWords[] = {"a",  "A", "ab", "AB", "aB", "abc", "Abc", "b",  "B", "zeta", "Zeta", "_x", "[", "\x60",
                                   "Z", "y_", "Y[", "long topic text", "LONG TOPIC TEXT", ""};
 
@@ -841,8 +851,33 @@ struct LocalNames {
 static_assert(sizeof(mfc::CString) == sizeof(char*));
 mfc::CString* AsNames(std::vector<char*>& words) { return reinterpret_cast<mfc::CString*>(words.data()); }
 
+// The topics (`texts` behind the prefix) sorted both ways: the same text and capacity everywhere.
+bool TopicsSortedAlike(const std::vector<std::string>& texts, int depth) {
+    std::size_t n = texts.size();
+    std::vector<std::string> topics(n);
+    for (std::size_t i = 0; i < n; ++i) topics[i] = std::string(kTopicPrefix, '.') + texts[i];
+    std::vector<stlp::string> theirs = GameStrings(topics), ours = GameStrings(topics);
+    if (n != 0) {
+        s_topicIntro(theirs.data(), theirs.data() + n, 0, depth, 0);
+        s_topicFinal(theirs.data(), theirs.data() + n, 0);
+        TopicIntroSort(ours.data(), ours.data() + n, 0, depth, 0);
+        TopicFinalSort(ours.data(), ours.data() + n, 0);
+    }
+    bool same = true;
+    for (std::size_t i = 0; i < n && same; ++i) {
+        const stlp::string& a = theirs[i];
+        const stlp::string& b = ours[i];
+        same = TextOf(a) == TextOf(b) && stlp::StringAbi::EndOfStorage(a) - stlp::StringAbi::Start(a) ==
+                                             stlp::StringAbi::EndOfStorage(b) - stlp::StringAbi::Start(b);
+    }
+    PopAll(ours);
+    PopAll(theirs);
+    return same;
+}
+
 void TopicNameStartupCheck() {
     if (!s_topicIntro || !s_topicFinal || !s_nameIntro || !s_nameFinal) return;
+    const bool topicsToo = TopicCheckWanted();
     int cases = 0, failed = -1;
     const char* which = "";
     for (std::uint32_t seed = 1; seed <= 200 && failed < 0; ++seed, ++cases) {
@@ -850,28 +885,11 @@ void TopicNameStartupCheck() {
         std::size_t n = random.Next() % 120;
         int depth = Depth(n, random.Next());
         std::vector<std::string> texts = RandomWords(random, n);
-        std::vector<std::string> topics(texts.size());
-        for (std::size_t i = 0; i < n; ++i) topics[i] = std::string(kTopicPrefix, '.') + texts[i];
-
-        std::vector<stlp::string> theirs = GameStrings(topics), ours = GameStrings(topics);
-        if (n != 0) {
-            s_topicIntro(theirs.data(), theirs.data() + n, 0, depth, 0);
-            s_topicFinal(theirs.data(), theirs.data() + n, 0);
-            TopicIntroSort(ours.data(), ours.data() + n, 0, depth, 0);
-            TopicFinalSort(ours.data(), ours.data() + n, 0);
+        if (topicsToo && !TopicsSortedAlike(texts, depth)) {
+            failed = static_cast<int>(seed);
+            which = "topics";
+            break;
         }
-        for (std::size_t i = 0; i < n && failed < 0; ++i) {
-            const stlp::string& a = theirs[i];
-            const stlp::string& b = ours[i];
-            if (TextOf(a) != TextOf(b) || stlp::StringAbi::EndOfStorage(a) - stlp::StringAbi::Start(a) !=
-                                              stlp::StringAbi::EndOfStorage(b) - stlp::StringAbi::Start(b)) {
-                failed = static_cast<int>(seed);
-                which = "topics";
-            }
-        }
-        PopAll(ours);
-        PopAll(theirs);
-        if (failed >= 0) break;
 
         LocalNames names(texts);
         std::vector<char*> theirNames = names.texts, ourNames = names.texts;
@@ -889,7 +907,8 @@ void TopicNameStartupCheck() {
     }
     char detail[96];
     std::snprintf(detail, sizeof(detail), "%d cases, first failure: %s seed %d", cases, which, failed);
-    ei::verify::Report("stlp::sort start-up (briefing topics, hero names)", failed < 0, detail);
+    ei::verify::Report(topicsToo ? "stlp::sort start-up (hero names, briefing topics)" : "stlp::sort start-up (hero names)",
+                       failed < 0, detail);
 }
 EI_STARTUP_CHECK(TopicNameStartupCheck);
 
