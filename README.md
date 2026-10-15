@@ -72,7 +72,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
   `clickunit <name> [l|r|move] [ctrl]` clicks the unit with that script name where the game's own
-  picking finds it this frame (`ui_battle_commands.txt`).
+  picking finds it this frame (`ui_battle_commands.txt`); `clickunit #<id>` picks a map object by id (a lever,
+  `levers_key.txt`).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the
   global map, 5 the camp); the camp's Esc returns to the game. `screen 5 <n>` opens the camp with
   constructor / trader class `<n>` as a base dialogue's "constrN" answer does (1, 3, 4, 5 after a

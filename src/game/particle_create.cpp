@@ -909,7 +909,10 @@ namespace {
 // then Reset and the type. The original's EH frame only unwinds the member constructors, none of
 // which can throw.
 CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
-    void* memory = gamecrt::operator_new(sizeof(CParticleSource));
+    // The source starts zeroed (SV7b7): nothing here or in Reset sets the emission point (origin, +0x98) and
+    // the first Tick takes the motion from it, so a source never attached emitted distance / emitSpacing
+    // tries (each a GlobalRandom draw) from whatever the heap held. The harness zeroes the original's alike.
+    void* memory = gamecrt::operator_new_zeroed(sizeof(CParticleSource));
     if (!memory) return nullptr;
     auto* bytes = static_cast<std::uint8_t*>(memory);
     auto* s = static_cast<CParticleSource*>(memory);

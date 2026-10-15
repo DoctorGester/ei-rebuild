@@ -1,0 +1,42 @@
+# A zone wolf sees a dead wolf and hears a blast (SV5a): zone1's own wolf 1804 (it runs the full set of
+# AI modes; the units that scenarios spawn get fewer) is alone 23 units from the hero. A wolf of the
+# same side is spawned beside it and dies of damage in its sight (the brain's SeeCorpse, a notice at
+# the corpse's level: SuspectionMode), then a fireball lands near it and two wolves of other sides fight beside it (noises it hears). The hero (in god mode)
+# first walks towards it and stops. No `speed`, so a golden can be recorded.
+reject Script error
+waitmenu
+console thingamabob
+console filter all on
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+check IsAlive(GetObject(1804))
+# The hero walks towards it: its steps are noises the (hostile) wolf hears before it sees the hero.
+console @MoveToObject(GetLeader(),GetObject(1804))
+waitfor 40 IsLess(DistanceUnitUnit(GetLeader(),GetObject(1804)),13)
+console @BlockUnit(GetLeader(),1)
+wait 3000
+console @GSSetVar(0,"wx",GetX(GetObject(1804)))
+console @GSSetVar(0,"wy",GetY(GetObject(1804)))
+console @AddUnitToServer("CorpseWolf","WolfTutor","CorpseWolf",Add(GSGetVar(0,"wx"),3),GSGetVar(0,"wy"),0)
+waitfor 10 IsAlive(GetObjectByName("CorpseWolf"))
+wait 1500
+console @InflictDamage(GetObjectByName("CorpseWolf"),100000)
+waitfor 10 IsDead(GetObjectByName("CorpseWolf"))
+wait 4000
+console @CastSpellPoint("fireball{e2}",GSGetVar(0,"wx"),Sub(GSGetVar(0,"wy"),9),GSGetVar(0,"wx"),Sub(GSGetVar(0,"wy"),4))
+wait 4000
+# Two wolves of other sides fight beside it: the blows are noises it hears.
+console @AddUnitToServer("FightA","WolfTutor","FightA",Add(GSGetVar(0,"wx"),4),Add(GSGetVar(0,"wy"),3),0)
+console @AddUnitToServer("FightB","WolfTutor","FightB",Add(GSGetVar(0,"wx"),4),Sub(GSGetVar(0,"wy"),3),0)
+waitfor 10 Mul(IsAlive(GetObjectByName("FightA")),IsAlive(GetObjectByName("FightB")))
+console @SetPlayer(GetObjectByName("FightA"),6)
+console @SetPlayer(GetObjectByName("FightB"),5)
+console @Attack(GetObjectByName("FightA"),GetObjectByName("FightB"))
+console @Attack(GetObjectByName("FightB"),GetObjectByName("FightA"))
+wait 8000
+check IsAlive(GetLeader())
+report
+quit

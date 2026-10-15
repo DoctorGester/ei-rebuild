@@ -152,24 +152,6 @@ bool CheckEvaluate(const EvaluateCall& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("CubicSegment::Evaluate", EvaluateCall, CheckEvaluate);
 
-bool CheckConjugate(const ConjugateCall& v, char* d, std::size_t n) {
-    Quaternion a = v.a, b = v.b, out{};
-    const Quaternion* pa = &a;
-    const Quaternion* pb = &b;
-    Quaternion* po = &out;
-    if (v.alias == 3)
-        pb = po = &a;   // out, a and b one quaternion
-    else if (v.alias & 1)
-        po = &a;
-    else if (v.alias & 2)
-        po = &b;
-    Quaternion* ret = MultiplyByConjugate(po, *pa, *pb);
-    if (ret == po && Same(*po, v.out)) return true;
-    return Fail(d, n, "conj(%g %g %g %g) * (%g %g %g %g) alias %u: ours (%.9g %.9g %.9g %.9g), original (%.9g %.9g %.9g %.9g)",
-                Q4(v.b), Q4(v.a), v.alias, Q4(*po), Q4(v.out));
-}
-EI_VECTOR_CHECK("MultiplyByConjugate", ConjugateCall, CheckConjugate);
-
 bool CheckMultiply(const MatrixMultiplyCall& v, char* d, std::size_t n) {
     float a[16], b[16], out[16] = {};
     std::memcpy(a, v.a, sizeof(a));

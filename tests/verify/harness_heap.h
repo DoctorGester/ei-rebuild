@@ -38,6 +38,12 @@
 // order changes too), and with "fill" every new block filled with seeded bytes (reads of memory the
 // game never wrote). Runs of two seeds that differ show where the game decides by address
 // (docs/notes/standalone-verification.md, SV7a). Off by default; goldens are recorded without it.
+//
+// EI_HEAP_FILL=<byte|r<seed>>[,from,to[,offFrom,offTo]] (SV7b7; read from heapfill.txt beside
+// ei_hook.dll when the variable is not set, since a variable moves the game's blocks): the main thread's blocks
+// numbered from..to-1 (resized ones too: their new bytes) get that byte, or seeded bytes per block, at those
+// offsets, with or without the jitter.
+// Bisecting the range finds the block and field whose unwritten bytes a run reads.
 
 #include <cstdint>
 

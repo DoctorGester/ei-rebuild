@@ -1,0 +1,103 @@
+# The camp's constructor pages (SV5a; docs/notes/standalone-verification.md): CanMakeSpell, CanMakeItem,
+# DeconstructSpell / DeconstructItem and the makers' draws, which only a camp with a constructor
+# record reaches. `screen 5 3` opens the camp with trader class 3 (spell and item constructors) and
+# "give 0 assortment" fills its strips (instructions, materials, runes, spell prototypes, one finished
+# item per weapon and material). Layout coordinates (800x600): the strip's seven slots are at x 100,
+# 200, ... y 43, its left tabs (17, 22 / 49 / 75) pick a school or item kind, its right tabs
+# (783, 19 / 50 / 79) the rune sets or materials and the finished list; a click on a strip slot (after a
+# move, so the camp's hover has run) puts the item into the maker (CanEquip wants the school skill,
+# hence GiveSkill). Region 0 is the action (make, or take apart when a finished item is in the slots).
+# Spell page (region 7): a fire spell and two runes make a spell container (CanMakeSpell), which is
+# then put back into the slots and taken apart. Item page (region 9): a finished weapon from the
+# finished list is taken apart (DeconstructItem); an instruction and a material are put in (CanMakeItem
+# runs, whatever the answer). The hovered strip items are described (DescribeSpellRecord, Blueprint,
+# Material). No `speed`, so a golden can be recorded.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GiveMoney(0,100000)
+console @GiveSkill(GetLeader(),"elemental",5)
+console @GiveSkill(GetLeader(),"sense",5)
+console @GiveSkill(GetLeader(),"astral",5)
+console @GiveIntelligence(GetLeader(),60)
+screen 5 3
+waitwindow 15 camp
+console give 0 assortment
+frames 10
+clickregion 7
+wait 300
+click 17 22
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+click 783 19
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+move 300 43
+frames 3
+click 300 43
+frames 3
+move 600 590
+frames 3
+clickregion 0
+wait 300
+move 600 590
+frames 3
+click 783 79
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+move 600 590
+frames 3
+clickregion 0
+wait 300
+move 600 590
+frames 3
+clickregion 9
+wait 300
+click 783 79
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+move 600 590
+frames 3
+clickregion 0
+wait 300
+move 600 590
+frames 3
+click 17 22
+frames 3
+move 100 43
+frames 3
+click 100 43
+frames 3
+click 783 50
+frames 3
+move 760 50
+frames 3
+click 760 50
+frames 3
+move 600 590
+frames 3
+move 300 43
+frames 3
+click 300 43
+frames 3
+move 600 590
+frames 3
+key esc
+waitwindow 15 battle
+report
+quit

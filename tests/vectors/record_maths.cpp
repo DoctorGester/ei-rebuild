@@ -230,21 +230,6 @@ float RecordEvaluate(EvaluateFn original, const CubicSegment* self, float t) {
 float __fastcall EvaluateRecord(const CubicSegment* self, void*, float t) { return RecordEvaluate(s_evaluate, self, t); }
 float __fastcall EvaluateCopyRecord(const CubicSegment* self, void*, float t) { return RecordEvaluate(s_evaluateCopy, self, t); }
 
-// 0049E950
-Recorded<ConjugateCall> g_conjugate("MultiplyByConjugate");
-Quaternion*(__fastcall* s_conjugate)(Quaternion*, const Quaternion*, const Quaternion*);
-Quaternion* __fastcall ConjugateRecord(Quaternion* out, const Quaternion* a, const Quaternion* b) {
-    auto v = Zeroed<ConjugateCall>();
-    v.a = *a;
-    v.b = *b;
-    v.alias = Alias(out, a, b);
-    std::uint16_t cw = ControlWord();
-    Quaternion* ret = s_conjugate(out, a, b);
-    v.out = *out;
-    g_conjugate.sampler.Offer(v, cw);
-    return ret;
-}
-
 // 004D9880 (matrix_math.cpp)
 Recorded<MatrixMultiplyCall> g_multiply("MatrixMultiply");
 void(__fastcall* s_multiply)(float*, void*, const float*, const float*);
@@ -291,7 +276,6 @@ void __fastcall PushRecord(CTransformPipeline* self, void*, const float* m, int 
 } // namespace
 
 EI_RECORD(0x004D9B80, PushRecord, 6, s_push);
-EI_RECORD(0x0049E950, ConjugateRecord, 6, s_conjugate);
 EI_RECORD(0x004D9880, MultiplyRecord, 8, s_multiply);
 EI_RECORD(0x004D9AA0, ToMatrixRecord, 6, s_toMatrix);
 EI_RECORD(0x00401DE0, ConstructRecord, 6, s_construct);

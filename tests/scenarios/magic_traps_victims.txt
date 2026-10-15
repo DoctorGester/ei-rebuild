@@ -1,0 +1,35 @@
+# Magic traps with interval 0 (SV5a: MagicTrap::UpdateVictims 0052A680 was reached by no scenario: the
+# game's own zones have traps with intervals of 15 to 150, which MagicTrap::UpdateTrap serves with
+# FireAtOccupants; only a trap with period 0 asks UpdateVictims for newcomers each tick). As in
+# magic_traps.txt, tools/make_trap_mob.py writes traps.mob (zone2's seven magic traps, ids
+# 30001..30007), here with every interval set to 0. MTF4 (30004; lightning, one circle of radius 3
+# at 43, 104) gets a wolf: the wolf is a newcomer (CastAtNewcomers hits it) and is removed from the
+# list of units inside once it is dead or gone (StaysInside); a second wolf placed later is another
+# newcomer. No `speed`, so a golden can be recorded (standalone-verification.md, SV3).
+# prepare: make_trap_mob.py --interval 0
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+
+console @AddMob("..\saves\traps.mob")
+waitfor 10 IsEqual(GetObjectID(GetObject(30004)),30004)
+check IsEqual(GetObjectID(GetObject(30001)),30001)
+check IsEqual(GetObjectID(GetObject(30007)),30007)
+console @ActivateTrap(GetObject(30004),0)
+console @AddUnitToServer("TrapWolf","WolfTutor","TrapWolf",43,104,0)
+waitfor 5 IsAlive(GetObjectByName("TrapWolf"))
+wait 600
+check IsAlive(GetObjectByName("TrapWolf"))
+console @ActivateTrap(GetObject(30004),1)
+wait 2500
+console @AddUnitToServer("TrapWolf2","WolfTutor","TrapWolf2",44,104,0)
+waitfor 5 IsAlive(GetObjectByName("TrapWolf2"))
+wait 1500
+check IsEqual(GetObjectID(GetObject(30004)),30004)
+check IsAlive(GetLeader())
+report
+quit
