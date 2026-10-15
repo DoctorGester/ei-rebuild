@@ -100,9 +100,13 @@ std::uint32_t __fastcall ReadVerify(CMemoryStream* self, void*, void* buffer, st
 }
 
 // 004A53F0: PUSH EBX, PUSH EBP (2), MOV EBP,[ESP+0x10] (4).
-void(__fastcall* s_write)(CMemoryStream*, void*, const void*, std::uint32_t);
-void __fastcall WriteVerify(CMemoryStream* self, void*, const void* buffer, std::uint32_t size) {
-    if (size > kMaxScratchBytes) return self->CMemoryStream::Write(buffer, size);
+std::uint32_t(__fastcall* s_write)(CMemoryStream*, void*, const void*, std::uint32_t);
+// Returns the new position as 004A53F0 leaves it in EAX (callers such as 0066B300 return it).
+std::uint32_t __fastcall WriteVerify(CMemoryStream* self, void*, const void* buffer, std::uint32_t size) {
+    if (size > kMaxScratchBytes) {
+        self->CMemoryStream::Write(buffer, size);
+        return self->position_;
+    }
     Scratch expected(self);
     std::uint32_t position = self->position_;
     std::uint32_t oldCapacity = self->capacity_;
@@ -113,20 +117,22 @@ void __fastcall WriteVerify(CMemoryStream* self, void*, const void* buffer, std:
         // The original writes at data_ + position: let that be a scratch block.
         std::vector<std::uint8_t> block(size ? size : 1);
         expected.get()->data_ = reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(block.data()) - position);
-        s_write(expected.get(), nullptr, buffer, size);
+        std::uint32_t expectedRet = s_write(expected.get(), nullptr, buffer, size);
         self->CMemoryStream::Write(buffer, size);
-        same = expected.SameButData(self) && SameBytes(block.data(), self->data_ + position, size);
+        same = expectedRet == self->position_ && expected.SameButData(self) &&
+               SameBytes(block.data(), self->data_ + position, size);
     } else {
         expected.CloneBuffer(oldCapacity);
-        s_write(expected.get(), nullptr, buffer, size);
+        std::uint32_t expectedRet = s_write(expected.get(), nullptr, buffer, size);
         self->CMemoryStream::Write(buffer, size);
         std::uint32_t kept = oldCapacity < oldSize ? oldCapacity : oldSize;
-        same = expected.SameButData(self) && SameBytes(expected.get()->data_, self->data_, kept) &&
+        same = expectedRet == self->position_ && expected.SameButData(self) && SameBytes(expected.get()->data_, self->data_, kept) &&
                SameBytes(expected.get()->data_ + position, self->data_ + position, size);
         expected.FreeBuffer();
     }
     ei::verify::Check("CMemoryStream::Write", true, same, "size %u pos %u capacity %u grows %d", size, position,
                       oldCapacity, grows);
+    return self->position_;
 }
 
 // The bits byte both versions store goes to the shared buffer (the same value twice).
