@@ -326,15 +326,14 @@ namespace recordvec {
 // ---- acks.db's table records (acks_db.h; 006DB9C0 / 006DBBD0 / 006DBE20, loaded at startup) ----
 
 // The compiler-written members (006DE370 / 006DC000 and the copy loops' inlined operator=): the
-// head, then the speech lists in order (listed here: records::Memberwise would take an array of
-// vectors for plain bytes, a vector being trivially copyable to the type traits); the destructors
-// are the S13 ports (006DC390, 006DC920, 006DCAF0).
+// head, then the speech lists in order; the destructors are the S13 ports (006DC390, 006DC920,
+// 006DCAF0).
 template <typename R>
 struct AcksElement {
     static constexpr bool kUnit = std::is_same_v<R, acks::UnitAcks>;
     static void Construct(R* to, const R& from) {
         acks::CopyMember(to->head, from.head);
-        for (std::size_t i = 0; i < std::size(from.lists); ++i) records::CopyMember(to->lists[i], from.lists[i]);
+        records::CopyMember(to->lists, from.lists);
         if constexpr (kUnit) {
             records::CopyMember(to->environmentSpeeches, from.environmentSpeeches);
             records::CopyMember(to->namedSpeeches, from.namedSpeeches);
@@ -342,7 +341,7 @@ struct AcksElement {
     }
     static void Assign(R& to, const R& from) {
         acks::AssignMember(to.head, from.head);
-        for (std::size_t i = 0; i < std::size(from.lists); ++i) records::AssignMember(to.lists[i], from.lists[i]);
+        records::AssignMember(to.lists, from.lists);
         if constexpr (kUnit) {
             records::AssignMember(to.environmentSpeeches, from.environmentSpeeches);
             records::AssignMember(to.namedSpeeches, from.namedSpeeches);
@@ -350,7 +349,7 @@ struct AcksElement {
     }
     static void Default(R* p) {
         acks::DefaultMember(p->head);
-        for (acks::SpeechList& list : p->lists) records::DefaultMember(list);
+        records::DefaultMember(p->lists);
         if constexpr (kUnit) {
             records::DefaultMember(p->environmentSpeeches);
             records::DefaultMember(p->namedSpeeches);
