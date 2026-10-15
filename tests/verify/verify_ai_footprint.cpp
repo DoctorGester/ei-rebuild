@@ -134,11 +134,11 @@ void Snapshot(const FootprintCellSet* set, std::vector<FootprintCell>& cells, in
     std::memcpy(buckets, set->buckets, sizeof(set->buckets));
 }
 
-bool SameAsSnapshot(const FootprintCellSet& set, const std::vector<FootprintCell>& cells, const int* buckets) {
-    if (set.cells.size != static_cast<int>(cells.size())) return false;
-    if (std::memcmp(set.buckets, buckets, sizeof(set.buckets)) != 0) return false;
-    for (int i = 0; i < set.cells.size; ++i) {
-        if (!SameCell(set.cells[i], cells[i])) return false;
+bool SameSnapshots(const std::vector<FootprintCell>& a, const int* aBuckets, const std::vector<FootprintCell>& b,
+                   const int* bBuckets) {
+    if (a.size() != b.size() || std::memcmp(aBuckets, bBuckets, 16 * sizeof(int)) != 0) return false;
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        if (!SameCell(a[i], b[i])) return false;
     }
     return true;
 }
@@ -203,7 +203,9 @@ static bool __fastcall ApplyBridgesSpy(CAIMap* self, void*, FootprintCellSet* se
 }
 EI_VERIFY(0x005B6740, ApplyBridgesSpy, 7, s_applyBridges);
 
-// 005B6A80: PUSH EBP; MOV EBP,ESP; PUSH -1; PUSH 0x727A76 (10 bytes).
+// 005B6A80: PUSH EBP; MOV EBP,ESP; PUSH -1; PUSH 0x727A76 (10 bytes). Ours collects into scratch
+// sets first; their cells are kept in our memory and the sets freed before the original runs on the
+// map (and keeps its blocks), so no scratch block is alive while it allocates (SV2h3).
 static bool(__fastcall* s_markFootprint)(CAIMap*, void*, CEngineObject*, bool);
 static bool __fastcall MarkFootprintVerify(CAIMap* self, void*, CEngineObject* object, bool remove) {
     if (object->GetClassId() == kClassUnit || g_capture.active) return self->MarkFootprint(object, remove);
@@ -212,6 +214,12 @@ static bool __fastcall MarkFootprintVerify(CAIMap* self, void*, CEngineObject* o
     PrepareScratch(&footprint, self->footprint);
     PrepareScratch(&bridges, self->bridges);
     bool hasBridge = self->CollectFootprint(object, &footprint, &bridges);
+    std::vector<FootprintCell> ourFootprint, ourBridges;
+    int ourFootprintBuckets[16], ourBridgeBuckets[16];
+    Snapshot(&footprint, ourFootprint, ourFootprintBuckets);
+    Snapshot(&bridges, ourBridges, ourBridgeBuckets);
+    footprint.SetSize(0, -1);
+    bridges.SetSize(0, -1);
 
     g_capture.active = true;
     g_capture.map = self;
@@ -220,12 +228,11 @@ static bool __fastcall MarkFootprintVerify(CAIMap* self, void*, CEngineObject* o
     g_capture.active = false;
 
     bool same = g_capture.footprintSeen && hasBridge == g_capture.bridgesSeen &&
-                SameAsSnapshot(footprint, g_capture.footprint, g_capture.footprintBuckets) &&
-                (!hasBridge || SameAsSnapshot(bridges, g_capture.bridges, g_capture.bridgeBuckets));
+                SameSnapshots(ourFootprint, ourFootprintBuckets, g_capture.footprint, g_capture.footprintBuckets) &&
+                (!hasBridge || SameSnapshots(ourBridges, ourBridgeBuckets, g_capture.bridges, g_capture.bridgeBuckets));
     ei::verify::Check("CAIMap::MarkFootprint", true, same, "remove %d: %d/%d cells, bridges %d/%d", remove,
-                      footprint.cells.size, static_cast<int>(g_capture.footprint.size()), hasBridge, g_capture.bridgesSeen);
-    footprint.SetSize(0, -1);
-    bridges.SetSize(0, -1);
+                      static_cast<int>(ourFootprint.size()), static_cast<int>(g_capture.footprint.size()), hasBridge,
+                      g_capture.bridgesSeen);
     return result;
 }
 EI_VERIFY(0x005B6A80, MarkFootprintVerify, 10, s_markFootprint);

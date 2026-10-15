@@ -56,15 +56,18 @@ void* s_unusedSetSize;
 
 } // namespace
 
-// 005C46C0.
+// 005C46C0. Ours runs first on the real path (its blocks, and the node pool's growth, are the ones
+// kept); the input is kept in our memory and the original's copy made from it afterwards (SV2h3).
 static int __fastcall SmoothVerify(PathSmoother* self, void*, CUnit* unit, CAIMap* map, PathCellList* path,
                                    int startDirection, float fraction) {
+    std::vector<PathCell> input;
+    for (const PathCellList::Node* n = path->head; n; n = n->next) input.push_back(n->data);
+    int actual = self->Smooth(unit, map, path, startDirection, fraction);
     PathCellList copy{path->vtable, nullptr, nullptr, 0, nullptr, nullptr, path->blockSize};
-    for (const PathCellList::Node* n = path->head; n; n = n->next) copy.AddTail(n->data);
+    for (const PathCell& cell : input) copy.AddTail(cell);
     int expected = s_smooth(self, nullptr, unit, map, &copy, startDirection, fraction);
     std::vector<int> expectedCells = CellsXY(&copy);
     mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(copy.blocks));
-    int actual = self->Smooth(unit, map, path, startDirection, fraction);
     ei::verify::Check("PathSmoother::Smooth", expected, actual, "%d cells, direction %d", path->count, startDirection);
     ei::verify::Check("PathSmoother::Smooth cells", true, CellsXY(path) == expectedCells, "%d cells (original %d)",
                       path->count, static_cast<int>(expectedCells.size() / 2));
