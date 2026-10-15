@@ -312,8 +312,10 @@ void __fastcall MemUsageVerify(CStringArray* args) {
     OursOnly("MemUsage", &commands::MemUsage, args, [](const Captured& out) { return out.lines.empty() && out.pending.empty(); });
 }
 EI_VERIFY(0x005DF5A0, MemUsageVerify, 0, s_unused);
-// 005DFC10 (S16c; net_disconnect): ours only. Prints nothing; the client world's local view's owner
-// holds no link afterwards (CPlayer::Disconnect).
+// 005DFC10 (S16c): ours only. Prints nothing; the client world's local view's owner holds no link
+// afterwards (CPlayer::Disconnect). No scenario: "disconnect" in net_lobby's lobby passed this check
+// (1 call, 0 mismatches), then the client's next segment ends the game in its error box ("Disconnecting
+// client due to packet parsing error"), the original's code the same way, so a run cannot pass.
 void __fastcall DisconnectVerify(CStringArray* args) {
     auto* client = reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8));
     CPlayer* owner = client->Session()->localView->player_;

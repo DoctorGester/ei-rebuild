@@ -17,7 +17,6 @@ magic_traps,0,90
 map_objects,1,88
 models,0,87
 movement,0,87
-net_disconnect,0,52
 net_lobby,0,52
 objects_more,0,87
 particles,0,88

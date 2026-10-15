@@ -4,7 +4,7 @@
 // SetPlayer, which runs CloseSession, ClearMaps and ResetZoneObjects) and every frame (the
 // application's pump 00566E20 / 00566E70); PlayRecording and JoinGameClient only by replays and
 // network games. DisconnectLocalPlayer (00566E00) and GameFlow::DisconnectClient (00581620): the
-// console's disconnect (S16c; net_disconnect) calls ours directly, so these wrappers run only for a
+// console's disconnect (S16c) calls ours directly, so these wrappers run only for a
 // call from original code (none is left in the hook build).
 #include "verify.h"
 
