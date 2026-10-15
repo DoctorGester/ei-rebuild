@@ -151,6 +151,46 @@ helper that gets registered later changes the output: rerun the generator), and 
 in its section. On 2026-10-15 the image lacks 35 call targets (library constructors for S4-S12, ten
 compiler-generated global constructors, MFC internals: S3b) and 130 of the 311 exit functions (S3a).
 
+**S4 (2026-10-15), group 1.** src/lib/crt.cpp, namespace `libcrt` (not `crt`: ei_vectors has
+`ei::vectors::crt`), registered at their addresses in both builds: strncmp, strncpy, memmove, _stricmp,
+_strnicmp, _mbscmp, _mbsicmp, _mbsinc, _ismbblead, isleadbyte, tolower, toupper, isalpha, isdigit,
+isspace, isprint, atoi (atol inside it), _itoa, _splitpath, qsort (VC6's: middle pivot, selection
+sort up to 8, larger part stacked), and the 19 WSOCK32 import thunks (by ordinal) plus
+DirectInputCreateEx's, each a call through its import slot. The CRT state is read where the exe keeps
+it: the game runs under a real LC_CTYPE locale (`__lc_handle` 007CABF0 nonzero, set before the text
+manager's setlocale query), so tolower / toupper take `_tolower_lk`'s path (LCMapStringW in
+`__lc_codepage`) and the compares fold bytes through a table of tolower rebuilt when the locale
+changes; character classes come from `_pctype`, lead bytes from `_mbctype`. Only single-byte paths
+are ported (`__mb_cur_max` 1, `__ismbcodepage` 0). In the standalone image that data is the C
+locale (ASCII case only) unless something sets it: who sets the hook build's locale is still open.
+Library functions have no Ghidra size in function_sizes.inc: each registered one is added to
+config/extra_function_sizes.csv (the installer skips an unknown start). Checks
+(tests/verify/verify_crt.cpp): against the original, memmove ours only; atoi against atol 006E804D;
+qsort sorts the caller's array twice (comparators such as CompareSlots read through the element's
+address). 0 mismatches in 20 runs (10 scenarios, both installs), e.g. toupper 4.7M, tolower 3.7M,
+_splitpath 1.6M, _strnicmp 1.3M, qsort 6.7k calls. The thunks have no wrapper (a jump through the slot).
+
+**S4 group 2.** Registered in both builds: rand / srand (the seed is the game CRT's `_holdrand`,
+`_getptd`+0x14, in the hook build, which the harness reads and seeds; a thread_local in the image),
+ceil, modf, _controlfp (x87 word only), set_new_handler, the eh vector constructor / destructor
+iterators (a guard object unwinds like `__ArrayUnwind`; C++ exceptions only, not SEH), and the STLport
+node allocator 00405950 / 00404D70 with its refill 004060E0 and chunk_alloc 00406B70, ported exactly
+because the pool is the exe's data and original code pushes and pops its free lists inline.
+`EI_REPLACE_STANDALONE` (include/ei/hook.h) registers in the image only: malloc, free, operator new
+(MFC handler loop), operator delete, _onexit, atexit and exit (our list, then the host CRT's exit; the
+exe's __xp / __xt terminators are for the game CRT's streams). The hook build keeps the exe's heap
+and atexit list, which other unported CRT code (realloc, calloc, _strdup, the stream table) shares.
+acos, asin and fmod have no callers (the game calls the _CI forms) and are not ported. Full suite
+(127 runs): all pass but zone_gz15h_tornado rebirth (times out on main too); 0 mismatches, e.g. modf
+9.5M, _controlfp 698k, rand 351k calls; the image check installs every registration.
+Group 3: memcpy (overlap as memmove), memset, strstr, wcslen, floor and the multibyte functions
+mfc_string.cpp forwards to, by their single-byte path: _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _mbsncmp,
+_mbclen, _mbslwr (`_SBUP` bytes through `_mbcasemap` 007CC080). Suite: 0 mismatches (memcpy 118M,
+_mbschr 3.7M, _mbslwr 1.7M calls). Left for S4a-S4c: sprintf / vsprintf / fprintf / printf / atof
+(MSVC6 _output / _input digits), the file functions and the rest of the heap (image only), _ftol and
+the _CI maths (register arguments), _CxxThrowException, the iostream operators, setlocale / _setmbcp,
+_ismbcdigit / _ismbcspace. (library.csv named 006EC8A8 _mbsupr: it lowers.)
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on

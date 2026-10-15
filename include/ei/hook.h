@@ -26,6 +26,7 @@ struct HookEntry {
     bool recordOurs = false;  // EI_RECORD_OURS: our replacement's own entry leads to the recorder too
     bool shortFunction = false; // EI_REPLACE_SHORT / EI_REPLACE_DISPATCH: installed in the standalone image only
     bool dispatch = false;      // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
+    bool standaloneOnly = false; // EI_REPLACE_STANDALONE: the game's runtime (heap, exit list), image only
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -72,6 +73,17 @@ struct DispatchRegistrar {
         : registrar(address, replacement, name) {
         registrar.entry.shortFunction = true;
         registrar.entry.dispatch = true;
+    }
+};
+
+// A library function whose state the hook build must keep sharing with the exe's remaining library
+// code (the CRT heap, operator new's handler, the atexit list): the hook build leaves the original;
+// the standalone image, which has no such code, jumps to the replacement.
+struct StandaloneRegistrar {
+    HookRegistrar registrar;
+    StandaloneRegistrar(std::uintptr_t address, void* replacement, const char* name)
+        : registrar(address, replacement, name) {
+        registrar.entry.standaloneOnly = true;
     }
 };
 
@@ -142,6 +154,10 @@ void InstallHooksAtWinMain();
 // own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar. Standalone image only.
 #define EI_REPLACE_DISPATCH(addr, method) \
     static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
+
+// Replace the library function at `addr` in the standalone image only (StandaloneRegistrar).
+#define EI_REPLACE_STANDALONE(addr, fn) \
+    static ::ei::StandaloneRegistrar EI_CAT(ei_standalone_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
 #define EI_REPLACE_SHORT(addr, fn) \
