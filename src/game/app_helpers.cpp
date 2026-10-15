@@ -91,6 +91,10 @@ void __cdecl DelayedProtectionCheck() {
     }
 }
 
+// 00455E50 (the static initialiser 00455E30's constructor): the check list built empty, its
+// sentinel from the node pool.
+void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
+
 } // namespace app
 
 // 00455950.
@@ -110,5 +114,6 @@ EI_REPLACE(0x00455F20, app::QuitGame);
 EI_REPLACE(0x00455E20, app::MovieMode);
 EI_REPLACE(0x00455BA0, app::ScrambleObjects);
 EI_REPLACE(0x00455B50, app::DelayedProtectionCheck);
+EI_REPLACE(0x00455E50, app::ConstructProtectionChecks);
 EI_REPLACE_METHOD(0x00455950, CEngineObject::World);
 EI_REPLACE_METHOD(0x00457720, CEngineObject::ReleaseAndDelete);

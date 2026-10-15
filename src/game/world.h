@@ -1024,6 +1024,13 @@ struct SectorGrid {
     int unknown08_, unknown0C_;           // +0x08 (00572450 resizes when they change)
     std::uint32_t width_;                 // +0x10 cells along x
     std::uint32_t height_;                // +0x14 cells along y
+    // 00572820 / 005728D0 (the two list instantiations; world_client_maps.cpp). The storage for
+    // unknown08_ x unknown0C_ cells: a new[] block of empty lists (the count before them), then the
+    // row pointers.
+    void Allocate();
+    // 00572450 / 005724F0 (RET 8). When the storage has another size: the lists destroyed and the
+    // storage freed (SectorListsDelete, flags 3), the size taken, then Allocate.
+    void Resize(int width, int height);
     // 00570860 (RET 8; CWorldClient slot 41 on +0x120, also 0067BEF0 / 0067CEF0). Moves `object`
     // to `position` (stored at object +0x1C): when the cell (FISTP of x and y, >> 4) changes, out
     // of the old cell's list and to the end of the new one's (cells outside the grid are skipped).

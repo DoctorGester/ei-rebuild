@@ -722,3 +722,156 @@ using G004CD9B0 = OursFree<0x004CD9B0, gamelists::Definitions, false>;
 EI_VERIFY(0x004CD9B0, G004CD9B0::Run, 0, s_unused);
 using G004CDAB0 = OursFree<0x004CDAB0, gamelists::Runs, false>;
 EI_VERIFY(0x004CDAB0, G004CDAB0::Run, 0, s_unused);
+// CScript's lists' destructors (S13b; CScript::Destruct calls ours directly, so these count only
+// other callers).
+using G004C92C0 = OursDestruct<0x004C92C0, gamelists::ObjectRefs, gamelists::TempObjectListClass>;
+EI_VERIFY(0x004C92C0, G004C92C0::Run, 0, s_unused);
+using G004C8E20 = OursDestruct<0x004C8E20, gamelists::Groups, gamelists::TempGroupListClass>;
+EI_VERIFY(0x004C8E20, G004C8E20::Run, 0, s_unused);
+using G004C7560 = OursDestruct<0x004C7560, gamelists::Decls, gamelists::DeclListClass>;
+EI_VERIFY(0x004C7560, G004C7560::Run, 0, s_unused);
+using G004C8520 = OursDestruct<0x004C8520, gamelists::Runs, gamelists::RunListClass>;
+EI_VERIFY(0x004C8520, G004C8520::Run, 0, s_unused);
+using G004C7E30 = OursDestruct<0x004C7E30, gamelists::Definitions, gamelists::InstanceListClass>;
+EI_VERIFY(0x004C7E30, G004C7E30::Run, 0, s_unused);
+using G004C6760 = OursDestruct<0x004C6760, gamelists::Lightnings, gamelists::LightningListClass>;
+EI_VERIFY(0x004C6760, G004C6760::Run, 0, s_unused);
+using G004C6410 = OursDestruct<0x004C6410, gamelists::FxSources, gamelists::FxSourceListClass>;
+EI_VERIFY(0x004C6410, G004C6410::Run, 0, s_unused);
+using G004C6120 = OursDestruct<0x004C6120, gamelists::ParticleSources, gamelists::ParticleSourceListClass>;
+EI_VERIFY(0x004C6120, G004C6120::Run, 0, s_unused);
+
+// ---- The script lists with the game's copy semantics (S7a; ours only) ------------------------------
+//
+// Reached: the instance and run lists at every script reset (new game, zone load) and script call
+// (InstanceAddHead), the temporaries at every group / object evaluation, the command blocks at the
+// reset. ConstructElements against the original (the elements allocate nothing).
+
+namespace {
+
+// The list after a node left it: one fewer, or emptied with every block freed.
+template <typename List>
+bool Removed(const List& list, int countBefore) {
+    return countBefore == 1 ? Emptied(list) : list.count == countBefore - 1;
+}
+
+void __fastcall DeclElementDestructCheck(ScriptDecl* block) {
+    ScriptDeclDestruct(block);
+    Check("ScriptDecl destructor 004C54A0", true,
+          reinterpret_cast<std::uintptr_t>(block->commands.vtable) == 0x0073D3D0, "");
+}
+
+ScriptDecl* __fastcall DeclRemoveHeadCheck(gamelists::Decls::List* self, void*, ScriptDecl* out) {
+    int count = self->count;
+    int id = self->head->data.id, size = self->head->data.commands.size;
+    ScriptDecl* result = gamelists::DeclRemoveHead(self, nullptr, out);
+    Check("CList RemoveHead 004C69B0", true,
+          result == out && out->id == id && out->commands.size == size && Removed(*self, count), "%d", count);
+    return result;
+}
+
+ScriptDefinition* __fastcall InstanceRemoveHeadCheck(gamelists::Definitions::List* self, void*, ScriptDefinition* out) {
+    int count = self->count;
+    const ScriptDefinition& head = self->head->data;
+    int index = head.index, pairs = head.ifThen.size, floats = head.vars.floats.size;
+    mfc::CString name(head.name);
+    ScriptDefinition* result = gamelists::InstanceRemoveHead(self, nullptr, out);
+    Check("CList RemoveHead 004C7A10", true,
+          result == out && out->index == index && out->ifThen.size == pairs && out->vars.floats.size == floats &&
+              std::strcmp(out->name, name) == 0 && Removed(*self, count),
+          "%d", count);
+    return result;
+}
+
+ScriptRun* __fastcall RunRemoveHeadCheck(gamelists::Runs::List* self, void*, ScriptRun* out) {
+    int count = self->count;
+    ScriptRun head;
+    std::memcpy(static_cast<void*>(&head), &self->head->data, sizeof(ScriptRun));   // the plain fields
+    ScriptRun* result = gamelists::RunRemoveHead(self, nullptr, out);
+    Check("CList RemoveHead 004C82B0", true,
+          result == out && out->block == head.block && out->index == head.index && out->ticks == head.ticks &&
+              out->sleepStart == head.sleepStart && out->killFlag == head.killFlag &&
+              out->vars.floats.size == head.vars.floats.size && out->vars.groups.size == head.vars.groups.size &&
+              Removed(*self, count),
+          "%d", count);
+    return result;
+}
+
+gamelists::Definitions::Node* __fastcall InstanceAddHeadCheck(gamelists::Definitions::List* self, void*,
+                                                              const ScriptDefinition* value) {
+    int count = self->count;
+    auto* node = gamelists::InstanceAddHead(self, nullptr, value);
+    Check("CList AddHead 004C7C90", true,
+          self->head == node && !node->prev && self->count == count + 1 && node->data.index == value->index &&
+              node->data.vars.floats.size == value->vars.floats.size,
+          "%d", count);
+    return node;
+}
+
+gamelists::ObjectRefs::Node* __fastcall ObjectRefAddHeadCheck(gamelists::ObjectRefs::List* self, void*,
+                                                             const ScriptObjectRef* value) {
+    int count = self->count;
+    CEngineObject* object = value->object;
+    int refs = object ? object->refCount_ : 0;
+    auto* node = gamelists::ObjectRefAddHead(self, nullptr, value);
+    Check("CList AddHead 004C9210", true,
+          self->head == node && !node->prev && self->count == count + 1 && node->data.object == object &&
+              (!object || object->refCount_ == refs + 1),
+          "%d", count);
+    return node;
+}
+
+ScriptObjectRef* __fastcall ObjectRefRemoveTailCheck(gamelists::ObjectRefs::List* self, void*, ScriptObjectRef* out) {
+    int count = self->count;
+    CEngineObject* object = self->tail->data.object;
+    int refs = object ? object->refCount_ : 0;
+    ScriptObjectRef* result = gamelists::ObjectRefRemoveTail(self, nullptr, out);
+    Check("CList RemoveTail 004C9100", true,
+          result == out && out->object == object && (!object || object->refCount_ == refs) && Removed(*self, count),
+          "%d", count);
+    return result;
+}
+
+template <bool Head>
+gamelists::Groups::Node* __fastcall GroupAddCheck(gamelists::Groups::List* self, void*, const ScriptGroup* value) {
+    int count = self->count;
+    auto* node = Head ? gamelists::GroupAddHead(self, nullptr, value) : gamelists::GroupAddTail(self, nullptr, value);
+    bool linked = Head ? self->head == node && !node->prev : self->tail == node && !node->next;
+    Check(Head ? "CList AddHead 004C8CE0" : "CList AddTail 004C8D80", true,
+          linked && self->count == count + 1 && node->data.size == value->size &&
+              reinterpret_cast<std::uintptr_t>(node->data.vtable) == 0x0073D110,
+          "%d", count);
+    return node;
+}
+
+ScriptGroup* __fastcall GroupRemoveTailCheck(gamelists::Groups::List* self, void*, ScriptGroup* out) {
+    int count = self->count;
+    int size = self->tail->data.size;
+    ScriptGroup* result = gamelists::GroupRemoveTail(self, nullptr, out);
+    Check("CList RemoveTail 004C8AF0", true, result == out && out->size == size && Removed(*self, count), "%d", count);
+    return result;
+}
+
+using DefinitionArray = ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>;
+using RunArray = ArrayAbi<ScriptRun, gamelists::RunElements>;
+
+} // namespace
+
+EI_VERIFY(0x004C54A0, DeclElementDestructCheck, 0, s_unused);
+EI_VERIFY(0x004C69B0, DeclRemoveHeadCheck, 0, s_unused);
+EI_VERIFY(0x004C7A10, InstanceRemoveHeadCheck, 0, s_unused);
+EI_VERIFY(0x004C82B0, RunRemoveHeadCheck, 0, s_unused);
+EI_VERIFY(0x004C7C90, InstanceAddHeadCheck, 0, s_unused);
+EI_VERIFY(0x004C9210, ObjectRefAddHeadCheck, 0, s_unused);
+EI_VERIFY(0x004C9100, ObjectRefRemoveTailCheck, 0, s_unused);
+EI_VERIFY(0x004C8CE0, GroupAddCheck<true>, 0, s_unused);
+EI_VERIFY(0x004C8D80, GroupAddCheck<false>, 0, s_unused);
+EI_VERIFY(0x004C8AF0, GroupRemoveTailCheck, 0, s_unused);
+using G004CD930 = OursNewNode<0x004CD930, gamelists::Definitions>;
+EI_VERIFY(0x004CD930, G004CD930::Run, 0, s_unused);
+using G004CDA30 = OursNewNode<0x004CDA30, gamelists::Runs>;
+EI_VERIFY(0x004CDA30, G004CDA30::Run, 0, s_unused);
+using E004CEB80 = TwinConstructElements<0x004CEB80, DefinitionArray>;
+EI_VERIFY(0x004CEB80, E004CEB80::Run, 5, E004CEB80::original);
+using E004CECB0 = TwinConstructElements<0x004CECB0, RunArray>;
+EI_VERIFY(0x004CECB0, E004CECB0::Run, 5, E004CECB0::original);

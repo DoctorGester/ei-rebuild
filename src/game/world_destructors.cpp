@@ -5,6 +5,7 @@
 // tests/verify/verify_world_destructors.cpp. docs/notes/standalone.md, S13a.
 #include "effects.h"
 #include "game_arrays.h"
+#include "game_lists.h"
 #include "ground_print.h"
 #include "model.h"
 #include "originals_world.h"
@@ -92,26 +93,15 @@ void DestroyList(mfc::CList<T>& list, std::uintptr_t vtable) {
     typed.RemoveAll();
 }
 
-// The second script's destructor as the server's inlines it (0058AC5E..0058AD44): the reset, the
-// error text, then the members last to first (MFC rows not ported yet, originals_world.h; the
-// variables through ScriptVarsDestruct).
-void DestructInlineScript(CScript* script) {
-    auto* base = reinterpret_cast<std::uint8_t*>(script);
-    ScriptReset(script);
-    records::AsCString(*reinterpret_cast<char**>(base + 0x1EC)).~CString();
-    ScriptMember4C92C0(base + 0x1CC);
-    ScriptMember4C8E20(base + 0x1B0);
-    ScriptMember4CB650(base + 0x194);
-    ScriptMember4C7560(base + 0x178);
-    ScriptMember4C8520(base + 0x15C);
-    ScriptMember4C7E30(base + 0x140);
-    ScriptVarsDestruct(reinterpret_cast<ScriptVars*>(base + 0xA0));
-    ScriptMember4CB310(base + 0x8C);
-    ScriptMember4C7560(base + 0x70);
-    ScriptMember4C6760(base + 0x4C);
-    ScriptMember4C6410(base + 0x30);
-    ScriptMember4C6120(base + 0x14);
-    ScriptMember4CB150(base);
+// A script container destroyed by its instantiation's destructor (`Abi` over the element's policy,
+// `Class` the vtable it writes back).
+template <typename Abi, typename Class, typename Container>
+void DestroyScriptList(Container& list) {
+    Abi::template Destruct<Class>(reinterpret_cast<typename Abi::List*>(&list));
+}
+template <typename Abi, typename Class, typename Container>
+void DestroyScriptArray(Container& array) {
+    Abi::template Destruct<Class>(reinterpret_cast<typename Abi::Array*>(&array));
 }
 
 template <typename T>
@@ -121,6 +111,27 @@ T* DeleteIf(T* self, unsigned flags) {
 }
 
 } // namespace
+
+// 0058A140 (the server's second script inlines it, 0058AC5E..0058AD44): the reset, the error text,
+// then the containers last to first (the variables through ScriptVarsDestruct).
+void CScript::Destruct() {
+    ScriptReset(this);
+    errorText_.~CString();
+    DestroyScriptList<gamelists::ObjectRefs, gamelists::TempObjectListClass>(tempObjects_);
+    DestroyScriptList<gamelists::Groups, gamelists::TempGroupListClass>(tempGroups_);
+    DestroyScriptArray<gamearrays::Areas, gamearrays::AreaArrayClass>(areas_);
+    DestroyScriptList<gamelists::Decls, gamelists::DeclListClass>(worldBlocks_);
+    DestroyScriptList<gamelists::Runs, gamelists::RunListClass>(runs_);
+    DestroyScriptList<gamelists::Definitions, gamelists::InstanceListClass>(instances_);
+    ScriptVarsDestruct(&globals_);
+    DestroyScriptArray<gamearrays::Definitions, gamearrays::DefinitionArrayClass>(definitions_);
+    DestroyScriptList<gamelists::Decls, gamelists::DeclListClass>(blocks_);
+    DestroyScriptList<gamelists::Lightnings, gamelists::LightningListClass>(lightning_);
+    DestroyScriptList<gamelists::FxSources, gamelists::FxSourceListClass>(fxSources_);
+    DestroyScriptList<gamelists::ParticleSources, gamelists::ParticleSourceListClass>(particles_);
+    DestroyScriptArray<gamearrays::PointLights, gamearrays::PointLightArrayClass>(pointLights_);
+}
+EI_REPLACE_METHOD(0x0058A140, CScript::Destruct);
 
 void CWorld::Destruct() {
     ei::SetVtable(this, kBaseVtableAddress);
@@ -224,9 +235,9 @@ void CWorldClient::Destruct() {
     footprints_.Release<PrintElement>();
     bloodPrints_.Release<PrintElement>();
     records::AsCString(zoneName_).~CString();
-    GridResize2(&secondGrid_, nullptr, 1, 1);
+    secondGrid_.Resize(1, 1);
     FreeGrid(secondGrid_);
-    GridResize(&objectGrid_, nullptr, 1, 1);
+    objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
     lineLists_.Destroy();
     reinterpret_cast<stlp::vector<ScreenEntry>*>(&hits_)->FreeStorage();
@@ -268,9 +279,9 @@ void CWorldServer::Destruct() {
     records::AsCString(mapName_).~CString();
     records::AsCString(mobName_).~CString();
     diplomacy_.Reset();
-    DestructInlineScript(SecondScript());
-    ScriptDestructOriginal(MainScript());
-    AIMapDestructOriginal(AIMap());
+    SecondScript()->Destruct();
+    MainScript()->Destruct();
+    DestructAIMap(AIMap());
     Messages()->Destroy();
     mobFiles_.Destruct();
     records::AsCString(zoneName_).~CString();

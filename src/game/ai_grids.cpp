@@ -170,6 +170,14 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
 }
 EI_REPLACE_METHOD(0x005B3FF0, LocalSearch::Construct);
 
+void LocalSearch::Destruct() {
+    cellRowsVtable = reinterpret_cast<void*>(kCellRowArrayVtable);
+    if (cellRows) gamecrt::operator_delete(cellRows);
+    FreeGrid(levels);
+    FreeGrid(nodes);
+}
+EI_REPLACE_METHOD(0x0058AA60, LocalSearch::Destruct);
+
 CUnitLayer* CUnitLayer::Construct() {
     nodes.vtable = reinterpret_cast<void*>(kNodeListVtable);
     nodes.count = 0;

@@ -43,10 +43,8 @@ constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 const void* SelectTimeout() { return reinterpret_cast<const void*>(0x0079B928); }
 
 inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
-// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n), the out_of_range
-// thrower of basic_string::substr.
+// STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n).
 __declspec(naked) void __fastcall AddressesInsertOverflow(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x00441180)
-__declspec(naked) void __fastcall ThrowOutOfRange(void*) EI_ORIGINAL(0x004410A0)
 
 // A hostent's first address (h_addr_list[0]).
 std::uint32_t FirstAddress(const void* host) {
@@ -84,7 +82,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     }
     if (colon != npos) {
         std::size_t first = colon + 1;
-        if (first > s.size()) ThrowOutOfRange(nullptr);
+        if (first > s.size()) StringThrowOutOfRangeOriginal();
         std::size_t n = s.size() - first;
         if (n >= npos) n = npos;
         {
