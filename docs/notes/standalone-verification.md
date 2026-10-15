@@ -893,24 +893,25 @@ Shortening the wait would lose the coverage; no golden is recorded for it (the s
   attempt crashed at startup inside AIL_waveOutOpen (the harness's MutedWaveOutOpen from CSoundManager::Open, main
   thread, EIP 00007EBC, no module): not seen before in the board's history; on watch (SV6c).
 
-## SV2f: five Rebirth goldens differed in one main suite (2026-10-15)
+## SV2f: S7's verify wrappers moved the game's heap blocks (2026-10-15)
 
-Not S7, and the goldens are right. Main's batch 632 (128 runs, 16 at once) had ground_prints, harness_digest,
-map_objects, script_parse and ui_trade_restore (Rebirth) part from their goldens at world update 40, all five with the
-same hashes (isaac.c 0x46 / count 89 against 0x45 / 169: 176 more ISAAC draws; obj1804, 1890, 1936, 1937 `#ai`, obj1937
-`#place`); items, levers and console (Rebirth, also zone1 new games) matched in the same batch. A build of the same
-tree in a worktree (its map's code layout the same as main's DLL of that suite) matched all five goldens in about 40
-runs: alone, 4 at once, with main's run folder, a shorter build path, 13 copies at once, three full `--golden` suites.
-One of those suites had render_scene and render_movie (vanilla) part the same way (the same four objects at update 40);
-the other two had none. So zone1's start has two outcomes, decided by timing, and the busier the machine the likelier
-the other one. The reservation's base is not it (eight fixed bases, all the same).
+Main's batch 632 had five Rebirth zone1 new games (ground_prints, harness_digest, map_objects, script_parse,
+ui_trade_restore) part from their goldens at world update 40 with the same hashes (176 more ISAAC draws; obj1804, 1890,
+1936, 1937 `#ai`). In a worktree the five mostly matched, but plain full `--golden` suites had render_scene and
+render_movie (vanilla) part the same way. Disabling S7's 104 addresses, then halves, then single ones, narrowed it to
+the checks: disabling only 005BE7B0 (List1C::NewNode) made render_scene match. The goldens are right.
 
-What separates them (main's failing run against a passing one, the verify wrappers' "first call" order in ei_hook.log):
-in the passing run the client takes the world's synchronised objects (CWorldClient::QueueSynchronised,
-Lever::ReadLeverNetState, ObjectVariableName, CMapObjectClientSpecific::SetLightMode, SetVisibilityMode) right after
-CPlayerClient::OnStringEvent, in the failing run only after NotifyUnitChanged, the lights and the hero's weapon parts;
-the music stream thread (SoundFader::Update, CResourceStream::OpenFile, SoundStreamRead) is further ahead of the main
-thread in the failing run. ISAAC is shared by the client's particles and ambience and the server's AI, so one draw
-moved is enough. Follow-up SV2g. Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six
-deep) and writes heapseq.txt at that update, so tracing does not slow the run down; the passing runs' reservation
-events and object places at update 40 were identical.
+The cause was the check order, not S7's code. A twin check that grows the list (NewNode, AddTail / AddHead, NewAssoc
+with the free list empty) ran the original first on the twin header, so the original's CPlex block took the address the
+block gets in a `--no-hooks` run, ours took the next one and the twin's was freed, leaving a hole. InitHashTable copied
+the old table into a game-heap block before either ran, and ConstructElements' twin buffer was a game-heap block too.
+The game reads the heap's address order (ISAAC is shared by the client's particles and the server's AI, so one draw
+moved changes the AI), and whether zone1's start went the other way then depended on timing. Now ours runs first when a
+block is carved (the original second, on the twin, its block compared by position and freed), InitHashTable runs ours
+first and copies the old table for the original afterwards, and ConstructElements' twin is our memory. The CArray and
+plain-array checks (S5, S6) had the same order and now run ours first too, the twin made afterwards from a copy kept in
+our memory. Rule for twin
+checks of allocating functions: ours allocates first, the original's allocations come after and are freed.
+
+Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six deep) and writes heapseq.txt at that
+update, so tracing does not slow the run down.

@@ -2,9 +2,11 @@
 // S7). Where the elements are plain data the original runs on a twin header and ours on the caller's:
 // the nodes both touch (the one taken or freed and its neighbours) are saved, the original's result
 // kept and the nodes restored before ours runs, then header, result and node bytes are compared. A
-// NewNode / AddTail / NewAssoc that carves a new block compares the two blocks by position (the
-// twin's block is freed after). Calls that free every block (the last node removed, RemoveAll,
-// destructors) and the CPlex functions run ours only, with checks of the state they leave.
+// NewNode / AddTail / NewAssoc that carves a new block runs ours first, so that ours' block lands
+// where the original's would without the check (the game reads the heap's address order, SV2f),
+// then the original on the twin; the two blocks are compared by position and the twin's freed.
+// Calls that free every block (the last node removed, RemoveAll, destructors) and the CPlex
+// functions run ours only, with checks of the state they leave.
 #include "verify.h"
 
 #include "../../src/game/game_lists.h"
@@ -12,6 +14,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 using namespace mfc::impl;
 
@@ -65,6 +68,15 @@ struct Touched {
     }
     void Restore() const {
         for (int i = 0; i < n; ++i) std::memcpy(at[i], before[i], sizeof(Node));
+    }
+    // Ours ran first (Keep saved its bytes): the original's bytes to `after`, ours' back in place.
+    void Swap() {
+        std::uint8_t ours[sizeof(Node)];
+        for (int i = 0; i < n; ++i) {
+            std::memcpy(ours, after[i], sizeof(Node));
+            std::memcpy(after[i], at[i], sizeof(Node));
+            std::memcpy(at[i], ours, sizeof(Node));
+        }
     }
     // The first two dwords are links (mapped when the twin carved a block), the rest compared as is.
     bool Same(const Mapping& m) const {
@@ -124,20 +136,22 @@ struct TwinNewNode {
     static Node* __fastcall Run(List* self, void*, Node* prev, Node* next) {
         static const char* name = Name("CList", "NewNode", Address);
         List twin = *self;
+        if (!self->free) {
+            Node* result = Abi::NewNode(self, nullptr, prev, next);
+            Node* expected = original(&twin, nullptr, prev, next);
+            Mapping m = BlockMapping(twin, *self);
+            Check(name, true, SameGrown(twin, *self, expected, result, m), "grown %d", self->count);
+            gamecrt::operator_delete(twin.blocks);
+            return result;
+        }
         Touched<Node> touched;
         touched.Add(self->free);
         Node* expected = original(&twin, nullptr, prev, next);
         touched.Keep();
         touched.Restore();
         Node* result = Abi::NewNode(self, nullptr, prev, next);
-        if (!touched.n) {
-            Mapping m = BlockMapping(twin, *self);
-            Check(name, true, SameGrown(twin, *self, expected, result, m), "grown %d", self->count);
-            gamecrt::operator_delete(twin.blocks);
-        } else {
-            Check(name, true, expected == result && SameHeader(twin, *self) && touched.Same(Mapping{}), "%d",
-                  self->count);
-        }
+        Check(name, true, expected == result && SameHeader(twin, *self) && touched.Same(Mapping{}), "%d",
+              self->count);
         return result;
     }
 };
@@ -156,10 +170,20 @@ struct TwinAdd {
         touched.Add(Tail ? self->tail : self->head);
         bool grows = !self->free;
         touched.Add(self->free);
-        Node* expected = original(&twin, nullptr, value);
-        touched.Keep();
-        touched.Restore();
-        Node* result = Tail ? Abi::AddTailByValue(self, nullptr, value) : Abi::AddHeadByValue(self, nullptr, value);
+        Node* expected;
+        Node* result;
+        if (grows) {
+            result = Tail ? Abi::AddTailByValue(self, nullptr, value) : Abi::AddHeadByValue(self, nullptr, value);
+            touched.Keep();
+            touched.Restore();
+            expected = original(&twin, nullptr, value);
+            touched.Swap();
+        } else {
+            expected = original(&twin, nullptr, value);
+            touched.Keep();
+            touched.Restore();
+            result = Tail ? Abi::AddTailByValue(self, nullptr, value) : Abi::AddHeadByValue(self, nullptr, value);
+        }
         if (grows) {
             Mapping m = BlockMapping(twin, *self);
             Check(name, true, SameGrown(twin, *self, expected, result, m) && touched.Same(m), "grown %d", self->count);
@@ -282,7 +306,8 @@ struct TwinConstructFixed {
     }
 };
 
-// ConstructElements helpers: the elements built from the same bytes.
+// ConstructElements helpers: the elements built from the same bytes (the twin in our memory, not
+// the game's heap, whose address order the game reads).
 template <std::uintptr_t Address, typename Abi>
 struct TwinConstructElements {
     using T = typename Abi::Element;
@@ -290,12 +315,12 @@ struct TwinConstructElements {
     static void __stdcall Run(T* elements, int count) {
         static const char* name = Name("CList", "ConstructElements", Address);
         std::size_t bytes = static_cast<std::size_t>(count) * sizeof(T);
-        auto* twin = static_cast<T*>(gamecrt::operator_new(bytes ? bytes : 1));
+        std::vector<std::uint32_t> buffer((bytes + 3) / 4 + 1);
+        auto* twin = reinterpret_cast<T*>(buffer.data());
         std::memcpy(static_cast<void*>(twin), elements, bytes);
         original(twin, count);
         Abi::ConstructElements(elements, count);
         Check(name, true, std::memcmp(twin, elements, bytes) == 0, "%d", count);
-        gamecrt::operator_delete(twin);
     }
 };
 
@@ -308,14 +333,19 @@ struct TwinInitHashTable {
     static inline void(__fastcall* original)(Map*, void*, std::uint32_t, int);
     static void __fastcall Run(Map* self, void*, std::uint32_t hashSize, int allocNow) {
         static const char* name = Name("CMap", "InitHashTable", Address);
+        // Ours first, so that its table lands where the original's would without the check (SV2f);
+        // then the original on a copy of the old table (it deletes its own copy).
         Map twin = *self;
-        if (self->table) {   // the original deletes its own copy
-            std::size_t bytes = self->hashSize * sizeof(Assoc*);
+        std::size_t bytes = self->table ? self->hashSize * sizeof(Assoc*) : 0;
+        std::vector<std::uint8_t> old(bytes);
+        if (bytes) std::memcpy(old.data(), self->table, bytes);
+        bool hadTable = self->table != nullptr;
+        Abi::InitHashTable(self, nullptr, hashSize, allocNow);
+        if (hadTable) {
             twin.table = static_cast<Assoc**>(gamecrt::operator_new(bytes ? bytes : 1));
-            std::memcpy(twin.table, self->table, bytes);
+            if (bytes) std::memcpy(twin.table, old.data(), bytes);
         }
         original(&twin, nullptr, hashSize, allocNow);
-        Abi::InitHashTable(self, nullptr, hashSize, allocNow);
         bool ok = twin.hashSize == self->hashSize && (twin.table == nullptr) == (self->table == nullptr) &&
                   (!self->table || std::memcmp(twin.table, self->table, hashSize * sizeof(Assoc*)) == 0);
         Map rest = twin;
@@ -351,10 +381,17 @@ struct TwinNewAssoc {
         Map twin = *self;
         Touched<Assoc> touched;
         touched.Add(self->freeList);
-        Assoc* expected = original(&twin);
-        touched.Keep();
-        touched.Restore();
-        Assoc* result = Abi::NewAssoc(self);
+        Assoc* expected;
+        Assoc* result;
+        if (!touched.n) {
+            result = Abi::NewAssoc(self);
+            expected = original(&twin);
+        } else {
+            expected = original(&twin);
+            touched.Keep();
+            touched.Restore();
+            result = Abi::NewAssoc(self);
+        }
         if (!touched.n) {
             Mapping m{reinterpret_cast<const std::uint8_t*>(twin.blocks),
                       sizeof(mfc::CPlex) + static_cast<std::size_t>(self->blockSize) * sizeof(Assoc),
