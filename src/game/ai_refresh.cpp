@@ -16,7 +16,6 @@
 namespace {
 
 constexpr std::uintptr_t kLevelHeights = 0x007912BC;   // 8 floats
-constexpr std::uintptr_t kObjectListVtable = 0x0073D454;
 constexpr int kLevels = 8;
 
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
@@ -110,7 +109,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     // The region blocks (8x8 cells) around the outer rectangle.
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    ObjectList objects{reinterpret_cast<void*>(kObjectListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ObjectList objects{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     double halfW = static_cast<double>(ox1 - ox0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
     double halfH = static_cast<double>(oy1 - oy0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
     float scale = StoreFloat(static_cast<float>(static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C)));
@@ -133,7 +132,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         SectorMapAdd(sectors, nullptr, AsEngineObject(node->data));
         node = next;
     }
-    objects.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    objects.vtable = mfc::PtrListVtable();
     objects.count = 0;
     objects.free = nullptr;
     objects.tail = nullptr;

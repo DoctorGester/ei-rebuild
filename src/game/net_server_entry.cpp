@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "world.h"
 
 #include <cstring>
 
@@ -26,8 +27,6 @@ void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const ch
 void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
 
-constexpr std::uintptr_t kEmptyText = 0x00783D6C;
-constexpr std::uintptr_t kWorld = 0x007AFE20;
 
 
 } // namespace
@@ -44,9 +43,9 @@ void ServerSession::DescribeImpl(RefPtr* out) {
         *entry->name_.finish = 0;
         StringInitEmpty(&entry->description_);
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
-        StringAssignText(&entry->name_, nullptr, game::Text(kEmptyText));
+        StringAssignText(&entry->name_, nullptr, game::QuestionMarkText());
         entry->kind_ = 4;
-        StringAssignText(&entry->description_, nullptr, game::Text(kEmptyText));
+        StringAssignText(&entry->description_, nullptr, game::QuestionMarkText());
         entry->players_ = 0;
         entry->maxPlayers_ = 0;
         entry->password_ = 0;
@@ -61,7 +60,7 @@ void ServerSession::DescribeImpl(RefPtr* out) {
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
         std::uint32_t title = 0;   // CString
-        const char* text = *static_cast<const char**>(WorldMapTitle(reinterpret_cast<void*>(kWorld), nullptr, &title));
+        const char* text = *static_cast<const char**>(WorldMapTitle(TheGameFlow(), nullptr, &title));
         const char* end = text + std::strlen(text);
         std::size_t length = static_cast<std::size_t>(end - text);
         std::size_t size = static_cast<std::size_t>(description->finish - description->start);

@@ -9,13 +9,11 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "world_data.h"
 
 namespace {
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 constexpr std::uintptr_t kCellSize = 0x0073FD18;   // 1.0
-constexpr std::uintptr_t kHalf = 0x0073B86C;       // 0.5
-constexpr std::uintptr_t kOne = 0x0073B84C;        // 1.0
-constexpr std::uintptr_t kZero = 0x0073B858;       // 0.0
 constexpr std::uintptr_t kFixed = 0x0073FDC0;      // 65536.0
 constexpr std::uintptr_t kOutside = 0x0073BAB0;    // 100.0
 } // namespace
@@ -27,17 +25,17 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     float dy = StoreFloat(to->y - from->y);
     double dz = static_cast<double>(to->z) - from->z;
     double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
-    double cell = static_cast<double>(GameFloat(kCellSize)) * GameFloat(kHalf);
+    double cell = static_cast<double>(GameFloat(kCellSize)) * worlddata::Half();
     double steps = length / cell;
     float stepsF = StoreFloat(static_cast<float>(steps));
     // FCOMP sets C3 for equal and for unordered: a NaN length also returns 1.0.
-    if (steps == static_cast<double>(GameFloat(kZero)) || steps != steps) return GameFloat(kOne);
-    float inverse = StoreFloat(static_cast<float>(static_cast<double>(GameFloat(kOne)) / stepsF));
+    if (steps == static_cast<double>(worlddata::Zero()) || steps != steps) return worlddata::One();
+    float inverse = StoreFloat(static_cast<float>(static_cast<double>(worlddata::One()) / stepsF));
     int count = x87::fistp(stepsF);
     double fixed = GameFloat(kFixed);
     auto toFixed = [&](double value) {
         return x87::fistp(StoreFloat(static_cast<float>(value * fixed / (static_cast<double>(GameFloat(kCellSize)) *
-                                                                         GameFloat(kHalf)))));
+                                                                         worlddata::Half()))));
     };
     int fx = toFixed(from->x);
     int fy = toFixed(from->y);

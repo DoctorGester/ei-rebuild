@@ -34,7 +34,6 @@ constexpr int kKindSinglePlayer = 1;
 constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // spell +0x3C: also hits the target itself
 constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides of a hostile spell
-constexpr std::uintptr_t kUnitListVtable = 0x0073D454;
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 // The spell passed in. Its +0x34 is the radius (float bits) and +0x38 the number of targets.
@@ -143,7 +142,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     // Several targets: the units around the caster (or `from`), the requested target first.
     CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
     UnitList units;
-    units.vtable = reinterpret_cast<void*>(kUnitListVtable);
+    units.vtable = mfc::PtrListVtable();
     units.count = 0;
     units.free = nullptr;
     units.tail = nullptr;
@@ -236,7 +235,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         --targets;
     }
 
-    units.vtable = reinterpret_cast<void*>(kUnitListVtable);
+    units.vtable = mfc::PtrListVtable();
     units.RemoveAll();
 }
 

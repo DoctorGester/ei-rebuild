@@ -85,4 +85,23 @@ inline const char* FigPathFormat() { return reinterpret_cast<const char*>(0x0079
 inline const char* CantOpenFigText() { return reinterpret_cast<const char*>(0x00790C74); }
 inline const char* AstExtensionText() { return reinterpret_cast<const char*>(0x00784630); }
 
+// 00783D6C: "?" (the server's and the client's lists show it for a name that is missing).
+inline const char* QuestionMarkText() { return reinterpret_cast<const char*>(0x00783D6C); }
+
+// The suffixes of the zone messages and the quest registry keys: 00783D70 "_1" (enter), 00783D80 "_2"
+// (leave), 00783D84 "_3" (finish).
+inline const char* ZoneSuffix1Text() { return reinterpret_cast<const char*>(0x00783D70); }
+inline const char* ZoneSuffix2Text() { return reinterpret_cast<const char*>(0x00783D80); }
+inline const char* ZoneSuffix3Text() { return reinterpret_cast<const char*>(0x00783D84); }
+
+// The interface sounds: 007937E4 "buttons\messbox\cancel.wav", 00793A88 "buttons\messbox\ok.wav",
+// 00793A60 "buttons\save\select.wav", 007937B0 "buttons\camp\put_on.wav", 007937C8
+// "buttons\camp\put_off.wav", 00793764 (the hero screen's rotate arrows).
+inline const char* CancelSoundText() { return reinterpret_cast<const char*>(0x007937E4); }
+inline const char* OkSoundText() { return reinterpret_cast<const char*>(0x00793A88); }
+inline const char* SelectSoundText() { return reinterpret_cast<const char*>(0x00793A60); }
+inline const char* PutOnSoundText() { return reinterpret_cast<const char*>(0x007937B0); }
+inline const char* PutOffSoundText() { return reinterpret_cast<const char*>(0x007937C8); }
+inline const char* RotateSoundText() { return reinterpret_cast<const char*>(0x00793764); }
+
 } // namespace game

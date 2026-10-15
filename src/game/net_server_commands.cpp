@@ -8,6 +8,8 @@
 #include "ei/vcall.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "world.h"
+#include "game_strings.h"
 
 #include <cstring>
 
@@ -23,10 +25,6 @@ __declspec(naked) StringRep* __fastcall StringSubstr(const StringRep* /*s*/, voi
 __declspec(naked) void** __fastcall ObjectsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420610)
 __declspec(naked) void** __fastcall ObjectsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004229B0)
 
-constexpr std::uintptr_t kWorld = 0x007AFE20;
-constexpr std::uintptr_t kEnterSuffix = 0x00783D70;   // "_1"
-constexpr std::uintptr_t kLeaveSuffix = 0x00783D80;   // "_2"
-constexpr std::uintptr_t kFinishSuffix = 0x00783D84;  // "_3"
 
 enum CommandKind : std::uint32_t {
     kPreviewMap = 0,       // the host shows a map
@@ -40,8 +38,7 @@ enum CommandKind : std::uint32_t {
 void* CurrentConnectionObject() { return CurrentConnection(); }
 std::size_t StringNpos() { return *reinterpret_cast<const std::size_t*>(0x0073BDE8); }
 
-bool Is(const StringRep& s, std::uintptr_t text) {
-    const char* t = reinterpret_cast<const char*>(text);
+bool Is(const StringRep& s, const char* t) {
     std::size_t length = std::strlen(t);
     return static_cast<std::size_t>(s.finish - s.start) == length && std::memcmp(s.start, t, length) == 0;
 }
@@ -91,7 +88,7 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
     StringRep* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:
-        if (self->IsHostConnection(CurrentConnectionObject())) WorldPrepareMap(reinterpret_cast<void*>(kWorld), nullptr, text->start);
+        if (self->IsHostConnection(CurrentConnectionObject())) WorldPrepareMap(TheGameFlow(), nullptr, text->start);
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
@@ -106,9 +103,9 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         StringRep suffix, name;
         StringSubstr(text, nullptr, &suffix, cut, StringNpos());
         StringSubstr(text, nullptr, &name, 0, static_cast<std::size_t>(text->finish - text->start) - 2);
-        if (Is(suffix, kEnterSuffix)) self->SetMap(&name);
-        if (Is(suffix, kLeaveSuffix)) self->LeaveZone();
-        if (Is(suffix, kFinishSuffix)) self->CompleteZone(&name);
+        if (Is(suffix, game::ZoneSuffix1Text())) self->SetMap(&name);
+        if (Is(suffix, game::ZoneSuffix2Text())) self->LeaveZone();
+        if (Is(suffix, game::ZoneSuffix3Text())) self->CompleteZone(&name);
         StringRepDestroy(&name);
         StringRepDestroy(&suffix);
         return;

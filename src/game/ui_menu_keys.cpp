@@ -30,9 +30,6 @@ constexpr int kMaxNameLength = 60;       // characters of a typed save name
 constexpr int kMaxNameWidth = 0xB2;      // its width limit in pixels (font 1)
 constexpr int kScanEsc = 1;              // the scan code that gives up a key binding
 
-constexpr std::uintptr_t kSoundCancel = 0x007937E4;     // "buttons\messbox\cancel.wav"
-constexpr std::uintptr_t kSoundOk = 0x00793A88;         // "buttons\messbox\ok.wav"
-constexpr std::uintptr_t kSoundSelect = 0x00793A60;     // "buttons\save\select.wav"
 constexpr std::uintptr_t kQuickSave = 0x007933AC;       // "saveq"
 constexpr std::uintptr_t kAutoSaveA = 0x007942E8;       // "savea"
 constexpr std::uintptr_t kAutoSaveB = 0x007940F0;       // "saveb"
@@ -97,7 +94,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(game::Text(kSoundCancel), 0);
+        interface_->PlaySound(game::CancelSoundText(), 0);
         interface_->SetPendingValue(kCloseSaveLoad);
         inputHandled_ = true;
         break;
@@ -108,7 +105,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(game::Text(kSoundSelect), 0);
+        interface_->PlaySound(game::SelectSoundText(), 0);
         selected_ += step;
         CallShowSelection();
         inputHandled_ = true;
@@ -243,7 +240,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             }
         }
         if (!pressed) {
-            interface_->PlaySound(game::Text(kSoundCancel), 0);
+            interface_->PlaySound(game::CancelSoundText(), 0);
             return;
         }
         waitingForKey_ = false;
@@ -252,7 +249,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             CallRefreshRows();
             return;
         }
-        interface_->PlaySound(game::Text(kSoundOk), 0);
+        interface_->PlaySound(game::OkSoundText(), 0);
         int code = keyOfScan_[pressed->scan_];
         OptionBinding* other = bindings_.begin();
         while (other != bindings_.end() && other->action_->id_ != code) ++other;
@@ -290,19 +287,19 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             row.setting_->spin_->GetValue(&value);
             rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
         }
-        interface_->PlaySound(game::Text(kSoundOk), 0);
+        interface_->PlaySound(game::OkSoundText(), 0);
         CallRefreshRows();
         inputHandled_ = true;
         return;
     }
     case kKeyEsc:
         RestoreSettings();
-        interface_->PlaySound(game::Text(kSoundCancel), 0);
+        interface_->PlaySound(game::CancelSoundText(), 0);
         interface_->SetPendingValue(kCloseOptions);
         break;
     case kKeyPageUp:
     case kKeyPageDown:
-        interface_->PlaySound(game::Text(kSoundSelect), 0);
+        interface_->PlaySound(game::SelectSoundText(), 0);
         CallShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
         break;
     case kKeyLeft:
@@ -316,7 +313,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kKeyUp:
-        interface_->PlaySound(game::Text(kSoundSelect), 0);
+        interface_->PlaySound(game::SelectSoundText(), 0);
         for (int i = selectedRow_ - 1; i >= 0; --i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
@@ -326,7 +323,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         break;
     case kKeyDown:
-        interface_->PlaySound(game::Text(kSoundSelect), 0);
+        interface_->PlaySound(game::SelectSoundText(), 0);
         for (int i = selectedRow_ + 1; i < kOptionRows; ++i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;

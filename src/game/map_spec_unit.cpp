@@ -16,6 +16,10 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "lib/mfc_slots.h"
+#include "lib/mfc_array.h"
+#include "world_data.h"
+#include "ei/vcall.h"
 
 namespace mapspec {
 
@@ -34,19 +38,16 @@ static_assert(sizeof(TargetChunk) == 0x1C);
 
 namespace {
 
-constexpr std::uintptr_t kUnitVtable = 0x0073C6E0;
 constexpr std::uintptr_t kWaypointChunkVtable = 0x0073C710;
 constexpr std::uintptr_t kPatrolChunkVtable = 0x0073C718;
 constexpr std::uintptr_t kBehaviourChunkVtable = 0x0073C720;
 constexpr std::uintptr_t kPatrolsVtable = 0x0073C37C;
-constexpr std::uintptr_t kPatrolsDeadVtable = 0x0073C394;
-constexpr std::uintptr_t kWaypointsDeadVtable = 0x0073C388;
-constexpr std::uintptr_t kBehaviourConstruct = 0x0045D5B0;
-constexpr std::uintptr_t kBehaviourDestruct = 0x0046C290;
 
 // CRT eh vector constructor / destructor iterators.
-void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
-void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
+template <typename Constructor, typename Destructor>
+void VectorConstruct(void* a0, unsigned a1, int a2, Constructor a3, Destructor a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
+template <typename Destructor>
+void VectorDestruct(void* a0, unsigned a1, int a2, Destructor a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
 // MFC (library): CStringArray, the CArray instantiations of patrols and waypoints.
 __declspec(naked) void __fastcall WaypointsSetSize(Array<Waypoint>*, void*, int, int) EI_ORIGINAL(0x0046E970)
 __declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int) EI_ORIGINAL(0x0045DAE0)
@@ -62,7 +63,6 @@ void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
 // The behaviour writer, through its address (rewritten below).
 __declspec(naked) void __fastcall BehaviourWriteAt(TargetChunk*) EI_ORIGINAL(0x0046C900)
 
-void SetVtable(void* p, std::uintptr_t vtable) { std::memcpy(p, &vtable, 4); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -84,7 +84,7 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 // A child chunk object of `vtable` for `parent`.
 void StartChild(TargetChunk& child, std::uintptr_t vtable, Chunk* parent) {
     child.chunk.Construct(nullptr);
-    SetVtable(&child, vtable);
+    ei::SetVtable(&child, vtable);
     child.chunk.parent_ = parent;
 }
 
@@ -98,7 +98,7 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->patrols.growBy = 0;
     self->patrols.maxSize = 0;
     self->patrols.size = 0;
-    SetVtable(&self->patrols, kPatrolsVtable);
+    ei::SetVtable(&self->patrols, kPatrolsVtable);
     self->type = 3;
     self->loop = 1;
     self->flags = 0;
@@ -118,11 +118,11 @@ EI_REPLACE(0x0045D5B0, BehaviourConstruct);
 // block freed, then the patrols' block).
 void __fastcall BehaviourDestruct(Behaviour* self) {
     Patrol* patrols = self->patrols.data;
-    SetVtable(&self->patrols, kPatrolsDeadVtable);
+    ei::SetVtable(&self->patrols, mfc::impl::PatrolArrayClass::Vtable());
     if (!patrols) return;
     for (int i = 0, n = self->patrols.size; i < n; ++i) {
         Patrol& p = patrols[i];
-        SetVtable(&p.waypoints, kWaypointsDeadVtable);
+        ei::SetVtable(&p.waypoints, mfc::impl::ArrayBaseClass::Vtable());
         if (p.waypoints.data) gamecrt::operator_delete(p.waypoints.data);
     }
     gamecrt::operator_delete(self->patrols.data);
@@ -178,7 +178,7 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
             WaypointAt(&copy->waypoints, nullptr, &w, j);
             self->data[i].waypoints.data[j] = w;
         }
-        SetVtable(&copy->waypoints, kWaypointsDeadVtable);
+        ei::SetVtable(&copy->waypoints, mfc::impl::ArrayBaseClass::Vtable());
         if (copy->waypoints.data) gamecrt::operator_delete(copy->waypoints.data);
     }
 }
@@ -288,7 +288,7 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
     c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
     TargetChunk patrolChunk;
     patrolChunk.chunk.Construct(nullptr);
-    SetVtable(&patrolChunk, kPatrolChunkVtable);
+    ei::SetVtable(&patrolChunk, kPatrolChunkVtable);
     patrolChunk.chunk.parent_ = &self->chunk;
     for (int i = 0; i < static_cast<Behaviour*>(self->target)->patrols.size; ++i) {
         Patrol* p = &static_cast<Behaviour*>(self->target)->patrols.data[i];
@@ -297,7 +297,7 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
         WriteVector(patrolChunk.chunk, 0xBBBD0001, p->position);
         TargetChunk waypointChunk;
         waypointChunk.chunk.Construct(nullptr);
-        SetVtable(&waypointChunk, kWaypointChunkVtable);
+        ei::SetVtable(&waypointChunk, kWaypointChunkVtable);
         waypointChunk.chunk.parent_ = &patrolChunk.chunk;
         for (int j = 0; j < p->waypoints.size; ++j) {
             Waypoint* w = &p->waypoints.data[j];
@@ -322,11 +322,11 @@ EI_REPLACE(0x0046C900, BehaviourWrite);
 // 0046C010. Returns this.
 UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     self->object.ObjectSpecConstruct();
-    VectorConstruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourConstruct, kBehaviourDestruct);
+    VectorConstruct(self->behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
     new (&self->prototype) mfc::CString();
     for (mfc::CStringArray& list : self->lists) list.Construct();
     self->field0A = 0;
-    SetVtable(self, kUnitVtable);
+    ei::SetVtable(self, worlddata::kUnitSpecVtable);
     self->object.base.kind = 5;
     self->prototype = reinterpret_cast<const char*>(0x007846F0);   // "none"
     self->behaviours = 0;
@@ -340,10 +340,10 @@ const void* UnitSpecBehaviours(const UnitSpec* spec) { return spec->behaviour; }
 
 // 0046C140: the destructor body.
 void __fastcall UnitSpecDestruct(UnitSpec* self) {
-    SetVtable(self, kUnitVtable);
+    ei::SetVtable(self, worlddata::kUnitSpecVtable);
     for (int i = 4; i >= 0; --i) StringArrayDestruct(&self->lists[i]);
     self->prototype.~CString();
-    VectorDestruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourDestruct);
+    VectorDestruct(self->behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
     self->object.ObjectSpecDestruct();
 }
 EI_REPLACE(0x0046C140, UnitSpecDestruct);
@@ -397,7 +397,7 @@ void __fastcall UnitSpecSave(UnitSpec* self) {
     self->object.ObjectSpecWriteFields();
     TargetChunk writer;
     writer.chunk.Construct(nullptr);
-    SetVtable(&writer, kBehaviourChunkVtable);
+    ei::SetVtable(&writer, kBehaviourChunkVtable);
     writer.chunk.parent_ = &c;
     for (Behaviour& behaviour : self->behaviour) {
         behaviour.guard = self->object.base.position;
@@ -425,7 +425,7 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
     case 0xBBBC0000: {
         TargetChunk reader;
         reader.chunk.Construct(nullptr);
-        SetVtable(&reader, kBehaviourChunkVtable);
+        ei::SetVtable(&reader, kBehaviourChunkVtable);
         reader.chunk.parent_ = &c;
         int index = self->behaviours;
         self->behaviours = index + 1;

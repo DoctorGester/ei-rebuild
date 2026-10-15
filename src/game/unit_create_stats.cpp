@@ -29,7 +29,6 @@ using Model = UnitModelRecord;
 using Npc = UnitNpcRecord;
 
 constexpr int kSkillLevelRecordSize = 0x44;   // 007AF3B8
-constexpr std::uintptr_t kSkillDatabase = 0x007AF268;
 
 constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);     // 0073BAA8
 constexpr float kHalf = 0.5f;                                    // 0073B86C
@@ -182,8 +181,8 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     if (!npc) return;
     UnitStatsAddExperience(stats, nullptr, npc->experience);
     for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
-        void* skill = FindSkill(reinterpret_cast<void*>(kSkillDatabase), nullptr, static_cast<const char*>(*name));
-        if (skill) LearnSkillAt(stats, nullptr, reinterpret_cast<void*>(kSkillDatabase), skill);
+        void* skill = FindSkill(SkillDb(), nullptr, static_cast<const char*>(*name));
+        if (skill) LearnSkillAt(stats, nullptr, SkillDb(), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }

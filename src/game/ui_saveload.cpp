@@ -37,6 +37,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "record_lifetime.h"
+#include "game_flow_data.h"
 
 #include <ddraw.h>
 
@@ -59,7 +60,6 @@ void* const kMapDatabase = reinterpret_cast<void*>(0x0079BF00);
 void* const kCursor = reinterpret_cast<void*>(0x007C7BD8);
 void* const kInterface = reinterpret_cast<void*>(0x007C7D50);
 
-constexpr std::uintptr_t kSlotFolder = 0x007905E4;   // "%ssaves\\%s\\"
 constexpr std::uintptr_t kSavePattern = 0x00794A34;  // "%ssaves\\save*"
 constexpr std::uintptr_t kInfoFile = 0x007949B8;     // "info.sav"
 constexpr std::uintptr_t kInfoInFolder = 0x00794A28; // "\\info.sav"
@@ -274,7 +274,7 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     mfc::CString folder;
-    folder.Format(game::Text(kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
     mfc::CFileFind find;
     BOOL found;
     {
@@ -365,7 +365,7 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     mfc::CString folder;
-    folder.Format(game::Text(kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
     mfc::CString notice;
     Texts()->GetString(game::Text(kNotifySaving), &notice);
     ShowStatusText(kInterface, nullptr, notice);
@@ -573,7 +573,7 @@ GameFlow* Flow() { return static_cast<GameFlow*>(kFlow); }
 // The save folder saves\<slot>\ under the game's folder.
 mfc::CString SlotFolder(const char* slot) {
     mfc::CString folder;
-    folder.Format(game::Text(kSlotFolder), GameFolder(), slot);
+    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), slot);
     return folder;
 }
 } // namespace

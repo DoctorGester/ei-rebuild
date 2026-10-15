@@ -11,6 +11,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -36,7 +37,6 @@ __declspec(naked) void** __fastcall PlayersErase(void* /*list*/, void*, void** /
 __declspec(naked) void** __fastcall BindingsErase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00429490)
 __declspec(naked) void __fastcall CountPlayers(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290D0)
 
-constexpr std::uintptr_t kTextTable = 0x007C7D50;
 
 void* LastObject(void* list) {
     void** sentinel = *static_cast<void***>(list);
@@ -137,7 +137,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     if (host) record->host_ = 1;
 
     std::uint32_t announcement = 0;   // CString
-    void* formatted = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &announcement, 0, name->start);
+    void* formatted = TextFormat(worlddata::InterfaceManager(), nullptr, &announcement, 0, name->start);
     self->Announce(*static_cast<const char**>(formatted), nullptr);
     CStringDestroy(&announcement);
 }

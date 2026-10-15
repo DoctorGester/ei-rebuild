@@ -16,6 +16,8 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_core.h"
+#include "lib/mfc_list.h"
+#include "game_slots.h"
 
 #include <cstring>
 
@@ -48,12 +50,9 @@ __declspec(naked) int __cdecl GameFtol(double) {
     }
 }
 
-constexpr std::uintptr_t kWorld = 0x007AFF60;
-constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;       // CPtrList of objects
-constexpr std::uintptr_t kCountedListVtable = 0x0073BE74;   // list of counted objects
 constexpr int kClassQuestItem = 0x14;
 
-void* World() { return reinterpret_cast<void*>(kWorld); }
+void* World() { return WorldServer(); }
 // 00594180: player 0 of the world (the local player), or null.
 CPlayer* LocalPlayer() { return static_cast<CPlayer*>(WorldGetPlayer(World(), nullptr, 0)); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -61,8 +60,8 @@ std::int32_t GameMode() { return *reinterpret_cast<const std::int32_t*>(0x007C2C
 std::uint32_t Unknown7B00BC() { return *reinterpret_cast<const std::uint32_t*>(0x007B00BC); }
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
 
-void InitList(ObjectList& list, std::uintptr_t vtable) {
-    list.vtable = reinterpret_cast<void*>(vtable);
+void InitList(ObjectList& list, void* vtable) {
+    list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;
@@ -94,16 +93,16 @@ void ClientSession::ApplyAwards() {
         }
         case 1: {
             ObjectList none;
-            InitList(none, kPtrListVtable);
+            InitList(none, mfc::impl::ItemListClass::Vtable());
             player->Party()->Money() += GameFtol(award->value_);
             PlayerGiveItems(player, nullptr, &none, 0);
-            none.vtable = reinterpret_cast<void*>(kPtrListVtable);
+            none.vtable = mfc::impl::ItemListClass::Vtable();
             PtrListRemoveAll(&none);
             break;
         }
         case 2: {
             ObjectList items;
-            InitList(items, kCountedListVtable);
+            InitList(items, gameslots::ItemObjectListClass::Vtable());
             CEngineObject* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             ObjectList::Node* added = CountedNewNode(&items, nullptr, items.tail, nullptr);
             ReferenceAssign(&added->data, nullptr, item);
@@ -111,7 +110,7 @@ void ClientSession::ApplyAwards() {
             else items.head = added;
             items.tail = added;
             PlayerGiveItems(player, nullptr, &items, 0);
-            items.vtable = reinterpret_cast<void*>(kCountedListVtable);
+            items.vtable = gameslots::ItemObjectListClass::Vtable();
             CountedRemoveAll(&items);
             break;
         }

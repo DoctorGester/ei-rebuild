@@ -33,7 +33,6 @@ void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const ch
 void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
 
-constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 
 // RefPtr::Destroy as the callers inline it (the release is not null-checked after the shutdown,
@@ -137,7 +136,7 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
         StringReserve(description, nullptr, &allocator, 8);
         *description->finish = 0;
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
-        const char* empty = game::Text(kEmptyText);
+        const char* empty = game::QuestionMarkText();
         StringAssignRange(name, nullptr, empty, empty + std::strlen(empty));
         entry->kind_ = 4;
         const char* end = empty + std::strlen(empty);

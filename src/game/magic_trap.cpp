@@ -24,6 +24,8 @@
 #include "originals_world.h"
 #include "lib/mfc.h"
 #include "originals_units.h"
+#include "lib/mfc_slots.h"
+#include "game_slots.h"
 
 namespace {
 
@@ -270,9 +272,6 @@ void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { Counted
 constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
 constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
 constexpr std::uintptr_t kPointsVtable = 0x0073C680;
-constexpr std::uintptr_t kCirclesBaseVtable = 0x0073C698;    // set by their destructors
-constexpr std::uintptr_t kPointsBaseVtable = 0x0073C6A4;
-constexpr std::uintptr_t kVictimListVtable = 0x0073E730;
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;
 constexpr int kVictimBlockSize = 10;
@@ -317,7 +316,7 @@ MagicTrap* MagicTrap::Construct() {
     area.vtable = VtableOf(kCirclesVtable);
     EmptyArray(points);
     points.vtable = VtableOf(kPointsVtable);
-    inside.vtable = VtableOf(kVictimListVtable);
+    inside.vtable = gameslots::VictimListClass::Vtable();
     inside.count = 0;
     inside.free = nullptr;
     inside.tail = nullptr;
@@ -348,12 +347,12 @@ void MagicTrap::DestructBody() {
     PointsSetSize(&points, nullptr, 0, -1);
     ClearVictims(this);        // RemoveAll (each element through 0052D030(0))
     // CList's destructor: its vtable, then RemoveAll again (elements through 0052CEC0).
-    inside.vtable = VtableOf(kVictimListVtable);
+    inside.vtable = gameslots::VictimListClass::Vtable();
     ClearVictims(this);
     // The arrays' destructors (no element destructors; SetSize has already freed the storage).
-    points.vtable = VtableOf(kPointsBaseVtable);
+    points.vtable = mfc::impl::TrapPointArrayClass::Vtable();
     if (points.points) gamecrt::operator_delete(points.points);
-    area.vtable = VtableOf(kCirclesBaseVtable);
+    area.vtable = mfc::impl::TrapCircleArrayClass::Vtable();
     if (area.circles) gamecrt::operator_delete(area.circles);
     if (spell) spell->Release();
     DestructMapObjectAt(this);

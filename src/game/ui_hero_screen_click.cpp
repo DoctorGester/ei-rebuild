@@ -28,9 +28,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kSoundCancel = 0x007937E4;   // buttons\messbox_cancel.wav
-constexpr std::uintptr_t kSoundTurn = 0x00793764;     // the rotate arrows
-constexpr std::uintptr_t kSoundSelect = 0x00793A60;   // buttons\save_select.wav
 // An empty CString object of the game (the new hero's name).
 
 // The hero screen's own methods (thiscall on the window): 00615D30 the mode (RET 4;
@@ -128,7 +125,7 @@ void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
     TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
     ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
-    uiorig::PlayUiSound(ui, game::Text(kSoundCancel), 0);
+    uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     EndSession(reinterpret_cast<void*>(0x007AFE20));
     ui->SetPendingValue(0);
 }
@@ -160,7 +157,7 @@ void CMpHeroScreen::CloseRenameEdit() {
 }
 
 void CMpHeroScreen::BackToNewHero() {
-    uiorig::PlayUiSound(window.interface_, game::Text(kSoundCancel), 0);
+    uiorig::PlayUiSound(window.interface_, game::CancelSoundText(), 0);
     StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
@@ -220,7 +217,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         } else if (mode_ == kModeStats) {
             BackToNewHero();
         } else if (mode_ == kModeNewHero) {
-            uiorig::PlayUiSound(ui, game::Text(kSoundCancel), 0);
+            uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             SetMode(this, nullptr, kModeList);
         }
         UiHandled(this) = true;
@@ -245,11 +242,11 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     if (mode_ == kModeList) {
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         heroIndex_ += heroStep;
         ClampHeroAt(this);
     } else if (mode_ == kModeNewHero) {
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ += voiceStep;
         ClampVoiceAt(this);
         PlayVoiceAt(this);
@@ -266,7 +263,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     CInterface3D* ui = window.interface_;
     int region = window.RegionAt(x, y);
     auto rotate = [&](int direction) {
-        uiorig::PlayUiSound(ui, game::Text(kSoundTurn), 0);
+        uiorig::PlayUiSound(ui, game::RotateSoundText(), 0);
         rotating_ = direction;
         UiCapture(ui) = CaptureValue(InputOf(this));
     };
@@ -275,7 +272,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // The new hero.
         switch (region) {
         case 0:
-            uiorig::PlayUiSound(ui, game::Text(kSoundCancel), 0);
+            uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             SetMode(this, nullptr, 9);
             return;
         case 1:
@@ -289,7 +286,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             return;
         case 4: {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
-            uiorig::PlayUiSound(ui, game::Text(kSoundCancel), 0);
+            uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             VirtualChooseFigure(static_cast<const char*>(*defaults_));
             PartyUnitRecord* hero = HeroRecordOf(this);
             auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
@@ -314,7 +311,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         if (index < 0) return;
         MpVoiceVector& voices = Voices();
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
         const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin()[index].file);
         HeroRecordOf(this)->texts[6] = file;
@@ -331,7 +328,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             StatsNext(this);
         } else if (region == 4) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
-            uiorig::PlayUiSound(ui, game::Text(kSoundCancel), 0);
+            uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
             TradePanelSettleOriginal(tradePanel_, nullptr, 0, 0);
             PartyUnitRecord* hero = HeroRecordOf(this);
             weapon_ = FirstOf(hero->weapons, hero->weaponCount);
@@ -363,7 +360,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         return;
     case 5:
         // A new hero.
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         VirtualChooseFigure(static_cast<const char*>(*defaults_));
         StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
@@ -374,12 +371,12 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         EditSetText(nameEdit_, nullptr, game::EmptyText());
         return;
     case 6:
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         RenameAt(this);
         return;
     case 7: {
         // Delete: asks first ("lmp_deletepers").
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
         void* memory = gamecrt::operator_new(0x180);
         void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, game::Text(0x00793A30), game::Text(0x00793A40),
@@ -390,7 +387,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     }
     case 8: {
         // The hero's inventory: the camp screen.
-        uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+        uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
         CCampPages* camp = BuildCamp(window.interface_, &flags);
         InterfacePushWindowOriginal(window.interface_, nullptr, camp, 0, 1);
@@ -402,7 +399,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (region < 9 || region >= 19) return;
     int index = heroTop_ + region - 9;
     if (index < 0 || static_cast<unsigned>(index) >= static_cast<unsigned>(HeroCount())) return;
-    uiorig::PlayUiSound(ui, game::Text(kSoundSelect), 0);
+    uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
     CallShowHero(index);
 }
 
@@ -553,7 +550,7 @@ EI_REPLACE(0x006183B0, MpHeroContinue);
 
 namespace {
 // 00623880 (rewritten; through its address so the wrapper runs) is StatsPanelDrawStatsOriginal.
-const char* SoundCancel() { return game::Text(kSoundCancel); }
+const char* SoundCancel() { return game::CancelSoundText(); }
 // The points the three attributes must add up to (a float in the exe's data).
 float AttributePoints() { return *reinterpret_cast<const float*>(0x00741C98); }
 } // namespace

@@ -25,6 +25,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_gameplay.h"
+#include "lib/mfc_slots.h"
 
 namespace {
 
@@ -47,7 +48,6 @@ Quaternion DefaultRotation() {
     return value;
 }
 
-constexpr std::uintptr_t kPtrArrayVtable = 0x0073FAA4;      // CArray of record pointers
 constexpr std::uintptr_t kMapObjectFileVtable = 0x0073FAD4; // the .mob root chunk (inline constructor)
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
@@ -129,7 +129,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     builder.Construct();
     builder.Fill(game::EmptyText(), prototype, name);
     RecordPtrArray records;
-    records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
+    records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     records.data = nullptr;
     records.growBy = 0;
     records.maxSize = 0;
@@ -139,7 +139,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     records.data[0] = reinterpret_cast<std::uint8_t*>(record);
     record->unitId = id;   // the unit's id
     WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
-    records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
+    records.vtable = mfc::impl::PartyUnitArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
     builder.Destruct();
 }

@@ -365,3 +365,39 @@ hides a data member is a C4458 warning here (renamed: `newName`, `parameterName`
   check_thunks, check_registrations: 4,774 method registrations). `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs,
   all PASS; of the 56 goldens one differs, render_movie_present (vanilla), only in the script `#gobject` field (a heap-layout
   field, SV7's); not chased.
+
+## C11 batch 8: constexpr address constants and own At() helpers (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...` constants: 369 before, 249 after (tools/progress.py); files defining their own `At()`: 4 before, 2
+after; reinterpret_cast 6,145 before, 6,083 after. Spelling only: no signature, argument order or float grouping changed. A script
+(`rep.py`, scratch) deleted the constant and replaced its uses by the home it stands for; the builds found the rest.
+- Vtables (about 60): the file-local constants of script_copy / script_destroy / script_blocks (`scriptvtable::k...` of script.h and
+  `mfc::impl::*Class::Vtable()`), fake_unit, magic_trap, map_spec, map_spec_unit, ai_join, ai_plan, ai_refresh, base_manager,
+  world_spells, world_loot, world_zone, unit_create, net_client_awards, particle_create, lightning_start, and `kLookArrayVtable` /
+  `kLookArrayBaseVtable` of unit_ai.h (six users and one verify file). The helpers that took the address as `uintptr_t` now take
+  `void*`; `ei::SetVtable(void*, const void*)` (vcall.h) and `CArray::Construct(const void*)` (mfc.h) take a vtable pointer, so
+  no cast is added. Two script argument-array classes (`ArgObjectsClass`, `ArgGroupsClass`, mfc_slots.h) were the only new homes of
+  this family. fake_unit, map_spec, map_spec_unit and particle_create lost their local `SetVtable` copies.
+- Strings: `game_strings.h` gained `QuestionMarkText`, `ZoneSuffix1/2/3Text` and six interface sound names (cancel, ok, select,
+  put on, put off, rotate) for the net_server_* / net_client_commands / ui_camp / ui_hero_screen_click / ui_menu_keys files; others
+  use the existing `NoneText`, `SpaceText`, `flowdata::kDot`, `kQuestVariablePrefix`, `kSlotFolder`.
+- Floats: `worlddata::One()` / `Zero()` and a new `Half()` (ai_footprint_shapes, ai_line_step, net_server_tick, ui_mesh_build).
+- unit_vitals: its fifteen constants are the `hpVal`, `mpVal` and `damageLevel*` members of `LogicSettings` at 007C53F8.
+- Globals: `TheGameFlow()`, `worlddata::InterfaceManager()` / `QuestBriefings()` / `FlushManipulator()`, `UiClientWorld()`,
+  `SkillDb()` / `unitdb::SkillLevels()`, `WorldServer()`, `gameapi::RegQueryValueExA` (hook/paths.cpp), and the
+  `BehaviourConstruct` / `BehaviourDestruct` functions called directly by the eh-vector iterators in map_spec_unit.
+- Own `At()`: atexit_400 uses `&ei::GameData<char>(address)`; ui_create_screen uses the new `ei::OffsetPtr(base, offset)`
+  (game_data.h). The two left are members, not raw-offset helpers: `RecordTable::At` (item_db.h, about 110 call sites) and
+  `CMap::At` (mfc_list.h); renaming them to `RecordAt` / `ElementAt` is a later batch.
+- Local renames: `near` / `far` locals in particle_create and unit_ai_modes (the Windows macros come in with mfc_array.h).
+- Left, by family (249): class `kVtableAddress` statics (about 70, already the class's home); vtables with no home (map_spec*,
+  ui_layouts, ui_scroll_text, resource_stream, misc_400, net_coder / net_link / core_streams / console shared constants);
+  strings (map_database 24, quest_database 10, ui_saveload, menu_rects, world_briefing, unit_equipment, world_zone, the
+  net_session_tick / net_connection log texts, ui_console_window / ui_text newlines); float constants in the effect headers
+  (spell_effect_internal.h, world_effect_internal.h), spell_effect_update, options, ui_mesh_build, ai_refresh tables; function
+  addresses (at-exit destructors, eh-vector callbacks that are members or live in src/standalone); image addresses in hook/ and
+  standalone/; globals with no accessor reachable from the file (unit_ai.cpp's world and game time: world.h clashes with its local
+  `GameTime()`, console stream, the candidates list, the script queue, net_server_tick's master host).
+- Verification: build verify and release with no errors or warnings on the merged tree, every check at 0 (check_stolen, check_x87,
+  check_signatures, check_thunks, check_registrations: 4,774 method registrations, check_cleanup, ei_vectors).
+  `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.

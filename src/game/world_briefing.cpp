@@ -20,6 +20,7 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "originals_ui.h"
+#include "game_flow_data.h"
 
 #include <cstring>
 #include <new>
@@ -33,7 +34,6 @@ constexpr std::uintptr_t kShowTag = 0x007906DC;           // "#show"
 constexpr std::uintptr_t kHero = 0x0078B0F4;              // "Hero"
 constexpr std::uintptr_t kElderPrefix = 0x007906F0;       // "b.elder."
 constexpr std::uintptr_t kVariablePrefix = 0x007906FC;    // "b."
-constexpr std::uintptr_t kDot = 0x00783D78;               // "."
 
 // The briefing texts (pointer at 007AF788): 004DEFC0 (RET 4) opens a section by name (0 when
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
@@ -88,7 +88,7 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
     if (!IsEmpty(speaker.Get())) {
         mfc::CString prefix(game::Text(kVariablePrefix));
         mfc::CString withSpeaker = prefix + speaker.Get();
-        mfc::CString withDot = withSpeaker + game::Text(kDot);
+        mfc::CString withDot = withSpeaker + game::Text(flowdata::kDot);
         mfc::CString variable = withDot + briefing;
         speaker.Get() = variable;
     } else {
@@ -244,7 +244,6 @@ EI_REPLACE(0x005809D0, LoadZoneQuests);
 
 namespace {
 
-constexpr std::uintptr_t kQuestPrefix = 0x00783D7C;   // "q."
 
 } // namespace
 
@@ -257,7 +256,7 @@ void GameFlow::OnVariableChanged(const void* event) {
     {
         mfc::CString prefix = name.Left(2);
         quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                reinterpret_cast<const unsigned char*>(game::Text(kQuestPrefix))) == 0;
+                                reinterpret_cast<const unsigned char*>(game::Text(flowdata::kQuestVariablePrefix))) == 0;
     }
     if (quest) {
         QuestLogUpdateOriginal(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);

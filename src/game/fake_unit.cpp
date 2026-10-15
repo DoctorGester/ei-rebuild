@@ -14,6 +14,8 @@
 #include "originals_library.h"
 #include "scene_loader.h"
 #include "world.h"
+#include "lib/mfc_slots.h"
+#include "ei/vcall.h"
 
 #include <cstdint>
 #include <cstring>
@@ -24,14 +26,7 @@ namespace {
 
 using scene::FakeUnitScene;
 
-void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
-
 constexpr std::uintptr_t kFakeUnitVtable = 0x0073BFE8;
-// The arrays' vtables (CArray instantiations).
-constexpr std::uintptr_t kHelperArrayVtable = 0x0073C0E4;
-constexpr std::uintptr_t kBoneLinkArrayVtable = 0x0073C0F0;
-constexpr std::uintptr_t kMeshArrayVtable = 0x0073C0FC;
-constexpr std::uintptr_t kFigureArrayVtable = 0x0073C108;
 
 // The unit's arrays with their element types (the destructor's loops are the instantiations'
 // inlined DestructElements: each element's destructor through its vtable).
@@ -65,8 +60,8 @@ void ReleaseParts(FakeUnitScene* self) {
 // The array's vtable back, each element destroyed (`destroy`), the block freed; the fields are
 // left as they are.
 template <typename Array, typename Destroy>
-void DestructArray(Array& a, std::uintptr_t vtable, Destroy destroy) {
-    SetVtable(&a, vtable);
+void DestructArray(Array& a, const void* vtable, Destroy destroy) {
+    ei::SetVtable(&a, vtable);
     if (!a.data) return;
     for (int i = 0, n = a.size; i < n; ++i) destroy(a.data[i]);
     gamecrt::operator_delete(a.data);
@@ -78,11 +73,11 @@ void DestructArray(Array& a, std::uintptr_t vtable, Destroy destroy) {
 void* __fastcall FakeUnitConstruct(FakeUnitScene* self) {
     UnitConstruct(self);
     self->skin.Construct();
-    self->figures.Construct(kFigureArrayVtable);
-    self->meshes.Construct(kMeshArrayVtable);
-    self->boneLinks.Construct(kBoneLinkArrayVtable);
-    self->helpers.Construct(kHelperArrayVtable);
-    SetVtable(self, kFakeUnitVtable);
+    self->figures.Construct(mfc::impl::FakeUnitPartArrayClass::Vtable());
+    self->meshes.Construct(mfc::impl::FakeUnitSceneRecordArrayClass::Vtable());
+    self->boneLinks.Construct(mfc::impl::FakeUnitBoneArraysClass::Vtable());
+    self->helpers.Construct(mfc::impl::FakeUnitRecord9CArrayClass::Vtable());
+    ei::SetVtable(self, kFakeUnitVtable);
     return self;
 }
 EI_REPLACE(0x004466D0, FakeUnitConstruct);
@@ -90,17 +85,17 @@ EI_REPLACE(0x004466D0, FakeUnitConstruct);
 // 00446910: the destructor. After the figures' SetSize(0, -1) the original walks the (now empty)
 // figure array dropping each figure's count; kept as written.
 void __fastcall FakeUnitDestruct(FakeUnitScene* self) {
-    SetVtable(self, kFakeUnitVtable);
+    ei::SetVtable(self, kFakeUnitVtable);
     ReleaseParts(self);
     FiguresSetSize(&self->figures, nullptr, 0, -1);
     FigureArray& figures = Figures(self);
     for (int i = 0; i < figures.size; ++i) --figures.data[i].refCount_;
-    DestructArray(Helpers(self), kHelperArrayVtable, [](CMaterial& helper) { DestroyRecord(&helper); });
-    DestructArray(BoneLinks(self), kBoneLinkArrayVtable, [](scene::VtArray& links) {
+    DestructArray(Helpers(self), mfc::impl::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });
+    DestructArray(BoneLinks(self), mfc::impl::FakeUnitBoneArraysClass::Vtable(), [](scene::VtArray& links) {
         reinterpret_cast<mfc::CObjectVirtuals*>(&links)->DeletingDestructor(0);
     });
-    DestructArray(Meshes(self), kMeshArrayVtable, [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
-    DestructArray(figures, kFigureArrayVtable, [](CFigureMesh& figure) { DestroyRecord(&figure); });
+    DestructArray(Meshes(self), mfc::impl::FakeUnitSceneRecordArrayClass::Vtable(), [](scene::SceneMesh& mesh) { DestroyRecord(&mesh); });
+    DestructArray(figures, mfc::impl::FakeUnitPartArrayClass::Vtable(), [](CFigureMesh& figure) { DestroyRecord(&figure); });
     self->skin.Destruct();
     UnitDestructBody(self);
 }
