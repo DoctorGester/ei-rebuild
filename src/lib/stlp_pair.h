@@ -24,6 +24,14 @@ struct StringDwordPair {
 };
 static_assert(sizeof(StringDwordPair) == 0x10);
 
+// The list element policy (stlp_list.h) of pair<const string, dword> (the link loader's archive
+// list: _M_create_node 004FB8B0, clear 004FBCF0): copied by the pair's constructor, destroyed by
+// freeing the string's block.
+struct StringDwordElement {
+    static void Copy(StringDwordPair* to, const StringDwordPair& from);
+    static void Destroy(StringDwordPair* p) { p->first.~string(); }
+};
+
 // pair<const string, string>.
 struct StringPair {
     string first;

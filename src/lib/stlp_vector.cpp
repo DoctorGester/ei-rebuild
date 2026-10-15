@@ -86,6 +86,9 @@ EI_REPLACE(0x0062B570, stlp::VectorConstructBase);
 EI_REPLACE(0x0062B5E0, stlp::VectorConstructBase);
 EI_REPLACE(0x006342A0, stlp::VectorConstructBase);
 EI_REPLACE(0x006AFB00, stlp::VectorConstructBase);
+EI_REPLACE(0x00482A80, stlp::VectorConstructBase);   // S12c
+EI_REPLACE(0x00619600, stlp::VectorConstructBase);
+EI_REPLACE(0x006316C0, stlp::VectorConstructBase);
 
 // _STLP_alloc_proxy(const allocator_type&, const pointer&): 9 instantiations.
 EI_REPLACE(0x00406260, stlp::AllocProxyConstruct);
@@ -144,6 +147,15 @@ EI_REPLACE(0x004A8CB0, Vector16::DestroyBase);
 EI_REPLACE(0x0056F590, Vector12::DestroyBase);
 EI_REPLACE(0x0053B600, Vector96::DestroyBase);
 EI_REPLACE(0x0053B460, Vector288::DestroyBase);
+// S12c: bytes (the link loader's string base), 4 bytes (3), 8 bytes (2) and 12 bytes (2).
+EI_REPLACE(0x004FB6A0, Vector1::DestroyBase);
+EI_REPLACE(0x004FB290, Vector4::DestroyBase);
+EI_REPLACE(0x004FB6F0, Vector4::DestroyBase);
+EI_REPLACE(0x005F8E00, Vector4::DestroyBase);
+EI_REPLACE(0x005F9090, Vector8::DestroyBase);
+EI_REPLACE(0x006342C0, Vector8::DestroyBase);
+EI_REPLACE(0x00482440, Vector12::DestroyBase);
+EI_REPLACE(0x005F99B0, Vector12::DestroyBase);
 EI_REPLACE(0x0053B7A0, Vector360::DestroyBase);   // S12d
 
 // _STLP_alloc_proxy::deallocate(p, n) (RET 8): 43 instantiations, by element size (4 bytes: 4, 12 bytes: 23, 16 bytes: 2, 20 bytes: 6, 24 bytes: 4, 32 bytes: 1, 36 bytes: 1, 68 bytes: 1, 268 bytes: 1).
@@ -188,6 +200,13 @@ EI_REPLACE(0x0043A4E0, Vector24::Deallocate);
 EI_REPLACE(0x006135F0, Vector24::Deallocate);
 EI_REPLACE(0x0056F840, Vector32::Deallocate);
 EI_REPLACE(0x00411E20, Vector36::Deallocate);
+// S12c: 4 bytes, 12 bytes (2), 32 bytes (2) and 48 bytes.
+EI_REPLACE(0x005F9F40, Vector4::Deallocate);
+EI_REPLACE(0x00482D10, Vector12::Deallocate);
+EI_REPLACE(0x005FA300, Vector12::Deallocate);
+EI_REPLACE(0x00482BF0, Vector32::Deallocate);
+EI_REPLACE(0x004FB9D0, Vector32::Deallocate);
+EI_REPLACE(0x005FA2C0, Vector48::Deallocate);
 EI_REPLACE(0x00439D80, Vector268::Deallocate);   // S12d: a header list's sentinel (to operator delete)
 EI_REPLACE(0x0053BEB0, Vector68::Deallocate);    // S12d
 
@@ -221,6 +240,11 @@ EI_REPLACE(0x005FA960, Vector36::DeallocateFast);
 EI_REPLACE(0x004452D0, Vector40::DeallocateFast);
 EI_REPLACE(0x00479530, Vector48::DeallocateFast);
 EI_REPLACE(0x0043AAF0, Vector288::DeallocateFast);
+// S12c: 4 bytes, 12 bytes and 24 bytes (2).
+EI_REPLACE(0x005FA3C0, Vector4::DeallocateFast);
+EI_REPLACE(0x005FA360, Vector12::DeallocateFast);
+EI_REPLACE(0x004FB860, Vector24::DeallocateFast);
+EI_REPLACE(0x005FA8E0, Vector24::DeallocateFast);
 EI_REPLACE(0x0069C9D0, Vector16::DeallocateFast);    // S12d
 EI_REPLACE(0x00613630, Vector60::DeallocateFast);    // S12d
 EI_REPLACE(0x0056FB80, Vector164::DeallocateFast);   // S12d
@@ -257,6 +281,11 @@ EI_REPLACE(0x006ADD50, Vector4::InsertOverflow);
 EI_REPLACE(0x00441180, Vector16::InsertOverflow);
 EI_REPLACE(0x0069CC20, Vector16::InsertOverflow);
 EI_REPLACE(0x00573350, Vector24::InsertOverflow);
+EI_REPLACE(0x006317E0, Vector8::InsertOverflow);   // S12c: 8-byte pairs (from 006312C0)
+
+// uninitialized_copy / uninitialized_fill_n of those pairs (called by 006317E0).
+EI_REPLACE(0x006325E0, Vector8::UninitializedCopy);
+EI_REPLACE(0x00632610, Vector8::UninitializedFill);
 EI_REPLACE(0x0043B530, Vector2::InsertOverflow);   // the connection's id pools (S12d)
 
 // _M_fill_insert(pos, n, x) / insert(pos, n, x): 4 bytes (4, one of floats) and bytes.
@@ -265,6 +294,7 @@ EI_REPLACE(0x0055B030, Vector4::FillInsert);
 EI_REPLACE(0x005ADAD0, Vector4::FillInsert);
 EI_REPLACE(0x006ADC10, Vector4::FillInsert);
 EI_REPLACE(0x0042D370, Vector1::FillInsert);
+EI_REPLACE(0x004FBA40, Vector4::FillInsert);   // S12c: the link loader's and a figure model's
 
 // _M_range_insert(pos, first, last) of 16 bytes and insert(pos, first, last) of pointers.
 EI_REPLACE(0x0069ECD0, Vector16::RangeInsert);

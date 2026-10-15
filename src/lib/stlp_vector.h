@@ -430,6 +430,18 @@ struct VectorAbi {
     static void __fastcall Deallocate(const AllocProxy*, void*, T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
     // The same compiled as a function of p and n (e.g. 00426860: ECX p, EDX n, plain RET).
     static void __fastcall DeallocateFast(T* p, std::size_t n) { deallocate(p, n * sizeof(T)); }
+    // uninitialized_copy(first, last, result) (e.g. 006325E0: ECX first, EDX last, RET 8; the tag
+    // argument is not read): the end of the copies.
+    static T* __fastcall UninitializedCopy(const T* first, const T* last, T* result, const void*) {
+        for (; first != last; ++first, ++result) E::Construct(result, *first);
+        return result;
+    }
+    // uninitialized_fill_n(first, n, x) (e.g. 00632610: ECX first, EDX n, RET 8): the end of the
+    // copies.
+    static T* __fastcall UninitializedFill(T* first, std::size_t n, const T* x, const void*) {
+        for (; n > 0; --n, ++first) E::Construct(first, *x);
+        return first;
+    }
 };
 
 // Helpers of the plain-data instantiations compiled out of line (ECX and EDX the first two
