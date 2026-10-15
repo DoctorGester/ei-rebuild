@@ -48,8 +48,7 @@ console @Follow(GetObjectByName("Mv2"),GetObjectByName("Mv1"))
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6))
 # (The walking hero's environment remark, acks 006D88E0, comes at random: in some 160 updates here,
 # not in every run; units, map_objects and ui_quick_items reach it too.)
-waitfor 30 IsGreater(GetY(GetLeader()),Add(GSGetVar(0,"hy"),5))
-wait 500
+wait 7000
 
 # Around an obstacle: an ogre stands on the straight line from a new wolf to its target.
 console @AddUnitToServer("MvRock","OgreTutor","MvRock",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4),0)

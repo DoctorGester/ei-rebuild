@@ -22,6 +22,7 @@ widescreen 1
 rebirthflags WideScreen
 reject Script error
 waitmenu
+wait 1500
 
 # The hero on zone1, the camera settled.
 console thingamabob
@@ -30,7 +31,7 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20
 waitwindow 15 battle
-wait 1200
+wait 2000
 
 # The weapon bar's first slot (layout -34, 560: the bar from 80 - 134; the hero has one weapon, a
 # click on an empty slot walks him there) and the unit panel's info page (its third body part

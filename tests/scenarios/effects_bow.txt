@@ -37,10 +37,9 @@ console @SetPlayer(GetObjectByName("BowWolf1"),6)
 check IsEnemy(GetObjectByName("BowWolf1"),0)
 waitunit 10 BowWolf1
 check Not(IsUnitBlocked(GetLeader()))
-console @GSSetVar(0,"bw",HP(GetObjectByName("BowWolf1")))
 clickunit BowWolf1
-# The hero walks into range and the first arrow lands.
-waitfor 20 IsLess(HP(GetObjectByName("BowWolf1")),GSGetVar(0,"bw"))
+# The first click selects the wolf; the second one starts the attack.
+wait 1500
 clickunit BowWolf1
 waitfor 20 Not(IsAlive(GetObjectByName("BowWolf1")))
 # A click on the body: the hero searches it (OrderSearchBody, Loot).

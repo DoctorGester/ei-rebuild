@@ -30,7 +30,7 @@ console @UMClear(GetObjectByName("AiGuard"))
 console @UMGuard(GetObjectByName("AiGuard"),Sub(GSGetVar(0,"hx"),7),GSGetVar(0,"hy"),1)
 # Guard mode does not walk to its point unprompted (the original game behaves the same); it only has
 # to keep the wolf alive and near where it was placed.
-wait 1000
+wait 2000
 check IsAlive(GetObjectByName("AiGuard"))
 check IsLess(DistanceUnitPoint(GetObjectByName("AiGuard"),Sub(GSGetVar(0,"hx"),2),GSGetVar(0,"hy")),3)
 
@@ -59,7 +59,7 @@ console @UMClear(GetObjectByName("AiAggro"))
 console @UMAggression(GetObjectByName("AiAggro"))
 # The original game does not attack the hero within 20 s here either (checked with --no-hooks), so
 # this only runs aggression mode for a few seconds.
-wait 2300
+wait 3000
 check IsAlive(GetObjectByName("AiAggro"))
 check IsAlive(GetLeader())
 check IsAlive(GetObjectByName("AiFollow"))

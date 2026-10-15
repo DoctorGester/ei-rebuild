@@ -19,6 +19,7 @@ widescreen 1
 rebirthflags WideScreen
 reject Script error
 waitmenu
+wait 1500
 
 # The main menu.
 move 400 20
@@ -59,7 +60,7 @@ newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 move 400 20
-wait 1500
+wait 2000
 freeze
 capture world
 unfreeze

@@ -44,7 +44,7 @@ console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObj
 console @CastSpellUnit("strength{d2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("RWolf"))
 console @Attack(GetLeader(),GetObjectByName("RWolf"))
 waitfor 20 Not(IsAlive(GetObjectByName("RWolf")))
-wait 500
+wait 1500
 check IsAlive(GetLeader())
 
 # addon's console commands (AddNewConsoleCommands; the cheat word was given above).
@@ -147,7 +147,7 @@ console @PauseGame(0) PauseGame(1)
 console @SetWeather("rain")
 wait 1000
 console @SetWeather("snow")
-wait 3000
+wait 4000
 console @SetWeather("clear")
 console @GiveUnitWeapon(GetLeader(),"Axe.steel",1)
 console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArmor(GetLeader(),"no such armour",1)

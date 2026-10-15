@@ -23,6 +23,7 @@ widescreen 1
 rebirthflags WideScreen
 reject Script error
 waitmenu
+wait 1500
 
 # The multiplayer hero screen (main menu region 5): the hero list; Esc back to the main menu.
 clickregion 5
@@ -47,7 +48,7 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 15 battle
 move 400 20
-wait 1200
+wait 2000
 
 # "zt4" (frames at the right panels), its first page and the next one. The window's backdrop is a
 # copy of the screen: what moves on the battle screen is captured first.

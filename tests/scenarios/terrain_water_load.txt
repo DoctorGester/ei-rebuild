@@ -10,7 +10,7 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 waitline 15 Saved savea
 console @SetWaterLevel(0,0,5000)
 console @SetWaterLevel(1,0,5000)
-wait 600
+wait 1000
 
 # Escape menu, Save (as ground_prints.txt): OK (region 0) saves into save1; then loaded back.
 key esc
@@ -25,6 +25,6 @@ load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("WaterMarker"))),IsGreater(HP(GetLeader()),0))
 # The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
 dump loaded_save1
-wait 500
+wait 1000
 report
 quit
