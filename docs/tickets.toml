@@ -737,7 +737,7 @@ id = "SV3g"
 title = "ui_widescreen*: client unit 129 has flag 0x400 in ours"
 group = "verification"
 size = 0.25
-note = "Closed 2026-10-15: folded into SV7b8 (whose note lists cunit129 flags 0xA2 / 0x4A2 in the ui_widescreen* scenarios)."
+note = "Now tracked as SV7b8a (SV7b4a settled SV7b8's rotation part; the 0x400 flag is what remains)."
 
 [[ticket]]
 id = "SV3h"
