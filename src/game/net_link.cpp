@@ -153,7 +153,7 @@ EI_REPLACE(0x00477F80, FileStreamPositionHook);
 // NetLink (0073C8A4)
 
 NetLink* NetLink::Construct() {   // 00477E60
-    ei::SetVtable(this, kRefValueVtable);
+    ei::SetVtable(this, CRefObject::kVtableAddress);
     record_.Construct();
     ei::SetVtable(this, kVtableAddress);
     recording_ = 0;
@@ -162,7 +162,7 @@ NetLink* NetLink::Construct() {   // 00477E60
 EI_REPLACE_METHOD(0x00477E60, NetLink::Construct);
 
 void NetLink::ConstructCopyOf(const NetLink* source) {
-    ei::SetVtable(this, kRefValueVtable);
+    ei::SetVtable(this, CRefObject::kVtableAddress);
     recording_ = source->recording_;
     skipNext_ = source->skipNext_;
     record_.CopyConstruct(&source->record_);
@@ -171,7 +171,7 @@ void NetLink::ConstructCopyOf(const NetLink* source) {
 
 void NetLink::Destruct() {   // 00478050
     record_.Destruct();
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x00478050, NetLink::Destruct);
 
@@ -273,7 +273,7 @@ void LoopbackLink::Destruct() {   // 004787A0
     ReleaseCounted(peer_);
     DestroyQueue();
     record_.Destruct();
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x004787A0, LoopbackLink::Destruct);
 
@@ -292,7 +292,7 @@ int LoopbackLink::OnShutdown() {   // 00478610
     QueueClear(&queue_);
     NodesDeallocate(queue_, 1);
     record_.Destruct();
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     NetLink::Construct();
     std::uint8_t alloc = 0;
     QueueConstructB(&queue_, nullptr, &alloc);
@@ -412,7 +412,7 @@ void ReplayLink::Destruct() {   // 00478CC0
     ei::SetVtable(this, kVtableAddress);
     replay_.Destruct();
     record_.Destruct();
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x00478CC0, ReplayLink::Destruct);
 
@@ -481,7 +481,7 @@ void FramedLink::Destruct() {   // 00479B90
     if (inbox_.data_) gamecrt::operator_delete(inbox_.data_);
     ei::SetVtable(&inbox_, kStreamVtable);
     record_.Destruct();
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x00479B90, FramedLink::Destruct);
 

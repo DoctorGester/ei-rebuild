@@ -19,6 +19,7 @@
 // never stores a vtable of its own: a CMemoryStream local or member is plain storage until one of
 // those bodies runs, as in the original.
 
+#include "core_refcount.h"
 #include "engine_object.h"
 #include "net_coder.h"
 
@@ -36,7 +37,7 @@ class CString;
 // (net_link.h).
 class __declspec(novtable) CStream {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BDB0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BDB0);
 
     virtual ~CStream() {}                                               // 0: 00417400 (deleting destructor)
     virtual std::uint32_t Read(void* buffer, std::uint32_t size) = 0;   // 1: returns the bytes read
@@ -123,7 +124,9 @@ static_assert(sizeof(CStream) == 0x0C);
 // Resize and SetSize flush and reset that state.
 class __declspec(novtable) CMemoryStream : public CStream {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD90;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD90);
+    // The second vtable (same slots 1-7), the network queue's streams (ConstructQueueStream).
+    static constexpr std::uintptr_t kQueueVtableAddress = std::uintptr_t(0x0073C960);
 
     ~CMemoryStream() override {}                                        // 0: 004173B0 (deleting destructor)
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
@@ -211,8 +214,6 @@ static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
 // The game's save stream: the global CMemoryStream at 007AFDF8 (defined in world_game.cpp).
 CMemoryStream* GameSaveStream();
 
-constexpr std::uintptr_t kRefObjectRootVtable = 0x0073BB68;
-constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
 // The stream vtables under the names the world_* and net_* code uses.
 constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;
 constexpr std::uintptr_t kMemoryStreamVtable = CMemoryStream::kVtableAddress;

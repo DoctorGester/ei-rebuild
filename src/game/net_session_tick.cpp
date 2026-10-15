@@ -333,7 +333,7 @@ void SessionBase::Destruct() {
     clients_->next = clients_;
     clients_->prev = clients_;
     ClientSentinelFree(clients_, 1);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x00436A50, SessionBase::Destruct);
 

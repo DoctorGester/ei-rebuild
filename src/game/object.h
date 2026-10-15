@@ -59,7 +59,7 @@ const char* __fastcall FakeFigureGetName(const CEngineObject* figure);   // 0045
 class CHoover : public CEngineObject {
 public:
     CHoover* DeleteScalar(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C434;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C434);
 
     // 00461C10. Constructor body: the engine object's fields cleared, then its vtable. Returns
     // this.

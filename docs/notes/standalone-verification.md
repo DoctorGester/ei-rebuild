@@ -1438,6 +1438,120 @@ After merging main (SV7b3's zeroed statistics) the ground_prints goldens' saves 
 `--golden --all-rebirth`: 95 goldens the same, levers and ui_saveload_delete (vanilla) differ only in the script's
 `#gobject` (address order, SV7b1); every save equal. Follow-up SV7d1a: audit other rewrites for the distributed sums.
 
+## SV7b1: script groups ordered by object id (2026-10-15)
+
+**The site.** A script group (ScriptGroup, script.h) keeps its members sorted without duplicates, and the game sorts by
+object address: the comparator 004B2D80 (CMP / SBB on the two pointers, for GameQsort in Sort 004B2D60 and Load
+004B3360; ScriptVars::Load 004B3AD0 and 004C40D0 reach it through Sort), the binary search of Insert 004B2EF0
+(callers: InsertAll, SSCCmd::CalcGroup / Execute, CPlayerServer::UpdateHeroesGroup, CWorldServer::CollectSharedObjects,
+CSpellEffect::UpdateLasting) and the merges of Union 004B2620, Difference 004B2920 and Intersection 004B2B60. Nothing
+else reads the order as sorted: IndexOf, Remove, Contains and RemoveDeleted search linearly.
+
+**The order now.** Null first, then CEngineObject::id_ (+0xC, signed; the id the script engine itself saves and loads
+groups by, ScriptObjectRef::Save / Load). Ties cannot happen: the world's id map (CWorldServer +0x12D74, FindObject
+00593AA0) holds one object per id, CBaseManager::NextFreeId hands out the highest id + 1 (the random search only past
+2,000,000,000), and an object keeps its id while a group references it (a released object goes back to the spares
+with id -1 only at reference count 0). Only objects outside the registry have id -1, and scripts cannot name them. The
+harness stub logs the first tie it meets ("share id"); none in the 106 runs of each pass below.
+
+- Ours (script_group.cpp): ScriptGroup::After decides every comparison (the qsort comparator CompareMembers, Insert,
+  the merges): by address as the game, by IdAfter once ScriptGroup::OrderById is called (the harness, at heap::Install's
+  point) and always in the standalone (ei::Standalone), where it stays as a determinism fix.
+- The original (tests/verify/harness_script_order.cpp, harness runs on the virtual clock unless `lfheap`): the
+  comparator's start becomes a JMP to an id comparator of ours, and each inline comparison a JMP to a naked stub that
+  redoes the replaced instructions, compares by id (EAX / ECX / EDX kept) and jumps back to the original's equal /
+  above / below path: Union 004B27B2 (8 bytes: CMP EDI,EDX / MOV [ESP+20],EDX / JNZ), Difference 004B2A9A (7: MOV
+  ECX,[ECX+EDX*4] / CMP / JNZ), Intersection 004B2CEE (7: MOV EAX,[EAX+EDX*4] / CMP / JNZ), Insert 004B2F27 (10: CMP /
+  JZ / JBE). The bytes are checked before patching.
+- When: at the first message loop pass (PeekMessageHook), after InstallHooks, not with the countdown sites before it.
+  A patch noted with NoteHarnessPatch leaves our registrations of the functions holding it out, and an unnoted one
+  makes rebirth_hook::Check skip them as patched by another mod; patched afterwards, ours stay installed and their
+  verify wrappers' trampolines run the patched body. No group exists before a world loads.
+- verify_script.cpp / verify_script_exec.cpp: `Sorted` follows ScriptGroup::After.
+
+**Goldens.** The 97 goldens `--no-hooks --golden`: 85 changed (every gz1g scenario: `script #gobject`, gobject.i is
+1884 from world update 40 on, where the address order gave 702 without jitter), 12 the same (no zone or no group).
+Re-recorded from four agreeing passes: two plain `--no-hooks`, `--no-hooks` with EI_HEAP_JITTER=2, and with our hooks.
+Against the plain pass (golden.py diff, `obj2 hp` left out, SV7b3):
+
+| Pass | Differ | What |
+| --- | --- | --- |
+| second plain | 0 | |
+| seed 1 | 3 (Rebirth) | render_titles_present, ui_container_input, ui_widescreen_more: cunit148 unanwiwo `rot` 1 ulp at update 80 (SV7b4) |
+| seed 2 | 3 (vanilla, no vanilla golden) | ui_hero_screen, ui_hero_stats, ui_screens: menu unit cunit2 unmoco2 `rot`, repeats with seed 2 (SV7b8) |
+| `3,fill` | 8 (vanilla) | at update 40 `isaac.count` 38 / 161 and unmoto obj1937's path; two repeats hit other scenarios (render_terrain, ui_quest_notice; levers, ui_trade_restore), seed 3 without fill none: an uninitialised read, not an order (SV7b7) |
+| ours (hooked) | 4 (vanilla, no vanilla golden) | ui_container_input, ui_screens, ui_widescreen_hud, ui_widescreen_more: menu units' `rot` in the last place, cunit129 flags 0xA2 / 0x4A2 |
+
+No `script` field differs in any pass: the group order no longer follows the layout. ScriptGroup::Union (32178 calls)
+and Sort (196) compared ours with the patched original without a mismatch; Insert, Difference, Intersection and Load
+were not reached from original code in hooked runs (their callers are ours).
+
+**SV3i and SV2d.** zone_gz3g (vanilla): two plain `--no-hooks` runs, one with seed 1 and two with our hooks agree in
+every record (`gobject.VSS#i#val` 3353 in all, where SV3i saw 3353 / 3357 between our runs and 3363 / 3371 between the
+original's). SV2d (gobject.i 1884 in ours, 702 in the original after a load) is gone: 1884 on both sides. Both set
+done. Follow-ups: SV7b7 (the `3,fill` uninitialised read), SV7b8 (the seed-2 vanilla menu unit orientation).
+
+**After SV7d (merge of main).** The 85 goldens were recorded again from two fresh plain `--no-hooks` runs so that they
+keep SV7d's decoded saves: the digests were the same as above, only the saves changed (mission.sav's script globals:
+"Peasans" saved as [699, 702, 1884], `i` on 1884, where address order gave [1884, 699, 702] and 702). 17 save texts
+of the shared store replaced. golden.py SAVES_KNOWN's two SV7b1 entries (the Peasans order, ground_prints'
+`seenCorpses` order, which PartySync rebuilds from a ScriptGroup) are dropped: ours and the original now save the same
+order (SV7d5 settled).
+
+**Final check (after the merge).** `work.py test SV7b1 --golden --jobs 4`: every run passed but ui_mp_host (vanilla
+and Rebirth TIMEOUT; passed alone right after: it hosts on UDP 8888, which a game of another batch can hold, N0c); the
+56 goldens it reaches the same, saves included, with SAVES_KNOWN's SV7b1 entries gone (SV7d5 done). `--no-hooks
+--golden` with EI_HEAP_JITTER=1 over all 97: 96 the same; ui_battle_spells (vanilla) differed once in two units'
+hashes at update 180 and matched in two more seed-1 runs and a plain one.
+
+**After SV7b3 (second merge of main).** Recorded again from two fresh plain `--no-hooks` runs on top of SV7b3's zeroed
+unit statistics: 81 goldens differed from main's only in `script #gobject` (and two in mission.sav's script globals);
+hero_death, movement, ui_screens and world_load (Rebirth) already matched. SAVES_KNOWN's three SV7b1 entries on main
+(seenCorpses, render_movie_present's "Peasans", Rebirth ui_widescreen_more's group 5 [1901, 1913]) are dropped: id
+order settles each.
+
+**After SV7d1 / SV7d2 (third merge of main).** Recorded again from two fresh plain `--no-hooks` runs, so the saves carry
+SV7d2's plain path cell words: all 85 goldens of saving scenarios differed from main's only in their saves (mission.sav's
+script globals in 83, seenCorpses in 4); the digests were already the id order's. SAVES_KNOWN is empty now (main had
+removed SV7d1's and SV7d2's entries, this branch the three SV7b1 ones).
+
+## SV7b4a / SV3f: the shadow's turn undone exactly (2026-10-15)
+
+**The canonical behaviour** (user decision 2026-10-15: no golden depends on heap layout or timing accidents). DrawShadow
+0051CE60 turns the object toward the light (0051D479: PreMultiply 004018A0 by the light's turn), builds its world
+matrix and turns it back (0051D4E0: PreMultiply by the conjugate). The round trip is not exact, so every re-rendered
+shadow moved the orientation by an ulp, and how often a shadow is re-rendered followed the frame's timing and memory
+(SV7b4's search). Now the orientation is kept before the turn and put back after it, in both:
+
+- Ours (map_object_shadow.cpp, RenderShadow): `kept = orientation` before the turn, `orientation = kept` instead of
+  the conjugate PreMultiply; the conjugated turn is still made (the projector below uses it). Kept in the standalone.
+- The original, in every harness run that is not the standalone (tests/verify/harness_shadow_turn.cpp): the CALL at
+  0051D479 goes to KeepAndTurn (keeps the quaternion, then calls 004018A0), the one at 0051D4E0 to PutBack (puts it
+  back when it is the same object, else the original's PreMultiply). Both sites or neither; `EI_SHADOW_TURN=0` leaves
+  the original's round trip. The world matrix built while turned is the same as before.
+
+As with SV1b's and SV7b3's patches, the hook installer then leaves DrawShadow's registration out in hooked runs (the
+harness patches inside it: `SKIP DrawShadowVerify ... +0x619`), so hooked runs draw shadows with the patched original;
+ours runs in the standalone (`--standalone --golden` over ui_container_input, ui_widescreen_more, render_titles_present,
+ui_hero_screen, camera: all pass, the two with a golden the same).
+
+**Results.** The 54 golden scenarios on both installs (106 runs, ui_screens among them) in five passes: the patched
+original plain, EI_HEAP_JITTER 1, 2 and `3,fill`, and our hooks. Before merging SV7b1 the jitter and hooked passes
+differed from the plain one only in `script #gobject` (SV7b1); after it, every jitter pass is the same as the plain one
+in all 106 runs (digest, dumps, console, saves), and so is the hooked pass but for two runs without a golden:
+ui_widescreen_hud and ui_widescreen_more (vanilla), where cunit129's flags are 0xA2 in the original and 0x4A2 in ours
+from update 60 (then the zone diverges: isaac.count at update 180). That is SV7b8's flags line, older than this and not
+an orientation (follow-up SV7b8a). The seed-1 Rebirth difference (cunit148 #place at update 80 in ui_container_input,
+ui_widescreen_more, render_titles_present) is gone, and so are SV3f's hooked-against-original rotation ulps (ui_hero_*,
+ui_container_input, ui_widescreen_*, render_titles_present now match the original in hooked runs) and SV7b8's vanilla
+unmoco2 rotation under seed 2 (ui_hero_screen, ui_hero_stats, ui_screens the same as the plain run).
+
+**Goldens re-recorded** (all 97: every digest changes from record 0, where the main menu's units cunit129, cunit148 and
+cunit187 now keep their orientation) with `golden.py record --runs` over the five passes, all agreeing; the decoded
+saves are unchanged (no store entry changed).
+
+Final check (after merging main again): `work.py test SV7b4a --golden --jobs 4`: 128 runs all pass, the 56 goldens it reaches the same.
+
 ## SV7d1a: /fp:precise instead of /fp:fast (2026-10-15)
 
 The project default is `/arch:IA32 /fp:precise` now (CMakeLists.txt). `/fp:fast` regrouped sums and folded constants

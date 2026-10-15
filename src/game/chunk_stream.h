@@ -19,7 +19,7 @@
 
 class __declspec(novtable) Chunk {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BE94;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BE94);
 
     // 0: 0042BEE0 (empty). Called by ForEachChild for each child header read; the readers (the
     // zone's object records, map_spec.h) read the chunk's value by its id.
@@ -86,7 +86,9 @@ static_assert(sizeof(Chunk) == 0x18);
 // The root chunk of a file (vtable 0073BE9C, constructor 0042D1C0): slot 1 returns its CFile.
 class __declspec(novtable) RootChunk : public Chunk {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BE9C;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BE9C);
+    // The .mob object file's root (same slot 1; CWorldServer::LoadMapObjects builds it inline).
+    static constexpr std::uintptr_t kMapObjectFileVtableAddress = std::uintptr_t(0x0073FAD4);
 
     void* File() override;   // 1: 0042D260 (&file_)
 

@@ -95,7 +95,7 @@ Message* TypeRegistry::Create(std::uint32_t type) {
 EI_REPLACE_METHOD(0x00438930, TypeRegistry::Create);
 
 SessionBase* SessionBase::Construct() {
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     // The connection list: an empty STLport list (a 12-byte sentinel linked to itself).
     auto* sentinel = static_cast<ClientNode*>(stlp::allocate(sizeof(ClientNode)));
     clients_ = sentinel;

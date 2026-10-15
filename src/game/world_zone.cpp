@@ -44,7 +44,6 @@ Quaternion DefaultRotation() {
     return value;
 }
 
-constexpr std::uintptr_t kMapObjectFileVtable = 0x0073FAD4; // the .mob root chunk (inline constructor)
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
@@ -150,7 +149,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     root->Construct(nullptr);
     new (&root->file_) mfc::CFile();
     auto* fileObject = reinterpret_cast<mfc::CFileVirtuals*>(&root->file_);
-    ei::SetVtable(root, kMapObjectFileVtable);
+    ei::SetVtable(root, RootChunk::kMapObjectFileVtableAddress);
 
     mfc::CString path;
     ServerMapPath(this, nullptr, reinterpret_cast<char**>(&path), file);   // constructs the CString in place

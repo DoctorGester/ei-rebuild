@@ -54,7 +54,7 @@ public:
     // BeginWrite (00580EE0) is GameBuffer's: the quest file loader calls it on a growing buffer.
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F8C8);
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073CA48);
+    static constexpr std::uintptr_t kBaseVtableAddress = GameBuffer::kViewBaseVtableAddress;
     // 004DB040 (slot 2). Moves the window so that it starts at the cursor's file position (Flush,
     // then a reload there) unless it already does.
     void Rebase();

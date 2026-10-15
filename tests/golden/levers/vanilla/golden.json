@@ -2,11 +2,11 @@
   "scenario": "levers",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "39d56af7",
+  "commit": "53a3e76f",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "SV7b3: unit statistics stack copies zeroed in the original (harness) and ours; the passes left out part on script group order (gobject.i 699/702/1884, SV7b1); agreeing: orig0 j2 j3f ours1",
-  "saves": "6 decoded saves (tools/savefile.py), the same in 4 runs"
+  "repeated_in": 5,
+  "reason": "SV7b4a: the shadow's turn undone exactly (orientation kept and restored) in the original (harness) and ours; recorded with EI_HEAP_JITTER 1, 2, 3,fill and our hooks agreeing",
+  "saves": "6 decoded saves (tools/savefile.py), the same in 5 runs"
 }

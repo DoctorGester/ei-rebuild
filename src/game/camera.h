@@ -135,7 +135,7 @@ public:
     // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
     int OpenFile(const char* name);
     int RecordFrame(std::uint32_t time);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073B9E0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B9E0);
 
     static constexpr std::uint32_t kFollowing = 0x8;
     static constexpr std::uint32_t kRecording = 0x10;

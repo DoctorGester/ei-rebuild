@@ -438,7 +438,7 @@ std::uint8_t* GameBuffer::SeekView(std::int32_t position) {
 }
 EI_REPLACE_METHOD(0x0047D930, GameBuffer::SeekView);
 
-void __fastcall BufferViewDestruct(GameBuffer* self) { SetVtable(self, kBufferViewBaseVtable); }
+void __fastcall BufferViewDestruct(GameBuffer* self) { SetVtable(self, GameBuffer::kViewBaseVtableAddress); }
 EI_REPLACE(0x0047D960, BufferViewDestruct);
 EI_REPLACE(0x004DA850, BufferViewDestruct);   // byte-identical copy (reached when unwinding)
 
@@ -450,7 +450,7 @@ void* GameBuffer::DeleteView(unsigned deleteFlags) {
 EI_REPLACE_METHOD(0x0047D940, GameBuffer::DeleteView);
 
 void* GameBuffer::DeleteViewBase(unsigned deleteFlags) {
-    SetVtable(this, kBufferViewBaseVtable);
+    SetVtable(this, GameBuffer::kViewBaseVtableAddress);
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }

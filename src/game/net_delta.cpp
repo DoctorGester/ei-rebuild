@@ -70,7 +70,7 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
     std::uint32_t length = BufferLength(result);
     out->Write(result.begin, length);
     out->Seek(0);
-    ei::SetVtable(&view, kBufferViewBaseVtable);
+    ei::SetVtable(&view, GameBuffer::kViewBaseVtableAddress);
     GrowingBufferDestruct(&result);
 }
 } // namespace

@@ -39,7 +39,7 @@ static_assert(sizeof(RefVector) == 12);
 // server's handlers make a player record and a binding from it (net_server_join.cpp).
 class __declspec(novtable) LoginMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BBF8;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BBF8);
 
     int OnShutdown() override;                  // 2: 00413570
     LoginMessage* Clone() override;             // 3: 00413440
@@ -85,7 +85,7 @@ static_assert(sizeof(TextMessage) == 0x18);
 // the player's number and name).
 class __declspec(novtable) SayMessage : public TextMessage {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BC28;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC28);
 
     int OnShutdown() override;                  // 2: 00413A50
     SayMessage* Clone() override;               // 3: 00413930
@@ -101,7 +101,7 @@ static_assert(sizeof(SayMessage) == 0x18);
 // 0073BC40 (type 7, 0x1C bytes): a command for the server (ClientSession::SendCommand).
 class __declspec(novtable) CommandMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BC40;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC40);
 
     int OnShutdown() override;                  // 2: 00413E40
     CommandMessage* Clone() override;           // 3: 00413D20
@@ -141,7 +141,7 @@ static_assert(sizeof(PairMessage) == 0x14);
 // requesting connection on the server).
 class __declspec(novtable) FileRequestMessage : public PairMessage {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BC58;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC58);
 
     int OnShutdown() override;                  // 2: 00414130
     FileRequestMessage* Clone() override;       // 3: 004140D0
@@ -161,7 +161,7 @@ static_assert(sizeof(FileRequestMessage) == 0x14);
 // members are PartyMemberMessages). Kept by the client at +0x260C, by the server on +0x25B8.
 class __declspec(novtable) PartyMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BDD0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BDD0);
 
     int OnShutdown() override;                  // 2: 004177A0
     PartyMessage* Clone() override;             // 3: 004176A0
@@ -192,7 +192,7 @@ static_assert(sizeof(PartyMessage) == 0x34);
 // 0073BD78 (type 16, 0x34 bytes): one member of an offered party, serialised into a memory stream.
 class __declspec(novtable) PartyMemberMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD78;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD78);
 
     int OnShutdown() override;                  // 2: 004174F0
     PartyMemberMessage* Clone() override;       // 3: 00417420
@@ -212,7 +212,7 @@ static_assert(sizeof(PartyMemberMessage) == 0x34);
 // 0073BC70 (type 1, 0x3C bytes): a player record (the server's +0x2590, the client's +0x25D8).
 class __declspec(novtable) PlayerMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BC70;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC70);
 
     int OnShutdown() override;                  // 2: 00414650
     PlayerMessage* Clone() override;            // 3: 00414500
@@ -243,7 +243,7 @@ static_assert(sizeof(PlayerMessage) == 0x3C);
 // 0073BC88 (type 2, 0x20 bytes): a chat or system line (the server's +0x2594, the client's +0x25DC).
 class __declspec(novtable) LineMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BC88;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC88);
 
     int OnShutdown() override;                  // 2: 00414AC0
     LineMessage* Clone() override;              // 3: 00414A00
@@ -266,7 +266,7 @@ static_assert(sizeof(LineMessage) == 0x20);
 // +0x25EC; built by world_game.cpp's AnnounceHost).
 class __declspec(novtable) HostMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BCA0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BCA0);
 
     int OnShutdown() override;                  // 2: 00414FA0
     HostMessage* Clone() override;              // 3: 00414E80
@@ -287,7 +287,7 @@ static_assert(sizeof(HostMessage) == 0x24);
 // server's +0x25A4; a client keeps its own at +0x25F0.
 class __declspec(novtable) BindingMessage : public PairMessage {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BCB8;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BCB8);
 
     int OnShutdown() override;                  // 2: 004153B0
     BindingMessage* Clone() override;           // 3: 00415350
@@ -306,7 +306,7 @@ static_assert(sizeof(BindingMessage) == 0x14);
 // 0073BCD0 (type 8): a zone the host may pick next (the server's +0x25AC, the client's +0x25F8).
 class __declspec(novtable) ZoneMessage : public TextMessage {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BCD0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BCD0);
 
     int OnShutdown() override;                  // 2: 00415740
     ZoneMessage* Clone() override;              // 3: 00415620
@@ -322,7 +322,7 @@ static_assert(sizeof(ZoneMessage) == 0x18);
 // 0073BD00 (type 9): the map being played (the server's +0x25A8, the client's +0x25F4).
 class __declspec(novtable) MapMessage : public TextMessage {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD00;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD00);
 
     int OnShutdown() override;                  // 2: 00415F20
     MapMessage* Clone() override;               // 3: 00415E00
@@ -337,7 +337,7 @@ static_assert(sizeof(MapMessage) == 0x18);
 // 0073BCE8 (type 10, 0x20 bytes): a script variable (the server's +0x25B0, the client's +0x25FC).
 class __declspec(novtable) VariableMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BCE8;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BCE8);
 
     int OnShutdown() override;                  // 2: 00415B60
     VariableMessage* Clone() override;          // 3: 00415A30
@@ -357,7 +357,7 @@ static_assert(sizeof(VariableMessage) == 0x20);
 // 0073BD18 (type 11, 0x2C bytes): a shared file (the server's +0x2598, the client's +0x25E0).
 class __declspec(novtable) FileMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD18;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD18);
 
     int OnShutdown() override;                  // 2: 00416390
     FileMessage* Clone() override;              // 3: 00416220
@@ -381,7 +381,7 @@ static_assert(sizeof(FileMessage) == 0x2C);
 // 0073BD30 (type 12, 0x54 bytes): 64 bytes of a shared file (the client's +0x25E4).
 class __declspec(novtable) FileChunkMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD30;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD30);
     static constexpr std::size_t kDataSize = 0x40;
 
     int OnShutdown() override;                  // 2: 00416780
@@ -405,7 +405,7 @@ static_assert(sizeof(FileChunkMessage) == 0x54);
 // the client's +0x2608; ClientSession::ApplyAwards).
 class __declspec(novtable) AwardMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD48;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD48);
 
     int OnShutdown() override;                  // 2: 00416B30
     AwardMessage* Clone() override;             // 3: 00416A10
@@ -428,7 +428,7 @@ static_assert(sizeof(AwardMessage) == 0x24);
 // +0x2618).
 class __declspec(novtable) TradeMessage : public Message {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BD60;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BD60);
 
     int OnShutdown() override;                  // 2: 00416EB0
     TradeMessage* Clone() override;             // 3: 00416E30
