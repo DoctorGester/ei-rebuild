@@ -47,7 +47,8 @@ Functions that need the whole world (AI ticks, the renderer) stay with the golde
 ## 4. Coverage
 
 A list of rewritten functions that no golden run and no vector reaches, from the hook build's call
-counts. New scenarios target that list before the hook build is retired.
+counts. New scenarios target that list before the hook build is retired. Done in SV5: `tests/coverage/coverage.csv`
+(`python tools\coverage.py`).
 
 ## 5. The loop for a standalone change
 
@@ -64,7 +65,7 @@ counts. New scenarios target that list before the hook build is retired.
 | SV2 | State digest and dump in the harness; golden record / compare commands; tests/golden layout | 1 |
 | SV3 | Record goldens for the suite (vanilla, Rebirth flags on and off); saves at checkpoints. Done 2026-10-15: 42 goldens, `--golden` in run_all and work.py test (section SV3) | 1 |
 | SV4 | Function vector record mode and the replay test exe, for the families listed in section 3 | 2 |
-| SV5 | Coverage list, and scenarios for what it shows uncovered | 1+ |
+| SV5 | Coverage list, and scenarios for what it shows uncovered. Done 2026-10-15: `EI_COVER=hooks`, tools/coverage.py, tests/coverage; five scenarios; the rest in SV5a-d (section SV5) | 1+ |
 
 Multiplayer is not covered: the harness starts only the lobby. A two-client harness (also wanted for the
 Rebirth multiplayer patches, rebirth.md) would add network runs to the goldens.
@@ -402,3 +403,60 @@ address, so CBaseManager::ConstructBase's bucket pointers failed to pair (six sc
 ui_census's vtable range) now end at the image's real end, 0x007D7000. ui_hud under Rebirth: zone1's
 lone wolf (obj1804) reached the hero during the HUD walk and the "hero died" box covered the HUD on
 every run; the scenario now has the hero in god mode until its last check.
+
+## SV5: the coverage list (2026-10-15)
+
+**How a function counts as reached.** `EI_COVER=hooks` (src/hook/cover.cpp) puts a one-shot INT3 on
+every installed hook's address and on the first byte of its plain replacement (our function), so calls
+from ours to ours count as well as the game's calls through the JMP; the first hit logs `cover ADDR`
+in ei_hook.log. Limits: a call the compiler inlined is not seen; a replacement shared by two addresses
+marks both; static initialisers run before the hooks exist (they have EI_STARTUP_CHECKs instead).
+`EI_COVER=<addr,...>` (the old mode) still watches single addresses.
+
+**The tool.** `tools/coverage.py`:
+- `collect <run folders> [--add]` reads the `*-vanilla` runs whose log says `address(es) from hooks`
+  and writes `tests/coverage/reach.txt` (per hook, a bitset of the scenarios that reach it; `--add`
+  keeps the scenarios already there). Collected with `EI_COVER=hooks python tools/work.py test <ID>
+  --vanilla-only` over the whole suite.
+- `list` writes `tests/coverage/coverage.csv`: per rewritten function (EI_REPLACE names and files,
+  sizes from function_sizes.inc, the wrapper kind from EI_VERIFY's stolen bytes) its status: golden (a
+  vanilla golden scenario reaches it), vector (tests/vectors/data has its file; the recorders map
+  addresses to .vec names, following one helper level), suite (only scenarios without a golden),
+  unreached, startup / dead (`tests/coverage/unreachable.txt`), not-installed (vanilla). Risk, for
+  suite and unreached: size x area weight (game state 3, network / UI / libraries 2, drawing and sound
+  1) x2 when unreached x1.5 when the wrapper is ours-only (it checks less than a comparing one).
+- `who <address or name>` (which scenarios reach it), `top [N] [--area]` (the ranked gaps).
+
+**Numbers** (97 scenarios): 6059 hooks installed in the vanilla run, 4668 reached. Of 6220 rewritten
+functions: 3737 golden, 7 vector, 924 suite, 1384 unreached, 6 startup, 1 dead, 161 not installed.
+By risk the largest areas are multiplayer-only (net_messages.cpp alone has 117 functions; SV5d), the
+fake unit scene loader (SV5c), camp crafting and exchange screens, item info descriptions, and AI
+modes that only zone units take (SV5a).
+
+**The known gaps.**
+- CubicSegment::Evaluate 0040E440 and SetBSpline 0040E3D0 are dead: the only caller of 0040E440
+  (0040DEB0) has no references, and nothing calls SetBSpline. The game uses a byte-identical copy of
+  Evaluate at 004E5660 (camera and AI curves); record_maths.cpp records it into the same sampler and
+  `CubicSegment__Evaluate.vec` (256 records) now has data. SetBSpline's check stays without data.
+- UnitStats::ReduceKind1: recorded from the new unit_ai_heal (one distinct call).
+- MultiplyByConjugate: only MakeFrameRelative calls it, inside the fake unit (class 0x39, .amf) scene
+  loader, which no scenario reaches (SV5c).
+- LockKey::Opens: only Lever::KeyOpens and Lever::ApplyKey call it, a quest item used on a locked
+  lever from the quick item panel (SV5b).
+
+**New scenarios** (all pass on vanilla with hooks; none has `speed`):
+- unit_ai_heal: zone1's wolf 1804 gets a healing spell and an alarm rebuilds its options; the AI's
+  Score -> ReduceKind1 path.
+- ui_base_topic: a base topic (b.Smith.M4) in bz1g; StartDialogue, StartPhrases, NextPhrase,
+  ShowItem, FinishDialogue, CompleteBriefing (0 mismatches).
+- world_loot: three dead wolves, `lootall` (LootDeadUnits, Loot) and the camp's `give 0 assortment`
+  (CCampPages::DebugFill).
+- unit_ai_cast: the wolf casts a fireball (CSpellEffect::UpdateMissile); OrderCastAt is still not
+  reached.
+- zone_gz15h_tornado: a tornado zone; CEffectTornado's Launch, Tick and Reset (69 s on the clock).
+
+**Goldens not recorded** for them yet, all for known SV1 classes: unit_ai_heal (ours parts at update
+640: isaac.count, an AI unit's standCooldown), unit_ai_cast (update 720: obj699 ai.looks 3 against 2,
+and the original's "acknowledges with idleSound" line missing in ours), ui_base_topic (the original
+does not repeat at update 80 in bz1g) and world_loot (the original does not repeat at update 200,
+isaac.count, with the same console). zone_gz15h_tornado was not tried (69 s per run).

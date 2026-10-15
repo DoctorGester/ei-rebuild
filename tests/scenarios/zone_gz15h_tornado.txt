@@ -1,0 +1,21 @@
+# Tornados (SV5's coverage list: CEffectTornado, world_effect_tornado.cpp, was reached by no scenario).
+# A zone whose map.txt weather is "tornado" (gz15h, climate 3) has the server's weather update
+# (0058CCD0, every 64th tick) try a strike at a random point; where the ground is open, a tornado
+# (class 0x65) is launched towards a point 30 to 70 away (0067DA50) and crosses the map (Tick
+# 0067DBD0), hurting player-owned units near it. The hero is in god mode. No `speed`, so a golden can
+# be recorded (standalone-verification.md, SV3).
+timeout 120
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 40 IsUnitBlocked(GetLeader())
+zone gz15h 0
+waitzone 30 gz15h
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @GodMode(0,1)
+wait 150000
+check IsAlive(GetLeader())
+report
+quit
