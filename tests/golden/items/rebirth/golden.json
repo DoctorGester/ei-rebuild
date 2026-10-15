@@ -2,11 +2,11 @@
   "scenario": "items",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "e1b2d7cf",
+  "commit": "eb3af83e",
   "digest_period": 20,
-  "left_out": " updateCountdown$",
-  "clear": "(?:^obj2 (hp|maxHp)$)",
+  "left_out": null,
+  "clear": "(?:^script gobject\\.i$)",
   "repeated_in": 4,
-  "reason": "SV3: first goldens of the suite; the original repeated in two runs and ours (hooks; Rebirth: flags following addon.dll) matched it in two",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 51736 57ba622ac8c2b84b', orig2 'savea/mission.sav 51725 da9739002e9d69ad'"
+  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50675 bb102815820e5182', orig2 'savea/mission.sav 50659 e48d10798600e2c2'"
 }

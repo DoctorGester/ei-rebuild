@@ -2,11 +2,11 @@
   "scenario": "camera",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "e1b2d7cf",
+  "commit": "eb3af83e",
   "digest_period": 20,
-  "left_out": " updateCountdown$",
-  "clear": "(?:^obj2 (hp|maxHp)$)",
+  "left_out": null,
+  "clear": "(?:^script gobject\\.i$)",
   "repeated_in": 4,
-  "reason": "SV3: first goldens of the suite; the original repeated in two runs and ours (hooks; Rebirth: flags following addon.dll) matched it in two",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50807 ab1d2c75a1d49cc4', orig2 'savea/mission.sav 50944 c2495ffff11ce2da'"
+  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50159 a737a00db1f23d26', orig2 'savea/mission.sav 50109 a10070a8e7d54c1d'"
 }

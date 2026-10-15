@@ -82,7 +82,7 @@
   1
   a  b
   Script error: Unexpected token 'NoSuchCommandX'
-  Current FPS: 20
+  Current FPS: 3.63636
   Invalid debug info position
   Invalid debug info position
   Invalid console position
@@ -103,7 +103,7 @@
   ZT1 = 1
   b.bz2g.z0 = 1
   cs b = 7
-  gtime = 6.04444
+  gtime = 6.00333
   z.gz2g_gz3g = 1
   cs.a = 3
   z.gz1g_gz2g = 1
@@ -113,7 +113,7 @@
   ZT1 = 1
   b.bz2g.z0 = 1
   cs b = 7
-  gtime = 6.04444
+  gtime = 6.00333
   z.gz2g_gz3g = 1
   cs.a = 3
   z.gz1g_gz2g = 1
@@ -121,6 +121,6 @@
   Wrong player number
   Wrong player number
   FADEOUT nMillSec
-  Current FPS: 20
+  Current FPS: 3.63636
   Unknown command
   1

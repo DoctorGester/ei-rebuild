@@ -303,7 +303,7 @@ Rebirth with the flags on is the default Rebirth run (FollowAddon: every flag fo
 the Rebirth golden (addon's code alone); with the flags off (`set EI_REBIRTH=FollowAddon=0`) the rewrites of what
 addon.dll patches are not installed, so addon's code runs there and the same Rebirth golden applies.
 
-**Covered (42):** vanilla 37: camera, console, harness_digest, hero_death, items, levers, net_lobby, objects_more,
+**Covered (42; superseded by SV3d's re-recording below):** vanilla 37: camera, console, harness_digest, hero_death, items, levers, net_lobby, objects_more,
 party_records, render_movie, render_movie_present, render_scene, render_terrain, render_titles_present,
 sandbox_actions, script_copy, script_parse, script_quest, smoke, spells_cast, ui_battle_spells, ui_container_input,
 ui_help, ui_hero_delete, ui_hero_screen, ui_hero_stats, ui_main_menu, ui_objectives, ui_options_bind, ui_order_move,
@@ -640,3 +640,37 @@ modes that only zone units take (SV5a).
 and the original's "acknowledges with idleSound" line missing in ours), ui_base_topic (the original
 does not repeat at update 80 in bz1g) and world_loot (the original does not repeat at update 200,
 isaac.count, with the same console). zone_gz15h_tornado was not tried (69 s per run).
+
+
+## SV3d: the goldens recorded again (2026-10-15)
+
+After SV1b (repeatable heap), SV1i (no `speed 10`), SV2a (digest 2) and SV3a (unmoco2's hit points), SV3's recipe over
+the whole suite (orig twice with `--fresh`, ours twice, EI_DIGEST=20, 4 games at once): **56 goldens** in digest 2,
+vanilla 46: camera, combat, combat_more, console, ground_prints, harness_digest, hero_death, items, levers, magic_traps,
+map_objects, movement, net_lobby, objects_more, party_records, render_movie, render_movie_present, render_scene,
+render_terrain, render_titles_present, sandbox_actions, sandbox_map, script_copy, script_parse, script_quest, smoke,
+spells, spells_cast, terrain_water_load, ui_battle_commands, ui_battle_spells, ui_help, ui_hero_delete, ui_objectives,
+ui_options_bind, ui_order_move, ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore,
+unit_ai, unit_ai_fear, units, world, world_load; Rebirth 10: console, ground_prints, harness_digest, items, levers,
+map_objects, script_parse, ui_help, ui_widescreen_hud, ui_widescreen_more. ui_main_menu, ui_hero_screen and
+ui_hero_stats keep their digest-1 goldens (the four runs match them; digest 2 parts in cunit2's rotation, SV3f).
+ui_container_input's and unit_create's old goldens no longer hold (SV1i; not re-recorded) and are to be dropped.
+cunit2's vitals now agree with the original everywhere, so KNOWN keeps only SV2b's entry. A fifth suite with `--golden`
+(ours, 117 runs): 59 the same, the two stale ones differ.
+
+Repeats: the original 87 of 106 passing runs, ours 98 of 114. Not recorded (by the first difference; `@N` world update):
+- *SV1j family* (isaac.count first, with zone1's idle wolf obj1936 `ai.standCooldown` and/or the hero's client
+  `animationStart` a few ms apart; both sides flip between the same alternatives, so a harness timing leak, not a
+  rewrite): effects, effects_bow (both), frames_basic (rebirth), particles, rebirth_flags (rebirth), spells_hero,
+  trader_stock (both), ui_camp (both), ui_camp_deals (both), ui_describe, ui_global_map_pick, ui_help_page (rebirth),
+  ui_quick_items (both), ui_trade_hold (both), ui_trade_restore (rebirth), ui_view_screen, ui_widescreen_screens
+  (rebirth), script_fx, zone_base_bz1g, ui_mp_host (both); crt.rand only in the original's own runs: ui_base_dialogue,
+  unit_create (SV2c), zone_gz3g.
+- *Ours against the original, real:* stored script runs keep the instance as kill flag (SV3e: frames_basic,
+  render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_hud both, world_client, zone_base_bz1g,
+  ui_mp_host); client unit rotation by an ulp (SV3f: ui_main_menu, ui_hero_stats, ui_hero_screen, ui_container_input,
+  ui_widescreen*, script_exec); cunit129 flag 0x400 (SV3g: ui_widescreen, _hud, _more, _screens vanilla); obj2 hp NaN
+  payload (SV3h: render_present_cpuwindows); zone_gz3g's VSS#i#val between our runs (SV3i, SV2b on vanilla); crt.rand
+  (SV3j: sound, zone_gz2g_traps, models).
+- *Fail without our hooks:* rebirth_flags (vanilla), render_cursor_present (both: no cursor-thread presents without our
+  renderer), render_device_lost, render_present_shot (both), render_present_window; render_present_fullscreen is not run.
