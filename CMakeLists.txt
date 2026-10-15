@@ -68,7 +68,20 @@ file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
 add_executable(ei_vectors
     ${EI_REPLAY_SOURCES}
     tests/vectors/hook_stub.cpp
+    src/game/ai_block_search.cpp
+    src/game/ai_grids.cpp
+    src/game/ai_join.cpp
+    src/game/ai_local_search.cpp
+    src/game/ai_map.cpp
+    src/game/ai_motion.cpp
+    src/game/ai_movement.cpp
+    src/game/ai_path.cpp
+    src/game/ai_path_cells.cpp
+    src/game/ai_path_smooth.cpp
+    src/game/ai_plan.cpp
+    src/game/ai_region_reach.cpp
     src/game/core_maths.cpp
+    src/game/core_refcount.cpp
     src/game/game_buffer.cpp
     src/game/maths.cpp
     src/game/matrix_math.cpp
@@ -84,7 +97,8 @@ add_executable(ei_vectors
     src/lib/rebirth.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
-    src/lib/mfc.cpp)
+    src/lib/mfc.cpp
+    src/lib/mfc_list.cpp)
 target_include_directories(ei_vectors PRIVATE include src)
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)

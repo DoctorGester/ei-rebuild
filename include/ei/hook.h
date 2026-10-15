@@ -203,8 +203,17 @@ struct RegRecord {
 
 // Define a function body that forwards to original code not rewritten yet. Works for any calling
 // convention (including __thiscall methods) because it is a bare jump with the stack untouched.
+#ifdef EI_VECTORS_REPLAY
+// ei_vectors.exe has no game.exe: a forwarder goes on to the rewrite registered at its address, or
+// to a replay stand-in, and ends the run naming the address when there is neither
+// (tests/vectors/hook_stub.cpp).
+extern "C" void ei_replay_forward();
+#define EI_ORIGINAL(addr) \
+    { __asm { push addr } __asm { jmp ei_replay_forward } }
+#else
 #define EI_ORIGINAL(addr) \
     { __asm { mov eax, addr } __asm { jmp eax } }
+#endif
 
 // Verification build only (tests/verify_*.cpp): route `addr` to `wrapper`, and store a callable
 // pointer to the original code in `orig`.

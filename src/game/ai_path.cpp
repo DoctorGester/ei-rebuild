@@ -1,6 +1,7 @@
 // Path search on the AI map: snapping the target to a reachable cell, planning, and feeding the
 // planned cells to the unit's steering.
 #include "ai_map.h"
+#include "game_data.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -66,6 +67,9 @@ float Abs(float f) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+
+// 007AFFC4: the world tick, the start time of the order AdvancePath gives.
+int WorldTick() { return ei::GameData<const int>(0x007AFFC4); }
 
 constexpr float kDiagonal = 0.707f;     // 0073FDAC
 constexpr float kInset = 0.49f;         // 0073FDA8
@@ -172,7 +176,7 @@ EI_REPLACE_METHOD(0x005BAC10, CAIMap::SnapTarget);
 
 void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
-    int count = *reinterpret_cast<const int*>(0x007AFFC4);
+    int count = WorldTick();
     Vector3 facing;
     FacingDirection(&unit->orientation, nullptr, &facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
