@@ -1350,7 +1350,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 12 done: address constants 69 -> 20 (shared vtables homed on CRefCounted, CRefObject, GameBuffer, CMemoryStream, RootChunk; 43 plain kVtableAddress statics respelled); raw addresses 714 -> 664. Left 20: kNoElementTick, hook/standalone image addresses, kEmptyTextAddress and the data globals batch 11 listed."
+note = "Batch 12 merged: address constants 69 -> 20 (shared vtables got class homes); raw addresses 714 -> 664. Left: kNoElementTick, 7 image addresses, kEmptyTextAddress, kStateBlockAlpha, kMasterHost, unit_ai globals, kCandidates(+Guard), kScriptQueue, two options.cpp float factors. Next: other C11 shim/raw-address families."
 
 [[ticket]]
 id = "C12"
