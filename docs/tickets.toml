@@ -1701,7 +1701,7 @@ note = "S12b registered 12 sort and 10 pair addresses (standalone.md, S12b group
 id = "S3e"
 title = "Rebirth: exit stops after MFC's thread state frees the handle maps"
 group = "standalone"
-note = "Seen in S3d on main too: on the Rebirth install the normal exit's log ends at 'verify CMapPtrToPtr::~CMapPtrToPtr: first call' (the _AFX_THREAD_STATE / module thread state destructor freeing afxMapHDC / afxMapHGDIOBJ under ~CThreadLocal 0070CC2D), then either an access violation in Riched20.dll (+64E5, reading 00000008; ui_main_menu-rebirth) or the game still running at ei_launch's 3 s limit (smoke-rebirth, console-rebirth): no 'verify total' lines are written. Vanilla exits cleanly. Find which DLL (Rebirth's addon / dinput proxy, Riched20) still holds MFC temporary objects or a window after the maps go, and whether it predates S8a's CMapPtrToPtr / CHandleMap ports (run with those registrations off)."
+note = "Cause: Rebirth's addon.dll CtfMon switch (Settings\\CtfMon=1) restarts CTFMon.exe from its DLL_PROCESS_DETACH; also hung the original with --no-hooks. Harness answers CtfMon 0; ei_launch writes exit_hang.txt for a hung exit. Covers R9c6 and X32."
 
 [[ticket]]
 id = "S3f"

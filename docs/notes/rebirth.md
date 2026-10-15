@@ -34,7 +34,10 @@ a hook would silently drop the plugin's change (0045C560 was one). dgVoodoo is t
 
 addon reads `HKCU\Software\Gipat.Ru\EI_Starter\Settings` (`WideScreen`, `ObjectsDrawRadius` / `LandscapeDrawRadius` [100; 5376 here], `AddonPath` =
 `starter\MODS\Standard`, ...), `...\General Settings\VIDEORESOLUTION`, `2utoexec.cfg` and the mod's `config.reg`. The Standard mod sets only title
-and version, so the mod table does not run and mod-dependent patches are disabled except the resource redirections. EI_Plugin reads
+and version, so the mod table does not run and mod-dependent patches are disabled except the resource redirections. `Settings\CtfMon`
+(1 here) makes addon send WM_DESTROY to the text input service's window (`FindWindowA("CicLoaderWndClass")`, addon+FFB4) when it applies
+its patches and, in its DLL_PROCESS_DETACH (addon+101CD -> addon+BCE5), start `<system32>\CTFMon.exe` with CreateProcessA and wait up to
+2 s for it: under the loader lock, after every atexit function. Harness runs answer it 0 (S3e: it hung every Rebirth exit). EI_Plugin reads
 `.\EI_Plugin.ini` `[CONFIG]` (NPlayers 7, Pause 1, NewMaster 1, Scripts 1, Briefings 1, Fixes 1; PK, AutoAim, GraphGen, Test 0).
 
 addon's machinery: apply tables in a fixed order (the mod-dependent ones run only with a mod selected, "moved patches" only when a compatible

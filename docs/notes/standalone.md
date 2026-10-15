@@ -894,6 +894,21 @@ initialisers without code 0 call targets, 0 exit functions, 0 exit callees; the 
 005AF580. In the image AfxCriticalInit and the locks run over the exe's data copy (zero, so first
 use initialises them).
 
+**S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
+hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
+quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return
+addresses as module+offset) before it ends a game hung after quit; it showed one thread left, in ntdll's
+process shutdown -> addon.dll's DLL_PROCESS_DETACH (addon+1022E, +101DB) -> addon+BCE5 -> CreateProcessA
+(through AcLayers' shim) -> USER32 -> win32u. addon+BCE5 starts `<system32>\CTFMon.exe` and waits up to 2 s for
+it when the starter switch `Settings\CtfMon` is 1 (it is here); the same switch makes addon send WM_DESTROY to
+the `CicLoaderWndClass` window (ctfmon) when it applies its patches, so every Rebirth run also ended the user's
+text input service. The harness answers CtfMon 0 in every run (tests/verify/harness_starter.cpp, through the
+advapi32 RegQueryValueExW slot it already answered for WideScreen; now patched in every run). After it, the full
+suite (128 runs) and render_present / render_movie_present / render_device_lost on Rebirth exit by themselves,
+and every Rebirth log ends with its `verify total` lines. The log's last "first call" (~CMapPtrToPtr) was only
+the last hooked function reached for the first time, not where it stopped. The Riched20 access violation of
+ui_main_menu-rebirth was not seen again in these runs. R9c6 and X32 are the same cause.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
