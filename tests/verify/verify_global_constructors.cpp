@@ -4,7 +4,8 @@
 // still untouched at the entry of WinMain (the databases load later). Each check below runs once at
 // that point (EI_STARTUP_CHECK), builds the same object with our constructor into storage of its
 // own, compares it with the original's global and destroys ours. Compares against the original;
-// every game start reaches them, no scenario is needed.
+// every game start reaches them, no scenario is needed. The spell and item constructors also run
+// when a network game switches the resource databases; wrappers check those (ours only).
 //
 // What is compared: STLport vectors empty; hash_maps with the same bucket count (193), every
 // bucket null and no elements; plain fields bit for bit. Heap blocks differ by address only: a
@@ -139,6 +140,31 @@ void SpellDatabaseStartupCheck() {
     ours->modifiers.byCode.Destroy();
 }
 EI_STARTUP_CHECK(SpellDatabaseStartupCheck);
+
+// The resource switch's resets (0057CB50, network games) construct the spell and item databases
+// again after destroying them: ours only, the tables left empty. No scenario reaches them yet
+// (ui_mp_host does not switch).
+void* s_unusedOriginal;
+
+itemdb::SpellDatabase* __fastcall SpellDatabaseConstructVerify(itemdb::SpellDatabase* self) {
+    itemdb::SpellDatabase* result = self->Construct();
+    bool empty = result == self && EmptyCodeTable(self->spells) && EmptyCodeTable(self->modifiers);
+    for (auto& list : self->lists) empty = empty && EmptyVector(list);
+    ei::verify::Check("SpellDatabase::Construct", true, empty, "not empty with 193 buckets");
+    return result;
+}
+EI_VERIFY(0x0057E2F0, SpellDatabaseConstructVerify, 0, s_unusedOriginal);
+
+itemdb::ItemDatabase* __fastcall ItemDatabaseConstructVerify(itemdb::ItemDatabase* self) {
+    itemdb::ItemDatabase* result = self->Construct();
+    bool empty = result == self;
+    for (itemdb::IndexedRecordTable* t : {&self->materials, &self->weapons, &self->armors, &self->quickItems,
+                                          &self->questItems, &self->loot})
+        empty = empty && EmptyTable(t->records, t->capacityEnd) && EmptyMap(t->ByName());
+    ei::verify::Check("ItemDatabase::Construct", true, empty, "not empty with 193 buckets");
+    return result;
+}
+EI_VERIFY(0x0057E3D0, ItemDatabaseConstructVerify, 0, s_unusedOriginal);
 
 void ItemDatabaseStartupCheck() {
     auto* theirs = reinterpret_cast<itemdb::ItemDatabase*>(std::uintptr_t(0x007C86D8));

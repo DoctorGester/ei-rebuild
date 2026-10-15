@@ -12,7 +12,7 @@ exe, how the first standalone exe gets around it, and what a switch from cp1251 
 | Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), 5 unported, 1,443 library: STLport 881, MFC 399, compiler-generated 49, CRT 37, import thunks and others 77 |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions (336 MFC: the `CArray` / `CList` / `CMap` deleting destructors and `Serialize` slots) |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 35 (S3b), the exit functions' callees 47 (S4-S9, S3c) |
+| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 25, all library code (S4-S12; S3b ported the ten game-side ones), the exit functions' callees 47 (S4-S9, S3c) |
 | Reads of the exe's code bytes | the frame's camera call target (00457595), app_frame's CALL test, Rebirth detection (live bytes against the file): each has a standalone path (S14) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 | Cleanup counts (no effect on the first exe) | C11 shims 1,034, `__asm` 221, `float_control` 114, raw addresses 1,025 |
@@ -133,7 +133,7 @@ guards match the original's memory in smoke and ui_main_menu, both installs; thr
 values) that a later call rebuilds are left to their own checks) and `Targets` (the standalone check logs the call targets and exit functions that
 are still INT3). tools/check_static_init.py (build.cmd) re-decodes game.exe: the file must match (a
 helper that gets registered later changes the output: rerun the generator), and every address must be
-in its section. On 2026-10-15 the image lacks 35 call targets (library constructors for S4-S12, ten
+in its section. On 2026-10-15 the image lacked 35 call targets (library constructors for S4-S12, ten
 compiler-generated global constructors, MFC internals: S3b) and 130 of the 311 exit functions (S3a).
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
@@ -152,6 +152,23 @@ no code yet" (MFC CString x12, operator delete x16, CByteArray, CWnd x4, 006E6BF
 destructors (S3c). Checked: check_static_init (the file and the sizes against game.exe's instructions),
 the standalone check (0 exit functions without code), smoke and ui_main_menu on both installs (129
 hooked; vanilla exits through all of them).
+
+**S3b (2026-10-15).** The ten compiler-generated global constructors only static initialisers call
+are ported and registered at their addresses: the skill, spell, item, quest, prints and acks databases
+(src/game/database_construct.cpp: empty vectors, hash_maps of 100), the logic settings' defaults
+(005CDFC0, logic_settings.cpp; size 297 in extra_function_sizes), the multiplayer heroes
+(SavedParties, party_file.cpp) and both worlds (world_construct.cpp: the members' constructors in the
+original's order, the inlined ones written out). They run before the hooks, so
+tests/verify/verify_global_constructors.cpp builds each again at WinMain entry and compares with the
+original's global (fields bit for bit, heap pointers by kind, the hash_maps' three uninitialised functor
+bytes skipped, including the AI map's bridge heights): 0 mismatches in smoke, ui_main_menu, net_lobby
+and ui_mp_host, both installs. The image then lacks 25 call targets, all library code: S5 CWordArray
+006FEE9A, CByteArray 006FF5EA, CString(LPCTSTR) 007009DE and the MFC internals (006E6BCD, 006E68C9,
+006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546, 0070DC4D, 00700674, 006FC42F); S6 CArray
+005C1760; S7 CList 005CDAD0; S4 atexit 006E727B, the eh vector constructor iterator 006E8693, the
+WSAStartup thunk 006E6106; S11 hashtables 004DC830, 0066B320; S12 STLport 00455E50, 004ED540, 0056A410,
+005E0A90. The world constructors also call GridAllocate 00572820 / 005728D0, CStringArray 006FE925 and
+CString::operator= 00700AF9 at their addresses.
 
 **S9 (2026-10-15).** STLport `list<T>` (src/lib/stlp_list.h, stlp_list.cpp): one body per member,
 `ListAbi<T, Policy>` shims with the instantiations' calling conventions, the element copy / destroy
