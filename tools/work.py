@@ -528,6 +528,36 @@ def cmd_db(db, args):
     return 0
 
 
+def prune_counts(db, say=print):
+    """WB11: clear run.counts of every finished or cancelled batch, one short transaction per batch (the live
+    database is in use). Only the scheduler's summary reads the counts, once, when the batch ends; since WB11 it
+    clears them itself, so this is for databases from before. Returns the number of runs cleared."""
+    ids = [r[0] for r in db.execute("SELECT DISTINCT run.batch FROM run JOIN batch ON batch.id = run.batch "
+                                    "WHERE batch.finished IS NOT NULL AND run.counts IS NOT NULL ORDER BY run.batch")]
+    total = 0
+    for i in ids:
+        with transaction(db):
+            total += db.execute('UPDATE run SET counts = NULL WHERE batch = ? AND counts IS NOT NULL', (i,)).rowcount
+    say(f'cleared the counts of {total} runs in {len(ids)} batches')
+    db.execute('PRAGMA wal_checkpoint(PASSIVE)')
+    return total
+
+
+def cmd_prune(db, args):
+    prune_counts(db)
+    free, pages = db.execute('PRAGMA freelist_count').fetchone()[0], db.execute('PRAGMA page_count').fetchone()[0]
+    size = db.execute('PRAGMA page_size').fetchone()[0]
+    print(f'{free * size / 1e6:.0f} MB of {pages * size / 1e6:.0f} MB are free pages')
+    if args.vacuum:
+        print('vacuum (blocks writers until it ends)...')
+        db.execute('VACUUM')
+        print(f'{os.path.getsize(db_path()) / 1e6:.0f} MB after')
+    elif free * size > 100e6:
+        print('the file keeps its size until `work.py prune --vacuum` runs: it blocks every writer for as long as it copies the '
+              'live data (seconds when the counts are gone); run it when no batch is starting or ending')
+    return 0
+
+
 def cmd_serve(db, args):
     import work_board.server
     return work_board.server.serve(sys.modules[__name__], args.port)
@@ -546,6 +576,8 @@ def main():
     p = sub.add_parser('status', help='assignments, notes, batches'); p.add_argument('id', nargs='?')
     p = sub.add_parser('done', help='end the assignment'); p.add_argument('id'); p.add_argument('text', nargs='*')
     sub.add_parser('db', help='the database path and row counts')
+    p = sub.add_parser('prune', help="clear the old runs' per-function counts (WB11)")
+    p.add_argument('--vacuum', action='store_true', help='then VACUUM: shrinks the file, blocks writers meanwhile')
     p = sub.add_parser('serve', help='the live board on localhost'); p.add_argument('--port', type=int, default=8765)
     p = sub.add_parser('test', help='run_all through the scheduler (tools/work_sched.py)')
     p.add_argument('id'); p.add_argument('run_all_args', nargs=argparse.REMAINDER)
@@ -556,7 +588,7 @@ def main():
         if args.cmd in ('test', 'scheduler'):
             import work_sched
             return getattr(work_sched, 'cmd_' + args.cmd)(db, args)
-        return {'start': cmd_start, 'note': cmd_note, 'status': cmd_status, 'done': cmd_done, 'db': cmd_db, 'serve': cmd_serve}[args.cmd](db, args)
+        return {'start': cmd_start, 'note': cmd_note, 'status': cmd_status, 'done': cmd_done, 'db': cmd_db, 'prune': cmd_prune, 'serve': cmd_serve}[args.cmd](db, args)
     finally:
         db.close()
 

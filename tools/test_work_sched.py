@@ -238,7 +238,7 @@ class SchedTest(unittest.TestCase):
         self.assertEqual((runs['flaky']['result'], runs['flaky']['attempt']), ('PASS*', 1))
         self.assertEqual((runs['bad']['result'], runs['bad']['attempt']), ('FAIL', 1))
         self.assertEqual((runs['good']['result'], runs['good']['attempt']), ('PASS', 0))
-        self.assertEqual(json.loads(runs['good']['counts']), {'Fn': [3, 0]})
+        self.assertIsNone(runs['good']['counts'])        # WB11: cleared once the batch has its summary
         b = self.batch(a)
         self.assertEqual(b['exit_code'], 1)
         self.assertIn('not passed:', b['summary'])
@@ -246,6 +246,16 @@ class SchedTest(unittest.TestCase):
         self.assertTrue(b['summary'].rstrip().endswith('SOME RUNS FAILED'))
         times = json.load(open(os.path.join(self.tmp, 'b', 'run_times.json')))
         self.assertEqual(sorted(times), ['bad-vanilla', 'flaky-vanilla', 'good-vanilla'])
+
+    def test_prune_counts(self):
+        fake = Fake(default=0.05)
+        a = self.submit(['x1', 'x2'])
+        self.drive(self.sched(fake))
+        db = self.db
+        db.execute("UPDATE run SET counts = '{\"Fn\": [3, 0]}'")       # a database from before WB11
+        self.assertEqual(work.prune_counts(db, say=lambda *_: None), 2)
+        self.assertEqual(db.execute('SELECT count(*) FROM run WHERE counts IS NOT NULL').fetchone()[0], 0)
+        self.assertEqual(work.prune_counts(db, say=lambda *_: None), 0)
 
     def test_gone_submitter_cancels_queued_runs(self):
         dead = subprocess.Popen([sys.executable, '-c', 'pass'])
