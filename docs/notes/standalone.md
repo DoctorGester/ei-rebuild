@@ -746,7 +746,12 @@ string pairs' constructors original first, its blocks back on their free lists (
 first), then ours (same blocks, words, bytes, dword); the destructors ours only (the first string's
 pool block on top of its free list; 004457F0 starts with a CALL inside five bytes, so no trampoline).
 smoke, console, camera, combat, ui_objectives, ui_saveload, harness_digest with goldens: 14 the
-same, 0 mismatches; 0040A9D0, 00689950, 0064F880 and 004457F0 not reached.
+same, 0 mismatches; 0040A9D0, 00689950, 0064F880 and 004457F0 not reached. The full `--golden` suite: 128 runs pass
+(rebirth_flags vanilla's known first-run DistancePointPoint flake), 54 goldens the same; ui_widescreen_hud
+and ui_widescreen_more (rebirth) differ at world update 80 (cunit148 #place) with all 22 S12b addresses
+in disabled.txt too, so not from S12b. The sort start-up check skips itself when a sort is disabled
+(no trampoline). Left for S12c: the allocating sorts (objectives, save list), pair<string, list<T>>
+0069C1C0 and the unclassified container rows.
 
 ## 3. Runtime: MFC, STLport, CRT
 

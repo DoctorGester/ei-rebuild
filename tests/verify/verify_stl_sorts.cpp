@@ -294,6 +294,10 @@ struct ChunkStorage {
 };
 
 void SortStartupCheck() {
+    // A sort listed in disabled.txt has no trampoline: nothing to compare against.
+    if (!s_idIntro || !s_idFinal || !s_replicatedIntro || !s_replicatedFinal || !s_chunkIntro || !s_chunkFinal ||
+        !s_serverIntro || !s_serverInsertion || !s_serverUnguarded)
+        return;
     int cases = 0, failed = -1;
     const char* which = "";
     std::vector<ChunkStorage> chunks(400);
