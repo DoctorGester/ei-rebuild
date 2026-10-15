@@ -136,6 +136,31 @@ void GroundPrint::SetTexture(const char* name) {
     TextureLoadOriginal(textures, nullptr, texture_.texture);
 }
 
+GroundPrint* GroundPrint::CopyConstruct(const GroundPrint* other) {
+    built_ = other->built_;
+    visible_ = other->visible_;
+    position_ = other->position_;
+    halfWidth_ = other->halfWidth_;
+    halfLength_ = other->halfLength_;
+    growth_ = other->growth_;
+    life_ = other->life_;
+    texture_.Copy(&other->texture_);
+    uvOffset_ = other->uvOffset_;
+    uvScale_ = other->uvScale_;
+    uvAngle_ = other->uvAngle_;
+    angle_ = other->angle_;
+    lit_ = other->lit_;
+    alpha_ = other->alpha_;
+    alphaScale_ = other->alphaScale_;
+    colour_ = other->colour_;
+    lifetime_ = other->lifetime_;
+    positions_ = other->positions_;
+    texCoords_ = other->texCoords_;
+    indices_ = other->indices_;
+    ei::SetVtable(this, kCopyVtableAddress);
+    return this;
+}
+
 GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, float halfLength, float angle,
                                           float alphaScale, int life, int lifetime) {
     ConstructBase(1, life, alphaScale, lifetime, 0xFFFFFFFFu);
@@ -474,6 +499,7 @@ EI_REPLACE_METHOD(0x0056D680, GroundPrint::Destruct);
 EI_REPLACE_METHOD(0x00575560, GroundPrint::DeletingDestruct);
 EI_REPLACE_METHOD(0x00575580, GroundPrint::DeletingDestruct);
 EI_REPLACE_METHOD(0x006CFEA0, GroundPrint::ConstructScorch);
+EI_REPLACE_METHOD(0x00571FC0, GroundPrint::CopyConstruct);
 EI_REPLACE_METHOD(0x006CFBA0, Footprint::Construct);
 EI_REPLACE_METHOD(0x006CF660, BloodPrint::Construct);
 EI_REPLACE_METHOD(0x0056CE90, CWorldClient::AddBloodPrint);
