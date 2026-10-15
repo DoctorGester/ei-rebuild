@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <malloc.h>
 #include <mutex>
 #include <new>
 #include <vector>
@@ -93,6 +94,7 @@ __declspec(naked) int __cdecl read(int, void*, unsigned) EI_ORIGINAL(0x006EB046)
 __declspec(naked) int __cdecl write(int, const void*, unsigned) EI_ORIGINAL(0x006EB642)
 __declspec(naked) int __cdecl close(int) EI_ORIGINAL(0x006EAF66)
 __declspec(naked) long __cdecl filelength(int) EI_ORIGINAL(0x006E904C)
+__declspec(naked) long __cdecl findfirst(const char*, FindData*) EI_ORIGINAL(0x006EB832)
 
 __declspec(naked) CrtFile* __cdecl fopen(const char*, const char*) EI_ORIGINAL(0x006E9107)
 __declspec(naked) int __cdecl fclose(CrtFile*) EI_ORIGINAL(0x006E8EB8)
@@ -722,6 +724,14 @@ gamecrt::NewHandler& AfxNewHandler() { return *reinterpret_cast<gamecrt::NewHand
 gamecrt::NewHandler& HeapNewHandler() { return *reinterpret_cast<gamecrt::NewHandler*>(0x007CAAD8); }
 int NewMode() { return *reinterpret_cast<const int*>(0x007CAC7C); }
 constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
+
+// After a failed allocation (_callnewh): with _newmode set, the CRT's new handler may free memory and
+// ask for another try.
+bool TryAgain(std::size_t size) {
+    if (!NewMode()) return false;
+    const gamecrt::NewHandler handler = HeapNewHandler();
+    return handler && handler(size);
+}
 } // namespace
 
 void* __cdecl Malloc(std::size_t size) {
@@ -729,15 +739,53 @@ void* __cdecl Malloc(std::size_t size) {
         if (size <= kHeapMaxRequest) {
             if (void* p = std::malloc(size)) return p;
         }
-        if (!NewMode()) return nullptr;
-        const gamecrt::NewHandler handler = HeapNewHandler();
-        if (!handler || !handler(size)) return nullptr;
+        if (!TryAgain(size)) return nullptr;
     }
 }
 EI_REPLACE_STANDALONE(0x006EABD1, libcrt::Malloc);
 
 void __cdecl Free(void* p) { std::free(p); }
 EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
+
+// A null block is malloc's; a zero size frees the block and gives null.
+void* __cdecl Realloc(void* p, std::size_t size) {
+    if (!p) return Malloc(size);
+    if (size == 0) {
+        Free(p);
+        return nullptr;
+    }
+    for (;;) {
+        if (size <= kHeapMaxRequest) {
+            if (void* q = std::realloc(p, size)) return q;
+        }
+        if (!TryAgain(size)) return nullptr;
+    }
+}
+EI_REPLACE_STANDALONE(0x006ED69A, libcrt::Realloc);
+
+// The byte count is count * size without an overflow check, as in VC6.
+void* __cdecl Calloc(std::size_t count, std::size_t size) {
+    const std::size_t bytes = count * size;
+    for (;;) {
+        if (bytes <= kHeapMaxRequest) {
+            if (void* p = std::calloc(1, bytes)) return p;
+        }
+        if (!TryAgain(bytes)) return nullptr;
+    }
+}
+EI_REPLACE_STANDALONE(0x006F0317, libcrt::Calloc);
+
+std::size_t __cdecl Msize(void* p) { return _msize(p); }
+EI_REPLACE_STANDALONE(0x006EEC7B, libcrt::Msize);
+
+char* __cdecl Strdup(const char* text) {
+    if (!text) return nullptr;
+    const std::size_t bytes = std::strlen(text) + 1;
+    char* copy = static_cast<char*>(Malloc(bytes));
+    if (copy) std::memcpy(copy, text, bytes);
+    return copy;
+}
+EI_REPLACE_STANDALONE(0x006EEC50, libcrt::Strdup);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = HeapNewHandler();

@@ -85,8 +85,22 @@ int __cdecl fseek(CrtFile* file, long offset, int origin);                      
 long __cdecl ftell(CrtFile* file);                                                   // 006E97C4
 std::size_t __cdecl fread(void* to, std::size_t size, std::size_t count, CrtFile* file);          // 006E8F35
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file); // 006E968B
-// A stream's file descriptor (the _fileno macro: FILE::_file, +0x10).
-inline int fileno(const CrtFile* file) { return reinterpret_cast<const int*>(file)[4]; }
+// A stream's file descriptor (the _fileno macro: FILE::_file, +0x10; in the standalone image the host
+// CRT's, libcrt::Fileno).
+int fileno(const CrtFile* file);
+
+// _finddata_t (VC6: 32-bit times, local time through FileTimeToLocalFileTime).
+struct FindData {
+    std::uint32_t attrib;       // 0 for FILE_ATTRIBUTE_NORMAL
+    std::int32_t createTime;    // -1 when the file system has none
+    std::int32_t accessTime;
+    std::int32_t writeTime;
+    std::uint32_t size;         // the low 32 bits
+    char name[260];
+};
+static_assert(sizeof(FindData) == 0x118);
+// _findfirst (006EB832): the search handle (a Win32 find handle; the game never closes it), or -1.
+long __cdecl findfirst(const char* pattern, FindData* data);
 
 // _splitpath (006E8BEE): the parts of a path (each buffer may be null).
 void __cdecl splitpath(const char* path, char* drive, char* dir, char* name, char* ext);
@@ -220,6 +234,36 @@ using ExitFunction = void(__cdecl*)();
 ExitFunction __cdecl OnExit(ExitFunction function);                             // 006E71FD
 int __cdecl AtExit(ExitFunction function);                                      // 006E727B
 void __cdecl Exit(int code);                                                    // 006E8DA7
+// The rest of the heap, on the host heap Malloc / Free use (S4b; _newmode and the CRT's new handler as in
+// Malloc).
+void* __cdecl Realloc(void* p, std::size_t size);                               // 006ED69A
+void* __cdecl Calloc(std::size_t count, std::size_t size);                      // 006F0317
+std::size_t __cdecl Msize(void* p);                                             // 006EEC7B
+char* __cdecl Strdup(const char* text);                                         // 006EEC50
+
+// Files (S4b, src/lib/crt_file.cpp; image only, like the heap: MFC's CStdioFile shares the exe's FILE
+// table and descriptors in the hook build). A file is opened as VC6's _sopen opens it, through the
+// game's import slots (CreateFileA, GetFileType: a mod's or the harness's redirection applies), then
+// handed to the host CRT as a descriptor (_open_osfhandle) and, for fopen, a stream (_fdopen): the
+// CrtFile* is the host's FILE*, the descriptors are the host's, and reads, writes, seeks and text-mode
+// translation are the host CRT's (the same as VC6's for the ANSI text mode). The game's own
+// stdin / stdout / stderr (&_iob[0..2]) stand for the host's. A bad descriptor or stream fails with -1 /
+// 0 as in VC6's release CRT. errno is the host's (nothing in the game reads it).
+int __cdecl Open(const char* path, int flags, ...);                             // 006EB35C
+int __cdecl Read(int fd, void* buffer, unsigned count);                         // 006EB046
+int __cdecl Write(int fd, const void* buffer, unsigned count);                  // 006EB642
+long __cdecl Lseek(int fd, long offset, int origin);                            // 006EB284
+int __cdecl Close(int fd);                                                      // 006EAF66
+long __cdecl Filelength(int fd);                                                // 006E904C
+int __cdecl Access(const char* path, int mode);                                 // 006EAF20
+long __cdecl Findfirst(const char* pattern, gamecrt::FindData* data);           // 006EB832
+gamecrt::CrtFile* __cdecl Fopen(const char* path, const char* mode);            // 006E9107
+int __cdecl Fclose(gamecrt::CrtFile* file);                                     // 006E8EB8
+int __cdecl Fseek(gamecrt::CrtFile* file, long offset, int origin);             // 006E95D2
+long __cdecl Ftell(gamecrt::CrtFile* file);                                     // 006E97C4
+std::size_t __cdecl Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file);        // 006E8F35
+std::size_t __cdecl Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file); // 006E968B
+int Fileno(const gamecrt::CrtFile* file);
 
 } // namespace libcrt
 
