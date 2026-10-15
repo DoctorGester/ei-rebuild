@@ -130,7 +130,10 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 int FearMode::Evaluate(AIBrain* brain) {
     UnitController* owner = brain->owner;
     CUnit* self = owner->unit;
-    spread = Round((static_cast<double>(spread) + spread + kThree) * kThird);
+    // The sum rounded first, as the main thread's 24-bit FPU does (SV7d1: under /fp:fast MSVC
+    // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
+    float grown = Round(static_cast<double>(spread) + spread + kThree);
+    spread = Round(static_cast<double>(grown) * kThird);
     if (CEngineObject* seen = brain->seen) {
         const Vector3* at = PositionOf(seen);
         brain->Notice(at, kNoticeLevel, kNoticeKind);
@@ -201,7 +204,10 @@ int FearMode::Evaluate(AIBrain* brain) {
         double z = me->z;   // not a difference: the memory keeps no z
         if (static_cast<double>(distance) * distance > z * z + ny * ny + nx * nx) return brain->noticedLevel / 6;
     }
-    distance = Round((static_cast<double>(distance) * kDistanceWeight + FearDefaultDistance()) * kDistanceDivisor);
+    // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
+    // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
+    float weighted = Round(static_cast<double>(distance) * kDistanceWeight + FearDefaultDistance());
+    distance = Round(static_cast<double>(weighted) * kDistanceDivisor);
     return kNoPriority;
 }
 

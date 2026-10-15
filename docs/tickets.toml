@@ -993,7 +993,7 @@ title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
 group = "verification"
 size = 0.5
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands. Paused 2026-10-15, not started beyond reading. The original's FearMode::Evaluate tail at 005D3066 is FLD distance; FMUL 30; FADD [0073FF00]; FMUL [0073FFC0]; FSTP, the same order as ours. So check our codegen next (build/SV7d2/fear_ours.txt, disasm of the verify DLL) and the FPU precision. The (30x+10)/31 iteration sticks anywhere within about 15 ulp of 10, so 10.0 and 9.99999714 can both be fixed points; the cause is how it gets there (rounding of the intermediates or the start value). Done: /fp:fast had distributed (30x + d) / 31 and (2s + 3) / 3, so the result settled on a different fixed point. The sums are now rounded first, and the saves equal the original's. Follow-up: SV7d1a (audit the same pattern in other rewrites)."
 
 [[ticket]]
 id = "SV7d2"
@@ -1001,7 +1001,7 @@ title = "Path step flags: one step's flags are 0x2664 in ours"
 group = "verification"
 size = 0.5
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands. Paused 2026-10-15, cause found, no code yet. Our PathSmoother::Smooth (ai_path_smooth.cpp) copies the old tail's second dword into the rebuilt cells. The original 005C46C0 gives the rebuilt tail [entry-0x3C], a slot it never writes. After the local route that slot holds JoinLocalSearches' last SearchBest open cost ([esp+0x1C]); after PlanLongPath it holds 0 (waypoints.blocks zeroed at exit). The stepped cells get [entry-0x50]: FindPath's saved EBP (a stack address) on the local route, 0x0073FD9C (waypoint list vtable) on the plan route. SearchPathTo cells carry forward-search addr 0x007B2664. Next: add SetSmoothLeftovers(tail, stepped), set it from JoinLocalSearches (open, -) and PlanLongPath (0, 0x0073FD9C), use it in Smooth, set the join cells' dword to the forward address, drop the SV7d2 entry from SAVES_KNOWN, then run goldens. Done (user direction 2026-10-15: no leftover emulation). Every path builder now gives its cells the plain words, speed 0x200 and terrain bits 0 (kPlainStepSpeed): ours in JoinLocalSearches, BuildCellsTo (the stale-word emulation is removed) and Smooth. The original gets the same through harness_path_cells.cpp, which redirects 4 CALL sites. The 85 saving goldens' saves were re-recorded; no digests changed. Final --golden --all-rebirth: 95 the same; levers and ui_saveload_delete vanilla differ only in script #gobject (SV7b1)."
 
 [[ticket]]
 id = "SV7d3"
@@ -1033,6 +1033,13 @@ title = "Client orientation ulp: find what flips it (shadow round trip)"
 group = "verification"
 depends = ["SV7b4"]
 note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in plain vs jitter runs with a counter patch (not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
+
+[[ticket]]
+id = "SV7d1a"
+title = "Audit /fp:fast-distributed (a + b) * c in rewrites"
+group = "verification"
+depends = ["SV7d1"]
+note = "From SV7d1: under /fp:fast, MSVC compiled FearMode's (30x + d) * (1/31) as 30/31 x + d/31, and the result drifted by an ulp to a different fixed point. Any rewrite that multiplies an unrounded sum by a constant may be distributed or folded the same way. Scan the verify DLL's compiled code for products whose order differs from the original's (the original does FADD then FMUL; ours does FMUL, FMUL, FADD), and round the sum first with the volatile store helper. CheckNear hides these; a save or digest shows them only when the error accumulates."
 
 # ---------------------------------------------------------------- harness and suite
 
