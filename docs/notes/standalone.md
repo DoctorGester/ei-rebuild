@@ -101,6 +101,25 @@ helper that gets registered later changes the output: rerun the generator), and 
 in its section. On 2026-10-15 the image lacks 35 call targets (library constructors for S4-S12, ten
 compiler-generated global constructors, MFC internals: S3b) and 130 of the 311 exit functions (S3a).
 
+**S4 (2026-10-15), group 1.** src/lib/crt.cpp, namespace `libcrt` (not `crt`: ei_vectors has
+`ei::vectors::crt`), registered at their addresses in both builds: strncmp, strncpy, memmove, _stricmp,
+_strnicmp, _mbscmp, _mbsicmp, _mbsinc, _ismbblead, isleadbyte, tolower, toupper, isalpha, isdigit,
+isspace, isprint, atoi (atol inside it), _itoa, _splitpath, qsort (VC6's: middle pivot, selection
+sort up to 8, larger part stacked), and the 19 WSOCK32 import thunks (by ordinal) plus
+DirectInputCreateEx's, each a call through its import slot. The CRT state is read where the exe keeps
+it: the game runs under a real LC_CTYPE locale (`__lc_handle` 007CABF0 nonzero, set before the text
+manager's setlocale query), so tolower / toupper take `_tolower_lk`'s path (LCMapStringW in
+`__lc_codepage`) and the compares fold bytes through a table of tolower rebuilt when the locale
+changes; character classes come from `_pctype`, lead bytes from `_mbctype`. Only single-byte paths
+are ported (`__mb_cur_max` 1, `__ismbcodepage` 0). In the standalone image that data is the C
+locale (ASCII case only) unless something sets it: who sets the hook build's locale is still open.
+Library functions have no Ghidra size in function_sizes.inc: each registered one is added to
+config/extra_function_sizes.csv (the installer skips an unknown start). Checks
+(tests/verify/verify_crt.cpp): against the original, memmove ours only; atoi against atol 006E804D;
+qsort sorts the caller's array twice (comparators such as CompareSlots read through the element's
+address). 0 mismatches in 20 runs (10 scenarios, both installs), e.g. toupper 4.7M, tolower 3.7M,
+_splitpath 1.6M, _strnicmp 1.3M, qsort 6.7k calls. The thunks have no wrapper (a jump through the slot).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

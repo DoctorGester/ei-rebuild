@@ -2,6 +2,7 @@
 
 #include "ei/hook.h"
 #include "game/originals_library.h"
+#include "gameapi.h"
 
 namespace gamecrt {
 
@@ -104,7 +105,8 @@ __declspec(naked) unsigned __cdecl DebugLog(const char*, ...) EI_ORIGINAL(0x0044
 
 } // namespace game
 
-namespace crt {
+#ifndef EI_VECTORS_REPLAY   // the ports read the game CRT's data; ei_vectors has its own (replay_crt.cpp)
+namespace libcrt {
 
 namespace {
 
@@ -120,8 +122,81 @@ constexpr unsigned short kPrint = 0x157;    // _BLANK | _PUNCT | _ALPHA | _DIGIT
 constexpr unsigned short kLeadByte = 0x8000; // _LEADBYTE
 constexpr unsigned char kMbLead = 0x4;      // _M1 in _mbctype
 
-// The C locale's case change, on a byte as the compare loops do it.
-unsigned char LowerByte(unsigned char c) { return static_cast<unsigned char>(c - 'A') < 26 ? c + 0x20 : c; }
+constexpr unsigned short kUpper = 0x1;      // _UPPER
+constexpr unsigned short kLower = 0x2;      // _LOWER
+
+// The LC_CTYPE locale: its handle (__lc_handle[LC_CTYPE] 007CABF0; zero for "C") and code page
+// (__lc_codepage 007CAC00).
+unsigned LocaleHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }
+unsigned LocaleCodePage() { return *reinterpret_cast<const unsigned*>(0x007CAC00); }
+
+// __crtLCMapStringA (006F1FDE) on its LCMapStringW path: the bytes (up to a zero, at most `count`)
+// to UTF-16 in the code page, mapped, and back; the bytes written, or 0.
+int MapStringByLocale(unsigned locale, unsigned long flags, const char* from, int count, char* to, int room,
+                      unsigned codePage) {
+    int length = 0;
+    while (length < count && from[length] != '\0') ++length;
+    wchar_t wide[4];
+    wchar_t mapped[8];
+    const int wideLength = gameapi::MultiByteToWideChar(codePage, MB_PRECOMPOSED | MB_ERR_INVALID_CHARS, from, length,
+                                                        nullptr, 0);
+    if (wideLength == 0 || wideLength > 4 ||
+        !gameapi::MultiByteToWideChar(codePage, MB_PRECOMPOSED, from, length, wide, wideLength))
+        return 0;
+    const int mappedLength = gameapi::LCMapStringW(locale, flags, wide, wideLength, nullptr, 0);
+    if (mappedLength == 0 || mappedLength > 8 || !gameapi::LCMapStringW(locale, flags, wide, wideLength, mapped, mappedLength))
+        return 0;
+    return gameapi::WideCharToMultiByte(codePage, WC_COMPOSITECHECK | WC_SEPCHARS, mapped, mappedLength, to, room, nullptr,
+                                        nullptr);
+}
+
+// _tolower_lk / _toupper_lk (006EBAC2 / 006E922F) under a locale: a byte without the class bit
+// `changes` (upper case for tolower) comes back as it is; otherwise the character (a lead byte and
+// the next one when the high byte is one) goes through LCMapString. Single-byte path (__mb_cur_max 1).
+int MapCaseByLocale(int c, unsigned long flags, unsigned short changes) {
+    if (c < 256 && !(CharClasses()[c] & changes)) return c;
+    char in[3];
+    int size;
+    const unsigned char high = static_cast<unsigned char>(c >> 8);
+    if (CharClasses()[high] & kLeadByte) {
+        in[0] = static_cast<char>(high);
+        in[1] = static_cast<char>(c);
+        in[2] = '\0';
+        size = 2;
+    } else {
+        in[0] = static_cast<char>(c);
+        in[1] = '\0';
+        size = 1;
+    }
+    unsigned char out[3];
+    const int written = MapStringByLocale(LocaleHandle(), flags, in, size, reinterpret_cast<char*>(out), 3, LocaleCodePage());
+    if (written == 0) return c;
+    return written == 1 ? out[0] : out[0] | out[1] << 8;
+}
+
+// tolower of every byte for the current locale, as the compare loops fold (rebuilt when the locale
+// handle, its code page or its class table changes).
+struct ByteFold {
+    unsigned handle = 0;
+    unsigned codePage = 0;
+    const unsigned short* classes = nullptr;
+    int fold[256] = {};
+};
+ByteFold byteFold;
+
+const int* FoldTable() {
+    ByteFold& table = byteFold;
+    const unsigned handle = LocaleHandle();
+    const unsigned codePage = LocaleCodePage();
+    const unsigned short* classes = CharClasses();
+    if (table.classes != classes || table.handle != handle || table.codePage != codePage) {
+        for (int c = 0; c < 256; ++c) table.fold[c] = Tolower(c);
+        table.handle = handle;
+        table.codePage = codePage;
+        table.classes = classes;
+    }
+    return table.fold;
+}
 
 // The digits of `value` in `radix` after an optional '-' (xtoa 006E9B63): least significant first,
 // then reversed in place.
@@ -168,7 +243,7 @@ int __cdecl Strncmp(const char* a, const char* b, std::size_t n) {
     }
     return 0;
 }
-EI_REPLACE(0x006E9180, crt::Strncmp);
+EI_REPLACE(0x006E9180, libcrt::Strncmp);
 
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
     std::size_t i = 0;
@@ -176,7 +251,7 @@ char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
     for (; i < n; ++i) to[i] = '\0';
     return to;
 }
-EI_REPLACE(0x006E7E80, crt::Strncpy);
+EI_REPLACE(0x006E7E80, libcrt::Strncpy);
 
 void* __cdecl Memmove(void* to, const void* from, std::size_t n) {
     unsigned char* d = static_cast<unsigned char*>(to);
@@ -188,7 +263,7 @@ void* __cdecl Memmove(void* to, const void* from, std::size_t n) {
     }
     return to;
 }
-EI_REPLACE(0x006E79A0, crt::Memmove);
+EI_REPLACE(0x006E79A0, libcrt::Memmove);
 
 int __cdecl Strcmp(const char* a, const char* b) {
     for (;; ++a, ++b) {
@@ -199,8 +274,10 @@ int __cdecl Strcmp(const char* a, const char* b) {
     }
 }
 
-// The C locale path (__lc_handle[LC_CTYPE] zero): bytes that differ are compared lower-cased.
+// Bytes that differ are compared as tolower folds them (the "C" locale's A-Z, or _tolower_lk), as
+// unsigned bytes: -1 or 1.
 int __cdecl Stricmp(const char* a, const char* b) {
+    const int* fold = FoldTable();
     for (;; ++a, ++b) {
         const unsigned char ca = static_cast<unsigned char>(*a);
         const unsigned char cb = static_cast<unsigned char>(*b);
@@ -208,71 +285,79 @@ int __cdecl Stricmp(const char* a, const char* b) {
             if (ca == 0) return 0;
             continue;
         }
-        const unsigned char la = LowerByte(ca);
-        const unsigned char lb = LowerByte(cb);
+        const unsigned char la = static_cast<unsigned char>(fold[ca]);
+        const unsigned char lb = static_cast<unsigned char>(fold[cb]);
         if (la != lb) return la < lb ? -1 : 1;
     }
 }
-EI_REPLACE(0x006F2230, crt::Stricmp);
+EI_REPLACE(0x006F2230, libcrt::Stricmp);
 
-// The C locale path: a terminator in either string ends the compare (raw bytes); otherwise the
-// lower-cased bytes.
+// A terminator in either string ends the compare (the raw bytes compared); otherwise the folded bytes.
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
+    if (n == 0) return 0;
+    const int* fold = FoldTable();
     for (; n > 0; --n, ++a, ++b) {
-        unsigned char ca = static_cast<unsigned char>(*a);
-        unsigned char cb = static_cast<unsigned char>(*b);
+        unsigned ca = static_cast<unsigned char>(*a);
+        unsigned cb = static_cast<unsigned char>(*b);
         if (ca == 0 || cb == 0) return ca == cb ? 0 : ca < cb ? -1 : 1;
-        ca = LowerByte(ca);
-        cb = LowerByte(cb);
+        ca = static_cast<unsigned>(fold[ca]);
+        cb = static_cast<unsigned>(fold[cb]);
         if (ca != cb) return ca < cb ? -1 : 1;
     }
     return 0;
 }
-EI_REPLACE(0x006FA1A0, crt::Strnicmp);
+EI_REPLACE(0x006FA1A0, libcrt::Strnicmp);
 
 // Single-byte code page (__ismbcodepage zero): strcmp and _stricmp.
 int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) {
     return Strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
-EI_REPLACE(0x006E848B, crt::Mbscmp);
+EI_REPLACE(0x006E848B, libcrt::Mbscmp);
 
 int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
     return Stricmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
-EI_REPLACE(0x006E8767, crt::Mbsicmp);
+EI_REPLACE(0x006E8767, libcrt::Mbsicmp);
 
 unsigned char* __cdecl Mbsinc(const unsigned char* p) {
     const bool lead = (MultibyteFlags()[*p] & kMbLead) != 0;
     return const_cast<unsigned char*>(p + (lead ? 2 : 1));
 }
-EI_REPLACE(0x006E9947, crt::Mbsinc);
+EI_REPLACE(0x006E9947, libcrt::Mbsinc);
 
 int __cdecl Ismbblead(unsigned c) { return (MultibyteFlags()[static_cast<unsigned char>(c)] & kMbLead) != 0 ? 1 : 0; }
-EI_REPLACE(0x006E99F2, crt::Ismbblead);
+EI_REPLACE(0x006E99F2, libcrt::Ismbblead);
 
 int __cdecl Isleadbyte(int c) { return CharClasses()[static_cast<unsigned char>(c)] & kLeadByte; }
-EI_REPLACE(0x006E9A6C, crt::Isleadbyte);
+EI_REPLACE(0x006E9A6C, libcrt::Isleadbyte);
 
-// The C locale path of tolower / toupper: only A-Z / a-z change, any other int comes back as it is.
-int __cdecl Tolower(int c) { return c >= 'A' && c <= 'Z' ? c + 0x20 : c; }
-EI_REPLACE(0x006EBA53, crt::Tolower);
+// In the "C" locale only A-Z / a-z change (any other int comes back as it is); under a locale,
+// MapCaseByLocale.
+int __cdecl Tolower(int c) {
+    if (LocaleHandle() == 0) return c >= 'A' && c <= 'Z' ? c + 0x20 : c;
+    return MapCaseByLocale(c, LCMAP_LOWERCASE, kUpper);
+}
+EI_REPLACE(0x006EBA53, libcrt::Tolower);
 
-int __cdecl Toupper(int c) { return c >= 'a' && c <= 'z' ? c - 0x20 : c; }
-EI_REPLACE(0x006E91C0, crt::Toupper);
+int __cdecl Toupper(int c) {
+    if (LocaleHandle() == 0) return c >= 'a' && c <= 'z' ? c - 0x20 : c;
+    return MapCaseByLocale(c, LCMAP_UPPERCASE, kLower);
+}
+EI_REPLACE(0x006E91C0, libcrt::Toupper);
 
 // The single-byte path (__mb_cur_max 1): the class bits of the table entry. isdigit and isspace
 // test the entry's low byte, isalpha and isprint the word (same results for their masks).
 int __cdecl Isalpha(int c) { return CharClasses()[c] & kAlpha; }
-EI_REPLACE(0x006E92FB, crt::Isalpha);
+EI_REPLACE(0x006E92FB, libcrt::Isalpha);
 
 int __cdecl Isdigit(int c) { return CharClasses()[c] & kDigit; }
-EI_REPLACE(0x006E9379, crt::Isdigit);
+EI_REPLACE(0x006E9379, libcrt::Isdigit);
 
 int __cdecl Isspace(int c) { return CharClasses()[c] & kSpace; }
-EI_REPLACE(0x006E93CE, crt::Isspace);
+EI_REPLACE(0x006E93CE, libcrt::Isspace);
 
 int __cdecl Isprint(int c) { return CharClasses()[c] & kPrint; }
-EI_REPLACE(0x006E944C, crt::Isprint);
+EI_REPLACE(0x006E944C, libcrt::Isprint);
 
 // Leading white space, a sign, then decimal digits; overflow wraps.
 long __cdecl Atol(const char* text) {
@@ -290,14 +375,14 @@ long __cdecl Atol(const char* text) {
 }
 
 int __cdecl Atoi(const char* text) { return static_cast<int>(Atol(text)); }
-EI_REPLACE(0x006E80D8, crt::Atoi);
+EI_REPLACE(0x006E80D8, libcrt::Atoi);
 
 // Only radix 10 writes a minus sign; other radixes write the value's bits as unsigned.
 char* __cdecl Itoa(int value, char* buffer, int radix) {
     UnsignedToText(static_cast<unsigned long>(value), buffer, static_cast<unsigned>(radix), radix == 10 && value < 0);
     return buffer;
 }
-EI_REPLACE(0x006E9B36, crt::Itoa);
+EI_REPLACE(0x006E9B36, libcrt::Itoa);
 
 // The drive when the second character is ':'; the directory up to the last '/' or '\'; the name up to
 // the last '.' after it; each part at most 255 characters. A lead byte skips the byte after it, as in
@@ -344,7 +429,7 @@ void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, cha
         if (ext) ext[0] = '\0';
     }
 }
-EI_REPLACE(0x006E8BEE, crt::Splitpath);
+EI_REPLACE(0x006E8BEE, libcrt::Splitpath);
 
 namespace {
 
@@ -428,13 +513,13 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
         hi = hiStack[stacked];
     }
 }
-EI_REPLACE(0x006E88FC, crt::Qsort);
+EI_REPLACE(0x006E88FC, libcrt::Qsort);
 
-} // namespace crt
+} // namespace libcrt
 
 // The import thunks (JMP [slot]) of WSOCK32, imported by ordinal, and DINPUT: the same call through the
 // same import slot, so a mod's hook in the import table still applies.
-namespace crt::imports {
+namespace libcrt::imports {
 
 namespace {
 template <typename F>
@@ -497,4 +582,5 @@ EI_REPLACE(0x006E6148, Send);
 EI_REPLACE(0x006E614E, Select);
 EI_REPLACE(0x006E61F0, DirectInputCreateEx);
 
-} // namespace crt::imports
+} // namespace libcrt::imports
+#endif

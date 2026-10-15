@@ -113,12 +113,13 @@ void SetReplayCtype(const ReplayCtype& ctype);
 
 // The game CRT's own functions, ported (S4, docs/notes/standalone.md section 2). Each is registered
 // at its library address, so the forwarders above and the exe's remaining library code reach these
-// bodies; tests/verify/verify_crt.cpp compares them with the originals. MSVC 6 behaviour in the
-// state the game runs in: the "C" locale (the text manager only queries LC_CTYPE) and a single-byte
-// multibyte code page (its _setmbcp(_MB_CP_LOCALE) in the C locale). Character classes and lead-byte
-// flags are read from the CRT's tables in the exe's data, as the originals do (a negative argument
-// indexes the same bytes before the table); in the standalone image they hold the C locale.
-namespace crt {
+// bodies; tests/verify/verify_crt.cpp compares them with the originals. MSVC 6 behaviour for the CRT
+// state in the exe's data, read as the originals read it: the LC_CTYPE locale handle and code page
+// (case changes go through LCMapStringW under a locale, as _tolower_lk does), the character class
+// table _pctype (a negative argument indexes the same bytes before it) and the lead-byte flags
+// _mbctype. Only the single-byte paths are ported (__mb_cur_max 1, __ismbcodepage 0: the game's
+// code page). In the standalone image that data holds the "C" locale.
+namespace libcrt {
 
 int __cdecl Strncmp(const char* a, const char* b, std::size_t n);              // 006E9180
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n);               // 006E7E80
@@ -145,7 +146,7 @@ void __cdecl Splitpath(const char* path, char* drive, char* dir, char* name, cha
 // first): equal elements end up in the same order as in the game.
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*)); // 006E88FC
 
-} // namespace crt
+} // namespace libcrt
 
 namespace game {
 

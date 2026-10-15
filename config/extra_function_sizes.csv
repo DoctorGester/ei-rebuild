@@ -131,3 +131,4 @@ address,size,note
 006EBA53,111,library function registered at its address (S4; Ghidra size)
 006F2230,208,library function registered at its address (S4; Ghidra size)
 006FA1A0,257,library function registered at its address (S4; Ghidra size)
+006E88FC,340,library function registered at its address (S4; Ghidra size)
