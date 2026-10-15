@@ -136,7 +136,6 @@ void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t 
 void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
 constexpr std::uintptr_t kSegmentConstruct = 0x00468900;
 constexpr std::uintptr_t kSegmentDestruct = 0x00468920;
-constexpr std::uintptr_t kEngineObjectVtable = 0x0073B8E0;
 constexpr std::uintptr_t kLightningVtable = 0x0073C550;
 
 // A texture reference dropped: cleared, then released.
@@ -155,7 +154,7 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     auto* bolt = static_cast<CLightning*>(gamecrt::operator_new(sizeof(CLightning)));
     if (!bolt) return nullptr;
     auto* bytes = reinterpret_cast<std::uint8_t*>(bolt);
-    SetVtable(bolt, kEngineObjectVtable);
+    SetVtable(bolt, CEngineObject::kVtableAddress);
     bolt->refCount_ = 0;
     bolt->id_ = -1;
     bolt->prototypeId_ = 0;

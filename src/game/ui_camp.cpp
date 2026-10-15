@@ -905,9 +905,6 @@ EI_REPLACE(0x0060E3E0, TradePanelDestroy);
 
 namespace {
 
-constexpr std::uintptr_t kSoundPutOn = 0x007937B0;    // "buttons\camp\put_on.wav"
-constexpr std::uintptr_t kSoundPutOff = 0x007937C8;   // "buttons\camp\put_off.wav"
-constexpr std::uintptr_t kSoundCancel = 0x007937E4;   // "buttons\messbox\cancel.wav"
 
 // The local player's data as the client glue's 00578BA0 returns it (the party).
 void* GluePlayerData() { return GameLocalPlayerDataOriginal(UiClientGlue()); }
@@ -930,7 +927,7 @@ void RebuildArmourLayers(PartyUnitRecord* hero) {
 } // namespace
 
 int CCampPages::TakeOff(std::uint8_t* item) {
-    interface_->PlaySound(game::Text(kSoundPutOff), 0);
+    interface_->PlaySound(game::PutOffSoundText(), 0);
     int kind = ItemType(item);
     if (kind < 0x3004 || (kind > 0x3006 && kind != 0x3008)) return 0;
     PartyUnitRecord* hero = VirtualHeroRecord();
@@ -986,7 +983,7 @@ __declspec(naked) void CCampPages::CallPutOnFromStrip(std::uint8_t*) EI_ORIGINAL
 __declspec(naked) void CCampPages::CallShowHero() EI_ORIGINAL(0x0060F830)
 
 void CCampPages::PutOn(std::uint8_t* item) {
-    interface_->PlaySound(game::Text(kSoundPutOn), 0);
+    interface_->PlaySound(game::PutOnSoundText(), 0);
     PartyUnitRecord* hero = VirtualHeroRecord();
     switch (ItemType(item)) {
     case 0x3004:
@@ -1072,13 +1069,13 @@ void CCampPages::PutOnFromStrip(std::uint8_t* item) {
     default:
         return;
     }
-    interface_->PlaySound(game::Text(kSoundPutOn), 0);
+    interface_->PlaySound(game::PutOnSoundText(), 0);
 }
 EI_REPLACE_METHOD(0x00610920, CCampPages::PutOnFromStrip);
 
 void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     if (!VirtualCanEquip(item, mode)) {
-        interface_->PlaySound(game::Text(kSoundCancel), 0);
+        interface_->PlaySound(game::CancelSoundText(), 0);
         return;
     }
     // Back to the player's items and the item strip (from `list`).
@@ -1104,7 +1101,7 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
             MoveBetween(this, item, spellParts_[1], spellParts_[0], 8, 1, 0);
         else if (page_ == 3)
             MoveBetween(this, item, spellResults_, spellParts_[0], 0, 0, 1);
-        interface_->PlaySound(game::Text(kSoundPutOn), 0);
+        interface_->PlaySound(game::PutOnSoundText(), 0);
         return;
     case 3:
         if (page_ == 4) {
@@ -1119,7 +1116,7 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
                 MoveBetween(this, item, itemResults_, itemParts_[0], 0, 0, 1);
             }
         }
-        interface_->PlaySound(game::Text(kSoundPutOn), 0);
+        interface_->PlaySound(game::PutOnSoundText(), 0);
         return;
     case 4:
         // Out of the spell constructor's sold or bought list.
@@ -1176,7 +1173,7 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     default:
         return;
     }
-    interface_->PlaySound(game::Text(kSoundPutOff), 0);
+    interface_->PlaySound(game::PutOffSoundText(), 0);
 }
 EI_REPLACE_METHOD(0x00610AD0, CCampPages::MoveItem);
 

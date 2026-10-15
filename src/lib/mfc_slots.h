@@ -173,6 +173,12 @@ struct TrapPointArrayClass {   // a trap's points
 struct Array0498Class {   // constructed by 00498E60 only
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D024); }
 };
+struct ArgObjectsClass {   // a script command's object arguments, the derived class (script_copy)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D484); }
+};
+struct ArgGroupsClass {   // a script command's group arguments, the derived class
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D478); }
+};
 struct ArgObjectsBaseClass {   // a script command's object arguments (script_destroy)
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D3F4); }
 };

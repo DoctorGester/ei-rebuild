@@ -12,11 +12,10 @@
 #include "originals_world.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "lib/mfc_list.h"
 
 namespace {
 
-constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;     // CPtrList of objects
-constexpr std::uintptr_t kLootListVtable = 0x0073F12C;    // the third output list of 00461CB0
 constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
 constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
 
@@ -45,8 +44,8 @@ __declspec(naked) int __fastcall CollectLoot(void*, void*, CWorldServer*, CEngin
                                              ObjectList* /*second*/, ObjectList* /*third*/, int* /*gold*/)
     EI_ORIGINAL(0x00461CB0)
 
-void InitList(ObjectList& list, std::uintptr_t vtable) {
-    list.vtable = reinterpret_cast<void*>(vtable);
+void InitList(ObjectList& list, void* vtable) {
+    list.vtable = vtable;
     list.head = nullptr;
     list.tail = nullptr;
     list.count = 0;
@@ -61,18 +60,18 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
     ObjectList items;    // [0x18]
     ObjectList second;   // [0x5C]
     ObjectList third;    // [0x40]
-    InitList(items, kPtrListVtable);
-    InitList(second, kPtrListVtable);
-    InitList(third, kLootListVtable);
+    InitList(items, mfc::impl::ItemListClass::Vtable());
+    InitList(second, mfc::impl::ItemListClass::Vtable());
+    InitList(third, mfc::impl::LootListClass::Vtable());
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping (00558C50 /
     // 00429F10); the others destroy them (00558470 / 00427830).
     auto abandon = [&]() {
-        third.vtable = reinterpret_cast<void*>(kLootListVtable);
+        third.vtable = mfc::impl::LootListClass::Vtable();
         LootListRemoveAll(&third, nullptr);
-        second.vtable = reinterpret_cast<void*>(kPtrListVtable);
+        second.vtable = mfc::impl::ItemListClass::Vtable();
         PtrListRemoveAll(&second, nullptr);
-        items.vtable = reinterpret_cast<void*>(kPtrListVtable);
+        items.vtable = mfc::impl::ItemListClass::Vtable();
         PtrListRemoveAll(&items, nullptr);
     };
     auto destroy = [&]() {

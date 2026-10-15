@@ -9,6 +9,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "world_data.h"
 
 #include <cstring>
 
@@ -25,7 +26,6 @@ __declspec(naked) void** __fastcall LinesInsert(void* /*list*/, void*, void** /*
 __declspec(naked) void __fastcall CountLines(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290F0)
 __declspec(naked) void** __fastcall LinesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420460)
 
-constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uint32_t kMaxLines = 50;
 
 } // namespace
@@ -83,7 +83,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 // 0041A490: Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::uint32_t line = 0;   // CString
-    void* formatted = TextFormat(reinterpret_cast<void*>(kTextTable), nullptr, &line, kind, text);
+    void* formatted = TextFormat(worlddata::InterfaceManager(), nullptr, &line, kind, text);
     Announce(*static_cast<const char**>(formatted), player);
     CStringDestroy(&line);
 }

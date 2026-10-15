@@ -22,7 +22,6 @@ constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units
 constexpr int kManagerWorld = 0xAC;         // the manager's map object context (the world)
 
 // The game's texts: "none" (a weapon name that gives no weapon) and the FatalError formats.
-constexpr std::uintptr_t kNone = 0x007846F0;
 constexpr std::uintptr_t kNoPrototype = 0x0078F330;   // Can't find prototype "%s".
 constexpr std::uintptr_t kNoArmour = 0x0078F308;      // Can't create armor "%s" for unit "%s".
 constexpr std::uintptr_t kNoWeapon = 0x0078F2DC;      // Can't create weapon "%s" for unit "%s".
@@ -43,7 +42,7 @@ std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const mfc::CString& name) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                           reinterpret_cast<const unsigned char*>(game::Text(kNone))) != 0 &&
+                           reinterpret_cast<const unsigned char*>(game::NoneText())) != 0 &&
            name.GetLength() != 0;
 }
 

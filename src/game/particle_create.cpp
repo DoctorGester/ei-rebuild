@@ -21,6 +21,9 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_render.h"
+#include "lib/mfc_list.h"
+#include "ei/vcall.h"
+#include "core_transform.h"
 
 #include <cstring>
 
@@ -872,13 +875,13 @@ EI_REPLACE_METHOD(0x00484710, CParticleSource::Clear);
 // error report's result.
 int CParticleSource::CreateForType() {
     Reset();
-    std::uint32_t far = 0x47C35000;     // 100000.0f
-    SetBits(&boundsMin.x, far);
-    SetBits(&boundsMin.y, far);
-    SetBits(&boundsMin.z, far);
-    Vector3 near;
-    near.Construct(-100000.0f, -100000.0f, -100000.0f);
-    std::memcpy(&boundsMax, &near, sizeof(Vector3));
+    std::uint32_t farBound = 0x47C35000;     // 100000.0f
+    SetBits(&boundsMin.x, farBound);
+    SetBits(&boundsMin.y, farBound);
+    SetBits(&boundsMin.z, farBound);
+    Vector3 nearBound;
+    nearBound.Construct(-100000.0f, -100000.0f, -100000.0f);
+    std::memcpy(&boundsMax, &nearBound, sizeof(Vector3));
     frameColumns = 4;
     emitChance = 100;
     flags_ = (flags_ & ~0x18u) | 1;
@@ -903,11 +906,8 @@ namespace {
 // Not rewritten (forwarders): the engine object's base constructor (vtable 0073B8E0, id -1, the
 // rest zero) and its base destructor body.
 
-constexpr std::uintptr_t kTransformObjectVtable = 0x0073BA38;
 constexpr std::uintptr_t kParticleSourceVtable = 0x0073CFD0;
-constexpr std::uintptr_t kParticleListVtable = 0x0073D018;     // CTypedPtrList<CPtrList, Particle*>
 
-void SetVtableAt(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
 
 } // namespace
 
@@ -925,13 +925,13 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     ConstructEngineObject(s);
     reinterpret_cast<Quaternion*>(bytes + 0x34)->SetIdentity();
     reinterpret_cast<Quaternion*>(bytes + 0x44)->SetIdentity();
-    SetVtableAt(s, kTransformObjectVtable);
+    ei::SetVtable(s, CTransformObject::kVtableAddress);
     s->elements = nullptr;
     s->elementGrowBy = 0;
     s->elementCapacity = 0;
     s->elementCount = 0;
     std::memset(bytes + offsetof(CParticleSource, boundsFlags), 0, 0x38);
-    SetVtableAt(&s->particles, kParticleListVtable);
+    ei::SetVtable(&s->particles, mfc::impl::ClientListClass::Vtable());
     s->particles.count = 0;
     s->particles.free = nullptr;
     s->particles.tail = nullptr;
@@ -944,7 +944,7 @@ CParticleSource* __fastcall NewParticleSource(void*, void*, int type) {
     s->frameRectCapacity = 0;
     s->frameRectCount = 0;
     s->texture = nullptr;
-    SetVtableAt(s, kParticleSourceVtable);
+    ei::SetVtable(s, kParticleSourceVtable);
     s->Reset();
     s->type_ = type;
     return s;
@@ -955,11 +955,11 @@ EI_REPLACE(0x004981B0, NewParticleSource);
 // texture and free the frame rectangles if any are left, empty the particle list and free its
 // blocks, free the element array, then the engine object's base destructor.
 void CParticleSource::Destruct() {
-    SetVtableAt(this, kParticleSourceVtable);
+    ei::SetVtable(this, kParticleSourceVtable);
     Clear();
     if (texture) (*static_cast<void(__fastcall***)(void*, void*)>(texture))[4](texture, nullptr);
     if (frameBase) gamecrt::operator_delete(reinterpret_cast<void**>(static_cast<std::uintptr_t>(frameBase))[-1]);
-    SetVtableAt(&particles, kParticleListVtable);
+    ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
     particles.count = 0;
     particles.free = nullptr;
     particles.tail = nullptr;
@@ -967,7 +967,7 @@ void CParticleSource::Destruct() {
     mfc::PlexFreeDataChain(particles.blocks);
     particles.blocks = nullptr;
     if (elements) gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
-    SetVtableAt(this, kTransformObjectVtable);
+    ei::SetVtable(this, CTransformObject::kVtableAddress);
     EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(this));
 }
 EI_REPLACE_METHOD(0x00498310, CParticleSource::Destruct);

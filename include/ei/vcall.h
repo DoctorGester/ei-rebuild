@@ -18,5 +18,7 @@ R VCall(const void* object, int slot, Args... args) {
 // Stores the address of one of the game's vtables into an object, as the constructor and destructor
 // bodies we write out by hand do (the classes' C++ vtables are never instantiated in the hook build).
 inline void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
+// The same, from a vtable named by its class's accessor (`Class::Vtable()`).
+inline void SetVtable(void* object, const void* vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
 
 } // namespace ei

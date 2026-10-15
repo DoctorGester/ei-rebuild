@@ -170,7 +170,6 @@ void __fastcall ShowPanelUnit(CBattleScreenSetup* a0, void*, CUnit* a2, void* a3
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUnit*>(::WorldFindUnit(world, nullptr, id)); }
 __declspec(naked) void __fastcall UnitsInBox(void*, void*, const void*, void*) EI_ORIGINAL(0x005656A0)
-constexpr std::uintptr_t kWorld = 0x007AF5B8;
 
 // vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
 // (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
@@ -263,7 +262,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
         int* unitId = &player->id_;
         int* playerId = &player->serial_;
         if (player->state_ == 0 && *unitId >= 0) {
-            if (!FindUnit(reinterpret_cast<void*>(kWorld), nullptr, *unitId)) {
+            if (!FindUnit(UiClientWorld(), nullptr, *unitId)) {
                 PushId(&ids.without, playerId);
                 continue;
             }
@@ -284,10 +283,10 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
             int unitId = *id;
-            CUnit* unit = FindUnit(reinterpret_cast<void*>(kWorld), nullptr, unitId);
+            CUnit* unit = FindUnit(UiClientWorld(), nullptr, unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
-                ClientWorldControlUnitOriginal(reinterpret_cast<void*>(kWorld), nullptr, unit);
+                ClientWorldControlUnitOriginal(UiClientWorld(), nullptr, unit);
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
@@ -394,7 +393,7 @@ void CBattleScreenSetup::Update() {
         std::uint8_t allocator = 0;
         List units;
         ListConstruct411850(&units, nullptr, &allocator);
-        UnitsInBox(reinterpret_cast<void*>(kWorld), nullptr, &selectionBox_, &units);
+        UnitsInBox(UiClientWorld(), nullptr, &selectionBox_, &units);
         List inside;
         ListConstruct404A70Original(&inside, nullptr, &allocator);
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
@@ -486,7 +485,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
         return;
     }
     viewPressed_ = false;
-    void* world = reinterpret_cast<void*>(kWorld);
+    void* world = UiClientWorld();
     if (!boxSelecting_ || IsNetworkClientOriginal()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};

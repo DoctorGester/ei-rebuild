@@ -12,6 +12,7 @@
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
 #include "../../src/lib/crt.h"
+#include "../../src/lib/mfc_array.h"
 
 #include <cstddef>
 #include <cstring>
@@ -184,7 +185,7 @@ EI_VERIFY(0x00545CB0, DestructMemoryVerify, 0, s_unused);
 static void __fastcall DestructBrainVerify(AIBrain* self) {
     self->Destruct();
     bool ok = !self->modes.head && self->modes.count == 0 && !self->target && !self->seen &&
-              self->looks.vtable == reinterpret_cast<void*>(kLookArrayBaseVtable);
+              self->looks.vtable == mfc::impl::AiLookArrayClass::Vtable();
     ei::verify::Check("AIBrain::Destruct", true, ok, "");
 }
 EI_VERIFY(0x005457E0, DestructBrainVerify, 0, s_unused);

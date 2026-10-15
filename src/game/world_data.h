@@ -45,6 +45,7 @@ inline float HeroStartRadius2() { return ExeFloat(std::uintptr_t(0x0073FA98)); }
 inline float AxisEpsilon() { return ExeFloat(std::uintptr_t(0x0073BAE0)); }
 inline float One() { return ExeFloat(std::uintptr_t(0x0073B84C)); }
 inline float Zero() { return ExeFloat(std::uintptr_t(0x0073B858)); }
+inline float Half() { return ExeFloat(std::uintptr_t(0x0073B86C)); }
 inline float LineAngleOffset() { return ExeFloat(std::uintptr_t(0x0073F8EC)); }
 inline float LineSpacing() { return ExeFloat(std::uintptr_t(0x0073CDF4)); }
 

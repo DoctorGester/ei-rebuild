@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include <bit>
 #include <cstddef>
@@ -166,7 +167,7 @@ EI_REPLACE_METHOD(0x00545110, OrderPlan::TakeSteps);
 
 AIBrain* AIBrain::Construct() {
     LooksInit(&looks);
-    looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+    looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
     MoveOrder()->Clear();
     target = nullptr;
     seen = nullptr;
@@ -242,7 +243,7 @@ void AIBrain::Destruct() {
     seen = nullptr;
     if (target) target->Release();
     target = nullptr;
-    looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+    looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
     if (looks.data) gamecrt::operator_delete(looks.data);
 }
 EI_REPLACE_METHOD(0x005457E0, AIBrain::Destruct);
