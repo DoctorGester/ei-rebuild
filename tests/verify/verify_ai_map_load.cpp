@@ -1,10 +1,12 @@
 // Checks for CAIMap::Load (src/game/ai_map_load.cpp, A-W15). The function is Rebirth-patched: the
 // wrapper is installed in the vanilla launch only.
 //
-// The original loads the real map. Before it runs, the map is copied (its 0x26C8 bytes, and deep
-// copies of what the first step reads and writes: both climb tables, the terrain types and the
-// cells', occluder words' and marks' grids, allocated the way the code frees them), and afterwards
-// our LoadTerrain loads the same archive into the copy. Compared: the height scale, both climb
+// The original loads the real map. Before it runs, the map is copied into our memory (its 0x26C8
+// bytes, and deep copies of what the first step reads and writes: both climb tables, the terrain
+// types and the cells', occluder words' and marks' grids); afterwards a copy of that on the game's
+// heap (allocated the way the code frees them) is made and our LoadTerrain loads the same archive
+// into it. Nothing of the check's is on the game's heap while the original allocates the real
+// map's blocks: the game reads the heap's address order (SV2f). Compared: the height scale, both climb
 // tables, the sixteen terrain types (name, speed, cost, the three step factors), the three grids'
 // sizes and row tables, every cell's ground level and flags and every occluder word's bits 0-4, 7
 // and 8 (the terrain type and what the grid's allocator sets). Not compared: a cell's passability,
@@ -35,6 +37,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -43,46 +46,23 @@ constexpr int kTerrainTypes = 16;
 constexpr std::uint8_t kDepthMask = 0x3F;
 constexpr std::uint32_t kOccluderBits = 0x19F;
 
-void* NewBytes(std::size_t bytes) { return gamecrt::operator_new(bytes ? bytes : 1); }
-
-// The grid's block and row table replaced by copies.
-template <typename T>
-void CopyGrid(SearchGrid<T>& grid) {
-    const T* data = grid.data;
-    T** rows = grid.rows;
-    if (!data || !rows) return;
-    const std::size_t cells = static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height);
-    grid.data = static_cast<T*>(NewBytes(cells * sizeof(T)));
-    std::memcpy(grid.data, data, cells * sizeof(T));
-    grid.rows = static_cast<T**>(NewBytes(static_cast<std::size_t>(grid.height) * sizeof(T*)));
-    for (int i = 0; i < grid.height; ++i) grid.rows[i] = grid.data + (rows[i] - data);
-}
-
-template <typename T>
-void FreeGridCopy(SearchGrid<T>& grid) {
-    gamecrt::operator_delete(grid.data);
-    gamecrt::operator_delete(grid.rows);
-}
-
-void CopyClimb(ClimbTable& table) {
-    const int* data = table.data;
-    if (!data) return;
-    const int capacity = table.maxSize > table.size ? table.maxSize : table.size;
-    table.data = static_cast<int*>(NewBytes(static_cast<std::size_t>(capacity) * sizeof(int)));
-    std::memcpy(table.data, data, static_cast<std::size_t>(table.size) * sizeof(int));
-}
-
-// A copy of the map for LoadTerrain: everything the step touches is the copy's own.
+// A copy of the map: everything the first step touches is the copy's own. On the game's heap
+// (kGame: the copy LoadTerrain runs on, its blocks allocated the way the code frees them) or in our
+// memory (kOurs: the state before the original runs).
 class MapCopy {
 public:
-    explicit MapCopy(const CAIMap* source) {
+    enum Storage { kGame, kOurs };
+    MapCopy(const CAIMap* source, Storage storage) : storage_(storage) {
         std::memcpy(bytes_, source, sizeof(CAIMap));
         CAIMap* map = Map();
         CopyClimb(map->climbLarge);
         CopyClimb(map->climbSmall);
         if (const AITerrainType* types = map->materials.data) {
             const int capacity = map->materials.capacity > map->materials.size ? map->materials.capacity : map->materials.size;
-            map->materials.data = lib::AlignedArray<AITerrainType>::Allocate(capacity > 0 ? capacity : 1);
+            const int count = capacity > 0 ? capacity : 1;
+            map->materials.data =
+                storage_ == kGame ? lib::AlignedArray<AITerrainType>::Allocate(count)
+                                  : static_cast<AITerrainType*>(NewBytes(static_cast<std::size_t>(count) * sizeof(AITerrainType)));
             std::memcpy(map->materials.data, types, static_cast<std::size_t>(map->materials.size) * sizeof(AITerrainType));
         }
         CopyGrid(map->CellGrid());
@@ -90,6 +70,7 @@ public:
         CopyGrid(map->marks);
     }
     ~MapCopy() {
+        if (storage_ == kOurs) return;
         CAIMap* map = Map();
         gamecrt::operator_delete(map->climbLarge.data);
         gamecrt::operator_delete(map->climbSmall.data);
@@ -102,6 +83,41 @@ public:
     CAIMap* Map() { return reinterpret_cast<CAIMap*>(bytes_); }
 
 private:
+    void* NewBytes(std::size_t bytes) {
+        if (storage_ == kGame) return gamecrt::operator_new(bytes ? bytes : 1);
+        ours_.emplace_back(bytes / 8 + 1);
+        return ours_.back().data();
+    }
+
+    // The grid's block and row table replaced by copies.
+    template <typename T>
+    void CopyGrid(SearchGrid<T>& grid) {
+        const T* data = grid.data;
+        T** rows = grid.rows;
+        if (!data || !rows) return;
+        const std::size_t cells = static_cast<std::size_t>(grid.width) * static_cast<std::size_t>(grid.height);
+        grid.data = static_cast<T*>(NewBytes(cells * sizeof(T)));
+        std::memcpy(grid.data, data, cells * sizeof(T));
+        grid.rows = static_cast<T**>(NewBytes(static_cast<std::size_t>(grid.height) * sizeof(T*)));
+        for (int i = 0; i < grid.height; ++i) grid.rows[i] = grid.data + (rows[i] - data);
+    }
+
+    template <typename T>
+    static void FreeGridCopy(SearchGrid<T>& grid) {
+        gamecrt::operator_delete(grid.data);
+        gamecrt::operator_delete(grid.rows);
+    }
+
+    void CopyClimb(ClimbTable& table) {
+        const int* data = table.data;
+        if (!data) return;
+        const int capacity = table.maxSize > table.size ? table.maxSize : table.size;
+        table.data = static_cast<int*>(NewBytes(static_cast<std::size_t>(capacity) * sizeof(int)));
+        std::memcpy(table.data, data, static_cast<std::size_t>(table.size) * sizeof(int));
+    }
+
+    Storage storage_;
+    std::vector<std::vector<std::uint64_t>> ours_;
     alignas(8) unsigned char bytes_[sizeof(CAIMap)];
 };
 
@@ -198,10 +214,11 @@ Differences CompareCells(CAIMap* expected, CAIMap* actual, bool flags) {
 static int(__fastcall* s_load)(CAIMap*, void*, const char*);
 static int __fastcall LoadVerify(CAIMap* self, void*, const char* path) {
     const bool deferred = self->batching;
-    MapCopy copy(self);
+    MapCopy before(self, MapCopy::kOurs);
     const int expected = s_load(self, nullptr, path);
     // A failed load is a fatal error (or a missing archive): it is not repeated.
     if (expected != 1) return expected;
+    MapCopy copy(before.Map(), MapCopy::kGame);
     CAIMap* ours = copy.Map();
     const int result = ours->LoadTerrain(path);
 

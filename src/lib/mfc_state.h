@@ -7,6 +7,11 @@
 // TLS slot or an object); the exit functions free them through the destructors here. afxData is
 // built by a static initialiser and its menu-dot bitmap deleted at exit.
 //
+// S3f added what the other static initialisers call: AfxClassInit (the runtime class list of the
+// module state) with MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush
+// (an atexit that deletes it). The module state is the original's in the hook build (AfxGetModuleState
+// at its address); the image has a stand-in with the members used so far (ImageModuleState).
+//
 // Every body is registered at its library address in both builds (mfc_state.cpp). The hook build
 // runs them over the original's state; in the image nothing fills the locals (S8a's handle maps are
 // thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object. Checked by
@@ -131,5 +136,78 @@ static_assert(sizeof(AuxData) == 0x6C);
 
 // afxData.
 AuxData& AfxData();
+
+// ---- Module state, runtime class list, global locks (S3f) ----------------------------------------
+
+// CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset`
+// bytes in.
+struct CSimpleList {
+    void* head;                 // +0x00 m_pHead
+    std::size_t nextOffset;     // +0x04 m_nNextOffset
+
+    void AddHead(void* element);    // 0070C4E9 (RET 4)
+};
+
+struct CRuntimeClass;
+
+// AFX_MODULE_STATE (a CNoTrackObject; the members up to the runtime class list).
+struct ModuleState {
+    void* vtable;               // +0x00
+    void* currentApp;           // +0x04 m_pCurrentWinApp (always null: the game has no CWinApp)
+    HINSTANCE instance;         // +0x08 m_hCurrentInstanceHandle
+    HINSTANCE resources;        // +0x0C m_hCurrentResourceHandle
+    const char* appName;        // +0x10 m_lpszCurrentAppName
+    BYTE dll;                   // +0x14 m_bDLL
+    BYTE system;                // +0x15 m_bSystem
+    BYTE reserved[2];           // +0x16
+    DWORD registeredClasses;    // +0x18 m_fRegisteredClasses
+    CSimpleList classList;      // +0x1C m_classList (CRuntimeClass, linked through m_pNextClass +0x14)
+};
+static_assert(offsetof(ModuleState, classList) == 0x1C);
+
+// The runtime classes' link offset (CRuntimeClass::m_pNextClass).
+constexpr std::size_t kNextClassOffset = 0x14;
+
+// AfxGetModuleState (0070CE8C): the calling thread's module state. The hook build calls the
+// original's; the image registers ImageModuleState at that address: one module state for the
+// process, nothing in it but the class list.
+ModuleState* __cdecl AfxGetModuleState();
+ModuleState* __cdecl ImageModuleState();
+
+// MFC's global locks (mtcore.cpp): the lock types index _afxResourceLock (CRIT_RUNTIMECLASSLIST 0,
+// CRIT_PROCESSLOCAL 1, ...; 17 of them: _afxResourceLock ends where _afxCriticalWin32s starts).
+// Win32s (GetVersion below 4 with the high bit) uses none.
+constexpr int kLockTypes = 17;
+constexpr int kRuntimeClassListLock = 0;
+
+// 0070C3C5: once, the Win32s flag from GetVersion and the lock that guards the locks' set-up; returns
+// _afxCriticalInit.
+BOOL __cdecl AfxCriticalInit();
+// 0070C458 / 0070C4C8: lock type `lockType` entered (its critical section made on first use) / left.
+void __stdcall AfxLockGlobals(int lockType);
+void __stdcall AfxUnlockGlobals(int lockType);
+
+// The globals behind them (the exe's data in both builds).
+BOOL& AfxCriticalInitDone();                        // 007C907C _afxCriticalInit
+BOOL& AfxCriticalWin32s();                          // 007C9078 _afxCriticalWin32s
+int* AfxLockInit();                                 // 007C8E80 _afxLockInit[17]
+CRITICAL_SECTION* AfxResourceLocks();               // 007C8EE0 _afxResourceLock[17]
+CRITICAL_SECTION* AfxLockInitLock();                // 007C8EC8 _afxLockInitLock
+
+// AfxClassInit (00700674, stdcall): `newClass` put at the head of the module state's class list, under
+// CRIT_RUNTIMECLASSLIST. The static initialisers register five classes with it.
+void __stdcall AfxClassInit(CRuntimeClass* newClass);
+
+// _AfxInitDBCS (0070DC4D): whether the OEM code page has double-byte characters (its MaxCharSize above
+// 1); the static initialiser stores it in _afxDBCS (007CAA98, a BOOL).
+BOOL __cdecl AfxInitDbcs();
+
+// wingdix.cpp: the halftone brush (_afxHalftoneBrush 007C8D40, made on first use by code the game never
+// reaches) deleted at exit by AfxWingdixTerm (0070B5F0); the static initialiser 0070B600 registers it
+// with atexit and keeps atexit's answer in a char (_afxWingdixTerm 007C8D44).
+void __cdecl AfxWingdixTerm();
+void __cdecl AfxWingdixTermInit();
+HGDIOBJ& AfxHalftoneBrush();
+char& AfxWingdixTermResult();
 
 } // namespace mfc::impl

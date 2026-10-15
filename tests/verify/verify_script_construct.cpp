@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -45,10 +46,13 @@ bool Zeroed(const void* p, std::size_t size) {
 // 004BDE40: PUSH -1 (2), PUSH imm32 (5).
 CScript*(__fastcall* s_construct)(CScript*);
 CScript* __fastcall ConstructVerify(CScript* self) {
-    auto* shadow = static_cast<CScript*>(gamecrt::operator_new(sizeof(CScript)));
-    std::memcpy(static_cast<void*>(shadow), self, sizeof(CScript));
-    s_construct(shadow);
+    // Ours first; the shadow is allocated after it from the bytes kept in our memory (SV2f).
+    std::vector<unsigned char> before(reinterpret_cast<const unsigned char*>(self),
+                                      reinterpret_cast<const unsigned char*>(self) + sizeof(CScript));
     CScript* result = self->Construct();
+    auto* shadow = static_cast<CScript*>(gamecrt::operator_new(sizeof(CScript)));
+    std::memcpy(static_cast<void*>(shadow), before.data(), sizeof(CScript));
+    s_construct(shadow);
 
     std::size_t differs = sizeof(CScript);
     for (std::size_t offset = 0; offset < sizeof(CScript) && differs == sizeof(CScript); offset += 4)

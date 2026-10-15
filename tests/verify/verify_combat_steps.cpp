@@ -36,14 +36,15 @@ DeathFn s_death;
 template <typename Ours, typename Original>
 void CompareSteps(const char* name, CUnitServer* self, AnimationSteps* steps, int* duration, Ours ours, Original original,
                   int detail) {
-    AnimationSteps scratch;
-    CopySteps(&scratch, steps);
+    KeptSteps kept(steps); // the copy is made after ours (SV2f)
     int scratchDuration = duration ? *duration : 0;
     RandomState before, afterOurs, afterOriginal;
     before.Save();
     bool actual = ours();
     afterOurs.Save();
     before.Restore();
+    AnimationSteps scratch;
+    kept.CopyTo(&scratch);
     bool expected = original(&scratch, duration ? &scratchDuration : nullptr);
     afterOriginal.Save();
     afterOurs.Restore();

@@ -28,6 +28,7 @@
 #include "../../src/game/world_deleting_destructors.h"
 
 #include <cstring>
+#include <vector>
 
 using namespace itemdb;
 
@@ -351,8 +352,8 @@ EI_VERIFY(0x005BE070, CollectionDeleteVerify<WaypointListDelete>, 0, s_unused);
 // ---- The scene's face groups and nodes (S7a) ----------------------------------------------------
 //
 // Reached with every figure scene load (the loader's group records and its node array). The face
-// groups' ConstructElements against the original on a twin (it allocates nothing); the destructors
-// ours only.
+// groups' ConstructElements against the original on a twin made after ours from the groups' bytes
+// kept in our memory (SV2f; it allocates nothing); the destructors ours only.
 namespace {
 
 using scene::FaceGroup;
@@ -362,10 +363,12 @@ using scene::SceneNode;
 void(__stdcall* s_groupsConstruct)(FaceGroup*, int);
 void __stdcall GroupsConstructVerify(FaceGroup* groups, int count) {
     std::size_t bytes = static_cast<std::size_t>(count) * sizeof(FaceGroup);
-    auto* twin = static_cast<FaceGroup*>(gamecrt::operator_new(bytes ? bytes : 1));
-    std::memcpy(static_cast<void*>(twin), groups, bytes);
-    s_groupsConstruct(twin, count);
+    const auto* raw = reinterpret_cast<const unsigned char*>(groups);
+    std::vector<unsigned char> kept(raw, raw + bytes);
     FaceGroup::ConstructElements(groups, count);
+    auto* twin = static_cast<FaceGroup*>(gamecrt::operator_new(bytes ? bytes : 1));
+    if (bytes) std::memcpy(static_cast<void*>(twin), kept.data(), bytes);
+    s_groupsConstruct(twin, count);
     ei::verify::Check("FaceGroup ConstructElements", true, std::memcmp(twin, groups, bytes) == 0, "%d", count);
     gamecrt::operator_delete(twin);
 }

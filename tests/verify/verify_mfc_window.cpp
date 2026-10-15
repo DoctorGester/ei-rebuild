@@ -6,6 +6,7 @@
 // original's own lookups, the calls its AfxMessageBox makes).
 #include "verify.h"
 
+#include "../../src/lib/mfc_state.h"
 #include "../../src/lib/mfc_window.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -14,18 +15,11 @@ namespace {
 
 void* s_unused;
 
-// AFX_MODULE_STATE: +0x04 m_pCurrentWinApp.
-struct ModuleState {
-    void* unused_00;
-    void* app;
-};
-
-__declspec(naked) ModuleState* __cdecl ModuleStateAt() EI_ORIGINAL(0x0070CE8C)    // AfxGetModuleState
 __declspec(naked) void* __cdecl MainWindowAt() EI_ORIGINAL(0x006E6AD6)             // AfxGetMainWnd
 __declspec(naked) void* __cdecl RoutingFrameAt() EI_ORIGINAL(0x0070ADCD)           // CCmdTarget::GetRoutingFrame_
 
 int __stdcall MessageBoxVerify(const char* text, unsigned type, unsigned helpId) {
-    const void* app = ModuleStateAt()->app;
+    const void* app = mfc::impl::AfxGetModuleState()->currentApp;
     const void* mainWindow = MainWindowAt();
     const void* frame = RoutingFrameAt();
     ei::verify::Check("AfxMessageBox", true, !app && !mainWindow && !frame, "application %p, main window %p, routing frame %p", app,

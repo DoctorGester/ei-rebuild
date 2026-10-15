@@ -1,8 +1,10 @@
 // Differential checks for game_buffer.cpp. The original runs on a scratch copy of the buffer's 0x1C
 // bytes, ours on the real buffer. When the original frees the block (growing, assignment,
-// destruction), the scratch gets a game-heap clone of it first; buffers that end up in different
+// destruction), the scratch gets a game-heap clone of it; buffers that end up in different
 // blocks are compared by their offsets from `begin` and by the block bytes both copied or wrote,
-// and the scratch's block is freed afterwards.
+// and the scratch's block is freed afterwards. Where ours allocates, ours runs first and the
+// clone is made after it from the block's bytes kept in our memory, so that ours' blocks land
+// where the original's would without the check (the game reads the heap's address order, SV2f).
 #include "verify.h"
 
 #include "../../src/game/net_coder.h"
@@ -23,15 +25,30 @@ std::uint32_t Capacity(const GameBuffer* b) { return Offset(b, b->end); }
 
 struct Scratch {
     alignas(4) unsigned char bytes[sizeof(GameBuffer)];
+    std::vector<std::uint8_t> kept;   // the block's bytes, in our memory (Keep)
+    bool hasKept = false;
     explicit Scratch(const void* from) { std::memcpy(bytes, from, sizeof(GameBuffer)); }
     GameBuffer* get() { return reinterpret_cast<GameBuffer*>(bytes); }
     bool Same(const void* other) const { return std::memcmp(bytes, other, sizeof(GameBuffer)) == 0; }
-    // The scratch's own copy of the block (its capacity's bytes; the original may free it).
+    // Saves the block's bytes in our memory before ours runs (ours may free or grow the block), so
+    // that CloneBlock can follow ours (SV2f).
+    void Keep() {
+        GameBuffer* b = get();
+        std::uint32_t capacity = Capacity(b);
+        if (b->begin && capacity) kept.assign(b->begin, b->begin + capacity);
+        hasKept = true;
+    }
+    // The scratch's own copy of the block (its capacity's bytes; the original may free it), on the
+    // game heap, made after ours ran: from the kept bytes when Keep ran.
     void CloneBlock() {
         GameBuffer* b = get();
         std::uint32_t capacity = Capacity(b);
         auto* clone = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity ? capacity : 1));
-        if (b->begin && capacity) std::memcpy(clone, b->begin, capacity);
+        if (hasKept) {
+            if (!kept.empty()) std::memcpy(clone, kept.data(), kept.size());
+        } else if (b->begin && capacity) {
+            std::memcpy(clone, b->begin, capacity);
+        }
         b->cur = clone + Offset(b, b->cur);
         b->high = clone + Offset(b, b->high);
         b->end = clone + capacity;
@@ -60,8 +77,8 @@ bool SameRelative(GameBuffer* expected, const GameBuffer* actual, std::uint32_t 
 GameBuffer*(__fastcall* s_construct)(GameBuffer*);
 GameBuffer* __fastcall ConstructVerify(GameBuffer* self) {
     Scratch expected(self);
-    GameBuffer* expectedRet = s_construct(expected.get());
     GameBuffer* actualRet = self->ConstructGrowing();
+    GameBuffer* expectedRet = s_construct(expected.get());
     bool same = expectedRet == expected.get() && actualRet == self && SameRelative(expected.get(), self, 0);
     expected.FreeBlock();
     ei::verify::Check("GameBuffer::ConstructGrowing", true, same, "");
@@ -72,8 +89,8 @@ GameBuffer* __fastcall ConstructVerify(GameBuffer* self) {
 GameBuffer*(__fastcall* s_copy)(GameBuffer*, void*, const GameBuffer*);
 GameBuffer* __fastcall CopyVerify(GameBuffer* self, void*, const GameBuffer* from) {
     Scratch expected(self);
-    GameBuffer* expectedRet = s_copy(expected.get(), nullptr, from);
     GameBuffer* actualRet = self->ConstructCopy(from);
+    GameBuffer* expectedRet = s_copy(expected.get(), nullptr, from);
     bool same = expectedRet == expected.get() && actualRet == self &&
                 SameRelative(expected.get(), self, Capacity(self));
     expected.FreeBlock();
@@ -86,9 +103,10 @@ GameBuffer*(__fastcall* s_assign)(GameBuffer*, void*, const GameBuffer*);
 GameBuffer* __fastcall AssignVerify(GameBuffer* self, void*, const GameBuffer* from) {
     if (self == from) return self->AssignFrom(from);
     Scratch expected(self);
+    expected.Keep();
+    GameBuffer* actualRet = self->AssignFrom(from);
     expected.CloneBlock();
     GameBuffer* expectedRet = s_assign(expected.get(), nullptr, from);
-    GameBuffer* actualRet = self->AssignFrom(from);
     bool same = expectedRet == expected.get() && actualRet == self &&
                 SameRelative(expected.get(), self, Capacity(self));
     expected.FreeBlock();
@@ -142,10 +160,11 @@ void __fastcall ViewDestructVerify(GameBuffer* self) {
 template <typename Original, typename Ours>
 void CheckGrowth(const char* name, GameBuffer* self, std::uint32_t argument, Original original, Ours ours) {
     Scratch expected(self);
-    expected.CloneBlock();
+    expected.Keep();
     std::uint32_t kept = Capacity(self);
-    original(expected.get());
     ours();
+    expected.CloneBlock();
+    original(expected.get());
     bool same = SameRelative(expected.get(), self, kept);
     expected.FreeBlock();
     ei::verify::Check(name, true, same, "size %u capacity %u", argument, kept);
@@ -174,11 +193,12 @@ void __fastcall ReserveWriteVerify(GameBuffer* self, void*, std::int32_t size) {
 int(__fastcall* s_writeMore)(GameBuffer*, void*, const void*, std::uint32_t);
 int __fastcall WriteMoreVerify(GameBuffer* self, void*, const void* from, std::uint32_t size) {
     Scratch expected(self);
-    expected.CloneBlock();
+    expected.Keep();
     std::uint32_t kept = Capacity(self);
     std::uint32_t at = Offset(self, self->cur);
-    int expectedRet = s_writeMore(expected.get(), nullptr, from, size);
     int actualRet = GrowingBufferWriteMore(self, nullptr, from, size);
+    expected.CloneBlock();
+    int expectedRet = s_writeMore(expected.get(), nullptr, from, size);
     bool same = expectedRet == actualRet && SameRelative(expected.get(), self, kept) &&
                 (size == 0 || std::memcmp(expected.get()->begin + at, self->begin + at, size) == 0);
     expected.FreeBlock();
@@ -198,10 +218,11 @@ std::uint8_t* __fastcall SeekVerify(GameBuffer* self, void*, std::int32_t positi
                           position);
         return actualRet;
     }
-    expected.CloneBlock();
+    expected.Keep();
     std::uint32_t kept = Capacity(self);
-    std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
     std::uint8_t* actualRet = GrowingBufferSeek(self, nullptr, position);
+    expected.CloneBlock();
+    std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
     bool same = expectedRet == actualRet && SameRelative(expected.get(), self, kept);
     expected.FreeBlock();
     ei::verify::Check("GrowingBufferSeek", true, same, "position %d (grows)", position);
@@ -254,10 +275,11 @@ void CheckBegin(const char* name, BufferCursor* self, GameBuffer* buffer, std::i
     BufferCursor expectedCursor = *self;
     Scratch expected(buffer);
     bool grows = buffer->cur + size > buffer->end;
-    if (grows) expected.CloneBlock();
-    original(&expectedCursor, expected.get());
+    if (grows) expected.Keep();
     std::uint32_t kept = Capacity(buffer);
     ours();
+    if (grows) expected.CloneBlock();
+    original(&expectedCursor, expected.get());
     GameBuffer* e = expected.get();
     bool same = (grows ? SameRelative(e, buffer, kept) : expected.Same(buffer)) && expectedCursor.sink == e &&
                 self->sink == buffer && Offset(e, expectedCursor.p) == Offset(buffer, self->p) &&

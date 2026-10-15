@@ -56,9 +56,10 @@ EI_VERIFY(0x006D4AA0, ConstructVerify, 7, s_construct);
 CDib*(__cdecl* s_createObject)();
 
 CDib* __cdecl CreateObjectVerify() {
-    CDib* expected = s_createObject();
+    // Ours first, so that its object lands where the original's would without the check (SV2f).
     auto* actual = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
     if (actual) actual->Construct();
+    CDib* expected = s_createObject();
     ei::verify::Check("CDib CreateObject", true,
                       expected && actual && std::memcmp(expected, actual, sizeof(CDib)) == 0,
                       "the new bitmaps differ");

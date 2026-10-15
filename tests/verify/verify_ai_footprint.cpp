@@ -16,20 +16,31 @@ bool SameCell(const FootprintCell& a, const FootprintCell& b) {
            a.transparency == b.transparency && a.edge == b.edge && a.next == b.next;
 }
 
-// A copy of a set with its own storage, laid out as SetSize allocates it, so original code can
-// grow or free it.
-FootprintCellSet Clone(const FootprintCellSet& set) {
-    FootprintCellSet copy = set;
-    if (set.cells.data) {
-        auto raw = reinterpret_cast<std::uintptr_t>(
-            gamecrt::operator_new(set.cells.capacity * sizeof(FootprintCell) + 0x24));
-        auto* aligned = reinterpret_cast<FootprintCell*>((raw + 0x23) & ~std::uintptr_t{0x1F});
-        reinterpret_cast<std::uintptr_t*>(aligned)[-1] = raw;
-        std::memcpy(aligned, set.cells.data, set.cells.size * sizeof(FootprintCell));
-        copy.cells.data = aligned;
+// The set before a call, kept in our memory: ours runs first, so that what it allocates lands where
+// the original's would without the check (the game reads the heap's address order, SV2f); the
+// original then runs on a clone made from this, with its own storage laid out as SetSize allocates
+// it (so original code can grow or free it), freed after.
+struct SetBefore {
+    FootprintCellSet header;
+    std::vector<std::uint8_t> cells;
+    explicit SetBefore(const FootprintCellSet& set) : header(set) {
+        if (set.cells.data)
+            cells.assign(reinterpret_cast<const std::uint8_t*>(set.cells.data),
+                         reinterpret_cast<const std::uint8_t*>(set.cells.data) + set.cells.size * sizeof(FootprintCell));
     }
-    return copy;
-}
+    FootprintCellSet Clone() const {
+        FootprintCellSet copy = header;
+        if (header.cells.data) {
+            auto raw = reinterpret_cast<std::uintptr_t>(
+                gamecrt::operator_new(header.cells.capacity * sizeof(FootprintCell) + 0x24));
+            auto* aligned = reinterpret_cast<FootprintCell*>((raw + 0x23) & ~std::uintptr_t{0x1F});
+            reinterpret_cast<std::uintptr_t*>(aligned)[-1] = raw;
+            if (!cells.empty()) std::memcpy(aligned, cells.data(), cells.size());
+            copy.cells.data = aligned;
+        }
+        return copy;
+    }
+};
 
 bool SameSet(const FootprintCellSet& a, const FootprintCellSet& b, int cellsToCompare) {
     if (a.cells.size != b.cells.size || a.cells.capacity != b.cells.capacity || a.cells.growBy != b.cells.growBy ||
@@ -47,14 +58,15 @@ bool SameSet(const FootprintCellSet& a, const FootprintCellSet& b, int cellsToCo
 constexpr int kMaxClonedCells = 4096;
 } // namespace
 
-// 005BD350: MOV EAX,[ESP+8]; PUSH EBX (5 bytes). Deep copy: original on the clone, ours on the set.
+// 005BD350: MOV EAX,[ESP+8]; PUSH EBX (5 bytes). Deep copy: ours on the set, then the original on the clone.
 static void(__fastcall* s_setSize)(FootprintCellSet*, void*, int, int);
 static void __fastcall SetSizeVerify(FootprintCellSet* self, void*, int size, int growBy) {
     if (self->cells.size > kMaxClonedCells) return self->SetSize(size, growBy);
     int before = self->cells.size;
-    FootprintCellSet clone = Clone(*self);
-    s_setSize(&clone, nullptr, size, growBy);
+    SetBefore saved(*self);
     self->SetSize(size, growBy);
+    FootprintCellSet clone = saved.Clone();
+    s_setSize(&clone, nullptr, size, growBy);
     int kept = before < size ? before : size;
     ei::verify::Check("FootprintCellSet::SetSize", true, SameSet(clone, *self, kept), "%d -> %d (grow %d)", before,
                       size, growBy);
@@ -69,9 +81,10 @@ static AddFn s_addTop, s_addBottom;
 static void CheckAdd(const char* name, AddFn original, void (FootprintCellSet::*ours)(int, int, int, std::int8_t, std::int8_t),
                      FootprintCellSet* self, int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
     if (self->cells.size > kMaxClonedCells) return (self->*ours)(x, y, height, kind, transparency);
-    FootprintCellSet clone = Clone(*self);
-    original(&clone, nullptr, x, y, height, kind, transparency);
+    SetBefore saved(*self);
     (self->*ours)(x, y, height, kind, transparency);
+    FootprintCellSet clone = saved.Clone();
+    original(&clone, nullptr, x, y, height, kind, transparency);
     ei::verify::Check(name, true, SameSet(clone, *self, self->cells.size), "(%d,%d) z %d, %d cells", x, y, height,
                       self->cells.size);
     clone.SetSize(0, -1);

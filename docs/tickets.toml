@@ -847,6 +847,30 @@ size = 0.5
 files = ["tools/check_registrations.py", "build.cmd"]
 note = "The S6a merge (2026-10-15) put 13 addresses under two EI_REPLACE / EI_VERIFY registrations from different files (S7 game_lists.cpp, S3c game_arrays.cpp / ai_events.cpp vs S6a game_slots.cpp / mfc_slots.cpp); SV6 caught it only at run time, failing every run. Add a build check (like check_forwarders) that fails the build when an address has two EI_REPLACE / EI_REPLACE_STANDALONE registrations or two EI_VERIFY wrappers in the same build, naming both files; prefer reading what the build actually registers (the generated table or the DLL's registration list) over grepping sources, so macro-generated registrations count. Run it from build.cmd for both builds."
 
+[[ticket]]
+id = "SV2h1"
+title = "CString outputs: ours first, the original's string after"
+group = "verification"
+depends = ["SV2h"]
+files = ["tests/verify/*"]
+note = "SV2h left the checks whose original writes a CString (a game-heap block, or CFixedAlloc) before ours runs, many with the stream put back between the runs: exit_area, mfc_file ReadLine / GetRoot, item_db, text_reader, unit_client_sounds, world.cpp (224, 666), text_split, chunk_archive, script_load, ui_scrollbar, link_loader, map_spec, script_parse Qualify, ui_briefing, ui_global_map, world_briefing, party_items, model_names, mob_script_decoder, mfc_try, mfc_archive, mfc_string. Swap to ours first (stream position kept, put back for the original), the original's string freed. Check with work.py test --golden."
+
+[[ticket]]
+id = "SV2h2"
+title = "Delta coder and stream twins: ours first"
+group = "verification"
+depends = ["SV2h"]
+files = ["tests/verify/verify_net_delta.cpp", "tests/verify/verify_net_streams.cpp", "tests/verify/verify_net_coder.cpp", "tests/verify/delta_snapshot.h", "tests/verify/verify_crt_streams.cpp", "tests/verify/verify_directdraw_holder.cpp"]
+note = "SV2h left the network delta coder's checks (net_delta FieldCopy / StreamCopy / CloneStream, net_streams, net_coder, delta_snapshot.h): the twin bit streams and buffers are game-heap blocks made before either side runs. Keep the bytes in our memory, run ours, then clone for the original (the KeptStream pattern of verify_net_link). Also review the crt_streams start-up batteries and directdraw_holder for the same order. Check with work.py test --golden."
+
+[[ticket]]
+id = "SV2h3"
+title = "Original-on-real checks with a restored snapshot: which blocks survive"
+group = "verification"
+depends = ["SV2h"]
+files = ["tests/verify/*"]
+note = "SV2h did not change the checks that run the original on the real object, restore a snapshot and then run ours (UI side-by-side checks, WakeVerify and similar). Review each: if the snapshot restore leaves ours' blocks alive and frees the original's (or the snapshot itself is a game-heap block alive across a run), the heap order differs from a no-hooks run. Also note the residual pool risk (CFixedAlloc, STLport node allocator, MFC plexes refilled by a twin's free)."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1684,6 +1708,15 @@ id = "S3f"
 title = "Standalone library: MFC constructors the static initialisers still call"
 group = "standalone"
 note = "After S3d the standalone check's only exit callee without code is 005DC080 (S12a). The static initialisers' MFC call targets still without code: the four simple exceptions' constructors 006E68C9 (CResourceException, 007C8C58), 006E6916 (CUserException, 007C8BC0), 006E6AEA (CMemoryException, 007C8DE8), 006E6B37 (CNotSupportedException, 007C8D50) (CSimpleException(BOOL) 0070205? then +0x0C / +0x10 cleared, the resource id at +0x94, the class's vtable; their destructors are S3d's, mfc_exception.cpp), CWnd(HWND) 00704546 on wndTop / wndBottom / wndTopMost / wndNoTopMost (mfc_window.h has CWnd and CCmdTarget's layout now), 0070B600, 0070DC4D and 00700674 (x5). Port at their addresses with start-up checks against the original's globals (they run before the hooks), as S3b / S3d did. docs/notes/standalone.md S3b, S3d."
+
+[[ticket]]
+id = "S12e"
+title = "Standalone library: the connection's owning lists, hashtable leftovers and the hero screen's sorts"
+group = "standalone"
+size = 1
+depends = ["S12d"]
+files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/stlp_algo.h", "src/game/stl_sorts.cpp"]
+note = "Container rows our code still forwards to after S12d (library.csv \"container instantiation\" or \"unreviewed family\" rows with an EI_ORIGINAL and no EI_REPLACE). The connection lists whose elements own something, needing element policies for SentPacket (dtor 0043A1D0: clears its list<SentItem>, each item +0x10 released through 0040A3A0, then the sentinel to the 24-byte list) and the freed-id batches (vector<FreedId>, dtor 0043A150): copy constructors 00437930, 00437F60, 00438690 (sentinel, begin helper, insert-range 0043D800, 0043DC20, 0043DC50), default inserts 00438F60, 00439000, 004397E0, 00439C80, erase 00437F30, 004390C0, clear 0043CA40, 0043BA20, ~list 004399C0; the clients find_if by peer address 0043D780 (helpers 0043D7C0, 0043FB30) and the counted pointer init 0043D7D0. Hashtables (S11 policies): erase by key 004E2F00 (32-byte nodes) and 006BD060 (16-byte), clear with CString values 00663330, two constructors 00633F50 and 00633FF0 (first node 0x24, 50 buckets). Vector members destroyed inside an owner: 0041AC30 (two char vectors), 006D29A0 and 006D29E0 (a char vector at +4). 004FAE00 (erase whose element owns the vector of 004FB6A0, goes with S12c model lists). The hero screen (A-I15; 0060A660 and 0060AB00 are S12c): the sorts of 12-byte strings 0060B330, 0060B440 and of CStrings 0061A240, 0061A300 (copies allocate or add references: ours first, SV2f), the map lookup 00613920, the allocate of 36-byte elements 00619770, vector<0x74 record> insert_overflow 00619920. Not forwarded by our code (no registration needed until a caller is ported): the rest of the S12b list, e.g. 00438000 00438730 00438FF0 00439100 00439940 00439CC0 0043ADE0 0049D320 00539220 0055FDC0 00560060 0056E000 0056ECD0 00583A20 005E3AD0 00609A80 0069CA10."
 
 [[ticket]]
 id = "S6d"

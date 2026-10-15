@@ -1,6 +1,7 @@
 // Checks for the STLport list<T> instantiations (src/lib/stlp_list.cpp).
 //
-// begin / end / distance compare with the original (pure). A constructor runs the original first,
+// begin / end / distance and the iterator's copy and decrement compare with the original (pure).
+// A splice runs the original on twins of both lists' nodes (links only) and ours on the lists. A constructor runs the original first,
 // gives its sentinel back to the pool and then runs ours, which must take the same node from the
 // same free list (the pool is LIFO, so the pool ends as if only ours had run) and link it to itself.
 // The destructors of plain elements run ours only: the sentinel and the nodes must be on their free
@@ -13,6 +14,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <unordered_map>
 #include <vector>
 
 namespace {
@@ -29,6 +31,8 @@ using List24 = stlp::ListAbi<stlp::Opaque<16>>;
 using List40 = stlp::ListAbi<stlp::Opaque<32>>;
 using List352 = stlp::ListAbi<stlp::Opaque<0x158>>;
 using List48 = stlp::ListAbi<stlp::Opaque<0x28>>;
+using List268 = stlp::ListAbi<stlp::Opaque<0x104>>;
+using List288 = stlp::ListAbi<stlp::Opaque<0x118>>;
 
 template <std::uintptr_t A>
 struct IteratorCheck {
@@ -48,6 +52,111 @@ struct IteratorCheck {
         stlp::ListEnd(self, nullptr, out);
         ei::verify::Check(Name<A>("stlp::list::end"), expected, *out, "list %p", self);
         return out;
+    }
+};
+
+// The iterator's copy constructor and --it (S12d): pure, the original on a scratch iterator.
+template <std::uintptr_t A>
+struct IteratorStepCheck {
+    static inline void* original = nullptr;
+
+    static Node** __fastcall Copy(Node** self, void*, Node* const* from) {
+        using Fn = Node** (__fastcall*)(Node**, void*, Node* const*);
+        Node* theirs = nullptr;
+        Node** theirResult = reinterpret_cast<Fn>(original)(&theirs, nullptr, from);
+        Node** result = stlp::ListIteratorCopy(self, nullptr, from);
+        ei::verify::Check(Name<A>("stlp::list::iterator copy"), theirs, *self, "returned %p (original's %p)", result,
+                          theirResult);
+        ei::verify::Report(Name<A>("stlp::list::iterator copy result"), result == self && theirResult == &theirs, "");
+        return result;
+    }
+    static Node** __fastcall Decrement(Node** it) {
+        using Fn = Node** (__fastcall*)(Node**);
+        Node* theirs = *it;
+        Node** theirResult = reinterpret_cast<Fn>(original)(&theirs);
+        Node** result = stlp::ListIteratorDecrement(it);
+        ei::verify::Check(Name<A>("stlp::list::iterator --"), theirs, *it, "");
+        ei::verify::Report(Name<A>("stlp::list::iterator -- result"), result == it && theirResult == &theirs, "");
+        return result;
+    }
+};
+
+// splice (S12d): only links change, so the original runs on a twin of every node of both lists
+// (next and prev mapped to the twins), ours on the lists; each node's links must then match its
+// twin's.
+template <std::uintptr_t A>
+struct SpliceCheck {
+    static inline void* original = nullptr;
+
+    struct Twins {
+        std::vector<Node*> real;
+        std::vector<Node> twin;
+        std::unordered_map<const Node*, int> index;
+
+        explicit Twins(const AnyList* a, const AnyList* b) {
+            Collect(a);
+            if (b != a) Collect(b);
+            twin.resize(real.size());
+            for (std::size_t k = 0; k < real.size(); ++k) {
+                twin[k].next = Map(real[k]->next);
+                twin[k].prev = Map(real[k]->prev);
+            }
+        }
+        void Collect(const AnyList* list) {
+            Node* n = list->head;
+            do {
+                index.emplace(n, static_cast<int>(real.size()));
+                real.push_back(n);
+                n = n->next;
+            } while (n != list->head && real.size() < 100000);
+        }
+        int Index(const Node* n) const {
+            auto it = index.find(n);
+            return it == index.end() ? -1 : it->second;
+        }
+        int TwinIndex(const Node* n) const {
+            if (twin.empty() || n < twin.data() || n >= twin.data() + twin.size()) return -1;
+            return static_cast<int>(n - twin.data());
+        }
+        Node* Map(Node* n) {
+            int k = Index(n);
+            return k < 0 ? n : &twin[static_cast<std::size_t>(k)];
+        }
+        // The first node whose links differ from its twin's, or -1.
+        int Mismatch() const {
+            for (std::size_t k = 0; k < real.size(); ++k)
+                if (Index(real[k]->next) != TwinIndex(twin[k].next) || Index(real[k]->prev) != TwinIndex(twin[k].prev))
+                    return static_cast<int>(k);
+            return -1;
+        }
+    };
+
+    static void __fastcall One(AnyList* self, void*, Node* pos, AnyList* x, Node* i) {
+        using Fn = void(__fastcall*)(AnyList*, void*, Node*, AnyList*, Node*);
+        Twins twins(self, x);
+        if (twins.Index(pos) < 0 || twins.Index(i) < 0) {
+            // Not nodes of the two lists: the original would link real nodes.
+            stlp::ListSpliceOne(self, nullptr, pos, x, i);
+            ei::verify::Report(Name<A>("stlp::list::splice(pos, x, i)"), false, "pos or i is not in the lists");
+            return;
+        }
+        reinterpret_cast<Fn>(original)(self, nullptr, twins.Map(pos), x, twins.Map(i));
+        stlp::ListSpliceOne(self, nullptr, pos, x, i);
+        ei::verify::Check(Name<A>("stlp::list::splice(pos, x, i)"), -1, twins.Mismatch(), "%u nodes",
+                          static_cast<unsigned>(twins.real.size()));
+    }
+    static void __fastcall Range(AnyList* self, void*, Node* pos, AnyList* x, Node* first, Node* last) {
+        using Fn = void(__fastcall*)(AnyList*, void*, Node*, AnyList*, Node*, Node*);
+        Twins twins(self, x);
+        if (twins.Index(pos) < 0 || twins.Index(first) < 0 || twins.Index(last) < 0) {
+            stlp::ListSpliceRange(self, nullptr, pos, x, first, last);
+            ei::verify::Report(Name<A>("stlp::list::splice(pos, x, first, last)"), false, "pos, first or last is not in the lists");
+            return;
+        }
+        reinterpret_cast<Fn>(original)(self, nullptr, twins.Map(pos), x, twins.Map(first), twins.Map(last));
+        stlp::ListSpliceRange(self, nullptr, pos, x, first, last);
+        ei::verify::Check(Name<A>("stlp::list::splice(pos, x, first, last)"), -1, twins.Mismatch(), "%u nodes",
+                          static_cast<unsigned>(twins.real.size()));
     }
 };
 
@@ -106,6 +215,8 @@ template <std::uintptr_t A> using Construct24 = ConstructCheck<A, List24>;
 template <std::uintptr_t A> using Construct40 = ConstructCheck<A, List40>;
 template <std::uintptr_t A> using Construct352 = ConstructCheck<A, List352>;
 template <std::uintptr_t A> using Construct48 = ConstructCheck<A, List48>;
+template <std::uintptr_t A> using Construct268 = ConstructCheck<A, List268>;
+template <std::uintptr_t A> using Construct288 = ConstructCheck<A, List288>;
 
 // What a destructor or clear() leaves on the node pool: `freed` (in the order freed) pushed on
 // the free list for `bytes`, whose head was `top`.
@@ -137,10 +248,24 @@ struct DestructCheck {
         if (!ok) std::snprintf(detail, sizeof(detail), "%u nodes, free list top %p", static_cast<unsigned>(freed.size()), top);
         ei::verify::Report(Name<A>("stlp::list::~list"), ok, detail);
     }
+    // clear(): the nodes on their free list from the last back to the first, the sentinel linked to
+    // itself.
+    static void __fastcall Clear(List* self) {
+        std::vector<void*> freed;
+        for (auto* n = self->head->next; n != self->head; n = n->next) freed.push_back(n);
+        void** list = FreeList(kNode);
+        void* top = list ? *list : nullptr;
+        Abi::Clear(self);
+        bool ok = PushedInOrder(kNode, freed, top) && self->head->next == self->head && self->head->prev == self->head;
+        char detail[96] = "";
+        if (!ok) std::snprintf(detail, sizeof(detail), "%u nodes, free list top %p", static_cast<unsigned>(freed.size()), top);
+        ei::verify::Report(Name<A>("stlp::list::clear"), ok, detail);
+    }
 };
 template <std::uintptr_t A> using Destruct16 = DestructCheck<A, List16>;
 template <std::uintptr_t A> using Destruct24 = DestructCheck<A, List24>;
 template <std::uintptr_t A> using Destruct40 = DestructCheck<A, List40>;
+template <std::uintptr_t A> using Destruct268 = DestructCheck<A, List268>;
 
 } // namespace
 
@@ -151,6 +276,8 @@ EI_VERIFY(0x00420280, IteratorCheck<0x00420280>::Begin, 8, IteratorCheck<0x00420
 EI_VERIFY(0x00420380, IteratorCheck<0x00420380>::Begin, 8, IteratorCheck<0x00420380>::original);
 EI_VERIFY(0x004219E0, IteratorCheck<0x004219E0>::Begin, 8, IteratorCheck<0x004219E0>::original);
 EI_VERIFY(0x00422B90, IteratorCheck<0x00422B90>::Begin, 8, IteratorCheck<0x00422B90>::original);
+EI_VERIFY(0x00438640, IteratorCheck<0x00438640>::Begin, 8, IteratorCheck<0x00438640>::original);
+EI_VERIFY(0x00438820, IteratorCheck<0x00438820>::Begin, 8, IteratorCheck<0x00438820>::original);
 
 // end(): mov eax,[esp+4]; mov ecx,[ecx] (6 bytes).
 EI_VERIFY(0x004049D0, IteratorCheck<0x004049D0>::End, 6, IteratorCheck<0x004049D0>::original);
@@ -179,6 +306,16 @@ EI_VERIFY(0x004436C0, IteratorCheck<0x004436C0>::End, 6, IteratorCheck<0x004436C
 EI_VERIFY(0x0068C500, IteratorCheck<0x0068C500>::End, 6, IteratorCheck<0x0068C500>::original);
 EI_VERIFY(0x0069BE60, IteratorCheck<0x0069BE60>::End, 6, IteratorCheck<0x0069BE60>::original);
 EI_VERIFY(0x0069C2E0, IteratorCheck<0x0069C2E0>::End, 6, IteratorCheck<0x0069C2E0>::original);
+EI_VERIFY(0x00437F20, IteratorCheck<0x00437F20>::End, 6, IteratorCheck<0x00437F20>::original);
+EI_VERIFY(0x00438650, IteratorCheck<0x00438650>::End, 6, IteratorCheck<0x00438650>::original);
+EI_VERIFY(0x00438830, IteratorCheck<0x00438830>::End, 6, IteratorCheck<0x00438830>::original);
+
+// The iterator's copy (MOV EAX,ECX; MOV ECX,[ESP+4]: 6 bytes) and --it (MOV EAX,ECX; MOV ECX,[EAX];
+// MOV EDX,[ECX+4]: 7 bytes); the splices (two MOV r,[ESP+n]: 8 bytes).
+EI_VERIFY(0x004387C0, IteratorStepCheck<0x004387C0>::Copy, 6, IteratorStepCheck<0x004387C0>::original);
+EI_VERIFY(0x00439A60, IteratorStepCheck<0x00439A60>::Decrement, 7, IteratorStepCheck<0x00439A60>::original);
+EI_VERIFY(0x004380C0, SpliceCheck<0x004380C0>::One, 8, SpliceCheck<0x004380C0>::original);
+EI_VERIFY(0x00438770, SpliceCheck<0x00438770>::Range, 8, SpliceCheck<0x00438770>::original);
 
 // distance(): mov eax,[esp+4]; mov edx,[esp+8] (8 bytes).
 EI_VERIFY(0x00429040, DistanceCheck<0x00429040>::Verify, 8, DistanceCheck<0x00429040>::original);
@@ -228,6 +365,8 @@ EI_VERIFY(0x004249E0, Construct352<0x004249E0>::Verify, 7, Construct352<0x004249
 EI_VERIFY(0x00478D50, Construct48<0x00478D50>::Verify, 7, Construct48<0x00478D50>::original);
 EI_VERIFY(0x00479150, Construct48<0x00479150>::Verify, 7, Construct48<0x00479150>::original);
 EI_VERIFY(0x005F90E0, Construct48<0x005F90E0>::Verify, 7, Construct48<0x005F90E0>::original);
+EI_VERIFY(0x00439CE0, Construct268<0x00439CE0>::Verify, 7, Construct268<0x00439CE0>::original);
+EI_VERIFY(0x00439960, Construct288<0x00439960>::Verify, 7, Construct288<0x00439960>::original);
 
 // Destructors of plain elements: ours only (stolen 0).
 EI_VERIFY(0x004A96A0, Destruct16<0x004A96A0>::Verify, 0, s_unused);
@@ -235,3 +374,9 @@ EI_VERIFY(0x0069C830, Destruct16<0x0069C830>::Verify, 0, s_unused);
 EI_VERIFY(0x00421CD0, Destruct24<0x00421CD0>::Verify, 0, s_unused);
 EI_VERIFY(0x004A9650, Destruct24<0x004A9650>::Verify, 0, s_unused);
 EI_VERIFY(0x00421D20, Destruct40<0x00421D20>::Verify, 0, s_unused);
+EI_VERIFY(0x00439D40, Destruct268<0x00439D40>::Verify, 0, s_unused);
+EI_VERIFY(0x0043D420, Destruct268<0x0043D420>::Clear, 0, s_unused);
+// clear() of plain elements (S12d): ours only.
+EI_VERIFY(0x00405500, Destruct16<0x00405500>::Clear, 0, s_unused);
+EI_VERIFY(0x0040B390, Destruct16<0x0040B390>::Clear, 0, s_unused);
+EI_VERIFY(0x0040B290, Destruct24<0x0040B290>::Clear, 0, s_unused);

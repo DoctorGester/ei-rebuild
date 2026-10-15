@@ -587,7 +587,7 @@ list's members, not their order.
 **rebirth_flags** repeats on the fixed heap (the group order was by address). Its last difference
 was its own: `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its
 arguments (5, 1.#INF, or a NaN that made the variable's verify fail when stored); the scenario now
-checks `Not(IsLess(DistancePointPoint(3,4),0))`, true for any of them.
+checks `Not(IsLess(DistancePointPoint(3,4),0))`, true for any of them (not for a NaN: T2e below).
 
 Results (on top of SV1a): the four scenarios, three runs per side, repeat; combat, combat_more and
 sound print the same as the original. Left: in sound the digests part at update 272 in `crt.rand` only
@@ -930,3 +930,57 @@ the section with zero words, which the reader skips. Output names every file:lin
 about 0.15 s. When it first ran it found six addresses registered twice on main (S6a vs S13b:
 004CB150 / 004CB310 / 004CB650; S12a vs S12b: 00445040 / 00445170 / 004457F0); the later
 registrations (game_slots.cpp, mfc_slots.cpp, stlp_pair.cpp and its verify wrappers) were dropped.
+
+## T2e: rebirth_flags' DistancePointPoint check failed now and then (2026-10-15)
+
+`check Not(IsLess(DistancePointPoint(3,4),0))` printed 0 on some first runs, on both installs (addon.dll's
+handler and ours read the same way). The handler reads four floats where its signature has two: the
+parser sizes the arguments' CArray once at load (SetSize(2) on a new command: an 8-byte block), so the
+third and fourth floats are the 8 bytes after that heap block (the next block's header or a free block's
+contents), which change from run to run. The distance is then any value >= 0, 1.#INF or a NaN. For a NaN the game's comparison
+(FCOMP, Compare in script_eval.cpp) sets C0, C2 and C3 together, so IsLess(NaN,0) is 1 and Not makes it 0:
+not a difference in ours, a test that does not hold for every value addon can give. No IsLess / IsGreater /
+IsEqual test of one evaluation holds for all three cases (a NaN is less, equal and not greater at once).
+The scenario now checks `Or(DistancePointPoint(3,4),1)`: Or truncates each argument (cvttsd2si; a NaN or
+1.#INF gives 0x80000000) and its last 1 makes it true for any value, while the handler still runs.
+
+Shown under load (work.py test, 4 at once, `--retries 0`): 13 copies of the scenario on both installs passed
+26 of 26; then 12 copies running the old check and the new one in the same game: the old one printed 0 in 2
+of 24 (one on Rebirth, addon.dll's own handler, one on vanilla), the new one 1 in all 24.
+
+## SV2h: twin checks that allocate run ours first (2026-10-15)
+
+The SV2f rule applied across tests/verify (52 files): ours runs on the real object first and allocates first; the
+original runs afterwards on a twin built from bytes kept in our memory (std::vector or a stack struct), and the twin's
+blocks are freed. A twin that is allocated and freed with nothing kept in between is harmless; one alive while the
+kept side allocates is what moved the game's heap order. Patterns:
+
+- Keep, then clone: the input's header and used elements are copied into our memory before ours runs; the game-heap
+  copy the original needs (it may grow or free it) is made after (KeptSteps in combat_verify_util.h, KeptArray in
+  terrain_landscape / world_client_decals, KeptOptions, KeptPlan, KeptTween, ScratchArray::Make in script parse arrays,
+  Scratch::Keep in game_buffer / memory_stream / buffered_file, KeptStream in net_link / net_link_driver).
+- Factory swaps: when ours and the original each create an object (item links, unit AI, net connections, sessions,
+  unit mode slots), ours creates first.
+- Script groups and object lists: the group is kept with a reference on each object, so the objects stay alive while
+  ours runs; the clone made afterwards adopts those references (KeptGroup in verify_script / verify_world).
+- In-place writers whose original must keep the real result (AnimationSteps AddStep / AddEmote / SetStepFlags): the
+  original runs on the real list and ours on a copy made afterwards from the kept list.
+- Random and terrain state: the ISAAC generator and rand()'s seed are saved in our memory (no game-heap copy), ours
+  runs, its state is saved, the start is restored for the original, and ours' state is put back at the end (party
+  saves, planner, terrain sector Build).
+- Saves into memory streams: ours writes into the real stream, then the original into a scratch stream made after.
+
+The S4a1 note (start-up batteries that call a recorded function's trampoline, null in record mode): only
+verify_crt_format's battery calls one (atof), and S4a1 already guards it; nothing else needed a guard.
+
+Golden suite (128 runs, 4 at once) after each of the three commits: ALL PASS, 56 goldens the same, 0 differ.
+
+Not done (follow-ups SV2h1..SV2h3): CString outputs whose original writes a game-heap string first and the stream is
+put back (exit_area, mfc_file ReadLine / GetRoot, item_db, text_reader, unit_client_sounds, world, text_split,
+chunk_archive, script_load, ui_scrollbar, link_loader, map_spec, script_parse Qualify, ui_briefing, ui_global_map,
+world_briefing, party_items, model_names, mob_script_decoder, mfc_try, mfc_archive, mfc_string); the network delta
+coder's twin streams (net_delta, net_streams, net_coder, delta_snapshot.h) and the crt_streams batteries and
+directdraw_holder; and the checks that run the original on the real object with a snapshot restored before ours (UI
+side by side, WakeVerify), to be reviewed for which side's blocks survive. Pools (CString's CFixedAlloc, the STLport
+node allocator, MFC plexes) can still be refilled by a twin's free in a different order; no golden showed it.
+verify_mfc_array.cpp (S6a) and the STLport checks (S12) were left to their owners.

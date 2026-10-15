@@ -12,7 +12,7 @@ exe, how the first standalone exe gets around it, and what a switch from cp1251 
 | Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), 5 unported, 1,443 library: STLport 881, MFC 399, compiler-generated 49, CRT 37, import thunks and others 77 |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions (336 MFC: the `CArray` / `CList` / `CMap` deleting destructors and `Serialize` slots) |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 25, all library code (S4-S12; S3b ported the ten game-side ones), the exit functions' callees 47 (S4-S9, S3c) |
+| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); every call target and exit function callee has code in the image (S3b-S3f, S4-S12) |
 | Reads of the exe's code bytes | the frame's camera call target (00457595), app_frame's CALL test, Rebirth detection (live bytes against the file): each has a standalone path (S14) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 | Cleanup counts (no effect on the first exe) | C11 shims 1,034, `__asm` 221, `float_control` 114, raw addresses 1,025 |
@@ -845,6 +845,34 @@ in disabled.txt too, so not from S12b. The sort start-up check skips itself when
 (no trampoline). Left for S12d: the allocating sorts (objectives, save list), pair<string, list<T>>
 0069C1C0 and the unclassified container rows.
 
+**S12d (2026-10-15).** The allocating sorts (src/game/stl_sorts.cpp on `stlp::Sort<T, Less, Ops>`;
+stlp_algo.h now takes an element policy, `Held<T, Ops>` temporaries and `CopyBackward`, with every
+by-value copy, assignment and destruction where STLport's has them): the objectives window's quests
+0064F310 / 0064F9A0 / 0064FBD0 (`ByQuestOrder`: each comparison is QuestTable::Find of both names,
+which adds a missing name, so the allocations are the original's; a name without a record compares
+true even against itself) and the save list 00657DF0 / 00657F10 with copy_backward 00657D50
+(`SaveEntryOps`: CopyConstruct / Assign / Destruct). Every save helper tests 00658020
+(a.savedAt < b.savedAt) and takes the other branch, so the order is `!(a < b)`, newest first, and
+equal times compare true both ways (not a strict weak ordering). pair<string, list<T>> 0069C1C0 in
+stlp_pair.cpp. Checks run ours first (SV2f), the original after it on a twin: the quests on a copy of
+the CStrings (the lookups only find now), the saves on key-only entries (empty strings and arrays,
+the position in the game time) compared by each entry's strings, time, flag and arrays; a quest range
+with a name without a record, or more than 16 saves with two equal times, is sorted by ours alone and
+logged (the unguarded scans could leave it). copy_backward ours only. A start-up check sorts 340
+save lists with distinct times (40 with small arrays: sizes and capacities compared). The
+container rows: list begin / end 00438640 00438820 / 00437F20 00438650 00438830, the iterator's copy
+004387C0 and decrement 00439A60, splice 004380C0 / 00438770 (checked on twins of both lists' nodes),
+the 0x10C / 0x120-node lists' constructors 00439CE0 / 00439960, ~list 00439D40, clear 0043D420 and
+erase 00438660 (operator new / delete), plain erase by node size (16: 0040AA40 00512030 0056DFB0; 24:
+0040A920 00411540 004437D0; 32: 005392F0; 40: 00443730) and clear (00405500 0040B390, 24: 0040B290),
+vector<uint16> insert_overflow 0043B530, vector<8 bytes> erase 00439DD0, frees by element size
+(00439D80 0053B7A0 0053BEB0 0069C9D0 00613630 0056FB80), and the out-of-line `_Construct` 0043D7E0 /
+0043D7F0 / 0064B620 and copies 0043B360 (memmove) / 0043DC80 (stlp_vector.h `ConstructAt`,
+`CopyTrivial`, `CopyElements`). Left (S12e): the connection's lists whose elements own something
+(SentPacket's items, the freed-id batches' vectors: copy constructors, default inserts, erase, clear,
+~list), its find_if and counted-pointer init, two plain hashtable erases, a hashtable clear and two
+constructors, three vector-member destructors and the hero screen's string sorts and vector members.
+
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
 006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot
@@ -872,6 +900,35 @@ mismatches. Seen, not caused here: on Rebirth the exit stops after the handle ma
 own runs end the same way (S3e). `--standalone`: the only exit callee without code left is 005DC080
 (S12a); the MFC constructors the static initialisers still call (the four exceptions', CWnd(HWND),
 0070B600, 0070DC4D, 00700674) are S3f. The boot still stops at 005AF580.
+
+**S3f (2026-10-15).** The MFC call targets of the static initialisers, with the callees the image
+needs, 16 addresses (size rows in extra_function_sizes.csv; 0070C3C5 and 0070DC4D take decoded sizes,
+0070B5F0 / 0070B600 have no Ghidra function). mfc_exception: CException(BOOL) 0070205D and
+CSimpleException (0x98 bytes: +0x0C m_bInitialized, +0x10 m_bLoaded, +0x14 the message, +0x94 the
+resource id; +0x08 is never touched) with the four classes' constructors 006E68C9 / 006E6916 /
+006E6AEA / 006E6B37. mfc_window: CCmdTarget's constructor 00703EAE and CWnd(HWND) 00704546.
+mfc_state: CSimpleList::AddHead 0070C4E9, AfxClassInit 00700674, MFC's global locks AfxCriticalInit
+0070C3C5 / AfxLockGlobals 0070C458 / AfxUnlockGlobals 0070C4C8 (17 lock types: _afxResourceLock
+007C8EE0 ends where _afxCriticalWin32s 007C9078 and _afxThreadData 007C9084 start; an 18th type
+overwrote _afxThreadData in a first try), _AfxInitDBCS 0070DC4D (GetCPInfo of the OEM code page),
+and wingdix.cpp's halftone brush: 0070B600 registers AfxWingdixTerm 0070B5F0 with atexit
+(_afxWingdixTerm 007C8D44), which deletes _afxHalftoneBrush 007C8D40. AfxGetModuleState 0070CE8C
+stays the original's in the hook build (the shared `mfc::impl::AfxGetModuleState`, which
+verify_mfc_window.cpp now uses too); the image registers `ImageModuleState` there (one module state
+for the process, nothing but the class list, linked at m_pNextClass +0x14). Checks
+(tests/verify/verify_mfc_static_init.cpp): a start-up check runs CException(BOOL), the exception
+constructors, CCmdTarget's constructor, AddHead, AfxCriticalInit and _AfxInitDBCS through the
+original's trampolines and ours on twins; against the original's initialisers' results: the four
+static exceptions (vtable, auto-delete, id), the four static windows (whole), the five classes in the
+module state's list (in reverse order), _afxDBCS and _afxWingdixTerm (ours registers the term once
+more: it runs twice at exit, the second time on a null brush); the locks on two unused lock types,
+one through the original and one through ours (initialised, owned twice, once, free); AfxClassInit
+on two fake classes (the head put back). Per call, ours only or against the original on a copy.
+smoke, ui_main_menu, console, ui_saveload, both installs: 0 mismatches (the runs fail only on main's
+second registrations at 00445040 / 00445170 / 004457F0, S12a against S12b). `--standalone`: static
+initialisers without code 0 call targets, 0 exit functions, 0 exit callees; the boot still stops at
+005AF580. In the image AfxCriticalInit and the locks run over the exe's data copy (zero, so first
+use initialises them).
 
 ## 3. Runtime: MFC, STLport, CRT
 
