@@ -177,5 +177,6 @@ change, so none needs the machine to itself); dgVoodoo draws the original code (
 `--standalone` runs `ei_standalone.exe` instead of game.exe (install `standalone`: run\vanilla's game.exe laid
 out without its code, the vanilla data, our renderer; `ei_launch --standalone`), by default the `boot` scenario;
 an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
-A game that Windows gave the foreground and that lost it to a starting game is
-minimised by dgVoodoo, which can take its surfaces for good; a dgVoodoo run that fails after that is run again. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
+Harness games never take the foreground (harness.cpp, `noforeground::`: the activating user32 calls are patched for every
+caller in the process, windows are made without activation), so a starting game cannot minimise another through dgVoodoo's
+deactivation handling. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
