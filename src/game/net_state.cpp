@@ -230,7 +230,6 @@ __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) E
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 void __fastcall PlayerRemoveUnit(void* a0, void*, void* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
 void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
-void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
 
@@ -338,7 +337,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     if (DeltaField* field = state->BeginField(9)) {
         void* text;
         void* read = FieldReadString(field, nullptr, &text);
-        CStringAssign(&unit->scriptName, nullptr, read);
+        CStringAssignOriginal(&unit->scriptName, nullptr, read);
         CStringDestroy(&text);
         complete &= SnapshotConsumed();
         field->EndField();

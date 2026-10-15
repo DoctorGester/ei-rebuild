@@ -22,8 +22,6 @@ namespace mapspec {
 
 namespace {
 
-// MFC CStringArray (library).
-void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
@@ -203,7 +201,7 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     parentIname = from->parentIname;
     skinTexture = from->skinTexture;
     StringArraySetSize(&parts, nullptr, 0, -1);
-    StringArrayAppend(&parts, nullptr, &from->parts);
+    StringArrayCopyOriginal(&parts, nullptr, &from->parts);
 }
 EI_REPLACE_METHOD(0x0046A710, ObjectSpec::ObjectSpecAssign);
 
@@ -588,7 +586,6 @@ EI_REPLACE(0x0046A4B0, QuaternionRotate);
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 
 namespace {
-void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 } // namespace
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
@@ -601,7 +598,7 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     }
     for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
-        StringArraySetAtGrow(names, nullptr, names->size, game::EmptyText());
+        StringArraySetAtGrowTextOriginal(names, nullptr, names->size, game::EmptyText());
         names->data[i].Format(game::Text(0x00787E44), i);   // "Player-%i"
     }
     return self;

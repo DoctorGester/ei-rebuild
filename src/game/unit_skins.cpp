@@ -78,9 +78,6 @@ __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F59
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
 __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
-// CStringArray SetSize [006FE9B8], SetAtGrow of a CString [006FEBFA] and of a C string [006FEBCE].
-void __fastcall NamesSetAtGrowString(console::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall NamesSetAtGrowText(console::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 // The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 __declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) EI_ORIGINAL(0x00693F10)
@@ -154,7 +151,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
         ArmourTexture(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
-    NamesSetAtGrowText(&set.names, nullptr, set.names.GetSize(), buffer);
+    StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
 }
 
 // The weapons (items 1 and 2): the one whose armour layer (+0xB8) is lower first when both exist.
@@ -192,7 +189,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         WeaponTextureName(&name, weapon, material);
         AppendName(model, name, buffer);
     }
-    NamesSetAtGrowText(&set.names, nullptr, set.names.GetSize(), buffer);
+    StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
 }
 
 // The texture cache is the client world's texture manager (+0x18C).
@@ -225,7 +222,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         } else {
             skin.Format(game::Text(0x0078FB54), ModelPrefix(model));                             // "%sskin_00.mmp"
         }
-        NamesSetAtGrowString(&set.names, nullptr, set.names.GetSize(), &skin);
+        StringArraySetAtGrowStringOriginal(&set.names, nullptr, set.names.GetSize(), &skin);
         for (int slot = 3; slot <= 6; ++slot) {
             if (items[slot] != kNone) AddItem(set, model, items[slot]);
         }

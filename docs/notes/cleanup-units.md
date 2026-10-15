@@ -498,3 +498,26 @@ float factors.
 Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
 check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors). `work.py test C11 --golden --jobs 4` on the
 merged tree: 128 runs, all PASS; 56 goldens the same, 0 differ.
+
+## C11 batch 13: file-local wrappers over the library forwarders (2026-10-15)
+
+`__fastcall Fn(T* self, void*, ...)` shims (tools/progress.py): 908 before, 792 after (130 wrappers inlined; 14 of them were not counted: no `void*` dummy or a non-pointer self). Spelling only: no
+signature, argument order or float grouping changed, and every call still goes through the same forwarder address as before (rule 9
+and the verify wrappers are untouched). The family is the typed wrappers files kept over the shared forwarders of `originals_library.h`
+(`StringAssignRange(StringRep* a0, void*, ...) { StringAssignRangeOriginal((void*)a0, nullptr, ...); }`): the STLport string
+members (assign / erase / reserve / append / init range / end-of-storage / deallocate), the MFC `CString` and `CStringArray` stand-ins
+(`CStringAssign*`, `StringArraySetAtGrow*`, `StringArrayCopy`, the trims, `FindChar`, `AppendChar`), the list / hash / array
+helpers (`ListInsert*`, `ListEnd*`, `HashErase`, `*SetSize`, `PtrList*`, `GameBufferGrow`, `MapRegistryFind`, `OstreamPutLong`, ...).
+A script (`inline.py`, scratch) read each one-line wrapper whose body is one call of a library forwarder, checked that every
+parameter is a pointer (a pointer to `void*` converts implicitly, so the `(void*)` casts went) or has the forwarder's own scalar
+type, that the wrapper's return type equals the forwarder's, and that the name is used only as `Name(self, nullptr, ...)`; it then
+inlined the call sites, deleted the wrapper and the comment block above it (when nothing but blank / comment follows), and the
+builds found nothing else. 130 wrappers in 82 files.
+- Kept, with the reason: wrappers that give a typed result (`(Node*)ListNewNode...Original(...)`: 17, the cast would move into
+  every call site), wrappers that cast an integer to a pointer argument (`(const void*)a4`: 5), wrappers with a `const_cast` /
+  `static_cast` in the arguments, wrappers used as function pointers (`FindOrInsert(..., ObjectsResize, ObjectsNewNode)` in the hash
+  tables, `AppendNode(list, NewRunNode, ...)`), and every wrapper over a forwarder of another header (about 240: the party / player
+  / world / combat / ui forwarders; those names (`PlayerMessage`, `FindWeapon`) are shorter than the address-named forwarders and
+  their call sites would get less readable).
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87,
+  check_signatures, check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors). Golden result below.

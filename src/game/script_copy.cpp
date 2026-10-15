@@ -21,8 +21,6 @@ namespace {
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
 inline void __fastcall RefsCopy(void* a0, void*, const void* a2) { GroupAssignOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
-// CString::operator=(const CString&) on raw slots.
-void __fastcall AssignString(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
 // Floats are copied through the FPU (FLD / FSTP): a signalling NaN becomes quiet.
 __declspec(naked) void __cdecl CopyFloat(float* /*to*/, const float* /*from*/) {
@@ -107,7 +105,7 @@ void* __fastcall ScriptFxSourceAssign(void* self, void*, const void* other) {
     auto* from = static_cast<const std::uint32_t*>(other);
     to[0] = from[0];
     to[1] = from[1];
-    AssignString(&to[2], nullptr, &from[2]);
+    CStringAssignOriginal(&to[2], nullptr, &from[2]);
     for (int i = 3; i < 0x34 / 4; ++i) to[i] = from[i];
     return self;
 }

@@ -203,9 +203,6 @@ double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
 // 00554450. The unit controller's reposition after a move.
 void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
-// 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
-// 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
-void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
@@ -577,7 +574,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
                     mfc::CString* name = StreamReadString(stream, nullptr, storage);
-                    StringArraySetAtGrow(&mobFiles_, nullptr, mobFiles_.size, name);
+                    StringArraySetAtGrowStringOriginal(&mobFiles_, nullptr, mobFiles_.size, name);
                     name->~CString();
                 }
             } else {

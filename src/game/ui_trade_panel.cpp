@@ -366,8 +366,6 @@ __declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, Tr
                                                         int /*n*/) EI_ORIGINAL(0x0062A0B0)
 __declspec(naked) void __fastcall FillRecord(CTradePanel*) EI_ORIGINAL(0x00626F10)
 inline std::uint8_t* TradePlayerData(void* glue) { return GameLocalPlayerDataOriginal(glue); }
-// CStringArray::SetAtGrow (thiscall, RET 8).
-void __fastcall TitlesSetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
 int PartyRecordCount() { return *reinterpret_cast<int*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)) + 0x34); }
 
@@ -427,11 +425,11 @@ void CTradePanel::Build() {
         void* titles = &texts_;
         int* size = &texts_.size;
         TextsGetString(table, nullptr, game::Text(0x00793E58), &text);   // "skills"
-        TitlesSetAtGrow(titles, nullptr, *size, &text);
+        StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
         TextsGetString(table, nullptr, game::Text(0x00793E50), &text);   // "perks"
-        TitlesSetAtGrow(titles, nullptr, *size, &text);
+        StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
         TextsGetString(table, nullptr, game::Text(0x00793E44), &text);   // "perks_av"
-        TitlesSetAtGrow(titles, nullptr, *size, &text);
+        StringArraySetAtGrowStringOriginal(titles, nullptr, *size, &text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).
         ResetRecords();

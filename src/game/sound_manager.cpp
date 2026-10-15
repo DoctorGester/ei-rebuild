@@ -118,8 +118,6 @@ __declspec(naked) std::uint8_t** __fastcall CacheEntry(void* /*map*/, void*, con
 __declspec(naked) int __fastcall DeferredErase(DeferredMap*, void*, const std::int32_t*) EI_ORIGINAL(0x006BD060)
 // Frees an STLport string's storage on the node allocator (the DeferredSound's name).
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x006B72E0)
-// CStringArray::Copy.
-void __fastcall CopyNames(SoundNameArray* a0, void*, const SoundNameArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // The deferred map's STLport iteration: begin(), the next node in a later bucket, operator[]
 // (which may rehash first), erase(key).
 struct DeferredIter {
@@ -474,7 +472,7 @@ int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position
     if (i == 16) return -1;
     SoundEmitter* e = &emitters[i];
     e->active = 1;
-    CopyNames(&e->names, nullptr, names);
+    StringArrayCopyOriginal(&e->names, nullptr, names);
     MoveEmitter(i, position, inner, outer, minInterval, maxInterval);
     e->lastPlayed = gameapi::GetTickCount();
     return i;
@@ -537,7 +535,7 @@ int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const 
     ++s->generation;
     s->id = s->generation << 8 | i;
     s->active = 1;
-    CopyNames(&s->names, nullptr, names);
+    StringArrayCopyOriginal(&s->names, nullptr, names);
     std::memcpy(&s->position, position, sizeof(s->position));
     s->nearDistance = nearDist;
     s->farDistance = farDist;
