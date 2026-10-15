@@ -35,7 +35,7 @@ int g_mismatches = 0;
 int g_unseparated = 0;   // helpers for which fewer than kInputs separating inputs were found
 int g_fastRegrouped = 0; // the unprotected /fp:fast copy differing from its written grouping
 
-float R(double v) { return RoundToFloat(v); }
+float R(double v) { return static_cast<float>(v); }
 
 // ---- Reference: one rounded operation at a time ----
 

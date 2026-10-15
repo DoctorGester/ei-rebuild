@@ -99,7 +99,7 @@ int CPlayerClient::OnCameraPlacement() {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = FixedViewRotation();
-        view.pitch = RoundToFloat(ExeDouble(0x00743148) * ExeDouble(0x0073BA30) * ExeDouble(0x0073DF70));
+        view.pitch = static_cast<float>(ExeDouble(0x00743148) * ExeDouble(0x0073BA30) * ExeDouble(0x0073DF70));
         camera->SetDistancePitch(&view);
     } else {
         camera->RestoreView(mode == 3 ? 6 : 7);

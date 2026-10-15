@@ -284,8 +284,8 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
         screen.width = static_cast<std::uint32_t>(target->width);
         screen.height = static_cast<std::uint32_t>(target->height);
     }
-    float xMax = RoundToFloat(x87::FromUnsigned(screen.width));
-    float yMax = RoundToFloat(x87::FromUnsigned(screen.height));
+    float xMax = static_cast<float>(x87::FromUnsigned(screen.width));
+    float yMax = static_cast<float>(x87::FromUnsigned(screen.height));
     TLVertex* vertices = CornerData();
     const auto* outcodes = Outcodes().data;
     std::uint16_t* tri = IndexData();

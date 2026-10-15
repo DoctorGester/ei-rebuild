@@ -394,8 +394,8 @@ void CHudMap::OnMouseUp(int, int x, int y) {
             right /= zoom_;
             down /= zoom_;
         }
-        const float worldX = RoundToFloat(right / scale_ + centreX_);
-        const float worldY = RoundToFloat(centreY_ - down / scale_);
+        const float worldX = static_cast<float>(right / scale_ + centreX_);
+        const float worldY = static_cast<float>(centreY_ - down / scale_);
         if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
             // The camera stops following its unit and looks there.
             CCamera* view = camera::TheCamera();
@@ -575,7 +575,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         }
         // The marker points at the mode's button: turned about -z and put on its circle. Place
         // (005E6FA0) is Rebirth-patched: through its address.
-        const float angle = RoundToFloat(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
+        const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->orientation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);

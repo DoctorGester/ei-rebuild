@@ -196,7 +196,7 @@ void AIAttention::Build(CUnit* unit) {
     }
     healWeight = 0.0f;
     for (int i = 0; i < weapons.size; ++i) {
-        float weight = RoundToFloat(WeightAt(&weapons.data[i]));
+        float weight = static_cast<float>(WeightAt(&weapons.data[i]));
         healWeight = healWeight >= weight ? healWeight : weight;
     }
 }

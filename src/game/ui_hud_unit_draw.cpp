@@ -85,10 +85,10 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
     const Vector3 bv = {b.x, b.y, b.z};
     const Vector3 cross = Cross(av, bv);
     Quaternion out;
-    out.w = RoundToFloat(a.w * b.w - DotXYZ(av, bv));
-    out.x = RoundToFloat((cross.x + b.w * a.x) + a.w * b.x);
-    out.y = RoundToFloat((cross.y + b.w * a.y) + a.w * b.y);
-    out.z = second ? RoundToFloat((cross.z + b.w * a.z) + a.w * b.z) : RoundToFloat((cross.z + a.w * b.z) + b.w * a.z);
+    out.w = static_cast<float>(a.w * b.w - DotXYZ(av, bv));
+    out.x = static_cast<float>((cross.x + b.w * a.x) + a.w * b.x);
+    out.y = static_cast<float>((cross.y + b.w * a.y) + a.w * b.y);
+    out.z = second ? static_cast<float>((cross.z + b.w * a.z) + a.w * b.z) : static_cast<float>((cross.z + a.w * b.z) + b.w * a.z);
     return out;
 }
 
@@ -133,7 +133,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
         size = viewSize_[which];
         height = viewHeight_[which];
         if (hoverUnit_ == shownUnit_) size = viewSize_[0];
-        if (unit) size = RoundToFloat(AnimationRatioAt(unit) * size);
+        if (unit) size = static_cast<float>(AnimationRatioAt(unit) * size);
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
@@ -163,9 +163,9 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
             // WideScreen: 100 - shift (00646608).
-            const float x = RoundToFloat((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
+            const float x = static_cast<float>((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
                                          DepthUnit() * ModelDepth());
-            const float y = RoundToFloat(height / size - DepthUnit() * ModelDepth() * ModelDrop());
+            const float y = static_cast<float>(height / size - DepthUnit() * ModelDepth() * ModelDrop());
             model->position = Vector3{x, y, ModelDepth()};
             // Turned with the sling buttons' angle: about z, about x, about z again.
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
@@ -177,7 +177,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             Quaternion* q3 = QuaternionSetAxisAngleOriginal(&third, nullptr, &axisZ, SlingTurn() * SecondTurnAboutZ());
             model->orientation = Product(tilted, *q3, true);
 
-            const float scale = RoundToFloat(One() / size);
+            const float scale = static_cast<float>(One() / size);
             static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
             model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
@@ -208,11 +208,11 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             ShowHealthAt(this, nullptr, unit);
             // The height bar (scene object 8): the model's fifteen layout units, from the panel's
             // bottom.
-            const float barScale = RoundToFloat(BarHeight() / size);
+            const float barScale = static_cast<float>(BarHeight() / size);
             std::uint32_t bits;
             std::memcpy(&bits, &barScale, sizeof(bits));
             Sprite(this, kHeightBar)->SetScaleYBits(bits);
-            const float barY = RoundToFloat(PanelHeight() - barScale * PanelHeight());
+            const float barY = static_cast<float>(PanelHeight() - barScale * PanelHeight());
             SpritePlaceOriginal(sceneObjects_.data[kHeightBar], nullptr, static_cast<float>(20 - offset_), barY, 4.0f);
             Sprite(this, kHeightBar)->visible_ = 1;
             break;

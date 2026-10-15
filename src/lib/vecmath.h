@@ -15,18 +15,18 @@
 // its grouping, as a suffix (DotZYX) or a `Sum3` template argument (TransformRow<Sum3::ZYX>); there
 // is no default. A 4-term transform adds the translation last.
 //
-// Evaluation. The helpers below the float_control line are compiled with precise semantics, also
-// when inlined into /fp:fast code: /fp:fast regroups an inlined sum with the caller's expression
-// (`DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ...; tests/verify/verify_vecmath.cpp checks it),
-// precise keeps the grouping written here. Each helper's float results are rounded to float when
-// returned (as an FSTP to a float would round them). On the game's main thread (x87 at 24-bit
-// precision) every operation already rounds to a float significand, so this gives the original's
-// bits; on 53-bit threads it is plain float maths, not the original's (code there stays written
-// out, docs/notes/vector-math.md). Square roots use FSQRT (x87::fsqrt): under precise semantics
+// Evaluation. The helpers below the float_control line are compiled with precise semantics whatever
+// the including file's flags (the build is /fp:precise since SV7d1a; /fp:fast regrouped an inlined
+// sum with the caller's expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ...,
+// tests/verify/verify_vecmath.cpp checks it); precise keeps the grouping written here. Each
+// helper's float results are rounded to float when returned (as an FSTP to a float would round
+// them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
+// float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
+// not the original's (code there stays written out, docs/notes/vector-math.md). Square roots use FSQRT (x87::fsqrt): under precise semantics
 // std::sqrt would call the modern CRT.
 //
 // Transcendentals (Atan2, Acos, Asin) return the x87 result unrounded as `double`, like FPATAN and
-// the game's CRT; where the original stores the result to a float, round it with RoundToFloat
+// the game's CRT; where the original stores the result to a float, round it with static_cast<float>
 // (ticket X3: an unrounded angle flipped a quaternion's sign).
 
 #include "crt.h"
@@ -113,14 +113,7 @@ static_assert(sizeof(MatrixRows) == 48);
 // The grouping of a 3-term sum (see the top of this file).
 enum class Sum3 { XYZ, ZYX, ZXY };
 
-// ---- Rounding and transcendentals (not under precise: the results stay unrounded) -----------------
-
-// Rounds an x87 value to float, as the original's FSTP to a float does (/fp:fast keeps a float
-// local or a static_cast<float> unrounded on the FPU stack).
-inline float RoundToFloat(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
+// ---- Transcendentals (not under precise: the results stay unrounded) -----------------------------
 
 // atan2(y, x) by FPATAN, unrounded (64-bit significand whatever the precision control).
 __forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
@@ -183,7 +176,7 @@ __forceinline float LerpWeighted(float a, float b, float t) { return (1.0f - t) 
 // A product of float operands left to right, ((a * b) * c) * ..., as the original's chain of FMULs:
 // /fp:fast regroups a product with a repeated factor (R10a: `a * b * d * d` became
 // `(a * b) * (d * d)`, one step off under chop rounding). Callers pass loaded floats. Returned
-// unrounded (ST0 after the last FMUL, as `double`): round it with RoundToFloat where the original
+// unrounded (ST0 after the last FMUL, as `double`): round it with static_cast<float> where the original
 // stores it; an intermediate store would also lose an underflowing product (a denormal factor).
 template <typename... Rest>
 __forceinline double Product(float first, Rest... rest) {

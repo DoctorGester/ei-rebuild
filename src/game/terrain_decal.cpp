@@ -27,7 +27,7 @@ float Lower(float a, float b) { return !(a >= b) ? a : b; }
 float Raised(float a, float bound) { return !(a >= bound) ? bound : a; }
 
 // A cell bound: FISTP of (v -/+ the margin) / cell size, stored as a float first.
-int CellBound(double v) { return x87::fistp(RoundToFloat(v / CellSize())); }
+int CellBound(double v) { return x87::fistp(static_cast<float>(v / CellSize())); }
 
 Vector3 Corner(const float* m, int column) { return {m[column], m[4 + column], m[8 + column]}; }
 
@@ -43,13 +43,13 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
     float previous = origin.z;
     int x0 = 0x7FFFFFFF, y0 = 0x7FFFFFFF, x1 = 0, y1 = 0;
     for (;;) {
-        float shift = RoundToFloat(previous - lowest);
+        float shift = static_cast<float>(previous - lowest);
         v = slope * shift + v;
         origin = slope * shift + origin;
         u = slope * shift + u;
         // The fourth corner's x and y (u + v - origin).
-        float fourthX = RoundToFloat(u.x + v.x - origin.x);
-        float fourthY = RoundToFloat(u.y + v.y - origin.y);
+        float fourthX = static_cast<float>(u.x + v.x - origin.x);
+        float fourthY = static_cast<float>(u.y + v.y - origin.y);
         int bound = CellBound(Lower(Lower(Lower(fourthX, u.x), v.x), origin.x) - kMargin);
         if (x0 >= bound) x0 = bound;
         bound = CellBound(Lower(Lower(Lower(fourthY, u.y), v.y), origin.y) - kMargin);

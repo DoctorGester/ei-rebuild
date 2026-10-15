@@ -74,8 +74,8 @@ __declspec(naked) void __fastcall PrepareThroughAddress(AIViewer*, void*, CUnit*
 
 void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->width && cellY < map->height)
-        eye.z = RoundToFloat(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
-    eye.z = RoundToFloat(static_cast<double>(self->above.z) * kEyeHeightFactor + self->eyeHeight + self->center.z + eye.z);
+        eye.z = static_cast<float>(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
+    eye.z = static_cast<float>(static_cast<double>(self->above.z) * kEyeHeightFactor + self->eyeHeight + self->center.z + eye.z);
     Vector3 axis = RotatedAxisY(self->orientation);
     ready = 1;
     facing = -axis;
@@ -91,11 +91,11 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
     int blockY = cellY / 32;
     UnitController* control = ControllerOf(self);
     float hearing = control->stats.valuesB0[2].current;
-    float sight = RoundToFloat(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
+    float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
     float reach = !(sight >= hearing) ? hearing : sight;
     int count = 0;
     const std::int16_t* offsets =
-        brain->sightCells.Get(RoundToFloat(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
+        brain->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
     for (auto* node = brain->nearby.head; node; node = node->next) {
         if (node->data) node->data->Release();
         node->data = nullptr;
@@ -143,7 +143,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         float distance = Length2D({d.x, d.y});
         double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
                           ours->stats.valuesB0[0].current;
-        float sight = RoundToFloat(sightRaw);
+        float sight = static_cast<float>(sightRaw);
         bool seen = false;
         if (sightRaw >= distance) {
             double along = DotZYX(d, facing);
@@ -194,18 +194,18 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
     if (!self) return;
     ready = 0;
     eye = *&self->position;
-    float scale = RoundToFloat(kOne / (static_cast<double>(kOne) * kHalf));
-    cellX = static_cast<int>(std::lrint(RoundToFloat(scale * static_cast<double>(eye.x) - kHalf)));
-    cellY = static_cast<int>(std::lrint(RoundToFloat(scale * static_cast<double>(eye.y) - kHalf)));
+    float scale = static_cast<float>(kOne / (static_cast<double>(kOne) * kHalf));
+    cellX = static_cast<int>(std::lrint(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf)));
+    cellY = static_cast<int>(std::lrint(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf)));
     std::uint8_t* memory = brain->memory;
     RefreshThroughAddress(this, nullptr, self, memory);
     for (auto* node = brain->visible.head; node;) {
         auto* current = node;
         node = node->next;
         auto* other = static_cast<CUnit*>(current->data);
-        Vector3 d{RoundToFloat(static_cast<double>(other->position.x) - self->position.x),
-                  RoundToFloat(static_cast<double>(other->position.y) - self->position.y),
-                  RoundToFloat(static_cast<double>(other->position.z) - self->position.z)};
+        Vector3 d{static_cast<float>(static_cast<double>(other->position.x) - self->position.x),
+                  static_cast<float>(static_cast<double>(other->position.y) - self->position.y),
+                  static_cast<float>(static_cast<double>(other->position.z) - self->position.z)};
         float distance = LengthZYX(d);
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
@@ -257,15 +257,15 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     UnitController* mine = ControllerOf(seer);
     UnitController* theirs = ControllerOf(observer);
     float cone = mine->stats.sightCone;
-    float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
+    float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
                                theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);
     // The larger of 0 and the sight (NaN kept).
     float radius = (kZero < sight || x87::IsNaN(sight)) ? sight : kZero;
-    float height = RoundToFloat(observer->ModeSpeed());
+    float height = static_cast<float>(observer->ModeSpeed());
     CAIMap* map = WorldServer()->AIMap();
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
-    if (!ZeroOrUnordered(hearing)) map->MarkVisibleCells(&eye, RoundToFloat(hearing), &look, kNoCone, kNoLineOfSight, grid);
+    if (!ZeroOrUnordered(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
     if (!ZeroOrUnordered(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
 }
