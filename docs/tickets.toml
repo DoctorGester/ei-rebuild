@@ -963,10 +963,11 @@ note = "From SV3e: ui_hud-rebirth, the original repeats and ours repeats, but fr
 id = "SV6"
 title = "Hook build: 224 registrations skipped at install (unknown starts, a second hook on one address)"
 group = "verification"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/hook/function_sizes.inc", "config/extra_function_sizes.csv", "src/hook/hook.cpp"]
 note = "A vanilla smoke run on main (2026-10-15, build/verify/runs/smoke-vanilla/ei_hook.log) logs 224 SKIP lines: 108 verify wrappers and 42 plain replacements at 'not a known function start' (effect Update/Emit/Tick slots, ExchangeMessage 0062C920, MotionSegmentConstruct 0052E230, ControllerZero 00533C40/50/B0, ClientControllerPath 00533DF0, Verify_0x0066D7B0 twice, ...), and 67 with 'byte +0x0 differs from game.exe on disk' (Unpack/Load/Save verify wrappers of CEffect*; no address appears twice in the log, so the cause is not yet known: something writes those starts before install), besides the 8 expected SV1b countdown sites. None of these run in the hook build, so their rewrites are unverified; the standalone image does jump to the unknown starts. Add their sizes (config/extra_function_sizes.csv, function_sizes.inc), fold or drop the second registrations, and make build.cmd or the harness fail on an unexpected SKIP so new ones can't hide (S5's first suite tested nothing for this reason)."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1705,12 +1706,13 @@ started = "2026-10-15"
 id = "S15a"
 title = "Harness in the standalone image: capture, held updates, countdowns"
 group = "standalone"
-status = "review"
+status = "done"
 size = 0.5
 depends = ["S15"]
 files = ["tests/verify/harness.cpp", "tests/verify/harness_capture.cpp"]
 note = "The harness patches call sites inside the original code: frame capture (004580D7 in 00458010), held server update (00457314) and client segment (00457368), the 8 update countdown sites (0058D4FA...). The image has INT3 there, so in a standalone run they log 'unexpected code' and do nothing: capture fails, freeze and the virtual clock's countdowns are off. Hook our rewritten callers instead (or a hook point in them) so standalone runs capture and repeat like hooked ones; needed before S17's goldens."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S3c"
