@@ -1853,3 +1853,29 @@ re-recorded). Vanilla, seeded fill with tails, no jitter: with the particle fami
 combat_more part at update 40 with the ticket's signature, with it all 45 the same; `2,fill` and `3,fill`: all 45
 the same. Hooked `--golden` (136 runs): all pass, 58 the same; `--standalone --golden` on 8 scenarios: 16 the same.
 Before the merge, Rebirth `2,fill` parted only on the menu unit cunit187's `#place` (SV7b8's family).
+
+## T2f: the object sets and SetSun's relight order by address (2026-10-15)
+
+**Symptom** (T2a): in bz1g ours (hooked, standalone, dgVoodoo) parted from the original in isaac.count at update 80-100
+and alternated between its own runs; the original repeated. The random trace showed ours' frames consuming fewer ISAAC
+positions from frame 14 or 15 (SectorData::Animate and PlayAmbience draws in other frames), and ours' standalone runs
+already differed from each other in the main menu (terrain frame 4: the sector cache's order).
+
+**Cause** (debug notes in SectorAt, RunTick, OnNewObject and SyncPlayer; the patch is not kept): two orders taken from
+heap addresses. (1) The object sets SyncPlayer sends (0047B1F0 DiffObjectSets, its radix sort 0047ADF0) are sorted by
+object address, so the client creates new objects (message 0x40) in heap order; their ground height queries
+(HeightAt -> SectorAt) reorder the sector cache. (2) SetSun's qsort comparator 006C8E90 gets slot addresses and reads
+the neighbouring slots' pointers as (sy, sx) (past the array for the last ones), so the relight countdowns follow the
+SectorData addresses and the cache order; which sectors are lit decides SectorData::Animate's ISAAC draws. Ours' layout
+is not the same between its runs (the reservation's base and the main thread's block order moved: 0x0BBF.. vs
+0x0B9E.., object 2 before or after 148), so ours alternated.
+
+**Fix** (address_order.h, world_object_sets.cpp, terrain_animation.cpp; tests/verify/harness_address_order.cpp): harness
+runs (virtual clock, not `lfheap`) and the standalone order the object sets by object id, then address, and sort the
+lit sectors by the sectors' own (sy, sx). The original is patched at the first message loop pass as SV7b1 does: 0047ADF0
+jumps to an id sort, DiffObjectSets' merge comparison 0047B4C0 to a stub comparing the same way, 006C8E90 to a sector
+comparator (an entry ours has hooked is left alone). The verify wrapper of the sets checks ours in that order.
+
+**Runs:** `--no-hooks --golden`: the 58 goldens the same (none re-recorded). ui_base_dialogue, ui_base_topic,
+zone_base_bz1g, levers_key (SV5b1), sound and zone_gz2g_traps (SV3j), vanilla and Rebirth: two hooked and two standalone
+passes match the original's digest in every record.
