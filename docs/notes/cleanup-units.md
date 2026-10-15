@@ -422,3 +422,27 @@ Spelling only: no signature, argument order or float grouping changed.
   world_effect_internal.h floats, class `kVtableAddress` statics, function addresses.
 - Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
   check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
+
+## C11 batch 10: network and menu texts, effect and AI float constants (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 187 before, 118 after (tools/progress.py); check_cleanup raw addresses 834 before, 765 after.
+Spelling only: no signature, argument order or float grouping changed.
+- Strings in `game_strings.h`: `game::menutexts` (menu_rects: `menus.reg` and its two errors; the `Text(file ? kCantParse : kCantOpen)`
+  became `file ? CantParse() : CantOpen()` passed to `FatalError`), `game::nettexts` (17 log lines of net_session_tick and
+  net_connection, including the six literal "Can't handle ..." texts; `LogAddress` / `LogText` / `LogConnection` / `LogLine` take
+  `const char*`, the connection's "after" text is `nullptr` when absent), `game::menukeytexts` (ui_menu_keys), `game::consoletexts`,
+  `game::weathertexts` (the two thunderstorm script formats), and `NewLineText()` / `PathSuffixText()` (ui_console_window, ui_text,
+  net_server_map).
+- Floats in `world_data.h` (`worlddata`): 22 effect constants of spell_effect_internal.h, spell_effect_update.cpp and
+  world_effect_internal.h (`OneRef`, `AcidRayScale`, `StrikeHeight`, `ScorchAlpha`, ...) return `const float&` (`ExeFloatRef`), so
+  `ConstAt` / `ConstPtr` of both effect headers take a `const float&`; `PowerScaled` / `LightRiseScaled` too. ui_mesh_build,
+  ai_line_step, ai_footprint_shapes lost their local `GameFloat`; `AnnouncePeriodRef` and `QueueWaitLimitRef` keep the memcpy / pointer
+  argument; the ai_refresh tables are `LevelHeights()`, `OccluderCosts()`, `OccluderDamping()`, `MarkTable()`, `DampScale()`. The unused
+  `kPi` of ui_mesh_build was dropped.
+- Left (118): class `kVtableAddress` statics (about 75, net_messages.h's 17 among them), vtables with no home (map_spec*, ui_layouts,
+  ui_scroll_text, resource_stream, magic_trap, lightning_start, misc_400, fake_unit), function addresses (at-exit destructors,
+  eh-vector callbacks), globals (script queue, candidates, master host, state block alpha), options' two float factors (they feed
+  naked `FtolProduct` / `StoreUnsignedProduct` that take an address), tests/ and hook/standalone files.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. See the golden result below.
+- `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, ALL PASS; 54 goldens the same, 2 differ (levers, ui_saveload_delete) only in script #gobject (heap layout, SV7's).
