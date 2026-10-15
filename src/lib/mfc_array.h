@@ -11,6 +11,7 @@
 
 #include "containers.h"
 #include "mfc.h"
+#include "mfc_coll.h"
 #include "mfc_string.h"
 
 #include <cstddef>
@@ -478,6 +479,30 @@ using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitString
 using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
 using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
                                                             DestroyArrayAt<ScriptAreaElement, 0, ScriptAreaClass>>>;
+
+// Elements destroyed through their virtual destructor with flags 0 (MFC's `pElements->~TYPE()`):
+// slot 1 for CObject-derived elements (an array's DeletingDestructor), slot 0 for the C++ classes
+// whose virtual destructor comes first. Declared only: the call goes through the element's vtable.
+class __declspec(novtable) DeletingFirst {
+public:
+    virtual void* DeletingDestructor(unsigned flags);   // 0
+};
+template <typename E>
+void DeleteThroughObject(E* p) { reinterpret_cast<CObjectVirtuals*>(p)->DeletingDestructor(0); }
+template <typename E>
+void DeleteThroughFirst(E* p) { reinterpret_cast<DeletingFirst*>(p)->DeletingDestructor(0); }
+
+// The figure's bone link arrays (20-byte elements that are arrays, 004534F0) and the terrain's byte
+// arrays (006C4F90: CByteArray's constructor on each).
+using BoneLinkElement = WithArray<0x14, 0, BoneLinkArrayClass>;
+using OwnedBoneLinkArrays = ArrayAbi<BoneLinkElement, EachElements<BoneLinkElement, InitWithArray<0x14, 0, BoneLinkArrayClass>,
+                                                                  DeleteThroughObject<BoneLinkElement>>>;
+using ByteArrayElement = WithArray<0x14, 0, ByteArrayClass>;
+using ByteArrays = ArrayAbi<ByteArrayElement, EachElements<ByteArrayElement, InitWithArray<0x14, 0, ByteArrayClass>,
+                                                          DeleteThroughObject<ByteArrayElement>>>;
+// The figure's 0x220-byte parts and the scene's 0x18C-byte records: destroyed through slot 0.
+using FigureParts = ArrayAbi<Bytes<0x220>, EachElements<Bytes<0x220>, nullptr, DeleteThroughFirst<Bytes<0x220>>>>;
+using SceneRecords = ArrayAbi<Bytes<0x18C>, EachElements<Bytes<0x18C>, nullptr, DeleteThroughFirst<Bytes<0x18C>>>>;
 
 // Elements that are the engine's aligned arrays (lib/containers.h AlignedArray, 16 bytes; the terrain
 // sectors' lists): zero filled (006C5050); destroyed by freeing the block (006C5010), the fields left.

@@ -757,3 +757,17 @@ void __fastcall ObjectPtrCopyVerify(PtrArray* self, void*, const PtrArray* sourc
 }
 } // namespace
 EI_VERIFY(0x0059B8F0, ObjectPtrCopyVerify, 0, s_unused);
+
+// Batch 8: elements destroyed through their vtable.
+using A00450370 = TwinSetSizeGrow<0x00450370, OwnedBoneLinkArrays>;
+EI_VERIFY(0x00450370, A00450370::Run, 5, A00450370::original);
+using A006C4F90 = TwinConstructElements<0x006C4F90, ByteArrays>;
+EI_VERIFY(0x006C4F90, A006C4F90::Run, 6, A006C4F90::original);
+using A004534C0 = OursDestructElements<0x004534C0, OwnedBoneLinkArrays>;
+EI_VERIFY(0x004534C0, A004534C0::Run, 0, A004534C0::original);
+using A006C4F60 = OursDestructElements<0x006C4F60, ByteArrays>;
+EI_VERIFY(0x006C4F60, A006C4F60::Run, 0, A006C4F60::original);
+using A00453210 = OursDestructElements<0x00453210, FigureParts>;
+EI_VERIFY(0x00453210, A00453210::Run, 0, A00453210::original);
+using A00476F50 = OursDestructElements<0x00476F50, SceneRecords>;
+EI_VERIFY(0x00476F50, A00476F50::Run, 0, A00476F50::original);

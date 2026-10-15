@@ -210,6 +210,14 @@ EI_REPLACE(0x004CDB30, ScriptAreas::SetSize);
 EI_REPLACE(0x004CEDC0, ScriptAreas::ConstructElements);
 EI_REPLACE(0x004CD4F0, ArrayAbi<Bytes<32>>::ConstructElements);   // the script's point lights: the fill
 
+// ---- Elements destroyed through their vtable ------------------------------------------------------
+EI_REPLACE(0x00450370, OwnedBoneLinkArrays::SetSize);
+EI_REPLACE(0x004534C0, OwnedBoneLinkArrays::DestructElements);
+EI_REPLACE(0x006C4F90, ByteArrays::ConstructElements);
+EI_REPLACE(0x006C4F60, ByteArrays::DestructElements);
+EI_REPLACE(0x00453210, FigureParts::DestructElements);
+EI_REPLACE(0x00476F50, SceneRecords::DestructElements);
+
 // ---- Elements that are aligned arrays ------------------------------------------------------------
 EI_REPLACE(0x006C5050, AlignedArrays::ConstructElements);
 EI_REPLACE(0x006C5010, AlignedArrays::DestructElements);
