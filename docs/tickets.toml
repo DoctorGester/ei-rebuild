@@ -1301,7 +1301,7 @@ group = "harness"
 size = 0.5
 model = "sonnet"
 files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
-note = "Main --golden 2026-10-15 (twice) and SV7b1's suite: ui_mp_host vanilla and rebirth TIMEOUT at step 33-35 of 61 while other batches ran; passes alone. Most likely two games hosting on UDP 8888 at once (see N0c). Fix in the scheduler (a 'net' resource: one multiplayer scenario at a time machine-wide) or give each slot its own port if the game takes one from the command line or config. Check which scenarios host or join."
+note = "Cause: not the port (N0c's per-game port is in; two batches of ui_mp_host, 4 games at once, all PASS). The scenario takes 36-49 s on a busy machine and 61-67 s when suites overlap, past the default 60 s limit (frames ~1 s each). Fix: timeout 120 in ui_mp_host.txt; no scheduler change."
 
 # ---------------------------------------------------------------- cleanup
 
