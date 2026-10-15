@@ -116,6 +116,7 @@ EI_REPLACE(0x00425040, Vector1::DestroyBase);
 EI_REPLACE(0x0042D2C0, Vector1::DestroyBase);
 EI_REPLACE(0x004DEAB0, Vector1::DestroyBase);
 EI_REPLACE(0x00598D80, Vector1::DestroyBase);
+EI_REPLACE(0x006B6D30, Vector1::DestroyBase);   // S16a: the sound voices' string (no Ghidra function)
 EI_REPLACE(0x006B72E0, Vector1::DestroyBase);
 EI_REPLACE(0x00405BF0, Vector4::DestroyBase);
 EI_REPLACE(0x00405DB0, Vector4::DestroyBase);

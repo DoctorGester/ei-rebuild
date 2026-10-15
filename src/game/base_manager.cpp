@@ -460,6 +460,10 @@ int __fastcall ReleaseObjectHook(CBaseManager* self, void*, CEngineObject* objec
 } // namespace
 EI_REPLACE(0x00403020, CreateHook);
 EI_REPLACE(0x004031E0, DestroyHook);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE(0x0066C100, DestroyHook);
+EI_REPLACE(0x0067E160, DestroyHook);
 EI_REPLACE(0x004046E0, LoadHook);
 EI_REPLACE(0x00404760, SaveHook);
 EI_REPLACE(0x004031B0, InitHook);
@@ -714,3 +718,6 @@ CEngineObject* ObjectListIterator::Next() {
     return node->data;
 }
 EI_REPLACE_METHOD(0x00404960, ObjectListIterator::Next);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x004BAA30, ObjectListIterator::Next);
