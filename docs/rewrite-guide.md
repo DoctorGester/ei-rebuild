@@ -71,7 +71,9 @@ comes from a bug we already hit.
    forwarded from more than one file. A rewritten function is called directly (rule 9), never
    through a forwarder: `python tools/direct_calls.py --report` lists the forwarders to rewritten
    code and `--apply --scope <files>` rewrites their call sites (C13; `check_cleanup` ratchets the
-   `EI_ORIGINAL` count per file).
+   `EI_ORIGINAL` count per file). A few stay forwarders on purpose: an entry the harness replaces
+   (the fixed ISAAC seed 0049F660, tests/verify `JumpTo` / `JumpFrom`), Rebirth-patched callees,
+   vector recorders and the rows of config/direct_calls_skip.csv.
    Naked functions cannot have members with constructors/destructors in the class layout path; use raw
    pointers in layouts where needed (see `mfc::CFile`).
 6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),
