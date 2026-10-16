@@ -1,57 +1,52 @@
 # Renderer: the sidecar renderer, the hand-over from the game, and the switch-over
 
-The game's own renderer (DirectDraw 7 / Direct3D 7, translated by dgVoodoo in our runs) is being replaced:
+The game's own renderer (DirectDraw 7 / Direct3D 7) is replaced by a new renderer in a sidecar module, and only the
+standalone image runs it (`ei_standalone.exe` + `ei_hook.dll`, docs/notes/standalone.md). game.exe runs the original
+code only, on dgVoodoo: its runs are the reference (goldens, function vectors, widescreen frames), never our
+renderer's.
 
 1. Game code that called the renderer is rewritten and hands its data to a **new renderer in a sidecar
    module** (`src/render/`, static library `ei_render` linked into ei_hook): camera and matrices, object
    transforms, figure meshes, terrain sectors, particles, textures, the interface windows' CPU surfaces
-   (uploaded as textures), movie frames. The old Direct3D calls stay behind flags until we stop hooking
-   game.exe.
+   (uploaded as textures), movie frames. The Direct3D 7 calls left in game code go to two stand-in objects that draw
+   nothing (section 9).
 2. No Direct3D 7 emulation, no bit-exact rewrite of 3DfpFPU.dll / 2DintMMX.dll, no x87 or compatibility
    shims in the new code. Results only need to be close (captures are compared with a tolerance); full
    determinism is out of scope.
 
 Backend: **sokol_gfx** (`third_party/sokol`, commit 2e75443, zlib) on **Direct3D 11**. The new renderer draws, in
-the game's order, the terrain (ground and water pages), every mesh the old path draws (figures, map objects, sky,
+the game's order, the terrain (ground and water pages), every mesh the game's own draws (figures, map objects, sky,
 interface sprites and 3D previews), the flat geometry (object shadows, selection markers, light decals), the
 interface windows' surfaces, the renderer's rectangles (rubber band, fades), the software cursor, the depth clears
 mid-frame, every pre-transformed draw (particles and sprites, the vision fog's quads, ribbons and lightning, flying
 hit points), the weather (after its builders draw) and the movies (also the players outside the frame); the escape
-menu's and the save game's screen copy comes from the new frame. In the switch-over mode `present` no texture or
-surface holder of the game is a DirectDraw object any more; what remains of the old path is the device itself
-(section 9).
+menu's and the save game's screen copy comes from the new frame. The game has no DirectDraw or Direct3D 7 device and no
+texture or surface holder of it is a DirectDraw object (section 9).
 
 ## 1. Switch (EI_RENDER)
 
-`EI_RENDER` (environment, or the harness step `render <spec>` before the game starts) is a comma-separated list;
-the full text is the header of `src/render/render.h`.
+`EI_RENDER` (environment, or the harness step `render <spec>` before the game starts) is a comma-separated list; the
+full text is the header of `src/render/render.h`. The image uses `new,present` (run_all sets it; it is also the
+standalone default without EI_RENDER), and a spec that asks for the old path is turned into it (logged: "asks for the
+old path, but the game has no DirectDraw device"). The harness step adds its words to the environment's. The original
+code (`--no-hooks`) never runs the renderer and never gets EI_RENDER.
 
 | Option | Effect |
 |---|---|
-| `new` | the sidecar renders every frame into an off-screen target of the game's resolution; captures also write `frames\<name>.new.bmp` |
-| `show` / `split` | a child window over the client area shows the new frame (mouse passes through: `HTTRANSPARENT`); `split` covers the right half only |
-| `noterrain`, `noobjects`, `nointerface` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) / the world's meshes and flat geometry (004EA4A0) / the interface's meshes and window blits |
-| `cpuwindows` / `nocpuwindows` | surface holders of 004EF7B0 (windows, software cursor, movies) and the system-memory picture holders of 004F0060 keep their pixels in memory the new renderer owns; on with `present` |
-| `present` | the switch-over: everything handed over is off in the old path, `cpuwindows` on; captures write the new frame as `frames\<name>.bmp`. On when the device object is built (`render::StartPresenting`, 004EDD70): the game has no DirectDraw or Direct3D 7 device and the new renderer presents through its own flip-model swap chain on the game window (section 9, R9a). Turned on later (a DirectDraw device exists): at the old present (004EF610) the new frame is copied into the game's render target which the old Flip / BltFast shows |
+| `new` | the sidecar renders every frame into an off-screen target of the game's resolution |
+| `present` | the switch-over: the game has no DirectDraw or Direct3D 7 device and the new renderer presents through its own flip-model swap chain on the game window (`render::StartPresenting`, 004EDD70; section 9, R9a); captures write the new frame as `frames\<name>.bmp` |
+| `cpuwindows` | surface holders of 004EF7B0 (windows, software cursor, movies) and the system-memory picture holders of 004F0060 keep their pixels in memory the new renderer owns (section 6); on with `present` |
 
-Without `new` nothing in `src/render` runs. The harness step `render <spec>` adds the words of `EI_RENDER` to its
-own, so a run with `EI_RENDER=new,present` keeps the switch-over in every scenario; once the game is built without
-DirectDraw, `new,present,cpuwindows` stay on whatever a later spec says (logged). Harness steps `oldterrain`,
-`oldobjects`, `oldinterface` (on / off) switch the old path's parts during a run; they are ignored with `present`
-(`OldPathSwitchable`, logged: with the old path turned back on and no device to draw into the new frame came out
-different). Under dgVoodoo, dgVoodoo owns a flip-model DXGI swap chain on the game HWND (a second one fails),
-hence `present`'s copy into the render target there and the child window of `show` / `split`, which work
-windowed only (under full screen the child's swap chain deactivates the game window, which then draws nothing
-and minimises).
-
-Runs without dgVoodoo: the standalone image's (run_all's default) always run with `EI_RENDER=new,present`; the
-former `run_all --native` (our code inside game.exe on run\native) went with S21c.
+`show`, `split`, `noterrain`, `noobjects`, `nointerface` and `nocpuwindows` (a child window over the client area, parts
+of the old path switched off) belong to the side-by-side runs of the old path beside the new renderer in game.exe,
+which went with S21c; they are still parsed and no run uses them. The harness steps `oldterrain`, `oldobjects` and
+`oldinterface` are ignored under `present` (`OldPathSwitchable`, logged).
 
 ## 2. Frame structure of the game
 
 Per main-loop iteration (00458010): 00503F40 BeginScene; 005F5220 the interface draws window by window; 005040A0
 EndScene; the escape menu (005F5320, Rebirth-patched); the software cursor (display option only); **present**
-004EF610 (rewritten, `device_present.cpp`: full screen Flip, window BltFast to the primary). The battle screen's
+004EF610 (rewritten, `device_present.cpp`: ends the sidecar frame, `render::Present`). The battle screen's
 world view is 00569E40:
 - view setup 00566360 (view matrix from the camera 0079B2A8 through 004F0EF0 pushed on the transform pipeline's
   stacks; fog range), visible sector range 006CA260 (100 units);
@@ -71,7 +66,7 @@ draws translucent black rectangles with an outline (rubber band 00636020, fades 
 
 The sidecar's frame: game code hands data over while running its draw code, as a command list in the game's order
 (terrain batch, mesh pass, surface blit, depth clear, ...); `render::EndFrame()` (from the present, or earlier for a
-capture) draws them in one off-screen pass with depth, then the optional child-window pass. Per-frame data is rebuilt
+capture) draws them in one off-screen pass with depth; the swap chain's present shows it (section 9). Per-frame data is rebuilt
 every frame; textures and window surfaces are cached per holder.
 
 Conventions taken over: Direct3D clip space (the game's projection already produces it), Direct3D 7 pixel centres
@@ -87,7 +82,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
   time, pending figure changes 0050D450, model LRU). **Visibility only gates client-side animation, figure changes and
   picking, never server state or timing.**
 - **Picking** uses screen rectangles written during the object draw from projected vertices (004E8900 / 004E86B0 into
-  the device's +0x15C, copied by 005A7A70 into node and figure pieces). When the old object draw goes, the hand-over
+  the device's +0x15C, copied by 005A7A70 into node and figure pieces). Whatever draws the objects
   must still produce them (approximate is fine, from projected bounds).
 - **One real state change in a draw path:** the terrain page draw applies pending water level changes (006C30E0 from
   006BFF40); the water layer is what height queries read. DrawSectorPage applies them before handing over or skipping
@@ -107,25 +102,25 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `device_shadow.cpp` -> `render::BeginMesh` without corners; `map_object_shadow.cpp` (0051CE60) tells which texture changed (`TextureChanged`) | drawn; later GPU shadows |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
-| Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs |
+| Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs, into the stand-in |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
-| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask from game memory | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) is replaced by R9c2 |
+| Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask from game memory | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
 | Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; CBinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
-| Present | 004EF610 | `device_present.cpp` -> `render::Present` (with `present`: new frame copied into the render target; a full-frame readback per frame) | done |
-| Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; render states FOGENABLE / FOGCOLOR of the old device (zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | fog still read from the old device state |
+| Present | 004EF610 | `device_present.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
+| Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; render states FOGENABLE / FOGCOLOR of the old device (zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | fog still read from the stand-in device's state (section 9) |
 
-Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the verify wrappers keep
-checking it. Not handed over directly yet: `figure_part_draw*.cpp` (005A7A70, 005A7640: model matrices and figure data
-once meshes stop going through the old projection), the particle data, materials from the game's data instead of the
-old device's state, picking rectangles. The Direct3D 7 code is deleted when we stop hooking game.exe; the 3DfpFPU /
-2DintMMX calls left in game code (bounds at figure load, the terrain's transform before clipping, the shadow
-rasteriser) then get plain C++ replacements.
+Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the goldens check it. Not
+handed over directly yet: `figure_part_draw*.cpp` (005A7A70, 005A7640: model matrices and figure data once meshes stop
+going through the old projection), the particle data, materials from the game's data instead of the device state,
+picking rectangles. The 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
+before clipping, the shadow rasteriser) still want plain C++ replacements (section 9).
 
 The interface is overlay, not native: each window surface is uploaded as a texture when its contents changed (checked
 at every blit) and drawn at the blit's place with the colour key as transparency. Native drawing (glyph atlas from the
 game's fonts to keep the metrics the word wrap 005F8340 depends on, every window class's Draw / Update as quad / text
-submissions) could come window by window: a window switched to native simply stops blitting its surface.
+submissions) comes window by window (docs/notes/ui-native.md, section 9): a window switched to native simply stops
+blitting its surface.
 
 ## 5. Pass state
 
@@ -145,20 +140,20 @@ records:
 | 007AEDD4 | texture x diffuse | texture (SELECTARG1) |
 | 007AEDD0 | texture x diffuse | diffuse (SELECTARG1) |
 
-A state nothing has fed is read from the old device and logged once ("render: pass state: render state N not fed by
-the game code yet"). The verify build reads every fed state back and logs disagreements ("fed X but the old device
-has Y": a writer not converted) and draws the device's value. States the game never sets (ZFUNC, TEXTUREFACTOR,
+A state nothing has fed is read from the stand-in device (which keeps every state the game sets) and logged once
+("render: pass state: render state N not fed by the game code yet"). The harness build (`EI_RENDER_VALIDATION`) reads
+every fed state back from it and logs disagreements ("fed X but the old device has Y": a writer not converted) and
+draws the device's value. States the game never sets (ZFUNC, TEXTUREFACTOR,
 ADDRESSU / V, stage 1 off) start with the device's initial values.
-**Documented exception:** stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the unit's
-picture: the vanilla body is ported and feeds the mirror, but Rebirth replaces that whole function, so
-in a Rebirth launch the device's value is drawn in the verify build, the mirror's (linear mips) in the release build.
+Stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the unit's picture, is fed by
+`CHudUnitPanel::DrawVanilla` (ui_hud_unit_draw.cpp).
 
 Rewritten state setters (all feed the mirror): 00501C60 (renderer slot 10, `device_states.cpp`: SRCBLEND then
-DESTBLEND, failure through 004800E0; known caller the particle draw 00498940; differential on the real device);
+DESTBLEND, failure through 004800E0; known caller the particle draw 00498940);
 005045D0 (slot 20, a strip through integer screen points, no caller) and 0049B4B0 (`renderer_lines.cpp`: the strip of
 the renderer's line lists, 0049B780 from slot 15 00501CE0: bounds boxes 005A7290, line lists 00569D60; flat shaded,
 into a growing vertex buffer at 007A9CE0; both turn stage 0's colour / alpha ops off and back to MODULATE) go to
-`render::TlDraw` (line strip, FVF 0xC4), ours only, not reached by scenarios; 005041F0 (`renderer_rect.cpp`). 0049B140
+`render::TlDraw` (line strip, FVF 0xC4), not reached by scenarios; 005041F0 (`renderer_rect.cpp`). 0049B140
 only appends a line-list point (the device calls under it belong to 0049B320, a dead two-point line draw); 0050434F
 and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C in config/vtables.csv).
 
@@ -167,20 +162,17 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 **Memory** (owned by the new renderer): `render::NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory / HolderGone`
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
 size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, `ClientPixels`,
-`DirectPixels` in `dx_surface.h`) and read by the renderer after GdiFlush. Outside the switch-over the same memory is
-given to DirectDraw as the surface's client memory (DDSD_LPSURFACE | DDSD_PITCH; refused -> a plain surface, logged
-"cpuwindows: ..."). Change detection: the renderer keeps a copy of the memory each window texture was made from and
+`DirectPixels` in `dx_surface.h`) and read by the renderer after GdiFlush. Change detection: the renderer keeps a copy of the memory each window texture was made from and
 converts again only when it differs (a memcmp at each blit).
 
 **Switch-over** (`present` with `cpuwindows`): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the
 cursor's background and composition surfaces 005E60B0, the movies' decode surfaces) and the system-memory picture
 holders of 004F0060 (cursor images via 004EFC60 from 005E4EB0; dead picture windows) have no DirectDraw surface:
 `CDXSurface::surface` stays null, the pixels are only the renderer's memory. The screen's pixel format comes from the
-display mode (`ReadScreenFormat`; the primary only if that fails; the verify build checks a holder's masks and bits
-against the primary's). If the new renderer fails later (`Presenting()` turns false) the old path cannot draw those
-holders (its blits and copies skip them), so the interface, cursor and movies stay missing but nothing crashes.
+display mode (`ReadScreenFormat`; the primary only if that fails). If the new renderer fails later (`Presenting()`
+turns false) the interface, cursor and movies stay missing but nothing crashes.
 
-| Address | Name / change (ours only unless noted) |
+| Address | Name / change |
 |---|---|
 | 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | memory-owning holder; in the switch-over no CreateSurface (device +8 = 0) |
 | 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; fills the surface (32 bits a row copy, 16 bits through 2DintMMX slots 1, 2); a system request with memory fills it directly; only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written); S on a scratch holder |
@@ -191,10 +183,8 @@ holders (its blits and copies skip them), so the interface, cursor and movies st
 | 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy (`render::CopyFrameTo`; no Blt from the old target, which does not hold the frame), save picture stretch (CPU copy, (2x+1) * source / (2 * size)), Greyscale, SwapContents, pixel read: no Lock / GetSurfaceDesc |
 | 005FDA80, 005E54A0 / 005E5690 / 005E6630, 005DBD80 / 005DB3F0 / 005DA400 | old Blt, composition 005E5C40, background save, Lock / BinkCopyToBuffer / Unlock only outside the switch-over and with a surface (`OldPathDraws`) |
 
-Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present;
-the DirectDraw path: ui_camp, ui_screens, ui_main_menu. **Open:** under cpuwindows the verify build's side-by-side
-text checks must flush the GDI batch before reading pixels (not done: false mismatches expected there with the
-option on). Not reproduced: the unwinding when 004EFC60 / 004EF7B0 throw and the fallback to 004EF7B0 when 004EFA60's
+Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present.
+Not reproduced: the unwinding when 004EFC60 / 004EF7B0 throw and the fallback to 004EF7B0 when 004EFA60's
 video-memory holder throws (only with 00784756 0). The original quirks kept (failed Locks returning with the device
 lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comments.
 
@@ -203,17 +193,14 @@ lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comme
 picture) filled by 00655D40 (FillEntries, from the escape menu's 256x192 copy, interface +0x5C) and written to shot.sav
 by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 00656464 is not a function (inside
 00655D40; a false vtable entry 0074718C). With cpuwindows Build (00653DD0) and FillEntries give each texture's holder
-memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C); outside the switch-over the DirectDraw texture
-stays and the fills still Lock it and copy the 0x18000-byte block into the memory (one block, pitch taken as 512).
-The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Verify: ShowPicture /
-FillEntries original then ours, SaveGame ours only; scenario ui_saveload (`new,present`). The SavesPath Rebirth patch
+memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C).
+The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Checked by scenario ui_saveload. The SavesPath Rebirth patch
 is disabled in this install and not reproduced.
 
 ## 7. Textures without DirectDraw in the switch-over
 
 In `present` with `cpuwindows` CPU-written textures (00691D80), shadow textures and .bmp textures have only the
-renderer's memory; .mmp textures only its decoded copy. Outside it everything is the original's. All verified ours only
-(they make, lock or register textures).
+renderer's memory; .mmp textures only its decoded copy.
 
 | Address | Name / change |
 |---|---|
@@ -234,11 +221,8 @@ the bound holder, device +0x12C). Renderer side (`render_textures.cpp`): decoded
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
 texture and window entries); `TexturePixels` ignores a holder with memory.
 
-Verify wrappers in the switch-over (`tests/verify/memory_texture.h`): an original that locks such a texture runs on a
-temporary DirectDraw texture lent to the holder (00691D80's wrapper lends every new texture while 005EC020 / 00655D40's
-original runs); refused ("verify: no DirectDraw texture ... ours only"): 005FFFB0 / 00656E10 run ours only. Scenarios:
-render_present*, render_movie_present, render_titles_present, ui_saveload; outside the switch-over ui_camp, ui_screens,
-ui_hud, frames_basic, render_scene. Dead / not functions: 00693DE0, 0068F860 (reached only from unreferenced 00691D50),
+Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload. Dead / not functions: 00693DE0,
+0068F860 (reached only from unreferenced 00691D50),
 004EAFD0 (inside 004EA4A0's range).
 
 ## 8. Draws with old-device calls, movies and the cursor outside the frame
@@ -246,14 +230,14 @@ ui_hud, frames_basic, render_scene. Dead / not functions: 00693DE0, 0068F860 (re
 Interface draws (`ui_container_draws.cpp`; each keeps the original's device calls in order, states go to
 `render::state`, depth clears to `render::ClearDepth`; in the switch-over the old device's clears are left out (+8 = 0)
 since nothing the old path still draws reads its depth buffer; the older clear hand-overs 00636020, 005EC300, 00627390
-still clear the old device too and could take the same guard). Verified ours only (the original would draw twice):
+still clear the old device too and could take the same guard). The rewrites:
 00600EF0 (CUiContainer slot 20: state block 007AEDD8, 005FEB90, children's slot 20); 00602BF0 / 00632A90 (slot 20 of
 screen 3, vtable 007405AC / screen 2, 00740688: depth clear then 00600EF0; no scenario reaches them); 00622420
 (CHeroEquipPanel slot 20, vtable 007418E0: highlight frames, quick items' models (005ECA10), in the camp the armour
 models in seven slots between three depth clears, each after a flush of the two batches); 0064D970 (slot 26 of vtable
-007411BC: alpha reference = the window's +0x1EC; differential on the real device).
+007411BC: alpha reference = the window's +0x1EC).
 
-Movies and software cursor (old device calls kept, behind `render::Presenting()`; with `present`; all ours only):
+Movies and software cursor (old device calls kept, behind `render::Presenting()`):
 
 | Address | What | With `present` |
 |---|---|---|
@@ -265,8 +249,8 @@ Movies and software cursor (old device calls kept, behind `render::Presenting()`
 005DA880 is dead (a thread procedure started only by 005DAD50, which has no caller); 005DA5AB / 005DB603 are catch
 blocks (fallback to 004EF7B0, only with 00784756 0). The harness's input steps wait for PeekMessageA calls recognised
 by return address; the rewritten player's call no longer returns to 005DB788, so input steps are not posted inside a
-movie (the harness empties movie.ini's lists). Scenarios render_movie (`new`: PlayMovie("crdtfin.bik") after a new
-game) and render_movie_present; 005DA400 and 005E6630 run in every new game; 005E5690 and 005E5640 draw only with the
+movie (the harness empties movie.ini's lists). Scenario render_movie_present (PlayMovie("crdtfin.bik") after a new
+game); 005DA400 and 005E6630 run in every new game; 005E5690 and 005E5640 draw only with the
 software cursor option, which no scenario sets.
 
 Images kept across frames (`render_blit.cpp`): the cursor's composite, `render::Fill`'s 1x1 colours and the movie frames
@@ -276,28 +260,51 @@ blit with the same pixels uploads nothing, else a free image of that size (not b
 since the last commit; sokol allows one update per image and frame, and the blits are drawn at the end of the frame)
 is rewritten; only when every image is in use is a one-frame image made. A movie keeps one image per player, updated
 in place unless it was already blitted or updated in this frame (then a new one replaces it after the present).
-Verify build: counts per purpose in ei_hook.log (`render: images ...`, every 300 frames and at exit) and every
+Harness build: counts per purpose in ei_hook.log (`render: images ...`, every 300 frames and at exit) and every
 in-place upload is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference).
 
-## 9. What is left
+## 9. The present path and what is left
 
-The switch-over without DirectDraw is done (R9a to R9c3, R10); open items are at the end of this section.
+The switch-over without DirectDraw (R9a to R9c3, R10) is done and is the only way our renderer runs. The open items
+come first, then what holds for the present path (the subsection names are cited from src/ and the tickets).
 
-### R9a: the switch-over without DirectDraw (done)
+### Open items
 
-With `present` on when the renderer object is created (00500B70; `EI_RENDER`, or a scenario's `render` step), the
-game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device:
-- 00500B70 lists and tries no DirectDraw driver (null driver id; it calls neither 004EE5D0 nor 004EEA90, so a native
-  run makes no DirectDraw object at all). 004EDD70 starts the new renderer (`render::StartPresenting`: the Direct3D 11
-  device; if that fails the DirectDraw device is built as before), loads 2DintMMX's converter, keeps the cooperative
-  level's flags and screen rectangle, lists the one display mode, and makes the primary and the render target two
-  holders without a surface of the screen's width, height and bits (`GameTargetSize`, the screen copies and the
-  `if (primary_) renderTarget_->width` reads see the screen). No video FourCC probing.
-- 004E5E50 takes the IDirect3DDevice7 stand-in (HAL id, no depth formats, no depth buffer, no render target set),
-  sets the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passes DDSCL_FPUSETUP),
-  builds the format table from the stand-in's fixed list (5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1-5: what dgVoodoo
-  listed; **DXT2/4/5 must stay**: Rebirth's battle00 and footprints are DXT5, and without them the texture load failed
-  and `SetTexture` crashed), sets the viewport and records the four state blocks on it (handles 1..4, which
+- **R9b2** (ready): WinMain's original in harness runs. The harness patches the CALL at 00457595, so WinMain 00456440's
+  original runs (GetAvailableVidMem at 00456DA2 / 00456DC6 / 00456E0D, RestoreAllSurfaces at 0045715A) and reaches the
+  stand-ins; `app_main.cpp`'s rewrite runs only in a launch without the harness. Let the rewrite run under the harness
+  (freeze hook in app_main.cpp); the COM stand-ins can go after that, once Rebirth's patched originals (006462A0,
+  0060C870) are covered.
+- **R9c4** (ready): the game's own device re-creation on a resolution change in the options, and a desktop mode change
+  while running, are not exercised by any scenario (R9c covers a window resized from outside).
+- **R9c5** (ready): a lost-device test through a real removal (a test-only device made through D3D11On12CreateDevice
+  whose ID3D12Device5::RemoveDevice removes it, Windows 10 1809+; check the swap chain works with an 11on12 device
+  first). R9c1 tests the recreation with `render::LoseDevice` only.
+- **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
+  GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
+  the global map's clouds on the GPU.
+- No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
+  (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
+  from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
+  before clipping, the shadow rasteriser) want plain C++ replacements; code for the retired side-by-side mode is still
+  in src (`show` / `split` child window, `noterrain` / `noobjects` / `nointerface`, `OldPathSwitchable` and the
+  `DrawOld*` queries, the DirectDraw branches of the holders); several steps (holders, saved pictures, interface
+  draws, movies, textures) are checked by goldens and harness scenarios, never by a person in game.
+
+### R9a: the game without DirectDraw
+
+With `present` on when the renderer object is created (00500B70; the image sets it), the game has no DirectDraw
+object, display mode, primary, render target, depth buffer, Direct3D object or device:
+- 00500B70 lists and tries no DirectDraw driver (null driver id; it calls neither 004EE5D0 nor 004EEA90). 004EDD70
+  starts the new renderer (`render::StartPresenting`: the Direct3D 11 device), loads 2DintMMX's converter, keeps the
+  cooperative level's flags and screen rectangle, lists the one display mode, and makes the primary and the render
+  target two holders without a surface of the screen's width, height and bits (`GameTargetSize`, the screen copies and
+  the `if (primary_) renderTarget_->width` reads see the screen). No video FourCC probing.
+- 004E5E50 takes the IDirect3DDevice7 stand-in (HAL id, no depth formats, no depth buffer, no render target set), sets
+  the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passes DDSCL_FPUSETUP), builds
+  the format table from the stand-in's fixed list (5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1-5: what dgVoodoo listed;
+  **DXT2/4/5 must stay**: Rebirth's battle00 and footprints are DXT5, and without them the texture load failed and
+  `SetTexture` crashed), sets the viewport and records the four state blocks on it (handles 1..4, which
   `render::state::Block` knows by their addresses).
 - `src/game/device_null.cpp`: the two stand-ins in the device object's +0x0C / +0x54. They draw nothing; their state
   (render / stage states, state blocks, bound textures, viewport, scene bracket, display mode) is a plain object,
@@ -307,22 +314,20 @@ game has no DirectDraw object, display mode, primary, render target, depth buffe
   sort-independent antialiasing) and counts SetTexture references. The IDirectDraw7 one answers GetDisplayMode with
   the chosen mode in `device::ScreenFormat` (16 bits 5:6:5, else X8R8G8B8: what dx_surface.cpp's ReadScreenFormat
   reads; the windows' colour keys, CUiSurface +0x34, are 0 or a COLORREF set without the format, so they agree),
-  GetCaps with 3D / texture / mipmap capabilities and no gamma or FourCC, GetAvailableVidMem 256 MB (dgVoodoo's
-  card), and refuses CreateSurface (logged: a holder made through 004EFA60 then throws, as a failed DirectDraw call
-  does). Every method logs its first call from each calling place (`old device: IDirect3DDevice7::SetRenderState
-  from game.exe 0050B22E`, at most 400 lines); `tools/old_device_calls.py [run folders]` lists that log by calling
-  function (default: every `build/verify/runs/*present*`).
+  GetCaps with 3D / texture / mipmap capabilities and no gamma or FourCC, GetAvailableVidMem 256 MB, and refuses
+  CreateSurface (logged: a holder made through 004EFA60 then throws, as a failed DirectDraw call does). Every method
+  logs its first call from each calling place (`old device: IDirect3DDevice7::SetRenderState from game.exe 0050B22E`,
+  at most 400 lines); `tools/old_device_calls.py [run folders]` lists that log by calling function (default: every
+  `build/verify/runs/*present*`).
 - `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the rewritten code uses (GetCaps,
   EnumTextureFormats, Begin / EndScene, Clear, SetViewport, SetRenderTarget, Set / GetRenderState, Set /
   GetTextureStageState, state block calls, SetTexture, DrawPrimitive, DrawIndexedPrimitive; IDirectDraw7 GetCaps,
   CreateSurface, GetDisplayMode, EnumDisplayModes, SetDisplayMode, RestoreDisplayMode, SetCooperativeLevel,
-  GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank). With a DirectDraw device each calls
-  the interface given. Without one, when the interface is the device object's stand-in (or null), it answers from
-  `SwitchOverDevice` (draws / clears / mode changes / restores D3D_OK). Any other interface is still called: the
-  verify wrapper of CRenderHelper (`verify_render_helper.cpp`) builds helpers on a recording device. Every
-  `->Method(` on the device in src/game goes through these; the interface's `UiD3DDevice` (ui.h) has declared
-  methods (`ui_d3d_device.cpp`). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`)
-  read `SwitchOverDevice` through `device_switchover.h` (no Direct3D 7 headers there).
+  GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank). Each answers from `SwitchOverDevice`
+  when the interface is the device object's stand-in (or null): draws, clears, mode changes and restores give D3D_OK.
+  Every `->Method(` on the device in src/game goes through these; the interface's `UiD3DDevice` (ui.h) has declared
+  methods (`ui_d3d_device.cpp`). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
+  `SwitchOverDevice` through `device_switchover.h` (no Direct3D 7 headers there).
 - 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
   (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,
   sized to its client area (`ResizeBuffers` when it changes; the hook makes the process system DPI aware at WinMain so
@@ -332,45 +337,33 @@ game has no DirectDraw object, display mode, primary, render target, depth buffe
   005FDA80 (window blits: otherwise every window was skipped), the three movie players' "not the primary itself"
   checks and CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once; 00458270's screen
   clears with no primary do nothing (app_frame.cpp, result 0). The movie holders (`bink_video.cpp` `NewMovieHolder`):
-  00784756 is written by the game start (00456E35) from GetAvailableVidMem and the stand-in's 256 MB clears it, so
-  without DirectDraw the holder is 004EF7B0's (only the renderer's memory; a video-memory request would throw into the
-  game's error box); each Bink frame is copied into memory the renderer owns (`render::MovieFrame`). Pictures loaded
-  with the video-memory flag (004F0060) get the renderer's memory as the system-memory ones do (dx_surface.cpp).
+  00784756 is written by the game start (00456E35) from GetAvailableVidMem and the stand-in's 256 MB clears it, so the
+  holder is 004EF7B0's (only the renderer's memory; a video-memory request would throw into the game's error box); each
+  Bink frame is copied into memory the renderer owns (`render::MovieFrame`). Pictures loaded with the video-memory flag
+  (004F0060) get the renderer's memory as the system-memory ones do (dx_surface.cpp).
 - Not touched (the stand-ins answer): app.cpp's FlipToGDISurface, app_main's GetAvailableVidMem / RestoreAllSurfaces,
   texture.cpp's video memory and largest texture, the cursor's WaitForVerticalBlank, 00504A60's gamma (no
-  DDCAPS2_PRIMARYGAMMA: returns false, no ramp), the camp's antialiasing GetCaps. Calls still reaching the stand-ins in
-  the four present scenarios: only WinMain's original (00456440: GetAvailableVidMem at 00456DA2 / 00456DC6 / 00456E0D,
-  RestoreAllSurfaces at 0045715A); the harness patches WinMain (the `CALL` at 00457595 for `freeze`), so the
-  installer leaves the original in place in every harness run and the rewrite (`app_main.cpp`) runs only in a launch
-  without the harness. Rebirth-patched originals the rewrites leave in place (006462A0, 0060C870) also reach them.
-- The harness: windows are shown and made without activating them; dgVoodoo's exclusive cooperative level activated
-  the game window anyway, without DirectDraw nothing did, so the game's active flag (0079BC5C) and the renderer's bit 0
-  stayed 0 and no frame was drawn ("no frame presented within 10 s"). The harness sends one WM_ACTIVATE (active) once
-  the device object exists, only without DirectDraw (harness.cpp `ActivateWithoutDirectDraw`). A player's own start is
-  in the foreground and gets the activation from Windows.
+  DDCAPS2_PRIMARYGAMMA: returns false, no ramp), the camp's antialiasing GetCaps.
+- The harness shows windows without activating them; without DirectDraw nothing activates the game window, so the
+  game's active flag (0079BC5C) and the renderer's bit 0 stay 0 and no frame is drawn. The harness sends one WM_ACTIVATE
+  (active) once the device object exists. A player's own start is in the foreground and gets the activation from
+  Windows.
+- Scenarios: render_present, render_movie_present, render_present_cpuwindows, render_titles_present and ui_saveload.
 
-Verify wrappers whose originals need DirectDraw run ours only without it: 004F0060 (its original's CreateSurface is refused), 005EC020 and 00655D40
-(they write a texture lent through `memory_texture::Lend`; `CanLend` refuses at once, logged once), 005FFFB0 and 00656E10 through Lend's refusal,
-004E6EE0 (BuildFormatTable: formats and ids not empty), 00504A60 (SetGamma: false, the three values unchanged), 006913A0 (SetDevice: device stored, a
-tenth of 256 MB). The default suite therefore exercises the old-device comparisons only in the old-device scenarios; run `--dgvoodoo` now and then
-(or before touching the old device path). The five `present` scenarios are render_present, render_movie_present, render_present_cpuwindows,
-render_titles_present and ui_saveload (also `run_all --native`). Their captures (compare_frames, tolerance 8) show the same scenes as the old path's;
-the differences are what moves by itself (water, the global map's clouds, the clock, rain streaks: weather is not in the new frame).
-
-### R9c: everything the player sees through the new renderer's present (done)
+### R9c: everything the player sees through the new renderer's present
 
 - `src/render/render_window.cpp` (render.cpp keeps `EndFrame` and gives the module its device, context and frame
   through `render_internal.h`): the game window's swap chain. The frame is drawn by a full-screen triangle (shader
   "ei-present") into the client area with its aspect kept, centred, black bars (`render::FrameInWindow`,
   `WindowToFrame`, `FrameToWindow`). A failed `ResizeBuffers` (other than a lost device) makes the swap chain again
   once. A lost device is logged with `GetDeviceRemovedReason` and handled by R9c1.
-- Gamma as a shader step: 00504A60 (`renderer_gamma.cpp` SetGamma) without DirectDraw keeps the three values, builds
-  the ramp as before (BuildRamp, full scale 65280) and hands it to `render::SetGammaRamp`: a 256x1 lookup texture the
-  present shader reads per channel (each entry v*255/65280, rounded). Result true, as with a primary that has
-  DDCAPS2_PRIMARYGAMMA. The ramp applies only to what is presented, not to the frame (captures, ReadFrame), as the
-  hardware ramp did not change surface reads. Verify build: after a ramp change the presented back buffer is read back
-  at a 17x17 grid (one-to-one placement only) and compared with the frame through the ramp ("render: gamma ramp
-  check" / "render: MISMATCH gamma ramp").
+- Gamma as a shader step: 00504A60 (`renderer_gamma.cpp` SetGamma) keeps the three values, builds the ramp as before
+  (BuildRamp, full scale 65280) and hands it to `render::SetGammaRamp`: a 256x1 lookup texture the present shader reads
+  per channel (each entry v*255/65280, rounded). Result true, as with a primary that has DDCAPS2_PRIMARYGAMMA. The ramp
+  applies only to what is presented, not to the frame (captures, ReadFrame), as the hardware ramp did not change
+  surface reads. Harness build: after a ramp change the presented back buffer is read back at a 17x17 grid
+  (one-to-one placement only) and compared with the frame through the ramp ("render: gamma ramp check" / "render:
+  MISMATCH gamma ramp").
 - Full screen (device flags_ bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`, called
   from each present in device_present.cpp): the WS_POPUP window is moved over the monitor it is on (not while
   minimised; again after someone else resized it), and the frame is scaled into it; a window resized by the user
@@ -381,8 +374,8 @@ the differences are what moves by itself (water, the global map's clouds, the cl
   input dispatcher (00457970, app.cpp). The game's own wheel message (0xCC54) carries no position.
 - Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
   deactivates the device (004EEC60, RestoreDisplayMode on the stand-in), the sound and the network and minimises;
-  active restores, and in full screen 00504780 (returns at once without DirectDraw) and the interface reset 005DAE70
-  (cursor rebuilt). Minimised the client area is empty and nothing is presented; on return the swap chain is resized.
+  active restores, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).
+  Minimised the client area is empty and nothing is presented; on return the swap chain is resized.
   DXGI_STATUS_OCCLUDED counts as success.
 - Harness steps: `fullscreen 0|1` (starter: the registry's FullScreen), `focus off|on` (WM_ACTIVATE inactive through
   the game's window procedure and SW_SHOWMINNOACTIVE; SW_SHOWNOACTIVATE and WA_CLICKACTIVE), `windowsize <w> <h>`,
@@ -393,45 +386,77 @@ the differences are what moves by itself (water, the global map's clouds, the cl
   battle screen through the mapping, focus lost and given back, the window resized from outside and covering the
   monitor again). Both set a resolution; they run beside others (our renderer changes no display mode).
 
-### PF3: no DirectDraw probes at startup in native runs (R9b1)
+### PF3 (R9b1): no DirectDraw probes at startup
 
-Only native runs (EI_RENDER "present" on the system's DirectDraw, run/native) and the standalone exe change; vanilla and Rebirth runs keep the
-original's probes and verify against them. 0045E310 (`app_dxversion.cpp` GetDxVersion): in a native run (`render::Presenting()` and the DDRAW.DLL the
-game imports is not in game.exe's folder, i.e. no dgVoodoo) it probes nothing and returns 0x800 (what the probe gives on current Windows); "app:
-native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log. Elsewhere it probes as before (under dgVoodoo all four
-DirectDrawCreateEx stay, ~0.6 s). The verify wrapper (ours only) accepts 0x800. The probe used to fail now and then in native runs with several games
-on the machine ("DirectX 7 or later" message). Returning 0x800 without skipping the probe's side effects once hung every native run in sound init
-(DirectMusic through CoCreateInstance and DDRAW.DLL left loaded mattered to the sound code); with the PF3 skip the hang did not come back. A
-timed-out harness run logs the main thread's instruction pointer and return addresses (`LogMainThreadStack` in harness.cpp); a hang seen once in
-`AIL_waveOutOpen` (four scenarios at the same time on a shared machine) is what to read it for.
+0045E310 (`app_dxversion.cpp` GetDxVersion) probes nothing in the image and returns 0x800 (what the probe gives on
+current Windows); "app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log.
+The probe used to fail now and then with several games on the machine ("DirectX 7 or later" message). Returning 0x800
+without skipping the probe's side effects once hung sound init (DirectMusic through CoCreateInstance and DDRAW.DLL left
+loaded mattered to the sound code); the full skip did not hang. A timed-out harness run logs the main thread's
+instruction pointer and return addresses (`LogMainThreadStack` in harness.cpp); a hang seen once in `AIL_waveOutOpen`
+is what to read it for.
 
-### R9c1: a lost Direct3D 11 device made again (done)
+### R9c1: a lost Direct3D 11 device made again
 
 - Losses are seen from the swap chain's Present / ResizeBuffers (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG /
   DRIVER_INTERNAL_ERROR, `render_window.cpp`) and by `GetDeviceRemovedReason` at the end of every presented frame (a
-  loss nothing reported: `new` without `present`, minimised). Nothing more is drawn in that frame; at the end of
-  `render::Present` (the frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each
-  module destroys what it made (`DropWindow`, the `show` child window, the frame target and readback copy,
-  `DestroyTerrain`, `DestroyMeshes`, `DropBlits`, `DropTextures`), then `sg_shutdown`, the context cleared and
-  released, the device released (the log gives the references left: 0 in the runs), a new device (up to five tries 200
-  ms apart), `sg_setup` and the pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp
-  is kept: the lookup table is not reset to the identity when the present pipeline is made), window surfaces and memory
-  textures (read again from the game's memory), DirectDraw-surface textures (read again from the surface). A movie
-  shows again from its next frame. No new device: the new renderer is off (`Active()` false), as when it failed at
-  the start.
+  loss nothing reported, e.g. minimised). Nothing more is drawn in that frame; at the end of `render::Present` (the
+  frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each module destroys what it
+  made (`DropWindow`, the `show` child window, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
+  `DropBlits`, `DropTextures`), then `sg_shutdown`, the context cleared and released, the device released (the log
+  gives the references left: 0 in the runs), a new device (up to five tries 200 ms apart), `sg_setup` and the
+  pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
+  not reset to the identity when the present pipeline is made), window surfaces and memory textures (read again from
+  the game's memory). A movie shows again from its next frame. No new device: the new renderer is off (`Active()`
+  false), as when it failed at the start.
 - The switch-over's .mmp textures (`owned`: no surface and no memory) keep what they were decoded from
   (`TextureSource`, render_textures.cpp): the header and the file's bytes of the levels decoded (DXT stays compressed),
   or the RGBA8 level of `TexturePixels` for a holder without surface; `SurfaceView` makes the image again from it at
-  its next use (`Remake`, once a frame). game.exe is not large address aware: this is
-  address space the switch-over freed by dropping the DirectDraw textures.
+  its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
+  freed by dropping the DirectDraw textures.
 - Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the next swap chain Present report
-  DXGI_ERROR_DEVICE_REMOVED without calling it; the rest is the real path (a real removal needs a driver reset or
-  `dxcap -forcetdr`, not installed; Direct3D 11 has no RemoveDevice). The step waits until the device is made again and
-  a frame presented on it. Scenario render_device_lost (vanilla and Rebirth): at one frozen moment in the main menu,
-  in zone1 and in the camp (textures loaded after the first loss), the frame before and after the loss match
-  (samecapture: 0 pixels over 8).
+  DXGI_ERROR_DEVICE_REMOVED without calling it; the rest is the real path. The step waits until the device is made
+  again and a frame presented on it. Scenario render_device_lost (vanilla and Rebirth): at one frozen moment in the
+  main menu, in zone1 and in the camp (textures loaded after the first loss), the frame before and after the loss match
+  (samecapture: 0 pixels over 8). A real removal is R9c5.
 
-### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame (done)
+### R9c2: the software cursor between frames
+
+The original's cursor: the renderer's +4 bit 0 is the game's active flag (WinMain's activation, app_main.cpp), and with
+the options' FpsIndependentCursor (registry FPSIndependentCursor, options +0x80; the test machine's value is 0) the
+cursor runs in mode 2 with a thread (005E5690, started through 005E52A0, mode set by 005DAEA0) that wakes every 41 ms
+and, when the image is shown (+0x0C) and 005E52E0 says the cursor moved or its frame stepped, restores the old place's
+background and blits the composed cursor at the new place: about 24 Hz whatever the frame rate. It draws nothing while
+the image is hidden: every movie player (005DB3F0, 005DBA50, the titles 0062B7D0) and every loading screen step
+(005DA400) call 005E5270 0 first and show it again only at their end, so during movies and loading there is no cursor.
+
+Ours is a present from the cursor thread, not a hardware cursor (that would move with the Windows cursor while the game
+holds its own still (005E67B0, the camera turned with the right button), is not scaled with the frame in a larger
+window, needs a new HCURSOR per animated frame, ignores the gamma ramp and is invisible to captures). The design is in
+the header of `render_cursor.cpp`; the rules worth knowing:
+- The cursor thread makes no sokol call (a deferred Direct3D 11 context with the raw objects of sokol's pipelines,
+  executed with RestoreContextState so sokol's state cache stays right; ID3D11Multithread protection on).
+- The swap chain is shared: the main thread's window present and the cursor thread's take turns under one lock
+  (`BeginWindowPresent` .. `EndWindowPresent`); a lost device drops the cursor's references under it first
+  (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
+  in mode 2) before the present lock, in both threads.
+- render::Cursor keeps the cursor aside (`Frame::cursor`); EndFrame draws the frame, copies it (`KeepFrameForCursor`)
+  and then draws the cursor over it, so frames, captures and ReadFrame are as before; the cursor thread draws onto a
+  copy of the cursor-less frame and presents that. `CursorBetweenFrames` presents only when nothing was presented on
+  the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
+- Harness build: every frame the cursor thread composes is read back and compared with the frame without its cursor and
+  the cursor's texels ("render: cursor between frames: N composed frames checked, M differed" / "render: MISMATCH
+  cursor between frames").
+
+Harness: `mouseglide <ms> <x0> <y0> <x1> <y1>` (the harness's mouse, what GetCursorPos reads, moved by a thread of its
+own in 10 ms steps), `stall <ms>` (the main thread away: one long frame), `cursormark`, `cursorcheck <name>|- <min>
+[max]` (presents by the cursor thread since the mark within min..max; with a name the last composed frame goes to
+frames\<name>.bmp, the checks must have found no difference and its rectangle must sit at the mouse less the hot spot
+within 24 pixels), and the starter step `fpscursor 0|1`. Scenario `render_cursor_present` (on `realtime`: on the
+virtual clock other threads see the main thread's clock plus the real time since it last moved and never go back, so
+after a movie or a load the cursor thread's clock stands still until the main thread's frames catch up).
+
+### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame
 
 `surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): a holder without a DirectDraw surface (the
 switch-over's render target and primary) gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
@@ -442,76 +467,21 @@ recorder's `<moviepath>shot%.4d.bmp` from 0079BC58, the movie folder defaulting 
 (CDib::Write) and the timing are the original's. The recorder wrote through a null bitmap when there was none
 (`bitmap->Write` before its check): checked now. The recorder's flag (0079BC54) is read by WinMain and the frame
 function and cleared on a write error; nothing in the shipped game's code sets it, so it is unreachable for a player.
-Verify: ours alone is checked (rectangle size, depth, bits present); the pixels are checked by the harness: `key
-scrolllock` (scan 0x46), `record on|off` (sets 0079BC54), `checkshot <n> <frame> [tolerance] [fraction]` (reads
-`shot<n>.bmp` from the saves overlay and compares it with frames\<frame>.bmp as samecapture does). Scenario
-`render_present_shot`: Scroll Lock in the main menu and in the game at a frozen moment, then the recorder for a few
-frozen frames.
+The pixels are checked by the harness: `key scrolllock` (scan 0x46), `record on|off` (sets 0079BC54), `checkshot <n>
+<frame> [tolerance] [fraction]` (reads `shot<n>.bmp` from the saves overlay and compares it with frames\<frame>.bmp as
+samecapture does). Scenario `render_present_shot`: Scroll Lock in the main menu and in the game at a frozen moment,
+then the recorder for a few frozen frames.
 
-### R9c2: the software cursor between frames (done)
-
-What the original shows. The renderer's +4 bit 0 (the "software cursor bit") is the game's active flag (set by
-WinMain's activation, app_main.cpp), and the cursor runs in mode 2 with its thread whenever the options'
-FpsIndependentCursor (registry FPSIndependentCursor, options +0x80) is on (005DAEA0; mode 1 has no thread; the test
-machine's value is 0). The thread (005E5690) wakes every 41 ms and, when the image is shown (+0x0C) and 005E52E0 says
-the cursor moved or its frame stepped, puts the old place's background back on the primary and blits the composed
-cursor at the new place: about 24 Hz whatever the frame rate, and on with no frames at all. It draws nothing while the
-image is hidden: every movie player (005DB3F0, 005DBA50, the titles 0062B7D0) and every loading screen step (005DA400)
-call 005E5270 0 first and show it again only at their end (005DB3F0, 005DA3C0, 005DBF70), so during movies and
-loading the original shows no cursor. It shows in long frames and work on the main thread outside those.
-
-The choice: a present from the cursor thread, not a hardware cursor (a hardware cursor would move with the Windows
-cursor while the game holds its own still (005E67B0, the camera turned with the right button), is not scaled with the
-frame in a larger window, needs a new HCURSOR per animated frame, ignores the gamma ramp and is invisible to
-captures). The design is in the header of `render_cursor.cpp`; the rules worth knowing:
-- The cursor thread makes no sokol call (a deferred Direct3D 11 context with the raw objects of sokol's pipelines,
-  executed with RestoreContextState so sokol's state cache stays right; ID3D11Multithread protection on).
-- The swap chain is shared: the main thread's window present and the cursor thread's take turns under one lock
-  (`BeginWindowPresent` .. `EndWindowPresent`); the main thread hands the cursor thread references at the end of each
-  of its presents and drops them at the start of the next. A lost device drops them under the lock first
-  (`DropCursorPresents`, R9c1). Lock order: the cursor's own lock (005E65F0, held around the frame draw and the present
-  in mode 2) before the present lock, in both threads.
-- With the new renderer presenting itself, render::Cursor keeps the cursor aside (`Frame::cursor`); EndFrame draws the
-  frame, copies it (`KeepFrameForCursor`) and then draws the cursor over it, so frames, captures and ReadFrame are as
-  before; the cursor thread draws onto a copy of the cursor-less frame and presents that (black bars, gamma ramp,
-  vertical blank as the main thread). The cursor picture is kept whole with its mask (`CursorPicturePart`); nothing is
-  presented for a picture the main thread has not drawn yet.
-- `CursorBetweenFrames` presents only when nothing was presented on the game window for 40 ms (real time: the
-  harness's virtual clock does not reach the renderer). The game side (`ui_cursor_frame.cpp` `MoveBetweenFrames`) is the
-  original's step under the cursor's lock 005E52E0. In `present` on a DirectDraw device (dgVoodoo, turned on late)
-  nothing is drawn between frames.
-- Verify build: every frame the cursor thread composes is read back and compared with the frame without its cursor and
-  the cursor's texels ("render: cursor between frames: N composed frames checked, M differed" / "render: MISMATCH
-  cursor between frames").
-
-Harness: `mouseglide <ms> <x0> <y0> <x1> <y1>` (the harness's mouse, what GetCursorPos reads, moved by a thread of its
-own in 10 ms steps), `stall <ms>` (the main thread away: one long frame), `cursormark`, `cursorcheck <name>|- <min>
-[max]` (presents by the cursor thread since the mark within min..max; with a name the last composed frame goes to
-frames\<name>.bmp, the checks must have found no difference and its rectangle must sit at the mouse less the hot spot
-within 24 pixels; it also logs why some moves were not presented), and the starter step `fpscursor 0|1`. Scenario
-`render_cursor_present`: a long frame in the main menu and in the game while the mouse glides (at least 10 presents
-each), the loading screen of a new game (logged only) and a movie (at most 2 presents). It runs on `realtime`: on the
-virtual clock other threads see the main thread's clock plus the real time since it last moved and never go back, so
-after a movie or a load the cursor thread's clock stands still until the main thread's frames catch up (1.5 s of a
-1.6 s stall were seen); a player's game has no such clock.
-
-### R10: harness runs of our code on our renderer; dgVoodoo for the original code only
+### R10: runs of our code on our renderer, dgVoodoo for the original code only
 
 User's decision (2026-10-15): test runs of our code draw with our renderer, mainly because dgVoodoo runs that set a
 resolution must have the machine to themselves and serialised the suites.
-- `tools/run_all.py` `our_renderer()`: a run of our code (vanilla, Rebirth, with hooks) gets `EI_RENDER=new,present`
-  (run/vanilla and run/rebirth keep dgVoodoo's DLLs beside game.exe: the startup DirectX probe still goes through
-  them; nothing draws through them). dgVoodoo draws: the original code (`--no-hooks`, `--widescreen`'s
-  rebirth-nohooks and its hooked side; compare.py's original side), scenarios whose `render` step leaves out `present`
-  (`needs_old_device`: render_scene, render_terrain, render_movie, render_cpuwindows compare the old path's frame with
-  the new one), every hooked run with `--dgvoodoo`, and a submitter's own `EI_RENDER` without `present`. A run of the
-  original code never gets EI_RENDER (run_once drops it: with `present` the harness captured the new renderer's
-  frame, which nothing draws without our hooks).
-- Alone (`runs_alone`): only a dgVoodoo run with a `resolution` step; the minimise rerun (MINIMISED, SV1c) only for
-  dgVoodoo runs. Plans never hold a run that would switch the real display (main's `switches_display`: `resolution
-  WxH` with `fullscreen 1`): such a scenario runs only on our renderer (left out without hooks, with `--dgvoodoo`, or
-  with an EI_RENDER without `present`). A scenario whose own `render` step says `new,present` is on our renderer
-  whatever else is set.
+- The default suite is the standalone image's (`our_code()` in tools/run_all.py: installs `standalone` and
+  `standalone-rebirth`), always `EI_RENDER=new,present`. dgVoodoo draws only the original code (`--no-hooks`,
+  `--widescreen --record`'s rebirth-nohooks). A run of the original code never gets EI_RENDER (run_once drops it).
+- Alone (`runs_alone`): only a dgVoodoo run with a `resolution` step. Plans never hold a run that would switch the real
+  display (main's `switches_display`: `resolution WxH` with `fullscreen 1`): such a scenario runs only on our renderer
+  (a `# no original: <install>` line leaves its `--no-hooks` runs out).
 - Reference cache (`reference_key`, `store_reference`, `reference_from_cache`): a passed run of the original code is
   kept in `<main checkout>/build/reference/<scenario>-<install>/<key>/` (the run folder without harness_saves, plus
   cached.json with run()'s results), the key being the scenario's last commit (`work.scenario_revs`), the install's
@@ -519,24 +489,11 @@ resolution must have the machine to themselves and serialised the suites.
   override and the game's EI_* settings. A scenario with uncommitted edits is never cached. `run()` copies a cached run
   into the run folder (a note "reference cache: <key> ..."; no time recorded); work.py test gives such a run alone = 0
   and expected 1 s. Three keys kept per scenario and install. `--fresh` (run_all, compare.py; compare.py always with
-  `--runs` > 1) plays it again. Not in the key: the harness itself (the verify build): after a harness change that
+  `--runs` > 1) plays it again. Not in the key: the harness itself (the harness build): after a harness change that
   alters what a reference run captures, `--fresh`.
-- Cross-renderer frames (ours against addon's on dgVoodoo) pass no useful tolerance (interface 0.2-0.6% of pixels over 8, world 20% from the sea's phase); `EI_RENDER=new,present python tools
-un_all.py --widescreen` still gives that comparison on request. compare_frames.py runs 8 at once (`COMPARE_JOBS`); the widescreen scenarios' 4K captures take 45-60 s beside other games (`timeout 90` in ui_widescreen_hud / _more / _screens).
-
-### R10a: the SectorData::Light mismatch was our ShadeSun, not the renderer (done)
-
-`SectorData::ShadeSun` (006C36B0, terrain_lighting.cpp) computed the underwater loss `falloff * absorption * depth * depth` as `(falloff *
-absorption) * (depth * depth)`: /fp:fast regrouped the repeated factor. The original multiplies left to right, and Light runs with chop rounding, so
-the lit colour of underwater vertices came out one step off. LightVertex's water product (`absorption * depth * depth * dz * dz * falloff`) had the
-same regrouping. Fix: `Product(a, b, ...)` in vecmath.h (left to right, returned unrounded as `double`). Storing each partial product
-(RoundToFloat) broke Rebirth runs: the sun's position z there is a denormal (0x1.30012p-129), so `z * z` stored as a float became 0 and `1 - z * z *
-loss` came out 1.0 instead of the chopped 0.99999994. Partial products stay in the FPU, as in the original. ShadeSun's wrapper adds "SectorData::
-ShadeSun bits" (the lit colour bit for bit).
-
-Other open items: the fog colour and range come from the old device state (not game data yet); weather's old draw
-(`CRainSnow::DrawParticles`) still runs next to the hand-over; GPU shadows; several steps (holders, saved pictures,
-interface draws, movies, textures) are verified by wrappers and harness scenarios, never by a person in game.
+- `run_all --widescreen` compares the image's frames with addon's recorded ones (docs/notes/rebirth.md).
+  compare_frames.py runs 8 at once (`COMPARE_JOBS`); the widescreen scenarios' 4K captures take 45-60 s beside other
+  games (`timeout 90` in ui_widescreen_hud / _more / _screens).
 
 ## 10. The old boundary (reference)
 
@@ -557,40 +514,34 @@ interface draws, movies, textures) are verified by wrappers and harness scenario
 
 ## 11. Verification and frame capture
 
-- **In game, per feature:** at one frozen moment capture the old frame with less and less of it drawn by the old path
-  (`oldobjects off`, `oldterrain off`, `oldinterface off`) and the new frame (always all of it); masks from pairs of old
-  frames pick the pixels of one feature (`--mask-background` keeps those with nothing in front, `--exclude` leaves out
-  another feature's). Scenarios `render_scene` (its header has the compare commands for the whole frame, terrain,
-  objects, interface) and `render_terrain`; `tools/frame_preview.py` writes a downscaled side-by-side PNG. Known
-  differences: translucent dark panels (35% black: top and portrait panel) dim the old scene under them, so compare
-  masked pixels only; terrain still differs on steep distant slopes (mip choice under minification). The water pass
-  writes depth as the old device does (ZWRITEENABLE stays 1 after the sky): without it the far sea's last, fully
-  fogged sector ring blended over the nearer water at the top of the screen (a light strip with a straight lower edge,
-  seen right of the top panel in WideScreen; R10c).
-  The terrain's pipelines come from the pass state at each page's hand-over (`ReadPassState`, R10d), as the meshes'
+- **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present,
+  render_device_lost, ...: two captures in one frozen moment must match; on the image they match to the pixel, PF3a),
+  `tools/frame_preview.py` writes a downscaled side-by-side PNG. render_scene's `oldobjects` / `oldterrain` /
+  `oldinterface` steps are ignored under `present` (logged), so its captures are all the new frame. Cross-run
+  comparisons are not meaningful (no determinism); A/B is always within one run.
+- The water pass writes depth as the old device does (ZWRITEENABLE stays 1 after the sky): without it the far sea's
+  last, fully fogged sector ring blended over the nearer water at the top of the screen (a light strip with a straight
+  lower edge, seen right of the top panel in WideScreen; R10c).
+- The terrain's pipelines come from the pass state at each page's hand-over (`ReadPassState`, R10d), as the meshes'
   do: ground under the terrain block 007AEDDC and water under the scene block 007AEDD0, both with CULLMODE 2 (what the
   sky leaves), ALPHABLENDENABLE 1 (SRCALPHA / INVSRCALPHA) and ZWRITEENABLE 1. The terrain shader still picks the
   alpha (texture for ground, vertex colour for water) and always adds the specular colour (DrawSectorPage turns
-  SPECULARENABLE on around each of its draws, after the hand-over). The verify build logs each new terrain pipeline's
-  state ("render: terrain pipeline (first for a ground page): ..."). With it the standalone goldens stayed the same
-  and `--widescreen` matched addon's frames.
-  Fog matches the old path. Cross-run comparisons are not meaningful (no determinism); A/B is always within one run.
+  SPECULARENABLE on around each of its draws, after the hand-over). The harness build logs each new terrain pipeline's
+  state ("render: terrain pipeline (first for a ground page): ..."). `--widescreen` matches addon's frames with it.
 
 ### Frame capture
 
-Harness, verify build. `capture <name>` skips two presented frames and writes the next to `frames\<name>.bmp` (24-bit)
-from the old render target at the present point (after scene and interface, before the software cursor and the flip;
-a read-only Lock of the render target, GetDC as fallback: a GDI capture of the window comes back black with dgVoodoo);
-with the new renderer on, its frame of the same moment goes to `frames\<name>.new.bmp`. `freeze` / `unfreeze` hold
-timeGetTime / GetTickCount and the camera (CCamera::Update at 00457595 runs once per frame even with dt 0 and moves a
-fixed fraction per call); the main loop then runs no world, client or camera update. `samecapture <a> <b> [tolerance]
-[fraction]` fails the run when two captures differ (frames_basic, render_scene, render_present, render_device_lost, ...:
-two captures in one frozen moment must match; on the image they match to the pixel, PF3a). The old `--native` runs
-(hooked game.exe, 2026-10-14) failed render_scene's world / world_again by ~2.9%: the whole view had shifted slightly
-between the captures (the camera moved under `freeze` there), not water or weather. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclude E1 E2 ...] [--exclude-grow N]
-[--diff OUT]`: per-pixel tolerance (default 8), differing fraction (default limit 0.1%), worst regions. Limits: what
-moves by itself between frames without the game's clocks (other threads) is not held; the harness's own waits use
-real time.
+Harness. `capture <name>` skips two presented frames and writes the next to `frames\<name>.bmp` (24-bit). In the image
+it is the new renderer's last frame (`render::ReadFrame`: before the gamma ramp and the software cursor). In a run of
+the original (`--no-hooks`, dgVoodoo) it is the old render target at the present point (after scene and interface,
+before the software cursor and the flip; a read-only Lock of the render target, GetDC as fallback: a GDI capture of
+the window comes back black with dgVoodoo). `freeze` / `unfreeze` hold timeGetTime / GetTickCount and the camera
+(CCamera::Update at 00457595 runs once per frame even with dt 0 and moves a fixed fraction per call); the main loop
+then runs no world, client or camera update. `samecapture <a> <b> [tolerance] [fraction]` fails the run when two
+captures differ. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclude E1 E2 ...]
+[--exclude-grow N] [--diff OUT]`: per-pixel tolerance (default 8), differing fraction (default limit 0.1%), worst
+regions. Limits: what moves by itself between frames without the game's clocks (other threads) is not held; the
+harness's own waits use real time.
 
 ### A-E1: line lists (line_batch.cpp)
 
@@ -600,8 +551,8 @@ growing the array by one packet when full. `Draw` (0049B780) resizes the two wor
 projected points 007A9CB8 without keeping the contents, the outcodes 007A9CC8), projects with the top of the pipeline's
 clip stack through the transform object's `ProjectClipped` and, when that returns 0, hands the points to
 `DeviceDrawLineStrip` (0049B4B0); it never touches the Direct3D device itself. Returns 1. Users: the figure parts'
-debug bounds (005A7290) and the world client's line lists (00569D60); no scenario turns either on, so neither wrapper
-fires (AddPoint side by side on a copy, Draw ours only).
+debug bounds (005A7290) and the world client's line lists (00569D60); no scenario turns either on, so nothing reaches
+it.
 
 ## 12. A-S11: what is left of the old renderer's range (0x004C0000-0x00500000)
 
@@ -636,25 +587,14 @@ File map of the device layer (all in `src/game`; the files' headers name the add
   (`FogVertices`), then DrawIndexedPrimitive. Snow sways by five tables of cubics (007ABB98 .. 007AE398, built by the
   static initialiser 004E3B20 through 004E3980; evaluated with 004E5660).
 
-Verification: side by side for the pure and enumerating functions (binds 004EB300 / 004EB1D0; 004EBAF0 is reached by
-no scenario; 004EE4A0, 004ED610, 004EE5D0, 004EEA90 into a scratch object; 004EFEA0; 004EFA60 for the first 48
-descriptions; 004ED820; 004E6EE0; the two weather draws, whose vertices are compared bit for bit, rain in 69 runs, snow
-in rebirth_flags via `SetWeather`; pixel formats, 004E7820, 004F1330, the CLinkMesh and bounds draws). Ours only where
-the original cannot run next to ours (one cooperative level, primary surface, device, depth buffer: 004EDD70, 004EECF0,
-004EEE30, 004EE330, 004EEBC0 (a full-screen mode change after a switch back: no scenario), 004EEC60, 004E5E50,
-004E6C30, 004E68A0, the draw half of the weather draws); for those the device object after start-up was compared
-between a run with ours and a run with the 17 originals (addresses in `build/verify/disabled.txt`): the 39
-`device-state:` lines of ei_hook.log (`verify_device_state.cpp`) were the same. `CRenderHelper` state lists are compared
-on a recording fake `IDirect3DDevice7` in three capability configurations at every start. The constructors call their
-parts through the addresses (`originals_render.h`) so each wrapper stays in the path; 004E5E50 passes the enumeration
-callback as 004ED820 for the same reason. Forwarders kept for the wrappers: 004F0B90, 004E86B0 / 004E8900, 004E1EB0,
-004E3C20, 004FCA60, 004F68C0 (Rebirth-patched).
+Verification: the goldens (the weather draws' scenes: rain in many scenarios, snow in rebirth_flags via `SetWeather`)
+and the function vectors; these functions run in the image like the rest.
 
 Original details kept: GetAttachedSurface's reference to the back buffer is never released; 004EFA60 describes the
 surface twice; the depth buffer's W-buffer choice is overwritten with 1; the T&L HAL device is never used; the rain's
 and snow's vertex colours and packet w are never written (the buffer's old bytes are drawn, the fog pass only lowers
 the specular's alpha); the rain's height uses the snow's rise (007AEDA0, both 40); the helper's destructor walks on from
-a record it has just erased (reads freed nodes, so its walk over more than one record is ours only); slot 1 tests a
+a record it has just erased (reads freed nodes, so its walk over more than one record differs in ours); slot 1 tests a
 texture operation against the capability bits with `&` (operation number, not its bit); 004E7E00 appends indices and
 copies one index more than asked. Different in ours: a throw from the constructors does not free what was built; the
 driver record's unset GUID and monitor bytes are zeroed; fields the original leaves as stack contents are zero.
