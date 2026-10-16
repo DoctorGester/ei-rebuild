@@ -1,10 +1,12 @@
 // Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
 // escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
 #include "core_maths.h"
 #include "item.h"
+#include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -39,7 +41,7 @@ __declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, 
 // 005FC730: a region's tooltip (text "tip_<id>").
 __declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int) EI_ORIGINAL(0x005FC730)
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
-BOOL TakeScrollPos(void* bar, void*, int* position) { return ScrollbarTakePositionOriginal(bar, nullptr, position); }
+BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
 // The hero screen's equipment panels.
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
@@ -416,12 +418,12 @@ EI_REPLACE_METHOD(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>:
 // --- Heroes' skills ---------------------------------------------------------------------------
 
 int HeroSchoolSkill(void* stats, int school) {
-    return x87::fistp(static_cast<float>(UnitStatsSpellSchoolSkill(static_cast<UnitStats*>(stats), nullptr, school)));
+    return x87::fistp(static_cast<float>(static_cast<UnitStats*>(stats)->SpellSchoolSkill(school)));
 }
 
 int HeroManaUnits(void* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
-    float maximum = static_cast<float>(UnitStatsManaCurve(static_cast<UnitStats*>(stats)));
+    float maximum = static_cast<float>(static_cast<UnitStats*>(stats)->ManaCurve());
     return static_cast<int>(gamecrt::Ftol(maximum / StatsPeriod(stats)));
 }
 
@@ -489,7 +491,7 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
-void CMpHeroScreen::CallShowHero(int index) { HeroScreenShowHeroOriginal(this, nullptr, index); }
+void CMpHeroScreen::CallShowHero(int index) { static_cast<CMpHeroScreen*>(this)->ShowHero(index); }
 void CMpHeroScreen::CallDrawVoices() { HeroScreenDrawVoicesOriginal(this); }
 void CMpHeroScreen::CallDrawHeroList() { HeroScreenDrawListOriginal(this); }
 
@@ -681,11 +683,11 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     if (UiHandled(this)) return;
     switch (key) {
     case VK_BACK:
-        ChatKeyBackspaceOriginal(interface_);
+        interface_->ChatKeyBackspace();
         UiHandled(this) = true;
         break;
     case VK_RETURN:
-        ChatKeyEnterOriginal(interface_);
+        interface_->ChatKeyEnter();
         UiHandled(this) = true;
         break;
     case VK_ESCAPE:

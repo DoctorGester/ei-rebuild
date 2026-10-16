@@ -275,7 +275,7 @@ void CCampPages::DoAction() {
         }
         break;
     case kTrade:
-        TradePanelSettleOriginal(trade_, nullptr, 1, 0);
+        trade_->Settle(1, 0);
         return;
     case kSpellTrade:
         reinterpret_cast<CParty*>(constructor_->spells)->SpellManager();
@@ -324,7 +324,7 @@ void CCampPages::UndoAction() {
     interface_->PlaySound(kCancelSound, 0);
     switch (page_) {
     case kTrade:
-        TradePanelSettleOriginal(trade_, nullptr, 0, 0);
+        trade_->Settle(0, 0);
         return;
     case kSpellTrade:
         ReturnToStrip(this, spellParts_[0], spellParts_[1], spellStrip_);

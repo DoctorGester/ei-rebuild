@@ -17,6 +17,7 @@
 // keep running. Rebirth patches the original (NivalRegistry), so in game.exe this body runs in the
 // vanilla launch only; the standalone image runs it on Rebirth too, with the flag. See
 // docs/notes/app.md ("WinMain").
+#include "bink_video.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "app.h"
@@ -734,7 +735,7 @@ int RunMainLoop(bool interfaceInput) {
 void ShutDown(gamecrt::NewHandler previousHandler) {
     DeleteComposedTexturesAt(TextureManager());
     InterfaceShutdownAt(Interface());
-    CursorShutdownOriginal(GameCursor());
+    static_cast<CCursor*>(GameCursor())->Shutdown();
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
@@ -802,7 +803,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
 
     PlayMoviesOriginal(game::Text(0x00784834), 1, 1, 1, 1);   // "Start"
     LoadingMovieName() = game::Text(0x00784828);              // "Progres.bik"
-    ShowLoadingMovieOriginal(0);
+    ShowLoadingMovie(0);
     CloseLoadingMovieAt();
     LoadDatabases();
     MouseSetupAt(Mouse(), nullptr, MainWindow(), instance);

@@ -7,6 +7,7 @@
 // aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
 // (CBattleScreen) and
 // docs/notes/ui.md, section 6.
+#include "ui.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -121,13 +122,13 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     if (key == VK_RETURN) {
         if (IsNetworkClientOriginal()) {
-            ChatKeyEnterOriginal(interface_);
+            interface_->ChatKeyEnter();
             inputHandled_ = true;
             return;
         }
     } else if (key == VK_BACK) {
         if (IsNetworkClientOriginal()) {
-            ChatKeyBackspaceOriginal(interface_);
+            interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
@@ -144,10 +145,10 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             hud->pendingSlot_ = -1;
             hud->pendingAction_ = 0;
             hud->pendingItem_ = -1;
-            for (int i = 0; i < kQuickSlots; ++i) QuickPanelSetOriginal(quick, nullptr, i, 0);
+            for (int i = 0; i < kQuickSlots; ++i) static_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
             quick->selected_ = -1;
             hud->spellColumn_->ClearHighlights();
-            ActionPanelClearOriginal(hud->actionColumn_);
+            static_cast<CHudActionColumn*>(hud->actionColumn_)->ClearHighlights();
             return;
         }
         void* memory = gamecrt::operator_new(kEscMenuSize);
@@ -196,7 +197,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         {
             alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
             mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
-            ObjectivesSetupOriginal(window, nullptr, static_cast<const char*>(*zone), nullptr, 0, 0);
+            static_cast<CObjectivesWindow*>(window)->Setup(static_cast<const char*>(*zone), nullptr, 0, 0);
             zone->~CString();
         }
         InterfacePushWindowOriginal(clock->interface_, nullptr, window, 1, 1);
@@ -345,7 +346,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             if (CUnit* unit = hud->party_[i]) ClientWorldControlUnitOriginal(WorldClient(), nullptr, unit);
         }
         if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
-        BattleRefreshSelectionOriginal(this);
+        static_cast<CBattleScreen*>(this)->RefreshSelection();
         return;
     case kActionMessage:
         interface_->ShowMessage(1);

@@ -333,7 +333,7 @@ void CUnit::Reset() {
     dead = 0;
     obstacle = 0;
     activeWeapon = 0xFFFFFFFFu;
-    UnitParamsResetOriginal(Params());
+    static_cast<UnitParams*>(Params())->Reset();
     std::memset(weapons, 0, sizeof(weapons));
     std::memset(quickItems, 0, sizeof(quickItems));
     std::memset(armor, 0, sizeof(armor));
@@ -356,7 +356,7 @@ void CUnit::DestructBody() {
     // memory as the original does.
     using Slot = void(__fastcall*)(CUnit*);
     reinterpret_cast<const Slot*>(CUnit::kVtableAddress)[5](this);
-    MapObjectDestroy(this);
+    DestroyMapObject();
     ResetUnitAt(this);
     carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
     if (carried) gamecrt::operator_delete(carried);
@@ -387,14 +387,14 @@ CMapObjectServer* CMapObjectServer::Construct() {
     StringArrayConstruct(&stringsVtable);
     SetVtable(this, CMapObjectServer::kVtableAddress);
     owner = nullptr;
-    UnitVitalsReset(&vitals);
+    vitals.Reset();
     return this;
 }
 EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
     SetVtable(this, CMapObjectServer::kVtableAddress);
-    UnitVitalsReset(&vitals);
+    vitals.Reset();
     StringArraySetSize(&stringsVtable, nullptr, 0, -1);
     owner = nullptr;
     StringArrayDestruct(&stringsVtable);
@@ -468,7 +468,7 @@ void CUnitServer::DestructBody() {
     SetVtable(this, kUnitServerVtable);
     ControllerClearOrders(this);
     AIBrain* b = Brain();
-    BrainResetAll(b);
+    static_cast<AIBrain*>(b)->Init();
     BrainMemoryDestroy(&b->memory);
     BrainListDestroy(&b->attention.spells);
     BrainListDestroy(&b->attention.weapons);

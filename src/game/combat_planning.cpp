@@ -52,7 +52,7 @@ void AimPointInto(CEngineObject* object, Vector3* out) { Slots(object)->AimPoint
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
-inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
+inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
@@ -61,7 +61,7 @@ inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) 
 __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
 __declspec(naked) Vector3* __fastcall MotionDestination(void*, void*, Vector3* /*out*/) EI_ORIGINAL(0x005C7D00)
 // UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample (005C6270 Clear is in originals_ai.h).
-// The controller's functions rewritten elsewhere, through their game addresses: 0054C800
+// The controller's functions rewritten elsewhere: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
 // 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
@@ -223,7 +223,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     LocalUnitMotion simulated;
     MotionBuild(&simulated.motion, nullptr, motionOrder);
     SightTarget sight;
-    bool canSee = CtlFindSightTarget(this, nullptr, order, &sight);
+    bool canSee = FindSightTarget(order, &sight);
     Vector3 previous = {0.0f, 0.0f, -1000.0f};
     Vector3 aim = {0.0f, 0.0f, -1000.0f};
     double distance = CtlActionDistance(this, nullptr, order);
@@ -289,7 +289,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         ok = false;
     } else {
         if (!player) return true;
-        if (CtlCanReachTarget(this, nullptr, order) && CtlCanPlanAction(this, nullptr, order)) {
+        if (CanReachTarget(order) && CanPlanAction(order)) {
             // The action can be done from here.
             PathMessage(unit, route.bytes(), &point.x, 3, 0, kFar);
             if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
@@ -314,12 +314,12 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         auto actsFromDestination = [&]() {
             Vector3 destination;
             const Vector3* at = MotionDestination(route.bytes(), nullptr, &destination);
-            if (!CtlCanReachTarget(this, nullptr, order)) return false;
+            if (!CanReachTarget(order)) return false;
             float x = unit->position.x, y = unit->position.y, z = unit->position.z;
             unit->position.x = at->x;
             unit->position.y = at->y;
             unit->position.z = at->z;
-            bool can = CtlCanPlanAction(this, nullptr, order);
+            bool can = CanPlanAction(order);
             unit->position.x = x;
             unit->position.y = y;
             unit->position.z = z;
@@ -353,11 +353,11 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         }
         PathMessage(unit, route.bytes(), &point.x, kind, ok ? 0 : 1, best);
         if (ok) {
-            ControllerShout(this, nullptr, shout);
+            Shout(shout);
             return true;
         }
     }
-    ControllerShout(this, nullptr, order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
+    Shout(order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
     return ok;
 }
 EI_REPLACE_METHOD(0x0054E600, CUnitServer::PlanOrderRoute);
@@ -377,7 +377,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         // A runner plans as walking (mode 2) when it may leave its cell that way.
         SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = 2;
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         if (!AIMapCanLeaveCellOriginal(map, nullptr, unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
@@ -391,7 +391,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     if (running) {
         SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = mode;
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         SectorMapAdd(sectors, nullptr, unit);
     }
     for (UnitPtrList::Node* node = lifted.head; node;) {

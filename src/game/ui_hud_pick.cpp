@@ -63,9 +63,9 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-void CHudQuickItems::HighlightAt(int slot, int on) { QuickPanelSetOriginal(this, nullptr, slot, on); }
-void CHudSpellColumn::HighlightAt(int index, int on) { SpellPanelSetOriginal(this, nullptr, index, on); }
-void CHudActionColumn::HighlightAt(int index, int on) { ActionPanelSetOriginal(this, nullptr, index, on); }
+void CHudQuickItems::HighlightAt(int slot, int on) { static_cast<CHudQuickItems*>(this)->Highlight(slot, on); }
+void CHudSpellColumn::HighlightAt(int index, int on) { static_cast<CHudSpellColumn*>(this)->Highlight(index, on); }
+void CHudActionColumn::HighlightAt(int index, int on) { static_cast<CHudActionColumn*>(this)->Highlight(index, on); }
 __declspec(naked) void CHudSpellColumn::ClickAt(int) EI_ORIGINAL(0x0063EC90)
 __declspec(naked) void CHudActionColumn::SelectAt(int) EI_ORIGINAL(0x0063FB50)
 

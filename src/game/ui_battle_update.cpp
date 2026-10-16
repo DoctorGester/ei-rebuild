@@ -10,6 +10,7 @@
 #include "originals_gameplay.h"
 #include "originals_world.h"
 #include "text_reader.h"
+#include "ui.h"
 #include "ui_camp.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -305,7 +306,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
             CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
-            BattleRefreshSelectionOriginal(screen);
+            static_cast<CBattleScreen*>(screen)->RefreshSelection();
         }
         IdsAssign(&screen->clientParty_.withUnit, nullptr, &ids.withUnit);
         screen->clientParty_.camera = ids.camera;
@@ -548,7 +549,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
         }
     }
-    BattleRefreshSelectionOriginal(this);
+    static_cast<CBattleScreen*>(this)->RefreshSelection();
     boxSelecting_ = false;
     FreeListNodes(&inside);
     if (inside.head) NodeFree(inside.head, 0xC);
@@ -573,7 +574,7 @@ struct TextGlue {
 };
 CTextManager* TextGlue::Table() { return (CTextManager*)GameFlowOriginal(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
-void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { LogAddTextOriginal((void*)a0, nullptr, a2); }
+void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 // FCOMP; TEST AH,0x40: equal, or unordered.
@@ -669,9 +670,9 @@ namespace {
 
 // The panels' highlights (thiscall, RET 8; each called with (index, 0)): quick item slot
 // 0063CD20, spell 0063E750, action 0063F730.
-void __fastcall QuickSlotHighlight(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall SpellHighlight(CUiWindow* a0, void*, int a2, int a3) { SpellPanelSetOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall ActionHighlight(CUiWindow* a0, void*, int a2, int a3) { ActionPanelSetOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall QuickSlotHighlight(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
+void __fastcall SpellHighlight(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
+void __fastcall ActionHighlight(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
 
 } // namespace
 

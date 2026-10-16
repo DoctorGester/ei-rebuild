@@ -3,6 +3,7 @@
 // ("Battle screen").
 #include "ui.h"
 
+#include "ui_cursor.h"
 #include "unit.h"
 #include "unit_db.h"
 
@@ -38,7 +39,7 @@ constexpr int kCursorOrder = 0x18;
 struct HoverCursor {
     int SetShape(int shape);
 };
-int HoverCursor::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
+int HoverCursor::SetShape(int a2) { return static_cast<CCursor*>((void*)this)->ChangeShape(a2); }
 void SetCursor(int shape) { reinterpret_cast<HoverCursor*>(0x007C7BD8)->SetShape(shape); }
 
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
@@ -195,7 +196,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         if (!unit || unitDead(unit)) break;
         Vector3 at = unitPosition(unit);
         if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x) != 0) break;
-        void* item = UnitQuickItem(first, nullptr, pendingSlot_);
+        void* item = first->GetQuickItem(pendingSlot_);
         if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;

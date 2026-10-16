@@ -128,9 +128,9 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
         value[1] = reinterpret_cast<void*>(static_cast<std::uintptr_t>(time));
     }
     if (textures)
-        TrimTexturesAt(cache);
+        TrimItemTextures(cache);
     else
-        TrimModelsAt(cache);
+        TrimItemModels(cache);
     return object;
 }
 
@@ -414,7 +414,7 @@ BOOL CItemInfoPanel::Draw(int pass) {
         cell.size = 120.0f;
         cell.mode = 9;
         cell.y = static_cast<float>(static_cast<double>(y_) + D(GameFloat(0x0073CF58)));   // + 200
-        ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(owner_), nullptr, pass, &cell);   // through its address, so the wrapper sees the call
+        reinterpret_cast<CItemScreen*>(owner_)->DrawItem(pass, &cell);   // through its address, so the wrapper sees the call
     }
     return 1;
 }

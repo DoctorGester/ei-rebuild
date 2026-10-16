@@ -8,6 +8,7 @@
 // with the game's _ftol are converted the same way; values computed by original functions are
 // truncated straight from the FPU stack (StatFtol), as the original does, so no rounding happens
 // in between. Compiled with precise floating point so that products keep the original's order.
+#include "text_reader.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
 
@@ -127,7 +128,7 @@ struct Texts {
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-BOOL Texts::NextLine() { return ReaderNextContentLine(reinterpret_cast<CTextManager*>(this)); }
+BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(this)); }
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {

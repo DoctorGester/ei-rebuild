@@ -8,6 +8,7 @@
 #include "originals_world.h"
 #include "random.h"
 #include "text_reader.h"
+#include "ui.h"
 #include "ui_camp.h"
 #include "unit.h"
 #include "unit_client_models.h"
@@ -58,7 +59,7 @@ void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* 
 // 00578E20 (thiscall on 007AFEA4): the text manager.
 CTextManager* __fastcall TextTable(void*) { return (CTextManager*)GameFlowOriginal(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
-void __fastcall LogAddLine(CUiWindow* a0, void*, const char* a2) { LogAddTextOriginal((void*)a0, nullptr, a2); }
+void __fastcall LogAddLine(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
 using SlotEvent = void(__thiscall*)(void*, int, int, int);
 
@@ -73,9 +74,9 @@ __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Ve
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
 // actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
-void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall SpellPanelSet(CUiWindow* a0, void*, int a2, int a3) { SpellPanelSetOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall ActionPanelSet(CUiWindow* a0, void*, int a2, int a3) { ActionPanelSetOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
+void __fastcall SpellPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
+void __fastcall ActionPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { SpriteSetScaleOriginal(a0, nullptr, a2); }
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
@@ -174,7 +175,7 @@ void CBattleScreen::ToggleMember(int index) {
             }
         }
     }
-    BattleRefreshSelectionOriginal(this);
+    static_cast<CBattleScreen*>(this)->RefreshSelection();
     if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
 EI_REPLACE_METHOD(0x006379E0, CBattleScreen::ToggleMember);
@@ -197,8 +198,8 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
-        int targetLevel = UnitLevel(target);
-        int memberLevel = UnitLevel(unitAt(i));
+        int targetLevel = target->Level();
+        int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
     if (units.size != 0) LocalViewSendAttackOriginal(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);

@@ -1,5 +1,6 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
+#include "ui.h"
 #include "world.h"
 #include "game_flow_data.h"
 #include "game_strings.h"
@@ -84,7 +85,7 @@ using netlink::FileStream;
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-// The mouse cursor's busy shape (3 while saving, 0 after): GameCursor()->SetShape, 005E5200 through its address.
+// The mouse cursor's busy shape (3 while saving, 0 after): GameCursor()->SetShape (005E5200).
 // 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
 __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
@@ -1552,7 +1553,7 @@ __declspec(naked) int __stdcall LeaveZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A78
 __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x0057BDF0)
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
 // 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
-void __fastcall InterfaceCloseAll(void* a0) { InterfaceCloseAllOriginal(a0); }
+void __fastcall InterfaceCloseAll(void* a0) { static_cast<CInterface3D*>(a0)->CloseAll(); }
 // 0057CB50 (ECX name): switches the resource database.
 __declspec(naked) void __fastcall SwitchResources(const char*) EI_ORIGINAL(0x0057CB50)
 // The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's

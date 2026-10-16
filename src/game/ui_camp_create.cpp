@@ -33,6 +33,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "world_glue.h"
 #include "render/render_state.h"
 
 #include <d3d.h>
@@ -172,7 +173,7 @@ void CCampPages::BuildPages() {
     itemConstructor_ = false;
     spellParts_[0] = nullptr;
     itemParts_[0] = nullptr;
-    SetServerFlagOriginal(1);
+    GameSetServerPaused(1);
     constructor_ = nullptr;
     int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable(game::Text(0x00790384))));   // "constr.current"
     if (constructor > 0) {

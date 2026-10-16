@@ -171,7 +171,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
         // WideScreen takes the margin off its x (0062FB20: addon's code at 005FD237).
-        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2 - widescreen::PickShift(), y / 2);
+        const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;
         interface_->PlaySound(OkSound(), 0);
@@ -183,7 +183,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             if (!MayTravelTo(this)) return;
             void* memory = gamecrt::operator_new(kObjectivesSize);
             void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
-            ObjectivesSetupOriginal(window, nullptr, target_, &arrivals_, 1, 0);
+            static_cast<CObjectivesWindow*>(window)->Setup(target_, &arrivals_, 1, 0);
             InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
             return;
         }

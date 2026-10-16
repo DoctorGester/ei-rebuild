@@ -97,7 +97,7 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     line += game::Text(0x00784340);   // "\n"
     name = line;
     PageText(0) += name;
-    if (page_ == 0) LogAddTextOriginal(MessageLog(owner_), nullptr, name);
+    if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(name);
 }
 EI_REPLACE_METHOD(0x0064A4E0, CHudTopPanel::AddPickedUp);
 
@@ -115,6 +115,6 @@ void CHudTopPanel::AddMoney(int money) {
     line += game::Text(0x00784340);   // "\n"
     text = line;
     PageText(0) += text;
-    if (page_ == 0) LogAddTextOriginal(MessageLog(owner_), nullptr, text);
+    if (page_ == 0) static_cast<CUiScrollText*>(MessageLog(owner_))->AddText(text);
 }
 EI_REPLACE_METHOD(0x0064A630, CHudTopPanel::AddMoney);

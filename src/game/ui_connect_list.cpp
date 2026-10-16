@@ -5,6 +5,7 @@
 // servers' names and the new game's row drawn shortened with an ellipsis, the selected server's name
 // wrapped); the screen's other members call it through its address. See ui_screens.h and
 // docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -91,8 +92,8 @@ void CMpConnectScreen::DrawListVanilla() {
 
     const bool newGame = selected_ == 0;
     const int show = newGame ? 1 : 0;
-    WindowSetEnabled(playersSlider_, nullptr, show, 1);
-    WindowSetEnabled(nameEdit_, nullptr, show, 1);
+    playersSlider_->SetEnabled(show, 1);
+    nameEdit_->SetEnabled(show, 1);
     EditFieldActivateOriginal(nameEdit_, nullptr, show);
     sprite(kSpriteUnlisted)->visible_ = show;
     sprite(kSpritePassword)->visible_ = show;

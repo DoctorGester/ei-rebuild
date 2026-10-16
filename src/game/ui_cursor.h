@@ -36,7 +36,7 @@ public:
     // read fails) into the object and returns it. The argument is not read. PollThroughHook goes
     // through the address so the wrapper runs.
     const LONG* Poll(int unused);
-    const LONG* PollThroughHook(int unused) { return DirectInputMousePollOriginal(this, nullptr, unused); }
+    const LONG* PollThroughHook(int unused) { return static_cast<CDirectInputMouse*>(this)->Poll(unused); }
     // 004578D0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, Shutdown, the two counted
     // pointers' releases (both already null), the root vtable (0073C368).
     void Destruct();
@@ -92,9 +92,9 @@ public:
     // from-sized top left of the background copy (+0x60), and writes over `to`
     // (background & saved) | image per pixel (16 or 32 bits, by the image's bit depth).
     void Blit(CursorImage* image, RECT* to, RECT* from);
-    // 005E5200 through its address (so its wrapper runs). Selects cursor shape `shape`; returns the
+    // 005E5200 (ChangeShape). Selects cursor shape `shape`; returns the
     // previous one (-1 when the cursor is not set up).
-    int SetShape(int shape) { return CursorSetShapeOriginal(this, nullptr, shape); }
+    int SetShape(int shape) { return ChangeShape(shape); }
 
     // ui_cursor_setup.cpp:
     // 005E51C0. Constructor body: no device, surfaces or shapes, the lock initialised, not

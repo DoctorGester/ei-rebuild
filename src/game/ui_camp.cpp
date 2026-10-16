@@ -9,6 +9,7 @@
 #include "party.h"
 #include "spell.h"
 #include "texture.h"
+#include "ui_item_info.h"
 #include "unit.h"
 #include "world.h"
 
@@ -25,6 +26,7 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <d3d.h>
 
@@ -128,7 +130,7 @@ void CCampPages::ShowPage(int page) {
     case 2:
         if (!spellConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, 0x65);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x65);
         spellConstructor1_->SetEnabled(1, 1);
         spellStrip_->window.SetEnabled(1, 1);
         itemStrip_->slots_ = 1;
@@ -142,7 +144,7 @@ void CCampPages::ShowPage(int page) {
     case 4:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, 0x64);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x64);
         itemConstructor1_->SetEnabled(1, 1);
         partStrip_->window.SetEnabled(1, 1);
         itemStrip_->slots_ = 5;
@@ -156,14 +158,14 @@ void CCampPages::ShowPage(int page) {
     case 6:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, 0x68);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x68);
         itemConstructor3_->SetEnabled(1, 1);
         partStrip_->window.SetEnabled(1, 1);
         break;
     case 7: {
         // Leave: the trade is settled, the constructors' unused parts go back to their owners and
         // what they made goes into the strips.
-        TradePanelSettleOriginal(trade_, nullptr, 0, 1);
+        trade_->Settle(0, 1);
         ItemScreenReturnAllOriginal(this, nullptr, spellParts_[0], spellParts_[1]);
         ItemScreenReturnAllOriginal(this, nullptr, LocalPlayerData(), spellParts_[2]);
         ItemScreenReturnAllOriginal(this, nullptr, itemParts_[0], itemParts_[1]);
@@ -189,7 +191,7 @@ void CCampPages::ShowPage(int page) {
         if (page_ != page) interface_->PlaySound(game::Text(0x0079374C), 0);   // buttons\camp\slot.wav
         page_ = page;
         StatsPanelShowStats(statsPanel_, nullptr, page);
-        TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
+        trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
         SurfaceGetDC(title);
         SurfaceClearOriginal(title);
@@ -511,7 +513,7 @@ void CCampPages::UpdateAction() {
             if (!actionEnabled_) cost_ = 0;
             if (described) return;
         }
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, topic);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(topic);
     };
 
     switch (page_) {
@@ -529,7 +531,7 @@ void CCampPages::UpdateAction() {
         bool up = trade_->CallBought() != 0;
         actionShown_ = up;
         actionEnabled_ = up;
-        cost_ = TradePanelPurchaseCostOriginal(trade_);
+        cost_ = trade_->PurchaseCost();
         if (actionEnabled_) action = game::Text(0x0079386C);   // "camp_level_up"
         label = game::Text(0x00793858);                       // "camp_current_exp"
         break;
@@ -566,7 +568,7 @@ void CCampPages::UpdateAction() {
 
     int amount;
     if (page_ == 1) {
-        amount = TradePanelExperienceOriginal(trade_);
+        amount = trade_->Experience();
     } else {
         amount = PlayerParty()->Money();
         if (PlayerParty()->Money() < cost_) actionEnabled_ = false;
@@ -642,7 +644,7 @@ BOOL CCampPages::Draw(int pass) {
     if (hoveredItem_) {
         if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
     } else if (topic != 0) {
-        if (descPanel_) InfoPanelShowHelpOriginal(descPanel_, nullptr, topic);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else {
         // The statistics under the mouse: the trade panel's, else the stats panel's.
         ItemHoverInfo info;
@@ -807,7 +809,7 @@ constexpr std::uint32_t kRecordBias = 100000000;
 } // namespace
 
 void CCampPages::Close() {
-    SetServerFlagOriginal(0);   // 00578D10 (on the game glue 007AFEA4)
+    GameSetServerPaused(0);   // 00578D10 (on the game glue 007AFEA4)
     device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, as the record array the client glue takes (005789E0; a
@@ -931,7 +933,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     case 0x3005: {
         if (heroes_[hero_]) {
             int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
-            UnitUnequipArmour(heroes_[hero_], nullptr, type);
+            heroes_[hero_]->UnequipArmour(type);
             heroes_[hero_]->Controller()->ShowWeapon(hero->weaponIndex);
             heroes_[hero_]->Controller()->RefreshModel();
             heroes_[hero_]->Controller()->RefreshEquipment();
@@ -949,7 +951,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     default:
         break;
     }
-    StatsPanelDrawStatsOriginal(statsPanel_);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
     return result;
 }
 EI_REPLACE_METHOD(0x0060FE40, CCampPages::TakeOff);
@@ -999,7 +1001,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         return;
     }
     PartyRemoveItemOriginal(GluePlayerData(), nullptr, item, 0);   // 00661F30
-    StatsPanelDrawStatsOriginal(statsPanel_);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
 }
 EI_REPLACE_METHOD(0x0060FCA0, CCampPages::PutOn);
 
@@ -1172,7 +1174,7 @@ void CCampPages::RefreshWeapons() {
     for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(unit, nullptr, slot);   // 005310D0
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
         UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);                           // 00531070
-    UnitSendEquipmentOriginal(unit);                                                      // 00531110
+    unit->SendEquipment();                                                      // 00531110
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
     VirtualRefreshStats();
@@ -1185,7 +1187,7 @@ void CCampPages::RefreshStats() {
         UnitTakeStats(heroes_[hero_], nullptr, StatsOf(hero));
         heroes_[hero_]->Controller()->RefreshWounds();
     }
-    StatsPanelDrawStatsOriginal(statsPanel_);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
 }
 EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
 
@@ -1280,8 +1282,8 @@ void CCampPages::ShowHero() {
     } else {
         name = own;
     }
-    StatsPanelSetHeroOriginal(statsPanel_, nullptr, hero_, name);
-    TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
+    statsPanel_->SetHero(hero_, name);
+    trade_->SelectHero(hero_);
 }
 EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 

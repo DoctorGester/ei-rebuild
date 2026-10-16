@@ -3,6 +3,7 @@
 // body slot (or all of them) absorb the rest through its armour layers (DamageSlot), wearing the
 // armour pieces; UnitVitals::TakeHit is the plain version for other map objects. See unit.h and
 // docs/notes/units.md.
+#include "combat.h"
 #include "unit.h"
 
 #include "object_tables.h"
@@ -89,7 +90,7 @@ void* const kEndLine = reinterpret_cast<void*>(0x00435000);
 namespace {
 void Remark(CUnit* unit, int code) {
     CEngineObject* controller = unit->controller;
-    if (controller->GetClassId() == kClassUnitServer) ControllerShout(reinterpret_cast<CUnitServer*>(controller), nullptr, code);
+    if (controller->GetClassId() == kClassUnitServer) reinterpret_cast<CUnitServer*>(controller)->Shout(code);
 }
 } // namespace
 

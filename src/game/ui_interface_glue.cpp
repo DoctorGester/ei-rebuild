@@ -118,7 +118,7 @@ void CInterface3D::OnPlayersChanged(int added) {
 EI_REPLACE_METHOD(0x005F82D0, CInterface3D::OnPlayersChanged);
 
 void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
-    ChatOverlayAddLineOriginal(root_, nullptr, text, number);
+    root_->AddLine(text, number);
 }
 EI_REPLACE_METHOD(0x005F82F0, CInterface3D::OnChatLine);
 

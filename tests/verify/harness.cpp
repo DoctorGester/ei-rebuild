@@ -238,6 +238,7 @@
 #include "../../src/game/originals_ui.h"
 #include "../../src/game/originals_world.h"
 #include "../../src/render/render.h"
+#include "game/ui.h"
 
 #include <windows.h>
 #include <dwmapi.h>
@@ -2223,7 +2224,7 @@ void RunSteps() {
             if (!ui->root_) {
                 g_failures.push_back("chat: the interface has no chat overlay");
             } else if (std::atoi(s.argument.c_str()) != 0) {
-                ChatKeyEnterOriginal(ui);
+                ui->ChatKeyEnter();
             } else {
                 ui->root_->SetOpen(false);
             }

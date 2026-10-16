@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "unit.h"
 
 namespace {
 
@@ -271,9 +272,9 @@ void CHeroStatsPanel::DrawStats() {
         rows->Row(&rect, Label(0x00793BF8), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x20)))), -1);   // Intelligence
         Down(&rect);
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BFC), static_cast<int>(gamecrt::Ftol(UnitStatsHitPointCurve(reinterpret_cast<UnitStats*>(stats)))), -1);              // Health
+        rows->Row(&rect, Label(0x00793BFC), static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->HitPointCurve())), -1);              // Health
         Down(&rect);
-        rows->Row(&rect, Label(0x00793C00), static_cast<int>(gamecrt::Ftol(UnitStatsManaCurve(reinterpret_cast<UnitStats*>(stats)))), -1);            // Mana
+        rows->Row(&rect, Label(0x00793C00), static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->ManaCurve())), -1);            // Mana
         Down(&rect);
         rows->Row(&rect, Label(0x00793C04), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x30)))), -1);   // Actions
         Down(&rect);

@@ -16,6 +16,9 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_core.h"
+#include "ui_cursor.h"
+#include "world.h"
+#include "world_glue.h"
 #include "../hook/log.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
@@ -29,7 +32,7 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // (007AFE20) Disconnect (0057ECA0) and LeaveGame (00581660), the client's server flag (00578D10),
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
-void SetCursorShape(int shape) { CursorSetShapeOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, shape); }
+void SetCursorShape(int shape) { static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(shape); }
 void* Session() { return reinterpret_cast<void*>(0x007AFE20); }
 
 // 00458220: dispatches the window messages waiting in the queue.
@@ -67,7 +70,7 @@ void CInterface3D::Update() {
             secondBackdrop_ = nullptr;
             backdrop_ = next;
             backdropMode_ = next ? 2 : 0;
-            if (next) SurfaceSwapContentsOriginal(next, nullptr, 1);
+            if (next) next->SwapContents(1);
         }
         if (stackEnd_ - stackBegin_ == 1) {
             ReleaseBackdrop(backdrop_);
@@ -75,7 +78,7 @@ void CInterface3D::Update() {
             if (block5C_) gamecrt::operator_delete(block5C_);
             block5C_ = nullptr;
             backdropMode_ = 0;
-            if (!IsNetworkClientOriginal()) SetServerFlagOriginal(serverFlag_);
+            if (!IsNetworkClientOriginal()) GameSetServerPaused(serverFlag_);
             serverFlag_ = 0;
         }
         if (stackBegin_ != stackEnd_) {
@@ -84,7 +87,7 @@ void CInterface3D::Update() {
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
-            GameDisconnectOriginal(Session());
+            static_cast<GameFlow*>(Session())->DropSessions();
             FlowCloseSessionsOriginal(Session());
         }
         mouseCapture_ = nullptr;

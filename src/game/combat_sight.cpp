@@ -107,7 +107,7 @@ char* SpellPrototypeOf(void* spell) { return static_cast<CSpell*>(spell)->GetPro
 namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00530280. CUnit: the height of the ground (or water surface) under (x, y) for the unit, in ST0.
-inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
+inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 // 00557B80. CArray::SetSize of an AnimationSteps list.
 // 00455950. The world an object lives in.
 
@@ -232,12 +232,12 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     }
 
     SightTarget sight;
-    if (!CtlFindSightTarget(this, nullptr, order, &sight)) return true;
+    if (!FindSightTarget(order, &sight)) return true;
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
         std::memcpy(&sight.point, point, sizeof(sight.point));
         float ground = static_cast<float>(UnitGroundHeight(sight.unit, nullptr, point[0], point[1]));
-        sight.point.z = static_cast<float>(UnitModeSpeed(sight.unit) + ground);
+        sight.point.z = static_cast<float>(sight.unit->ModeSpeed() + ground);
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
     }
@@ -325,7 +325,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     if (kind == kOrderAttack) {
         BuildAttackSteps(plan, &steps, &duration, order->target);
     } else if (kind < kOrderCast || kind > kOrderCastAt) {
-        CtlBuildOrderSteps(this, nullptr, &steps, &duration, kind, order->source);
+        BuildOrderSteps(&steps, &duration, kind, order->source);
     } else {
         spell = SpellOfSource(order->source);
         int value = 0;

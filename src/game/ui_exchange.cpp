@@ -70,7 +70,7 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && !offer->accepted_ && ownOffer_->Money() <= LocalParty()->Money()) {
             uiorig::PlayUiSound(interface_, kBuySound, 0);
-            ClientRecordTradeOriginal(net::GameClient(), nullptr, LocalParty());
+            net::GameClient()->RecordTrade(LocalParty());
             return;
         }
         uiorig::PlayUiSound(interface_, kCancelSound, 0);
@@ -275,7 +275,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     if (hoveredItem_) {
         if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
     } else if (topic) {
-        if (descPanel_) InfoPanelShowHelpOriginal(descPanel_, nullptr, topic);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else if (descPanel_) {
         InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
     }

@@ -40,7 +40,6 @@ __declspec(naked) BOOL __fastcall TickEffect(MapEffect*) EI_ORIGINAL(0x00688530)
 // 00524FE0 (thiscall, units range). Applies a hit to the server's statistics block (+0x20);
 // returns 1.
 __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /*hit*/) EI_ORIGINAL(0x00524FE0)
-// 0050F5B0 (map_object.cpp), through its game address.
 
 // The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
@@ -99,7 +98,7 @@ BOOL CMapObjectServer::TakeHit(const void* hit) {
     if (!ApplyHit(&vitals, nullptr, hit)) return 0;
     owner->MarkChanged(0);
     if (CompanionSlots(this)->IsDead()) {
-        MapObjectClearEffectsOriginal(owner);
+        owner->ClearEffects();
         owner->flags_ |= kFlagDestroyed;
     }
     return 1;

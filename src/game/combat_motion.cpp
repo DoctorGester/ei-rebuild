@@ -15,6 +15,7 @@
 #include "map_object_figures.h"
 #include "player_messages.h"
 #include "random.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -97,7 +98,7 @@ void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, co
 AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
+void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
@@ -156,9 +157,9 @@ void FaceAndStop(CUnitServer* self) {
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, direction, now)) UnitPathSpeeds(self->unit);
-    CtlSetStanding(self, nullptr, 0);
-    CtlSetState(self, nullptr, kStateChasing);
+    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, direction, now)) self->unit->RefreshMotion();
+    self->SetStanding(0);
+    self->SetState(kStateChasing);
 }
 
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
@@ -249,7 +250,7 @@ namespace {
 // 00548DE0 / 00548FA0: the two differ only in the state they set.
 void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->state = newState;
-    UnitUpdateSizeClass(self->unit);
+    self->unit->UpdateSizeClass();
     DropEffectObject(self);
     AnimationSteps& queue = Queue(self);
     StepsAppend(&queue, nullptr, &steps);
@@ -257,14 +258,14 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     StepsAppend(&queue, nullptr, &steps);
     QueueTime(self) = steps.extra;
     StartQueueIfUnset(self);
-    CtlPopFinishedSteps(self);
+    self->PopFinishedSteps();
     ShowHead(self);
     PathClear(Motion(self));
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back = -axis;
-    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, &back, now)) UnitPathSpeeds(self->unit);
+    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, &back, now)) self->unit->RefreshMotion();
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
@@ -318,7 +319,7 @@ void CUnitServer::PlayIdle() {
     StepsAppend(&Queue(this), nullptr, &IdleSteps(this));
     QueueTime(this) = IdleTime(this);
     StartQueueIfUnset(this);
-    CtlPopFinishedSteps(this);
+    PopFinishedSteps();
     ShowHead(this);
 }
 EI_REPLACE_METHOD(0x005474B0, CUnitServer::PlayIdle);
@@ -359,7 +360,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         if (!once) {
             AddEmote(steps, index);
         } else {
-            int duration = CtlAnimationDuration(this, nullptr, index);
+            int duration = AnimationDuration(index);
             AnimationStep blank{};
             blank.animation = 0xFF;
             blank.variant = 0xFF;
@@ -438,7 +439,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
             IdleKey(this) = key;
             BuildIdle(&IdleSteps(this));
         }
-        CtlPlaySteps(this, nullptr, &IdleSteps(this));
+        PlaySteps(&IdleSteps(this));
     }
     state = kStateActing;
     actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
@@ -450,7 +451,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         int now = TickOf(ObjectWorld(this));
         PathFollow(Motion(this), nullptr, now, unit, plan.targetId, until, plan.startTime);
     }
-    UnitPathSpeeds(unit);
+    unit->RefreshMotion();
     CWorldServer* world = ContextOf(this);
     if (unit->obstacle == 0) return;
     CSectorMap* sectors = world->Sectors();
@@ -493,7 +494,7 @@ void CUnitServer::UpdateSneak() {
             unit->moveMode = mode;
             UnitMarkChanged(unit, nullptr, 6);
         }
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         motionChanged = 1;
         return;
     }
@@ -509,7 +510,7 @@ void CUnitServer::UpdateSneak() {
         unit->moveMode = mode;
         UnitMarkChanged(unit, nullptr, 6);
     }
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     motionChanged = 1;
 }
 EI_REPLACE_METHOD(0x00548520, CUnitServer::UpdateSneak);
@@ -523,7 +524,7 @@ bool CUnitServer::ChangeMoveMode() {
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
     unit->moveMode = UnitModeOf(moveMode);
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     bool placed;
     if (!sameMode &&
         !(passableBefore ? MapCellPassable(ServerAIMap(), nullptr, unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
@@ -538,7 +539,7 @@ bool CUnitServer::ChangeMoveMode() {
         moveMode2.mode = moveMode.mode;
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         SectorMapAdd(ServerSectors(), nullptr, unit);
         CUnit* self = unit;
         if (self->player) PlayerMessage(PlayerOf(self)->connection_, nullptr, self, kMessageModeBlocked);
@@ -547,7 +548,7 @@ bool CUnitServer::ChangeMoveMode() {
     if (state == kStateIdle) {
         if (modeChanged) FaceAndStop(this);
         if (state == kStateIdle && !modeChanged) {
-            UnitUpdateSizeClass(unit);
+            unit->UpdateSizeClass();
             if (action2.kind == kOrderNone) action2.Assign(&action);
             return true;
         }
@@ -556,7 +557,7 @@ bool CUnitServer::ChangeMoveMode() {
         AnimationSteps transition;
         std::memset(&transition, 0, sizeof(transition));
         transition.vtable = kAnimationStepsVtable;
-        if (CtlBuildTransition(this, nullptr, &transition, &saved, &moveMode)) {
+        if (BuildTransition(&transition, &saved, &moveMode)) {
             FaceAndStop(this);
             // The transition is played as an animation order (a by-value copy, built as the
             // original does: SetSize, then the steps one by one).
@@ -571,7 +572,7 @@ bool CUnitServer::ChangeMoveMode() {
         transition.vtable = kAnimationStepsBaseVtable;
         if (transition.steps) gamecrt::operator_delete(transition.steps);
     }
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     if (action2.kind == kOrderNone) action2.Assign(&action);
     return true;
 }
@@ -581,7 +582,7 @@ EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
 
 bool CUnitServer::PathTo(const float* point, float range) {
     ManagerContextOf(this);
-    CtlUpdateSneak(this);
+    UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
     PathClear(Motion(this));
@@ -596,21 +597,21 @@ bool CUnitServer::PathTo(const float* point, float range) {
         // +0xA9, read as a byte: the original compares it with 1.
         std::uint8_t blocked = reinterpret_cast<const std::uint8_t&>(Motion(this)->failed);
         movingAnimation = 0;
-        CtlStandStill(this);
-        CtlSetState(this, nullptr, kStateChasing);
+        StandStill();
+        SetState(kStateChasing);
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
     Motion(this)->goal.z = range;   // +0xA4: the range (Replan reads it back)
     sneakWait = 0;
-    UnitPathSpeeds(unit);
-    if (state < 0 || (state > 1 && state != kStateTurning)) CtlPlaySteps(this, nullptr, CtlIdleAnimation(this));
+    unit->RefreshMotion();
+    if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
     state = kStateIdle;
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     DropEffectObject(this);
     if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
-        AnimationSteps* next = CtlNextAnimation(this);
+        AnimationSteps* next = NextAnimation();
         AnimationSteps moving;
         StepsCopyConstruct(&moving, nullptr, next);
         moving.extra = next->extra;
@@ -624,8 +625,8 @@ bool CUnitServer::PathTo(const float* point, float range) {
             QueueTime(this) = moving.extra;
             StepsCopyB(&Queue(this), nullptr, &moving);
             StartQueueIfUnset(this);
-            CtlPopFinishedSteps(this);
-            CtlShowCurrentStep(this);
+            PopFinishedSteps();
+            ShowCurrentStep();
         }
         current.vtable = kAnimationStepsBaseVtable;
         if (current.steps) gamecrt::operator_delete(current.steps);
@@ -775,10 +776,10 @@ void CUnitServer::ResyncWithUnit() {
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (AIPathStartOriginal(Motion(this), nullptr, &unit->position, direction, now)) UnitPathSpeeds(unit);
-    CtlSetStanding(this, nullptr, 0);
-    CtlSetState(this, nullptr, kStateChasing);
-    UnitUpdateSizeClass(unit);
+    if (AIPathStartOriginal(Motion(this), nullptr, &unit->position, direction, now)) unit->RefreshMotion();
+    SetStanding(0);
+    SetState(kStateChasing);
+    unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));   // slot 25
@@ -797,11 +798,11 @@ void CUnitServer::ResyncWithUnit() {
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StartQueueIfUnset(this);
-        CtlPopFinishedSteps(this);
-        CtlShowCurrentStep(this);
+        PopFinishedSteps();
+        ShowCurrentStep();
     }
-    CtlStandStill(this);
-    CtlSetState(this, nullptr, kStateTurning);
+    StandStill();
+    SetState(kStateTurning);
 }
 EI_REPLACE_METHOD(0x00554450, CUnitServer::ResyncWithUnit);
 
@@ -869,14 +870,14 @@ void CUnitServer::ResetController() {
     followedLeader = nullptr;
     if (waited) waited->Release();
     searchingTarget = 0;
-    BrainResetAll(&brain);
+    static_cast<AIBrain*>(&brain)->Init();
     AlarmReset(&voice);
     aiPresence = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[3] = 1.0f;
     moveFactors[1] = 1.0f;
-    UnitStatsResetOriginal(&stats);
+    static_cast<UnitStats*>(&stats)->Reset();
     tameStage = 0;
     ownSide = -1;
     tamerSide = -1;

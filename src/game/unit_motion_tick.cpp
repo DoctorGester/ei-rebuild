@@ -46,8 +46,8 @@ namespace {
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00556850)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
-void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
-void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, (int)a2, a3); }
+void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
+void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep((int)a2, a3); }
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
@@ -160,13 +160,13 @@ void SetObstacle(CUnitServer* c, int obstacle) {
 
 // The motion order's next animation once the current motion is over.
 void QueueNextAnimation(CUnitServer* c) {
-    AnimationSteps* next = CtlNextAnimation(c);
+    AnimationSteps* next = c->NextAnimation();
     StepsAppend(Queue(c), nullptr, next);
     QueueStart(c) = next->extra;
     StepsCopyB(Queue(c), nullptr, next);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
-    CtlPopFinishedSteps(c);
-    CtlShowCurrentStep(c);
+    c->PopFinishedSteps();
+    c->ShowCurrentStep();
     c->movingAnimation = 1;
 }
 
@@ -176,11 +176,11 @@ void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
     StepsConstruct(&steps);
     if (c->moveMode.mode != 0 || c->state != 0) {
-        CtlBuildDeathAnimation(c, nullptr, &steps, c->hitDirection, 0, 0);
+        c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
             StepsCopyB(&c->savedQueue, nullptr, Queue(c));
-            CtlPlaySteps(c, nullptr, &steps);
+            c->PlaySteps(&steps);
             c->animationHeld = 1;
         }
     }
@@ -194,7 +194,7 @@ void HitWhileMoving(CUnitServer* c) {
     if (Queue(c)->count > 0) {
         std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->count) & 0xFFFFFF00u) |
                             Queue(c)->steps[0].animation;
-        const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitAnimationEntry(UnitOf(c), nullptr, key));
+        const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitOf(c)->AnimationEntry(key));
         if (entry && (entry->key & 0x3C0000) == 0x200000) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
             if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;
@@ -205,7 +205,7 @@ void HitWhileMoving(CUnitServer* c) {
     AnimationSteps fall;
     StepsConstruct(&fall);
     CtlBuildMoveSteps(c, nullptr, &current, 0);
-    CtlBuildDeathAnimation(c, nullptr, &fall, c->hitDirection, 0, 1);
+    c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
         StepsGetAt(&current, nullptr, &step, i);
@@ -224,8 +224,8 @@ void HitWhileMoving(CUnitServer* c) {
     StepsCopyB(Queue(c), nullptr, &fall);
     StepsCopyB(Queue(c), nullptr, &fall);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
-    CtlPopFinishedSteps(c);
-    CtlShowCurrentStep(c);
+    c->PopFinishedSteps();
+    c->ShowCurrentStep();
     StepsDestroy(&fall);
     StepsDestroy(&current);
 }
@@ -289,9 +289,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitPathSpeeds(UnitOf(c));
-        CtlSetStanding(c, nullptr, 0);
-        CtlSetState(c, nullptr, 6);
+        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        c->SetStanding(0);
+        c->SetState(6);
         c->stoodBlocked = wasFlag;
         return;
     }
@@ -301,16 +301,16 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitPathSpeeds(UnitOf(c));
-        CtlSetStanding(c, nullptr, 0);
-        CtlSetState(c, nullptr, 6);
+        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        c->SetStanding(0);
+        c->SetState(6);
         c->stoodBlocked = 0;
         return;
     }
-    UnitPathSpeeds(UnitOf(c));
+    UnitOf(c)->RefreshMotion();
     int state = c->state;
     if (state >= 0 && (state <= 1 || state == 2)) return;
-    CtlPlaySteps(c, nullptr, CtlIdleAnimation(c));
+    c->PlaySteps(c->IdleAnimation());
 }
 
 // Replans the path to the order's goal (+0x9C; its z, +0xA4, holds the range PathTo asked for), with
@@ -338,15 +338,15 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     if (found) {
-        UnitPathSpeeds(UnitOf(c));
+        UnitOf(c)->RefreshMotion();
         int state = c->state;
         if (state >= 0 && (state <= 1 || state == 2)) return;
-        CtlPlaySteps(c, nullptr, CtlIdleAnimation(c));
+        c->PlaySteps(c->IdleAnimation());
         return;
     }
     std::uint8_t wasFlag = FailedByte(c) == 1;
-    CtlStandStill(c);
-    CtlSetState(c, nullptr, 6);
+    c->StandStill();
+    c->SetState(6);
     c->stoodBlocked = wasFlag;
 }
 
@@ -386,7 +386,7 @@ void Exhaustion(CUnitServer* c) {
             UnitMarkChanged(UnitOf(c), nullptr, 0);
         }
     }
-    CtlUpdateSneak(c);
+    c->UpdateSneak();
 }
 
 } // namespace

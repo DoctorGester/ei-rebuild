@@ -292,7 +292,7 @@ Next StartLink(CSpellEffect* e) {
     bool free = ObjectSlots(e->target)->IsLargeUnit() == 0 && ObjectSlots(e->caster)->IsLargeUnit() == 0 &&
                 ObjectSlots(e->target)->IsDead() == 0 && e->target != e->caster;
     if (!free) {
-        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x18);
+        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x18);
         return Next::Done;
     }
     Vector3 scratch;
@@ -340,8 +340,8 @@ Next StartCharm(CSpellEffect* e) {
     float skill = tamer->stats.stat20 + e->damage;
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
-        if (ControllerTame(tamed, nullptr, reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
-            if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x1A);
+        if (tamed->TryTame(reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
+            if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x1A);
             return Next::Done;
         }
     }

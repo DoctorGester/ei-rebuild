@@ -167,7 +167,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
             if (boost > kZero) rate = static_cast<float>(boost * rate);
         }
         float scale = maxHitPoints;
-        HealSlotsAt(stats, nullptr, scale, static_cast<float>(scale * rate));
+        stats->HealSlots(scale, static_cast<float>(scale * rate));
         hitPoints = static_cast<float>(stats->Reduce(maxHitPoints));
         changed = true;
     }
@@ -200,7 +200,7 @@ bool UnitStats::HealSlots(float scale, float amount) {
 EI_REPLACE_METHOD(0x00525800, UnitStats::HealSlots);
 
 BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
-    HealSlotsAt(this, nullptr, vitals->maxHitPoints, amount);
+    HealSlots(vitals->maxHitPoints, amount);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return 1;
 }
@@ -302,7 +302,7 @@ EI_REPLACE_METHOD(0x00523F50, UnitStats::ManaCurve);
 double UnitStats::RateValue() {
     float base = stat18 * kPointTwo + kTen;
     float level = static_cast<float>(LevelValueOf(this, kSkillRate));   // FILD, FSTP float
-    float arms = ArmsFactorAt(this, nullptr, 1);
+    float arms = ArmsFactor(1);
     return (level * kPercentB + kOne) * arms * base;
 }
 EI_REPLACE_METHOD(0x00524320, UnitStats::RateValue);
@@ -420,9 +420,9 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     }
     load = static_cast<float>(unit->TotalItemWeight());
     int unusedArg = keyed ? 1 : 0;   // the original passes the text-key byte (upper bytes garbage)
-    loadFactor = movementKind == 1 ? LegsFactorAt(this, nullptr, unusedArg) : kOne;
+    loadFactor = movementKind == 1 ? LegsFactor(unusedArg) : kOne;
     speed = speedBase * loadFactor;
-    float arms = ArmsFactorAt(this, nullptr, unusedArg);
+    float arms = ArmsFactor(unusedArg);
     armsFactor = arms;
     rateBase = keyed ? stat18 * kPointTwo + kTen : kUnkeyedRateBase;
     double value = (LevelValueOf(this, kSkillRate) * kPercentB + kOne) * arms * rateBase;
@@ -503,7 +503,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
         stats->spentExperience = static_cast<float>(total + stats->spentExperience);
     }
     RefreshMaxima(stats, vitals, unit);
-    UnitStatsRecompute(stats, nullptr, vitals, unit);
+    stats->Recompute(vitals, unit);
     return true;
 }
 
@@ -536,13 +536,13 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     float maxHitPoints =
         static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
-    vitals->maxMana = static_cast<float>(UnitStatsManaCurve(this));
+    vitals->maxMana = static_cast<float>(ManaCurve());
     ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     unit->baseScale.x = unit->baseScale.x + kPointTwo;
     unit->scale.x = unit->scale.x + kPointTwo;
     unit->MarkChanged(1);
-    UnitStatsRecompute(this, nullptr, vitals, unit);
+    Recompute(vitals, unit);
     unit->MarkChanged(4);
     return true;
 }
@@ -574,7 +574,7 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     l = lowered;
     unit->scale.y = LessOrUnordered(kZero, l, l, kZero);
     unit->MarkChanged(1);
-    UnitStatsRecompute(this, nullptr, vitals, unit);
+    Recompute(vitals, unit);
     unit->MarkChanged(4);
     return true;
 }
@@ -586,7 +586,7 @@ bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
     UnitVitals* vitals = VitalsOf(server);
     stat20Base = static_cast<float>(static_cast<double>(amount) + stat20Base);
     RefreshMaxima(this, vitals, unit);
-    UnitStatsRecompute(this, nullptr, vitals, unit);
+    Recompute(vitals, unit);
     return true;
 }
 EI_REPLACE_METHOD(0x00529400, UnitStats::RaiseIntelligence);

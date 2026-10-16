@@ -276,7 +276,7 @@ void TokenizeText(CUiScrollText* self, const char* text) {
     mfc::CString copy(text);
     ScrollTextTokenizeOriginal(self, nullptr, &copy);
 }
-void LayOut(CUiScrollText* self) { ScrollTextLayoutOriginal(self); }
+void LayOut(CUiScrollText* self) { static_cast<CUiScrollText*>(self)->Layout(); }
 } // namespace
 
 CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {
@@ -355,7 +355,7 @@ EI_REPLACE_METHOD(0x0065D0A0, CUiScrollText::SetRect);
 
 BOOL CUiScrollText::Draw(int pass) {
     int position;
-    if (TakePosition(&position)) ScrollTextDrawLinesOriginal(this, nullptr, position);
+    if (TakePosition(&position)) static_cast<CUiScrollText*>(this)->DrawLines(position);
     return DrawBase(pass);
 }
 EI_REPLACE_METHOD(0x0065D120, CUiScrollText::Draw);

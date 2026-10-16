@@ -293,7 +293,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(5)) {
-        UnitReleaseAllItems(unit);
+        unit->ReleaseAllItems();
         for (auto& id : ids4) field->ReadDelta(&id, 4);
         for (auto& id : ids7) field->ReadDelta(&id, 4);
         gotItems = true;

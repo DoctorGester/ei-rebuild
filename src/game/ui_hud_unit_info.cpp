@@ -47,8 +47,8 @@ __declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(
 __declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
 // The world (007AF5B8): the time of day [0055FC50, ST0].
 double __fastcall WorldDayTime(void* a0) { return WorldDayTimeOriginal(a0); }
-// The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0;
-// UnitParamsVisionRangeOriginal, originals_units.h]; the description texts [005270E0: unit +0x17C, out, name is a text key].
+// The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
+// the description texts [005270E0: unit +0x17C, out, name is a text key].
 // 004613A0: whether an id is a text key [__fastcall].
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
 __declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
@@ -140,7 +140,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(reinterpret_cast<void*>(0x007AF5B8)));
-    int vision = x87::fistp(static_cast<float>(UnitParamsVisionRangeOriginal(params, nullptr, dayTime)));
+    int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
     panel.text.Format(kValueUnit, static_cast<const char*>(panel.labels[6]), vision, static_cast<const char*>(panel.labels[13]));
     panel.DrawLine();
 
@@ -176,7 +176,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         CBattleScreen* group = owner_;
         if (group->party_.size > 0) {
             CUnit* leader = group->party_[0];
-            int difference = UnitLevel(unitIn) - UnitLevel(leader);
+            int difference = unitIn->Level() - leader->Level();
             if (difference > kLevelDifferenceLimit) {
                 suffix.Format(kStronger, kLevelDifferenceLimit);
             } else if (difference < -kLevelDifferenceLimit) {

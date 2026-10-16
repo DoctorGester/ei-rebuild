@@ -21,7 +21,7 @@ constexpr std::size_t kTooltipSize = 0x184;
 CUiTooltip* NewTooltip(CUiRegion* region, const char* text, int flag, int extra) {
     void* memory = gamecrt::operator_new(kTooltipSize);
     if (!memory) return nullptr;
-    return TooltipConstructOriginal(memory, nullptr, region->interface_, region, text, flag, extra);
+    return static_cast<CUiTooltip*>(memory)->Construct(region->interface_, region, text, flag, extra);
 }
 
 } // namespace
@@ -52,7 +52,7 @@ EI_REPLACE_METHOD(0x005FC6B0, CUiRegion::SetTipString);
 // --- 005FC690: the tooltip's text --------------------------------------------------------------
 
 void CUiRegion::SetTipText(const char* text) {
-    if (tip_) TooltipSetTextOriginal(tip_, nullptr, text);
+    if (tip_) tip_->SetText(text);
 }
 EI_REPLACE_METHOD(0x005FC690, CUiRegion::SetTipText);
 

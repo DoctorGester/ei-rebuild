@@ -122,10 +122,10 @@ bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { r
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
-void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { StepsEmoteOriginal((void*)a0, nullptr, a2); }
+void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote(a2); }
 __declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
@@ -227,7 +227,7 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
             }
         }
     }
-    return CtlCanPlanAction(self, nullptr, order);
+    return self->CanPlanAction(order);
 }
 } // namespace
 
@@ -282,16 +282,16 @@ void LeaveMoveMode(CUnitServer* self) {
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
 // updates. Not while turning (state 2).
 void StandIdle(CUnitServer* self) {
-    AnimationSteps* idle = CtlIdleAnimation(self);
+    AnimationSteps* idle = self->IdleAnimation();
     if (!StepsQueueHoldsOriginal(&self->queue, nullptr, (const void*)idle)) {
         if (self->queue.count == 0 && self->queue.extra == -1) {
             int now = WorldTick(self);
             idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
         }
-        CtlPlaySteps(self, nullptr, idle);
+        self->PlaySteps(idle);
     }
-    CtlStandStill(self);
-    CtlSetState(self, nullptr, 2);
+    self->StandStill();
+    self->SetState(2);
 }
 
 // The queued order replaces the current one (0054B320 then 0054B230 on the queued order).
@@ -394,9 +394,9 @@ bool CUnitServer::StartQueuedOrder() {
         int time = action.param;
         int now = static_cast<CWorld*>(ManagerContext())->tick_;
         MotionTurn(&motion, nullptr, now, unit, &action.point.x, time);
-        UnitPathSpeeds(unit);
+        unit->RefreshMotion();
         PlayIdle();
-        CtlSetState(this, nullptr, 1);
+        SetState(1);
         return true;
     }
 
@@ -420,7 +420,7 @@ bool CUnitServer::StartQueuedOrder() {
         StepsSetSize(&steps, nullptr, 0, -1);
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
-        int duration = CtlAnimationDuration(this, nullptr, animation);
+        int duration = AnimationDuration(animation);
         StepsAddStepTick(&steps, nullptr, animation, duration);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
@@ -450,7 +450,7 @@ bool CUnitServer::StartQueuedOrder() {
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
         int duration;
-        CtlBuildOrderSteps(this, nullptr, &steps, &duration, kOrderSkill, 0);
+        BuildOrderSteps(&steps, &duration, kOrderSkill, 0);
         int now = WorldTick(this);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
@@ -610,7 +610,7 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
 
 bool CUnitServer::CanReachAndPlan(const UnitAction* order) {
     if (OutOfReachUp(this, order)) return false;
-    return CtlCanPlanAction(this, nullptr, order);
+    return CanPlanAction(order);
 }
 EI_REPLACE_METHOD(0x0054C8B0, CUnitServer::CanReachAndPlan);
 
@@ -620,7 +620,7 @@ bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* po
     Vector3 saved;
     std::memcpy(&saved, &unit->position, sizeof(saved));
     std::memcpy(&unit->position, point, sizeof(saved));
-    bool result = CtlCanPlanAction(this, nullptr, order);
+    bool result = CanPlanAction(order);
     std::memcpy(&unit->position, &saved, sizeof(saved));
     return result;
 }
@@ -701,7 +701,7 @@ void CUnitServer::ExecuteOrder() {
                 auto* victim = static_cast<CUnit*>(action.target);
                 auto* defender = reinterpret_cast<CUnitServer*>(victim->controller);
                 ManagerContext();
-                int backstab = UnitIsBehind(unit, nullptr, victim) & 0xFF;
+                int backstab = unit->IsBehind(victim) & 0xFF;
                 if (victim->GetClassId() == kClassUnit && defender->NoBackstab()) backstab = 0;
                 CItemWeapon* weapon = ActiveWeapon(unit);
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
@@ -747,16 +747,16 @@ void CUnitServer::ApproachTarget() {
             double dx = static_cast<double>(heading.x) - goal.x;
             double dy = static_cast<double>(heading.y) - goal.y;
             if (!(LengthSquared2DUnrounded(dy, dx) > kNearPoint)) return;
-            if (CtlCanReachTarget(this, nullptr, &action)) {
+            if (CanReachTarget(&action)) {
                 Vector3 saved;
                 std::memcpy(&saved, &unit->position.x, sizeof(saved));
                 std::memcpy(&unit->position.x, &heading, sizeof(saved));
-                bool ok = CtlCanPlanAction(this, nullptr, &action);
+                bool ok = CanPlanAction(&action);
                 std::memcpy(&unit->position.x, &saved, sizeof(saved));
                 if (ok) return;
             }
         }
-        ControllerShout(this, nullptr, action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
+        Shout(action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
         action.Reset();
         if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
         orderStopped = 1;
@@ -900,10 +900,10 @@ void CUnitServer::ApproachTarget() {
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (AIPathStartOriginal(path, nullptr, &unit->position, &back, time)) UnitPathSpeeds(unit);
-        CtlSetStanding(this, nullptr, 0);
+        if (AIPathStartOriginal(path, nullptr, &unit->position, &back, time)) unit->RefreshMotion();
+        SetStanding(0);
         state = kStateChasing;
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         if (effectObject) {
             WorldRemoveTimed(WorldServer(), nullptr, effectObject->id_);
             CEngineObject* old = effectObject;

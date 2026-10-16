@@ -7,6 +7,7 @@
 #include "item.h"
 #include "item_db.h"
 #include "maths.h"
+#include "unit.h"
 #include "unit_db.h"
 #include "world.h"
 
@@ -112,7 +113,7 @@ void CUnitServer::FinishCast() {
             action.source = kNoSource;
             return;
         }
-        CtlUseItemCharge(this, nullptr, carrier, cost);
+        UseItemCharge(carrier, cost);
     } else if (unit->player) {     // 005301A0
         float cost = std::bit_cast<float>(spell->manaCost_);
         char* server = reinterpret_cast<char*>(ServerObjectOf(unit));
@@ -225,7 +226,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->skillNeeded_);
         float skill = static_cast<float>(
-            UnitStatsSpellSchoolSkill(&self->stats, nullptr, SpellPrototype(spell)->school));
+            self->stats.SpellSchoolSkill(SpellPrototype(spell)->school));
         if (x87::fistp(skill) < needed) return false;
     }
     return !(self->unit->flags_ & kFlagSpellBlocked);

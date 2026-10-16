@@ -139,7 +139,7 @@ EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceOnGroundImpl);
 
 void CUnit::SetFromStats(UnitStats* stats) {
     stats->Pack(this, Params());
-    float curve = static_cast<float>(UnitStatsHitPointCurve(stats));
+    float curve = static_cast<float>(stats->HitPointCurve());
     float limit = ScaleHitPointsByEffects(this, curve);
     packedVitals.maxHitPoints = static_cast<std::int16_t>(gamecrt::Ftol(limit));
     packedVitals.hitPoints = static_cast<std::int16_t>(gamecrt::Ftol(stats->Reduce(limit)));

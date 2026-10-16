@@ -265,7 +265,7 @@ struct UnitCalls {
     void AddSpell(CEngineObject* spell);                 // 00531820
     void MarkChanged(int what);                          // 0050E9F0
 };
-void UnitCalls::SetHostileMask(std::uint32_t a0) { UnitSetHostileMaskOriginal((void*)this, nullptr, a0); }
+void UnitCalls::SetHostileMask(std::uint32_t a0) { static_cast<CUnit*>((void*)this)->SetHostileMask(a0); }
 void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
 void UnitCalls::GiveQuestItem(CEngineObject* item) { UnitAddCarriedOriginal(this, nullptr, item); }
 void UnitCalls::AddSpell(CEngineObject* spell) { UnitAddSpellOriginal(this, nullptr, spell); }
@@ -1049,7 +1049,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
             UnitOf(unit)->SetHostileMask(DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy()), nullptr, Ftol(f[0])));
-            UnitSetSide(static_cast<CUnit*>(unit), nullptr, Ftol(f[0]));
+            static_cast<CUnit*>(unit)->SetSide(Ftol(f[0]));
             break;
         }
         case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask (+0x244)
@@ -1057,7 +1057,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!unit || unit->GetClassId() != kClassUnit) break;
             int player = Ftol(f[0]);
             std::uint32_t mask = (1u << (player & 31)) | static_cast<CUnit*>(unit)->relationsA;
-            UnitAddHostileMask(static_cast<CUnit*>(unit), nullptr, mask);
+            static_cast<CUnit*>(unit)->AddHostileMask(mask);
             break;
         }
         case 0x35: {   // KillUnit(object)
@@ -1102,7 +1102,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (int i = 0; i < count; ++i) {
                 auto* item = static_cast<CItemQuest*>(static_cast<CUnit*>(unit)->carried[i]);
                 if (static_cast<int>(item->questItemId_) == id) {
-                    UnitRemoveCarried(static_cast<CUnit*>(unit), nullptr, i);
+                    static_cast<CUnit*>(unit)->RemoveCarried(i);
                     break;
                 }
             }

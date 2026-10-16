@@ -198,13 +198,13 @@ void CUnitClientSpecific::SparkEffect(int) {
     source->Attach(unit);
     source->attachPoint = kSparkAttach;
     auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-    if (flashCountdown == 0) ClientPartColoursOriginal(half, nullptr, 1);
+    if (flashCountdown == 0) half->SetLit(1);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
 EI_REPLACE_METHOD(0x00537C00, CUnitClientSpecific::SparkEffect);
 
 void CUnitClientSpecific::DeathEffect() {
-    CompanionHideLightOriginal(unit->MapObject()->companion);
+    static_cast<CMapObjectClientSpecific*>(unit->MapObject()->companion)->HideLight();
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;

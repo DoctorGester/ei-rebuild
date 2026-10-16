@@ -522,7 +522,7 @@ void CHudClock::OpenObjectives() {
     void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
     {
         BriefingPlayerName zone;
-        ObjectivesSetupOriginal(window, nullptr, zone, nullptr, 0, 0);
+        static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
     }
     InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
 }
@@ -694,10 +694,10 @@ void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int qui
 __declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
-void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { QuickPanelSetOriginal(a0, nullptr, a2, a3); }
-void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { SpellPanelSetOriginal(a0, nullptr, a2, a3); }
-void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { ActionPanelSetOriginal(a0, nullptr, a2, a3); }
-void __fastcall ActionPanelReset(void* a0) { ActionPanelClearOriginal(a0); }
+void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>(a0)->Highlight(a2, a3); }
+void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>(a0)->Highlight(a2, a3); }
+void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>(a0)->Highlight(a2, a3); }
+void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)->ClearHighlights(); }
 // The client world (WorldClient(), 007AF5B8): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
@@ -887,7 +887,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
-        void* item = UnitQuickItem(first, nullptr, pendingSlot_);
+        void* item = first->GetQuickItem(pendingSlot_);
         if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) return;
         ScreenCastOn(this, nullptr, unit, 1, 0);
         return;

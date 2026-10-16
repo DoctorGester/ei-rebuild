@@ -1,6 +1,7 @@
 // The briefing / base screen's mouse input and its topic list (CBriefingScreen, ui_briefing.h):
 // the click and double click (input slots 2 and 7), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "ui.h"
 #include "ui_briefing.h"
 
 #include "item_db_text.h"
@@ -137,7 +138,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         return;
     case 4:
         interface_->PlaySound(ClickSound(), 0);
-        BriefingTakeRewardsOriginal(this);
+        FinishDialogue();
         return;
     default:
         return;
@@ -160,7 +161,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (region >= 0 && region < kTopicRows && region + topicTop_ < topics_.size) hovered = region + topicTop_;
         if (hovered != hoveredTopic_) {
             hoveredTopic_ = hovered;
-            BriefingDrawTopicsOriginal(this);
+            DrawTopics();
         }
     } else if (state_ == 3) {
         GameCursor()->SetShape(kCursorTalk);
@@ -175,7 +176,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         int id = object->id_;
         if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
-        BriefingFindTopicsOriginal(this, nullptr, id);
+        FindTopics(id);
         if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);
         const PersonTextNode* node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
@@ -230,7 +231,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
 // --- 00608B60 -----------------------------------------------------------------------------------
 
 void CBriefingScreen::OpenTopics(CEngineObject* person) {
-    BriefingFindTopicsOriginal(this, nullptr, person->id_);
+    FindTopics(person->id_);
     if (topics_.size <= 0) {
         state_ = 0;
         return;
@@ -242,11 +243,11 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->CallSetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     topics_.SetAtGrow(topics_.size, GoodbyeTopic());
-    ScrollbarSetRangeOriginal(topicBar_, nullptr, topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
+    topicBar_->SetMaximum(topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
     topicBar_->CallSetPosition(0);
     topicTop_ = 0;
     hoveredTopic_ = -1;
-    BriefingDrawTopicsOriginal(this);
+    DrawTopics();
     state_ = 1;
 }
 

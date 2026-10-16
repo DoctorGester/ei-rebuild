@@ -4,6 +4,7 @@
 // reaches the screen but ui_mp_host. Its Create (0061B2C0) reproduces addon's ExtendedServerName
 // sites and EI_Plugin's NPlayers (W2b), as the list draw 0061D780 (ui_connect_list.cpp) does its
 // patches.
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -353,11 +354,11 @@ void CMpConnectScreen::Update() {
     }
 
     int position;
-    if (ScrollbarTakePositionOriginal(scroll_, nullptr, &position)) {
+    if (scroll_->TakePosition(&position)) {
         scrollTop_ = position;
         DrawListAt(this);
     }
-    if (ScrollbarTakePositionOriginal(playersSlider_, nullptr, &position)) {
+    if (playersSlider_->TakePosition(&position)) {
         maxPlayers_ = position + 1;
         DrawListAt(this);
     }
@@ -399,7 +400,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     case kRegionBack:
         interface_->PlaySound(CancelSound(), 0);
         SaveAddressBookAt(this);
-        GameDisconnectOriginal(TheGameFlow());
+        TheGameFlow()->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
@@ -479,7 +480,7 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     case VK_ESCAPE:
         interface_->PlaySound(CancelSound(), 0);
-        GameDisconnectOriginal(TheGameFlow());
+        TheGameFlow()->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         inputHandled_ = true;
         return;
@@ -511,7 +512,7 @@ void CMpConnectScreen::SelectAndScroll() {
     if (!(scrollTop_ + kRows > row)) scrollTop_ = row - (kRows - 1);
     if (scrollTop_ > row) scrollTop_ = row;
     scroll_->CallSetPosition(scrollTop_);
-    ScrollbarTakePositionOriginal(scroll_, nullptr, &scrollTop_);
+    scroll_->TakePosition(&scrollTop_);
     DrawListAt(this);
 }
 EI_REPLACE_METHOD(0x0061CC00, CMpConnectScreen::SelectAndScroll);
@@ -523,7 +524,7 @@ void CMpConnectScreen::Connect() {
     int row = selected_;
     if (row == 0) {
         int players;
-        ScrollbarTakePositionOriginal(playersSlider_, nullptr, &players);
+        playersSlider_->TakePosition(&players);
         ++players;
         mfc::CString name(nameEdit_->text_);
         if (name.GetLength() == 0) name = DefaultGameName();
@@ -667,11 +668,11 @@ void CMpConnectScreen::RebuildList() {
     unsigned rows = static_cast<unsigned>(entries_.size());
     if (rows > static_cast<unsigned>(kRows)) {
         int position;
-        ScrollbarTakePositionOriginal(scroll_, nullptr, &position);
-        ScrollbarSetRangeOriginal(scroll_, nullptr, static_cast<int>(entries_.size()) - kRows);
+        scroll_->TakePosition(&position);
+        scroll_->SetMaximum(static_cast<int>(entries_.size()) - kRows);
         scroll_->CallSetPosition(position);
     } else {
-        ScrollbarSetRangeOriginal(scroll_, nullptr, 0);
+        scroll_->SetMaximum(0);
     }
     scrollTop_ = 0;
 }

@@ -15,6 +15,7 @@
 #include "ei/x87.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "unit.h"
 
 #include <bit>
 #include <cstring>
@@ -122,10 +123,10 @@ namespace {
 __declspec(naked) int __fastcall StatsPickLocation(void*, void*, int) EI_ORIGINAL(0x00525B20)
 // 00530560. CUnit: its height (2 * +0x14C), in ST0.
 // 00530280. CUnit: the ground (or water surface) height under (x, y) for the unit, in ST0.
-inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
+inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 // AnimationSteps (CArray) members: 00557B80 SetSize, 00557CC0 Add, 00558950 SetAtGrow, 00544CE0
 // AddStep(animation, duration), 00544DD0 set every step's +8.
-void __fastcall StepsAddStep(AnimationSteps* a0, void*, int a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StepsAddStep(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 // Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ActionSpeed, the unit's
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
 
@@ -140,7 +141,7 @@ int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a /
 // action): the frame count (FILD of the zero-extended dword, stored as a float) divided by the
 // unit's speed factor for the entry, truncated. Inlined many times by the original.
 int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
-    char* entry = UnitAnimationEntry(unit, nullptr, index);
+    char* entry = unit->AnimationEntry(index);
     if (!entry) return 0;
     volatile std::int64_t wide = Get<std::uint32_t>(entry, offset);
     float frames = static_cast<float>(wide);
@@ -282,7 +283,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         animation = UnitFindAnimation(unit, nullptr, weaponBit | kKeyFallback, 1);
         if (!animation) {
             gameapi::OutputDebugStringA(kNoAnimationMessage);
-            animation = UnitAnimationEntry(unit, nullptr, 0);
+            animation = unit->AnimationEntry(0);
         }
     }
     *duration = 0;
@@ -293,7 +294,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         ScratchSteps out;
         MoveModeState to{};
         to.mode = 1;
-        if (CtlBuildTransition(this, nullptr, &out.steps, &moveMode, &to)) {
+        if (BuildTransition(&out.steps, &moveMode, &to)) {
             AppendFirst(steps, &out.steps);
             *duration += out.steps.steps[0].duration;
         }
@@ -311,7 +312,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         ScratchSteps back;
         MoveModeState from{};
         from.mode = 1;
-        if (CtlBuildTransition(this, nullptr, &back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
+        if (BuildTransition(&back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
     }
 }
 EI_REPLACE_METHOD(0x00550100, CUnitServer::BuildOrderSteps);
@@ -341,7 +342,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
 
     if (value <= EntryTicks(unit, index, 0x20)) {
         // The cast fits in the animation.
-        StepsAddStep(steps, nullptr, index, CtlAnimationDuration(this, nullptr, index));
+        StepsAddStep(steps, nullptr, index, AnimationDuration(index));
         *duration = AnimationMoment(index);
         return;
     }
@@ -432,7 +433,7 @@ double RandomHeight(double to, float from, float low, float high) {
 bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CEngineObject* target) {
     if (target->GetClassId() != kClassUnit) {
         plan->hitLocation = 1;
-        CtlBuildOrderSteps(this, nullptr, steps, duration, kOrderAttack, kKeyNoTarget);
+        BuildOrderSteps(steps, duration, kOrderAttack, kKeyNoTarget);
         return true;
     }
     CUnit* victim = static_cast<CUnit*>(target);
@@ -458,9 +459,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
 
     void* victimStats = &reinterpret_cast<CUnitServer*>(victim->controller)->stats;
     float myBase = static_cast<float>(UnitGroundAt(unit, nullptr, x, y) + z);
-    float mySize = static_cast<float>(UnitSize(unit));
+    float mySize = static_cast<float>(unit->DoubleHeight());
     float theirBase = static_cast<float>(UnitGroundAt(victim, nullptr, aim.x, aim.y) + aim.z);
-    float theirSize = static_cast<float>(UnitSize(victim));
+    float theirSize = static_cast<float>(victim->DoubleHeight());
 
     // Where to hit: a skill picks at random, an attack its source location, else the body; the
     // victim's stats move it to a part that can still be hit.
@@ -554,7 +555,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     if (order.target) order.target->Release();
     order.target = nullptr;
 
-    CtlBuildOrderSteps(this, nullptr, steps, duration, kOrderAttack, key);
+    BuildOrderSteps(steps, duration, kOrderAttack, key);
     return true;
 }
 EI_REPLACE_METHOD(0x0054F970, CUnitServer::BuildAttackSteps);
@@ -580,8 +581,6 @@ std::uint32_t RandomSide(std::uint32_t key) {
     return key | ((Random().Next() & 1) ? 0x800000u : 0x400000u);
 }
 } // namespace
-
-// CallBuildDeathAnimation (the forwarder through 00550A80) is in combat_actions.cpp, its caller.
 
 void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direction, int dying, int fall) {
     bool isDying = static_cast<std::uint8_t>(dying) != 0;

@@ -17,6 +17,7 @@
 #include "model.h"
 #include "object_tables.h"
 #include "texture.h"
+#include "ui_cursor.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -761,7 +762,7 @@ void CGlobalMap::Update() {
             if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
         }
     }
-    CursorSetShapeOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, dragging_ ? 0x16 : 0);
+    static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
 EI_REPLACE_METHOD(0x0062F050, CGlobalMap::Update);

@@ -97,7 +97,7 @@ int CUnitClientSpecific::UpdateClient() {
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        ClientPartColoursOriginal(static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached), nullptr, 0);
+        static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->SetLit(0);
 
     if (blinks) {
         if (blinkTimer > 0) {
@@ -118,9 +118,9 @@ int CUnitClientSpecific::UpdateClient() {
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
             if (first->kind == kSpeechAfterSpeech || first->kind == kSpeechAfterSpeech2) {
-                if (!SoundBusy(speechSound) && ClientSpeakOriginal(this, nullptr, first)) speechSound = first->sound;
+                if (!SoundBusy(speechSound) && Speak(first)) speechSound = first->sound;
             } else {
-                ClientSpeakOriginal(this, nullptr, first);
+                Speak(first);
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);

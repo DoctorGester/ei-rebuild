@@ -17,6 +17,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "game_data.h"
+#include "world_glue.h"
 
 #include <cstdint>
 #include <cstring>
@@ -182,7 +183,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
                                                      reinterpret_cast<std::uintptr_t>(stackBegin_));
     if ((bytes & ~3u) == 4) {
         serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
-        if (!IsNetworkClientOriginal()) SetServerFlagOriginal(1);
+        if (!IsNetworkClientOriginal()) GameSetServerPaused(1);
         if (first && second) {
             backdropMode_ = 1;
             FrameStepOriginal(0, 1);
@@ -216,7 +217,7 @@ void DeleteBackdrop(CUiSurface* surface) {
 void CInterface3D::Activate(CUiWindow* window) {
     if (closeAll_) {
         closeAll_ = false;
-        InterfaceCloseAllOriginal(this);
+        static_cast<CInterface3D*>(this)->CloseAll();
     }
     Cursor()->SetShape(3);
     CUiSurface* backdrop = backdrop_;
@@ -227,7 +228,7 @@ void CInterface3D::Activate(CUiWindow* window) {
     secondBackdrop_ = nullptr;
     backdropMode_ = 0;
     serverFlag_ = 0;
-    SetServerFlagOriginal(0);
+    GameSetServerPaused(0);
     Cursor()->SetShape(3);
     while (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->Input()->Deactivate();

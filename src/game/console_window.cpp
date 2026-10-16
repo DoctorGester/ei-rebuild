@@ -49,7 +49,7 @@ EI_REPLACE_METHOD(0x005E3E90, ConsoleWindow::SetRect);
 void ConsoleWindow::SetHistory(int lines) {
     history_ = lines;
     if (lines_.GetSize() > lines) lines_.RemoveAt(0, lines_.GetSize() - lines);
-    ConsoleDrawLinesOriginal(this);   // 005E4800: clamps the scroll position, draws the visible lines
+    static_cast<ConsoleWindow*>(this)->DrawLines();   // 005E4800: clamps the scroll position, draws the visible lines
 }
 EI_REPLACE_METHOD(0x005E3F90, ConsoleWindow::SetHistory);
 
@@ -65,7 +65,7 @@ void ConsoleWindow::AddText(const char* text) {
     for (int i = 1; i < pieces.GetSize(); ++i) lines_.SetAtGrow(lines_.GetSize(), pieces[i]);
     if (scroll_ != 0) scroll_ += pieces.GetSize();
     if (lines_.GetSize() > history_) lines_.RemoveAt(0, lines_.GetSize() - history_);
-    ConsoleDrawLinesOriginal(this);   // 005E4800: clamps the scroll position, draws the visible lines
+    static_cast<ConsoleWindow*>(this)->DrawLines();   // 005E4800: clamps the scroll position, draws the visible lines
 }
 EI_REPLACE_METHOD(0x005E4090, ConsoleWindow::AddText);
 

@@ -6,6 +6,7 @@
 // instantiations behind those maps (config/library.csv). Rewritten here: the grids' Move (two
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
+#include "map_object_shadow.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -710,11 +711,11 @@ int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringA
     return Object3DMakeFigureOriginal(a0, nullptr, a2, a3, a4);
 }
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
-void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
-void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
+void __fastcall Unit518860(void* a0) { static_cast<CObject3D*>(a0)->RestartPose(); }
+void __fastcall Unit50EA40(void* a0) { static_cast<CMapObject*>(a0)->WriteFullState(); }
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
-void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
+void __fastcall Figure51C970(void* a0) { static_cast<CObject3DClientSpecific*>(a0)->RegisterPartMaterials(); }
 
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
@@ -753,12 +754,12 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* manager = static_cast<CBaseManager*>(MapObjectManager());
         auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
-        auto* prototype = reinterpret_cast<std::uint8_t*>(UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, record->texts[5]));
+        auto* prototype = reinterpret_cast<std::uint8_t*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
         unit->prototypeId_ = static_cast<std::uint32_t>(
             prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
                             unitdb::kPrototypeSize
                       : -1);
-        UnitSetPrototype23CByName(unit, nullptr, record->texts[6]);
+        unit->SetPrototype23CByName(record->texts[6]);
         unit->flags_ |= 0x4000000;
         if (!UnitMakeFigure(unit, nullptr, record->texts[2], &parts, 1)) return;
         CEngineObject* figure = unit->Object3D()->attached;
@@ -766,14 +767,14 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit518840(unit, nullptr, record->texts[2], 0);
         Unit518860(unit);
         const char* skin = record->texts[4];
-        FigureSwapTextureOriginal(figure, nullptr, game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
+        static_cast<CObject3DClientSpecific*>(figure)->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
-        UnitReleaseAllItems(unit);
+        unit->ReleaseAllItems();
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
             UnitAddWeaponOriginal(unit, nullptr, record->weapons[j]);
         CUnitController* controller = unit->Controller();

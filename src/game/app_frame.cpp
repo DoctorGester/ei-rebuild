@@ -14,6 +14,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "ui_cursor.h"
 
 #include <ddraw.h>
 
@@ -103,7 +104,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     CursorLockAtCallSite()(Screen());
     ScreenDraw(Screen());
     if (DevicePresentOriginal(RenderDeviceObject())) game::FatalError(game::Text(0x00784A30));   // "Can't flip render surface"
-    CursorUnlockOriginal(Screen());
+    static_cast<CCursor*>(Screen())->ReleaseLock();
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];
     gamecrt::sprintf(path, game::Text(0x00784A20), Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));

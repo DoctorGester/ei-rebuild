@@ -281,7 +281,7 @@ BOOL CTextManager::FindLine(const char* key) {
         return 0;
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
-    while (ReaderSplit(this, nullptr, &lineWords, 0)) {
+    while (Split(&lineWords, 0)) {
         if (lineWords.size >= keyWords.size) {
             int i = 0;
             if (keyWords.size <= 0) return 1;

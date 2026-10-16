@@ -26,6 +26,7 @@
 #include "originals_ui.h"
 #include "originals_render.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstdint>
 #include <cstring>
@@ -388,7 +389,7 @@ struct MenuGlue {
 };
 const mfc::CString* MenuGlue::Directory() { return GameDirectoryOriginal(this); }
 void* MenuGlue::TextTable() { return GameFlowOriginal(); }
-void MenuGlue::SetServer(int f) { SetServerFlagOriginal(f); }
+void MenuGlue::SetServer(int f) { GameSetServerPaused(f); }
 void MenuGlue::BeforeTitles(int a0) { MenuSetOriginal(a0); }
 void MenuGlue::BeforeTitles2() { MenuCallOriginal(); }
 MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }

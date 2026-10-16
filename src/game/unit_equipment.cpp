@@ -53,7 +53,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     CWorld* world = *reinterpret_cast<CWorld**>(reinterpret_cast<char*>(this) + kManagerWorld);
     void* spellOwner = world->SpellManager();   // passed on to the spell factory
     void* items = world->ItemFactory();
-    auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
+    auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(name));
     if (!prototype) {
         game::FatalError(game::equipmenttexts::NoPrototype(), name);
         return 0;

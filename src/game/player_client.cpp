@@ -1,6 +1,7 @@
 // CPlayerClient: the client's per-tick link traffic (sending the queued requests, receiving and
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
+#include "map_object_shadow.h"
 #include "player_client.h"
 
 #include "camera.h"
@@ -689,10 +690,10 @@ int CPlayerClient::OnNewObject() {
         created->flags_ |= kFlagNoParts;
     }
     CEngineObject* attached = figure->attached;
-    FigureLoadTexturesOriginal(attached);
+    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     // (The client world's 00566310 and 00566320 around the texture swap are empty.)
     Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
-    Object3DRestartAnimationOriginal(figure);
+    figure->RestartPose();
     const char* to = textureTo;
     if (created->type_ == kTypeHumanoid) {
         gamecrt::sprintf(textureFrom, TextSkinFrom(), created->id_);
@@ -700,7 +701,7 @@ int CPlayerClient::OnNewObject() {
     } else if (Same(textureTo, TextNone())) {
         to = nullptr;
     }
-    FigureSwapTextureOriginal(attached, nullptr, textureFrom, to);
+    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(textureFrom, to);
     if (isUnit) ObjectSlots(created)->SetScriptName(scriptName);
 
     // The player keeps it, counted.
@@ -712,7 +713,7 @@ int CPlayerClient::OnNewObject() {
         ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(created)->GetPrototype())->name);
     else
         ObjectSlots(created)->TakePrototype(model);
-    ObjectPrepareOriginal(created);
+    static_cast<CMapObject*>(created)->WriteFullState();
     if (MapObjectReadStateOriginal(created, nullptr, 0, &in_) == 0) return 0;
     WorldClient()->AddObject(created);
     if (object->name2[0] != 0) {

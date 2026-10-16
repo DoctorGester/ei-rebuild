@@ -1,6 +1,7 @@
 // Unit AI modes (005D0000-005DC000): the simple virtual slots of Guard, Patrol, Sentry, Follow,
 // Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
 // targets, so every mode object of the game runs these.
+#include "combat.h"
 #include "unit_ai.h"
 #include "at_exit_functions.h"
 
@@ -635,7 +636,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     // The player controls this unit directly.
     bool direct = false;
     if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
-    if (brain->seen && unit->fightAtWill != 1) ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x20);
+    if (brain->seen && unit->fightAtWill != 1) reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x20);
 
     switch (state) {
     case kStateFollow: {
@@ -693,7 +694,7 @@ void PlayerMode::Execute(AIBrain* brain) {
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
             } else if (!direct && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
-                ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x21);
+                reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x21);
                 std::memset(&point.z, 0, 4);
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;

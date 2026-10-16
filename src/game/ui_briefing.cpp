@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world.h"
 
 #include <cstring>
 #include <new>
@@ -141,7 +142,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        GameDisconnectOriginal(TheGame());
+        static_cast<GameFlow*>(TheGame())->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

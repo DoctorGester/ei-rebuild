@@ -88,14 +88,14 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         if (index >= static_cast<std::uint32_t>(learnable_.Count())) return;
         row = &learnable_.begin[index];
         if (row->price > experience_ || !row->learnable) return;
-        StatsLearnSkillOriginal(stats, nullptr, SkillDatabase(), SkillFindOriginal(SkillDatabase(), nullptr, row->key));
+        stats->LearnSkill(SkillDatabase(), SkillFindOriginal(SkillDatabase(), nullptr, row->key));
     } else {
         // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
         std::uint32_t index = static_cast<std::uint32_t>(perkTop_ + region - kFirstHeld);
         if (index >= static_cast<std::uint32_t>(perks_.Count())) return;
         row = &perks_.begin[index];
         if (row->price > experience_ || TextLength(row->nextKey) == 0) return;
-        StatsLearnSkillOriginal(stats, nullptr, SkillDatabase(),
+        stats->LearnSkill(SkillDatabase(),
                                 SkillFindOriginal(SkillDatabase(), nullptr, row->nextKey));
     }
     stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);

@@ -6,6 +6,7 @@
 #include "magic_trap.h"
 
 #include "engine_object.h"
+#include "map_object.h"
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
@@ -256,10 +257,9 @@ EI_REPLACE_METHOD(0x0052A2C0, MagicTrap::SetUp);
 // --- Construction, destruction, Save / Load (ticket U8) ------------------------------------------
 
 namespace {
-// The map object's constructor and destructor body [0050E2D0 / 0050E660, rewritten in
-// map_object_lifetime.cpp], its Create and Destroy (slots 2 and 3, called directly) [0050E770 /
-// 0050E840, not rewritten], the map object part of Load / Save [0050F7A0 / 0050F900, not
-// rewritten]: all through their game addresses.
+// The map object's constructor and destructor body [0050E2D0 / 0050E660, map_object_lifetime.cpp], its
+// Create and Destroy (slots 2 and 3) [0050E770 / 0050E840], the map object part of Load / Save [0050F7A0 /
+// 0050F900].
 // A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
@@ -317,7 +317,7 @@ MagicTrap* MagicTrap::Construct() {
     inside.blockSize = kVictimBlockSize;
     ei::SetVtable(this, kVtableAddress);
 
-    MapObjectCreate(this);
+    static_cast<CMapObject*>(this)->CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -333,7 +333,7 @@ EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
 
 void MagicTrap::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
-    MapObjectDestroy(this);
+    DestroyMapObject();
     SetSpell(this, nullptr);   // 0052C690(0)
     Array12SetSizeOriginal(&area, nullptr, 0, -1);
     PointsSetSize(&points, nullptr, 0, -1);
@@ -426,7 +426,7 @@ void DestroyPtrList(PtrList& list) {
 } // namespace
 
 int MagicTrap::CreateTrap() {
-    int result = MapObjectCreate(this);
+    int result = static_cast<CMapObject*>(this)->CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -441,7 +441,7 @@ int MagicTrap::CreateTrap() {
 EI_REPLACE_METHOD(0x0052A100, MagicTrap::CreateTrap);
 
 void MagicTrap::DestroyTrap() {
-    MapObjectDestroy(this);
+    DestroyMapObject();
     SetSpell(this, nullptr);
     FreeCircles(area);
     PointsSetSize(&points, nullptr, 0, -1);

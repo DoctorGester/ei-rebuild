@@ -1,5 +1,6 @@
 // CEffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
+#include "map_object_shadow.h"
 #include "world_effect.h"
 
 #include "ai_map.h"
@@ -252,10 +253,10 @@ void CEffectMoshka::Follow(int objectId) {
     std::memcpy(&bird->position, &perch, sizeof(bird->position));
     console::CStringArray parts;
     Object3DMakeFigureOriginal(bird, nullptr, model, &parts, 1);
-    FigureLoadTexturesOriginal(attached);
+    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     Object3DSetAnimationsOriginal(bird, nullptr, model, 0);
-    Object3DRestartAnimationOriginal(bird);
-    FigureSwapTextureOriginal(attached, nullptr, texture, game::EmptyText());
+    bird->RestartPose();
+    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
     WorldClient()->AddObject(bird_);
     static_cast<CObject3DSpecific*>(attached)->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {

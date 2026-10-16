@@ -1,6 +1,8 @@
 // CWorldServer: the world part of a save (mission.sav): SaveWorld writes it, LoadSave reads it
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
+#include "bink_video.h"
+#include "map_object_figures.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -133,7 +135,7 @@ void WriteCopy(WorldStream* stream, const T& value) {
 // 00595080 (RET 4). Picks the loading movie for the zone. Patched by Rebirth: original address.
 __declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const char* /*zone*/) EI_ORIGINAL(0x00595080)
 // 005DA400. Shows the loading screen at `stage` (ECX).
-void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovieOriginal(stage); }
+void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 // 00665200. Empties a player before it is loaded.
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
@@ -201,8 +203,8 @@ double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)
 // 00554450. The unit controller's reposition after a move.
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
-void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
-void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) { ObjectSetupFigureOriginal((void*)a0, nullptr, a2); }
+void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { static_cast<CMapObject*>((void*)a0)->WriteFullState(); }
+void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) { static_cast<CObject3D*>((void*)a0)->SetUpAnimatedFigure(a2); }
 
 } // namespace
 

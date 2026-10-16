@@ -416,7 +416,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         float share = static_cast<float>(Weight(node->data.controller) * amount / divisor);
         float stored = share;
         node->data.share = stored;
-        DataGainExperience(node->data.controller, nullptr, stored);
+        static_cast<CUnitServer*>(node->data.controller)->AddExperience(stored);
         node = next;
     }
     ShareNode* cursor = list.head;
@@ -425,7 +425,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!unit || !ControllerOf(unit)) continue;
         ShareNode* node = cursor;
         cursor = node->next;
-        UnitStatsAddExperience(reinterpret_cast<UnitStats*>(MercRecord(p, 0).stats), nullptr, node->data.share);
+        reinterpret_cast<UnitStats*>(MercRecord(p, 0).stats)->AddScaledExperience(node->data.share);
     }
     for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CPlayerServer* state = p->server;
@@ -459,10 +459,10 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
-            DataGainExperience(ControllerOf(unit), nullptr, share);
+            static_cast<CUnitServer*>(ControllerOf(unit))->AddExperience(share);
             for (int j = 0; j < player->mercCount; ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
-                if (static_cast<int>(record.unitId) == heroes.data[i]) UnitStatsAddExperience(reinterpret_cast<UnitStats*>(record.stats), nullptr, share);
+                if (static_cast<int>(record.unitId) == heroes.data[i]) reinterpret_cast<UnitStats*>(record.stats)->AddScaledExperience(share);
             }
         }
         StatePartyExperience(player->server, nullptr, share);
@@ -501,7 +501,7 @@ CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { 
 CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddBeltEntryOriginal((void*)a0, nullptr, a2); }
 CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddSpellEntryOriginal((void*)a0, nullptr, a2); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
-CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
+CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
 
@@ -542,7 +542,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
     ClearRecordItems(record);
 
     for (int slot = 0; slot < kQuickSlots; ++slot) {
-        CEngineObject* item = UnitWeapon(static_cast<CUnit*>(unit), nullptr, slot);
+        CEngineObject* item = static_cast<CUnit*>(unit)->GetWeapon(slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord(party, record, item, RecordAddQuick);
         ItemSourceRef* ref = NewItemRecord(false);
@@ -558,7 +558,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         RefPtrAssign(&static_cast<CItem*>(item)->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
-        auto* item = static_cast<CItem*>(UnitQuickItem(static_cast<CUnit*>(unit), nullptr, slot));
+        auto* item = static_cast<CItem*>(static_cast<CUnit*>(unit)->GetQuickItem(slot));
         if (!item || static_cast<int>(item->count_) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
         entry->count_ = item->count_;   // before the null test
@@ -575,7 +575,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         if (old) RefObjectRelease(old);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
-        CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot);
+        CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot);
         if (!spell) continue;
         AddToRecord(party, record, spell, RecordAddSpell);
     }
@@ -629,11 +629,11 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     CUnitServer* controller = ControllerOf(unit);
     ClearRecordItems(record);
     for (int slot = 0; slot < kQuickSlots; ++slot)
-        if (CEngineObject* item = UnitWeapon(static_cast<CUnit*>(unit), nullptr, slot)) AddToRecord(party, record, item, RecordAddQuick);
+        if (CEngineObject* item = static_cast<CUnit*>(unit)->GetWeapon(slot)) AddToRecord(party, record, item, RecordAddQuick);
     for (int slot = 0; slot < kWornSlots; ++slot)
         if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddWorn);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
-        auto* item = static_cast<CItem*>(UnitQuickItem(static_cast<CUnit*>(unit), nullptr, slot));
+        auto* item = static_cast<CItem*>(static_cast<CUnit*>(unit)->GetQuickItem(slot));
         if (!item || static_cast<int>(item->count_) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
         std::uint32_t amount = item->count_;
@@ -646,7 +646,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
         if (entry) entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
-        if (CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot)) AddToRecord(party, record, spell, RecordAddSpell);
+        if (CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot)) AddToRecord(party, record, spell, RecordAddSpell);
     ControllerStoreStats(controller, nullptr, record->stats);
     if (world->sessionKind_ == 1) {
         record->moveMode2 = unit->moveMode2;

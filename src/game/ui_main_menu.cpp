@@ -1,6 +1,7 @@
 // The main menu (CMainMenu, ui_screens.h): its Create, version line, per-frame update, close, message
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
+#include "sound.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -19,6 +20,7 @@
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstdint>
 
@@ -111,7 +113,7 @@ EI_REPLACE_METHOD(0x006335E0, CMainMenu::AddVersionLine);
 // --- 006326B0: Create (slot 25) --------------------------------------------------------------
 
 void CMainMenu::Create() {
-    InterfaceResetSavedStateOriginal(interface_);
+    interface_->ResetSavedState();
     FlowPartyStepOriginal(Flow(), nullptr, 0);
     UiInputSide* inert = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
     if (inert) {
@@ -141,7 +143,7 @@ void CMainMenu::Create() {
     GameMarkInterfaceChangedOriginal(GlueB());
     GamePlayCameraPathOriginal(GlueB(), nullptr, kCameraPath);
     hour_ = 0.0f;
-    MusicPlayMainMenuOriginal(MusicSystem());
+    static_cast<CMusicSystem*>(MusicSystem())->PlayMainMenu();
 }
 EI_REPLACE_METHOD(0x006326B0, CMainMenu::Create);
 
@@ -186,7 +188,7 @@ EI_REPLACE_METHOD(0x00632910, CMainMenu::Close);
 
 void CMainMenu::OnMessageResult(int result) {
     FlowPartyStepOriginal(Flow(), nullptr, 0);
-    SetServerFlagOriginal(0);
+    GameSetServerPaused(0);
     if (result == 0x10001) {
         {
             mfc::CString path = *GameDirectoryOriginal(GlueA()) + kExitMovie;

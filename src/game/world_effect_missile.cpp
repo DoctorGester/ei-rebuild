@@ -1,6 +1,7 @@
 // Missiles: CEffectMissile (the homing base), CEffectArrow (a spell missile carrying a particle
 // source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
+#include "map_object_shadow.h"
 #include "world_effect.h"
 
 #include "base_manager.h"
@@ -343,10 +344,10 @@ void CEffectArrowFigure::Start(int update) {
     std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
     console::CStringArray parts;
     Object3DMakeFigureOriginal(figure, nullptr, model, &parts, 1);
-    FigureLoadTexturesOriginal(attached);
+    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
-    Object3DRestartAnimationOriginal(figure);
-    FigureSwapTextureOriginal(attached, nullptr, texture, game::EmptyText());
+    figure->RestartPose();
+    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
     WorldClient()->AddObject(figure_);
 }
 

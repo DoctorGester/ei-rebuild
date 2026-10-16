@@ -1,5 +1,6 @@
 // A window's 3D model preview (CUiModel, ui.h): its object's animations, parts and drawing. The
 // object is a CObject3D (map_object_figures.h). See docs/notes/ui.md, section 2.
+#include "map_object_shadow.h"
 #include "ui.h"
 
 #include "base_manager.h"
@@ -126,9 +127,9 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     CEngineObject* specific = object->attached;
     console::CStringArray parts;
     Object3DMakeFigureOriginal(object, nullptr, name, &parts, 1);
-    FigureLoadTexturesOriginal(specific);
+    static_cast<CObject3DClientSpecific*>(specific)->RegisterPartMaterials();
     Object3DSetAnimationsOriginal(object, nullptr, name, 0);
-    Object3DRestartAnimationOriginal(object);
-    FigureSwapTextureOriginal(specific, nullptr, from, to);
+    object->RestartPose();
+    static_cast<CObject3DClientSpecific*>(specific)->SetSkins(from, to);
 }
 EI_REPLACE_METHOD(0x005FC1F0, CUiModel::Load);

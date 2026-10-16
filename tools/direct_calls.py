@@ -318,9 +318,13 @@ def registrations(sources, library):
     return regs
 
 
+PATCHED_RANGES = []   # [start, end) of game code a Rebirth patch overwrites
+
+
 def kept_shims(sources):
     """address -> why it stays a forwarder."""
     kept = {}
+    PATCHED_RANGES.clear()
     for s in sources:
         for rx, why in ((RECORD, 'vector recorder (EI_RECORD)'), (STAND_IN, 'replay stand-in'),
                         (REBIRTH, 'Rebirth-patched function (EI_REBIRTH_IMPLEMENTS)')):
@@ -331,6 +335,9 @@ def kept_shims(sources):
             fn = (r.get('function') or '').split('+')[0]
             if re.fullmatch(r'[0-9A-Fa-f]{8}', fn):
                 kept.setdefault(int(fn, 16), 'Rebirth-patched function (config/rebirth_patches.csv)')
+            # A patch over code outside the function list (function "data") may cover function starts.
+            if re.fullmatch(r'[0-9A-Fa-f]{8}', r.get('site') or '') and (r.get('size') or '').isdigit():
+                PATCHED_RANGES.append((int(r['site'], 16), int(r['site'], 16) + int(r['size'])))
     if os.path.exists(SKIP):
         with open(SKIP, encoding='utf-8') as f:
             for r in csv.DictReader(f):
@@ -659,6 +666,26 @@ def renamed(s, start, name_end, name, close):
     return (start, close + 1, [name, (name_end, close + 1, column(s.raw, name_end) + 1, delta)])
 
 
+_VOID_DECL = re.compile(r'\bvoid\s*(?:const\s*)?\*\s*(?:const\s+)?([A-Za-z_]\w*)\s*[;,)=\[{]')
+_VOID_NAMES = {}
+
+
+def looks_void(expr, src):
+    # An object expression that is void* for sure (it names void) or by its last name: declared as a void*
+    # in its file or in a header. Saves a compile round per call (--cast-sites does the rest).
+    if 'void' in expr:
+        return True
+    last = re.search(r'([A-Za-z_]\w*)\s*$', expr)
+    if not last or last.group(1) == 'this':
+        return False
+    if 'headers' not in _VOID_NAMES:
+        _VOID_NAMES['headers'] = {n for h in _FREE_DECLS['all'] if h.path.endswith('.h')
+                                  for n in _VOID_DECL.findall(h.code)}
+    if src.path not in _VOID_NAMES:
+        _VOID_NAMES[src.path] = set(_VOID_DECL.findall(src.code))
+    return last.group(1) in _VOID_NAMES[src.path] or last.group(1) in _VOID_NAMES['headers']
+
+
 def rewrite_site(f, site):
     """(start, end, pieces) for one call site, or a reason. Pieces are strings and (start, end) ranges of
     the raw text, which are written with the edits inside them (a forwarder call in the arguments)."""
@@ -691,15 +718,15 @@ def rewrite_site(f, site):
             return None, f'EDX argument with an effect ({dummy})'
     rest = [_trimmed(s.code, args[2][0], close)[0], close] if nparams > 2 else None
     m = f.target.simple
-    site.uncast = f.kind == 'cast' and not (not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES)
-    if f.kind == 'cast' and (not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES):
+    needs_cast = f.kind == 'cast' and (not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES
+                                       or looks_void(self_code, s))
+    site.uncast = f.kind == 'cast' and not needs_cast
+    if needs_cast:
         cls = spelled_type(f.target.scope, s, site.start)
         if '<' in cls:
             return None, 'object passed as void* to a member of a class template'
         const = 'const ' if f.sig.params[0] == 'void const*' else ''
         head = [f'static_cast<{const}{cls}*>(', (sa, sb), ')->' + m]
-    elif f.kind == 'cast' and self_code == 'this':
-        return None, 'this passed as void*'
     elif self_code == 'this':
         head = [m]
     elif self_code.startswith('&') and not self_code.startswith('&&') and is_postfix(self_code[1:]):
@@ -786,6 +813,9 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
             continue
         if f.address in kept:
             f.reason = kept[f.address]
+            continue
+        if any(a <= f.address < b for a, b in PATCHED_RANGES):
+            f.reason = 'Rebirth patch over its code (config/rebirth_patches.csv site)'
             continue
         if len(regs[f.address]) != 1:
             f.reason = 'several registrations'
@@ -893,9 +923,9 @@ def plan(fwds, classes):
             continue
         for src, e in mine:
             edits[src].append(e)
-        for site in f.sites:
-            if getattr(site, 'uncast', False):
-                MARKERS[site.src].append(site.start)
+        if f.kind == 'cast':
+            for site in f.sites:
+                MARKERS[site.src].append((site.start, f.address, getattr(site, 'uncast', False)))
         for src, inc in incs:
             includes[src].add(inc)
         edits[f.src].append(('delete', f.start, f.end, f.address))
@@ -1009,25 +1039,27 @@ def apply(edits, includes, deleted_by_file):
     return sorted(out)
 
 
-MARKERS = defaultdict(list)   # src -> offsets of calls written without a cast that may need one
-LINE_MAP = {}                 # (path, line after --apply) -> 'path:line' before (for --cast-sites)
+MARKERS = defaultdict(list)   # src -> (offset, forwarder address, written without a cast) of void* calls
+LINE_MAP = {}                 # (path, line after --apply) -> ('path:line' before, address, uncast)
 
 
 def map_lines(src, ops):
     """Where the calls in MARKERS land after the edits: their lines before and after, in LINE_MAP."""
     raw = src.raw
-    top, pos = [], 0
+    top, pos, seen = [], 0, set()
     for o in sorted(ops, key=lambda o: (o[0], -o[1])):
-        if o[0] >= pos or o[0] == o[1]:
+        # render() writes every insertion at a place at once, so one of them stands for all.
+        if (o[0] >= pos or o[0] == o[1] == pos) and (o[0], o[1]) not in seen:
             top.append(o)
+            seen.add((o[0], o[1]))
             pos = max(pos, o[1])
-    for m in MARKERS.get(src, ()):
+    for m, address, uncast in MARKERS.get(src, ()):
         delta = 0
         for a, b, _ in top:
             if b <= m and not (a == b == m):
                 delta += render(raw, a, b, ops).count('\n') - raw.count('\n', a, b)
         old = raw.count('\n', 0, m) + 1
-        LINE_MAP[(src.path, old + delta)] = f'{src.path}:{old}'
+        LINE_MAP[(src.path, old + delta)] = (f'{src.path}:{old}', address, uncast)
 
 
 def rewritten(edits, includes, deleted_by_file):
@@ -1114,7 +1146,8 @@ def main(argv):
     fwds, classes = analyse(sources, decls, args.library, args.scope, {'cast': args.cast})
     edits, includes, done = plan(fwds, classes) if (args.apply or args.report) else ({}, {}, [])
     scoped = [f for f in fwds if f.in_scope]
-    reasons = Counter(re.sub(r' \(.*', '', f.reason) for f in scoped if f.reason)
+    reasons = Counter('listed in config/direct_calls_skip.csv' if f.reason.startswith('listed: ')
+                      else re.sub(r' \(.*', '', f.reason) for f in scoped if f.reason)
     print(f'{len(scoped)} forwarders in scope: {len(done)} convertible '
           f'({sum(1 for f in done if f.kind == "unused")} unused, {sum(len(f.sites) for f in done)} call sites), '
           f'{sum(reasons.values())} left')
@@ -1136,9 +1169,13 @@ def main(argv):
             out = os.path.join(ROOT, 'build', 'C13', 'uncast_calls.txt')
             os.makedirs(os.path.dirname(out), exist_ok=True)
             with open(out, 'w', encoding='utf-8') as fh:
-                fh.writelines(f'{p}:{n} {old}\n' for (p, n), old in sorted(LINE_MAP.items()))
-            print(f'{len(LINE_MAP)} calls through void* written without a cast: {os.path.relpath(out, ROOT)} '
-                  '(a compile error at one: add its "before" place to --cast-sites)')
+                fh.writelines(f'{p}:{n} {old} {a:08X} {"uncast" if u else "cast"}\n'
+                              for (p, n), (old, a, u) in sorted(LINE_MAP.items()))
+            uncast = sum(1 for _, _, u in LINE_MAP.values() if u)
+            print(f'{uncast} calls through void* written without a cast (every void* call in '
+                  f'{os.path.relpath(out, ROOT)}). A compile error at one: add its "before" place to '
+                  '--cast-sites; a static_cast between unrelated types: list the forwarder in '
+                  'config/direct_calls_skip.csv')
         review(done)
     return 0
 

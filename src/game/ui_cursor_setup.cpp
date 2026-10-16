@@ -74,7 +74,7 @@ void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
     if (void* memory = gamecrt::operator_new(sizeof(CursorImage))) {
         mfc::CString file = mfc::CString(name) + ".mmp";
-        image = CursorImageConstructOriginal(memory, nullptr, static_cast<const char*>(file), hotX, hotY, flag);
+        image = static_cast<CursorImage*>(memory)->Construct(static_cast<const char*>(file), hotX, hotY, flag);
     }
     images_.Add(image);
 }

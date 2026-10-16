@@ -37,6 +37,7 @@
 #include "originals_engine.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "ui_cursor.h"
 
 namespace {
 
@@ -391,7 +392,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     BinkClose()(bink);
     if (holder) holder->Release();
     SetFlag784751(1);
-    CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
+    static_cast<CCursor*>(Cursor())->SaveBackground(1);
     CursorShowOriginal(Cursor(), nullptr, 1);
     return escaped ? 0 : 1;
 }
@@ -429,7 +430,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         if (old) old->Release();
         movie.surfaceType = SurfaceType(holder);
         movie.screen = screen;
-        CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
+        static_cast<CCursor*>(Cursor())->SaveBackground(1);
     }
     BinkHeader* bink = movie.bink;
     int last = static_cast<int>(bink->frames) - 1;
@@ -451,7 +452,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         bink = movie.bink;
         if (bink->frames == bink->lastFrame) break;
     }
-    CursorLockOriginal(Cursor());
+    static_cast<CCursor*>(Cursor())->TakeLock();
     bink = movie.bink;
     CDXSurface* holder = movie.holder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
@@ -465,8 +466,8 @@ void __fastcall ShowLoadingMovie(int progress) {
         }
         if (OldPathDraws(holder)) Blt(primary, &movie.screen, holder, &source);
     }
-    CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
-    CursorUnlockOriginal(Cursor());
+    static_cast<CCursor*>(Cursor())->SaveBackground(1);
+    static_cast<CCursor*>(Cursor())->ReleaseLock();
 }
 EI_REPLACE(0x005DA400, ShowLoadingMovie);
 
@@ -544,7 +545,7 @@ void CBinkVideo::Close() {
     CDXSurface* old = holder;
     holder = nullptr;
     if (old) old->Release();
-    CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
+    static_cast<CCursor*>(Cursor())->SaveBackground(1);
     CursorShowOriginal(Cursor(), nullptr, 1);
 }
 EI_REPLACE_METHOD(0x005DBF70, CBinkVideo::Close);

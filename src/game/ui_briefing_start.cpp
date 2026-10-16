@@ -210,7 +210,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
                                    leaderPlace.z - personPlace.z, 1, immediate_, 0);
     }
     if (immediate_)
-        BriefingStartPhrasesOriginal(this);
+        StartPhrases();
     else
         state_ = kStateStarting;
 }
@@ -241,7 +241,7 @@ void CBriefingScreen::ClearShownItems() {
 void CBriefingScreen::FinishDialogue() {
     if (voice_ != -1) sound::Manager()->StopSound(voice_);
     voice_ = -1;
-    MusicFadeInOriginal(MusicSystem());
+    static_cast<CMusicSystem*>(MusicSystem())->FadeIn();
     ClearShownItems();
 
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {

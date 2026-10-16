@@ -485,7 +485,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     out->damageMax = StatsScaleDamage(&stats, nullptr, self, out->damageMax);
     out->damageMin = StatsScaleDamage(&stats, nullptr, self, out->damageMin);
     std::memcpy(&out->attackSpread, &Combat().attackSpread, sizeof(float));
-    DifficultyScaleParams(out, nullptr, keyed);
+    out->ScaleForDifficulty(keyed);
 }
 EI_REPLACE_METHOD(0x00555A00, CUnitServer::GetAttackParams);
 
@@ -586,7 +586,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
 EI_REPLACE_METHOD(0x0054F630, CUnitServer::BuildAttackHit);
 
 BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
-    int backstab = UnitIsBehind(unit, nullptr, target) & 0xFF;
+    int backstab = unit->IsBehind(target) & 0xFF;
     if (target->GetClassId() == kClassUnit &&
         reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller)->NoBackstab())
         backstab = 0;
@@ -657,7 +657,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             } else {
                 LastDamageSource(unit) = 7;
             }
-            UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+            stats.Recompute(ServerStatsOf(unit), unit);
             unit->MarkChanged(0);
             unit->MarkChanged(4);
             if (!dead) {
@@ -705,7 +705,7 @@ void CUnitServer::UpdateSizeClasses() {
     }
     float load = static_cast<float>(unit->BodyExtent());
     const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    double size = UnitSize(unit) * std::bit_cast<float>(model->sizeScale);
+    double size = unit->DoubleHeight() * std::bit_cast<float>(model->sizeScale);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
         size = LessOrUnordered(kHeroSizeCap, uncapped) ? kHeroSizeCap : uncapped;

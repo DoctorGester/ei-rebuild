@@ -306,7 +306,7 @@ void __fastcall Give(CStringArray* args) {
         // Rounded to float once, as the original stores it.
         float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
-            UnitStatsAddExperience(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(player->mercs)[i].stats), nullptr, share);
+            reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(player->mercs)[i].stats)->AddScaledExperience(share);
         return PlayerStateRefreshOriginal(state);
     }
     if (ArgIs(args, 1, 0x00792750)) {   // assortment

@@ -3,6 +3,7 @@
 // death and the AI's reactions to it (witnesses, hostility claims). See combat.h and
 // docs/notes/combat.md.
 #include "combat.h"
+#include "map_object.h"
 #include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
@@ -13,6 +14,7 @@
 #include "object_diplomacy.h"
 #include "party.h"
 #include "resource_manager.h"
+#include "unit.h"
 #include "world.h"
 
 #include "lib/crt.h"
@@ -231,7 +233,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
     float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > weapon->charge_) return;
-    CtlUseItemCharge(this, nullptr, weapon, cost);
+    UseItemCharge(weapon, cost);
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = ObjectSlots(target)->AimPoint(&point);
@@ -250,7 +252,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (cost > item->charge_) continue;
         bool fires = (spell->prototypeId_ & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;
-        CtlUseItemCharge(this, nullptr, item, cost);
+        UseItemCharge(item, cost);
         CUnit* self = unit;
         WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, self, &self->position, 0);
     }
@@ -275,7 +277,7 @@ EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
 
 BOOL CUnitServer::Heal(float amount) {
     if (!StatsHeal(&stats, nullptr, ServerStatsOf(unit), amount)) return 0;
-    UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+    stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was healed")->PutChar(10)->Apply(kLogEndLine);
@@ -391,7 +393,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
         BrainSetSeenOriginal(&brain, nullptr, attacker);
         unit->flags_ |= 0x80000;
-        CtlPropagateHostility(this);
+        PropagateHostility();
         std::uint32_t direction = HitDirection(attacker, hitKind);
         if (!keepHitDirection) hitDirection = direction;
         return;
@@ -413,7 +415,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             WitnessMurder(&theirs->brain.nearby, attacker, attacker);
         }
     }
-    MapObjectClearEffectsOriginal(unit);
+    unit->ClearEffects();
     SetDead(1);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
 
@@ -421,7 +423,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationListConstruct(&animation);
     animation.vtable = kAnimationStepsVtable;
     std::uint32_t direction = HitDirection(attacker, hitKind);
-    CtlBuildDeathAnimation(this, nullptr, &animation, direction, 1, 0);
+    BuildDeathAnimation(&animation, direction, 1, 0);
     animationHeld = 0;
     frozen = 0;
     AnimationSteps copy;
@@ -452,9 +454,9 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     std::uint32_t skill = action.source;
     if (skill != 1 && skill != 0) return;
     CUnit* other = target->GetClassId() == kClassUnit ? static_cast<CUnit*>(target) : nullptr;
-    float mine = static_cast<float>(StatsSkillValue(&stats, nullptr, 0, unit));
+    float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
     float theirs = 0;
-    if (other) theirs = static_cast<float>(StatsSkillValue(&ControllerOf(other)->stats, nullptr, 0, other));
+    if (other) theirs = static_cast<float>(ControllerOf(other)->stats.AttributeWithItems(0, other));
 
     GameLog()->Put("Unit")->Put(static_cast<long>(unit->id_))->Put(" is using skill ");
     const char* name;
@@ -530,7 +532,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 2: {
         // Not reached: skill 2 returned above (sic).
         if (!other) return;
-        if (ControllerTame(static_cast<CUnitServer*>(other->controller), nullptr, unit, mine) != 0) return;
+        if (static_cast<CUnitServer*>(other->controller)->TryTame(unit, mine) != 0) return;
         if (!unit->player) return;
         message = kMessageTameFailed;
         break;

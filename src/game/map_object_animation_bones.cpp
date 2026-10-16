@@ -2,6 +2,7 @@
 // map_object_figures.h): its lifetime, the bones the skeleton file links (005AC880 calls LinkPiece
 // per link, then FindRoot), the meshes the bones carry, and placing the skeleton when the
 // animation or the figure's morph changes. See docs/notes/map_objects.md.
+#include "map_object_animation.h"
 #include "map_object_figures.h"
 
 #include "base_manager.h"
@@ -275,7 +276,7 @@ void CFigureAnimationState::UpdatePose() {
     for (auto* node = bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
-        AnimationTrackEvaluateOriginal(bone->pose, nullptr, time);
+        static_cast<AnimationTrack*>(bone->pose)->Evaluate(time);
     }
     PlaceIfChanged();
 }

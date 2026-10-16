@@ -1,6 +1,7 @@
 // The briefing / base screen's phrases (CBriefingScreen::NextPhrase, ui_briefing.h): a dialogue
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
+#include "ui.h"
 #include "ui_briefing.h"
 
 #include "console.h"
@@ -122,13 +123,13 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (count < 2) continue;
         if (Compare(words[0], ShowCommand()) == 0) {
             if (count > 3 && Compare(words[3], WeaponWord()) == 0)
-                BriefingShowItemOriginal(this, nullptr, words[1], GameAtoi(words[2]) - 1, 0);
+                ShowItem(words[1], GameAtoi(words[2]) - 1, 0);
             if (count > 2)
-                BriefingShowItemOriginal(this, nullptr, words[1], GameAtoi(words[2]) - 1, 1);
+                ShowItem(words[1], GameAtoi(words[2]) - 1, 1);
             else
-                BriefingShowItemOriginal(this, nullptr, words[1], -1, 1);
+                ShowItem(words[1], -1, 1);
         } else if (Compare(words[0], HideCommand()) == 0) {
-            BriefingHideSpeakerOriginal(this, nullptr, words[1], skip, count > 2 ? 1 : 0);
+            HideSpeaker(words[1], skip, count > 2 ? 1 : 0);
         } else if (Compare(words[0], AnimationCommand()) == 0) {
             animation = GameAtoi(words[1]);
         } else if (Compare(words[0], CameraCommand()) == 0) {
@@ -176,10 +177,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
             }
             phraseTime_ = static_cast<float>(phrase.GetLength()) * kSecondsPerCharacter;
             if (firstPhrase_) phraseTime_ += 1.0f;
-            LogAddTextOriginal(text_, nullptr, phrase);
+            static_cast<CUiScrollText*>(text_)->AddText(phrase);
         }
     } else if (!skip) {
-        LogAddTextOriginal(text_, nullptr, phrase);
+        static_cast<CUiScrollText*>(text_)->AddText(phrase);
     }
 
     if (last) {
@@ -197,7 +198,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             mfc::CString label;
             auto add = [&] {
                 dialogueText_ += line;
-                if (!skip) LogAddTextOriginal(text_, nullptr, line);
+                if (!skip) static_cast<CUiScrollText*>(text_)->AddText(line);
             };
             auto addItems = [&](const BriefingRecord::NameList& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
@@ -291,7 +292,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     else
                         chosen = kViewPerson;
                 }
-                BriefingViewPresetOriginal(this, nullptr, chosen);
+                static_cast<CBriefingScreen*>(this)->ViewPreset(chosen);
             }
         }
     }
@@ -324,7 +325,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     firstPhrase_ = false;
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
-        LogSetTextOriginal(text_, nullptr, dialogueText_);
+        static_cast<CUiScrollText*>(text_)->SetText(dialogueText_);
         text_->CallSetPosition(text_->maxPosition_);
         text_->moved_ = true;
         for (BriefingSpeaker* p = speakers_; p != speakersEnd_; ++p) {

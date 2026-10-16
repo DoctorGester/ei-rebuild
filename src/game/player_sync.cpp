@@ -185,7 +185,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
             WriteText(&out_, EmptyText());
         }
         WriteDword(&out_, prototype);
-        if (object->flags_ & kFlagDeltaPending) MapObjectSendDeltaOriginal(object);
+        if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
         WriteStateStream(&out_, &object->NetState()->header_[0]);
         CPlayer* player = Owner();
         Keep(player->knownObjects_, player->maxObjectId_, object);
@@ -199,7 +199,7 @@ int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
     for (int i = 0; i < objects->size; ++i) {
         auto* object = static_cast<CMapObject*>(*next++);
         if (object->changeStamp != stamp) continue;
-        if (object->flags_ & kFlagDeltaPending) MapObjectSendDeltaOriginal(object);
+        if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
         WriteByte(&out_, kMessageObjectChanged);
         WriteDword(&out_, static_cast<std::uint32_t>(object->id_));
         WriteStateStream(&out_, &object->NetState()->header_[1]);

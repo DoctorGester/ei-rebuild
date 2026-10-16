@@ -70,7 +70,7 @@ void ClearReferenceList(mfc::CTypedPtrList<CEngineObject>& list) {
 } // namespace
 
 BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
-    float bonus = static_cast<float>(StatsSkillValue(&stats, nullptr, kStatTaming, unit));
+    float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
     int level = ServerSlots(this)->TameStage();   // slot 39
     float limit = static_cast<float>(level * 10) + bonus;
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
@@ -87,13 +87,13 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     case 1:
         ownSide = unit->side;
-        UnitSetSide(unit, nullptr, tamer->side);
+        unit->SetSide(tamer->side);
         Stage(this) = 2;
         break;
     case 2: {
         if (!tamerPlayer) break;
         PlayerTakeUnit(tamerPlayer);
-        UnitSetSide(unit, nullptr, tamer->side);
+        unit->SetSide(tamer->side);
         UnitSetPlayer(unit, nullptr, tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
         mode->refs = 0;   // written before the test, as the original does (one dword)
@@ -135,7 +135,7 @@ void CUnitServer::UndoTaming() {
     BrainRemoveMode(&brain, nullptr, kModeTamed);   // unit_ai.h: the tamed mode (8)
     UnitSetPlayer(unit, nullptr, nullptr);
     unit->SetRelationsB(0xFFFFFFFFu);
-    if (Stage(this) > 1) UnitSetSide(unit, nullptr, ownSide);
+    if (Stage(this) > 1) unit->SetSide(ownSide);
     Stage(this) = 0;
 }
 EI_REPLACE_METHOD(0x00552280, CUnitServer::UndoTaming);

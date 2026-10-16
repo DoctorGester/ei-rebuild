@@ -25,6 +25,7 @@
 #include "net_link.h"
 #include "object_tables.h"
 #include "texture.h"
+#include "ui_cursor.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -79,7 +80,7 @@ __declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0
 // 00581610 (RET 4): GameFlow::SaveGame's thunk (world_game.cpp), through its address.
 __declspec(naked) int __fastcall SaveGameAt(void* /*flow*/, void*, const char* /*slot*/) EI_ORIGINAL(0x00581610)
 // 005E5200 (RET 4): the cursor's shape (3 busy, 0 normal).
-int __fastcall CursorSetShape(void* a0, void*, int a2) { return CursorSetShapeOriginal(a0, nullptr, a2); }
+int __fastcall CursorSetShape(void* a0, void*, int a2) { return static_cast<CCursor*>(a0)->ChangeShape(a2); }
 // 005F75B0 (RET 4): the interface shows `text` in a notice band and draws a frame.
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top.
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
@@ -538,10 +539,10 @@ void CSaveLoadWindow::FillEntries() {
     if (static_cast<unsigned>(EntryCount()) > static_cast<unsigned>(kVisibleRows)) {
         int position;
         scrollbar_->TakePosition(&position);
-        ScrollbarSetRangeOriginal(scrollbar_, nullptr, EntryCount() - kVisibleRows);
+        scrollbar_->SetMaximum(EntryCount() - kVisibleRows);
         scrollbar_->CallSetPosition(position);
     } else {
-        ScrollbarSetRangeOriginal(scrollbar_, nullptr, 0);
+        scrollbar_->SetMaximum(0);
     }
     firstVisible_ = 0;
 }

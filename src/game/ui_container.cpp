@@ -117,7 +117,7 @@ void CUiContainer::RedrawChildTips() {
 EI_REPLACE_METHOD(0x00601090, CUiContainer::RedrawChildTips);
 
 void CUiContainer::ShowChildren(int show) {
-    WindowShowSurfacesOriginal(this, nullptr, show);
+    ShowSurfaces(show);
     for (int i = 0; i < children_.size; ++i) {
         CUiWindow* child = children_.data[i];
         if (child->enabled_) child->VirtualShow(show);

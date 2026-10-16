@@ -110,8 +110,8 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
         if (said.talking) SetTalking(unit->id_, true);
         said.delay = 0;
         if (kind != kSpeechAfterSpeech && kind != kSpeechAfterSpeech2) {
-            ClientSpeakOriginal(this, nullptr, &said);
-        } else if (!SoundBusy(speechSound) && ClientSpeakOriginal(this, nullptr, &said)) {
+            Speak(&said);
+        } else if (!SoundBusy(speechSound) && Speak(&said)) {
             speechSound = said.sound;
         }
     }

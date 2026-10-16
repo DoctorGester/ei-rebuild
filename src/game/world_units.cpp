@@ -1,6 +1,7 @@
 // CWorldServer::CreateUnits (0058EF20): creates units from unit records (script AddUnitToServer,
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
+#include "map_object_figures.h"
 #include "world.h"
 #include "world_data.h"
 #include "game_strings.h"
@@ -286,7 +287,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->fightAtWill));
         UnitRefreshStats(unit, nullptr);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        UnitReleaseAllItems(AsUnit(unit));
+        AsUnit(unit)->ReleaseAllItems();
 
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
         // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
@@ -306,7 +307,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
-        UnitSetPrototype23CByName(AsUnit(unit), nullptr, record->texts[6]);
+        AsUnit(unit)->SetPrototype23CByName(record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
@@ -378,14 +379,14 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
 namespace {
 
 // Object setup, through the original addresses (thiscall as fastcall).
-void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
-void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { MapObjectSendDeltaOriginal(a0); }
-void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { ObjectSetupFigureOriginal((void*)a0, nullptr, a2); }
+void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { static_cast<CMapObject*>((void*)a0)->WriteFullState(); }
+void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { static_cast<CMapObject*>(a0)->WriteChangedState(); }
+void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { static_cast<CObject3D*>((void*)a0)->SetUpAnimatedFigure(a2); }
 __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x0050F150)
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 __declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
-void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
+void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { static_cast<CUnit*>((void*)a0)->SetHostileMask((std::uint32_t)a2); }
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
 UnitPrototypeRecord** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (UnitPrototypeRecord**)PrototypeMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
@@ -558,7 +559,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
             UnitSetController(object, nullptr, nullptr);
-            UnitSetSide(reinterpret_cast<CUnit*>(object), nullptr, spec->side);
+            reinterpret_cast<CUnit*>(object)->SetSide(spec->side);
             UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);

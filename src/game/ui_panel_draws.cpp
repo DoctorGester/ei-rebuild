@@ -27,9 +27,9 @@ const char* NumberFormat() { return reinterpret_cast<const char*>(0x0078EEEC); }
 const char* CostFormat() { return reinterpret_cast<const char*>(0x00793F1C); }     // "%s %d (%d)"
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-// 005ECA10 (rewritten, ui_item_view.cpp; through its address so its wrapper runs): the owner screen
-// draws an item's model in a cell (RET 8).
-void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(owner), nullptr, pass, cell); }
+// 005ECA10 (rewritten, ui_item_view.cpp): the owner screen draws
+// an item's model in a cell (RET 8).
+void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { reinterpret_cast<CItemScreen*>(owner)->DrawItem(pass, cell); }
 
 // The window's surface text (005FDE20 Rebirth-patched: through its address).
 struct SurfaceText {

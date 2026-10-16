@@ -158,7 +158,7 @@ std::uintptr_t CUnit::SendEquipment() {
 EI_REPLACE_METHOD(0x00531110, CUnit::SendEquipment);
 
 std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
-    char* record = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, prototypeName);
+    char* record = unitdb::PrototypeTable().FindByName(prototypeName);
     if (!record) {
         prototype23C = -1;
         return 0xFFFFFFFFu;

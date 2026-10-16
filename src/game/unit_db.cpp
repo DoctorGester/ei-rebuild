@@ -316,7 +316,7 @@ void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, vo
     if (!ArchiveEnter(this, nullptr, id)) return;
     int count;
     if (loading_) {
-        for (SkillRecord* record = skills->begin(); record != skills->end(); ++record) SkillRecordDestroyOriginal(record);
+        for (SkillRecord* record = skills->begin(); record != skills->end(); ++record) static_cast<SkillRecord*>(record)->Destruct();
         skills->Finish() = skills->Start();
         count = ArchiveCount(this, nullptr, 1);
         SkillVectorResizeOriginal(skills, nullptr, static_cast<std::uint32_t>(count));
@@ -339,7 +339,7 @@ void ChunkArchive::SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* 
     if (!ArchiveEnter(this, nullptr, id)) return;
     int count;
     if (loading_) {
-        for (SkillLevelRecord* record = levels->begin(); record != levels->end(); ++record) SkillLevelDestroyOriginal(record);
+        for (SkillLevelRecord* record = levels->begin(); record != levels->end(); ++record) static_cast<SkillLevelRecord*>(record)->Destruct();
         levels->Finish() = levels->Start();
         count = ArchiveCount(this, nullptr, 1);
         SkillLevelVectorResizeOriginal(levels, nullptr, static_cast<std::uint32_t>(count));

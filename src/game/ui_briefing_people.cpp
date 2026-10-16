@@ -159,7 +159,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     // An item: one shown under this name goes first.
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
         if (Compare(node->name, name) != 0) continue;
-        BriefingHideSpeakerOriginal(this, nullptr, name, 0, 0);
+        HideSpeaker(name, 0, 0);
         break;
     }
     mfc::CString key(name);

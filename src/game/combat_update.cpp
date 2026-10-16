@@ -192,8 +192,8 @@ void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
     StepsCopyB(&Queue(self), nullptr, steps);
     StepsCopyB(&Queue(self), nullptr, steps);
     StartQueueIfUnset(self);
-    CtlPopFinishedSteps(self);
-    CtlShowCurrentStep(self);
+    self->PopFinishedSteps();
+    self->ShowCurrentStep();
 }
 
 // Whether a step is open-ended (a negative duration).
@@ -221,7 +221,7 @@ int CUnitServer::UpdateServer() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (VitalsRegenerate(ServerStatsOf(self), nullptr, &stats, self, action.kind != 0 ? 1 : 0)) {
-            UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+            stats.Recompute(ServerStatsOf(unit), unit);
             UnitMarkChanged(unit, nullptr, 0);
             UnitMarkChanged(unit, nullptr, 4);
         }
@@ -254,7 +254,7 @@ int CUnitServer::UpdateServer() {
         AlarmStep(&voice, nullptr, this);
         BrainThink(&brain);
         unit->flags_ &= ~kFlagSeen8000;
-        CtlPropagateHostility(this);
+        PropagateHostility();
         if ((unit->flags_ & kFlagFrozen) == 0 && keepHitDirection == 0 && state >= 0 &&
             (state <= kStateTurning || state == kStateChasing)) {
             UpdateOrders();
@@ -322,8 +322,8 @@ void CUnitServer::UpdateState() {
         StepsAppend(&Queue(this), nullptr, &SavedQueue(this));
         QueueTime(this) = SavedQueueTime(this);
         StartQueueIfUnset(this);
-        CtlPopFinishedSteps(this);
-        CtlShowCurrentStep(this);
+        PopFinishedSteps();
+        ShowCurrentStep();
         keepHitDirection = 0;
     }
     switch (state) {
@@ -346,7 +346,7 @@ void CUnitServer::UpdateState() {
     case kStateRecovering:
         if (Queue(this).count == 0) {
             state = kStateChasing;
-            UnitUpdateSizeClass(unit);
+            unit->UpdateSizeClass();
             DropEffectObject(this);
             using Callback = void(__fastcall*)(CUnit*);
             if (auto callback = reinterpret_cast<Callback>(actionDone)) {
@@ -388,7 +388,7 @@ void CUnitServer::AdvanceAnimation() {
         ++Plan(this).endTime;
     }
     unit->SetPathTimeShift(held ? 1 : 0);
-    if (CtlPopFinishedSteps(this)) {
+    if (PopFinishedSteps()) {
         if (queue.count == 0) {
             unit->SetMotionMode(0);
             return;
@@ -457,7 +457,7 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
         QueueTime(this) = steps->extra;
     }
     StartQueueIfUnset(this);
-    CtlPopFinishedSteps(this);
+    PopFinishedSteps();
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
@@ -470,7 +470,7 @@ EI_REPLACE_METHOD(0x00546C40, CUnitServer::PlaySteps);
 void CUnitServer::SetState(int newState) {
     state = newState;
     if (newState != kStateActing) {
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         DropEffectObject(this);
         return;
     }
@@ -486,7 +486,7 @@ void CUnitServer::StandStill() {
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->orientation);
-    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &direction, now)) UnitPathSpeeds(unit);
+    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
 EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
@@ -496,7 +496,7 @@ EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
 void CUnitServer::PlayHitReaction() {
     LocalSteps reaction;
     if (moveMode.mode == 0 && state == kStateIdle) return;
-    CtlBuildDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
+    BuildDeathAnimation(&reaction.steps, hitDirection, 0, 0);
     int duration = TotalDuration(reaction.steps);
     if (action.kind == kOrderAttack && state == kStateTurning &&
         TickOf(ObjectWorld(this)) + duration > nextAttackTime)
@@ -509,8 +509,8 @@ void CUnitServer::PlayHitReaction() {
     StepsAppend(&Queue(this), nullptr, &reaction.steps);
     QueueTime(this) = reaction.steps.extra;
     StartQueueIfUnset(this);
-    CtlPopFinishedSteps(this);
-    CtlShowCurrentStep(this);
+    PopFinishedSteps();
+    ShowCurrentStep();
     animationHeld = 1;
 }
 EI_REPLACE_METHOD(0x00547100, CUnitServer::PlayHitReaction);
@@ -521,7 +521,7 @@ void CUnitServer::EndOrder(char abort) {
     int now = WorldTime(this);
     bool open = HasOpenStep(Queue(this));
     if (abort != 0 || now < Plan(this).startTime || open) {
-        CtlSetState(this, nullptr, kStateChasing);
+        SetState(kStateChasing);
     } else {
         // A three-step plan (step out, action, step back): what is left of it is played out.
         if (Plan(this).animation.count == 3) {
@@ -545,14 +545,14 @@ void CUnitServer::EndOrder(char abort) {
                 } else {
                     rest.steps.extra = QueueTime(this);
                     StepsRemoveAt(&rest.steps, nullptr, 1, 1);
-                    CtlPlaySteps(this, nullptr, &rest.steps);
+                    PlaySteps(&rest.steps);
                 }
             }
         }
-        CtlSetState(this, nullptr, kStateRecovering);
+        SetState(kStateRecovering);
     }
-    PlanReset(&Plan(this));
-    CtlStandStill(this);
+    OrderPlanReset(&Plan(this));
+    StandStill();
 }
 EI_REPLACE_METHOD(0x00549690, CUnitServer::EndOrder);
 
@@ -561,7 +561,7 @@ EI_REPLACE_METHOD(0x00549690, CUnitServer::EndOrder);
 void CUnitServer::TickAction() {
     void* world = ManagerContextOf(this);
     int now = TickOf(world);
-    if (now == actingCheckTime) UnitUpdateSizeClass(unit);
+    if (now == actingCheckTime) unit->UpdateSizeClass();
     OrderPlan& plan = Plan(this);
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
@@ -569,9 +569,9 @@ void CUnitServer::TickAction() {
         QueueTime(this) = plan.animation.extra;
         StepsCopyB(&Queue(this), nullptr, &plan.animation);
         StartQueueIfUnset(this);
-        CtlPopFinishedSteps(this);
-        CtlShowCurrentStep(this);
-        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(UnitPrototypeModel(unit))->castEffect != 0) {
+        PopFinishedSteps();
+        ShowCurrentStep();
+        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel())->castEffect != 0) {
             // The world's timed object manager (+0x48) creates the effect.
             auto* objects = static_cast<CBaseManager*>(WorldServer()->manager48_);
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
@@ -617,7 +617,7 @@ void CUnitServer::TickAction() {
     plan.castKind = 8;
     if (state == kStateActing) {
         state = kStateRecovering;
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         DropEffectObject(this);
     }
     PathClear(Motion(this));
@@ -625,8 +625,8 @@ void CUnitServer::TickAction() {
     Vector3 axis;
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 backwards = -axis;
-    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &backwards, time)) UnitPathSpeeds(unit);
-    CtlSetStanding(this, nullptr, 0);
+    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &backwards, time)) unit->RefreshMotion();
+    SetStanding(0);
 }
 EI_REPLACE_METHOD(0x00549160, CUnitServer::TickAction);
 
@@ -681,7 +681,7 @@ void CUnitServer::TickItemSpells() {
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }
-        CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->manaCost_));
+        UseItemCharge(item, std::bit_cast<float>(spell->manaCost_));
         CUnit* self = unit;
         WorldCastSpellOriginal(world, nullptr, spell, self, &self->position, self, &self->position, 1);
         int countdown = static_cast<int>(spell->duration_) - 3;
@@ -720,7 +720,7 @@ void CUnitServer::RefreshItemSpells() {
         ItemList::Node* current = node;
         node = node->next;
         CEngineObject* item = current->data;
-        if (item->GetClassId() != kClassWeapon || item == UnitWeapon(unit, nullptr, unit->activeWeapon)) continue;
+        if (item->GetClassId() != kClassWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         if (current == items.head) items.head = current->next;
         else current->prev->next = current->next;
         if (current == items.tail) items.tail = current->prev;

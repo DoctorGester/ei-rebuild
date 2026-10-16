@@ -13,6 +13,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstdint>
 
@@ -163,7 +164,7 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
     if (key == kVkControl) {
         GameCursor()->SetShape(kCursorCtrl);
     } else if (key == kVkSpace) {
-        SetServerFlagOriginal(ServerFlagOriginal() == 0);
+        GameSetServerPaused(ServerFlagOriginal() == 0);
     }
 }
 EI_REPLACE_METHOD(0x005EBB80, UnitPickInput::OnKeyDown);

@@ -17,6 +17,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_ui.h"
+#include "ui.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -244,7 +245,7 @@ void ApplyAddonGuiVisibility(void* screen) {
     if (!g_applyGui) return;
     auto* bytes = static_cast<std::uint8_t*>(screen);
     for (int i = 0; i < *reinterpret_cast<int*>(bytes + 0x14C); ++i)
-        WindowSetEnabled((*reinterpret_cast<void***>(bytes + 0x148))[i], nullptr, g_guiShown ? 1 : 0, 0);
+        static_cast<CUiWindow*>((*reinterpret_cast<void***>(bytes + 0x148))[i])->SetEnabled(g_guiShown ? 1 : 0, 0);
     g_applyGui = !g_guiShown;
 }
 

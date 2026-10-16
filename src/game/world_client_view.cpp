@@ -201,7 +201,7 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                     object->flags_ &= ~kFlagVisible;
                     // Out of view: still listed for shadows when its shadow volume is in view.
                     if (ShadowInView(ModelOf(object))) {
-                        if (o3d->animation) FigureApplyPendingOriginal(o3d->animation);
+                        if (o3d->animation) o3d->animation->UpdatePose();
                         switch (object->GetClassId()) {
                         case 0x50: PushBack(frame.shadowUnits, entry); break;
                         case 0x52: PushBack(frame.shadow52, entry); break;

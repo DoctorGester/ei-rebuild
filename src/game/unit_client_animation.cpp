@@ -81,7 +81,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     float step = stored;
     if (!(step >= 0.0f)) {   // back in time (or NaN): only put back on the ground
         Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
-        position.z = static_cast<float>(UnitGroundHeightOriginal(unit, nullptr, position.x, position.y) +
+        position.z = static_cast<float>(static_cast<CUnit*>(unit)->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
         static_cast<CWorld*>(ObjectWorld(this))->MoveObject(unit, &position.x);
         return;
@@ -97,7 +97,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
         step = scaled;
     }
     CFigureAnimationState* state = unit->Object3D()->animation;
-    if (state && unit->motionMode != kMotionPaused) FigureAdvanceOriginal(state, nullptr, step);
+    if (state && unit->motionMode != kMotionPaused) state->Advance(step);
 }
 EI_REPLACE_METHOD(0x00535B30, CUnitClientSpecific::AdvanceTime);
 
@@ -111,9 +111,9 @@ void CUnitClientSpecific::RestartAnimation(float time) {
         char* first = nullptr;
         char* second = nullptr;
         if (unit->animationEntry != kNoEntry)
-            first = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->animationEntry));
+            first = unit->AnimationEntry(static_cast<std::uint8_t>(unit->animationEntry));
         if (unit->secondEntry != kNoEntry)
-            second = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->secondEntry));
+            second = unit->AnimationEntry(static_cast<std::uint8_t>(unit->secondEntry));
         if (first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, first);
         if (second) {
             if (!first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, second);
@@ -126,7 +126,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     state = unit->Object3D()->animation;
     if (step > 0.0f && state) {
         lastTime = static_cast<float>(start + step);
-        FigureAdvanceOriginal(state, nullptr, step);
+        state->Advance(step);
         state = unit->Object3D()->animation;
         lastAnimationTime = state->time;
         lastAnimation = state->current;

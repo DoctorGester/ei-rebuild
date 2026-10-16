@@ -7,6 +7,7 @@
 #include "object_tables.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -46,9 +47,9 @@ void CUnit::AdvanceTimeImpl(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!(IsTextKey(id_) & 0xFF)) return;
     float daylight = static_cast<float>(WorldDayTimeOriginal(ClientWorldObject()));
-    float range = static_cast<float>(UnitParamsVisionRangeOriginal(Params(), nullptr, daylight));
+    float range = static_cast<float>(Params()->VisionRange(daylight));
     if (moveMode == 0) range = range * kOne;
-    ClientWorldMarkSightOriginal(ClientWorldObject(), nullptr, &position.x, range);
+    static_cast<CWorldClient*>(ClientWorldObject())->MarkFootprintsInSight(&position.x, range);
 }
 EI_REPLACE_METHOD(0x0052FC40, CUnit::AdvanceTimeImpl);
 

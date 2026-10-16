@@ -6,6 +6,7 @@
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
+#include "text_reader.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -405,7 +406,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             LastQuest() = (*quests)[selectedQuest_];
         }
         int rows = quests->GetSize();
-        ScrollbarSetRangeOriginal(bar_, nullptr, rows > 5 ? rows - 5 : 0);
+        bar_->SetMaximum(rows > 5 ? rows - 5 : 0);
         bar_->CallSetPosition(0);
         firstRow_ = 0;
         CallRefreshQuests();
@@ -446,7 +447,7 @@ namespace {
 
 // The text reader's line steps (text_reader.cpp; called through their addresses).
 // The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
-// [0065CFE0, LogSetTextOriginal].
+// [0065CFE0].
 __declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
 // 0064EA80 [thiscall on the window]: fills the quest places (+0x1CC) of quest `name`.
 __declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, const char*) EI_ORIGINAL(0x0064EA80)
@@ -504,7 +505,7 @@ void CObjectivesWindow::ShowQuest() {
 
     // The text: a colour code, the quest's description, its rewards, then each sub-objective the
     // player has (q.<zone>.<quest>.<objective> not 0) with "completed" (2) or "failed" (3).
-    ReaderNextContentLine(texts);
+    TextNextLine(texts);
     texts->ReadToHash(&text, 1);
     {
         mfc::CString colour(game::Text(0x007946F8));
@@ -525,7 +526,7 @@ void CObjectivesWindow::ShowQuest() {
         }
     }
     while (TextFindLineOriginal(texts, nullptr, nullptr)) {
-        ReaderSplit(texts, nullptr, &fields, 1);
+        texts->Split(&fields, 1);
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], game::Text(0x007946DC))) break;      // "#quest"
         if (!SameText(fields[0], game::Text(0x007946D4))) continue;  // "#subobj"
@@ -549,8 +550,8 @@ void CObjectivesWindow::ShowQuest() {
         text += line;
         text += game::Text(0x007946A4);
     }
-    ReaderClose(texts);
-    LogSetTextOriginal(children_.data[0], nullptr, text);
+    TextClose(texts);
+    static_cast<CUiScrollText*>(children_.data[0])->SetText(text);
 
     // The quest's places on the zone picture: a red marker and a region each, after the exits'.
     MapRecord* map = FindZone(shownZone_);

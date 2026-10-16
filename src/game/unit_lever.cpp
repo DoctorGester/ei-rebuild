@@ -3,6 +3,7 @@
 #include "lever.h"
 
 #include "ai_map.h"
+#include "map_object_figures.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -96,7 +97,7 @@ void Lever::SetState(int wanted, float duration) {
         rate = 0.0f;
     }
     scale.y = travel;   // the shown position
-    ObjectSetupFigureOriginal(this, nullptr, name);
+    SetUpAnimatedFigure(name);
     UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
     AIMapEndRefreshOriginal(map);

@@ -10,6 +10,7 @@
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "unit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -59,7 +60,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
     if (!unit_) return;
 
     for (unsigned i = 0; i < 8; ++i) {
-        CEngineObject* spell = UnitSpell(unit_, nullptr, i);
+        CEngineObject* spell = unit_->GetSpell(i);
         if (!spell) continue;
         {
             ReturnedString image;
