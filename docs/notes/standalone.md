@@ -10,7 +10,7 @@ left. How changes are checked: docs/notes/standalone-verification.md. Per-ticket
 | Tie | Count |
 |---|---|
 | Unported game functions | 0 (S2 did the last 200, all under 5 bytes; 00656D69 is not a function) |
-| Forwarders (`EI_ORIGINAL`) | 2,344 addresses (3,817 before C13, 2,820 before C13a / C13c), nearly all to rewritten code (C13a1, C13d), 25 library; forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
+| Forwarders (`EI_ORIGINAL`) | 2,007 addresses (3,817 before C13, 2,820 before C13a / C13c, 2,344 before C13a1), nearly all to rewritten code (C13a2, C13d), 25 library; forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
 | Static initialisers | 748 in the .data list 00783004-00783BB0, all generated (S3); 190 exit functions generated (S3a, S16a) |
@@ -21,7 +21,13 @@ direct calls with `tools/direct_calls.py` (`--report -v --cast --library` lists 
 skip list config/direct_calls_skip.csv; check_cleanup ratchets the count per file). C13a recovered the real types
 of about 360 more (per-file shims replaced by the real classes: the script interpreter's world, brain, AI map, lever,
 stats and mode calls, the options' registry key, the window procedure's input; float bits passed with std::bit_cast);
-865 "types differ" are left for C13a1. S18 (after C13a1) removes
+C13a1 replaced the rest of the per-file shims (the UnitController overlay by CUnitServer, the script interpreter's
+call-only shims, the game glue objects, UiInput by UiContainerInput, the global map's and the stats panel's views, the
+registries by CFileRegistry, ui_gdi.h's GDI views by mfc::impl's classes, the sprite views by CUiMesh) and made 336
+forwarder sites direct calls (2,352 to 2,014). `direct_calls.py --loose` also converts forwarders whose types differ
+in ways a call site can spell (a cast written at the call; `--exclude` leaves files out, `--cast-sites` names calls that
+need a static_cast). The game glue (00578xxx) ignores `this`: its world_glue.h functions are called without the dummy
+this / EDX. 534 "types differ" (431 under --loose) and 102 skip-list rows are left for C13a2. S18 (after C13a2) removes
 the rest: generated definitions for the data addresses, vtables as real virtual classes, imports linked directly,
 plain new / delete; then the image and the read of game.exe go.
 
@@ -126,7 +132,7 @@ plain new / delete; then the image and the read of game.exe go.
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib, layout- and allocator-compatible with the exe; game-element instantiations in
   src/game (game_arrays, game_lists, game_slots, game_hashes, record_*, library_*). C13 made the matching CRT / MFC
-  call sites direct (libcrt::Fopen ...); the rest still go through forwarders (C13a1).
+  call sites direct (libcrt::Fopen ...); the rest still go through forwarders (C13a2).
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
@@ -342,8 +348,8 @@ User 2026-10-15: the standalone image is the only product, checked by the golden
 - S21g: `harness_heap.cpp`'s order observer and heap::Aside are gone. S21h: the EI_REBIRTH_IMPLEMENTS declarations are gone
   (they disagreed with config/rebirth_patches.csv: 23 declarations named patches the csv does not have, the Eip* plugin features and three WideScreen
   functions, and 37 "implemented" csv rows had none; the csv's status column is the record).
-- Left: 121 src/ comments about calls through an address "so the verify wrapper sees it" (C13 made most such
-  calls direct; the rest are C13a1's), tests/coverage/reach.txt (the last hook build's reach, kept).
+- Left: 81 src/ comments about calls through an address "so the verify wrapper sees it" (C13 / C13a1 made most such
+  calls direct; the rest are C13a2's), tests/coverage/reach.txt (the last hook build's reach, kept).
 
 **S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
 `--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each
