@@ -139,7 +139,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   (005F82D0 / 005F82F0 / 005F8310 multiplayer only; S via `slot_recorder.h`).
 - Cursor (`ui_cursor*.cpp`): `CCursor::Init` / `AddShape`, `ChangeShape` (callers keep `SetShape` through the address),
   `TakeLock` / `ReleaseLock` (mode 2 only), `Start` (thread 005E52A0 unless mode 1), `UpdatePosition` (frames every
-  125 ms; +0x08 the DirectInput mouse, +0x98 the thread). Frame draw, thread, `CCursor::Blit` and image construct:
+  125 ms; +0x08 the DirectInput mouse, +0x98 the thread). Frame draw, thread and image construct (the blend 005E5C40 is not ported):
   renderer.md (R9c2).
 - Flying hit points (`ui_flying_hit_points.cpp`): `Draw` (S, timeGetTime held, stand-in renderers replayed), `Add`
   (flag 8 starts 0.5 s later); numbers need option 17 (0079BE74).
