@@ -242,14 +242,6 @@ __declspec(naked) inline void* __fastcall ScrollTextConstructOriginal(void* /*me
 
 // A-I15. The client world (007AF5B8, thiscall, RET 4): 00565D00 the unit drawn at a screen point (the point's x, y; EAX
 // the object or null); 00566100 selects `unit` (null: clears the selection; no result).
-// The local view's orders (rewritten as CPlayerClient::SendWalk / SendAttack; through their address so the wrappers
-// run): 0066A7D0 walk (units, point, run; RET 0xC), 0066A880 attack (units, target, how, ctrl; RET 0x10). `units` is an
-// mfc::CArray<CUnit*>. Both return 1.
-__declspec(naked) inline int __fastcall LocalViewSendWalkOriginal(void* /*view*/, void*, const void* /*units*/,
-                                                                 const float* /*to*/, int /*run*/) EI_ORIGINAL(0x0066A7D0)
-__declspec(naked) inline int __fastcall LocalViewSendAttackOriginal(void* /*view*/, void*, const void* /*units*/,
-                                                                   void* /*target*/, int /*how*/, int /*ctrl*/)
-    EI_ORIGINAL(0x0066A880)
 // The interface's shutdown (005F4F90) calls: 00444BD0 (thiscall) the debug information panel
 // (0079B930, string_map.cpp) frees its surface and font; 00462DF0 writes config\keyboard.ini
 // (key_bindings.cpp).

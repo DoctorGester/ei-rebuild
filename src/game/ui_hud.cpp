@@ -1022,7 +1022,7 @@ namespace {
 // PartyArraySetSizeOriginal).
 using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
-// (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
+// (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
 // 0073B84C: the constant 1.0f the zone variable is compared with.
 float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
