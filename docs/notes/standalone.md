@@ -1778,7 +1778,6 @@ guide "Verification": a rewrite is checked by a golden scenario that reaches it,
   --no-hooks --vanilla-only`: PASS, 66 recorders the only hooks, 47 .vec files, merged into a scratch folder and replayed by
   ei_vectors with 0 problems. Tools' unit tests: 84 OK (test_work_sched's stand-in runs return empty counts).
 
-<<<<<<< HEAD
 **S21e (2026-10-16): InstallHooks' game.exe mode out; `verify` is the harness build.** game.exe only ever runs as the original
 game; the standalone image is the only place our code runs.
 - src/hook/hook.cpp InstallHooks: in the image every replacement goes in (EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, _SHORT);
@@ -1815,7 +1814,7 @@ game; the standalone image is the only place our code runs.
   code", 0 hooks), 7 the same, spells on Rebirth differs (Wolf4's #unit field from world update 180): S21c1's non-repeating
   original. `EI_VECTORS=1 units --no-hooks --vanilla-only --fresh`: PASS, 66 recorders the only hooks, 47 .vec files, merged
   into a scratch folder and replayed by ei_vectors with 0 problems. `--widescreen`: 4 runs PASS, WIDESCREEN FRAMES MATCH.
-=======
+
 **S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
 `--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each
 time first in two client units' flag 0x400 (CWorldClient's "model kept loaded" mark, CollectVisible: which models were
@@ -1849,4 +1848,3 @@ SV7c2 were not involved: with the mouse left out and all of them in, the goldens
   126 the same, 0 differ each time (about 30 runs a pass with the real cursor over a window, left out). After merging
   main (S21d): `--golden` 186 runs ALL PASS, 175 the same, 0 differ; `--no-hooks --golden --fresh` 136 runs ALL PASS,
   126 the same, 0 differ.
->>>>>>> worktree-agent-ad7bf399d7c90796a
