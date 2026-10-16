@@ -2484,3 +2484,9 @@ size = 1
 model = "sonnet"
 depends = ["D3"]
 note = "Area notes trimmed to current facts (docs/notes/standalone.mddocs/notes/standalone-verification.mdand docs/notes/work-board.mdleft to D3)."
+
+[[ticket]]
+id = "D3a"
+title = "Hooked-run and verify-wrapper comments in tests/verify and tools"
+group = "docs"
+note = "29 comment lines in tests/verify (harness.cpp, harness_address_order.h, harness_clock.cpp, harness_digest.cpp, harness_heap.h, harness_script_order.h, ui_census.cpp) and tools (coverage.py, gen_short_functions.py, gen_static_init.py, golden.py, randtrace.py, run_all.py, standalone_gaps.py, work_sched.py) still describe hooked runs, the hook build or verify_*.cpp wrappers (grep -niE 'hooked run|hook build|verify wrapper|verify_[a-z]+\\.cpp'); say what holds since S21e (game.exe only runs the original, our code only in the image). src's ~165 files with 'so the verify wrapper sees it' calls are C13's. Comment edits; both builds, no game runs."
