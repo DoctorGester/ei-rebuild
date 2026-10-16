@@ -350,16 +350,13 @@ game has no DirectDraw object, display mode, primary, render target, depth buffe
   the device object exists, only without DirectDraw (harness.cpp `ActivateWithoutDirectDraw`). A player's own start is
   in the foreground and gets the activation from Windows.
 
-Verify wrappers whose originals need DirectDraw run ours only without it: 004F0060 (its original's CreateSurface is
-refused), 005EC020 and 00655D40 (they write a texture lent through `memory_texture::Lend`; `CanLend` refuses at once,
-logged once), 005FFFB0 and 00656E10 through Lend's refusal, 004E6EE0 (BuildFormatTable: formats and ids not empty),
-00504A60 (SetGamma: false, the three values unchanged), 006913A0 (SetDevice: device stored, a tenth of 256 MB). The
-default suite therefore exercises the old-device comparisons only in the old-device scenarios; run `--dgvoodoo` now
-and then (or before touching the old device path). The five `present` scenarios are render_present,
-render_movie_present, render_present_cpuwindows, render_titles_present and ui_saveload (also `run_all --native`).
-Their captures (compare_frames, tolerance 8) show the same scenes as the old path's; the differences are what moves by
-itself (water, the global map's clouds, the clock, rain streaks: weather is not in the new frame): about 6% for
-after_movie against render_movie's own new frame and 20% between two `present` runs (the water's phase).
+Verify wrappers whose originals need DirectDraw run ours only without it: 004F0060 (its original's CreateSurface is refused), 005EC020 and 00655D40
+(they write a texture lent through `memory_texture::Lend`; `CanLend` refuses at once, logged once), 005FFFB0 and 00656E10 through Lend's refusal,
+004E6EE0 (BuildFormatTable: formats and ids not empty), 00504A60 (SetGamma: false, the three values unchanged), 006913A0 (SetDevice: device stored, a
+tenth of 256 MB). The default suite therefore exercises the old-device comparisons only in the old-device scenarios; run `--dgvoodoo` now and then
+(or before touching the old device path). The five `present` scenarios are render_present, render_movie_present, render_present_cpuwindows,
+render_titles_present and ui_saveload (also `run_all --native`). Their captures (compare_frames, tolerance 8) show the same scenes as the old path's;
+the differences are what moves by itself (water, the global map's clouds, the clock, rain streaks: weather is not in the new frame).
 
 ### R9c: everything the player sees through the new renderer's present (done)
 
@@ -399,18 +396,15 @@ after_movie against render_movie's own new frame and 20% between two `present` r
 
 ### PF3: no DirectDraw probes at startup in native runs (R9b1)
 
-User's decision (2026-10-14): only native runs (EI_RENDER "present" on the system's DirectDraw, run/native) and the
-standalone exe change; vanilla and Rebirth runs keep the original's probes and verify against them. 0045E310
-(`app_dxversion.cpp` GetDxVersion): in a native run (`render::Presenting()` and the DDRAW.DLL the game imports is not
-in game.exe's folder, i.e. no dgVoodoo) it probes nothing and returns 0x800 (what the probe gives on current Windows);
-"app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log. Elsewhere it probes
-as before (under dgVoodoo all four DirectDrawCreateEx stay, ~0.6 s). The verify wrapper (ours only) accepts 0x800. The
-probe used to fail now and then in native runs with several games on the machine ("DirectX 7 or later" message).
-WinMain to AIL_startup: 562 ms before, 57-68 ms after. Tried and dropped earlier: returning 0x800 without probing hung
-every native run in sound init (the probe's side effects, DirectMusic through CoCreateInstance and DDRAW.DLL left
-loaded, mattered to the sound code); with the PF3 skip the hang did not come back. A timed-out harness run logs the main thread's instruction
-pointer and return addresses (`LogMainThreadStack` in harness.cpp); a hang seen once in `AIL_waveOutOpen` (four
-scenarios at the same time on a shared machine) is what to read it for.
+Only native runs (EI_RENDER "present" on the system's DirectDraw, run/native) and the standalone exe change; vanilla and Rebirth runs keep the
+original's probes and verify against them. 0045E310 (`app_dxversion.cpp` GetDxVersion): in a native run (`render::Presenting()` and the DDRAW.DLL the
+game imports is not in game.exe's folder, i.e. no dgVoodoo) it probes nothing and returns 0x800 (what the probe gives on current Windows); "app:
+native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log. Elsewhere it probes as before (under dgVoodoo all four
+DirectDrawCreateEx stay, ~0.6 s). The verify wrapper (ours only) accepts 0x800. The probe used to fail now and then in native runs with several games
+on the machine ("DirectX 7 or later" message). Returning 0x800 without skipping the probe's side effects once hung every native run in sound init
+(DirectMusic through CoCreateInstance and DDRAW.DLL left loaded mattered to the sound code); with the PF3 skip the hang did not come back. A
+timed-out harness run logs the main thread's instruction pointer and return addresses (`LogMainThreadStack` in harness.cpp); a hang seen once in
+`AIL_waveOutOpen` (four scenarios at the same time on a shared machine) is what to read it for.
 
 ### R9c1: a lost Direct3D 11 device made again (done)
 
@@ -533,19 +527,13 @@ un_all.py --widescreen` still gives that comparison on request. compare_frames.p
 
 ### R10a: the SectorData::Light mismatch was our ShadeSun, not the renderer (done)
 
-- Cause: `SectorData::ShadeSun` (006C36B0, terrain_lighting.cpp) computed the underwater loss `falloff * absorption *
-  depth * depth` as `(falloff * absorption) * (depth * depth)`: /fp:fast regrouped the repeated factor (dumpbin of the
-  object). The original multiplies left to right, and Light runs with chop rounding, so the lit colour of underwater
-  vertices came out one step off in every scenario with water. ShadeSun's wrapper compares with CheckNear, so it
-  passed; Light compares the colour bytes exactly, and `lit * 255` truncated crosses an integer only when it sits
-  within that step of one, which is why a single record failed in some runs. LightVertex's water product
-  (`absorption * depth * depth * dz * dz * falloff`) had the same regrouping.
-- Fix: `Product(a, b, ...)` in vecmath.h (precise section: left to right, returned unrounded as `double`); both
-  products use it. Storing each partial product (RoundToFloat) broke Rebirth runs: the sun's position z there is a
-  denormal (0x1.30012p-129), so `z * z` stored as a float became 0 and `1 - z * z * loss` came out 1.0 instead of the
-  chopped 0.99999994. Partial products stay in the FPU, as in the original.
-- Verify: ShadeSun's wrapper adds "SectorData::ShadeSun bits" (the lit colour bit for bit); Light's wrapper logs both
-  records in hex floats at a mismatch.
+`SectorData::ShadeSun` (006C36B0, terrain_lighting.cpp) computed the underwater loss `falloff * absorption * depth * depth` as `(falloff *
+absorption) * (depth * depth)`: /fp:fast regrouped the repeated factor. The original multiplies left to right, and Light runs with chop rounding, so
+the lit colour of underwater vertices came out one step off. LightVertex's water product (`absorption * depth * depth * dz * dz * falloff`) had the
+same regrouping. Fix: `Product(a, b, ...)` in vecmath.h (left to right, returned unrounded as `double`). Storing each partial product
+(RoundToFloat) broke Rebirth runs: the sun's position z there is a denormal (0x1.30012p-129), so `z * z` stored as a float became 0 and `1 - z * z *
+loss` came out 1.0 instead of the chopped 0.99999994. Partial products stay in the FPU, as in the original. ShadeSun's wrapper adds "SectorData::
+ShadeSun bits" (the lit colour bit for bit).
 
 Other open items: the fog colour and range come from the old device state (not game data yet); weather's old draw
 (`CRainSnow::DrawParticles`) still runs next to the hand-over; GPU shadows; several steps (holders, saved pictures,
