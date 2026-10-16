@@ -3,7 +3,7 @@
 #include "link_figure.h"
 
 #include "model.h"
-#include "originals_world.h"   // FigureModelConstructOriginal, FigureModelDestructOriginal
+#include "originals_world.h"
 #include "resource.h"          // CMappedResource
 #include "texture.h"           // CTextureDevice
 
@@ -272,7 +272,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     }
     if (!files[0]) return nullptr;
     void* memory = gamecrt::operator_new(sizeof(FigureModel));
-    auto* set = static_cast<FigureModel*>(memory ? FigureModelConstructOriginal(memory) : nullptr);
+    auto* set = static_cast<FigureModel*>(memory ? ConstructFigureModel(static_cast<FigureModel*>(memory)) : nullptr);
     figureSets_[*name] = set;
     // The original indexes the map a second time (resize for one more element included).
     static_cast<FigureModel*>(figureSets_[*name])->Open(files[0], files[1], files[2]);
@@ -304,7 +304,7 @@ void CLinkFigureLoader::Destruct() {
     ClearArchives(archives_);
     for (auto* node = figureSets_.First(); node; node = figureSets_.After(node)) {
         if (FigureModel* set = node->value) {
-            FigureModelDestructOriginal(set);
+            DestroyFigureModel(set);
             gamecrt::operator_delete(set);
         }
     }

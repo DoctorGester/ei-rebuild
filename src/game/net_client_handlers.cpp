@@ -6,6 +6,7 @@
 // declared in net_messages.h. See docs/notes/network.md.
 #include "library_containers.h"
 #include "net_messages.h"
+#include "party.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "game_strings.h"
@@ -229,9 +230,9 @@ void ClientSession::RecordTrade(const void* party) {
     TradeRecordNode* record = tradeRecords_->prev;   // the node just added
     record->acceptedRevision = ours->acceptedRevision_;
     record->revision = ours->revision_;
-    PartyCopyFrom(&record->parties[0], nullptr, &parties_[0]);
-    PartyCopyFrom(&record->parties[1], nullptr, &parties_[1]);
-    PartyCopyFrom(&record->parties[2], nullptr, party);
+    record->parties[0].Party()->Assign(parties_[0].Party());   // 00661300
+    record->parties[1].Party()->Assign(parties_[1].Party());
+    record->parties[2].Party()->Assign(static_cast<CParty*>(const_cast<void*>(party)));
 }
 EI_REPLACE_METHOD(0x0041E0A0, ClientSession::RecordTrade);
 

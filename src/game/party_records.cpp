@@ -207,7 +207,7 @@ bool __fastcall PartyMapLoad(const void* map, void*, int, int, const int* key, v
     }
     MapNode* node = FindNode(map, *key);
     if (!node) return false;
-    PartyCopyFrom(target, nullptr, NodeValue(node));
+    static_cast<CParty*>(target)->Assign(static_cast<CParty*>(NodeValue(node)));
     return true;
 }
 EI_REPLACE(0x004A8790, PartyMapLoad);
@@ -215,7 +215,7 @@ EI_REPLACE(0x004A8790, PartyMapLoad);
 bool __fastcall PartyMapStore(void* map, void*, const int* key, const void* source) {
     MapNode* node = FindNode(map, *key);
     void* value = node ? NodeValue(node) : PartyMapAtOriginal(map, nullptr, key);
-    PartyCopyFrom(value, nullptr, source);
+    static_cast<CParty*>(value)->Assign(static_cast<CParty*>(const_cast<void*>(source)));
     return true;
 }
 EI_REPLACE(0x004A8800, PartyMapStore);

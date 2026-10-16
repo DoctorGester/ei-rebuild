@@ -759,7 +759,7 @@ struct TextureNames : VtArray {
     TextureNames() : VtArray{scenedata::TextureNameArrayVtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
         if (!data) return;
-        for (int i = 0; i < size; ++i) DestructTextureName(&Records()[i]);
+        for (int i = 0; i < size; ++i) figure::NamedRecordDestruct(reinterpret_cast<std::uint8_t*>(&Records()[i]));
         gamecrt::operator_delete(data);
     }
     TextureNameRecord* Records() { return reinterpret_cast<TextureNameRecord*>(data); }

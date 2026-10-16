@@ -85,6 +85,3 @@ __declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*rand
 // C3n batch 4. CMappedResource at its addresses (the wrappers run; Rebirth patches some): 00671280 (rewritten as
 // CMappedResource::Construct; plain RET) constructs it in `memory` and returns it.
 __declspec(naked) inline CMappedResource* __fastcall MappedResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x00671280)
-// 006721D0 (rewritten as CMMIOResource::Construct; plain RET): constructs a CMMIOResource (0x6C bytes; the archives, the
-// figure models' .mod / .bon / .anm parts, the terrain's archive) in `memory` and returns it.
-__declspec(naked) inline CMappedResource* __fastcall MmioResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x006721D0)

@@ -50,10 +50,6 @@ int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return 
 __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow* /*pos*/, const TradeRow*, int /*n*/)
     EI_ORIGINAL(0x00629E60)
 
-// 00626D70 (__fastcall): clamps the two scroll positions, shades the four arrows and draws.
-// 006261A0 through its address (the rewrite below when hooked).
-void ClampScrollAt(CTradePanel* panel) { TradePanelClampScrollOriginal(panel); }
-void DrawListsAt(CTradePanel* panel) { TradePanelDrawListsOriginal(panel); }
 
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
@@ -249,8 +245,8 @@ void CTradePanel::BuildLists() {
     std::memcpy(&plus, stats + 4, 4);
     std::memcpy(&minus, stats + 8, 4);
     experience_ = static_cast<int>(static_cast<double>(earned) + plus - minus);
-    ClampScrollAt(this);
-    DrawListsAt(this);
+    ClampScroll();   // 00626D70
+    DrawLists();     // 006261A0
 }
 namespace {
 void __fastcall TradeBuildLists(CTradePanel* self) { self->BuildLists(); }
@@ -542,7 +538,7 @@ void CTradePanel::Settle(int keep, int all) {
         TradeSnapshotRecord(this);
     else
         TradeRestoreRecord(this);
-    TradePanelBuildListsOriginal(this);
+    BuildLists();
 }
 EI_REPLACE_METHOD(0x006255A0, CTradePanel::Settle);
 
@@ -550,7 +546,7 @@ void CTradePanel::SelectHero(int index) {
     recordIndex_ = index;
     perkTop_ = 0;
     learnableTop_ = 0;
-    TradePanelBuildListsOriginal(this);
+    BuildLists();
 }
 EI_REPLACE_METHOD(0x00625860, CTradePanel::SelectHero);
 

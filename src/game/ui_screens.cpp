@@ -482,8 +482,6 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
 void CMpHeroScreen::CallShowHero(int index) { ShowHero(index); }
-void CMpHeroScreen::CallDrawVoices() { HeroScreenDrawVoicesOriginal(this); }
-void CMpHeroScreen::CallDrawHeroList() { HeroScreenDrawListOriginal(this); }
 
 char* CMpHeroScreen::Hero() { return Virtual<char*(__thiscall*)(CMpHeroScreen*)>(this, 51)(this); }
 void CMpHeroScreen::Refresh() { Virtual<void(__thiscall*)(CMpHeroScreen*)>(this, 47)(this); }
@@ -519,7 +517,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
     const auto& file = *reinterpret_cast<const mfc::CString*>(voices_[0] + voiceIndex_ * 8);
     *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
-    CallDrawVoices();
+    DrawVoices();
 }
 EI_REPLACE_METHOD(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 

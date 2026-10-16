@@ -26,6 +26,13 @@ class CAnimationNode;   // figure.h
 class CFigureMesh;      // figure_mesh.h
 class CObject3D;        // map_object_figures.h
 
+namespace figure {
+// 0044C490 / 00454360 (figure_slots.cpp): a record whose only member to destroy is the CString at +4,
+// and its scalar deleting destructor (flags & 1 frees it; returns it).
+void __fastcall NamedRecordDestruct(std::uint8_t* self);
+void* __fastcall NamedRecordDelete(std::uint8_t* self, void*, unsigned flags);
+} // namespace figure
+
 namespace scene {
 
 // An MFC CArray of records (vtable, data, size, capacity, grow step: 0 is an eighth of the size, 4..1024)

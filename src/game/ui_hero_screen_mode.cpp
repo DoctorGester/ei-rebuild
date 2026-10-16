@@ -136,7 +136,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         window.surfaces_.data[2]->Freeze(1, 1);
         SetSelectionFrame(this, 15.0f, 310.0f, 180.0f, 325.0f);
         AddRows(this, 10, 180, 325, 15);
-        CallDrawVoices();
+        DrawVoices();
     } else if (mode == kModeStatistics) {
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 1);
         Enable(iconWindow_, 1);

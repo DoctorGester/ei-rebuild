@@ -8,6 +8,7 @@
 #include "sound.h"
 #include "net_session.h"
 #include "ui.h"
+#include "ui_screens.h"
 #include "world.h"
 #include "game_flow_data.h"
 #include "game_strings.h"
@@ -710,6 +711,10 @@ namespace {
 void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
 PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(0x007C82B0); }
+// A CParty seen as its records (PartyRecords) or through an untyped pointer; Assign / CopyConstruct
+// (00661300 / 006613C0) read the source non-const.
+CParty* AsParty(PartyRecords* records) { return reinterpret_cast<CParty*>(records); }
+CParty* AsParty(const void* party) { return static_cast<CParty*>(const_cast<void*>(party)); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
 } // namespace
@@ -760,9 +765,10 @@ void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
     CParty* party = player->Party();
-    PartyCopyFrom(GlobalParty(), nullptr, party);
+    AsParty(GlobalParty())->Assign(party);
     PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
-    PartySendTransferOriginal(GlobalParty(), nullptr, *reinterpret_cast<int*>(0x007C82A0));
+    // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
+    reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(*reinterpret_cast<const char* const*>(0x007C82A0));
     FlowUpdateFromServerOriginal(this);
 }
 
@@ -865,13 +871,13 @@ void GameFlow::RequestZoneChange(const char* zone, int entrance) {
 void GameFlow::RequestPartyZone5(const char* zone, const void* party) {
     state_ = 5;
     AsCString(requestTarget_) = zone;
-    PartyCopyFrom(RequestParty(), nullptr, party);
+    AsParty(RequestParty())->Assign(AsParty(party));
 }
 
 void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     state_ = 6;
     AsCString(requestTarget_) = zone;
-    PartyCopyFrom(RequestParty(), nullptr, party);
+    AsParty(RequestParty())->Assign(AsParty(party));
 }
 
 void GameFlow::DisconnectClient() { reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8))->DisconnectLocalPlayer(); }
@@ -1060,17 +1066,17 @@ void GameFlow::SwitchMultiplayerZone() {
     WorldPlayer* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0));
     if (player && player->server->flag70_) {
         World()->SyncPartyRecords(player);
-        PartyCopyFrom(&records.party, nullptr, player->Party());
+        AsParty(&records.party)->Assign(player->Party());
         World()->ClearPlayerItems(player);
     } else {
-        PartyCopyFrom(&records.party, nullptr, GlobalParty());
+        AsParty(&records.party)->Assign(AsParty(GlobalParty()));
     }
     AsCString(records.party.zone) = AsCString(zone7C_);
     RequestKind(3);
     if (Active(net::GameServer())) {
         state_ = 6;
         AsCString(requestTarget_) = zone7C_;
-        PartyCopyFrom(RequestParty(), nullptr, &records.party);
+        AsParty(RequestParty())->Assign(AsParty(&records.party));
     } else {
         auto* host = static_cast<net::HostMessage*>(net::GameClient()->info_);
         if (Active(host)) AsCString(records.party.zone) = host->zone_.start;
@@ -1078,7 +1084,7 @@ void GameFlow::SwitchMultiplayerZone() {
         if (Active(host)) {
             state_ = 5;
             AsCString(requestTarget_) = host->address_.start;
-            PartyCopyFrom(RequestParty(), nullptr, &records.party);
+            AsParty(RequestParty())->Assign(AsParty(&records.party));
         }
     }
     flag80_ = 1;
@@ -2138,7 +2144,7 @@ void SavedParties::Reload() {
                 SavedPartyEntry* eos = eos_;
                 if (finish != eos) {
                     if (finish) {
-                        PartyCopyConstructOriginal(&finish->records, nullptr, &entry->records);
+                        AsParty(&finish->records)->CopyConstruct(AsParty(&entry->records));
                         new (&finish->fileName) mfc::CString(AsCString(entry->fileName));
                     }
                     ++finish;

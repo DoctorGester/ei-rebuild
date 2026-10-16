@@ -1305,7 +1305,7 @@ int CWorldClient::Setup() {
         Construct570E40(&terrain->materials);
         Construct56FD30(&terrain->textureClass);
         Construct56FD30(&terrain->textureFrames);
-        MmioResourceConstructOriginal(&terrain->archive);
+        static_cast<CMMIOResource*>(&terrain->archive)->Construct();
         Construct570E70(&terrain->vertexTiles);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
         stlp::ConstructTableWithDword(reinterpret_cast<stlp::TableWithDword*>(&terrain->lights));
@@ -1332,7 +1332,7 @@ int CWorldClient::Setup() {
 
     auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
     if (manager) {
-        ManagerConstructBaseOriginal(manager);
+        static_cast<CBaseManager*>(manager)->ConstructBase();
         Construct56FD40(&manager->freeParticles, nullptr, 10);
         Construct5725E0(&manager->held_);
         manager->maxHeldId_ = 0;
@@ -1378,7 +1378,7 @@ int CWorldClient::Setup() {
     // The list manager: the base, then its CList's fields (in the original's order).
     auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
     if (lists) {
-        ManagerConstructBaseOriginal(lists);
+        static_cast<CBaseManager*>(lists)->ConstructBase();
         lists->list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
         lists->list.count = 0;
         lists->list.free = nullptr;
@@ -1392,7 +1392,7 @@ int CWorldClient::Setup() {
     lists->Init(this);
     auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
     if (arrays) {
-        ManagerConstructBaseOriginal(arrays);
+        static_cast<CBaseManager*>(arrays)->ConstructBase();
         arrays->current = nullptr;
         Construct5715D0(&arrays->list, nullptr, 10);
         ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);

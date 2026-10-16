@@ -99,7 +99,7 @@ void __fastcall DestroyFigureManager(char* object) {
     auto& table = manager->models_;
     ForEachNode(table, [](Node* node) {
         if (FigureModel* model = node->value) {
-            FigureModelDestructOriginal(model);
+            DestroyFigureModel(model);
             gamecrt::operator_delete(model);
         }
     });

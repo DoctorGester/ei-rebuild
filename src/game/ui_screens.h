@@ -403,10 +403,8 @@ public:
     // (scene object 2) on the selected hero.
     void DrawHeroList();
     MpVoiceVector& Voices() { return *reinterpret_cast<MpVoiceVector*>(voices_); }
-    // The three above through their original address (their wrappers run; ui_screens.cpp).
+    // ShowHero (ui_screens.cpp).
     void CallShowHero(int index);
-    void CallDrawVoices();
-    void CallDrawHeroList();
 
     // 006159E0 (slot 20, RET 4; ui_hero_screen.cpp). On the statistics page (11) the experience
     // lines on surface 2; then what is under the mouse for the description panel (the equipment

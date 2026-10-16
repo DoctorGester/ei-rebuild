@@ -61,7 +61,7 @@ struct TextGlue {
 void* TextGlue::Table() { return GameClientTexts(); }
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
-void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
+void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 // The camp screen as the hero screen builds it inline (the same fields as its constructor
 // 005F6240, with the texture cache's header node made by the tree's own allocator): container
@@ -124,7 +124,8 @@ void BackToMainMenu(CInterface3D* ui) {
 }
 
 // The heroes' map transfer (sent after a rename).
-int HeroesTransfer() { return *reinterpret_cast<const int*>(0x007C82A0); }
+// The multiplayer heroes' folder (007C82A0, a CString).
+const char* HeroesFolder() { return *reinterpret_cast<const char* const*>(0x007C82A0); }
 const char* RenameSeparator() { return game::Text(0x00793AA0); }   // " | "
 const char* RenameBar() { return game::Text(0x00793AA4); }         // "|"
 
@@ -177,7 +178,7 @@ void CMpHeroScreen::FinishRename() {
     CStringTrimRightOriginal(&base);
     typed = base + typed;
     name = typed;
-    PartySendTransferOriginal(MpHeroes().begin + heroIndex_ * kMpHeroSize, nullptr, HeroesTransfer());
+    reinterpret_cast<MpHeroRecord*>(MpHeroes().begin + heroIndex_ * kMpHeroSize)->WriteFile(HeroesFolder());   // 00662AC0
     CloseRenameEdit();
     CallShowHero(heroIndex_);
 }
@@ -204,7 +205,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     case VK_ESCAPE:
         if (renaming) {
             CloseRenameEdit();
-            CallDrawHeroList();
+            DrawHeroList();
         } else if (mode_ == kModeList) {
             BackToMainMenu(ui);
         } else if (mode_ == kModeStats) {
@@ -309,7 +310,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin()[index].file);
         HeroRecordOf(this)->texts[6] = file;
         MpHeroPlayVoice(this);
-        CallDrawVoices();
+        DrawVoices();
         return;
     }
 
@@ -590,7 +591,7 @@ EI_REPLACE(0x006186F0, MpHeroCreate);
 // --- 0061A350 / 00617E40 / 00615940: a hero deleted, the message box's answer ------------------------
 
 MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
-    PartyCopyFrom(party, nullptr, other->party);   // 00661300 by address: its wrapper runs
+    Party()->Assign(const_cast<MpHeroRecord*>(other)->Party());   // 00661300 (reads the source non-const)
     file = other->file;
     return this;
 }
@@ -647,7 +648,7 @@ void CMpHeroScreen::DeleteHero() {
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     RefreshHeroScroll();
-    CallDrawHeroList();
+    DrawHeroList();
     CallShowHero(heroIndex_);
 }
 
@@ -673,8 +674,8 @@ void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
     if (heroIndex_ >= 0 && static_cast<std::uint32_t>(heroIndex_) < MpHeroCount()) {
         MpHeroRecord* hero = MpHeroesBegin() + heroIndex_;
-        PartyCopyFrom(hero->party, nullptr, LocalPlayerData());
-        PartySendTransferOriginal(MpHeroesBegin()[heroIndex_].party, nullptr, HeroesTransfer());
+        hero->Party()->Assign(reinterpret_cast<CParty*>(LocalPlayerData()));
+        hero->WriteFile(HeroesFolder());
     }
     SetMode(this, nullptr, kModeList);
 }
@@ -755,10 +756,10 @@ void CMpHeroScreen::AddNewHero() {
     pattern.Format(HeroFilePattern(), static_cast<const char*>(MpHeroesFolder()));
     int highest = HighestFileNumber(pattern);
     record->file.Format(HeroFileFormat(), highest + 1);
-    PartyCopyFrom(record->party, nullptr, LocalPlayerData());
-    PartySendTransferOriginal(record->party, nullptr, HeroesTransfer());
+    record->Party()->Assign(reinterpret_cast<CParty*>(LocalPlayerData()));
+    record->WriteFile(HeroesFolder());
     RefreshHeroScroll();
-    CallDrawHeroList();
+    DrawHeroList();
     SetMode(this, nullptr, kModeList);
 }
 namespace {

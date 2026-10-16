@@ -450,7 +450,7 @@ void CMpHeroScreen::Create() {
     heroes->folder = GameDataPath() + game::Text(0x00793944);   // "mp\"
     ReloadHeroesAt(heroes);
     RefreshHeroScroll();
-    CallDrawHeroList();
+    DrawHeroList();
     heroIndex_ = heroes->records.size() == 0 ? -1 : 0;
     HeroScreenSetModeOriginal(this, nullptr, kModeHeroList);
     // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).

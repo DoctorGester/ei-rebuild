@@ -48,7 +48,7 @@ void CTradePanel::ClampScroll() {
     Arrow(this, 1)->visible_ = perkTop_ < perks_.Count() - kHeldRows ? 1 : 0;
     Arrow(this, 2)->visible_ = learnableTop_ > 0 ? 1 : 0;
     Arrow(this, 3)->visible_ = learnableTop_ < learnable_.Count() - kLearnableRows ? 1 : 0;
-    TradePanelDrawListsOriginal(this);
+    DrawLists();
 }
 namespace {
 void __fastcall TradeClampScroll(CTradePanel* self) { self->ClampScroll(); }
@@ -60,10 +60,10 @@ EI_REPLACE(0x00626D70, TradeClampScroll);
 void CTradePanel::OnLButtonDown(int, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
-    case kHeldUp: --perkTop_; TradePanelClampScrollOriginal(this); return;
-    case kHeldDown: ++perkTop_; TradePanelClampScrollOriginal(this); return;
-    case kLearnableUp: --learnableTop_; TradePanelClampScrollOriginal(this); return;
-    case kLearnableDown: ++learnableTop_; TradePanelClampScrollOriginal(this); return;
+    case kHeldUp: --perkTop_; ClampScroll(); return;
+    case kHeldDown: ++perkTop_; ClampScroll(); return;
+    case kLearnableUp: --learnableTop_; ClampScroll(); return;
+    case kLearnableDown: ++learnableTop_; ClampScroll(); return;
     default: break;
     }
     if (region >= kFirstSchool) interface_->PlaySound(kPerkSound, 0);
@@ -100,7 +100,7 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     }
     stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
     record.bought = 1;
-    TradePanelBuildListsOriginal(this);
+    BuildLists();
     if (hold) {
         heldRegion_ = region;
         holdTime_ = kFirstHold;
@@ -153,7 +153,7 @@ void CTradePanel::UpdateHeld() {
     if (row->level < kMaxLevel && row->price <= experience_) {
         ++*level;
         stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
-        TradePanelBuildListsOriginal(this);
+        BuildLists();
         return;
     }
     interface_->mouseCapture_ = nullptr;

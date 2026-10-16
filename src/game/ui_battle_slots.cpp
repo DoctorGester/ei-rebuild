@@ -266,12 +266,12 @@ void CBattleScreen::OnGameOver(char won) {
     if (!won) {
         interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x0079350C),   // "game_over"
+        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, game::Text(0x0079350C), // "game_over"
                                                    game::Text(0x00793518), 0x20000, 3, 1)               // "game_over_msg"
                      : nullptr;
     } else {
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x007942F0),   // "end_of_game"
+        box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, game::Text(0x007942F0), // "end_of_game"
                                                    game::Text(0x007942FC), static_cast<int>(0xFFFF0000u), 3, 1)   // "end_of_game_msg"
                      : nullptr;
     }

@@ -150,12 +150,12 @@ void CMpHeroScreen::Update() {
     int position;
     if (heroScroll_->TakePosition(&position)) {
         heroTop_ = position;
-        CallDrawHeroList();
+        DrawHeroList();
     }
     if (voiceScroll_->TakePosition(&position)) {
         voiceTop_ = position;
         if (mode_ != kModeNewHero) return;
-        CallDrawVoices();
+        DrawVoices();
     }
     if (mode_ != kModeNewHero) return;
 
@@ -394,7 +394,7 @@ void CMpHeroScreen::ShowHero(int index) {
     heroIndex_ = -1;
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
-        PartyCopyFrom(player, nullptr, MpHero(index));
+        static_cast<CParty*>(player)->Assign(static_cast<CParty*>(MpHero(index)));
         static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
     }
     MakePreview(1);
@@ -406,7 +406,7 @@ void CMpHeroScreen::ShowHero(int index) {
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
     turn_ = 0.0f;
-    CallDrawHeroList();
+    DrawHeroList();
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x00616910, CMpHeroScreen::ShowHero);

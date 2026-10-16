@@ -82,7 +82,7 @@ void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self) {
 void __fastcall DestroyPrintName(PrintRecord* self) { self->name.~string(); }
 
 void HeroRecordElement::Construct(MpHeroRecord* to, const MpHeroRecord& from) {
-    PartyCopyConstructOriginal(to->party, nullptr, from.party);
+    to->Party()->CopyConstruct(const_cast<MpHeroRecord&>(from).Party());   // 006613C0 (reads the source non-const)
     new (&to->file) mfc::CString(from.file);
 }
 

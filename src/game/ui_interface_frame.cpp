@@ -121,8 +121,7 @@ void CInterface3D::Update() {
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
                 static_cast<unsigned>(net::GameClient()->joinState_));
         void* memory = gamecrt::operator_new(0x180);
-        void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, this, reinterpret_cast<const char*>(0x0079242C),
-                                                         reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)
+        void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(this, reinterpret_cast<const char*>(0x0079242C), reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)
                            : nullptr;
         PushWindow(static_cast<CUiWindow*>(box), 1, 1);
     } else if (stackBegin_ != stackEnd_) {
@@ -145,7 +144,7 @@ __declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, vo
 // the interface's ShowWindow (005F7350: window, 1, 1).
 void __fastcall MenuSet578920(void*, void*, int a2) { GameStopSounds(a2); }
 void __fastcall MenuCall578940(void*, void*) { GameStopAmbience(); }
-void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
+void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 
 int Compare(const mfc::CString& word, std::uintptr_t text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(word)),

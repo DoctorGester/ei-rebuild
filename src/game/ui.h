@@ -520,8 +520,8 @@ public:
     std::uint16_t* Rgb565Copy(int width, int height);
     void Greyscale();
 
-    // Slot 0 (005FDA80, ui_surface_blit.cpp): blits the surface onto the render target when it is
-    // shown.
+    // Slot 0 (005FDA80, ui_surface_blit.cpp; UiSurfaceBlit below, for the classes that draw over
+    // it): blits the surface onto the render target when it is shown.
     void Blit() {
         using Fn = void(__thiscall*)(CUiSurface*);
         reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this);
@@ -565,6 +565,8 @@ static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
 static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
+// 005FDA80 (ui_surface_blit.cpp): CUiSurface's own draw (slot 0), for the classes that draw over it.
+void __fastcall UiSurfaceBlit(CUiSurface* surface);
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
 // contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).

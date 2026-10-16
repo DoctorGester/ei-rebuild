@@ -17,8 +17,6 @@ class CSpell;
 struct Projectile;
 struct WorldPlayer;
 
-__declspec(naked) inline void __fastcall PartyCopyFrom(void* /*party*/, void*, const void* /*from*/)
-    EI_ORIGINAL(0x00661300)
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
 // 004A91B0 (library, RET 4): the party manager's hash_map<int, CParty>::operator[] (a new key gets a
 // default party).
@@ -38,19 +36,11 @@ __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, voi
 __declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void* /*vector*/, void*, void* /*position*/,
                                                                             const void* /*value*/, unsigned /*count*/)
     EI_ORIGINAL(0x00619920)
-// 00662AC0 (RET 4, no result): a multiplayer hero record (MpHeroRecord, ui_screens.h) writes its party file into
-// the folder (a CString; the heroes' folder 007C82A0) passed as an int; rewritten as MpHeroRecord::WriteFile
-// (party_file.cpp), called through its address so the verify wrapper runs.
-__declspec(naked) inline void __fastcall PartySendTransferOriginal(void* /*party*/, void*, int /*transfer*/) EI_ORIGINAL(0x00662AC0)
 
 // C3i part 2. 00613820: the quick item record by name (RET 4). 006AD000: item factory MakeItem (RET 0x10, returns the item);
 // 006AD1E0: CreateSpell(name, owner) (RET 8, returns the spell). 006611D0: party record builder destructor, 00665200: player
 // clear, 00665A10: player disconnect (all plain RET, EAX not a result). 0066C180: creates a player object for a session (plain RET, EAX is the player or null).
 __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*party*/) EI_ORIGINAL(0x006611D0)
-// 006613C0 (RET 4; CParty::CopyConstruct, party_save.cpp): the party copy-constructed from `source` (which it
-// reads non-const); returns the party. Through its address so its check runs.
-__declspec(naked) inline void* __fastcall PartyCopyConstructOriginal(void* /*party*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x006613C0)
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)

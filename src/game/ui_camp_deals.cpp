@@ -89,7 +89,7 @@ void ReturnResults(CCampPages* camp, CParty* results, void* constructorList, CUi
         CItem* item = ItemAt(results, 0);
         bool made = MadeByConstructor(item);
         void* to = made ? constructorList : static_cast<void*>(PlayerParty());
-        CItem* moved = ItemScreenMoveItemOriginal(camp, nullptr, item, to, results, 0, 1, 0);
+        CItem* moved = static_cast<CItemScreen*>(camp)->MoveItem(item, static_cast<CParty*>(to), static_cast<CParty*>(results), 0, 1, 0);
         static_cast<CUiItemStrip*>(made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
     }
 }

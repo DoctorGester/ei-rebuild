@@ -36,7 +36,6 @@ __declspec(naked) inline void __fastcall Element25B0Destroy(void* /*element*/, v
     EI_ORIGINAL(0x004292C0)
 __declspec(naked) inline void __fastcall Element25ACDestroy(void* /*element*/, void*, int /*flags*/)
     EI_ORIGINAL(0x0042A5F0)
-__declspec(naked) inline void __fastcall DestructTextureName(void*) EI_ORIGINAL(0x0044C490)
 
 // 0040A3A0: CRefObject::Release (decrements the 16-bit count at +4, deletes through vtable slot 0 at zero; plain
 // RET, EAX is not a result). 0040F560: Quaternion::AxisY, writes the axis to `out` (RET 4) and returns it.
@@ -65,9 +64,6 @@ __declspec(naked) inline void __fastcall TransformSetHeading(CTransformObject* /
 __declspec(naked) inline void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // C3n. 00455930 (rewritten as CEngineObject::DestructBase; thiscall, plain RET): the engine object's destructor body.
 __declspec(naked) inline void __fastcall EngineObjectDestructBase(CEngineObject* /*object*/) EI_ORIGINAL(0x00455930)
-// C3o. 00402B20 (rewritten as CBaseManager::ConstructBase; thiscall, plain RET): the manager base constructor; returns
-// this (EAX = ECX at the end).
-__declspec(naked) inline void* __fastcall ManagerConstructBaseOriginal(void* /*manager*/) EI_ORIGINAL(0x00402B20)
 // C3o. 00405350 (rewritten as hash400::PositionsRemoveKey; thiscall, RET 4): an id -> pointer hash map (STLport
 // hash_map<int, T*>) removes `*key`; EAX the removed value, or null when the key was not there.
 __declspec(naked) inline void* __fastcall IdMapRemoveKeyOriginal(void* /*map*/, void*, const int* /*key*/)

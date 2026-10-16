@@ -45,7 +45,7 @@ mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field
 
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top (rewritten
 // elsewhere; called through its address as the other windows do).
-CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
+CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 } // namespace
 
 // --- Save/load window ----------------------------------------------------------------------------

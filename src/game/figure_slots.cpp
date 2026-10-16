@@ -37,7 +37,7 @@ EI_REPLACE(0x00453470, FigureDelete);
 void __fastcall NamedRecordDestruct(std::uint8_t* self) { reinterpret_cast<mfc::CString*>(self + 4)->~CString(); }
 EI_REPLACE(0x0044C490, NamedRecordDestruct);
 void* __fastcall NamedRecordDelete(std::uint8_t* self, void*, unsigned flags) {
-    DestructTextureName(self);
+    NamedRecordDestruct(self);
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }

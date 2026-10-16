@@ -46,7 +46,6 @@ __declspec(naked) void __fastcall LinksSetSize(VtArray*, void*, int, int) EI_ORI
 // The (type, name) array's elements: construct `count` at `p` (004553F0), destroy one (00454360,
 // the deleting destructor with flags 0).
 __declspec(naked) void __stdcall ConstructNamed(void* /*p*/, int /*count*/) EI_ORIGINAL(0x004553F0)
-__declspec(naked) void __fastcall DestroyNamed(void*, void*, int /*flags*/) EI_ORIGINAL(0x00454360)
 
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
@@ -144,7 +143,7 @@ static_assert(sizeof(NamedType) == 8);
 struct NamedElements {
     static void Construct(NamedType* elements, int count) { ConstructNamed(elements, count); }
     static void Destruct(NamedType* elements, int count) {
-        for (int i = 0; i < count; ++i) DestroyNamed(&elements[i], nullptr, 0);
+        for (int i = 0; i < count; ++i) figure::NamedRecordDelete(reinterpret_cast<std::uint8_t*>(&elements[i]), nullptr, 0);   // 00454360
     }
 };
 using NamedArray = mfc::CArray<NamedType, NamedElements>;

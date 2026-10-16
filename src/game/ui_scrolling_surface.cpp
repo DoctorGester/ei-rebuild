@@ -142,7 +142,7 @@ void CUiScrollingSurface::Draw() {
         startTime_ = now;
         RenderText();
     }
-    SurfaceBlitOriginal(this);
+    UiSurfaceBlit(this);
 }
 EI_REPLACE_METHOD(0x0065F170, CUiScrollingSurface::Draw);
 

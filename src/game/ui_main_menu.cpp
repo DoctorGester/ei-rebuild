@@ -235,7 +235,7 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
     void* box = gamecrt::operator_new(0x180);
-    if (box) box = MessageBoxConstructOriginal(box, nullptr, interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
+    if (box) box = static_cast<CMessageBox*>(box)->Construct(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
     interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 namespace {

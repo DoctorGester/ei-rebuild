@@ -227,7 +227,7 @@ EI_REPLACE_METHOD(0x00603010, CBriefingScreen::OnUnitLeft);
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"
     void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-    void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x0079350C),   // "game_over"
+    void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, game::Text(0x0079350C), // "game_over"
                                                      game::Text(0x00793518), kGameOverResult, 3, 1)       // "game_over_msg"
                        : nullptr;
     interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);

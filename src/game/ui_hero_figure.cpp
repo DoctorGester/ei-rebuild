@@ -98,7 +98,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     spellPanel_->ShowEntry(spellContainer_);
     MakePreview(0);
     statsPanel_->SetHero(0, nullptr);
-    TradePanelResetRecordsOriginal(tradePanel_);
+    tradePanel_->ResetRecords();
     tradePanel_->SelectHero(0);
     reinterpret_cast<mfc::CString&>(text_) = prototype;
     voiceIndex_ = 0;
@@ -112,7 +112,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
         (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);
     voiceScroll_->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
     voiceScroll_->CallSetPosition(0);
-    if (mode_ == kModeNewHero) CallDrawVoices();
+    if (mode_ == kModeNewHero) DrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x00616AC0, CMpHeroScreen::ChooseFigure);

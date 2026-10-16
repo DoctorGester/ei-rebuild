@@ -111,7 +111,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
 EI_REPLACE_METHOD(0x005E6D90, CUiMesh::Draw);
 
 int CUiMesh::CreateSprite() {
-    FigureCreateOriginal(this);
+    CreateMesh();
     material_ = nullptr;
     texture_ = nullptr;
     std::memset(&scaleMatrix_, 0, sizeof(scaleMatrix_));

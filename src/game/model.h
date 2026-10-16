@@ -550,6 +550,10 @@ struct FigureModel {
     void Open(const void* mod, const void* bon, const void* anm);
 };
 static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
+// 005A9A50 (figure_models.cpp) and 005A9C90 (figure_model_destroy.cpp): a figure model's constructor
+// (returns it) and destructor.
+FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
+void __fastcall DestroyFigureModel(FigureModel* model);
 
 // Loads .lnk link files and the figures they name (vtable 0073D808, 7 slots; created at startup with
 // figures.res and menus.res by 004F68C0, a Rebirth-patched function). A figure is a CLinkMesh of

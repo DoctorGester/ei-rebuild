@@ -63,7 +63,7 @@ bool IsMade(std::uint8_t* item) {
 // 005EE1B0 (CItemScreen::MoveItem, through its address): moves `item` from `from` to `to`; returns
 // the item now held.
 std::uint8_t* MoveBetween(CCampPages* camp, std::uint8_t* item, void* to, void* from, int limit, int merge, int turning) {
-    return reinterpret_cast<std::uint8_t*>(ItemScreenMoveItemOriginal(camp, nullptr, AsItem(item), to, from, limit, merge, turning));
+    return reinterpret_cast<std::uint8_t*>(static_cast<CItemScreen*>(camp)->MoveItem(AsItem(item), static_cast<CParty*>(to), static_cast<CParty*>(from), limit, merge, turning));
 }
 // 00621570 (CUiItemStrip::ScrollToItem, through its address).
 void ScrollTo(CUiItemStrip* strip, void* item) { strip->ScrollToItem(static_cast<CItem*>(item)); }

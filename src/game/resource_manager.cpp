@@ -64,8 +64,13 @@ BOOL CResourceManager::AddArchiveImpl(const char* path) {
     return AddArchiveOf(path, sizeof(CMappedResource), MappedResourceConstructOriginal);
 }
 
+namespace {
+// CMMIOResource::Construct (006721D0) on the archive's memory.
+CMappedResource* __fastcall ConstructMmioResource(void* memory) { return static_cast<CMMIOResource*>(memory)->Construct(); }
+} // namespace
+
 BOOL CResourceManager::AddMmioArchive(const char* path) {
-    return AddArchiveOf(path, sizeof(CMMIOResource), MmioResourceConstructOriginal);
+    return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
 }
 EI_REPLACE_METHOD(0x005AA360, CResourceManager::AddMmioArchive);
 

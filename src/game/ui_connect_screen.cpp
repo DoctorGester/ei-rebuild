@@ -103,8 +103,7 @@ void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(fr
 // A message box of `ui` on top (allocation failure: null pushed, as the original).
 void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_t result, int flags) {
     void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-    void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, ui, title, text, static_cast<int>(result), flags,
-                                                     kBoxFormat)
+    void* box = memory ? static_cast<CMessageBox*>(memory)->Construct(ui, title, text, static_cast<int>(result), flags, kBoxFormat)
                        : nullptr;
     ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
@@ -293,7 +292,7 @@ void CMpConnectScreen::Update() {
             void* box = nullptr;
             if (memory) {
                 mfc::CString text = key + MessageSuffix();
-                box = MessageBoxConstructOriginal(memory, nullptr, interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat);
+                box = static_cast<CMessageBox*>(memory)->Construct(interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat);
             }
             interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             return;
@@ -833,7 +832,7 @@ EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
 CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* titleKey, const char* textKey,
                                                 std::uint32_t result, const net::NetAddress* address,
                                                 std::uint32_t extra) {
-    MessageBoxConstructOriginal(this, nullptr, ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
+    static_cast<CMessageBox*>(this)->Construct(ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
     link_.Construct(address);
     vtable_ = Vtable();
     inputVtable_ = InputVtable();

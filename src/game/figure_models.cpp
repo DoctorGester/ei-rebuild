@@ -36,7 +36,7 @@ __declspec(naked) void __fastcall MapFind(ModelMap*, void*, ModelMap::Iterator*,
 __declspec(naked) ModelMap::Pair* __fastcall MapIndex(ModelMap*, void*, const StringSlot*) EI_ORIGINAL(0x004FBBD0)
 
 // The model's animation map: find (RET 8) and operator[] (RET 4). The animations are
-// CMMIOResources (0x6C bytes, MmioResourceConstructOriginal).
+// CMMIOResources (0x6C bytes, CMMIOResource::Construct).
 __declspec(naked) void __fastcall AnimFind(AnimationMap*, void*, AnimationMap::Iterator*, const stlp::string*) EI_ORIGINAL(0x005AD520)
 __declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*, const StringSlot*) EI_ORIGINAL(0x005ADC10)
 
@@ -81,7 +81,7 @@ FigureModel* CFigureManager::FindModel(const stlp::string* name) {
     if (!mesh) return nullptr;
 
     void* memory = gamecrt::operator_new(sizeof(FigureModel));
-    auto* model = static_cast<FigureModel*>(memory ? FigureModelConstructOriginal(memory) : nullptr);
+    auto* model = static_cast<FigureModel*>(memory ? ConstructFigureModel(static_cast<FigureModel*>(memory)) : nullptr);
     *ModelSlot(map, name, &StringRepDestroy) = model;
     FigureModel* parts = *ModelSlot(map, name, &StlStringDestroy);
     parts->mesh->OpenFromMemory(mesh);
@@ -105,7 +105,7 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
         void* memory = gamecrt::operator_new(0x6C);
-        CMappedResource* animation = memory ? MmioResourceConstructOriginal(memory) : nullptr;
+        CMappedResource* animation = memory ? static_cast<CMMIOResource*>(memory)->Construct() : nullptr;
         StringSlot key;
         StringCopyConstructOriginal(&key, nullptr, name);
         CMappedResource** slot = &AnimIndex(map, nullptr, &key)->value;
@@ -153,7 +153,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
                                                                     &FigureModel::animations};
     for (CMappedResource* FigureModel::*archive : kArchives) {
         void* memory = gamecrt::operator_new(0x6C);
-        model->*archive = memory ? MmioResourceConstructOriginal(memory) : nullptr;
+        model->*archive = memory ? static_cast<CMMIOResource*>(memory)->Construct() : nullptr;
     }
     return model;
 }

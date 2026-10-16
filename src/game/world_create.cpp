@@ -65,13 +65,13 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->windStrength_ = 0;
 
-    world->players_ = Make(sizeof(CBaseManager), ManagerConstructBaseOriginal, worlddata::kPlayerListVtable);
+    world->players_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, worlddata::kPlayerListVtable);
     Attach(world->players_, world);
     world->manager40_ = Make(0xBC, ConstructOn<CMapObjectManager, &CMapObjectManager::Construct>, 0);   // 005125E0
     Attach(world->manager40_, world);
     world->manager3C_ = Make(0xD0, ConstructOn<CFigureManager, &CFigureManager::Construct>, 0);   // 005AA070
     Attach(world->manager3C_, world);
-    world->manager48_ = Make(sizeof(CBaseManager), ManagerConstructBaseOriginal, worlddata::kTimedObjectsVtable);
+    world->manager48_ = Make(sizeof(CBaseManager), ConstructOn<CBaseManager, &CBaseManager::ConstructBase>, worlddata::kTimedObjectsVtable);
     Attach(world->manager48_, world);
     world->manager50_ = Make(0x24, ConstructOn<CSpellConstructor, &CSpellConstructor::Construct>, 0);   // 00683FF0
     world->manager50_->Create();
