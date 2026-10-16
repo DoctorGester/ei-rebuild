@@ -18,13 +18,13 @@ what the suite reached then (`collect` is gone), and scenarios added since are n
 Status of a function (coverage.csv):
   golden         a scenario with a vanilla golden reaches it
   vector         no golden scenario reaches it, but replayed vectors check it
-  suite          only scenarios without a golden reach it (the hook build's wrappers check it; the
-                 standalone exe does not, until those scenarios get goldens)
+  suite          only scenarios without a golden reach it (nothing checks it against the original
+                 until those scenarios get goldens)
   unreached      installed, but no scenario reaches it
   not-installed  rewritten, but the hook is not installed on vanilla (a SKIP in the log)
   startup, dead  unreached, and tests/coverage/unreachable.txt says why no scenario can reach it
 Risk (for suite and unreached): size in bytes x area weight (game state 3, network / interface /
-library 2, drawing and sound 1) x 2 when unreached x 1.5 when its verify wrapper runs ours only.
+library 2, drawing and sound 1) x 2 when unreached.
 """
 import argparse, csv, glob, os, re, struct, sys
 
@@ -82,19 +82,6 @@ def rewrites():
     for path, text in sources('src/**/*.cpp'):
         for m in rx.finditer(text):
             found.setdefault(int(m.group(1), 16), (m.group(2), path))
-    return found
-
-
-def wrappers():
-    """address -> 'original' (the wrapper runs the original through stolen bytes) or 'ours'."""
-    found = {}
-    rx = re.compile(r'\bEI_VERIFY\(\s*0x([0-9A-Fa-f]{8})\s*,\s*[^,]+,\s*([^,]+),')
-    for _, text in sources('tests/verify/**/*.cpp'):
-        for m in rx.finditer(text):
-            kind = 'ours' if m.group(2).strip() == '0' else 'original'
-            a = int(m.group(1), 16)
-            if found.get(a) != 'original':
-                found[a] = kind
     return found
 
 
@@ -163,7 +150,7 @@ def golden_scenarios():
 # ---- reach.txt ------------------------------------------------------------------------------------
 # "# scenarios: a b c ..." then one line per installed hook address: "ADDRESS NAME BITS", BITS a hex
 # bitset over the scenarios in that order (bit i = scenario i reaches it). NAME is the installed
-# entry's name from the log (the wrapper's, in the verify build).
+# entry's name from the log (a verify wrapper's, where the hook build had one).
 
 def read_reach():
     if not os.path.exists(REACH):
@@ -184,7 +171,6 @@ def read_reach():
 def build_rows():
     scenarios, reach = read_reach()
     names = rewrites()
-    kinds = wrappers()
     sizes = function_sizes()
     vec_names = recorders()
     vec_data = vector_files()
@@ -212,13 +198,12 @@ def build_rows():
         else:
             status = known.get(a, ('unreached',))[0]
         size = sizes.get(a, 0)
-        wrapper = kinds.get(a, 'none')
         risk = 0
         if status in ('suite', 'unreached'):
-            risk = size * area_weight(path) * (2 if status == 'unreached' else 1) * (1.5 if wrapper == 'ours' else 1)
+            risk = size * area_weight(path) * (2 if status == 'unreached' else 1)
         others = sorted(who - set(golden), key=lambda s: (s.startswith('watchdog'), s))
         rows.append({
-            'address': f'{a:08X}', 'name': name, 'file': path, 'size': size, 'wrapper': wrapper,
+            'address': f'{a:08X}', 'name': name, 'file': path, 'size': size,
             'status': status, 'risk': int(risk), 'scenarios': len(who), 'golden': ' '.join(golden[:4]) + (f' +{len(golden) - 4}' if len(golden) > 4 else ''),
             'vector': vector, 'reached_by': ' '.join(others[:3]) + (f' +{len(others) - 3}' if len(others) > 3 else ''),
         })
@@ -269,7 +254,7 @@ def top(args):
     pick = [r for r in rows if r['risk'] and (not args.area or args.area in r['file'])]
     pick.sort(key=lambda r: -r['risk'])
     for r in pick[:args.count]:
-        print(f"{r['risk']:7d} {r['status']:9s} {r['address']} {r['name'][:46]:46s} {r['size']:5d} {r['wrapper']:8s} "
+        print(f"{r['risk']:7d} {r['status']:9s} {r['address']} {r['name'][:46]:46s} {r['size']:5d} "
               f"{r['file'][9:] if r['file'].startswith('src/game/') else r['file']}"
               + (f"  [{r['reached_by']}]" if r['reached_by'] else ''))
 

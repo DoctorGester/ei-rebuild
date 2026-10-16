@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-option(EI_VERIFY "Build ei_hook with differential verification wrappers" OFF)
+option(EI_VERIFY "Build ei_hook with the harness and the vector recorders (tests/verify, tests/vectors)" OFF)
 
 # x87 floating point, as in the original: SSE rounds differently and would change behaviour.
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
@@ -131,7 +131,6 @@ target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
 target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 
-# Functions already verified in game run without their verify wrappers; disabled ones are not hooked.
+# Rewrites found broken in game: not hooked in game.exe (InstallHooks; the image runs them).
 add_custom_command(TARGET ei_hook POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/tests/verify/verified.txt $<TARGET_FILE_DIR:ei_hook>/verified.txt
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/tests/verify/disabled.txt $<TARGET_FILE_DIR:ei_hook>/disabled.txt)

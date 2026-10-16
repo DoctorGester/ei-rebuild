@@ -28,46 +28,16 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* replacement, const ch
     g_hooks = &entry;
 }
 
-HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* name, int stolen,
+HookRegistrar::HookRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen,
                              void** original)
-    : entry{address, wrapper, name, g_hooks, stolen, original, true} {
+    : entry{address, recorder, name, g_hooks, stolen, original, true} {
     g_hooks = &entry;
 }
-
-static VerifyInstallFn g_verifyInstall = nullptr;
-void SetVerifyInstall(VerifyInstallFn fn) { g_verifyInstall = fn; }
-
-static StartupCheck* g_startupChecks = nullptr;
 
 static StartupAction* g_startupActions = nullptr;
 
 StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupActions} {
     g_startupActions = &entry;
-}
-
-StartupCheckRegistrar::StartupCheckRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupChecks} {
-    g_startupChecks = &entry;
-}
-
-// Functions listed in verified.txt (next to the DLL) have passed verification and run without
-// their verify wrapper: the plain replacement is installed instead. One hex address per line.
-static std::unordered_set<std::uintptr_t> g_verified;
-
-static void LoadVerifiedList() {
-    char path[MAX_PATH];
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&LoadVerifiedList), &self);
-    GetModuleFileNameA(self, path, MAX_PATH);
-    if (char* slash = std::strrchr(path, '\\')) strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "verified.txt");
-    FILE* f = nullptr;
-    if (fopen_s(&f, path, "r") != 0 || !f) return;
-    char line[256];
-    while (std::fgets(line, sizeof(line), f)) {
-        unsigned long a = std::strtoul(line, nullptr, 16);
-        if (a) g_verified.insert(a);
-    }
-    std::fclose(f);
 }
 
 // Functions listed in disabled.txt (next to the DLL, from tests/verify/disabled.txt) are not hooked
@@ -95,10 +65,6 @@ static bool IsDisabled(std::uintptr_t address) {
     return g_disabled.count(address) != 0;
 }
 
-static bool IsVerified(std::uintptr_t address) {
-    return g_verified.count(address) != 0;
-}
-
 // The registered hooks by address, each address's entries in list order (the order the list is
 // walked in), so the lookups below do not scan the whole list per hook.
 static std::unordered_map<std::uintptr_t, std::vector<HookEntry*>> g_hooksByAddress;
@@ -108,21 +74,12 @@ static void IndexHooks() {
     for (HookEntry* h = g_hooks; h; h = h->next) g_hooksByAddress[h->address].push_back(h);
 }
 
-// The first verify entry registered for `address`.
-static HookEntry* VerifyEntry(std::uintptr_t address) {
-    auto it = g_hooksByAddress.find(address);
-    if (it == g_hooksByAddress.end()) return nullptr;
-    for (HookEntry* h : it->second)
-        if (h->verify) return h;
-    return nullptr;
-}
-
 // Our replacement registered for `address` (EI_REPLACE), or nullptr.
 static void* PlainReplacement(std::uintptr_t address) {
     auto it = g_hooksByAddress.find(address);
     if (it == g_hooksByAddress.end()) return nullptr;
     for (HookEntry* h : it->second)
-        if (!h->verify && !h->record) return h->replacement;
+        if (!h->record) return h->replacement;
     return nullptr;
 }
 
@@ -150,7 +107,7 @@ static void RedirectOurs(const HookEntry* recorder) {
     if (!ours) return;
     unsigned char* body = FollowJumpStubs(ours);
     for (HookEntry* h = g_hooks; h; h = h->next) {
-        if (h->address == recorder->address || h->verify || h->record || !h->replacement) continue;
+        if (h->address == recorder->address || h->record || !h->replacement) continue;
         if (FollowJumpStubs(h->replacement) == body) {
             Log("recording %s: our replacement is shared with %s, our calls are not recorded", recorder->name, h->name);
             return;
@@ -436,12 +393,10 @@ int InstallHooks() {
     }
 
     if (!standalone) DumpPatchedFunctions(file);
-    LoadVerifiedList();
     // The standalone image has no original to fall back on: a disabled rewrite runs there (S16a).
     if (standalone) Log("standalone: disabled.txt not applied (no original to run)");
     else LoadDisabledList();
     if (!g_disabled.empty()) Log("%u function(s) disabled (disabled.txt): the original runs", unsigned(g_disabled.size()));
-    if (!g_verified.empty()) Log("%u function(s) marked verified: running without verify wrappers", unsigned(g_verified.size()));
 
     // Rebirth's patches: the flags (ei_rebirth.ini, EI_REBIRTH, the harness), then what addon.dll
     // has applied (and EI_Plugin.asi will), which the flags follow in a Rebirth launch.
@@ -465,10 +420,6 @@ int InstallHooks() {
         action->run();
     }
 
-    // EI_PLAIN=1: no verify wrappers at all, every rewrite runs as it will without them (for timing runs).
-    char plainValue[4];
-    const bool plain = standalone || (GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1');
-    if (plain) Log(standalone ? "standalone: no verify wrappers" : "EI_PLAIN set: no verify wrappers");
     if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
     // In the standalone image the code section is INT3 until the jumps go in: a registered address that
@@ -501,23 +452,9 @@ int InstallHooks() {
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
         std::uint32_t size = FunctionSizeAt(h->address);
-        // The verify wrapper runs unless the function is verified, or it compares with the original
-        // (stolen bytes) and the rewrite applies an enabled Rebirth patch that the original here
-        // lacks (a vanilla launch with the flag on): then the plain replacement runs. Wrappers that
-        // run ours only and check the state keep running.
-        HookEntry* verifyEntry = VerifyEntry(h->address);
-        bool wrapper = verifyEntry && !IsVerified(h->address) && !plain;
         char why[256];
-        if (wrapper && verifyEntry->stolen > 0 && orig && size &&
-            rebirth_hook::FlagWithoutOriginal(h->address, size, orig, why, sizeof(why))) {
-            if (h->verify)
-                Log("UNVERIFIED %s at %08X: Rebirth patch %s is on but the original does not have it", h->name,
-                    static_cast<unsigned>(h->address), why);
-            wrapper = false;
-        }
-        if (!h->record && h->verify != wrapper) continue;
-        // One hook per address: a second registration of the same kind (two verify wrappers, a macro
-        // that registers besides an EI_VERIFY line) would never run.
+        // One hook per address: a second registration of the same kind (two plain replacements, two
+        // recorders) would never run.
         if (auto first = hookedBy.find(h->address); first != hookedBy.end()) {
             std::snprintf(why, sizeof(why), "a second registration (%s is installed there)", first->second);
             LogSkip(h, false, why);
@@ -556,7 +493,7 @@ int InstallHooks() {
         }
         rebirth_hook::Verdict verdict = standalone ? rebirth_hook::Verdict::Unpatched
             : rebirth_hook::Check(h->address, span, withHarness.empty() ? orig : withHarness.data(),
-                                  h->verify || h->record ? h->stolen : 0, why, sizeof(why));
+                                  h->record ? h->stolen : 0, why, sizeof(why));
         if (verdict == rebirth_hook::Verdict::Skip || verdict == rebirth_hook::Verdict::Unknown) {
             LogSkip(h, verdict == rebirth_hook::Verdict::Skip || rebirth_hook::RebirthLaunch(), why);
             continue;
@@ -565,8 +502,8 @@ int InstallHooks() {
             Log("Rebirth-patched %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
         // A pointer to a virtual member function is a dispatch thunk (MOV EAX,[ECX]; JMP [EAX+n]),
         // which would jump back into the hooked function forever. Every entry for the address is
-        // checked: a verify wrapper of a method registered through a thunk calls the same
-        // dispatch (CWorldClient::Create, 00561E50, overflowed the stack that way).
+        // checked: a second registration of a method through a thunk calls the same dispatch
+        // (CWorldClient::Create's verify wrapper, 00561E50, overflowed the stack that way).
         if (const HookEntry* thunk = ThunkEntryAt(h->address)) {
             std::snprintf(why, sizeof(why), "%s is a virtual-call thunk (register a non-virtual shim instead)", thunk->name);
             LogSkip(h, false, why);
@@ -591,15 +528,13 @@ int InstallHooks() {
         DWORD old = 0;
         const bool inText = text.Contains(h->address, 5);
         if (!inText) VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &old);
-        // The harness's heap-order check may put a thunk in front of a verify wrapper (and its trampoline).
-        void* const jumpTo = h->verify && g_verifyInstall ? g_verifyInstall(*h) : h->replacement;
         target[0] = 0xE9; // JMP rel32
         std::int32_t rel = static_cast<std::int32_t>(
-            reinterpret_cast<std::uintptr_t>(jumpTo) - (h->address + 5));
+            reinterpret_cast<std::uintptr_t>(h->replacement) - (h->address + 5));
         std::memcpy(target + 1, &rel, 4);
         if (!inText) VirtualProtect(target, 5, old, &old);
         FlushInstructionCache(GetCurrentProcess(), target, 5);
-        Log(h->record ? "recording %s at %08X -> %p" : h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
+        Log(h->record ? "recording %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
             static_cast<unsigned>(h->address), h->replacement);
         g_installed.emplace_back(h->address, PlainReplacement(h->address));
         hookedBy.emplace(h->address, h->name);
@@ -610,12 +545,6 @@ int InstallHooks() {
     if (shortLeft) Log("%d function(s) under 5 bytes left to the original (EI_REPLACE_SHORT)", shortLeft);
     if (runtimeLeft) Log("%d runtime function(s) left to the original (EI_REPLACE_STANDALONE)", runtimeLeft);
     if (g_unexpectedSkips) Log("%d unexpected SKIP(s) above: those rewrites never run", g_unexpectedSkips);
-    if (standalone || noHooks) return installed;
-    // The game's static initialisers have run and nothing else yet: their results are compared now.
-    for (StartupCheck* check = g_startupChecks; check; check = check->next) {
-        Log("startup check %s", check->name);
-        check->run();
-    }
     return installed;
 }
 

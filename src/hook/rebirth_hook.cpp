@@ -352,35 +352,6 @@ Verdict Check(std::uintptr_t address, std::uint32_t size, const unsigned char* o
     return Verdict::Implemented;
 }
 
-bool FlagWithoutOriginal(std::uintptr_t address, std::uint32_t size, const unsigned char* orig,
-                         char* why, std::size_t whySize) {
-    const unsigned char* live = Live(static_cast<std::uint32_t>(address));
-    for (const rebirth::Implements* d = rebirth::FirstImplements(); d; d = d->next) {
-        if (d->address != address) continue;
-        for (int k = 0; k < d->count; ++k) {
-            Patch p = d->patches[k];
-            if (!rebirth::Enabled(p)) continue;
-            bool originalHas = false;
-            for (const Site& s : kSites) {
-                if (s.patch != p || !Overlaps(s, address, size)) continue;
-                if (s.source == kEiPlugin) {
-                    originalHas |= EiPluginSiteActive(s);
-                } else {
-                    std::uint32_t from = s.address > address ? s.address - static_cast<std::uint32_t>(address) : 0;
-                    std::uint32_t to = s.address + s.size - static_cast<std::uint32_t>(address);
-                    if (to > size) to = size;
-                    originalHas |= std::memcmp(live + from, orig + from, to - from) != 0;
-                }
-            }
-            if (!originalHas) {
-                std::snprintf(why, whySize, "%s", rebirth::Name(p));
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 bool RelocateStolen(std::uintptr_t address, int stolen, unsigned char* trampoline) {
     // A JMP / CALL rel32 addon wrote at the function's start inside a larger site of its code
     // (EI_REBIRTH_LIVE_STOLEN: 005F7E30 jumps to 005F7E00 in WideScreen's code).

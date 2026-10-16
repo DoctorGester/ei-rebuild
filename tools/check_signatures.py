@@ -3,7 +3,7 @@ original pops (its RET n).
 
 Four bugs so far came from declaring a function with too few stack arguments or misreading them:
 the caller and callee then disagree on the stack and the game crashes later, far from the cause.
-For every EI_REPLACE / EI_REPLACE_METHOD / EI_ORIGINAL / EI_VERIFY in src/ and tests/, this takes
+For every EI_REPLACE / EI_REPLACE_METHOD / EI_ORIGINAL / EI_RECORD in src/ and tests/, this takes
 the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
 bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
 with the RET n instructions of the original function in game.exe.
@@ -163,8 +163,8 @@ def declarations(map_path=MAP):
 
 
 def registrations():
-    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_VERIFY and EI_RECORD
-    ('verify') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/."""
+    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_RECORD(_OURS)
+    ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/."""
     regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
                 glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) + \
@@ -178,8 +178,8 @@ def registrations():
         rel = os.path.relpath(path, ROOT)
         for m in re.finditer(r'EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
-        for m in re.finditer(r'EI_(?:VERIFY|RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
-            regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))
+        for m in re.finditer(r'EI_(?:RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
+            regs.append((int(m.group(1), 16), m.group(2), 'record', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))
     return regs
@@ -208,8 +208,8 @@ def candidates_for(by_name, name, kind, rel, key):
     candidates = by_name.get(name) or [c for n in _by_suffix(by_name).get(name, ()) for c in by_name[n]]
     obj = os.path.splitext(os.path.basename(rel))[0].lower() + '.cpp.obj'
     same_file = [c for c in candidates if c[1].endswith(obj)]
-    if kind == 'verify':
-        return same_file                       # file-local wrappers share names across files
+    if kind == 'record':
+        return same_file                       # file-local recorders share names across files
     if len({key(u) for u, _ in candidates} - {None}) > 1:
         return same_file or candidates
     return candidates

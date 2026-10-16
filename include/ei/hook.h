@@ -21,7 +21,6 @@ struct HookEntry {
     HookEntry* next;
     int stolen = 0;           // >0: build a trampoline from this many prologue bytes
     void** original = nullptr; // receives the trampoline (original function) address
-    bool verify = false;      // verification wrapper: takes precedence over a plain replacement
     bool record = false;      // vector recorder (EI_RECORD): installed only in record mode, then alone
     bool recordOurs = false;  // EI_RECORD_OURS: our replacement's own entry leads to the recorder too
     bool shortFunction = false; // EI_REPLACE_SHORT / EI_REPLACE_DISPATCH: installed in the standalone image only
@@ -33,9 +32,9 @@ struct HookEntry {
 struct HookRegistrar {
     HookEntry entry;
     HookRegistrar(std::uintptr_t address, void* replacement, const char* name);
-    // Verification wrapper: calls both implementations and compares. `stolen` must cover whole
-    // instructions with no relative operands (checked by hand from the disassembly).
-    HookRegistrar(std::uintptr_t address, void* wrapper, const char* name, int stolen, void** original);
+    // Vector recorder (RecordRegistrar): runs the original through a trampoline. `stolen` must cover
+    // whole instructions with no relative operands (tools/check_stolen.py).
+    HookRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original);
 };
 
 // Record mode (tests/vectors, EI_VECTORS=1 in the verify build): a recorder runs the original through
@@ -46,8 +45,6 @@ struct RecordRegistrar {
     RecordRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original,
                     bool ours = false)
         : registrar(address, recorder, name, stolen, original) {
-        registrar.entry.verify = false;
-        registrar.entry.record = true;
         registrar.entry.recordOurs = ours;
     }
 };
@@ -100,13 +97,6 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
-// Verification build (the harness's heap-order check, tests/verify/harness_heap_order.cpp): when set
-// before InstallHooks, called for every verify wrapper it installs, after the trampoline is built; it
-// returns where the game's jump goes (the wrapper, or a thunk in front of it) and may replace
-// *entry.original with a thunk in front of the trampoline.
-using VerifyInstallFn = void* (*)(const HookEntry& entry);
-void SetVerifyInstall(VerifyInstallFn fn);
-
 // The harness (verify build) patches `size` bytes of game code at `address` (`what`, a string
 // literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:
 // their registrations are left out as expected, not as unexpected skips.
@@ -125,19 +115,6 @@ const char* StandaloneExePath();
 // Called with a line naming it when the standalone image reaches game code that has no rewrite (an INT3
 // of the blank code section), before the process ends: the harness (verify build) puts it in its report.
 void SetMissingCodeHandler(void (*handler)(const char* what));
-
-// A check that runs once, right after the hooks are installed (the entry of WinMain). For code that
-// only runs before that, the game's static initialisers: what they built is still there, and the
-// check compares it with what the port builds. Verification build only (tests/verify).
-struct StartupCheck {
-    void (*run)();
-    const char* name;
-    StartupCheck* next;
-};
-struct StartupCheckRegistrar {
-    StartupCheck entry;
-    StartupCheckRegistrar(void (*run)(), const char* name);
-};
 
 // Code that runs once, in every build, right before the hooks are installed: the Rebirth flags are
 // known and other mods' patches are in place, nothing is hooked yet (the standalone build runs it
@@ -161,10 +138,10 @@ void InstallHooksAtWinMain();
 // Every registration macro below also leaves a record of the address, kind and place in the section
 // .eireg of the module (data nothing reads at run time; not const, or the compiler drops it): tools/check_registrations.py reads the
 // built ei_hook.dll and fails the build when one address has two registrations of a kind that
-// InstallHooks would install (two plain replacements, two verify wrappers, two recorders).
+// InstallHooks would install (two plain replacements, two recorders).
 #pragma section(".eireg", read, write)
 namespace ei {
-enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegDispatch, kRegVerify, kRegRecord, kRegRecordOurs };
+enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegDispatch, kRegRecord, kRegRecordOurs };
 struct RegRecord {
     std::uintptr_t address;
     const char* file;
@@ -215,12 +192,8 @@ extern "C" void ei_replay_dispatch();
     { __asm { mov eax, addr } __asm { jmp eax } }
 #endif
 
-// Verification build only (tests/verify_*.cpp): route `addr` to `wrapper`, and store a callable
-// pointer to the original code in `orig`.
-#define EI_VERIFY(addr, wrapper, stolen, orig)     EI_REG_RECORD(ei_reg_verify_, addr, ::ei::kRegVerify);     static ::ei::HookRegistrar EI_CAT(ei_verify_, __LINE__)(         addr, reinterpret_cast<void*>(&wrapper), #wrapper, stolen, reinterpret_cast<void**>(&orig))
-
-// Verification build only (tests/vectors/record_*.cpp): in record mode route `addr` to `recorder`,
-// which calls the original through `orig` (stolen bytes as for EI_VERIFY).
+// Verification build only (tests/vectors/record_*.cpp): in record mode route `addr` to `recorder`, and
+// store in `orig` a trampoline running the original (its first `stolen` bytes, then a jump back).
 #define EI_RECORD(addr, recorder, stolen, orig)     EI_REG_RECORD(ei_reg_record_, addr, ::ei::kRegRecord);     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
 
 // EI_RECORD for a function whose callers are rewritten (they call our replacement directly, never the
@@ -228,9 +201,6 @@ extern "C" void ei_replay_dispatch();
 // original and are recorded too. Only for replacements of at least 5 bytes not shared with another
 // function.
 #define EI_RECORD_OURS(addr, recorder, stolen, orig)     EI_REG_RECORD(ei_reg_record_ours_, addr, ::ei::kRegRecordOurs);     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig), true)
-
-// Verification build only: run `fn` (void()) once when the hooks have been installed.
-#define EI_STARTUP_CHECK(fn) static ::ei::StartupCheckRegistrar EI_CAT(ei_startup_, __LINE__)(&fn, #fn)
 
 // Run `fn` (void()) once before the hooks are installed, in every build (StartupAction).
 #define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)
