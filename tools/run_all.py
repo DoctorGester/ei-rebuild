@@ -5,7 +5,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                                [--clock virtual|real[,...]] [--golden]
        python tools/run_all.py --widescreen [--record] [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
-  default          the standalone image (S21: the hook builds retire, docs/notes/standalone.md section 5), as
+  default          the standalone image (S21: game.exe only runs the original, docs/notes/standalone.md section 5), as
                    --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out run\\vanilla's
                    game.exe without its code and loads ei_hook.dll, on the vanilla install's data with
                    EI_RENDER=new,present (install "standalone", vanilla goldens), and on the Rebirth install's data
@@ -21,7 +21,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    the recorders are the only hooks and the runs write function vectors (tools/vectors.py). A
                    scenario's line "# no original: <install>..." (vanilla, rebirth) leaves its runs there out:
                    checks only our renderer can pass, flags the original lacks (S21a). Since S21c no tool runs
-                   our code inside game.exe (the hooked runs, --native and --dgvoodoo are gone).
+                   our code inside game.exe (--native and --dgvoodoo are gone with it).
   renderers        The image draws with our renderer (EI_RENDER=new,present: no DirectDraw device, its own swap
                    chain, no display mode change), so its runs never need the machine to themselves. dgVoodoo
                    draws the original code (--no-hooks, --widescreen --record's rebirth-nohooks); such a run with
@@ -382,7 +382,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env):
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
     failures = [l[8:] for l in report.splitlines() if l.startswith('FAILED: ')]
-    # The verify wrappers' per-function totals until S21d; the slot stays in the result (the reference cache
+    # The per-function totals (verify wrappers, until S21d); the slot stays in the result (the reference cache
     # and the work database's run rows keep its shape), always empty.
     counts = {}
     notes = [l for l in (proc.stdout + proc.stderr).splitlines()
@@ -629,7 +629,7 @@ WIDESCREEN_COMPARE = ['--tolerance', '8', '--shift', '1', '--max-fraction', '0.0
 # {(scenario or '*', frame or '*'): [((x0, y0, x1, y1) in a WIDESCREEN_SIZE frame, x1 and y1 excluded, why), ...]}.
 WIDESCREEN_AREAS = {
     ('*', '*'): [((2712, 0, 3771, 14), 'the battle screen\'s top 14 rows right of the top panel: our renderer shows a '
-                                       'strip there that dgVoodoo does not, also in hooked runs (R10c)')],
+                                       'strip there that dgVoodoo does not (R10c)')],
     ('ui_widescreen_more', 'save'): [((1954, 360, 3002, 1154), 'the Save window\'s picture: a copy of the screen, '
                                                                'scaled down by each renderer')],
 }

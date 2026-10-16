@@ -22,8 +22,8 @@
 // the same addresses but for the reservation's base. Both sides of a comparison (--no-hooks and
 // ours) get it: it is the harness's, not the game's. Outside the harness nothing changes.
 //
-// That makes each side repeat itself, but ours and the original still allocate differently (the
-// verify wrappers run the original on scratch copies, which allocate too), so the units' addresses
+// That makes each side repeat itself, but ours and the original may still allocate differently (our code
+// is not the original's call for call), so the units' addresses
 // differ between the sides. For the one value the game takes from an address, the update countdown,
 // Install() also has both sides spread it by the object's id instead: the eight places in the
 // original code that compute it are patched (`SAR r,5 / AND r,0xF` becomes `MOV r,[r+0xC] / AND

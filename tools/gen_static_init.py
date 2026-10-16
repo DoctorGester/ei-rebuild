@@ -1,7 +1,7 @@
 """Generates src/standalone/static_init.cpp: game.exe's 748 static initialisers as C++.
 
 The C runtime runs the functions listed in .data at 00783004-00783BB0 (the C++ initialiser list,
-__xc_a + 4 to __xc_z - 4) before WinMain. The hook build lets the original run them; the standalone
+__xc_a + 4 to __xc_z - 4) before WinMain. In game.exe the original runs them; the standalone
 image (docs/notes/standalone.md section 2) has no code of game.exe and runs these instead, in list
 order, before WinMain.
 
@@ -618,7 +618,7 @@ def render_exits(exits):
         if body:
             cases.append(f'        {body}')
         cases.append('        return true;')
-        if name == 'nothing':   # under five bytes: the hook build leaves it to the original (EI_REPLACE_SHORT)
+        if name == 'nothing':   # under five bytes: registered as a short function (EI_REPLACE_SHORT)
             regs.append(f'EI_REPLACE_SHORT({hexa(fn)}, Ret);')
         else:
             wrappers.append(f'void __cdecl Exit{fn:08X}() {{ RunExitFunction({hexa(fn)}); }}')
@@ -719,8 +719,8 @@ EXIT_HEADER = '''\
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand:
 // src/game/atexit_400.cpp) and the function-local statics' ("atexit at" the call; S16a): @SUMMARY@.
 // Each is decoded from its instructions as a whole-function pattern; ExitFunction states its body over
-// static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit,
-// in the hook build too. A library type's destructor is called at its address in the image (a library
+// static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
+// A library type's destructor is called at its address in the image (a library
 // port, S4-S12; the standalone check logs the callees with no code yet).
 // tools/check_static_init.py (build.cmd) checks this file and the functions' sizes against game.exe.
 #include "static_init.h"

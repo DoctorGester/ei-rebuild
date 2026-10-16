@@ -1732,8 +1732,8 @@ bool TopLevel(DWORD style, HWND parent) { return !parent && !(style & WS_CHILD);
 // but nothing of it reaches the screen) and made a tool window (no taskbar button, not in Alt+Tab).
 // Its position, size, visibility and messages stay as they were, so the game, the harness's posted
 // input and the frames (read from the renderer's target, harness_capture.cpp) do not change.
-// EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run). Hooked runs keep theirs in
-// sight (dgVoodoo presents there).
+// EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run). A --no-hooks run (game.exe,
+// the original) keeps its own in sight (dgVoodoo presents there).
 bool g_conceal = false;
 decltype(&::DwmSetWindowAttribute) g_dwmSet;
 decltype(&::DwmGetWindowAttribute) g_dwmGet;

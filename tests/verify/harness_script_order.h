@@ -18,9 +18,8 @@
 //
 // The original's sites are patched after InstallHooks (the first message loop pass), not before:
 // NoteHarnessPatch would leave our rewrites of the five functions out, and a patch the hook DLL
-// did not note makes it skip them as Rebirth-patched. So ours stay installed, their verify wrappers
-// compare with the patched original (the trampolines run the original's body in place), and
-// --no-hooks runs patch the same bytes at the same point (no group exists before a world loads).
+// did not note makes it skip them as Rebirth-patched. So ours stay installed, and
+// --no-hooks runs (game.exe, the original) patch the same bytes at the same point (no group exists before a world loads).
 // Two different members with one id would be a tie the id order cannot settle; the stub logs the
 // first it meets (none can occur: world ids count up and are not reused while an object lives).
 
