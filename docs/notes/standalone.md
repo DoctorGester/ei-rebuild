@@ -1697,6 +1697,8 @@ frames are recorded once with the original game's harness and kept as references
   `extra - 4`, then `extra - 1`: one layout unit, 2.7 pixels): the 13 frames with the right-hand panels FAIL (2.4-2.95% and
   dense blocks of 70-93% for 4 units; 1.27-1.56% and 30-67% for one unit, the Save window's frame by the block rule alone),
   the 6 without them (menu, options, load, camp, the hero screens) pass.
+- Addon repeats: fresh `--no-hooks --rebirth-only --fresh` runs of ui_widescreen and ui_widescreen_hud (same harness)
+  against the recording: all 10 frames identical to the pixel (largest difference 0).
 - To know: the image's frames are the same from run to run (the counts above repeat to the pixel); addon's recording is
   only as good as its harness version. The reference cache's addon runs of 02:40 (another worktree's harness) had a
   different sea in `world` (20% of the frame) from this recording: if a harness change moves what the frames show,
