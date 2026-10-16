@@ -187,7 +187,6 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **I11** Harness step for clicks with modifier keys held (running since 2026-10-16; sonnet). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
@@ -199,6 +198,7 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 - **X36** Display-mode scenarios run alone (done 2026-10-14). Display-mode scenarios (`resolution` step) run alone: run_all takes every slot for them; message boxes end a run at once with text and stack.
 - **X35** Machine-wide cap of 16 harness games (done 2026-10-14). Machine-wide cap of 16 harness games (EI_HARNESS_SLOTS); 24 games crashed Windows twice (NVIDIA hang, bugcheck 0x133).
 - **X32** Rebirth runs: game still running 10 s after quit (done 2026-10-15). Rebirth runs no longer linger after quit: the harness answers the starter setting CtfMon = 0 so addon.dll does not start CTFMon.exe.
+- **I11** Harness step for clicks with modifier keys held (done 2026-10-16). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **X37** Build warnings C4244 / C4458 (done 2026-10-14; sonnet, 0.2 sessions). Build warnings C4244 (world_rules.cpp:48-49) and C4458 (map_object_client_effects.cpp) fixed. Files: `src/game/world_rules.cpp`, `src/game/map_object_client_effects.cpp`.
 - **X39** Native runs: DirectX 7 critical error box at startup (done 2026-10-14). Native-run 'DirectX 7' critical error box at startup is tracked as R9b1 and fixed by PF3 (native runs skip the GetDxVersion probe).
 - **PF2** Faster hook installation (done 2026-10-14; sonnet, 0.5 sessions). Faster hook installation: hooks indexed by address, .text unprotected once, trampolines allocated from one block (about 300 ms saved per launch). Files: `src/hook/hook.cpp`.
