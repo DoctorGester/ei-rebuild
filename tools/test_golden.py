@@ -160,6 +160,30 @@ class GoldenTest(unittest.TestCase):
         finally:
             golden.GOLDEN, golden.STORE = old
 
+    def test_snapshot_skips_harness_screenshots(self):
+        build = os.path.join(self.dir, 'build')
+        folder = self.run_folder('build/runs/levers-vanilla', digest())
+        saves = os.path.join(folder, golden.SAVES)
+        for name in ('shot0.bmp', 'Shot12.BMP'):
+            with open(os.path.join(saves, name), 'wb') as f:
+                f.write(b'BM')
+        with open(os.path.join(saves, 'savea', 'shot.bmp'), 'wb') as f:
+            f.write(b'BM')
+        with open(os.path.join(saves, 'keyboard.ini'), 'wb') as f:
+            f.write(b'k')
+        old, dest = golden.run_all.BUILD, os.path.join(self.dir, 'dest')
+        golden.run_all.BUILD = build
+        try:
+            args = type('Args', (), {'scenarios': ['levers'], 'install': 'vanilla', 'image': False, 'dest': dest})()
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(golden.snapshot(args), 0)
+        finally:
+            golden.run_all.BUILD = old
+        copied = os.path.join(dest, 'levers-vanilla')
+        self.assertTrue(os.path.exists(os.path.join(copied, 'digest.txt')))
+        self.assertEqual(sorted(os.listdir(os.path.join(copied, golden.SAVES))), ['keyboard.ini', 'savea'])
+        self.assertEqual(os.listdir(os.path.join(copied, golden.SAVES, 'savea')), ['info.sav'])
+
 
 if __name__ == '__main__':
     unittest.main()

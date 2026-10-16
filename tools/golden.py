@@ -81,7 +81,7 @@ import savefile
 ROOT = run_all.ROOT
 GOLDEN = os.path.join(ROOT, 'tests', 'golden')
 # Fields that follow heap addresses, which would differ between runs and between the original code alone and
-# ours (the verify wrappers allocate too); left out unless --all-fields. None now: the one there was, a unit's
+# ours (the allocations differ); left out unless --all-fields. None now: the one there was, a unit's
 # update-map countdown (0x80 + bits 5..8 of its address in the game), harness runs on the virtual clock take
 # from the object's id on both sides (tests/verify/harness_heap.h, SV1b). Runs with `--clock virtual,lfheap`
 # keep the game's: pass --ignore ' updateCountdown$' for those.
@@ -649,6 +649,12 @@ def folder_install(args):
     return IMAGE_FOLDER[args.install] if getattr(args, 'image', False) else args.install
 
 
+def not_screenshots(folder, names):
+    """copytree ignore: the harness screenshots in harness_saves (shot*.bmp, render_present_shot's 4K frames,
+    ~65 MB a run); they are not golden inputs."""
+    return [n for n in names if n.lower().startswith('shot') and n.lower().endswith('.bmp')]
+
+
 def snapshot(args):
     source = os.path.join(run_all.BUILD, 'runs')
     suffix = folder_install(args)
@@ -666,7 +672,7 @@ def snapshot(args):
             if os.path.exists(os.path.join(src, f)):
                 shutil.copyfile(os.path.join(src, f), os.path.join(dst, f))
         if os.path.isdir(os.path.join(src, SAVES)):
-            shutil.copytree(os.path.join(src, SAVES), os.path.join(dst, SAVES))
+            shutil.copytree(os.path.join(src, SAVES), os.path.join(dst, SAVES), ignore=not_screenshots)
     print(f'{len(names)} run folders copied to {args.dest}')
     return 0
 
