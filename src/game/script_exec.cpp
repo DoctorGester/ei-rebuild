@@ -107,39 +107,7 @@ __declspec(naked) void __fastcall AreaAddRound(void*, void*, float, float, float
 void* __cdecl Renderer() { return DisplayObject(); }
 
 // The world server.
-struct WorldCalls : WorldAlarmOriginal {
-    WorldPlayer* GetPlayer(int index);                                   // 00594180
-    float GridHeight(float x, float y);                                  // 00594220
-    void AddUnit(int key, const char* prototype, const char* name, const Vector3* point);   // 005910A0
-    void RemoveObject(int id);                                           // 005935C0 (Rebirth patches it)
-    void RecalcMercBriefings();                                          // 00591800
-    void SetWind(const Vector3* direction, float strength);              // 0058EE20
-    void SetTimeSpeed(float speed);                                      // 0058EEE0
-    void SetTime(float time);                                            // 0058EEA0
-    void SetWaterLevel(int a, float level, int b);                       // 00593FA0
-    CEngineObject* FindItem(const char* name);                           // 00594AB0
-    CEngineObject* FindSpell(const char* name);                          // 00594BC0
-    void CollectParty(WorldPlayer* player, void* list);                  // 00590A40
-    void Redeploy(WorldPlayer* player, void* list, int flag);            // 00590700
-    void AwardKill(WorldPlayer* player, std::uint32_t exp);              // 005911C0 (the amount as float bits)
-    void CastSpell(CEngineObject* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target, const Vector3* to, int extra);  // 0058E850
-};
-WorldPlayer* WorldCalls::GetPlayer(int id) { return static_cast<WorldPlayer*>(::WorldGetPlayer(this, nullptr, id)); }
-__declspec(naked) float WorldCalls::GridHeight(float, float) EI_ORIGINAL(0x00594220)
-__declspec(naked) void WorldCalls::AddUnit(int, const char*, const char*, const Vector3*) EI_ORIGINAL(0x005910A0)
-void WorldCalls::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
-void WorldCalls::RecalcMercBriefings() { WorldUpdateMercBriefingsOriginal(this); }
-__declspec(naked) void WorldCalls::SetWind(const Vector3*, float) EI_ORIGINAL(0x0058EE20)
-void WorldCalls::SetTimeSpeed(float a0) { WorldSetTimeSpeedOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-void WorldCalls::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-__declspec(naked) void WorldCalls::SetWaterLevel(int, float, int) EI_ORIGINAL(0x00593FA0)
-__declspec(naked) CEngineObject* WorldCalls::FindItem(const char*) EI_ORIGINAL(0x00594AB0)
-__declspec(naked) CEngineObject* WorldCalls::FindSpell(const char*) EI_ORIGINAL(0x00594BC0)
-__declspec(naked) void WorldCalls::CollectParty(WorldPlayer*, void*) EI_ORIGINAL(0x00590A40)
-__declspec(naked) void WorldCalls::Redeploy(WorldPlayer*, void*, int) EI_ORIGINAL(0x00590700)
-void WorldCalls::AwardKill(WorldPlayer* player, std::uint32_t exp) { WorldAwardExperienceOriginal(this, nullptr, player, exp); }
-void WorldCalls::CastSpell(CEngineObject* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target, const Vector3* to, int extra) { WorldCastSpellOriginal(this, nullptr, spell, caster, from, target, to, extra); }
-WorldCalls* TheWorld() { return reinterpret_cast<WorldCalls*>(WorldServer()); }
+CWorldServer* TheWorld() { return static_cast<CWorldServer*>(WorldServer()); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
 struct AIMapCalls {
@@ -297,7 +265,7 @@ __declspec(naked) void StatsCalls::SetStrength(int, CUnit*) EI_ORIGINAL(0x005290
 __declspec(naked) void StatsCalls::SetDexterity(int, CUnit*) EI_ORIGINAL(0x00529220)
 __declspec(naked) void StatsCalls::SetIntelligence(int, CUnit*) EI_ORIGINAL(0x00529400)
 
-// A player (WorldCalls::GetPlayer).
+// A player (CWorldServer::GetPlayer).
 struct PlayerCalls {
     void GiveItems(void* list, int flag);                // 00665470
     void EraseQuestItem(int id);                         // 00665780
@@ -913,26 +881,26 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x43: {   // InvokeAlarm(type, x, y)
             Vector3 point = {f[1], f[2], 0.0f};
-            TheWorld()->InvokeAlarm(Ftol(f[0]), &point, 1);
+            TheWorld()->InvokeAlarm(Ftol(f[0]), &point.x, 1);
             break;
         }
         case 0x88: {   // AddUnitToServer(name, prototype, ..., x, y, z)
             Vector3 point = {f[0], f[1], f[2]};
-            TheWorld()->AddUnit(TextKeyFromName(Text(cmd, 0)), Text(cmd, 1), Text(cmd, 2), &point);
+            TheWorld()->AddUnitToServer(static_cast<unsigned>(TextKeyFromName(Text(cmd, 0))), Text(cmd, 1), Text(cmd, 2), &point);
             break;
         }
         case 0x89:     // RemoveUnitFromServer(object)
         case 0x96: {   // RemoveObjectFromServer(object)
             CEngineObject* object = Arg(cmd, 0);
-            if (object) TheWorld()->RemoveObject(object->id_);
+            if (object) WorldRemoveObject(TheWorld(), nullptr, object->id_);   // Rebirth patches it
             break;
         }
         case 0xD2:   // RecalcMercBriefings
-            TheWorld()->RecalcMercBriefings();
+            TheWorld()->UpdateMercBriefings();
             break;
         case 0x1E: {   // SetWind(x, y, z, strength)
             Vector3 direction = {f[0], f[1], f[2]};
-            TheWorld()->SetWind(&direction, f[3]);
+            TheWorld()->ChangeWind(&direction, f[3]);
             break;
         }
         case 0x1F: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255 (0073C36C)
@@ -944,12 +912,12 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xB6:   // RunWorldTime(time): the configured speed (int at 0079BE5C)
-            TheWorld()->SetTimeSpeed(static_cast<float>(ConfiguredTimeSpeed()));
-            TheWorld()->SetTime(f[0]);
+            TheWorld()->SetTimeSpeedImpl(static_cast<float>(ConfiguredTimeSpeed()));
+            TheWorld()->SetTimeImpl(f[0]);
             break;
         case 0xB7:   // FixWorldTime(time)
-            TheWorld()->SetTimeSpeed(0.0f);
-            TheWorld()->SetTime(f[0]);
+            TheWorld()->SetTimeSpeedImpl(0.0f);
+            TheWorld()->SetTimeImpl(f[0]);
             break;
         case 0xB8:   // SetWaterLevel(a, level, b)
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
@@ -1113,14 +1081,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xAF: {   // GiveUnitQuestItem(unit, item)
             CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            CEngineObject* item = TheWorld()->FindItem(Text(cmd, 0));
+            CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item && item->GetClassId() == kClassQuestItem) UnitOf(unit)->GiveQuestItem(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)
             CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
-            CEngineObject* spell = TheWorld()->FindSpell(Text(cmd, 0));
+            CEngineObject* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
             UnitOf(unit)->AddSpell(spell);
             void* state = UnitState(unit);
@@ -1481,7 +1449,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!player) break;
             PtrList items;
             ItemListConstructOriginal(&items, nullptr, 10);
-            CEngineObject* item = TheWorld()->FindItem(Text(cmd, 0));
+            CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
                 PtrListAddTailOriginal(&items, nullptr, item);
                 PlayerOf(player)->GiveItems(&items, 0);
@@ -1511,7 +1479,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (TheNetwork()->IsMultiplayer()) {
                 if (TheNetwork()->QuestAllowed(Text(cmd, 0))) {
                     void* quest = TheQuestTable()->Find(Text(cmd, 0));
-                    if (quest) TheWorld()->AwardKill(nullptr, std::bit_cast<std::uint32_t>(static_cast<QuestRecord*>(quest)->exp));
+                    if (quest) TheWorld()->AwardExperience(nullptr, static_cast<QuestRecord*>(quest)->exp);
                 }
                 break;
             }
@@ -1519,7 +1487,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!player) break;
             void* quest = TheQuestTable()->Find(Text(cmd, 0));
             if (!quest) break;
-            TheWorld()->AwardKill(player, std::bit_cast<std::uint32_t>(static_cast<QuestRecord*>(quest)->exp));
+            TheWorld()->AwardExperience(player, static_cast<QuestRecord*>(quest)->exp);
             ThePartyManager()->QuestCompleted();
             break;
         }

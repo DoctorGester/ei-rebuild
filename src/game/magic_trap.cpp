@@ -171,7 +171,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (int i = 0; i < points.count; ++i) {
             const float* point = points.points + 2 * i;
             Vector3 at = {point[0], point[1], 0.0f};
-            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, &from, nullptr, &at, 0);
+            static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -192,7 +192,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
             CEngineObject* unit = node->data;
-            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, &from, unit,
+            static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, nullptr, &from, unit,
                                    &AsMapObject(unit)->position, 0);
             node = next;
         }

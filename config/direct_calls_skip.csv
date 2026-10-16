@@ -31,8 +31,6 @@ address,reason
 00552CF0,src/game/unit_ai_brain.cpp passes a CEngineObject * as void* (the target is UnitController's method)
 0055FB00,src/game/world_server.cpp passes a WorldBase * as void* (the target is CWorld's method)
 0058E520,src/game/script_exec_helpers.cpp passes a World * as void* (the target is CWorldServer's method)
-0058E850,src/game/script_exec.cpp passes a WorldCalls * as void* (the target is CWorldServer's method)
-00591800,src/game/script_exec.cpp passes a WorldCalls * as void* (the target is CWorldServer's method)
 00593AA0,src/game/script_group.cpp passes a ObjectRegistry * as void* (the target is CWorldServer's method)
 0059F030,src/game/sky_object.cpp passes a CSkyObject * as void* (the target is CFigureMesh's method)
 005BA830,src/game/script_exec.cpp passes a AIMapCalls * as void* (the target is CAIMap's method)

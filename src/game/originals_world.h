@@ -88,16 +88,11 @@ __declspec(naked) inline bool __stdcall FlowLoadQuestsOriginal(const char* /*zon
 
 // C3i part 2. 0058EEA0: CWorldServer::SetTime(float) (RET 4; the argument is a raw dword, float callers pass
 // std::bit_cast). 00595BA0: the map path text for a name into `out` (RET 8, returns out).
-__declspec(naked) inline void __fastcall WorldSetTimeOriginal(void* /*world*/, void*, std::uint32_t /*timeBits*/)
-    EI_ORIGINAL(0x0058EEA0)
 __declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/, void*, void* /*out*/, const char* /*name*/)
     EI_ORIGINAL(0x00595BA0)
 
 // C3j. 00578E20: the game flow object (global 007AF788; plain RET, ECX unused, EAX = flow, callers use it).
 __declspec(naked) inline void* __cdecl GameFlowOriginal() EI_ORIGINAL(0x00578E20)
-// 0058EEE0: sets the time speed (RET 4; the float is only copied, so it is passed as raw dword bits; EAX not a result).
-__declspec(naked) inline void __fastcall WorldSetTimeSpeedOriginal(void* /*world*/, void*, std::uint32_t /*speedBits*/)
-    EI_ORIGINAL(0x0058EEE0)
 // 00595480: CWorldServer::NewZone(map, mob, zone) (RET 0xC, EAX 0 = failed).
 __declspec(naked) inline int __fastcall WorldNewZoneOriginal(void* /*world*/, void*, const char* /*map*/, const char* /*mob*/,
                                                              const char* /*zone*/) EI_ORIGINAL(0x00595480)
@@ -205,16 +200,9 @@ __declspec(naked) inline std::uint8_t* __fastcall GameLocalPlayerDataOriginal(vo
 __declspec(naked) inline void __fastcall WorldWakeUnits(void* /*world*/, void*, const Vector3* /*position*/, float /*radius*/)
     EI_ORIGINAL(0x0058D3D0)
 __declspec(naked) inline void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x0058E520)
-__declspec(naked) inline void __fastcall WorldCastSpellOriginal(void* /*world*/, void*, const void* /*spell*/,
-                                                                CEngineObject* /*caster*/, const Vector3* /*from*/,
-                                                                CEngineObject* /*target*/, const Vector3* /*to*/, int /*extra*/)
-    EI_ORIGINAL(0x0058E850)
 __declspec(naked) inline void __fastcall WorldCreateUnitsOriginal(void* /*world*/, void*, void* /*player*/, void* /*records*/,
                                                                   const Vector3* /*position*/, Quaternion /*rotation*/,
                                                                   void* /*placements*/) EI_ORIGINAL(0x0058EF20)
-__declspec(naked) inline void __fastcall WorldAwardExperienceOriginal(void* /*world*/, void*, WorldPlayer* /*player*/,
-                                                                      std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
-__declspec(naked) inline void __fastcall WorldUpdateMercBriefingsOriginal(void* /*world*/) EI_ORIGINAL(0x00591800)
 __declspec(naked) inline CEngineObject* __fastcall WorldFindObjectOriginal(void* /*world*/, void*, unsigned /*id*/)
     EI_ORIGINAL(0x00593AA0)
 

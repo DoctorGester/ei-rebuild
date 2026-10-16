@@ -20,6 +20,7 @@
 #include "originals_ui.h"
 #include "script.h"
 #include "texture.h"            // the renderer's device object
+#include "ui.h"
 #include "world.h"
 
 #include <ddraw.h>
@@ -40,34 +41,9 @@ T& Global(std::uintptr_t address) {
 HWND MainWindow() { return Global<HWND>(0x0079BC28); }
 bool QuitOnClose() { return Global<std::uint8_t>(0x00784751) != 0; }   // Alt+F4 / WM_DESTROY quit
 
-// The interface's input handler (007C7D50). Coordinates are passed as (wParam, x, y).
-struct Input {
-    void Update();                                   // 005F5AB0, called before and after each message
-    void LButtonDown(int keys, int x, int y);        // 005F76A0
-    void LButtonUp(int keys, int x, int y);          // 005F76E0
-    void LButtonDblClk(int keys, int x, int y);      // 005F7800
-    void RButtonDown(int keys, int x, int y);        // 005F7780
-    void RButtonUp(int keys, int x, int y);          // 005F77C0
-    void RButtonDblClk(int keys, int x, int y);      // 005F7840
-    void MouseMove(int keys, int x, int y);          // 005F7740
-    void Wheel(int keys, int delta, int x, int y);   // 005F7880
-    void KeyDown(int key, int repeat, int flags);    // 005F78C0
-    void Char(int key, int repeat, int flags);       // 005F7B40
-    void KeyUp(int key, int repeat, int flags);      // 005F7BE0
-};
-__declspec(naked) void Input::Update() EI_ORIGINAL(0x005F5AB0)
-__declspec(naked) void Input::LButtonDown(int, int, int) EI_ORIGINAL(0x005F76A0)
-__declspec(naked) void Input::LButtonUp(int, int, int) EI_ORIGINAL(0x005F76E0)
-__declspec(naked) void Input::LButtonDblClk(int, int, int) EI_ORIGINAL(0x005F7800)
-__declspec(naked) void Input::RButtonDown(int, int, int) EI_ORIGINAL(0x005F7780)
-__declspec(naked) void Input::RButtonUp(int, int, int) EI_ORIGINAL(0x005F77C0)
-__declspec(naked) void Input::RButtonDblClk(int, int, int) EI_ORIGINAL(0x005F7840)
-__declspec(naked) void Input::MouseMove(int, int, int) EI_ORIGINAL(0x005F7740)
-__declspec(naked) void Input::Wheel(int, int, int, int) EI_ORIGINAL(0x005F7880)
-__declspec(naked) void Input::KeyDown(int, int, int) EI_ORIGINAL(0x005F78C0)
-__declspec(naked) void Input::Char(int, int, int) EI_ORIGINAL(0x005F7B40)
-__declspec(naked) void Input::KeyUp(int, int, int) EI_ORIGINAL(0x005F7BE0)
-Input* TheInput() { return reinterpret_cast<Input*>(0x007C7D50); }
+// The interface (007C7D50) takes the input: pending windows closed before and after each message
+// (005F5AB0), then the message with (wParam, x, y) (005F76A0-005F7BE0; ui_interface_input.cpp).
+CInterface3D* TheInput() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
 
 // The console's ostream (007C55A8).
 struct Ostream {
@@ -237,25 +213,25 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
     // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
-    Input* input = TheInput();
-    input->Update();
+    CInterface3D* input = TheInput();
+    input->CloseAllPending();
     int w = static_cast<int>(wParam);
     switch (message) {
     case WM_KEYDOWN:
-        input->KeyDown(w, Low(lParam), HighSigned(lParam));
+        input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_KEYUP:
-        input->KeyUp(w, Low(lParam), HighSigned(lParam));
+        input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_CHAR:
-        input->Char(w, Low(lParam), HighSigned(lParam));
+        input->OnChar(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYDOWN:
         if (wParam == VK_F4 && AltDown(lParam)) {
             if (QuitOnClose()) gameapi::PostQuitMessage(0);
             return Handled();
         }
-        input->KeyDown(w, Low(lParam), HighSigned(lParam));
+        input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYUP:
         Console()->PutInt(w)->PutChar(':')->PutLong(static_cast<unsigned long>(lParam))->PutChar('\n')->Manipulate(kFlush);
@@ -265,34 +241,34 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
             WindowProc(MainWindow(), WM_ACTIVATE, static_cast<WPARAM>(iconic) << 16, 0);
             return Handled();
         }
-        input->KeyUp(w, Low(lParam), HighSigned(lParam));
+        input->OnKeyUp(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_MOUSEMOVE:
-        input->MouseMove(w, Low(lParam), HighUnsigned(lParam));
+        input->OnMouseMove(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_LBUTTONDOWN:
-        input->LButtonDown(w, Low(lParam), HighUnsigned(lParam));
+        input->OnLeftDown(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_LBUTTONUP:
-        input->LButtonUp(w, Low(lParam), HighUnsigned(lParam));
+        input->OnLeftUp(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_LBUTTONDBLCLK:
-        input->LButtonDblClk(w, Low(lParam), HighUnsigned(lParam));
+        input->OnLeftDouble(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_RBUTTONDOWN:
-        input->RButtonDown(w, Low(lParam), HighUnsigned(lParam));
+        input->OnRightDown(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_RBUTTONUP:
-        input->RButtonUp(w, Low(lParam), HighUnsigned(lParam));
+        input->OnRightUp(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_RBUTTONDBLCLK:
-        input->RButtonDblClk(w, Low(lParam), HighUnsigned(lParam));
+        input->OnRightDouble(w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     case WM_MOUSEWHEEL:
-        input->Wheel(Low(static_cast<LPARAM>(wParam)), HighUnsigned(static_cast<LPARAM>(wParam)), Low(lParam), HighUnsigned(lParam));
+        input->OnWheel(Low(static_cast<LPARAM>(wParam)), HighUnsigned(static_cast<LPARAM>(wParam)), Low(lParam), HighUnsigned(lParam));
         return Handled();
     case 0xCC54:   // the game's own wheel message: wParam is the delta
-        input->Wheel(0, w, Low(lParam), HighUnsigned(lParam));
+        input->OnWheel(0, w, Low(lParam), HighUnsigned(lParam));
         return Handled();
     }
     return WindowProc(MainWindow(), message, wParam, lParam);

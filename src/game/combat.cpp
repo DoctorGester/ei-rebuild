@@ -663,11 +663,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
-                        WorldAwardExperienceOriginal(world, nullptr, nullptr, static_cast<int>(prototype->experienceValue));
+                        static_cast<CWorldServer*>(world)->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
                         return 1;
                     }
                     char* killer = source->player;
-                    WorldAwardExperienceOriginal(world, nullptr, reinterpret_cast<WorldPlayer*>(killer), static_cast<int>(prototype->experienceValue));
+                    static_cast<CWorldServer*>(world)->AwardExperience(reinterpret_cast<WorldPlayer*>(killer), std::bit_cast<float>(prototype->experienceValue));
                 }
             }
             return 1;

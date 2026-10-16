@@ -11,6 +11,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "originals_library.h"
+#include "win_registry.h"
 
 #include <cstring>
 #include <new>
@@ -20,62 +21,14 @@
 namespace options {
 namespace {
 
-// A CString passed by value to original code (which destroys it): the bits of a string that holds a
-// reference of its own.
-struct RawString {
-    char* data;
-};
-
-// The game's registry key wrapper (an HKEY). Not rewritten.
-struct RegistryKey {
-    void* key;
-
-    void Construct();                                                         // 006972A0
-    mfc::BOOL Open(const char* path, std::uint32_t root);                     // 00697340 (RegCreateKeyExA)
-    void Close();                                                             // 006973A0
-    void Destruct();                                                          // 006972B0
-    // The value `name` of `subkey`, or `defaultValue` when it is missing or of another type.
-    int GetInt(const char* subkey, const char* name, int defaultValue);       // 00698610
-    int GetDword(const char* subkey, const char* name, int defaultValue);     // 00698570 (same code)
-    // A REG_DWORD holding float bits, returned in ST0 (FLD of the float). The default is passed
-    // as raw bits, as the original pushes it.
-    double GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits);   // 00698750
-    // 006988A0. Takes the default CString by value (and destroys it); see GetString below.
-    mfc::CString GetStringRaw(const char* subkey, const char* name, RawString defaultValue);
-
-    // The writers: each opens `subkey` (RegCreateKeyExA), sets the value and closes it again.
-    // They return 1 on success.
-    mfc::BOOL SetDword(const char* subkey, const char* name, int value);          // 00697CA0 (REG_DWORD)
-    mfc::BOOL SetInt(const char* subkey, const char* name, int value);            // 00697D40 (same code)
-    mfc::BOOL SetFloat(const char* subkey, const char* name, std::uint32_t bits); // 00697E80 (REG_BINARY, 4 bytes)
-    // 00697FC0. Takes the value CString by value (and destroys it); see SetString below.
-    mfc::BOOL SetStringRaw(const char* subkey, const char* name, RawString value);
-};
-__declspec(naked) void RegistryKey::Construct() EI_ORIGINAL(0x006972A0)
-__declspec(naked) mfc::BOOL RegistryKey::Open(const char*, std::uint32_t) EI_ORIGINAL(0x00697340)
-__declspec(naked) void RegistryKey::Close() EI_ORIGINAL(0x006973A0)
-__declspec(naked) void RegistryKey::Destruct() EI_ORIGINAL(0x006972B0)
-__declspec(naked) int RegistryKey::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00698610)
-__declspec(naked) int RegistryKey::GetDword(const char*, const char*, int) EI_ORIGINAL(0x00698570)
-__declspec(naked) double RegistryKey::GetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00698750)
-__declspec(naked) mfc::CString RegistryKey::GetStringRaw(const char*, const char*, RawString) EI_ORIGINAL(0x006988A0)
-__declspec(naked) mfc::BOOL RegistryKey::SetDword(const char*, const char*, int) EI_ORIGINAL(0x00697CA0)
-__declspec(naked) mfc::BOOL RegistryKey::SetInt(const char*, const char*, int) EI_ORIGINAL(0x00697D40)
-__declspec(naked) mfc::BOOL RegistryKey::SetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00697E80)
-__declspec(naked) mfc::BOOL RegistryKey::SetStringRaw(const char*, const char*, RawString) EI_ORIGINAL(0x00697FC0)
-
-// The string value `name` of `subkey`, or `defaultValue`.
-mfc::CString GetString(RegistryKey& key, const char* subkey, const char* name, const mfc::CString& defaultValue) {
-    RawString copy;
-    new (&copy) mfc::CString(defaultValue);   // the callee destroys its argument
-    return key.GetStringRaw(subkey, name, copy);
+// The string value `name` of `subkey`, or `defaultValue` (CWinRegistry takes it by value).
+mfc::CString GetString(CWinRegistry& key, const char* subkey, const char* name, const mfc::CString& defaultValue) {
+    return key.GetString(subkey, name, defaultValue);
 }
 
 // Writes the string `value` as `name` of `subkey`.
-void SetString(RegistryKey& key, const char* subkey, const char* name, const mfc::CString& value) {
-    RawString copy;
-    new (&copy) mfc::CString(value);   // the callee destroys its argument
-    key.SetStringRaw(subkey, name, copy);
+void SetString(CWinRegistry& key, const char* subkey, const char* name, const mfc::CString& value) {
+    key.SetString(subkey, name, value);
 }
 
 // CString members used here.
@@ -271,7 +224,7 @@ constexpr struct {
 
 class Loader {
 public:
-    Loader(char* options, RegistryKey& key) : o_(options), key_(key) {}
+    Loader(char* options, CWinRegistry& key) : o_(options), key_(key) {}
 
     const char* Key(std::size_t offset) const { return *reinterpret_cast<const char* const*>(o_ + offset); }
     std::uint32_t Bits(std::size_t offset) const {
@@ -286,7 +239,7 @@ public:
     void Read(const Value& v) {
         switch (v.kind) {
         case kInt: SetBits(v.field, key_.GetInt(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field)))); break;
-        case kDword: SetBits(v.field, key_.GetDword(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field)))); break;
+        case kDword: SetBits(v.field, key_.GetDWord(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field)))); break;
         case kFloat: SetFloat(v.field, static_cast<float>(key_.GetFloat(Key(v.key), game::Text(v.name), Bits(v.field)))); break;
         }
     }
@@ -321,24 +274,24 @@ public:
     void ReadLight(std::size_t offset, const std::uintptr_t (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             std::size_t f = offset + c * 4;
-            int value = key_.GetDword(Key(field::kKeyGame), game::Text(names[c]), FtolProduct(o_ + f, kTimes255));
+            int value = key_.GetDWord(Key(field::kKeyGame), game::Text(names[c]), FtolProduct(o_ + f, kTimes255));
             StoreUnsignedProduct(o_ + f, static_cast<std::uint32_t>(value), kOver255);
         }
         std::size_t f = offset + 12;
-        int radius = key_.GetDword(Key(field::kKeyGame), game::Text(names[3]), Ftol(o_ + f));
+        int radius = key_.GetDWord(Key(field::kKeyGame), game::Text(names[3]), Ftol(o_ + f));
         StoreUnsigned(o_ + f, static_cast<std::uint32_t>(radius));
     }
 
 private:
     char* o_;
-    RegistryKey& key_;
+    CWinRegistry& key_;
 };
 
 // The writer: the same tables in the same order, each value through the setter matching its
 // getter (GetInt -> SetInt, GetDword -> SetDword).
 class Saver {
 public:
-    Saver(char* options, RegistryKey& key) : o_(options), key_(key) {}
+    Saver(char* options, CWinRegistry& key) : o_(options), key_(key) {}
 
     const char* Key(std::size_t offset) const { return *reinterpret_cast<const char* const*>(o_ + offset); }
     std::uint32_t Bits(std::size_t offset) const {
@@ -351,7 +304,7 @@ public:
     void Write(const Value& v) {
         switch (v.kind) {
         case kInt: key_.SetInt(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field))); break;
-        case kDword: key_.SetDword(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field))); break;
+        case kDword: key_.SetDWord(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field))); break;
         case kFloat: key_.SetFloat(Key(v.key), game::Text(v.name), Bits(v.field)); break;
         }
     }
@@ -383,13 +336,13 @@ public:
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(std::size_t offset, const std::uintptr_t (&names)[4]) {
         for (int c = 0; c < 3; ++c)
-            key_.SetDword(Key(field::kKeyGame), game::Text(names[c]), FtolProduct(o_ + offset + c * 4, kTimes255));
-        key_.SetDword(Key(field::kKeyGame), game::Text(names[3]), Ftol(o_ + offset + 12));
+            key_.SetDWord(Key(field::kKeyGame), game::Text(names[c]), FtolProduct(o_ + offset + c * 4, kTimes255));
+        key_.SetDWord(Key(field::kKeyGame), game::Text(names[3]), Ftol(o_ + offset + 12));
     }
 
 private:
     char* o_;
-    RegistryKey& key_;
+    CWinRegistry& key_;
 };
 
 } // namespace
@@ -397,7 +350,7 @@ private:
 void GameOptions::LoadFromRegistry(const char* path) {
     char* o = reinterpret_cast<char*>(this);
     mfc::CString resolution;   // the original's local is constructed first, read later
-    RegistryKey key;
+    CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
     Loader l(o, key);
@@ -426,7 +379,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kGameValues2);
     l.ReadLight(field::kHeroLight, kHeroLightNames);
     l.ReadLight(field::kQuestLight, kQuestLightNames);
-    int difficulty = key.GetDword(l.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(l.Bits(field::kDifficulty + 4)));
+    int difficulty = key.GetDWord(l.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(l.Bits(field::kDifficulty + 4)));
     l.SetBits(field::kDifficulty + 4, static_cast<std::uint32_t>(difficulty));
     l.SetBits(field::kDifficulty, static_cast<std::uint32_t>(difficulty));
     l.Read(kDefaultValues);
@@ -434,14 +387,14 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.String(field::kMasterServerName) =
         GetString(key, l.Key(field::kKeyNetwork), game::Text(0x00784B50), l.String(field::kMasterServerName));
     key.Close();
-    key.Destruct();
+    key.Destroy();
 }
 EI_REPLACE_METHOD(0x0045B210, GameOptions::LoadFromRegistry);
 
 void GameOptions::SaveToRegistry(const char* path) {
     char* o = reinterpret_cast<char*>(this);
     mfc::CString resolution;
-    RegistryKey key;
+    CWinRegistry key;
     key.Construct();
     key.Open(path, kCurrentUser);
     Saver s(o, key);
@@ -463,14 +416,14 @@ void GameOptions::SaveToRegistry(const char* path) {
     s.Write(kGameValues2);
     s.WriteLight(field::kHeroLight, kHeroLightNames);
     s.WriteLight(field::kQuestLight, kQuestLightNames);
-    key.SetDword(s.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(s.Bits(field::kDifficulty + 4)));
+    key.SetDWord(s.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(s.Bits(field::kDifficulty + 4)));
     s.Write(kDefaultValues);
     s.Write(kFogValues);
     // EI_Plugin's NewMaster NOPs these 42 bytes (0045D330): the Master Server Name is not saved.
     if (!ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
         SetString(key, s.Key(field::kKeyNetwork), game::Text(0x00784B50), s.String(field::kMasterServerName));
     key.Close();
-    key.Destruct();
+    key.Destroy();
 }
 EI_REPLACE_METHOD(0x0045C560, GameOptions::SaveToRegistry);
 

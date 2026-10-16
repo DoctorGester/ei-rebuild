@@ -17,7 +17,6 @@ namespace {
 // The sound system (*007AF784), thiscall (006B8600 plays a sound: CSoundManager::Play3D). The
 // mover takes the volume and radius as the floats' bits.
 // 006B92F0: moves a playing sound.
-__declspec(naked) void __fastcall MoveSound(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/) EI_ORIGINAL(0x006B92F0)
 // 006B94A0: stops a sound.
 // 006BA5E0 / 006BA7C0: moves / stops a sound sequence.
 // 006B9950 / 006B9A30: starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
@@ -126,7 +125,7 @@ int CEffectSound::Tick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         // Tests the handle against 0, not -1 (a stopped sound is moved too).
-        if (sound_ != 0) MoveSound(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_));
+        if (sound_ != 0) static_cast<CSoundManager*>(SoundSystem())->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
     }
     return looping_ == 0 && wasFresh == 0 ? 0 : 1;
 }
@@ -137,7 +136,7 @@ void CEffectSound::Start(int update) {
                                             volume_, radius_, looping_, 0);
         return;
     }
-    MoveSound(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_));
+    static_cast<CSoundManager*>(SoundSystem())->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
 }
 
 int CEffectSound::Unpack(int update, DeltaField* field) {

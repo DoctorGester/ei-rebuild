@@ -235,7 +235,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
         state->SendPosition04(&start, startValue, sessionKind_);
     }
     player->lastTick = tick_;
-    if (sessionKind_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);
+    if (sessionKind_ == kKindNoRangeTest) UpdateMercBriefings();
     if (runScripts) {
         scriptsActive_ = 1;
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());

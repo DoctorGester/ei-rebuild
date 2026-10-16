@@ -126,7 +126,7 @@ void CUnitServer::FinishCast() {
         (*reinterpret_cast<CUnit**>(server + 0x1C))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    WorldCastSpellOriginal(world, nullptr, spell, unit, &unit->position, action.target, &at, 0);
+    static_cast<CWorldServer*>(world)->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
     if (SpellPrototype(spell)->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -243,7 +243,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
             if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            WorldCastSpellOriginal(world, nullptr, carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
+            static_cast<CWorldServer*>(world)->CastSpell(carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
             static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
             return;
         }
@@ -277,7 +277,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
             if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
-            WorldCastSpellOriginal(world, nullptr, spellCarrier->spell_, unit, &unit->position, target,
+            static_cast<CWorldServer*>(world)->CastSpell(spellCarrier->spell_, unit, &unit->position, target,
                                    &reinterpret_cast<CUnit*>(target)->position, 0);
             static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
             return;

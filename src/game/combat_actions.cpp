@@ -232,7 +232,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = ObjectSlots(target)->AimPoint(&point);
-    WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, target, at, 0);
+    static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -249,7 +249,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;
-        WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, self, &self->position, 0);
+        static_cast<CWorldServer*>(WorldServer())->CastSpell(spell, self, &self->position, self, &self->position, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);

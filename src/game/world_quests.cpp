@@ -188,9 +188,7 @@ CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
 void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecord* record) {
     float experience = record->experience;
     if (experience < 0.0f || experience > 0.0f) {
-        std::uint32_t bits;
-        std::memcpy(&bits, &experience, 4);
-        WorldAwardExperienceOriginal(world, nullptr, player, bits);
+        world->AwardExperience(player, experience);
     }
     PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
 
@@ -341,7 +339,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
             PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
         }
     }
-    WorldUpdateMercBriefingsOriginal(this);
+    UpdateMercBriefings();
 }
 
 // ---- AwardExperience --------------------------------------------------------------------------

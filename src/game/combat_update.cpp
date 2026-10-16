@@ -682,7 +682,7 @@ void CUnitServer::TickItemSpells() {
         }
         UseItemCharge(item, std::bit_cast<float>(spell->manaCost_));
         CUnit* self = unit;
-        WorldCastSpellOriginal(world, nullptr, spell, self, &self->position, self, &self->position, 1);
+        static_cast<CWorldServer*>(world)->CastSpell(spell, self, &self->position, self, &self->position, 1);
         int countdown = static_cast<int>(spell->duration_) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;

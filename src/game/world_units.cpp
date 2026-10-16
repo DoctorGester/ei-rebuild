@@ -482,7 +482,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             at.x = flame->offset.x + base.position.x;
             CEngineObject* spell = reinterpret_cast<CEngineObject*>(reinterpret_cast<CSpellManager*>(SpellManager())->CreateSpellFromText(worlddata::CampfireText()));
             if (spell) ++spell->refCount_;
-            WorldCastSpellOriginal(this, nullptr, spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
+            CastSpell(spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
                                    const_cast<const Vector3*>(&at), 0);
             if (spell) spell->Release();
         }

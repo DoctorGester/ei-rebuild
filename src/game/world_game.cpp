@@ -310,7 +310,7 @@ __declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const voi
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
-void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { WorldSetTimeOriginal((void*)a0, nullptr, a2); }
+void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { a0->SetTimeImpl(std::bit_cast<float>(a2)); }
 // 004BEB00. Resets the scripts (007C27D4) for a zone without its own.
 __declspec(naked) void __fastcall ScriptsResetZone(void*, void*) EI_ORIGINAL(0x004BEB00)
 
@@ -1387,8 +1387,8 @@ constexpr int kResultMainMenu = 4;
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
 // 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
-void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { WorldSetTimeSpeedOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
-void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { WorldSetTimeOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
+void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { a0->SetTimeSpeedImpl(a2); }
+void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { a0->SetTimeImpl(a2); }
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
 inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(client)->LocalView()); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.

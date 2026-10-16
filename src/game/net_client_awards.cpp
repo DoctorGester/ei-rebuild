@@ -18,6 +18,7 @@
 #include "originals_core.h"
 #include "lib/mfc_list.h"
 #include "game_slots.h"
+#include "world.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -79,7 +80,7 @@ void ClientSession::ApplyAwards() {
         case 0: {
             std::uint32_t bits;
             std::memcpy(&bits, &award->value_, 4);
-            WorldAwardExperienceOriginal(World(), nullptr, nullptr, bits);
+            static_cast<CWorldServer*>(World())->AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }
         case 1: {
