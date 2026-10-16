@@ -8,6 +8,7 @@
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
+#include "lib/mfc_string.h"
 #include "script_addon.h"
 #include "game_data.h"
 
@@ -36,8 +37,8 @@ StringOps* StringOps::InitN(const char* text, int length) {
     new (this) mfc::CString(text, length);
     return this;
 }
-__declspec(naked) char* StringOps::LockBuffer() EI_ORIGINAL(0x00700E6A)
-__declspec(naked) void StringOps::UnlockBuffer() EI_ORIGINAL(0x00700E7C)
+char* StringOps::LockBuffer() { return reinterpret_cast<mfc::impl::CString*>(this)->LockBuffer(); }   // 00700E6A
+void StringOps::UnlockBuffer() { reinterpret_cast<mfc::impl::CString*>(this)->UnlockBuffer(); }       // 00700E7C
 
 // Through the original addresses (Rebirth patches the keyword lookups). ei_vectors has no game and
 // no Rebirth: ours.

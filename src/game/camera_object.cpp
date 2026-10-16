@@ -266,7 +266,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     record.reserved = 0;
     std::memcpy(&record.position, &localPosition_, sizeof(record.position));
     std::memcpy(&record.rotation, &localRotation_, sizeof(record.rotation));
-    CFileWrite(&file, nullptr, &record, sizeof(record));
+    file.Write(&record, sizeof(record));
     file.Close();
     return 1;
 }

@@ -8,6 +8,7 @@
 #include "ui.h"
 
 #include "../lib/crt.h"
+#include "lib/mfc_file.h"
 #include "lib/crt_iostream.h"
 
 #include "ei/hook.h"
@@ -26,20 +27,24 @@ namespace console {
 
 // ---- Library forwarders -------------------------------------------------------------------------
 
-void Str::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
+void Str::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0; }
 void Str::AppendText(const char* a0) { CStringAppendTextOriginal((void*)this, nullptr, a0); }
-void Str::TrimLeft(char a0) { CStringTrimLeftCharOriginal((void*)this, nullptr, a0); }
-void Str::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
+void Str::TrimLeft(char a0) { reinterpret_cast<mfc::CString*>(this)->TrimLeft(a0); }
+void Str::TrimRight(char a0) { reinterpret_cast<mfc::CString*>(this)->TrimRight(a0); }
 
 
-__declspec(naked) CStdioFile::CStdioFile() EI_ORIGINAL(0x00701B79)
-__declspec(naked) CStdioFile::CStdioFile(const char*, unsigned) EI_ORIGINAL(0x00701BD4)
-__declspec(naked) CStdioFile::~CStdioFile() EI_ORIGINAL(0x00701C6D)
-__declspec(naked) mfc::BOOL CStdioFile::Open(const char*, unsigned, void*) EI_ORIGINAL(0x00701CB0)
-__declspec(naked) mfc::BOOL CStdioFile::ReadString(mfc::CString&) EI_ORIGINAL(0x00701E93)
-__declspec(naked) char* CStdioFile::ReadString(char*, unsigned) EI_ORIGINAL(0x00701E4E)
-__declspec(naked) void CStdioFile::WriteString(const char*) EI_ORIGINAL(0x00701E23)
-__declspec(naked) void CStdioFile::Close() EI_ORIGINAL(0x00701FE0)
+// The library's CStdioFile (lib/mfc_file.h) has this layout.
+mfc::impl::CStdioFile* CStdioFile::Impl() { return reinterpret_cast<mfc::impl::CStdioFile*>(this); }
+CStdioFile::CStdioFile() { Impl()->Construct(); }                                                   // 00701B79
+CStdioFile::CStdioFile(const char* name, unsigned flags) { Impl()->ConstructOpen(name, flags); }    // 00701BD4
+CStdioFile::~CStdioFile() { Impl()->Destruct(); }                                                   // 00701C6D
+mfc::BOOL CStdioFile::Open(const char* name, unsigned flags, void* error) {                         // 00701CB0
+    return Impl()->Open(name, flags, static_cast<mfc::impl::CFileException*>(error));
+}
+mfc::BOOL CStdioFile::ReadString(mfc::CString& line) { return Impl()->ReadLine(reinterpret_cast<mfc::impl::CString&>(line)); }   // 00701E93
+char* CStdioFile::ReadString(char* buffer, unsigned size) { return Impl()->ReadString(buffer, size); }   // 00701E4E
+void CStdioFile::WriteString(const char* text) { Impl()->WriteString(text); }                       // 00701E23
+void CStdioFile::Close() { Impl()->Close(); }                                                       // 00701FE0
 
 GameOStream& GameOStream::operator<<(const char* text) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
 GameOStream& GameOStream::operator<<(char c) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }

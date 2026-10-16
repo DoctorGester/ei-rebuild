@@ -11,6 +11,7 @@
 #include "script_array.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_string.h"
 
 #include "ei/hook.h"
 #include "originals_library.h"
@@ -127,7 +128,7 @@ EI_REPLACE_METHOD(0x004C3DC0, ScriptNamedValues<ScriptGroup>::Append);
 
 namespace {
 
-void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
+void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 // 004B5EF0: a group's destructor body (references released, array freed).
 void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 

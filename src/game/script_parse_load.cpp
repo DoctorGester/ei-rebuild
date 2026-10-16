@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "lib/mfc_string.h"
 #include "originals_script.h"
 #include "originals_library.h"
 
@@ -71,8 +72,8 @@ void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) {
 __declspec(naked) void __fastcall TokensDestruct(ScriptTokenList*) EI_ORIGINAL(0x004CA260)
 
 // 006FE268 / 006FE296: ConstructElements / DestructElements for CString.
-void __stdcall ConstructStrings(mfc::CString* a0, int a1) { CStringElementsConstruct((void*)a0, a1); }
-void __stdcall DestructStrings(mfc::CString* a0, int a1) { CStringElementsDestruct((void*)a0, a1); }
+void __stdcall ConstructStrings(mfc::CString* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>((void*)a0), a1); }
+void __stdcall DestructStrings(mfc::CString* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>((void*)a0), a1); }
 
 __declspec(naked) void __fastcall ApplyDefinesAt(mfc::CString*, const ScriptDefineList*) EI_ORIGINAL(0x004D33E0)
 

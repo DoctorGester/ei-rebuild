@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 #include "game_arrays.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -256,7 +257,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     if (instance) {
         ScriptVars& from = instance->vars;
         FloatsCopy(&run->vars.floats, nullptr, &from.floats);
-        StringsCopyOriginal(&run->vars.strings, nullptr, &from.strings);
+        mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&run->vars.strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from.strings));
         GroupCopy(reinterpret_cast<ScriptGroup*>(&run->vars.objects), nullptr,
                   reinterpret_cast<const ScriptGroup*>(&from.objects));
         gamearrays::GroupArrayCopy(reinterpret_cast<gamearrays::Groups::Array*>(&run->vars.groups), nullptr, reinterpret_cast<const gamearrays::Groups::Array*>(&from.groups));

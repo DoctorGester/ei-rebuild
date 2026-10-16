@@ -34,7 +34,6 @@ struct TextOps : mfc::CString {
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // 006FD5D0: operator+(TCHAR, const CString&).
-__declspec(naked) mfc::CString __stdcall CharPlus(char, const mfc::CString&) EI_ORIGINAL(0x006FD5D0)
 
 // MFC's afxcoll arrays (mfc::CArray layout), through their own code: CDWordArray's constructor,
 // destructor and SetSize, and the byte / word / uint SetSize.
@@ -48,10 +47,6 @@ void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOrigin
 
 // 004513A0: SetSize of an aligned int array (CArray<int> with the aligned allocator).
 
-// The class's own entries, called through their game addresses (so their verify wrappers see the
-// nested calls).
-__declspec(naked) mfc::CString* __fastcall CallGetString(const CIniFile*, void*, mfc::CString*, const char*, const char*,
-                                                         const char*) EI_ORIGINAL(0x00696030)
 // WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
 
 // A copy of `value` handed to WriteString (which destroys it).
@@ -61,14 +56,9 @@ BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::C
     return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
 }
 
-// The value of `key` as a CString (through 00696030).
+// The value of `key` as a CString (00696030).
 mfc::CString ReadString(const CIniFile* ini, const char* section, const char* key, const char* defaultValue) {
-    alignas(4) char raw[sizeof(mfc::CString)];
-    CallGetString(ini, nullptr, reinterpret_cast<mfc::CString*>(raw), section, key, defaultValue);
-    mfc::CString& value = *reinterpret_cast<mfc::CString*>(raw);
-    mfc::CString result(value);
-    value.~CString();
-    return result;
+    return const_cast<CIniFile*>(ini)->GetString(section, key, defaultValue);
 }
 
 // --- Aligned arrays -------------------------------------------------------------------------------
@@ -80,7 +70,7 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 // Returns 0 when the value is empty (the temporary then stays empty).
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     console::CStringArray codes;
-    if (!IniGetListOriginal(ini, nullptr, section, key, &codes, kListSeparator)) return 0;
+    if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
     DwordsSetSize(&temp, nullptr, codes.GetSize(), -1);
     for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;
@@ -108,7 +98,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
     BOOL ok;
     {
         console::CStringArray codes;
-        ok = IniGetListOriginal(ini, nullptr, section, key, &codes, kListSeparator);
+        ok = ini->GetList(section, key, &codes, kListSeparator);
         if (ok) {
             DWordArraySetSize(&temp, nullptr, codes.GetSize(), -1);
             for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
@@ -124,11 +114,11 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
 
 } // namespace
 
-int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
-int TextOps::Find(char c, int start) const { return CStringFindCharFromOriginal(this, nullptr, c, start); }
-void TextOps::TrimLeft() { CStringTrimLeftOriginal(this); }
-void TextOps::TrimRight() { CStringTrimRightOriginal(this); }
-void TextOps::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
+int TextOps::Find(char c) const { return reinterpret_cast<const mfc::CString*>(this)->Find(c); }
+int TextOps::Find(char c, int start) const { return reinterpret_cast<const mfc::CString*>(this)->Find(c, start); }
+void TextOps::TrimLeft() { reinterpret_cast<mfc::CString*>(this)->TrimLeft(); }
+void TextOps::TrimRight() { reinterpret_cast<mfc::CString*>(this)->TrimRight(); }
+void TextOps::AppendChar(char a0) { *reinterpret_cast<mfc::CString*>(this) += a0; }
 
 // --- Construction ----------------------------------------------------------------------------------
 
@@ -247,7 +237,7 @@ EI_REPLACE_METHOD(0x00696610, CIniFile::GetShortArray);
 
 BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
     console::CStringArray codes;
-    if (!IniGetListOriginal(this, nullptr, section, key, &codes, kListSeparator)) return 0;
+    if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = codes.GetSize();
     out->SetSize(count);
     for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
@@ -272,7 +262,7 @@ EI_REPLACE_METHOD(0x00696C50, CIniFile::GetMfcUIntArray);
 
 BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     console::CStringArray codes;
-    if (!IniGetListOriginal(this, nullptr, section, key, &codes, kListSeparator)) return 0;
+    if (!GetList(section, key, &codes, kListSeparator)) return 0;
     DWordArraySetSize(out, nullptr, codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
         out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
@@ -325,7 +315,7 @@ BOOL CIniFile::WriteList(const char* section, const char* key, const console::CS
     if (items->GetSize() == 0) return 0;
     text = (*items)[0];
     for (int i = 1; i < items->GetSize(); ++i) {
-        mfc::CString part = CharPlus(separator, (*items)[i]);
+        mfc::CString part = mfc::operator+(separator, (*items)[i]);   // 006FD5D0
         text += part;
     }
     return WriteCopy(this, section, key, text);

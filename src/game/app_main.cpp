@@ -249,7 +249,7 @@ void ReadCommandLine(const char* commandLine) {
                 MovieFolder() = folder;
             }
             const char* folder = MovieFolder();
-            if (folder[MovieFolder().GetLength() - 1] != '\\') CStringAppendCharOriginal(&MovieFolder(), nullptr, '\\');
+            if (folder[MovieFolder().GetLength() - 1] != '\\') MovieFolder() += '\\';
             continue;
         }
         if (!(client->flags_ & 0x10)) {

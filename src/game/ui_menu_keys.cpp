@@ -195,7 +195,7 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
             mfc::CString typed;
             {
                 mfc::CString head = name.Left(cursor_);
-                typed = PlusChar(head, static_cast<char>(key)) + tail;
+                typed = mfc::operator+(head, static_cast<char>(key)) + tail;
             }
             if (TextWidth(interface_, typed, 1) < kMaxNameWidth) {
                 name = typed;

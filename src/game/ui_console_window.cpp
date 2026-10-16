@@ -172,7 +172,6 @@ constexpr int kHistoryDepth = 30;
 mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
 // 006FED03. CStringArray::InsertAt(index, const CString&, count).
-__declspec(naked) void __fastcall InsertString(CStringArray*, void*, int, const mfc::CString*, int) EI_ORIGINAL(0x006FED03)
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
 // page, as addon's helpers do.
 void CopyToClipboard(const char* first, const char* last) {
@@ -257,7 +256,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size != 0 &&
                         std::strcmp(input_, commands_.data[0]) == 0;
         if (!repeated) {
-            InsertString(&commands_, nullptr, 0, &input_, 1);
+            commands_.InsertAt(0, input_, 1);   // 006FED03
             if (commands_.size > kHistoryDepth) commands_.RemoveAt(commands_.size - 1, 1);
         }
         commandIndex_ = -1;
@@ -311,7 +310,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
     if (ctrl_) return;
     mfc::CString rest = MidOf(input_, high);
     mfc::CString head = Left(input_, low);
-    input_ = PlusChar(head, static_cast<char>(key)) + rest;
+    input_ = mfc::operator+(head, static_cast<char>(key)) + rest;
     caret_ = low + 1;
     anchor_ = low + 1;
     DrawInput();

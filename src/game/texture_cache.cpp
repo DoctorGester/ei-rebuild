@@ -51,15 +51,10 @@ void __cdecl DeleteComposedTextures() {
     int more;
     do {
         more = CFileFindNext(&find);
-        alignas(mfc::CString) unsigned char pathSlot[sizeof(mfc::CString)];
-        mfc::CString* path = CFileFindPathOriginal(&find, nullptr, reinterpret_cast<mfc::CString*>(pathSlot));
-        BOOL deleted = gameapi::DeleteFileA(*path);
-        path->~CString();
+        BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());   // 006E6722, the path released after
         if (!deleted) {
-            alignas(mfc::CString) unsigned char nameSlot[sizeof(mfc::CString)];
-            mfc::CString* name = CFileFindNameOriginal(&find, nullptr, reinterpret_cast<mfc::CString*>(nameSlot));
-            game::DebugLog(CantDeleteText(), static_cast<const char*>(*name), gameapi::GetLastError());
-            name->~CString();
+            const mfc::CString name = find.GetFileName();   // 006E684B
+            game::DebugLog(CantDeleteText(), static_cast<const char*>(name), gameapi::GetLastError());
         }
     } while (more);
 }

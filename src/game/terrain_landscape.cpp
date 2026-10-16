@@ -454,7 +454,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     else AsString(textFC) = name;
     // (The original does not test for an archive without a map file either.)
     const mfc::CString& first = files.data[0];
-    AsString(textF8) = first.Left(CStringFindCharOriginal(&first, nullptr, '.'));
+    AsString(textF8) = first.Left(first.Find('.'));
 
     // The messages are passed to FatalError as its format string, as the original does.
     std::uint32_t size = 0;

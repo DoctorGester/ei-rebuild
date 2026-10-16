@@ -31,7 +31,7 @@ src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
-src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0,0,0,9
+src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0,0,0,1
 src/game/console.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/console_commands.cpp,0,0,0,0,34,0,0,0,0,0,0,0,0,0
 src/game/cursor_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -46,7 +46,7 @@ src/game/figure_models.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ground_print.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/hash_tables_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
-src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/item_constructor.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/item_db_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,23
 src/game/item_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
@@ -109,7 +109,7 @@ src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,16
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,165
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,151
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,49
@@ -136,7 +136,7 @@ src/game/scene_loader.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,43
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0,0,0,0
 src/game/scene_meshes.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,14
 src/game/scene_normals.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/scene_registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
+src/game/scene_registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/scene_skeleton.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/scene_weld.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_blocks.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -148,7 +148,7 @@ src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/script_exec_helpers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_exec_run.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/script_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,16
-src/game/script_parse.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/script_parse.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_parse_arrays.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/script_parse_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/script_quest.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -174,7 +174,6 @@ src/game/ui_briefing_people.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_camp.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,6
 src/game/ui_chat_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
-src/game/ui_console_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_create_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,17
 src/game/ui_edit_field.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -203,8 +202,7 @@ src/game/ui_layouts.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,10
 src/game/ui_menus.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_objectives.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/ui_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/ui_saveload.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
-src/game/ui_saveload_list.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+src/game/ui_saveload.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/ui_screens.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/ui_scroll_text.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_spell_column.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1

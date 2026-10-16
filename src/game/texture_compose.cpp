@@ -126,7 +126,7 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
     std::uint32_t* halved = NewAligned<std::uint32_t>(count * 4);
     CPixelConverter* converter = PixelConverter();
     converter->ConvertTo16(converted, image, kind, count);
-    CFileWrite(&file, nullptr, converted, count * 2);
+    file.Write(converted, count * 2);
     std::uint32_t* source = image;
     std::uint32_t* target = halved;
     if (mipCount > 1) {
@@ -136,7 +136,7 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
             converter->Halve(target, source, width);
             count = height * width;
             converter->ConvertTo16(converted, target, kind, count);
-            CFileWrite(&file, nullptr, converted, count * 2);
+            file.Write(converted, count * 2);
             std::uint32_t* done = target;
             target = source;
             source = done;
@@ -220,8 +220,8 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     header.extraSize = static_cast<std::uint32_t>(request->layerBytes);
     int kind = ConversionKind(format);
     if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, static_cast<const char*>(path));
-    CFileWrite(&file, nullptr, &header, sizeof(MmpHeader));
-    if (header.extraSize != 0) CFileWrite(&file, nullptr, request->layers, header.extraSize);
+    file.Write(&header, sizeof(MmpHeader));
+    if (header.extraSize != 0) file.Write(request->layers, header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }

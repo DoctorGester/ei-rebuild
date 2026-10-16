@@ -96,8 +96,8 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (int i = 0; i < places.GetSize(); ++i) {
         console::CStringArray parts;
-        CStringTrimLeftCharOriginal(&places[i], nullptr, '{');
-        CStringTrimRightCharOriginal(&places[i], nullptr, '}');
+        places[i].TrimLeft('{');
+        places[i].TrimRight('}');
         StringSplit(places[i], &parts, ';');
         if (parts.GetSize() == 2) {
             float x = static_cast<float>(GameAtof(parts[0]));

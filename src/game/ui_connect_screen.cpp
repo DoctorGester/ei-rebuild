@@ -772,8 +772,8 @@ void CMpConnectScreen::Create() {
         const int end = name.Find(NameEnd());
         if (end >= 0) name = name.Left(end);
         if (name.GetLength() > kNameLength) name = name.Left(kNameLength);
-        CStringTrimLeftOriginal(&name);
-        CStringTrimRightOriginal(&name);
+        name.TrimLeft();
+        name.TrimRight();
         nameEdit_->SetText(name);
         nameEdit_->SetEnabled(0, 1);
         nameEdit_->SetFocused(false);

@@ -443,7 +443,7 @@ int CAIMap::LoadTerrain(const char* path) {
     if (!archive.Open(full)) return 0;
     console::CStringArray maps;
     archive.Get()->ListFiles(&maps, "*.mp");
-    mfc::CString name = maps[0].Left(CStringFindCharOriginal(&maps[0], nullptr, '.'));
+    mfc::CString name = maps[0].Left(maps[0].Find('.'));
 
     MapDescription description;
     if (const int result = ReadDescription(archive, full, name, description); result != 1) return result;

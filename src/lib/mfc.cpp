@@ -87,6 +87,13 @@ void CString::ReleaseBuffer(int newLength) { Impl(this)->ReleaseBuffer(newLength
 void CString::MakeLower() { Impl(this)->MakeLower(); }                                             // 00700EFE
 void CString::AssignChar(char c) { *Impl(this) = c; }                                              // 006FD559
 void CString::TrimRight(const char* targets) { Impl(this)->TrimRight(targets); }                   // 006FE08A
+void CString::TrimRight() { Impl(this)->TrimRight(); }                                             // 006FE11F
+void CString::TrimRight(char target) { Impl(this)->TrimRight(target); }                            // 006FE0DD
+void CString::TrimLeft() { Impl(this)->TrimLeft(); }                                               // 006FE216
+void CString::TrimLeft(char target) { Impl(this)->TrimLeft(target); }                              // 006FE1D3
+const CString& CString::operator+=(char c) { *Impl(this) += c; return *this; }                     // 00700D73
+int CString::Find(char c) const { return Impl(this)->Find(c); }                                    // 00700E91
+int CString::Find(char c, int start) const { return Impl(this)->Find(c, start); }                   // 00700E9F
 #ifndef EI_VECTORS_REPLAY
 const CString& CString::operator+=(const CString& s) { *Impl(this) += *Impl(&s); return *this; }   // 00700D88
 const CString& CString::operator+=(const char* s) { *Impl(this) += s; return *this; }              // 00700D4C
@@ -106,11 +113,17 @@ BOOL CFile::Open(const char* path, unsigned flags, void* error) {               
 }
 unsigned CFile::GetLength() { return Impl(this)->GetLength(); }                     // 007014E2
 unsigned CFile::Read(void* buffer, unsigned count) { return Impl(this)->Read(buffer, count); }   // 00701305
+void CFile::Write(const void* buffer, unsigned count) { Impl(this)->Write(buffer, count); }      // 0070133F
 void CFile::Close() { Impl(this)->Close(); }                                        // 00701403
 
 CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int second, int dst) {   // 006FE3BB
     reinterpret_cast<impl::CTime*>(this)->Construct(year, month, day, hour, minute, second, dst);
     return this;
+}
+CString CTime::Format(const char* format) const {                                   // 006FE795
+    CString result(CString::kUnset);
+    Place(result, reinterpret_cast<const impl::CTime*>(this)->Format(format));
+    return result;
 }
 
 CFileFind::CFileFind() { Impl(this)->Construct(); }                                 // 006E6370
@@ -122,6 +135,11 @@ CString CFileFind::GetFilePath() const {                                        
     return result;
 }
 unsigned long CFileFind::GetLength() const { return Impl(this)->GetLength(); }      // 006E68AA
+CString CFileFind::GetFileName() const {                                            // 006E684B
+    CString result(CString::kUnset);
+    Place(result, Impl(this)->GetFileName());
+    return result;
+}
 
 void CStringArray::Construct() { Impl(this)->Construct(); }                         // 006FE925
 void CStringArray::Destruct() { Impl(this)->Destruct(); }                           // 006FE958
@@ -131,6 +149,9 @@ void CStringArray::SetAtGrow(int index, const char* text) { Impl(this)->SetAtGro
 void CStringArray::RemoveAt(int index, int count) { Impl(this)->RemoveAt(index, count); }                        // 006FED3C
 void CStringArray::Copy(const CStringArray& source) { Impl(this)->Copy(*Impl(&source)); }                       // 006FEB61
 int CStringArray::Append(const CStringArray& source) { return Impl(this)->Append(*Impl(&source)); }             // 006FEB01
+void CStringArray::InsertAt(int index, const CString& value, int count) {                                        // 006FED03
+    Impl(this)->InsertAt(index, *Impl(&value), count);
+}
 #else
 // ei_vectors uses these (random.cpp, record_arrays.cpp) without mfc_file.cpp / mfc_coll.cpp.
 __declspec(naked) CFile::CFile() EI_ORIGINAL(0x00701036)
@@ -173,6 +194,16 @@ CString __stdcall operator+(const char* a, const CString& b) {         // 00700C
 CString __stdcall operator+(const CString& a, const CString& b) {      // 00700B9F
     CString result(CString::kUnset);
     Place(result, *Impl(&a) + *Impl(&b));
+    return result;
+}
+CString __stdcall operator+(const CString& a, char b) {                // 006FD56E
+    CString result(CString::kUnset);
+    Place(result, *Impl(&a) + b);
+    return result;
+}
+CString __stdcall operator+(char a, const CString& b) {                // 006FD5D0
+    CString result(CString::kUnset);
+    Place(result, a + *Impl(&b));
     return result;
 }
 #endif

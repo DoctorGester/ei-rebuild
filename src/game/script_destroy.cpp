@@ -30,7 +30,7 @@ namespace {
 
 // DestructElements (__stdcall (first, count)): CString (006FE296), ScriptObjectRef (004CC7D0,
 // each released), ScriptGroup (004CC980).
-void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
+void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
 // Element destructors (__thiscall (flags), 0 = in place): a group (004CE210, through 004B5EF0)

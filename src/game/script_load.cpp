@@ -11,6 +11,7 @@
 #include "script_array.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_string.h"
 #include "record_arrays.h"
 
 #include "ei/hook.h"
@@ -52,8 +53,8 @@ __declspec(naked) void __fastcall IfThenCopy(void*, void*, const void*) EI_ORIGI
 // ConstructElements / DestructElements instantiations (__stdcall (first, count)) and element
 // destructors (__thiscall (flags); 0 = destroy in place).
 __declspec(naked) void __stdcall ZeroFloats(void*, int) EI_ORIGINAL(0x004CC870)
-void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
-void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
+void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
+void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x004CC9B0)
 void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }

@@ -46,9 +46,6 @@ constexpr int kRowsEndY = 504;           // sixteen rows
 constexpr int kMarkerSprite = 4;
 constexpr int kMinutesPerDay = 1440;
 
-// 006FE795 (RET 8): CTime::Format, the time as text in a new CString at `out` (returned).
-__declspec(naked) mfc::CString* __fastcall TimeFormat(const std::int32_t* /*time*/, void*, void* /*out*/,
-                                                      const char* /*format*/) EI_ORIGINAL(0x006FE795)
 
 // The width of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
 // takes the CString by value and releases it, so a copy's data is handed over).
@@ -116,10 +113,9 @@ void CSaveLoadWindow::RefreshListVanilla() {
             SurfaceDrawText(surface, nullptr, entry.title_, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
         }
         if (!isSave_ || index != 0) {
-            alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-            mfc::CString* date = TimeFormat(&entry.savedAt_, nullptr, storage, game::Text(kDateFormat));
-            SurfaceDrawText(surface, nullptr, *date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
-            date->~CString();
+            // 006FE795: CTime::Format.
+            const mfc::CString date = reinterpret_cast<const mfc::CTime*>(&entry.savedAt_)->Format(game::Text(kDateFormat));
+            SurfaceDrawText(surface, nullptr, date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
         }
         gameapi::OffsetRect(&titleRect, 0, kRowHeight);
         gameapi::OffsetRect(&dateRect, 0, kRowHeight);

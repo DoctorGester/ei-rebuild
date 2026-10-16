@@ -44,7 +44,6 @@ __declspec(naked) inline void __fastcall List2598Clear(void* /*list*/) EI_ORIGIN
 __declspec(naked) inline void** __fastcall PartiesErase(void*, void*, void**, void*) EI_ORIGINAL(0x004294D0)
 __declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
     EI_ORIGINAL(0x0042AF80)
-__declspec(naked) inline void __fastcall StringsCopyOriginal(void*, void*, const void*) EI_ORIGINAL(0x004C14A0)
 __declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
 __declspec(naked) inline void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
@@ -58,7 +57,6 @@ __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(
 __declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 __declspec(naked) inline const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
-__declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 // MFC CStringArray constructor (006FE925, mfc::CStringArray::Construct). Returns `this`.
 inline void* __fastcall StringArrayConstruct(void* array) {
     static_cast<mfc::CStringArray*>(array)->Construct();
@@ -98,8 +96,6 @@ __declspec(naked) inline void __fastcall ListConstruct411850(void* /*list*/, voi
 __declspec(naked) inline int __fastcall CFileFindNext(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
 __declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFileFind* /*find*/, void*,
                                                                   mfc::CString* /*out*/) EI_ORIGINAL(0x006E67BA)
-__declspec(naked) inline void __fastcall CFileWrite(mfc::CFile* /*file*/, void*, const void* /*buffer*/,
-                                                    unsigned /*count*/) EI_ORIGINAL(0x0070133F)
 // The CRT's x87 intrinsics _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
 // exponent in ST0), here with ordinary double arguments: the same bodies as acos 006E7334 / asin
 // 006E83D4 and libcrt::CiPow.
@@ -151,18 +147,10 @@ inline void* __fastcall CStringAssignTextOriginal(void* destination, void*, cons
     *static_cast<mfc::CString*>(destination) = text;
     return destination;
 }
-__declspec(naked) inline int __fastcall CStringFindCharOriginal(const void* /*string*/, void*, char /*c*/)
-    EI_ORIGINAL(0x00700E91)
-// MFC CString::Find(char, start) 00700E9F (RET 8, index or -1). TrimLeft() 006FE216 and TrimRight() 006FE11F
-// (white space, plain RET, no result).
-__declspec(naked) inline int __fastcall CStringFindCharFromOriginal(const void* /*string*/, void*, char /*c*/,
-                                                                     int /*start*/) EI_ORIGINAL(0x00700E9F)
-__declspec(naked) inline void __fastcall CStringTrimLeftOriginal(void* /*string*/) EI_ORIGINAL(0x006FE216)
 // MFC CString::Find(LPCTSTR) 006FDBD9 (RET 4, index or -1).
 inline int __fastcall CStringFindTextOriginal(const void* string, void*, const char* text) {
     return static_cast<const mfc::CString*>(string)->Find(text);
 }
-__declspec(naked) inline void __fastcall CStringTrimRightOriginal(void* /*string*/) EI_ORIGINAL(0x006FE11F)
 // MFC CPtrList::NewNode(prev, next) 004621A0 (RET 8, returns the node, data cleared); RemoveAll 0052CA10 (plain RET).
 __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004621A0)
@@ -214,11 +202,8 @@ __declspec(naked) inline void* __fastcall StringAppendRangeOriginal(void* /*stri
     EI_ORIGINAL(0x0040C280)
 __declspec(naked) inline void* __fastcall StringAssignCStrOriginal(void* /*string*/, void*, const char* /*text*/)
     EI_ORIGINAL(0x0041F550)
-__declspec(naked) inline void* __fastcall CStringAppendCharOriginal(void* /*string*/, void*, char /*c*/)
-    EI_ORIGINAL(0x00700D73)
 __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
-__declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE296)
 // 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; the group's destructor body 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
 // (vtable 0073D2F8; plain RET, EAX not a result).
 __declspec(naked) inline void __stdcall ScriptGroupElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC980)
@@ -242,11 +227,7 @@ __declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void
     EI_ORIGINAL(0x004DCE90)
 __declspec(naked) inline void** __fastcall ListEndIteratorOriginal(void* /*list*/, void*, void** /*out*/)
     EI_ORIGINAL(0x0041FCD0)
-// 006FE0DD: CString::TrimRight(char) (RET 4). 006FE268: CArray<CString> ConstructElements (RET 8: first, count).
 // 006FEB61: CStringArray::Copy(source) (RET 4, EAX not a result).
-__declspec(naked) inline void __fastcall CStringTrimRightCharOriginal(void* /*string*/, void*, char /*c*/)
-    EI_ORIGINAL(0x006FE0DD)
-__declspec(naked) inline void __stdcall CStringElementsConstruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE268)
 inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
     static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
 }
@@ -371,9 +352,6 @@ inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* out, const mf
 inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, const mfc::CString* left, const char* right) {
     return ::new (out) mfc::CString(*left + right);
 }
-// 006FE1D3: CString::TrimLeft(char) (RET 4, no result).
-__declspec(naked) inline void __fastcall CStringTrimLeftCharOriginal(void* /*string*/, void*, char /*c*/)
-    EI_ORIGINAL(0x006FE1D3)
 // Instances of std::list<int> on the node pool (the list's head node is at +0): 004049D0 end() (RET 4: out; *out = the head
 // node; EAX = out), 00404A40 insert(out, pos, value) (RET 0xC; EAX = out), 00404A70 constructor (RET 4: the allocator tag;
 // returns this). 0068C560 is insert(out, pos, value) of a list of pointers (RET 0xC; EAX = out).
@@ -416,9 +394,6 @@ __declspec(naked) inline int __fastcall CFileFindIsDotsOriginal(const void* /*fi
 inline mfc::CString* __fastcall CFileFindPathOriginal(const void* find, void*, mfc::CString* out) {
     return ::new (out) mfc::CString(static_cast<const mfc::CFileFind*>(find)->GetFilePath());
 }
-// 006E684B: CFileFind::GetFileName(out) (RET 4, EAX = out).
-__declspec(naked) inline mfc::CString* __fastcall CFileFindNameOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
-    EI_ORIGINAL(0x006E684B)
 // 006E88FC: the CRT's qsort (cdecl, plain RET, no result).
 __declspec(naked) inline void __cdecl GameQsortOriginal(void* /*base*/, std::size_t /*count*/, std::size_t /*size*/,
                                                         int(__cdecl* /*compare*/)(const void*, const void*))
@@ -480,11 +455,6 @@ __declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatc
                                                            net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 #include "string_arg.h"   // StringArg
-// C3p. 00696090 (rewritten as CIniFile::GetList; thiscall, RET 0x10): splits the .ini value at `separator` (a char) into
-// `out`; 0 when the value is empty.
-__declspec(naked) inline mfc::BOOL __fastcall IniGetListOriginal(void* /*ini*/, void*, const char* /*section*/,
-                                                                  const char* /*key*/, mfc::CStringArray* /*out*/,
-                                                                  char /*separator*/) EI_ORIGINAL(0x00696090)
 // C3n. 00406A10 (rewritten as hash400::PositionAt): hash_map<int, T*>::operator[](key); the slot of `key`, inserted when
 // missing (thiscall on the map, RET 4). One instruction sequence serves every instantiation with pointer values.
 __declspec(naked) inline void** __fastcall HashMapAt(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)

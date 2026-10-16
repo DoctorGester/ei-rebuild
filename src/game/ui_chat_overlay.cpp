@@ -328,7 +328,7 @@ void CChatOverlay::OnKeyDown(int key, int, int) {
 void CChatOverlay::OnChar(int key, int, int) {
     if (!chatOpen_) return;
     if (key == VK_BACK || key == VK_TAB || key == VK_RETURN || key == VK_ESCAPE) return;
-    mfc::CString line = PlusChar(typed_.Left(caret_), static_cast<char>(key)) + typed_.Mid(caret_);
+    mfc::CString line = mfc::operator+(typed_.Left(caret_), static_cast<char>(key)) + typed_.Mid(caret_);
     if (!interface_->ctrlDown_ && typed_.GetLength() < kMaxTyped && TextWidth(interface_, line, kTypedFont) < kMaxTypedWidth) {
         typed_ = line;
         ++caret_;

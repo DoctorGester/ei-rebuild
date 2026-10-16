@@ -11,6 +11,7 @@
 
 #include "console.h"
 #include "registry.h"
+#include "text_helpers.h"
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
@@ -27,20 +28,11 @@ namespace {
 // The unit's arrays: meshes (SceneMesh) and helpers (CMaterial); FakeUnitScene, scene_loader.h.
 SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit->meshes).data[index]; }
 
-StringArg Copy(const mfc::CString& s) {
-    StringArg arg;
-    new (&arg) mfc::CString(s);
-    return arg;
-}
-
 // The figure's registry (registry.cpp); its integers are read with GetInt2 (00694BE0).
 using Registry = CFileRegistry;
 
 // 00450750: the helper `index` of the unit's helper array (thiscall).
 __declspec(naked) CMaterial* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
-// 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name` (consumed).
-__declspec(naked) mfc::CString* __fastcall FindSection(mfc::CString* /*out*/, const console::CStringArray*, StringArg)
-    EI_ORIGINAL(0x00447F50)
 // 00453A30: SetSize of the caller's (type, value) array (thiscall: size, growth or -1).
 __declspec(naked) void __fastcall LinksSetSize(VtArray*, void*, int, int) EI_ORIGINAL(0x00453A30)
 // The (type, name) array's elements: construct `count` at `p` (004553F0), destroy one (00454360,
@@ -162,7 +154,8 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
     CMaterial* helperRecord = HelperAt(&unit->helpers, nullptr, helper);
     alignas(mfc::CString) unsigned char found[sizeof(mfc::CString)];
     auto* foundString = reinterpret_cast<mfc::CString*>(found);
-    FindSection(foundString, &sections, Copy(helperRecord->name2));
+    // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name`.
+    FindListedName(foundString, &sections, helperRecord->name2);
     s.section = *foundString;
     foundString->~CString();
     s.mapping = reg.GetString(s.section, game::Text(0x007846DC), mfc::CString(game::Text(0x007846F0)));   // "Main Texture Name", "none"

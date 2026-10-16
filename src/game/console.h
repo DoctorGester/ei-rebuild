@@ -13,6 +13,7 @@
 #include <cstdint>
 
 namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
+namespace mfc::impl { struct CStdioFile; }   // lib/mfc_file.h
 namespace ui_gdi { struct GameFont; }
 struct SpeechRecord;            // unit_client_models.h
 namespace acks { struct EnvironmentSpeech; }   // acks_db.h
@@ -70,6 +71,8 @@ public:
     CStdioFileVirtuals* Virtuals() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
 
 private:
+    mfc::impl::CStdioFile* Impl();
+
     void* vtable_;
     void* handle_;
     mfc::BOOL closeOnDelete_;

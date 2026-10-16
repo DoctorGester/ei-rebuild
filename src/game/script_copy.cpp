@@ -40,14 +40,14 @@ void CopyPlain(mfc::CArray<T>* to, const mfc::CArray<T>* from, void(__fastcall* 
 // ScriptVars::operator= as inlined into ScriptRun::operator= and out of line at 004CBAE0.
 void AssignVars(ScriptVars* to, const ScriptVars* from) {
     CopyFloats(&to->floats, &from->floats, FloatsSetSize);
-    StringsCopyOriginal(&to->floatNames, nullptr, &from->floatNames);
-    StringsCopyOriginal(&to->strings, nullptr, &from->strings);
-    StringsCopyOriginal(&to->stringNames, nullptr, &from->stringNames);
+    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->floatNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->floatNames));
+    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->strings), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->strings));
+    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->stringNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->stringNames));
     gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&to->objects), nullptr,
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&from->objects));
-    StringsCopyOriginal(&to->objectNames, nullptr, &from->objectNames);
+    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->objectNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->objectNames));
     gamearrays::GroupArrayCopy(reinterpret_cast<gamearrays::Groups::Array*>(&to->groups), nullptr, reinterpret_cast<const gamearrays::Groups::Array*>(&from->groups));
-    StringsCopyOriginal(&to->groupNames, nullptr, &from->groupNames);
+    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&to->groupNames), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&from->groupNames));
 }
 
 } // namespace
@@ -72,7 +72,7 @@ EI_REPLACE_METHOD(0x004CB570, ScriptRun::ScriptRunAssign);
 SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     id = other->id;
     CopyFloats(&floatArgs, &other->floatArgs, FloatArgsSetSize);
-    StringsCopyOriginal(&stringArgs, nullptr, &other->stringArgs);
+    mfc::impl::StringArrayAbi::Copy(reinterpret_cast<mfc::impl::StringArrayAbi::Array*>(&stringArgs), nullptr, reinterpret_cast<const mfc::impl::StringArrayAbi::Array*>(&other->stringArgs));
     CopyPlain(&objectArgs, &other->objectArgs, ObjectArgsSetSize);
     CopyPlain(&groupArgs, &other->groupArgs, GroupArgsSetSize);
     CopyPlain(&localBindings, &other->localBindings, BindingsSetSize);
@@ -132,7 +132,7 @@ ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) {
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // 006FE268: ConstructElements for CString.
-void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
+void __stdcall ConstructStrings(void* a0, int a1) { mfc::impl::ConstructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 // Library copy constructors of the binding and nested call arrays (__thiscall (const CArray&)).
 __declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCD90)
 

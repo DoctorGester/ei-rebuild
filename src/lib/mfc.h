@@ -38,6 +38,11 @@ public:
     void MakeLower();                             // 00700EFE (calls _mbslwr)
     void AssignChar(char c);                      // 006FD559 operator=(TCHAR)
     void TrimRight(const char* targets);          // 006FE08A TrimRight(LPCTSTR)
+    void TrimRight();                             // 006FE11F (white space)
+    void TrimRight(char target);                  // 006FE0DD
+    void TrimLeft();                              // 006FE216 (white space)
+    void TrimLeft(char target);                   // 006FE1D3
+    const CString& operator+=(char c);            // 00700D73
     const CString& operator+=(const CString& s);  // 00700D88
     const CString& operator+=(const char* s);     // 00700D4C
     CString Left(int count) const;                // 006FDAE9 (RET 8: result slot, count)
@@ -49,6 +54,8 @@ public:
     int ReverseFind(char ch) const;               // 006FDBB7 (RET 4; -1 when absent)
     int Find(const char* sub) const;              // 006FDBD9 Find(LPCTSTR) (RET 4; -1 when absent)
     int Find(const char* sub, int start) const;   // 006FDBE7 Find(LPCTSTR, nStart) (RET 8)
+    int Find(char c) const;                       // 00700E91 (-1 when absent)
+    int Find(char c, int start) const;            // 00700E9F
 
     operator const char*() const { return data_; }
 
@@ -72,6 +79,7 @@ public:
     BOOL Open(const char* path, unsigned flags, void* error);       // 007011E8
     unsigned GetLength();                                           // 007014E2
     unsigned Read(void* buffer, unsigned count);                    // 00701305
+    void Write(const void* buffer, unsigned count);                 // 0070133F
     void Close();                                                   // 00701403
     // The OS file handle (m_hFile; INVALID_HANDLE_VALUE when closed).
     void* Handle() const { return handle_; }
@@ -132,6 +140,7 @@ public:
     BOOL FindFile(const char* pattern, unsigned long flags);       // 006E6433
     unsigned long GetLength() const;                                // 006E68AA (the found file's size, low dword)
     CString GetFilePath() const;                                    // 006E6722 (RET 4: the result slot)
+    CString GetFileName() const;                                    // 006E684B (RET 4: the result slot)
 
 private:
     std::uint8_t data_[0x1C - 0];
@@ -170,6 +179,9 @@ public:
     // 006FE3BB (RET 0x1C). CTime(year, month, day, hour, minute, second, dst) through mktime.
     // Returns this.
     CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
+
+    // 006FE795. strftime of the local time into at most 127 characters (empty when it does not fit).
+    CString Format(const char* format) const;
 
     long time_;
 };
@@ -588,6 +600,7 @@ struct CStringArray {
     void RemoveAt(int index, int count = 1);            // 006FED3C
     void Copy(const CStringArray& source);              // 006FEB61
     int Append(const CStringArray& source);             // 006FEB01: the old size
+    void InsertAt(int index, const CString& value, int count = 1);   // 006FED03
 
     int GetSize() const { return size; }
     CString& operator[](int index) { return data[index]; }
@@ -605,5 +618,7 @@ using CTypedPtrList = CList<T*>;
 CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
 CString __stdcall operator+(const char* a, const CString& b);   // 00700C79
 CString __stdcall operator+(const CString& a, const CString& b); // 00700B9F
+CString __stdcall operator+(const CString& a, char b);          // 006FD56E
+CString __stdcall operator+(char a, const CString& b);          // 006FD5D0
 
 } // namespace mfc

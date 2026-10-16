@@ -163,8 +163,8 @@ void CMpHeroScreen::BackToNewHero() {
 
 void CMpHeroScreen::FinishRename() {
     mfc::CString typed(renameEdit_->text_);
-    CStringTrimLeftOriginal(&typed);
-    CStringTrimRightOriginal(&typed);
+    typed.TrimLeft();
+    typed.TrimRight();
     if (typed.GetLength() != 0) typed = mfc::CString(RenameSeparator()) + typed;
     mfc::CString& name = MpHeroName(heroIndex_);
     mfc::CString title(name);
@@ -174,8 +174,8 @@ void CMpHeroScreen::FinishRename() {
         base = title.Left(bar);
     else
         base = title;
-    CStringTrimLeftOriginal(&base);
-    CStringTrimRightOriginal(&base);
+    base.TrimLeft();
+    base.TrimRight();
     typed = base + typed;
     name = typed;
     reinterpret_cast<MpHeroRecord*>(MpHeroes().begin + heroIndex_ * kMpHeroSize)->WriteFile(HeroesFolder());   // 00662AC0
@@ -423,10 +423,10 @@ void CMpHeroScreen::Rename() {
         EditSetText(renameEdit_, nullptr, game::EmptyText());
     } else {
         mfc::CString typed = console::Ops(name).Mid(bar + 1);
-        CStringTrimLeftOriginal(&typed);
+        typed.TrimLeft();
         EditSetText(renameEdit_, nullptr, static_cast<const char*>(typed));
         name = name.Left(bar);
-        CStringTrimRightOriginal(&name);
+        name.TrimRight();
     }
     auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[3]);
     SurfaceFreeze(surface, nullptr, 1, 0);

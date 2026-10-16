@@ -48,10 +48,10 @@ int Length(const mfc::CString& s) { return console::Length(s); }
 
 } // namespace
 
-int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
-void TextOps::TrimLeft() { CStringTrimLeftOriginal(this); }
-void TextOps::TrimRight() { CStringTrimRightOriginal(this); }
-void TextOps::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
+int TextOps::Find(char c) const { return reinterpret_cast<const mfc::CString*>(this)->Find(c); }
+void TextOps::TrimLeft() { reinterpret_cast<mfc::CString*>(this)->TrimLeft(); }
+void TextOps::TrimRight() { reinterpret_cast<mfc::CString*>(this)->TrimRight(); }
+void TextOps::TrimRight(char a0) { reinterpret_cast<mfc::CString*>(this)->TrimRight(a0); }
 
 namespace {
 

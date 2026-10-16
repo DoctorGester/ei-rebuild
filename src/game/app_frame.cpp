@@ -17,6 +17,7 @@
 #include "originals_ui.h"
 #include "ui.h"
 #include "ui_cursor.h"
+#include "ini_file.h"
 
 #include <ddraw.h>
 
@@ -148,7 +149,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         IniSetPath(ini, nullptr, *path);
         path->~CString();
     }
-    IniGetListOriginal(ini, nullptr, section, game::Text(0x00784A54), &list, ',');
+    reinterpret_cast<CIniFile*>(ini)->GetList(section, game::Text(0x00784A54), reinterpret_cast<console::CStringArray*>(&list), ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];

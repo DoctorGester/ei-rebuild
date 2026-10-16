@@ -88,7 +88,7 @@ void __cdecl StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
     mfc::CString text(folder);
-    StartFolder() = static_cast<const char*>(PlusChar(text, '\\'));
+    StartFolder() = static_cast<const char*>(mfc::operator+(text, '\\'));
 }
 EI_REPLACE(0x0055EA10, StoreStartFolder);
 

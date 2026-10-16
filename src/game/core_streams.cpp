@@ -89,7 +89,7 @@ EI_REPLACE_METHOD(0x00417400, CStream::DeletingDestruct);
 mfc::CString* CStream::ReadString(void* out) {
     mfc::CString text;
     unsigned char byte;
-    while (Read(&byte, 1) && byte) text = PlusChar(text, static_cast<char>(byte));
+    while (Read(&byte, 1) && byte) text = mfc::operator+(text, static_cast<char>(byte));
     return new (out) mfc::CString(text);
 }
 EI_REPLACE_METHOD(0x00461190, CStream::ReadString);

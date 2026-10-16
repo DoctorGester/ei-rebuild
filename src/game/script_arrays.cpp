@@ -6,6 +6,7 @@
 #include "script.h"
 
 #include "lib/crt.h"
+#include "lib/mfc_string.h"
 #include "originals_library.h"
 #include "originals_script.h"
 
@@ -31,7 +32,7 @@ void FreePlain(mfc::CArray<T>* a, void* baseVtable) {
 void FreeStrings(mfc::CArray<mfc::CString>* a) {
     a->vtable = scriptvtable::kStringsBase;
     if (a->data) {
-        CStringElementsDestruct(a->data, a->size);
+        mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a->data), a->size);
         gamecrt::operator_delete(a->data);
     }
 }

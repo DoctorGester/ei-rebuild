@@ -167,7 +167,7 @@ void CUiEditField::OnChar(int key, int, int) {
     }
     mfc::CString tail = text.Mid(caret_);
     mfc::CString head = text.Left(caret_);
-    mfc::CString typed = PlusChar(head, c) + tail;
+    mfc::CString typed = mfc::operator+(head, c) + tail;
     if (text.GetLength() < maxLength_ && TextWidth(interface_, typed, font_) < area_.right - area_.left) {
         text = typed;
         changed_ = true;

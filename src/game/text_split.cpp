@@ -17,16 +17,16 @@ int SplitAt(const char* text, console::CStringArray* array, char separator, bool
     array->SetSize(0, -1);
     console::Ops(work).AppendChar(separator);
     int start = 0;
-    int at = CStringFindCharOriginal(&work, nullptr, separator);
+    int at = work.Find(separator);
     while (at != -1) {
         if (!skipAdjacent || at != start) {
             piece = console::Ops(work).Mid(start, at - start);
-            CStringTrimLeftOriginal(&piece);
-            CStringTrimRightOriginal(&piece);
+            piece.TrimLeft();
+            piece.TrimRight();
             array->SetAtGrow(array->GetSize(), piece);
         }
         start = at + 1;
-        at = CStringFindCharFromOriginal(&work, nullptr, separator, start);
+        at = work.Find(separator, start);
     }
     return 1;
 }
@@ -46,12 +46,12 @@ EI_REPLACE(0x004DBF50, SplitWords);
 int __fastcall ReplaceChar(mfc::CString* string, char from, char to) {
     mfc::CString result;
     int start = 0;
-    int at = CStringFindCharOriginal(string, nullptr, from);
+    int at = static_cast<const mfc::CString*>(string)->Find(from);
     while (at != -1) {
         result += console::Ops(*string).Mid(start, at - start);
         console::Ops(result).AppendChar(to);
         start = at + 1;
-        at = CStringFindCharFromOriginal(string, nullptr, from, start);
+        at = static_cast<const mfc::CString*>(string)->Find(from, start);
     }
     result += console::Ops(*string).Mid(start);
     *string = result;

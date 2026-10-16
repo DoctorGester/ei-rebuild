@@ -109,17 +109,8 @@ void CloseFind(mfc::CFileFind& find) { CFileFindCloseOriginal(&find); }
 BOOL IsDirectory(const mfc::CFileFind& find) {
     return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
 }
-// GetFilePath (006E6722) and GetFileName (006E684B): the CString they construct at the slot,
-// copied out and destroyed.
-mfc::CString FindResult(mfc::CString* (__fastcall* get)(const void*, void*, mfc::CString*), const mfc::CFileFind& find) {
-    alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
-    mfc::CString* text = get(&find, nullptr, reinterpret_cast<mfc::CString*>(slot));
-    mfc::CString result(*text);
-    text->~CString();
-    return result;
-}
-mfc::CString FilePath(const mfc::CFileFind& find) { return FindResult(CFileFindPathOriginal, find); }
-mfc::CString FileName(const mfc::CFileFind& find) { return FindResult(CFileFindNameOriginal, find); }
+mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }   // 006E6722
+mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }   // 006E684B
 
 // A file stream local as the original builds and tears it down inline (net_link.h).
 struct LocalFileStream {
@@ -279,9 +270,6 @@ constexpr std::uintptr_t kAutoEnterTitle = std::uintptr_t(0x00794914);  // "save
 constexpr std::uintptr_t kAutoExitTitle = std::uintptr_t(0x00794904);   // "save_auto_exit"
 constexpr std::uintptr_t kPlainFormat = std::uintptr_t(0x0079190C);     // "%s"
 
-// 00653BD0 (RET 4): the entry's zone name ("zone" + zone_ in the texts, else "save_camp"), a
-// CString constructed at `out`.
-__declspec(naked) mfc::CString* __fastcall EntryZoneTitle(SaveEntry*, void*, void* /*out*/) EI_ORIGINAL(0x00653BD0)
 
 bool SameFolder(const char* folder, std::uintptr_t name) {
     return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
@@ -303,11 +291,9 @@ void SaveEntry::MakeTitle(int) {
     } else if (SameFolder(folder_, kAutoFolderB)) {
         title.Format(game::Text(kPlainFormat), static_cast<const char*>(autoExit));
     } else {
-        alignas(mfc::CString) unsigned char zone[sizeof(mfc::CString)];
-        EntryZoneTitle(this, nullptr, zone);
-        auto* name = reinterpret_cast<mfc::CString*>(zone);
-        title.Format(game::Text(kPlainFormat), static_cast<const char*>(*name));
-        name->~CString();
+        // 00653BD0: the zone name ("zone" + zone_ in the texts, else "save_camp").
+        const mfc::CString name = ZoneTitle();
+        title.Format(game::Text(kPlainFormat), static_cast<const char*>(name));
     }
 }
 EI_REPLACE_METHOD(0x00653A50, SaveEntry::MakeTitle);
@@ -379,7 +365,7 @@ void CSaveLoadWindow::SaveGame() {
             mfc::CString path = folder + game::savewords::ShotFile();
             shot.Open(path, kOpenWrite, nullptr);
         }
-        CFileWrite(&shot, nullptr, pixels.Bits(), kShotBytes);
+        shot.Write(pixels.Bits(), kShotBytes);
         shot.Close();
         gameapi::LeaveCriticalSection(DeviceLock());
         pixels.End();
@@ -595,7 +581,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     mfc::CFile shot;
     shot.Open(folder + game::savewords::ShotFile(), kOpenWrite, nullptr);
-    CFileWrite(&shot, nullptr, pixels, kShotBytes);
+    shot.Write(pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);
     if (surface != nullptr) {
