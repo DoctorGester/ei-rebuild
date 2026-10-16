@@ -1780,6 +1780,15 @@ model = "sonnet"
 depends = ["C13c"]
 note = "What C13c left (2,720 in scope after it; 2,832 before): used other than in a call 29 (function-pointer tables; the item / spell record tables now use pointers to members, the same pattern fits the rest), forwarder name declared twice 50 and another declaration of the name 19 (same-named members of other classes; rename or qualify by hand), object passed as void* 29 and the skip-list rows' static_cast pairs (C13a, type recovery), ei_vectors links the caller without the target 19 (link the target into the vector files), target overloaded 9, derived class declares the target name 8, declared in its .cpp only 6, anonymous namespace of another file 3. Replay, Rebirth, vector recorder and harness-entry forwarders stay."
 
+[[ticket]]
+id = "C13a1"
+title = "C13a leftovers: 865 forwarders whose types differ from the target"
+group = "cleanup"
+size = 3
+model = "opus"
+depends = ["C13a"]
+note = "After C13a (python tools/direct_calls.py --map build/verify/ei_hook.map --report -v --cast --library, after merging main): 865 'types differ' and 106 skip-list rows (config/direct_calls_skip.csv: a per-file type passed as void* to a real class's method). By forwarder file: originals_ui.h 82, originals_library.h 62, originals_units.h 45, originals_gameplay.h 39, src/lib/mfc.cpp 33, originals_world.h 26, world_game.cpp 18, unit_ai.cpp 16, spell_effect_internal.h 14, then 1-13 per file. Families: STLport container ABI called on per-file raw types (ListEnd / ListBegin / VectorConstructBase / StringAbi / TreeIteratorCopy; about 124; net::StringRep, HeaderNode, ClientNode, void* record maps); UnitController (unit_ai.h, 37 files) overlaying CUnitServer (11 forwarders in unit_ai.cpp; replace it with CUnitServer); the script interpreter's remaining XCalls shims (ControllerCalls, UnitCalls, PlayerCalls, PlayerStateCalls, PartyRecordsCalls, ModeCalls, OstreamCalls, StlString / StlAllocator); UiInput, MapScreen, GameDC, RegistryOriginals, scene::Registry views; void* call sites (world_client_draw, world_save, world_units); returns of void** where the target returns list Node** (25). Lesson from C13a: when a shim pointer becomes the real class, every call left under its old name rebinds silently to the real class's same-named member (01ace95e: Handled()'s Update() became CInterface3D::Update, 73 goldens differed; 6e10aeb5) - rename every shim call explicitly and run the goldens after each shim. Float bits: a forwarder taking uint32 bits where the target takes float converts the value; std::bit_cast or retype the target."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
