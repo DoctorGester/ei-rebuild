@@ -1018,9 +1018,9 @@ def summary(jobs, results, args, elapsed, out=None, root=ROOT, build=BUILD):
 
 
 def window_check(jobs, out, build=BUILD):
-    """WB12: the standalone runs keep the game's windows out of sight (cloaked tool windows, never in front); each
-    report's WINDOW: line says whether any check (harness.cpp, noforeground::Watch) saw one. Prints how many runs
-    had the check and the runs that saw a window."""
+    """WB12, WB12a: harness runs (the image's and the original's) keep the game's windows out of sight (cloaked tool
+    windows, never in front); each report's WINDOW: line says whether any check (harness.cpp, noforeground::Watch)
+    saw one. Prints how many runs had the check and the runs that saw a window."""
     lines = {}
     for name, install in jobs:
         path = os.path.join(build, 'runs', f'{name}-{install}', 'harness_report.txt')
