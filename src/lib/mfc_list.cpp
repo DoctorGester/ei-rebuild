@@ -1,6 +1,6 @@
 // CPlex and the game's CList<T> / CMap<K, V> instantiations whose elements need nothing of the game
 // (mfc_list.h), registered at their own addresses so the standalone image has them; the forwarders
-// in src/game keep calling these addresses. Checked by tests/verify/verify_mfc_list.cpp. The groups
+// in src/game keep calling these addresses. Checked in game by verify_mfc_list.cpp until S21d. The groups
 // were found by comparing the instructions of every instantiation our code forwards to (addresses
 // masked); each node size is the one its NewNode passes to CPlex::Create.
 #include "mfc_list.h"

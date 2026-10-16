@@ -1,4 +1,4 @@
-// Record mode for the "coder" family (coder_vectors.h). Stolen bytes as in verify_net_coder.cpp. Every
+// Record mode for the "coder" family (coder_vectors.h). Stolen bytes as in verify_net_coder.cpp (S21d deleted it). Every
 // scenario compresses and decompresses (the hero's profile, saves and the client-server messages).
 #include "coder_vectors.h"
 #include "vectors.h"

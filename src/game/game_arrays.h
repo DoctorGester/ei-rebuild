@@ -2,7 +2,7 @@
 
 // The CArray<T> instantiations whose elements the game destroys through its own code (ticket S6):
 // lib/mfc_array.h's templates over the game's element types, with the element destructors ours
-// (each called directly). Registered in game_arrays.cpp; checked by tests/verify/verify_mfc_array.cpp.
+// (each called directly). Registered in game_arrays.cpp; checked in game by verify_mfc_array.cpp until S21d.
 
 #include "lib/mfc_array.h"
 #include "game/engine_object.h"

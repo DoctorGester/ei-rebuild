@@ -21,7 +21,7 @@
 //   is used (the two below are never made here);
 // - the unwind runs the game's frames between the throw and the handler through their own frame
 //   handlers (RtlUnwind), then ours.
-// tests/verify/verify_mfc_try.cpp proves it at every start (a missing file: the game's CStdioFile
+// verify_mfc_try.cpp proved it at every start until S21d (a missing file: the game's CStdioFile
 // constructor throws, the handler in script_text_file.cpp catches).
 
 // The handler types (the names are the game's: see above).

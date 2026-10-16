@@ -4,7 +4,7 @@
 // from, written out for the standalone exe (ticket S5, docs/notes/standalone.md section 2). Same
 // layout and allocator as the copy linked into game.exe: every body is registered at its library
 // address (mfc_string.cpp), so the forwarders in mfc.h and src/game reach it there, and
-// tests/verify/verify_mfc_string.cpp checks it against the original in the hook build. Code that
+// verify_mfc_string.cpp checked it against the original in the hook build until S21d. Code that
 // uses strings keeps calling mfc::CString (the forwarders) until C13 makes them direct calls.
 //
 // The library's helpers (AllocBuffer, ConcatCopy, ...) are public here so they can be registered.

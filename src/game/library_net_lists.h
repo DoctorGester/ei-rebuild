@@ -5,7 +5,7 @@
 // freed-id batches (list<vector<FreedId>>) and the reliable chunk lists (list<ReliableChunk>, plain
 // bytes), with the element policies (stlp_list.h) their copy constructors, default inserts, erase,
 // clear and ~list use; the session's clients find_if by peer address and the counted pointer's
-// init. Registered in library_net_lists.cpp; checked by tests/verify/verify_library_net_lists.cpp.
+// init. Registered in library_net_lists.cpp; checked in game by verify_library_net_lists.cpp until S21d.
 // Thiscalls are __fastcall with an unused EDX.
 
 #include "net_connection.h"

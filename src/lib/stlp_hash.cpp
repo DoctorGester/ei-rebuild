@@ -1,6 +1,6 @@
 // The game's STLport hashtable instantiations (stlp_hash.h), registered at their own addresses so the
-// standalone image has them; the forwarders in src/game keep calling these addresses. Checked by
-// tests/verify/verify_stlp_hash.cpp. Instantiations with the same instructions (addresses masked,
+// standalone image has them; the forwarders in src/game keep calling these addresses. Checked in game by
+// verify_stlp_hash.cpp until S21d. Instantiations with the same instructions (addresses masked,
 // node sizes and free lists kept) share one shim; each node size was read from the instantiation's
 // _M_new_node or from the free list its clear() pushes to.
 #include "stlp_hash.h"

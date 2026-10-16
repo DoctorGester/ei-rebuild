@@ -1,6 +1,6 @@
 // The game's CArray<T> instantiations (mfc_array.h), registered at their own addresses so the
-// standalone image has them; the forwarders in src/game keep calling these addresses. Checked by
-// tests/verify/verify_mfc_array.cpp. Instantiations with the same element policy share one body; the
+// standalone image has them; the forwarders in src/game keep calling these addresses. Checked in game by
+// verify_mfc_array.cpp until S21d. Instantiations with the same element policy share one body; the
 // groups were found by comparing the instructions of every instantiation our code forwards to
 // (addresses masked), the element sizes and helpers read from each.
 #include "mfc_array.h"

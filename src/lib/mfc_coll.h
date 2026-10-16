@@ -3,7 +3,7 @@
 // MFC 4.2's non-template arrays (afxcoll: array_s.cpp, array_w.cpp, array_d.cpp, array_b.cpp,
 // array_u.cpp), written out for the standalone exe (ticket S5, docs/notes/standalone.md section 2).
 // Same layout and allocator as the copies linked into game.exe; every body is registered at its
-// library address (mfc_coll.cpp) and checked by tests/verify/verify_mfc_coll.cpp. The callers keep
+// library address (mfc_coll.cpp) and checked in game by verify_mfc_coll.cpp until S21d. The callers keep
 // going through the forwarders (mfc.h's CStringArray, src/game/originals_library.h) until C13.
 
 #include "mfc_string.h"

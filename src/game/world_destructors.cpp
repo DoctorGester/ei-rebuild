@@ -1,8 +1,8 @@
 // The destructors the compiler wrote for the world's classes (S13a): the bodies the exe's vtables
 // reach through their slot 0 (the scalar deleting destructors), the members destroyed last to
 // first after the class's own teardown. The containers are the library's (lib/mfc.h CArray /
-// CList, lib/containers.h AlignedArray, lib/stlp.h hash_map). Checked by
-// tests/verify/verify_world_destructors.cpp. docs/notes/standalone.md, S13a.
+// CList, lib/containers.h AlignedArray, lib/stlp.h hash_map). Checked in game by
+// verify_world_destructors.cpp until S21d. docs/notes/standalone.md, S13a.
 #include "effects.h"
 #include "game_arrays.h"
 #include "game_lists.h"

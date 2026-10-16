@@ -3,8 +3,8 @@
 // keep no state of their own (the streams are the game's; the shared lock and the count of live ios are
 // the exe's). opfx / osfx / writepad are the inserters' own helpers; the exe's other callers of them (put,
 // write, the streambuf inserter: not reached by the game's code) keep the exe's. The numbers go through
-// the game's sprintf, the exponent letter through its toupper. tests/verify/verify_crt_iostream.cpp
-// compares each inserter with the original, verify_crt_streams.cpp the rest.
+// the game's sprintf, the exponent letter through its toupper. verify_crt_iostream.cpp
+// compared each inserter with the original, verify_crt_streams.cpp the rest (until S21d).
 #include "crt_iostream.h"
 
 #include "crt.h"

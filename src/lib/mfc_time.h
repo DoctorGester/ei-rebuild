@@ -5,7 +5,7 @@
 // localtime and strftime. In the hook build those are the game CRT's; in the standalone image the
 // host CRT's (32-bit forms), with the current time from GetLocalTime through the game's import
 // table as VC6's time() takes it (so the harness's fixed date applies). Registered at the library
-// addresses (mfc_time.cpp), checked by tests/verify/verify_mfc_file.cpp.
+// addresses (mfc_time.cpp), checked in game by verify_mfc_file.cpp until S21d.
 
 #include "mfc_string.h"
 

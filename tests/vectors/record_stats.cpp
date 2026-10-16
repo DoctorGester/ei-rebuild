@@ -1,5 +1,5 @@
 // Record mode for the "stats" family (stats_vectors.h): each recorder runs the original and offers the
-// call to its sampler. Stolen bytes as in the verify wrappers (verify_unit_stats.cpp,
+// call to its sampler. Stolen bytes as in the verify wrappers S21d deleted (verify_unit_stats.cpp,
 // verify_unit_small_a12.cpp, verify_unit_db.cpp, verify_unit_skill_price.cpp, verify_unit_params_*.cpp,
 // verify_unit_hit_location.cpp). Reached
 // by every scenario with units (the panel, the AI's attack options, hits and healing).

@@ -1,6 +1,6 @@
 // The game's STLport vector<T> instantiations over game records (record_vectors.h), registered at
 // their own addresses; the forwarders in the area files keep calling these addresses. The element
-// size of each was read from its size arithmetic. Checked by tests/verify/verify_record_vectors.cpp.
+// size of each was read from its size arithmetic. Checked in game by verify_record_vectors.cpp until S21d.
 #include "record_vectors.h"
 
 #include "ei/hook.h"

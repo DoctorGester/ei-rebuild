@@ -1,6 +1,6 @@
 // The game's STLport vector<T> instantiations (stlp_vector.h), registered at their own addresses so
-// the standalone image has them; the forwarders in src/game keep calling these addresses. Checked by
-// tests/verify/verify_stlp_vector.cpp. Instantiations with the same instructions (addresses masked)
+// the standalone image has them; the forwarders in src/game keep calling these addresses. Checked in game by
+// verify_stlp_vector.cpp until S21d. Instantiations with the same instructions (addresses masked)
 // and element size share one shim; the element size of each was read from its size arithmetic.
 #include "stlp_vector.h"
 

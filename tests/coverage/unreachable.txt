@@ -1,6 +1,6 @@
 # Rewritten functions no scenario can reach, by hand (tools/coverage.py list reads it): ADDRESS STATUS REASON.
-# STATUS is `startup` (a static initialiser: it runs before the hooks are installed; an EI_STARTUP_CHECK in
-# tests/verify/verify_static_initialisers.cpp compares what it built) or `dead` (game.exe never calls it).
+# STATUS is `startup` (a static initialiser: it runs before the hooks are installed; until S21d an EI_STARTUP_CHECK
+# in verify_static_initialisers.cpp compared what it built) or `dead` (game.exe never calls it).
 # Such a function is left out of the risk ranking while no scenario reaches it.
 00444740 startup the debug panel's string table (DebugPanelStartupCheck)
 00458870 startup the options (OptionsStartupCheck)

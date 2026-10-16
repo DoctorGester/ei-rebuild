@@ -9,8 +9,8 @@
 //
 // Every body is registered at its library address in both builds (mfc_handle_map.cpp); the maps
 // themselves live in MFC's module thread state, which the hook build keeps (the original's
-// afxMapHDC / afxMapHGDIOBJ) and the image replaces with its own (mfc_gdi.cpp). Checked by
-// tests/verify/verify_mfc_handle_map.cpp.
+// afxMapHDC / afxMapHGDIOBJ) and the image replaces with its own (mfc_gdi.cpp). Checked in game by
+// verify_mfc_handle_map.cpp until S21d.
 
 #include "crt.h"
 #include "mfc.h"

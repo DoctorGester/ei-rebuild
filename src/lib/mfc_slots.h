@@ -4,7 +4,7 @@
 // section 2): each CArray / CList / CMap instantiation's scalar deleting destructor (vtable slot 1)
 // and the destructors they call. The bodies are mfc_array.h's and mfc_list.h's templates;
 // mfc_slots.cpp registers the instantiations whose elements need nothing of the game,
-// src/game/game_slots.cpp the others. Checked by tests/verify/verify_mfc_slots.cpp.
+// src/game/game_slots.cpp the others. Checked in game by verify_mfc_slots.cpp until S21d.
 
 #include "mfc_archive.h"
 #include "mfc_list.h"

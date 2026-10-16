@@ -3,7 +3,7 @@
 // Library code over game types in S12a's ranges (S12c, docs/notes/standalone.md): STLport members of
 // lists, vectors and algorithms whose elements are the game's (streams, CStrings, counted pointers,
 // the briefing's records), the CString destructor's out-of-line copies and the compiler's unwind
-// helpers. Registered in library_containers.cpp; checked by tests/verify/verify_library_containers.cpp.
+// helpers. Registered in library_containers.cpp; checked in game by verify_library_containers.cpp until S21d.
 // Thiscalls are __fastcall with an unused EDX.
 
 #include "core_refcount.h"
