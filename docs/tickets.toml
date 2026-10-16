@@ -2562,3 +2562,12 @@ id = "D3a"
 title = "Hooked-run and verify-wrapper comments in tests/verify and tools"
 group = "docs"
 note = "29 comment lines in tests/verify (harness.cpp, harness_address_order.h, harness_clock.cpp, harness_digest.cpp, harness_heap.h, harness_script_order.h, ui_census.cpp) and tools (coverage.py, gen_short_functions.py, gen_static_init.py, golden.py, randtrace.py, run_all.py, standalone_gaps.py, work_sched.py) still describe hooked runs, the hook build or verify_*.cpp wrappers (grep -niE 'hooked run|hook build|verify wrapper|verify_[a-z]+\\.cpp'); say what holds since S21e (game.exe only runs the original, our code only in the image). src's ~165 files with 'so the verify wrapper sees it' calls are C13's. Comment edits; both builds, no game runs."
+
+[[ticket]]
+id = "D5"
+title = "renderer.md: hooked-mode text and section 9's backlog"
+group = "docs"
+size = 0.5
+model = "sonnet"
+files = ["docs/notes/renderer.md"]
+note = "renderer.md still describes retired modes: verify wrappers whose originals need DirectDraw, run_all --dgvoodoo and --native (around lines 352-358, 505-515), hooked runs. Rewrite to what holds since S21e (our renderer only in the standalone image; game.exe runs only the original on dgVoodoo), and cut section 9 'What is left' (~260 lines, D3's count) to the open items with ticket ids. Current facts only, no log; keep section numbers so citations hold."
