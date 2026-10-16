@@ -185,8 +185,8 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
+- **WB15** A tools unit test fails now and then under load (review since 2026-10-16; sonnet, 0.25 sessions). Twice on 2026-10-16, 'python -m unittest discover -s tools -p test_*.py' gave FAILED (failures=1) when it ran right after build.cmd on main with workers' games running; 5 reruns when idle all passed (95 tests). Find the timing-dependent test (likely test_run_all_timeout or test_work_sched): run the suite repeatedly under CPU load, then make it independent of load. Files: `tools/test_*.py`.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
-- **WB15** A tools unit test fails now and then under load (ready; sonnet, 0.25 sessions). Twice on 2026-10-16, 'python -m unittest discover -s tools -p test_*.py' gave FAILED (failures=1) when it ran right after build.cmd on main with workers' games running; 5 reruns when idle all passed (95 tests). Find the timing-dependent test (likely test_run_all_timeout or test_work_sched): run the suite repeatedly under CPU load, then make it independent of load. Files: `tools/test_*.py`.
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
