@@ -408,11 +408,19 @@ int InstallHooks() {
     // replacements only, no Rebirth detection, no start-up checks.
     const bool standalone = Standalone();
     // EI_NO_HOOKS=1 (ei_launch --no-hooks): run the original code only, as a baseline for harness runs.
-    char noHooks[4];
-    if (!standalone && GetEnvironmentVariableA("EI_NO_HOOKS", noHooks, sizeof(noHooks)) && noHooks[0] == '1') {
+    // EI_VECTORS=1: record mode (tests/vectors): each function with a recorder runs the original
+    // through it, and its calls are sampled as test vectors. With EI_NO_HOOKS the recorders are the
+    // only hooks (since S21c no tool runs our code inside game.exe).
+    char noHooksValue[4], vectorsValue[4];
+    const bool noHooks = !standalone && GetEnvironmentVariableA("EI_NO_HOOKS", noHooksValue, sizeof(noHooksValue)) &&
+                         noHooksValue[0] == '1';
+    const bool recording = !standalone && GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) &&
+                           vectorsValue[0] == '1';
+    if (noHooks && !recording) {
         Log("EI_NO_HOOKS set: running the original game code");
         return 0;
     }
+    if (noHooks) Log("EI_NO_HOOKS and EI_VECTORS set: the original game code with the vector recorders only");
     auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(kImageBase);
     auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew);
     if (nt->FileHeader.TimeDateStamp != kExpectedTimestamp) {
@@ -452,7 +460,7 @@ int InstallHooks() {
         __asm fnstcw cw
         Log("FPU control word at WinMain: %04X", cw);
     }
-    for (StartupAction* action = g_startupActions; action; action = action->next) {
+    for (StartupAction* action = noHooks ? nullptr : g_startupActions; action; action = action->next) {
         Log("startup action %s", action->name);
         action->run();
     }
@@ -461,10 +469,6 @@ int InstallHooks() {
     char plainValue[4];
     const bool plain = standalone || (GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1');
     if (plain) Log(standalone ? "standalone: no verify wrappers" : "EI_PLAIN set: no verify wrappers");
-    // EI_VECTORS=1: record mode (tests/vectors): each function with a recorder runs the original
-    // through it, and its calls are sampled as test vectors.
-    char vectorsValue[4];
-    const bool recording = !standalone && GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) && vectorsValue[0] == '1';
     if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
     // In the standalone image the code section is INT3 until the jumps go in: a registered address that
@@ -479,7 +483,7 @@ int InstallHooks() {
     g_unexpectedSkips = 0;
     std::unordered_map<std::uintptr_t, const char*> hookedBy;   // address -> the entry installed there
     for (HookEntry* h = g_hooks; h; h = h->next) {
-        if (IsDisabled(h->address)) continue;
+        if (IsDisabled(h->address) || (noHooks && !h->record)) continue;
         if (patchedBefore.count(h->address)) {
             LogSkip(h, true, "patched before the hooks (the harness)");
             continue;
@@ -606,7 +610,7 @@ int InstallHooks() {
     if (shortLeft) Log("%d function(s) under 5 bytes left to the original (EI_REPLACE_SHORT)", shortLeft);
     if (runtimeLeft) Log("%d runtime function(s) left to the original (EI_REPLACE_STANDALONE)", runtimeLeft);
     if (g_unexpectedSkips) Log("%d unexpected SKIP(s) above: those rewrites never run", g_unexpectedSkips);
-    if (standalone) return installed;
+    if (standalone || noHooks) return installed;
     // The game's static initialisers have run and nothing else yet: their results are compared now.
     for (StartupCheck* check = g_startupChecks; check; check = check->next) {
         Log("startup check %s", check->name);
