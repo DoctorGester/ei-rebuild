@@ -17,7 +17,7 @@
 #include <d3d12.h>
 #endif
 
-#include "../game/device_switchover.h"   // device::WithoutDirectDraw, SwitchOverRenderState
+#include "../game/device_switchover.h"   // device::SwitchOverRenderState
 #include "../game/texture.h"   // CTextureDevice, CDXSurface
 
 #include <cstdio>
@@ -34,15 +34,15 @@ using namespace detail;
 // --- The switch ------------------------------------------------------------------------------------
 
 bool g_configured = false;
-bool g_active = false;   // "new": the new renderer draws and presents every frame
-bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
+bool g_failed = false;   // device or pipelines could not be created, or sokol panicked: nothing more is drawn
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 #if defined(EI_RENDER_VALIDATION)
 bool g_removable = false;   // "removable" (harness build only): the device is made through D3D11On12 (R9c5)
 #endif
 
+// The words of EI_RENDER. "new", "present" and "cpuwindows" (the old switch, still named by run_all
+// and the scenarios) change nothing: the image always draws with the new renderer.
 void ParseSpec(const char* spec) {
-    g_active = false;
 #if defined(EI_RENDER_VALIDATION)
     g_removable = false;
 #endif
@@ -53,8 +53,7 @@ void ParseSpec(const char* spec) {
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
         while (!word.empty() && word.front() == ' ') word.erase(word.begin());
         while (!word.empty() && word.back() == ' ') word.pop_back();
-        if (word == "new") g_active = true;
-        else if (word == "present" || word == "cpuwindows") {}   // what "new" means (run_all, the scenarios name them)
+        if (word == "new" || word == "present" || word == "cpuwindows") {}
 #if defined(EI_RENDER_VALIDATION)
         else if (word == "removable") g_removable = true;
 #endif
@@ -62,22 +61,14 @@ void ParseSpec(const char* spec) {
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
-    if (g_presentsItself && !g_active) {
-        // The game was built without DirectDraw (StartPresenting): only the new renderer can draw.
-        ei::Log("render: '%s' asks for the old path, but the game has no DirectDraw device: 'new' stays on", spec ? spec : "");
-        g_active = true;
-    }
     g_configured = true;
-    if (g_active) ei::Log("render: new renderer on (presenting, windows in game memory)");
 }
 
-// EI_RENDER; without it "" (off), in the standalone image "new,present": it has no dgVoodoo to count on
-// and the new renderer presents by itself.
 std::string EnvironmentSpec() {
     char spec[256];
     DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
     if (n > 0 && n < sizeof(spec)) return std::string(spec);
-    return ei::Standalone() ? std::string("new,present") : std::string();
+    return std::string();
 }
 
 void EnsureConfigured() {
@@ -113,7 +104,7 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
     }
     ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
             message ? message : "");
-    // sokol cannot go on after a panic: the new renderer switches itself off (the old path draws).
+    // sokol cannot go on after a panic: the new renderer switches itself off (nothing more is drawn).
     if (level == 0) g_failed = true;
 }
 
@@ -301,7 +292,7 @@ std::uint32_t g_commits = 0;
 
 bool EnsureStarted() {
     EnsureConfigured();
-    if (!g_active || g_failed) return false;
+    if (!Active()) return false;
     if (g_started) return true;
     FpuGuard fpu;
     if (!CreateDevice() || !CreateTerrainShader() || !CreateMeshShader() || !CreateBlitPipeline()) {
@@ -465,8 +456,8 @@ void RemoveIfAsked() {
 namespace {
 
 // The end of a presented frame (nothing of it holds sokol resources any more): a loss reported
-// during the frame, asked for, or found by GetDeviceRemovedReason (a loss nothing reported: no swap
-// chain of ours, "new" without "present") makes everything again.
+// during the frame, asked for, or found by GetDeviceRemovedReason (a loss nothing reported, e.g.
+// while minimised) makes everything again.
 void CheckDevice() {
     if (TakeSimulatedLoss()) ReportDeviceLost(DXGI_ERROR_DEVICE_REMOVED, S_OK);
 #if defined(EI_RENDER_VALIDATION)
@@ -568,21 +559,13 @@ void Configure(const char* spec) {
     ParseSpec(combined.c_str());
 }
 
-bool Active() {
-    EnsureConfigured();
-    return g_active && !g_failed;
-}
-
-bool CpuWindows() {
-    EnsureConfigured();
-    return g_active;
-}
-
-bool Presenting() { return Active(); }
+// game.exe (the harness and the vector recorders in the original's process) never runs the new
+// renderer: its frames are the original's.
+bool Active() { return ei::Standalone() && !g_failed; }
 
 bool StartPresenting() {
     if (g_presentsItself) return true;
-    if (!Presenting() || !EnsureStarted()) return false;
+    if (!Active() || !EnsureStarted()) return false;
     g_presentsItself = true;
     ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
     return true;

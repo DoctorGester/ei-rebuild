@@ -8,9 +8,7 @@
 
 namespace device {
 
-// The device object was built without DirectDraw (decided once, when it is built).
-bool WithoutDirectDraw();
-// Without DirectDraw: the render state / texture stage state the game last set (Direct3D 7's
+// The render state / texture stage state the game last set (Direct3D 7's
 // default before that).
 std::uint32_t SwitchOverRenderState(std::uint32_t state);
 std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state);

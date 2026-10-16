@@ -43,23 +43,14 @@ T GameValue(std::uintptr_t address) {
 constexpr std::uint32_t kAlphaRef = 0x18;
 constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;   // texture x diffuse, colour and alpha
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-
 // The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
-// IDirect3DDevice7::Clear of the depth buffer (with the stencil when the device has one: +0x90 bit
-// 0x4000 and +0x9C) to `z`, over `count` rectangles (or all of it), the result in the device
-// object's +8; handed to the new renderer. In the switch-over only the new renderer clears.
+// The original's IDirect3DDevice7::Clear of the depth buffer to `z`, over `count` rectangles (or all
+// of it), the result in the device object's +8: only the new renderer clears (the switch-over has no
+// depth buffer), the result 0.
 void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
-    unsigned long flags = (device->caps_ & 0x4000) && device->stencil_ ? 6ul : 2ul;
-    if (!render::Presenting()) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        device->result_ = device->device_->Clear(count, rects, flags, 0ul, z, 0ul);
-        gameapi::LeaveCriticalSection(DeviceLock());
-    } else {
-        device->result_ = 0;
-    }
+    device->result_ = 0;
     render::Rect r[8];
     int n = count < 8 ? static_cast<int>(count) : 8;
     for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};

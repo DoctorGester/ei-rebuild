@@ -6,17 +6,15 @@
 // interface ids and class ids are the game's own (00744900 ... 00745CB0). See
 // docs/notes/app.md.
 //
-// PF3 (decided by the user 2026-10-14): in a native run (the new renderer presents, EI_RENDER
-// "present", on the system's DirectDraw: run/native) DirectX 7 is a given and nothing is probed.
-// The probe cost about half a second at startup there, and with several games on the machine it
-// failed now and then, ending the run at the "DirectX 7 or later" box (R9b1). The result is then
-// 0x800, what the probe reports on any current Windows. Vanilla and Rebirth runs (dgVoodoo's
-// DDRAW.DLL next to game.exe) probe as the original does. The standalone exe presents itself and has
-// no original to probe against: it takes the native path unconditionally.
+// PF3 (decided by the user 2026-10-14): when the DDRAW.DLL loaded is the system's (not one in the
+// game exe's folder, such as dgVoodoo's) DirectX 7 is a given and nothing is probed. The probe cost
+// about half a second at startup there, and with several games on the machine it failed now and
+// then, ending the run at the "DirectX 7 or later" box (R9b1). The result is then 0x800, what the
+// probe reports on any current Windows. With a DDRAW.DLL in the exe's folder the probe runs as the
+// original's.
 #include "ei/hook.h"
 #include "game_strings.h"
 #include "lib/gameapi.h"
-#include "render/render.h"
 
 #include "../hook/log.h"
 
@@ -63,9 +61,9 @@ bool SystemDirectDraw() {
     return exeFolder[0] && ddrawFolder[0] && gameapi::lstrcmpiA(exeFolder, ddrawFolder) != 0;
 }
 
-// A native run: the new renderer presents (render.h) on the system's DirectDraw.
+// A native run: the system's DirectDraw.
 bool DirectXIsGiven() {
-    if (!render::Presenting() || !SystemDirectDraw()) return false;
+    if (!SystemDirectDraw()) return false;
     ei::Log("app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped");
     return true;
 }

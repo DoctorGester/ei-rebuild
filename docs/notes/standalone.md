@@ -58,7 +58,7 @@ plain new / delete; then the image and the read of game.exe go.
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (run\vanilla's game.exe laid
   out, vanilla data) and `standalone-rebirth` (run\rebirth's game.exe, the Rebirth data, the flags of
   `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth launch with addon turns on; refresh it when
-  addon.dll or EI_Plugin.ini change). Always `EI_RENDER=new,present` (no display mode change).
+  addon.dll or EI_Plugin.ini change). Always our renderer (no display mode change).
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
@@ -93,7 +93,8 @@ plain new / delete; then the image and the read of game.exe go.
   nine maps-folder users, CCamera::LoadPath, SwitchStream, the three BinkOpen calls. Checked by
   `rebirth_mod_folders` (a mod written by `tools/make_test_mod.py`, harness steps `addonpath` and `modfile`). Not
   covered by a run: StreamPatch, MoviesPatch, the extra / ignored archives, Maps' zone-table and quest sites (S19d).
-- **Renderer**: without EI_RENDER the image runs `new,present` (render.cpp `EnvironmentSpec`).
+- **Renderer**: the image always draws with the new renderer; there is no DirectDraw fallback (R11a, renderer.md
+  section 1). EI_RENDER's `new,present` (run_all still sets it) changes nothing.
 - **disabled.txt** never applied to the image and is gone (S21e).
 
 ### Generated code

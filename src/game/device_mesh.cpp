@@ -212,7 +212,7 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
     if (a.flags & 4) OverrideColours(device, a);
     // The new renderer (src/render) takes the mesh in model space with the matrix it was projected
     // with; each pass the old path draws below hands over the device's state (device_draw.cpp).
-    if (render::Active()) HandOver(device, a);
+    HandOver(device, a);
     int result = visibility;
     if (visibility == 0) {
         DrawOnScreen(device, transform, a, textures);

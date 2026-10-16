@@ -207,9 +207,9 @@ bool WriteBmp(const char* path, const Image& image) {
 }
 
 void Capture() {
-    // The new renderer presenting by itself ("present"): the old render target holds nothing worth
+    // The image (the new renderer presents by itself): the old render target holds nothing worth
     // keeping; the new frame is the capture.
-    if (render::Presenting()) {
+    if (render::Active()) {
         render::EndFrame();
         Image frame;
         char path[MAX_PATH];

@@ -6,7 +6,7 @@
 // behind (docs/notes/renderer.md, sections 10 and 12).
 
 #include "game_strings.h"
-#include "device_switchover.h"   // device::WithoutDirectDraw
+#include "device_switchover.h"   // device::SwitchOverRenderState
 #include "texture.h"
 
 #include <d3d.h>
@@ -66,7 +66,7 @@ inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) {
 
 // ---- The switch-over device (device_null.cpp; ticket R9a, docs/notes/renderer.md section 9) ----
 //
-// With the new renderer presenting ("present") the device object is built without DirectDraw and
+// The device object is built without DirectDraw and
 // Direct3D: no DirectDraw object, display mode, primary, render target or depth surface and no
 // Direct3D device; the new renderer presents through its own swap chain on the game window. The
 // object is filled for the game: the screen rectangle, holders without a surface for the primary
@@ -79,8 +79,8 @@ inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) {
 // so that the remaining callers can be guarded and the stand-ins removed (ticket R9b).
 
 // The device object is being built without DirectDraw for a `width` x `height` screen of
-// `bitsPerPixel` (16 or 32): from now on WithoutDirectDraw() is true. Returns the IDirectDraw7
-// stand-in.
+// `bitsPerPixel` (16 or 32): from now on the calls below answer for the stand-ins. Returns the
+// IDirectDraw7 stand-in.
 IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
 // The IDirect3DDevice7 stand-in, its states back at a new device's.
 IDirect3DDevice7* NullDirect3DDevice();
@@ -93,8 +93,8 @@ const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
 // ---- The rewritten code's calls into the old device (ticket R9b) ----
 //
 // Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name on the interface given (the
-// device object's +0x54 / +0x0C), as the original calls it. Without DirectDraw (WithoutDirectDraw),
-// when the interface is the device object's stand-in (or null), it is not used and the call has the
+// device object's +0x54 / +0x0C), as the original calls it. Once the device object is built
+// (StartWithoutDirectDraw), when the interface is the device object's stand-in (or null), it is not used and the call has the
 // same result without a device (any other interface, such as a verify wrapper's recording device,
 // is called as before): the render and
 // texture stage states, state blocks, bound textures, viewport and scene bracket are kept in the

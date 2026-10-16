@@ -288,12 +288,12 @@ void CTextureDevice::Destruct() {
 }
 EI_REPLACE_METHOD(0x004E68A0, CTextureDevice::Destruct);
 
-// The base's constructor, the format table and the depth buffer are called through their addresses
-// (originals_render.h), as the original calls them.
-// Original details kept: the HAL device is the only one taken (the T&L HAL is skipped by its id);
-// the z-buffer setting chosen from the device's W-buffer capability is overwritten with 1.
+// The base's constructor and the format table are called through their addresses
+// (originals_render.h), as the original calls them. The original then makes the Direct3D object,
+// takes the HAL device (the T&L HAL is skipped by its id), the depth buffer (004E6C30) and the render
+// target; none of that exists in the switch-over.
 CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
-                                          int refreshRate, unsigned backBuffers, int depthBits, int stencilBits) {
+                                          int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/) {
     ConstructDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate,
                                     backBuffers, 1);
     depth_ = nullptr;
@@ -315,65 +315,8 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     d3dDevice_ = nullptr;
     d3d_ = nullptr;
 
-    if (device::WithoutDirectDraw()) {
-        ConstructWithoutDirect3D(this);
-        return this;
-    }
-
-    lastLoadResult_ =device::DDraw(this)->QueryInterface(device::IidDirect3D7(), &d3d_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E170));   // "Can't create D3D object.\n"
-    // (The callback by its address, as the original passes it: its verify wrapper stays in the path.)
-    lastLoadResult_ = device::Direct3D(this)->EnumDevices(reinterpret_cast<LPD3DENUMDEVICESCALLBACK7>(0x004ED820), &devices_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E150));   // "Can't enumerate D3D devices.\n"
-
-    // The last hardware (HAL) device listed.
-    Direct3DDeviceRecord* chosen = nullptr;
-    for (auto* node = devices_.First(); node != devices_.End(); node = node->next) {
-        const GUID& id = node->data.desc.deviceGUID;
-        if (std::memcmp(&id, &device::IidTnLHalDevice(), sizeof(GUID)) == 0) continue;
-        if (std::memcmp(&id, &device::IidHalDevice(), sizeof(GUID)) == 0) chosen = &node->data;
-    }
-    if (chosen) {
-        // It must render at the render target's bit depth.
-        const int bits = primary_ ? renderTarget_->bitsPerPixel : bitsPerPixel;
-        DWORD depth = 0;
-        if (bits == 16) depth = DDBD_16;
-        else if (bits == 24) depth = DDBD_24;
-        else if (bits == 32) depth = DDBD_32;
-        // "Can't create HW IDirect3DDevice# interface - unsupported render bit depth.\n"
-        if (!(chosen->desc.dwDeviceRenderBitDepth & depth)) ThrowGameErrorResult(DDERR_INVALIDMODE, game::Text(0x0078E104));
-        IDirect3DDevice7* made = nullptr;
-        lastLoadResult_ = device::Direct3D(this)->CreateDevice(chosen->desc.deviceGUID, device::Surface(renderTarget_), &made);
-        d3dDevice_ = made;
-    } else {
-        lastLoadResult_ = E_FAIL;
-    }
-    // "Can't create HW IDirect3DDevice# interface (w/ or w/o T&L).\n"
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E0C4));
-    deviceGuid_ = chosen->desc.deviceGUID;
-    zEnable_ = D3DZB_TRUE;
-
-    BuildFormatTable();
-    depthFormats_.ClearWith([](PixelFormat*) {});
-    lastLoadResult_ = device::Direct3D(this)->EnumZBufferFormats(deviceGuid_, &PixelFormatCallback, &depthFormats_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E0A0));   // "Can't enumerate z-buffer formats.\n"
-    CreateDepthBuffer(depthBits, stencilBits);
-
-    lastLoadResult_ = device::SetRenderTarget(device::D3D(this), device::Surface(renderTarget_), 0);
-    // "Can't set render surface as render target for device.\n"
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E068));
-    D3DVIEWPORT7 viewport;
-    viewport.dwX = static_cast<DWORD>(screen_.left);
-    viewport.dwY = static_cast<DWORD>(screen_.top);
-    viewport.dwWidth = static_cast<DWORD>(screen_.right - screen_.left);
-    viewport.dwHeight = static_cast<DWORD>(screen_.bottom - screen_.top);
-    viewport.dvMinZ = 0.0f;
-    viewport.dvMaxZ = 1.0f;
-    lastLoadResult_ = device::SetViewport(device::D3D(this), &viewport);
-    if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, game::Text(0x0078E050));   // "Can't set viewport.\n"
-    for (CDXSurface*& holder : stageSurfaces_) holder = nullptr;
-    RecordStageBlocks(this);
-    colour_ = 0xFF000000;
+    // The switch-over (device.h): no Direct3D object or device (R11a: no DirectDraw fallback).
+    ConstructWithoutDirect3D(this);
     return this;
 }
 EI_REPLACE_METHOD(0x004E5E50, CTextureDevice::Construct);

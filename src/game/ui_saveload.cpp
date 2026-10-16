@@ -218,7 +218,7 @@ __declspec(naked) void CSaveLoadWindow::CallDeleteSave() EI_ORIGINAL(0x00655B20)
 // --- Game-owned memory ---------------------------------------------------------------------------
 
 void CSaveLoadWindow::GivePictureMemory(CEngineObject* texture) {
-    if (!texture || !render::CpuWindows()) return;
+    if (!texture) return;
     CDXSurface* holder = HolderOf(texture);
     if (!holder) return;
     // The surface's size (004EFA60 put it there) and the texture's pixel format (the device's

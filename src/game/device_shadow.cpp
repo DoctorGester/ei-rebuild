@@ -94,7 +94,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
     Projected().SetSizeDiscard(count * 10);
     Outcodes().SetSizeDiscard(count);
     int visibility = ProjectBlocks(pipeline, nullptr, positions, Projected().data, Outcodes().data, blocks, last);
-    if (visibility != 2 && render::Active())
+    if (visibility != 2)
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {

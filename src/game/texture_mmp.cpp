@@ -209,7 +209,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
 
     if (staging) staging->Release();
     // The new renderer (src/render) decodes the same levels from the file data.
-    if (render::Active() && surface_) render::TextureFromMmp(surface_, data, mip, levels);
+    if (surface_) render::TextureFromMmp(surface_, data, mip, levels);
     return 1;
 }
 EI_REPLACE_METHOD(0x00690430, CTexture::CreateFromMmp);

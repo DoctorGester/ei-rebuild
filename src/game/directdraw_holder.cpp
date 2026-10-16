@@ -7,6 +7,10 @@
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way (the original's handlers free what the constructor had built), and every such
 // throw ends the game in WinMain.
+//
+// The image builds the base without DirectDraw (004EDD70, the switch-over; R11a removed the
+// fallback): nothing of ours calls the driver list (004EE4A0 / 004EE5D0 / 004ED610), 004EEA90 or
+// 004EEE30 any more.
 #include "app.h"
 #include "device.h"
 #include "dx_surface.h"
@@ -101,35 +105,6 @@ CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int b
     ei::SetVtable(holder, 0x0073D774);
     ++device::HolderCount();
     return holder;
-}
-
-// The YUV formats tried for video, in this order.
-constexpr std::uint32_t kVideoFourCCs[6] = {
-    MAKEFOURCC('Y', 'U', 'Y', '2'), MAKEFOURCC('U', 'Y', 'V', 'Y'), MAKEFOURCC('U', 'Y', 'N', 'V'),
-    MAKEFOURCC('Y', 'U', 'N', 'V'), MAKEFOURCC('Y', 'V', '1', '2'), MAKEFOURCC('Y', 'V', 'U', '9')};
-
-// The first of the YUV formats the DirectDraw object makes a 100 x 100 video-memory surface of with
-// the capabilities `caps` (made under the device lock and released at once; each result in the
-// device's +8). 0 when it makes none.
-std::uint32_t FirstVideoFormat(CTextureDevice* device, std::uint32_t caps) {
-    for (const std::uint32_t fourCC : kVideoFourCCs) {
-        IDirectDrawSurface7* surface = nullptr;
-        DDSURFACEDESC2 desc = {};
-        desc.dwSize = sizeof(desc);
-        desc.ddsCaps.dwCaps = caps;
-        desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
-        desc.dwWidth = 100;
-        desc.dwHeight = 100;
-        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-        desc.ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-        desc.ddpfPixelFormat.dwFourCC = fourCC;
-        gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::CreateSurface(device::DDraw(device), &desc, &surface);
-        gameapi::LeaveCriticalSection(device::Lock());
-        if (surface) surface->Release();
-        if (device->lastLoadResult_ == 0) return desc.ddpfPixelFormat.dwFourCC;
-    }
-    return 0;
 }
 
 } // namespace
@@ -322,7 +297,8 @@ EI_REPLACE_METHOD(0x004EE330, CTextureDevice::DestructDirectDraw);
 // The parts are called through their addresses (originals_render.h), as the original calls them.
 // Not kept: the original copies the processor's twelve bytes as a string into a local nothing reads.
 CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height,
-                                                    int bitsPerPixel, int refreshRate, unsigned backBuffers, int for3D) {
+                                                    int bitsPerPixel, int /*refreshRate*/, unsigned /*backBuffers*/,
+                                                    int /*for3D*/) {
     refs_ = 0;
     lastLoadResult_ = 0;
     ei::SetVtable(this, 0x0073D768);
@@ -365,44 +341,19 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or
     // surfaces. The stand-in takes the cooperative level (the flags and the screen rectangle are
     // kept) and lists the one display mode; the primary and the render target are holders without
-    // a surface; no video formats.
-    if (render::StartPresenting()) {
-        ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
-        driver_ = driver;
-        modes_.ClearWith([](DDSURFACEDESC2*) {});
-        device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
-        SetCooperativeLevel(fullScreen, &screen);
-        device::AssignHolder(primary_, NewScreenHolder(this, width, height, bitsPerPixel));
-        device::AssignHolder(renderTarget_, NewScreenHolder(this, width, height, bitsPerPixel));
-        overlayFourCC_ = 0;
-        videoFourCC_ = 0;
-        overlayStretch_ = false;
-        return this;
-    }
-
-    CreateDirectDraw(driver);
+    // a surface; no video formats. Without the new renderer the game cannot run (R11a: no DirectDraw
+    // fallback): the error ends it in WinMain.
+    if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
+    ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
+    driver_ = driver;
+    modes_.ClearWith([](DDSURFACEDESC2*) {});
+    device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
     SetCooperativeLevel(fullScreen, &screen);
-    if (fullScreen) {
-        lastLoadResult_ = device::SetDisplayMode(device::DDraw(this), 
-            static_cast<DWORD>(width), static_cast<DWORD>(height), static_cast<DWORD>(bitsPerPixel),
-            static_cast<DWORD>(refreshRate), 0);
-        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E3D8));   // "Can't set display mode.\n"
-    }
-    CreateSurfaces(backBuffers, for3D);
-
-    // The YUV formats for video: one a video-memory surface can have (when the driver blits
-    // four-character-code formats) and one an overlay can have (when it has such overlays).
-    DDCAPS caps = {};
-    caps.dwSize = sizeof(caps);
-    device::GetCaps(device::DDraw(this), &caps, nullptr);
+    device::AssignHolder(primary_, NewScreenHolder(this, width, height, bitsPerPixel));
+    device::AssignHolder(renderTarget_, NewScreenHolder(this, width, height, bitsPerPixel));
     overlayFourCC_ = 0;
     videoFourCC_ = 0;
-    if (caps.dwCaps & DDCAPS_BLTFOURCC) videoFourCC_ = FirstVideoFormat(this, DDSCAPS_VIDEOMEMORY);
     overlayStretch_ = false;
-    if (caps.dwCaps & DDCAPS_OVERLAYFOURCC) {
-        overlayFourCC_ = FirstVideoFormat(this, DDSCAPS_VIDEOMEMORY | DDSCAPS_OVERLAY);
-        overlayStretch_ = (caps.dwCaps & DDCAPS_OVERLAYSTRETCH) != 0;
-    }
     return this;
 }
 EI_REPLACE_METHOD(0x004EDD70, CTextureDevice::ConstructDirectDraw);

@@ -14,7 +14,6 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_gdi.h"
-#include "render/render.h"
 
 #include <ddraw.h>
 
@@ -77,17 +76,6 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
             DeleteDC(dc);
             g_memoryDcs.erase(it);
             holder->result = 0;
-            // DirectDraw did not see this drawing: an empty Lock / Unlock tells it the memory changed
-            // (for the old path's Blt; the new renderer reads the memory itself). A holder made in
-            // the switch-over has no DirectDraw surface.
-            IDirectDrawSurface7* dd = device::Surface(holder);
-            if (!render::Presenting() && dd) {
-                DDSURFACEDESC2 desc = {};
-                desc.dwSize = sizeof(desc);
-                gameapi::EnterCriticalSection(GameDeviceLock());
-                if (dd->Lock(nullptr, &desc, DDLOCK_WAIT, nullptr) == 0) dd->Unlock(nullptr);
-                gameapi::LeaveCriticalSection(GameDeviceLock());
-            }
         } else {
             long hr = device::Surface(holder)->ReleaseDC(dc);
             holder->result = hr;
