@@ -1928,6 +1928,25 @@ post-merge runs.
 After: hooked and `--standalone --golden` over the 62 golden scenarios (124 runs each) all pass, 115 goldens the
 same, 0 differ; the default hooked suite (144 runs) too.
 
+## S20c: the four withheld goldens restored (2026-10-16)
+
+ui_mp_host (vanilla, Rebirth), net_second_master (Rebirth) and rebirth_flags (Rebirth), withheld by S20 because hooked
+runs parted from the original the same way every run while the standalone matched. With S21 the default suite is the
+image's, so the hooked difference was not chased (it goes with the hook builds, S21c). Recorded again rather than taken
+from 4f6afaef: main has moved since (T2f, SV7b6, SV7b6a), and every digest differs from that recording in a few
+dozen lines; rebirth_flags' decoded saves changed too (SV7b2a's canonical leftovers).
+
+**Recording** (main 4be47015, with S21a's `# no original:` lines, so rebirth_flags on the vanilla data no longer runs
+without hooks): four `work.py test S20c --no-hooks --fresh --golden` passes of the three scenarios, plain twice, then
+`EI_HEAP_JITTER=1` and `EI_HEAP_JITTER=2,fill`, each snapshotted (`golden.py snapshot`, build\S20c), and `golden.py
+record --runs orig1 orig2 jit1 jit2f`: all four agree (console, every digest record, saves), so the goldens hold
+under two heap layouts besides the plain one. rebirth_flags keeps 3 decoded saves (the same in the 4 runs); ui_mp_host
+and net_second_master leave only mp\1.mp (a hero file, which savefile.py does not decode), as before.
+
+**Standalone:** `work.py test S20c --golden --jobs 4 ui_mp_host net_second_master rebirth_flags` (the image, both
+installs): 6 runs ALL PASS, the 4 goldens the same (net_second_master and rebirth_flags on the vanilla data have no
+golden by rule). SV7c2 (the image under heap jitter) had not merged; its suite covers these goldens once it does.
+
 ## S20d: a heard claim's point canonical (2026-10-16)
 
 **Cause:** `memory.callN.point` of a claim (CallsAddClaim 005CCEA0, through the memory's 005CBBC0: "Unit N claims that
