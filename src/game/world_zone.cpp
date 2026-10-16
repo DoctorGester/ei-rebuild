@@ -287,4 +287,3 @@ EI_REPLACE_METHOD(0x00595AB0, CWorldServer::LoadMobFile);
 EI_REPLACE_METHOD(0x00596C60, CWorldServer::ClearMapObjects);
 EI_REPLACE_METHOD(0x00596730, CWorldServer::SaveMapObjects);
 EI_REPLACE(0x00595080, SelectLoadingMovie);
-EI_REBIRTH_IMPLEMENTS(0x00595080, ei::rebirth::Patch::FixProgressNames);

@@ -319,7 +319,6 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
 }
 
 EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
-EI_REBIRTH_IMPLEMENTS(0x0060FAB0, ei::rebirth::Patch::FixRepairPrice);
 
 bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
     switch (page_) {

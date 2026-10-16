@@ -108,7 +108,7 @@ comes from a bug we already hit.
    action): read such constants from memory, as the original does, instead of compiling their values
    in. A rewrite may reproduce a Rebirth patch behind its flag (`ei::rebirth::Enabled(Patch::<name>)`,
    `include/ei/rebirth.h`; what each patch does is in `docs/notes/rebirth.md` and
-   `config/rebirth_patches.csv`). Declare it with `EI_REBIRTH_IMPLEMENTS(addr, Patch::<name>)`.
+   `config/rebirth_patches.csv`, whose status column records which rewrite carries it).
    Flags are off by default; with a flag off the code must behave exactly as the original; the image's
    Rebirth goldens check the flags on (config/ei_rebirth_standalone.ini).
 10. **Keep the original's bugs** (leaks, odd messages) and note them under "Original bugs kept on

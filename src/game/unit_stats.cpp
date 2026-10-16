@@ -180,7 +180,6 @@ BOOL LockKey::Opens(const LockKey* lock) {
     return level >= lock->level ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x00522A80, LockKey::Opens);
-EI_REBIRTH_IMPLEMENTS(0x00522A80, ei::rebirth::Patch::FixLeversActivate);
 
 std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
     constexpr std::uint32_t kLarge = 0x7C23D70A;

@@ -128,7 +128,6 @@ std::uintptr_t CMapObject::AddEffectImpl(const MapEffect* effect) {
 EI_REPLACE_METHOD(0x0050F1E0, CMapObject::AddEffectImpl);
 // Site #1 of FixSpellEffectsOverflow; #0 (expiring the effects of units the world update skips) is
 // in CWorldServer::UpdateUnits (0058D670, original).
-EI_REBIRTH_IMPLEMENTS(0x0050F1E0, ei::rebirth::Patch::FixSpellEffectsOverflow);
 
 std::uintptr_t CMapObject::ClearEffects() {
     if (effects) {

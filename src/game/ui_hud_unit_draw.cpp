@@ -242,4 +242,3 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     return 1;
 }
 EI_REPLACE_METHOD(0x006462A0, CHudUnitPanel::DrawVanilla);
-EI_REBIRTH_IMPLEMENTS(0x006462A0, ei::rebirth::Patch::WideScreen);

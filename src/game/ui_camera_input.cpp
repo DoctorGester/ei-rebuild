@@ -244,6 +244,5 @@ EI_REPLACE_METHOD(0x005EB090, CCameraInput::OnKeyUp);
 EI_REPLACE_METHOD(0x005EAD00, CCameraInput::OnRightDown);
 EI_REPLACE_METHOD(0x005EAD50, CCameraInput::OnRightUp);
 EI_REPLACE_METHOD(0x005EB210, CCameraInput::OnMouseMove);
-EI_REBIRTH_IMPLEMENTS(0x005EB210, ei::rebirth::Patch::WideScreen);
 EI_REPLACE(0x005EB580, CameraInputDeactivate);
 EI_REPLACE_METHOD(0x005EB540, CCameraInput::OnWheel);

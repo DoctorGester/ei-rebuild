@@ -23,7 +23,6 @@ int g_pluginNPlayers = 7;
 int g_pluginPause = 1;
 char g_secondMaster[256];
 char g_queued[1024];                         // QueueSpec runs before any C++ object may be used
-const Implements* g_implements = nullptr;    // constant-initialised: registrations come first
 
 void SetAll(bool on) {
     for (bool& e : detail::g_enabled) e = on;
@@ -101,12 +100,5 @@ void LoadSettings(const char* iniPath) {
     if (n > 0 && n < sizeof(env)) ApplySpec(env);
     ApplySpec(g_queued);
 }
-
-Implements::Implements(std::uintptr_t address_, const Patch* patches_, int count_)
-    : address(address_), patches(patches_), count(count_), next(g_implements) {
-    g_implements = this;
-}
-
-const Implements* FirstImplements() { return g_implements; }
 
 } // namespace ei::rebirth

@@ -79,25 +79,6 @@ unsigned TracePlace(const void* p);   // as the trace writes an address
 void Note(const char* text);
 void StopTrace();
 
-// The heap observer (the verify wrappers' heap-order check used it until S21d). It hears every call of the
-// main thread on a block of the reservation (op a / f / r; `in` the block freed or resized, `out` the
-// block returned, null when outside the reservation; `callers` the first return addresses on the
-// stack, as the trace writes them).
-constexpr int kOrderCallers = 8;
-using OrderObserver = void (*)(char op, unsigned bytes, const void* in, const void* out, const unsigned* callers);
-void SetOrderObserver(OrderObserver observer, std::uintptr_t selfBase, std::uintptr_t selfEnd);
 unsigned long MainThread();   // the thread that made the CRT's heap (the game's main thread)
-
-// While one is alive on a thread, that thread's new blocks come from the growable heap, outside the
-// reservation, so they move no block the game makes in it (SV2h3). For a verify wrapper's scratch
-// sets and twins: the blocks a no-hooks run never has. Freeing or resizing them later finds their
-// heap by address; a block of the game's that is resized inside one moves out of the reservation,
-// so only scratch work goes inside.
-struct Aside {
-    Aside();
-    ~Aside();
-    Aside(const Aside&) = delete;
-    Aside& operator=(const Aside&) = delete;
-};
 
 } // namespace ei::verify::heap

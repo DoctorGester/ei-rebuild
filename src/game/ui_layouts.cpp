@@ -505,7 +505,6 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 namespace {
 } // namespace
 EI_REPLACE_METHOD(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
-EI_REBIRTH_IMPLEMENTS(0x00632D70, ei::rebirth::Patch::EiPluginNewMaster);
 
 // --- Message box (00634790) -----------------------------------------------------------------------
 

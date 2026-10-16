@@ -123,9 +123,6 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
 EI_REPLACE_METHOD(0x00608D20, CChatWindow::Construct);
 // EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
 // column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
-EI_REBIRTH_IMPLEMENTS(0x00608D20, ei::rebirth::Patch::EiPluginNPlayers);
-EI_REBIRTH_IMPLEMENTS(0x006095A0, ei::rebirth::Patch::EiPluginNPlayers);
-EI_REBIRTH_IMPLEMENTS(0x006091C0, ei::rebirth::Patch::EiPluginFixes);
 
 // --- 00608F90: a face ---------------------------------------------------------------------------
 

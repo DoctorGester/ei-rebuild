@@ -363,4 +363,3 @@ void __fastcall BattleScreenKeyDown(void* input, void*, int key, int repeat, int
 }
 } // namespace
 EI_REPLACE(0x0063A560, BattleScreenKeyDown);
-EI_REBIRTH_IMPLEMENTS(0x0063A560, ei::rebirth::Patch::MPSpeedControl);

@@ -247,4 +247,3 @@ void CUiEditField::DrawContentsVanilla() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065C2E0, CUiEditField::DrawContentsVanilla);
-EI_REBIRTH_IMPLEMENTS(0x0065C2E0, ei::rebirth::Patch::WideScreen);

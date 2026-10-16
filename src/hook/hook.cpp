@@ -398,7 +398,6 @@ int InstallHooks() {
 // from EiStandaloneMain (standalone.cpp).
 static constexpr std::uintptr_t kWinMain = 0x00456440;
 void InstallCoverage();   // cover.cpp
-void InstallProfiler();   // profile.cpp
 static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {

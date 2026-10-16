@@ -125,7 +125,6 @@ CHudWeaponBar* CHudWeaponBar::Construct(CInterface3D* ui, CBattleScreen* owner) 
     return this;
 }
 EI_REPLACE_METHOD(0x0063BAB0, CHudWeaponBar::Construct);
-EI_REBIRTH_IMPLEMENTS(0x0063BAB0, ei::rebirth::Patch::WideScreen);
 
 void CHudWeaponBar::HighlightVanilla(int index, int on) {
     widescreen::EnterLeftPanel();   // addon's 100233ED; 10023406 at both returns
@@ -157,7 +156,6 @@ void CHudWeaponBar::HighlightVanilla(int index, int on) {
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x0063C050, CHudWeaponBar::HighlightVanilla);
-EI_REBIRTH_IMPLEMENTS(0x0063C050, ei::rebirth::Patch::WideScreen);
 
 void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // Slots 0 and 1 share the texture's first column, 2 and 3 the second; odd slots the lower
@@ -191,7 +189,6 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     Highlight(index, 0);
 }
 EI_REPLACE_METHOD(0x0063BCC0, CHudWeaponBar::AddWeapon);
-EI_REBIRTH_IMPLEMENTS(0x0063BCC0, ei::rebirth::Patch::WideScreen);
 
 // --- Quick items -----------------------------------------------------------------------------------------------
 
@@ -225,7 +222,6 @@ CHudQuickItems* CHudQuickItems::Construct(CInterface3D* ui, CBattleScreen* owner
     return this;
 }
 EI_REPLACE_METHOD(0x0063C800, CHudQuickItems::Construct);
-EI_REBIRTH_IMPLEMENTS(0x0063C800, ei::rebirth::Patch::WideScreen);
 
 void CHudQuickItems::AddItem(const char* model, const char* image) {
     if (shownCount_ >= kMaxQuickItems) return;
@@ -245,7 +241,6 @@ void CHudQuickItems::AddItem(const char* model, const char* image) {
     ++shownCount_;
 }
 EI_REPLACE_METHOD(0x0063CAE0, CHudQuickItems::AddItem);
-EI_REBIRTH_IMPLEMENTS(0x0063CAE0, ei::rebirth::Patch::WideScreen);
 
 // --- Spell column ----------------------------------------------------------------------------------------------
 
@@ -268,7 +263,6 @@ CHudSpellColumn* CHudSpellColumn::Construct(CInterface3D* ui, CBattleScreen* own
     return this;
 }
 EI_REPLACE_METHOD(0x0063E2A0, CHudSpellColumn::Construct);
-EI_REBIRTH_IMPLEMENTS(0x0063E2A0, ei::rebirth::Patch::WideScreen);
 
 void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
@@ -299,7 +293,6 @@ void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x0063E4B0, CHudSpellColumn::AddSpell);
-EI_REBIRTH_IMPLEMENTS(0x0063E4B0, ei::rebirth::Patch::WideScreen);
 
 // --- Action column ---------------------------------------------------------------------------------------------
 
@@ -330,7 +323,6 @@ CHudActionColumn* CHudActionColumn::Construct(CInterface3D* ui, CBattleScreen* o
     return this;
 }
 EI_REPLACE_METHOD(0x0063F300, CHudActionColumn::Construct);
-EI_REBIRTH_IMPLEMENTS(0x0063F300, ei::rebirth::Patch::WideScreen);
 
 void CHudActionColumn::AddAction(const char* model, const char* image, int action) {
     const IconPlace at = IconAt(count_, 0);
@@ -353,4 +345,3 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     selected_ = index;
 }
 EI_REPLACE_METHOD(0x0063F500, CHudActionColumn::AddAction);
-EI_REBIRTH_IMPLEMENTS(0x0063F500, ei::rebirth::Patch::WideScreen);

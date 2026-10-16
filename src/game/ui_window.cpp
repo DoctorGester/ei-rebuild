@@ -109,7 +109,6 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
     rectOnly_ = true;
 }
 EI_REPLACE_METHOD(0x005FC9E0, CUiRegion::SetRect);
-EI_REBIRTH_IMPLEMENTS(0x005FC9E0, ei::rebirth::Patch::WideScreen);
 
 void CUiRegion::ClearShape() {
     points_.RemoveAll();
@@ -139,7 +138,6 @@ void CUiRegion::AddPoint(int x, int y) {
     if (points_.size > 2) enabled_ = true;
 }
 EI_REPLACE_METHOD(0x005FCA70, CUiRegion::AddPoint);
-EI_REBIRTH_IMPLEMENTS(0x005FCA70, ei::rebirth::Patch::WideScreen);
 
 void CUiRegion::OnMouseMove(int x, int y) {
     if (!tip_) return;

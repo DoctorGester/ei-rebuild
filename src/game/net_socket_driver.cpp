@@ -363,6 +363,5 @@ int __fastcall MasterLinkTick(MasterLink* self) {
     }
 }
 EI_REPLACE(0x00440DE0, MasterLinkTick);
-EI_REBIRTH_IMPLEMENTS(0x00440DE0, ei::rebirth::Patch::EiPluginNewMaster);
 
 } // namespace net

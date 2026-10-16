@@ -306,7 +306,6 @@ double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHe
 EI_REPLACE_METHOD(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
-EI_REBIRTH_IMPLEMENTS(0x005935C0, ei::rebirth::Patch::FixRemoveMapObject);
 EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);
 EI_REPLACE_METHOD(0x00594180, CWorldServer::GetPlayer);
 EI_REPLACE_METHOD(0x00594220, CWorldServer::GridHeight);
@@ -318,7 +317,6 @@ EI_REPLACE_METHOD(0x0058CC70, CWorldServer::SetCave);
 EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetClimate);
 EI_REPLACE_METHOD(0x0058EE00, CWorldServer::SetWeather);
 EI_REPLACE_METHOD(0x005942C0, CWorld::SetServerPaused);
-EI_REBIRTH_IMPLEMENTS(0x005942C0, ei::rebirth::Patch::EiPluginPause);
 EI_REPLACE_METHOD(0x00566350, CWorld::SetPaused);   // byte-identical copy (the client's, message 0x60; A-W12)
 EI_REPLACE_METHOD(0x0058E4C0, CWorldServer::GetZoneExit);
 EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);

@@ -158,4 +158,3 @@ void CSaveLoadWindow::RefreshListVanilla() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x006567A0, CSaveLoadWindow::RefreshListVanilla);
-EI_REBIRTH_IMPLEMENTS(0x006567A0, ei::rebirth::Patch::WideScreen);

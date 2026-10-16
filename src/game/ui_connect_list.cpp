@@ -262,4 +262,3 @@ void CMpConnectScreen::DrawListVanilla() {
     pen.Destruct();
 }
 EI_REPLACE_METHOD(0x0061D780, CMpConnectScreen::DrawListVanilla);
-EI_REBIRTH_IMPLEMENTS(0x0061D780, ei::rebirth::Patch::WideScreen, ei::rebirth::Patch::ExtendedServerName);

@@ -473,6 +473,5 @@ void GameOptions::SaveToRegistry(const char* path) {
     key.Destruct();
 }
 EI_REPLACE_METHOD(0x0045C560, GameOptions::SaveToRegistry);
-EI_REBIRTH_IMPLEMENTS(0x0045C560, ei::rebirth::Patch::EiPluginNewMaster);
 
 } // namespace options

@@ -616,7 +616,6 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
     return item;
 }
 EI_REPLACE_METHOD(0x006AD000, CItemManager::MakeItem);
-EI_REBIRTH_IMPLEMENTS(0x006AC970, ei::rebirth::Patch::FixCreateItem);
 
 // --- A-H25: the scroll of a spell text, the name lists, the constructor's magic capacity ----------
 

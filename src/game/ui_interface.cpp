@@ -105,35 +105,30 @@ int __fastcall ScaleRectToScreenEntry(const CInterface3D* self, void*, RECT* rec
     return self->CInterface3D::ScaleRectToScreen(rect);
 }
 EI_REPLACE(0x005F7CA0, ScaleRectToScreenEntry);
-EI_REBIRTH_IMPLEMENTS(0x005F7CA0, ei::rebirth::Patch::WideScreen);
 
 int __fastcall ScalePointToScreenEntry(const CInterface3D* self, void*, POINT* point) {
     if (!self && widescreen::Active()) return widescreen::PointToScreen(point, false);
     return self->CInterface3D::ScalePointToScreen(point);
 }
 EI_REPLACE(0x005F7D20, ScalePointToScreenEntry);
-EI_REBIRTH_IMPLEMENTS(0x005F7D20, ei::rebirth::Patch::WideScreen);
 
 int __fastcall ScalePointFromScreenCopyEntry(const CInterface3D* self, void*, POINT* point) {
     if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
     return self->CInterface3D::ScalePointFromScreenCopy(point);
 }
 EI_REPLACE(0x005F7E30, ScalePointFromScreenCopyEntry);
-EI_REBIRTH_IMPLEMENTS(0x005F7E30, ei::rebirth::Patch::WideScreen);
 
 int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* rect) {
     if (!self && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
     return self->CInterface3D::ScaleRectFromScreen(rect);
 }
 EI_REPLACE(0x005F7DA0, ScaleRectFromScreenEntry);
-EI_REBIRTH_IMPLEMENTS(0x005F7DA0, ei::rebirth::Patch::WideScreen);
 
 int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT* point) {
     if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
     return self->CInterface3D::ScalePointFromScreen(point);
 }
 EI_REPLACE(0x005F7E00, ScalePointFromScreenEntry);
-EI_REBIRTH_IMPLEMENTS(0x005F7E00, ei::rebirth::Patch::WideScreen);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
     return stackBegin_ != stackEnd_ ? stackEnd_[-1] : nullptr;

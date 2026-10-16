@@ -464,4 +464,3 @@ void CMpHeroScreen::Create() {
 EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
 // In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B, the
 // figures' sex test above).
-EI_REBIRTH_IMPLEMENTS(0x00613EA0, ei::rebirth::Patch::WideScreen, ei::rebirth::Patch::EiPluginFixes);

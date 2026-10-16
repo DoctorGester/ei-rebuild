@@ -126,7 +126,6 @@ void CHudClock::SetupVanilla(int fast) {
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x00648520, CHudClock::SetupVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00648520, ei::rebirth::Patch::WideScreen);
 
 // --- 00649190: the movement panel --------------------------------------------------------------------
 
@@ -176,4 +175,3 @@ void CHudMovePanel::SetupVanilla() {
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x00649190, CHudMovePanel::SetupVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00649190, ei::rebirth::Patch::WideScreen);

@@ -73,30 +73,4 @@ void QueueSpec(const char* spec);
 // environment variable, then the queued specs. Called once, before hooks are installed.
 void LoadSettings(const char* iniPath);
 
-// A rewrite's declaration that its function at `address` reproduces Rebirth patches `patches`
-// (their sites inside that function, config/rebirth_patches.csv). Until S21e the hook installer
-// read these to hook the function in a Rebirth launch of game.exe, where addon.dll had patched the
-// original; since game.exe runs only as the original game, nothing reads them at run time and they
-// document which patches a rewrite carries behind its flags. Declare it with EI_REBIRTH_IMPLEMENTS
-// next to the EI_REPLACE.
-struct Implements {
-    std::uintptr_t address;
-    const Patch* patches;
-    int count;
-    const Implements* next;
-    Implements(std::uintptr_t address, const Patch* patches, int count);
-};
-// Every declaration (a list; several may name the same address).
-const Implements* FirstImplements();
-
 } // namespace ei::rebirth
-
-#define EI_REBIRTH_CAT_(a, b) a##b
-#define EI_REBIRTH_CAT(a, b) EI_REBIRTH_CAT_(a, b)
-
-// EI_REBIRTH_IMPLEMENTS(0x00522A80, ei::rebirth::Patch::FixLeversActivate);
-#define EI_REBIRTH_IMPLEMENTS(addr, ...)                                                            \
-    static const ::ei::rebirth::Patch EI_REBIRTH_CAT(ei_rebirth_list_, __LINE__)[] = {__VA_ARGS__}; \
-    static const ::ei::rebirth::Implements EI_REBIRTH_CAT(ei_rebirth_impl_, __LINE__)(              \
-        addr, EI_REBIRTH_CAT(ei_rebirth_list_, __LINE__),                                           \
-        static_cast<int>(sizeof(EI_REBIRTH_CAT(ei_rebirth_list_, __LINE__)) / sizeof(::ei::rebirth::Patch)))

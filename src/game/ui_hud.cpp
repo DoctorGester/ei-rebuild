@@ -421,7 +421,6 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     }
 }
 UI_INPUT_HANDLER(0x00645210, CHudMap, OnMouseUp);
-EI_REBIRTH_IMPLEMENTS(0x00645210, ei::rebirth::Patch::WideScreen);
 
 void CHudMap::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
@@ -508,7 +507,6 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     }
 }
 UI_INPUT_HANDLER(0x00648D70, CHudClock, OnMouseUp);
-EI_REBIRTH_IMPLEMENTS(0x00648D70, ei::rebirth::Patch::MPSpeedControl);
 
 void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
@@ -589,7 +587,6 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
     widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x00649910, CHudMovePanel::ShowModeVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00649910, ei::rebirth::Patch::WideScreen);
 
 void CHudMovePanel::Update() {
     if (!WorldClient()->LocalView()) return;
@@ -966,7 +963,6 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
 }
 EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
-EI_REBIRTH_IMPLEMENTS(0x00638EF0, ei::rebirth::Patch::FixSpellSelfCasting);
 
 // --- 0063DB20: the quick item panel's button release -------------------------------------------
 

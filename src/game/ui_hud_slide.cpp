@@ -154,7 +154,6 @@ void CHudMap::LayoutVanilla() {
     MoveRegions(this, offset_);
 }
 EI_REPLACE_METHOD(0x00642930, CHudMap::LayoutVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00642930, ei::rebirth::Patch::WideScreen);
 
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
@@ -188,7 +187,6 @@ void CHudMap::UpdateVanilla() {
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
 EI_REPLACE_METHOD(0x00642B40, CHudMap::UpdateVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00642B40, ei::rebirth::Patch::WideScreen);
 
 // --- The unit panel ------------------------------------------------------------------------------
 
@@ -223,7 +221,6 @@ void CHudUnitPanel::LayoutVanilla() {
     widescreen::LeavePanel();        // addon's 100232E9
 }
 EI_REPLACE_METHOD(0x00645F80, CHudUnitPanel::LayoutVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00645F80, ei::rebirth::Patch::WideScreen);
 
 void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
@@ -241,7 +238,6 @@ void CHudUnitPanel::UpdateVanilla() {
     interface_->hudBodyPart_ = bodyPart_;
 }
 EI_REPLACE_METHOD(0x00647FB0, CHudUnitPanel::UpdateVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00647FB0, ei::rebirth::Patch::WideScreen);
 
 // --- 006456E0: the unit panel's setup ----------------------------------------------------------------
 
@@ -373,7 +369,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     widescreen::LeavePanel();        // addon's 100230E2
 }
 EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
-EI_REBIRTH_IMPLEMENTS(0x006456E0, ei::rebirth::Patch::WideScreen);
 
 // --- 00641F20: the map's setup ----------------------------------------------------------------------
 
@@ -543,4 +538,3 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     widescreen::LeavePanel();        // addon's 10023359
 }
 EI_REPLACE_METHOD(0x00641F20, CHudMap::SetupVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00641F20, ei::rebirth::Patch::WideScreen);

@@ -766,5 +766,4 @@ EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
 EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
-EI_REBIRTH_IMPLEMENTS(0x00592090, ei::rebirth::Patch::EiPluginBriefings);
 EI_REPLACE_METHOD(0x00591DE0, CWorldServer::ApplyMercBriefing);

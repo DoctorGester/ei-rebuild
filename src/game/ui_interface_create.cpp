@@ -198,4 +198,3 @@ void CInterface3D::Create(CTextureDevice* device) {
     disconnected_ = false;
 }
 EI_REPLACE_METHOD(0x005F4990, CInterface3D::Create);
-EI_REBIRTH_IMPLEMENTS(0x005F4990, ei::rebirth::Patch::WideScreen);

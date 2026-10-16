@@ -219,4 +219,3 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
     }
 }
 EI_REPLACE_METHOD(0x0065E580, CUiTooltip::OnMouseMoveVanilla);
-EI_REBIRTH_IMPLEMENTS(0x0065E580, ei::rebirth::Patch::WideScreen);
