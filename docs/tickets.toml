@@ -2272,7 +2272,7 @@ group = "standalone"
 size = 1
 depends = ["S21"]
 files = ["tests/scenarios", "config/rebirth_scenarios.csv"]
-note = "User 2026-10-16: keep rebirth_flags on vanilla data as an image crash smoke test with no golden."
+note = "Same worker as S20c (one branch)."
 
 [[ticket]]
 id = "S21b"
