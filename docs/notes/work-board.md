@@ -101,3 +101,57 @@ serve`.
   `unpack FILE.bmp.z`. The harness itself writes and reads plain BMPs inside a running game.
 - run.counts is NULL since the verify wrappers went (it was 4 GB of the database); `prune` clears old rows.
 - Tests: tools/test_work_sched.py (fake runner, temp database and slots), tools/test_tickets.py, tools/test_frame_store.py.
+
+## Games at once (WB13)
+
+The machine (Ryzen 9 7950X 16 cores / 32 threads, 64 GB, RTX 4070 Ti SUPER 16 GB, driver 595.97) runs at most
+EI_HARNESS_SLOTS = 16 harness games, every worker's together. 24 games under dgVoodoo (and 16 with 8x AA) crashed
+Windows twice with NVIDIA TDR storms (System log 153 nvlddmkm / 4101 Display, last on 2026-10-14 07:36). Going above
+16 needs the user's OK.
+
+**Measuring**: `python tools/game_load.py run --games N --ticket ID --out build/<ID>/x.jsonl [--scenarios K | --probe
+PREFIX] [-- run_all args]` samples the machine every ~1.1 s (tools/game_load_sample.ps1: nvidia-smi, the GPU Process
+Memory / GPU Engine / processor / memory counters, every ei_standalone.exe and game.exe started since) while `work.py
+test` plays the batch; with N under the slots it holds the others itself (run_all's lock files, from the top; it lets
+them go while a batch gathers every slot), so it can only lower the number of games. It prints medians by the number
+of games running and the TDR events since its start (exit 2 when there are any); `report FILE...` and `tdr --since`
+work on their own. A long steady probe: N copies `<prefix>01..` of a zone scenario (gz15h with weather, god mode,
+`wait 900000`, timeout 150; made for the measurement in tests/scenarios and deleted after), run with `--vanilla-only`.
+Suite scenarios are too short for it (3-10 s each at 16, half of it boot).
+
+**Per game** (steady state in the probe, 2026-10-16; idle machine 3.9 GB GPU memory from the desktop apps):
+
+| | standalone (our renderer, D3D11) | --no-hooks (game.exe on dgVoodoo) |
+|---|---|---|
+| dedicated GPU memory | 247 MiB (peaks ~430 during loading) | 291 MiB |
+| private memory | 208 MB | 263 MB |
+| CPU | one busy thread (~104% of a core: the virtual clock never sleeps) | ~115% of a core |
+
+**Machine** (standalone probe; nvidia-smi memory / utilisation, median W, total CPU median, seconds per probe game):
+
+| games | GPU memory med (peak) | GPU util med (max) | power | CPU | probe game | games / min |
+|---|---|---|---|---|---|---|
+| 4 | 4.9 GB (5.3) | 37% (55) | 79 W | 15% | 25 s | 9.6 |
+| 8 | 5.9 GB (6.6) | 61% (65) | 129 W | 31% | 31 s | 15.5 |
+| 12 | 6.9 GB (8.2) | 75-78% (84) | 142 W | 43-47% | 38-48 s | 15-19 |
+| 16 | 7.8 GB (9.6-10.7) | 84% (90) | 153 W (peak 176) | 57-63% | 47-55 s | 17-20 |
+
+--no-hooks at 16: 8.5 GB, GPU 91%, 121 W, 45 s per probe game. No TDR event in any of these runs; GPU at most 58 C.
+The 12 / 16 ranges are two runs each: other workers' builds share the CPU, so throughput is noisy; the per-game
+figures are steady across every run.
+
+**Reading**: the old ~640 MB per game under dgVoodoo is gone (291 MiB now, our renderer 247), so 24 games would need
+about 3.9 + 24 x 0.25 = 9.8 GB steady and ~14 GB at the loading peaks: under the 16 GB that 24 x 640 MB overran. But
+the GPU is 84-90% busy at 16 and throughput flattens from 12 on (each game is one CPU thread spinning on the virtual
+clock and presents as fast as it can), so more games mostly queue on the GPU and on the 16 physical cores; a step
+above 16 buys little and spends the headroom. **Cap: stay at 16.**
+
+**Step-up plan above 16** (only with the user's OK; one person at the machine, no other worker's games):
+1. Let the scheduler exit (2 min idle) so the next one starts with the new count: the scheduler takes
+   EI_HARNESS_SLOTS from the environment of the `work.py test` that starts it, and keeps it until it exits.
+2. Make 20 probe copies, then `EI_HARNESS_SLOTS=20 python tools/game_load.py run --games 20 --probe <prefix>
+   --ticket ID --out ... -- --vanilla-only`; then the suite at 20 (`--scenarios 50`).
+3. Stop at once and go back to 16 on any of: a 153 or 4101 event, nvidia-smi memory above 13 GB (80%), a game that
+   fails or times out that passes at 16, a frozen window or desktop stutter. Keep 20 only if games / min is at least
+   10% above 16's on the same probe; 24 only after a clean 20, by the same rules.
+4. Afterwards let the scheduler exit again, so other workers' batches start at 16.
