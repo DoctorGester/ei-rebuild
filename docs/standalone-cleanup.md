@@ -15,44 +15,36 @@ Add an entry whenever a new shim, stub or workaround lands.
 
 ## Calls into original code (`EI_ORIGINAL` forwarders)
 
-Each needs a real implementation, or the caller must be rewritten first.
+Each needs a real implementation, or the caller must be rewritten first. The exact list is generated and always current:
+`python tools/gen_originals.py` writes `docs/originals-report.md` (grep the address), and `python tools/progress.py` counts the forwarders; the
+shared declarations are in `src/game/originals_<area>.h`. Grouped by what replaces them:
 
-| Forwarder | Where | Replace with |
-|---|---|---|
-| `Terrain::SectorAt` 006C8140, `Terrain::GroundAndWaterDepth` 006C8930 | `src/game/terrain.cpp` | rewrite |
-| `ConstructMappedResource` 00671280, `ConstructMmioResource` 006721D0 | `src/game/resource_manager.cpp` | real constructors |
-| `stlp` node allocator 00405950 / 00404D70 | `src/lib/stlp.cpp` | own pool or `std::allocator` (see below) |
-| A-H17: hash_set<int> 0066B400 / 0066B490 / 0066BA70, item name indexes 00613B70 / 006A7870 / 0069E2A0 (`originals_library.h`); `mfc::CArchive` 00708832 / 00708941 / 00708B3D / 00708B0F (`src/lib/mfc.cpp`); item vector serialisers 006A7C20 / 006A7D20 / 006A7E10 (`item_db_load.cpp`); travel time 00578700 (`ui_objectives_input.cpp`) | as listed | STL containers / rewrite |
-| `gamecrt::*` (operator new/delete, tolower, toupper, strnicmp, stricmp, strncpy, isalpha, sprintf, rand, open/lseek/read/write/close) | `src/lib/crt.*` | modern CRT, after confirming identical results (see below) |
-| `game::FatalError` 00480080, `game::DebugLog` 0044C470 | `src/lib/crt.*` | rewrite |
-| `mfc::CString` members and `operator+`, `CString::Format` | `src/lib/mfc.*` | own `CString` (MFC is not installed) |
-| `mfc::CFile`, `mfc::CFileFind` | `src/lib/mfc.*` | own file classes or Win32 directly. `CFile::fileName_` is a raw `char*` only because naked forwarders cannot construct members |
-| `CTextureDevice::ParseMmpHeader` 004E7C40, `FindFormat` 004E7DA0 | `src/game/texture.cpp` | rewrite |
-| `CTexture::CreateFromMmp` 00690430, `CTexture::LoadBmp` 00690260 | `src/game/texture.cpp` | rewrite |
-| `mfc::PlexCreate` 006FE8EF, `mfc::PlexFreeDataChain` 006FE90F | `src/lib/mfc.*` | own `CPlex` (block allocator behind `CTypedPtrList`) |
-| `CAIMap::MarkFootprint` 005B6A80, `CUnit::OnLeftSectorMap` 0050E930, `SpiralIndex` 005BF7D0 | `src/game/sector_map.cpp` | rewrite |
-| Unit motion / movement: CArray instantiations 005C8400 / 005C87F0 / 005C8950 / 005C8560, cubic value 004E5660, unit layer list NewNode 005BE7B0, shape cache helpers 005BCCB0 / 005BD7F0 / 005BE320 / 005BE450 / 005BE370 / 005BE280 / 005BE730, cell passability 005B8BA0, visibility grid growth 005C8D40; globals 00791988 (direction table), 007912BC (class heights), 007C2F70 / 007C2F78 (shape cache) | `src/game/ai_motion.cpp`, `ai_movement.cpp`, `ai_unit_layer.cpp` | rewrite / own containers (see `docs/notes/ai.md`) |
-| Units: `_CIpow` 006E81A0 and `_ftol` 006E853C in inline assembly; the ostream inserters behind `UnitLogStream` (the forwarders are declared in `src/game/unit_hits.cpp` and `originals_units.h`). The former forwarders 00517700 / 00517500 / 0050E890 / 0050E970 / 00552F40 / 00552780 / 00532AC0 / 00514930 are rewritten but still called through their addresses | `src/game/unit_*.cpp` | rewrite / own maths (the curves must keep FYL2X + `_CIpow` results) |
-| Unit creation and the client's armour models: skill learning 00526450, skill lookup 0051FE00, sub-object constructors 0052E230 / 004CD080 / 005C6270 / 0047FB70, record destructor 00510340, CUnit slot 5 through its vtable entry 0073EAA0, CMapObject Destroy 0050E840, player items 00665470, skin layers SetSize 00539580, texture names 006A3480 / 006A0AA0, texture composition 00693180, figure part find / add / remove 00516A80 / 00517240 / 005167E0, the CUnitServer member destructors (the forwarders are declared in `src/game/unit_create*.cpp`, `unit_client_models.cpp`) | `src/game/unit_create*.cpp`, `unit_client_models.cpp`, `map_object_lifetime.cpp` | rewrite |
-| 3D objects: figure manager / cache 005AA5F0 / 005AC2F0, part owner 0059F3D0, animation 0050D0E0 / 0050D7C0, piece map find 005197B0, part release 00516080, CObject3D slot 19 00516D50; the shadow's 00692010, 004F1440, 004F15C0, 004D9880, 004D9AA0, aligned buffers 004545A0 / 004F65B0 / 00452E70, 005A0E80, render surface 00692140 / 00690FC0 / 00691030, projector 0056C750, 00501AF0, 006CB020, 004EA4A0 and the globals listed in `docs/notes/map_objects.md` (Facts) and `map_object_shadow.cpp` | `src/game/map_object_figures.cpp`, `map_object_shadow.cpp` | rewrite |
-| Models: `ChunkArchive` Enter/Leave/Field/StringField/CountChunks (004098D0, 00409980, 004092B0, 00409470, 00409A60); record destructors and `vector::resize` of the prints/acks records (006D29A0, 006D29E0, 006D26E0, 006D2830, 006DC390, 006DC920, 006DCAF0, 006DB9C0, 006DBBD0, 006DBE20); acks record Serialize (006E3780, 006E3FD0, 006E3DC0); water level apply 006CC7F0; link loader list insert/erase (004FB2E0, 004FAE00); `ConstructMmioResource` 006721D0 (second copy) | `src/game/model*.cpp` | rewrite / own containers (see `docs/notes/models.md`) |
-| Script loader: `CScript::Error` 004CF470, command blocks 004BF540/004BF900, `RunWorldScript` 004BCC60, `SSCCmd::Clear`/destructor, `ScriptDefinition`/`ScriptVars` constructors, destructors and helpers, the CArray/CList members of the script types, CString Mid/Left/Right/Find/LockBuffer, CRT isdigit/isspace/strncmp/atof (the `EI_ORIGINAL` declarations of the `script_parse*` files) | `src/game/script_parse*.cpp`, `script_parse.h` | rewrite / own containers |
-| Script savegame reader and variable appends: the 004B loaders (004B18B0, 004B1B40, 004B3AD0, 004B5FE0, 004BB590, 004B3D10), NewCommandList 004BF540, registry / world lookups 00403F40 / 00593AA0, the script types' CArray / CList members (SetSize, Copy, GetAt, NewNode, Construct / DestructElements; the `EI_ORIGINAL` declarations of `script_load.cpp`); `CopyFloat` (naked FLD / FSTP) | `src/game/script_load.cpp`, `script_vars_append.cpp`, `script_array.h` | rewrite / own containers |
-| Class templates and party records: template constructor 004A6580, counted-pointer vector members, item / spell database name lists and hash lookups, STLport string members, the templates' list adders, party constructor / members (the `EI_ORIGINAL` declarations of the two files) | `src/game/class_templates.cpp`, `party_records.cpp` | rewrite / own containers |
-| `NetGame::Step` 0057F190 (per-frame network step) | `src/game/net_session.cpp` | rewrite |
-| `BufferCursor::BeginRead` / `BeginWrite` 004DA450 / 004DA490 (bind a cursor to a buffer) | `src/game/net_coder.cpp` | rewrite |
-| `BitStream::StartByte` 004A5610, `EndBits` 004A5650, `Resize` 004A54D0, `ReadString` 00461190 (CMemoryStream bit helpers) | `src/game/net_delta.cpp` | rewrite with CMemoryStream |
-| `WordArray::SetSize` 006FEEFA (MFC CWordArray of the clip work buffer at 0079B668) | `src/game/clip.cpp` | own array |
-| World zone loading: unit creation 0058EF20, RemoveObjectFromServer 005935C0 (Rebirth), map path 00595BA0 (Rebirth), root chunk open / destructor 0042D160 / 0042D270, .mob object reader 00481660, unit record builder 00661050 / 006628D0 / 006611D0, CArray SetSize 005719B0 / 00573080, ZoneExit destructor 004608B0, CStringArray::SetAtGrow 006FEBCE, counted pointer destructor 0059DDB0, countdowns clear 006D43E0, CUnit::GetPrototype 00530930 (the `EI_ORIGINAL` declarations of `world_zone.cpp`) | `src/game/world_zone.cpp` | rewrite / own containers |
-| Interface screens: screen base input handlers 00601110/006011F0/006012D0/00601820, sound 005F7E60, leave game 00581660, chat keys 005F7C60/005F7C80, cancel exchange 0041E3E0, region tooltip 005FC730, scroll bar 0065B090, hero panels 006229E0/00622A30/00622BC0, item predicates 005EE050-005EE110, CPtrArray `SetSize` 0062A390, model animation 005FC3B0/005FC3D0, hero screen 00616910/00616560, unit statistics 00527EB0/00523F50/00523CD0 and `_ftol` 006E853C (full list in `docs/notes/ui.md`, "Screens") | `src/game/ui_screens.cpp` | rewrite |
-| Interface, second pass: meshes 005EA210/005EA600/005EA4C0/005EA380/005EA150, point array SetSize 00453100, sprite placement 005E6FA0/005E70E0/005E7D60 (Rebirth) and position 005E7010, SetRect through its original address 005FC9E0 (Rebirth), panel layout 00649E20, face picture 00640670, scene object replacement 005FF460, textures 005FEF20/005FF0B0, sprites 005FF3C0, tooltips 005FC730/005FC6B0, surface / scroll bar / container / message box constructors 005FCC00/0065AEA0/00600B20/00634650, member vector constructors 0062B550/0062B570/0062B5E0, AddChild 00600D30, window activation 005F7350, model load/parts 005FC1F0/005FC4F0/005FC4C0, save list 00655D40, options tables 00651940/00652200/00651600, text lookup 004DEFC0, objectives window STLport pieces (hash_map 00609C10/00460BA0, variable copy 00578B70, vector overflow 0051F790, sort 0064F310/0064F9A0/0064FBD0, rb-tree increment 0043DBE0), its exit array 0064EFD0/0064F160, quest list 0064E8B0, exit selection 0064E990, text log 0065CC00, surface text 005FDC00/005FE2F0/005FDE20/005FDC60, triangle sprite 005E99D0; inline-asm calls of `_CIfmod` 006E95AA, `_CIpow` 006E81A0, `_ftol` 006E853C and a naked FPATAN (full list in `docs/notes/ui.md`, "Large interface functions") | `src/game/ui_hud_map.cpp`, `ui_hud_frame.cpp`, `ui_hud_portraits.cpp`, `ui_layouts.cpp` | rewrite |
-| Interface screens: sound 005F7E60, help 005F86F0, window/container base slots (005FEB90, 005FECC0, 00600270, 006010E0, 00600EF0, 00601040, input defaults 00601110 / 00601570), surface/model/region helpers (005FD760, 005FC2F0, 005FC690), renderer flushes 004E7840 / 004E7A40, battle screen and panel helpers, save/load and options actions, local view orders 0066AE70 / 0066AED0, cursor 005E5200, server command 0041D260, sound setters 006B7740 / 006B7A00 / 006B78A0, display settings 00500960 (full list in `docs/notes/ui.md`, "Interface screens") | `src/game/ui_hud.cpp`, `ui_menus.cpp` | rewrite |
-| Lightning: `LightningPointArray::SetSize` 00468C50 (aligned CArray), `CLightning::Draw` 00467AD0; globals 007A9D40 (random), 0079CE78 (noise table), 0079C1F8 / 0079C838 (noise curves), 00787C8C (sway frequencies), 007AF61C / 007AFCA8 (world clock) | `src/game/lightning.cpp` | rewrite / own containers |
-| Sound: wave cache operator[] 006BBDF0, deferred-sound hash_map begin / next bucket / operator[] / erase (006BC3E0, 006BCFB0, 006BCFF0, 006BD060), STLport string free 006B72E0, CStringArray::Copy 006FEB61, CurrentStreamName 006BAEA0, 006BBAC0, Play3D 006B8600, Play2D 006B8250, LoadSample 006B89F0, `_CIacos` 006E7320; Miles through the import table (0073B750..0073B808); `CString::operator+=(const char*)` 00700D4C (see `docs/notes/sound.md`) | `src/game/sound_manager.cpp`, `sound_music.cpp`, `src/lib/mfc.*` | rewrite / own containers; link Miles directly |
-| Effect objects: sound system 006B8600 / 006B92F0 / 006B94A0 / 006BA5E0 / 006BA7C0 / 006B9950 / 006B9A30 / 006B9AA0, light manager 006CA720 / 006CA5D0 / 006CA830, CLight 0068D010, particle source 00498400 / 00485480 / 004849F0 / 00485360, scorch 0056D4C0, camera shake 004113A0, bolt 004680D0 / 00467E10, reference assignment 00511B90 / 0056F1A0, world / unit helpers 00455950 / 0055FB00 / 00532860, net_delta methods through their addresses, 0047E340, CStringArray 006FE9B8 / 006773A0 / 004E5840 (the forwarders are declared in `src/game/world_effect*.cpp`) | `src/game/world_effect*.cpp` | rewrite / call directly |
-| Player messages: variables table 00460BC0 / 00460AF0 / 00460DB0, state payloads 0047DA80 / 006D4570 | `src/game/player_messages.cpp` | rewrite |
-| Window surface blit: the DirectDraw error report 004F0B00 (and the old Blt itself, which goes with the old renderer) | `src/game/ui_surface_blit.cpp` | rewrite / drop with the old path |
-| Resources: `_access` 006EAF20, `_findfirst` 006EB832, `_splitpath` 006E8BEE, CStringArray `SetSize` 006FE9B8 / `SetAtGrow` 006FEBCE, CBaseManager constructor / slot 3 / destructor 00402B20 / 004031E0 / 00402DF0 | `src/game/resource_stream.cpp` | modern CRT / own containers / rewrite |
+- **Library code** (own implementations or the modern library, after confirming identical results; see "Behaviour that the replacements must keep"):
+  the `stlp` node allocator 00405950 / 00404D70 (`src/lib/stlp.cpp`: own pool or `std::allocator`); `gamecrt::*` (operator new/delete, tolower,
+  toupper, strnicmp, stricmp, strncpy, isalpha, sprintf, rand, open/lseek/read/write/close; `src/lib/crt.*`); `game::FatalError` 00480080 and
+  `game::DebugLog` 0044C470 (rewrite); `mfc::CString` members, `operator+`, `CString::Format` (own `CString`: MFC is not installed); `mfc::CFile`,
+  `mfc::CFileFind` (own file classes or Win32 directly; `CFile::fileName_` is a raw `char*` only because naked forwarders cannot construct members);
+  `mfc::PlexCreate` 006FE8EF / `PlexFreeDataChain` 006FE90F (own `CPlex`, the block allocator behind `CTypedPtrList`); `mfc::CArchive` 00708832 /
+  00708941 / 00708B3D / 00708B0F; the STLport / MFC container members (CArray / CList instantiations, hash_map, string, CStringArray, CWordArray
+  `SetSize` 006FEEFA of the clip work buffer at 0079B668) that the script, class-template, party, world-zone, unit, model, sound and effect files
+  forward (own containers).
+- **Game code not yet rewritten**, per area as the `EI_ORIGINAL` declarations of the file show: texture parsing (`ParseMmpHeader` 004E7C40,
+  `FindFormat` 004E7DA0, `CreateFromMmp` 00690430, `LoadBmp` 00690260), terrain (`SectorAt` 006C8140, `GroundAndWaterDepth` 006C8930), resource
+  constructors (`ConstructMappedResource` 00671280, `ConstructMmioResource` 006721D0), `ChunkArchive` Enter/Leave/Field/StringField/CountChunks
+  (004098D0, 00409980, 004092B0, 00409470, 00409A60), `NetGame::Step` 0057F190, `BufferCursor::BeginRead` / `BeginWrite` 004DA450 / 004DA490,
+  `BitStream` bit helpers 004A5610 / 004A5650 / 004A54D0 / 00461190, the script loader (`CScript::Error` 004CF470, command blocks 004BF540 /
+  004BF900, `RunWorldScript` 004BCC60, the 004B savegame loaders), world zone loading (unit creation 0058EF20, RemoveObjectFromServer 005935C0
+  (Rebirth), map path 00595BA0 (Rebirth), .mob object reader 00481660, unit record builder 00661050 / 006628D0 / 006611D0), the interface screens
+  (full lists in `docs/notes/ui.md`, "Screens", "Large interface functions", "Interface screens"), lightning (`CLightning::Draw` 00467AD0), sound
+  (Play3D 006B8600, Play2D 006B8250, LoadSample 006B89F0, `_CIacos` 006E7320; Miles through the import table 0073B750..0073B808; link Miles
+  directly), effect objects (sound system, light manager, particle source, scorch, camera shake, bolt), player messages (variables table 00460BC0 /
+  00460AF0 / 00460DB0, state payloads 0047DA80 / 006D4570), the window surface blit (DirectDraw error report 004F0B00; goes with the old renderer),
+  resources (`_access` 006EAF20, `_findfirst` 006EB832, `_splitpath` 006E8BEE), 3D objects and the shadow (globals in `docs/notes/map_objects.md`,
+  "Facts"), unit motion / movement, unit creation and armour models, and the AI movement helpers (`docs/notes/ai.md`).
+- **Inline-assembly calls** of `_CIpow` 006E81A0, `_ftol` 006E853C, `_CIfmod` 006E95AA, `_CIacos` and a naked FPATAN: the curves must keep their
+  FYL2X + `_CIpow` results; rewrite as own maths proven bit-identical.
+- Globals that become ordinary variables: 00791988 (direction table), 007912BC (class heights), 007C2F70 / 007C2F78 (shape cache), 007A9D40 (random),
+  0079CE78 (noise table), 0079C1F8 / 0079C838 (noise curves), 00787C8C (sway frequencies), 007AF61C / 007AFCA8 (world clock).
 
 ## Indirections
 
@@ -62,15 +54,12 @@ Each needs a real implementation, or the caller must be rewritten first.
 - `KeywordTable()` (`src/game/script_parse.cpp`) reads the script keyword table's address from the
   code of 004CF600 (Rebirth points it at an extended table). Standalone: the table itself.
 
-- The new renderer (`src/render`) reads the old Direct3D 7 device's state for every mesh pass
-  (`render_mesh.cpp`, `ReadPassState`: the materials' state blocks are opaque) and reads textures
-  and the interface windows' pixels out of the old DirectDraw surfaces (`render_textures.cpp`).
-  Standalone: the materials from the game's data, textures from the .mmp files, the window surfaces
-  as CPU buffers (or native drawing, `docs/notes/renderer.md` section 5). The window, cursor, cursor
-  image and movie holders already work that way in the switch-over (`present` with `cpuwindows`,
-  ticket R7, section 14): their pixels are only in the new renderer's memory
-  (`render::SurfaceMemory`); outside it the same memory is still handed to DirectDraw as client
-  memory, which goes with the old path.
+- The new renderer (`src/render`) reads the old Direct3D 7 device's state for every mesh pass (`render_mesh.cpp`, `ReadPassState`: the materials'
+  state blocks are opaque) and reads textures and the interface windows' pixels out of the old DirectDraw surfaces (`render_textures.cpp`).
+  Standalone: the materials from the game's data, textures from the .mmp files, the window surfaces as CPU buffers (or native drawing,
+  `docs/notes/renderer.md` section 5). The window, cursor, cursor image and movie holders already work that way in the switch-over (`present` with
+  `cpuwindows`, section 14): their pixels are only in the new renderer's memory (`render::SurfaceMemory`); outside it the same memory is still
+  handed to DirectDraw as client memory, which goes with the old path.
 
 - `src/lib/gameapi.h` calls Win32 through game.exe's import table so other mods' API hooks apply.
   Standalone: call the APIs directly (or keep the header as a thin alias). Regenerate or delete
