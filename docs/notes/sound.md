@@ -64,31 +64,29 @@ numbers and touch no game state.
 
 ## Rewritten (names provisional)
 
-All in `sound_manager.cpp` except the CMusicSystem rows (`sound_music.cpp`). "Scratch" = original on a
-scratch copy of the object, ours on the real one.
-
-| Address | Name | Verify |
-|---|---|---|
-| 006B7FC0 | `CSoundManager::UpdatePositional` | scratch voice; volume and pan |
-| 006B5EE0 / 006B5E80 / 006B5FF0 | `SoundFader::Update` / `SetHold` / `Recalc` | scratch; a hold expiring between the two clock reads not compared |
-| 006B7CB0 | `FindDeferred` | pure, side by side |
-| 006B9A30 / 006B9AA0, 006B69E0, 006BAFA0 / 006BAFE0 | `MoveEmitter` / `RemoveEmitter`, `SetReverb`, `FadeOutStream` / `FadeInStream` | manager byte copy; emitter / fader compared |
-| 006B7740 / 006B78A0 / 006B9750 | `SetEffectsVolume` / `SetSpeechVolume` / `SetListener` | side by side with voices and listener captured and restored (not `finished`) |
-| 006B7C10, 006B9100 / 006B92F0, 006BA400 / 006BA5E0 | `FindPlaying`, `SetSoundVolume` / `SetSoundPosition`, `MoveSequence` / `UpdateSequence` | side by side (voices, deferred record, sequence) unless a voice would be ended (then ours only) |
-| 006B7A00, 006B94A0, 006BA7C0, 006B9950, 006BA2D0, 006BA140, 006B7320 / 006B7380, 006B5CD0 | `SetMusicVolume`, `StopSound`, `RemoveSequence`, `AddEmitter`, `AddSequence`, `SoundSequence::PlayNext`, `PauseAll` / `ResumeAll`, `SoundSlot::End` | ours only; post-state invariants |
-| 006BB020 / 006BB240 | `RequestStream` (shared with the stream thread) / `StopStream` | ours only; result and state ranges |
-| 006B9B10 | `Tick` | ours only; sequence ids, emitter clock |
-| 006B8250 / 006B8600 | `Play2D` (RET 0x20) / `Play3D` (RET 0x1C) | ours only: -1, or a voice holding the arguments under the returned handle, or a deferred record |
-| 006B89F0 | `LoadSample` (RET 0x10) | ours only: 0, or 1 with the voice playing under the newest handle, a cache node of that name (unless an MP3 was cached) |
-| 006B4710 | `CMusicSystem::LoadThemes` (named so: Create is a CEngineObject virtual, rule 4) | original into a scratch music system after ours succeeded; credits, main menu, every theme compared |
-| 006B4350, 006B44B0, 006B4490, 006B4690, 006B4470 / 006B4480, 006B4E10 / 006B4E20 | `CMusicSystem` Construct, DestructBody, DeletingDestruct, `ResetThemes` (slot 3; strings become "none" 007846F0, theme +0x3C kept), class name / id 0xE, `FadeOut` / `FadeIn` (the manager's stream; ECX unused) | name / id against the original; the rest ours only (`verify_sound_lifetime.cpp`; CMusicSystem now derives from CEngineObject) |
-| 006B6290 / 006B62A0, 006BAEA0 | CSoundManager class name / id 0xE, `CurrentStreamName` (`sound_manager_lifetime.cpp`) | against the original (CurrentStreamName 7 stolen bytes) |
-| 006B6D70, 006B62B0, 006B7060, 006B7AB0, 006B8960, 006BAE20, 006BA950 | `CreateBody` (slot 2: Reset, 1), `DeletingDestruct`, `ClearWaveSources`, `AddWaveSource`, `LoadWaveFile`, `SetPath`, `SoundStreamRead` (the stream file's read callback, stream thread) | ours only (`verify_sound_lifetime.cpp`); startup 00456440 calls SetPath and AddWaveSource |
-| 006B71C0, 006B96E0 | `StopAll(stopStream)` (originals_ui.h's `LoadingStepOriginal` is this), `WaveLength` | StopAll ours only (no voice plays, handle 0, no deferred); WaveLength side by side (7 bytes) |
-| 006B4E30, 006B4F70 / 006B4F90 / 006B5080 / 006B5170 / 006B51F0 / 006B5270, 006B5350 | `SetZoneMode`, `Stop` / `PlayBriefing` / `PlayConstructor` / `PlayCredits` / `PlayMainMenu` / `PlayJingle`, `UpdateMusic` (slot 6) | ours only; resulting state (returns 1, inCombat follows the fight state) |
-| 006B7D10 | `AllocateVoice` (A-H17, sound_manager.cpp; Play2D / Play3D call it through its address): first free voice, else steals the lowest priority below `priority` (a looping sound deferred with its sample position) | ours only: -1 only when all voices play at >= priority; the voice is free; a stolen loop's handle is deferred |
-| 006B6040, 006B65D0, 006BA9C0 | `Construct`, `DestructBody`, `ResetStream` (A-H15, sound_manager_lifetime.cpp; 006BA9C0 runs on the manager's +0x100, a `__fastcall` shim) | ours only (vtables, empty lists, fader volume 100 / level 127, switch mode 4) |
-| 006B6A30, 006B6D80, 006B73E0 | `Open` (RET 0x14: window, reverb, DirectSound device index, rate, unused), `Close` (slot 3), `Reset` (A-H18, sound_manager_lifetime.cpp). +0x1C8 / +0x244 the stream / MIDI threads (`mfc::CWinThread`), +0x248 their quit flag. The sound option 0079BCC0 = 2 opens the wave mapper. Close frees each cached wave's own name where the original's RemoveHead (006BC6F0) copies it out and frees the copy (node-pool order only) | ours only: Open 1 with 15 free voices and a driver, or 0 in the reset state; Close / Reset the reset state (every scenario: startup, exit) |
+Every function carries its address in its source comment (grep it); the per-function table that used to be here is gone. All in
+`sound_manager.cpp` except the CMusicSystem functions (`sound_music.cpp`) and the lifetime ones (`sound_manager_lifetime.cpp`).
+- Voices and positions: `UpdatePositional` 006B7FC0, `SoundFader` Update / SetHold / Recalc 006B5EE0 / 006B5E80 / 006B5FF0, FindDeferred
+  006B7CB0, MoveEmitter / RemoveEmitter 006B9A30 / 006B9AA0, SetReverb 006B69E0, FadeOutStream / FadeInStream 006BAFA0 / 006BAFE0,
+  SetEffectsVolume / SetSpeechVolume / SetListener 006B7740 / 006B78A0 / 006B9750, FindPlaying 006B7C10, SetSoundVolume /
+  SetSoundPosition 006B9100 / 006B92F0, MoveSequence / UpdateSequence 006BA400 / 006BA5E0, SetMusicVolume 006B7A00, StopSound 006B94A0,
+  RemoveSequence, AddEmitter 006B9950, AddSequence 006BA2D0, `SoundSequence::PlayNext` 006BA140, PauseAll / ResumeAll 006B7320 / 006B7380,
+  `SoundSlot::End` 006B5CD0, RequestStream 006BB020 (shared with the stream thread) / StopStream 006BB240, Tick 006B9B10, Play2D 006B8250
+  (RET 0x20) / Play3D 006B8600 (RET 0x1C), LoadSample 006B89F0 (RET 0x10), AllocateVoice 006B7D10 (first free voice, else steals the
+  lowest priority below `priority`; a looping sound is deferred with its sample position; -1 only when all voices play at >= priority),
+  StopAll(stopStream) 006B71C0 (originals_ui.h's `LoadingStepOriginal` is this), WaveLength 006B96E0 (7 bytes).
+- `CMusicSystem`: `LoadThemes` 006B4710 (named so: Create is a CEngineObject virtual, rule 4), Construct 006B4350, DestructBody 006B44B0,
+  DeletingDestruct 006B4490, `ResetThemes` 006B4690 (slot 3; strings become "none" 007846F0, theme +0x3C kept), class name / id 0xE
+  006B4470 / 006B4480, FadeOut / FadeIn 006B4E10 / 006B4E20 (the manager's stream; ECX unused), SetZoneMode 006B4E30, Stop / PlayBriefing /
+  PlayConstructor / PlayCredits / PlayMainMenu / PlayJingle 006B4F70-006B5270, UpdateMusic 006B5350 (slot 6; returns 1, inCombat follows
+  the fight state). CMusicSystem and CSoundManager derive from CEngineObject.
+- `CSoundManager` lifetime: class name / id 0xE 006B6290 / 006B62A0, CurrentStreamName 006BAEA0, CreateBody 006B6D70 (slot 2: Reset, 1),
+  DeletingDestruct 006B62B0, ClearWaveSources, AddWaveSource, LoadWaveFile, SetPath 006BAE20 (startup 00456440 calls SetPath and
+  AddWaveSource), SoundStreamRead 006BA950 (the stream file's read callback, stream thread), Construct 006B6040, DestructBody 006B65D0,
+  ResetStream 006BA9C0 (runs on the manager's +0x100, a `__fastcall` shim), `Open` 006B6A30 (RET 0x14: window, reverb, DirectSound device
+  index, rate, unused; +0x1C8 / +0x244 the stream / MIDI threads (`mfc::CWinThread`), +0x248 their quit flag; the sound option 0079BCC0 = 2
+  opens the wave mapper), `Close` 006B6D80 (slot 3; frees each cached wave's own name where the original's RemoveHead 006BC6F0 copies it
+  out and frees the copy, node-pool order only), `Reset` 006B73E0.
 
 Non-obvious: Play2D/Play3D with no voice (AllocateVoice -1) return -1 for a one-shot and make a
 deferred record (0x48 bytes) for a looping sound; a NaN camera height keeps the full level (the
