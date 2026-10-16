@@ -2258,7 +2258,7 @@ group = "standalone"
 size = 1
 depends = ["S21"]
 files = ["tests/scenarios", "config/rebirth_scenarios.csv"]
-note = "Plan: docs/notes/standalone.md section 5. All 107 scenarios pass on the image (S21), but some were written for hooked runs: rebirth_flags on the vanilla data (its header is about UNVERIFIED wrappers; on the image it is a flags smoke test without a golden), the other rebirthflags scenarios on the vanilla data (net_second_master, ui_widescreen*: no golden by rule, SV7b8a), rebirth_mod_folders' header, scenarios that exist for verify-wrapper counts or for a render step without present (needs_old_device). Per scenario: keep with a golden, keep as an image smoke test with its header rewritten, or drop. config/rebirth_scenarios.csv (hooked Rebirth coverage) can go once S21c lands: the image's Rebirth runs follow the Rebirth goldens."
+note = "User 2026-10-16: keep rebirth_flags on vanilla data as an image crash smoke test with no golden."
 
 [[ticket]]
 id = "S21b"
@@ -2267,7 +2267,7 @@ group = "standalone"
 size = 1
 depends = ["S21"]
 files = ["tools/run_all.py", "tools/compare_frames.py"]
-note = "Plan: standalone.md section 5. --widescreen compares hooked Rebirth runs (dgVoodoo) with addon's own (rebirth-nohooks) pixel by pixel. The image draws only with our renderer, which differs from dgVoodoo by 0.2-1% of a 4K interface frame (R10). Compare standalone-rebirth with rebirth-nohooks with a cross-renderer tolerance or masks, or keep addon's frames as recorded references; then the hooked side goes (S21c)."
+note = "User 2026-10-16: record addon's WideScreen frames once (original-game harness) as references and compare the image against them; no live addon comparison each run."
 
 [[ticket]]
 id = "S21c"
@@ -2285,7 +2285,7 @@ group = "standalone"
 size = 2
 depends = ["S21c"]
 files = ["tests/verify", "include/ei/hook.h", "tools/check_stolen.py", "tools/check_patched_calls.py", "tools/check_returns.py", "docs/worker-brief.md", "docs/rewrite-guide.md"]
-note = "Plan: standalone.md section 5. Needs the user's go-ahead: deletes the 640 tests/verify/verify_*.cpp (7 MB) and their helper headers, verify.cpp's twin / compare machinery, verified.txt, disabled.txt, EI_VERIFY registrations and the stolen-byte counts, and the checks that only guard hooked runs (check_stolen, check_patched_calls, check_returns). The harness*.cpp files stay (move them to tests/harness). The worker brief's and rewrite guide's verify-wrapper rules become: a golden scenario or a vector reaches each change."
+note = "User 2026-10-16: delete the verify wrappers outright (no frozen copy; git history keeps them); drop the every-rewrite-gets-a-wrapper rule."
 
 [[ticket]]
 id = "S21e"
