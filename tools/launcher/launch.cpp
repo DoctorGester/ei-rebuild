@@ -56,10 +56,13 @@ static bool SameFile(const std::wstring& a, const std::wstring& b) {
     return ReadAll(a, x) && ReadAll(b, y) && x == y;
 }
 
-// Windows Firewall asks about every new program path that opens a socket, and each worktree builds its own
-// ei_standalone.exe. Runs start one shared copy instead, in the resolved run folder that holds game.exe's
-// install folder (run\standalone\ei_standalone.exe), so the firewall asks once. The copy is refreshed when
-// the built host differs; while a running game still holds an older copy, the run uses its own build's host.
+// Windows Firewall asks about every new program path that listens outside loopback, and each worktree builds
+// its own ei_standalone.exe. A launch without a scenario (a game to play, which hosts on every address) starts
+// one shared copy instead, in the resolved run folder that holds game.exe's install folder
+// (run\standalone\ei_standalone.exe), so the firewall asks once. The copy is refreshed when the built host
+// differs; while a running game still holds an older copy, the launch uses its own build's host. Harness runs
+// start their build's own host: they bind on 127.0.0.1 only (WB14, tests/verify/harness_net.h), which the
+// firewall never asks about, and runs of several worktrees' builds would keep replacing the shared copy.
 static std::wstring SharedStandaloneHost(const std::wstring& built, const std::wstring& gameExe) {
     HANDLE h = CreateFileW(Dir(Dir(gameExe)).c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
                            OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
@@ -343,7 +346,8 @@ int wmain(int argc, wchar_t** argv) {
     BOOL inherit = FALSE;
     if (standalone) {
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
-        program = SharedStandaloneHost(Dir(self) + L"\\ei_standalone.exe", full);
+        const std::wstring built = Dir(self) + L"\\ei_standalone.exe";
+        program = harness.empty() ? SharedStandaloneHost(built, full) : built;
         cmd = L"\"" + program + L"\" --exe \"" + full + L"\" --dll \"" + dll + L"\" --run";
         if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
