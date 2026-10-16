@@ -320,7 +320,7 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     }
     ServerEntry* e = EntryIn(entry);
     e->address_ = *from;
-    e->foreign_ = echo != magic_;
+    e->foreign_ = magic != magic_;   // another version (low byte differs): Connect refuses it
     bool local = socket_.IsLocal(from);
     ClientQueries& v = queries_;
     Query* end = v.list.end();
