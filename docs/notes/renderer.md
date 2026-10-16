@@ -25,22 +25,23 @@ texture or surface holder of it is a DirectDraw object (section 9).
 
 ## 1. Switch (EI_RENDER)
 
-`EI_RENDER` (environment, or the harness step `render <spec>` before the game starts) is a comma-separated list; the
-full text is the header of `src/render/render.h`. The image uses `new,present` (run_all sets it; it is also the
-standalone default without EI_RENDER), and a spec that asks for the old path is turned into it (logged: "asks for the
-old path, but the game has no DirectDraw device"). The harness step adds its words to the environment's. The original
-code (`--no-hooks`) never runs the renderer and never gets EI_RENDER.
+`EI_RENDER` (environment, or the harness step `render <spec>` before the game starts, in a run of the image only) is a
+comma-separated list; the full text is the header of `src/render/render.h`. One word switches: `new`. With it the
+game has no DirectDraw or Direct3D 7 device, the new renderer draws every frame into an off-screen target of the
+game's resolution and presents it through its own flip-model swap chain on the game window (`render::StartPresenting`,
+004EDD70; section 9, R9a), the surface holders of 004EF7B0 / 004F0060 and the textures keep their pixels in memory the
+new renderer owns (sections 6, 7), and captures write the new frame as `frames\<name>.bmp`. `present` and `cpuwindows`
+are accepted as what `new` means (run_all, the launchers and the scenarios write `new,present`); any other word is
+logged as unknown. The image runs `new,present` (run_all sets it; it is also the standalone default without
+EI_RENDER), and once the game is built without DirectDraw a spec without `new` keeps it on (logged: "asks for the old
+path, but the game has no DirectDraw device"). The harness step adds its words to the environment's. The original code
+(`--no-hooks`) never runs the renderer: it never gets EI_RENDER and the harness ignores its `render` step (logged).
 
-| Option | Effect |
-|---|---|
-| `new` | the sidecar renders every frame into an off-screen target of the game's resolution |
-| `present` | the switch-over: the game has no DirectDraw or Direct3D 7 device and the new renderer presents through its own flip-model swap chain on the game window (`render::StartPresenting`, 004EDD70; section 9, R9a); captures write the new frame as `frames\<name>.bmp` |
-| `cpuwindows` | surface holders of 004EF7B0 (windows, software cursor, movies) and the system-memory picture holders of 004F0060 keep their pixels in memory the new renderer owns (section 6); on with `present` |
-
-`show`, `split`, `noterrain`, `noobjects`, `nointerface` and `nocpuwindows` (a child window over the client area, parts
-of the old path switched off) belong to the side-by-side runs of the old path beside the new renderer in game.exe,
-which went with S21c; they are still parsed and no run uses them. The harness steps `oldterrain`, `oldobjects` and
-`oldinterface` are ignored under `present` (`OldPathSwitchable`, logged).
+`render::Presenting()` and `render::CpuWindows()` are the same switch as `render::Active()` (CpuWindows also when the
+Direct3D 11 device could not be made); the game code's `!render::Presenting()` branches are the original's DirectDraw
+path, which runs only when the renderer is off or failed to start (no run does; R11a). There is no mode with the old
+path drawing beside the new renderer (no child window, no `.new.bmp` captures, no harness steps switching parts of the
+old draw: R11), and the renderer reads no DirectDraw surface (no holder has one).
 
 ## 2. Frame structure of the game
 
@@ -97,7 +98,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 |---|---|---|---|
 | Clip matrix of the current draw | transform pipeline (renderer 007AF060 +8): stacks of 64-byte row-major matrices, `+0x24/+0x28` clip space (axis swap * projection * view * model), `+0x1C` the same times the viewport, `+0x5C/+0x60` view stack | read at hand-over time | used |
 | Terrain sectors | SectorData (`terrain_sector.h`): positions +0x17C (33x33 per layer, water after ground), vertex records +0x190 (0x54 bytes, lit colour +0x11, specular / fog +0x15), tile lists per quarter and page +0x314, edge flags +0x2C4, quarter visibility +0x144, LOD +0x170, seam flags +0x174 / +0x178, owner TerrainFields +0x1C; page textures TerrainFields +0xD8 | DrawSectorPage 006BFF40 (`terrain_draw.cpp`) -> `render::TerrainPage` | drawn |
-| Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh`; `world_client_draw.cpp` (00569E40) -> `BeginWorld` / `EndWorld` | drawn |
+| Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh` | drawn |
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (device +0x12C / +0x130) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `device_shadow.cpp` -> `render::BeginMesh` without corners; `map_object_shadow.cpp` (0051CE60) tells which texture changed (`TextureChanged`) | drawn; later GPU shadows |
@@ -140,10 +141,10 @@ records:
 | 007AEDD4 | texture x diffuse | texture (SELECTARG1) |
 | 007AEDD0 | texture x diffuse | diffuse (SELECTARG1) |
 
-A state nothing has fed is read from the stand-in device (which keeps every state the game sets) and logged once
-("render: pass state: render state N not fed by the game code yet"). The harness build (`EI_RENDER_VALIDATION`) reads
-every fed state back from it and logs disagreements ("fed X but the old device has Y": a writer not converted) and
-draws the device's value. States the game never sets (ZFUNC, TEXTUREFACTOR,
+A state nothing has fed is read from the stand-in device (which keeps every state the game sets; `OldRenderStates` /
+`OldStageStates` in render.cpp) and logged once ("render: pass state: render state N not fed by the game code yet").
+The harness build (`EI_RENDER_VALIDATION`) reads every fed state back from it and logs disagreements ("fed X but the
+old device has Y": a writer not converted) and draws the device's value. States the game never sets (ZFUNC, TEXTUREFACTOR,
 ADDRESSU / V, stage 1 off) start with the device's initial values.
 Stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the unit's picture, is fed by
 `CHudUnitPanel::DrawVanilla` (ui_hud_unit_draw.cpp).
@@ -162,8 +163,9 @@ and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C i
 **Memory** (owned by the new renderer): `render::NewSurfaceMemory / SurfaceMemoryOf / FreeSurfaceMemory / HolderGone`
 (render_textures.cpp): one zeroed top-down DIB section per holder (GDI draws into it through a memory DC) with pitch,
 size, bit count and channel masks. Made by the holder code, used by game code (`ClientBitmap`, `ClientPixels`,
-`DirectPixels` in `dx_surface.h`) and read by the renderer after GdiFlush. Change detection: the renderer keeps a copy of the memory each window texture was made from and
-converts again only when it differs (a memcmp at each blit).
+`DirectPixels` in `dx_surface.h`) and read by the renderer after GdiFlush; the renderer reads no DirectDraw surface.
+Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
+when it differs (a memcmp at each blit).
 
 **Switch-over** (`present` with `cpuwindows`): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the
 cursor's background and composition surfaces 005E60B0, the movies' decode surfaces) and the system-memory picture
@@ -283,12 +285,15 @@ come first, then what holds for the present path (the subsection names are cited
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
   the global map's clouds on the GPU.
+- **R11a** (ready): the game code's DirectDraw path behind `!render::Presenting()` / `render::CpuWindows()` (the
+  holders' DirectDraw surfaces and Locks in dx_surface.cpp, bink_video.cpp, ui_cursor_frame.cpp, ui_surface_*.cpp,
+  texture_*.cpp, renderer_init.cpp, ui_container_draws.cpp, app_dxversion.cpp) runs only when the renderer is off or its
+  Direct3D 11 device cannot be made; whether to keep that fallback (a player without Direct3D 11) or remove it is
+  open. The renderer side has none left (R11).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
-  before clipping, the shadow rasteriser) want plain C++ replacements; code for the retired side-by-side mode is still
-  in src (`show` / `split` child window, `noterrain` / `noobjects` / `nointerface`, `OldPathSwitchable` and the
-  `DrawOld*` queries, the DirectDraw branches of the holders); several steps (holders, saved pictures, interface
+  before clipping, the shadow rasteriser) want plain C++ replacements; several steps (holders, saved pictures, interface
   draws, movies, textures) are checked by goldens and harness scenarios, never by a person in game.
 
 ### R9a: the game without DirectDraw
@@ -402,16 +407,16 @@ is what to read it for.
   DRIVER_INTERNAL_ERROR, `render_window.cpp`) and by `GetDeviceRemovedReason` at the end of every presented frame (a
   loss nothing reported, e.g. minimised). Nothing more is drawn in that frame; at the end of `render::Present` (the
   frame's commands cleared, so nothing holds a sokol id), `RecreateDevice` (render.cpp): each module destroys what it
-  made (`DropWindow`, the `show` child window, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
+  made (`DropWindow`, the frame target and readback copy, `DestroyTerrain`, `DestroyMeshes`,
   `DropBlits`, `DropTextures`), then `sg_shutdown`, the context cleared and released, the device released (the log
   gives the references left: 0 in the runs), a new device (up to five tries 200 ms apart), `sg_setup` and the
   pipelines. The next frames make the frame target, the swap chain (the game's gamma ramp is kept: the lookup table is
   not reset to the identity when the present pipeline is made), window surfaces and memory textures (read again from
   the game's memory). A movie shows again from its next frame. No new device: the new renderer is off (`Active()`
   false), as when it failed at the start.
-- The switch-over's .mmp textures (`owned`: no surface and no memory) keep what they were decoded from
-  (`TextureSource`, render_textures.cpp): the header and the file's bytes of the levels decoded (DXT stays compressed),
-  or the RGBA8 level of `TexturePixels` for a holder without surface; `SurfaceView` makes the image again from it at
+- The decoded textures (`owned`: no memory) keep what they were decoded from (`TextureSource`, render_textures.cpp):
+  the header and the file's bytes of the levels decoded (DXT stays compressed), or the RGBA8 level of `TexturePixels`;
+  `SurfaceView` makes the image again from it at
   its next use (`Remake`, once a frame). game.exe is not large address aware: this is address space the switch-over
   freed by dropping the DirectDraw textures.
 - Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the next swap chain Present report
@@ -516,9 +521,8 @@ resolution must have the machine to themselves and serialised the suites.
 
 - **Frames are checked within one run**, at a frozen moment: `samecapture` (frames_basic, render_scene, render_present,
   render_device_lost, ...: two captures in one frozen moment must match; on the image they match to the pixel, PF3a),
-  `tools/frame_preview.py` writes a downscaled side-by-side PNG. render_scene's `oldobjects` / `oldterrain` /
-  `oldinterface` steps are ignored under `present` (logged), so its captures are all the new frame. Cross-run
-  comparisons are not meaningful (no determinism); A/B is always within one run.
+  `tools/frame_preview.py` writes a downscaled side-by-side PNG. Cross-run comparisons are not meaningful (no
+  determinism); A/B is always within one run.
 - The water pass writes depth as the old device does (ZWRITEENABLE stays 1 after the sky): without it the far sea's
   last, fully fogged sector ring blended over the nearer water at the top of the screen (a light strip with a straight
   lower edge, seen right of the top panel in WideScreen; R10c).

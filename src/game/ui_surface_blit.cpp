@@ -57,7 +57,7 @@ void __fastcall UiSurfaceBlit(CUiSurface* surface) {
         render::SurfaceBlit(holder, destination, sourceRect ? &part : nullptr, keyed, key);
     }
     // The old path's blit (a holder made in the switch-over has no DirectDraw surface to blit).
-    if (!render::DrawOldInterface() || !sourceSurface) return;
+    if (render::Presenting() || !sourceSurface) return;
 
     if (keyed) {
         DDBLTFX fx{};

@@ -80,7 +80,7 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
             // (for the old path's Blt; the new renderer reads the memory itself). A holder made in
             // the switch-over has no DirectDraw surface.
             IDirectDrawSurface7* dd = device::Surface(holder);
-            if (render::DrawOldInterface() && dd) {
+            if (!render::Presenting() && dd) {
                 DDSURFACEDESC2 desc = {};
                 desc.dwSize = sizeof(desc);
                 gameapi::EnterCriticalSection(GameDeviceLock());
