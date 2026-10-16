@@ -40,7 +40,7 @@ int IndexOf(const char* const* begin, const char* const* end, const char* name) 
 }
 
 // The first entry of a record's item array, or null when it is empty.
-CEngineObject* FirstOf(CEngineObject* const* data, int count) { return count > 0 ? data[0] : nullptr; }
+CItem* FirstOf(CEngineObject* const* data, int count) { return count > 0 ? static_cast<CItem*>(data[0]) : nullptr; }
 
 } // namespace
 
@@ -90,16 +90,16 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     bool firstVoices = index < 0;
     if (index >= 0) figureStrips_[1]->selected_ = index;
 
-    weapon_ = reinterpret_cast<char*>(FirstOf(hero->weapons, static_cast<int>(hero->weaponCount)));
-    ShowWeapon(weaponPanel_, nullptr, weapon_);
-    armor_ = reinterpret_cast<char*>(FirstOf(hero->quickItems, static_cast<int>(hero->quickItemCount)));
-    ShowArmour(weaponPanel_, nullptr, armor_);
-    spellContainer_ = reinterpret_cast<char*>(FirstOf(hero->spells, static_cast<int>(hero->spellCount)));
-    ShowContainer(spellPanel_, nullptr, spellContainer_);
+    weapon_ = FirstOf(hero->weapons, static_cast<int>(hero->weaponCount));
+    weaponPanel_->ShowWeapon(weapon_);
+    armor_ = FirstOf(hero->quickItems, static_cast<int>(hero->quickItemCount));
+    weaponPanel_->ShowArmour(armor_);
+    spellContainer_ = FirstOf(hero->spells, static_cast<int>(hero->spellCount));
+    spellPanel_->ShowEntry(spellContainer_);
     MakePreview(0);
-    static_cast<CHeroStatsPanel*>(statsPanel_)->SetHero(0, nullptr);
+    statsPanel_->SetHero(0, nullptr);
     TradePanelResetRecordsOriginal(tradePanel_);
-    static_cast<CTradePanel*>(tradePanel_)->SelectHero(0);
+    tradePanel_->SelectHero(0);
     reinterpret_cast<mfc::CString&>(text_) = prototype;
     voiceIndex_ = 0;
     voiceTop_ = 0;
@@ -110,8 +110,8 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     // The entry count compared unsigned (the subtraction shifted arithmetically).
     std::uint32_t count = static_cast<std::uint32_t>(
         (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);
-    static_cast<CUiScrollbar*>(voiceScroll_)->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
-    static_cast<CUiScrollbar*>(voiceScroll_)->CallSetPosition(0);
+    voiceScroll_->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
+    voiceScroll_->CallSetPosition(0);
     if (mode_ == kModeNewHero) CallDrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);
 }

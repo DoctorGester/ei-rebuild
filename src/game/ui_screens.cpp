@@ -3,6 +3,7 @@
 #include "spell.h"
 #include "ui.h"
 #include "ui_screens.h"
+#include "ui_camp.h"
 #include "game_strings.h"
 
 #include "core_maths.h"
@@ -71,44 +72,45 @@ __declspec(naked) void __fastcall UiItemsSetSize(UiItemArray*, void*, int, int) 
 
 namespace {
 // The item as loot (type 0x3007), or null.
-const CItemLoot* AsLoot(const char* item) {
-    auto* loot = reinterpret_cast<const CItemLoot*>(item);
-    return loot->type_ == kTypeQuick ? loot : nullptr;
+const CItemLoot* AsLoot(const CItem* item) {
+    return item->type_ == kTypeQuick ? static_cast<const CItemLoot*>(item) : nullptr;
 }
 const unsigned char* NoMaterial() { return reinterpret_cast<const unsigned char*>(0x007846F0); }   // "none"
 } // namespace
 
-bool UiItemKinds::IsSpell(const char* item) {
+// The predicates are thiscall in the original (on the camp or a strip's owner) but never read ECX:
+// static __stdcall functions here (the same RET 4).
+bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;
 }
-EI_REPLACE_METHOD(0x005EE050, UiItemKinds::IsSpell);
+EI_REPLACE(0x005EE050, UiItemKinds::IsSpell);
 
-bool UiItemKinds::IsModifier(const char* item) {
+bool __stdcall UiItemKinds::IsModifier(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 4;
 }
-EI_REPLACE_METHOD(0x005EE080, UiItemKinds::IsModifier);
+EI_REPLACE(0x005EE080, UiItemKinds::IsModifier);
 
-BOOL UiItemKinds::IsSpellContainer(const char* item) {
-    return reinterpret_cast<const CEngineObject*>(item)->type_ == kTypeSpellContainer;
+BOOL __stdcall UiItemKinds::IsSpellContainer(const CItem* item) {
+    return item->type_ == kTypeSpellContainer;
 }
-EI_REPLACE_METHOD(0x005EE0B0, UiItemKinds::IsSpellContainer);
+EI_REPLACE(0x005EE0B0, UiItemKinds::IsSpellContainer);
 
-bool UiItemKinds::IsPart(const char* item) {
+bool __stdcall UiItemKinds::IsPart(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
 }
-EI_REPLACE_METHOD(0x005EE0D0, UiItemKinds::IsPart);
+EI_REPLACE(0x005EE0D0, UiItemKinds::IsPart);
 
-bool UiItemKinds::IsKindOne(const char* item) {
+bool __stdcall UiItemKinds::IsKindOne(const CItem* item) {
     const CItemLoot* loot = AsLoot(item);
     return loot && loot->kind_ == 1;
 }
-EI_REPLACE_METHOD(0x005EE110, UiItemKinds::IsKindOne);
+EI_REPLACE(0x005EE110, UiItemKinds::IsKindOne);
 
-bool UiItemKinds::IsBuildable(const char* item) {
-    auto* object = reinterpret_cast<CItem*>(const_cast<char*>(item));
+bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
+    auto* object = const_cast<CItem*>(item);
     auto* prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
     if (prototype && !prototype->buildable_) return false;
     int type = object->type_;
@@ -118,7 +120,7 @@ bool UiItemKinds::IsBuildable(const char* item) {
     return prototype &&
            libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
 }
-EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
+EI_REPLACE(0x005EE130, UiItemKinds::IsBuildable);
 
 
 namespace uiorig {
@@ -129,7 +131,8 @@ void LeaveGame() { static_cast<GameFlow*>(kGame)->CloseSessions(); }
 // --- CUiItemStrip -----------------------------------------------------------------------------
 
 namespace {
-UiItemKinds* KindsOf(CUiWindow* owner) { return reinterpret_cast<UiItemKinds*>(owner); }
+// The strips' items (their slots hold CItem pointers).
+const CItem* AsItem(const char* item) { return reinterpret_cast<const CItem*>(item); }
 } // namespace
 
 void CUiItemStrip::SetTab(int tab) {
@@ -188,9 +191,8 @@ void CUiItemStrip::CycleTab(int first, int count) {
 EI_REPLACE_METHOD(0x00621530, CUiItemStrip::CycleTab);
 
 int CUiItemStrip::ItemTab(const char* item) {
-    UiItemKinds* kinds = KindsOf(owner_);
-    if (kinds->IsPart(item) || kinds->IsKindOne(item)) return 0;
-    if (kinds->IsSpell(item) || kinds->IsModifier(item)) return 1;
+    if (UiItemKinds::IsPart(AsItem(item)) || UiItemKinds::IsKindOne(AsItem(item))) return 0;
+    if (UiItemKinds::IsSpell(AsItem(item)) || UiItemKinds::IsModifier(AsItem(item))) return 1;
     int type = ItemType(item);
     if (type == kTypeWeapon || type == 0x3005 || type == kTypeArmor || type == kTypeSpellContainer) return 2;
     if (type == kTypeQuick) return 3;
@@ -199,8 +201,7 @@ int CUiItemStrip::ItemTab(const char* item) {
 EI_REPLACE_METHOD(0x006218F0, CUiItemStrip::ItemTab);
 
 int CUiItemStrip::SpellTab(const char* item) {
-    UiItemKinds* kinds = KindsOf(owner_);
-    if (kinds->IsSpell(item)) {
+    if (UiItemKinds::IsSpell(AsItem(item))) {
         // A record out of range is read through null, as in the original.
         auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
             itemdb::Spells().RecordAt(ItemRecord(item), itemdb::kSpellSize));
@@ -211,7 +212,7 @@ int CUiItemStrip::SpellTab(const char* item) {
         default: return 5;
         }
     }
-    if (kinds->IsModifier(item)) {
+    if (UiItemKinds::IsModifier(AsItem(item))) {
         auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(
             itemdb::SpellModifiers().RecordAt(ItemRecord(item), itemdb::kSpellModifierSize));
         return (static_cast<int>(modifier->kind) > 5) + 3;
@@ -221,8 +222,7 @@ int CUiItemStrip::SpellTab(const char* item) {
 EI_REPLACE_METHOD(0x006219A0, CUiItemStrip::SpellTab);
 
 int CUiItemStrip::ArmorTab(const char* item) {
-    UiItemKinds* kinds = KindsOf(owner_);
-    if (kinds->IsPart(item)) {
+    if (UiItemKinds::IsPart(AsItem(item))) {
         switch (ItemSubKind(item)) {
         case 0: return 0;
         case 1: {
@@ -235,7 +235,7 @@ int CUiItemStrip::ArmorTab(const char* item) {
         }
     }
     if (ItemType(item) == kTypeArmor) return 3;
-    return kinds->IsKindOne(item) ? 4 : 5;
+    return UiItemKinds::IsKindOne(AsItem(item)) ? 4 : 5;
 }
 EI_REPLACE_METHOD(0x00621A80, CUiItemStrip::ArmorTab);
 
@@ -526,9 +526,9 @@ EI_REPLACE_METHOD(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 double CMpHeroScreen::EquipmentWeight() {
     char* hero = Hero();
     double weight = 0.0;
-    if (weapon_) weight = ItemWeight(weapon_);
-    if (armor_) weight += ItemWeight(armor_);
-    if (spellContainer_) weight += ItemWeight(spellContainer_);
+    if (weapon_) weight = weapon_->Weight();
+    if (armor_) weight += armor_->Weight();
+    if (spellContainer_) weight += spellContainer_->Weight();
     int count = *reinterpret_cast<int*>(hero + 0x754);
     char** quick = *reinterpret_cast<char***>(hero + 0x750);
     for (int i = 0; i < count; ++i)
@@ -537,22 +537,22 @@ double CMpHeroScreen::EquipmentWeight() {
 }
 EI_REPLACE_METHOD(0x006193C0, CMpHeroScreen::EquipmentWeight);
 
-void CMpHeroScreen::OnItemChosen(char* item, int mode) {
+void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
     Hero();   // called for nothing, as in the original
     if (mode == 0) {
         bool equipped = true;
-        switch (ItemType(item)) {
+        switch (item->type_) {
         case kTypeWeapon:
             weapon_ = item;
-            ShowWeapon(weaponPanel_, nullptr, item);
+            weaponPanel_->ShowWeapon(item);
             break;
         case kTypeArmor:
             armor_ = item;
-            ShowArmour(weaponPanel_, nullptr, item);
+            weaponPanel_->ShowArmour(item);
             break;
         case kTypeSpellContainer:
             spellContainer_ = item;
-            ShowContainer(spellPanel_, nullptr, item);
+            spellPanel_->ShowEntry(item);
             break;
         default:
             equipped = false;

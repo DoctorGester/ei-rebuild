@@ -160,7 +160,7 @@ Pulse Advance(CConstructorPage* page) {
     return Pulse{static_cast<int>(a * 130.0 + p * 240.0), static_cast<int>(low), static_cast<int>(p * 160.0 + low)};
 }
 
-bool IsSpellContainer(const void* item) { return static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item)) != 0; }
+bool IsSpellContainer(const CItem* item) { return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item)) != 0; }
 
 void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
     sprite->Place(x, y, 3.0f);
@@ -196,7 +196,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             cell.y = 300.0f;
             DrawItem(owner_, pass, &cell);
             hasContainer = true;
-        } else if (ItemKindIsSpellOriginal(item)) {
+        } else if (UiItemKinds::IsSpell(item)) {
             // A record out of range is read through null, as in the original.
             auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
                 itemdb::Spells().RecordAt(reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellSize));
@@ -208,7 +208,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             cell.y = 300.0f;
             DrawItem(owner_, pass, &cell);
             hasSpell = true;
-        } else if (ItemKindIsModifierOriginal(item)) {
+        } else if (UiItemKinds::IsModifier(item)) {
             auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(itemdb::SpellModifiers().RecordAt(
                 reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellModifierSize));
             manaSum = static_cast<float>(static_cast<double>(manaSum) + modifier->mana);
@@ -309,12 +309,12 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
     for (int i = 0; i < slots->count; ++i) {
         CItem* item = slots->items[i];
         ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode_};
-        if (ItemKindIsBuildableOriginal(item)) {
+        if (UiItemKinds::IsBuildable(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;
             DrawInSlot(this, pass, &cell, RECT{215, 265, 285, 335});
             hasBlueprint = true;
-        } else if (ItemKindIsPartOriginal(item)) {
+        } else if (UiItemKinds::IsPart(item)) {
             cell.x = 350.0f;
             cell.y = 250.0f;
             DrawInSlot(this, pass, &cell, RECT{315, 215, 385, 285});
@@ -327,7 +327,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
             cell.y = 350.0f;
             DrawItem(owner_, pass, &cell);
             hasBlueprint = true;
-        } else if (ItemKindIsKindOneOriginal(item)) {
+        } else if (UiItemKinds::IsKindOne(item)) {
             ++materials;
             cell.x = static_cast<float>(column) + 450.0f;
             cell.y = static_cast<float>(row * 100) + 150.0f;

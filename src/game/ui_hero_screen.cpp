@@ -88,11 +88,11 @@ void CMpHeroScreen::DrawExperience() {
     TextsGetString(GameTexts(), nullptr, kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     SurfaceDrawText(surface, nullptr, text, &title, kTextFormat, kWhite, 1, 1);
-    text.Format(kSignedFormat, -static_cast<CTradePanel*>(tradePanel_)->PurchaseCost());
+    text.Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     SurfaceDrawText(surface, nullptr, text, &cost, kTextFormat, kWhite, 1, 1);
     TextsGetString(GameTexts(), nullptr, kCurrentExpKey, &text);
-    line.Format(kLabelFormat, static_cast<const char*>(text), static_cast<CTradePanel*>(tradePanel_)->Experience());
+    line.Format(kLabelFormat, static_cast<const char*>(text), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
     SurfaceReleaseDC(surface);
@@ -115,10 +115,8 @@ BOOL CMpHeroScreen::Draw(int pass) {
         // The original sets only the kind; the other fields stay as the stack had them (ours 0).
         ItemHoverInfo info = {};
         info.kind = -1;
-        auto* trade = static_cast<CUiWindow*>(tradePanel_);
-        auto* stats = static_cast<CUiWindow*>(statsPanel_);
-        if (!trade->enabled_ || (static_cast<CTradePanel*>(trade)->HoverInfo(x, y, &info), info.kind < 0)) {
-            if (stats->enabled_) static_cast<CHeroStatsPanel*>(stats)->HoverInfo(x, y, &info);
+        if (!tradePanel_->enabled_ || (tradePanel_->HoverInfo(x, y, &info), info.kind < 0)) {
+            if (statsPanel_->enabled_) statsPanel_->HoverInfo(x, y, &info);
             if (info.kind < 0 && mode_ == kModeNewHero) {
                 int region = window.RegionAt(x, y);
                 if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
@@ -150,11 +148,11 @@ void CMpHeroScreen::Update() {
         turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(FullTurn())));
     }
     int position;
-    if (static_cast<CUiScrollbar*>(heroScroll_)->TakePosition(&position)) {
+    if (heroScroll_->TakePosition(&position)) {
         heroTop_ = position;
         CallDrawHeroList();
     }
-    if (static_cast<CUiScrollbar*>(voiceScroll_)->TakePosition(&position)) {
+    if (voiceScroll_->TakePosition(&position)) {
         voiceTop_ = position;
         if (mode_ != kModeNewHero) return;
         CallDrawVoices();

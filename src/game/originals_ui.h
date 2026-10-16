@@ -49,9 +49,6 @@ __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*
     EI_ORIGINAL(0x005FDE20)
 __declspec(naked) inline void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
-__declspec(naked) inline void __fastcall ShowWeapon(void*, void*, char*) EI_ORIGINAL(0x006229E0)
-__declspec(naked) inline void __fastcall ShowArmour(void*, void*, char*) EI_ORIGINAL(0x00622A30)
-__declspec(naked) inline void __fastcall ShowContainer(void*, void*, char*) EI_ORIGINAL(0x00622BC0)
 __declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
 // The edit field (CUiEditField, ui.h): 0065C010 constructor (RET 0x14: the interface and a RECT by value, passed here
 // as its four ints; returns this), 0065C1A0 its look (RET 0x18: two ints, the font, an int, the text and caret
@@ -99,11 +96,6 @@ __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, vo
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
 __declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
-// 005EE050 / 005EE080 / 005EE0D0: item record is a spell / modifier / part (RET 4, AL; free functions, ECX is not read, so the
-// members that forwarded them ignored their `this`).
-__declspec(naked) inline bool __stdcall ItemKindIsSpellOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE050)
-__declspec(naked) inline bool __stdcall ItemKindIsModifierOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE080)
-__declspec(naked) inline bool __stdcall ItemKindIsPartOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE0D0)
 // 005E0DB0: variable table iterator: the next node in the bucket chain or null (plain RET, EAX = node).
 __declspec(naked) inline void* __fastcall VariableIteratorNextOriginal(void* /*iterator*/) EI_ORIGINAL(0x005E0DB0)
 
@@ -185,14 +177,9 @@ __declspec(naked) inline void __fastcall HeroScreenDrawListOriginal(void* /*scre
 // topic's value, a new entry with 0 when absent.
 __declspec(naked) inline int* __fastcall HelpTopicsAtOriginal(void* /*topics*/, void*, const mfc::CString* /*topic*/)
     EI_ORIGINAL(0x0065A770)
-// The camp's item helpers (rewritten in ui_screens.cpp / ui_item_screen.cpp; called through their address so the wrappers
-// run). 005EE0B0 / 005EE130: the item is a spell container (all of EAX) / can be taken apart (AL) (free functions, RET 4;
-// ECX not read). 005EE2C0: CItemScreen::ReturnAll(to, from) (RET 8, the last item moved). 005EE1B0: MoveItem(item, to,
-// from, limit, merge, turning) (RET 0x18, what `to` now holds).
-__declspec(naked) inline int __stdcall ItemKindIsSpellContainerOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE0B0)
-__declspec(naked) inline bool __stdcall ItemKindIsBuildableOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE130)
-// 005EE110: the item is a material (class 0x3007, kind 1; RET 4, AL; ECX not read).
-__declspec(naked) inline bool __stdcall ItemKindIsKindOneOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE110)
+// The camp's item helpers (rewritten in ui_item_screen.cpp; called through their address so the wrappers run).
+// 005EE2C0: CItemScreen::ReturnAll(to, from) (RET 8, the last item moved). 005EE1B0: MoveItem(item, to, from, limit,
+// merge, turning) (RET 0x18, what `to` now holds).
 __declspec(naked) inline CItem* __fastcall ItemScreenMoveItemOriginal(void* /*screen*/, void*, CItem* /*item*/, void* /*to*/,
                                                                       void* /*from*/, int /*limit*/, int /*merge*/,
                                                                       int /*turning*/) EI_ORIGINAL(0x005EE1B0)

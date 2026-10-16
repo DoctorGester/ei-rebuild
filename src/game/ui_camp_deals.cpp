@@ -210,14 +210,14 @@ void StockSpells(CCampPages* camp, CParty* list) {
     for (int i = 0; i < ItemCount(list); ++i) {
         CItem* item = ItemAt(list, i);
         item->Repair();
-        if (static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item))) {
+        if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
             char* prototype = static_cast<CSpell*>(item->spell_)->GetPrototype();
             const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
             static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(SpellTable()), nullptr, name))));
-        } else if (ItemKindIsSpellOriginal(item)) {
+        } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
             static_cast<ItemStock*>(stock)->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
-        } else if (ItemKindIsModifierOriginal(item)) {
+        } else if (UiItemKinds::IsModifier(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
             static_cast<ItemStock*>(stock)->AddModifier(itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
         }
@@ -234,12 +234,12 @@ void StockItems(CCampPages* camp, CParty* list) {
         item->Repair();
         int kind = -1;
         std::uint32_t index = 0;
-        if (ItemKindIsBuildableOriginal(item)) {
+        if (UiItemKinds::IsBuildable(item)) {
             index = PrototypeIndex(item);
             if (item->type_ == kWeaponClass) kind = kRecordWeapon;
             else if (item->type_ == kArmorClass) kind = kRecordArmor;
             else if (item->type_ == kQuickItemClass) kind = kRecordQuickItem;
-        } else if (ItemKindIsPartOriginal(item)) {
+        } else if (UiItemKinds::IsPart(item)) {
             auto* loot = static_cast<CItemLoot*>(item);
             index = loot->index_;
             if (loot->recordType_ <= kRecordQuickItem) kind = static_cast<int>(loot->recordType_);

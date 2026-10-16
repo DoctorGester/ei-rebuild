@@ -224,14 +224,15 @@ EI_REPLACE_METHOD(0x0060E9E0, CCampPages::ShowPage);
 namespace {
 
 // The camp's item predicates (005EE050.., thiscall on the camp, which they do not read; AL).
+const CItem* AsItem(const std::uint8_t* item) { return reinterpret_cast<const CItem*>(item); }
 bool IsSpellContainer(const std::uint8_t* item) {
-    return static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item)) != 0;
+    return static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(AsItem(item))) != 0;
 }
-bool IsSpell(const std::uint8_t* item) { return ItemKindIsSpellOriginal(item); }
-bool IsModifier(const std::uint8_t* item) { return ItemKindIsModifierOriginal(item); }
-bool IsPart(const std::uint8_t* item) { return ItemKindIsPartOriginal(item); }
-bool IsKindOne(const std::uint8_t* item) { return ItemKindIsKindOneOriginal(item); }
-bool IsBlueprint(const std::uint8_t* item) { return ItemKindIsBuildableOriginal(item); }
+bool IsSpell(const std::uint8_t* item) { return UiItemKinds::IsSpell(AsItem(item)); }
+bool IsModifier(const std::uint8_t* item) { return UiItemKinds::IsModifier(AsItem(item)); }
+bool IsPart(const std::uint8_t* item) { return UiItemKinds::IsPart(AsItem(item)); }
+bool IsKindOne(const std::uint8_t* item) { return UiItemKinds::IsKindOne(AsItem(item)); }
+bool IsBlueprint(const std::uint8_t* item) { return UiItemKinds::IsBuildable(AsItem(item)); }
 
 // The database records of the camp's loot items (the record index at +0x54): spells, spell
 // modifiers and materials (null past the end; the original then reads through null).

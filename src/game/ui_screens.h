@@ -26,9 +26,14 @@
 #include <cstddef>
 #include <cstdint>
 
+class CHeroEquipPanel;
+class CHeroQuickStrip;
+class CHeroStatsPanel;
+class CItem;
 class CItemInfoPanel;
 class CMappedResource;
 class CParty;
+class CTradePanel;
 
 // Offset of the input sub-object (the second vtable) inside every window.
 constexpr std::ptrdiff_t kUiInputOffset = 0x94;
@@ -109,15 +114,15 @@ void __fastcall UiItemsSetSize(UiItemArray* items, void*, int newSize, int growB
 // which they do not read; RET 4; ui_screens.cpp). Loot items (type 0x3007, CItemLoot) are sorted
 // by kind (+0x4C) and record type (+0x50).
 struct UiItemKinds {
-    bool IsPart(const char* item);       // 005EE0D0: kind 2, record type 0-2 (blueprint parts)
-    bool IsKindOne(const char* item);    // 005EE110: kind 1 (a material)
-    bool IsSpell(const char* item);      // 005EE050: kind 2, record type 3 (the spell table)
-    bool IsModifier(const char* item);   // 005EE080: kind 2, record type 4 (spell modifier table)
-    BOOL IsSpellContainer(const char* item);   // 005EE0B0: type 0x3008 (all of EAX)
+    static bool __stdcall IsPart(const CItem* item);       // 005EE0D0: kind 2, record type 0-2 (blueprint parts)
+    static bool __stdcall IsKindOne(const CItem* item);    // 005EE110: kind 1 (a material)
+    static bool __stdcall IsSpell(const CItem* item);      // 005EE050: kind 2, record type 3 (the spell table)
+    static bool __stdcall IsModifier(const CItem* item);   // 005EE080: kind 2, record type 4 (spell modifier table)
+    static BOOL __stdcall IsSpellContainer(const CItem* item);   // 005EE0B0: type 0x3008 (all of EAX)
     // 005EE130: an item the item constructor can take apart: a weapon (0x3004), type 0x3005, or
     // armour (0x3006) whose prototype's material class is not "none"; never when the prototype
     // (006A0110) exists with its +0x68 flag clear.
-    bool IsBuildable(const char* item);
+    static bool __stdcall IsBuildable(const CItem* item);
 };
 
 // The fields of an item prototype record (006A0110's result) the predicates read.
@@ -330,7 +335,7 @@ public:
     double EquipmentWeight();
     // 00618980. Virtual slot 42 (what an item strip calls with its action mode): with mode 0,
     // equips a weapon, armour or spell container; then refreshes.
-    void OnItemChosen(char* item, int mode);
+    void OnItemChosen(CItem* item, int mode);
     // 00616900. Virtual slot 51: the local player's first hero (+0x30 of the player data).
     char* GetHero();
     // 006188E0. Virtual slot 43: whether the hero can take `item`; spell containers need the
@@ -509,17 +514,17 @@ public:
     ItemObjectCache textures_;  // +0x180 and the texture cache (00633FF0)
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
-    void* heroScroll_;          // +0x198 scroll bar of the hero list
+    CUiScrollbar* heroScroll_;  // +0x198 scroll bar of the hero list
     int heroTop_;               // +0x19C first row shown
     std::uint8_t* previewModel_;// +0x1A0 the hero's figure shown by the preview (005EC300)
-    char* weapon_;              // +0x1A4
-    char* armor_;               // +0x1A8
-    char* spellContainer_;      // +0x1AC
-    void* statsPanel_;          // +0x1B0 (CHeroStatsPanel; 006232D0 sets its hero)
-    void* weaponPanel_;         // +0x1B4 shows the weapon and the armour
-    void* spellPanel_;          // +0x1B8
+    CItem* weapon_;             // +0x1A4
+    CItem* armor_;              // +0x1A8
+    CItem* spellContainer_;     // +0x1AC
+    CHeroStatsPanel* statsPanel_;   // +0x1B0 (006232D0 sets its hero)
+    CHeroEquipPanel* weaponPanel_;  // +0x1B4 shows the weapon and the armour
+    CHeroQuickStrip* spellPanel_;   // +0x1B8
     CUiItemStrip* figureStrips_[2]; // +0x1BC the figures of defaults_ (voices voiceLists_[0]), +0x1C0 of names_ (voiceLists_[1])
-    void* tradePanel_;          // +0x1C4 (CTradePanel; 006255A0)
+    CTradePanel* tradePanel_;   // +0x1C4 (006255A0)
     void** defaults_;           // +0x1C8 STLport vector<CString>; its first entry goes to slot 52 for a new hero
     void** defaultsEnd_;        // +0x1CC
     void** defaultsCapacity_;   // +0x1D0 (also its allocator proxy)
@@ -528,7 +533,7 @@ public:
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
     CUiEditField* renameEdit_;  // +0x1E8 the hero list's rename edit window (focused_ while renaming)
     CUiEditField* nameEdit_;    // +0x1EC the new hero's name edit window (0065C290 sets its text)
-    void* voiceScroll_;         // +0x1F0
+    CUiScrollbar* voiceScroll_; // +0x1F0
     const char* text_;          // +0x1F4 CString
     MpVoiceVector voiceLists_[2];   // +0x1F8, +0x204 (voices_ points at one of them)
     char** voices_;             // +0x210 STLport vector of {CString file, CString name} (8 bytes)

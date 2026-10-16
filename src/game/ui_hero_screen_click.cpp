@@ -77,8 +77,8 @@ int HeroCount() {
 }
 
 // The first entry of one of a hero record's item arrays (data, count), or null when it is empty.
-char* FirstOf(CEngineObject** const& data, const std::uint32_t& count) {
-    return static_cast<int>(count) > 0 ? reinterpret_cast<char*>(*data) : nullptr;
+CItem* FirstOf(CEngineObject** const& data, const std::uint32_t& count) {
+    return static_cast<int>(count) > 0 ? static_cast<CItem*>(*data) : nullptr;
 }
 
 // `flags` is the handler's first argument: the original hands its stack slot to the model cache
@@ -151,11 +151,11 @@ void CMpHeroScreen::CloseRenameEdit() {
 
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(window.interface_, game::CancelSoundText(), 0);
-    static_cast<CHeroStatsPanel*>(statsPanel_)->SetHero(0, const_cast<char*>(game::EmptyText()));
+    statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
-    static_cast<CTradePanel*>(tradePanel_)->Settle(0, 0);
+    tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
     EditSetText(nameEdit_, nullptr, static_cast<const char*>(HeroRecordOf(this)->texts[0]));
 }
@@ -291,7 +291,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             stats->stat20 = 25.0f;
             hero->height = 0.7f;
             EditSetText(nameEdit_, nullptr, game::EmptyText());
-            static_cast<CHeroStatsPanel*>(statsPanel_)->SetHero(0, const_cast<char*>(game::EmptyText()));
+            statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
             Refresh();
             return;
         }
@@ -322,14 +322,14 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         } else if (region == 4) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            static_cast<CTradePanel*>(tradePanel_)->Settle(0, 0);
+            tradePanel_->Settle(0, 0);
             PartyUnitRecord* hero = HeroRecordOf(this);
             weapon_ = FirstOf(hero->weapons, hero->weaponCount);
-            ShowWeapon(weaponPanel_, nullptr, weapon_);
+            weaponPanel_->ShowWeapon(weapon_);
             armor_ = FirstOf(hero->quickItems, hero->quickItemCount);
-            ShowArmour(weaponPanel_, nullptr, armor_);
+            weaponPanel_->ShowArmour(armor_);
             spellContainer_ = FirstOf(hero->spells, hero->spellCount);
-            ShowContainer(spellPanel_, nullptr, spellContainer_);
+            spellPanel_->ShowEntry(spellContainer_);
         }
         return;
     }
@@ -355,7 +355,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         VirtualChooseFigure(static_cast<const char*>(*defaults_));
-        static_cast<CHeroStatsPanel*>(statsPanel_)->SetHero(0, const_cast<char*>(game::EmptyText()));
+        statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
@@ -553,7 +553,7 @@ void CMpHeroScreen::RefreshHero() {
         unit->SetFromStats(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(Hero())->stats));
         static_cast<CUnitController*>(unit->controller)->RefreshWounds();
     }
-    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
+    statsPanel_->DrawStats();
 }
 namespace {
 void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
@@ -572,14 +572,14 @@ void CMpHeroScreen::CreateHero() {
         return;
     }
     window.interface_->PlaySound(game::Text(0x00793A88), 0);   // "buttons\messbox\ok.wav"
-    weapon_ = static_cast<int>(hero->weaponCount) > 0 ? reinterpret_cast<char*>(hero->weapons[0]) : nullptr;
-    ShowWeapon(weaponPanel_, nullptr, weapon_);
-    armor_ = static_cast<int>(hero->quickItemCount) > 0 ? reinterpret_cast<char*>(hero->quickItems[0]) : nullptr;
-    ShowArmour(weaponPanel_, nullptr, armor_);
-    spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? reinterpret_cast<char*>(hero->spells[0]) : nullptr;
-    ShowContainer(spellPanel_, nullptr, spellContainer_);
+    weapon_ = static_cast<int>(hero->weaponCount) > 0 ? static_cast<CItem*>(hero->weapons[0]) : nullptr;
+    weaponPanel_->ShowWeapon(weapon_);
+    armor_ = static_cast<int>(hero->quickItemCount) > 0 ? static_cast<CItem*>(hero->quickItems[0]) : nullptr;
+    weaponPanel_->ShowArmour(armor_);
+    spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? static_cast<CItem*>(hero->spells[0]) : nullptr;
+    spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
-    static_cast<CHeroStatsPanel*>(statsPanel_)->SetHero(0, const_cast<char*>(static_cast<const char*>(name)));
+    statsPanel_->SetHero(0, const_cast<char*>(static_cast<const char*>(name)));
     Refresh();
     SetMode(this, nullptr, kModeStats);
 }
@@ -652,7 +652,7 @@ void CMpHeroScreen::DeleteHero() {
 }
 
 void CMpHeroScreen::RefreshHeroScroll() {
-    auto* bar = static_cast<CUiScrollbar*>(heroScroll_);
+    CUiScrollbar* bar = heroScroll_;
     if (MpHeroCount() > kListRows) {
         int position;
         bar->TakePosition(&position);
@@ -721,13 +721,13 @@ void CMpHeroScreen::AddNewHero() {
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
-        if (static_cast<void*>(hero->weapons[i]) != weapon_)
+        if (hero->weapons[i] != weapon_)
             static_cast<PartyUnitRecord*>(hero)->RemoveWeapon(static_cast<CItem*>(hero->weapons[i]));
     for (int i = static_cast<int>(hero->quickItemCount) - 1; i >= 0; --i)
-        if (static_cast<void*>(hero->quickItems[i]) != armor_)
+        if (hero->quickItems[i] != armor_)
             static_cast<PartyUnitRecord*>(hero)->RemoveQuickItem(static_cast<CItem*>(hero->quickItems[i]));
     for (int i = static_cast<int>(hero->spellCount) - 1; i >= 0; --i)
-        if (static_cast<void*>(hero->spells[i]) != spellContainer_)
+        if (hero->spells[i] != spellContainer_)
             static_cast<PartyUnitRecord*>(hero)->RemoveSpell(static_cast<CItem*>(hero->spells[i]));
     hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
     if (static_cast<int>(hero->spellCount) > 0) {
