@@ -18,13 +18,14 @@ build.cmd verify     # each rewritten function runs next to the original; differ
 ## Run
 
 ```
-build\verify\ei_launch.exe
+launch-vanilla.cmd
 ```
 
-Starts `F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe` the way the Rebirth starter does
-(working directory = game root, so the Rebirth addon still loads) and injects `ei_hook.dll`.
-Use `--game <dir>` for another install. Nothing in the game folder is modified.
-The log is written next to the DLL: `build\<config>\ei_hook.log`.
+Starts the standalone image (`build\verify\ei_standalone.exe`: `run\vanilla`'s `game.exe` laid out without its
+code, our code from `ei_hook.dll`) on the GOG install's data in `F:\games\EvilIslands`, with our renderer
+(`ei_launch --standalone`, `EI_RENDER=new,present`). Nothing in the game folder is modified. The log is written next
+to the DLL: `build\<config>\ei_hook.log`. Since S21c no tool starts `game.exe` with our hooks
+(docs/notes/standalone.md section 5); `ei_launch` without `--standalone` (game.exe with the hooks) goes with S21e.
 
 ## Layout
 
@@ -39,13 +40,13 @@ The log is written next to the DLL: `build\<config>\ei_hook.log`.
 
 ### Vanilla (no Rebirth)
 
-`launch-vanilla.cmd` runs the verify build against the plain GOG install in `F:\games\EvilIslands`. Functions that Rebirth patches in memory can be hooked there. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it. `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
+`launch-vanilla.cmd` runs the image on the plain GOG install in `F:\games\EvilIslands`. On first use, `tools\setup_vanilla_run.cmd` builds `run\vanilla`: the GOG `game.exe` with Rebirth's dgVoodoo DLLs beside it (the original code's harness runs draw through them). `run\` is not committed. The game's shared registry paths are redirected to the GOG folder for that process only.
 
 ### Automated harness
 
-`harness.cmd <scenario>` runs a scenario on the vanilla install and exits with 0 when it passes. It
-prints the report (`build\verify\harness_report.txt`): per-function verify counts, everything the
-game console printed, and any failed checks. Scenarios live in `tests/scenarios/`; the steps are
+`harness.cmd <scenario>` runs a scenario on the image with the vanilla install's data (`--no-hooks`: on game.exe
+with the original code) and exits with 0 when it passes. It writes the report (`build\verify\harness_report.txt`):
+everything the game console printed, and any failed checks. Scenarios live in `tests/scenarios/`; the steps are
 listed at the top of `tests/verify/harness.cpp`. The main ones:
 
 - `newgame` starts a new single-player game (the hero on zone1); `load <slot>` loads a save.
@@ -103,7 +104,7 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   virtual time, the date and the random seeds are fixed, and frames present without waiting for
   vsync. A scenario that repeats takes the same course on every run, so
   `python tools\compare.py <scenarios> --runs 3` can diff the console output of the original code and
-  ours (those that do not repeat yet are listed in `docs/open-questions.md`). The harness's waits
+  the image (those that do not repeat yet are listed in `docs/open-questions.md`). The harness's waits
   (`wait`, `waitfor`, `frames`, ...) count virtual time, each with a real-time safety limit. A
   `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py` /
   `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
@@ -128,26 +129,25 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   field (`python tools\savefile.py show|diff|rules`, SV7d).
 - Function vectors (`tests/vectors/vectors.h`): with `EI_VECTORS=1` the verify build runs the original of
   each function that has a recorder (`tests/vectors/record_<family>.cpp`) and writes a sample of its calls
-  to the run's `vectors/` folder; `python tools\vectors.py merge <run folders>` keeps them in
+  to the run's `vectors/` folder (`set EI_VECTORS=1` then `python tools\work.py test <ID> <scenarios> --no-hooks
+  --vanilla-only`: the original code with the recorders as the only hooks); `python tools\vectors.py merge <run folders>` keeps them in
   `tests/vectors/data`, and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
   game (docs/notes/standalone-verification.md, SV4).
-- Coverage (`tools/coverage.py`): with `EI_COVER=hooks` the hook build logs the first call of every
-  hook and of its replacement; `coverage.py collect <run folders>` keeps which scenarios reach each one in
-  `tests/coverage/reach.txt`, `coverage.py list` writes `tests/coverage/coverage.csv` (golden, vector,
-  suite only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps (SV5).
+- Coverage (`tools/coverage.py`): `tests/coverage/reach.txt` holds which scenarios reached each rewrite in
+  the hook build's runs (collected until S21c); `coverage.py list` writes `tests/coverage/coverage.csv`
+  (golden, vector, suite only or unreached, with a risk rank) and `coverage.py top` lists the largest gaps (SV5).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the
 game sees those files under its `saves\` (e.g. `magic_traps.txt` and `tools/make_trap_mob.py`).
 
-Timing runs: `EI_PLAIN=1` installs no verify wrappers, `EI_PROFILE=1` samples the main thread into the run's
-`profile.txt` (`python tools\profile_report.py <run folder>`: time per function between harness steps), and
-`EI_BUILD_DIR` points run_all at another verify build.
-Hook installation (PF2) takes about 50 ms for the ~6000 hooks (it was ~200 ms: per-hook list scans, two VirtualProtect calls
-per hook, one VirtualAlloc per trampoline); measure it as the time from the first `hooked`/`verifying` line to the first
-`startup check` line in `ei_hook.log`. What remains is mostly the per-line log flush.
+Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py
+<run folder>`: time per function between harness steps), and `EI_BUILD_DIR` points run_all at another verify build.
+Hook installation (PF2) took about 50 ms for the ~6000 hooks in game.exe (it was ~200 ms: per-hook list scans, two
+VirtualProtect calls per hook, one VirtualAlloc per trampoline); in the image, measure it as the time from the first
+`hooked` line to the `hook(s) installed` line in `ei_hook.log`. What remains is mostly the per-line log flush.
 
-Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
+`--no-hooks` (harness.cmd, run_all, `ei_launch`) runs the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
 code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
 permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
@@ -177,17 +177,17 @@ end the process: a thread stuck in a driver call). `tests\scenarios\watchdog_*.t
 
 `python tools\run_all.py` runs every scenario on both installs' data, several games at once (`--jobs N`,
 default 16; the whole suite takes about 2 minutes). Since S21 these are runs of the standalone image (below;
-the hook builds retire, docs/notes/standalone.md section 5); `--hooked` runs game.exe with our hooks and verify
-wrappers as before, `--no-hooks` the original code (but on the installs a scenario's `# no original: vanilla rebirth`
-line names: checks only our renderer passes, Rebirth's flags on the vanilla data). Each run writes to its own folder,
+the hook builds retire, docs/notes/standalone.md section 5); `--no-hooks` runs game.exe with the original code
+(but on the installs a scenario's `# no original: vanilla rebirth` line names: checks only our renderer passes,
+Rebirth's flags on the vanilla data). Since S21c nothing runs our code inside game.exe (`--hooked`, `--native`,
+`--dgvoodoo`, `EI_PLAIN` and `EI_COVER=hooks` are gone). Each run writes to its own folder,
 `build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei_hook.log`,
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
-shared reading. Runs of our code draw with our renderer (`EI_RENDER=new,present`, no display mode
-change, so none needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
-`--widescreen --record`'s addon runs, compare.py's original side), scenarios whose `render` step leaves out
-`present`, and everything with `--dgvoodoo`. Passed runs of the original code are cached in
+shared reading. The image draws with our renderer (`EI_RENDER=new,present`, no display mode
+change, so none of its runs needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
+`--widescreen --record`'s addon runs, compare.py's original side). Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
 `standalone`: run\vanilla's game.exe laid out without its code, the vanilla data, our renderer; `ei_launch

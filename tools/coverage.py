@@ -1,23 +1,19 @@
 """The coverage list (SV5, docs/notes/standalone-verification.md): which rewritten functions the suite
 reaches, and whether a golden run (SV3) or function vectors (SV4) check them without the original exe.
 
-Reach comes from the verify build's hook coverage: with `EI_COVER=hooks` every installed hook address
-and the first byte of its plain replacement (our function) get a one-shot INT3 (src/hook/cover.cpp),
-and the run's ei_hook.log names each game address the run executes. Game code calling a rewrite is
-seen, our code calling it directly too, but not a call the compiler inlined, so "reached" is a lower
-bound for small functions.
+Reach (tests/coverage/reach.txt) came from the hook build's coverage: with `EI_COVER=hooks` every installed
+hook address and the first byte of its plain replacement (our function) got a one-shot INT3 (src/hook/cover.cpp),
+and the run's ei_hook.log named each game address the run executed (game code calling a rewrite, our code calling
+it directly; not a call the compiler inlined, so "reached" is a lower bound for small functions). Those runs were
+game.exe with our hooks, which no tool starts since S21c (docs/notes/standalone.md section 5): reach.txt keeps
+what the suite reached then (`collect` is gone), and scenarios added since are not in it.
 
-    set EI_COVER=hooks
-    python tools\\work.py test <ID> --vanilla-only          (the suite, vanilla; or a few scenarios)
-    python tools\\coverage.py collect build\\verify\\runs    (writes tests/coverage/reach.txt;
-                                                            --add keeps scenarios not in these runs)
     python tools\\coverage.py list                          (writes tests/coverage/coverage.csv from
                                                             reach.txt, the sources, goldens and vectors)
     python tools\\coverage.py who <address or name>          (the scenarios that reach a function)
     python tools\\coverage.py top [N] [--area A]             (the uncovered ones by risk)
 
-`list` needs no games: rerun it after adding a golden, vectors or a rewrite. `collect` again after
-adding scenarios (only those: `work.py test <ID> <names> --vanilla-only`, then `collect --add`).
+`list` needs no games: rerun it after adding a golden, vectors or a rewrite.
 
 Status of a function (coverage.csv):
   golden         a scenario with a vanilla golden reaches it
@@ -171,7 +167,7 @@ def golden_scenarios():
 
 def read_reach():
     if not os.path.exists(REACH):
-        sys.exit(f'{rel(REACH)} is missing: run the suite with EI_COVER=hooks and `coverage.py collect`')
+        sys.exit(f'{rel(REACH)} is missing (git checkout it: the hook build that collected it is gone, S21c)')
     scenarios, rows = [], {}
     for line in open(REACH, encoding='utf-8'):
         if line.startswith('# scenarios:'):
@@ -181,45 +177,6 @@ def read_reach():
             mask = int(bits, 16)
             rows[int(addr, 16)] = (name, {s for i, s in enumerate(scenarios) if mask >> i & 1})
     return scenarios, rows
-
-
-def collect(args):
-    installed, reached = {}, {}
-    hook_line = re.compile(r'\] (?:verifying|hooked) (\S+) at ([0-9A-F]{8}) ')
-    cover_line = re.compile(r'\] cover ([0-9A-F]{8})\b')
-    for folder in sorted(glob.glob(os.path.join(args.runs, f'*-{INSTALL}'))):
-        log = os.path.join(folder, 'ei_hook.log')
-        if not os.path.exists(log):
-            continue
-        text = open(log, encoding='cp1251', errors='replace').read()
-        if 'address(es) from hooks' not in text:
-            continue
-        scenario = os.path.basename(folder)[:-len(INSTALL) - 1]
-        for m in hook_line.finditer(text):
-            installed.setdefault(int(m.group(2), 16), m.group(1))
-        reached[scenario] = {int(a, 16) for a in cover_line.findall(text)}
-    if not reached:
-        sys.exit(f'no {INSTALL} run under {args.runs} was made with EI_COVER=hooks')
-    if args.add and os.path.exists(REACH):
-        old_scenarios, old = read_reach()
-        for s in old_scenarios:
-            if s not in reached:
-                reached[s] = {a for a, (_, who) in old.items() if s in who}
-        for a, (name, _) in old.items():
-            installed.setdefault(a, name)
-    scenarios = sorted(reached)
-    os.makedirs(OUT, exist_ok=True)
-    with open(REACH, 'w', encoding='utf-8', newline='\n') as f:
-        f.write('# Written by tools/coverage.py collect from runs made with EI_COVER=hooks (verify build, vanilla).\n'
-                '# ADDRESS NAME BITS: the installed hook, and a hex bitset over the scenarios below (bit i: scenario i\n'
-                '# reaches it). tools/coverage.py list turns it into coverage.csv.\n')
-        f.write('# scenarios: ' + ' '.join(scenarios) + '\n')
-        for a in sorted(installed):
-            mask = sum(1 << i for i, s in enumerate(scenarios) if a in reached[s])
-            f.write(f'{a:08X} {installed[a]} {mask:x}\n')
-    total = len(installed)
-    hit = sum(1 for a in installed if any(a in r for r in reached.values()))
-    print(f'{len(scenarios)} scenarios, {total} installed hooks, {hit} reached; wrote {rel(REACH)}')
 
 
 # ---- the list -------------------------------------------------------------------------------------
@@ -320,9 +277,6 @@ def top(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest='cmd', required=True)
-    c = sub.add_parser('collect')
-    c.add_argument('runs', help='folder of runs (build\\verify\\runs)')
-    c.add_argument('--add', action='store_true', help='keep the scenarios of reach.txt these runs do not have')
     sub.add_parser('list')
     w = sub.add_parser('who')
     w.add_argument('function', help='address (hex) or part of a name')
@@ -330,7 +284,7 @@ def main():
     t.add_argument('count', nargs='?', type=int, default=40)
     t.add_argument('--area', help='only files whose path contains this')
     args = ap.parse_args()
-    {'collect': collect, 'list': write_list, 'who': who, 'top': top}[args.cmd](args)
+    {'list': write_list, 'who': who, 'top': top}[args.cmd](args)
 
 
 if __name__ == '__main__':

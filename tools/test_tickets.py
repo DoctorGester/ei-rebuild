@@ -157,7 +157,7 @@ class TicketsTest(unittest.TestCase):
 
     def test_start_and_done(self):
         self.run_tickets()
-        args = argparse.Namespace(id='A3', worktree=self.tmp, branch='b', agent='w1', force=True)
+        args = argparse.Namespace(id='A3', worktree=self.tmp, branch='b', agent='w1', force=True, model=None)
         with contextlib.redirect_stdout(io.StringIO()):
             work.cmd_start(self.db, args)
             self.assertEqual(self.rows()['A3'][0], 'running')

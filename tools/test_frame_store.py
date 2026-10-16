@@ -70,7 +70,7 @@ class FrameStoreTest(unittest.TestCase):
     def test_run_packs_the_run_folder(self):
         data = bmp(500, 300)
 
-        def fake_run_once(name, install, hooks, folder, root, build, *rest):
+        def fake_run_once(name, install, folder, root, build, *rest):
             os.makedirs(os.path.join(build, 'runs', folder, 'frames'))
             with open(os.path.join(build, 'runs', folder, 'frames', 'f.bmp'), 'wb') as f:
                 f.write(data)
@@ -78,7 +78,7 @@ class FrameStoreTest(unittest.TestCase):
         real = run_all.run_once
         run_all.run_once = fake_run_once
         try:
-            self.assertEqual(run_all.run('t', 'vanilla', True, build=self.tmp, root=self.tmp)[0], 'PASS')
+            self.assertEqual(run_all.run('t', 'vanilla', build=self.tmp, root=self.tmp, fresh=True)[0], 'PASS')
         finally:
             run_all.run_once = real
         frames = os.path.join(self.tmp, 'runs', 't-vanilla', 'frames')

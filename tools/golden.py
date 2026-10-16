@@ -50,7 +50,7 @@ usage:
       Run the games through the scheduler, e.g.:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
                                                                                 whose runs may hold an older digest)
-        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with --hooked)
+        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and the image without --no-hooks)
   python tools/golden.py saves [SCENARIO...] --runs DIR... [--install vanilla|rebirth]
       Adds the decoded saves to existing goldens without recording them again (SV7d): every DIR's run folder
       must match the golden (console, digest, dumps) and the runs' saves must decode to the same fields.
@@ -676,7 +676,7 @@ def record(args):
             problem = [f'{folders[0]} ran with our hooks; a golden is the original code (--no-hooks)']
         elif args.install == 'vanilla' and flagged(name):
             problem = ['its rebirthflags line turns on in our code what the vanilla original does not have, so '
-                       'hooked vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
+                       'our vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
         for other in folders[1:]:
             if problem:
                 break

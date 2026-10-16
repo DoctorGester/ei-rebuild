@@ -30,9 +30,9 @@ Rules:
   scenario names for a subset, `--vanilla-only`, ...; same summary and exit code), at most `--jobs 4`.
   It queues behind other workers' batches on the machine's 16 game slots and runs to completion, also
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
-  Since S21 the default runs are the standalone image's (installs standalone / standalone-rebirth, checked
-  with `--golden`); verify wrappers run only with `--hooked` (game.exe with our hooks, as before), and
-  `--no-hooks` runs the original. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
+  The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
+  `--no-hooks` runs the original (golden recording; with `EI_VECTORS=1`, vector recording). Since S21c no tool
+  runs our code inside game.exe, so the verify wrappers no longer run in any suite. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
 - Plain C++ float maths (rule 7); verify floats with ei::verify::CheckNear.
 - Every rewrite gets a verify wrapper; say whether it compares against the original or checks
