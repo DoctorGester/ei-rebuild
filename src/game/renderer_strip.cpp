@@ -20,6 +20,7 @@
 #include "device_buffers.h"
 #include "originals_render.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -68,92 +69,39 @@ IDirect3DDevice7* Device(CSceneRenderer* renderer) { return device::D3D(renderer
 constexpr int kTriangleList = D3DPT_TRIANGLELIST;
 constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
-// --- x87 sequences ------------------------------------------------------------------------------
+// --- Cross sections ------------------------------------------------------------------------------
+
+// The screen width of a ribbon per unit of width * rhw (0073C518).
+constexpr float kWidthScale = 15.0f;
+
+// The texture coordinates of a new cross-section vertex: the current u and `v` (copied as bits).
+void SetUv(TLVertex* vertex, const float& v) {
+    std::memcpy(&vertex->u, &CurrentU(), sizeof(float));
+    std::memcpy(&vertex->v, &v, sizeof(float));
+}
 
 // The first cross section of a ribbon, inlined by the original at the line's first point: the
-// direction (dx, dy) to the next point rounded to floats; vertex 1 as in EmitSection, vertex 2 moved
-// by (-(float)(k*dy), k*dx) (its x offset rounded first).
-__declspec(naked) void __stdcall EmitFirstSection(const TLVertex* /*first*/, const TLVertex* /*next*/, TLVertex** /*array*/,
-                                                  int* /*count*/, std::uint32_t /*widthBits*/) {
-    __asm {
-        push ebp
-        mov ebp, esp
-        sub esp, 10h
-        push ebx
-        push esi
-        push edi
-        mov esi, dword ptr [ebp + 8]
-        mov ecx, dword ptr [ebp + 0Ch]
-        fld dword ptr [ecx]
-        fsub dword ptr [esi]
-        fstp dword ptr [ebp - 4]
-        fld dword ptr [ecx + 4]
-        fsub dword ptr [esi + 4]
-        fstp dword ptr [ebp - 8]
-        fld dword ptr [ebp + 18h]
-        fmul dword ptr [esi + 0Ch]
-        fmul dword ptr ds:[0073C518h]
-        fstp dword ptr [ebp - 0Ch]
-        sub esp, 10h
-        fld dword ptr [ebp - 8]
-        fstp qword ptr [esp + 8]
-        fld dword ptr [ebp - 4]
-        fstp qword ptr [esp]
-        mov eax, 006FD026h
-        call eax
-        add esp, 10h
-        fdivr dword ptr [ebp - 0Ch]
-        mov edx, dword ptr [ebp + 14h]
-        mov eax, dword ptr [edx]
-        lea ecx, [eax + 1]
-        mov dword ptr [edx], ecx
-        shl eax, 5
-        mov edx, dword ptr [ebp + 10h]
-        add eax, dword ptr [edx]
-        mov ebx, eax
-        mov edi, eax
-        mov ecx, 8
-        rep movsd
-        fld dword ptr [ebp - 8]
-        fmul st, st(1)
-        fst dword ptr [ebp - 0Ch]
-        fadd dword ptr [ebx]
-        fstp dword ptr [ebx]
-        fmul dword ptr [ebp - 4]
-        fld dword ptr [ebx + 4]
-        fsub st, st(1)
-        fstp dword ptr [ebx + 4]
-        mov eax, dword ptr ds:[007AF05Ch]
-        mov dword ptr [ebx + 18h], eax
-        mov ecx, dword ptr ds:[007AF058h]
-        mov dword ptr [ebx + 1Ch], ecx
-        mov edx, dword ptr [ebp + 14h]
-        mov eax, dword ptr [edx]
-        lea ecx, [eax + 1]
-        mov dword ptr [edx], ecx
-        shl eax, 5
-        mov edx, dword ptr [ebp + 10h]
-        add eax, dword ptr [edx]
-        mov esi, dword ptr [ebp + 8]
-        mov edi, eax
-        mov ecx, 8
-        rep movsd
-        fld dword ptr [eax]
-        fsub dword ptr [ebp - 0Ch]
-        fstp dword ptr [eax]
-        fadd dword ptr [eax + 4]
-        fstp dword ptr [eax + 4]
-        mov edx, dword ptr ds:[007AF05Ch]
-        mov dword ptr [eax + 18h], edx
-        mov ecx, dword ptr ds:[007AF054h]
-        mov dword ptr [eax + 1Ch], ecx
-        pop edi
-        pop esi
-        pop ebx
-        mov esp, ebp
-        pop ebp
-        ret 14h
-    }
+// direction (dx, dy) to the next point rounded to floats, k = (width * rhw * 15, rounded) /
+// hypot(dx, dy) unrounded; vertex 1 moved by (k*dy, -k*dx) as in EmitSection, vertex 2 by
+// (-(float)(k*dy), k*dx) (its x offset rounded first).
+void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** array, int* count, std::uint32_t widthBits) {
+    const float dx = static_cast<float>(static_cast<double>(next->x) - first->x);
+    const float dy = static_cast<float>(static_cast<double>(next->y) - first->y);
+    const float scale = static_cast<float>(static_cast<double>(std::bit_cast<float>(widthBits)) * first->rhw * kWidthScale);
+    const double k = scale / Hypot(dx, dy);
+    TLVertex* top = *array + (*count)++;
+    *top = *first;
+    const double acrossX = dy * k;
+    const float offsetX = static_cast<float>(acrossX);
+    top->x = static_cast<float>(acrossX + top->x);
+    const double acrossY = k * dx;
+    top->y = static_cast<float>(top->y - acrossY);
+    SetUv(top, TopV());
+    TLVertex* bottom = *array + (*count)++;
+    *bottom = *first;
+    bottom->x = static_cast<float>(static_cast<double>(bottom->x) - offsetX);
+    bottom->y = static_cast<float>(acrossY + bottom->y);
+    SetUv(bottom, BottomV());
 }
 
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
@@ -176,88 +124,23 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
-// 00502AC0, transcribed: the cross section at `src` across `direction`: k = (width * rhw * 15) /
+// 00502AC0. The cross section at `src` across `direction`: k = (width * rhw * 15, rounded) /
 // hypot(dx, dy) unrounded; vertex 1 = src moved by (k*dy, -k*dx) with v at the top, vertex 2 moved
 // by (-k*dy, k*dx) with v at the bottom, both with the current u. Appends both to `*array` at
 // `*count`. __fastcall: src in ECX, direction in EDX.
-__declspec(naked) void __fastcall EmitSection(const TLVertex* /*src*/, const float* /*direction*/, TLVertex** /*array*/,
-                                              int* /*count*/, float /*width*/) {
-    __asm {
-        push ecx
-        mov eax, dword ptr [esp + 0Ch]
-        push ebx
-        fld dword ptr [esp + 14h]
-        mov ebx, dword ptr [eax]
-        push ebp
-        push esi
-        mov esi, ecx
-        lea ecx, [ebx + 1]
-        mov ebp, edx
-        mov dword ptr [eax], ecx
-        mov edx, dword ptr [esp + 14h]
-        fmul dword ptr [esi + 0Ch]
-        push edi
-        mov edi, dword ptr [edx]
-        sub esp, 8
-        mov dword ptr [esp + 18h], esi
-        fmul dword ptr ds:[0073C518h]
-        sub esp, 8
-        shl ebx, 5
-        add ebx, edi
-        fstp dword ptr [esp + 30h]
-        fld dword ptr [ebp + 4]
-        fstp qword ptr [esp + 8]
-        fld dword ptr [ebp]
-        fstp qword ptr [esp]
-        mov eax, 006FD026h
-        call eax
-        fdivr dword ptr [esp + 30h]
-        mov ecx, 8
-        mov edi, ebx
-        rep movsd
-        mov esi, dword ptr [esp + 20h]
-        add esp, 10h
-        fld st(0)
-        fmul dword ptr [ebp + 4]
-        fadd dword ptr [ebx]
-        fstp dword ptr [ebx]
-        fld st(0)
-        fmul dword ptr [ebp]
-        fsubr dword ptr [ebx + 4]
-        fstp dword ptr [ebx + 4]
-        mov eax, dword ptr ds:[007AF05Ch]
-        mov dword ptr [ebx + 18h], eax
-        mov ecx, dword ptr ds:[007AF058h]
-        mov dword ptr [ebx + 1Ch], ecx
-        mov ecx, dword ptr [esp + 1Ch]
-        fld st(0)
-        mov eax, dword ptr [ecx]
-        lea edx, [eax + 1]
-        mov dword ptr [ecx], edx
-        mov ecx, dword ptr [esp + 18h]
-        shl eax, 5
-        mov edx, dword ptr [ecx]
-        mov ecx, 8
-        add eax, edx
-        mov edi, eax
-        rep movsd
-        fmul dword ptr [ebp + 4]
-        fsubr dword ptr [eax]
-        fstp dword ptr [eax]
-        fmul dword ptr [ebp]
-        fadd dword ptr [eax + 4]
-        pop edi
-        pop esi
-        pop ebp
-        pop ebx
-        fstp dword ptr [eax + 4]
-        mov edx, dword ptr ds:[007AF05Ch]
-        mov dword ptr [eax + 18h], edx
-        mov ecx, dword ptr ds:[007AF054h]
-        mov dword ptr [eax + 1Ch], ecx
-        pop ecx
-        ret 0Ch
-    }
+void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
+    TLVertex* top = *array + (*count)++;
+    const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
+    const double k = scale / Hypot(direction[0], direction[1]);
+    *top = *src;
+    top->x = static_cast<float>(k * direction[1] + top->x);
+    top->y = static_cast<float>(top->y - k * direction[0]);
+    SetUv(top, TopV());
+    TLVertex* bottom = *array + (*count)++;
+    *bottom = *src;
+    bottom->x = static_cast<float>(bottom->x - k * direction[1]);
+    bottom->y = static_cast<float>(k * direction[0] + bottom->y);
+    SetUv(bottom, BottomV());
 }
 
 // --- 00502B90 / 00502AC0 / 00502A20 ---------------------------------------------------------------

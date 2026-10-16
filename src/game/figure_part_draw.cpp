@@ -3,12 +3,13 @@
 // (type 13..16) are advanced to the current time; the mesh's colours are filled (flat meshes, flag
 // 0x100) or lit once (flag 0x10 marks them lit): the lights are moved into the mesh's space through
 // the inverse of the model matrix, the transform object (or the owner's figure) computes the
-// colours, the "crown" mesh is pulled halfway to its average colour when 0079BD28 is set; then the
+// colours, the "crown" mesh is pulled 0.6 of the way to its average colour when 0079BD28 is set; then the
 // mesh is drawn through the device (004E9010 / 004E9A50, with the per-vertex offsets added into a
 // copy when there are any) or, when the mesh's owner has a figure (CObject3D::figure), through
 // that figure's own slots; the screen rectangle goes to the drawer and to `rect`. See
 // docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "figure_mesh.h"          // CFigureMesh, FigureMeshDrawer, FigureLights
 #include "material.h"             // CMaterial
 #include "link_figure.h"          // CLinkMesh, ITransformPipeline
@@ -65,140 +66,36 @@ void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, co
 // keeps its vtable as a plain field).
 const char* MeshName(CFigureMesh* mesh) { return reinterpret_cast<CEngineObject*>(mesh)->GetName(); }
 
-// --- x87 sequences (transcribed) -----------------------------------------------------------------
+// --- x87 sequences --------------------------------------------------------------------------------
 
 // The inverse of the model matrix's upper 3x4 part (`m` row-major 4x4, the translation in column
-// 3): out[0..11] three rows of four. The determinant is (t24*m8 + a*m4) + t30*m0 with the
-// cofactors unrounded where the original keeps them on the FPU stack. Returns 0 (out untouched)
-// when it compares equal to 0 or is NaN. __fastcall: m in ECX, out in EDX.
-__declspec(naked) int __fastcall InvertModelMatrix(const float* /*m*/, float* /*out*/) {
-    __asm {
-        push ebp
-        mov ebp, esp
-        sub esp, 8
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [ecx + 24h]
-        fld dword ptr [ecx + 28h]
-        fmul dword ptr [ecx + 4]
-        fsubp st(1), st
-        fld dword ptr [ecx + 18h]
-        fmul dword ptr [ecx + 4]
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [ecx + 14h]
-        fsubp st(1), st
-        fstp dword ptr [ebp - 4]
-        fld dword ptr [ecx + 28h]
-        fmul dword ptr [ecx + 14h]
-        fld dword ptr [ecx + 24h]
-        fmul dword ptr [ecx + 18h]
-        fsubp st(1), st
-        fstp dword ptr [ebp - 8]
-        fld dword ptr [ebp - 4]
-        fmul dword ptr [ecx + 20h]
-        fld st(1)
-        fmul dword ptr [ecx + 10h]
-        faddp st(1), st
-        fld dword ptr [ebp - 8]
-        fmul dword ptr [ecx]
-        faddp st(1), st
-        fcom dword ptr ds:[0073B858h]
-        fnstsw ax
-        test ah, 40h
-        jne singular
-        fdivr dword ptr ds:[0073B84Ch]
-        fld dword ptr [ebp - 8]
-        fmul st, st(1)
-        fstp dword ptr [edx]
-        fxch st(1)
-        fmul st, st(1)
-        fstp dword ptr [edx + 4]
-        fld dword ptr [ebp - 4]
-        fmul st, st(1)
-        fst dword ptr [edx + 8]
-        fmul dword ptr [ecx + 2Ch]
-        fld dword ptr [edx]
-        fmul dword ptr [ecx + 0Ch]
-        faddp st(1), st
-        fld dword ptr [edx + 4]
-        fmul dword ptr [ecx + 1Ch]
-        faddp st(1), st
-        fchs
-        fstp dword ptr [edx + 0Ch]
-        fld dword ptr [ecx + 20h]
-        fmul dword ptr [ecx + 18h]
-        fld dword ptr [ecx + 28h]
-        fmul dword ptr [ecx + 10h]
-        fsubp st(1), st
-        fmul st, st(1)
-        fstp dword ptr [edx + 10h]
-        fld dword ptr [ecx + 28h]
-        fmul dword ptr [ecx]
-        fld dword ptr [ecx + 20h]
-        fmul dword ptr [ecx + 8]
-        fsubp st(1), st
-        fmul st, st(1)
-        fstp dword ptr [edx + 14h]
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [ecx + 10h]
-        fld dword ptr [ecx]
-        fmul dword ptr [ecx + 18h]
-        fsubp st(1), st
-        fmul st, st(1)
-        fstp dword ptr [edx + 18h]
-        fld dword ptr [edx + 14h]
-        fmul dword ptr [ecx + 1Ch]
-        fld dword ptr [edx + 18h]
-        fmul dword ptr [ecx + 2Ch]
-        faddp st(1), st
-        fld dword ptr [edx + 10h]
-        fmul dword ptr [ecx + 0Ch]
-        faddp st(1), st
-        fchs
-        fstp dword ptr [edx + 1Ch]
-        fld dword ptr [ecx + 24h]
-        fmul dword ptr [ecx + 10h]
-        fld dword ptr [ecx + 20h]
-        fmul dword ptr [ecx + 14h]
-        fsubp st(1), st
-        fmul st, st(1)
-        fstp dword ptr [edx + 20h]
-        fld dword ptr [ecx + 20h]
-        fmul dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fmul dword ptr [ecx + 24h]
-        fsubp st(1), st
-        fmul st, st(1)
-        fstp dword ptr [edx + 24h]
-        fld dword ptr [ecx]
-        fmul dword ptr [ecx + 14h]
-        fld dword ptr [ecx + 10h]
-        fmul dword ptr [ecx + 4]
-        fsubp st(1), st
-        fmul st, st(1)
-        fstp dword ptr [edx + 28h]
-        fstp st(0)
-        fld dword ptr [edx + 24h]
-        fmul dword ptr [ecx + 1Ch]
-        fld dword ptr [edx + 20h]
-        fmul dword ptr [ecx + 0Ch]
-        faddp st(1), st
-        fld dword ptr [edx + 28h]
-        fmul dword ptr [ecx + 2Ch]
-        faddp st(1), st
-        fchs
-        fstp dword ptr [edx + 2Ch]
-        mov eax, 1
-        mov esp, ebp
-        pop ebp
-        ret
-    singular:
-        fstp st(0)
-        fstp st(0)
-        xor eax, eax
-        mov esp, ebp
-        pop ebp
-        ret
-    }
+// 3): out[0..11] three rows of four. Column 0's cofactors make the determinant and the inverse's
+// column 0; the doubles are what the original keeps on the FPU stack (the cofactor of m4, 1 / det,
+// out[2]); the others and the outputs are rounded to floats, and the translations reload the
+// rounded outputs. Returns 0 (out untouched) when the determinant compares equal to 0 or is NaN
+// (FCOM 0.0, TEST AH,40h).
+int InvertModelMatrix(const float* m, float* out) {
+    const double cofactor4 = static_cast<double>(m[2]) * m[9] - static_cast<double>(m[10]) * m[1];
+    const float cofactor8 = static_cast<float>(static_cast<double>(m[6]) * m[1] - static_cast<double>(m[2]) * m[5]);
+    const float cofactor0 = static_cast<float>(static_cast<double>(m[10]) * m[5] - static_cast<double>(m[9]) * m[6]);
+    const double det = DotUnrounded<Sum3::ZYX, double>(cofactor0, cofactor4, cofactor8, m[0], m[4], m[8]);
+    if (!(det < 0.0) && !(det > 0.0)) return 0;
+    const double inverse = 1.0 / det;
+    out[0] = static_cast<float>(cofactor0 * inverse);
+    out[1] = static_cast<float>(cofactor4 * inverse);
+    const double out2 = cofactor8 * inverse;
+    out[2] = static_cast<float>(out2);
+    out[3] = static_cast<float>(-DotUnrounded<Sum3::ZXY, double>(out[0], out[1], out2, m[3], m[7], m[11]));
+    out[4] = static_cast<float>((static_cast<double>(m[8]) * m[6] - static_cast<double>(m[10]) * m[4]) * inverse);
+    out[5] = static_cast<float>((static_cast<double>(m[10]) * m[0] - static_cast<double>(m[8]) * m[2]) * inverse);
+    out[6] = static_cast<float>((static_cast<double>(m[2]) * m[4] - static_cast<double>(m[0]) * m[6]) * inverse);
+    // (y + z) + x and (y + x) + z in the original: the same sums.
+    out[7] = static_cast<float>(-DotUnrounded<Sum3::ZYX, double>(out[4], out[5], out[6], m[3], m[7], m[11]));
+    out[8] = static_cast<float>((static_cast<double>(m[9]) * m[4] - static_cast<double>(m[8]) * m[5]) * inverse);
+    out[9] = static_cast<float>((static_cast<double>(m[8]) * m[1] - static_cast<double>(m[0]) * m[9]) * inverse);
+    out[10] = static_cast<float>((static_cast<double>(m[0]) * m[5] - static_cast<double>(m[4]) * m[1]) * inverse);
+    out[11] = static_cast<float>(-DotUnrounded<Sum3::XYZ, double>(out[8], out[9], out[10], m[3], m[7], m[11]));
+    return 1;
 }
 
 // A light's position into the mesh's space: each row ((r2*z + r1*y) + r0*x) + r3, rounded once
@@ -221,144 +118,38 @@ void TransformSun(const float* rows, const float* direction, float* out) {
     out[0] = static_cast<float>(DotUnrounded<Sum3::ZXY, double>(x, y, z, rows[0], rows[1], rows[2]));
 }
 
-// The "crown" mesh: every colour's channels pulled halfway (0073CDE0) to the average colour; the
-// sums accumulate (channel * (1 / count)) unrounded, the red one is kept on the FPU stack into the
-// first colour and reloaded rounded for the others; the channels are rounded by FISTP, alpha kept.
-// __fastcall: colours in ECX, count in EDX.
-__declspec(naked) void __fastcall CrownBlend(std::uint32_t* /*colours*/, int /*count*/) {
-    __asm {
-        push ebp
-        mov ebp, esp
-        sub esp, 48h
-        push ebx
-        push esi
-        push edi
-        // [ebp-4] red sum, [ebp-8] green sum, [ebp-0Ch] blue sum, [ebp-10h] 1 / count,
-        // [ebp-18h] / [ebp-20h] / [ebp-28h] qword channels, [ebp-2Ch] new red, [ebp-30h] green
-        // (float, then int), [ebp-34h] blue, [ebp-38h] / [ebp-3Ch] / [ebp-40h] integer channels,
-        // [ebp-44h] the count.
-        mov ebx, ecx
-        mov esi, edx
-        mov dword ptr [ebp - 44h], edx
-        fld dword ptr ds:[0073B858h]
-        fst dword ptr [ebp - 4]
-        fld dword ptr ds:[0073B858h]
-        fst dword ptr [ebp - 8]
-        fld dword ptr ds:[0073B858h]
-        fst dword ptr [ebp - 0Ch]
-        mov dword ptr [ebp - 10h], esi
-        fild dword ptr [ebp - 10h]
-        test esi, esi
-        fdivr dword ptr ds:[0073B84Ch]
-        fstp dword ptr [ebp - 10h]
-        jle empty
-        xor ecx, ecx
-    sum:
-        mov eax, dword ptr [ebx + ecx * 4]
-        mov edi, eax
-        shr edi, 10h
-        and edi, 0FFh
-        mov dword ptr [ebp - 18h], edi
-        mov dword ptr [ebp - 14h], 0
-        fild qword ptr [ebp - 18h]
-        mov edi, eax
-        shr edi, 8
-        and edi, 0FFh
-        and eax, 0FFh
-        fmul dword ptr [ebp - 10h]
-        mov dword ptr [ebp - 20h], edi
-        mov dword ptr [ebp - 1Ch], 0
-        mov dword ptr [ebp - 28h], eax
-        faddp st(3), st
-        fild qword ptr [ebp - 20h]
-        mov dword ptr [ebp - 24h], 0
-        inc ecx
-        fmul dword ptr [ebp - 10h]
-        cmp ecx, esi
-        faddp st(2), st
-        fild qword ptr [ebp - 28h]
-        fmul dword ptr [ebp - 10h]
-        faddp st(1), st
-        jl sum
-        fst dword ptr [ebp - 0Ch]
-        fxch st(2)
-        fst dword ptr [ebp - 4]
-        fxch st(2)
-        fstp st(0)
-        fstp dword ptr [ebp - 8]
-        xor ecx, ecx
-        jmp blend
-    next:
-        fld dword ptr [ebp - 4]
-    blend:
-        mov eax, dword ptr [ebx + ecx * 4]
-        mov edx, eax
-        mov edi, eax
-        shr edx, 10h
-        and edx, 0FFh
-        and eax, 0FFh
-        mov dword ptr [ebp - 18h], edx
-        xor edx, edx
-        shr edi, 8
-        mov dword ptr [ebp - 14h], edx
-        and edi, 0FFh
-        fild qword ptr [ebp - 18h]
-        mov dword ptr [ebp - 20h], edi
-        mov dword ptr [ebp - 1Ch], edx
-        fild qword ptr [ebp - 20h]
-        mov dword ptr [ebp - 28h], eax
-        mov dword ptr [ebp - 24h], edx
-        fstp dword ptr [ebp - 30h]
-        fild qword ptr [ebp - 28h]
-        fstp dword ptr [ebp - 34h]
-        fxch st(1)
-        fsub st, st(1)
-        fmul dword ptr ds:[0073CDE0h]
-        fadd st, st(1)
-        fstp dword ptr [ebp - 2Ch]
-        fstp st(0)
-        fld dword ptr [ebp - 8]
-        fsub dword ptr [ebp - 30h]
-        fmul dword ptr ds:[0073CDE0h]
-        fadd dword ptr [ebp - 30h]
-        fstp dword ptr [ebp - 30h]
-        fld dword ptr [ebp - 0Ch]
-        fsub dword ptr [ebp - 34h]
-        fmul dword ptr ds:[0073CDE0h]
-        fadd dword ptr [ebp - 34h]
-        fstp dword ptr [ebp - 34h]
-        fld dword ptr [ebp - 2Ch]
-        fistp dword ptr [ebp - 38h]
-        fld dword ptr [ebp - 30h]
-        fistp dword ptr [ebp - 3Ch]
-        fld dword ptr [ebp - 34h]
-        fistp dword ptr [ebp - 40h]
-        mov edi, dword ptr [ebp - 3Ch]
-        mov esi, dword ptr [ebx + ecx * 4]
-        mov edx, dword ptr [ebp - 38h]
-        and esi, 0FF000000h
-        shl edx, 8
-        or edx, edi
-        shl edx, 8
-        or edx, esi
-        mov esi, dword ptr [ebp - 40h]
-        or edx, esi
-        mov dword ptr [ebx + ecx * 4], edx
-        inc ecx
-        cmp ecx, dword ptr [ebp - 44h]
-        jl next
-        jmp done
-    empty:
-        fstp st(0)
-        fstp st(0)
-        fstp st(0)
-    done:
-        pop edi
-        pop esi
-        pop ebx
-        mov esp, ebp
-        pop ebp
-        ret
+// The "crown" mesh: every colour's channels pulled 0.6 of the way (0073CDE0) to the average colour.
+// The sums accumulate channel * (1 / count) unrounded (1 / count rounded to a float); the averages
+// are rounded, except that the first colour takes the red one unrounded (the original keeps it on
+// the FPU stack into the first iteration); the new channels are rounded to floats, then to integers
+// by FISTP; alpha is kept.
+void CrownBlend(std::uint32_t* colours, int count) {
+    constexpr float kPull = 0.6f;   // 0073CDE0
+    const float share = static_cast<float>(1.0 / static_cast<double>(count));
+    if (count <= 0) return;
+    const auto channel = [](std::uint32_t colour, int shift) { return static_cast<int>((colour >> shift) & 0xFF); };
+    double red = 0.0, green = 0.0, blue = 0.0;
+    for (int i = 0; i < count; ++i) {
+        const std::uint32_t colour = colours[i];
+        red += static_cast<double>(channel(colour, 16)) * share;
+        green += static_cast<double>(channel(colour, 8)) * share;
+        blue += static_cast<double>(channel(colour, 0)) * share;
+    }
+    const float redAverage = static_cast<float>(red);
+    const float greenAverage = static_cast<float>(green);
+    const float blueAverage = static_cast<float>(blue);
+    double redTarget = red;
+    for (int i = 0; i < count; ++i) {
+        const std::uint32_t colour = colours[i];
+        const int r = channel(colour, 16), g = channel(colour, 8), b = channel(colour, 0);
+        const float newRed = static_cast<float>((redTarget - r) * kPull + r);
+        const float newGreen = static_cast<float>((static_cast<double>(greenAverage) - g) * kPull + g);
+        const float newBlue = static_cast<float>((static_cast<double>(blueAverage) - b) * kPull + b);
+        const auto ri = static_cast<std::uint32_t>(x87::fistp(newRed));
+        const auto gi = static_cast<std::uint32_t>(x87::fistp(newGreen));
+        const auto bi = static_cast<std::uint32_t>(x87::fistp(newBlue));
+        colours[i] = ((((ri << 8) | gi) << 8) | (colour & 0xFF000000u)) | bi;
+        redTarget = redAverage;
     }
 }
 
