@@ -984,7 +984,7 @@ id = "SV7b6"
 title = "Pointer-keyed hashes: check iteration reaches output"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
+note = "Done: records_ (destructor only) and filesByData_ (FreeAllFiles frees) reach no output. Frame captures under jitter found UnitOrderLess 00574300 sorting the draw lists by texture/figure address; now by name with ById, harness jumps 005740D0/00574390 to ours. No-hooks frames of all capture scenarios equal under seeds 1/2. Follow-up SV7b6a (our renderer)."
 
 [[ticket]]
 id = "SV3l"
@@ -1160,6 +1160,15 @@ id = "S20d"
 title = "zone_gz3g and zone_gz15h_tornado: saves left out of the goldens (brain memory call0 point.z differs between plain runs)"
 group = "verification"
 note = "From S20 on top of SV7b2a: two plain --no-hooks passes of zone_gz3g (vanilla) and zone_gz15h_tornado (vanilla, Rebirth) decode to different savea/mission.sav in 2 to 8 objects' controller.brain.memory.call0.point.z (values near 1e-28, e.g. obj3328 / obj3329 in gz3g, obj338784..338792 in the tornado zone): an uninitialised float that follows the heap, another leftover family like SV7b2/SV7b3. Their goldens keep console, digest and dumps; golden.json says 'saves: not kept'. Find the writer of call0.point (a brain memory slot built by a script command or SSCCmd::Execute), zero it in ours and in the original (harness_leftovers / harness_save_leftovers), then 'golden.py saves' for the three."
+
+[[ticket]]
+id = "SV7b6a"
+title = "Our renderer's frames follow heap layout"
+group = "verification"
+size = 1
+depends = ["SV7b6"]
+files = ["src/render/render_textures.cpp", "src/render/render_blit.cpp"]
+note = "SV7b6: with 'render new' (our renderer) hooked frames part under EI_HEAP_JITTER (seed 1: 27 of 210 capture frames, e.g. frames_basic world's water, the menu's figures, ui_saveload pictures; seed 2: 24, Rebirth) while goldens stay the same, and hooked --dgvoodoo / --no-hooks frames do not part. Suspect the holder-keyed maps (g_textures, g_windows, g_memory, g_pictures, g_movies): a new holder made at a freed one's address finds the old entry. Check with tools in build/SV7b6 notes: hash frames plain vs EI_HEAP_JITTER=1, find the first differing frame and the entry."
 
 # ---------------------------------------------------------------- harness and suite
 
