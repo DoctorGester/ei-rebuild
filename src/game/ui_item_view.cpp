@@ -95,7 +95,6 @@ __declspec(naked) void** __fastcall CacheTextureSlot(ItemObjectCache*, void*, co
 
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
 __declspec(naked) void* __fastcall CreateModel(const char*) EI_ORIGINAL(0x005EBFB0)
-__declspec(naked) void* __fastcall CreateTexture(const char*) EI_ORIGINAL(0x005EC020)
 
 // The item's names (virtual slots 19 and 20; return a CString through the hidden pointer).
 void ItemName(CItem* item, int slot, mfc::CString* out) {
@@ -119,7 +118,7 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
         node->lastUse = gameapi::timeGetTime();
         return node->object;
     }
-    void* object = textures ? CreateTexture(name) : CreateModel(name);
+    void* object = textures ? ItemFigureTexture(name) : CreateModel(name);
     if (!object) return nullptr;
     std::uint32_t time = gameapi::timeGetTime();
     {

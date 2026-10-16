@@ -35,11 +35,11 @@ namespace {
 // Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
 // continue to the connection screen, 00618060 rename, 00619150 the voice's sound.
 void SetMode(CMpHeroScreen* screen, void*, int mode) { HeroScreenSetModeOriginal(screen, nullptr, mode); }
-__declspec(naked) void __fastcall CreateHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x006186F0)
-__declspec(naked) void __fastcall StatsNext(CMpHeroScreen*) EI_ORIGINAL(0x00617A50)
-__declspec(naked) void __fastcall ContinueAt(CMpHeroScreen*) EI_ORIGINAL(0x006183B0)
-__declspec(naked) void __fastcall RenameAt(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
-__declspec(naked) void __fastcall PlayVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
+void __fastcall MpHeroCreate(CMpHeroScreen*);
+void __fastcall MpHeroAddNew(CMpHeroScreen*);
+void __fastcall MpHeroContinue(CMpHeroScreen*);
+void __fastcall MpHeroRename(CMpHeroScreen*);
+void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
@@ -194,11 +194,11 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         if (renaming)
             FinishRename();
         else if (mode_ == kModeList)
-            ContinueAt(this);
+            MpHeroContinue(this);
         else if (mode_ == kModeStats)
-            StatsNext(this);
+            MpHeroAddNew(this);
         else if (mode_ == kModeNewHero)
-            CreateHeroAt(this);
+            MpHeroCreate(this);
         UiHandled(this) = true;
         return;
     case VK_ESCAPE:
@@ -242,7 +242,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ += voiceStep;
         ClampVoiceSelection();
-        PlayVoiceAt(this);
+        MpHeroPlayVoice(this);
     } else {
         return;
     }
@@ -269,7 +269,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             SetMode(this, nullptr, 9);
             return;
         case 1:
-            CreateHeroAt(this);
+            MpHeroCreate(this);
             return;
         case 2:
             rotate(1);
@@ -308,7 +308,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         voiceIndex_ = index;
         const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin()[index].file);
         HeroRecordOf(this)->texts[6] = file;
-        PlayVoiceAt(this);
+        MpHeroPlayVoice(this);
         CallDrawVoices();
         return;
     }
@@ -318,7 +318,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         if (region == 0) {
             BackToNewHero();
         } else if (region == 1) {
-            StatsNext(this);
+            MpHeroAddNew(this);
         } else if (region == 4) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
@@ -343,7 +343,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         BackToMainMenu(ui);
         return;
     case 1:
-        ContinueAt(this);
+        MpHeroContinue(this);
         return;
     case 2:
         rotate(1);
@@ -365,7 +365,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         return;
     case 6:
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
-        RenameAt(this);
+        MpHeroRename(this);
         return;
     case 7: {
         // Delete: asks first ("lmp_deletepers").

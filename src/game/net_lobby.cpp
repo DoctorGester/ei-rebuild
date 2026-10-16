@@ -24,6 +24,7 @@
 
 namespace net {
 
+RefPtr* __fastcall HolderInit(RefPtr*, CRefObject*);
 namespace {
 
 // An STLport list node's links; the value follows them (stlp::list<T>::Node).
@@ -60,7 +61,6 @@ __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*
 __declspec(naked) QueryList* __fastcall QueriesAssign(QueryList*, void*, const QueryList* /*from*/) EI_ORIGINAL(0x00443BF0)
 __declspec(naked) Query* __fastcall QueriesErase(QueryList*, void*, Query* /*first*/, Query* /*last*/) EI_ORIGINAL(0x004442B0)
 __declspec(naked) void __fastcall QueriesResize(QueryList*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
-__declspec(naked) RefPtr* __fastcall HolderInitAt(RefPtr*, CRefObject*) EI_ORIGINAL(0x00443E20)
 __declspec(naked) std::int32_t __fastcall BufferLengthAt(GameBuffer*) EI_ORIGINAL(0x00441640)
 __declspec(naked) void __fastcall ClientSendJoinAt(ClientBase*, void*, const NetAddress*, const GameBuffer*) EI_ORIGINAL(0x00441740)
 // The session's receive step, through its address (rewritten in net_session_tick.cpp).
@@ -136,7 +136,7 @@ void AppendServer(ClientBase* self, RefPtr& entry) {
     raw->flags6_ &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);   // the original ANDs the word +6 with 0xFFFE
     entry.ptr = nullptr;
     RefPtr holder;
-    HolderInitAt(&holder, raw);
+    HolderInit(&holder, raw);
     Node* pos;
     ServersEnd(&self->servers_, nullptr, &pos);
     Node* out;
@@ -539,7 +539,7 @@ void ClientBase::AddServer(ServerEntry* entry) {
         entry->state_ = ServerEntry::kFromList;
         SetBits(entry->timeout_, kNever);
         RefPtr holder;
-        HolderInitAt(&holder, entry);
+        HolderInit(&holder, entry);
         Node* pos;
         ServersEnd(&servers_, nullptr, &pos);
         Node* out;

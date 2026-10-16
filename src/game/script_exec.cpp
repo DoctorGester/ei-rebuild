@@ -1547,7 +1547,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        FreeTemporariesOrig(script);
+        ScriptFreeTemporaries(script);
         if (cont) ++index;
     }
     return 1;

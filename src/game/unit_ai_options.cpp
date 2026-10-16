@@ -26,7 +26,7 @@ constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6,
 // 00522B20 (fastcall, AX): the largest of damage[1..7] (units area, not rewritten).
 __declspec(naked) std::uint16_t __fastcall MaxDamage(const std::uint16_t*) EI_ORIGINAL(0x00522B20)
 
-__declspec(naked) double __fastcall WeightAt(const AIAttackOption*) EI_ORIGINAL(0x005CE9B0)
+double __fastcall OptionWeight(const AIAttackOption*);
 __declspec(naked) void __fastcall OptionsSetSizeAt(AIAttackOptions*, void*, int, int) EI_ORIGINAL(0x005D9250)
 
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
@@ -187,7 +187,7 @@ void AIAttention::Build(CUnit* unit) {
     }
     healWeight = 0.0f;
     for (int i = 0; i < weapons.size; ++i) {
-        float weight = static_cast<float>(WeightAt(&weapons.data[i]));
+        float weight = static_cast<float>(OptionWeight(&weapons.data[i]));
         healWeight = healWeight >= weight ? healWeight : weight;
     }
 }

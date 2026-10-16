@@ -100,9 +100,6 @@ __declspec(naked) mfc::CString* MapScreen::QuestTitle(mfc::CString*, const char*
 __declspec(naked) Vector3* MapScreen::QuestPosition(Vector3*, const char*) EI_ORIGINAL(0x00630CC0)
 __declspec(naked) void MapScreen::SetWeather() EI_ORIGINAL(0x0062EE90)
 
-// The marker arrays (MFC CArray instantiations) and their elements' assignment. The zones'
-// SetAtGrow (00631CC0) is rewritten below; called through its address so its wrapper runs.
-__declspec(naked) void __fastcall ZonesSetAtGrowAt(GlobalMapZoneArray*, void*, int, const GlobalMapZone*) EI_ORIGINAL(0x00631CC0)
 // The links' and the quests' SetSize (00631E70 / 00631FF0, thiscall, RET 8) and their elements'
 // assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
 __declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
@@ -371,7 +368,7 @@ void CGlobalMap::Create() {
     for (int i = 0; i < allod->zoneCount; ++i) {
         MapRecord* zone = ZoneAt(allod->zones[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
-        ZonesSetAtGrowAt(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
+        GlobalMapZonesSetAtGrow(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
         variable.Format(game::Text(0x00794148), zone->name);   // "z.%s"
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));

@@ -74,8 +74,6 @@ __declspec(naked) int __stdcall RunScriptTextAt(mfc::CString*, int /*run*/, Scri
 // Calls between the console functions go through the original addresses, so that each runs
 // through its own verify wrapper in verify builds (and through any other mod's patch).
 __declspec(naked) int __fastcall TokenizeAt(const char*, CStringArray*) EI_ORIGINAL(0x004DC200)
-__declspec(naked) void __fastcall RunScriptLineAt(const mfc::CString*, const CStringArray*, const char*,
-                                                  const char*) EI_ORIGINAL(0x005DD800)
 
 void* const kFlush = reinterpret_cast<void*>(0x00435000);   // ostream& flush(ostream&)
 
@@ -195,11 +193,11 @@ void __fastcall Execute(const char* text) {
         if (CheatEnabled() && local) {
             mfc::CString script = Ops(command).Mid(1);
             if (first == '@')
-                RunScriptLineAt(&script, &args, game::Text(0x00790940), game::Text(0x0078D71C));   // "WorldScript(" ")"
+                RunScriptLine(&script, &args, game::Text(0x00790940), game::Text(0x0078D71C));   // "WorldScript(" ")"
             else if (first == '#')   // "WorldScript( ConsoleFloat( " " ))"
-                RunScriptLineAt(&script, &args, game::Text(0x007923C4), game::Text(0x007923E0));
+                RunScriptLine(&script, &args, game::Text(0x007923C4), game::Text(0x007923E0));
             else                     // "WorldScript( ConsoleString( " " ))"
-                RunScriptLineAt(&script, &args, game::Text(0x007923A4), game::Text(0x007923E0));
+                RunScriptLine(&script, &args, game::Text(0x007923A4), game::Text(0x007923E0));
         }
         return;
     }

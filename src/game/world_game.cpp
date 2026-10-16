@@ -88,8 +88,6 @@ using netlink::FileStream;
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // The mouse cursor's busy shape (3 while saving, 0 after): GameCursor()->SetShape (005E5200).
-// 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
-__declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
 // The party (007AA5A0) takes the records from / gives them to a record builder (00661050 constructs one, 006611D0
 // destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
@@ -204,7 +202,7 @@ int GameFlow::SaveGame(const char* slot) {
     GameCursor()->SetShape(3);
     slotFolder.Format(game::Text(kSlotFolder), GameFolder(), slot);
     currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(slotFolder);
+    ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0)))
             PartyManagerBeginRedeploy(kParty, nullptr, player->Party());
@@ -1512,7 +1510,7 @@ void GameFlow::StartNewGame() {
     PartyNewGameAt(kParty);
     mfc::CString folder;
     folder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(folder);
+    ClearSaveFolder(folder);
     LocalRecords records;
     PartyManagerEndRedeploy(kParty, nullptr, &records.party);
     StartZoneAt(this, nullptr, records.party.zone, 0);
@@ -1704,7 +1702,7 @@ int GameFlow::LoadGame(const char* slot) {
     mfc::CString currentFolder; // [0x18]
     slotFolder.Format(game::Text(kSlotFolder), GameFolder(), slot);
     currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(currentFolder);
+    ClearSaveFolder(currentFolder);
     bool opened;
     {
         mfc::CString path = slotFolder + game::Text(kScenarioFile);
@@ -1830,7 +1828,7 @@ EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(folder);
+    ClearSaveFolder(folder);
     AsCString(zone7C_) = zone;
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZoneAt(zone);
 }

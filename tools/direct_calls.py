@@ -276,6 +276,7 @@ class Forwarder:
         self.target_name = ''
         self.kind = ''
         self.sites = []                       # Site
+        self.redeclare = False                # the target is defined later in this file: declare it where the forwarder was
         self.reason = ''
 
 
@@ -970,6 +971,14 @@ def plan(fwds, classes):
                 break
             if site.src.path == f.target_src_path:
                 if not f.target.member and not declared_before(site.src, f.target.simple, site.start):
+                    hdr = free_header(f.target, f.target_src_path)
+                    if hdr is not None and hdr.path.endswith('.h') and includes_header(site.src, hdr.path):
+                        continue        # the file's own header declares the target
+                    place = redeclare_place(f) if f.kind == 'rename' and f.src is site.src and \
+                        f.src.path.endswith('.cpp') and f.start < site.start and f.sig.ret == f.target.ret else None
+                    if place is not None:
+                        f.redeclare = place
+                        continue
                     why = f'target declared after the call ({site.src.path}:{site.src.line_of(site.start)})'
                     break
                 continue
@@ -1003,7 +1012,14 @@ def plan(fwds, classes):
         for src, inc in incs:
             includes[src].add(inc)
             INCLUDED_BY[(src.path, inc.strip())].add(f.address)
-        edits[f.src].append(('delete', f.start, f.end, f.address))
+        if f.redeclare == 'here':
+            edits[f.src].append(('redeclare', f.start, f.end, f.address, forward_declaration(f)))
+        elif f.redeclare:
+            # The target is in an enclosing namespace of the forwarder's: declared before the inner one opens.
+            edits[f.src].append((f.redeclare, f.redeclare, [forward_declaration(f, hoisted=True)]))
+            edits[f.src].append(('delete', f.start, f.end, f.address))
+        else:
+            edits[f.src].append(('delete', f.start, f.end, f.address))
         for src, a, b in f.extra:
             edits[src].append(('delete', a, b, f.address))
         done.append(f)
@@ -1026,6 +1042,12 @@ _WORDS = {}
 _HEADERS = {}
 
 
+def includes_header(src, header_path):
+    """Whether `src` has an #include of a file with the header's name."""
+    base = os.path.basename(header_path)
+    return any(os.path.basename(m) == base for m in re.findall(r'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', src.raw, re.M))
+
+
 def free_header(t, defining):
     """The header declaring free function `t` (the one next to its defining .cpp first), as a Source."""
     key = (t.qname, defining)
@@ -1037,6 +1059,34 @@ def free_header(t, defining):
         hits.sort(key=lambda s: s.path != first)
         _HEADERS[key] = hits[0] if hits else srcs.get(defining)
     return _HEADERS[key]
+
+
+def redeclare_place(f):
+    """Where the target, defined later in the forwarder's file, is declared: 'here' (the forwarder's place, same
+    namespaces), or the offset of the line opening the namespace of the forwarder that the target is not in."""
+    inner = f.src.namespaces_at(f.start)
+    outer = split_qualified(f.target.raw_name)[:-1]
+    if inner == outer:
+        return 'here'
+    if inner[:len(outer)] != outer or f.in_class:
+        return None
+    opens = sorted(o for (o, c, k, n) in f.src.scopes if o < f.start < c and k == 'ns')
+    return f.src.raw.rfind('\n', 0, opens[len(outer)]) + 1
+
+
+def forward_declaration(f, hoisted=False):
+    """The forwarder's declaration as a plain declaration of the target (the target is defined later in the file)."""
+    raw = f.src.raw
+    old = raw[f.start:f.end]
+    text = re.sub(r'__declspec\s*\(\s*naked\s*\)\s*', '', old)
+    text = ORIGINAL.sub('', text).rstrip()
+    text = re.sub(r'\b' + re.escape(f.simple) + r'(?=\s*\()', f.target.simple, text, count=1)
+    indent = raw[raw.rfind('\n', 0, f.start) + 1:f.start]
+    indent = indent if not indent.strip() and not hoisted else ''
+    # Continuation lines aligned to the parameter list follow it.
+    old_col = column(raw, f.start) + old.index('(') + 1
+    text = reindent(text, old_col, len(indent) + text.index('(') - old.index('(') - column(raw, f.start))
+    return indent + text + ';\n'
 
 
 def line_span(raw, a, b):
@@ -1147,20 +1197,23 @@ def rewritten(edits, includes, deleted_by_file):
         dels, ops = [], []
         for e in edits.get(src, ()):
             if e[0] == 'delete':
-                dels.append(deletion_span(raw, e[1], e[2], deleted))
+                dels.append(deletion_span(raw, e[1], e[2], deleted) + ([],))
+            elif e[0] == 'redeclare':
+                dels.append(deletion_span(raw, e[1], e[2], deleted) + ([e[4]],))
             else:
                 ops.append((e[0], e[1], e[2]))
         dels.sort()
         merged = []
-        for a, b in dels:
+        for a, b, pieces in dels:
             if merged and a <= merged[-1][1]:
                 merged[-1][1] = max(merged[-1][1], b)
+                merged[-1][2] += pieces
             else:
-                merged.append([a, b])
+                merged.append([a, b, list(pieces)])
         for span in merged:
-            if span[0] >= 2 and raw[span[0] - 2:span[0]] == '\n\n' and raw[span[1]:span[1] + 1] == '\n':
+            if not span[2] and span[0] >= 2 and raw[span[0] - 2:span[0]] == '\n\n' and raw[span[1]:span[1] + 1] == '\n':
                 span[1] += 1
-        ops += [(a, b, []) for a, b in merged]
+        ops += [(a, b, pieces) for a, b, pieces in merged]
         for inc in sorted(includes.get(src, ())):
             e = add_include(src, inc)
             if e:

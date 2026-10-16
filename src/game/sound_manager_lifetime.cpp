@@ -323,6 +323,7 @@ EI_REPLACE(0x006BA9C0, SoundResetStream);
 
 // --- A-H18: Open, Close, Reset ------------------------------------------------------------------------
 
+int __fastcall SoundCloseStream(void* /*stream*/);
 namespace {
 
 constexpr int kVoiceCount = 15;
@@ -347,8 +348,6 @@ constexpr std::uintptr_t kVoiceConstruct = std::uintptr_t(0x006B6CC0);
 constexpr std::uintptr_t kVoiceDestruct = std::uintptr_t(0x006B6D30);
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 constexpr std::uintptr_t kStreamThreadEntry = std::uintptr_t(0x006B6A10);
-
-__declspec(naked) int __fastcall CloseStreamThroughHook(void* /*stream*/) EI_ORIGINAL(0x006BAC90)
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
 using EnumerateFn = long(__stdcall*)(void*, void*);
@@ -448,7 +447,7 @@ int CSoundManager::OpenStream(void* driver) {
     void* codec = RibFindFileProvider()("ASI codec", "Input file types", ".mp3");
     streamSample = AilAllocateSample()(driver);
     streamDecoder = AilAllocateSample()(driver);
-    if (codec == nullptr || streamSample == nullptr || streamDecoder == nullptr) return CloseStreamThroughHook(StreamOf(this));
+    if (codec == nullptr || streamSample == nullptr || streamDecoder == nullptr) return SoundCloseStream(StreamOf(this));
 
     streamBufferSize = AilMinimumSampleBufferSize()(driver, kStreamRate, kStereo16) * 2;
     for (void*& buffer : streamBuffers) buffer = AilMemAllocLock()(streamBufferSize);

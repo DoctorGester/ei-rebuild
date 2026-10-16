@@ -361,7 +361,7 @@ namespace {
 // the local player's data (+0x34 the number of unit records).
 __declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, TradeRecord* /*pos*/, const TradeRecord*,
                                                         int /*n*/) EI_ORIGINAL(0x0062A0B0)
-__declspec(naked) void __fastcall FillRecord(CTradePanel*) EI_ORIGINAL(0x00626F10)
+void __fastcall TradeSnapshotRecord(CTradePanel*);
 inline std::uint8_t* TradePlayerData(void* glue) { return GameLocalPlayerDataOriginal(glue); }
 
 int PartyRecordCount() { return *reinterpret_cast<int*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)) + 0x34); }
@@ -454,7 +454,7 @@ void CTradePanel::ResetRecords() {
             RecordsInsertOverflow(&records_, nullptr, records_.end, &blank, 1);
         }
         recordIndex_ = i;
-        FillRecord(this);
+        TradeSnapshotRecord(this);
     }
 }
 namespace {
@@ -529,7 +529,7 @@ void CTradePanel::Settle(int keep, int all) {
             if (!records_.begin[i].bought) continue;
             recordIndex_ = static_cast<int>(i);
             if (keepIt)
-                FillRecord(this);
+                TradeSnapshotRecord(this);
             else
                 TradeRestoreRecord(this);
         }
@@ -538,7 +538,7 @@ void CTradePanel::Settle(int keep, int all) {
     }
     if (!records_.begin[recordIndex_].bought) return;
     if (keepIt)
-        FillRecord(this);
+        TradeSnapshotRecord(this);
     else
         TradeRestoreRecord(this);
     TradePanelBuildListsOriginal(this);

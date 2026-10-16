@@ -22,11 +22,10 @@ namespace mapspec {
 
 // EffectSpec, ParticleSpec, LightSpec and SoundSpec: map_spec.h.
 
+void __fastcall EffectNotify(void*, void*, std::uintptr_t, std::uintptr_t);
 namespace {
 
 void __fastcall EffectRestart(void* a0) { static_cast<CEffect*>(a0)->MarkChanged(); }
-// 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
-__declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x0046D4D0)
 
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Effects() { return *reinterpret_cast<void**>(0x007AFFA8); }
@@ -57,7 +56,7 @@ void Notify(void* self, std::uintptr_t kind, std::uintptr_t family) {
     std::uintptr_t a, b;
     std::memcpy(&a, first, 4);
     std::memcpy(&b, second, 4);
-    EffectNotifyAt(self, nullptr, a, b);
+    EffectNotify(self, nullptr, a, b);
 }
 
 // A new world object for the record and its effect.
