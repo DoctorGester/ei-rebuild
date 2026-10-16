@@ -23,7 +23,7 @@ collides:
   have ended, it exits so the next waiting `work.py test` starts it from the new code (queued runs stay queued);
 - a batch whose `work.py test` process is gone is cancelled (its queued runs; started games finish).
 Every database write is a short transaction in the scheduler's main loop; games run in threads.
-docs/notes/work-board.md, 'Scheduler' and 'WB2'.
+docs/notes/work-board.md, 'Scheduler'.
 """
 import collections, contextlib, ctypes, datetime, hashlib, io, json, os, queue, subprocess, sys, threading, time, traceback
 
