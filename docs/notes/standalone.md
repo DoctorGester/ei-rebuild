@@ -1574,3 +1574,48 @@ element's scalar deleting destructor: `ScalarDelete<&DestroyPatrol>`); checked o
 game's heap is left as it was (goldens unchanged). After these,
 no MFC row of config/library.csv is forwarded to without a registration except operator new / delete
 (007005AF / 007005D8, the allocator, standalone only).
+
+## 5. Retiring the hook builds (S21, planned 2026-10-16)
+
+User 2026-10-15: the standalone image is the only product, checked by the goldens (tests/golden, recorded from the
+original code) and the function vectors (tests/vectors). The hook DLL stays the image's code container until S18 (the
+image loads ei_hook.dll and InstallHooks writes the jumps into its blank text); what goes is running our code inside
+game.exe.
+
+**Goes.** Hooked runs (run_all's old default, now `--hooked`; `--native`, `--dgvoodoo`, the hooked side of
+`--widescreen` and of compare.py; `EI_COVER=hooks`, `EI_PLAIN`); the verify wrappers (640 tests/verify/verify_*.cpp,
+7 MB, verify.cpp's twin and compare machinery, verified.txt, disabled.txt, the stolen-byte counts); InstallHooks'
+game.exe mode (trampolines, Rebirth detection: rebirth_hook Detect / Check, rebirth_sites.inc, DumpPatchedFunctions,
+FollowAddon); the build checks that only guard hooked runs (check_stolen, check_patched_calls, check_returns); the
+`alone` slot rule for hooked dgVoodoo runs (it stays for `--no-hooks` runs that set a mode).
+
+**Stays.** The original's harness: ei_launch injecting the DLL into game.exe with EI_NO_HOOKS (golden recording, with
+the leftover, address-order, save-leftover, script-order and heap patches; the reference cache) and EI_VECTORS
+(recorders are the only hooks there: new vectors). The standalone's harness (the same harness*.cpp), the goldens and
+golden.py / savefile.py, ei_vectors.exe in build.cmd, the frame tools. The Rebirth flags (include/ei/rebirth.h,
+ei_rebirth.ini, config/ei_rebirth_standalone.ini) and the checks that hold for the image (check_registrations,
+check_short_functions, check_static_init, check_fp_fold, check_thunks, check_x87, check_forwarders, check_cleanup,
+check_signatures).
+
+**Order.** Each step keeps the default suite, `--golden` and a `--no-hooks --golden` pass green.
+
+| Step | What | After |
+|---|---|---|
+| S21 | The default suite is the image's: run_all / work.py with no mode run `standalone` (every scenario) and `standalone-rebirth` (every scenario with a Rebirth golden, plus rebirth_scenarios.csv's); `--hooked` keeps the old suite; `--no-hooks` and golden recording unchanged. No source deleted. | |
+| SV7c2 | Heap jitter for the image's host heap, so layout independence stays checked without hooked runs. | S21 |
+| S20c | The four withheld goldens (ui_mp_host V+R, net_second_master R, rebirth_flags R) restored from 4f6afaef, saves re-recorded under the current rules. | S21 |
+| S21a | Scenarios that only mean something hooked: dropped or rewritten for the image. | S21 |
+| S21b | --widescreen: Rebirth's WideScreen (addon, `--no-hooks`) against the image's frames, across renderers. | S21a |
+| S21c | The hooked mode out of the tools (run_all, work_sched, compare.py, harness.cmd, coverage's EI_COVER=hooks, README). | SV7c2, S20c, S21a, S21b |
+| S21d | The verify wrappers out, and the rules that ask for them (worker brief, rewrite guide); a user decision. | S21c |
+| S21e | InstallHooks' game.exe mode out; `verify` becomes the harness build (harness, recorders), `release` the product. | S21d |
+
+Then C13 and C15 on the image with the goldens as the check, S18, and Phase 4 of docs/cleanup-plan.md.
+
+**S21 (2026-10-16).** tools/run_all.py: `standalone_mode` (no `--hooked`, `--no-hooks`, `--native`, `--dgvoodoo`,
+`--widescreen`), `has_golden`; `--standalone` without names now means every scenario (it was `boot`). Before the
+switch every scenario without a golden ran on the image too:
+`work.py test S21 --standalone` over the 16 scenarios without a golden on either install (rebirth_flags, ui_mp_host,
+net_second_master, render_cursor_present, render_device_lost, render_present_fullscreen / _shot / _window,
+harness_disk_full, the three watchdogs, the four ui_widescreen*): 32 runs, all pass. The default suite is 190 runs
+(107 vanilla, 83 Rebirth); `--hooked` keeps the old 146.

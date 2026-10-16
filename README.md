@@ -171,8 +171,10 @@ end the process: a thread stuck in a driver call). `tests\scenarios\watchdog_*.t
 
     harness.cmd tests\scenarios\sandbox_actions.txt
 
-`python tools\run_all.py` runs every scenario on both installs, several games at once (`--jobs N`,
-default 16; the whole suite takes about 2 minutes). Each run writes to its own folder,
+`python tools\run_all.py` runs every scenario on both installs' data, several games at once (`--jobs N`,
+default 16; the whole suite takes about 2 minutes). Since S21 these are runs of the standalone image (below;
+the hook builds retire, docs/notes/standalone.md section 5); `--hooked` runs game.exe with our hooks and verify
+wrappers as before, `--no-hooks` the original code. Each run writes to its own folder,
 `build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei_hook.log`,
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
@@ -182,11 +184,11 @@ change, so none needs the machine to itself); dgVoodoo draws the original code (
 `--widescreen`'s reference, compare.py's original side), scenarios whose `render` step leaves out
 `present`, and everything with `--dgvoodoo` or `--widescreen` (its frames are compared with the original's). Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
-`--standalone` runs `ei_standalone.exe` instead of game.exe (install `standalone`: run\vanilla's game.exe laid
-out without its code, the vanilla data, our renderer; `ei_launch --standalone`) and on the Rebirth install
-(`standalone-rebirth`: run\rebirth's game.exe, the Rebirth data and goldens, the flags of
-`config/ei_rebirth_standalone.ini`; `--vanilla-only` / `--rebirth-only` pick one), by default the `boot` scenario;
-an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
+The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
+`standalone`: run\vanilla's game.exe laid out without its code, the vanilla data, our renderer; `ei_launch
+--standalone`) and on the Rebirth install (`standalone-rebirth`: run\rebirth's game.exe, the Rebirth data and
+goldens, the flags of `config/ei_rebirth_standalone.ini`; every scenario with a Rebirth golden or marked in
+config/rebirth_scenarios.csv; `--vanilla-only` / `--rebirth-only` pick one); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
 Harness games never take the foreground (harness.cpp, `noforeground::`: the activating user32 calls are patched for every
 caller in the process, windows are made without activation), so a starting game cannot minimise another through dgVoodoo's
 deactivation handling. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.

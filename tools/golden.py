@@ -50,7 +50,7 @@ usage:
       Run the games through the scheduler, e.g.:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
                                                                                 whose runs may hold an older digest)
-        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with hooks)
+        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with --hooked)
   python tools/golden.py saves [SCENARIO...] --runs DIR... [--install vanilla|rebirth]
       Adds the decoded saves to existing goldens without recording them again (SV7d): every DIR's run folder
       must match the golden (console, digest, dumps) and the runs' saves must decode to the same fields.
