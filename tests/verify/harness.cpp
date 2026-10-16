@@ -239,6 +239,7 @@
 #include "../../src/render/render.h"
 
 #include <windows.h>
+#include <dwmapi.h>
 #include <psapi.h>
 #include <tlhelp32.h>
 #include <intrin.h>
@@ -917,6 +918,10 @@ BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
     return g_setFileAttributes(WritePath(name, b, true), attributes);
 }
 
+namespace noforeground {
+void Report(FILE* f);
+}
+
 void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
@@ -939,6 +944,7 @@ void WriteReport() {
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
     for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
+    noforeground::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
@@ -1712,6 +1718,8 @@ SetWindowLongFn g_setWindowLongA, g_setWindowLongW;
 CreateWindowExAFn g_createA;
 CreateWindowExWFn g_createW;
 
+void Conceal(HWND window);
+
 BOOL WINAPI Show(HWND window, int command) {
     switch (command) {
     case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
@@ -1719,15 +1727,49 @@ BOOL WINAPI Show(HWND window, int command) {
     case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;   // a harness game is never minimised, except by its focus step
     default: break;
     }
+    if (command != SW_HIDE) Conceal(window);   // also a window not made through CreateWindowEx
     return g_show(window, command);
 }
 BOOL WINAPI SetPos(HWND window, HWND after, int x, int y, int w, int h, UINT flags) {
     return g_setWindowPos(window, after, x, y, w, h, flags | SWP_NOACTIVATE);
 }
 bool TopLevel(DWORD style, HWND parent) { return !parent && !(style & WS_CHILD); }
+
+// WB12: in the standalone image's runs the game's windows are out of sight as well. Each top-level
+// window is cloaked (DWMWA_CLOAK: Windows still composes it, so its swap chains present as before,
+// but nothing of it reaches the screen) and made a tool window (no taskbar button, not in Alt+Tab).
+// Its position, size, visibility and messages stay as they were, so the game, the harness's posted
+// input and the frames (read from the renderer's target, harness_capture.cpp) do not change.
+// EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run). Hooked runs keep theirs in
+// sight (dgVoodoo presents there).
+bool g_conceal = false;
+decltype(&::DwmSetWindowAttribute) g_dwmSet;
+decltype(&::DwmGetWindowAttribute) g_dwmGet;
+DWORD ConcealedExStyle(DWORD exStyle) {
+    exStyle |= WS_EX_NOACTIVATE;
+    if (g_conceal) exStyle = (exStyle | WS_EX_TOOLWINDOW) & ~DWORD(WS_EX_APPWINDOW);
+    return exStyle;
+}
+// (Message-only windows, Miles' and DirectSound's among them, are never seen and cannot be cloaked:
+// their parent is HWND_MESSAGE, which GetParent does not report.)
+void Conceal(HWND window) {
+    if (!g_conceal || !window || GetAncestor(window, GA_PARENT) != GetDesktopWindow() ||
+        !TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), nullptr))
+        return;
+    DWORD cloaked = 0;
+    if (g_dwmGet && SUCCEEDED(g_dwmGet(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked))) && cloaked) return;
+    BOOL cloak = TRUE;
+    const HRESULT result = g_dwmSet ? g_dwmSet(window, DWMWA_CLOAK, &cloak, sizeof(cloak)) : E_NOTIMPL;
+    char cls[64] = "";
+    GetClassNameA(window, cls, sizeof(cls));
+    if (FAILED(result))
+        Log("harness: window %p (class %s) not cloaked (%08X): it may be seen", static_cast<void*>(window), cls, unsigned(result));
+    else
+        Log("harness: window %p (class %s) cloaked", static_cast<void*>(window), cls);
+}
 LONG KeepNoActivate(HWND window, int index, LONG value) {
     if (index == GWL_EXSTYLE && TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), GetParent(window)))
-        value |= WS_EX_NOACTIVATE;
+        value = static_cast<LONG>(ConcealedExStyle(static_cast<DWORD>(value)));
     return value;
 }
 LONG WINAPI SetLongA(HWND window, int index, LONG value) {
@@ -1738,13 +1780,17 @@ LONG WINAPI SetLongW(HWND window, int index, LONG value) {
 }
 HWND WINAPI CreateA(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
                     HMENU menu, HINSTANCE instance, LPVOID param) {
-    if (TopLevel(style, parent)) exStyle |= WS_EX_NOACTIVATE;
-    return g_createA(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+    if (TopLevel(style, parent)) exStyle = ConcealedExStyle(exStyle);
+    HWND window = g_createA(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+    Conceal(window);
+    return window;
 }
 HWND WINAPI CreateW(DWORD exStyle, LPCWSTR cls, LPCWSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
                     HMENU menu, HINSTANCE instance, LPVOID param) {
-    if (TopLevel(style, parent)) exStyle |= WS_EX_NOACTIVATE;
-    return g_createW(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+    if (TopLevel(style, parent)) exStyle = ConcealedExStyle(exStyle);
+    HWND window = g_createW(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+    Conceal(window);
+    return window;
 }
 
 template <typename T>
@@ -1754,6 +1800,15 @@ void Patch(const char* name, T replacement, T* original = nullptr) {
 }
 
 void Install() {
+    char show[8] = "";
+    g_conceal = ei::Standalone() &&
+                !(GetEnvironmentVariableA("EI_HARNESS_SHOW_WINDOW", show, sizeof(show)) && show[0] == '1');
+    if (HMODULE dwm = LoadLibraryA("dwmapi.dll")) {
+        g_dwmSet = reinterpret_cast<decltype(&::DwmSetWindowAttribute)>(GetProcAddress(dwm, "DwmSetWindowAttribute"));
+        g_dwmGet = reinterpret_cast<decltype(&::DwmGetWindowAttribute)>(GetProcAddress(dwm, "DwmGetWindowAttribute"));
+    }
+    if (g_conceal)
+        Log("harness: the game's windows are kept out of sight (cloaked tool windows; EI_HARNESS_SHOW_WINDOW=1 shows them)");
     Patch("SetForegroundWindow", &SetForeground);
     Patch("BringWindowToTop", &BringToTop);
     Patch("SetActiveWindow", &SetActive);
@@ -1767,15 +1822,76 @@ void Install() {
     Patch("CreateWindowExW", &CreateW, &g_createW);
 }
 
-// Whether the game window is the foreground window, logged when it changes: it never should be.
-void Watch(HWND window) {
-    static bool foreground = false;
-    const bool now = GetForegroundWindow() == window;
-    if (now == foreground) return;
-    foreground = now;
-    Log("harness: the game window %s the foreground window (style %08X, ex style %08X)",
-        now ? "is now" : "is no longer", unsigned(GetWindowLongA(window, GWL_STYLE)),
-        unsigned(GetWindowLongA(window, GWL_EXSTYLE)));
+// What of a top-level window of the game the user could see, empty when nothing: shown (visible,
+// not cloaked or minimised, on a monitor), a taskbar button, the foreground window.
+std::string Seen(HWND window) {
+    std::string seen;
+    if (!IsWindowVisible(window)) return seen;
+    const DWORD exStyle = static_cast<DWORD>(GetWindowLongA(window, GWL_EXSTYLE));
+    DWORD cloaked = 0;
+    if (g_dwmGet) g_dwmGet(window, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
+    RECT rect{}, both{};
+    const RECT screen{GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN),
+                      GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                      GetSystemMetrics(SM_YVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN)};
+    const bool onScreen = GetWindowRect(window, &rect) && IntersectRect(&both, &rect, &screen);
+    if (!cloaked && !IsIconic(window) && onScreen) seen += " shown";
+    if ((exStyle & WS_EX_APPWINDOW) || (!(exStyle & WS_EX_TOOLWINDOW) && !GetWindow(window, GW_OWNER)))
+        seen += " on the taskbar";
+    if (GetForegroundWindow() == window) seen += " in front";
+    if (seen.empty()) return seen;
+    char text[200];
+    char cls[64] = "";
+    GetClassNameA(window, cls, sizeof(cls));
+    std::snprintf(text, sizeof(text), "window %p (class %s, (%ld,%ld)-(%ld,%ld), ex style %08X, cloaked %lu):",
+                  static_cast<void*>(window), cls, rect.left, rect.top, rect.right, rect.bottom, unsigned(exStyle),
+                  static_cast<unsigned long>(cloaked));
+    return text + seen;
+}
+
+unsigned g_checks;          // checks of the game's windows so far
+std::string g_firstSeen;    // the first thing seen, for the report
+std::string g_lastSeen;     // logged when it changes
+
+BOOL CALLBACK CheckWindow(HWND window, LPARAM seen) {
+    DWORD process = 0;
+    GetWindowThreadProcessId(window, &process);
+    if (process != GetCurrentProcessId()) return TRUE;
+    std::string& first = *reinterpret_cast<std::string*>(seen);
+    if (first.empty()) first = Seen(window);
+    return TRUE;
+}
+
+// Every top-level window of the process checked (at most every 200 ms of real time, from the main
+// loop's peeks; logged when what is seen changes). Without concealment only the foreground matters,
+// as before WB12: a harness game never takes it (SV1c).
+void Watch(HWND game) {
+    static ULONGLONG next = 0;
+    const ULONGLONG now = GetTickCount64();
+    if (now < next) return;
+    next = now + 200;
+    ++g_checks;
+    std::string seen;
+    if (g_conceal) EnumWindows(&CheckWindow, reinterpret_cast<LPARAM>(&seen));
+    else if (GetForegroundWindow() == game) seen = "the game window is the foreground window";
+    if (seen == g_lastSeen) return;
+    g_lastSeen = seen;
+    if (seen.empty()) {
+        Log("harness: no window of the game is in sight any more");
+        return;
+    }
+    if (g_firstSeen.empty()) g_firstSeen = seen;
+    Log("harness: in sight: %s", seen.c_str());
+}
+
+// The report's line (concealed runs only; run_all lists the runs that had a window in sight).
+void Report(FILE* f) {
+    if (!g_conceal) return;
+    if (g_firstSeen.empty())
+        std::fprintf(f, "\nWINDOW: out of sight (%u checks: no window of the game shown, on the taskbar or in front)\n",
+                     g_checks);
+    else
+        std::fprintf(f, "\nWINDOW: in sight: %s\n", g_firstSeen.c_str());
 }
 }  // namespace noforeground
 

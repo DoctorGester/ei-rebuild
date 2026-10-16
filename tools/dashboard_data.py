@@ -70,7 +70,7 @@ AREAS = [
 ]
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
-REPLACE = re.compile(r'EI_REPLACE(?:_METHOD|_SHORT)?\(\s*0x([0-9A-Fa-f]+)')
+REPLACE = re.compile(r'EI_REPLACE(?:_METHOD|_SHORT|_DISPATCH)?\(\s*0x([0-9A-Fa-f]+)')
 # Standalone-only registrations (the exe's allocator and other library code the hooked game keeps).
 REPLACE_STANDALONE = re.compile(r'EI_REPLACE_STANDALONE\(\s*0x([0-9A-Fa-f]+)')
 HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')

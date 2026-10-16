@@ -427,6 +427,7 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         failures = []
         notes.append(f'ended as the scenario expects ({expected})')
     notes += [l for l in report.splitlines() if l.startswith('EXIT: ')]   # a message box after quit
+    notes += [l for l in report.splitlines() if l.startswith('WINDOW: in sight')]   # WB12: a window the user saw
     return result, seconds, failures, counts, notes
 
 
@@ -866,6 +867,7 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
     if exits:
         print(f'\n{len(exits)} run(s) showed a message box after the scenario quit (EXIT: lines; stack in ei_hook.log): '
               + ', '.join(f'{n}-{i}' for n, i in exits), file=out)
+    window_check(jobs, out, build)
     bad = sorted((fn, c) for fn, c in totals.items() if c[1])
     if bad:
         print('\nverify mismatches:', file=out)
@@ -885,6 +887,26 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
     print(f'\n{len(jobs)} runs in {elapsed:.0f}s with {args.jobs} at once', file=out)
     print('ALL PASS' if ok else 'SOME RUNS FAILED', file=out)
     return ok
+
+
+def window_check(jobs, out, build=BUILD):
+    """WB12: the standalone runs keep the game's windows out of sight (cloaked tool windows, never in front); each
+    report's WINDOW: line says whether any check (harness.cpp, noforeground::Watch) saw one. Prints how many runs
+    had the check and the runs that saw a window."""
+    lines = {}
+    for name, install in jobs:
+        path = os.path.join(build, 'runs', f'{name}-{install}', 'harness_report.txt')
+        if os.path.exists(path):
+            text = open(path, encoding='cp1251', errors='replace').read()
+            lines[(name, install)] = next((l for l in text.splitlines() if l.startswith('WINDOW: ')), None)
+    checked = {j: l for j, l in lines.items() if l}
+    if not checked:
+        return
+    seen = [(j, l) for j, l in checked.items() if not l.startswith('WINDOW: out of sight')]
+    print(f'\ngame windows: {len(checked) - len(seen)} of {len(checked)} checked runs kept every window out of sight '
+          'and out of the foreground', file=out)
+    for (name, install), l in sorted(seen):
+        print(f'  {name}-{install}: {l[8:]}', file=out)
 
 
 GOLDEN_INSTALL = {'vanilla': 'vanilla', 'native': 'vanilla', 'standalone': 'vanilla', 'standalone-rebirth': 'rebirth',

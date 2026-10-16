@@ -1196,6 +1196,13 @@ model = "opus"
 files = ["tests/verify/harness_heap.cpp", "src/lib/crt.cpp"]
 note = "SV7c: EI_HEAP_JITTER / EI_HEAP_FILL act on game.exe's import slots (harness_heap.cpp), which the standalone image does not use: its malloc / operator new are the host CRT's (EI_REPLACE_STANDALONE), so --standalone runs under jitter are plain runs (no 'heap jitter' log line). The goldens already hold on that other heap (S20: 168 the same), but once the hook builds retire (S21) only the image runs: give its allocator the same seeded spacers and fill so layout independence stays checked."
 
+[[ticket]]
+id = "SV7b6b"
+title = "Transform objects' never-set positions"
+group = "verification"
+depends = ["SV7b6a"]
+note = "SV7b6a: CTransformObject's constructor (00453400) leaves position_ / localPosition_, and the sun light's z was read (lights are now allocated zeroed). Audit the other factories whose objects derive from it (cameras, lightning, sky, effects) for reads of positions before any set, and zero those blocks the SV7b2 way (ours + harness_leftovers without hooks). Check with frame hashes plain vs EI_HEAP_JITTER 1 / 2 and fill."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1495,6 +1502,21 @@ group = "harness"
 size = 0.5
 depends = ["S21"]
 note = "User 2026-10-16: standalone runs look cheaper than hooked ones (vanilla suite 604 s standalone vs 1,537 s hooked), so more may run at once; investigate. The 16-game cap exists because 24 hooked games (and 16 with 8x AA) crashed Windows with NVIDIA TDR storms (memory gpu-game-limit; ~640 MB VRAM per game under dgVoodoo). Measure per-game VRAM, GPU and CPU load for standalone runs with the renderer they use, step up carefully (e.g. 16 -> 20 -> 24) while watching for TDR events (System log 4101 / 153), and recommend a number with evidence. Changing EI_HARNESS_SLOTS beyond 16 needs the user's OK."
+
+[[ticket]]
+id = "WB12a"
+title = "Hooked and --no-hooks harness runs out of sight too"
+group = "harness"
+depends = ["WB12"]
+note = "WB12 cloaks windows only in standalone runs (ei::Standalone()). Hooked/--no-hooks runs present through dgVoodoo into the game window; check that cloaking (noforeground::Conceal) leaves dgVoodoo's presents and captures alone, then drop the Standalone() condition. Low value once the hook builds retire (S21)."
+
+[[ticket]]
+id = "WB14"
+title = "No firewall prompts from harness games: bind to loopback only"
+group = "harness"
+size = 0.5
+model = "opus"
+note = "User 2026-10-16 (screenshot): Windows Firewall still asks about ei_standalone.exe at a worktree's build\\verify path. launch.cpp's shared copy (run\\standalone\\ei_standalone.exe) falls back to the build's own exe whenever a running game holds an older copy, which is common with several worktrees on different builds, and each new path prompts. Fix at the source instead: in harness runs only, every socket the game (and harness_net's free-port probe) binds on INADDR_ANY binds on 127.0.0.1 instead, so the firewall never asks (it only prompts for listeners on non-loopback addresses). Check the lobby/LAN discovery paths (broadcast) still work for the net scenarios (ui_mp_host, net_second_master, net_lobby); if broadcast needs more, pick the loopback-safe equivalent. Never change firewall rules (the user's security settings). Goldens unchanged; then the shared-copy fallback in launch.cpp can stay or go."
 
 # ---------------------------------------------------------------- cleanup
 
@@ -2258,7 +2280,7 @@ group = "standalone"
 size = 1
 depends = ["S21"]
 files = ["tests/scenarios", "config/rebirth_scenarios.csv"]
-note = "Plan: docs/notes/standalone.md section 5. All 107 scenarios pass on the image (S21), but some were written for hooked runs: rebirth_flags on the vanilla data (its header is about UNVERIFIED wrappers; on the image it is a flags smoke test without a golden), the other rebirthflags scenarios on the vanilla data (net_second_master, ui_widescreen*: no golden by rule, SV7b8a), rebirth_mod_folders' header, scenarios that exist for verify-wrapper counts or for a render step without present (needs_old_device). Per scenario: keep with a golden, keep as an image smoke test with its header rewritten, or drop. config/rebirth_scenarios.csv (hooked Rebirth coverage) can go once S21c lands: the image's Rebirth runs follow the Rebirth goldens."
+note = "Same worker as S20c (one branch)."
 
 [[ticket]]
 id = "S21b"
@@ -2267,7 +2289,7 @@ group = "standalone"
 size = 1
 depends = ["S21"]
 files = ["tools/run_all.py", "tools/compare_frames.py"]
-note = "Plan: standalone.md section 5. --widescreen compares hooked Rebirth runs (dgVoodoo) with addon's own (rebirth-nohooks) pixel by pixel. The image draws only with our renderer, which differs from dgVoodoo by 0.2-1% of a 4K interface frame (R10). Compare standalone-rebirth with rebirth-nohooks with a cross-renderer tolerance or masks, or keep addon's frames as recorded references; then the hooked side goes (S21c)."
+note = "User 2026-10-16: record addon's WideScreen frames once (original-game harness) as references and compare the image against them; no live addon comparison each run."
 
 [[ticket]]
 id = "S21c"
@@ -2285,7 +2307,7 @@ group = "standalone"
 size = 2
 depends = ["S21c"]
 files = ["tests/verify", "include/ei/hook.h", "tools/check_stolen.py", "tools/check_patched_calls.py", "tools/check_returns.py", "docs/worker-brief.md", "docs/rewrite-guide.md"]
-note = "Plan: standalone.md section 5. Needs the user's go-ahead: deletes the 640 tests/verify/verify_*.cpp (7 MB) and their helper headers, verify.cpp's twin / compare machinery, verified.txt, disabled.txt, EI_VERIFY registrations and the stolen-byte counts, and the checks that only guard hooked runs (check_stolen, check_patched_calls, check_returns). The harness*.cpp files stay (move them to tests/harness). The worker brief's and rewrite guide's verify-wrapper rules become: a golden scenario or a vector reaches each change."
+note = "User 2026-10-16: delete the verify wrappers outright (no frozen copy; git history keeps them); drop the every-rewrite-gets-a-wrapper rule."
 
 [[ticket]]
 id = "S21e"

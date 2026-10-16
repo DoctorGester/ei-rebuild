@@ -192,4 +192,9 @@ goldens, the flags of `config/ei_rebirth_standalone.ini`; every scenario with a 
 config/rebirth_scenarios.csv; `--vanilla-only` / `--rebirth-only` pick one); an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
 Harness games never take the foreground (harness.cpp, `noforeground::`: the activating user32 calls are patched for every
 caller in the process, windows are made without activation), so a starting game cannot minimise another through dgVoodoo's
-deactivation handling. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
+deactivation handling. The standalone runs also keep every window of the game out of sight (WB12: top-level windows
+are cloaked with DWMWA_CLOAK and made tool windows, so no window, taskbar button or Alt+Tab entry shows, while the
+frames, posted input and window size stay as before; `EI_HARNESS_SHOW_WINDOW=1` shows them to watch a run). Each such
+run's report has a `WINDOW:` line from the harness's checks (every 200 ms: any window of the process shown, on the
+taskbar or in front), and run_all prints `game windows: N of M checked runs kept every window out of sight ...` with
+the runs that saw one. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
