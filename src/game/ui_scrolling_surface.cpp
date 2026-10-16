@@ -49,7 +49,7 @@ DWORD CALLBACK ReadRtf(DWORD_PTR cookie, LPBYTE buffer, LONG wanted, LONG* read)
 
 int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) {
     return gameapi::MulDiv(surface->rect_.bottom - surface->rect_.top, kTwipsPerInch,
-                           gameapi::GetDeviceCaps(dc->attribDC_, LOGPIXELSY));
+                           gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSY));
 }
 } // namespace
 
@@ -111,13 +111,13 @@ void CUiScrollingSurface::RenderText() {
     ui_gdi::GameDC* dc = SurfaceGetDC(this);
     SurfaceClearOriginal(this);
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
-    int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC_, LOGPIXELSX));
+    int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSX));
     int height = HeightInTwips(this, dc);
     RECT area = {0, 0, width, offset_ + kExtraTwipsBelow + height};
     gameapi::OffsetRect(&area, -offsetX_, -offset_);
     FORMATRANGE range;
-    range.hdc = dc->hdc_;
-    range.hdcTarget = dc->hdc_;
+    range.hdc = dc->hdc;
+    range.hdcTarget = dc->hdc;
     range.rc = area;
     range.rcPage = area;
     range.chrg.cpMin = 0;

@@ -62,9 +62,9 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     void* oldFont = dc->SelectFont(fonts_[font]);
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
-    gameapi::GetTextExtentPoint32A(dc->hdc_, text, text.GetLength(), &size);
+    gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);
     dc->SelectFont(oldFont);
-    gameapi::ReleaseDC(GameWindow(), dc->hdc_);
+    gameapi::ReleaseDC(GameWindow(), dc->hdc);
     if (widescreen::Active()) {
         // WideScreen (addon's 80 bytes at 005F83CF): by the 4:3 part's width and the mode's height.
         *out = widescreen::TextExtentToLayout(size);

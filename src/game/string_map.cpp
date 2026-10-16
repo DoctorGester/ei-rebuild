@@ -168,10 +168,7 @@ void __fastcall PanelShow(void*, void*, std::uint8_t);
 namespace {
 
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
-// surface's constructor and destructor body, the DC's non-virtual members, the red-black tree's
-// increment (library).
-void __fastcall DcFillSolidRect(ui_gdi::GameDC* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { a0->FillSolidRect(a2, a3, a4, a5, a6); }
-int __fastcall DcSetBkMode(ui_gdi::GameDC* a0, void*, int a2) { return a0->SetBkMode(a2); }
+// surface's constructor and destructor body, the red-black tree's increment (library).
 void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal(a0); }
 
 // MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
@@ -192,11 +189,11 @@ void __fastcall PanelInit(void* self, void*, CInterface3D* ui) {
     panel->visible_ = 0;
     auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(8));
     if (font) {
-        font->handle_ = nullptr;
-        font->vtable_ = reinterpret_cast<void**>(kFontVtable);
+        font->handle = nullptr;
+        font->vtable = reinterpret_cast<void**>(kFontVtable);
     }
     panel->font_ = font;
-    if (!FontCreatePointOriginal(font, nullptr, 0x5A, FontFace(), nullptr)) {
+    if (!font->CreatePointFont(0x5A, FontFace(), nullptr)) {
         if (ui_gdi::GameFont* f = panel->font_) f->Delete();
         panel->font_ = nullptr;
     }
@@ -266,8 +263,8 @@ void __fastcall PanelRedraw(void* self) {
     if (!surface) return;
     ui_gdi::GameDC* dc = SurfaceGetDC(surface);
     RECT& asked = panel->asked_;
-    DcFillSolidRect(dc, nullptr, 0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
-    DcSetBkMode(dc, nullptr, 1);
+    dc->FillSolidArea(0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
+    dc->SetBkMode(1);
     void* oldFont = dc->SelectFont(panel->font_);
     RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
     RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};

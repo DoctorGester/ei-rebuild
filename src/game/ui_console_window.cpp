@@ -49,7 +49,7 @@ int Clamp(int value, int high) {
 int PromptWidth(GameDC* dc, const mfc::CString& input, int count) {
     mfc::CString text = mfc::CString(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc_, text, Length(text), &size);
+    gameapi::GetTextExtentPoint32A(dc->hdc, text, Length(text), &size);
     return size.cx;
 }
 
@@ -326,7 +326,7 @@ void ConsoleWindow::DrawLines() {
     if (!surface_ || !font_) return;
     SurfaceDC* surface = static_cast<SurfaceDC*>(surface_);
     GameDC* dc = surface->GetDC();
-    dc->FillSolidRect(0, 0, width_, height_ - kInputHeight, kBackground);
+    dc->FillSolidArea(0, 0, width_, height_ - kInputHeight, kBackground);
     void* oldFont = dc->SelectFont(font_);
     dc->SetTextColor(kLineText);
     dc->SetBkMode(TRANSPARENT);
@@ -361,14 +361,14 @@ void ConsoleWindow::DrawInput() {
     SurfaceDC* surface = static_cast<SurfaceDC*>(surface_);
     GameDC* dc = surface->GetDC();
     void* oldFont = dc->SelectFont(font_);
-    dc->FillSolidRect(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
+    dc->FillSolidArea(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
     int caretX = PromptWidth(dc, input_, caret_);
     if (anchor_ != caret_) {
         int anchorX = PromptWidth(dc, input_, anchor_);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
         if (high > width_ - 0x10) high = width_ - 0x10;
-        if (low < high) dc->FillSolidRect(low + 8, height_ - 0x17, high - low, 0xF, kSelection);
+        if (low < high) dc->FillSolidArea(low + 8, height_ - 0x17, high - low, 0xF, kSelection);
     }
     dc->SetTextColor(kInputText);
     dc->SetBkMode(TRANSPARENT);
@@ -378,10 +378,10 @@ void ConsoleWindow::DrawInput() {
     if (caretX < width_ - 0x10) {
         GamePen pen;
         pen.Construct(PS_SOLID, 2, kInputText);
-        void* oldPen = dc->SelectPen(&pen);
+        mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         dc->MoveTo(caretX + 8, height_ - 0x17);
         dc->LineTo(caretX + 8, height_ - 8);
-        dc->SelectPen(oldPen);
+        dc->SelectObject(oldPen);
         pen.Destruct();
     }
     dc->SelectFont(oldFont);
@@ -391,14 +391,3 @@ EI_REPLACE_METHOD(0x005E4A10, ConsoleWindow::DrawInput);
 
 } // namespace console
 
-namespace ui_gdi {
-__declspec(naked) void GameDC::FillSolidRect(int, int, int, int, COLORREF) EI_ORIGINAL(0x0070BB04)
-__declspec(naked) int GameDC::SetBkMode(int) EI_ORIGINAL(0x007090C2)
-__declspec(naked) void* GameDC::SelectPen(void*) EI_ORIGINAL(0x00708F5A)
-__declspec(naked) POINT GameDC::MoveTo(int, int) EI_ORIGINAL(0x00709613)
-__declspec(naked) BOOL GameDC::LineTo(int, int) EI_ORIGINAL(0x0070965F)
-__declspec(naked) GamePen* GamePen::Construct(int, int, COLORREF) EI_ORIGINAL(0x0070A0E2)
-__declspec(naked) BOOL GamePen::DeleteObject() EI_ORIGINAL(0x0070A0CC)
-__declspec(naked) BOOL GameBrush::DeleteObject() EI_ORIGINAL(0x0070A0CC)
-__declspec(naked) BOOL GameBrush::Attach(HGDIOBJ) EI_ORIGINAL(0x0070A075)
-} // namespace ui_gdi

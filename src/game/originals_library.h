@@ -483,9 +483,6 @@ __declspec(naked) inline void __fastcall FloatTableDeleteNodeOriginal(void* /*ta
 __declspec(naked) inline void __fastcall FloatTableBeginOriginal(void* /*table*/, void*, void* /*iterator*/)
     EI_ORIGINAL(0x004614C0)
 __declspec(naked) inline void __fastcall BucketVectorDestroyOriginal(void* /*vector*/) EI_ORIGINAL(0x00609F50)
-// MFC CFont::CreatePointFont(tenths of a point, face, CDC* or null) (0070BBE5, thiscall, RET 0xC): nonzero on success.
-__declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, void*, int /*size*/, const char* /*face*/,
-                                                                void* /*dc*/) EI_ORIGINAL(0x0070BBE5)
 
 // C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
 inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }

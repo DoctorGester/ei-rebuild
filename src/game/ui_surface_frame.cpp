@@ -22,12 +22,10 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
         interface_->CallScaleRectToScreen(&frame);   // 005F7CA0 (Rebirth-patched)
     }
     brush.Attach(gameapi::CreateSolidBrush(colour));
-    gameapi::FrameRect(dc->hdc_, &frame, brush.Handle());
+    gameapi::FrameRect(dc->hdc, &frame, brush.Handle());
     brush.Destruct();
 }
 EI_REPLACE_METHOD(0x005FDCB0, CUiSurface::FrameRect);
-
-__declspec(naked) void ui_gdi::GameDC::FillSolidRect(const RECT*, COLORREF) EI_ORIGINAL(0x0070BADA)
 
 void CUiSurface::Fill(COLORREF colour) {
     if (!holder_) return;

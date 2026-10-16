@@ -270,7 +270,7 @@ void CChatOverlay::DrawTyped() {
     if (width < kMaxTypedWidth) {
         ui_gdi::GamePen pen;
         pen.Construct(PS_SOLID, 1, kTypedColour);
-        void* oldPen = dc->SelectPen(&pen);
+        mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
         // WideScreen (005E3839 / 005E386C: XOR ECX,ECX): without the margin.
@@ -278,7 +278,7 @@ void CChatOverlay::DrawTyped() {
         interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);
         dc->LineTo(bottom.x, bottom.y);
-        dc->SelectPen(oldPen);
+        dc->SelectObject(oldPen);
         pen.Destruct();
     }
     SurfaceReleaseDC(surface);
