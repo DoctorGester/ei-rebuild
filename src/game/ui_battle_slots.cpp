@@ -272,7 +272,7 @@ void CBattleScreen::OnGameOver(char won) {
     } else {
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
         box = memory ? static_cast<CMessageBox*>(memory)->Construct(interface_, game::Text(0x007942F0), // "end_of_game"
-                                                   game::Text(0x007942FC), static_cast<int>(0xFFFF0000u), 3, 1)   // "end_of_game_msg"
+                                                   game::Text(0x007942FC), 0xFFFF0000u, 3, 1)   // "end_of_game_msg"
                      : nullptr;
     }
     interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
