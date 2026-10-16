@@ -202,14 +202,6 @@ __declspec(naked) void __fastcall FloatsLoadOrig(void*, void*, ScriptStream*) EI
 __declspec(naked) void __fastcall StringsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C3200)
 __declspec(naked) void __fastcall ObjectsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C36B0)
 __declspec(naked) void __fastcall GroupsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C40D0)
-__declspec(naked) void __fastcall IfThenLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CA000)
-__declspec(naked) void __fastcall DeclCommandsLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004C57C0)
-__declspec(naked) void __fastcall ParticlesLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CA480)
-__declspec(naked) void __fastcall FxSourcesLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CA5D0)
-__declspec(naked) void __fastcall LightningLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CA720)
-__declspec(naked) void __fastcall WorldBlocksLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CA810)
-__declspec(naked) void __fastcall InstancesLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CA980)
-__declspec(naked) void __fastcall RunsLoadOrig(void*, ScriptStream*) EI_ORIGINAL(0x004CAC00)
 
 // The four variable loaders of one ScriptVars (globals, instances).
 void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
@@ -641,9 +633,9 @@ void CScript::LoadState(ScriptStream* stream) {
     LightsSetSize(lights, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < lights->size; ++i) PointLightLoad(lights->data + i * 0x20, nullptr, stream);
 
-    ParticlesLoadOrig(reinterpret_cast<RawList*>(&particles_), stream);
-    FxSourcesLoadOrig(reinterpret_cast<RawList*>(&fxSources_), stream);
-    LightningLoadOrig(reinterpret_cast<RawList*>(&lightning_), stream);
+    ScriptParticlesLoad(reinterpret_cast<RawList*>(&particles_), stream);
+    ScriptFxSourcesLoad(reinterpret_cast<RawList*>(&fxSources_), stream);
+    ScriptLightningLoad(reinterpret_cast<RawList*>(&lightning_), stream);
     stream->Read(&nextParticleId_, 4);
     stream->Read(&nextFxId_, 4);
 
@@ -654,9 +646,9 @@ void CScript::LoadState(ScriptStream* stream) {
         auto* block = &node->data;
         node = node->next;
         stream->Read(&block->id, 4);
-        DeclCommandsLoadOrig(block, stream);
+        ScriptDeclCommandsLoad(block, stream);
     }
-    WorldBlocksLoadOrig(reinterpret_cast<RawList*>(&worldBlocks_), stream);
+    ScriptWorldBlocksLoad(reinterpret_cast<RawList*>(&worldBlocks_), stream);
 
     // Definitions (+0x8C).
     auto& scripts = definitions_;
@@ -666,13 +658,13 @@ void CScript::LoadState(ScriptStream* stream) {
         stream->Read(&definition->index, 4);
         StringLoad(&definition->name, stream);
         StringLoad(&definition->params, stream);
-        IfThenLoadOrig(&definition->ifThen, stream);
+        ScriptIfThenLoad(&definition->ifThen, stream);
         definition->vars.Load(stream);
     }
 
     LoadVariables(Globals(), stream);
-    InstancesLoadOrig(reinterpret_cast<RawList*>(&instances_), stream);
-    RunsLoadOrig(reinterpret_cast<RawList*>(&runs_), stream);
+    ScriptInstancesLoad(reinterpret_cast<RawList*>(&instances_), stream);
+    ScriptRunsLoad(reinterpret_cast<RawList*>(&runs_), stream);
     stream->Read(&loaded_, 4);
     stream->Read(&fileCount_, 4);
     LoadingScript() = nullptr;

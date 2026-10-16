@@ -125,8 +125,6 @@ void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0,
 // Library copy constructors of the binding and nested call arrays (__thiscall (const CArray&)).
 __declspec(naked) void __fastcall BindingsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCCB0)
 __declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCD90)
-// The names' copy constructor, called through its address (rewritten below).
-__declspec(naked) void __fastcall NamesCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBA00)
 
 template <typename T>
 void InitArray(mfc::CArray<T>* a, void* vtable) {
@@ -271,9 +269,9 @@ EI_REPLACE_METHOD(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     InitArray(&floats, scriptvtable::kFloats);
     CopyFloats(&floats, &other->floats, FloatsSetSize);
-    NamesCopyConstructAt(&floatNames, nullptr, &other->floatNames);
+    ScriptNamesCopyConstruct(&floatNames, nullptr, &other->floatNames);
     CopyConstructStrings(&strings, &other->strings);
-    NamesCopyConstructAt(&stringNames, nullptr, &other->stringNames);
+    ScriptNamesCopyConstruct(&stringNames, nullptr, &other->stringNames);
 
     InitArray(&objects, scriptvtable::kRefs);
     PtrArraySetSize(&objects, nullptr, other->objects.size, -1);
@@ -285,7 +283,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
         RefConstruct(slot, nullptr, &value);
         value.Reset();
     }
-    NamesCopyConstructAt(&objectNames, nullptr, &other->objectNames);
+    ScriptNamesCopyConstruct(&objectNames, nullptr, &other->objectNames);
 
     InitArray(&groups, scriptvtable::kGroups);
     GroupValuesSetSize(&groups, nullptr, other->groups.size, -1);
@@ -295,7 +293,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
         GroupAssignOriginal((void*)&groups.data[i], nullptr, &copy);
         GroupDestruct(&copy);
     }
-    NamesCopyConstructAt(&groupNames, nullptr, &other->groupNames);
+    ScriptNamesCopyConstruct(&groupNames, nullptr, &other->groupNames);
     return this;
 }
 EI_REPLACE_METHOD(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);

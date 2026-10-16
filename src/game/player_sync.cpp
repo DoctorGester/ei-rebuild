@@ -15,6 +15,7 @@
 #include "party.h"
 #include "random.h"
 #include "resource_manager.h"
+#include "script.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -405,7 +406,7 @@ void CPlayerServer::UpdatePartyUnits() {
         }
         partyUnits_.Union(party, known);
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            ScriptGroupToListOriginal(&known, nullptr, &BrainOf(static_cast<CUnit*>(node->value))->seenCorpses);
+            known.CopyToList(&BrainOf(static_cast<CUnit*>(node->value))->seenCorpses);
     } else {
         PtrArraySetSize(&partyUnits_, nullptr, party.size, -1);
         for (int i = 0; i < party.size; ++i) {

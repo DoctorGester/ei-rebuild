@@ -91,7 +91,6 @@ EI_REPLACE_METHOD(0x004B3940, ScriptVars::RemoveDeletedObjects);
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 namespace {
-__declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x004CE5F0)
 // 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
@@ -111,7 +110,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         } else {
             FloatsSetSize(&vars.floats, nullptr, vars.floats.size + 1, -1);
             mfc::CString temp(text);
-            NamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
+            ScriptNamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
             result = 1;
         }
         letter = game::Text(0x0078BBD8);
@@ -122,7 +121,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         } else {
             NamesSetSizeOriginal(&vars.strings, nullptr, vars.strings.size + 1, -1);
             mfc::CString temp(text);
-            NamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
+            ScriptNamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
             result = 1;
         }
         letter = game::Text(0x0078BBD4);
@@ -133,7 +132,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         } else {
             PtrArraySetSize(&vars.objects, nullptr, vars.objects.size + 1, -1);
             mfc::CString temp(text);
-            NamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
+            ScriptNamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
             result = 1;
         }
         letter = game::Text(0x0078BBD0);

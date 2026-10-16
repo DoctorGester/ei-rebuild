@@ -35,7 +35,6 @@ __declspec(naked) mfc::CArray<SSCCmd>* CScript::NewWorldScript() EI_ORIGINAL(0x0
 __declspec(naked) void CScript::RunWorldScript(mfc::CArray<SSCCmd>*) EI_ORIGINAL(0x004BCC60)
 __declspec(naked) void SSCCmd::Clear() EI_ORIGINAL(0x004B5F70)
 __declspec(naked) void SSCCmd::Destruct() EI_ORIGINAL(0x004BF640)
-__declspec(naked) BOOL ScriptDefinition::AddParameter(const mfc::CString&, int) EI_ORIGINAL(0x004BB800)
 
 namespace {
 
@@ -632,7 +631,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         else if (Mbscmp(typeName, game::Text(0x00787D5C)) == 0) type = kScriptObject;
         else if (Mbscmp(typeName, game::Text(0x0078D820)) == 0) type = kScriptGroup;
         else return Error(this, token.line, 12, game::Text(0x0078D954));   // "Unknown parameter type"
-        if (!script->AddParameter(name, type))   // "Duplicate variable name %s"
+        if (!script->AddParameterImpl(&name, type))   // "Duplicate variable name %s"
             return Error(this, token.line, 13, game::Text(0x0078D96C), static_cast<const char*>(name));
         first = false;
     }

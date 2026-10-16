@@ -33,10 +33,6 @@ __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, 
 __declspec(naked) inline void __fastcall GroupAssignOriginal(void* /*group*/, void*, const void* /*source*/)
     EI_ORIGINAL(0x004C1290)
 __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2290)
-// 004B3200: the group's objects replace the contents of a CPtrList of counted references (RET 4: the list; EAX not a
-// result).
-__declspec(naked) inline void __fastcall ScriptGroupToListOriginal(const void* /*group*/, void*, void* /*list*/)
-    EI_ORIGINAL(0x004B3200)
 
 // C3i. 004CC7D0: CArray<ScriptObjectRef> DestructElements, releasing each reference (RET 8: first, count; EAX not a result).
 __declspec(naked) inline void __stdcall ScriptRefElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC7D0)

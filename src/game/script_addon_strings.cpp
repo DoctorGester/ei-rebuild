@@ -4,6 +4,7 @@
 //
 // FloatToStr formats with the C runtime's "%.<n>f" (addon's MSVC 2010 CRT; here the game's, the
 // same float formatting code) and StrToFloat parses with atof (likewise the game's).
+#include "net_classes.h"
 #include "script_addon_handlers.h"
 
 #include "console.h"
@@ -27,7 +28,6 @@ namespace {
 
 // 0057F440 on 007AFE20: whether this is a network game.
 // 0041A310 on the game server (0079B5DC): sends a chat line from the server (second argument 0).
-__declspec(naked) void __fastcall ServerSay(void*, void*, const char*, int) EI_ORIGINAL(0x0041A310)
 
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
@@ -156,7 +156,7 @@ bool Say(Call* call) {
         void* server = *reinterpret_cast<void**>(0x0079B5DC);
         if (server && !(*reinterpret_cast<std::uint32_t*>(static_cast<char*>(server) + 4) & 0x80000000u)) {
             std::string text = Joined(call);
-            ServerSay(server, nullptr, text.c_str(), 0);
+            static_cast<net::ServerSession*>(server)->Announce(text.c_str(), 0);
         }
     }
     return true;

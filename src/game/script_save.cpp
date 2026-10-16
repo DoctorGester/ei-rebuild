@@ -29,7 +29,6 @@ __declspec(naked) void __fastcall FloatsSaveOrig(const void*, void*, ScriptStrea
 __declspec(naked) void __fastcall StringsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C33C0)
 __declspec(naked) void __fastcall ObjectsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C38C0)
 __declspec(naked) void __fastcall GroupsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C4330)
-__declspec(naked) void __fastcall AreasSaveOrig(const void*, ScriptStream*) EI_ORIGINAL(0x004CAEC0)
 
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
 CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
@@ -200,6 +199,6 @@ void CScript::SaveState(ScriptStream* stream) {
     stream->Write(&loaded_, 4);
     stream->Write(&fileCount_, 4);
     SavingScript() = nullptr;
-    AreasSaveOrig(&areas_, stream);
+    ScriptAreasSave(&areas_, stream);
 }
 EI_REPLACE_METHOD(0x004C0F90, CScript::SaveState);

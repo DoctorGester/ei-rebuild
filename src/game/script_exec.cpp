@@ -101,7 +101,6 @@ __declspec(naked) void __fastcall LightningRemoveAt(LightningList*, void*, Light
 __declspec(naked) void __fastcall AreaAddRect(void*, void*, float, float, float, float) EI_ORIGINAL(0x004B1ED0)
 __declspec(naked) void __fastcall AreaAddRound(void*, void*, float, float, float) EI_ORIGINAL(0x004B2070)
 // The party records of `player` for a "party name" string (ECX player, EDX string).
-__declspec(naked) void* __fastcall PartyRecordsFor(WorldPlayer*, mfc::CString*) EI_ORIGINAL(0x004BAEC0)
 // Object id of a name (ECX = name).
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
 // 00500960: the renderer (returns the object whose 004BA120 sets the background colour).
@@ -1418,7 +1417,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CString name(cmd->stringArgs.data[0]);
-            auto* records = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &name));
+            auto* records = static_cast<PartyRecordsCalls*>(PartyForScript(player, &name));
             if (records) {
                 if (cmd->id == 0x86)
                     records->AddUnit(name, Text(cmd, 1), game::EmptyText());
@@ -1433,8 +1432,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!player) break;
             mfc::CString from(cmd->stringArgs.data[0]);
             mfc::CString to(cmd->stringArgs.data[1]);
-            auto* fromRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &from));
-            auto* toRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &to));
+            auto* fromRecords = static_cast<PartyRecordsCalls*>(PartyForScript(player, &from));
+            auto* toRecords = static_cast<PartyRecordsCalls*>(PartyForScript(player, &to));
             PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
             PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
             if (source && target) {
