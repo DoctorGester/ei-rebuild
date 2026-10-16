@@ -564,8 +564,10 @@ interface draws, movies, textures) are verified by wrappers and harness scenario
   another feature's). Scenarios `render_scene` (its header has the compare commands for the whole frame, terrain,
   objects, interface) and `render_terrain`; `tools/frame_preview.py` writes a downscaled side-by-side PNG. Known
   differences: translucent dark panels (35% black: top and portrait panel) dim the old scene under them, so compare
-  masked pixels only; the light strip at the top of the new frame is the far sea's edge (clear colour), covered by the
-  interface's top bar in the old frame; terrain still differs on steep distant slopes (mip choice under minification).
+  masked pixels only; terrain still differs on steep distant slopes (mip choice under minification). The water pass
+  writes depth as the old device does (ZWRITEENABLE stays 1 after the sky): without it the far sea's last, fully
+  fogged sector ring blended over the nearer water at the top of the screen (a light strip with a straight lower edge,
+  seen right of the top panel in WideScreen; R10c).
   Fog matches the old path. Cross-run comparisons are not meaningful (no determinism); A/B is always within one run.
 
 ### Frame capture

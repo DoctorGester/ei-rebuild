@@ -245,8 +245,11 @@ bool CreateTerrainPipelines() {
     p.sample_count = 1;
     p.label = "ei-terrain-ground";
     g_ground = sg_make_pipeline(&p);
-    // Water: blended by the vertex colour's alpha over what is drawn, depth tested, not written.
-    p.depth.write_enabled = false;
+    // Water: blended by the vertex colour's alpha over what is drawn, depth tested and written, as
+    // the old device draws it (the world draw 00569E40 turns ZWRITEENABLE back on after the sky and
+    // leaves it on through the water pass). A sector's water hides the water of sectors behind it
+    // that it covers on screen: without the write the far sea's last fully fogged sector ring was
+    // blended over the nearer water at the top of the battle screen (R10c).
     p.colors[0].blend.enabled = true;
     p.colors[0].blend.src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA;
     p.colors[0].blend.dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;

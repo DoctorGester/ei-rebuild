@@ -628,8 +628,6 @@ WIDESCREEN_COMPARE = ['--tolerance', '8', '--shift', '1', '--max-fraction', '0.0
 # Areas that differ between the renderers whatever WideScreen does, left out of the comparison:
 # {(scenario or '*', frame or '*'): [((x0, y0, x1, y1) in a WIDESCREEN_SIZE frame, x1 and y1 excluded, why), ...]}.
 WIDESCREEN_AREAS = {
-    ('*', '*'): [((2712, 0, 3771, 14), 'the battle screen\'s top 14 rows right of the top panel: our renderer shows a '
-                                       'strip there that dgVoodoo does not (R10c)')],
     ('ui_widescreen_more', 'save'): [((1954, 360, 3002, 1154), 'the Save window\'s picture: a copy of the screen, '
                                                                'scaled down by each renderer')],
 }

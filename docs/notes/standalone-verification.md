@@ -96,7 +96,7 @@ kept): `frames\<frame>.bmp.z`, `skip\<frame>.bmp.z` (what moved in addon's run b
 `<scenario>-standalone-rebirth` and compares each frame with `WIDESCREEN_COMPARE` (`--tolerance 8 --shift 1
 --max-fraction 0.006 --block 64 --max-block 0.25`: `--shift 1` absorbs the renderers' sub-texel sampling and edges,
 `--max-block` catches a moved element), leaving out the skip mask, what moved between the image's own twins and
-`WIDESCREEN_AREAS` (the battle screen's top strip right of the top panel, R10c; the Save window's picture). Through
+`WIDESCREEN_AREAS` (the Save window's picture). Through
 `work.py test` the comparison runs after the batch, like `--golden`. A missing recording, other steps or another frame
 size fail with the command that records them; if a harness change moves what addon's frames show, every frame of a
 scenario fails the same way: record again with `--fresh`. Vanilla data cannot be compared (its textures differ from
