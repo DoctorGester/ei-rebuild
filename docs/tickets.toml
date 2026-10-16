@@ -2357,3 +2357,21 @@ title = "Retarget code comments that cite removed sections"
 group = "docs"
 model = "sonnet"
 note = "About 150 comments citing \"Nth round\", \"pass\", old renderer section numbers, items_spells.md \"(A-H17)\"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations."
+
+[[ticket]]
+id = "D3"
+title = "Trim the standalone and workflow docs to current facts"
+group = "docs"
+size = 1
+model = "opus"
+depends = ["S21"]
+note = "User 2026-10-16: time to trim the docs. docs/ is 1.8 MB in 53 files; the biggest are standalone-verification.md (177 KB), standalone.md (146 KB), tickets.toml (185 KB) and work-board.md (25 KB), mostly per-ticket progress logs that git log already holds. Rewrite each to what a worker needs now: current state, how-tos, facts and open questions; drop round-by-round narratives, superseded plans and, after S21, hook-only sections. Shorten done tickets' notes in tickets.toml (through tickets.py) to one line. Change worker-brief.md's 'append what you did to the notes file' to 'update the notes file in place (current facts, no log)'. Retarget code comments that cite removed sections (as D2 did). Target: these files at half their size or less."
+
+[[ticket]]
+id = "D4"
+title = "Trim the area notes to current facts"
+group = "docs"
+size = 1
+model = "sonnet"
+depends = ["D3"]
+note = "Same rules as D3 for docs/notes/*.md outside the standalone set: renderer (95 KB), ui (87 KB), items_spells (76 KB), world (71 KB), script (61 KB), cleanup-units (55 KB), rebirth (50 KB), units (49 KB) and the rest. Keep addresses, layouts, meanings and open questions; drop progress logs and 'round N' history. Retarget code comments that cite removed sections. Target: half the size or less."
