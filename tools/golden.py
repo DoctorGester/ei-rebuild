@@ -51,7 +51,7 @@ usage:
       Run the games through the scheduler, e.g.:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
                                                                                 whose runs may hold an older digest)
-        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with --hooked)
+        python tools\golden.py snapshot <scratch>\orig1   (then the same again, and the image without --no-hooks)
       --image (S20a): a golden of the standalone image, for the scenarios the original cannot run on that install
       (their "# no original:" line names it: renderer-only checks). The runs are the image's (DIR\<scenario>-
       standalone or -standalone-rebirth, snapshot --image), at least IMAGE_RUNS of them, and must all agree, so
@@ -712,7 +712,7 @@ def record(args):
                           if no_original(name, args.install) else '')]
         elif args.install == 'vanilla' and flagged(name):
             problem = ['its rebirthflags line turns on in our code what the vanilla original does not have, so '
-                       'hooked vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
+                       'our vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
         for other in folders[1:]:
             if problem:
                 break

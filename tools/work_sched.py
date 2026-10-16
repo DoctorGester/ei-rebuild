@@ -104,7 +104,7 @@ def seconds_since(stamp):
 # ---- batches in the database (shared by `test` and the scheduler)
 
 def submit(db, ticket, worktree, build, argv, runs, submitter=None, env=None):
-    """A new batch; runs: dicts with scenario, install, hooks, alone, expected, folder. env: the submitter's
+    """A new batch; runs: dicts with scenario, install, hooks (our code: the image), alone, expected, folder. env: the submitter's
     game variables ({name: value}, run_all.game_environment()); its games run with exactly these. Its id."""
     with work.transaction(db):
         cur = db.execute('INSERT INTO batch (ticket, worktree, build, args, submitted, submitter, env) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -210,21 +210,26 @@ def batch_env(batch):
 
 
 def real_runner(batch, run, retries, on_attempt):
-    """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold."""
+    """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold. A row of our
+    code in game.exe (a hooked run, submitted by a checkout from before S21c) fails without a game."""
+    install = run_all.launch_install(run['install'])
+    if bool(run['hooks']) != run_all.our_code(install):
+        on_attempt(0)
+        return ('FAIL', 0.0, [f'{run["install"]} with hooks {"on" if run["hooks"] else "off"}: our code runs only in the '
+                              'standalone image since S21c (merge main)'], {}, [])
     attempts = iter(range(retries + 1))
     env = batch_env(batch)
     try:
-        args = parse_batch_args(batch['args'])     # --clock (WB8), --dgvoodoo and --fresh (R10), as run_all passes them
-        clock, dgvoodoo, fresh = args.clock, run_all.wants_dgvoodoo(args), args.fresh
+        args = parse_batch_args(batch['args'])     # --clock (WB8) and --fresh (R10), as run_all passes them
+        clock, fresh = args.clock, args.fresh
     except (KeyError, IndexError, ValueError):
-        clock, dgvoodoo, fresh = None, False, False
+        clock, fresh = None, False
 
-    def one(name, install, hooks, folder):
+    def one(name, install, folder):
         on_attempt(next(attempts))
-        return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
-                           clock=clock, game_env=env, dgvoodoo=dgvoodoo, fresh=fresh)
-    return run_all.run_with_retries(run['scenario'], run_all.launch_install(run['install']), bool(run['hooks']), retries,
-                                    os.path.basename(run['folder']), runner=one,
+        return run_all.run(name, install, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
+                           clock=clock, game_env=env, fresh=fresh)
+    return run_all.run_with_retries(run['scenario'], install, retries, os.path.basename(run['folder']), runner=one,
                                     keep=lambda folder, attempt: run_all.keep_attempt(folder, attempt, build=batch['build']))
 
 
@@ -583,19 +588,19 @@ def cmd_test(db, args):
         env['EI_DIGEST'] = str(run_all.GOLDEN_PERIOD)
         argv = [a for a in argv if a != '--golden']
     # --widescreen's frames are compared (or with --record kept as references) here too, after the batch: its runs
-    # are plain runs of the image on the Rebirth install (or of addon's code, hooks off in the run rows)
+    # are plain runs of the image on the Rebirth install (or of addon's code: the original, hooks off in the run rows)
     argv = [a for a in argv if a not in ('--widescreen', '--record')]
     runs = []
     for name, install in jobs:
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
         if not os.path.exists(scenario):
             sys.exit(f'work.py: no scenario {name} ({scenario})')
-        hooks = run_all.uses_hooks(install, ra)
+        launch = run_all.launch_install(install)
         # R10: only dgVoodoo runs that set a resolution are alone; a run of the original code the reference cache
         # holds plays no game (it is copied in a moment) and is expected to take no time
-        cached = not ra.fresh and run_all.cached_reference(name, run_all.launch_install(install), hooks, root, ra.clock, env)
-        runs.append({'scenario': name, 'install': install, 'hooks': hooks,
-                     'alone': not cached and run_all.runs_alone(scenario, run_all.launch_install(install), hooks, run_all.wants_dgvoodoo(ra), env),
+        cached = not ra.fresh and run_all.cached_reference(name, launch, root, ra.clock, env)
+        runs.append({'scenario': name, 'install': install, 'hooks': run_all.our_code(launch),
+                     'alone': not cached and run_all.runs_alone(scenario, launch),
                      'expected': 1 if cached else expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
     batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)

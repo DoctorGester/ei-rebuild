@@ -223,7 +223,7 @@ function batchPanel(b, pos) {
     `${batchWhat(b)}${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
     `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}</summary><div class="body">` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
-    // The submitter's EI_* variables the games ran with (EI_PROFILE=1, EI_PLAIN=1, ...).
+    // The submitter's EI_* variables the games ran with (EI_PROFILE=1, EI_VECTORS=1, ...).
     (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)" title="Environment of this batch's games">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
     (b.games.length ? gamesTable(b, now) : '<p class="empty">No games yet.</p>') + `</div></details>`;
 }

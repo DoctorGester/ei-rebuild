@@ -1704,3 +1704,40 @@ frames are recorded once with the original game's harness and kept as references
   different sea in `world` (20% of the frame) from this recording: if a harness change moves what the frames show,
   every frame of a scenario fails the same way and `--widescreen --record` (after `--fresh`, or the cache supplies the
   old run) brings the references up to date.
+
+**S21c (2026-10-16): the hooked mode out of the tools.** No tool starts game.exe with our code any more; the
+original-game harness (`--no-hooks`, `--widescreen --record`, EI_VECTORS) and the image's suite stay.
+- tools/run_all.py: `--hooked`, `--native`, `--dgvoodoo` and `--verified-candidates` gone (argparse refuses them).
+  run() / run_once() / run_with_retries() / cached_reference() / runs_alone() take no `hooks` (and no `dgvoodoo`): the
+  install decides. `our_code(install)`: the image's installs (standalone, standalone-rebirth); `ORIGINAL_INSTALLS`
+  (vanilla, rebirth) are always `ei_launch --no-hooks` without EI_RENDER; any other install (native, ...) fails the run
+  without a game. our_renderer / needs_old_device / render_steps / uses_hooks / wants_dgvoodoo gone, and with them
+  the `render` steps' old-device rule (on the image every run presents); a scenario at full screen at its own mode is
+  left out of every game.exe plan.
+- tools/work_sched.py: the run rows' `hooks` column now says "our code" (the image); real_runner fails a row whose
+  `hooks` does not match its install (a hooked row from a checkout before S21c) without playing it, and a batch with
+  the old options fails to parse as any unknown option did.
+- tools/compare.py: the original side as before (vanilla / rebirth, no hooks), "ours" the image on the same data
+  (standalone / standalone-rebirth); `--dgvoodoo` gone.
+- harness.cmd: the image (`--standalone`, EI_RENDER=new,present) on the vanilla data; `--no-hooks` the original.
+  launch-vanilla.cmd: the image to play. tools/setup_native_run.cmd removed (run\native only served `--native`).
+- tools/coverage.py: `collect` (EI_COVER=hooks) gone; reach.txt stays as the last hook build's collection, `list` /
+  `who` / `top` read it. tools/rebirth_coverage.py: its games are `work.py test <ID> --no-hooks --vanilla-only`
+  (EI_COVER with the patched list on the original code), scenarios left out of `--no-hooks` plans are left out of the
+  csv (so they run under Rebirth).
+- EI_VECTORS recording: since S21 the image ignores it, so it needed `--hooked`. src/hook/hook.cpp InstallHooks: with
+  EI_NO_HOOKS and EI_VECTORS both set, the recorders are the only hooks (no rewrites, no startup actions or checks);
+  record with `set EI_VECTORS=1` and `work.py test <ID> <scenarios> --no-hooks --vanilla-only`.
+- EI_PLAIN is no longer offered by any tool (hook.cpp still reads it until S21e); README, worker brief, golden.py,
+  randtrace.py updated. test_tickets.py: its Namespace lacked `model` since `work.py start --model`.
+- Runs (`work.py test S21c ... --jobs 4`): `--golden` (the image): 186 runs ALL PASS, 168 goldens the same, 0 differ
+  (again after merging main: the same). `--widescreen`: 4 runs PASS, WIDESCREEN FRAMES MATCH. `EI_VECTORS=1 units
+  sandbox_actions --no-hooks --vanilla-only`: 2 PASS, 66 recorders the only hooks (no `hooked` / `verifying` line), 94
+  .vec files; merged into a scratch folder, ei_vectors replays them with 0 problems. Tools' unit tests: 84 OK
+  (test_resolve_crash's real run now reads harness_disk_full-standalone: a -vanilla run is the original code since S21c).
+  `--no-hooks --golden`: 136 runs, 120 goldens the same, 6 differ (combat, ground_prints, sandbox_actions, unit_ai,
+  zone_gz15h_tornado on vanilla, effects_bow on Rebirth: random counts and unit fields from world update 60-840) and
+  effects_bow on Rebirth failed twice (clickunit: BowWolf1 not drawn). The same six again with `--fresh`: 10 the same and
+  two others differ (zone_gz15h_tornado and effects_bow on Rebirth). These are game.exe runs with 0 hooks installed (the
+  log the same as before S21c) and main's run_all in the scheduler, so S21c did not change them: the original's runs no
+  longer repeat. S21a's run (before WB14's loopback binds, 04:18) had 0 differ; ticket S21c1.

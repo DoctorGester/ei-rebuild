@@ -190,8 +190,8 @@ class WidescreenReferences(unittest.TestCase):
         self.assertTrue(run_all.standalone_mode(args))
         args = run_all.parse_args(['--widescreen', '--record', 'ui_widescreen'])
         self.assertEqual(run_all.plan(args), [('ui_widescreen', 'rebirth-nohooks')])
-        self.assertFalse(run_all.uses_hooks('rebirth-nohooks', args))
-        self.assertFalse(run_all.wants_dgvoodoo(args))
+        self.assertFalse(run_all.standalone_mode(args))
+        self.assertFalse(run_all.our_code(run_all.launch_install('rebirth-nohooks')))     # the original code with addon
         for bad in (['--record'], ['--widescreen', '--vanilla-only'], ['--widescreen', '--no-hooks']):
             with self.assertRaises(SystemExit):
                 run_all.plan(run_all.parse_args(bad))

@@ -1,19 +1,23 @@
 """Chooses which scenarios also run under Rebirth (config/rebirth_scenarios.csv, read by run_all.py).
 
 Rebirth changes the game only in the functions it patches (docs/rebirth-patched-functions.txt). This
-runs every scenario on vanilla with EI_COVER naming those functions (src/hook/cover.cpp logs the first
-call of each), then keeps:
+runs every scenario on vanilla's original code (run_all --no-hooks, through `work.py test`) with EI_COVER
+naming those functions (src/hook/cover.cpp logs the first call of each), then keeps:
   - scenarios that check something per install (a `rebirth` / `vanilla` step) or are about Rebirth
     (rebirth_*), and
   - greedily, the fewest more scenarios that reach every patched function any scenario reaches at
     least twice (once where only one scenario reaches it).
 Rerun it after adding scenarios or when the patched list changes; a scenario missing from the file
-runs under Rebirth until then.
+runs under Rebirth until then. Scenarios the original does not run on vanilla (run_all leaves them out of
+--no-hooks plans: "# no original: vanilla", a display mode switch) are left out of the file, so they run
+under Rebirth.
 
-usage: python tools/rebirth_coverage.py [--from-runs]   (--from-runs: reuse build/verify/runs/*-vanilla
-                                                         logs of a run made with EI_COVER set)
+usage: python tools/rebirth_coverage.py <ticket ID>   (the games, as `work.py test <ID> --no-hooks --vanilla-only`)
+       python tools/rebirth_coverage.py --from-runs   (reuse build/verify/runs/*-vanilla logs of such runs)
 """
 import collections, glob, os, re, subprocess, sys
+
+import run_all
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATCHED = os.path.join(ROOT, 'docs', 'rebirth-patched-functions.txt')
@@ -24,11 +28,14 @@ COPIES = 2
 
 def main():
     names = sorted(os.path.splitext(os.path.basename(p))[0]
-                   for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))
-    if '--from-runs' not in sys.argv:
+                   for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt'))
+                   if 'vanilla' not in run_all.no_original(p) and not run_all.switches_display(p))
+    if len(sys.argv) != 2:
+        sys.exit(__doc__)
+    if sys.argv[1] != '--from-runs':
         env = dict(os.environ, EI_COVER=PATCHED)
-        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'run_all.py'), '--vanilla-only', '--jobs', '14'],
-                       env=env, check=False)
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'work.py'), 'test', sys.argv[1], '--no-hooks',
+                        '--vanilla-only', '--jobs', '4'], env=env, check=False)
     cover = {}
     for name in names:
         log = os.path.join(RUNS, f'{name}-vanilla', 'ei_hook.log')

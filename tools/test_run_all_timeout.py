@@ -50,7 +50,7 @@ class Run(unittest.TestCase):
                 return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
 
             with mock.patch.object(subprocess, 'run', fake):
-                return run_all.run_once('x', 'vanilla', True, None, root, build, False, None, None)
+                return run_all.run_once('x', 'vanilla', None, root, build, False, None, None)
 
     def test_ei_launch_ended_the_game(self):
         result, _, failures, _, notes = self.run_scenario(
@@ -95,7 +95,7 @@ class Retries(unittest.TestCase):
             os.makedirs(folder)
             calls = []
 
-            def runner(name, install, hooks, folder_name):
+            def runner(name, install, folder_name):
                 calls.append(1)
                 if len(calls) == 1:
                     with open(os.path.join(folder, 'ei_hook.log'), 'w') as f:
@@ -106,7 +106,7 @@ class Retries(unittest.TestCase):
                 return 'PASS', 1.0, [], {}, []
 
             keep = lambda name, attempt: run_all.keep_attempt(name, attempt, build=build)
-            result, _, failures, _, _ = run_all.run_with_retries('x', 'vanilla', True, 1, 'x-vanilla', runner, keep)
+            result, _, failures, _, _ = run_all.run_with_retries('x', 'vanilla', 1, 'x-vanilla', runner, keep)
             self.assertEqual(result, 'PASS*')
             self.assertIn('x-vanilla-attempt1', failures[0])
             with open(os.path.join(build, 'runs', 'x-vanilla-attempt1', 'ei_hook.log')) as f:

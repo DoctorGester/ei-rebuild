@@ -4,7 +4,7 @@ usage: python tools/test_work_sched.py [-v]
 Each test has its own database and slot folder in a temporary directory (the machine's slots are not
 touched), so it can run beside real suites.
 """
-import datetime, json, os, subprocess, sys, tempfile, threading, time, unittest
+import contextlib, datetime, io, json, os, subprocess, sys, tempfile, threading, time, unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_all, work, work_sched
@@ -38,7 +38,7 @@ class Fake:
     def __call__(self, batch, run, retries, on_attempt):
         attempts = iter(range(retries + 1))
 
-        def one(name, install, hooks, folder):
+        def one(name, install, folder):
             on_attempt(next(attempts))
             t0 = time.time()
             time.sleep(self.durations.get(name, self.default))
@@ -48,8 +48,8 @@ class Fake:
                 seq = self.results.get(name, ['PASS'])
                 result = seq.pop(0) if len(seq) > 1 else seq[0]
             return result, t1 - t0, [] if result == 'PASS' else [f'{name} failed'], {'Fn': (3, 0)}, []
-        return run_all.run_with_retries(run['scenario'], run['install'], bool(run['hooks']), retries,
-                                        os.path.basename(run['folder']), runner=one)
+        return run_all.run_with_retries(run['scenario'], run['install'], retries, os.path.basename(run['folder']),
+                                        runner=one)
 
     def starts(self, batch=None, names=None):
         return [s for b, n, s, e in self.spans if (batch is None or b == batch) and (names is None or n in names)]
@@ -85,7 +85,7 @@ class SchedTest(unittest.TestCase):
     def submit(self, names, argv=(), expected=None, alone=(), build='b', submitter=None):
         build = f'{self.root}/{build}'
         os.makedirs(build, exist_ok=True)
-        runs =[{'scenario': n, 'install': 'vanilla', 'hooks': True, 'alone': n in alone,
+        runs =[{'scenario': n, 'install': 'vanilla', 'hooks': False, 'alone': n in alone,
                  'expected': (expected or {}).get(n), 'folder': f'{build}/runs/{n}-vanilla'} for n in names]
         return work_sched.submit(self.db, 'T1', self.root, build, list(names) + list(argv), runs, submitter)
 
@@ -289,20 +289,22 @@ class SchedTest(unittest.TestCase):
         seen = []
 
         def fake_subprocess_run(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)       # the reference cache's git
             seen.append((cmd, kw.get('env')))
             return subprocess.CompletedProcess(cmd, 0, '', '')
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
-        open(os.path.join(scenarios, 'x.txt'), 'w').write('render new\n')   # on dgVoodoo: no EI_RENDER of run_all's own (R10)
+        open(os.path.join(scenarios, 'x.txt'), 'w').write('waitmenu\n')   # the original code: no EI_RENDER of run_all's own
         build = os.path.join(self.tmp, 'bld')
         old_run, old_environ = run_all.subprocess.run, dict(os.environ)
         run_all.subprocess.run = fake_subprocess_run
         os.environ['EI_PROFILE'] = 'scheduler-own'      # the scheduler's own, not any batch's
         os.environ['EI_BUILD_DIR'] = 'whatever'
         try:
-            env = {'EI_PLAIN': '1', 'EI_PROFILE': '1'}
+            env = {'EI_VECTORS': '1', 'EI_PROFILE': '1'}
             row = {'worktree': self.tmp, 'build': build, 'env': json.dumps(env)}
-            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 1, 'folder': build + '/runs/x-vanilla'}
+            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 0, 'folder': build + '/runs/x-vanilla'}
             work_sched.real_runner(row, run, 0, lambda n: None)
             work_sched.real_runner(dict(row, env=json.dumps({})), run, 0, lambda n: None)
             work_sched.real_runner(dict(row, env=None), run, 0, lambda n: None)
@@ -313,7 +315,7 @@ class SchedTest(unittest.TestCase):
             os.environ.clear()
             os.environ.update(old_environ)
         with_env, empty, null, no_column = (e for _, e in seen)
-        self.assertEqual((with_env['EI_PLAIN'], with_env['EI_PROFILE']), ('1', '1'))
+        self.assertEqual((with_env['EI_VECTORS'], with_env['EI_PROFILE']), ('1', '1'))
         self.assertEqual(run_all.game_environment(with_env), env)
         self.assertEqual(run_all.game_environment(empty), {}, "the scheduler's own EI_PROFILE leaked into a batch")
         self.assertEqual(empty['EI_BUILD_DIR'], 'whatever')        # not a game setting: left alone
@@ -323,7 +325,7 @@ class SchedTest(unittest.TestCase):
         # and through the database: recorded at submit, absent (NULL) for a batch submitted without
         a = self.submit(['q'])
         self.assertIsNone(work_sched.batch_env(self.batch(a)))
-        runs = [{'scenario': 'q', 'install': 'vanilla', 'hooks': True, 'alone': False, 'expected': None,
+        runs = [{'scenario': 'q', 'install': 'vanilla', 'hooks': False, 'alone': False, 'expected': None,
                  'folder': f'{self.root}/b/runs/q-vanilla'}]
         b = work_sched.submit(self.db, 'T1', self.root, f'{self.root}/b', ['q'], runs, None, env=env)
         self.assertEqual(work_sched.batch_env(self.batch(b)), env)
@@ -331,16 +333,18 @@ class SchedTest(unittest.TestCase):
     def test_clock_reaches_the_game(self):
         seen = []
         def fake_subprocess_run(cmd, **kw):
+            if not is_game(cmd):
+                return REAL_RUN(cmd, **kw)       # the reference cache's git
             seen.append(kw.get('env'))
             return subprocess.CompletedProcess(cmd, 0, '', '')
         scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
         os.makedirs(scenarios)
-        open(os.path.join(scenarios, 'x.txt'), 'w').write('render new\n')   # on dgVoodoo: no EI_RENDER of run_all's own (R10)
+        open(os.path.join(scenarios, 'x.txt'), 'w').write('waitmenu\n')   # the original code: no EI_RENDER of run_all's own
         build = os.path.join(self.tmp, 'bld')
         old_run = run_all.subprocess.run
         run_all.subprocess.run = fake_subprocess_run
         try:
-            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 1, 'folder': build + '/runs/x-vanilla'}
+            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 0, 'folder': build + '/runs/x-vanilla'}
             row = {'worktree': self.tmp, 'build': build, 'env': None}
             work_sched.real_runner(dict(row, args=json.dumps(['x', '--clock', 'virtual,randtrace'])), run, 0, lambda n: None)
             work_sched.real_runner(dict(row, args=json.dumps(['x'])), run, 0, lambda n: None)
@@ -350,9 +354,9 @@ class SchedTest(unittest.TestCase):
         self.assertIsNone(seen[1])                                  # no --clock: the game inherits
 
     def test_game_environment_names(self):
-        got = run_all.game_environment({'EI_PLAIN': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
+        got = run_all.game_environment({'EI_VECTORS': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
                                         'EI_OUT_DIR': 'o', 'EI_HARNESS': 'h', 'PATH': 'p', 'WORK_DB': 'd'})
-        self.assertEqual(got, {'EI_PLAIN': '1', 'EI_PROFILE': '1'})
+        self.assertEqual(got, {'EI_VECTORS': '1', 'EI_PROFILE': '1'})
 
     # ---- WB6: machine-wide expected run times
 
@@ -497,30 +501,21 @@ class SchedTest(unittest.TestCase):
         return path
 
     def test_renderer_choice_and_alone(self):
+        """S21c: our code runs only in the image (our renderer, never alone); game.exe runs the original code on
+        dgVoodoo, alone when the scenario sets the display mode."""
         plain = self.scenario('plain', 'waitmenu\n')
-        old = self.scenario('old', 'render new\nwaitmenu\n')
-        present = self.scenario('present', 'render new,present\nresolution 800x600\n')
         wide = self.scenario('wide', 'resolution desktop\nwidescreen 1\n')
-        ours = lambda *a, environ=None, **k: run_all.our_renderer(*a, environ=environ or {}, **k)
-        self.assertTrue(ours(plain, 'vanilla', True))
-        self.assertTrue(ours(plain, 'rebirth', True))
-        self.assertTrue(ours(present, 'vanilla', True))
-        self.assertTrue(ours(present, 'vanilla', True, dgvoodoo=True))     # its own step keeps `present` on
-        self.assertTrue(ours(present, 'vanilla', True, environ={'EI_RENDER': 'new'}))
-        self.assertFalse(ours(old, 'vanilla', True))                       # compares the old path with the new frame
-        self.assertTrue(ours(old, 'native', True))                         # native has nothing else
-        self.assertFalse(ours(plain, 'rebirth', False))                    # the original code
-        self.assertFalse(ours(plain, 'vanilla', True, dgvoodoo=True))      # --dgvoodoo
-        self.assertFalse(ours(plain, 'vanilla', True, environ={'EI_RENDER': 'new'}))     # the submitter's own
-        self.assertTrue(ours(old, 'vanilla', True, environ={'EI_RENDER': 'new,present'}))
-        alone = lambda *a, **k: run_all.runs_alone(*a, environ={}, **k)
-        self.assertFalse(alone(wide, 'rebirth', True))                     # our renderer changes no display mode
-        self.assertFalse(alone(present, 'vanilla', True))
-        self.assertTrue(alone(wide, 'rebirth', False))                     # --widescreen --record's rebirth-nohooks
-        self.assertTrue(alone(wide, 'rebirth', True, dgvoodoo=True))
-        self.assertFalse(alone(plain, 'vanilla', False))
+        for install in ('standalone', 'standalone-rebirth'):
+            self.assertTrue(run_all.our_code(install))
+            self.assertFalse(run_all.runs_alone(wide, install))          # our renderer changes no display mode
+        for install in ('vanilla', 'rebirth', 'rebirth-nohooks', 'native'):
+            self.assertFalse(run_all.our_code(install))
+        self.assertTrue(run_all.runs_alone(wide, 'rebirth'))              # --widescreen --record's rebirth-nohooks
+        self.assertFalse(run_all.runs_alone(plain, 'vanilla'))
 
-    def test_game_gets_our_renderer(self):
+    def test_game_exe_runs_the_original(self):
+        """S21c: a game.exe run is always ei_launch --no-hooks without EI_RENDER, the image always --standalone with
+        our renderer; an install that is neither (native, a hooked row from an older checkout) plays no game."""
         seen = []
 
         def fake_subprocess_run(cmd, **kw):
@@ -529,25 +524,33 @@ class SchedTest(unittest.TestCase):
             seen.append((cmd, kw.get('env')))
             return subprocess.CompletedProcess(cmd, 0, '', '')
         self.scenario('plain', 'waitmenu\n')
-        self.scenario('old', 'render new\n')
         build = os.path.join(self.tmp, 'bld')
         old_run = run_all.subprocess.run
         run_all.subprocess.run = fake_subprocess_run
         try:
-            for name, hooks, kw in (('plain', True, {}), ('plain', True, {'dgvoodoo': True}), ('old', True, {}),
-                                    ('plain', True, {'game_env': {'EI_RENDER': 'new'}}), ('plain', False, {'fresh': True}),
-                                    ('plain', False, {'fresh': True, 'game_env': {'EI_RENDER': 'new,present', 'EI_PLAIN': '1'}})):
-                run_all.run(name, 'vanilla', hooks, root=self.tmp, build=build, take_slot=False, **kw)
+            for install, kw in (('vanilla', {'fresh': True}), ('rebirth', {'fresh': True}),
+                                ('vanilla', {'fresh': True, 'game_env': {'EI_RENDER': 'new,present', 'EI_VECTORS': '1'}}),
+                                ('standalone', {'game_env': {'EI_RENDER': 'new'}})):
+                run_all.run('plain', install, root=self.tmp, build=build, take_slot=False, **kw)
+            native = run_all.run('plain', 'native', root=self.tmp, build=build, take_slot=False)
+            row = {'worktree': self.tmp, 'build': build, 'env': None}
+            hooked = work_sched.real_runner(row, {'scenario': 'plain', 'install': 'vanilla', 'hooks': 1,
+                                                  'folder': build + '/runs/plain-vanilla'}, 1, lambda n: None)
         finally:
             run_all.subprocess.run = old_run
-        render = [(os.environ if e is None else e).get('EI_RENDER') for _, e in seen]
-        self.assertEqual(render[0], 'new,present')
-        self.assertEqual(render[1:3], [os.environ.get('EI_RENDER')] * 2)   # dgVoodoo: inherited as before
-        self.assertEqual(render[3], 'new')
-        self.assertEqual(render[4], os.environ.get('EI_RENDER'))
-        self.assertIn('--no-hooks', seen[4][0])
-        self.assertNotIn('EI_RENDER', seen[5][1])             # the original code: dgVoodoo whatever the submitter set
-        self.assertEqual(seen[5][1]['EI_PLAIN'], '1')
+        self.assertEqual(len(seen), 4, 'a game was played for an unknown install or a hooked row')
+        for cmd, env in seen[:3]:
+            self.assertIn('--no-hooks', cmd)
+            self.assertNotIn('--standalone', cmd)
+            self.assertNotIn('EI_RENDER', os.environ if env is None else env)
+        self.assertEqual(seen[2][1]['EI_VECTORS'], '1')                 # vector recording: the original's runs
+        self.assertIn('--standalone', seen[3][0])
+        self.assertNotIn('--no-hooks', seen[3][0])
+        self.assertEqual(seen[3][1]['EI_RENDER'], 'new,present')
+        self.assertEqual(native[0], 'FAIL')
+        self.assertIn('unknown install', native[2][0])
+        self.assertEqual(hooked[0], 'FAIL')
+        self.assertIn('standalone image', hooked[2][0])
 
     def test_standalone(self):
         """--standalone (the default since S21): every scenario, install "standalone", ei_launch --standalone on run\\vanilla's
@@ -565,8 +568,11 @@ class SchedTest(unittest.TestCase):
         both = [('boot', 'standalone'), ('boot', 'standalone-rebirth'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')]
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), both)
         self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), both)     # the default since S21
-        self.assertEqual(run_all.plan(run_all.parse_args(['--hooked', 'boot']), root=self.tmp),
+        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', 'boot']), root=self.tmp),
                          [('boot', 'vanilla'), ('boot', 'rebirth')])
+        for gone in ('--hooked', '--native', '--dgvoodoo', '--verified-candidates'):    # S21c
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                run_all.parse_args([gone, '1'] if gone == '--verified-candidates' else [gone])
         self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', '--vanilla-only', 'boot']), root=self.tmp),
                          [('boot', 'vanilla')])
         # "# no original:" leaves the original's runs out on the installs it names (S21a), and only those
@@ -585,23 +591,21 @@ class SchedTest(unittest.TestCase):
         open(os.path.join(self.tmp, 'tests', 'golden', 'wide', 'rebirth', 'golden.json'), 'w').close()
         self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp),
                          [('boot', 'standalone'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')])
-        self.assertEqual(run_all.plan(run_all.parse_args(['--hooked']), root=self.tmp), [('boot', 'vanilla')])   # wide: dgVoodoo's mode
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks']), root=self.tmp), [('boot', 'vanilla')])   # wide: dgVoodoo's mode
         os.remove(os.path.join(self.tmp, 'config', 'rebirth_scenarios.csv'))
-        with self.assertRaises(SystemExit):
-            run_all.plan(run_all.parse_args(['--standalone', '--hooked']), root=self.tmp)
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--vanilla-only', 'wide']), root=self.tmp),
                          [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--rebirth-only', 'wide']), root=self.tmp),
                          [('wide', 'standalone-rebirth')])
         with self.assertRaises(SystemExit):
             run_all.plan(run_all.parse_args(['--standalone', '--no-hooks']), root=self.tmp)
-        self.assertTrue(run_all.our_renderer(wide, 'standalone', True, environ={'EI_RENDER': 'new'}))
-        self.assertFalse(run_all.runs_alone(wide, 'standalone', True, environ={}))
+        self.assertFalse(run_all.runs_alone(wide, 'standalone'))
         build = os.path.join(self.tmp, 'bld')
         old_run = run_all.subprocess.run
         run_all.subprocess.run = fake_subprocess_run
         try:
-            notes = run_all.run('boot', 'standalone', True, root=self.tmp, build=build, take_slot=False,
+            notes = run_all.run('boot', 'standalone', root=self.tmp, build=build, take_slot=False,
                                 game_env={'EI_RENDER': 'new'})[4]
         finally:
             run_all.subprocess.run = old_run
@@ -616,7 +620,7 @@ class SchedTest(unittest.TestCase):
             f.write('[Rebirth]\nDefault=0\nNivalRegistry=1\nWideScreen=1\nMaps=0\nNPlayers=7\n')
         run_all.subprocess.run = fake_subprocess_run
         try:
-            run_all.run('boot', 'standalone-rebirth', True, root=self.tmp, build=build, take_slot=False, game_env={})
+            run_all.run('boot', 'standalone-rebirth', root=self.tmp, build=build, take_slot=False, game_env={})
         finally:
             run_all.subprocess.run = old_run
         cmd, env = seen[1]
@@ -662,16 +666,16 @@ class SchedTest(unittest.TestCase):
         run_all.subprocess.run = fake_subprocess_run
         os.environ['EI_REFERENCE_DIR'] = os.path.join(self.tmp, 'reference')
         frame = lambda: open(os.path.join(build, 'runs', 'w-rebirth-nohooks', 'frames', 'menu.bmp')).read()
-        go = lambda **k: run_all.run('w', 'rebirth', False, 'w-rebirth-nohooks', root=repo, build=build, take_slot=False,
+        go = lambda **k: run_all.run('w', 'rebirth', 'w-rebirth-nohooks', root=repo, build=build, take_slot=False,
                                      game_env={}, **k)
-        cached = lambda clock=None, environ=None, hooks=False: run_all.cached_reference('w', 'rebirth', hooks, repo, clock,
-                                                                                         environ or {})
+        cached = lambda clock=None, environ=None, install='rebirth': run_all.cached_reference('w', install, repo, clock,
+                                                                                              environ or {})
         try:
             self.assertFalse(cached())
             first = go()
             self.assertEqual((first[0], len(played)), ('PASS', 1))
             self.assertTrue(cached())
-            self.assertFalse(cached(hooks=True))                               # runs of our code: never
+            self.assertFalse(cached(install='standalone-rebirth'))             # runs of our code: never
             second = go()
             self.assertEqual(len(played), 1, 'a cached reference run was played again')
             self.assertEqual((second[0], second[3]), ('PASS', {'Fn': (3, 0)}))
@@ -684,7 +688,7 @@ class SchedTest(unittest.TestCase):
             self.assertEqual((len(played), frame()), (2, '2'))
             go()
             self.assertEqual((len(played), frame()), (2, '2'))
-            self.assertFalse(cached(environ={'EI_PLAIN': '1'}))                # other game settings
+            self.assertFalse(cached(environ={'EI_VECTORS': '1'}))              # other game settings
             self.assertFalse(cached(clock='real'))                             # another clock
             write(conf, 'b')                                                   # the install's dgVoodoo.conf changed
             self.assertFalse(cached())
