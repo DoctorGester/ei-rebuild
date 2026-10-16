@@ -2298,7 +2298,7 @@ group = "standalone"
 size = 1
 depends = ["S21a", "S21b", "SV7c2", "S20c"]
 files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "harness.cmd", "tools/coverage.py", "README.md"]
-note = "Plan: standalone.md section 5. After SV7c2 (jitter on the image's heap) and S20c. run_all: --hooked, --native, --dgvoodoo and the hooked install names out (the alone slot rule stays for --no-hooks runs that set a mode); compare.py's ours side and harness.cmd run the image; coverage's EI_COVER=hooks reach (tests/coverage) from the image's stubs or frozen; EI_PLAIN out; README's harness section. Keep --no-hooks, the reference cache and EI_VECTORS record runs of the original."
+note = "Since S20c (2026-10-16) the hooked suite shows 4 goldens differing (ui_mp_host vanilla/Rebirth, net_second_master, Rebirth rebirth_flags): the known hooked difference S20c chose not to chase; expected until the hooked mode goes."
 
 [[ticket]]
 id = "S21d"
