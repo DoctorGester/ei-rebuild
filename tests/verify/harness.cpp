@@ -1727,13 +1727,14 @@ BOOL WINAPI SetPos(HWND window, HWND after, int x, int y, int w, int h, UINT fla
 }
 bool TopLevel(DWORD style, HWND parent) { return !parent && !(style & WS_CHILD); }
 
-// WB12: in the standalone image's runs the game's windows are out of sight as well. Each top-level
-// window is cloaked (DWMWA_CLOAK: Windows still composes it, so its swap chains present as before,
+// WB12, WB12a: in every harness run (the image's and the original's) the game's windows are out of
+// sight as well. Each top-level window is cloaked (DWMWA_CLOAK: Windows still composes it, so its swap chains present as before,
 // but nothing of it reaches the screen) and made a tool window (no taskbar button, not in Alt+Tab).
 // Its position, size, visibility and messages stay as they were, so the game, the harness's posted
 // input and the frames (read from the renderer's target, harness_capture.cpp) do not change.
-// EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run). A --no-hooks run (game.exe,
-// the original) keeps its own in sight (dgVoodoo presents there).
+// The original (game.exe on dgVoodoo, windowed) presents through dgVoodoo's swap chain into its cloaked
+// window the same way, and its frames are read from the emulated render target, not the window (WB12a).
+// EI_HARNESS_SHOW_WINDOW=1 leaves the windows in sight (to watch a run).
 bool g_conceal = false;
 decltype(&::DwmSetWindowAttribute) g_dwmSet;
 decltype(&::DwmGetWindowAttribute) g_dwmGet;
@@ -1793,8 +1794,7 @@ void Patch(const char* name, T replacement, T* original = nullptr) {
 
 void Install() {
     char show[8] = "";
-    g_conceal = ei::Standalone() &&
-                !(GetEnvironmentVariableA("EI_HARNESS_SHOW_WINDOW", show, sizeof(show)) && show[0] == '1');
+    g_conceal = !(GetEnvironmentVariableA("EI_HARNESS_SHOW_WINDOW", show, sizeof(show)) && show[0] == '1');
     if (HMODULE dwm = LoadLibraryA("dwmapi.dll")) {
         g_dwmSet = reinterpret_cast<decltype(&::DwmSetWindowAttribute)>(GetProcAddress(dwm, "DwmSetWindowAttribute"));
         g_dwmGet = reinterpret_cast<decltype(&::DwmGetWindowAttribute)>(GetProcAddress(dwm, "DwmGetWindowAttribute"));

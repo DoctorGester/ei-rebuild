@@ -223,10 +223,11 @@ happen (the harness logs "share id" if one does).
   (SetForegroundWindow, BringWindowToTop, SetActiveWindow, SetFocus, SwitchToThisWindow do nothing; ShowWindow /
   SetWindowPos never activate; top-level windows get WS_EX_NOACTIVATE); the harness sends the game its WM_ACTIVATE. A
   game that lost the foreground used to be minimised and its device restores drew ISAAC numbers.
-- **Out of sight** (WB12, the image only; `EI_HARNESS_SHOW_WINDOW=1` to watch): top-level windows are cloaked
-  (DWMWA_CLOAK) and made tool windows; frames, posted input and window size stay the same. Message-only windows are
-  skipped. `noforeground::Watch` checks every 200 ms; the report's `WINDOW:` line, run_all's `game windows:` summary.
-  The original's windows are not cloaked (WB12a).
+- **Out of sight** (WB12 the image, WB12a the original; `EI_HARNESS_SHOW_WINDOW=1` to watch): top-level windows are
+  cloaked (DWMWA_CLOAK) and made tool windows; frames, posted input and window size stay the same. Message-only windows
+  are skipped. `noforeground::Watch` checks every 200 ms; the report's `WINDOW:` line, run_all's `game windows:`
+  summary. The original (game.exe, dgVoodoo windowed on D3D12) presents into its cloaked window as before and its
+  frames come from the emulated render target (harness_capture.cpp), so its goldens are the same.
 - **The harness's mouse is the only one** (S21c1, tests/verify/harness_input.cpp, both the original and the image): the
   game window's subclass answers WM_NCHITTEST with HTNOWHERE, so the user's real cursor over a window makes no
   WM_MOUSEMOVE, and the DirectInput mouse's GetDeviceState is zeroed after each read (DirectInputCreateEx's slot
