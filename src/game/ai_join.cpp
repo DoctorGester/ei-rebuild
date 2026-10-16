@@ -18,9 +18,6 @@ namespace {
 
 // The local search (thiscall): expand one round, the best open cell (x, y, cost; RET 0xC), the
 // cost of a cell (RET 8; 0x7FFFFFFF unreached), the path to a cell into a list (RET 0xC), reset.
-__declspec(naked) void __fastcall SearchExpand(void*, void*) EI_ORIGINAL(0x005C2D40)
-__declspec(naked) void __fastcall SearchBest(void*, void*, int*, int*, int*) EI_ORIGINAL(0x005C3050)
-__declspec(naked) void __fastcall SearchPathTo(void*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005C3200)
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
 void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellListFixUpOriginal((void*)a0); }
@@ -47,16 +44,16 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     bool ok = true;
     int x = 0, y = 0, open = 0, other = 0;
     for (;;) {
-        SearchExpand(forward, nullptr);
-        SearchExpand(backward, nullptr);
-        SearchBest(forward, nullptr, &x, &y, &open);
+        static_cast<LocalSearch*>(forward)->Expand();
+        static_cast<LocalSearch*>(backward)->Expand();
+        forward->Best(&x, &y, &open);
         if (open == kUnreached) {
             ok = false;
             break;
         }
         other = backward->CostAt(x, y);
         if (other < kUnreached) break;
-        SearchBest(backward, nullptr, &x, &y, &open);
+        backward->Best(&x, &y, &open);
         if (open == kUnreached) {
             ok = false;
             break;
@@ -67,8 +64,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
     if (ok) {
         if (cost) *cost = other + open;
-        SearchPathTo(forward, nullptr, x, y, path);
-        SearchPathTo(backward, nullptr, x, y, &scratch);
+        static_cast<LocalSearch*>(forward)->PathTo(x, y, path);
+        static_cast<LocalSearch*>(backward)->PathTo(x, y, &scratch);
         PathCellList reversed;
         ListAppend(path, nullptr, ListReversed(&scratch, nullptr, &reversed));
         DestroyList(reversed);

@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "model.h"
 #include "originals_library.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
@@ -29,12 +30,9 @@ struct StringSlot {
 static_assert(sizeof(StringSlot) == sizeof(stlp::string));
 
 // 005AA5F0: the manager's model of a name (figure_models.cpp).
-// 004DBCA0: reads a length-prefixed string at *cursor into a CString and advances the cursor.
-__declspec(naked) void __fastcall ReadName(mfc::CString*, const std::uint8_t**) EI_ORIGINAL(0x004DBCA0)
 // The animation state: LinkPiece (RET 0xC), FindRoot (map_object_animation_bones.cpp).
 __declspec(naked) void __fastcall LinkPiece(CFigureAnimationState*, void*, FigureModel*, const char*, const char*)
     EI_ORIGINAL(0x0050CC60)
-__declspec(naked) void __fastcall FinishLinks(CFigureAnimationState*) EI_ORIGINAL(0x0050D2E0)
 // 00480080: game::FatalError(format, ...).
 
 // The bone's cage interpolation (map_object_cage.h; RET 4: {data, size}): 0x48-byte data (a prism of
@@ -69,11 +67,11 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     {
         mfc::CString child, parent;
         for (std::uint32_t i = data[0]; i != 0; --i) {
-            ReadName(&child, &cursor);
-            ReadName(&parent, &cursor);
+            ReadPrefixedName(&child, &cursor);
+            ReadPrefixedName(&parent, &cursor);
             LinkPiece(state, nullptr, model, child, parent);
         }
-        FinishLinks(state);
+        state->FindRoot();
         if (model) model->mesh->CloseFile(data);
         else CloseFile(data);
     }

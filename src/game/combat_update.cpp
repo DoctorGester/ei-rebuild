@@ -87,8 +87,6 @@ __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUn
 __declspec(naked) void* __fastcall EventsPresence(void*, void*, const float*, CUnitServer*) EI_ORIGINAL(0x005C9770)
 __declspec(naked) void __fastcall MemoryUpdate(void*, void*, CUnitServer*, void*) EI_ORIGINAL(0x005CB850)
 __declspec(naked) void __fastcall AlarmStep(void*, void*, CUnitServer*) EI_ORIGINAL(0x005AEA80)
-__declspec(naked) void __fastcall BrainThink(void*) EI_ORIGINAL(0x005D53B0)
-__declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
 // The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
 // object (world_server.cpp); 00665440 does the player still have the unit.
 __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINAL(0x00593AF0)
@@ -255,7 +253,7 @@ int CUnitServer::UpdateServer() {
             }
         }
         AlarmStep(&voice, nullptr, this);
-        BrainThink(&brain);
+        brain.Think();
         unit->flags_ &= ~kFlagSeen8000;
         PropagateHostility();
         if ((unit->flags_ & kFlagFrozen) == 0 && keepHitDirection == 0 && state >= 0 &&
@@ -291,7 +289,7 @@ int CUnitServer::UpdateServer() {
         if (player && PlayerOwnsUnitOriginal(player, nullptr, unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {
-            BrainReset(&brain);
+            static_cast<AIBrain*>(&brain)->Reset();
             static_cast<AIAlarm*>(&voice)->Reset();
         }
         EmptyAction(&action);

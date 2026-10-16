@@ -68,8 +68,8 @@ void CWorldServer::UpdateMercBriefings() {
             mfc::CString merc;
             merc.Format(worlddata::MercNameFormat(), slot);
             unsigned key = TextKeyFromName(merc);
-            bool briefedHere = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(zoneName_),
-                                                reinterpret_cast<const unsigned char*>(worlddata::MercZoneName(slot - 1))) == 0;
+            bool briefedHere = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(zoneName_),
+                                               reinterpret_cast<const unsigned char*>(worlddata::MercZoneName(slot - 1))) == 0;
             Briefing b;
             b.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(merc), slot);
             b.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(merc), slot);
@@ -311,8 +311,8 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
     CPlayerServer* state = player->server;
     CParty* party = PartyOf(player);
     auto is = [name](const mfc::CString& variable) {
-        return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(variable)),
-                                reinterpret_cast<const unsigned char*>(name)) == 0;
+        return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(variable)),
+                               reinterpret_cast<const unsigned char*>(name)) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;

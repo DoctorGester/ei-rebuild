@@ -8,6 +8,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
@@ -156,7 +157,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
         char* a = reinterpret_cast<char*>(db_->allods.data) + i * allod::kSize;
-        if (gamecrt::mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
+        if (libcrt::Mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
             continue;
         void* mapList = a + allod::kMaps;
         DwordArraySetAtGrowOriginal(mapList, nullptr, Body(mapList).size, static_cast<std::uint32_t>(map_));

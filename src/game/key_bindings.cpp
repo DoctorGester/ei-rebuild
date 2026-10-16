@@ -73,13 +73,13 @@ void __cdecl LoadKeyBindings() {
         bool known = false;
         int command = 0;
         for (; command < kCommandCount; ++command) {
-            if (gamecrt::stricmp(Commands()[command].name, words[0]) == 0) {
+            if (libcrt::Stricmp(Commands()[command].name, words[0]) == 0) {
                 known = true;
                 break;
             }
         }
         for (int key = 0; key < kKeyNameCount; ++key) {
-            if (gamecrt::stricmp(KeyNames()[key].name, words[1]) != 0) continue;
+            if (libcrt::Stricmp(KeyNames()[key].name, words[1]) != 0) continue;
             if (known) Bindings()[Commands()[command].slot] = static_cast<signed char>(KeyNames()[key].code);
             break;
         }

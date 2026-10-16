@@ -59,9 +59,6 @@ bool BloodPrintsOn() { return *reinterpret_cast<const int*>(0x0079BD50) != 0; }
 bool FootprintsOn() { return *reinterpret_cast<const int*>(0x0079BD4C) != 0; }
 bool ScorchMarksOn() { return *reinterpret_cast<const int*>(0x0079BD54) != 0; }
 
-// 004EB1D0 (the device, thiscall, RET 8): binds `texture` to `stage` (looked up again by its name).
-__declspec(naked) int __fastcall DeviceBindNamedTexture(CTextureDevice*, void*, int /*stage*/, NamedTexture*)
-    EI_ORIGINAL(0x004EB1D0)
 // The lists' insert(position, value) (thiscall, RET 0xC; `out` receives the new node).
 __declspec(naked) void __fastcall BloodPrintsInsert(stlp::list<BloodPrint>*, void*, stlp::list<BloodPrint>::Node** /*out*/,
                                                     stlp::list<BloodPrint>::Node* /*position*/, const BloodPrint*)
@@ -287,7 +284,7 @@ int GroundPrint::Draw() {
     std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
     CTextureDevice* device = RenderDeviceObject();
-    DeviceBindNamedTexture(device, nullptr, 0, &texture_);
+    device->BindNamedTexture(0, &texture_);
     return DeviceDrawFlatOriginal(device, nullptr, positions_.data, texCoords_.data, positions_.size, indices_.data,
                                   indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }

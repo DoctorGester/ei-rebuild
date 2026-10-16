@@ -17,9 +17,6 @@ namespace {
 const Quaternion& IdentityOrientation() { return *reinterpret_cast<const Quaternion*>(0x007AF1C0); }
 const float* DefaultFigureScale() { return reinterpret_cast<const float*>(0x007AF1D0); }
 
-// Not rewritten, forwarder: 0050D3A0, the animation state lets go of every part (plain RET).
-__declspec(naked) int __fastcall AnimationReleaseParts(CFigureAnimationState* /*state*/) EI_ORIGINAL(0x0050D3A0)
-
 // The counted objects CountedRef holds: their count (+0x04) and their deletion (slot 0 with 1).
 inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
 inline int& CountOf(WoundsMaterial* material) { return material->refCount; }
@@ -75,7 +72,7 @@ void CObject3D::Destroy3D() {
     FigureRef().Assign(nullptr);
     while (effectSources.head) RemoveEffectSource(effectSources.head->data);
     if (animation) {
-        AnimationReleaseParts(animation);
+        animation->DetachMeshes();
         if (animation) {
             animation->owner = nullptr;
             animation->Release();

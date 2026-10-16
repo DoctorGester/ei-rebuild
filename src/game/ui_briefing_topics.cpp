@@ -65,8 +65,8 @@ void CBriefingScreen::FindTopics(int personId) {
         bool isConstructor;
         {
             mfc::CString start = name.Left(kConstructorPrefixLength);
-            isConstructor = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(start)),
-                                             reinterpret_cast<const unsigned char*>(ConstructorTopic())) == 0;
+            isConstructor = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(start)),
+                                            reinterpret_cast<const unsigned char*>(ConstructorTopic())) == 0;
         }
         if (isConstructor) {
             constructor = name;

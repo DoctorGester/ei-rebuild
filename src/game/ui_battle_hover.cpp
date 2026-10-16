@@ -158,8 +158,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             int exit;
             if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
             mfc::CString name(GameExitZoneOriginal(kPlayerGlue, nullptr, exit));
-            if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                                 reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
+            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
+                                reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
                 name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."
                 double value = HoverPlayerVariable(kPlayerGlue, nullptr, name);
                 const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);

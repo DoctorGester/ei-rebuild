@@ -60,7 +60,7 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         return;
     case 0x46: {  // Scroll Lock: a screenshot
         CDXSurface* capturer = RenderDeviceObject()->renderTarget_;
-        CDib* picture = CallCaptureSurface(capturer);
+        CDib* picture = CaptureSurface(capturer);
         if (!picture) return;
         mfc::CString name;
         name.Format(reinterpret_cast<const char*>(0x007930B4), ShotCounter());   // "shot%.4d.bmp"

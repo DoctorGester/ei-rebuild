@@ -20,25 +20,16 @@
 namespace scene {
 namespace {
 
-// 00449030 (below), through its address: the index of the root node (-1 when there is none).
-__declspec(naked) int __fastcall FindRootNodeAt(VtArray* /*nodes*/) EI_ORIGINAL(0x00449030)
 // CArray<node*>::SetSize (00453790, library): the node's children (+0x10C).
 using ChildArray = mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>>;
 __declspec(naked) void __fastcall ChildrenSetSize(ChildArray*, void*, int, int) EI_ORIGINAL(0x00453790)
-__declspec(naked) void __fastcall CopyRestPoseAt(SceneNode*) EI_ORIGINAL(0x004491C0)
 
 // The node's pivot and rotation copied to their rest copies.
 void CopyRest(SceneNode* node) {
     std::memcpy(&node->restRotation, &node->rotation, sizeof(Quaternion));
     std::memcpy(&node->restPivot, &node->pivot, sizeof(Vector3));
 }
-// 00449240 (below), through its address.
-__declspec(naked) void __fastcall BuildRootBoneAt(SceneSkin* /*skin*/, const SceneNode* /*node*/, int /*frames*/)
-    EI_ORIGINAL(0x00449240)
-// The bone (CAnimationNode, 0x128 bytes): constructor 00506710 (returns this), destructor body
-// 005068C0; BuildBone 004492F0 (scene_bones.cpp) and MakeFrameRelative 0044EB60
-// (scene_bone_frames.cpp), through their addresses.
-__declspec(naked) void __fastcall BoneDestruct(CAnimationNode*) EI_ORIGINAL(0x005068C0)
+// MakeFrameRelative 0044EB60 (scene_bone_frames.cpp), through its address.
 __declspec(naked) void __fastcall MakeFrameRelativeAt(CAnimationNode*, CAnimationNode*, int) EI_ORIGINAL(0x0044EB60)
 // 00453730: constructs n 40-byte frame records [pointer, count].
 __declspec(naked) void __stdcall ConstructFrameRecords(void*, int) EI_ORIGINAL(0x00453730)
@@ -64,7 +55,7 @@ ChildArray& Children(SceneNode* node) { return node->children; }
 // from `node`, then makes frames 0 .. (short)frames of the skeleton relative.
 void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames) {
     if (CAnimationNode* old = skin->root) {
-        BoneDestruct(old);
+        old->DestructBody();
         gamecrt::operator_delete(old);
     }
     void* memory = gamecrt::operator_new(sizeof(CAnimationNode));
@@ -81,7 +72,7 @@ void __fastcall CopyRestPose(SceneNode* node) {
     ChildArray& children = Children(node);
     for (int i = 0; i < children.size; ++i) {
         CopyRest(children.data[i]);
-        CopyRestPoseAt(children.data[i]);
+        CopyRestPose(children.data[i]);
     }
 }
 EI_REPLACE(0x004491C0, CopyRestPose);
@@ -110,7 +101,7 @@ int __fastcall FindRootNode(VtArray* nodeArray) {
     ChildArray& children = Children(rootNode);
     for (int i = 0; i < children.size; ++i) {
         CopyRest(children.data[i]);
-        CopyRestPoseAt(children.data[i]);
+        CopyRestPose(children.data[i]);
     }
     return root;
 }
@@ -137,7 +128,7 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
             node->rotation = q;
         }
     }
-    int root = FindRootNodeAt(nodeArray);
+    int root = FindRootNode(nodeArray);
     if (root == -1) {
         game::FatalError(NoRootNodeText());
         return 0;
@@ -179,7 +170,7 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
         q.z = -q.z;
     }
 
-    BuildRootBoneAt(skin, &nodes.data[root], frames);
+    BuildRootBone(skin, &nodes.data[root], frames);
 
     // Repeated once per mesh, as the original does.
     for (int m = 0; m < meshes.size; ++m) {

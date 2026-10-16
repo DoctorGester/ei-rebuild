@@ -334,10 +334,6 @@ void FreePieceNames(stlp::vector<stlp::string>& pieces) {
     pieces.FreeStorage();
 }
 
-// 00517110 (LoadParts, above), through its address so its wrapper runs.
-__declspec(naked) int __fastcall LoadPartsAt(CObject3D*, void*, const char*, const void*, std::uint32_t)
-    EI_ORIGINAL(0x00517110)
-
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
     return static_cast<CWorld*>(object->ManagerContext())->FigureLoader();
 }
@@ -370,7 +366,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         }
         FreePieceNames(pieces);
     }
-    LoadPartsAt(this, nullptr, model, partList, arg);
+    LoadParts(model, partList, arg);
     int classId = GetClassId();
     if ((classId == kClassUnit54 || GetClassId() == kClassUnit50) && animation) {
         animation->Play(nullptr);

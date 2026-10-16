@@ -24,10 +24,6 @@
 
 #pragma warning(disable : 4740) // naked forwarders
 
-// The two captures through their addresses, so that their verify wrappers see the calls.
-__declspec(naked) CDib* __fastcall CallCaptureSurfaceRect(CDXSurface*, const RECT*) EI_ORIGINAL(0x006D6D40)
-__declspec(naked) CDib* __fastcall CallCaptureSurface(CDXSurface*) EI_ORIGINAL(0x006D6FC0)
-
 namespace {
 
 const char* NoPixelFormatText() { return game::Text(0x0078E714); }   // "Can't get pixel format from surface.\n"
@@ -35,12 +31,6 @@ const char* CantLockText() { return game::Text(0x0078E30C); }        // "Can't l
 const char* CantUnlockText() { return game::Text(0x0078E2F4); }      // "Can't unlock surface.\n"
 
 constexpr DWORD kLockReadWait = DDLOCK_WAIT | DDLOCK_READONLY;   // 0x11
-
-// The bitmap's construction and block through their addresses (their verify wrappers).
-__declspec(naked) CDib* __fastcall ConstructSizedAt(CDib*, void*, int /*width*/, int /*height*/, int /*bitCount*/,
-                                                    std::uint32_t /*red*/, std::uint32_t /*green*/,
-                                                    std::uint32_t /*blue*/) EI_ORIGINAL(0x006D4B30)
-__declspec(naked) std::uint8_t* __fastcall AllocateBitsAt(CDib*) EI_ORIGINAL(0x006D6AB0)
 
 // The pixel sizes the capture copies; a surface of any other depth gives a bitmap with its bits
 // left as allocated.
@@ -71,10 +61,10 @@ CDib* CaptureFromFrame(const CDXSurface* self, const RECT* rect) {
     const int width = rect->right - rect->left, height = rect->bottom - rect->top;
     auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
     if (dib) {
-        ConstructSizedAt(dib, nullptr, width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask,
+        dib->ConstructSized(width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask,
                          format.dwBBitMask);
     }
-    std::uint8_t* out = AllocateBitsAt(dib);
+    std::uint8_t* out = dib->AllocateBits();
     const int pixelBytes = BytesPerPixel(self->bitsPerPixel);
     if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;
     const std::size_t rowBytes = static_cast<std::size_t>(width) * pixelBytes;
@@ -120,10 +110,10 @@ CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     if (self->result != DD_OK) app::FatalErrorCode(self->result, CantLockText());
     auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
     if (dib) {
-        ConstructSizedAt(dib, nullptr, rect->right - rect->left, rect->bottom - rect->top, self->bitsPerPixel,
+        dib->ConstructSized(rect->right - rect->left, rect->bottom - rect->top, self->bitsPerPixel,
                          format.dwRBitMask, format.dwGBitMask, format.dwBBitMask);
     }
-    std::uint8_t* out = AllocateBitsAt(dib);
+    std::uint8_t* out = dib->AllocateBits();
     if (const int pixelBytes = BytesPerPixel(self->bitsPerPixel)) {
         for (int row = rect->bottom - rect->top - 1; row >= 0; --row) {
             const std::size_t rowBytes = static_cast<std::size_t>((rect->right - rect->left) * pixelBytes);
@@ -140,6 +130,6 @@ EI_REPLACE(0x006D6D40, CaptureSurfaceRect);
 
 CDib* __fastcall CaptureSurface(CDXSurface* self) {
     const RECT whole = {0, 0, self->width, self->height};
-    return CallCaptureSurfaceRect(self, &whole);
+    return CaptureSurfaceRect(self, &whole);
 }
 EI_REPLACE(0x006D6FC0, CaptureSurface);

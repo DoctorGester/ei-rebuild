@@ -120,7 +120,6 @@ void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->R
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
-__declspec(naked) void __fastcall AIEventsDied(void*, void*, CUnitServer*) EI_ORIGINAL(0x005C97B0)
 // 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)
@@ -432,7 +431,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
     PlayAnimationOrder(copy);
-    AIEventsDied(AIEventsOf(world), nullptr, this);
+    AIEventsOf(world)->ForgetUnit(this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
             MemoryPartyMemberDied(ControllerOf(member)->brain.memory, nullptr, member, unit);

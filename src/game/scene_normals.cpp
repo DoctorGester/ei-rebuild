@@ -19,8 +19,6 @@ namespace scene {
 namespace {
 
 __declspec(naked) void __fastcall PointsSetAtGrow(PointBuffer*, void*, int, Vector3) EI_ORIGINAL(0x00452AF0)
-// 0049AEC0: the face's normal from the mesh's positions (stored at face +0x24).
-__declspec(naked) void __fastcall FaceNormal(MeshFace*, void*, const PointBuffer* /*positions*/) EI_ORIGINAL(0x0049AEC0)
 
 Vector3 GamePoint(std::uintptr_t address) {
     Vector3 p;
@@ -44,7 +42,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
         PointBuffer& positions = mesh->positions;
         FaceBuffer& faces = mesh->faces;
         normals.SetSize(0);
-        for (int f = 0; f < faces.size; ++f) FaceNormal(&faces.data[f], nullptr, &positions);
+        for (int f = 0; f < faces.size; ++f) faces.data[f].ComputeNormal(&positions);
 
         for (int v = 0; v < positions.size; ++v) {
             facesOfVertex.SetSize(0);

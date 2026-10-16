@@ -33,20 +33,15 @@
 
 namespace {
 
-// Destructor bodies not rewritten here (thiscall, plain RET): the device object's 004E68A0 and the
-// DirectDraw holder's 004EE330 (vtable 0073D770). The helper's 004FCD50 is below; its deleting
-// destructor reaches it through its address.
-__declspec(naked) void __fastcall DeviceDestructOriginal(void*) EI_ORIGINAL(0x004E68A0)
-__declspec(naked) void __fastcall DirectDrawHolderDestructOriginal(void*) EI_ORIGINAL(0x004EE330)
+// The helper's destructor body (004FCD50) is below; its deleting destructor reaches it through its
+// address.
 __declspec(naked) void __fastcall HelperDestructOriginal(void*) EI_ORIGINAL(0x004FCD50)
 
 using State = RenderPresetRecord::State;
 using StateVector = stlp::vector<State>;
 
-// The helper's own calls of its constructor (through their addresses): 004FCE90 the state list of
-// built-in preset `index` (RET 8, AL), 004FD2A0 slot 1 without the vtable (RET 0xC).
-__declspec(naked) bool __fastcall BuiltInStateListOriginal(CRenderHelper*, void*, StateVector* /*states*/,
-                                                           unsigned /*index*/) EI_ORIGINAL(0x004FCE90)
+// The helper's own call of its constructor (through its address): 004FD2A0 slot 1 without the
+// vtable (RET 0xC).
 __declspec(naked) CRenderPreset* __fastcall RecordOriginal(CRenderHelper*, void*, const StateVector* /*states*/,
                                                            int /*index*/, std::uint32_t /*single stage (low byte)*/)
     EI_ORIGINAL(0x004FD2A0)
@@ -381,7 +376,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     Resize(&presets_, CRenderHelper::kPresetCount, static_cast<CRenderPreset*>(nullptr));
     StateVector states;
     for (unsigned index = 0; index < CRenderHelper::kPresetCount; ++index) {
-        if (BuiltInStateListOriginal(this, nullptr, &states, index)) {
+        if (RenderHelperBuiltInStateList(&states, index)) {
             RecordOriginal(this, nullptr, &states, static_cast<int>(index), flag);
         }
     }
@@ -478,14 +473,14 @@ EI_REPLACE(0x004FD900, RenderBaseDelete);
 
 // 004E6880: the device object's (vtable 0073D760).
 void* __fastcall DeviceDelete(void* self, void*, unsigned flags) {
-    DeviceDestructOriginal(self);
+    static_cast<CTextureDevice*>(self)->Destruct();
     return DeleteIf(self, flags);
 }
 EI_REPLACE(0x004E6880, DeviceDelete);
 
 // 004EE310: the DirectDraw holder's.
 void* __fastcall DirectDrawHolderDelete(void* self, void*, unsigned flags) {
-    DirectDrawHolderDestructOriginal(self);
+    static_cast<CTextureDevice*>(self)->DestructDirectDraw();
     return DeleteIf(self, flags);
 }
 EI_REPLACE(0x004EE310, DirectDrawHolderDelete);
@@ -509,9 +504,6 @@ MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self) {
 EI_REPLACE(0x004F0DB0, MatrixStackConstruct);
 
 namespace {
-
-// 004F0DB0 through its address: the verify build's wrapper runs there.
-__declspec(naked) MatrixStack* __fastcall MatrixStackConstructOriginal(MatrixStack*) EI_ORIGINAL(0x004F0DB0)
 
 const char* TransformLibraryName() { return reinterpret_cast<const char*>(0x0078EC0C); }   // "3DfpFPU.dll"
 const char* TransformFunctionName() { return reinterpret_cast<const char*>(0x0078EBD4); }  // "GetTLPipeline"
@@ -548,7 +540,7 @@ CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* f
     refs_ = 0;
     std::memset(unused_08, 0, sizeof(unused_08));
     ei::SetVtable(this, 0x0073D768);
-    for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstructOriginal(&stacks_[i]);
+    for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstruct(&stacks_[i]);
     ei::SetVtable(this, 0x0073D778);
 
     std::optional<stlp::string> path;   // freed by hand before a throw

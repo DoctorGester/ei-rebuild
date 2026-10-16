@@ -21,10 +21,6 @@ constexpr std::uintptr_t kSpellManagerClassName = std::uintptr_t(0x007958F8);  /
 constexpr std::uintptr_t kSpellManagerFolder = std::uintptr_t(0x007947FC);     // "spells"
 constexpr std::uintptr_t kSpellContainerClassName = std::uintptr_t(0x007959E0);  // "CSpellContainer"
 
-// The constructors through their game addresses, so their verify wrappers see the factory's calls.
-__declspec(naked) CSpell* __fastcall ConstructSpellAt(void*) EI_ORIGINAL(0x0068B1F0)
-__declspec(naked) CSpellContainer* __fastcall ConstructSpellContainerAt(void*) EI_ORIGINAL(0x0068BA80)
-
 // Every container of a sequence loses a reference (slot 4), in iterator order; the walk stops at
 // the first entry without a container.
 void ReleaseContainers(SpellSequence* sequence) {
@@ -82,9 +78,9 @@ EI_REPLACE_METHOD(0x00688EC0, CSpellManager::CreateSpellObject);
 
 CEngineObject* CSpellManager::NewObjectImpl(int type) {
     if (type == kClassSpell) {
-        if (void* memory = gamecrt::operator_new(sizeof(CSpell))) return ConstructSpellAt(memory);
+        if (void* memory = gamecrt::operator_new(sizeof(CSpell))) return static_cast<CSpell*>(memory)->Construct();
     } else if (type == kClassSpellContainer) {
-        if (void* memory = gamecrt::operator_new(sizeof(CSpellContainer))) return ConstructSpellContainerAt(memory);
+        if (void* memory = gamecrt::operator_new(sizeof(CSpellContainer))) return static_cast<CSpellContainer*>(memory)->Construct();
     }
     return nullptr;
 }

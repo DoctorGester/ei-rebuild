@@ -61,7 +61,6 @@ inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) 
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
 __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
-__declspec(naked) Vector3* __fastcall MotionDestination(void*, void*, Vector3* /*out*/) EI_ORIGINAL(0x005C7D00)
 // UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample (005C6270 Clear is in originals_ai.h).
 // The controller's functions rewritten elsewhere: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
@@ -315,7 +314,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
             Vector3 destination;
-            const Vector3* at = MotionDestination(route.bytes(), nullptr, &destination);
+            const Vector3* at = static_cast<AIPath*>(route.bytes())->Destination(&destination);
             if (!CanReachTarget(order)) return false;
             float x = unit->position.x, y = unit->position.y, z = unit->position.z;
             unit->position.x = at->x;

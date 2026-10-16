@@ -30,19 +30,12 @@ void __cdecl free(void* p);                     // 006EA8AD
 int __cdecl rand();                             // 006E77F7
 void __cdecl srand(unsigned seed);              // 006E77EA
 int __cdecl tolower(int c);                     // 006EBA53
-int __cdecl toupper(int c);                     // 006E91C0
 int __cdecl strnicmp(const char* a, const char* b, std::size_t n); // 006FA1A0
-int __cdecl stricmp(const char* a, const char* b);                 // 006F2230
 char* __cdecl strncpy(char* dst, const char* src, std::size_t n);  // 006E7E80
 int __cdecl strncmp(const char* a, const char* b, std::size_t n);  // 006E9180
-int __cdecl isalpha(int c);                                        // 006E92FB
 int __cdecl isdigit(int c);                                        // 006E9379
 int __cdecl isspace(int c);                                        // 006E93CE
-int __cdecl isprint(int c);                                        // 006E944C
 int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
-int __cdecl sscanf(const char* text, const char* format, ...);     // 006EAEEC
-char* __cdecl itoa(int value, char* buffer, int radix);            // 006E9B36 _itoa (returns `buffer`)
-int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767 _mbsicmp
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
 
 // A table of the game CRT's own tolower (006EBA53) for every byte, for the CRT's current LC_CTYPE
@@ -70,9 +63,6 @@ double __cdecl asin(double s);                                // 006E83D4
 // fmod: the C entry beside _CIfmod 006E95AA (the same FPREM loop; the result is left unrounded in
 // ST0).
 double __cdecl fmod(double x, double y);                      // 006E95A0
-// _controlfp: sets the FPU control word bits in `mask` to `value`; returns the new word (the
-// terrain lighting 006C3A00 switches to chop rounding with it).
-unsigned __cdecl controlfp(unsigned value, unsigned mask);    // 006EBBB4
 // The game's _ftol (006E853C) for a value computed in C++: the low 32 bits of the 64-bit
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
@@ -112,14 +102,9 @@ static_assert(sizeof(FindData) == 0x118);
 // _findfirst (006EB832): the search handle (a Win32 find handle; the game never closes it), or -1.
 long __cdecl findfirst(const char* pattern, FindData* data);
 
-// _splitpath (006E8BEE): the parts of a path (each buffer may be null).
-void __cdecl splitpath(const char* path, char* drive, char* dir, char* name, char* ext);
-// ceil (006E8B1F): the result in ST0.
-double __cdecl ceil(double value);
-// _set_new_handler (006E8D35): the handler operator new calls when the heap is exhausted (it returns
-// nonzero to have the allocation tried again); returns the previous one.
+// The handler operator new calls when the heap is exhausted (it returns nonzero to have the
+// allocation tried again; _set_new_handler 006E8D35 sets it).
 using NewHandler = int(__cdecl*)(std::size_t);
-NewHandler __cdecl set_new_handler(NewHandler handler);
 
 #ifdef EI_VECTORS_REPLAY
 // ei_vectors.exe (tests/vectors/replay_crt.cpp) defines operator_new, operator_delete, malloc, free,

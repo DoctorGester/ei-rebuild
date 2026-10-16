@@ -433,7 +433,7 @@ Ostream* Ostream::PutDouble(double value) {
         format[last] = 'f';
     } else {
         if (field == Ios::kScientific) format[last] = 'e';
-        if (ios.flags & Ios::kUppercase) format[last] = static_cast<char>(gamecrt::toupper(format[last]));
+        if (ios.flags & Ios::kUppercase) format[last] = static_cast<char>(Toupper(format[last]));
     }
     // 24 bytes in VC6 (a fixed value past 10^22 overruns its stack); room here.
     char text[512];

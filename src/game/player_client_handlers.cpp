@@ -1,5 +1,6 @@
 // CPlayerClient's remaining message handlers and its slot 14 (A-H23). See player_client.h and
 // docs/notes/objects.md ("Players").
+#include "effects.h"
 #include "player_client.h"
 
 #include "camera.h"
@@ -49,19 +50,10 @@ const Quaternion& FixedViewRotation() { return *reinterpret_cast<const Quaternio
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 double ExeDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
 
-// The client world's functions not rewritten yet.
-// 005662B0 (RET 4): centres on a point.
-__declspec(naked) void __fastcall ClientCentreOn(CWorldClient*, void*, const Vector3*) EI_ORIGINAL(0x005662B0)
-// 00566C10 (RET 4): stores a value at +0x7C0.
-__declspec(naked) void __fastcall ClientSetValue7C0(void* /*world*/, void*, int) EI_ORIGINAL(0x00566C10)
 // 00564190 (RET 8): a point and a dword (message 0x72).
 __declspec(naked) void __fastcall ClientPointMessage(CWorldClient*, void*, const Vector3*, int) EI_ORIGINAL(0x00564190)
 // 005683B0 (RET 4): reads its part of the message stream (message 0x73).
 __declspec(naked) void __fastcall ClientReadStream(CWorldClient*, void*, BitStream*) EI_ORIGINAL(0x005683B0)
-// 0056DE80: its units (class 0x50) of the +0xB8 list run 00538DB0 (game state 3).
-__declspec(naked) void __fastcall ClientRefreshUnits(CWorldClient*) EI_ORIGINAL(0x0056DE80)
-// 004E3FC0 (RET 8): the weather's kind and strength.
-__declspec(naked) void __fastcall WeatherSet(void*, void*, int /*kind*/, float /*strength*/) EI_ORIGINAL(0x004E3FC0)
 
 CEngineObject* FindClientUnit(int id) { return WorldFindUnit(WorldClient(), nullptr, id); }
 
@@ -91,7 +83,7 @@ int CPlayerClient::OnCameraPlacement() {
     in_.Read(&heading, 4);
     int mode;
     const int result = static_cast<int>(in_.Read(&mode, 4));
-    ClientCentreOn(WorldClient(), nullptr, &point);
+    WorldClient()->CentreOn(&point);
     CCamera* camera = camera::TheCamera();
     const char* zone = Owner()->Party()->zone_;
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zone),
@@ -122,7 +114,7 @@ int CPlayerClient::OnGameState() {
     player->sessionKind100_ = state;
     TheInterface()->CreateScreen(state);
     WorldTick() = tick;
-    if (state == kGameStateBetweenZones) ClientRefreshUnits(WorldClient());
+    if (state == kGameStateBetweenZones) WorldClient()->LoadUnitFaces();
     for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
         AsConnection(this)->UnitChanged(static_cast<CUnit*>(node->value));
     if (IsMultiplayerClient()) FlowUpdateFromServerOriginal(Flow());
@@ -172,7 +164,7 @@ int CPlayerClient::OnWorldValue() {
     in_.Read(bytes, 5);
     int value;
     std::memcpy(&value, bytes + 1, 4);
-    ClientSetValue7C0(Owner()->ManagerContext(), nullptr, value);
+    static_cast<CWorldClient*>(Owner()->ManagerContext())->SetWorldValue(value);
     return 1;
 }
 
@@ -306,7 +298,7 @@ int CPlayerClient::OnWeather() {
     std::uint8_t bytes[3];
     in_.Read(bytes, 3);
     const int strength = bytes[1] | (bytes[2] << 8);
-    WeatherSet(Weather(), nullptr, bytes[0], static_cast<float>(strength));
+    static_cast<CRainSnow*>(Weather())->Start(bytes[0], static_cast<float>(strength));
     return 1;
 }
 

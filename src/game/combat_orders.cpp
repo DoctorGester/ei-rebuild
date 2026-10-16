@@ -80,8 +80,6 @@ void TellParty(CUnit* unit, int message) {
 
 // Not rewritten (forwarders).
 // 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
-// 00595020. CWorldServer: `unit` used the scroll `item` up.
-__declspec(naked) void __fastcall WorldUseScroll(void*, void*, CUnit*, CItem*) EI_ORIGINAL(0x00595020)
 
 __declspec(naked) bool CUnitServer::PlanOrder(UnitAction*, int) EI_ORIGINAL(0x0054E600)
 
@@ -248,7 +246,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
             WorldCastSpellOriginal(world, nullptr, carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
-            WorldUseScroll(world, nullptr, unit, scroll);
+            static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
             return;
         }
     }
@@ -283,7 +281,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
             if (!spellCarrier || !spellCarrier->spell_) return;
             WorldCastSpellOriginal(world, nullptr, spellCarrier->spell_, unit, &unit->position, target,
                                    &reinterpret_cast<CUnit*>(target)->position, 0);
-            WorldUseScroll(world, nullptr, unit, scroll);
+            static_cast<CWorldServer*>(world)->UseItemUp(unit, scroll);
             return;
         }
     }

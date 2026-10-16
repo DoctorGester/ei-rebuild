@@ -24,11 +24,6 @@ constexpr std::uintptr_t kNoLibraryText = std::uintptr_t(0x0078ED40);     // "CV
 constexpr std::uintptr_t kNoFunctionText = std::uintptr_t(0x0078ED7C);    // "... have no function \"GetGraphicsProcessor\".\n"
 
 
-// 004F0B90 (RET 4): the transform pipeline's constructor (loads 3DfpFPU.dll from `folder`;
-// render_helper.cpp), through its address: the verify build's wrapper runs there.
-__declspec(naked) CTransformPipeline* __fastcall PipelineConstruct(void* /*memory*/, void*, const char* /*folder*/)
-    EI_ORIGINAL(0x004F0B90)
-
 } // namespace
 
 void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* settings) {
@@ -36,7 +31,7 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
         reinterpret_cast<const std::uint8_t*>(settings) + options::field::kWorkPath);
 
     void* memory = gamecrt::operator_new(kPipelineSize);
-    CTransformPipeline* pipeline = memory ? PipelineConstruct(memory, nullptr, workPath) : nullptr;
+    CTransformPipeline* pipeline = memory ? static_cast<CTransformPipeline*>(memory)->TransformPipelineConstruct(workPath) : nullptr;
     CTransformPipeline* old = pipeline_;
     pipeline_ = pipeline;
     if (pipeline) ++pipeline->refs_;

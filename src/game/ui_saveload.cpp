@@ -289,7 +289,7 @@ constexpr std::uintptr_t kPlainFormat = std::uintptr_t(0x0079190C);     // "%s"
 __declspec(naked) mfc::CString* __fastcall EntryZoneTitle(SaveEntry*, void*, void* /*out*/) EI_ORIGINAL(0x00653BD0)
 
 bool SameFolder(const char* folder, std::uintptr_t name) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
 }
 } // namespace
 

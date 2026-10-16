@@ -123,9 +123,6 @@ void SetFlag784751(std::uint8_t value) { Global<std::uint8_t>(0x00784751) = valu
 // 0044C470 (cdecl): an error message; returns a value whose low byte the caller clears.
 unsigned __cdecl ErrorMessage(const char* a0) { return game::DebugLog(a0); }
 
-// 005DB9E0 through its address (the verify wrapper sees the call).
-__declspec(naked) long __fastcall HolderFillAt(CDXSurface*, void*, RECT*, std::uint32_t) EI_ORIGINAL(0x005DB9E0)
-
 void Blt(CDXSurface* target, RECT* to, CDXSurface* source, RECT* from) {
     gameapi::EnterCriticalSection(DeviceLock());
     ComCall(target->surface, kBlt, to, source->surface, from, kBltWait, static_cast<void*>(nullptr));
@@ -311,7 +308,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
         // drawn to the primary: the new frames fill the screen themselves (render::Fill below).
         CTextureDevice* device = DeviceObject();
         gameapi::EnterCriticalSection(DeviceLock());
-        device->lastLoadResult_ = HolderFillAt(device->primary_, nullptr, &device->screen_, 0);
+        device->lastLoadResult_ = device->primary_->Fill(&device->screen_, 0);
         gameapi::LeaveCriticalSection(DeviceLock());
         RendererClearOriginal(RendererObject());
     }

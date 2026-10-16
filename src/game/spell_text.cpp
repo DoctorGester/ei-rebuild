@@ -107,7 +107,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
         constructor->CallAddModifier(FindModifier(code));
     }
 
-    if (!constructor->CallEndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
+    if (!constructor->EndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
     CSpell* spell = constructor->container_->Spell()->Clone(this);
     constructor->CallSetManager(nullptr);
     return spell;

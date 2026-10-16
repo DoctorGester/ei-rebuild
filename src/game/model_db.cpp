@@ -1,6 +1,8 @@
 // Databases read at startup from database.res (prints.db, acks.db; 006D0000-006E0000) and the
 // world's water level changes (006D4400).
+#include "acks_db.h"
 #include "model.h"
+#include "terrain.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -31,19 +33,14 @@ __declspec(naked) void __fastcall DestroyAck3(void*, void*) EI_ORIGINAL(0x006DCA
 __declspec(naked) void __fastcall ResizeAcks(void*, void*, unsigned) EI_ORIGINAL(0x006DB9C0)
 __declspec(naked) void __fastcall ResizeAcks2(void*, void*, unsigned) EI_ORIGINAL(0x006DBBD0)
 __declspec(naked) void __fastcall ResizeAcks3(void*, void*, unsigned) EI_ORIGINAL(0x006DBE20)
-// acks.db record Serialize functions (acks_db.cpp), called through their addresses so that their
-// verify wrappers run.
-__declspec(naked) void __fastcall SerializeAck(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3780)
-__declspec(naked) void __fastcall SerializeAck2(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3FD0)
-__declspec(naked) void __fastcall SerializeAck3(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3DC0)
 
 // How each instantiation serialises a record: prints.db records through their vtable, acks.db
 // records by a direct call.
 void SerializePrint(void* record, ChunkArchive* ar) { static_cast<PrintRecord*>(record)->Serialize(ar); }
 void SerializePrint2(void* record, ChunkArchive* ar) { static_cast<PrintRecord2*>(record)->Serialize(ar); }
-void SerializeAckRecord(void* record, ChunkArchive* ar) { SerializeAck(record, nullptr, ar); }
-void SerializeAck2Record(void* record, ChunkArchive* ar) { SerializeAck2(record, nullptr, ar); }
-void SerializeAck3Record(void* record, ChunkArchive* ar) { SerializeAck3(record, nullptr, ar); }
+void SerializeAckRecord(void* record, ChunkArchive* ar) { static_cast<acks::UnitAcks*>(record)->Serialize(ar); }
+void SerializeAck2Record(void* record, ChunkArchive* ar) { static_cast<acks::ModelAcks*>(record)->Serialize(ar); }
+void SerializeAck3Record(void* record, ChunkArchive* ar) { static_cast<acks::ExtraAcks*>(record)->Serialize(ar); }
 
 // The body shared by the vector serialisers (one template instantiation per record type in the
 // original). Loading destroys the old records, resizes to the number of record chunks and reads
@@ -83,9 +80,6 @@ void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
 }
 
 // The hooks of the records' slot 0 (a virtual: registered through these shims).
-
-// 006CC7F0: the terrain's water level `index` is set to `level` (thiscall on the world).
-__declspec(naked) void __fastcall ApplyWaterLevel(void* /*world*/, void*, int /*index*/, float /*level*/) EI_ORIGINAL(0x006CC7F0)
 
 } // namespace
 
@@ -196,7 +190,7 @@ void TweenReadEntries(TweenArray& a, ScriptStream* stream, int unread) {
 void __fastcall TweenLoad(TweenArray* tweens, void*, ScriptStream* stream, void* world) {
     // The original reads the count into its `stream` argument slot.
     TweenReadEntries(*tweens, stream, reinterpret_cast<int>(stream));
-    for (int i = 0; i < tweens->size; ++i) ApplyWaterLevel(world, nullptr, tweens->data[i].key, tweens->data[i].value);
+    for (int i = 0; i < tweens->size; ++i) static_cast<Terrain*>(world)->SetWaterLevel(tweens->data[i].key, tweens->data[i].value);
 }
 EI_REPLACE(0x006D45D0, TweenLoad);
 

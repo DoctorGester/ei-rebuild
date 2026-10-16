@@ -119,10 +119,6 @@ std::uint32_t IndexIn(const RecordTable& table, const ItemRecordHead* record, in
     return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<const char*>(record) - table.begin) / stride);
 }
 
-// Called through their game addresses so the verify wrappers see the nested calls.
-__declspec(naked) void __fastcall CallItemSetSpell(CItem*, void*, CSpell*) EI_ORIGINAL(0x006A0520)
-__declspec(naked) BOOL __fastcall CallBuild(CItemConstructor*) EI_ORIGINAL(0x006A5D60)
-
 #pragma warning(disable : 4740) // naked forwarders
 
 } // namespace
@@ -250,7 +246,7 @@ BOOL CItemConstructor::SetSpellObject(CSpell* spell) {
 EI_REPLACE_METHOD(0x006A5CE0, CItemConstructor::SetSpellObject);
 
 CItem* CItemConstructor::EndCreateItem() {
-    if (!CallBuild(this)) {
+    if (!Build()) {
         item_->Release();
         item_ = nullptr;
         return nullptr;
@@ -376,7 +372,7 @@ BOOL CItemConstructor::Build() {
         CSpellManager* spellManager = static_cast<CManagerContext*>(manager_->context_)->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText(static_cast<const char*>(static_cast<const QuickItemRecord*>(prototype)->text7C));
         spell_ = spell;
-        CallItemSetSpell(item_, nullptr, spell);
+        item_->SetSpell(spell);
     } else if (spell_) {
         item_->AttachSpell(spell_);
     }

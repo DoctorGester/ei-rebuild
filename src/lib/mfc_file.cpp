@@ -1,4 +1,5 @@
 // MFC 4.2's CFile, CStdioFile and CFileFind, registered at their library addresses (mfc_file.h).
+#include "crt.h"
 #include "mfc_file.h"
 
 #include "ei/hook.h"
@@ -784,7 +785,7 @@ CString CFileFind::GetFilePath() const {
 CString CFileFind::GetFileTitle() const {
     const CString path = Virtuals(this)->GetFilePath();
     CString title;
-    gamecrt::splitpath(path, nullptr, nullptr, title.GetBuffer(MAX_PATH), nullptr);
+    libcrt::Splitpath(path, nullptr, nullptr, title.GetBuffer(MAX_PATH), nullptr);
     title.ReleaseBuffer(-1);
     return title;
 }

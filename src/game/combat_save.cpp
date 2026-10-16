@@ -1,9 +1,12 @@
 // CUnitServer's Load and Save slots (vtable 0073EF38 slots 9 and 10). See combat.h and
 // docs/notes/combat.md ("Rewritten").
+#include "ai_alarm.h"
+#include "ai_map.h"
 #include "combat.h"
 
 #include "map_object.h"
 #include "object.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -49,20 +52,10 @@ void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
 } // namespace
 
 namespace {
-// Not rewritten (forwarders):
-// 005B2430 / 005B2570: the motion object at +0x3C.
-__declspec(naked) void __fastcall MotionLoad(void*, void*, CStream*) EI_ORIGINAL(0x005B2430)
-__declspec(naked) void __fastcall MotionSave(void*, void*, CStream*) EI_ORIGINAL(0x005B2570)
 // 00544EF0 / 00544F60: the plan's own AnimationList part (its fields +0x18.. follow here).
 __declspec(naked) void __fastcall PlanLoad(void*, void*, CStream*) EI_ORIGINAL(0x00544EF0)
 __declspec(naked) void __fastcall PlanSave(void*, void*, CStream*) EI_ORIGINAL(0x00544F60)
 // 0050E220 / 0050E290: a counted reference by id (load resolves through `context`).
-// 005D8310 / 005D8860: the AI brain at +0x980.
-__declspec(naked) void __fastcall BrainLoad(void*, void*, CStream*) EI_ORIGINAL(0x005D8310)
-__declspec(naked) void __fastcall BrainSave(void*, void*, CStream*) EI_ORIGINAL(0x005D8860)
-// 005AEC40 / 005AEC80: the voice at +0xB10.
-__declspec(naked) void __fastcall VoiceLoad(void*, void*, CStream*) EI_ORIGINAL(0x005AEC40)
-__declspec(naked) void __fastcall VoiceSave(void*, void*, CStream*) EI_ORIGINAL(0x005AEC80)
 // 00403F40 CBaseManager::FindObject (base_manager.cpp), through its game address.
 
 // Resolves an id read from the stream in `manager` (-1: none).
@@ -175,7 +168,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&animationHeld, 1);
     LoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
-    MotionLoad(&motion, nullptr, stream);
+    static_cast<AIPath*>(&motion)->LoadPath(stream);
     PlanLoad(&currentPlan, nullptr, stream);
     LoadPlanFields(stream, &currentPlan);
     stream->Read(&keepHitDirection, 1);
@@ -202,8 +195,8 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&tamerSide, 4);
     stream->Read(&speedClass, 4);
     stream->Read(&claimedHostile, 4);
-    BrainLoad(&brain, nullptr, stream);
-    VoiceLoad(&voice, nullptr, stream);
+    static_cast<AIBrain*>(&brain)->Load(stream);
+    static_cast<AIAlarm*>(&voice)->Load(stream);
     stream->Read(&orderStopped, 1);
     stream->Read(&deathReported, 1);
     stream->Read(&sinkSpeed, 4);
@@ -239,7 +232,7 @@ void CUnitServer::SaveServer(CStream* stream) {
     WriteCopy(stream, animationHeld);
     SaveStepList(&queue, stream);
     WriteCopy(stream, queue.extra);
-    MotionSave(&motion, nullptr, stream);
+    motion.SavePath(stream);
     PlanSave(&currentPlan, nullptr, stream);
     SavePlanFields(stream, &currentPlan);
     WriteCopy(stream, keepHitDirection);
@@ -264,8 +257,8 @@ void CUnitServer::SaveServer(CStream* stream) {
     WriteCopy(stream, tamerSide);
     WriteCopy(stream, speedClass);
     WriteCopy(stream, claimedHostile);
-    BrainSave(&brain, nullptr, stream);
-    VoiceSave(&voice, nullptr, stream);
+    static_cast<AIBrain*>(&brain)->Save(stream);
+    static_cast<AIAlarm*>(&voice)->Save(stream);
     WriteCopy(stream, orderStopped);
     WriteCopy(stream, deathReported);
     stream->Write(&sinkSpeed, 4);   // the float's bits

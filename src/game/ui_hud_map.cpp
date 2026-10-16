@@ -319,7 +319,7 @@ void CHudMap::BuildMarkers() {
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
         float x, y;
-        if (gamecrt::stricmp(world->exits_[i].target, "none") != 0) {
+        if (libcrt::Stricmp(world->exits_[i].target, "none") != 0) {
             float centre[2];
             world->ExitCentre(centre, i);
             if (out.Place(centre[0], centre[1], &x, &y)) {

@@ -202,7 +202,7 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, c
         return nullptr;
     }
     for (int i = 0; i < static_cast<int>(database->count); ++i)
-        if (gamecrt::stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
+        if (libcrt::Stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
     return nullptr;
 }
 EI_REPLACE_METHOD(0x00512F60, CBaseManager::FindFigureAnimation);

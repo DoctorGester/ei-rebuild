@@ -64,8 +64,8 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 }
 
 bool SameFolder(const char* folder, std::uintptr_t name) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(folder),
-                            reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(folder),
+                           reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
 }
 
 } // namespace

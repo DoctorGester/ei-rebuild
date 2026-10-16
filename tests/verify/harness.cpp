@@ -238,6 +238,8 @@
 #include "../../src/game/originals_ui.h"
 #include "../../src/game/originals_world.h"
 #include "../../src/render/render.h"
+#include "game/object_tables.h"
+#include "game/player_messages.h"
 #include "game/ui.h"
 
 #include <windows.h>
@@ -285,8 +287,6 @@ constexpr std::uintptr_t kClassTemplates = 0x007AA5D8;
 // in map.txt order from 0 (its "#exit n" minus 1, as the map database stores the exits' targets);
 // Redeploy (00590700) puts the party at the centre of that exit's deploy rectangle, or at (0, 0)
 // when the zone has no such exit.
-__declspec(naked) void __fastcall LeaveToZoneOriginal(void* /*connection*/, void*, const char* /*zone*/, int /*exit*/)
-    EI_ORIGINAL(0x0066F310)
 
 constexpr std::uintptr_t kServerWorld = 0x007AFF60;
 // The server world's +0x5C, which the flow passes to the client world's SetPlayer (00566CE0). It is
@@ -1281,7 +1281,6 @@ void PostRegionMouse(const std::string& verb, int index) {
 // step tries the rectangle's centre and then a grid inside it until 00565E40 answers with the
 // unit, so a click there selects or orders that unit and no other in front of it.
 // 00461360 (__fastcall) turns the script name into the id AddUnitToServer gave the unit.
-__declspec(naked) int __fastcall HarnessObjectIdFromName(const char*) EI_ORIGINAL(0x00461360)
 __declspec(naked) void* __fastcall HarnessUnitAtPoint(void* /*client world*/, void*, int* /*x, y*/) EI_ORIGINAL(0x00565E40)
 constexpr std::uintptr_t kClientWorld = 0x007AF5B8;
 constexpr int kClientPickList = 0xF0;
@@ -1293,7 +1292,7 @@ constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 require
 std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
     std::string label = std::string(what ? what : "waitunit") + " " + name;
     const bool byId = name[0] == '#';   // a map object: the battle screen's object pick
-    int id = byId ? std::atoi(name + 1) : HarnessObjectIdFromName(name);
+    int id = byId ? std::atoi(name + 1) : TextKeyFromName(name);
     auto* world = reinterpret_cast<std::uint8_t*>(kClientWorld);
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
     if (!header) return label + ": no pick list (not in a game)";
@@ -2249,7 +2248,7 @@ void RunSteps() {
             } else {
                 int kind = *reinterpret_cast<const int*>(record + kZoneRecordKind);
                 Log("harness: zone %s (map.txt type %s), exit %d", name, kind == 0 ? "game" : kind == 2 ? "brief" : "edge", exitIndex);
-                LeaveToZoneOriginal(connection, nullptr, name, exitIndex);
+                static_cast<CPlayerServer*>(connection)->LeaveToZone(name, exitIndex);
                 if (ConnectionState(connection) != 3)
                     g_failures.push_back(std::string("zone ") + name + ": LeaveToZone did not leave (the leader dead or missing?; " +
                                          DescribeLocalPlayer() + ")");

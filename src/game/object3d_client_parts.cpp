@@ -367,7 +367,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         bool named;
         {
             mfc::CString copy(name);
-            named = gamecrt::mbsicmp(Bytes(copy), Bytes(game::Text(kNoneText))) != 0;
+            named = libcrt::Mbsicmp(Bytes(copy), Bytes(game::Text(kNoneText))) != 0;
         }
         if (!named) continue;
         TextureParts* set = partSets[k];

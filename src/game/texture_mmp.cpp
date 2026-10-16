@@ -38,9 +38,6 @@ int MipmapsEnabled() { return *reinterpret_cast<const int*>(0x0079BCE0); }
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 
-// 006908E0 through its game address (so its verify wrapper sees the call).
-__declspec(naked) std::uint32_t __fastcall CallMipOffset(const MmpHeader*, void*, unsigned) EI_ORIGINAL(0x006908E0)
-
 // A new surface for `desc`, or null when the allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, const std::uint32_t* desc) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
@@ -147,7 +144,7 @@ std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned 
 int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned mip) {
     if (flags_ & kTextureLoaded) return 1;
     const auto* header = static_cast<const MmpHeader*>(data);
-    CallMipOffset(header, nullptr, mip);   // the result is not used
+    header->MipOffset(mip);   // the result is not used
 
     std::uint32_t width = header->width >> (mip & 31);
     std::uint32_t height = header->height >> (mip & 31);
@@ -198,7 +195,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     if (surface) ++surface->refCount;
     if (previous) previous->Release();   // 004E6BA0
 
-    uploadResult_ = CallFillSurface(staging, data, static_cast<int>(mip));
+    uploadResult_ = FillSurface(staging, data, static_cast<int>(mip));
     gameapi::EnterCriticalSection(DeviceLock());
     device->lastLoadResult_ = device::D3D(device)->Load(device::Surface(surface_), nullptr, device::Surface(staging),
                                                         nullptr, 0);

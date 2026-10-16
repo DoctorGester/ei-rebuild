@@ -104,12 +104,6 @@ struct CStringSlot {
     mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
 };
 
-// 0049F660 and 0049F4B0 through their addresses, so their verify wrappers are reached from Init /
-// Seed (the search's own recursion calls itself directly).
-__declspec(naked) void __fastcall SeedAt(IsaacRandom*) EI_ORIGINAL(0x0049F660)
-__declspec(naked) int __fastcall FindSeedFileAt(IsaacRandom*, void*, char* /*out*/, const char* /*pattern*/,
-                                                int /*target*/, int* /*counter*/) EI_ORIGINAL(0x0049F4B0)
-
 } // namespace
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
@@ -156,11 +150,11 @@ void IsaacRandom::Seed() {
     int ok = 0;
     while (!ok) {
         int counter = 0;
-        if (!FindSeedFileAt(this, nullptr, path, SeedSearchPattern(), RandomBelow512() + 1, &counter)) {
+        if (!FindSeedFile(path, SeedSearchPattern(), RandomBelow512() + 1, &counter)) {
             int r = gamecrt::rand();
             int files = counter;
             counter = 0;
-            if (!FindSeedFileAt(this, nullptr, path, SeedSearchPattern(), r % (files - 1) + 1, &counter)) continue;
+            if (!FindSeedFile(path, SeedSearchPattern(), r % (files - 1) + 1, &counter)) continue;
         }
         ok = 1;
         mfc::CFile file;
@@ -223,7 +217,7 @@ struct InitMix {
 
 void IsaacRandom::Init() {
     if (seeded_ != 0) return;
-    SeedAt(this);
+    Seed();
     c_ = 0;
     b_ = 0;
     a_ = 0;

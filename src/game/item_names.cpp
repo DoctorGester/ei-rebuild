@@ -154,8 +154,8 @@ EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureNameImpl() {
     mfc::CString name;
     const char* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
-                                      reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
+    if (prototype && libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
+                                     reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
         const char* material = Materials().RecordAt(MaterialIndex(prototypeId_), kMaterialSize);
         const char* materialName = material ? Material(material)->name : kUnknownMaterial;
         name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);

@@ -1,6 +1,7 @@
 // Figure mesh loaders (005A0000-005B0000): the bounding volume and the FIG mesh data of a figure
 // part, morphed by the figure's three morph coefficients. See docs/notes/world.md ("Figure
 // meshes").
+#include "core_transform.h"
 #include "figure_mesh.h"
 
 #include "core_maths.h"
@@ -546,9 +547,6 @@ EI_REPLACE_METHOD(0x005A4D60, CFigureMesh::LoadOldShared);
 // ---- World-space box ----------------------------------------------------------------------------
 
 namespace {
-// 00401570 (not rewritten): the object-to-world matrix of a transform object (rotation from the
-// quaternion at +0x34, translation = position) into out[16]. __thiscall, RET 4.
-__declspec(naked) void __fastcall ObjectMatrix(const void* /*object*/, void*, float* /*out*/) EI_ORIGINAL(0x00401570)
 
 // The limit on the squared distance of the position from the origin (the float 1e8 at 0073FAFC).
 inline float FarLimit() { return *reinterpret_cast<const float*>(0x0073FAFC); }
@@ -569,7 +567,7 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
     if (distance > FarLimit()) return;
 
     Matrix4 m = {};
-    ObjectMatrix(this, nullptr, m.m);
+    WorldMatrix(m.m);
 
     // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
     // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner

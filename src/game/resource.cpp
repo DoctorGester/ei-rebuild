@@ -305,7 +305,7 @@ BOOL CMappedFile::Open(const char* path, BOOL writable) {
     gamecrt::strncpy(root, path, 3);
     root[3] = '\0';
     const char* rootPath = root;
-    if (!gamecrt::isalpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
+    if (!libcrt::Isalpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
     gameapi::GetDiskFreeSpaceA(rootPath, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters);
     SYSTEM_INFO info;
     gameapi::GetSystemInfo(&info);

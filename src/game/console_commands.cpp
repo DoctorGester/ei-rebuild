@@ -7,6 +7,7 @@
 #include "../lib/crt.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "net_classes.h"
 #include "originals_world.h"
 #include "originals_library.h"
@@ -35,7 +36,7 @@ int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 int Mbsicmp(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // Argument `i` equals `text` (_mbscmp).

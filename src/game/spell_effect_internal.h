@@ -76,11 +76,6 @@ __declspec(naked) inline void __fastcall LightningSetFlag(CEngineObject*, void*,
 // 0067AC70 (not rewritten): the missile's target object id.
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
 __declspec(naked) inline void __fastcall ShowVisibilitySetObjects(CEngineObject*, void*, int, int) EI_ORIGINAL(0x0067C640)
-// 00688510: MapEffect::Construct (spell_lifetime.cpp), through its address (fastcall; returns it).
-__declspec(naked) inline MapEffect* __fastcall BuffRecordInit(MapEffect*) EI_ORIGINAL(0x00688510)
-// The spell's own helpers (spell.cpp / spell_effect.cpp; through their addresses for the verify wrappers).
-__declspec(naked) inline void __fastcall EffectHitUnit(CSpellEffect*, void*, DamageInfo*, CEngineObject*) EI_ORIGINAL(0x006835B0)
-__declspec(naked) inline int __fastcall IsAreaSpellTarget(CEngineObject*) EI_ORIGINAL(0x00681B80)
 // CPtrList constructor (block size) and destructor.
 inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return PtrListConstructOriginal(a0, nullptr, a2); }
 inline void __fastcall PtrListDestruct(void* a0) { PtrListDestruct4C96F0Original(a0); }
@@ -98,15 +93,12 @@ inline void* SpellFootprint() { return reinterpret_cast<void*>(0x007C8478); }   
 // The later states' callees.
 __declspec(naked) inline void __fastcall ParticleSetColors(CEngineObject*, void*, float /*a*/, float /*b*/) EI_ORIGINAL(0x006792E0)
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
-__declspec(naked) inline void __fastcall EffectHitUnitsInRadius(CSpellEffect*) EI_ORIGINAL(0x00683600)
-__declspec(naked) inline void __fastcall EffectHitUnitsAlong(CSpellEffect*, void*, const Vector3*) EI_ORIGINAL(0x00683730)
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.
 inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, const Vector3* a5) { AiEventsNoiseOriginal(a0, nullptr, a2, a3, a4, (const void*)a5); }
 // 0058D3D0 CWorldServer::WakeUnitsAround (world_tick.cpp): WorldWakeUnits (originals_world.h).
 // 005CBBE0: the unit controller's AI memory (+0xA50) notices `point` at `level` / `kind`.
 inline void __fastcall AiMemoryNotice(void* a0, void*, const Vector3* a2, int a3, int a4) { AiMemoryNoticeOriginal(a0, nullptr, (const void*)a2, a3, a4); }
-// 004B2EF0 / 004B31D0 ScriptGroup::Insert / InsertAll (script_group.cpp).
-__declspec(naked) inline void __fastcall GroupInsert(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B2EF0)
+// 004B31D0 ScriptGroup::InsertAll (script_group.cpp).
 __declspec(naked) inline void __fastcall GroupInsertAll(void*, void*, const void* /*list*/) EI_ORIGINAL(0x004B31D0)
 // 005B7A40 CAIMap::IsPassableWithoutSelf (ai_map.cpp); 005C11D0 CSectorMap::Move: originals_ai.h.
 __declspec(naked) inline bool __fastcall AiMapPassableWithoutSelf(void*, void*, CEngineObject*, const Vector3*) EI_ORIGINAL(0x005B7A40)
@@ -341,7 +333,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     for (auto* node = units.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;
-        if (static_cast<std::uint8_t>(IsAreaSpellTarget(unit))) EffectHitUnit(e, nullptr, &hit, unit);
+        if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
     PtrListDestruct(&units);
 }

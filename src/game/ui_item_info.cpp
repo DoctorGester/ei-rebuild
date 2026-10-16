@@ -62,7 +62,7 @@ const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast
 int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
 
 int MbsICmp(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 int MbsCmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));

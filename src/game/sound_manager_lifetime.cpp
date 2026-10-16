@@ -347,9 +347,6 @@ constexpr std::uintptr_t kVoiceDestruct = std::uintptr_t(0x006B6D30);
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 constexpr std::uintptr_t kStreamThreadEntry = std::uintptr_t(0x006B6A10);
 
-// The MP3 stream's open and close on the manager's +0x100 (through their addresses: the verify
-// wrappers).
-__declspec(naked) int __fastcall OpenStreamThroughHook(void* /*stream*/, void*, void* /*driver*/) EI_ORIGINAL(0x006BAAC0)
 __declspec(naked) int __fastcall CloseStreamThroughHook(void* /*stream*/) EI_ORIGINAL(0x006BAC90)
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
@@ -416,9 +413,6 @@ LoadBufferFn AilLoadSampleBuffer() { return *reinterpret_cast<LoadBufferFn*>(std
 UserDataFn AilSampleUserData() { return *reinterpret_cast<UserDataFn*>(std::uintptr_t(0x0073B7B4)); }
 constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
-// The music fader's step (rewritten as SoundFader::Update; through its address: the verify
-// wrapper) and the stream's reader (RET 4, Rebirth-patched): decodes the next buffer.
-__declspec(naked) void __fastcall FaderUpdateThroughHook(SoundFader*) EI_ORIGINAL(0x006B5EE0)
 __declspec(naked) void __fastcall ReadStreamOriginal(CSoundManager*, void*, void* /*stream*/) EI_ORIGINAL(0x006BB3A0)
 
 // PCMWAVEFORMAT, as Open fills it.
@@ -486,7 +480,7 @@ void CSoundManager::StreamThread() {
         if (elapsed < kStreamPeriodMs) gameapi::Sleep(kStreamPeriodMs - elapsed);
 
         gameapi::EnterCriticalSection(Lock(streamLock));
-        FaderUpdateThroughHook(&musicFader);
+        musicFader.Update();
         AilSetSampleVolume()(streamSample, musicFader.level);
         for (;;) {
             int half = AilSampleBufferReady()(streamSample);
@@ -735,7 +729,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
         return 0;
     }
     AilSetDirectSoundWindow()(waveDriver, window);
-    if (OpenStreamThroughHook(StreamOf(this), nullptr, waveDriver) != 0)
+    if (SoundOpenStream(StreamOf(this), nullptr, waveDriver) != 0)
         streamThread = static_cast<mfc::CWinThread*>(AfxBeginThreadOriginal(reinterpret_cast<void*>(kStreamThreadEntry),
                                                                             this, kStreamThreadPriority, 0, 0, nullptr));
     // operator new[]: the count, then the voices.

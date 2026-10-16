@@ -15,6 +15,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 
 #include <new>
@@ -31,7 +32,7 @@ int Compare(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 int CompareNoCase(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.

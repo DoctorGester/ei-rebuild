@@ -275,8 +275,8 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         }
     }
     if (zone) {
-        if (gamecrt::stricmp(zone, "gz1g") == 0) LoadingMovie() = game::Text(0x00790A60);   // progres1.bik
-        if (gamecrt::stricmp(zone, "bz7g") == 0) LoadingMovie() = game::Text(0x00790A60);
+        if (libcrt::Stricmp(zone, "gz1g") == 0) LoadingMovie() = game::Text(0x00790A60);   // progres1.bik
+        if (libcrt::Stricmp(zone, "bz7g") == 0) LoadingMovie() = game::Text(0x00790A60);
     }
 }
 

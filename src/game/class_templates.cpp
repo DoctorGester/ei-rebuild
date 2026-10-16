@@ -28,10 +28,6 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// The template: 004A6580 constructor (returns this), 004A7080 fill (through its address).
-__declspec(naked) ClassTemplate* __fastcall TemplateConstruct(void*) EI_ORIGINAL(0x004A6580)
-__declspec(naked) void __fastcall TemplateFillOrig(ClassTemplate*) EI_ORIGINAL(0x004A7080)
-
 // vector<counted pointer> members: 004A9A00 erase(first, last), 004AB520 _M_insert_overflow(pos,
 // x, n), and the counted pointer's copy constructor (two identical instantiations).
 __declspec(naked) ClassTemplate** __fastcall VectorErase(ClassTemplateVector*, void*, ClassTemplate**, ClassTemplate**)
@@ -54,7 +50,6 @@ void ListSpells(void* db, void*, console::CStringArray* names) { static_cast<CSp
 void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListModifierNames(names); }
 // 006893F0 / 006894B0 (rewritten in spell.cpp, __stdcall; the caller passes the database in ECX).
 __declspec(naked) char* __stdcall SpellCode(const char*) EI_ORIGINAL(0x006893F0)
-__declspec(naked) char* __stdcall ModifierCode(const char*) EI_ORIGINAL(0x006894B0)
 
 // Record lookups by name. 004AB720 / 004AB820: weapons / armors by char* (hash maps 007C86F8 /
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
@@ -159,7 +154,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     }
     ListModifiers(spells, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        const char* code = ModifierCode(names.data[i]);
+        const char* code = SpellModifierCodeByName(names.data[i]);
         // operator[] inlined: an empty string assigned the code, a (key, null) pair built from it,
         // find_or_insert, the pair and the string destroyed.
         RawString key{};
@@ -196,12 +191,12 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     memory->refCount = 0;
     memory->refsHigh = 0;
     std::memset(memory->weightsTail, 0, sizeof(memory->weightsTail));   // SV7b2: never set, saved
-    ClassTemplate* t = memory ? TemplateConstruct(memory) : nullptr;
+    ClassTemplate* t = memory ? static_cast<ClassTemplate*>(memory)->Construct() : nullptr;
     t->type = type;
     t->flag0C = flag0C;
     t->flag0D = flag0D;
     std::memcpy(t->weights, weights, sizeof(t->weights));
-    TemplateFillOrig(t);
+    ClassTemplateFill(t);
 
     ClassTemplate* temp = t;
     if (temp) ++temp->refCount;

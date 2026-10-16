@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "map_object_figures.h"
 #include "originals_library.h"
 #include "originals_engine.h"
 #include "originals_units.h"
@@ -29,8 +30,7 @@ inline void __fastcall StringDeallocate(char**, void*, char* a2, int a3) { Strin
 void __fastcall NodeDeallocate(char* a0, int a1) { libcrt::NodeDeallocateChecked((void*)a0, (std::size_t)a1); }
 // 005AA5F0: the manager's model of a name; 005A9EF0 (RET 4): the model's animation of a name.
 __declspec(naked) void* __fastcall FindAnimation(void*, void*, const RawString*) EI_ORIGINAL(0x005A9EF0)
-// The figure: clear its animation; set an animation (RET 8: animation, name).
-__declspec(naked) int __fastcall ClearAnimation(void*) EI_ORIGINAL(0x0050D950)
+// The figure: set an animation (RET 8: animation, name).
 __declspec(naked) int __fastcall SetAnimation(void*, void*, void*, const char*) EI_ORIGINAL(0x0050DA10)
 // 0044C470: the game's debug message (cdecl, printf-style).
 
@@ -46,7 +46,7 @@ void MakeString(RawString& s, const char* text) {
 } // namespace
 
 int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char* modelName, const char* animation) {
-    if (!animation) return ClearAnimation(figure);
+    if (!animation) return static_cast<CFigureAnimationState*>(figure)->ClearBoneTracks();
     RawString key;
     MakeString(key, modelName);
     void* model = FigureManagerFindModelOriginal(manager, nullptr, &key);

@@ -409,7 +409,7 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
             if (!part) return false;
             const std::uint8_t* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < Read<std::uint32_t>(part, 0x4C);
-            return gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(own, 0x04)) == 0;
+            return libcrt::Mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(own, 0x04)) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -713,7 +713,7 @@ bool CCampPages::CanMakeSpell() {
             return false;
         }
     }
-    if (!constructor->CallEndConstruct()) {
+    if (!constructor->EndConstruct()) {
         constructor->CallSetManager(nullptr);
         return false;
     }
@@ -777,7 +777,7 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (Read<int>(part, 0x4C) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
+    if (libcrt::Mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
         return fail();
     withManager->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {

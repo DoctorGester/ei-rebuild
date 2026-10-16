@@ -18,7 +18,7 @@
 namespace {
 
 // CRT and MFC routines of the game.
-void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
+void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { libcrt::Splitpath(path, drive, dir, name, ext); }
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
@@ -186,7 +186,7 @@ int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPat
     if (*pattern == '\0') return *name == '\0' ? 1 : emptyPatternResult;
     while (*name != '\0' && *pattern != '\0') {
         if (*pattern == '*') return 1;
-        if (*pattern != '?' && gamecrt::toupper(*pattern) != gamecrt::toupper(*name)) return 0;
+        if (*pattern != '?' && libcrt::Toupper(*pattern) != libcrt::Toupper(*name)) return 0;
         ++name;
         ++pattern;
     }

@@ -81,7 +81,7 @@ constexpr int kViewPerson = 3;
 constexpr int kViewThird = 4;
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 CUnitClientSpecific* Model(CUnit* unit) { return reinterpret_cast<CUnitClientSpecific*>(unit->controller); }
@@ -292,7 +292,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     else
                         chosen = kViewPerson;
                 }
-                static_cast<CBriefingScreen*>(this)->ViewPreset(chosen);
+                ViewPreset(chosen);
             }
         }
     }

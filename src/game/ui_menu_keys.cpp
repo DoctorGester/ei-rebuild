@@ -54,9 +54,9 @@ CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, con
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const unsigned char* folder = reinterpret_cast<const unsigned char*>(entriesBegin_[index].folder_);
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::QuickSave())) == 0) return true;
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveA())) == 0) return true;
-    return gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveB())) == 0;
+    if (libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::QuickSave())) == 0) return true;
+    if (libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveA())) == 0) return true;
+    return libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveB())) == 0;
 }
 
 // --- 00655430 ------------------------------------------------------------------------------------

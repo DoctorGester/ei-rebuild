@@ -131,6 +131,15 @@ class DirectCallsTest(unittest.TestCase):
         self.assertEqual(out['src/game/user.cpp'], '#include "ei/hook.h"\n#include "foo.h"\n#include "other.h"\n\n'
                          'int User::Run(Foo* p) {\n    return p->Bar(1);\n}\n')
 
+    def test_other_scope(self):
+        # std::BarAt is another function: only the forwarder's own calls change.
+        user = USER.replace('BazAt(p);\n', 'BazAt(p);\n    std::BarAt(p, nullptr, 0);\n')
+        sources = [dc.Source('src/game/foo.h', HEADER), dc.Source('src/game/foo.cpp', DEFINITION),
+                   dc.Source('src/game/user.cpp', user)]
+        _, out = run(sources)
+        self.assertIn('    std::BarAt(p, nullptr, 0);\n', out['src/game/user.cpp'])
+        self.assertIn('int a = foo.Bar(1) + p->Bar(q->Bar(2));', out['src/game/user.cpp'])
+
     def test_reindent(self):
         self.assertEqual(dc.reindent('a,\n       b,\n   c)', 7, -3), 'a,\n    b,\n   c)')
 

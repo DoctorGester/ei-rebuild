@@ -51,8 +51,6 @@ __declspec(naked) const std::int16_t* __fastcall SpiralGet(void*, void*, std::ui
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
 bool __fastcall SearchBegin(void* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return LocalSearchBeginOriginal(a0, nullptr, (void*)a2, a3, a4, a5, a6); }
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
-__declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
-__declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
 // 006E727B. atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
@@ -144,7 +142,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 failedAt = w;
                 break;
             }
-            if (SearchReached(search, nullptr, w->data.x, w->data.y)) {
+            if (search->ExpandUntil(w->data.x, w->data.y)) {
                 exact = true;
                 bestX = w->data.x;
                 bestY = w->data.y;
@@ -171,7 +169,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             }
             if (!next && search->CostAt(toX, toY) == kUnreachable) {
                 // The last leg did not reach the target: one more leg from the best cell.
-                SearchCommit(search, nullptr);
+                search->CommitDirections();
                 if (!SearchContinue(search, nullptr, bestX, bestY, toX, toY, 1)) {
                     failed = true;
                     failedAt = w;
@@ -187,7 +185,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             }
             curY = bestY;
             curX = bestX;
-            SearchCommit(search, nullptr);
+            search->CommitDirections();
             reachedLast = exact;
         }
         w = next;
@@ -204,7 +202,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         if (diff < 0) diff = -diff;
         int distance = diff + ((shorter * 1448) >> 10);
         if (static_cast<double>(distance) > Threshold()) {
-            SearchCommit(search, nullptr);
+            search->CommitDirections();
             toY = bestY;
             toX = bestX;
             path->failed = true;

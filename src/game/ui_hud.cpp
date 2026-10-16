@@ -1056,8 +1056,8 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     void* glue = ClientGlueObject();
     if (GlueExitAt(glue, nullptr, &point, &exit) && selected > 0) {
         mfc::CString name(GameExitZoneOriginal(glue, nullptr, exit));
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                             reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
+                            reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = HoverPlayerVariable(glue, nullptr, name);
             const float one = GameOne();

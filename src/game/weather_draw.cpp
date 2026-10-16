@@ -16,12 +16,6 @@
 
 namespace {
 
-// Reached through their addresses (the fade's step is CRainSnow::UpdateFade, the two draws are in
-// weather_particles.cpp; their verify wrappers stay in the path).
-__declspec(naked) void __fastcall WeatherStep(CRainSnow*, void*, float /*time*/) EI_ORIGINAL(0x004E40B0)
-__declspec(naked) int __fastcall DrawRain(CRainSnow*, void*, CSceneRenderer*) EI_ORIGINAL(0x004E4240)
-__declspec(naked) int __fastcall DrawSnow(CRainSnow*, void*, CSceneRenderer*) EI_ORIGINAL(0x004E4C80)
-
 // The triangles the rain or snow just drew (if any) to the new renderer.
 void HandOver(CRainSnow* weather, CSceneRenderer* renderer) {
     int count = weather->vertices.size;
@@ -39,14 +33,14 @@ int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
     CWorld* currentWorld = world;
     if (!currentWorld) return 0;
     if (this->mode == 0) return 1;
-    WeatherStep(this, nullptr, static_cast<float>(currentWorld->tick_));
+    UpdateFade(static_cast<float>(currentWorld->tick_));
     if (this->mode == 0) return 1;
     TextureEnsureLoadedOriginal(&texture);
     renderer->SetTexture(0, texture);
     int currentMode = mode;
     int result;
-    if (currentMode == 1) result = ::DrawRain(this, nullptr, renderer);
-    else if (currentMode == 2) result = ::DrawSnow(this, nullptr, renderer);
+    if (currentMode == 1) result = DrawRain(renderer);
+    else if (currentMode == 2) result = DrawSnow(renderer);
     else return 0;
     if (render::Active()) HandOver(this, renderer);
     return result;

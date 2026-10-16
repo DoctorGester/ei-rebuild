@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/stlp.h"
 
 #include <cstdint>
 #include <cstring>
@@ -44,8 +45,6 @@ __declspec(naked) AnimationMap::Pair* __fastcall AnimIndex(AnimationMap*, void*,
 // reserve (RET 4) and insert(pos, n, value) (RET 0xC).
 using BucketVector = stlp::vector<AnimationMap::Node*>;
 __declspec(naked) void __fastcall BucketsEndOfStorage(AnimationMap::Node***, void*, const void*, const void*) EI_ORIGINAL(0x005AD640)
-__declspec(naked) const std::uint32_t* __fastcall PrimeLowerBound(const std::uint32_t*, const std::uint32_t*,
-                                                                  const std::uint32_t*, int) EI_ORIGINAL(0x00408A50)
 __declspec(naked) void __fastcall BucketsReserve(BucketVector*, void*, std::uint32_t) EI_ORIGINAL(0x005AD880)
 __declspec(naked) void __fastcall BucketsInsert(BucketVector*, void*, AnimationMap::Node**, std::uint32_t, const void*) EI_ORIGINAL(0x005ADAD0)
 
@@ -144,7 +143,7 @@ FigureModel* __fastcall ConstructFigureModel(FigureModel* model) {
     const auto* first = reinterpret_cast<const std::uint32_t*>(0x0073B914);
     const auto* last = reinterpret_cast<const std::uint32_t*>(0x0073B984);
     std::uint32_t hint = 100;
-    const std::uint32_t* prime = PrimeLowerBound(first, last, &hint, 0);
+    const std::uint32_t* prime = stlp::LowerBoundDwords(first, last, &hint, 0);
     std::uint32_t n = prime == last ? *reinterpret_cast<const std::uint32_t*>(0x0073B980) : *prime;
     BucketsReserve(buckets, nullptr, n);
     void* none = nullptr;

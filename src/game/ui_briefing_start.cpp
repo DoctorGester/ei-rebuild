@@ -54,7 +54,7 @@ constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // 0073CE18, added to the prototype's viewDistance
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 Vector3 Position(const CUnit* unit) { return Vector3{unit->position.x, unit->position.y, unit->position.z}; }

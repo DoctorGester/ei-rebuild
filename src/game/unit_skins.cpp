@@ -10,6 +10,7 @@
 #include "item.h"
 #include "item_db.h"
 #include "model.h"
+#include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -79,7 +80,6 @@ __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
 // The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
-__declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) EI_ORIGINAL(0x00693F10)
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
 // EDX; record +0x10, names, more names]; vector<string> members: constructor [0053BB80], copy into
 // new storage [0053D7F0: count, first, last], element destructors [004DDC90 with 0, 0040C720],
@@ -195,7 +195,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
 void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
     set.size = size;
     TextureManagerComposeOriginal(self->textureManager_, nullptr, &out, &set, &name, &name, 3, 0, 0x5551);
-    CacheRegister(self->textureManager_, nullptr, kind, name);
+    self->textureManager_->FindOrLoad(kind, name);
 }
 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {

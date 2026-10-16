@@ -84,7 +84,7 @@ constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 MapRecord* FindLocalMap() {

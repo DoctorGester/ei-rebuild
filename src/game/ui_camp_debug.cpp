@@ -63,7 +63,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
         const char* wanted = record->materialClass;
         char* material = itemdb::Materials().RecordAt(static_cast<std::uint32_t>(j), itemdb::kMaterialSize);
         const char* name = reinterpret_cast<const itemdb::MaterialRecordHead*>(material)->soundName;
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(name), reinterpret_cast<const unsigned char*>(wanted)) != 0)
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(name), reinterpret_cast<const unsigned char*>(wanted)) != 0)
             continue;
         maker->SetManager(manager);
         maker->BeginCreateItem(kind, -1);

@@ -124,7 +124,7 @@ bool UiItemKinds::IsBuildable(const char* item) {
     if (type != kTypeArmor) return false;
     prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
     return prototype &&
-           gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
+           libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
 }
 EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
 

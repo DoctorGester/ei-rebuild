@@ -70,8 +70,6 @@ constexpr int kMessagePartial = 0x01;
 __declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_ORIGINAL(0x005241C0)
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005BA6E0
 // IsUnitCellPassable, 005BA830 CanLeaveCell, 005BA5A0 StandsOnCheapCell, 005BB350 FindPath.
-__declspec(naked) bool __fastcall MapCellPassable(void*, void*, CUnit*) EI_ORIGINAL(0x005BA6E0)
-__declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA5A0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
 // 004B3330 ScriptGroup::Contains (script_group.cpp).
@@ -483,7 +481,7 @@ void CUnitServer::UpdateSneak() {
         }
     }
     if (moveMode.wasMode3 != 0) {
-        if (moveMode2.wasMode3 != 0 && MapCheapCell(world->AIMap(), nullptr, unit) && running == 0) {
+        if (moveMode2.wasMode3 != 0 && world->AIMap()->StandsOnCheapCell(unit) && running == 0) {
             sneakWait = 0;
             return;
         }
@@ -503,7 +501,7 @@ void CUnitServer::UpdateSneak() {
     int allowed = unit->player ? PlayerOf(unit)->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     if (allowed == 0 && !(ServerVitals(unit).mana > 0.0f)) return;   // the breath (vitals +0x14)
-    if (!MapCheapCell(world->AIMap(), nullptr, unit)) return;
+    if (!world->AIMap()->StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;
     moveMode.wasMode3 = 1;
@@ -522,14 +520,14 @@ bool CUnitServer::ChangeMoveMode() {
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
     SectorMapRemove(ServerSectors(), nullptr, unit);
-    bool passableBefore = MapCellPassable(ServerAIMap(), nullptr, unit);
+    bool passableBefore = ServerAIMap()->IsUnitCellPassable(unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
     unit->moveMode = UnitModeOf(moveMode);
     unit->UpdateSizeClass();
     bool placed;
     if (!sameMode &&
-        !(passableBefore ? MapCellPassable(ServerAIMap(), nullptr, unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
+        !(passableBefore ? ServerAIMap()->IsUnitCellPassable(unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
         placed = false;
     else
         placed = SectorMapAdd(ServerSectors(), nullptr, unit);

@@ -76,27 +76,15 @@ int FillLevels(CDXSurface* holder, const MmpHeader* header, int mip, const char*
 
 } // namespace
 
-// The fills and the .bmp loader through their addresses, so their verify wrappers see the calls.
-__declspec(naked) int CTexture::CallFillSurface(CDXSurface*, const void*, int) EI_ORIGINAL(0x0068FA10)
-__declspec(naked) int CTexture::CallLoadBmp(CTextureDevice*, const char*) EI_ORIGINAL(0x00690260)
-namespace {
-__declspec(naked) int __fastcall CopyToSurfaceAt(CTexture*, void*, CDXSurface*, const MmpHeader*, int)
-    EI_ORIGINAL(0x00690970)
-__declspec(naked) int __fastcall ConvertToSurfaceAt(CTexture*, void*, CDXSurface*, const MmpHeader*, int)
-    EI_ORIGINAL(0x00690B30)
-__declspec(naked) int __fastcall UnpackToSurfaceAt(CTexture*, void*, CDXSurface*, const MmpHeader*, int, int)
-    EI_ORIGINAL(0x00690D30)
-} // namespace
-
 int CTexture::FillSurface(CDXSurface* surface, const void* data, int mip) {
     const auto* header = static_cast<const MmpHeader*>(data);
     std::uint32_t format = header->format;
     if ((format & 0xFFFFFF) != kDxtTag) {
-        if (format == kFormat8888 && format_.words[3] != 32) return ConvertToSurfaceAt(this, nullptr, surface, header, mip);
-        return CopyToSurfaceAt(this, nullptr, surface, header, mip);
+        if (format == kFormat8888 && format_.words[3] != 32) return ConvertToSurface(surface, header, mip);
+        return CopyToSurface(surface, header, mip);
     }
     if ((format_.words[1] & kPixelFormatFourCC) && format == format_.words[2])
-        return CopyToSurfaceAt(this, nullptr, surface, header, mip);
+        return CopyToSurface(surface, header, mip);
 
     ChannelLayout layout;
     layout.Split(&format_);
@@ -131,7 +119,7 @@ int CTexture::FillSurface(CDXSurface* surface, const void* data, int mip) {
     } else if (format == kDxt3) {
         if (kind == kKind4444) mode = 4;
     }
-    return UnpackToSurfaceAt(this, nullptr, surface, header, mip, mode);
+    return UnpackToSurface(surface, header, mip, mode);
 }
 EI_REPLACE_METHOD(0x0068FA10, CTexture::FillSurface);
 

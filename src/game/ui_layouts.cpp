@@ -735,8 +735,8 @@ void CCreditsScreen::Build() {
             record.style = record.text;
             {
                 mfc::CString first(words.WordOrNull());
-                record.scroll = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(first)),
-                                                 reinterpret_cast<const unsigned char*>(game::Text(0x00794020))) ==
+                record.scroll = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(first)),
+                                                reinterpret_cast<const unsigned char*>(game::Text(0x00794020))) ==
                                 0;   // "#scroll"
             }
             TitlesTokenNext(&words);

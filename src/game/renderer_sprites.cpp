@@ -71,21 +71,11 @@ lib::AlignedArray<SpriteSortRecord>& Records() { return *reinterpret_cast<lib::A
 lib::AlignedArray<SpriteSortRecord*>& Order() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFC8); }
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFB8); }
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
-// The aligned arrays' SetSize instantiations (thiscall: size, growth or -1): 32-byte elements keeping
-// the contents (00504F70) or not (00505080), 16-byte (00505150) and 4-byte (00505270) elements.
-__declspec(naked) void __fastcall SetSize32(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x00504F70)
-__declspec(naked) void __fastcall SetSize32Discarding(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x00505080)
-__declspec(naked) void __fastcall SetSize16(lib::AlignedArray<SpriteSortRecord>*, void*, int, int) EI_ORIGINAL(0x00505150)
+// The aligned array SetSize for 4-byte elements (00505270; thiscall: size, growth or -1).
 __declspec(naked) void __fastcall SetSize4(lib::AlignedArray<SpriteSortRecord*>*, void*, int, int) EI_ORIGINAL(0x00505270)
 // Through the hooked addresses (ours in the release build, the verify wrappers in the verify build).
 __declspec(naked) int __fastcall ClipTriangle(TLVertex*, const std::uint8_t*, std::uint16_t*, int*, int*, float,
                                               float) EI_ORIGINAL(0x0042D910)
-__declspec(naked) void __fastcall RadixPassAt(int, SpriteSortRecord* const*, SpriteSortRecord**, int, int)
-    EI_ORIGINAL(0x00503710)
-__declspec(naked) void __fastcall MergePassAt(int, SpriteSortRecord* const*, SpriteSortRecord**, int)
-    EI_ORIGINAL(0x005037D0)
-__declspec(naked) int __fastcall DrawIndexedAt(CTextureDevice*, void*, int, int, void*, int, std::uint16_t*, int, int)
-    EI_ORIGINAL(0x00503680)
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
 
@@ -192,12 +182,12 @@ int FillCorners(const Sprite*& sprite, int& remaining) {
 // passes; the corners and outcodes are then written back in that order. Returns the sprites kept.
 int SortBackToFront() {
     EnsureSortStatics();
-    SetSize32(&CornersCopy(), nullptr, Corners().size, -1);
+    CornersCopy().SetSize(Corners().size, -1);
     std::memcpy(CornersCopy().data, Corners().data, static_cast<std::size_t>(Corners().size) * sizeof(TLVertex));
     const auto* outcodes = reinterpret_cast<const std::uint32_t*>(Outcodes().data);   // four bytes per sprite
     TLVertex* corners = CornersCopy().data;
     int sprites = CornersCopy().size / 4;
-    SetSize16(&Records(), nullptr, sprites, -1);
+    Records().SetSize(sprites, -1);
     SetSize4(&Order(), nullptr, sprites, -1);
     int kept = 0;
     for (int i = 0; i < sprites; ++i, corners += 4) {
@@ -214,10 +204,10 @@ int SortBackToFront() {
     auto* sorted = Order().data;
     auto* other = Spare().data;
     if (kept > 0x80) {
-        RadixPassAt(0, sorted, other, kept, 1);
-        RadixPassAt(8, other, sorted, kept, 0);
-        RadixPassAt(16, sorted, other, kept, 1);
-        RadixPassAt(24, other, sorted, kept, 0);
+        SpriteRadixPass(0, sorted, other, kept, 1);
+        SpriteRadixPass(8, other, sorted, kept, 0);
+        SpriteRadixPass(16, sorted, other, kept, 1);
+        SpriteRadixPass(24, other, sorted, kept, 0);
     } else if (kept > 1) {
         int width = 0x40000000;          // the largest power of two below the count, then halving
         if (kept <= width) {
@@ -225,13 +215,13 @@ int SortBackToFront() {
             while (width >= kept);
         }
         while (width > 0) {
-            MergePassAt(width, sorted, other, kept);
+            SpriteMergePass(width, sorted, other, kept);
             std::swap(sorted, other);
             width >>= 1;
         }
     }
 
-    SetSize32Discarding(&Corners(), nullptr, kept * 4, -1);
+    Corners().SetSizeDiscardStep(kept * 4, -1);
     TLVertex* out = CornerData();
     auto* codes = reinterpret_cast<std::uint32_t*>(Outcodes().data);
     for (int i = 0; i < kept; ++i) {
@@ -248,7 +238,7 @@ bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
     TLVertex* vertices = CornerData();
     std::uint16_t* indices = IndexData();
     if (holder->distanceFog_) holder->pipeline_->transform_->FogVertices(vertices, vertexCount);
-    return DrawIndexedAt(holder, nullptr, kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) != 0;
+    return holder->DrawIndexedDirect(kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) != 0;
 }
 
 void SetTriangle(std::uint16_t* tri, int a, int b, int c) {

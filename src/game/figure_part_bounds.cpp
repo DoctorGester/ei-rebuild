@@ -20,7 +20,6 @@ namespace {
 // 00455940 the owning manager's context (object.cpp; the world, an engine object). 0049B140 (RET 4)
 // appends a point.
 CEngineObject* ContextOf(FigureMeshDrawer* node) { return static_cast<CEngineObject*>(ManagerContextOf(node)); }
-__declspec(naked) void __fastcall AddPoint(LineBatch*, void*, const float*) EI_ORIGINAL(0x0049B140)
 
 constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 
@@ -41,7 +40,7 @@ void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
         corner[i][2] = origin[2] + ((i & 1) ? nearExtent[2] : farExtent[2]);
     }
     static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
-    for (int index : kOrder) AddPoint(&lines, nullptr, corner[index]);
+    for (int index : kOrder) lines.AddPoint(corner[index]);
     renderer->DrawLineList(&lines);
     lines.packets.FreeData();
 }

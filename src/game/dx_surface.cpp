@@ -526,8 +526,6 @@ int CDXSurface::LoadPictureData(const void* data, int flag) {
 EI_REPLACE_METHOD(0x004F0060, CDXSurface::LoadPictureData);
 
 namespace {
-// 004F0060 through its address (the verify build's wrapper runs there).
-__declspec(naked) int __fastcall LoadPicture(CDXSurface*, void*, const void*, int) EI_ORIGINAL(0x004F0060)
 __declspec(naked) void* __cdecl ErrorObjectText(void*, const char*) EI_ORIGINAL(0x00480250)
 } // namespace
 
@@ -545,7 +543,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     height = 0;
     bitsPerPixel = 0;
     SetHolderVtable(this);
-    if (!LoadPicture(this, nullptr, picture, flag)) {
+    if (!LoadPictureData(picture, flag)) {
         void* object = gamecrt::operator_new(0xC);
         if (object) object = ErrorObjectText(object, game::Text(0x0078E918));   // "Can't load picture to surface"
         CxxThrowException(&object, GameErrorThrowInfo());

@@ -418,8 +418,8 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zoneRecord->map),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) {
         const char* mapOverride = nullptr;
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                             reinterpret_cast<const unsigned char*>(game::Text(kFrozenZone))) == 0) {
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
+                            reinterpret_cast<const unsigned char*>(game::Text(kFrozenZone))) == 0) {
             double frozen = VariableGet(variables, game::Text(kFrozenVariable));
             mapOverride = game::Text(kFrozenMap);
             if (!(frozen < 0.0f || frozen > 0.0f)) mapOverride = game::Text(kThawedMap);   // C3: equal or unordered
@@ -1382,7 +1382,7 @@ void __fastcall ClearSaveFolder(const char* path) {
 
 bool __fastcall NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
-        if (gamecrt::stricmp(*list, name) == 0) return true;
+        if (libcrt::Stricmp(*list, name) == 0) return true;
     return false;
 }
 
@@ -1418,7 +1418,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     GameCursor()->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
-    if (gamecrt::stricmp(zone, game::Text(kEndOfGame)) == 0) {
+    if (libcrt::Stricmp(zone, game::Text(kEndOfGame)) == 0) {
         mode = kModeEndOfGame;
     } else {
         zoneRecord = FindZone(zone);

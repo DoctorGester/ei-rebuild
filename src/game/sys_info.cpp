@@ -156,10 +156,10 @@ int CSysInfo::Collect() {
     mfc::CString report;
     report = "OS\t\t\t" + systemName_ + " build " + systemVersion_ + "\n";
     char digits[0x400];
-    report += mfc::CString("Total physical memory\t") + gamecrt::itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
-    report += mfc::CString("Available physical memory\t") + gamecrt::itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
-    report += mfc::CString("Total virtual memory\t\t") + gamecrt::itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
-    report += mfc::CString("Available virtual memory\t") + gamecrt::itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
+    report += mfc::CString("Total physical memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwTotalPhys), digits, 10) + "\n";
+    report += mfc::CString("Available physical memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailPhys), digits, 10) + "\n";
+    report += mfc::CString("Total virtual memory\t\t") + libcrt::Itoa(static_cast<int>(memory_.dwTotalVirtual), digits, 10) + "\n";
+    report += mfc::CString("Available virtual memory\t") + libcrt::Itoa(static_cast<int>(memory_.dwAvailVirtual), digits, 10) + "\n";
     return 1;
 }
 EI_REPLACE_METHOD(0x004DDF28, CSysInfo::Collect);

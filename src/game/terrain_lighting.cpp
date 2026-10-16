@@ -144,8 +144,8 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
 
 void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
-    unsigned control = gamecrt::controlfp(0, 0);
-    gamecrt::controlfp(0x300, 0x300);
+    unsigned control = libcrt::Controlfp(0, 0);
+    libcrt::Controlfp(0x300, 0x300);
     terrain->lightingSector = this;
     if (hasWater) {
         for (int y = y0; y <= y1; ++y) {
@@ -169,7 +169,7 @@ void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y
         }
     }
     built |= 4;
-    gamecrt::controlfp(control, 0xFFFFFFFF);
+    libcrt::Controlfp(control, 0xFFFFFFFF);
     if (!skipSun) relightCountdown = -1;
 }
 

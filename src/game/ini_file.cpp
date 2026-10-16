@@ -52,9 +52,6 @@ void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOrigin
 // nested calls).
 __declspec(naked) mfc::CString* __fastcall CallGetString(const CIniFile*, void*, mfc::CString*, const char*, const char*,
                                                          const char*) EI_ORIGINAL(0x00696030)
-__declspec(naked) double __fastcall CallGetDouble(CIniFile*, void*, const char*, const char*, double)
-    EI_ORIGINAL(0x00695F80)
-__declspec(naked) BOOL __fastcall CallWriteInt(CIniFile*, void*, const char*, const char*, int) EI_ORIGINAL(0x00696F50)
 // WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
 __declspec(naked) BOOL __fastcall CallWriteString(CIniFile*, void*, const char*, const char*, char*)
     EI_ORIGINAL(0x00696E60)
@@ -197,7 +194,7 @@ unsigned CIniFile::GetInt2(const char* section, const char* key, int defaultValu
 EI_REPLACE_METHOD(0x00695F20, CIniFile::GetInt2);
 
 double CIniFile::GetFloat(const char* section, const char* key, float defaultValue) {
-    return CallGetDouble(this, nullptr, section, key, defaultValue);
+    return GetDouble(section, key, defaultValue);
 }
 EI_REPLACE_METHOD(0x00695F60, CIniFile::GetFloat);
 
@@ -293,7 +290,7 @@ BOOL CIniFile::WriteString(const char* section, const char* key, mfc::CString va
 EI_REPLACE_METHOD(0x00696E60, CIniFile::WriteString);
 
 BOOL CIniFile::WriteIntForward(const char* section, const char* key, int value) {
-    return CallWriteInt(this, nullptr, section, key, value);
+    return WriteInt(section, key, value);
 }
 EI_REPLACE_METHOD(0x00696F30, CIniFile::WriteIntForward);
 

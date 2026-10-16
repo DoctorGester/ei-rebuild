@@ -72,8 +72,8 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     while (TextFindLineOriginal(texts, nullptr, game::briefingwords::ShowTag())) {
         static_cast<CTextManager*>(texts)->Split(&words, 1);
         if (words.GetSize() >= 2 &&
-            gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),
-                             reinterpret_cast<const unsigned char*>(game::briefingwords::Hero())) != 0)
+            libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),
+                            reinterpret_cast<const unsigned char*>(game::briefingwords::Hero())) != 0)
             return new (out) mfc::CString(words[1]);
     }
     return new (out) mfc::CString(game::EmptyText());

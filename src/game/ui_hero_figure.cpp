@@ -34,7 +34,7 @@ constexpr int kVoiceRows = 11;
 int IndexOf(const char* const* begin, const char* const* end, const char* name) {
     int index = 0;
     for (const char* const* entry = begin; entry != end; ++entry, ++index) {
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(*entry), reinterpret_cast<const unsigned char*>(name)) == 0)
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(*entry), reinterpret_cast<const unsigned char*>(name)) == 0)
             return index;
     }
     return -1;

@@ -15,10 +15,9 @@
 namespace {
 
 // The savers of the other parts (004B / 004BB range), __thiscall with the stream.
-// 004B1940 point light (0x20 slot), 004B1A80 particle source, 004B1C50 FX source, 004B1DB0
-// lightning (list node data): not rewritten. 004BBFE0 definition / instance (0xC0), 004BB320 run
+// 004B1A80 particle source, 004B1C50 FX source, 004B1DB0 lightning (list node data): not
+// rewritten. 004BBFE0 definition / instance (0xC0), 004BB320 run
 // (0xB4): rewritten below, called through their addresses (verify wrappers run).
-__declspec(naked) void __fastcall PointLightSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1940)
 __declspec(naked) void __fastcall ParticleSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1A80)
 __declspec(naked) void __fastcall FxSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1C50)
 __declspec(naked) void __fastcall LightningSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1DB0)
@@ -174,7 +173,7 @@ void CScript::SaveState(ScriptStream* stream) {
 
     const auto& lights = pointLights_;
     WriteInt(stream, lights.size);
-    for (int i = 0; i < lights.size; ++i) PointLightSave(&lights.data[i], nullptr, stream);
+    for (int i = 0; i < lights.size; ++i) lights.data[i].ScriptPointLightSave(stream);
 
     WriteList(stream, particles_, ParticleSourceSave);
     WriteList(stream, fxSources_, FxSourceSave);

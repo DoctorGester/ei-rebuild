@@ -49,13 +49,12 @@ PtrList NewPtrList() { return PtrList{mfc::PtrListVtable(), nullptr, nullptr, 0,
 // `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
 // with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
 // wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0, MagicTrap::CastAtUnits
-// below, called through its address for the same reason].
+// below].
 __declspec(naked) void __fastcall FindVictims(void* /*context*/, void* /*area*/, std::uint32_t /*sides*/, PtrList* /*out*/)
     EI_ORIGINAL(0x0052A920)
 // The sector map's units within `radius` of `point` into `list` (emptied first) [005C0BD0, rewritten
 // in sector_map.cpp].
 constexpr int kPtrListBlockSize = 10;
-__declspec(naked) void __fastcall CastAtNewcomers(MagicTrap*, void*, PtrList* /*units*/) EI_ORIGINAL(0x0052A4B0)
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
@@ -125,7 +124,7 @@ void MagicTrap::UpdateVictims() {
         }
         node = next;
     }
-    if (newcomers.count) CastAtNewcomers(this, nullptr, &newcomers);
+    if (newcomers.count) CastAtUnits(&newcomers);
     PtrRemoveAll(&newcomers);
     PtrRemoveAll(&found);
 }
@@ -397,11 +396,6 @@ EI_REPLACE_METHOD(0x0052ADC0, MagicTrap::LoadTrap);
 // --- Create, Destroy, the update, firing, forgetting a removed object (ticket U10) ---------------
 
 namespace {
-// The trap's own code, called through its addresses so the verify wrappers see the calls: the units
-// inside updated [0052A680, MagicTrap::UpdateVictims]; firing at what is in it [0052AB30,
-// MagicTrap::FireAtOccupants].
-__declspec(naked) void __fastcall UpdateVictimsAt(MagicTrap*) EI_ORIGINAL(0x0052A680)
-__declspec(naked) void __fastcall FireAtOccupantsAt(MagicTrap*) EI_ORIGINAL(0x0052AB30)
 
 // The circles' SetSize(0, -1), inlined by Create and Destroy: the storage freed, count and
 // capacity 0 (in the original's order).
@@ -454,11 +448,11 @@ int MagicTrap::UpdateTrap() {
     auto* world = static_cast<CWorld*>(ManagerContextOf(this));
     if (!world->IsServer() || !spell) return result;
     if (period <= 0) {
-        UpdateVictimsAt(this);
+        UpdateVictims();
         return result;
     }
     if (countdown > 0) --countdown;
-    if (countdown <= 0) FireAtOccupantsAt(this);
+    if (countdown <= 0) FireAtOccupants();
     return result;
 }
 EI_REPLACE_METHOD(0x0052AC20, MagicTrap::UpdateTrap);
@@ -468,7 +462,7 @@ void MagicTrap::FireAtOccupants() {
     PtrList found = NewPtrList();
     if (flags_ & kArmed) {
         FindVictims(context, &area, sides, &found);
-        if (found.count) CastAtNewcomers(this, nullptr, &found);
+        if (found.count) CastAtUnits(&found);
     }
     DestroyPtrList(found);
 }

@@ -562,7 +562,7 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) 
     for (int i = 0; i < maxLength; ++i) {
         char c = text[i];
         if (c == 0) return i >= minLength;
-        if (gamecrt::isprint(c) == 0) return 0;
+        if (libcrt::Isprint(c) == 0) return 0;
     }
     return 1;
 }

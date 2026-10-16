@@ -58,7 +58,7 @@ constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).

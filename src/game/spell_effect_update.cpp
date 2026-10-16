@@ -1,6 +1,8 @@
 // A spell effect's later states: the per-tick dispatch (0067E6D0), the missiles' flight and impact
 // (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
+#include "map_object.h"
+#include "script.h"
 #include "spell.h"
 #include "spell_effect_internal.h"
 #include "game_strings.h"
@@ -37,7 +39,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
 
     DamageInfo hit;
     e->GetDamage(&hit);
-    if (IsUnit(e->target)) EffectHitUnit(e, nullptr, &hit, e->target);
+    if (IsUnit(e->target)) e->HitUnit(&hit, e->target);
     e->ReleaseVisual();
     e->ReleaseSound();
     e->ReleaseLight();
@@ -78,7 +80,7 @@ void FireballFlight(CSpellEffect* e) {
     e->timer = ticks - 1;
     if (ticks < 0) {
         e->position = e->targetPoint;
-        EffectHitUnitsInRadius(e);
+        e->HitUnitsInRadius();
         e->ReleaseVisual();
         e->ReleaseSound();
         e->ReleaseLight();
@@ -162,7 +164,7 @@ void FireWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            EffectHitUnitsAlong(e, nullptr, &static_cast<CEffectWall*>(e->visual)->direction_);
+            e->HitUnitsAlong(&static_cast<CEffectWall*>(e->visual)->direction_);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -190,7 +192,7 @@ void LightWall(CSpellEffect* e) {
             along.x = bolt->to_.x - bolt->from_.x;
             along.y = bolt->to_.y - bolt->from_.y;
             along.z = bolt->to_.z - bolt->from_.z;
-            EffectHitUnitsAlong(e, nullptr, &along);
+            e->HitUnitsAlong(&along);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -271,7 +273,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
             for (auto* node = units.head; node;) {
                 CEngineObject* unit = node->data;
                 node = node->next;
-                GroupInsert(group, nullptr, unit);
+                static_cast<ScriptGroup*>(group)->Insert(unit);
             }
         }
         float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
@@ -298,7 +300,7 @@ void Possession(CSpellEffect* e) {
         CEngineObject* target = e->target;
         CUnitServer* server = ControllerOf(target);
         ScriptGroup* group = &ServerOf(player)->group50F8_;
-        GroupInsert(group, nullptr, target);
+        static_cast<ScriptGroup*>(group)->Insert(target);
         GroupInsertAll(group, nullptr, &server->Brain()->visible);
         GroupInsertAll(group, nullptr, &server->Brain()->seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;
@@ -364,7 +366,7 @@ void Teleport(CSpellEffect* e) {
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;
     MapEffect record;
-    BuffRecordInit(&record);
+    record.Construct();
     std::memcpy(&record, &e->effectRecord, sizeof(record));
     ObjectSlots(e->caster)->AddEffect(&record);
     ControllerReposition(ControllerOf(e->caster));

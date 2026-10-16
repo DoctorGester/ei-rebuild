@@ -263,8 +263,8 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(arguments[i])),
-                                 reinterpret_cast<const unsigned char*>(game::Text(0x0078490C))) == 0) {   // "-nocam"
+            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(arguments[i])),
+                                reinterpret_cast<const unsigned char*>(game::Text(0x0078490C))) == 0) {   // "-nocam"
                 client->flags_ &= ~8u;
                 continue;
             }
@@ -333,7 +333,7 @@ struct PathParts {
 
 // "<drive>\." of `path`: the root the volume calls take.
 void DriveRoot(const char* path, PathParts& parts) {
-    gamecrt::splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
+    libcrt::Splitpath(path, parts.drive, parts.directory, parts.name, parts.extension);
     std::memcpy(parts.drive + std::strlen(parts.drive), game::Text(0x00784894), 3);   // "\." appended
 }
 
@@ -637,7 +637,7 @@ bool RunPass() {
     if (RecordingFrames()) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
         const double frame = Step(ExeFloat(0x0073C34C) / static_cast<double>(options::TheOptions()->movieCapturingFps_));
-        elapsed = gamecrt::Ftol(gamecrt::ceil(frame));
+        elapsed = gamecrt::Ftol(libcrt::Ceil(frame));
     }
     ServerBacklog() += elapsed;
     if (!client->IsLocalViewMode2()) ClientSpeed() = 1.0f;
@@ -712,7 +712,7 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     Client()->SetCamera(nullptr);
     Server()->Teardown();
     Client()->Teardown();
-    gamecrt::set_new_handler(previousHandler);
+    libcrt::SetNewHandler(previousHandler);
 }
 
 } // namespace
@@ -741,7 +741,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     }
     OptionsLoadAt(options, nullptr, RegistryRoot());
     const gamecrt::NewHandler previousHandler =
-        gamecrt::set_new_handler(reinterpret_cast<gamecrt::NewHandler>(&Global<char>(0x00455A30)));
+        libcrt::SetNewHandler(reinterpret_cast<gamecrt::NewHandler>(&Global<char>(0x00455A30)));
     Client()->Setup();
     Server()->Setup();
     // The field of view: pi * 2 / 7 (51.4 degrees).

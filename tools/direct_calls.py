@@ -544,6 +544,10 @@ def find_sites(f, sources, decl_spans):
         if tok == '::':
             qstart, qual = qualifier_before(s.bare, a)
             tok, at = prev_token(s.bare, qstart)
+            # std::toupper is not gamecrt::toupper: a qualifier naming another scope is another function.
+            owner = qual.rstrip(':').split('::')[-1]
+            if owner and owner not in [n for _, n in chain] + f.name.split('::')[:-1]:
+                continue
         obj = tok if tok in ('.', '->') else ''
         declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
                                    or tok in ('*', '&', '>', '~'))

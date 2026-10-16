@@ -127,7 +127,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     rect[1] = 0;
     rect[2] = width;
     rect[3] = height;
-    CDib* bitmap = CallCaptureSurfaceRect(device->primary_, reinterpret_cast<const RECT*>(rect));
+    CDib* bitmap = CaptureSurfaceRect(device->primary_, reinterpret_cast<const RECT*>(rect));
     if (bitmap) bitmap->Write(&file);
     if (bitmap) reinterpret_cast<mfc::CObjectVirtuals*>(bitmap)->DeletingDestructor(1);   // slot 1 Delete(1)
     file.Close();

@@ -589,7 +589,7 @@ void GiveSkill(const SSCCmd* cmd) {
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
         const auto* name = reinterpret_cast<const unsigned char*>(kNames[i]);
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(Text(cmd, 0)), name) != 0) continue;
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(Text(cmd, 0)), name) != 0) continue;
         CUnit* owner = Controller(state)->unit;
         int value = Ftol(cmd->floatArgs.data[0]);
         StatsCalls* stats = StatsOf(state);

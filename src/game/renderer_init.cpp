@@ -34,19 +34,11 @@ namespace {
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver
-// (game::FatalError and null when there is none); DriverAt (004EE6D0, render_helper.cpp) the
-// driver with an index.
-__declspec(naked) int __cdecl EnumerateDrivers() EI_ORIGINAL(0x004EE4A0)
-__declspec(naked) DirectDrawDriver* __cdecl FirstHardwareDriver() EI_ORIGINAL(0x004EE5D0)
 // 004E5E50: the device object's constructor (0x17C bytes, ten arguments).
 __declspec(naked) CTextureDevice* __fastcall DeviceConstruct(void*, void*, void* /*window*/, GUID* /*driver*/,
                                                             int /*full screen*/, int /*width*/, int /*height*/,
                                                             int /*colour bits*/, int, int, int /*z-buffer bits*/, int)
     EI_ORIGINAL(0x004E5E50)
-// 00504E20: the renderer's counted device holder (+0x20) takes the device.
-__declspec(naked) void __fastcall HolderAssign(CTextureDevice** /*holder*/, void*, CTextureDevice* /*device*/)
-    EI_ORIGINAL(0x00504E20)
 // 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
 // one released.
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
@@ -55,10 +47,8 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
     if (pipeline) ++pipeline->refs_;
     if (previous) previous->Release();
 }
-// Matrices (model.cpp, called through their addresses): 004F0E80 projection, 004F1370 viewport,
+// Matrices (model.cpp, called through their addresses): 004F1370 viewport,
 // 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
-__declspec(naked) Matrix4* __stdcall ProjectionMatrixOriginal(Matrix4*, float /*fov*/, float /*aspect*/, float /*near*/,
-                                                              float /*far*/) EI_ORIGINAL(0x004F0E80)
 __declspec(naked) Matrix4* __stdcall ViewportMatrixOriginal(Matrix4*, const RECT*) EI_ORIGINAL(0x004F1370)
 __declspec(naked) Matrix4* __stdcall AxisSwapMatrix(Matrix4*) EI_ORIGINAL(0x004F1330)
 // The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
@@ -78,10 +68,6 @@ __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::ui
 // 0068D0A0: a light's colour and position; 005007C0: the renderer adds a light.
 __declspec(naked) void __fastcall LightSet(CLight*, void*, const float* /*colour*/, const Vector3* /*position*/)
     EI_ORIGINAL(0x0068D0A0)
-__declspec(naked) void __fastcall RendererAddLight(CSceneRenderer*, void*, CLight*) EI_ORIGINAL(0x005007C0)
-// 004FCA60: the 0x118-byte helper object (device, flag).
-__declspec(naked) CRenderHelper* __fastcall HelperConstruct(void*, void*, IDirect3DDevice7* /*device*/,
-                                                            std::uint32_t /*flag dword*/) EI_ORIGINAL(0x004FCA60)
 
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
@@ -152,7 +138,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     std::memcpy(&zFar, &cam->farDistance_, 4);
     std::memcpy(&fov, &cam->fieldOfView_, 4);
     Matrix4 m;
-    ProjectionMatrixOriginal(&m, fov, std::bit_cast<float>(0x3FAAAAABu), zNear, zFar);   // aspect 4/3
+    ProjectionMatrix(&m, fov, std::bit_cast<float>(0x3FAAAAABu), zNear, zFar);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
     ViewportMatrixOriginal(&m, &renderer->device_->screen_);
     StackPush(stacks[kViewport], &m);
@@ -239,7 +225,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     std::memcpy(&light->range_, &range, 4);
     std::memcpy(&light->rangeSquared_, &rangeSquared, 4);
     std::memcpy(&light->inverseRangeSquared_, &inverseRangeSquared, 4);
-    RendererAddLight(renderer, nullptr, light);
+    renderer->SetSun(light);
 }
 
 // The counted helper object (+0x24). The flag argument is pushed as EDX with only DL set, the rest
@@ -250,7 +236,7 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     CRenderHelper* helper = nullptr;
     if (memory) {
         std::uint32_t flag = (edx & 0xFFFFFF00u) | (settings->driverIndex_ != 0 ? 1u : 0u);
-        helper = HelperConstruct(memory, nullptr, D3DDevice(renderer), flag);
+        helper = static_cast<CRenderHelper*>(memory)->RenderHelperConstruct(D3DDevice(renderer), flag);
     }
     CRenderHelper* old = renderer->helper_;
     renderer->helper_ = helper;
@@ -269,8 +255,8 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     // renderer fail to start and DirectDraw be used after all).
     GUID* driverId = nullptr;
     if (!render::Presenting()) {
-        EnumerateDrivers();
-        DirectDrawDriver* driver = FirstHardwareDriver();
+        EnumerateDirectDrawDrivers();
+        DirectDrawDriver* driver = FirstHardwareDirectDrawDriver();
         if (!driver) {
             game::FatalError(game::Text(0x0078E534));   // "Can't find any driver with HW 3D..."
             ExitGame(-1);
@@ -278,7 +264,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
         int index = settings->driverIndex_;
         if (index != -1) {
             driver = DriverAt(index);
-            if (!driver) driver = FirstHardwareDriver();
+            if (!driver) driver = FirstHardwareDirectDrawDriver();
         }
         driverId = driver->guid;
     }
@@ -288,7 +274,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
         device = DeviceConstruct(memory, nullptr, window, driverId, settings->fullScreen_, settings->resolutionX_,
                                  settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     }
-    HolderAssign(&device_, nullptr, device);
+    DeviceHolderAssign(&device_, nullptr, device);
     DeviceSetPipeline(&device_->pipeline_, pipeline_);
 
     FillMatrixStacks(this);
@@ -357,7 +343,7 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     const int width = screen->right - screen->left;
     const int height = screen->bottom - screen->top;
     Matrix4 m;
-    ProjectionMatrixOriginal(&m, fov, static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
+    ProjectionMatrix(&m, fov, static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
     StackPush(stacks[kProjection], &m);
     ViewportMatrixOriginal(&m, screen);
     StackPush(stacks[kViewport], &m);

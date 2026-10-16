@@ -51,8 +51,6 @@ double Unsigned(std::uint32_t value) {
 
 // The sound manager (*007AF784): 006B9100 sets a playing sound's volume (0..100), 006B94A0 stops it.
 void* SoundManager() { return *reinterpret_cast<void**>(0x007AF784); }
-__declspec(naked) void __fastcall SoundSetVolume(void* /*manager*/, void*, int /*sound*/, int /*volume*/, int)
-    EI_ORIGINAL(0x006B9100)
 
 // The game's atexit (006E727B).
 
@@ -87,16 +85,16 @@ CellMapCalls* Calls(CVisibilityFog::CellMap* map) { return reinterpret_cast<Cell
 void CRainSnow::UpdateFade(float now) {
     if (!(fadeDuration < kZero) && !(fadeDuration > kZero)) {   // 0 or NaN: no fade running
         mode = targetMode;
-        if (targetMode == 1 && sound) SoundSetVolume(SoundManager(), nullptr, sound, 100, 0);
+        if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
     } else if (!((now - fadeStart) / fadeDuration > kOne)) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf);
-        if (sound) SoundSetVolume(SoundManager(), nullptr, sound, x87::fistp(level * kVolumeScale), 0);
+        if (sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
     } else {
         mode = targetMode;
-        if (targetMode == 1 && sound) SoundSetVolume(SoundManager(), nullptr, sound, 100, 0);
+        if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
     }
     if (mode == 0 && sound) {
         static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
@@ -110,7 +108,7 @@ EI_REPLACE_METHOD(0x004E40B0, CRainSnow::UpdateFade);
 // Ends a fade at once.
 void CRainSnow::FinishFade() {
     mode = targetMode;
-    if (targetMode == 1 && sound) SoundSetVolume(SoundManager(), nullptr, sound, 100, 0);
+    if (targetMode == 1 && sound) static_cast<CSoundManager*>(SoundManager())->SetSoundVolume(sound, 100, 0);
     if (mode == 0 && sound) {
         static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
         sound = 0;

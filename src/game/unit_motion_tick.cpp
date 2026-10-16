@@ -56,7 +56,6 @@ void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3
 // CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
 // 005BB900 ContinuePath, 005B7EF0 lifts (1) / restores (0) the units around a point (not
 // rewritten).
-__declspec(naked) bool __fastcall MapCanStand(void*, void*, CUnit*, int, int, int*) EI_ORIGINAL(0x005B81B0)
 __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*path*/) EI_ORIGINAL(0x005BB900)
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
@@ -431,7 +430,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     } else {
         CSectorMap* sectors = world->Sectors();
         SectorMapRemove(sectors, nullptr, UnitOf(c));
-        canStand = MapCanStand(world->AIMap(), nullptr, UnitOf(c), cellX, cellY, &blocked);
+        canStand = world->AIMap()->CanStandAtFromHere(UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
             CUnit* blocker = world->AIMap()->BlockingUnitAt(UnitOf(c), &position);
             if (!blocker) {

@@ -472,7 +472,7 @@ void Light(Part& part) {
                              mesh->buffers_.wordCount, part.lights->data, part.lights->count, vector);
     }
 
-    if (CrownOption() != 0 && gamecrt::stricmp(MeshName(part.Mesh()), "crown") == 0) {
+    if (CrownOption() != 0 && libcrt::Stricmp(MeshName(part.Mesh()), "crown") == 0) {
         CrownBlend(part.Colours().data, part.Colours().size);
     }
     if (!(part.material->flags_ & 0x10)) {

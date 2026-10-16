@@ -42,7 +42,7 @@ const unsigned char* Bytes(const mfc::CString& text) {
 
 mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name) {
     for (int i = 0; i < names->size; ++i) {
-        if (gamecrt::mbsicmp(Bytes(names->data[i]), Bytes(name)) == 0) {
+        if (libcrt::Mbsicmp(Bytes(names->data[i]), Bytes(name)) == 0) {
             new (out) mfc::CString(names->data[i]);
             return out;
         }

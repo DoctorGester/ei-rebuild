@@ -17,6 +17,7 @@
 #include "../lib/stlp_pair.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -63,8 +64,6 @@ static_assert(offsetof(Constructor, count) == offsetof(CItemConstructor, count_)
 // weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
 // pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
 __declspec(naked) void __fastcall CallFillSpellMaps(ItemStock*, void*, void* /*table*/) EI_ORIGINAL(0x0069A480)
-__declspec(naked) void __fastcall CallGenerateSpells(ItemStock*, void*, StockList* /*out*/, const float* /*levels*/, unsigned /*threshold*/)
-    EI_ORIGINAL(0x0069A780)
 
 // vector<char*> members (thiscall): 0069E3F0 insert(position, first, last; a fourth unused
 // argument), 0069D9A0 allocate a block of n and copy [first, last) into it, 0069D470
@@ -108,7 +107,7 @@ int Compare(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 int CompareNoCase(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range
@@ -253,7 +252,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     if (!ctor->MagicCapacity(&level, &power)) return;
     float levels[8];
     for (float& l : levels) l = level;
-    CallGenerateSpells(stock, nullptr, &spells, levels, 0);
+    stock->GenerateSpells(&spells, levels, 0);
     unsigned count = 0;
     for (StockListNode* n = spells.head->next; n != spells.head; n = n->next) ++count;
     if (count == 0) return;
@@ -935,7 +934,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     SpellListConstruct(&list, nullptr, &allocator);
     for (int tries = 0;;) {
         ClearSpellList(list);
-        CallGenerateSpells(this, nullptr, &list, scrollLevels, 0x32);
+        GenerateSpells(&list, scrollLevels, 0x32);
         unsigned count = 0;
         for (StockListNode* n = list.head->next; n != list.head; n = n->next) ++count;
         if (count >= static_cast<unsigned>(spells.size())) break;

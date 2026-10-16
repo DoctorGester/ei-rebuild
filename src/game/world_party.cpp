@@ -102,8 +102,8 @@ bool Contains(const IdArray& ids, int id) {
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zonesEnd - info->zonesBegin); ++i)
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(info->zonesBegin[i])),
-                             reinterpret_cast<const unsigned char*>(zone)) == 0)
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(info->zonesBegin[i])),
+                            reinterpret_cast<const unsigned char*>(zone)) == 0)
             found = true;
     return found;
 }

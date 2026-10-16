@@ -557,8 +557,8 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     const char* set = "Gipat";
     if (dungeon) set = "Dungeon";
-    else if (gamecrt::stricmp(zone, "Ingos") == 0) set = "Ingos";
-    else if (gamecrt::stricmp(zone, "Suslanger") == 0) set = "Suslanger";
+    else if (libcrt::Stricmp(zone, "Ingos") == 0) set = "Ingos";
+    else if (libcrt::Stricmp(zone, "Suslanger") == 0) set = "Suslanger";
     AsString(textAE0) = set;
     terrain::CountAmbientVariants(textAE0);
 

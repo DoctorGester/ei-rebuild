@@ -340,8 +340,8 @@ void CMpHeroScreen::Create() {
         }
         figureModel = *reinterpret_cast<const mfc::CString*>(&figure->model);
         auto isModel = [&figureModel](const char* name) {
-            return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(figureModel)),
-                                    reinterpret_cast<const unsigned char*>(name)) == 0;
+            return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(figureModel)),
+                                   reinterpret_cast<const unsigned char*>(name)) == 0;
         };
         bool isMale = isModel(game::Text(0x007908C8));                // "unhuma"
         bool isFemale = !isMale && isModel(game::Text(0x00792EA4));   // "unhufe"

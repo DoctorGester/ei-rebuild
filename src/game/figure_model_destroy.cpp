@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/stlp_hash.h"
 #include "originals_library.h"
 #include "originals_world.h"
 
@@ -23,8 +24,7 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
     return *static_cast<stlp::vector<typename Map::Node*>*>(table.BucketVector());
 }
 
-// 004298D0: the string's hash (thiscall). 005AE5B0 (RET 4): destroys a node's pair.
-__declspec(naked) std::uint32_t __fastcall HashString(const stlp::string*) EI_ORIGINAL(0x004298D0)
+// 005AE5B0 (RET 4): destroys a node's pair.
 __declspec(naked) void __fastcall DestroyPair(void*, void*, int) EI_ORIGINAL(0x005AE5B0)
 // 00404D70: STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
 void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
@@ -51,7 +51,7 @@ void ForEachNode(Map& table, F visit) {
             node = node->next;
             continue;
         }
-        std::uint32_t b = HashString(&node->key) % table.BucketCount();
+        std::uint32_t b = stlp::HashString(&node->key) % table.BucketCount();
         node = nullptr;
         while (++b < table.BucketCount())
             if ((node = table.Bucket(b)) != nullptr) break;
