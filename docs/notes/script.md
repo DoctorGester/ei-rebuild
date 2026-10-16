@@ -178,26 +178,23 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
 
 ## Rewritten (script engine)
 
-Verify idioms: *pure*; *double evaluation* (ISAAC state restored between ours into a local and the original into the real
-result); *capture streams* (bytes and write sizes compared); *record / replay* (the original reads the real stream into a
-scratch object through a recorder, ours replays it into the real object); *deep-copy destructor check* (the original
-destroys a deep copy, ours the real object; changed dwords must agree); *ours only*.
+Every rewritten function carries its address in its source comment (grep the address); the per-function tables that used to
+be here are gone. Where things live: `script_eval.cpp` (SetParameters / CalcParameters / CalcFloat / CalcObject / CalcGroup;
+CalcGroup is there for Rebirth's AddNewScriptCommands), `script_parse*.cpp` and `script_blocks.cpp` (tokens, lexer,
+loaders, defines, qualified names), `script_arrays.cpp` (parser arrays), `script_exec*.cpp` (Execute 004B6760, bind calls,
+ScriptTick 004BF000, FreeTemporaries), `script_load.cpp` / `script_save.cpp` / `script_vars_append.cpp` (savers, loaders,
+appends, copies), `script_destroy.cpp` / `script_cleanup.cpp` / `script_reset.cpp` (constructors, destructors,
+ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
+lights), `script_quest.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), `script_unit_modes.cpp` (the unit mode commands),
+the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0-004BCF30, the text reader below.
 
-| Subsystem | Addresses and names | Verify |
-|---|---|---|
-| Object refs, groups, vars | 004B24B0 (and 004B5AE0) Reset, 004B24D0 Assign, 004B2500 Construct (returns the object in EAX), 004B2530 AsUnit, 004B2550 GetUnitPerception, 004B2570 ReleaseIfDeleted, 004B2590 / 004B25F0 Load / Save; 004B2620 / 004B2920 / 004B2B60 Union / Difference / Intersection, 004B2D60 Sort, 004B2DA0 IndexOf, 004B2E60 Remove, 004B2EF0 Insert, 004B3110 RemoveDeleted, 004B31D0 InsertAll, 004B3330 Contains, 004B3360 Load; 004B35E0 ResetValues, 004B36D0 HasVariable, 004B37D0 FindVariable, 004B3940 RemoveDeletedObjects | pure; group ops on a clone; record / replay, capture streams |
-| Evaluator (`script_eval.cpp`) | 004B3F60 SetParameters (idempotent), 004B4030 CalcParameters, 004B41E0 CalcFloat, 004B56C0 CalcObject, 004B5B00 CalcGroup (for Rebirth's AddNewScriptCommands) | double evaluation |
-| Parser | 004CF470 Error, 004CF600 ClassifyToken, 004D0B10 FunctionSignature, 004D0BA0 KeywordName (Rebirth patches these: vanilla only unless flagged), 004CFB70 / 004D0BD0 / 004D1D30 token construct / assign / copy, 004CF380 ConstructTokens, 004CF7A0 Tokenize, 004CF4D0 ExpectLexeme, 004D37F0 QualifyName, 004D3780 FindScript, 004D34F0 AddDefine, 004D33E0 ApplyDefines, 004D0A50 SSCCmd::Construct, 004CFBC0 LoadFunction (Rebirth), 004D0BF0 LoadConditions, 004D1D50 LoadAssignOperator, 004D1FE0 LoadVariableDeclarations, 004D1030 LoadScriptBody, 004D1330 LoadCommands (Rebirth), 004D23A0 Load, 004D36F0 LoadFile | pure / original on a copy with a deep tree comparison; Load, LoadFile, LoadScriptBody, LoadCommands ours only |
-| Parser arrays | 004D5B50 BindingsAdd, 004D5CB0 SubCallsAdd, 004D5ED0 CmdsAdd, 004D65E0 CmdsSetAtGrow, 004D6100 DefinitionsAdd, 004C5480 SubCallDestruct, 004D5A50 / 5A90 / 5AD0 / 5B10 FindVariableName, 004D5A10 / 004D5A30 array constructors | original on a scratch array |
-| Runtime | 004B6760 Execute (Rebirth), 004B6360 / 004B6330, 004BB6A0 ScriptBindCall, 004BB520, 004BC420, 004BCC60, 004BEC80 FreeTemporaries, 004BF000 ScriptTick | ours only; Execute through an observer after each command (Sleep / WaitSegment / SleepUntil stop exactly when they should; KillScript; calls add a live instance; assignments; AddObject keeps the group sorted; SetPlayer / SetEnemy / GodMode) |
-| Areas, point lights | 004B1ED0 / 004B2070 AreaAddRect / AddRound, 004BCF30 DeleteArea, 004BD6A0 / 004BD820 / 004BD920 CreatePointLight / MovePointLight / DeletePointLight | output on a copy; ours only |
-| Quests | 004BAA40 QStart, 004BAE10 QObj, 004BAEB0 objective destructor, 004BAAB0 QFinish (the original runs first with its CScript::Load skipped via `scriptverify::g_loadSkip`; texts equal), 004C9C90 `QuestTable::Find` (`script_quest`'s QuestComplete line) | ours only / against the original |
-| Unit modes | 004BA1C0 .. 004BA920, 004BA1A0 | above |
-| Save / load | savers 004C0F90, 004C1230, 004C2EF0, 004C33C0, 004C38C0, 004C4330, 004CAEC0, 004BBFE0, 004BB320, 004B1940, 004B1A80, 004B1C50, 004B1DB0; 004C0D00 ScriptLoad, 004CAC00 Runs, 004CA980 Instances, 004CA000 IfThen, 004C40D0 Groups, 004C36B0 Objects, 004C57C0 DeclCommands, 004C3200 Strings, 004C2D40 Floats, 004CA480 Particles, 004CA5D0 FxSources, 004CA720 Lightning, 004CA810 WorldBlocks, 004B5FE0 SSCCmd::Load, 004B3AD0 ScriptVars::Load, 004BB590 IfThenPairLoad, 004B3D10 StringLoad, 004B6330 SubCallLoad, 004B18B0 / 004B1B40 PointLight / FxSource load, 004BFA50 FindBlock | capture streams; record / replay (nested loaders run through their wrappers in both runs, so SSCCmd trees are read 2^depth times in the verify build); ScriptLoad ours only; FindBlock pure |
-| Appends, clears, copies | 004B3900 AppendFrom, 004BB800 AddParameter, 004C3DC0 / 004C3450 / 004C2FE0 / 004C2B70 per-type Append, 004C0020 VarsClear, 004C1760 / 004C1700 / 004C16B0 / 004C1650 per-type clears; 004C6BC0 SSCCmd::operator=, 004CB570 run, 004CBAE0 vars, 004CB220 FX source, 004CB2D0 decl assign; 004CB7E0 VarsCopyConstruct, 004CCAA0 SubCallCopyAt, 004CE750 CmdCopyAt, 004CBEF0 / 004CBDB0 / 004CBA00 / 004CBB80 / 004CBCA0 copy constructors, 004CB460 DefinitionAssign, 004C2F80 StringsCopyTo, 004CDCB0 LooksSetAtGrow, 004CE5F0 NamesSetAtGrow, 004C00D0 VarsConstruct, 004D3320 DefinitionReset | ours only, the source captured first; constructors: original into a 0xCC scratch |
-| Constructors, destructors, blocks | 004BE090 VarsDestruct, 004BE9D0 DefinitionDestruct, 004BF640 CmdDestruct, 004BC690 / 4BC740 / 4BC870 / 4BC950 named-value constructors, 004BC6C0 / 4BC770 / 4BC8A0 / 4BC810 / 4BC9A0 / 4BCA20 array destructors, 004BCAE0 RunDestruct, 004CE1E0 / 4CE210 / 4CE230 / 4CE270 / 4CE2B0 / 4CE2D0 / 4BF620 element destructors, 004C81B0, 004CD690, 004B17F0 / 4B1820 / 4B1850 / 4B1880 / 004BD540 effect element destructors; 004BE6E0 ScriptReset, 004BED90 PurgeDeletedObjects, 004BE490 DropInstancesAndRuns, 004BEB00 ResetZone; 004BF540 / 004BF900 / 004BCE10 / 004B59F0 / 004B5F70 NewCommandList / NewWorldScript / FindArea / NewTempObject / Clear | deep-copy destructor check; Reset / Purge / ResetZone ours only (one run per WorldScript block at its start, lights zeroed) |
-| Effects | 004BD260 CreateFX, 004BCFF0 CreateLightning, 004BD9A0 CreateParticleSource, 004BDBB0 MoveParticleSource (CheckNear) | ours only |
-| Text reader | 004DF030, 004DFCB0, 004DF8D0, 004DF510, 004DF770, 004DFB80, 004DF6E0, 004DEFC0, 004DF4E0 (pure), 004DF020 | original first, state restored, then ours |
+- Rebirth patches these, so they hook in the vanilla launch only unless the patch is behind a flag: 004B6760 Execute,
+  004CFBC0 LoadFunction, 004D1330 LoadCommands, 004D0B10 FunctionSignature, 004D0BA0 KeywordName, 004DEC40.
+- QFinish: its CScript::Load is skipped in the original through `scriptverify::g_loadSkip` when the two are compared.
+- `Execute` is observed after each command by the harness checks (Sleep / WaitSegment / SleepUntil stop where they
+  should, KillScript, calls add a live instance, AddObject keeps the group sorted, SetPlayer / SetEnemy / GodMode); the
+  observer reads the instance list's head (+0x144), not the tail (see the gz2g note below).
+- Not rewritten: 004DEC40 (Rebirth), the archive list helpers 004DEB60 / 004DED40 / 004DEDE0 / 004DEBC0, 004DED20.
 
 ## Original bugs and oddities kept (script engine)
 
@@ -256,34 +253,64 @@ which is why the Execute observer reads the instance list's head (+0x144), not t
 
 ## Leftovers: the rest of 0x00480000-0x00500000 outside the script engine (rewritten)
 
-V: S against the original (it runs first on scratch / copies, ours on the real object), O ours only.
+Every function carries its address in its source comment. The files, with the scenarios that reach them (all of it also runs
+in `newgame` unless noted): `core_memory_stream.cpp` (CMemoryStream, CStream::CopyFrom / ReadSized / ReadHeader; every save
+and network message), `core_stream_diff.cpp` / `core_stream_chunks.cpp` (WriteDiff, ApplyDiff, ReadTagged, FindTagged,
+ReadText, ReplaceTagged; world_load, ui_saveload), `game_buffer.cpp` / `game_buffer_strings.cpp` / `net_coder.h` (growing
+byte buffer; save compression, multiplayer, net_lobby), `buffered_file.cpp` (005809D0 reads "quest.reg"),
+`matrix_math.cpp` (MatrixMultiply, Quaternion::ToMatrix, PushMatrix; every frame), `view_matrices.cpp` (CameraViewMatrix
+004F0EF0, LightRotation 004F15C0, LightShearMatrix 004F1440 called by address from map_object_shadow.cpp, 004E5660 a byte
+copy of CubicSegment::Evaluate 0040E440, AllocateBlocks32 004E5710 / 8 004F65B0), `text_split.cpp` (Split, SplitWords,
+ReplaceChar, Join; Join has no scenario: loose .bmp only), `text_sources.cpp` (archive list and CTextManager sources;
+briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every frame with shadows), `mob_reader.cpp`,
+`class_template_stock.cpp` (trader_stock, every new game), `script_runtime_helpers.cpp` / `party_script.cpp`,
+`global_map_clouds.cpp` (CCloudNoise; ui_camp, frames_basic), `face_normal.cpp` / `model_names.cpp`, `particle_attach.cpp`
+(particles, spells_cast), `link_figure.cpp` / `link_loader.cpp` (newgame via 00568800, models, ui_hero_screen),
+`sky_object.cpp` (render_scene), `server_specific_manager.cpp`, `model.cpp` (ProjectBlocks 004F2650, ProjectTerrain
+004F29F0: `ITransformPipeline` slots 9 / 14 / 18 / 19), `party_manager.cpp`, `effects_weather.cpp`, `dx_errors.cpp`.
 
-| Area (file) | Addresses and names | V; scenario |
-|---|---|---|
-| Memory stream (`core_memory_stream.cpp`) | 004A5380 / 004A53F0 / 004A5490 / 004A55D0 `CMemoryStream` Read / Write / Seek / CopyFrom, 004A54D0 Resize, 004A5570 SetSize, 004A5610 StartByte, 004A5650 EndBits; 004A4D40 `CStream::CopyFrom` (slot 7), 004A51C0 / 004A5250 ReadSized / WriteSized, 004A52D0 / 004A5340 ReadHeader / WriteHeader | S on a 0x28-byte copy (`verify_memory_stream.cpp`); other stream classes O. Every save / load and network message |
-| Stream diff, tagged blocks (`core_stream_diff.cpp`, `core_stream_chunks.cpp`) | 004A4DA0 `CStream::WriteDiff`, 004A50D0 `ApplyDiff` (run headers patched in place; a full run of 255 is followed by an empty run of the other kind), 004A4940 `ReadTagged`, 004A4A90 `FindTagged`, 004A48F0 `ReadText`, 004A4AF0 `ReplaceTagged` (no caller in game.exe: Rebirth's EI_Plugin.asi calls it through a thiscall thunk; Rebirth runs only) | S; world_load, ui_saveload, newgame |
-| Growing byte buffer (`game_buffer.cpp`, `net_coder.h`) | 004DA7F0 ConstructGrowing, 004DA9E0 ConstructCopy, 004DAA80 AssignFrom, 004DA910 DestructGrowing, 004DA8F0 deleting destructor, 004DA5C0 Grow, 004DA630 / 004DA6B0 Reserve (slots 0 / 1), 004DA740 WriteMore, 004DA860 Seek, 004DA170 ReadPastEnd, 004DA450 / 004DA490 `BufferCursor::BeginRead` / `BeginWrite`; 004DA5A0 / 004DA5B0 / 004DA730 slots returning 0, 004DA850 (= 0047D960), 004DA580 / 004DA590 (the fixed view's empty slots); 004DA200 `GameBuffer::ReadString`, 004DA380 `WriteString` (`game_buffer_strings.cpp`) | S on a 0x1C-byte copy; save compression (world_load, newgame), multiplayer, net_lobby |
-| Buffered file streams (`buffered_file.cpp`) | 004DAAF0 `Flush`, 004DB040 `BufferedStreamCommit` (slot 2, `Rebase`), 004DAC80 `ReleaseBlock`, slots 0, 1, 3, 4, 6 004DAE30 / 004DAFC0 / 004DB200 / 004DB420 / 004DB0F0 (`ReserveRead`, `ReserveWrite`, `ReadMore`, `WriteMore`, `Seek`), 004DB5E0 / 004DB630 `ReadAt` / `WriteAt` (7 / 8), 004DB680 / 004DB700 `BufferedFile::Close` / `Open` (O) | S; newgame (005809D0 reads "quest.reg") |
-| Matrix helpers (`matrix_math.cpp`) | 004D9880 `MatrixMultiply`, 004D9AA0 `Quaternion::ToMatrix`, 004D9B80 `CTransformPipeline::PushMatrix` (stacks at +0x14, 8 bytes each); 004D9ED0 (= 0047B940) | S (same aliasing); every frame |
-| View / light matrices (`view_matrices.cpp`) | 004F0EF0 `view::CameraViewMatrix` (stdcall: rows = the camera rotation's X axis (0040D940), Y and Z axes inline, column 3 = -position . row), 004F15C0 `LightRotation`, 004F1440 `LightShearMatrix` (the shadow's projection; map_object_shadow.cpp calls them by address; acos is the C++ one), 004E5660 (byte copy of `CubicSegment::Evaluate` 0040E440), 004E5710 `AllocateBlocks32` (as 00452DA0), 004F65B0 `AllocateBlocks8` (as 004545A0) | S; every frame, shadows, unit motion |
-| Text splitting (`text_split.cpp`) | 004DBE40 `text::Split`, 004DBF50 `SplitWords`, 004DC400 `ReplaceChar`, 004DC390 `Join` (A-S10; CTexture::LoadBmp calls it directly) | S; console (lines with breaks), keyboard.ini at startup, item name keys; Join no scenario (loose .bmp only) |
-| Text archive list (`text_sources.cpp`) | 004DE930 / 004DEAF0 / 004DEB60 `TextSourceList::Add` / `Remove` / `Clear`, 004DEDB0 / 004DEDD0 / 004DED40 `CTextManager::AddSource` / `RemoveSource` / `ClearSources` (004DED40 is slot 3 of vtable 0073F6F0) | O; newgame (client start, briefings add / remove zone texts), world_load |
-| Zone exit (`exit_area.cpp`) | 004E59F0 `ZoneExit::Contains` (world.h's +0x24 is `angle`); A-S10: 004E5750 / 004E58A0 `ZoneExit::Read` / `Write` (+0x00..+0x20 dwords, target with terminator, +0x2C, +0x30, then byte +0x34, +0x38, angle; read from version 0x68 on, else 0), 004E5840 `CStream::ReadInto` (ReadString into a temporary, assigned) | P; Read / ReadInto S (the original reads first, the stream put back: position, ok flag), Write O; FindExitAt and 005677F0; zone_base_bz1g, newgame (client zone load, server zone message, saves) |
-| Ground decals (`ground_decal.cpp`) | 004D7F50 `DecalBuilder::Construct`, 004D8000 `Begin`, 004D7F60 `Touches`, 004D8780 `Reserve`, 004D89A0 `Finish`; 004D85F0 `AddTriangle`, 004D8490 `AddTerrainTriangle`, 004D7BD0 `ClipPlane`, 004D74B0 `ClipFromV`, 004D71D0 `ClipFromUMax`, 004D6CF0 `Emit`, 004D6C50 `AddVertex`; 004D6E90 `decal::ClipTriangle`, 004D7140 `Interpolate`, 004D8470 `Vector3::LengthSquared` | S (NearlyEqual); every frame with shadows. ClipPlane / AddTriangle / AddTerrainTriangle are in tests/verify/disabled.txt (X17) |
-| .mob reader (`mob_reader.cpp`), decoder | 00481F00 `ReadMobChunks` (scripts, weather, records, players), 00481660 `LoadMobFile` (relations applied, traps get their hostile mask and origin, units their alarm records 005D6D20, records deleted, scripts loaded unless keepIds), 004D8E10 `MobScriptDecoder::Decode` (resize 004D8EB0 = `CharVectorResizeOriginal`) | O / S; every zone load, zone_gz2g_traps |
-| Trader stock (`class_template_stock.cpp`) | 004A6DC0 `ClassTemplateSetLevels`, 004A6DF0 `ClassTemplateGenerateItems`, 004A6F60 `ClassTemplateGenerateMagic` (list<CItem*> sentinel from the node pool, generators, AddItem(1, 1) + Release), 004A6580 / 004A66C0 `ClassTemplate::Construct` / `ItemStock::Construct` (193-bucket maps), 004A6A90 / 004A6A70 `ClassTemplate::Destruct` / `DeletingDestruct` | O; trader_stock, every new game (004A7630), world_load |
-| Script runtime helpers (`script_runtime_helpers.cpp`, `party_script.cpp`) | 004BAEC0 `PartyForScript` ("owner::name"), 004B5EF0 `ScriptGroup::DestructBody`, 004BF7E0 `ScriptDeclDestruct`, 004D6340 `ScriptDefineList::Destruct`, 004BA090 `CAIMap::SetRefreshUnits`, 004BA0A0 / 004BA0C0 / 004BA0E0 / 004BA100 sector map wrappers (Move by address: Rebirth), 004BA9D0 `GameOStream::PutFloatArgument`, 004BA120 `CSceneRenderer::SetFogColour` (slot 0 00501AB0, `fogColour_` +0x14) | S / O; script_exec, script_copy, world_load |
-| Global map clouds (`global_map_clouds.cpp`, `CCloudNoise`) | 00499DC0 Construct, 00499E90 DestructBody, 00499E30 base deleting destructor, 00499EE0 Start, 00499F10 Draw, 0049A010 SetRamp, 0049A090 MakeLayer (slot 0), 0049A220 Generate (slot 1) | S (SetRamp, MakeLayer, Generate steps 7-14) / O; ui_camp, frames_basic |
-| Model helpers (`face_normal.cpp`, `model_names.cpp`) | 0049AEC0 `scene::ComputeFaceNormal` (edges from vertex 1 normalised unless below 1e-10 squared, crossed, normalised; zero or NaN length takes 007A9C98), 004DBCA0 `ReadPrefixedName` | S; ui_hero_screen, newgame, models |
-| Particle attachment (`particle_attach.cpp`) | 004849F0 `CParticleSource::Attach`, 00484C00 `AttachmentPoint`, 00484B40 `PartPoint`, 00485280 `AttachmentOffset`, 00485380 `StopAndClear` (+ `ReleaseAllParticles`) | S (CheckNear; a unit's effect point, attachPoint 0, not compared: 00532860 can read uninitialised stack) / O; particles, spells_cast |
-| Link figures (`link_figure.cpp`, `link_loader.cpp`) | 004F30F0 `CLinkMesh::AddPart` (bool in AL), 004F7F00 `LoadFigPart` (FIG / FIG8), 004F87D0 `LoadOldPart`, 004F2F90 `SetMorph`, slots 1-6 004F45E0 `UpdateScreenRect`, 004F3040 `HasPart`, 004F2FB0 `CollectPartNames`, 004F30D0 `LoadPart` (-> 004F7480), 004F3530 `RemovePart`, 004F3780 `GetPartData`; 004DB9C0 `ReadLinkString`, 004F7370 `CopyName`; loader slots 3 004F7150 `LoadFigure`, 4 004F7080 `LoadLink`, 5 004F7020 `ClearCache`, 6 004F75E0 `Remorph`, 004F77C0 `LoadLinkFile`, 004F7B10 `MakeFigure`, 004F7480 `LoadPartInto`, 004F7D20 `LoadArchivePart`, 004FAB00 `FindFigureSet`; 004F2C00 / 004F2E40 / 004F2D40 / 004F2E00 / 004F2E20 mesh Construct / Destruct / DestructBase / DeletingDestructBase / DeleteThis, 004F6BD0 / 004F6A30 loader Destruct / DeleteThis, 004F9E50 `RemorphPart`, 004F9FD0 `RemorphFigPart`, 004FA670 `RemorphOldPart`, 004F3800 `SetPartVertices`, 004F4B50 `MemoryBytes`, 004FAAA0 `CacheBytes` (no scenario) | S / O; newgame (00568800), models, ui_hero_screen |
-| Sky (`sky_object.cpp`) | 004D9360 `CSkyObject::Light`, 004D9DE0 `CSky::Light`, 004D9110 / 004D92B0 / 004D9290 / 004D9270 / 004D9280 `CSkyObject` Construct / Destruct / DeletingDestruct / slots 11 / 12, 004D9680 `CSky::Construct`, 004D96E0 `CSky::Draw` (renderer slots 11 `SetTexture` / 14 `DrawFigure`; the object at the eye lowered by 16), 004D9E80 / 004D9E90 / 004D9EA0 `lib::AlignedArray<T>::Construct` | S when the haze needs no recomputing / O; every zone with a sky, render_scene |
-| Server-specific manager (`server_specific_manager.cpp`) | 004D6900 / 004D6960 / 004D6940 / 004D6920 / 004D6930 / 004D6970 `CServerSpecificManager` Construct, Destruct, DeletingDestruct, slots 11 / 12, slot 14 `NewObject` (0x46-0x49 through their constructors, 0x4B `CTorchObjectSpec` inline + Create through the vtable); 004D6BA0 / 004D6B80 / 004D6B60 / 004D6B70 / 004D6B50 `CTorchObjectSpec` Destruct, DeletingDestruct, slots 11 / 12 / 6 | names / ids S, rest O; newgame |
-| Pipeline projections (`model.cpp`) | 004F2650 `CTransformPipeline::ProjectBlocks`, 004F29F0 `ProjectTerrain` (`ITransformPipeline` slots 9 / 14 / 18 / 19) | O; shadows, every frame |
-| Party manager archive (`party_manager.cpp`, A-S9) | 004A8560 / 004A8310 `PartyManager::Save` (S, ISAAC state put back) / `Load` (the manager 007AA5A0: parties hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0 `ChunkArchive::SerializeParties` / `SerializePartyEntries` / `SerializeClassTemplates` / `IntField`, 004A64B0 `NamedPartyRecords::Serialize` (covered by Save); 004A6050 / 004A6360 `BeginRedeploy` / `EndRedeploy` (Begin spreads the variables (004A8AD0 operator=), zone and +0x6C to every record; End clears the party when no record matches, then text10 = text0C); 004A5AF0 `PartyRecord::Serialize`, 004A6C40 `ClassTemplate::Serialize` (SaveLists 0069BAC0 by address) | every save (autosave), world_load, ui_saveload, zone_* (RedeployParty) |
-| Rain / snow (`effects_weather.cpp`, `CRainSnow`, CWorldClient + 0x6F4 = world.h's `ClientRibbons`) | A-S10: 004E3B80 `Clear` (slot 3 via the thunk 005617B0: rain loop stopped, texture +0x1C released, wind / mode / fade / world +0x20 cleared, density 64), 004E3FC0 `Start(mode, duration)` (texture "RainSnow" kind 6 through 00500A00; rain plays the loop "nature\rain\circle.wav" (Play2D, priority 1000); fade start = the world's tick). Not ported: 004E3980 (noise tables, only from the static initialiser 004E3B20), 004E3C20 (buffers; renderer data), the draws 004E4240 / 004E4C80 | Clear S (copy without sound and texture), Start O; world teardown, the server's weather messages |
-| Visibility fog object (`effects_weather.cpp`, `CVisibilityFog`, vtable 0073D6B4) | A-S10: slots 2 / 3 004E23D0 / 004E2440 (cells freed to the pool, bounds invalid; slot 2 returns 1), 11 / 12 004E24A0 / 004E24B0 ("CVisibilityFog", 0x5F), destructor 004E24E0 and slot 0 004E24C0 | O (table empty) / S (11, 12); the fog of the show-visibility effect (no scenario known) |
-| Misc | 00480B80 `DirectXErrorText` (`dx_errors.cpp`, a sorted table of 149 codes), 004800E0 `app::FatalErrorCode` ("%s (0x%.8X) %s"; always exits); the thrown `GameError` (A-S10, 0xC: vtable 0073CAB4 / base 0073CAB0, operator new message, result): constructors 00480250 (wvsprintf) / 00480300 (+ result text), destructor 004815D0, deleting destructors 004815B0 / 00481580 | S (constructors: the original formats into a scratch object with the first eight argument dwords passed on) / O; only on a DirectX failure |
+- Stream diff: `ApplyDiff` patches run headers in place and follows a full run of 255 by an empty run of the other kind.
+  `ReplaceTagged` 004A4AF0 has no caller in game.exe (Rebirth's EI_Plugin.asi calls it through a thiscall thunk).
+- Zone exit `Read` / `Write` 004E5750 / 004E58A0: +0x00..+0x20 dwords, target with terminator, +0x2C, +0x30, then bytes
+  +0x34, +0x38 and the angle; read from version 0x68 on, else 0 (world.h's +0x24 is `angle`). `ReadInto` 004E5840 reads a
+  string into a temporary and assigns. Covered by zone_base_bz1g, newgame, saves.
+- Ground decals: ClipPlane / AddTriangle / AddTerrainTriangle are in tests/verify/disabled.txt (X17).
+- .mob: `ReadMobChunks` 00481F00 (scripts, weather, records, players); `LoadMobFile` 00481660 (relations applied, traps get
+  their hostile mask and origin, units their alarm records 005D6D20, records deleted, scripts loaded unless keepIds);
+  `MobScriptDecoder::Decode` 004D8E10 (resize 004D8EB0 = `CharVectorResizeOriginal`); zone_gz2g_traps.
+- Trader stock: `ClassTemplateSetLevels` 004A6DC0, `GenerateItems` 004A6DF0, `GenerateMagic` 004A6F60 (a list<CItem*>
+  sentinel from the node pool, generators, AddItem(1, 1) + Release), `ClassTemplate::Construct` 004A6580 and
+  `ItemStock::Construct` 004A66C0 (193-bucket maps).
+- Script runtime helpers: `PartyForScript` 004BAEC0 ("owner::name"), `CAIMap::SetRefreshUnits` 004BA090, the sector map
+  wrappers 004BA0A0..004BA100 (Move by address: Rebirth), `GameOStream::PutFloatArgument` 004BA9D0,
+  `CSceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour_` +0x14).
+- Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
+  hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`
+  / `SerializePartyEntries` / `SerializeClassTemplates` / `IntField` 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0,
+  `NamedPartyRecords::Serialize` 004A64B0, `PartyRecord::Serialize` 004A5AF0, `ClassTemplate::Serialize` 004A6C40
+  (SaveLists 0069BAC0 by address). `BeginRedeploy` / `EndRedeploy` 004A6050 / 004A6360: Begin spreads the variables
+  (004A8AD0 operator=), zone and +0x6C to every record; End clears the party when no record matches, then text10 = text0C.
+  Scenarios: every save (autosave), world_load, ui_saveload, zone_* (RedeployParty).
+- Rain / snow (`CRainSnow`, CWorldClient +0x6F4): `Clear` 004E3B80 (slot 3 via the thunk 005617B0: rain loop stopped,
+  texture +0x1C released, wind / mode / fade / world +0x20 cleared, density 64), `Start(mode, duration)` 004E3FC0 (texture
+  "RainSnow" kind 6 through 00500A00; rain plays the loop "nature\rain\circle.wav" (Play2D, priority 1000); fade start = the
+  world's tick). Not ported: the draws 004E4240 / 004E4C80 and buffers 004E3C20 (renderer data); 004E3980 (noise tables,
+  only from the static initialiser 004E3B20; ported by A-E2).
+- `CVisibilityFog` (vtable 0073D6B4): slots 2 / 3 004E23D0 / 004E2440 (cells freed to the pool, bounds invalid; slot 2
+  returns 1), 11 / 12 004E24A0 / 004E24B0 ("CVisibilityFog", 0x5F), destructor 004E24E0, slot 0 004E24C0. The fog of the
+  show-visibility effect; no scenario known.
+- Misc: `DirectXErrorText` 00480B80 (a sorted table of 149 codes), `app::FatalErrorCode` 004800E0 ("%s (0x%.8X) %s"; always
+  exits), the thrown `GameError` (0xC: vtable 0073CAB4 / base 0073CAB0, operator new message, result): constructors
+  00480250 (wvsprintf) / 00480300 (+ result text), destructor 004815D0, deleting destructors 004815B0 / 00481580.
+  Only on a DirectX failure.
+- Models: `ComputeFaceNormal` 0049AEC0 (edges from vertex 1 normalised unless below 1e-10 squared, crossed, normalised; zero
+  or NaN length takes 007A9C98).
+- Link figures: `CLinkMesh::AddPart` returns a bool in AL; `FindFigureSet` 004FAB00; the loader slots 3-6 004F7150 /
+  004F7080 / 004F7020 / 004F75E0; `CacheBytes` 004FAAA0 has no scenario.
+- Sky: `CSkyObject::Light` 004D9360, `CSky::Light` 004D9DE0, `CSky::Draw` 004D96E0 (renderer slots 11 `SetTexture` /
+  14 `DrawFigure`; the object at the eye lowered by 16).
+- Server-specific manager 004D6900.. : slot 14 `NewObject` builds 0x46-0x49 through their constructors and 0x4B
+  `CTorchObjectSpec` inline + Create through the vtable.
 
 Facts:
 - Memory stream: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to size * 1.5 + 0x10
@@ -367,108 +394,87 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported b
 
 ### Next candidates in this range
 
-- Renderer tickets: the D3D state-block manager 004FCA60-004FDFE0 (its hash_map of state vectors; the STLport members
-  004FE0C0-004FF4C0 are now library rows), rain / snow draws 004E4240 / 004E4C80 and buffers 004E3C20, the fog draw
-  004E1EB0-004E2290, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions 004E5E50-004EFEA0; the TL
-  library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth); the debug line lists 0049B140 / 0049B780.
-- A-S10 did the particle manager (particles.md), the ISAAC seed 0049F660 / 0049F4B0 (core.md), 004DC390, the unit modes'
-  slots, GameError, CRainSnow Clear / Start, the zone exit's stream form, CVisibilityFog's slots. Classified: 0049F820 /
-  0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks; 004E3980 is only theirs: ported by A-E2); 0049F890
-  (keyframe track) is reached only from 00448720, which only calls itself (dead); STLport / MFC rows for the party
-  manager's containers 004B0A90-004B1590, the script CArrays 004B5ED0 / 004BD120 / 004BDB80 / 004BE250-004BE430, 004A39C0.
-  Only reachable from rewritten callers (left unported): 004824B0 / 00483D40 (LoadMobFile's record map), 004B3200 (from
-  0066E2E0), the accessors 004B9F20-004BA080 / 004BA9C0 (from 004B6760). Left: 004BD310 / 004BDE40 (skipped, above).
+- Renderer tickets: the D3D state-block manager 004FCA60-004FDFE0, rain / snow draws 004E4240 / 004E4C80 and buffers
+  004E3C20, the fog draw 004E1EB0-004E2290, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions
+  004E5E50-004EFEA0, the TL library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth), the debug line lists 0049B140 /
+  0049B780.
+- Classified: 0049F820 / 0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks); 0049F890
+  (keyframe track) is reached only from 00448720, which only calls itself (dead). Only reachable from rewritten callers
+  (left unported): 004824B0 / 00483D40 (LoadMobFile's record map), the accessors 004B9F20-004BA080 / 004BA9C0 (from
+  004B6760). Left: 004BD310 / 004BDE40 (skipped above, ported in A-E1 for the standalone build).
 - Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, CTorchObjectSpec
   Create / Destroy 0052C610 / 0052C680 (not ported; slots 13-15 004D6B20/30/40 are a bare RET).
 
 ### A-E1: the script leftovers below 0x004C0000
 
-- 004BD310 `ScriptCreateFxSource` (`script_effects.cpp`; CreateFXSource 0x16 and CreateRandomizedFXSource 0x18). The id
-  is FISTP-rounded, a negative one takes `nextFxId_` (then counted down). An existing source's sound is dropped; a new
-  source is a `NewNode` at the tail. Position, volume, radius and name come from the command. 0x16 makes the sound at once
-  (class 0x48 from the effect manager, the source's position, volume, radius and name, added to the timed objects, one
-  more reference) and clears `idle`; 0x18 keeps no sound, takes min delay, max delay (FISTP) and spread, countdown 0,
-  idle 1. Decision: for a new id 0x16 leaves spread, the delays and the countdown as whatever the stack held (the
-  temporary element at EBP-0x50 is copied whole into the node, 004CB220); the tick (004BF000) counts such a source down
-  and replaces its sound when the countdown reaches zero. Ours writes 0, 0, 0 and INT_MAX: the sound stays, as with any
-  positive residue (zero would replace it on every tick). Until now the original ran from our `Execute`, so the residue
-  was already ours. Ours only (`verify_script_effects.cpp`): the source and its sound against the command. script_fx.
+- 004BD310 `ScriptCreateFxSource` (`script_effects.cpp`; CreateFXSource 0x16 and CreateRandomizedFXSource 0x18). The id is
+  FISTP-rounded, a negative one takes `nextFxId_` (then counted down). An existing source's sound is dropped; a new source
+  is a `NewNode` at the tail. 0x16 makes the sound at once (class 0x48 from the effect manager, added to the timed objects,
+  one more reference) and clears `idle`; 0x18 keeps no sound, takes min delay, max delay (FISTP) and spread, countdown 0,
+  idle 1. Decision: for a new id 0x16 leaves spread, the delays and the countdown as whatever the stack held (the temporary
+  element at EBP-0x50 is copied whole into the node, 004CB220); the tick (004BF000) counts such a source down and replaces
+  its sound when the countdown reaches zero. Ours writes 0, 0, 0 and INT_MAX: the sound stays, as with any positive
+  residue (zero would replace it on every tick). Scenario script_fx.
 - 004BDE40 `CScript::Construct` (`script_construct.cpp`): the member vtables (`scriptvtable::kPointLights` ..
   `kTempObjectList` in script.h), lists in blocks of 10, the four global variable sets, 256 zeroed light slots, one empty
-  temporary group (004C8CE0) and one null temporary reference (004C9210), an empty error text, then `ScriptReset`. Only
-  the world's constructor 00589ED0 calls it (twice), from the static initialiser 00589BE0, before the hooks: the hook
-  and its side-by-side check (a shadow script constructed by the original; every dword but the scripts' own
-  allocations equal) never fire in the hooked game. The rewrite is for the standalone build.
-- 00456360 `CScript::GetError` (text copy-constructed at `out`, code, line; `ScriptErrorInfo` of world_glue.h): side by
-  side, reached only when the command line's script fails to load.
-- 004B3200 `ScriptGroup::CopyToList` (script_group.cpp): the group's objects replace a pointer list of counted
-  references (each old element released, the list emptied, one counted element per object). Side by side on a
-  shadow list holding the same elements (counted once more). The only caller is the server's party sync of a
-  player without a party copy (player_sync.cpp, through `ScriptGroupToListOriginal`).
-- app_lifetime.cpp: the creators the application's start registers with the class registry 0079B270 (00457850
-  a class template as class 1, 00457740 a party record as class 2; both clear the count's dword before the null
-  check, as the original), the party record's destructor (004577E0, slot 0 004577C0) and the party manager's
-  exit-time destructor (004A5700: templates and records released, the strings, the entries, every party through
-  the map's own node deleter 004ABA70, the bucket array). All ours only: a party's Create is not repeatable
-  side by side and the rest destroy. The creators are reached when a saved party manager is loaded.
-- small_accessors.cpp: the accessors the interpreter calls out of line, as `__fastcall` shims: 004B2520 (the
-  referenced map object's companion, null without an object), 004B9F50 / 004B9F60 (bits of the object's flags
-  set / cleared), 004B9F90 (the map object's position), 004B9FD0 (a counted object exists and is not
-  detached; asked of the game server), 004BA010 (FISTP of a number), 004BA030 (`CItem::Repair`), 004BA060
-  (the unit's controller), 004BA070 / 004BA080 (the carried items' count and element), 004BA9C0 (the
-  controller's statistics), 004BAA20 (`ObjectListIterator::First`), 004BC1F0 (a CString written to a stream
-  with its terminator; the definition's Save). Their only callers are Execute (004B6760) and
-  ScriptDefinitionSave (004BBFE0), both rewritten with the same work inline, so no scenario reaches the
-  hooks. Side by side where the prologue allows (the field put back between the runs); 004B2520, 004B9FD0,
-  004BAA20 and 004BC1F0 ours only.
+  temporary group (004C8CE0) and one null temporary reference (004C9210), an empty error text, then `ScriptReset`. Only the
+  world's constructor 00589ED0 calls it (twice), from the static initialiser 00589BE0, before the hooks: the hook never
+  fires in the hooked game. The rewrite is for the standalone build.
+- 00456360 `CScript::GetError` (text copy-constructed at `out`, code, line; `ScriptErrorInfo` of world_glue.h): reached
+  only when the command line's script fails to load.
+- 004B3200 `ScriptGroup::CopyToList` (script_group.cpp): the group's objects replace a pointer list of counted references
+  (each old element released, the list emptied, one counted element per object). The only caller is the server's party
+  sync of a player without a party copy (player_sync.cpp, through `ScriptGroupToListOriginal`).
+- app_lifetime.cpp: the creators the application's start registers with the class registry 0079B270 (00457850 a class
+  template as class 1, 00457740 a party record as class 2; both clear the count's dword before the null check, as the
+  original), the party record's destructor (004577E0, slot 0 004577C0) and the party manager's exit-time destructor (004A5700:
+  templates and records released, the strings, the entries, every party through the map's own node deleter 004ABA70, the
+  bucket array). The creators are reached when a saved party manager is loaded.
+- small_accessors.cpp: the accessors the interpreter calls out of line, as `__fastcall` shims: 004B2520 (the referenced map
+  object's companion, null without an object), 004B9F50 / 004B9F60 (bits of the object's flags set / cleared), 004B9F90
+  (the map object's position), 004B9FD0 (a counted object exists and is not detached; asked of the game server), 004BA010
+  (FISTP of a number), 004BA030 (`CItem::Repair`), 004BA060 (the unit's controller), 004BA070 / 004BA080 (the carried
+  items' count and element), 004BA9C0 (the controller's statistics), 004BAA20 (`ObjectListIterator::First`), 004BC1F0 (a
+  CString written to a stream with its terminator; the definition's Save). Their only callers are Execute (004B6760) and
+  ScriptDefinitionSave (004BBFE0), both rewritten with the same work inline, so no scenario reaches the hooks.
 
 ### A-S11: the plain game code left in 0x004C0000-0x00500000
 
-The classification of all 173 functions that were left in the range is in renderer.md (section 12). The plain
-game code among them (39): 18 rewritten, 21 left.
+The classification of the 173 functions that were left in the range is in renderer.md (section 12); the plain game code among
+them is below.
 
-- Text manager (`text_sources.cpp`, `item_db_text.h`). 004DEBC0 `TextSourcesFind`: the first source that has
-  the key, its `GetFile` result (the size through the out pointer); null without one. 004DEC40
-  `TextSourcesListKeys`: every source's keys matching the pattern appended to the caller's array through a
-  temporary `CStringArray` (`mfc::CStringArray::Append`, 006FEB01, added to mfc.h as a forwarder);
-  Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and `CTextManager::ListKeys` (004DEFA0)
-  calls the original through a forwarder. 004DED20, forwarded elsewhere as an unnamed constructor, is
-  `CTextManager`'s Create slot: `setlocale(LC_CTYPE, <the pointer at 0079BE94>)`, `_setmbcp(_MB_CP_LOCALE)`,
-  returns 1. Side by side: 004DEC40 and 004DEFA0 (the original into a scratch array, names compared by content),
-  004DED20 (running it twice changes nothing); 004DEBC0 ours only (GetFile counts the file's users)
-  (`verify_text_keys.cpp`). Scenarios: Create on every start; the interface's "pers *" listing (00607720,
-  00635250) has no known scenario.
-- 004D0AF0 `ScriptSubCallClear` (`script_blocks.cpp`): type and argument index zero, the command cleared. Only
-  the original `LoadFunction` calls it (a Rebirth launch's script loads). Ours only.
-- `CSysInfo` (`sys_info.cpp`; the global at 007AB8F8, vtable 0073D644, class id 0xD, five CStrings at +0x1C).
-  Rewritten: what can run after the hooks install: Create's shell 004DDF05 (it calls the collector 004DDF28
-  and returns 1), the empty Destroy 004DDF1D, the class name / id slots 004DE890 / 004DE8A0, the destructor
-  004DDE75, its deleting form 004DE8B0 and the exit handler 004DDD60. Side by side: the two pure slots; the
-  rest ours only (`verify_sys_info.cpp`); the exit handler runs on every exit. A static initialiser runs the
-  rest before the hooks install (ported by A-E2 and compared at WinMain's entry with what the original built,
-  `verify_static_initialisers.cpp`): the initialisers 004DDCB0, 004DDCBA (it stores 2 * pi at
-  007AB8F0), 004DDCCD, 004DDCD7, 004DDCEE, 004DDCF8, 004DDD0F, 004DDD19, 004DDD30 (constructs the global and
-  registers 004DDD60), 004DDD3F, 004DDD4E, 004DE855, 004DE87C, the constructor 004DDD6F, the collector 004DDF28
-  (1887 bytes: registry and version queries into the five texts) and its helpers 004DE687, 004DE6C2, 004DE6F3,
-  004DE789.
-- 004E3980 (the weather's noise tables filled from `rand`; `weather_noise.cpp`): only a static initialiser calls
-  it; the tables are rebuilt from `rand` seeded with 1 at WinMain's entry and match bit for bit (A-E2).
+- Text manager (`text_sources.cpp`, `item_db_text.h`). 004DEBC0 `TextSourcesFind`: the first source that has the key, its
+  `GetFile` result (the size through the out pointer); null without one. 004DEC40 `TextSourcesListKeys`: every source's keys
+  matching the pattern appended to the caller's array through a temporary `CStringArray` (`mfc::CStringArray::Append`,
+  006FEB01, a forwarder in mfc.h); Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and
+  `CTextManager::ListKeys` (004DEFA0) calls the original through a forwarder. 004DED20 is `CTextManager`'s Create slot:
+  `setlocale(LC_CTYPE, <the pointer at 0079BE94>)`, `_setmbcp(_MB_CP_LOCALE)`, returns 1 (runs on every start). The
+  interface's "pers *" listing (00607720, 00635250) has no known scenario.
+- 004D0AF0 `ScriptSubCallClear` (`script_blocks.cpp`): type and argument index zero, the command cleared. Only the original
+  `LoadFunction` calls it (a Rebirth launch's script loads).
+- `CSysInfo` (`sys_info.cpp`; the global at 007AB8F8, vtable 0073D644, class id 0xD, five CStrings at +0x1C). Rewritten: what
+  can run after the hooks install: Create's shell 004DDF05 (it calls the collector 004DDF28 and returns 1), the empty
+  Destroy 004DDF1D, the class name / id slots 004DE890 / 004DE8A0, the destructor 004DDE75, its deleting form 004DE8B0 and the
+  exit handler 004DDD60 (runs on every exit). A static initialiser runs the rest before the hooks install (ported by A-E2
+  and compared at WinMain's entry with what the original built, `verify_static_initialisers.cpp`): 004DDCB0, 004DDCBA (it
+  stores 2 * pi at 007AB8F0), 004DDCCD, 004DDCD7, 004DDCEE, 004DDCF8, 004DDD0F, 004DDD19, 004DDD30 (constructs the global and
+  registers 004DDD60), 004DDD3F, 004DDD4E, 004DE855, 004DE87C, the constructor 004DDD6F, the collector 004DDF28 (1887 bytes:
+  registry and version queries into the five texts) and its helpers 004DE687, 004DE6C2, 004DE6F3, 004DE789.
+- 004E3980 (the weather's noise tables filled from `rand`; `weather_noise.cpp`): only a static initialiser calls it; the
+  tables are rebuilt from `rand` seeded with 1 at WinMain's entry and match bit for bit (A-E2).
 - 004D5880 (from 004D36F0: a text file read through `CStdioFile` inside an MFC TRY / CATCH(CFileException);
-  `script_text_file.cpp`, A-E2): the text is emptied, the file opened by the throwing constructor (text mode,
-  share deny write), lines of up to 0x7FF characters appended, the file closed; a caught exception gives 0.
-  Side by side at start-up (app.md "MFC TRY / CATCH"); no scenario loads a script text file.
-- The visibility fog's manager (`vis_fog_manager.cpp`; `ClientArrayManager` in world.h is `CVisFogManager`,
-  vtable 0073F554: the "VisionFog" texture at +0xB0 and a CList of counted fogs at +0xB4). 004E2290 (slot 14)
-  makes a `CVisibilityFog`: engine object fields, +0x1C..+0x53 zero, a cell map of 193 buckets (resize(100));
-  the map's three hash functor bytes at +0x54 are left as allocated, as in the original. 004E2990 (Create):
-  the texture (kind 6), then the tile table at 007ABA58 the fog's draw reads, 16 records {u0, v1, u1, v0} with
-  u0 = column / 4, v0 = 1 - (row + 1) / 4 and a quarter added for the other two, then the base manager's
-  Create. 004E2850 (Destroy): the texture dropped (the pointer cleared before the release), every fog
-  released, the list emptied. 004E2760 (the tick): each fog's tick; one returning 0 leaves the list and is
-  released; returns 0. 004E28D0: a fog from `CreateObject(0, -1)`, counted once more, appended. 004E2700 (the
-  world draw 00569E40): nothing listed returns 1; otherwise the texture is loaded if needed and bound to stage
-  0 (0 when that fails) and every fog draws through 004E1EB0 (not rewritten). All ours only
-  (`verify_vis_fog_manager.cpp`: each loads, allocates, releases or draws); Create / Destroy run on every
-  start and exit, the tick and the draw on every frame of a map, the factory and the new fog only with the
-  "show visibility" effect (0067C660), for which no scenario is known. The world files keep their forwarders
-  to 004E2850, 004E28D0 and 004E2700 (another ticket's files); the hooks catch them.
+  `script_text_file.cpp`, A-E2): the text is emptied, the file opened by the throwing constructor (text mode, share deny
+  write), lines of up to 0x7FF characters appended, the file closed; a caught exception gives 0 (app.md "MFC TRY / CATCH").
+  No scenario loads a script text file.
+- The visibility fog's manager (`vis_fog_manager.cpp`; `ClientArrayManager` in world.h is `CVisFogManager`, vtable 0073F554:
+  the "VisionFog" texture at +0xB0 and a CList of counted fogs at +0xB4). 004E2290 (slot 14) makes a `CVisibilityFog`: engine
+  object fields, +0x1C..+0x53 zero, a cell map of 193 buckets (resize(100)); the map's three hash functor bytes at +0x54 are
+  left as allocated. 004E2990 (Create): the texture (kind 6), then the tile table at 007ABA58 the fog's draw reads, 16 records
+  {u0, v1, u1, v0} with u0 = column / 4, v0 = 1 - (row + 1) / 4 and a quarter added for the other two, then the base
+  manager's Create. 004E2850 (Destroy): the texture dropped (the pointer cleared before the release), every fog released,
+  the list emptied. 004E2760 (the tick): each fog's tick; one returning 0 leaves the list and is released; returns 0. 004E28D0:
+  a fog from `CreateObject(0, -1)`, counted once more, appended. 004E2700 (the world draw 00569E40): nothing listed returns 1;
+  otherwise the texture is loaded if needed and bound to stage 0 (0 when that fails) and every fog draws through 004E1EB0 (not
+  rewritten). Create / Destroy run on every start and exit, the tick and the draw on every frame of a map, the factory and
+  the new fog only with the "show visibility" effect (0067C660), for which no scenario is known. The world files keep their
+  forwarders to 004E2850, 004E28D0 and 004E2700.
