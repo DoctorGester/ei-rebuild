@@ -26,6 +26,12 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "class_templates.h"
+#include "lever.h"
+#include "model.h"
+#include "player_manager.h"
+#include "world_effect.h"
+#include "world_glue.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -199,29 +205,6 @@ void UnitCalls::AddSpell(CEngineObject* spell) { UnitAddSpellOriginal(this, null
 void UnitCalls::MarkChanged(int what) { reinterpret_cast<CMapObject*>(this)->MarkChanged(what); }
 UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
 
-struct LeverCalls {
-    void SwitchState(int state, float time);             // 0052B7A0
-    void Enable(int on);                                 // 0052BAD0
-    void SetScience(const void* info);                   // 0052BB20
-};
-__declspec(naked) void LeverCalls::SwitchState(int, float) EI_ORIGINAL(0x0052B7A0)
-__declspec(naked) void LeverCalls::Enable(int) EI_ORIGINAL(0x0052BAD0)
-__declspec(naked) void LeverCalls::SetScience(const void*) EI_ORIGINAL(0x0052BB20)
-
-// A unit's statistics (CUnitServer::stats).
-struct StatsCalls {
-    void SetSkill(int index, int value, CUnit* owner);   // 00528AB0
-    void SetScience(int index, int value, CUnit* owner); // 00528DA0
-    void SetStrength(int value, CUnit* owner);           // 00529090
-    void SetDexterity(int value, CUnit* owner);          // 00529220
-    void SetIntelligence(int value, CUnit* owner);       // 00529400
-};
-__declspec(naked) void StatsCalls::SetSkill(int, int, CUnit*) EI_ORIGINAL(0x00528AB0)
-__declspec(naked) void StatsCalls::SetScience(int, int, CUnit*) EI_ORIGINAL(0x00528DA0)
-__declspec(naked) void StatsCalls::SetStrength(int, CUnit*) EI_ORIGINAL(0x00529090)
-__declspec(naked) void StatsCalls::SetDexterity(int, CUnit*) EI_ORIGINAL(0x00529220)
-__declspec(naked) void StatsCalls::SetIntelligence(int, CUnit*) EI_ORIGINAL(0x00529400)
-
 // A player (CWorldServer::GetPlayer).
 struct PlayerCalls {
     void GiveItems(void* list, int flag);                // 00665470
@@ -235,14 +218,8 @@ PlayerCalls* PlayerOf(WorldPlayer* player) { return reinterpret_cast<PlayerCalls
 struct PlayerStateCalls {
     void SetVar(const char* name, float value) { PlayerStateSetVariableOriginal(this, nullptr, name, value); }          // 0066EE10
     void SetVarMax(const char* name, float value) { PlayerStateSetVariableMaxOriginal(this, nullptr, name, value); }    // 0066EE80
-    void DelVar(const char* name);                       // 0066EF30
-    void PlayMusic(const char* name);                    // 0066EB90
-    void LeaveToZone(const char* zone, int point);       // 0066F310
     void PrepareRedeploy();                              // 0066EF80
 };
-__declspec(naked) void PlayerStateCalls::DelVar(const char*) EI_ORIGINAL(0x0066EF30)
-__declspec(naked) void PlayerStateCalls::PlayMusic(const char*) EI_ORIGINAL(0x0066EB90)
-__declspec(naked) void PlayerStateCalls::LeaveToZone(const char*, int) EI_ORIGINAL(0x0066F310)
 void PlayerStateCalls::PrepareRedeploy() { static_cast<CPlayerServer*>((void*)this)->SendParty(); }
 
 // Party records of a player (PartyRecordsFor) and one record.
@@ -255,12 +232,7 @@ void PartyRecordsCalls::RemoveUnit(int a0) { PartyRemoveMemberOriginal(this, nul
 // 00660500: a record copies the items of `source` (with the records they belong to).
 __declspec(naked) void __fastcall RecordCopyItemsFrom(PartyUnitRecord*, void*, PartyUnitRecord*, PartyRecordsCalls*) EI_ORIGINAL(0x00660500)
 
-// The party manager.
-struct PartyManagerCalls {
-    void QuestCompleted();                               // 004A88E0
-};
-__declspec(naked) void PartyManagerCalls::QuestCompleted() EI_ORIGINAL(0x004A88E0)
-PartyManagerCalls* ThePartyManager() { return reinterpret_cast<PartyManagerCalls*>(GamePartyManager()); }
+PartyManager* ThePartyManager() { return GamePartyManager(); }
 
 // The named party records (party_records.h), through the originals: find 004A5E10 (a party),
 // add 004A5E90, remove 004A5FA0.
@@ -271,19 +243,13 @@ NamedPartyRecords* Parties() { return &GamePartyManager()->records; }
 int PartyAddItem(CParty* party, CEngineObject* item, int a, int b) { return (int)PartyAddItemOriginal(party, nullptr, item, a, b); }
 void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { PartyRemoveItemOriginal(party, nullptr, item, a); }
 
-struct DiplomacyCalls {
-    void SetRelation(int a, int b, int relation, int both);   // 004554E0
-};
-__declspec(naked) void DiplomacyCalls::SetRelation(int, int, int, int) EI_ORIGINAL(0x004554E0)
-DiplomacyCalls* TheDiplomacy() { return reinterpret_cast<DiplomacyCalls*>(GameDiplomacy()); }
+CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
 // The game flow: multiplayer state and quest checks.
 struct FlowCalls {
     bool IsMultiplayer();                                // 0057F440
-    bool QuestAllowed(const char* name);                 // 0057FB90
 };
 bool FlowCalls::IsMultiplayer() { return IsNetworkClientOriginal(); }
-__declspec(naked) bool FlowCalls::QuestAllowed(const char*) EI_ORIGINAL(0x0057FB90)
 FlowCalls* TheNetwork() { return reinterpret_cast<FlowCalls*>(TheGameFlow()); }
 
 // STLport strings of the server's variable calls, built and destroyed with the original routines
@@ -307,16 +273,9 @@ struct StlAllocator {
 __declspec(naked) StlAllocator* StlAllocator::Init() EI_ORIGINAL(0x0041F770)
 __declspec(naked) void StlAllocator::Destroy() EI_ORIGINAL(0x0040C760)
 
-// The multiplayer game server's variables.
-struct ServerCalls {
-    void SetVar(const StlString* name, float value);     // 00419730
-    void SetVarMax(const StlString* name, float value);  // 004197D0
-    void DelVar(const StlString* name);                  // 004198D0
-};
-__declspec(naked) void ServerCalls::SetVar(const StlString*, float) EI_ORIGINAL(0x00419730)
-__declspec(naked) void ServerCalls::SetVarMax(const StlString*, float) EI_ORIGINAL(0x004197D0)
-__declspec(naked) void ServerCalls::DelVar(const StlString*) EI_ORIGINAL(0x004198D0)
-ServerCalls* ServerPointer() { return reinterpret_cast<ServerCalls*>(net::GameServer()); }
+// The multiplayer game server's variables, named by the STLport strings above.
+net::ServerSession* ServerPointer() { return net::GameServer(); }
+const net::StringRep* VariableName(const StlString* text) { return reinterpret_cast<const net::StringRep*>(text); }
 // 004B9FD0: the server exists and is not shutting down.
 bool ServerActive() {
     net::ServerSession* server = net::GameServer();
@@ -324,13 +283,7 @@ bool ServerActive() {
 }
 
 // The world's player list (CWorld::players_): the event dispatch.
-struct EventCalls {
-    void Send(int type, int value);                      // 0066C340
-    void SendString(int type, const char* text);         // 0066C3C0
-};
-__declspec(naked) void EventCalls::Send(int, int) EI_ORIGINAL(0x0066C340)
-__declspec(naked) void EventCalls::SendString(int, const char*) EI_ORIGINAL(0x0066C3C0)
-EventCalls* TheEvents() { return reinterpret_cast<EventCalls*>(WorldServer()->players_); }
+CPlayerManager* TheEvents() { return static_cast<CPlayerManager*>(WorldServer()->players_); }
 
 // The world's spell manager (CWorld::manager4C_).
 struct SpellManagerCalls {
@@ -344,33 +297,22 @@ SpellManagerCalls* TheSpellManager() { return reinterpret_cast<SpellManagerCalls
 // A particle source's effect (ScriptParticleSource::object, a CEffectParticle).
 struct ParticleCalls {
     void AttachTo(int objectId) { ParticleSetAttachedToOriginal(reinterpret_cast<CEngineObject*>(this), nullptr, objectId); }   // 00679280
-    void SetSize(float size);                            // 006792B0
 };
-__declspec(naked) void ParticleCalls::SetSize(float) EI_ORIGINAL(0x006792B0)
 ParticleCalls* ParticleOf(ScriptParticleSource* source) { return reinterpret_cast<ParticleCalls*>(source->object); }
 
 // The console's ostream.
 struct OstreamCalls {
-    OstreamCalls* PutFloat(float value);                 // 004BA9D0 (sets +4 = 1, then << double)
     OstreamCalls* PutString(const char* text);           // 006FC31D
     OstreamCalls* Manipulate(void* manipulator);         // 00434FE0
 };
-__declspec(naked) OstreamCalls* OstreamCalls::PutFloat(float) EI_ORIGINAL(0x004BA9D0)
 OstreamCalls* OstreamCalls::PutString(const char* text) { return static_cast<OstreamCalls*>(OstreamPutString(this, nullptr, text)); }
 OstreamCalls* OstreamCalls::Manipulate(void* manipulator) { return static_cast<OstreamCalls*>(OstreamManipulate(this, nullptr, manipulator)); }
 OstreamCalls* Console() { return reinterpret_cast<OstreamCalls*>(&console::Out()); }
+// 004BA9D0: a float argument put to the console (sets +4 = 1, then << double).
+OstreamCalls* ConsoleFloat(float value) { return reinterpret_cast<OstreamCalls*>(&console::Out().PutFloatArgument(value)); }
 // 004BA9F0: the manipulator that ends a console line.
 void* EndLine() { return reinterpret_cast<void*>(0x004BA9F0); }
 
-struct RendererCalls {
-    void SetBackground(float r, float g, float b);       // 004BA120
-};
-__declspec(naked) void RendererCalls::SetBackground(float, float, float) EI_ORIGINAL(0x004BA120)
-
-struct CameraCalls {
-    int Play(const char* name, int flag);                // 00578820
-};
-__declspec(naked) int CameraCalls::Play(const char*, int) EI_ORIGINAL(0x00578820)
 
 // MFC containers the commands keep on the stack, built and destroyed through the originals: the
 // units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
@@ -399,7 +341,7 @@ void* UnitState(CEngineObject* unit) { return static_cast<CUnit*>(unit)->control
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
 ControllerCalls* ControllerOf(void* state) { return static_cast<ControllerCalls*>(state); }
 AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
-StatsCalls* StatsOf(void* state) { return reinterpret_cast<StatsCalls*>(&Controller(state)->stats); }
+UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
 Vector3* Position(CEngineObject* object) { return &static_cast<CMapObject*>(object)->position; }
 PlayerStateCalls* StateOf(WorldPlayer* player) { return reinterpret_cast<PlayerStateCalls*>(player->server); }
 
@@ -517,9 +459,9 @@ void GiveSkill(const SSCCmd* cmd) {
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(Text(cmd, 0)), name) != 0) continue;
         CUnit* owner = Controller(state)->unit;
         int value = Ftol(cmd->floatArgs.data[0]);
-        StatsCalls* stats = StatsOf(state);
-        if (i == 0) stats->SetScience(kIndex[i], value, owner);
-        else stats->SetSkill(kIndex[i], value, owner);
+        UnitStats* stats = StatsOf(state);
+        if (i == 0) stats->RaiseAttribute(kIndex[i], value, owner);
+        else stats->RaiseSkill(kIndex[i], value, owner);
     }
 }
 
@@ -562,7 +504,7 @@ void GSSetVarMultiplayer(const SSCCmd* cmd) {
     StlString text;
     text.InitEmpty(&allocator);
     text.AssignRange(name, name + std::strlen(name));
-    ServerPointer()->SetVar(&text, cmd->floatArgs.data[1]);
+    ServerPointer()->SetVariable(VariableName(&text), cmd->floatArgs.data[1]);
     text.Destroy();
 }
 
@@ -570,8 +512,8 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
     StlAllocator allocator;
     StlString text;
     text.InitFrom(Text(cmd, 0), allocator.Init());
-    if (setMax) ServerPointer()->SetVarMax(&text, cmd->floatArgs.data[1]);
-    else ServerPointer()->DelVar(&text);
+    if (setMax) ServerPointer()->RaiseVariable(VariableName(&text), cmd->floatArgs.data[1]);
+    else ServerPointer()->RemoveVariable(VariableName(&text));
     StlStringDestroy(&text);
     allocator.Destroy();
 }
@@ -794,7 +736,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xBA: {   // SetParticleSourceSize(id, size)
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->SetSize(f[1]);
+            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) static_cast<CEffectParticle*>(entry->object)->SetSize(f[1]);
             break;
         }
         case 0x1A: {   // DeleteLightning(id): every lightning with the id (list +0x4C, head +0x50)
@@ -818,10 +760,10 @@ BOOL ScriptRun::Execute(CScript* script) {
 
         // ---- World ------------------------------------------------------------------------------
         case 0x39:   // SendEvent(type, value)
-            TheEvents()->Send(Ftol(f[0]), Ftol(f[1]));
+            TheEvents()->SendValueToAll(Ftol(f[0]), Ftol(f[1]));
             break;
         case 0x3A:   // SendStringEvent(type, text)
-            TheEvents()->SendString(Ftol(f[0]), Text(cmd, 0));
+            TheEvents()->SendTextToAll(Ftol(f[0]), Text(cmd, 0));
             break;
         case 0x97: {   // GodMode(player, on): player +0x108
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
@@ -865,7 +807,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             float b = f[2] * scale;
             float g = f[1] * scale;
             float r = f[0] * scale;
-            static_cast<RendererCalls*>(Renderer())->SetBackground(r, g, b);
+            SceneRenderer()->SetFogColour(r, g, b);
             break;
         }
         case 0xB6:   // RunWorldTime(time): the configured speed (int at 0079BE5C)
@@ -883,13 +825,13 @@ BOOL ScriptRun::Execute(CScript* script) {
             static_cast<CWorldServer*>(WorldServer())->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
-            static_cast<CameraCalls*>(ClientGlueObject())->Play(Text(cmd, 0), 0);
+            GamePlayCameraPath(Text(cmd, 0), 0);
             break;
         case 0xC1:   // PlayMovie(name)
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            Console()->PutFloat(f[0])->Manipulate(EndLine());
+            ConsoleFloat(f[0])->Manipulate(EndLine());
             break;
         case 0x7E:   // ConsoleString(text)
             Console()->PutString(Text(cmd, 0))->Manipulate(EndLine());
@@ -936,31 +878,27 @@ BOOL ScriptRun::Execute(CScript* script) {
             float time;
             if (cmd->id == 0x91) std::memcpy(&time, "\x00\x00\x20\xC1", 4);   // -10.0f
             else time = f[1];
-            reinterpret_cast<LeverCalls*>(lever)->SwitchState(Ftol(f[0]), time);
+            static_cast<Lever*>(lever)->SetState(Ftol(f[0]), time);
             break;
         }
         case 0xCC: {   // EnableLever(lever, on)
             CEngineObject* lever = Arg(cmd, 0);
             if (!lever || lever->GetClassId() != kClassLever) break;
-            reinterpret_cast<LeverCalls*>(lever)->Enable(ZeroOrNaN(f[0]) ? 0 : 1);
+            static_cast<Lever*>(lever)->Enable(!ZeroOrNaN(f[0]));
             break;
         }
         case 0xAC: {   // SetScience(lever, a, b, four flags)
             CEngineObject* lever = Arg(cmd, 0);
             if (!lever || lever->GetClassId() != kClassLever) break;
-            struct {
-                std::uint32_t flags;
-                int a;
-                int b;
-            } info = {1, 0, 0};
-            info.a = Ftol(f[0]);
-            info.b = Ftol(f[1]);
-            info.flags = 0;
-            if (!ZeroOrNaN(f[2])) info.flags = 1;
-            if (!ZeroOrNaN(f[3])) info.flags |= 2;
-            if (!ZeroOrNaN(f[4])) info.flags |= 4;
-            if (!ZeroOrNaN(f[5])) info.flags |= 8;
-            reinterpret_cast<LeverCalls*>(lever)->SetScience(&info);
+            LockKey lock = {1, 0, 0};
+            lock.id = static_cast<std::uint32_t>(Ftol(f[0]));
+            lock.level = static_cast<std::uint32_t>(Ftol(f[1]));
+            lock.mask = 0;
+            if (!ZeroOrNaN(f[2])) lock.mask = 1;
+            if (!ZeroOrNaN(f[3])) lock.mask |= 2;
+            if (!ZeroOrNaN(f[4])) lock.mask |= 4;
+            if (!ZeroOrNaN(f[5])) lock.mask |= 8;
+            static_cast<Lever*>(lever)->SetLock(&lock);
             break;
         }
 
@@ -1062,10 +1000,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             CUnit* owner = Controller(state)->unit;
             int value = Ftol(f[0]);
-            StatsCalls* stats = StatsOf(state);
-            if (cmd->id == 0xCE) stats->SetStrength(value, owner);
-            else if (cmd->id == 0xCF) stats->SetDexterity(value, owner);
-            else stats->SetIntelligence(value, owner);
+            UnitStats* stats = StatsOf(state);
+            if (cmd->id == 0xCE) stats->RaiseStrength(value, owner);
+            else if (cmd->id == 0xCF) stats->RaiseDexterity(value, owner);
+            else stats->RaiseIntelligence(value, owner);
             break;
         }
 
@@ -1321,17 +1259,17 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             if (setMax) StateOf(player)->SetVarMax(Text(cmd, 0), f[1]);
-            else StateOf(player)->DelVar(Text(cmd, 0));
+            else player->server->DeleteVariable(Text(cmd, 0));
             break;
         }
         case 0x1D: {   // PlayMusic(player, name)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) StateOf(player)->PlayMusic(Text(cmd, 0));
+            if (player) player->server->SendText0D(Text(cmd, 0));
             break;
         }
         case 0x8A: {   // LeaveToZone(player, zone, point)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) StateOf(player)->LeaveToZone(Text(cmd, 0), Ftol(f[1]));
+            if (player) player->server->LeaveToZone(Text(cmd, 0), Ftol(f[1]));
             break;
         }
         case 0xD3:   // RedeployParty(player)
@@ -1434,7 +1372,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         // ---- Quests -----------------------------------------------------------------------------
         case 0x9F: {   // QuestComplete(player, quest)
             if (TheNetwork()->IsMultiplayer()) {
-                if (TheNetwork()->QuestAllowed(Text(cmd, 0))) {
+                if (FinishQuestMap(Text(cmd, 0)) != 0) {
                     void* quest = TheQuestTable()->Find(Text(cmd, 0));
                     if (quest) TheWorld()->AwardExperience(nullptr, static_cast<QuestRecord*>(quest)->exp);
                 }
@@ -1445,7 +1383,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* quest = TheQuestTable()->Find(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardExperience(player, static_cast<QuestRecord*>(quest)->exp);
-            ThePartyManager()->QuestCompleted();
+            ClassTemplatesQuestCompleted(ThePartyManager());
             break;
         }
         case 0xD5:   // QStart(name)
