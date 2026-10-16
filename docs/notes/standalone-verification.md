@@ -227,6 +227,11 @@ happen (the harness logs "share id" if one does).
   (DWMWA_CLOAK) and made tool windows; frames, posted input and window size stay the same. Message-only windows are
   skipped. `noforeground::Watch` checks every 200 ms; the report's `WINDOW:` line, run_all's `game windows:` summary.
   The original's windows are not cloaked (WB12a).
+- **The harness's mouse is the only one** (S21c1, tests/verify/harness_input.cpp, both the original and the image): the
+  game window's subclass answers WM_NCHITTEST with HTNOWHERE, so the user's real cursor over a window makes no
+  WM_MOUSEMOVE, and the DirectInput mouse's GetDeviceState is zeroed after each read (DirectInputCreateEx's slot
+  0073B044, routed at the game's CreateWindowExA). The report's `MOUSE:` line. The real cursor resting over the
+  original's uncloaked, desktop-sized window had moved the camera and made originals not repeat (standalone.md, S21c1).
 - **Loopback** (WB14, tests/verify/harness_net.cpp `netlocal::`): WSOCK32's bind (slot 0073B6DC) and sendto
   (0073B70C) are routed: a bind on every address binds 127.0.0.1, an unbound socket's datagram binds 127.0.0.1:0 first,
   a datagram outside loopback goes to 127.0.0.1 on the same port (the lobby's broadcast ping reaches the same game's

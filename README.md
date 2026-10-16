@@ -159,7 +159,9 @@ its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `co
 `mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
 registry, every game hosts and joins on a UDP port of its own instead of 8888 (`tests/verify/harness_net.h`: games run
 side by side otherwise join each other's servers) and binds on 127.0.0.1 only, its datagrams going nowhere else (so Windows
-Firewall never asks; the report's `NET:` line, run_all's `network:` summary), Rebirth's starter switch CtfMon is answered off (addon.dll would otherwise close the user's ctfmon at start and
+Firewall never asks; the report's `NET:` line, run_all's `network:` summary), the user's real mouse never reaches the game
+(no client mouse messages from the cursor over its window, no DirectInput motion or buttons: `tests/verify/harness_input.h`,
+the report's `MOUSE:` line; the harness's posted input and its GetCursorPos are the game's only mouse), Rebirth's starter switch CtfMon is answered off (addon.dll would otherwise close the user's ctfmon at start and
 restart it from its DLL_PROCESS_DETACH, which hung every exit), and a game that hangs on exit is ended 3 s after
 the scenario quits (where its threads were: `exit_hang.txt` in the run folder). When the game crashes,
 the stack is in `ei_hook.log`; run_all prints it by function names under the run's line (`stack: ... -> ComposeTexture -> CFile::Write -> CxxThrowException`, outermost first, stale words dropped) and `python tools\resolve_crash.py <run folder>` prints the named stack (`--raw`: every logged word). A run that exceeds its time

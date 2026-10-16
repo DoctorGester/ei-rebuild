@@ -336,3 +336,37 @@ User 2026-10-15: the standalone image is the only product, checked by the golden
 - Left: `harness_heap.cpp`'s order observer and heap::Aside (S21g), EI_PROFILE in the image (S21f),
   EI_REBIRTH_IMPLEMENTS as documentation only (S21h), 173 src/ comments that call through an address "so the verify
   wrapper sees it" (C13 makes those calls direct), tests/coverage/reach.txt (the last hook build's reach, kept).
+
+**S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
+`--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each
+time first in two client units' flag 0x400 (CWorldClient's "model kept loaded" mark, CollectVisible: which models were
+in view), then the camera in the saves (focus x 109.999 against 111.684) and the particles' draws (CParticleSource::Tick,
+one draw apart after a sound started in one run only), and from there every random draw. All on the client side, in
+view of the camera: the camera had moved. The harness answers GetCursorPos with its own mouse, but the original's
+window under dgVoodoo covers the desktop (client area at 0,0, 3840x2160) and is not cloaked (WB12 cloaks the image's
+only), so the real cursor, wherever it rests, is over the topmost game window: Windows sends that window WM_MOUSEMOVE
+with the cursor's coordinates when the cursor moves and when a starting game's window appears under it (logged: the
+cursor at (0, 1823), the left edge, which scrolls the camera). The input dispatcher (00457970) takes it as the harness's
+own. The game also polls a background DirectInput mouse (0065EAD0 non-exclusive, background; 005E52E0 sums its motion
+for right-button turning), which reads the hardware whatever window is in front. Which run got the stray move
+depended on where the user's cursor was and which window was on top. Why it showed from about 04:18 on is not proven;
+likely the image's windows (the default suite since S21, cloaked since WB12) stopped lying over the original's, so
+the original's own windows now take the stray moves. WB14 (loopback binds; 0 binds in single-player runs) and SV7b6a /
+SV7c2 were not involved: with the mouse left out and all of them in, the goldens repeat.
+- tests/verify/harness_input.cpp / .h (both the original and the image): the game window's subclass
+  (AlwaysActiveWindowProc) answers WM_NCHITTEST with HTNOWHERE, so the real cursor over it makes only non-client
+  messages (to DefWindowProc); the harness's posted messages never hit-test. DirectInputCreateEx's import slot
+  (0073B044) is routed: the game's CreateDeviceEx for GUID_SysMouse gets its device's GetDeviceState wrapped, the
+  state zeroed after each read (no motion, no buttons; counted when the hardware had any). The report's `MOUSE:` line:
+  reads, real moves left out, hit tests over the window.
+- Runs (`work.py test S21c1 ... --jobs 4`): before the fix, two passes of the six (randtrace) gave 1 and 2 differing
+  goldens. With it: the six scenarios 12 the same (3 runs with the real cursor over the window, left out). `--no-hooks
+  --golden --fresh`, every golden scenario: pass 1, 136 runs ALL PASS, 126 goldens the same, 0 differ (32 runs with
+  hit tests left out, 1 to 11 each; no DirectInput motion: the user's mouse stood still); pass 2 the same (126 the
+  same, 0 differ). The first build routed the DirectInput slot at the harness's start, which in the image came before
+  the host's own routing of it (RouteImageCalls: "not found to route", then E_INVALIDARG and the game's "Can't create
+  direct input object" box in every image run); it is now routed at the game's CreateWindowExA. Final build: `--golden`
+  (the image) 186 runs ALL PASS, 174 goldens the same, 0 differ; `--no-hooks --golden --fresh` twice: 136 runs ALL PASS,
+  126 the same, 0 differ each time (about 30 runs a pass with the real cursor over a window, left out). After merging
+  main (S21d): `--golden` 186 runs ALL PASS, 175 the same, 0 differ; `--no-hooks --golden --fresh` 136 runs ALL PASS,
+  126 the same, 0 differ.
