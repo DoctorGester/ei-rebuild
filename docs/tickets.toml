@@ -935,7 +935,7 @@ id = "SV7"
 title = "Goldens independent of heap layout"
 group = "verification"
 size = 2
-note = "User 2026-10-15: exact heap layouts are not worth preserving (the standalone's allocator and the STL cleanup change them). Goldens (digest of world / generators / players / object field hashes, dumps, saves) must not depend on addresses. Steps: (a) SV7a: a harness heap jitter mode and two --no-hooks runs of each scenario with different layouts; every digest / dump field that differs is address-dependent game behaviour: inventory the sites (orders by pointer, pointer-keyed hash iteration, uninitialised reads). (b) canonicalise each site by object id in both the original (harness patch, as the update countdown already is) and ours, kept in the standalone as a determinism fix. (c) re-record goldens with jitter on; ours must match under any layout, path or check order. (d) decoded saves (field by field, SV3b) as checkpoint comparisons. Replaces the SV2h line (twin ordering for heap layout): SV2h1c, SV2h3a-c, SV2d go when this lands."
+note = "Done 2026-10-16: SV7a-d and SV7b1-b8, SV7c (goldens hold under jitter/fill, both installs, original+hooked+standalone). Open: SV7b5 (net replication, later), SV7b6a (our renderer's frames), SV7c1 (one-off), SV7c2 (standalone heap jitter)."
 
 [[ticket]]
 id = "SV7a"
@@ -1177,6 +1177,24 @@ size = 1
 depends = ["SV7b6"]
 files = ["src/render/render_textures.cpp", "src/render/render_blit.cpp"]
 note = "SV7b6: with 'render new' (our renderer) hooked frames part under EI_HEAP_JITTER (seed 1: 27 of 210 capture frames, e.g. frames_basic world's water, the menu's figures, ui_saveload pictures; seed 2: 24, Rebirth) while goldens stay the same, and hooked --dgvoodoo / --no-hooks frames do not part. Suspect the holder-keyed maps (g_textures, g_windows, g_memory, g_pictures, g_movies): a new holder made at a freed one's address finds the old entry. Check with tools in build/SV7b6 notes: hash frames plain vs EI_HEAP_JITTER=1, find the first differing frame and the entry."
+
+[[ticket]]
+id = "SV7c1"
+title = "Vanilla menu unit cunit2 not hidden (flags 8) once under EI_HEAP_JITTER=3"
+group = "verification"
+size = 1
+model = "opus"
+files = ["src/game/unit_client_update.cpp", "src/game/unit_client_animation.cpp", "tests/verify/harness_watch.h"]
+note = "SV7c, one-off: vanilla --no-hooks EI_HEAP_JITTER=3 ui_saveload, record 0 (update 20, main menu): cunit2 unmoco2 flags 0x100004A2 where the golden has 0x100004AA (bit 8, not drawn, which UpdateClient 005341A0 sets at update 4 from the current animation's key: a still idle). Same isaac and crt.rand state, same place, same animation entries. Did not repeat in three fresh j3 reruns, one with EI_WATCH_CUNIT=2,flags, nor in any other of ~3500 jitter / fill runs. Candidate: which menu unit takes which IsaacRandom draw in AdvanceTime 00535B30's long first step (500..600), so the idle's phase at update 4; or a timing effect. Chase with EI_WATCH_CUNIT=2,flags over many runs if it shows again."
+
+[[ticket]]
+id = "SV7c2"
+title = "Heap jitter for the standalone image's host heap"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tests/verify/harness_heap.cpp", "src/lib/crt.cpp"]
+note = "SV7c: EI_HEAP_JITTER / EI_HEAP_FILL act on game.exe's import slots (harness_heap.cpp), which the standalone image does not use: its malloc / operator new are the host CRT's (EI_REPLACE_STANDALONE), so --standalone runs under jitter are plain runs (no 'heap jitter' log line). The goldens already hold on that other heap (S20: 168 the same), but once the hook builds retire (S21) only the image runs: give its allocator the same seeded spacers and fill so layout independence stays checked."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1461,6 +1479,22 @@ id = "X40a"
 title = "Crash stacks name the functions (ei_hook+offset through ei_hook.map, game.exe through the function list)"
 group = "harness"
 note = "X40 logs the code addresses on a crashed game's stack (ei_hook.log 'stack ei_hook+XXXX' / 'stack 006936BE (game.exe)'), raw. Resolve them to names in run_all's failure summary or a small tool, from build/<cfg>/ei_hook.map and the known game functions, and drop stale frames (addresses above the throw's frame chain)."
+
+[[ticket]]
+id = "WB12"
+title = "Standalone test runs out of sight: no visible window, no focus stealing"
+group = "harness"
+size = 0.5
+depends = ["S21"]
+note = "User 2026-10-16: after the switch to standalone, run the standalone tests quieter so the user doesn't see the game window at all and focus is not stolen. Options to check: an off-screen or hidden (not minimised) window, no SetForegroundWindow/activation (WS_EX_NOACTIVATE, SW_SHOWNOACTIVATE), a windowed present path that still renders and captures frames correctly; the harness must keep feeding input (it sends messages, not real input). Must not switch the display mode. Verify frames and goldens unchanged."
+
+[[ticket]]
+id = "WB13"
+title = "How many standalone games can run at once"
+group = "harness"
+size = 0.5
+depends = ["S21"]
+note = "User 2026-10-16: standalone runs look cheaper than hooked ones (vanilla suite 604 s standalone vs 1,537 s hooked), so more may run at once; investigate. The 16-game cap exists because 24 hooked games (and 16 with 8x AA) crashed Windows with NVIDIA TDR storms (memory gpu-game-limit; ~640 MB VRAM per game under dgVoodoo). Measure per-game VRAM, GPU and CPU load for standalone runs with the renderer they use, step up carefully (e.g. 16 -> 20 -> 24) while watching for TDR events (System log 4101 / 153), and recommend a number with evidence. Changing EI_HARNESS_SLOTS beyond 16 needs the user's OK."
 
 # ---------------------------------------------------------------- cleanup
 
@@ -2323,3 +2357,21 @@ title = "Retarget code comments that cite removed sections"
 group = "docs"
 model = "sonnet"
 note = "About 150 comments citing \"Nth round\", \"pass\", old renderer section numbers, items_spells.md \"(A-H17)\"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations."
+
+[[ticket]]
+id = "D3"
+title = "Trim the standalone and workflow docs to current facts"
+group = "docs"
+size = 1
+model = "opus"
+depends = ["S21"]
+note = "User 2026-10-16: time to trim the docs. docs/ is 1.8 MB in 53 files; the biggest are standalone-verification.md (177 KB), standalone.md (146 KB), tickets.toml (185 KB) and work-board.md (25 KB), mostly per-ticket progress logs that git log already holds. Rewrite each to what a worker needs now: current state, how-tos, facts and open questions; drop round-by-round narratives, superseded plans and, after S21, hook-only sections. Shorten done tickets' notes in tickets.toml (through tickets.py) to one line. Change worker-brief.md's 'append what you did to the notes file' to 'update the notes file in place (current facts, no log)'. Retarget code comments that cite removed sections (as D2 did). Target: these files at half their size or less."
+
+[[ticket]]
+id = "D4"
+title = "Trim the area notes to current facts"
+group = "docs"
+size = 1
+model = "sonnet"
+depends = ["D3"]
+note = "Same rules as D3 for docs/notes/*.md outside the standalone set: renderer (95 KB), ui (87 KB), items_spells (76 KB), world (71 KB), script (61 KB), cleanup-units (55 KB), rebirth (50 KB), units (49 KB) and the rest. Keep addresses, layouts, meanings and open questions; drop progress logs and 'round N' history. Retarget code comments that cite removed sections. Target: half the size or less."

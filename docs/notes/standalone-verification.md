@@ -2000,3 +2000,33 @@ SV7b2's). verify_light checks a new light's positions are zero. The holder-keyed
 **Runs** (frames hashed; 19 capture scenarios hooked with our renderer, 38 runs, 214 frames): plain against seed 1
 and against seed 2, 210 the same; the 4 that differ are render_cursor_present's `menu_stall` / `game_stall`, which
 also differ between two plain runs (the cursor thread and the mouse glide run on real time).
+
+## SV7c: the goldens under heap jitter on both installs (2026-10-16)
+
+Every golden scenario on both installs with `--golden`, once per variant: `EI_HEAP_JITTER` 1, 2, 3, `2,fill`, `3,fill`
+and `EI_HEAP_FILL=r7` (seeded bytes in every block the game did not ask zeroed, resized blocks' tails too, no jitter).
+
+| Round (main had) | Goldens | `--no-hooks` | hooked | standalone |
+| --- | --- | --- | --- | --- |
+| 1: SV7b7 | 99 (45 V, 54 R) | 6 x 99 the same but one (below) | 6 x 99 the same | |
+| 2: + T2f, SV5a, SV7b2a | 115 (53 V, 62 R) | 6 x 115 the same | 6 x 115 the same | |
+| 3: + S20, S20d, X40, WB11, F3a | S20's 53 new (38 V, 15 R; zone_gz3g V and zone_gz15h_tornado V+R carry S20d's saves) | 6 x 53 the same | 6 x 53 the same | 6 x 53 the same |
+
+Round 1's hooked fill7 / j1 Rebirth batches hit E: running out of space (X40's minutes) and were run again: the same.
+SV7b8's Rebirth `2,fill` cunit187 `#place` did not show in any pass. Nothing was canonicalised and no golden re-recorded.
+
+**The one difference** (round 1, vanilla `--no-hooks` seed 3, ui_saveload): at record 0 (the main menu, update 20) cunit2
+unmoco2's flags were 0x100004A2 against the golden's 0x100004AA: bit 8, not drawn, which UpdateClient 005341A0 sets
+at update 4 when the current animation is a still idle. Random state, place and animation entries were the same.
+Three fresh reruns with seed 3 (one with `EI_WATCH_CUNIT=2,flags`) and the other ~3500 runs of the three rounds matched: a one-off,
+filed as SV7c1.
+
+**The standalone** takes no jitter: harness_heap patches game.exe's heap imports, and the image allocates from the host
+CRT (EI_REPLACE_STANDALONE), so its runs above are plain runs on that other heap (no "heap jitter" log line). The goldens
+hold there anyway (S20: every golden the same); SV7c2 gives the image's heap the jitter for after S21.
+
+After merging main with SV7b6 (draw lists by name; no golden changed): `--no-hooks --golden` with `3,fill` over all 168
+goldens (91 V, 77 R) the same; `work.py test SV7c --golden --jobs 4`: 146 runs ALL PASS, 124 goldens the same.
+
+Scratch driver: build\SV7c\passes.py (`<nohooks|hooked|standalone> <label>=<J..|F..>`, SV7C_ONLY / SV7C_NAMES /
+SV7C_ARGS).
