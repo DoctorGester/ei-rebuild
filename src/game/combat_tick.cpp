@@ -122,7 +122,6 @@ namespace {
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
 void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote(a2); }
-__declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
@@ -420,7 +419,7 @@ bool CUnitServer::StartQueuedOrder() {
         int duration = AnimationDuration(animation);
         StepsAddStepTick(&steps, nullptr, animation, duration);
         AnimationSteps copy;
-        StepsCopy(&copy, nullptr, &steps);
+        copy.CopyConstruct(steps);   // 0054B260
         PlayAnimationOrder(copy);
         StepsDestroy(&steps);
         return true;
@@ -435,7 +434,7 @@ bool CUnitServer::StartQueuedOrder() {
         steps.extra = -1;
         StepsEmote(&steps, nullptr, static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;
-        StepsCopy(&copy, nullptr, &steps);
+        copy.CopyConstruct(steps);   // 0054B260
         PlayEmoteOrder(copy);
         StepsDestroy(&steps);
         return true;
@@ -450,7 +449,7 @@ bool CUnitServer::StartQueuedOrder() {
         BuildOrderSteps(&steps, &duration, kOrderSkill, 0);
         int now = WorldTick(this);
         AnimationSteps copy;
-        StepsCopy(&copy, nullptr, &steps);
+        copy.CopyConstruct(steps);   // 0054B260
         currentPlan.TakeSteps(copy, now, duration);
         StartAction(1, 0);
         StepsDestroy(&steps);
@@ -519,7 +518,7 @@ void CUnitServer::ContinueAction() {
     CEngineObject* target = action.target;
     bool seen = true;
     char* player = unit->player;
-    if (player && IsUnit(target) && !AiMemoryIsEnemyOriginal(Brain()->memory, nullptr, (void*)unit, (void*)target))
+    if (player && IsUnit(target) && !Brain()->IsEnemy(unit, target))   // 005CB7F0
         seen = static_cast<CPlayerServer*>(PlayerMessages(player))->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);

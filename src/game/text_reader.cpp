@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -261,7 +262,7 @@ BOOL CTextManager::FindLine(const char* key) {
         }
         return 0;
     }
-    StringSplit(key, &keyWords, ' ');
+    text::Split(key, &keyWords, ' ');
     if (keyWords.size <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWord(&word)) {

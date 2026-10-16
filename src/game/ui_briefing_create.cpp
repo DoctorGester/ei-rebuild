@@ -21,6 +21,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/stlp.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
@@ -381,7 +382,7 @@ void CBriefingScreen::MarkPeople() {
         std::uint32_t bits;
         std::memcpy(&bits, &node->value, 4);
         if (bits != kOneBits) continue;
-        StringSplit(node->key, &parts, '.');
+        text::Split(node->key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts) continue;
         if (Compare(parts[2].Left(kConstructorPrefix), ConstructorTopic()) == 0) continue;
         int id = TextKeyFromName(parts[1]);

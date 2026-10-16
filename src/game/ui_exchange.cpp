@@ -59,7 +59,7 @@ void CExchangeScreen::Update() {
     moneyField_->changed_ = false;
     if (!changed) return;
     ownOffer_->Money() = GameAtoi(moneyField_->text_);
-    ClientPublishPartyOriginal(net::GameClient());
+    net::ClientPublishParty(net::GameClient());
 }
 EI_REPLACE_METHOD(0x0062C930, CExchangeScreen::Update);
 
@@ -82,13 +82,13 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
         net::PartyMessage* offer = LiveOffer();
         if (offer && offer->accepted_) {
             uiorig::PlayUiSound(interface_, kCancelSound, 0);
-            ClientCommitPartyOriginal(net::GameClient());
+            net::ClientCommitParty(net::GameClient());
         }
         return;
     }
     case kLeaveRegion:
         uiorig::PlayUiSound(interface_, kTransitSound, 0);
-        ClientDropPartyOriginal(net::GameClient());
+        net::ClientDropParty(net::GameClient());
         return;
     default:
         return;
@@ -151,9 +151,10 @@ CUiSurface* NewSurface(CInterface3D* ui, int top, int bottom) {
 
 CUiContainer* AsContainer(CExchangeScreen* screen) { return reinterpret_cast<CUiContainer*>(screen); }
 
-// 0041E220 (rewritten as ClientFindParty, net_client_party.cpp; through its address so the wrapper
-// runs; plain RET): the partner's offer that pairs with ours, or null.
-__declspec(naked) net::PartyMessage* __fastcall ClientFindPartyAt(net::ClientSession* /*client*/) EI_ORIGINAL(0x0041E220)
+// 0041E220 (net::ClientFindParty): the partner's offer that pairs with ours, or null.
+net::PartyMessage* ClientFindPartyAt(net::ClientSession* client) {
+    return static_cast<net::PartyMessage*>(net::ClientFindParty(client));
+}
 } // namespace
 
 void CExchangeScreen::Create() {
@@ -374,7 +375,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         uiorig::PlayUiSound(interface_, kPutOnSound, 0);
         CParty* local = LocalParty();
         static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(ownOffer_), static_cast<CParty*>(local), kOfferLimit, 1, 0);
-        ClientPublishPartyOriginal(net::GameClient());
+        net::ClientPublishParty(net::GameClient());
         return;
     }
     if (mode != kGridMode) return;
@@ -385,7 +386,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         CParty* offer = ownOffer_;
         CItem* held = static_cast<CItemScreen*>(this)->MoveItem(item, static_cast<CParty*>(LocalParty()), static_cast<CParty*>(offer), 0, 1, 0);
         static_cast<CUiItemStrip*>(strip_)->ScrollToItem(held);
-        ClientPublishPartyOriginal(net::GameClient());
+        net::ClientPublishParty(net::GameClient());
         return;
     }
 }

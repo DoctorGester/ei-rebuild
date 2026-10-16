@@ -68,10 +68,6 @@ inline void __fastcall StringArrayDestruct(void* array) { static_cast<mfc::CStri
 inline void __fastcall StringArraySetSize(void* array, void*, int count, int growBy) {
     static_cast<mfc::CStringArray*>(array)->SetSize(count, growBy);
 }
-// 004DBE40 (rewritten as text::Split, text_split.cpp): splits the text at a separator into a CStringArray (ECX
-// text, EDX array, RET 4 for the character).
-__declspec(naked) inline void __fastcall StringSplit(const char* /*text*/, void* /*array*/, char /*separator*/)
-    EI_ORIGINAL(0x004DBE40)
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
 // `this` (plain RET), 004DA910 destroys it (plain RET).
 __declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)

@@ -20,6 +20,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/stlp.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -213,7 +214,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             };
             auto addQuests = [&](const BriefingRecord::NameList& list) {
                 for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    StringSplit(*it, &parts, '.');
+                    text::Split(*it, &parts, '.');
                     if (parts.GetSize() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
                     texts->ReadLine(&name, 1);

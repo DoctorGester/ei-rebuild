@@ -78,7 +78,6 @@ inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { Compa
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
-__declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
 __declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410)
 __declspec(naked) void __fastcall BrainList90Destroy(void*) EI_ORIGINAL(0x00557890)
 void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
@@ -458,7 +457,7 @@ void CUnitServer::DestructBody() {
     ResetController();
     AIBrain* b = Brain();
     static_cast<AIBrain*>(b)->Init();
-    BrainMemoryDestroy(&b->memory);
+    b->DestructMemory();   // 00545CB0
     BrainListDestroy(&b->attention.spells);
     BrainListDestroy(&b->attention.weapons);
     BrainList90Destroy(&b->alarmRecords);

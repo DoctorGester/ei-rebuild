@@ -105,9 +105,6 @@ constexpr int kStateJoined = 1;
 constexpr int kItemListBlockSize = 10;
 using GivenList = mfc::CTypedPtrList<CEngineObject>;
 void* ItemListVtable() { return reinterpret_cast<void*>(0x0073B8D4); }   // the CPtrList built on the stack
-// 0069FB60 (RET 4; ECX the items, EDX the spells): `item` joins the items and its spell the spells.
-__declspec(naked) void __fastcall GatherItemOriginal(GivenList* /*items*/, GivenList* /*spells*/, CEngineObject* /*item*/)
-    EI_ORIGINAL(0x0069FB60)
 
 } // namespace
 
@@ -116,7 +113,7 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     GivenList spells{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     GivenList gathered{ItemListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kItemListBlockSize};
     for (GivenList::Node* node = items->head; node != nullptr; node = node->next)
-        GatherItemOriginal(&gathered, &spells, node->data);
+        GatherItem(&gathered, reinterpret_cast<mfc::CTypedPtrList<void>*>(&spells), node->data);   // 0069FB60
     alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
     auto* states = reinterpret_cast<CMemoryStream*>(bytes);
     states->Construct();

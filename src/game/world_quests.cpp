@@ -18,6 +18,7 @@
 #include "unit.h"
 
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
@@ -242,7 +243,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
 void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     if (IsMultiplayerClient()) {
         console::CStringArray parts;
-        StringSplit(name, &parts, '.');
+        text::Split(name, &parts, '.');
         if (parts.GetSize() == 3) TheGameFlow()->RequestBriefing(parts[2]);
         // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
         // 005924D1): the client queues the completion script as well. The plugin formats it with the
@@ -251,7 +252,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         return;
     }
     console::CStringArray parts;
-    StringSplit(name, &parts, '.');
+    text::Split(name, &parts, '.');
     BriefingRecord* record = nullptr;
     if (parts.GetSize() == 3) {
         RawString key;

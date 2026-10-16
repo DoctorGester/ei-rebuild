@@ -127,8 +127,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 request->textures.SetAtGrow(request->textures.GetSize(), name);
             }
             name.Format(kWoundCacheName, unit->id_);
-            result = TextureManagerComposeOriginal(UiTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0,
-                                                   kFormat);
+            result = ComposeTexture(UiTextureManager(), nullptr, &out, request, &name, &name, kMipCount, 0, kFormat);
         }
         request->textures.~CStringArray();
         gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);

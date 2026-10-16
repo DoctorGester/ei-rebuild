@@ -21,10 +21,6 @@ struct Vector3;
 
 // 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility
 // mask (+0x10), destroying each (00558D00). Plain RET.
-// 005CBBC0 (thiscall on the brain's memory, brain + 0xD0; RET 0xC): the memory's calls (+0xA8) hear a call of `kind`
-// carrying the hostility `mask` and `text` (its point left as the stack had it).
-__declspec(naked) inline void __fastcall MemoryAddCall(void* /*memory*/, void*, std::uint32_t /*mask*/, int /*kind*/,
-                                                     const char* /*text*/) EI_ORIGINAL(0x005CBBC0)
 __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
     EI_ORIGINAL(0x005B9C90)
 __declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/, float /*minDistance*/)
@@ -47,15 +43,6 @@ __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std
 // 004C9970: CArray<PatrolPoint>::SetSize(size, growBy) (RET 8; elements constructed / destroyed).
 __declspec(naked) inline void __fastcall PatrolPointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x004C9970)
-// 005CAA00: AI events update a controller's view into its perception memory (RET 8, no result).
-__declspec(naked) inline void __fastcall AiEventsUpdateMemoryOriginal(void* /*events*/, void*, void* /*controller*/,
-                                                                      void* /*memory*/) EI_ORIGINAL(0x005CAA00)
-// 005CB7F0: AI memory IsEnemy(unit, object) (RET 8, EAX 0/1).
-__declspec(naked) inline int __fastcall AiMemoryIsEnemyOriginal(void* /*memory*/, void*, void* /*unit*/, void* /*object*/)
-    EI_ORIGINAL(0x005CB7F0)
-// 005CBBE0: AI memory Notice(point, level, kind) (RET 0xC, no result).
-__declspec(naked) inline void __fastcall AiMemoryNoticeOriginal(void* /*memory*/, void*, const void* /*point*/, int /*level*/,
-                                                                int /*kind*/) EI_ORIGINAL(0x005CBBE0)
 
 // C3k. 004CB770: destructor of the AI look array (vtable 0073D460; frees the buffer; plain RET, EAX not a result).
 __declspec(naked) inline void __fastcall AiLookArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004CB770)
@@ -64,12 +51,9 @@ __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*
 
 // The brain's save-game helpers, called through their addresses so the verify wrappers see the calls
 // (unit_ai_brain.cpp, unit_ai_save.cpp). 005D9010 / 005D91B0: looks load / save (fastcall: ECX the
-// looks, EDX the stream; plain RET). 005CC1E0 / 005CC350: the perception memory's load / save
-// (thiscall on brain + 0xD0, RET 4). 005CE920: an attack option's Save; 005D9B80: an attack option
+// looks, EDX the stream; plain RET). 005CE920: an attack option's Save; 005D9B80: an attack option
 // array's load (fastcall, plain RET). 005D9840: the alarm records' SetSize (RET 8). None
 // returns a result.
-__declspec(naked) inline void __fastcall MemoryLoadOriginal(void* /*memory*/, void*, void* /*stream*/) EI_ORIGINAL(0x005CC1E0)
-__declspec(naked) inline void __fastcall MemorySaveOriginal(void* /*memory*/, void*, void* /*stream*/) EI_ORIGINAL(0x005CC350)
 __declspec(naked) inline void __fastcall AlarmRecordsSetSizeOriginal(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
 
 // The Player mode's fighting and party code (rewritten in unit_ai_player.cpp), called through their

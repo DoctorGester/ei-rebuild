@@ -679,7 +679,7 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
         UiHandled(this) = true;
         break;
     case VK_ESCAPE:
-        ClientDropPartyOriginal(MultiplayerClient());
+        net::ClientDropParty(static_cast<net::ClientSession*>(MultiplayerClient()));
         UiHandled(this) = true;
         break;
     }

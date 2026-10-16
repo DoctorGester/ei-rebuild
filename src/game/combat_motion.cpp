@@ -619,7 +619,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
         if (current.count != 1 || moving.count != 1 || current.steps[0].variant != moving.steps[0].variant) {
             StepsAppend(&Queue(this), nullptr, &moving);
             QueueTime(this) = moving.extra;
-            StepsCopyB(&Queue(this), nullptr, &moving);
+            Queue(this).Assign(moving);   // 005483C0
             StartQueueIfUnset(this);
             PopFinishedSteps();
             ShowCurrentStep();
@@ -791,8 +791,8 @@ void CUnitServer::ResyncWithUnit() {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).count == 0 && QueueTime(this) == -1)
             IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(Random().Next() % 0x33);
-        StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
-        StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
+        Queue(this).Assign(IdleSteps(this));   // 005483C0 (twice, as the original)
+        Queue(this).Assign(IdleSteps(this));
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();

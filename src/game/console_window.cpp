@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "text_split.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -57,7 +58,7 @@ EI_REPLACE_METHOD(0x005E3F90, ConsoleWindow::SetHistory);
 // back stays on the same lines. Keeps the last history_ lines.
 void ConsoleWindow::AddText(const char* text) {
     CStringArray pieces;
-    StringSplit(text, &pieces, '\n');
+    text::Split(text, &pieces, '\n');
     if (lines_.GetSize() != 0)
         lines_[lines_.GetSize() - 1] += *pieces.data;   // the original reads piece 0 unchecked
     else

@@ -99,6 +99,12 @@ struct SkinRequest {
 static_assert(offsetof(SkinRequest, textures) == 0x10);
 static_assert(offsetof(SkinRequest, flags) == 0x24);
 
+// 00693180 (thiscall on the texture manager, RET 0x1C; texture_compose.cpp): the skin `request`
+// composed into the cached texture `name` (or `fallback`), its name into `out`; 1 / 0.
+int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const SkinRequest* request,
+                              const mfc::CString* name, const mfc::CString* fallback, unsigned mipCount,
+                              std::uint32_t fill, std::uint32_t format);
+
 struct AttackParams;   // combat.h
 
 class CUnitClientSpecific : public CEngineObject {

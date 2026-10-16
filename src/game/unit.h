@@ -1077,6 +1077,9 @@ static_assert(offsetof(UnitStats, flags) == 0x6F8);
 // `brokenRemark` when its condition rounds to 0 or less, `wornRemark` when it drops below
 // 007C549C of its maximum.
 void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
+// unit_item_lists.cpp. 0069FB60 (RET 4): `item` joins `items` and its spell (CItem +0x44) `spells`.
+void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
+                           CEngineObject* item);
 // 00525720 (__stdcall; ECX is not read). Text-key units: the armour pieces covering hit location
 // `location` at layer `layer` (1 or 2) wear by `amount`.
 void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount);

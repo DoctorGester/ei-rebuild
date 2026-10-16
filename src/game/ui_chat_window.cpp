@@ -308,7 +308,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     if (static_cast<net::BindingMessage*>(client->binding_)->PlayerRef().ptr == player) return;
     auto* own = static_cast<net::PartyMessage*>(client->party_.ptr);
     if (own && own->partner_.ptr == player) {
-        ClientDropPartyOriginal(client);
+        net::ClientDropParty(client);
         return;
     }
     client->StartParty(player);

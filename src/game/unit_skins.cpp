@@ -17,6 +17,7 @@
 
 #include "../lib/containers.h"
 #include "../lib/crt.h"
+#include "unit_client_models.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
@@ -76,7 +77,7 @@ __declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*)
 __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
 __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
-// The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
+// The texture cache [this +0x18C]: build a composite texture [00693180 ComposeTexture: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
 // EDX; record +0x10, names, more names]; vector<string> members: constructor [0053BB80], copy into
@@ -191,7 +192,8 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
 // The texture cache is the client world's texture manager (+0x18C).
 void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
     set.size = size;
-    TextureManagerComposeOriginal(self->textureManager_, nullptr, &out, &set, &name, &name, 3, 0, 0x5551);
+    // (The set has the request's layout: the bytes as an aligned array, the names, the size.)
+    ComposeTexture(self->textureManager_, nullptr, &out, reinterpret_cast<const SkinRequest*>(&set), &name, &name, 3, 0, 0x5551);
     self->textureManager_->FindOrLoad(kind, name);
 }
 

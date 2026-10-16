@@ -86,7 +86,6 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<C
 // 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
 // (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
 // 005D4E80 its reset on death (unit_ai.cpp, controller + 0x980).
-__declspec(naked) void __fastcall MemoryUpdate(void*, void*, CUnitServer*, void*) EI_ORIGINAL(0x005CB850)
 // The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
 // object (world_server.cpp); 00665440 does the player still have the unit.
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
@@ -187,8 +186,8 @@ struct PlanCopy {
 
 // The queue replaced by `steps`, twice as the original does, then started.
 void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
-    StepsCopyB(&Queue(self), nullptr, steps);
-    StepsCopyB(&Queue(self), nullptr, steps);
+    Queue(self).Assign(*steps);   // 005483C0 (twice, as the original)
+    Queue(self).Assign(*steps);
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     self->ShowCurrentStep();
@@ -236,7 +235,7 @@ int CUnitServer::UpdateServer() {
         TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
             // A party unit: its perception memory, and now and then a bored remark.
-            MemoryUpdate(Brain()->memory, nullptr, this, unit->levels4C8);
+            Brain()->MeasureExposure(this, unit->levels4C8);   // 005CB850
             static_cast<CMapObject*>(unit)->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
@@ -566,7 +565,7 @@ void CUnitServer::TickAction() {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
         StepsAppend(&Queue(this), nullptr, &plan.animation);
         QueueTime(this) = plan.animation.extra;
-        StepsCopyB(&Queue(this), nullptr, &plan.animation);
+        Queue(this).Assign(plan.animation);   // 005483C0
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();

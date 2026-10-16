@@ -41,7 +41,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
         piece.Format("Unit %i claims that player %i are enemies! ", claimant->id_, player);
         text += piece;
     }
-    MemoryAddCall(BrainOf(this)->memory, nullptr, mask, kCallClaim, text);
+    CallsAddClaim(&BrainOf(this)->calls, nullptr, mask, kCallClaim, text);   // 005CBBC0 on the memory: its calls
 }
 EI_REPLACE_METHOD(0x00552D00, CUnitServer::ClaimHostility);
 

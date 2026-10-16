@@ -1,6 +1,7 @@
 // AnimationSteps, the step lists of the unit controller's animations (A-U5): appending steps and
 // emotes, flags, duration, comparison. See combat.h and docs/notes/combat.md.
 #include "combat.h"
+#include "lib/mfc_array.h"
 
 #include "originals_library.h"
 
@@ -9,6 +10,17 @@
 
 #include <bit>
 #include <cstdint>
+
+// The library's list ABI (lib/mfc_array.h) has this layout.
+AnimationSteps* AnimationSteps::CopyConstruct(const AnimationSteps& source) {
+    mfc::impl::AnimationStepListAbi::CopyConstruct(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
+                                                   reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
+    return this;
+}
+void AnimationSteps::Assign(const AnimationSteps& source) {
+    mfc::impl::AnimationStepListAbi::Assign(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
+                                            reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
+}
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)

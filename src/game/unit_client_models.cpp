@@ -511,7 +511,7 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         std::memcpy(request->layers, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
-            TextureManagerComposeOriginal(textureManager, nullptr, target, request, &unitKey, &prototypeKey, 3, 0, 0x5551));
+            ComposeTexture(textureManager, nullptr, static_cast<mfc::CString*>(target), request, &unitKey, &prototypeKey, 3, 0, 0x5551));
         request->textures.~CStringArray();
         if (request->layers) gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
     }

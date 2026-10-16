@@ -162,7 +162,7 @@ void QueueNextAnimation(CUnitServer* c) {
     AnimationSteps* next = c->NextAnimation();
     StepsAppend(Queue(c), nullptr, next);
     QueueStart(c) = next->extra;
-    StepsCopyB(Queue(c), nullptr, next);
+    Queue(c)->Assign(*next);   // 005483C0
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
     c->ShowCurrentStep();
@@ -178,7 +178,7 @@ void HitWhileTurning(CUnitServer* c) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
-            StepsCopyB(&c->savedQueue, nullptr, Queue(c));
+            c->savedQueue.Assign(*Queue(c));   // 005483C0
             c->PlaySteps(&steps);
             c->animationHeld = 1;
         }
@@ -220,8 +220,8 @@ void HitWhileMoving(CUnitServer* c) {
             StepsSetAtGrow(&fall, nullptr, fall.count, &step);
         }
     }
-    StepsCopyB(Queue(c), nullptr, &fall);
-    StepsCopyB(Queue(c), nullptr, &fall);
+    Queue(c)->Assign(fall);   // 005483C0 (twice, as the original)
+    Queue(c)->Assign(fall);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
     c->ShowCurrentStep();

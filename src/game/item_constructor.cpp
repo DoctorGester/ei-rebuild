@@ -12,6 +12,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp_hash.h"
 #include "originals_effects.h"
@@ -510,7 +511,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         text = text.Left(bracket);
         AsText(text).TrimSpaceRight();
     }
-    StringSplit(text, &parts, '.');
+    text::Split(text, &parts, '.');
     for (int i = 0; i < parts.size; ++i) parts.data[i].MakeLower();
 
     // "spell container[spell text]": a scroll holding that spell.

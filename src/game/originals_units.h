@@ -34,8 +34,6 @@ __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
 __declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
-__declspec(naked) inline void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*)
-    EI_ORIGINAL(0x005483C0)
 __declspec(naked) inline void __fastcall StepsAppend(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x00556950)
 __declspec(naked) inline int __fastcall StepsAdd(AnimationSteps*, void*, const AnimationStep*) EI_ORIGINAL(0x00557CC0)
@@ -109,14 +107,6 @@ __declspec(naked) inline void __fastcall SkillLevelVectorResizeOriginal(void* /*
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).
-// 00693180 (rewritten as ComposeTexture, texture_compose.cpp; through its address so the wrapper runs): the texture
-// manager composes the skin `request` into the cached texture `name` (or `fallback`), its name into `out` (thiscall,
-// RET 0x1C; 1 / 0).
-__declspec(naked) inline int __fastcall TextureManagerComposeOriginal(void* /*manager*/, void*, void* /*out*/,
-                                                                      const void* /*request*/, const void* /*name*/,
-                                                                      const void* /*fallback*/, int /*mipCount*/,
-                                                                      int /*fill*/, int /*format*/)
-    EI_ORIGINAL(0x00693180)
 // 006B7110 (thiscall on the sound system, RET 8): the names of its files matching `pattern` in every resource it
 // searches, appended to the CStringArray `out` (emptied first). No result.
 __declspec(naked) inline void __fastcall SoundSystemListFilesOriginal(void* /*sounds*/, void*, void* /*out*/,

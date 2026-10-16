@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -59,7 +60,7 @@ void CBriefingScreen::FindTopics(int personId) {
     TopicList found;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         if (Bits(node->value) != kOneBits) continue;
-        StringSplit(node->key, &parts, '.');
+        text::Split(node->key, &parts, '.');
         if (parts.size != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;

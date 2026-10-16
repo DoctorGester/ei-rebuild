@@ -491,7 +491,7 @@ void AIBrain::UpdateMemory(CUnitServer* who) {
     }
     CallsUpdate(&calls, nullptr, who->unit, memory);
     // The AI events are the world server's +0x2838 (007B2798).
-    AiEventsUpdateMemoryOriginal(WorldServer()->timeWheel_, nullptr, who, memory);
+    WorldServer()->AIEvents()->Update(who, this);   // 005CAA00
     noticedLevel += noticedKind;
 }
 
@@ -649,7 +649,7 @@ void AIBrain::Load(CStream* stream) {
         modes.tail = node;
         if (i == currentIndex) AssignCurrent(current, modes.tail->data);
     }
-    MemoryLoadOriginal(memory, nullptr, stream);
+    LoadMemory(stream);   // 005CC1E0
     stream->Read(&alerted, 1);
     stream->Read(&alarm, 1);
     stream->Read(&count, 4);
@@ -700,7 +700,7 @@ void AIBrain::Save(CStream* stream) {
         mode->Save(stream);
         node = next;
     }
-    MemorySaveOriginal(memory, nullptr, stream);
+    SaveMemory(stream);   // 005CC350
     WriteCopy(stream, alerted);
     WriteCopy(stream, alarm);
     WriteCopy(stream, alarmRecords.size);

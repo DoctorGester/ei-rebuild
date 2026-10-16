@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
@@ -57,7 +58,7 @@ void OpenObjectives(CInterface3D* ui) {
     console::CStringArray parts;
     BriefingVariables quests(QuestPrefix());
     for (NamedFloatTable::Node* node = quests.First(); node; node = quests.Next(node)) {
-        StringSplit(node->key, &parts, '.');
+        text::Split(node->key, &parts, '.');
         if (parts.size != kQuestNameParts || Bits(node->value) != kOneBits) continue;
         MapRecord* questZone = MapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;

@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
@@ -80,7 +81,7 @@ CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const cha
     // An empty text leaves the measurements and the two arguments unwritten.
     if (!text || !*text) return this;
     lines_.SetSize(0, -1);
-    StringSplit(text, &lines_, kLineSeparator);
+    text::Split(text, &lines_, kLineSeparator);
     width_ = 0;
     height_ = 0;
     lineHeight_ = 0;
@@ -120,7 +121,7 @@ EI_REPLACE_METHOD(0x0065E4F0, CUiTooltip::DestroyBody);
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;
     lines_.SetSize(0, -1);
-    StringSplit(text, &lines_, kLineSeparator);
+    text::Split(text, &lines_, kLineSeparator);
     DrawLines();
 }
 EI_REPLACE_METHOD(0x0065E540, CUiTooltip::SetText);

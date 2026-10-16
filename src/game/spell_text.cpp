@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "item.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_effects.h"
@@ -68,7 +69,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
     Ops(inner).TrimRight();
     Ops(inner).TrimRight('}');
     Ops(inner).TrimRight();
-    StringSplit(inner, &codes, ';');
+    text::Split(inner, &codes, ';');
     text = text.Left(brace);
     Ops(text).TrimLeft();
     Ops(text).TrimRight();

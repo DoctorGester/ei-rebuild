@@ -104,6 +104,11 @@ struct AnimationSteps {
     // same fields.
     void Load(CStream* stream);
     void Save(CStream* stream);
+    // 0054B260 (RET 4; mfc::impl::AnimationStepListAbi): copy construction, the steps (SetSize to
+    // the source's count, then each step) and extra. Returns this.
+    AnimationSteps* CopyConstruct(const AnimationSteps& source);
+    // 005483C0 (RET 4): assignment, Copy of the steps and extra.
+    void Assign(const AnimationSteps& source);
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 

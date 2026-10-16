@@ -30,9 +30,7 @@ RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);   // refptr_
 
 namespace net {
 
-void* __fastcall ClientFindParty(ClientSession* self);      // net_client_party.cpp
 void __fastcall ClientApplyParty(ClientSession* self);      // net_client_party.cpp
-void __fastcall ClientCommitParty(ClientSession* self);     // net_client_party.cpp
 
 namespace {
 

@@ -40,6 +40,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
@@ -218,7 +219,7 @@ void LoadSystemMessages(console::CStringArray& messages) {
     std::memset(text, 0, length);
     libcrt::Fread(text, 1, length, file);
     libcrt::Fclose(file);
-    StringSplit(text, &messages, '\n');
+    text::Split(text, &messages, '\n');
     if (messages.size < kMessageLines) {
         messages.SetSize(0, -1);
         AppendDefaultMessages(messages);
@@ -234,7 +235,7 @@ mfc::CString Tail(const mfc::CString& argument, int prefixLength) { return argum
 // "-devicetarget_<driver>".
 void ReadCommandLine(const char* commandLine) {
     console::CStringArray arguments;
-    StringSplit(commandLine, &arguments, ' ');
+    text::Split(commandLine, &arguments, ' ');
     CameraFile() = game::Text(0x00784920);   // ".\camera.cam"
     CommandLineScript().Empty();
     CommandLineMob().Empty();

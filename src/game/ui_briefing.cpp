@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -198,7 +199,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         std::uint32_t bits;
         std::memcpy(&bits, &node->value, 4);
         if (bits != kOneBits) continue;
-        StringSplit(node->key, &parts, '.');
+        text::Split(node->key, &parts, '.');
         if (parts.size != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;

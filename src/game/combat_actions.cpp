@@ -113,9 +113,6 @@ void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->R
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(a2, a3, a4, a5); }
-// 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
-__declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
-    EI_ORIGINAL(0x005CBE90)
 // 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
 // 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
@@ -315,7 +312,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = ControllerOf(other);
-        AiEventsUpdateMemoryOriginal(AIEventsOf(world), nullptr, controller, controller->brain.memory);
+        AIEventsOf(world)->Update(controller, &controller->brain);   // 005CAA00
         auto* watched = reinterpret_cast<UnitList*>(&controller->brain.visible);
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
@@ -427,7 +424,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AIEventsOf(world)->ForgetUnit(this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
-            MemoryPartyMemberDied(ControllerOf(member)->brain.memory, nullptr, member, unit);
+            ControllerOf(member)->brain.SeeCorpse(member, unit);   // 005CBE90: `member` sees the dead unit
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = kAnimationStepsBaseVtable;

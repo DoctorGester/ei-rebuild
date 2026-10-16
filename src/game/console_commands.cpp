@@ -5,6 +5,7 @@
 #include "console.h"
 
 #include "../lib/crt.h"
+#include "text_split.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -245,7 +246,7 @@ void __fastcall LoadVar(CStringArray* args) {
         return;
     }
     while (file.ReadString(line)) {
-        StringSplit(line, &parts, ' ');
+        text::Split(line, &parts, ' ');
         if (parts.GetSize() > 1) {
             const char* name = parts[0];
             float value = static_cast<float>(GameAtof(parts[1]));

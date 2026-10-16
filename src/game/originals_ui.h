@@ -207,11 +207,6 @@ __declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*
 __declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)
 // 00661FE0 (thiscall on a CParty, plain RET): every item released (its slot 4), the item array's storage freed.
 __declspec(naked) inline void __fastcall PartyReleaseItemsOriginal(void* /*party*/) EI_ORIGINAL(0x00661FE0)
-// The game client's trade offer (ClientSession, thiscall on GameClient(); rewritten in net_client_*.cpp): 0041E180
-// takes the acceptance back, 0041E3E0 drops the offer, 0041DA50 publishes our offer (plain RET each).
-__declspec(naked) inline void __fastcall ClientCommitPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E180)
-__declspec(naked) inline void __fastcall ClientDropPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E3E0)
-__declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041DA50)
 
 // A-E2. 005DAEA0 (fastcall, RET 8; rewritten as SetUpCursors): the cursor (007C7BD8) initialised and given its shapes.
 void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);

@@ -23,6 +23,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -282,7 +283,7 @@ void CBriefingScreen::FinishDialogue() {
     BriefingVariables variables(TopicPrefix());
     console::CStringArray parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        StringSplit(node->key, &parts, '.');
+        text::Split(node->key, &parts, '.');
         if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
         WorldCompleteBriefingOriginal(WorldServer(), nullptr, 0, node->key);
         break;

@@ -251,7 +251,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
             node = node->next;
             int duration = e->targetCount;
             int level = FrightLevel(&e->timer, &duration);
-            AiMemoryNotice(ControllerOf(unit)->Brain()->memory, nullptr, &e->position, level, -1);
+            ControllerOf(unit)->Brain()->Notice(&e->position, level, -1);   // 005CBBE0 on the memory
         }
         return;
     }

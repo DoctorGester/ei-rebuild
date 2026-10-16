@@ -27,6 +27,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -365,7 +366,7 @@ void CGlobalMap::Create() {
             std::uint32_t value;
             std::memcpy(&value, &node->value, 4);
             if (value == 0x3F800000) {
-                StringSplit(node->key, &parts, '.');
+                text::Split(node->key, &parts, '.');
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
                     QuestsSetSize(&quests_, nullptr, quests_.size + 1, -1);

@@ -123,6 +123,13 @@ inline GameBuffer* ReceiveBuffer() { return reinterpret_cast<GameBuffer*>(0x0079
 // 0079B5DC / 0079B5D8: the game server and the game client (null when there is none).
 inline ServerSession*& GameServer() { return *reinterpret_cast<ServerSession**>(0x0079B5DC); }
 inline ClientSession*& GameClient() { return *reinterpret_cast<ClientSession**>(0x0079B5D8); }
+// The game client's trade offer (net_client_party.cpp, net_client_handlers.cpp; plain RET each):
+// 0041DA50 publishes our offer, 0041E220 finds the partner's offer that pairs with ours (a
+// PartyMessage, or null), 0041E180 takes the acceptance back, 0041E3E0 drops the offer.
+void __fastcall ClientPublishParty(ClientSession* self);
+void* __fastcall ClientFindParty(ClientSession* self);
+void __fastcall ClientCommitParty(ClientSession* self);
+void __fastcall ClientDropParty(ClientSession* self);
 
 // ---- The message base ---------------------------------------------------------------------------
 

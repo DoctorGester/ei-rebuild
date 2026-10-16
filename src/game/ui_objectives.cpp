@@ -24,6 +24,7 @@
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -373,7 +374,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             if (node->value == 0.0f || x87::IsNaN(node->value)) continue;
-            StringSplit(node->key, &parts, '.');
+            text::Split(node->key, &parts, '.');
             if (parts.GetSize() == 3) PushBack(&found, parts[2]);
         }
         shownQuest_ = -1;
@@ -686,7 +687,7 @@ void CObjectivesWindow::Build() {
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            StringSplit(node->key, &parts, '.');
+            text::Split(node->key, &parts, '.');
             if (parts.GetSize() != 3) continue;
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(interfaceQuest),
                                 reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts[2]))) == 0)

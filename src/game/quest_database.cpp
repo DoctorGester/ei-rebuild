@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "text_split.h"
 
 #include <cstdint>
 #include <cstring>
@@ -98,7 +99,7 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
         console::CStringArray parts;
         places[i].TrimLeft('{');
         places[i].TrimRight('}');
-        StringSplit(places[i], &parts, ';');
+        text::Split(places[i], &parts, ';');
         if (parts.GetSize() == 2) {
             float x = static_cast<float>(GameAtof(parts[0]));
             PushPlace(quest, x);

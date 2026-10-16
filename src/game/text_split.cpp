@@ -11,7 +11,7 @@ namespace text {
 namespace {
 
 // The two splitters: the text plus a final separator, cut at each separator.
-int SplitAt(const char* text, console::CStringArray* array, char separator, bool skipAdjacent) {
+int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool skipAdjacent) {
     mfc::CString piece;
     mfc::CString work(text);
     array->SetSize(0, -1);
@@ -33,7 +33,7 @@ int SplitAt(const char* text, console::CStringArray* array, char separator, bool
 
 } // namespace
 
-int __fastcall Split(const char* text, console::CStringArray* array, char separator) {
+int __fastcall Split(const char* text, mfc::CStringArray* array, char separator) {
     return SplitAt(text, array, separator, false);
 }
 EI_REPLACE(0x004DBE40, Split);

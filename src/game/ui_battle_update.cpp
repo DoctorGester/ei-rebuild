@@ -22,6 +22,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
@@ -571,7 +572,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
     console::CStringArray parts;
     mfc::CString text;
     mfc::CString title;
-    StringSplit(name, &parts, '.');
+    text::Split(name, &parts, '.');
     const float complete = GameFloatAt(0x0073CDB8);   // 2
     const float failed = GameFloatAt(0x0073BAA4);     // 3
     if (parts.size == 3) {
