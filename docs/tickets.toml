@@ -222,6 +222,15 @@ depends = ["R10c"]
 files = ["src/render/render_terrain.cpp"]
 note = "From R10c: the ground and water pipelines in render_terrain.cpp are hard-coded, which hid water's depth write (R10c's strip). The state mirror showed ground and water drawn with CULL 2 and blend on, where ours use no culling and no blend for ground. Build them from the old device's state (ReadPassState), as the meshes already are; check with the standalone goldens and run_all --widescreen."
 
+[[ticket]]
+id = "R11"
+title = "Dead old-path and side-by-side code in src/render"
+group = "renderer"
+size = 0.5
+model = "opus"
+files = ["src/render"]
+note = "From D5: since S21e the image always runs EI_RENDER new,present; the side-by-side old-path code, the show/split/noterrain/noobjects/nointerface/nocpuwindows options (parsed, used by no run) and README's oldterrain steps (lines ~40, ~102) are dead. Remove what no run reaches (check with the profiler or a coverage run, not by reading alone), keep EI_RENDER_VALIDATION checks; update renderer.md sections 1 and 9 and README. Standalone goldens and run_all --widescreen as the check."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
