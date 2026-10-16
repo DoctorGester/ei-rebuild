@@ -77,7 +77,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
-  `clickunit <name> [l|r|move] [ctrl]` clicks the unit with that script name where the game's own
+  `hold <mods>` / `release <mods>` press and release Ctrl / Shift / Alt (`ctrl shift alt`), and the same words after
+  a key or mouse step's arguments (`click 400 560 shift`, `key 1 ctrl`) hold them around that step; the game
+  takes them from the window messages, so the original and the image see the same (`ui_modifier_keys.txt`).
+  `clickunit <name> [l|r|move] [mods]` clicks the unit with that script name where the game's own
   picking finds it this frame (`ui_battle_commands.txt`); `clickunit #<id>` picks a map object by id (a lever,
   `levers_key.txt`).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the

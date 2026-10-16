@@ -52,11 +52,20 @@
 //   clickunit <name> [l|r|move] [ctrl]
 //                             left click (default), right click or move the mouse on the unit with
 //                             script name <name> (as GetObjectByName) where the game's own picking
-//                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
-//                             +0x7C) around it. Fails when the unit is not drawn or always hidden
+//                             (00565E40) finds it in this frame; modifiers as below. Fails when the unit is not drawn or always hidden
 //                             behind another object. "#<id>" names a map object by id instead (a
 //                             lever, "clickunit #1889"): found by the battle screen's object pick
 //                             (005659D0), as waitunit does
+//   hold <mods>, release <mods>
+//                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
+//                             spaces, "+" or ","), held over frames and further steps. The game takes
+//                             them from the window messages (CInterface3D +0x7C Ctrl / +0x7D Shift /
+//                             +0x7E Alt), never the real keyboard, so the original game and the image
+//                             see the same. Alt is sent as WM_SYSKEYDOWN / WM_SYSKEYUP, as Windows does
+//   <mods> as the last words of key, click, rclick, move, dblclick, rdblclick, ldown, lup, rdown, rup,
+//   wheel, clickregion, rclickregion, moveregion, clickunit (e.g. "click 90 320 shift", "key 1 ctrl",
+//   "clickunit Wolf0 l ctrl+shift"): the modifiers are pressed just before the step's input and
+//   released just after it (a plain "key ctrl" is still the key ctrl)
 //   hudstate [minquick]       log the battle screen's pending action, the party's selection and
 //                             quick items, the quick item panel and the spell column; with
 //                             <minquick>, fail when the quick item panel shows fewer of its unit's
@@ -1063,6 +1072,73 @@ DWORD Now() { return clock::Now(); }
 // procedure 00457970 handles the mouse and key messages).
 HWND GameWindow() { return *reinterpret_cast<HWND*>(0x0079BC28); }
 
+// Modifier keys held around an input step ("hold", "release" and the <mods> words of the mouse and key
+// steps). The game reads them from the key messages (CInterface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
+// by scan code, OnKeyUp clears them by virtual key), so these are posted like a keyboard's: Ctrl and
+// Shift as WM_KEYDOWN / WM_KEYUP, Alt as the system messages Windows sends for it.
+enum Modifier : unsigned { kModCtrl = 1, kModShift = 2, kModAlt = 4 };
+
+// The modifier a word names (0: none).
+unsigned ModifierWord(const std::string& word) {
+    if (word == "ctrl") return kModCtrl;
+    if (word == "shift") return kModShift;
+    if (word == "alt") return kModAlt;
+    return 0;
+}
+
+// Words of `text` separated by spaces, "+" or ","; `bad` gets the first word that is no modifier.
+unsigned ParseModifiers(const std::string& text, std::string* bad) {
+    unsigned mods = 0;
+    std::string word;
+    for (std::size_t i = 0; i <= text.size(); ++i) {
+        char c = i < text.size() ? text[i] : ' ';
+        if (c == ' ' || c == '+' || c == ',' || c == '\t') {
+            if (!word.empty()) {
+                if (unsigned one = ModifierWord(word)) mods |= one;
+                else if (bad && bad->empty()) *bad = word;
+                word.clear();
+            }
+        } else {
+            word += c;
+        }
+    }
+    return mods;
+}
+
+void PostModifiers(unsigned mods, bool down) {
+    struct Key { unsigned mod; UINT vk, scan; bool system; };
+    static const Key keys[] = {{kModCtrl, VK_CONTROL, 0x1D, false}, {kModShift, VK_SHIFT, 0x2A, false}, {kModAlt, VK_MENU, 0x38, true}};
+    for (const Key& key : keys) {
+        if (!(mods & key.mod)) continue;
+        LPARAM lparam = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
+        if (down) PostMessageA(GameWindow(), key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
+        else PostMessageA(GameWindow(), key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
+    }
+}
+
+// The modifiers at the end of an input step's argument, split off it (`argument` keeps the rest) and
+// held until this goes out of scope. Only words after at least one other word count, so "key ctrl"
+// stays the key ctrl. The press and release go through the same message queue as the step's input.
+struct HeldModifiers {
+    explicit HeldModifiers(std::string* argument) {
+        std::string rest = *argument;
+        for (;;) {
+            std::size_t end = rest.find_last_not_of(" \t+,");
+            if (end == std::string::npos) break;
+            std::size_t begin = rest.find_last_of(" \t+,", end);
+            if (begin == std::string::npos) break;   // a single word is the argument itself
+            unsigned one = ModifierWord(rest.substr(begin + 1, end - begin));
+            if (!one) break;
+            mods_ |= one;
+            rest.erase(begin);
+        }
+        *argument = rest;
+        PostModifiers(mods_, true);
+    }
+    ~HeldModifiers() { PostModifiers(mods_, false); }
+    unsigned mods_ = 0;
+};
+
 void PostKey(const std::string& name) {
     UINT vk = 0;
     if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
@@ -1085,6 +1161,7 @@ void PostKey(const std::string& name) {
     else if (name == "pgdn") vk = VK_NEXT;
     else if (name == "scrolllock") vk = VK_SCROLL;   // scan 0x46: the screenshot key (005F78C0)
     else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
+    else if (name == "shift") vk = VK_SHIFT;    // scan 0x2A: +0x7D
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
         Log("harness: unknown key '%s'", name.c_str());
@@ -1281,7 +1358,7 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
 }
 
-// --- clickunit <name> [l|r|move] [ctrl] (ticket I8) -------------------------------------------
+// --- clickunit <name> [l|r|move] [mods] (ticket I8; the modifiers are HeldModifiers') -------------------------------------------
 // A click on a unit's body, placed where the game's own picking finds it. The client world
 // (007AF5B8) keeps a list (+0xF0, header pointer; nodes: next +0, value +8: 0x18 bytes, the
 // object id at +0xC and its screen rectangle at +0x10) of the objects drawn this frame with the
@@ -1345,10 +1422,9 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
 }
 
 std::string PostUnitMouse(const std::string& argument) {
-    char name[64] = "", button[8] = "l", modifier[8] = "";
-    if (sscanf_s(argument.c_str(), "%63s %7s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button)),
-                 modifier, unsigned(sizeof(modifier))) < 1)
-        return "clickunit needs <name> [l|r|move] [ctrl]";
+    char name[64] = "", button[8] = "l";
+    if (sscanf_s(argument.c_str(), "%63s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button))) < 1)
+        return "clickunit needs <name> [l|r|move] [ctrl|shift|alt]";
     POINT at{};
     void* hit = nullptr;
     std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
@@ -1365,9 +1441,6 @@ std::string PostUnitMouse(const std::string& argument) {
     g_mouseX = at.x;
     g_mouseY = at.y;
     LPARAM where = MAKELPARAM(at.x, at.y);
-    bool ctrl = std::strcmp(modifier, "ctrl") == 0;
-    constexpr UINT kCtrlScan = 0x1D;   // CInterface3D::OnKeyDown: +0x7C while down
-    if (ctrl) PostMessageA(GameWindow(), WM_KEYDOWN, VK_CONTROL, 1 | (kCtrlScan << 16));
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, where);
     if (std::strcmp(button, "l") == 0) {
         PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, where);
@@ -1376,7 +1449,6 @@ std::string PostUnitMouse(const std::string& argument) {
         PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, where);
         PostMessageA(GameWindow(), WM_RBUTTONUP, 0, where);
     }
-    if (ctrl) PostMessageA(GameWindow(), WM_KEYUP, VK_CONTROL, 1 | (kCtrlScan << 16) | 0xC0000000u);
     return "";
 }
 
@@ -1564,7 +1636,7 @@ bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit" ||
-           verb == "focus" || verb == "windowsize";
+           verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
 }
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
@@ -2200,18 +2272,32 @@ void RunSteps() {
         } else if (s.verb == "load") {
             g_request.argument = s.argument.c_str();
             g_request.kind = 2;
+        } else if (s.verb == "hold" || s.verb == "release") {
+            std::string bad;
+            unsigned mods = ParseModifiers(s.argument, &bad);
+            if (!bad.empty() || !mods) {
+                std::string error = s.verb + ": '" + (bad.empty() ? s.argument : bad) + "' is no modifier (ctrl, shift, alt)";
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            } else {
+                PostModifiers(mods, s.verb == "hold");
+            }
         } else if (s.verb == "key") {
+            HeldModifiers held(&s.argument);
             PostKey(s.argument);
         } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move" || s.verb == "dblclick" ||
                    s.verb == "rdblclick" || s.verb == "ldown" || s.verb == "lup" || s.verb == "rdown" || s.verb == "rup") {
             int x = 0, y = 0;
+            HeldModifiers held(&s.argument);
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
         } else if (s.verb == "wheel") {
             int x = 0, y = 0, delta = 0;
+            HeldModifiers held(&s.argument);
             if (sscanf_s(s.argument.c_str(), "%d %d %d", &x, &y, &delta) == 3) PostWheel(x, y, delta);
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
+            HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
@@ -2221,6 +2307,7 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "clickunit") {
+            HeldModifiers held(&s.argument);
             std::string error = PostUnitMouse(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
