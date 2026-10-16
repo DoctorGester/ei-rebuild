@@ -61,11 +61,11 @@ void __fastcall ScriptReset(CScript* script) {
     alignas(4) unsigned char element[sizeof(ScriptDefinition)];
     static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
     while (script->instances_.count != 0) {
-        ScriptInstancesRemoveHeadOriginal(&script->instances_, nullptr, element);
+        gamelists::InstanceRemoveHead(reinterpret_cast<gamelists::Definitions::List*>(&script->instances_), nullptr, reinterpret_cast<ScriptDefinition*>(element));
         ScriptDefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
     while (script->runs_.count != 0) {
-        ScriptRunsRemoveHeadOriginal(&script->runs_, nullptr, element);
+        gamelists::RunRemoveHead(reinterpret_cast<gamelists::Runs::List*>(&script->runs_), nullptr, reinterpret_cast<ScriptRun*>(element));
         ScriptVarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 

@@ -45,10 +45,8 @@ __declspec(naked) inline void** __fastcall PartiesErase(void*, void*, void**, vo
 __declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
     EI_ORIGINAL(0x0042AF80)
 __declspec(naked) inline void __fastcall StringsCopyOriginal(void*, void*, const void*) EI_ORIGINAL(0x004C14A0)
-__declspec(naked) inline void __fastcall GroupsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1BE0)
 __declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
 __declspec(naked) inline void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
-__declspec(naked) inline void __fastcall CommandsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CC0C0)
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
 __declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
 __declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
@@ -229,14 +227,9 @@ __declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/,
 // (vtable 0073D2F8; plain RET, EAX not a result).
 __declspec(naked) inline void __stdcall ScriptGroupElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC980)
 __declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
-// 004C3B20 / 004C5AF0: CArray<ScriptGroup> / CArray<ScriptIfThen>::~CArray (plain RET). 004C7A10 / 004C82B0:
-// RemoveHead of the script instance / run lists, the element copy-constructed into `out` (RET 4, returns out).
+// 004C3B20 / 004C5AF0: CArray<ScriptGroup> / CArray<ScriptIfThen>::~CArray (plain RET).
 __declspec(naked) inline void __fastcall ScriptGroupArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C3B20)
 __declspec(naked) inline void __fastcall ScriptIfThenArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C5AF0)
-__declspec(naked) inline void* __fastcall ScriptInstancesRemoveHeadOriginal(void* /*list*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x004C7A10)
-__declspec(naked) inline void* __fastcall ScriptRunsRemoveHeadOriginal(void* /*list*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x004C82B0)
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
 // 004A8930: string copy constructor (RET 4, returns this). 004C96A0: pointer list constructor with a block size (RET 4,

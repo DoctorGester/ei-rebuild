@@ -83,8 +83,6 @@ inline FootprintCellSet* SpellFootprint() { return reinterpret_cast<FootprintCel
 inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(static_cast<CUnitServer*>(a2), a3, a4, a5); }
 // 005CBBE0: the unit controller's AI memory (+0xA50) notices `point` at `level` / `kind`.
 inline void __fastcall AiMemoryNotice(void* a0, void*, const Vector3* a2, int a3, int a4) { AiMemoryNoticeOriginal(a0, nullptr, (const void*)a2, a3, a4); }
-// 004B31D0 ScriptGroup::InsertAll (script_group.cpp).
-__declspec(naked) inline void __fastcall GroupInsertAll(void*, void*, const void* /*list*/) EI_ORIGINAL(0x004B31D0)
 // 005B7A40 CAIMap::IsPassableWithoutSelf (ai_map.cpp); 005C11D0 CSectorMap::Move: originals_ai.h.
 
 // --- x87 sequences ------------------------------------------------------------------------------

@@ -14,6 +14,8 @@ namespace aligned {
 std::uint32_t* __fastcall AllocateDwords(int count);   // 0051EF90 (aligned_arrays.cpp)
 void __fastcall ArrayAt8Free(void* self);   // 00454380 (aligned_arrays.cpp)
 void __fastcall ArrayAt4Free(void* self);   // 004543C0
+// 00452C40 (RET 8; aligned_arrays.cpp): SetAtGrow(index, *value) on an aligned dword array.
+void __fastcall DwordArraySetAtGrowRef(lib::AlignedArray<std::uint32_t>* a, void*, int index, const std::uint32_t* value);
 } // namespace aligned
 
 namespace zone {

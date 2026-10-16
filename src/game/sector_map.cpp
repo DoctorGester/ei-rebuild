@@ -8,7 +8,6 @@
 
 #include <cstring>
 
-__declspec(naked) void CUnit::OnLeftSectorMap() EI_ORIGINAL(0x0050E930)
 
 namespace {
 
@@ -162,7 +161,7 @@ bool CSectorMap::Remove(CEngineObject* object) {
 
     bool cleared = aiMap->MarkFootprint(object, true);
     if (cleared) {
-        unit->OnLeftSectorMap();
+        unit->NotifyCompanion();   // 0050E930
         unit->sectorCellX = -1;
         unit->sectorCellY = -1;
     }

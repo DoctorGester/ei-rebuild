@@ -11,6 +11,7 @@
 #include "script.h"
 
 #include "lib/crt.h"
+#include "record_arrays.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
@@ -46,7 +47,7 @@ ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
     mfc::CArray<SSCCmd> empty{mfc::impl::ScriptCommandsClass::Vtable(), nullptr, 0, 0, 0};
     BlockList::Node* node = NewBlockNode(list, list->tail, nullptr);
     ScriptDecl* block = &node->data;
-    CommandsCopy(&block->commands, nullptr, &empty);
+    recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&block->commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&empty));
     if (list->tail) list->tail->next = node;
     else list->head = node;
     list->tail = node;

@@ -664,16 +664,10 @@ namespace {
 // a separator.
 CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(SceneRenderer()); }
 
-struct TitlesTokenizer {
-    int position;                    // -1 at the end
-    const mfc::CString* source;
-    const char* separator;
-    mfc::CString word;
+struct TitlesTokenizer : TextTokenizer {
     // The current word, or null past the end (the original's `position != -1 ? word : 0`).
     const char* WordOrNull() const { return position != -1 ? static_cast<const char*>(word) : nullptr; }
 };
-__declspec(naked) void __fastcall TitlesTokenStart(TitlesTokenizer*) EI_ORIGINAL(0x00445D20)
-__declspec(naked) const char* __fastcall TitlesTokenNext(TitlesTokenizer*) EI_ORIGINAL(0x00445D30)
 __declspec(naked) void** __stdcall TitlesInsertLine(void**, void*, const TitleLine*) EI_ORIGINAL(0x0062C090)
 
 mfc::CString* LineString(const char** field) { return reinterpret_cast<mfc::CString*>(field); }
@@ -708,12 +702,12 @@ void CCreditsScreen::Build() {
         GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
         RemoveCarriageReturns(&script);
-        TitlesTokenizer lines{0, &script, game::Text(0x00784340)};   // "\n"
-        TitlesTokenStart(&lines);
+        TitlesTokenizer lines{{0, &script, game::Text(0x00784340)}};   // "\n"
+        lines.Start();
         while (lines.position != -1 && static_cast<const char*>(lines.word) != nullptr) {
             mfc::CString line(static_cast<const char*>(lines.word));
-            TitlesTokenizer words{0, &line, game::Text(0x0078DA40)};   // " "
-            TitlesTokenStart(&words);
+            TitlesTokenizer words{{0, &line, game::Text(0x0078DA40)}};   // " "
+            words.Start();
             TitleLine record = {};
             record.text = EmptyStringData();
             record.style = record.text;
@@ -723,17 +717,17 @@ void CCreditsScreen::Build() {
                                                 reinterpret_cast<const unsigned char*>(game::Text(0x00794020))) ==
                                 0;   // "#scroll"
             }
-            TitlesTokenNext(&words);
+            words.Next();
             record.speed = static_cast<float>(GameAtof(words.word));
-            TitlesTokenNext(&words);
+            words.Next();
             *LineString(&record.style) = words.WordOrNull();
-            TitlesTokenNext(&words);
+            words.Next();
             *LineString(&record.text) = words.WordOrNull();
             void* inserted;
             TitlesInsertLine(&inserted, lines_.End(), &record);   // push_back
             LineString(&record.style)->~CString();
             LineString(&record.text)->~CString();
-            TitlesTokenNext(&lines);
+            lines.Next();
         }
         currentLine_ = lines_.First();
         archive->CloseFile(data);

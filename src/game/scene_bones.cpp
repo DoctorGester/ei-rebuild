@@ -10,6 +10,7 @@
 #include "figure.h"
 #include "object_maths.h"
 #include "scene_loader.h"
+#include "game_arrays.h"
 
 #include "../lib/containers.h"
 #include "../lib/crt.h"
@@ -29,9 +30,6 @@ using PointArray = lib::AlignedArray<Vector3>;
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// 00452C40: SetAtGrow on the skin's bone list [index, &value].
-__declspec(naked) void __fastcall BoneListSetAtGrow(lib::AlignedArray<CAnimationNode*>*, void*, int,
-                                                     CAnimationNode* const*) EI_ORIGINAL(0x00452C40)
 // Element helpers [pointer, count]: the morph frame constructor 00452E20 and destructor 00452DF0.
 __declspec(naked) void __stdcall ConstructMorphFrames(void*, int) EI_ORIGINAL(0x00452E20)
 __declspec(naked) void __stdcall DestroyMorphFrames(void*, int) EI_ORIGINAL(0x00452DF0)
@@ -158,7 +156,8 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
 // (0x120 bytes), the low word of `frames` the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
     CAnimationNode* added = bone;
-    BoneListSetAtGrow(&skin->bones, nullptr, skin->bones.size, &added);
+    aligned::DwordArraySetAtGrowRef(reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&skin->bones), nullptr,   // 00452C40
+                                    skin->bones.size, reinterpret_cast<const std::uint32_t*>(&added));
     bone = added;
     bone->name_ = node->name;
     bone->frameCount_ = static_cast<short>(frames);

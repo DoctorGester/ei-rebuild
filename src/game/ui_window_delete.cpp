@@ -23,8 +23,6 @@
 namespace {
 
 // Destructor bodies not rewritten yet.
-// 00440D40: the master server link's destructor (net_socket_driver.cpp).
-__declspec(naked) void __fastcall MasterLinkDestructAt(void* /*link*/) EI_ORIGINAL(0x00440D40)
 // 005FAFA0 (RET 4): the "pers" texts tree's _M_erase(node) (library code).
 __declspec(naked) void __fastcall PersonTextsEraseAt(PersonTextMap*, void*, PersonTextNode*) EI_ORIGINAL(0x005FAFA0)
 
@@ -135,7 +133,7 @@ EI_REPLACE_METHOD(0x0061E3E0, CMessageBox::DestroyBody);
 EI_REPLACE_METHOD(0x00633750, CMessageBox::DestroyBody);   // the difficulty question's copy
 
 void CMasterRequestBox::DestroyBody() {
-    MasterLinkDestructAt(&link_);
+    net::MasterLinkDestruct(&link_);   // 00440D40
     CMessageBox::DestroyBody();
 }
 EI_REPLACE_METHOD(0x0061E460, CMasterRequestBox::DestroyBody);

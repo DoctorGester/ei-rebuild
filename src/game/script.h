@@ -657,7 +657,7 @@ const ScriptKeyword* KeywordTable();
 struct ScriptDecl {
     // 004C1230. A command block: its id, the command count, each command (SSCCmd::Save).
     void Save(ScriptStream* stream) const;
-    // 004CB2D0 (RET 4; script_copy.cpp). Assignment: the commands array copied (CommandsCopy 004CC0C0), the id; returns this.
+    // 004CB2D0 (RET 4; script_copy.cpp). Assignment: the commands array copied (recordarrays::CmdArrayCopy 004CC0C0), the id; returns this.
     ScriptDecl* ScriptDeclAssign(const ScriptDecl* other);
 
     mfc::CArray<SSCCmd> commands;

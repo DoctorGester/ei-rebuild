@@ -273,8 +273,6 @@ public:
     CEngineObject* CarriedItem(int index) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 
-    // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
-    void OnLeftSectorMap();
 
     // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
     // guide rule 4); calls that meant this body and not the slot are qualified (CUnit::...).

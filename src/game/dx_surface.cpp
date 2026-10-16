@@ -15,6 +15,7 @@
 // docs/notes/renderer.md (sections 5, 6, 7, 10).
 #include "app.h"
 #include "dx_surface.h"
+#include "dx_errors.h"
 #include "game_strings.h"
 #include "device.h"
 #include "texture.h"
@@ -47,9 +48,8 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 
 // 004800E0 / 00480080 (cdecl): DirectX error / fatal error reports (the second printf-like);
 // nonzero to go on.
-// The thrown error object: operator new (007005AF), its constructor (00480250, cdecl: object,
-// format, width, height) and _CxxThrowException with its throw info (originals_engine.h).
-__declspec(naked) void* __cdecl ErrorObject(void*, const char*, int, int) EI_ORIGINAL(0x00480250)
+// The thrown error object: operator new (007005AF), its constructor (GameErrorConstruct, 00480250,
+// cdecl: object, format, width, height) and _CxxThrowException with its throw info (originals_engine.h).
 
 constexpr int kRelease = 2, kGetPixelFormat = 21, kGetSurfaceDesc = 22, kLock = 25, kUnlock = 32;   // IDirectDrawSurface7
 constexpr std::uint32_t kDescFlags = 0x1007;    // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
@@ -85,7 +85,7 @@ bool AttachClientMemory(const CDXSurface* holder, std::uint32_t* desc) {
 
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
     void* object = gamecrt::operator_new(0xC);
-    if (object) object = ErrorObject(object, game::Text(0x0078E89C), width, height);   // "Can't create DDSurface %d %d ..."
+    if (object) object = GameErrorConstruct(static_cast<GameError*>(object), game::Text(0x0078E89C), width, height);   // "Can't create DDSurface %d %d ..."
     libcrt::CxxThrowException(&object, GameErrorThrowInfo());
     for (;;) {
     }
@@ -444,9 +444,6 @@ int CDXSurface::LoadPictureData(const void* data, int /*flag*/) {
 }
 EI_REPLACE_METHOD(0x004F0060, CDXSurface::LoadPictureData);
 
-namespace {
-__declspec(naked) void* __cdecl ErrorObjectText(void*, const char*) EI_ORIGINAL(0x00480250)
-} // namespace
 
 // 004EFC60 (thiscall, RET 0xC): a holder whose surface shows an .mmp picture (the software cursor's
 // images 005E4EB0, windows made from a picture 005FCF80). The new renderer keeps the picture's
@@ -464,7 +461,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     SetHolderVtable(this);
     if (!LoadPictureData(picture, flag)) {
         void* object = gamecrt::operator_new(0xC);
-        if (object) object = ErrorObjectText(object, game::Text(0x0078E918));   // "Can't load picture to surface"
+        if (object) object = GameErrorConstruct(static_cast<GameError*>(object), game::Text(0x0078E918));   // "Can't load picture to surface"
         libcrt::CxxThrowException(&object, GameErrorThrowInfo());
     }
     render::PictureFromMmp(this, picture);

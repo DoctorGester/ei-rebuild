@@ -5,6 +5,7 @@
 #include "script.h"
 
 #include "lib/crt.h"
+#include "game_lists.h"
 #include "originals_library.h"
 #include "originals_script.h"
 #include "world.h"
@@ -57,7 +58,7 @@ void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
 void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     while (script->instances_.count != 0) {
         alignas(ScriptDefinition) unsigned char element[sizeof(ScriptDefinition)];
-        ScriptInstancesRemoveHeadOriginal(&script->instances_, nullptr, element);
+        gamelists::InstanceRemoveHead(reinterpret_cast<gamelists::Definitions::List*>(&script->instances_), nullptr, reinterpret_cast<ScriptDefinition*>(element));
         auto* instance = reinterpret_cast<ScriptDefinition*>(element);
         ScriptVars& vars = instance->vars;
         DestroyGroupVariables(vars);
@@ -70,7 +71,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
     }
     while (script->runs_.count != 0) {
         alignas(ScriptRun) unsigned char element[sizeof(ScriptRun)];
-        ScriptRunsRemoveHeadOriginal(&script->runs_, nullptr, element);
+        gamelists::RunRemoveHead(reinterpret_cast<gamelists::Runs::List*>(&script->runs_), nullptr, reinterpret_cast<ScriptRun*>(element));
         ScriptVars& vars = reinterpret_cast<ScriptRun*>(element)->vars;
         DestroyGroupVariables(vars);
         CStringArrayDestructOriginal(&vars.objectNames);

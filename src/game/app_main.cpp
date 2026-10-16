@@ -163,11 +163,11 @@ console::GameOStream& SpeedLog() { return Global<console::GameOStream>(0x007C56B
 
 // ---- The callees -----------------------------------------------------------------------------------
 
-// 00458570 (RET 8): a class the chunk archives can hold, by id and factory. The two factories:
-// 00457850 (class 1) and 00457740 (class 2, the party record).
-__declspec(naked) void __fastcall RegisterClassAt(void* /*registry*/, void*, std::uint32_t /*id*/, void* /*factory*/) EI_ORIGINAL(0x00458570)
-void* ClassTemplateFactory() { return &Global<char>(0x00457850); }
-void* PartyRecordFactory() { return &Global<char>(0x00457740); }
+// app::TypeRegistryRegister (00458570): a class the chunk archives can hold, by id and factory. The
+// two factories: 00457850 (class 1) and 00457740 (class 2, the party record).
+using ClassFactory = void* (__cdecl*)();
+ClassFactory ClassTemplateFactory() { return reinterpret_cast<ClassFactory>(0x00457850); }
+ClassFactory PartyRecordFactory() { return reinterpret_cast<ClassFactory>(0x00457740); }
 // 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
 __declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
 __declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
@@ -714,8 +714,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
         gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7], game::Text(0x00784930), kCriticalBox);   // "CRITICAL ERROR"
         return kExitDeclined;
     }
-    RegisterClassAt(ClassRegistry(), nullptr, 1, ClassTemplateFactory());
-    RegisterClassAt(ClassRegistry(), nullptr, 2, PartyRecordFactory());
+    app::TypeRegistryRegister(ClassRegistry(), nullptr, 1, ClassTemplateFactory());
+    app::TypeRegistryRegister(ClassRegistry(), nullptr, 2, PartyRecordFactory());
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 

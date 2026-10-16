@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace libcrt { class Streambuf; }   // lib/crt_iostream.h
 namespace ui_gdi { struct GameFont; }
 struct SpeechRecord;            // unit_client_models.h
 namespace acks { struct EnvironmentSpeech; }   // acks_db.h
@@ -124,9 +125,9 @@ public:
     ConsoleStreambuf* DeletingDestruct(unsigned flags);   // 005DC240 (vtable slot 0)
     int Sync();                                           // 005DC1B0 (slot 1)
     int Overflow(int c);                                  // 005DC150 (slot 7)
-    // The old iostream streambuf base part: 006FCAD2 streambuf(char*, int) and 006FCB35 ~streambuf.
-    void StreambufConstruct(char* buffer, int length);
-    void StreambufDestruct();
+    // The old iostream streambuf base part (libcrt::Streambuf: 006FCAD2 streambuf(char*, int) and
+    // 006FCB35 ~streambuf).
+    libcrt::Streambuf* Base() { return reinterpret_cast<libcrt::Streambuf*>(this); }
 
     mfc::CString& Line() { return *reinterpret_cast<mfc::CString*>(&line_); }
 

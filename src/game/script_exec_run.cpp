@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "game_arrays.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_script.h"
@@ -258,7 +259,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
         StringsCopyOriginal(&run->vars.strings, nullptr, &from.strings);
         GroupCopy(reinterpret_cast<ScriptGroup*>(&run->vars.objects), nullptr,
                   reinterpret_cast<const ScriptGroup*>(&from.objects));
-        GroupsCopy(&run->vars.groups, nullptr, &from.groups);
+        gamearrays::GroupArrayCopy(reinterpret_cast<gamearrays::Groups::Array*>(&run->vars.groups), nullptr, reinterpret_cast<const gamearrays::Groups::Array*>(&from.groups));
     }
     run->index = 0;
     run->ticks = 0;

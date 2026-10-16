@@ -90,6 +90,8 @@ struct MasterLink {
     std::int32_t state;          // +0x3C State
 };
 static_assert(sizeof(MasterLink) == 0x40);
+// 00440D40 (net_socket_driver.cpp): the socket closed (when open) and the buffers destroyed.
+void __fastcall MasterLinkDestruct(MasterLink* self);
 
 // The network log (0079B91C; null when logging is off): an old iostream whose inserters are library
 // code, called at their addresses (net_session_tick.cpp).

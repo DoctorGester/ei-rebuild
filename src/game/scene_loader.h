@@ -31,6 +31,8 @@ namespace figure {
 // and its scalar deleting destructor (flags & 1 frees it; returns it).
 void __fastcall NamedRecordDestruct(std::uint8_t* self);
 void* __fastcall NamedRecordDelete(std::uint8_t* self, void*, unsigned flags);
+// 005AD870 (figure_slots.cpp): an aligned array's four fields cleared; returns it.
+void* __fastcall ClearArray(std::uint32_t* self);
 } // namespace figure
 
 namespace scene {
@@ -409,6 +411,12 @@ public:
 
     std::uint16_t flags_;
 };
+
+// 0044C4A0 (scene_weld.cpp): the meshes' vertices welded to the registry's nodes.
+void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes);
+// 0044E3B0 / 0044E8A0 (scene_normals.cpp): the meshes' positions packed; one mesh's bounds.
+void __fastcall PackMeshPositions(FakeUnitScene* unit);
+void __fastcall ComputeMeshBounds(SceneMesh* mesh);
 
 // 00446C10. Loads the scene file into a CFakeUnit (its slot 62, 00446BA0, calls this) and builds the
 // unit's figures from it. See scene_loader.cpp.

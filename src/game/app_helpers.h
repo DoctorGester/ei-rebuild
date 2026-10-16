@@ -26,4 +26,6 @@ void __cdecl ScrambleObjects();                             // 00455BA0
 void __cdecl DelayedProtectionCheck();                      // 00455B50
 void __stdcall ConstructProtectionChecks();                 // 00455E50
 
+// 00458570 (RET 8; app_registry.cpp): a class the chunk archives can hold, by id and factory.
+void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* (__cdecl* factory)());
 } // namespace app

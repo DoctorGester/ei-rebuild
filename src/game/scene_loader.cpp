@@ -124,7 +124,6 @@ namespace {
 __declspec(naked) void __fastcall DestroyPoints(FilePointArray*) EI_ORIGINAL(0x00474F30)        // A
 __declspec(naked) void __fastcall DestroyTexCoords(FileUvArray*) EI_ORIGINAL(0x00475110)     // B
 __declspec(naked) void __fastcall DestroyFileFaces(FileFaceArray*) EI_ORIGINAL(0x004752F0)     // C
-__declspec(naked) void __fastcall DestroyGroups(GroupRecordArray*) EI_ORIGINAL(0x00454CE0)        // D
 __declspec(naked) void __fastcall DestroyRotKeys(RotKeyRecords*) EI_ORIGINAL(0x00475680)       // E
 __declspec(naked) void __fastcall DestroyPosKeys(PosKeyRecords*) EI_ORIGINAL(0x004759E0)       // F
 __declspec(naked) void __fastcall DestroyMorphHeads(MorphHeadRecords*) EI_ORIGINAL(0x00475D40)    // G
@@ -474,7 +473,7 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     DestroyMorphHeads(&r.morphHeads);
     DestroyPosKeys(&r.posKeys);
     DestroyRotKeys(&r.rotKeys);
-    DestroyGroups(&r.groups);
+    FaceGroupArrayDestruct(reinterpret_cast<mfc::CArray<FaceGroup>*>(&r.groups));   // D, 00454CE0
     DestroyFileFaces(&r.faces);
     DestroyTexCoords(&r.texCoords);
     DestroyPoints(&r.points);
@@ -727,10 +726,7 @@ __declspec(naked) void __fastcall SetSizeBoneLinks(VtArray*, void*, int, int) EI
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
 // Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
 __declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*, VtArray*, VtArray*) EI_ORIGINAL(0x0044B980)
-__declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C4A0)
 __declspec(naked) mfc::BOOL __fastcall BuildSkeleton(VtArray*, VtArray*, int, void*) EI_ORIGINAL(0x00448A40)
-__declspec(naked) void __fastcall PlaceMeshes(void*) EI_ORIGINAL(0x0044E3B0)
-__declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return static_cast<CMaterialManager*>(a0)->FillMaterial(static_cast<CMaterial*>(a2), a3); }
 
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
@@ -845,7 +841,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
             s.path = mfc::CString(registryName);
         }
         LoadFigureRegistry(fakeUnit, &s.path, &s.textureLinks, &s.textureNames);
-        LinkNodes(fakeUnit, &s.nodes);
+        WeldMeshVertices(fakeUnit, &s.nodes);   // 0044C4A0
     }
 
     // One figure per mesh.
@@ -861,7 +857,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     if (!BuildSkeleton(meshes, &s.nodes, static_cast<int>(s.infoDword - 1), &u->skin))
         game::FatalError(scenedata::ModelNameText(), fileName);
-    PlaceMeshes(fakeUnit);
+    PackMeshPositions(fakeUnit);   // 0044E3B0
 
     // Each figure takes the bone links of the nodes of the same name.
     BoneLinkArray& linkArray = Typed<BoneLinkArray>(*boneLinks);
@@ -882,7 +878,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     ComputeMeshNormals(meshes);
     IndexMeshCorners(meshes);
-    for (int i = 0; i < meshes->size; ++i) PrepareMesh(&meshArray.data[i]);
+    for (int i = 0; i < meshes->size; ++i) ComputeMeshBounds(&meshArray.data[i]);   // 0044E8A0
 
     // The figures take the meshes' matrices (64-byte blocks: the figure's vertex and normal
     // packets); their colour arrays get four entries per matrix.

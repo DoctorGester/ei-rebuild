@@ -33,8 +33,6 @@ const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cas
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
 // values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
 // skill record's price (RET 4); 00527FF0 (__fastcall) the price of a school from one level to the next.
-__declspec(naked) int __fastcall CanLearn(std::uint8_t* /*stats*/, void*, void* /*database*/, std::uint8_t* /*record*/)
-    EI_ORIGINAL(0x005260A0)
 __declspec(naked) int __fastcall SkillPrice(std::uint8_t* /*stats*/, void*, std::uint8_t* /*record*/) EI_ORIGINAL(0x00528050)
 __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGINAL(0x00527FF0)
 
@@ -226,7 +224,7 @@ void CTradePanel::BuildLists() {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(SkillCount())) continue;
         std::uint8_t* record = SkillRecords() + index * kSkillRecordSize;
         if (!record) continue;
-        if (!CanLearn(stats, nullptr, SkillDb(), record)) continue;
+        if (!reinterpret_cast<UnitStats*>(stats)->CanLearn(SkillDb(), reinterpret_cast<const char*>(record))) continue;
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))

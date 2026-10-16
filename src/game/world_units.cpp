@@ -64,7 +64,6 @@ using PlacementArray = mfc::CArray<Placement>;
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-__declspec(naked) void* __fastcall MessageConstruct(void*, void*) EI_ORIGINAL(0x0046C010)
 __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
@@ -209,7 +208,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     struct Message {
         alignas(4) std::uint8_t bytes[sizeof(UnitSpec)];
         UnitSpec* Get() { return reinterpret_cast<UnitSpec*>(bytes); }
-        Message() { MessageConstruct(bytes, nullptr); }
+        Message() { mapspec::UnitSpecConstruct(Get()); }   // 0046C010
         ~Message() { DestroyMessage(Get()); }
     } holder;
     UnitSpec* message = holder.Get();

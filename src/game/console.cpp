@@ -47,8 +47,6 @@ GameOStream& GameOStream::operator<<(int a0) { return *reinterpret_cast<GameOStr
 GameOStream& GameOStream::operator<<(double v) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
 GameOStream& GameOStream::Apply(void* manipulator) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
-__declspec(naked) void ConsoleStreambuf::StreambufConstruct(char*, int) EI_ORIGINAL(0x006FCAD2)
-__declspec(naked) void ConsoleStreambuf::StreambufDestruct() EI_ORIGINAL(0x006FCB35)
 
 __declspec(naked) CommandHandler* __fastcall CommandIndex(CommandMap*, void*, const mfc::CString&) EI_ORIGINAL(0x005E0B20)
 
@@ -82,7 +80,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 
 // 005DC200
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
-    StreambufConstruct(buffer_, sizeof(buffer_));
+    Base()->Construct(buffer_, sizeof(buffer_));   // 006FCAD2
     filter_ = filter;
     line_ = *reinterpret_cast<char**>(0x00796E48);   // CString(): the shared empty string
     ei::SetVtable(this, kVtableAddress);
@@ -94,7 +92,7 @@ EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
 void ConsoleStreambuf::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     Line().~CString();
-    StreambufDestruct();
+    Base()->Destruct();   // 006FCB35
 }
 EI_REPLACE_METHOD(0x005DC260, ConsoleStreambuf::Destruct);
 

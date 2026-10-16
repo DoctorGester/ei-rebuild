@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "scene_loader.h"
 
 #include <cstdint>
 
@@ -23,7 +24,6 @@ namespace {
 // normal arrays, 005AD870 (figure_slots.cpp ClearArray) for the corners, 004D9E90 / 004D9E80 /
 // 004D9EA0 (sky_object.cpp, AlignedArray::Construct) for the words, indices and texture coordinates.
 __declspec(naked) void* __fastcall ConstructPackets(void*) EI_ORIGINAL(0x0056FD00)
-__declspec(naked) void* __fastcall ConstructCorners(lib::AlignedArray<MeshCorner>*) EI_ORIGINAL(0x005AD870)
 __declspec(naked) void* __fastcall ConstructWords(lib::AlignedArray<std::uint32_t>*) EI_ORIGINAL(0x004D9E90)
 __declspec(naked) void* __fastcall ConstructIndices(lib::AlignedArray<std::uint16_t>*) EI_ORIGINAL(0x004D9E80)
 __declspec(naked) void* __fastcall ConstructTexCoords(lib::AlignedArray<TexCoord>*) EI_ORIGINAL(0x004D9EA0)
@@ -72,7 +72,7 @@ void* Create(int classId) {
         if (!o) return nullptr;
         ConstructPackets(&o->vertices_);
         ConstructPackets(&o->normals_);
-        ConstructCorners(&o->corners_);
+        figure::ClearArray(reinterpret_cast<std::uint32_t*>(&o->corners_));   // 005AD870
         ConstructWords(&o->words_);
         ConstructIndices(&o->indices_);
         ConstructTexCoords(&o->texCoords_);

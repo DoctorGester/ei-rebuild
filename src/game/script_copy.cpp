@@ -46,7 +46,7 @@ void AssignVars(ScriptVars* to, const ScriptVars* from) {
     gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&to->objects), nullptr,
                               reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&from->objects));
     StringsCopyOriginal(&to->objectNames, nullptr, &from->objectNames);
-    GroupsCopy(&to->groups, nullptr, &from->groups);
+    gamearrays::GroupArrayCopy(reinterpret_cast<gamearrays::Groups::Array*>(&to->groups), nullptr, reinterpret_cast<const gamearrays::Groups::Array*>(&from->groups));
     StringsCopyOriginal(&to->groupNames, nullptr, &from->groupNames);
 }
 
@@ -85,7 +85,7 @@ SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
 EI_REPLACE_METHOD(0x004C6BC0, SSCCmd::ScriptCmdAssign);
 
 ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
-    CommandsCopy(&commands, nullptr, &other->commands);
+    recordarrays::CmdArrayCopy(reinterpret_cast<recordarrays::Cmds::Array*>(&commands), nullptr, reinterpret_cast<const recordarrays::Cmds::Array*>(&other->commands));
     id = other->id;
     return this;
 }

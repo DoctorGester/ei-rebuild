@@ -41,9 +41,6 @@ void DestroyRecord(void* record) { static_cast<CEngineObject*>(record)->~CEngine
 
 __declspec(naked) void __fastcall UnitConstruct(void*) EI_ORIGINAL(0x0052E110)
 __declspec(naked) void __fastcall UnitDestroy(void*) EI_ORIGINAL(0x0052E590)
-__declspec(naked) void* __fastcall FakeUnitDestructAt(void*) EI_ORIGINAL(0x00446910)
-// 00446C10 (__stdcall file, regFile, unit; ECX the unit as well): the scene loader.
-__declspec(naked) int __fastcall LoadScene(void* /*ecx unit*/, void*, const char*, const char*, void*) EI_ORIGINAL(0x00446C10)
 
 // The skin emptied and the unit's own Destroy (the start of both the destructor and slot 3).
 void ReleaseParts(FakeUnitScene* self) {
@@ -100,7 +97,7 @@ EI_REPLACE(0x00446910, FakeUnitDestruct);
 
 // 004468F0: the scalar deleting destructor.
 void* scene::FakeUnitScene::DeleteScalar(unsigned flags) {
-    fakeunit::FakeUnitDestructAt(this);
+    fakeunit::FakeUnitDestruct(this);   // 00446910
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -127,7 +124,7 @@ EI_REPLACE(0x00446B20, FakeUnitDestroy);
 // 0x45 from the world's side-specific manager (slot 21; its CreateObject, slot 23). Returns the
 // loader's 0, or 1.
 int __fastcall FakeUnitLoadScene(FakeUnitScene* self, void*, const char* file, const char* regFile) {
-    if (!LoadScene(self, nullptr, file, regFile, self)) return 0;
+    if (!scene::LoadFakeUnitScene(file, regFile, self)) return 0;   // 00446C10 (ECX the unit as well, not read)
     for (int i = 0; i < Figures(self).size; ++i) {
         CBaseManager* manager = static_cast<CWorld*>(ManagerContextOf(self))->SpecificManager();
         CEngineObject* object = manager->CreateObject(0x45, -1);
