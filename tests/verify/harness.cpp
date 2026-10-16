@@ -217,6 +217,7 @@
 #include "harness_watch.h"
 #include "harness_hooks.h"
 #include "harness_starter.h"
+#include "harness_input.h"
 #include "harness_net.h"
 #include "ui_census.h"
 #include "../vectors/vectors.h"
@@ -572,6 +573,7 @@ BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
 HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h,
                                     HWND parent, HMENU menu, HINSTANCE instance, LPVOID param) {
     if (!parent) exStyle |= WS_EX_NOACTIVATE;
+    input::Install();   // the harness's mouse the game's only one, before the game's DirectInput mouse (harness_input.h)
     return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
 }
 LSTATUS WINAPI SmallVideoResolution(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
@@ -934,6 +936,7 @@ void WriteReport() {
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
     noforeground::Report(f);
     netlocal::Report(f);
+    input::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
@@ -2666,6 +2669,7 @@ LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam
     }
     if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
     if (message == WM_ACTIVATEAPP && !wParam) return 0;
+    if (LRESULT result; input::RealMouse(window, message, wParam, lParam, &result)) return result;
     return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
 }
 
