@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 #include "ei/x87.h"
 
 #include <bit>
@@ -49,7 +50,7 @@ bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u 
 bool ZeroOrUnordered(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    return *static_cast<console::GameOStream*>(OstreamPutLongOriginal(&os, nullptr, value));
+    return *reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(&os)->PutInt(value));
 }
 
 // "Unit <self> <text> <other>" (no line end).

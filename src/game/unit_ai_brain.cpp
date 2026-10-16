@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 
 #include <cmath>
 #include <cstddef>
@@ -446,7 +447,7 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
         if (--call.kind >= 0) continue;
         if (call.hostileMask != 0) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
-            log = static_cast<console::GameOStream*>(OstreamPutLongOriginal(log, nullptr, unit->id_));
+            log = reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(log)->PutInt(unit->id_));
             console::EndLine(*log << " hear delayed sound: " << call.text);
             static_cast<CUnitServer*>(unit->controller)->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (brain->noticedLevel < 900) {

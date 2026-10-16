@@ -8,6 +8,7 @@
 #include "ui.h"
 
 #include "../lib/crt.h"
+#include "lib/crt_iostream.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -40,11 +41,11 @@ __declspec(naked) char* CStdioFile::ReadString(char*, unsigned) EI_ORIGINAL(0x00
 __declspec(naked) void CStdioFile::WriteString(const char*) EI_ORIGINAL(0x00701E23)
 __declspec(naked) void CStdioFile::Close() EI_ORIGINAL(0x00701FE0)
 
-GameOStream& GameOStream::operator<<(const char* text) { return *static_cast<GameOStream*>(OstreamPutString(this, nullptr, text)); }
-GameOStream& GameOStream::operator<<(char c) { return *static_cast<GameOStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-GameOStream& GameOStream::operator<<(int a0) { return *static_cast<GameOStream*>(OstreamPutSignedLongOriginal(this, nullptr, static_cast<long>(a0))); }
-GameOStream& GameOStream::operator<<(double v) { return *static_cast<GameOStream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
-GameOStream& GameOStream::Apply(void* manipulator) { return *static_cast<GameOStream*>(OstreamManipulate(this, nullptr, manipulator)); }
+GameOStream& GameOStream::operator<<(const char* text) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
+GameOStream& GameOStream::operator<<(char c) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
+GameOStream& GameOStream::operator<<(int a0) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutLong(static_cast<long>(a0))); }
+GameOStream& GameOStream::operator<<(double v) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
+GameOStream& GameOStream::Apply(void* manipulator) { return *reinterpret_cast<GameOStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 __declspec(naked) void ConsoleStreambuf::StreambufConstruct(char*, int) EI_ORIGINAL(0x006FCAD2)
 __declspec(naked) void ConsoleStreambuf::StreambufDestruct() EI_ORIGINAL(0x006FCB35)

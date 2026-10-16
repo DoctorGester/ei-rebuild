@@ -17,6 +17,7 @@
 #include <cstdint>
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "lib/crt_iostream.h"
 
 namespace {
 
@@ -27,10 +28,10 @@ struct AiLogStream {
     AiLogStream* Put(int c);                // 006FC0B0
     AiLogStream* Apply(void* manipulator);  // 00434FE0
 };
-AiLogStream* AiLogStream::Write(const char* text) { return static_cast<AiLogStream*>(OstreamPutString(this, nullptr, text)); }
-AiLogStream* AiLogStream::Write(long v) { return static_cast<AiLogStream*>(OstreamPutLongOriginal(this, nullptr, v)); }
-AiLogStream* AiLogStream::Put(int c) { return static_cast<AiLogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-AiLogStream* AiLogStream::Apply(void* manipulator) { return static_cast<AiLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
+AiLogStream* AiLogStream::Write(const char* text) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
+AiLogStream* AiLogStream::Write(long v) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutInt(v)); }
+AiLogStream* AiLogStream::Put(int c) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
+AiLogStream* AiLogStream::Apply(void* manipulator) { return reinterpret_cast<AiLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 AiLogStream* AlarmLog() { return *reinterpret_cast<AiLogStream**>(0x007C2EB8); }
 
 // 00455940: the owner's manager context (the world server).

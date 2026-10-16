@@ -15,6 +15,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -49,20 +50,7 @@ bool QuitOnClose() { return Global<std::uint8_t>(0x00784751) != 0; }   // Alt+F4
 CInterface3D* TheInput() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
 
 // The console's ostream (007C55A8).
-struct Ostream {
-    Ostream* PutInt(int value);              // 006FC14E
-    Ostream* PutLong(unsigned long value);   // 006FC91C
-    Ostream* PutChar(char c);                // 006FC0B0
-    Ostream* PutString(const char* text);    // 006FC31D
-    Ostream* Manipulate(void* manipulator);  // 00434FE0
-};
-Ostream* Ostream::PutInt(int a0) { return static_cast<Ostream*>(OstreamPutUnsignedOriginal(this, nullptr, static_cast<unsigned>(a0))); }
-Ostream* Ostream::PutLong(unsigned long a0) { return static_cast<Ostream*>(OstreamPutSignedLongOriginal(this, nullptr, static_cast<long>(a0))); }
-Ostream* Ostream::PutChar(char c) { return static_cast<Ostream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-Ostream* Ostream::PutString(const char* text) { return static_cast<Ostream*>(OstreamPutString(this, nullptr, text)); }
-Ostream* Ostream::Manipulate(void* manipulator) { return static_cast<Ostream*>(OstreamManipulate(this, nullptr, manipulator)); }
-Ostream* Console() { return reinterpret_cast<Ostream*>(0x007C55A8); }
-void* const kFlush = reinterpret_cast<void*>(0x00435000);
+libcrt::Ostream* Console() { return reinterpret_cast<libcrt::Ostream*>(0x007C55A8); }
 
 // Objects told about activation changes: the cursor (007C7BD8), the display device
 // (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
@@ -120,7 +108,7 @@ LRESULT OnActivate(WPARAM wParam) {
 LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
     unsigned command = wParam & 0xFFF0;
     if (command == SC_HOTKEY || command == SC_NEXTWINDOW || command == SC_PREVWINDOW) {
-        Console()->PutString(reinterpret_cast<const char*>(0x007849E8))->PutChar('\n')->Manipulate(kFlush);   // "switch task"
+        Console()->PutText(reinterpret_cast<const char*>(0x007849E8))->PutChar('\n')->Apply(libcrt::FlushManipulator);   // "switch task"
     } else if (command == SC_SCREENSAVE || command == SC_MONITORPOWER) {
         return 0;
     }
@@ -209,7 +197,9 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYUP:
-        Console()->PutInt(w)->PutChar(':')->PutLong(static_cast<unsigned long>(lParam))->PutChar('\n')->Manipulate(kFlush);
+        // (006FC14E, "%u", for the int; 006FC91C, "%ld", for lParam.)
+        Console()->PutUnsigned(static_cast<unsigned>(w))->PutChar(':')->PutLong(static_cast<long>(lParam))->PutChar('\n')
+            ->Apply(libcrt::FlushManipulator);
         if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
             HWND window = MainWindow();
             BOOL iconic = gameapi::IsIconic(window);

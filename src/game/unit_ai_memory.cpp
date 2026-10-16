@@ -13,6 +13,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/crt_iostream.h"
 
 #include <bit>
 #include <cmath>
@@ -37,7 +38,7 @@ double Distance2(const CUnit* a, const float* b) {
 }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
-    return *static_cast<console::GameOStream*>(OstreamPutLongOriginal(&os, nullptr, value));
+    return *reinterpret_cast<console::GameOStream*>(reinterpret_cast<libcrt::Ostream*>(&os)->PutInt(value));
 }
 } // namespace
 

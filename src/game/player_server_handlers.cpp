@@ -3,6 +3,7 @@
 // the small helpers of the use order. See player_messages.h and docs/notes/objects.md ("Players").
 
 #include "player_messages.h"
+#include "lib/crt_iostream.h"
 
 #include "ai_map.h"
 #include "core_maths.h"
@@ -640,8 +641,7 @@ namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";   // 00794F34
-void* GameCout() { return reinterpret_cast<void*>(std::uintptr_t(0x007C56B0)); }
-void* FlushManipulator() { return reinterpret_cast<void*>(std::uintptr_t(0x00435000)); }
+libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(std::uintptr_t(0x007C56B0)); }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {
@@ -656,10 +656,7 @@ EI_REPLACE_METHOD(0x0066F0C0, CPlayerServer::SendPartyUpdate);
 void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
     CPlayer* player = Owner();
-    void* log = OstreamPutString(GameCout(), nullptr, kResendingParty);
-    log = OstreamPutLongOriginal(log, nullptr, player->playerId_);
-    log = OstreamPutChar(log, nullptr, '\n');
-    OstreamManipulate(log, nullptr, FlushManipulator());
+    GameCout()->PutText(kResendingParty)->PutInt(player->playerId_)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     WorldServer()->SyncPartyRecords(worldPlayer);
     SendParty();

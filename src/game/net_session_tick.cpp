@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 #include "originals_library.h"
 #include "originals_script.h"
 
@@ -18,10 +19,10 @@
 namespace net {
 
 // The network log's inserters (library), declared in net_classes.h.
-LogStream* LogStream::Put(const char* text) { return static_cast<LogStream*>(OstreamPutString(this, nullptr, text)); }
-LogStream* LogStream::PutChar(char c) { return static_cast<LogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-LogStream* LogStream::PutInt(int a0) { return static_cast<LogStream*>(OstreamPutUnsignedOriginal(this, nullptr, static_cast<unsigned>(a0))); }
-LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
+LogStream* LogStream::Put(const char* text) { return reinterpret_cast<LogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
+LogStream* LogStream::PutChar(char c) { return reinterpret_cast<LogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
+LogStream* LogStream::PutInt(int a0) { return reinterpret_cast<LogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutUnsigned(static_cast<unsigned>(a0))); }
+LogStream* LogStream::Apply(void* manipulator) { return reinterpret_cast<LogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 namespace {
 

@@ -18,6 +18,7 @@
 #include "originals_world.h"
 #include "world.h"
 #include "world_data.h"
+#include "lib/crt_iostream.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -51,9 +52,9 @@ struct GameOstream {
     GameOstream* Put(int c);                        // 006FC0B0 (operator<<(char))
     GameOstream* Apply(void* manipulator);          // 00434FE0
 };
-GameOstream* GameOstream::Write(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
-GameOstream* GameOstream::Put(int c) { return static_cast<GameOstream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }
+GameOstream* GameOstream::Write(const char* text) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
+GameOstream* GameOstream::Put(int c) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
+GameOstream* GameOstream::Apply(void* manipulator) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 
 // 0052CEC0: DestructElements of counted references (stdcall).

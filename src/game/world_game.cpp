@@ -33,6 +33,7 @@
 #include "world_map_files.h"
 
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -79,8 +80,7 @@ void* const kParty = reinterpret_cast<void*>(0x007AA5A0);
 void* const kInput = reinterpret_cast<void*>(0x007C7D50);
 void* const kScripts = reinterpret_cast<void*>(0x007AFDF8);
 void* const kGlobals = reinterpret_cast<void*>(0x0079B2A8);
-void* const kConsole = reinterpret_cast<void*>(0x007C55A8);
-void* const kFlush = reinterpret_cast<void*>(0x00435000);
+libcrt::Ostream* const kConsole = reinterpret_cast<libcrt::Ostream*>(0x007C55A8);
 
 // The map database's zone records (MapRecord, object_tables.h).
 MapRecord* ZoneRecords() { return GameMapDatabase()->maps.data; }
@@ -279,9 +279,7 @@ int GameFlow::SaveGame(const char* slot) {
     }
 
     GameCursor()->SetShape(0);
-    void* console = OstreamPutString(kConsole, nullptr, game::Text(kSaved));
-    console = OstreamPutString(console, nullptr, slot);
-    OstreamManipulate(OstreamPutChar(console, nullptr, '\n'), nullptr, kFlush);
+    kConsole->PutText(game::Text(kSaved))->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;
 }
 
@@ -1167,7 +1165,7 @@ EI_REPLACE_METHOD(0x0057E970, GameFlow::JoinServer);
 
 namespace {
 
-void* const kNetLog = reinterpret_cast<void*>(0x007C56B0);   // the network log's ostream
+libcrt::Ostream* const kNetLog = reinterpret_cast<libcrt::Ostream*>(0x007C56B0);   // the network log's ostream
 
 // 00598EF0. The connection list's destructor.
 __declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(0x00598EF0)
@@ -1198,8 +1196,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         player->sessionKind = sessionKind_;
         std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
         int id = player->id;
-        void* log = OstreamPutLongOriginal(OstreamPutString(kNetLog, nullptr, game::Text(kAcceptedPlayer)), nullptr, id);
-        OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, kFlush);
+        kNetLog->PutText(game::Text(kAcceptedPlayer))->PutInt(id)->PutChar('\n')->Apply(libcrt::FlushManipulator);
         node = next;
     }
     // The list's inlined destructor: every reference released, then the blocks.
@@ -1777,9 +1774,7 @@ int GameFlow::LoadGame(const char* slot) {
         file.Close();
         World()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
     }
-    void* console = OstreamPutString(kConsole, nullptr, game::Text(kLoadedText));
-    console = OstreamPutString(console, nullptr, slot);
-    OstreamManipulate(OstreamPutChar(console, nullptr, '\n'), nullptr, kFlush);
+    kConsole->PutText(game::Text(kLoadedText))->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     return 1;
 }
 

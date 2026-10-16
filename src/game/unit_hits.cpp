@@ -16,6 +16,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_units.h"
+#include "lib/crt_iostream.h"
 
 namespace {
 constexpr float kZero = 0.0f;                       // 0073B858
@@ -75,10 +76,10 @@ struct UnitLogStream {
     UnitLogStream* PutChar(int c);             // 006FC0B0
     UnitLogStream* Apply(void* manipulator);   // 00434FE0: manipulator(*this)
 };
-UnitLogStream* UnitLogStream::Put(const char* text) { return static_cast<UnitLogStream*>(OstreamPutString(this, nullptr, text)); }
-UnitLogStream* UnitLogStream::Put(double v) { return static_cast<UnitLogStream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
-UnitLogStream* UnitLogStream::PutChar(int c) { return static_cast<UnitLogStream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-UnitLogStream* UnitLogStream::Apply(void* manipulator) { return static_cast<UnitLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
+UnitLogStream* UnitLogStream::Put(const char* text) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
+UnitLogStream* UnitLogStream::Put(double v) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
+UnitLogStream* UnitLogStream::PutChar(int c) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
+UnitLogStream* UnitLogStream::Apply(void* manipulator) { return reinterpret_cast<UnitLogStream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 namespace {
 UnitLogStream* HitLog() { return *reinterpret_cast<UnitLogStream**>(0x007AF284); }

@@ -17,6 +17,7 @@
 
 #include "originals_world.h"
 #include "lib/crt.h"
+#include "lib/crt_iostream.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -133,11 +134,11 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->
 // 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
 // 005D7E90 (AIBrain::SetSeen). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 
-GameOstream* GameOstream::Put(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
-GameOstream* GameOstream::Put(long v) { return static_cast<GameOstream*>(OstreamPutLongOriginal(this, nullptr, v)); }
-GameOstream* GameOstream::Put(double v) { return static_cast<GameOstream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
-GameOstream* GameOstream::PutChar(int c) { return static_cast<GameOstream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
-GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }
+GameOstream* GameOstream::Put(const char* text) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutText(text)); }
+GameOstream* GameOstream::Put(long v) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutInt(v)); }
+GameOstream* GameOstream::Put(double v) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutDouble(v)); }
+GameOstream* GameOstream::PutChar(int c) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->PutChar(static_cast<char>(c))); }
+GameOstream* GameOstream::Apply(void* manipulator) { return reinterpret_cast<GameOstream*>(reinterpret_cast<libcrt::Ostream*>(this)->Apply(reinterpret_cast<libcrt::Manipulator>(manipulator))); }
 
 namespace {
 

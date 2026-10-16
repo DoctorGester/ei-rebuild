@@ -130,6 +130,9 @@ static_assert(sizeof(Ios) == 0x50);
 // ostream: its virtual base table (entry 1: the offset of the ios) and x_floatused (set by the header's
 // inline operator<<(float): six digits at most instead of fifteen). Each inserter takes the locks, flushes
 // the tie, writes padded to the width (writepad) and clears the width; all return the stream.
+// A manipulator (ostream& f(ostream&)), as operator<< takes it.
+using Manipulator = Ostream*(__cdecl*)(Ostream*);
+
 struct Ostream {
     // ostream(streambuf*) (006FC42F, RET 8): with `mostDerived`, the virtual base table (00748284) and the
     // ios constructed first; then ostream's vtable on the ios, ios::init(buffer), floatUsed 0. Returns this.

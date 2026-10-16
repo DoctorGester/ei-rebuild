@@ -3,6 +3,7 @@
 // of the collected messages to the player's link. See player_messages.h and docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "lib/crt_iostream.h"
 
 #include "base_manager.h"
 #include "combat.h"
@@ -63,8 +64,7 @@ AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controll
 float LowLevel() { return *reinterpret_cast<const float*>(0x0073CDB8); }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
-void* GameCout() { return reinterpret_cast<void*>(0x007C56B0); }
-void* FlushManipulator() { return reinterpret_cast<void*>(0x00435000); }
+libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(0x007C56B0); }
 const char* TextServerToClient() { return reinterpret_cast<const char*>(0x00794E50); }
 const char* TextSqueezedTo() { return reinterpret_cast<const char*>(0x00794E6C); }
 // The empty string the original sends in place of a non-unit's name.
@@ -143,12 +143,8 @@ int CPlayerServer::Flush() {
     if (Owner()->logTraffic_ != 0) {
         std::uint32_t packedSize = packed.Get()->size_;
         std::uint32_t size = out_.Size();
-        void* log = OstreamPutString(GameCout(), nullptr, TextServerToClient());
-        log = OstreamPutUnsignedOriginal(log, nullptr, size);
-        log = OstreamPutString(log, nullptr, TextSqueezedTo());
-        log = OstreamPutUnsignedOriginal(log, nullptr, packedSize);
-        log = OstreamPutChar(log, nullptr, '\n');
-        OstreamManipulate(log, nullptr, FlushManipulator());
+        GameCout()->PutText(TextServerToClient())->PutUnsigned(size)->PutText(TextSqueezedTo())
+            ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
     }
     int sent = link->Send(packed.Get()) ? 1 : 0;
     out_.Resize(0);

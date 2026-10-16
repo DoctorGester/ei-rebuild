@@ -1,6 +1,7 @@
 // CWorldServer::Update (vtable slot 6, 0058DFF0): one world update. See world.h and
 // docs/notes/world.md.
 #include "world.h"
+#include "lib/crt_iostream.h"
 
 #include "combat.h"
 #include "game_arrays.h"
@@ -25,7 +26,7 @@
 
 namespace {
 
-void* NetworkLog() { return reinterpret_cast<void*>(flowdata::kNetLogStream); }
+libcrt::Ostream* NetworkLog() { return reinterpret_cast<libcrt::Ostream*>(flowdata::kNetLogStream); }
 
 // CPlayerServer::possessedId_ (+0x24) is -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
@@ -61,9 +62,8 @@ void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestr
 void DropPlayer(CWorldServer* world, WorldPlayer* player) {
     PlayerDisconnect(player, nullptr);
     static_cast<CPlayerManager*>(world->PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
-    void* log = OstreamPutString(NetworkLog(), nullptr, worlddata::DisconnectingPlayerText());
-    log = OstreamPutLongOriginal(log, nullptr, player->id);
-    OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, worlddata::FlushManipulator());
+    NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->id)->PutChar('\n')
+        ->Apply(libcrt::FlushManipulator);
 }
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer

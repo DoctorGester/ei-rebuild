@@ -7,6 +7,7 @@
 #include "player_client.h"
 
 #include "app_helpers.h"
+#include "lib/crt_iostream.h"
 #include "camera.h"
 #include "originals_engine.h"
 #include "originals_world.h"
@@ -62,8 +63,7 @@ struct LoginRequest {
 static_assert(sizeof(LoginRequest) == 0x88);
 
 CCamera* Camera() { return *reinterpret_cast<CCamera**>(0x007AF7C8); }
-void* GameCout() { return reinterpret_cast<void*>(0x007C56B0); }
-void* FlushManipulator() { return reinterpret_cast<void*>(0x00435000); }
+libcrt::Ostream* GameCout() { return reinterpret_cast<libcrt::Ostream*>(0x007C56B0); }
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
 const char* TextClientToServer() { return reinterpret_cast<const char*>(0x00794CE8); }   // "client to server, size = "
 const char* TextSqueezedSize() { return reinterpret_cast<const char*>(0x00794D04); }     // " squeezed size = "
@@ -177,12 +177,8 @@ int CPlayerClient::SendToServer() {
         if (Owner()->logTraffic_ != 0) {
             std::uint32_t packedSize = packed.Get()->size_;
             std::uint32_t size = out_.Size();
-            void* log = OstreamPutString(GameCout(), nullptr, TextClientToServer());
-            log = OstreamPutUnsignedOriginal(log, nullptr, size);
-            log = OstreamPutString(log, nullptr, TextSqueezedSize());
-            log = OstreamPutUnsignedOriginal(log, nullptr, packedSize);
-            log = OstreamPutChar(log, nullptr, '\n');
-            OstreamManipulate(log, nullptr, FlushManipulator());
+            GameCout()->PutText(TextClientToServer())->PutUnsigned(size)->PutText(TextSqueezedSize())
+                ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
         }
         sent = link->Send(packed.Get()) ? 1 : 0;
     }
@@ -426,9 +422,7 @@ int CPlayerClient::OnParty() {
             FloatTableCopyFromOriginal(variables, nullptr, &saved);
         }
         WorldClient()->ApplyObjectVariables();
-        void* log = OstreamPutString(GameCout(), nullptr, TextPartyReceived());
-        log = OstreamPutChar(log, nullptr, '\n');
-        OstreamManipulate(log, nullptr, FlushManipulator());
+        GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
         Flow()->ReturnLocalParty();
     }
     DestroyTable(&saved);

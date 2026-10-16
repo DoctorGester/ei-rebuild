@@ -30,12 +30,6 @@ __declspec(naked) inline void* __fastcall StringInitWithAllocator(void* /*string
 __declspec(naked) inline void __fastcall StringBufferFree(void* /*string*/) EI_ORIGINAL(0x00425040)
 __declspec(naked) inline void __fastcall StringAssignSpan(void* /*string*/, void*, const char* /*first*/, const char* /*last*/)
     EI_ORIGINAL(0x00428F10)
-// MSVC 6 iostream ostream members on the game's streams: operator<<(manipulator function) 00434FE0,
-// operator<<(char) 006FC0B0, operator<<(const char*) 006FC31D. All RET 4 and return the stream (`this`).
-__declspec(naked) inline void* __fastcall OstreamManipulate(void* /*stream*/, void*, void* /*manipulator*/)
-    EI_ORIGINAL(0x00434FE0)
-__declspec(naked) inline void* __fastcall OstreamPutChar(void* /*stream*/, void*, char) EI_ORIGINAL(0x006FC0B0)
-__declspec(naked) inline void* __fastcall OstreamPutString(void* /*stream*/, void*, const char*) EI_ORIGINAL(0x006FC31D)
 __declspec(naked) inline void** __fastcall PartiesEnd(void*, void*, void**) EI_ORIGINAL(0x004208A0)
 __declspec(naked) inline void __fastcall List25BCClear(void* /*list*/) EI_ORIGINAL(0x00421CD0)
 __declspec(naked) inline void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/)
@@ -194,10 +188,7 @@ __declspec(naked) inline void __fastcall ByteArraySetSizeOriginal(void* /*array*
 // MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
 __declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
 __declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
-// ostream::operator<<(long) 006FC9C6 (RET 4, returns the stream). CPlex::FreeDataChain 006FE90F (plain RET, ECX =
-// chain head; mfc::PlexFreeDataChain is the forwarder).
-__declspec(naked) inline void* __fastcall OstreamPutLongOriginal(void* /*stream*/, void*, long /*value*/)
-    EI_ORIGINAL(0x006FC9C6)
+// CPlex::FreeDataChain 006FE90F (plain RET, ECX = chain head; mfc::PlexFreeDataChain is the forwarder).
 inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(chain)); }
 
 // C3h. 00405950: __node_alloc<true,0>::allocate(bytes) (ECX = bytes, plain RET, block or null).
@@ -381,15 +372,7 @@ __declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vec
     EI_ORIGINAL(0x0051F5B0)
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
 
-// C3l. MSVC 6 ostream members on the game's streams; all return the stream (`this`): 006FC14E operator<<(unsigned) (format "%u",
-// RET 4), 006FC91C operator<<(long) (format "%ld", RET 4; 006FC9C6 above is the "%d" one), 006FC7FA operator<<(double) (RET 8: the
-// double is passed on the stack).
-__declspec(naked) inline void* __fastcall OstreamPutUnsignedOriginal(void* /*stream*/, void*, unsigned /*value*/)
-    EI_ORIGINAL(0x006FC14E)
-__declspec(naked) inline void* __fastcall OstreamPutSignedLongOriginal(void* /*stream*/, void*, long /*value*/)
-    EI_ORIGINAL(0x006FC91C)
-__declspec(naked) inline void* __fastcall OstreamPutDoubleOriginal(void* /*stream*/, void*, double /*value*/)
-    EI_ORIGINAL(0x006FC7FA)
+// (The game streams' ostream members are libcrt::Ostream's, lib/crt_iostream.h.)
 // MFC CString operator+(const CString&, const CString&) 00700B9F / (const CString&, const char*) 00700C05 (__stdcall, RET 0xC:
 // the result slot, left, right; EAX = the result slot): src/lib/mfc.cpp's operator+. These build the result in `out` (raw
 // storage), passed as the hidden result slot.
