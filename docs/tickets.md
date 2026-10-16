@@ -10,8 +10,8 @@ Generated from docs/tickets.toml and the statuses in the work database by tools/
 
 Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with the cleanup; one Opus ticket at a time.
 
+- **R11a** Game code's DirectDraw fallback behind !render::Presenting() (running since 2026-10-16; opus). User 2026-10-16: remove the DirectDraw fallback; the image needs the new renderer, and Presenting() / CpuWindows() / Active() become one query. Start after C13a1 merges (same game files). After: R11.
 - **R9b2** WinMain's original in harness runs: the last old-device calls (ready; opus). The harness patches the CALL at 00457595, so WinMain 00456440's original runs: GetAvailableVidMem x3 and RestoreAllSurfaces stay on the stand-in. Let the rewrite run under the harness (freeze hook in app_main.cpp), then the COM stand-ins can go once Rebirth's patched originals (006462A0, 0060C870) are covered. After: R9b.
-- **R11a** Game code's DirectDraw fallback behind !render::Presenting() (ready). User 2026-10-16: remove the DirectDraw fallback; the image needs the new renderer, and Presenting() / CpuWindows() / Active() become one query. Start after C13a1 merges (same game files). After: R11.
 - **R8** Textures without DirectDraw in the switch-over (done). Textures work without DirectDraw in the switch-over (docs/notes/renderer.md).
 - **R9a** Device setup without DirectDraw and Present on a flip-model swap chain (done 2026-10-14). Device setup without DirectDraw and Present on a flip-model swap chain; the five present scenarios pass on vanilla and --native.
 - **R9b** Guard every old-device call for a device object without a device (done 2026-10-14; opus). Every old-device call is guarded for a device object without a device (73 calling places from the old-device log). After: R9a.
