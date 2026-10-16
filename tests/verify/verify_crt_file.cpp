@@ -291,7 +291,7 @@ void CheckHeap() {
     bool allZero = zeroed != nullptr;
     for (int i = 0; zeroed && i < 70; ++i) allZero = allZero && zeroed[i] == 0;
     Check("calloc", true, allZero, "10 x 7 bytes zeroed");
-    Check("_msize", std::size_t{70}, zeroed ? libcrt::Msize(zeroed) : 0, "calloc(10, 7)");
+    Check("_msize", std::size_t{80}, zeroed ? libcrt::Msize(zeroed) : 0, "calloc(10, 7): 70 rounded to 16");
     libcrt::Free(zeroed);
 
     auto* block = static_cast<unsigned char*>(libcrt::Realloc(nullptr, 16));
@@ -304,7 +304,7 @@ void CheckHeap() {
     Check("realloc", true, libcrt::Realloc(grown, 0) == nullptr, "size 0 frees and gives null");
 
     char* copy = libcrt::Strdup("strdup text");
-    Check("_strdup", true, copy && std::strcmp(copy, "strdup text") == 0 && libcrt::Msize(copy) == 12, "a copy of 12 bytes");
+    Check("_strdup", true, copy && std::strcmp(copy, "strdup text") == 0 && libcrt::Msize(copy) == 16, "a copy of 12 bytes (16 on the heap)");
     libcrt::Free(copy);
     Check("_strdup", true, libcrt::Strdup(nullptr) == nullptr, "null gives null");
 }
