@@ -246,7 +246,6 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) int CUiMesh::Commit() EI_ORIGINAL(0x005EA150)
 
 // --- 00643DC0 ----------------------------------------------------------------------------------
 
@@ -346,7 +345,7 @@ void CHudMap::BuildMarkers() {
         }
     }
 
-    mesh->Commit();
+    mesh->RefreshBuffers();
 }
 EI_REPLACE_METHOD(0x00643DC0, CHudMap::BuildMarkers);
 
@@ -523,7 +522,7 @@ void CHudMap::UpdateView() {
             area->Quads()[q].y[k] = mapY;
         }
     }
-    area->Commit();
+    area->RefreshBuffers();
 
     // The world's bounds (scene object 0), clamped to the map square [-1, 1].
     auto* bounds = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);

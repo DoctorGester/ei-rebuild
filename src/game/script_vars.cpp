@@ -14,12 +14,6 @@ namespace {
 
 // The empty string constant the game assigns to clear string variables.
 
-// CStringArray-like helper of the variable set (004C2F80): *dst = strings[index], through a
-// temporary copy (GetAt returns by value).
-struct StringValues {
-    void CopyTo(int index, mfc::CString* dst);
-};
-__declspec(naked) void StringValues::CopyTo(int, mfc::CString*) EI_ORIGINAL(0x004C2F80)
 
 int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
@@ -176,7 +170,7 @@ void SSCCmd::SetParameters(const mfc::CArray<ScriptBinding>* bindings, ScriptVar
             x87::CopyFloat(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex]);
             break;
         case kScriptString:
-            reinterpret_cast<StringValues*>(&vars->strings)->CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);
+            ScriptStringsCopyTo(&vars->strings, nullptr, b.varIndex, &stringArgs.data[b.argIndex]);   // 004C2F80
             break;
         case kScriptObject:
             objectArgs.data[b.argIndex] = &vars->objects.data[b.varIndex];

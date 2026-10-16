@@ -44,9 +44,6 @@ ActionDoneFn SpeakerActionDone() { return reinterpret_cast<ActionDoneFn>(0x00602
 // 0060AC20: the name index's find-or-insert (thiscall, RET 4; the value's address).
 __declspec(naked) const itemdb::ItemRecordHead** __fastcall LootNameAt(void* /*names*/, void*, const stlp::string* /*key*/)
     EI_ORIGINAL(0x0060AC20)
-// 0060A660 (thiscall on the speakers' vector, RET 0xC): insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall SpeakersInsertOverflow(void* /*vector*/, void*, BriefingSpeaker* /*pos*/,
-                                                         const BriefingSpeaker* /*value*/, int /*count*/) EI_ORIGINAL(0x0060A660)
 
 constexpr int kEventJoins = 1;
 constexpr int kSlots = 7;
@@ -142,7 +139,8 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
             libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
         } else {
-            SpeakersInsertOverflow(&speakers_, nullptr, speakersEnd_, &added, 1);
+            libcontainers::InsertSpeakersOverflow(reinterpret_cast<libcontainers::Speakers*>(&speakers_), nullptr,
+                                                  speakersEnd_, &added, 1);
         }
         speakersEnd_[-1].unit = unit;
         speakersEnd_[-1].name = name;

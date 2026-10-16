@@ -170,7 +170,6 @@ void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { a
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUnit*>(::WorldFindUnit(world, nullptr, id)); }
-__declspec(naked) void __fastcall UnitsInBox(void*, void*, const void*, void*) EI_ORIGINAL(0x005656A0)
 
 // vector<int> pieces (library): 005F8F10 constructs from an allocator (RET 4), 0064B620
 // (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
@@ -378,7 +377,7 @@ void CBattleScreen::Update() {
         std::uint8_t allocator = 0;
         List units;
         ListConstruct411850(&units, nullptr, &allocator);
-        UnitsInBox(UiClientWorld(), nullptr, &selectionBox_, &units);
+        UiClientWorld()->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_), reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
         List inside;
         ListConstruct404A70Original(&inside, nullptr, &allocator);
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
@@ -486,7 +485,8 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     std::uint8_t allocator = 0;
     List units;
     ListConstruct411850(&units, nullptr, &allocator);
-    UnitsInBox(world, nullptr, &selectionBox_, &units);
+    static_cast<CWorldClient*>(world)->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_),
+                                                  reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
     List inside;
     ListConstruct404A70Original(&inside, nullptr, &allocator);
     if (units.head->next != units.head) {

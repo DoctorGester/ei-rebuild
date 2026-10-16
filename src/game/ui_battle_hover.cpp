@@ -49,7 +49,6 @@ void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
-__declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const Vector3*, int*) EI_ORIGINAL(0x00567440)
 // The local player glue (007AFEA5): 00578A40 an exit's zone name (RET 4), 00578B50 the local
 // player's variable `name` (RET 4, ST0).
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
@@ -118,7 +117,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (interface_->altDown_) {
         Vector3 at = pick();
         int exit;
-        if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
+        if (!static_cast<CWorldClient*>(kClientWorld)->FindExitAt(&at.x, &exit)) return;
         SetCursor(kCursorExit);
         return;
     }
@@ -156,7 +155,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             // is asked as is).
             Vector3 at = pick();
             int exit;
-            if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
+            if (!static_cast<CWorldClient*>(kClientWorld)->FindExitAt(&at.x, &exit)) return;
             mfc::CString name(GameExitTarget(exit));
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                 reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"

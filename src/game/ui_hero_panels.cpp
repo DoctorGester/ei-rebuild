@@ -37,8 +37,6 @@ T Read(const std::uint8_t* p, int offset) {
 }
 
 // Unit statistics (UnitStats) values left in ST0 (not rewritten here).
-// 00660840 (thiscall on the hero record): the weight the hero carries, in ST0.
-__declspec(naked) double __fastcall CarriedWeight(const std::uint8_t*) EI_ORIGINAL(0x00660840)
 
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
@@ -245,7 +243,7 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             Down(&rect);
         }
-        int weight = static_cast<int>(gamecrt::Ftol(CarriedWeight(hero())));
+        int weight = static_cast<int>(gamecrt::Ftol(reinterpret_cast<const PartyUnitRecord*>(hero())->CarriedWeight()));
         int capacity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x54))));
         DrawRow(&rect, Label(0x00793C0C), weight, capacity);   // Encumbrance
         Down(&rect);
@@ -275,7 +273,7 @@ void CHeroStatsPanel::DrawStats() {
             using WeightFn = double(__thiscall*)(CUiWindow*);
             carried = reinterpret_cast<WeightFn>(owner_->vtable_[53])(owner_);   // +0xD4
         } else {
-            carried = CarriedWeight(hero());
+            carried = reinterpret_cast<const PartyUnitRecord*>(hero())->CarriedWeight();
         }
         int weight = static_cast<int>(gamecrt::Ftol(carried));
         int capacity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x54))));

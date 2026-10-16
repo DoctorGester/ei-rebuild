@@ -1477,10 +1477,6 @@ public:
     // for the first). The low byte of `hasPlayer` marks a player's portrait (half tint, no bars).
     void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
     void AddPortraitAt(const char* model, const char* picture, int wide, int hasPlayer);
-    // 005FF460 (CUiWindow::ReplaceSceneObject, called through its address). Replaces scene
-    // object `object` with a model loaded by `name` (keeping its placement); returns the new
-    // object or 0.
-    CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
 
     // 0063FE70 (RET 8; ui_screen_constructors.cpp). Constructor: the window over 250..550 x
     // 440..600 (vtables 00742A18 / 007429E4), no portraits, and the selection marker sprite (a
@@ -1542,9 +1538,7 @@ public:
     const lib::AlignedArray<UiQuadBlock>& Quads() const { return const_cast<CUiMesh*>(this)->Quads(); }
     const lib::AlignedArray<UiMeshVertex>& Vertices() const { return const_cast<CUiMesh*>(this)->Vertices(); }
     const lib::AlignedArray<UiTexel>& Texels() const { return const_cast<CUiMesh*>(this)->Texels(); }
-    // Not rewritten: Commit (005EA150), which hands the arrays to the renderer fields
-    // (+0x9C..+0xC8) and returns the index count.
-    int Commit();
+    // (The arrays go to the renderer fields, +0x9C..+0xC8, by CFigureMesh::RefreshBuffers, 005EA150.)
     // 005E7010 (RET 0xC; ui_mesh_draw.cpp). Where Place put the sprite: the layout point
     // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
     // (z, copied).

@@ -672,7 +672,6 @@ Vector3 PositionOf(const CUnit* unit) {
 }
 
 // The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
-__declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, Vector3, int, char) EI_ORIGINAL(0x00636F10)
 __declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
     static_cast<CBattleScreen*>(screen)->UseOnUnit(target, quick, ctrl);
@@ -721,6 +720,7 @@ bool ZeroOrNaN(float value) {
 
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
+    auto orderAt = [this](const Vector3& at, int mode, char flag) { OrderAt(at.x, at.y, at.z, mode, flag); };
     // Slot 55 (+0xDC, IsDead): non-zero for a dead unit.
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
@@ -791,7 +791,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
 
     if (interface_->altDown_) {
-        ScreenOrderAt(this, nullptr, unit ? unitPosition(unit) : pick(), 0, ctrl());
+        orderAt(unit ? unitPosition(unit) : pick(), 0, ctrl());
         return;
     }
     bool anyFlag = false;
@@ -801,7 +801,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             ScreenOrderUnit(this, nullptr, unit, ctrl());
             return;
         }
-        ScreenOrderAt(this, nullptr, pick(), 1, ctrl());
+        orderAt(pick(), 1, ctrl());
         return;
     }
     if (interface_->ctrlDown_) {
@@ -809,7 +809,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             ScreenOrderUnit(this, nullptr, unit, ctrl());
             return;
         }
-        ScreenOrderAt(this, nullptr, pick(), 1, ctrl());
+        orderAt(pick(), 1, ctrl());
         return;
     }
 
@@ -835,7 +835,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 ScreenOrderUnit(this, nullptr, unit, ctrl());
                 return;
             }
-            ScreenOrderAt(this, nullptr, unitPosition(unit), 0, ctrl());
+            orderAt(unitPosition(unit), 0, ctrl());
             return;
         }
         if (CUnit* object = objectAt()) {
@@ -847,7 +847,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         }
         {
             Vector3 at = pick();
-            ScreenOrderAt(this, nullptr, at, 0, ctrl());
+            orderAt(at, 0, ctrl());
             // "Terrain Coords x y z" on the console: each float through the inline operator<<
             // (x_floatused set, printed as a double), then '\n' and flush.
             console::GameOStream& stream = (console::Out7C5760() << game::TerrainCoordsText())

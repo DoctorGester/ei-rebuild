@@ -6,6 +6,7 @@
 // and ScriptSubCall (004CCAA0). See script.h.
 #include "script.h"
 #include "game_arrays.h"
+#include "record_arrays.h"
 
 #include "lib/crt.h"
 
@@ -21,7 +22,6 @@
 namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
-__declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
 
 // The float array resized with `setSize`, then each value copied (the source's size re-read).
 void CopyFloats(mfc::CArray<float>* to, const mfc::CArray<float>* from,
@@ -77,7 +77,8 @@ SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     CopyPlain(&groupArgs, &other->groupArgs, GroupArgsSetSize);
     CopyPlain(&localBindings, &other->localBindings, BindingsSetSize);
     CopyPlain(&globalBindings, &other->globalBindings, BindingsSetSize);
-    SubCallsCopy(&subCalls, nullptr, &other->subCalls);   // nested commands deep-copied
+    recordarrays::SubCallArrayCopy(reinterpret_cast<recordarrays::SubCalls::Array*>(&subCalls), nullptr,   // nested commands deep-copied
+                                   reinterpret_cast<const recordarrays::SubCalls::Array*>(&other->subCalls));
     calledScript = other->calledScript;
     return this;
 }
@@ -133,7 +134,6 @@ inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((vo
 // 006FE268: ConstructElements for CString.
 void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
 // Library copy constructors of the binding and nested call arrays (__thiscall (const CArray&)).
-__declspec(naked) void __fastcall BindingsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCCB0)
 __declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void*) EI_ORIGINAL(0x004CCD90)
 
 template <typename T>
@@ -166,8 +166,10 @@ void CopyConstructCmd(SSCCmd* to, const SSCCmd* from) {
     CopyPlain(&to->objectArgs, &from->objectArgs, ObjectArgsSetSize);
     InitArray(&to->groupArgs, mfc::impl::ArgGroupsClass::Vtable());
     CopyPlain(&to->groupArgs, &from->groupArgs, GroupArgsSetSize);
-    BindingsCopyConstruct(&to->localBindings, nullptr, &from->localBindings);
-    BindingsCopyConstruct(&to->globalBindings, nullptr, &from->globalBindings);
+    recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->localBindings), nullptr,
+                                        reinterpret_cast<const recordarrays::Bindings::Array*>(&from->localBindings));
+    recordarrays::BindingsCopyConstruct(reinterpret_cast<recordarrays::Bindings::Array*>(&to->globalBindings), nullptr,
+                                        reinterpret_cast<const recordarrays::Bindings::Array*>(&from->globalBindings));
     SubCallsCopyConstruct(&to->subCalls, nullptr, &from->subCalls);
     to->calledScript = from->calledScript;
 }

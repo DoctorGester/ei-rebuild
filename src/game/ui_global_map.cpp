@@ -595,9 +595,6 @@ inline double __fastcall FrameTime(CUiWindow* w) { return WindowFrameTimeOrigina
 // 006010E0 (not rewritten): the container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 
-// The weather (+0x214, a CCloudNoise): 00499F10 (RET 8) draws into locked surface memory.
-__declspec(naked) void __fastcall WeatherDrawOriginal(GlobalMapWeather*, void*, void* /*pixels*/, float /*seconds*/)
-    EI_ORIGINAL(0x00499F10)
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
 float FmodStored(float a, const float* divisor) { return static_cast<float>(libcrt::CiFmod(a, *divisor)); }
@@ -716,7 +713,7 @@ void CGlobalMap::Update() {
             if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
         }
         float seconds = static_cast<float>(FrameTime(this));
-        WeatherDrawOriginal(weather_, nullptr, reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
+        reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
         if (!direct) {
             long hr = static_cast<IDirectDrawSurface7*>(holder->surface)->Unlock(nullptr);

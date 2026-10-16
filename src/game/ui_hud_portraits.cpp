@@ -140,7 +140,6 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 } // namespace
 
-__declspec(naked) CEngineObject* CHudPortraits::ReplaceSceneObject(CEngineObject*, const char*) EI_ORIGINAL(0x005FF460)
 
 void CHudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : static_cast<float>(WindowFrameTime(this));
@@ -227,7 +226,7 @@ void CHudPortraits::Update() {
                 mfc::CString full = withPrefix + suffix;
                 name = full;
             }
-            ReplaceSceneObject(object(1), name);
+            ReplaceSceneObject(object(1), name);   // CUiWindow's (005FF460)
         }
 
         // Now and then (a third of the time per second) a wobble starts after a random delay:

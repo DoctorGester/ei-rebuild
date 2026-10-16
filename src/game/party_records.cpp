@@ -5,6 +5,8 @@
 #include "party_records.h"
 #include "core_refcount.h"
 #include "game_strings.h"
+#include "class_templates.h"
+#include "game_lists.h"
 #include "party.h"
 
 #include "lib/crt.h"
@@ -29,8 +31,6 @@ void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Con
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n).
 __declspec(naked) PartyRecord** __fastcall RecordCopy(PartyRecord**, PartyRecord**, PartyRecord**) EI_ORIGINAL(0x004AB910)
-__declspec(naked) void __fastcall RecordPtrDestroy(PartyRecord**, void*, int) EI_ORIGINAL(0x004AB960)
-__declspec(naked) void __fastcall RecordPtrRelease(PartyRecord**) EI_ORIGINAL(0x004A5D70)
 void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) {
     reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
 }
@@ -72,7 +72,7 @@ const char* NameOf(const PartyRecord* record) { return *reinterpret_cast<const c
 void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord** end = list->records.Finish();
     PartyRecord** newEnd = RecordCopy(end, end, list->records.Start());
-    for (PartyRecord** p = newEnd; p != end; ++p) RecordPtrDestroy(p, nullptr, 0);
+    for (PartyRecord** p = newEnd; p != end; ++p) reinterpret_cast<RefPtr*>(p)->DeleteScalar(0);   // 004AB960
     list->records.Finish() = newEnd;
     CStringAssignTextOriginal(&list->text0C, nullptr, game::EmptyText());
     CStringAssignTextOriginal(&list->text10, nullptr, game::EmptyText());
@@ -139,7 +139,7 @@ void NamedPartyRecords::Remove(const char* name) {
             }
         }
         --records.Finish();
-        RecordPtrRelease(records.Finish());
+        RefPtrRelease(reinterpret_cast<RefPtr*>(records.Finish()));   // 004A5D70
     }
 }
 EI_REPLACE_METHOD(0x004A5FA0, NamedPartyRecords::Remove);
@@ -148,7 +148,6 @@ EI_REPLACE_METHOD(0x004A5FA0, NamedPartyRecords::Remove);
 
 namespace {
 
-__declspec(naked) void __fastcall TemplatesBuildOrig(void*, void*, unsigned) EI_ORIGINAL(0x004A7630)
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 
@@ -174,13 +173,13 @@ void* NodeValue(MapNode* node) { return reinterpret_cast<char*>(node) + 8; }
 
 void __fastcall PartyManagerNewGame(void* manager) {
     PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
-    TemplatesBuildOrig(Field(manager, 0x38), nullptr, 0);
+    ClassTemplatesBuild(reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38)), nullptr, 0);
 }
 EI_REPLACE(0x004A88A0, PartyManagerNewGame);
 
 void __fastcall PartyManagerNewGameFour(void* manager) {
     PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
-    TemplatesBuildOrig(Field(manager, 0x38), nullptr, 1);
+    ClassTemplatesBuild(reinterpret_cast<ClassTemplateVector*>(Field(manager, 0x38)), nullptr, 1);
 }
 EI_REPLACE(0x004A88C0, PartyManagerNewGameFour);
 

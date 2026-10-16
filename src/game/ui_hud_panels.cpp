@@ -8,6 +8,7 @@
 #include "item_db_text.h"
 #include "map_object.h"
 #include "party.h"
+#include "player_client.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -66,13 +67,8 @@ bool BarRatio(int value, int maximum, float* ratio) {
 // The battle screen's message log (its tenth child window).
 CUiScrollText* MessageLog(CBattleScreen* screen) { return static_cast<CUiScrollText*>(screen->children_.data[9]); }
 
-// The local view's order setting a unit's +0x438 flag (0066AF30, thiscall; sends it to the server).
-struct LocalViewOrders {
-    BOOL SetFlag438(CUnit* unit, int value);
-};
-__declspec(naked) BOOL LocalViewOrders::SetFlag438(CUnit*, int) EI_ORIGINAL(0x0066AF30)
-
-LocalViewOrders* Orders() { return reinterpret_cast<LocalViewOrders*>(WorldClient()->LocalView()); }
+// The local view, whose SetUnitFlag438 (0066AF30) sets a unit's +0x438 flag and sends it to the server.
+CPlayerClient* Orders() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
 
 } // namespace
 
@@ -157,7 +153,7 @@ void CHudMovePanel::ToggleFlag() {
     int value = owner_->party_.size > 0 && common == 1 ? 0 : 1;
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
-        if (unit->flags_ & 0x10) Orders()->SetFlag438(unit, value);
+        if (unit->flags_ & 0x10) Orders()->SetUnitFlag438(unit, value);
     }
     flag_ = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).

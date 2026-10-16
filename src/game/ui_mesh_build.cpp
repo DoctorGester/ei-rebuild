@@ -65,7 +65,7 @@ void NudgeAndCommit(CUiMesh* mesh) {
         mesh->Texels()[i].u = static_cast<float>(D(mesh->Texels()[i].u) + half);
         mesh->Texels()[i].v = static_cast<float>(D(mesh->Texels()[i].v) - half);
     }
-    mesh->Commit();
+    mesh->RefreshBuffers();
 }
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.

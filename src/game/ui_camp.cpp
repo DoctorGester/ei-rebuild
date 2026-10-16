@@ -1,6 +1,7 @@
 // The camp's page switch (0060E9E0) and the camp panels' layout code (see docs/notes/ui.md, "Camp,
 // global map, hero screens").
 #include "device.h"   // the old device's calls
+#include "game_lists.h"
 #include "game_strings.h"
 #include "unit_create.h"
 #include "item.h"
@@ -669,9 +670,6 @@ EI_REPLACE_METHOD(0x0060F050, CCampPages::Draw);
 
 namespace {
 
-// 0052C690 (thiscall on a counted pointer, RET 4; a copy of ObjectHolderAssign): the slot takes
-// `object` with a reference and releases the one it held.
-__declspec(naked) void __fastcall CountedSlotAssign(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0052C690)
 
 void ReleaseObject(void* object) {
     if (object) static_cast<CEngineObject*>(object)->Release();
@@ -752,7 +750,7 @@ bool CCampPages::CanMakeItem() {
         std::uint8_t* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
             CSpell* copy = static_cast<CSpell*>(AsItem(item)->spell_)->Clone(manager);
-            CountedSlotAssign(&spell, nullptr, copy);
+            ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&spell), nullptr, copy);   // 0052C690
         } else if (IsPart(item)) {
             switch (Read<int>(item, 0x50)) {
             case 0: type = 0x3004; part = PartRecord(item, 0); break;

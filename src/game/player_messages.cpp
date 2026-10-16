@@ -25,9 +25,8 @@ namespace {
 // The variables table (object_tables.cpp / not rewritten), through the game addresses.
 void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
-// 0047DA80: writes a state value into the stream; 006D4570: an object writes itself into one.
+// 0047DA80: writes a state value into the stream.
 __declspec(naked) void __fastcall StreamWriteState(BitStream* /*stream*/, void*, int /*value*/) EI_ORIGINAL(0x0047DA80)
-__declspec(naked) void __fastcall WriteStateTo(void* /*source*/, void*, BitStream* /*stream*/) EI_ORIGINAL(0x006D4570)
 
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
@@ -127,7 +126,7 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
 
 void CPlayerServer::SendState73(void* source) {
     WriteByte(&out_, 0x73);
-    WriteStateTo(source, nullptr, &out_);
+    TweenSave(static_cast<const TweenArray*>(source), nullptr, &out_);   // 006D4570
     Owner()->dirty_ &= ~0x20;
 }
 

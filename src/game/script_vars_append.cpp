@@ -194,18 +194,20 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
 EI_REPLACE(0x004C0020, ScriptVarsClear);
 
 namespace {
-// The four appends, called through their addresses as the original does (their wrappers run).
-__declspec(naked) void __fastcall FloatsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C2B70)
-__declspec(naked) void __fastcall StringsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C2FE0)
-__declspec(naked) void __fastcall ObjectsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C3450)
-__declspec(naked) void __fastcall GroupsAppendAt(void*, void*, const void*) EI_ORIGINAL(0x004C3DC0)
+// One type's values and names (ScriptNamedValues<T>, the value array and the name array after it).
+template <typename T>
+ScriptNamedValues<T>* Named(mfc::CArray<T>* values) { return reinterpret_cast<ScriptNamedValues<T>*>(values); }
+template <typename T>
+const ScriptNamedValues<T>* Named(const mfc::CArray<T>* values) {
+    return reinterpret_cast<const ScriptNamedValues<T>*>(values);
+}
 } // namespace
 
 // ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
 void ScriptVars::AppendFrom(const ScriptVars* other) {
-    FloatsAppendAt(&floats, nullptr, &other->floats);
-    StringsAppendAt(&strings, nullptr, &other->strings);
-    ObjectsAppendAt(&objects, nullptr, &other->objects);
-    GroupsAppendAt(&groups, nullptr, &other->groups);
+    Named(&floats)->Append(Named(&other->floats));      // 004C2B70
+    Named(&strings)->Append(Named(&other->strings));    // 004C2FE0
+    Named(&objects)->Append(Named(&other->objects));    // 004C3450
+    Named(&groups)->Append(Named(&other->groups));      // 004C3DC0
 }
 EI_REPLACE_METHOD(0x004B3900, ScriptVars::AppendFrom);

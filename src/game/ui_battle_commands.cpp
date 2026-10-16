@@ -2,6 +2,7 @@
 // (00637190), the order on a dead unit (006373A0), a unit's speech event (006366F0, slot 32) and
 // the pending spell or quick item used on a unit or a point (00637500, 00637750).
 // See docs/notes/ui.md ("Battle screen").
+#include "acks_db.h"
 #include "maths.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -51,10 +52,6 @@ inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerC
 // CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
 
-// Speech: 006D8430 (__fastcall: unit, event) and 006D8A40 (__fastcall: unit, text, flag; RET 4)
-// pick a phrase record (its +0x1C the phrase's name) or return null.
-__declspec(naked) std::uint8_t* __fastcall SpeechPhrase(CUnit*, unsigned) EI_ORIGINAL(0x006D8430)
-__declspec(naked) std::uint8_t* __fastcall SpeechPhraseFor(CUnit*, char*, bool) EI_ORIGINAL(0x006D8A40)
 // 0063B920 (thiscall on the battle screen, RET 8): the unit's name line into a CString.
 void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* a3) { a0->UnitName(a2, a3); }
 // 00578E20 (thiscall on 007AFEA4): the text manager.
@@ -287,8 +284,8 @@ EI_REPLACE_METHOD(0x00637750, CBattleScreen::UseAtPoint);
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     auto* unit = reinterpret_cast<CUnit*>(ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, id));
     if (!unit) return;
-    std::uint8_t* phrase = (event == 0x2A || event == 0x2B) ? SpeechPhraseFor(unit, extra, event == 0x2B)
-                                                            : SpeechPhrase(unit, event);
+    const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
+                                                                  : acks::SayAck(unit, static_cast<int>(event));
     if (phrase) {
         // The original keeps the phrase's text in its `extra` argument slot.
         mfc::CString text;
@@ -296,7 +293,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         UnitNameLine(this, nullptr, unit, &line);
         line += reinterpret_cast<const char*>(0x00794314);   // ":\n"
         CTextManager* texts = TextTable(kTextGlue);
-        const char* name = reinterpret_cast<const SpeechRecord*>(phrase)->name.data();
+        const char* name = phrase->name.data();
         BOOL found;
         {
             mfc::CString say(reinterpret_cast<const char*>(0x0079430C));   // "say "

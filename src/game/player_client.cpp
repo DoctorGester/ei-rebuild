@@ -6,6 +6,7 @@
 #include "object_tables.h"
 #include "player_client.h"
 
+#include "app_helpers.h"
 #include "camera.h"
 #include "originals_engine.h"
 #include "originals_world.h"
@@ -360,9 +361,6 @@ constexpr std::uint8_t kRequestRecording = 2;
 bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
 const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF8); }   // "party received on client"
 
-// 0052EA40 (RET 8): a unit's motion speeds (float bits; only this handler calls it).
-__declspec(naked) void __fastcall UnitSetMotionSpeeds(void* /*unit*/, void*, std::uint32_t, std::uint32_t)
-    EI_ORIGINAL(0x0052EA40)
 
 // The STLport table's inlined destructor: every node deleted (004616A0), the buckets cleared, the
 // count zeroed, then the bucket vector destroyed (00609F50).
@@ -473,7 +471,7 @@ int CPlayerClient::OnPathMarker() {
         static_cast<AIPath*>(path)->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
-            UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);
+            static_cast<CUnit*>(walker)->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
             auto* source = static_cast<CParticleSource*>(
                 static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
@@ -568,8 +566,6 @@ const char* TextNone() { return reinterpret_cast<const char*>(0x007846F0); }    
 
 bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
-// 00455B50: the 1% check (rand) that runs 00455BA0 / 00458DA0 (ECX is the client, not read).
-__declspec(naked) void __fastcall NewObjectCheckOriginal(void* /*client*/) EI_ORIGINAL(0x00455B50)
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
     return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
@@ -583,7 +579,7 @@ void RemovePartNamed(CObject3D* object, const char* name) {
 } // namespace
 
 int CPlayerClient::OnNewObject() {
-    NewObjectCheckOriginal(this);
+    app::DelayedProtectionCheck();   // 00455B50 (thiscall on the client, not read)
     console::CStringArray parts;
     mfc::CString scriptName;
     mfc::CString secondName;

@@ -147,7 +147,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     localPosition_ = *centre.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
-    Commit();
+    RefreshBuffers();
 }
 EI_REPLACE_METHOD(0x005E70E0, CUiMesh::SetRectangleVanilla);
 
@@ -202,7 +202,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     localPosition_.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
-    Commit();
+    RefreshBuffers();
 }
 EI_REPLACE_METHOD(0x005E7680, CUiMesh::SetGridVanilla);
 
@@ -254,7 +254,7 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     localPosition_.z = depth;
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
-    Commit();
+    RefreshBuffers();
 }
 EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrameVanilla);
 
@@ -295,6 +295,6 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     localPosition_ = *first.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
     InsetTexels(this);
-    Commit();
+    RefreshBuffers();
 }
 EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangleVanilla);
