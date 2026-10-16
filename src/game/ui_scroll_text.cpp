@@ -169,11 +169,11 @@ void DrawWord(CUiSurface* surface, const char* text, RECT* rect, int font, COLOR
 
 void CUiScrollText::DrawLines(int scroll) {
     CUiSurface* surface = surfaces_.size > 0 ? surfaces_.data[0] : nullptr;
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     int lineCount = lines_.size;
     if (lineCount <= 0) {
-        SurfaceReleaseDC(surface);
+        UiSurfaceReleaseDC(surface);
         return;
     }
 
@@ -251,7 +251,7 @@ void CUiScrollText::DrawLines(int scroll) {
         drawn += height;
         ++line;
     } while (drawn < textRect_.bottom - textRect_.top - offset && line < lines_.size);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065D150, CUiScrollText::DrawLines);
 

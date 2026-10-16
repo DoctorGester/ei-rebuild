@@ -194,11 +194,11 @@ void CCampPages::ShowPage(int page) {
         statsPanel_->ShowStats(page);
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
-        SurfaceGetDC(title);
+        UiSurfaceGetDC(title);
         SurfaceClearOriginal(title);
         RECT rect = {0, 10, 200, 30};
         DrawLine(title, pageTitles_[page_], &rect);
-        SurfaceReleaseDC(title);
+        UiSurfaceReleaseDC(title);
     }
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
@@ -574,7 +574,7 @@ void CCampPages::UpdateAction() {
     mfc::CString line;
     CTextManager* texts = GameTexts();
     CUiSurface* draw = surfaces_.data[0];
-    SurfaceGetDC(draw);
+    UiSurfaceGetDC(draw);
     SurfaceClearOriginal(draw);
     if (action.GetLength() != 0) {
         texts->GetString(action, &text);
@@ -591,7 +591,7 @@ void CCampPages::UpdateAction() {
     line.Format(game::Text(0x00792F14), static_cast<const char*>(text), amount);   // "%s %d"
     RECT top = {0, 10, 200, 30};
     DrawLine(draw, line, &top);
-    SurfaceReleaseDC(draw);
+    UiSurfaceReleaseDC(draw);
 
     SetShade(SceneMesh(0), actionEnabled_ ? 1.0f : 0.5f);
     SetShade(SceneMesh(1), actionShown_ ? 1.0f : 0.5f);

@@ -83,7 +83,7 @@ void CMpHeroScreen::DrawExperience() {
     CUiSurface* surface = window.surfaces_.data[2];
     mfc::CString text;
     mfc::CString line;
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     TextsGetString(GameTexts(), nullptr, kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
@@ -95,7 +95,7 @@ void CMpHeroScreen::DrawExperience() {
     line.Format(kLabelFormat, static_cast<const char*>(text), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 
 BOOL CMpHeroScreen::Draw(int pass) {
@@ -283,7 +283,7 @@ std::uint32_t MpHeroCount() {
 
 void CMpHeroScreen::DrawHeroList() {
     CUiSurface* surface = window.surfaces_.data[0];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     SelectionFrame(window)->visible_ = 0;
     RECT rect = {12, 13, 265, 33};
@@ -298,7 +298,7 @@ void CMpHeroScreen::DrawHeroList() {
         SurfaceDrawText(surface, nullptr, name, &rect, 1, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 namespace {
 void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList(); }
@@ -307,7 +307,7 @@ EI_REPLACE(0x006167C0, HeroScreenDrawHeroList);
 
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = window.surfaces_.data[2];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     SelectionFrame(window)->visible_ = 0;
     mfc::CString title;
@@ -328,7 +328,7 @@ void CMpHeroScreen::DrawVoices() {
         SurfaceDrawText(surface, nullptr, voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 namespace {
 void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }

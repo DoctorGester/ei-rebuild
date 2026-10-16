@@ -47,9 +47,9 @@ void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
-    void* Begin() { return SurfaceGetDC(this); }   // 005FDC00
+    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }   // 005FE2F0
-    void End() { SurfaceReleaseDC(this); }     // 005FDC60
+    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }     // 005FDC60
 };
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 

@@ -142,7 +142,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 
 void COptionsWindow::RefreshRows() {
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
 
@@ -179,7 +179,7 @@ void COptionsWindow::RefreshRows() {
         gameapi::OffsetRect(&name, 0, 24);
         gameapi::OffsetRect(&keys, 0, 24);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x00651350, COptionsWindow::RefreshRows);
 

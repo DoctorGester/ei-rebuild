@@ -61,11 +61,11 @@ BOOL CCreditsScreen::Draw(int pass) {
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);
-                SurfaceGetDC(headerSurface_);
+                UiSurfaceGetDC(headerSurface_);
                 SurfaceClearOriginal(headerSurface_);
                 RECT rect = {0, 0, 0, 0};
                 SurfaceDrawText(headerSurface_, nullptr, line.text, &rect, 2, kHeaderColour, 1, 1);
-                SurfaceReleaseDC(headerSurface_);
+                UiSurfaceReleaseDC(headerSurface_);
                 headerSurface_->Freeze(1, 0);
             } else {
                 nextLineAt_ = GameTime() + line.speed;

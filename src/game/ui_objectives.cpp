@@ -413,13 +413,13 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                 Texts()->ReadLine(&title, 1);
                 Texts()->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_.data[1];
-                SurfaceGetDC(surface);
+                UiSurfaceGetDC(surface);
                 SurfaceClearOriginal(surface);
                 RECT titleRect = {0, 5, 340, 25};
                 SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
                 SurfaceText(surface, text, &textRect, 1, 0xA7D7E4, 0x11, 1);
-                SurfaceReleaseDC(surface);
+                UiSurfaceReleaseDC(surface);
             }
         }
 
@@ -741,8 +741,8 @@ void CObjectivesWindow::DrawQuestList() {
     mfc::CString variable;
     auto mesh = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); };
     mesh(2)->visible_ = 0;
-    void* surface = surfaces_.data[0];
-    SurfaceGetDC(surface);
+    auto* surface = static_cast<CUiSurface*>(surfaces_.data[0]);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
     mfc::CStringArray* quests = &quests_;
@@ -771,7 +771,7 @@ void CObjectivesWindow::DrawQuestList() {
         RECT rect{36, y, 320, y + 21};
         SurfaceDrawText(surface, nullptr, title, &rect, 1, 0xA7D7E4, 0, 1);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 
 EI_REPLACE_METHOD(0x0064BE80, CObjectivesWindow::Build);

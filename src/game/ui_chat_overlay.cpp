@@ -204,7 +204,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
                          interface_, 0, 0, TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad,
                          kLineSurfaceHeight, kLineSurfaceFormat, 1)
                    : nullptr;
-        SurfaceGetDC(surface);
+        UiSurfaceGetDC(surface);
         SurfaceClearOriginal(surface);
         const mfc::CString& codes = formatted[i];
         mfc::CString drawn;
@@ -222,7 +222,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         }
         piece = console::Ops(codes).Mid(start);
         if (piece.GetLength() != 0) DrawPiece(surface, piece, x, colour);
-        SurfaceReleaseDC(surface);
+        UiSurfaceReleaseDC(surface);
         node->data.surface = surface;
     }
 }
@@ -262,7 +262,7 @@ void CChatOverlay::DrawTyped() {
     if (caret_ > typed_.GetLength()) caret_ = typed_.GetLength();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
     SurfaceDrawText(surface, nullptr, typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
@@ -281,7 +281,7 @@ void CChatOverlay::DrawTyped() {
         dc->SelectObject(oldPen);
         pen.Destruct();
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x005E3700, CChatOverlay::DrawTyped);
 

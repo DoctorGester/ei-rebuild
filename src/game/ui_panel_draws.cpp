@@ -33,12 +33,12 @@ void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { reinterpret_cast<CIt
 
 // The window's surface text (005FDE20 Rebirth-patched: through its address).
 struct SurfaceText {
-    void Begin() { SurfaceGetDC(this); }
+    void Begin() { UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }
     void Clear() { SurfaceClearOriginal(this); }
     void Draw(const char* text, RECT* rect, int format, int align) {
         SurfaceDrawText(this, nullptr, text, rect, format, kTextColour, align, 1);
     }
-    void End() { SurfaceReleaseDC(this); }
+    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }
 };
 
 // The depth buffer (and the stencil when the device has one) cleared over `rect` (null: all of

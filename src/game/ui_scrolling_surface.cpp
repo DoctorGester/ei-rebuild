@@ -108,7 +108,7 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
 EI_REPLACE_METHOD(0x0065EF80, CUiScrollingSurface::LoadRtf);
 
 void CUiScrollingSurface::RenderText() {
-    ui_gdi::GameDC* dc = SurfaceGetDC(this);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(this);
     SurfaceClearOriginal(this);
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
     int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC, LOGPIXELSX));
@@ -131,7 +131,7 @@ void CUiScrollingSurface::RenderText() {
     } else if (fitted >= textLength_) {
         endOffset_ = offset_;
     }
-    SurfaceReleaseDC(this);
+    UiSurfaceReleaseDC(this);
 }
 EI_REPLACE_METHOD(0x0065F020, CUiScrollingSurface::RenderText);
 
@@ -149,9 +149,9 @@ EI_REPLACE_METHOD(0x0065F170, CUiScrollingSurface::Draw);
 void CUiScrollingSurface::Start(float speed, char fromBelow) {
     endOffset_ = 0;
     if (fromBelow) {
-        ui_gdi::GameDC* dc = SurfaceGetDC(this);
+        ui_gdi::GameDC* dc = UiSurfaceGetDC(this);
         offset_ = -HeightInTwips(this, dc);
-        SurfaceReleaseDC(this);
+        UiSurfaceReleaseDC(this);
     } else {
         offset_ = 0;
     }

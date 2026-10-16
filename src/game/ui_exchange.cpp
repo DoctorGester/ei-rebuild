@@ -286,7 +286,7 @@ BOOL CExchangeScreen::Draw(int pass) {
 
     // Surface 0: our money and the accept caption.
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString(game::Text(0x007940C8), &text);   // "xch_current_money"
     line.Format(game::Text(0x00792F14), static_cast<const char*>(text), LocalParty()->Money());   // "%s %d"
@@ -295,20 +295,20 @@ BOOL CExchangeScreen::Draw(int pass) {
     texts->GetString(game::Text(0x007940BC), &text);   // "xch_accept"
     rect = RECT{0, 0x14, 200, 0x28};
     SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kWhite, 1, 1);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 
     // Surface 1: the money offer's caption.
     surface = surfaces_.data[1];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString(game::Text(0x007940AC), &text);   // "xch_money_offer"
     rect = RECT{0x14, 0, 0xB4, 0x14};
     surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 
     // Surface 2: the partner's money, while its offer pairs with ours.
     surface = surfaces_.data[2];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     surface->Clear();
     net::PartyMessage* partner = ClientFindPartyAt(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
@@ -319,11 +319,11 @@ BOOL CExchangeScreen::Draw(int pass) {
         rect = RECT{0, 0x28, 200, 0x3C};
         SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 
     // Surface 3: whether the partner accepted.
     surface = surfaces_.data[3];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     surface->Clear();
     partner = ClientFindPartyAt(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
@@ -336,7 +336,7 @@ BOOL CExchangeScreen::Draw(int pass) {
         rect = RECT{0, 0x28, 200, 0x3C};
         SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kGrey, 1, 1);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.

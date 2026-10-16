@@ -40,7 +40,7 @@ bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
 
 // 005FDC00. The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
 // the DC failed and the report said stop (the device lock then stays held, as in the original).
-void* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
+ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (!holder) return nullptr;
     HDC& dc = surface->dc_;
@@ -51,7 +51,7 @@ void* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
         if (dc) g_memoryDcs[dc] = gameapi::SelectObject(dc, bitmap);
         holder->result = dc ? 0 : -1;
         if (!dc && !app::FatalErrorCode(-1, game::Text(0x00793290))) return nullptr;   // "Can't get surface's DC"
-        return CdcFromHandle(dc);
+        return static_cast<ui_gdi::GameDC*>(CdcFromHandle(dc));
     }
     long hr;
     do {
@@ -59,7 +59,7 @@ void* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
         holder->result = hr;
     } while (hr == kWasStillDrawing);
     if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x00793290))) return nullptr;
-    return CdcFromHandle(dc);
+    return static_cast<ui_gdi::GameDC*>(CdcFromHandle(dc));
 }
 EI_REPLACE(0x005FDC00, UiSurfaceGetDC);
 

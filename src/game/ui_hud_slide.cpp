@@ -512,9 +512,9 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     CUiSurface* dot = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 700, 80, 705, 85, 5, 1) : nullptr;
     AddSurface(dot);
-    ui_gdi::GameDC* dc = SurfaceGetDC(dot);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(dot);
     gameapi::SetPixel(dc->hdc, 0, 0, 0xFFFFFF);
-    SurfaceReleaseDC(dot);
+    UiSurfaceReleaseDC(dot);
 
     // The view polygon: the disc's sixteen corners.
     const CUiMesh* disc = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);

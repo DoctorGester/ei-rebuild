@@ -428,7 +428,7 @@ void CMpHeroScreen::Create() {
     // The list's four commands.
     mfc::CString text;
     CUiSurface* commands = window.surfaces_.data[kSurfaceCommands];
-    SurfaceGetDC(commands);
+    UiSurfaceGetDC(commands);
     SurfaceClearOriginal(commands);
     const char* const commandKeys[] = {
         game::Text(0x0079397C),   // "lmp_pers_new"
@@ -443,7 +443,7 @@ void CMpHeroScreen::Create() {
         SurfaceDrawText(commands, nullptr, text, &rect, 1, kWhite, kTextFormat, 1);
         top += 24;
     }
-    SurfaceReleaseDC(commands);
+    UiSurfaceReleaseDC(commands);
 
     // The saved heroes, from the "mp" folder of the game's data.
     MpHeroRoster* heroes = Heroes();

@@ -510,12 +510,12 @@ void CGlobalMap::Create() {
         CUiSurface* text = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 20, 170, 70, 5, 1)
                                   : nullptr;
         AddSurface(text);
-        SurfaceGetDC(text);
+        UiSurfaceGetDC(text);
         RECT line1 = {0, 5, 150, 25};
         SurfaceText(text, allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
         RECT line2 = {0, 25, 150, 45};
         SurfaceText(text, clock, &line2, 2, 0xA7D7E4, 0x25, 1);
-        SurfaceReleaseDC(text);
+        UiSurfaceReleaseDC(text);
     }
 
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.

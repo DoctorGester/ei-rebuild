@@ -53,13 +53,13 @@ EI_REPLACE_METHOD(0x0065BEB0, CUiSpin::GetValue);
 void CUiSpin::SetValue(int value) {
     value_ = value < texts_.size ? value : 0;
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     RECT rect = layout_;
     gameapi::OffsetRect(&rect, -layout_.left, -layout_.top);
     // DrawText is Rebirth-patched: through its address.
     SurfaceDrawText(surface, nullptr, texts_.data[value_], &rect, kTextFormat, kTextColour, 0, 1);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
     changed_ = true;
 }
 EI_REPLACE_METHOD(0x0065BEE0, CUiSpin::SetValue);

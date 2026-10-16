@@ -128,7 +128,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
-    SurfaceGetDC(surfaces_.data[0]);
+    UiSurfaceGetDC(surfaces_.data[0]);
     SurfaceClearOriginal(surfaces_.data[0]);
 
     if (unit && unit->Object3D()->attached) {
@@ -227,7 +227,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
         }
     }
 
-    SurfaceReleaseDC(surfaces_.data[0]);
+    UiSurfaceReleaseDC(surfaces_.data[0]);
     widescreen::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
     return 1;

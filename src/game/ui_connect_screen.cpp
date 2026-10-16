@@ -817,11 +817,11 @@ void CMpConnectScreen::Create() {
     refreshTimer_ = 0.0f;
     // Surface 1: "connecting".
     CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
-    SurfaceGetDC(note);
+    UiSurfaceGetDC(note);
     SurfaceClearOriginal(note);
     RECT rect{0, 0, 300, 20};
     SurfaceDrawText(note, nullptr, texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
-    SurfaceReleaseDC(note);
+    UiSurfaceReleaseDC(note);
 }
 EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
 // Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,

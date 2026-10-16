@@ -180,14 +180,14 @@ void CHelpWindow::ShowPageVanilla() {
     const int width = page.right - page.left;
     CUiSurface* header = NewSurface(interface_, page.left, page.top, page.right, page.top + kStripHeight);
     AddSurface(header);
-    SurfaceGetDC(header);
+    UiSurfaceGetDC(header);
     header->Clear();
     RECT line{0, 8, width, 30};
     SurfaceDrawText(header, nullptr, lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
     text.Format(game::Text(kTitleFormat), static_cast<const char*>(title_), page_ + 1, lines_.size);
     SurfaceDrawText(header, nullptr, text, &line, 1, kTitleColour, DT_CENTER, 1);
-    SurfaceReleaseDC(header);
+    UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     stlp::list<PageEntry> entries;
@@ -231,7 +231,7 @@ void CHelpWindow::ShowPageVanilla() {
         AddSurface(body);
         RECT row{15, 0, width - 30, kRowHeight};
         int y = 0;
-        SurfaceGetDC(body);
+        UiSurfaceGetDC(body);
         body->Clear();
         for (auto* node = entries.First(); node != entries.End(); node = node->next) {
             const PageEntry& entry = node->data;
@@ -276,7 +276,7 @@ void CHelpWindow::ShowPageVanilla() {
             if (withPicture && height <= 80) height = 80;
             y += height;
         }
-        SurfaceReleaseDC(body);
+        UiSurfaceReleaseDC(body);
         if (pass == 0) {
             RemoveSurfaceAt(1);
             page.bottom = y + page.top + 2 * kStripHeight;
@@ -306,7 +306,7 @@ void CHelpWindow::ShowPageVanilla() {
     // Surface 2: the neighbouring pages' titles under the arrows and the help key's name.
     CUiSurface* footer = NewSurface(interface_, page.left, page.bottom - kStripHeight, page.right, page.bottom);
     AddSurface(footer);
-    SurfaceGetDC(footer);
+    UiSurfaceGetDC(footer);
     footer->Clear();
     if (page_ > 0) {
         RECT label{0, 5, width / 3, 25};
@@ -326,7 +326,7 @@ void CHelpWindow::ShowPageVanilla() {
         SurfaceDrawText(footer, nullptr, lines_.data[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
         regions_.data[2]->SetTip(0x7596, 1, 0);
     }
-    SurfaceReleaseDC(footer);
+    UiSurfaceReleaseDC(footer);
 
     entries.ClearWith([](PageEntry* entry) { entry->~PageEntry(); });
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));

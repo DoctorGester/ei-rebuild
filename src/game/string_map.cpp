@@ -261,7 +261,7 @@ void __fastcall PanelRedraw(void* self) {
     CDebugPanel* panel = Panel(self);
     CUiSurface* surface = panel->surface_;
     if (!surface) return;
-    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     RECT& asked = panel->asked_;
     dc->FillSolidArea(0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
     dc->SetBkMode(1);
@@ -289,7 +289,7 @@ void __fastcall PanelRedraw(void* self) {
         TreeIncrement(&it);
     }
     dc->SelectFont(oldFont);
-    SurfaceReleaseDC(panel->surface_);
+    UiSurfaceReleaseDC(panel->surface_);
 }
 EI_REPLACE(0x00444D00, PanelRedraw);
 

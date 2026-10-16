@@ -219,7 +219,7 @@ void CUiEditField::DrawContentsVanilla() {
     if (caret_ > text.GetLength()) caret_ = text.GetLength();
     if (caret_ < 0) caret_ = 0;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     if (!dc) return;
     surface->Clear();
     const int width = area_.right - area_.left;
@@ -244,6 +244,6 @@ void CUiEditField::DrawContentsVanilla() {
         dc->SelectObject(oldPen);
         pen.Destruct();
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065C2E0, CUiEditField::DrawContentsVanilla);

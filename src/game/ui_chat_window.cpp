@@ -246,7 +246,7 @@ void CChatWindow::Update() {
         return;
     }
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     surface->Clear();
     mfc::CString status, offer;
     int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
@@ -280,7 +280,7 @@ void CChatWindow::Update() {
             SurfaceDrawText(surface, nullptr, offer, &line, 0, kWhite, 1, 1);
         }
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x006095A0, CChatWindow::Update);
 

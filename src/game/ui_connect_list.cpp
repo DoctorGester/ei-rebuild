@@ -111,7 +111,7 @@ void CMpConnectScreen::DrawListVanilla() {
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     mfc::CString text;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     sprite(kSpriteSelection)->visible_ = 0;
     // The two buttons' texts.
@@ -260,7 +260,7 @@ void CMpConnectScreen::DrawListVanilla() {
         }
     }
     dc->SelectObject(oldPen);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
     pen.Destruct();
 }
 EI_REPLACE_METHOD(0x0061D780, CMpConnectScreen::DrawListVanilla);

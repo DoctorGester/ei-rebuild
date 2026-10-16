@@ -129,7 +129,7 @@ void CUiTooltip::DrawLines() {
     if (!(surfaces_.size > 0)) return;
     CUiSurface* surface = surfaces_.data[0];
     if (!surface) return;
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     surface->Fill(kBackground);
     RECT whole{0, 0, 0, 0};   // empty: the whole surface
     surface->FrameRect(&whole, kTitleColour);
@@ -146,7 +146,7 @@ void CUiTooltip::DrawLines() {
         }
         gameapi::OffsetRect(&row, 0, step);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065E880, CUiTooltip::DrawLines);
 

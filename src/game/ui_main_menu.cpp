@@ -98,13 +98,13 @@ void CMainMenu::AddVersionLine() {
     CUiSurface* surface = nullptr;
     if (void* memory = gamecrt::operator_new(sizeof(CUiSurface)))
         surface = static_cast<CUiSurface*>(memory)->Construct(interface_, 100, 480, 780, 600, 5, 1);
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     mfc::CString text;
     TextsGetString(GameTexts(), nullptr, kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
     SurfaceDrawText(surface, nullptr, text, &rect, 2, 0xA7D7E4, 2, 1);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }
 EI_REPLACE_METHOD(0x006335E0, CMainMenu::AddVersionLine);

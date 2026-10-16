@@ -148,7 +148,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     AsString(shownName_) = text;
     text = isLink ? AsString(links_.data[index].title) : AsString(zones_.data[index].title);
     surfaces_.data[0]->Freeze(1, 0);
-    SurfaceGetDC(surfaces_.data[0]);
+    UiSurfaceGetDC(surfaces_.data[0]);
     surfaces_.data[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
     SurfaceDrawText(surfaces_.data[0], nullptr, text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
@@ -165,7 +165,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             bottom += kTipLine;
         }
     }
-    SurfaceReleaseDC(surfaces_.data[0]);
+    UiSurfaceReleaseDC(surfaces_.data[0]);
     CUiMesh* back = SceneMesh(markerCount_ + kTipBack);
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
     back->visible_ = 1;

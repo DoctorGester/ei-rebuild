@@ -75,7 +75,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     if (cursor_ > name.GetLength()) cursor_ = name.GetLength();
     if (cursor_ < 0) cursor_ = 0;
     CUiSurface* surface = surfaces_.data[0];
-    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    ui_gdi::GameDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     CUiMesh* marker = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kMarkerSprite]);
     marker->visible_ = 0;
@@ -130,7 +130,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     // The selected save's details: the allod, the zone, the game's day and time, the folder.
     if (selected_ < 0 || static_cast<unsigned>(selected_) >= static_cast<unsigned>(EntryCount()) ||
         entriesBegin_[selected_].broken_) {
-        SurfaceReleaseDC(surface);
+        UiSurfaceReleaseDC(surface);
         return;
     }
     const SaveEntry& entry = entriesBegin_[selected_];
@@ -155,6 +155,6 @@ void CSaveLoadWindow::RefreshListVanilla() {
 
     RECT folderRect{340, 360, 580, 385};
     SurfaceDrawText(surface, nullptr, entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x006567A0, CSaveLoadWindow::RefreshListVanilla);

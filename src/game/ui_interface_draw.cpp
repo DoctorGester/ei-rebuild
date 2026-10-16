@@ -179,13 +179,13 @@ void CInterface3D::DrawOverlays() {
             float perSecond =
                 static_cast<float>(fpsFrames_) * GameFloat(0x0073C34C) / static_cast<float>(static_cast<int>(elapsed));
             rate.Format(game::Text(0x00792F78), static_cast<double>(perSecond));   // "%.1f"
-            SurfaceGetDC(fpsSurface_);
+            UiSurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();
             RECT rect{0, 0, 60, 18};
             SurfaceDrawText(fpsSurface_, nullptr, game::Text(0x0079304C), &rect, kFpsFont, kWhite, 0, 1);   // "FPS:"
             rect = RECT{0, 0, 60, 18};
             SurfaceDrawText(fpsSurface_, nullptr, rate, &rect, kFpsFont, kWhite, 2, 1);
-            SurfaceReleaseDC(fpsSurface_);
+            UiSurfaceReleaseDC(fpsSurface_);
         }
         fpsTime_ = now;
         fpsFrames_ = 0;

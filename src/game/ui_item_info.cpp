@@ -113,13 +113,13 @@ int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
 
 // The surface's drawing (thiscall on the surface).
 struct SurfaceDraw {
-    void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
+    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
     int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag) {   // 005FDFA0
         return reinterpret_cast<CUiSurface*>(this)->DrawWrappedText(text, rect, maxLines, font, colour, format, flag);
     }
-    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
+    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }                                                                     // 005FDC60
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 

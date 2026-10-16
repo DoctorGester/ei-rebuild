@@ -110,10 +110,10 @@ src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,16
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,177
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,170
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
-src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,51
+src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,49
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,34
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,28
 src/game/particle_callbacks.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0

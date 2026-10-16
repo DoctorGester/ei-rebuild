@@ -52,10 +52,10 @@ __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow
 
 
 struct SurfaceDraw {
-    void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
+    void* Begin() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
+    void End() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }                                                                     // 005FDC60
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 

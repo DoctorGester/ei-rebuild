@@ -178,11 +178,11 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         const PersonTextNode* node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
-        SurfaceGetDC(label);
+        UiSurfaceGetDC(label);
         SurfaceClearOriginal(label);
         RECT rect{0, 0, 0, 0};
         SurfaceDrawText(label, nullptr, node->second, &rect, kTextFormat, kLabelColour, 1, 1);
-        SurfaceReleaseDC(label);
+        UiSurfaceReleaseDC(label);
         POINT at{x, y};
         interface_->CallScalePointFromScreen(&at);
         label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
@@ -254,7 +254,7 @@ void CBriefingScreen::DrawTopics() {
     mfc::CString prefix;
     GameTexts()->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_.data[0];
-    SurfaceGetDC(surface);
+    UiSurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
@@ -268,7 +268,7 @@ void CBriefingScreen::DrawTopics() {
         text += title;
         SurfaceDrawText(surface, nullptr, text, &rect, kTextFormat, colour, 0, 1);
     }
-    SurfaceReleaseDC(surface);
+    UiSurfaceReleaseDC(surface);
 }
 
 namespace {

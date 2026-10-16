@@ -25,7 +25,7 @@
 
 namespace mfc { class CString; }
 namespace console { class ConsoleWindow; }
-namespace ui_gdi { struct GameFont; }
+namespace ui_gdi { struct GameFont; struct GameDC; }
 
 // A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
 struct ReturnedString {
@@ -567,6 +567,10 @@ static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 // 005FDA80 (ui_surface_blit.cpp): CUiSurface's own draw (slot 0), for the classes that draw over it.
 void __fastcall UiSurfaceBlit(CUiSurface* surface);
+// 005FDC00 / 005FDC60 (ui_surface_dc.cpp; CUiSurface::GetDC / ReleaseDC): the surface's CDC (a temporary
+// MFC wrapper; null without a DirectDraw surface) and the matching release.
+ui_gdi::GameDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
+void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
 // contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).

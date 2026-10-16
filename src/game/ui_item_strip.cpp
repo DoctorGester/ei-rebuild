@@ -27,10 +27,10 @@ float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatil
 // A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
 // Rebirth-patched).
 struct StripSurface {
-    void* GetDC() { return SurfaceGetDC(this); }
+    void* GetDC() { return UiSurfaceGetDC(reinterpret_cast<CUiSurface*>(this)); }
     void Clear() { SurfaceClearOriginal(this); }
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);
-    void ReleaseDC() { SurfaceReleaseDC(this); }
+    void ReleaseDC() { UiSurfaceReleaseDC(reinterpret_cast<CUiSurface*>(this)); }
 };
 int StripSurface::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
