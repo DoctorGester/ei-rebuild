@@ -438,9 +438,9 @@ class Scheduler:
         elif args is None:
             text, code = f'\nbatch #{b["id"]} FAILED: {unusable_text(b["args"], self.arg_errors.get(b["id"]))}\n', 2
         else:
-            # The summary runs the batch's post-game checks (--widescreen compares every frame in a
-            # subprocess, minutes for 4K frames): off the main loop, so games keep starting and the
-            # heartbeat keeps going. collect() writes the result.
+            # The summary runs the batch's post-game checks (--widescreen's frame comparisons took minutes
+            # here before S21b; they now run in the submitting work.py test, as --golden): off the main loop,
+            # so games keep starting and the heartbeat keeps going. collect() writes the result.
             thread = threading.Thread(target=self.summarise, args=(b, runs, args), daemon=True)
             self.finishing[b['id']] = thread
             thread.start()
@@ -582,6 +582,9 @@ def cmd_test(db, args):
         # scheduler gets run_all's arguments without --golden.
         env['EI_DIGEST'] = str(run_all.GOLDEN_PERIOD)
         argv = [a for a in argv if a != '--golden']
+    # --widescreen's frames are compared (or with --record kept as references) here too, after the batch: its runs
+    # are plain runs of the image on the Rebirth install (or of addon's code, hooks off in the run rows)
+    argv = [a for a in argv if a not in ('--widescreen', '--record')]
     runs = []
     for name, install in jobs:
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
@@ -602,6 +605,9 @@ def cmd_test(db, args):
     print(run_all.HEADER)
     sys.stdout.flush()
     code = wait(db, batch, root, build)
+    if ra.widescreen and code != 130:
+        ok = run_all.widescreen_check(jobs, ra.record, root=root, build=build)
+        code = code or (0 if ok else 1)
     if ra.golden and code != 130:
         ok = run_all.golden_check(jobs, root=root, build=build)
         code = code or (0 if ok else 1)

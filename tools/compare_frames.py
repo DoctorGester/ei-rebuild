@@ -2,13 +2,15 @@
 
 usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--block N] [--worst N]
                                           [--diff OUT] [--mask M1 M2 [--mask-background]]
-                                          [--exclude E1 E2 ...] [--exclude-grow N]
-  A, B              two BMP files, or two folders: run folders (their frames\\ subfolder is used) or
+                                          [--exclude E1 E2 ...] [--exclude-grow N] [--exclude-mask M ...]
+                                          [--exclude-rect X0 Y0 X1 Y1 ...] [--write-skip OUT] [--shift N]
+                                          [--max-block F]
+  A, B             two BMP files, or two folders: run folders (their frames\\ subfolder is used) or
                     frames folders; every <name>.bmp present in both is compared
   --tolerance N     a pixel differs when one of its channels differs by more than N (0..255,
                     default 8: the 5/6-bit steps of a 16-bit surface are 8 and 4)
   --max-fraction F  the comparison fails when more than F of the pixels differ (default 0.001)
-  --block N         region size for the worst-regions list (default 32 pixels)
+  --block N         region size for the worst-regions list and --max-block (default 32 pixels)
   --worst N         regions listed per frame (default 8)
   --diff OUT        write a difference image: a dimmed grey copy of A with the differing pixels in
                     red (brighter = larger difference); with folders OUT is a folder
@@ -22,7 +24,19 @@ usage: python tools/compare_frames.py A B [--tolerance N] [--max-fraction F] [--
                     without --mask), e.g. the old frame with and without its objects to compare
                     only the terrain around them
   --exclude-grow N  widen every excluded area by N pixels (blended edges; default 0)
-exit code: 0 when every frame is within --max-fraction, 1 when one is not, 2 when a frame is
+  --exclude-mask M  leave out the pixels that are not black in the frame M (repeatable), e.g. a mask
+                    --write-skip wrote
+  --exclude-rect X0 Y0 X1 Y1
+                    leave out a rectangle (X1, Y1 excluded; repeatable)
+  --write-skip OUT  write the pixels --exclude, --exclude-mask and --exclude-rect leave out of A as a
+                    mask (white) to OUT instead of comparing A with B (files only)
+  --shift N         a pixel differs only when one of its channels lies more than --tolerance outside the
+                    range the other frame's pixels within N pixels of it span (both ways): frames drawn
+                    by two renderers, which sample magnified textures a fraction of a texel apart and
+                    rasterise edges and lines a pixel apart (run_all --widescreen; default 0)
+  --max-block F     the comparison also fails when more than F of one --block region's pixels differ
+                    (a moved element among scattered edge differences; default 1)
+exit code: 0 when every frame is within --max-fraction (and --max-block), 1 when one is not, 2 when a frame is
 missing, unreadable or of another size
 
 Only the standard library: BMP (24 or 32 bits, uncompressed, either row order) is read by hand.
@@ -151,10 +165,50 @@ def apply_excludes(mask, excludes, width, height, tolerance, grow_by):
     return mask
 
 
-def compare(a, b, tolerance, block, mask=None):
+def near(p0, p1, p2, image, x, y, n, tolerance):
+    """Whether each channel of (p0, p1, p2) lies within the range image's pixels within n pixels of
+    (x, y) (a square) span in that channel, widened by tolerance: the value a filter sampling a
+    fraction of a pixel apart could give."""
+    lo0 = lo1 = lo2 = 255
+    hi0 = hi1 = hi2 = 0
+    for yy in range(max(0, y - n), min(image.height, y + n + 1)):
+        r = image.rows[yy]
+        for i in range(3 * max(0, x - n), 3 * min(image.width, x + n + 1), 3):
+            c0, c1, c2 = r[i], r[i + 1], r[i + 2]
+            lo0, hi0 = min(lo0, c0), max(hi0, c0)
+            lo1, hi1 = min(lo1, c1), max(hi1, c1)
+            lo2, hi2 = min(lo2, c2), max(hi2, c2)
+    return (lo0 - tolerance <= p0 <= hi0 + tolerance and lo1 - tolerance <= p1 <= hi1 + tolerance
+            and lo2 - tolerance <= p2 <= hi2 + tolerance)
+
+
+def apply_skips(mask, skips, rects, width, height):
+    """`mask` (rows of 0/1, or None for every pixel) without the pixels that are not black in any of
+    `skips` (masks written by --write-skip) and the rectangles `rects` ((x0, y0, x1, y1), x1 and y1
+    excluded)."""
+    if mask is None:
+        mask = [bytearray(b'\x01' * width) for _ in range(height)]
+    for skip in skips:
+        for y in range(height):
+            r, row = skip.rows[y], mask[y]
+            if any(r):
+                for x in range(width):
+                    if r[3 * x] or r[3 * x + 1] or r[3 * x + 2]:
+                        row[x] = 0
+    for x0, y0, x1, y1 in rects:
+        x0, x1 = max(0, x0), min(width, x1)
+        for y in range(max(0, y0), min(height, y1)):
+            if x1 > x0:
+                mask[y][x0:x1] = bytes(x1 - x0)
+    return mask
+
+
+def compare(a, b, tolerance, block, mask=None, shift=0):
     """Returns (differing pixels, max channel difference, sum of channel differences, regions,
     diff rows) where regions maps (bx, by) to [differing pixels, max difference]. With `mask`
-    (rows of 0/1) only the flagged pixels count."""
+    (rows of 0/1) only the flagged pixels count. With `shift` a pixel differs only when neither
+    frame has a pixel within `shift` pixels of it that matches the other frame's pixel there
+    (edges and lines rasterised half a pixel apart)."""
     differing = 0
     worst = 0
     total = 0
@@ -183,6 +237,9 @@ def compare(a, b, tolerance, block, mask=None):
             total += d0 + d1 + d2
             if d > worst:
                 worst = d
+            if d > tolerance and shift and near(ra[i], ra[i + 1], ra[i + 2], b, x, y, shift, tolerance) \
+                    and near(rb[i], rb[i + 1], rb[i + 2], a, x, y, shift, tolerance):
+                d = tolerance
             if d > tolerance:
                 differing += 1
                 key = (x // block, by)
@@ -207,17 +264,29 @@ def compare_pair(name, path_a, path_b, args, diff_path, mask_paths=None, exclude
         b = read_bmp(path_b)
         masks = [read_bmp(p) for p in mask_paths] if mask_paths else []
         excludes = [(read_bmp(p), read_bmp(q)) for p, q in exclude_paths] if exclude_paths else []
+        skips = [read_bmp(p) for p in getattr(args, 'exclude_mask', None) or []]
     except (OSError, ValueError) as e:
         print(f'{name}: {e}')
         return 2
-    others = masks + [m for pair in excludes for m in pair]
+    others = masks + [m for pair in excludes for m in pair] + skips
     if any((m.width, m.height) != (a.width, a.height) for m in [b] + others):
         print(f'{name}: sizes differ ({", ".join(f"{m.width}x{m.height}" for m in [a, b] + others)})')
         return 2
     mask = make_mask(masks[0], masks[1], args.tolerance, args.mask_background) if masks else None
     if excludes:
         mask = apply_excludes(mask, excludes, a.width, a.height, args.tolerance, args.exclude_grow)
-    differing, worst, total, regions, diff_rows = compare(a, b, args.tolerance, args.block, mask)
+    rects = getattr(args, 'exclude_rect', None) or []
+    if skips or rects:
+        mask = apply_skips(mask, skips, rects, a.width, a.height)
+    if getattr(args, 'write_skip', None):
+        white, black = b'\xff\xff\xff', b'\0\0\0'
+        rows = [b''.join(black if m else white for m in row) for row in mask] if mask is not None else \
+            [black * a.width] * a.height
+        write_bmp(args.write_skip, a.width, a.height, rows)
+        print(f'{name}: {sum(row.count(0) for row in mask) if mask is not None else 0} pixels left out, '
+              f'written to {args.write_skip}')
+        return 0
+    differing, worst, total, regions, diff_rows = compare(a, b, args.tolerance, args.block, mask, args.shift)
     pixels = sum(sum(row) for row in mask) if mask is not None else a.width * a.height
     if mask is not None:
         print(f'{name}: mask of {pixels} pixels ({100.0 * pixels / (a.width * a.height):.2f}% of the frame)')
@@ -225,16 +294,30 @@ def compare_pair(name, path_a, path_b, args, diff_path, mask_paths=None, exclude
         print(f'{name}: nothing to compare')
         return 2
     fraction = differing / pixels if pixels else 0.0
-    ok = fraction <= args.max_fraction
+
+    def area(bx, by):
+        x0, y0 = bx * args.block, by * args.block
+        return x0, y0, min(x0 + args.block, a.width) - 1, min(y0 + args.block, a.height) - 1
+
+    def share(key):
+        x0, y0, x1, y1 = area(*key)
+        return regions[key][0] / ((x1 - x0 + 1) * (y1 - y0 + 1))
+
+    densest = max(regions, key=share) if regions else None
+    dense = densest is not None and share(densest) > getattr(args, 'max_block', 1.0)
+    ok = fraction <= args.max_fraction and not dense
     print(f'{name}: {a.width}x{a.height}, {differing} pixels differ by more than {args.tolerance} '
           f'({100.0 * fraction:.3f}%), largest difference {worst}, mean {total / (3.0 * pixels):.3f} '
           f'per channel: {"ok" if ok else "FAIL"}')
+    if dense:
+        x0, y0, x1, y1 = area(*densest)
+        print(f'    a region differs densely: ({x0},{y0})-({x1},{y1}) {100.0 * share(densest):.1f}% '
+              f'(at most {100.0 * args.max_block:.1f}% of a {args.block}-pixel block)')
     ranked = sorted(regions.items(), key=lambda kv: (-kv[1][0], -kv[1][1]))[:args.worst]
     for (bx, by), (count, largest) in ranked:
-        x0, y0 = bx * args.block, by * args.block
-        x1, y1 = min(x0 + args.block, a.width) - 1, min(y0 + args.block, a.height) - 1
-        area = (x1 - x0 + 1) * (y1 - y0 + 1)
-        print(f'    ({x0},{y0})-({x1},{y1}): {count} of {area} pixels differ, largest difference {largest}')
+        x0, y0, x1, y1 = area(bx, by)
+        print(f'    ({x0},{y0})-({x1},{y1}): {count} of {(x1 - x0 + 1) * (y1 - y0 + 1)} pixels differ, '
+              f'largest difference {largest}')
     if diff_path:
         write_bmp(diff_path, a.width, a.height, diff_rows)
     return 0 if ok else 1
@@ -252,12 +335,17 @@ def main():
     ap.add_argument('--tolerance', type=int, default=8)
     ap.add_argument('--max-fraction', type=float, default=0.001)
     ap.add_argument('--block', type=int, default=32)
+    ap.add_argument('--max-block', type=float, default=1.0)
     ap.add_argument('--worst', type=int, default=8)
     ap.add_argument('--diff')
     ap.add_argument('--mask', nargs=2, metavar=('M1', 'M2'))
     ap.add_argument('--mask-background', action='store_true')
     ap.add_argument('--exclude', nargs=2, action='append', metavar=('E1', 'E2'))
     ap.add_argument('--exclude-grow', type=int, default=0)
+    ap.add_argument('--shift', type=int, default=0)
+    ap.add_argument('--exclude-mask', action='append', metavar='M')
+    ap.add_argument('--exclude-rect', nargs=4, type=int, action='append', metavar=('X0', 'Y0', 'X1', 'Y1'))
+    ap.add_argument('--write-skip')
     args = ap.parse_args()
     if args.block < 1:
         ap.error('--block must be positive')

@@ -277,8 +277,10 @@ of 005F7D20 (not rewritten). Details:
 **Harness**: scenario lines `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the game's
 and addon's registry reads of these settings for the run (addon reads them with RegQueryValueExW: the harness patches advapi32's stub
 slot, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`). Scenarios use `desktop` (3840x2160 here):
-another mode makes dgVoodoo switch the display. `python tools\run_all.py --widescreen` runs `ui_widescreen` under Rebirth with our hooks
-(`ui_widescreen-rebirth`) and with `--no-hooks` (`ui_widescreen-rebirth-nohooks`, addon's code alone) and compares the frames: menu,
+another mode makes dgVoodoo switch the display. Since S21b (2026-10-16) `python tools\run_all.py --widescreen` runs the standalone image
+on the Rebirth install and compares its frames with addon's, recorded once (`--widescreen --record`; docs/notes/standalone.md, S21b); the
+hooked comparisons below (W1-W4) are how it was checked before. Until then `--widescreen` ran `ui_widescreen` under Rebirth with our hooks
+(`ui_widescreen-rebirth`) and with `--no-hooks` (`ui_widescreen-rebirth-nohooks`, addon's code alone) and compared the frames: menu,
 options, load, the world with the battle screen's panels, the camp; the scenario runs on the virtual clock, and frames with a `_later` twin
 are compared without what moved between the two (the hero, his portrait, the menu's creatures). 2026-10-14: every frame within the default
 tolerance (at most 0.065% of the pixels differ). Not compared: the global map (its scene is lit by the world's time, which differs between

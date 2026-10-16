@@ -4,7 +4,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                                [--standalone | --hooked | --no-hooks | --native]
                                [--dgvoodoo] [--fresh] [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden]
                                [--verified-candidates N]
-       python tools/run_all.py --widescreen [scenario names...]
+       python tools/run_all.py --widescreen [--record] [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
   default          the standalone image (S21: the hook builds retire, docs/notes/standalone.md section 5), as
                    --standalone: ei_launch --standalone, build\\verify\\ei_standalone.exe lays out run\\vanilla's
@@ -18,7 +18,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --hooked         the hook build's runs as before S21: game.exe with our hooks and verify wrappers, install
                    "vanilla", and "rebirth" for the scenarios config/rebirth_scenarios.csv marks (tools/
                    rebirth_coverage.py: the fewest that reach every function Rebirth patches twice) or does not list.
-                   --native, --dgvoodoo and --widescreen are hooked runs too.
+                   --native and --dgvoodoo are hooked runs too.
   --no-hooks       game.exe with the original code only, on the installs --hooked uses: the runs goldens are
                    recorded from (tools/golden.py), kept in the reference cache (--fresh). A scenario's line
                    "# no original: <install>..." (vanilla, rebirth) leaves its runs there out: checks only our
@@ -31,11 +31,9 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   renderers        Runs of our code (the standalone always; vanilla and Rebirth with hooks) draw with our renderer
                    (EI_RENDER=new,present: no DirectDraw device, its own swap chain, no display mode
                    change), so they never need the machine to themselves. dgVoodoo draws only the
-                   original code (--no-hooks, --widescreen's rebirth-nohooks, compare.py's original
+                   original code (--no-hooks, --widescreen --record's rebirth-nohooks, compare.py's original
                    side) and scenarios whose "render" step leaves out "present" (they compare the old
-                   path's frame with the new one in one run), and --widescreen's runs with hooks too
-                   (their frames are compared with the original's pixel by pixel; across renderers
-                   they differ, wants_dgvoodoo). A dgVoodoo run with a "resolution" step runs alone.
+                   path's frame with the new one in one run). A dgVoodoo run with a "resolution" step runs alone.
                    EI_RENDER in the environment is kept as it is (with hooks; the original code
                    never gets it).
   --dgvoodoo       runs of our code on dgVoodoo as before R10 (the old device path, and the verify
@@ -43,13 +41,17 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --fresh          play the original code's runs again instead of taking them from the reference
                    cache (build\\reference in the main checkout: a passed run of the original code,
                    kept by scenario commit, install files, clock and EI_* settings; reference_key)
-  --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
-                   the scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud and
-                   ui_widescreen_screens; they
-                   set the wide mode with the harness's "resolution" / "widescreen" steps) under Rebirth
-                   twice, with our hooks
-                   (<scenario>-rebirth) and without (<scenario>-rebirth-nohooks: addon's code only),
-                   then tools/compare_frames.py on the two runs' frames
+  --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"): the
+                   scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud and
+                   ui_widescreen_screens; they set the desktop's mode and WideScreen with the harness's
+                   "resolution" / "widescreen" steps) on the image on the Rebirth install
+                   (<scenario>-standalone-rebirth), then each frame against addon's recorded frames
+                   (compare_widescreen: tools/compare_frames.py with WIDESCREEN_COMPARE). No addon game is
+                   played: the references are recorded once, in <main checkout>\\build\\widescreen
+  --record         with --widescreen: play addon's code instead (game.exe with Rebirth's addon.dll, no hooks,
+                   dgVoodoo at the desktop's mode, alone: <scenario>-rebirth-nohooks) and keep its frames as the
+                   scenarios' references (record_widescreen), by the scenario's steps: needed once, and again
+                   when a scenario's steps change (a comment does not count; the comparison names it)
   --jobs N         games running at once (default 16); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
@@ -74,7 +76,7 @@ A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s
 game's watchdog ends it at the limit, ei_launch 20 s later if the watchdog could not (tools/launcher/launch.cpp).
 A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
-import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
+import argparse, functools, collections, concurrent.futures, contextlib, glob, hashlib, io, json, msvcrt, os, re, shutil, struct, subprocess, sys, tempfile, threading, time
 
 import frame_store, prepare_scenario
 
@@ -237,9 +239,10 @@ def runs_alone(scenario, install, hooks, dgvoodoo=False, environ=None):
     return sets_display_mode(scenario) and not our_renderer(scenario, install, hooks, dgvoodoo, environ)
 
 
-# EI_* variables that are not settings of a game: where the build is, the machine's slots, and what ei_launch
-# sets itself. Every other EI_* variable (EI_PROFILE, EI_PLAIN, EI_RENDER, EI_COVER, ...) is read by a game.
-NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS')
+# EI_* variables that are not settings of a game: where the build and the references are, the machine's slots, and
+# what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_PLAIN, EI_RENDER, EI_COVER, ...) is read by a
+# game.
+NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_REFERENCE_DIR', 'EI_WIDESCREEN_DIR')
 
 
 def game_environment(environ=None):
@@ -646,50 +649,228 @@ def run_with_retries(name, install, hooks, retries, folder=None, runner=run, kee
 COMPARE_JOBS = 8     # compare_frames.py processes at once (each one CPU core, ~1 GB for three 4K frames)
 
 
-def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
-    """--widescreen: each frame of <name>-rebirth against <name>-rebirth-nohooks (tools/compare_frames.py).
-    A frame <f> with a <f>_later (captured after the clocks ran on) is compared without what moved
-    between the two in either run (animations whose phase differs between runs: the hero, his
-    portrait, the global map's clouds), so that what is compared is the interface.
-    out: where the comparisons print (default stdout)."""
-    out = out or sys.stdout
-    runs = os.path.join(build, 'runs')
-    ours, addons = (os.path.join(runs, f'{name}-{i}', 'frames') for i in ('rebirth', 'rebirth-nohooks'))
-    diffs = os.path.join(runs, f'{name}-rebirth', 'frames_diff')
-    os.makedirs(diffs, exist_ok=True)
-    frames = [f[:-4] for f in frame_store.frame_names(ours)] if os.path.isdir(ours) else []
-    if not frames:
-        print('no frames to compare', file=out)
-        return False
-    commands = []
-    for frame in frames:
-        if frame.endswith('_later'):
-            continue
-        a, b = os.path.join(ours, frame + '.bmp'), os.path.join(addons, frame + '.bmp')
-        cmd = [sys.executable, os.path.join(root, 'tools', 'compare_frames.py'), a, b, '--worst', '4',
-               '--diff', os.path.join(diffs, frame + '.bmp')]
-        later_a, later_b = os.path.join(ours, frame + '_later.bmp'), os.path.join(addons, frame + '_later.bmp')
-        excludes = []
-        if frame_store.exists(later_a) and frame_store.exists(later_b):
-            excludes += ['--exclude', a, later_a, '--exclude', b, later_b]
-        # A window that pauses the world (the Esc menu's): what moved in <f>_moving / <f>_moving_later,
-        # captured before it opened, is left out of <f> too.
-        moving = [os.path.join(d, frame + s) for d in (ours, addons) for s in ('_moving.bmp', '_moving_later.bmp')]
-        if all(frame_store.exists(m) for m in moving):
-            excludes += ['--exclude', moving[0], moving[1], '--exclude', moving[2], moving[3]]
-        if excludes:
-            cmd += excludes + ['--exclude-grow', '8']
-        commands.append(cmd)
-    # compare_frames.py reads 4K frames pixel by pixel in Python (20-40 s a frame): the frames at once, printed in
-    # their order (R10: the comparisons took longer than the games)
+# ---- --widescreen: the image's frames against addon's WideScreen (S21b)
+#
+# Rebirth's WideScreen is addon.dll's code, on the Rebirth install only. Its frames are recorded once with the
+# original game's harness (`--widescreen --record`: game.exe with addon, EI_NO_HOOKS, drawn by dgVoodoo at the
+# desktop's mode; the run "<scenario>-rebirth-nohooks") and kept as references; `--widescreen` runs the image on
+# the Rebirth install ("<scenario>-standalone-rebirth", our renderer) and compares its frames with them. No addon
+# game is played for a comparison. The references live beside the reference cache, in
+# <main checkout>/build/widescreen/<scenario>/<steps key>/: frames/<frame>.bmp.z (the frames, packed as
+# tools/frame_store.py packs a run's), skip/<frame>.bmp.z (what moved in addon's run between <frame> and its
+# _later / _moving twins, left out of the comparison) and recorded.json. The key is the scenario's steps (its lines
+# without comments): a changed step needs a new recording, a comment does not. WIDESCREEN_KEEP keys are kept per
+# scenario (other worktrees' scenario versions).
+
+WIDESCREEN_KEEP = 3
+WIDESCREEN_SIZE = (3840, 2160)      # the frame size WIDESCREEN_AREAS' rectangles are given at (scaled to others)
+# compare_frames.py's settings for our renderer against dgVoodoo (docs/notes/standalone.md, S21b: measured over
+# the four scenarios' 19 frames). A pixel differs when a channel lies more than 8 outside the range of the other
+# frame's pixels around it (--shift 1: the renderers sample magnified textures a fraction of a texel apart and
+# rasterise lines, model and alpha-tested edges a pixel apart); a frame fails when more than 0.6% of its pixels
+# differ (the scene's edges: at most 0.39%, the menu's trees) or more than a quarter of a 64-pixel block does
+# (a moved element; at most 11% seen, the options window's slider thumbs).
+WIDESCREEN_COMPARE = ['--tolerance', '8', '--shift', '1', '--max-fraction', '0.006', '--block', '64',
+                      '--max-block', '0.25']
+# Areas that differ between the renderers whatever WideScreen does, left out of the comparison:
+# {(scenario or '*', frame or '*'): [((x0, y0, x1, y1) in a WIDESCREEN_SIZE frame, x1 and y1 excluded, why), ...]}.
+WIDESCREEN_AREAS = {
+    ('*', '*'): [((2712, 0, 3771, 14), 'the battle screen\'s top 14 rows right of the top panel: our renderer shows a '
+                                       'strip there that dgVoodoo does not, also in hooked runs (R10c)')],
+    ('ui_widescreen_more', 'save'): [((1954, 360, 3002, 1154), 'the Save window\'s picture: a copy of the screen, '
+                                                               'scaled down by each renderer')],
+}
+
+
+def widescreen_dir():
+    """<main checkout>/build/widescreen (shared by every worktree, beside the reference cache), or None outside a
+    repository. EI_WIDESCREEN_DIR: another folder (tests)."""
+    if os.environ.get('EI_WIDESCREEN_DIR'):
+        return os.environ['EI_WIDESCREEN_DIR']
+    base = reference_dir()
+    return os.path.join(os.path.dirname(base), 'widescreen') if base else None
+
+
+def steps_key(scenario):
+    """The key of a scenario's widescreen references: its steps (every line but comments and blank ones)."""
+    h = hashlib.sha1()
+    with open(scenario, encoding='utf-8', errors='replace') as f:
+        for text in f:
+            text = text.strip()
+            if text and not text.startswith('#'):
+                h.update(text.encode() + b'\n')
+    return h.hexdigest()[:12]
+
+
+def widescreen_reference(name, root=ROOT):
+    """The folder of the scenario's recorded references for its current steps, or None when there is none."""
+    base = widescreen_dir()
+    if not base:
+        return None
+    folder = os.path.join(base, name, steps_key(os.path.join(root, 'tests', 'scenarios', name + '.txt')))
+    return folder if os.path.exists(os.path.join(folder, 'recorded.json')) else None
+
+
+def primary_frames(folder):
+    """The frames of a frames folder that are compared: not the _later / _moving twins."""
+    names = [f[:-4] for f in frame_store.frame_names(folder)] if os.path.isdir(folder) else []
+    return [f for f in names if not f.endswith(('_later', '_moving'))]
+
+
+def twin_excludes(frames, frame):
+    """compare_frames.py's --exclude pairs for <frame> of a frames folder: what moved between <frame> and
+    <frame>_later (captured after the clocks ran on: the hero, his portrait, the menu's creatures), and between
+    <frame>_moving and <frame>_moving_later (captured before a window that pauses the world opened)."""
+    args = []
+    for x, y in ((frame, frame + '_later'), (frame + '_moving', frame + '_moving_later')):
+        a, b = os.path.join(frames, x + '.bmp'), os.path.join(frames, y + '.bmp')
+        if frame_store.exists(a) and frame_store.exists(b):
+            args += ['--exclude', a, b]
+    return args
+
+
+def run_compares(commands, out):
+    """compare_frames.py's commands, COMPARE_JOBS at once (4K frames take 20-40 s each in Python), their output
+    printed in order. True when every one passed."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=COMPARE_JOBS) as pool:
         done = list(pool.map(lambda cmd: subprocess.run(cmd, capture_output=True, text=True, errors='replace'), commands))
     ok = True
     for p in done:
         out.write(p.stdout + p.stderr)
         ok = p.returncode == 0 and ok
-    frame_store.pack_folder(diffs)
     out.flush()
+    return ok
+
+
+def run_passed(folder):
+    """Whether the run folder's report says PASS."""
+    with contextlib.suppress(OSError):
+        with open(os.path.join(folder, 'harness_report.txt'), encoding='cp1251', errors='replace') as f:
+            return 'RESULT: PASS' in f.read().splitlines()
+    return False
+
+
+def record_widescreen(name, out=None, root=ROOT, build=BUILD):
+    """--widescreen --record: keeps the frames of <name>-rebirth-nohooks (addon's WideScreen) as the scenario's
+    references, with what moved in that run between each frame and its twins (compare_frames.py --write-skip).
+    False when the run did not pass or had no frames."""
+    out = out or sys.stdout
+    run = os.path.join(build, 'runs', f'{name}-rebirth-nohooks')
+    frames = os.path.join(run, 'frames')
+    names = primary_frames(frames)
+    base = widescreen_dir()
+    why = 'the run did not pass' if not run_passed(run) else 'no frames' if not names else 'no references folder' if not base else None
+    if why:
+        print(f'{name}: not recorded ({why})', file=out)
+        return False
+    key = steps_key(os.path.join(root, 'tests', 'scenarios', name + '.txt'))
+    home = os.path.join(base, name)
+    entry = os.path.join(home, key)
+    tmp = f'{entry}.{os.getpid()}.tmp'
+    shutil.rmtree(tmp, ignore_errors=True)
+    os.makedirs(os.path.join(tmp, 'frames'))
+    os.makedirs(os.path.join(tmp, 'skip'))
+    tool = os.path.join(root, 'tools', 'compare_frames.py')
+    commands = []
+    size = None
+    for frame in names:
+        source = os.path.join(frames, frame + '.bmp')
+        data = frame_store.read_frame(source)
+        with open(os.path.join(tmp, 'frames', frame + '.bmp'), 'wb') as f:
+            f.write(data)
+        size = size or list(struct.unpack_from('<ii', data, 18))
+        excludes = twin_excludes(frames, frame)
+        if excludes:
+            commands.append([sys.executable, tool, source, source, *excludes, '--exclude-grow', '8',
+                             '--write-skip', os.path.join(tmp, 'skip', frame + '.bmp')])
+    ok = run_compares(commands, io.StringIO())
+    frame_store.pack_folder(tmp)
+    with open(os.path.join(tmp, 'recorded.json'), 'w') as f:
+        json.dump({'scenario': name, 'steps': key, 'frames': names, 'size': [size[0], abs(size[1])],
+                   'time': time.strftime('%Y-%m-%d %H:%M'), 'run': run}, f, indent=1)
+    if not ok:
+        shutil.rmtree(tmp, ignore_errors=True)
+        print(f'{name}: not recorded (the skip masks could not be written)', file=out)
+        return False
+    shutil.rmtree(entry, ignore_errors=True)
+    os.replace(tmp, entry)
+    keys = sorted((e for e in os.scandir(home) if e.is_dir() and not e.name.endswith('.tmp')),
+                  key=lambda e: e.stat().st_mtime, reverse=True)
+    for old in keys[WIDESCREEN_KEEP:]:
+        shutil.rmtree(old.path, ignore_errors=True)
+    print(f'{name}: {len(names)} frames recorded in {entry} ({", ".join(names)})', file=out)
+    return True
+
+
+def widescreen_areas(name, frame, size):
+    """compare_frames.py's --exclude-rect arguments for WIDESCREEN_AREAS' rectangles of a frame, scaled to its size."""
+    args = []
+    width, height = size or WIDESCREEN_SIZE
+    for key in ((name, frame), (name, '*'), ('*', '*')):
+        for (x0, y0, x1, y1), _ in WIDESCREEN_AREAS.get(key, []):
+            args += ['--exclude-rect', str(x0 * width // WIDESCREEN_SIZE[0]), str(y0 * height // WIDESCREEN_SIZE[1]),
+                     str(-(-x1 * width // WIDESCREEN_SIZE[0])), str(-(-y1 * height // WIDESCREEN_SIZE[1]))]
+    return args
+
+
+def compare_widescreen(name, install='standalone-rebirth', out=None, root=ROOT, build=BUILD):
+    """--widescreen: the image's run <name>-<install> against the scenario's references, frame by frame
+    (tools/compare_frames.py with WIDESCREEN_COMPARE), without what moved in either run between a frame and its
+    twins and without WIDESCREEN_AREAS. The differences go to the run's frames_diff (packed).
+    out: where the comparisons print (default stdout)."""
+    out = out or sys.stdout
+    reference = widescreen_reference(name, root)
+    if not reference:
+        print(f'no references of {name} for its steps: record them with '
+              f'python tools\\run_all.py --widescreen --record {name}', file=out)
+        return False
+    with open(os.path.join(reference, 'recorded.json')) as f:
+        info = json.load(f)
+    print(f'(references recorded {info.get("time", "?")}: {reference})', file=out)
+    ours = os.path.join(build, 'runs', f'{name}-{install}', 'frames')
+    with contextlib.suppress(OSError, struct.error):
+        width, height = struct.unpack_from('<ii', frame_store.read_frame(os.path.join(ours, info['frames'][0] + '.bmp')), 18)
+        if info.get('size') and [width, abs(height)] != info['size']:
+            print(f'the references are {info["size"][0]}x{info["size"][1]}, the run\'s frames {width}x{abs(height)} (the '
+                  f'desktop\'s mode changed?): record them again with python tools\\run_all.py --widescreen --record {name}',
+                  file=out)
+            return False
+    diffs = os.path.join(build, 'runs', f'{name}-{install}', 'frames_diff')
+    shutil.rmtree(diffs, ignore_errors=True)
+    os.makedirs(diffs)
+    tool = os.path.join(root, 'tools', 'compare_frames.py')
+    commands = []
+    for frame in info['frames']:
+        a, b = os.path.join(ours, frame + '.bmp'), os.path.join(reference, 'frames', frame + '.bmp')
+        cmd = [sys.executable, tool, a, b, *WIDESCREEN_COMPARE, '--worst', '4', '--diff', os.path.join(diffs, frame + '.bmp')]
+        skip = os.path.join(reference, 'skip', frame + '.bmp')
+        if frame_store.exists(skip):
+            cmd += ['--exclude-mask', skip]
+        excludes = twin_excludes(ours, frame)
+        if excludes:
+            cmd += excludes + ['--exclude-grow', '8']
+        commands.append(cmd + widescreen_areas(name, frame, info.get('size')))
+    ok = run_compares(commands, out)
+    frame_store.pack_folder(diffs)
+    return ok
+
+
+def widescreen_check(jobs, record=False, out=None, root=ROOT, build=BUILD):
+    """After --widescreen's runs: records addon's frames as references (record) or compares the image's runs with
+    them. Prints each scenario's frames and a verdict; True when every one was recorded or matched."""
+    out = out or sys.stdout
+    ok = True
+    for name, install in jobs:
+        if record:
+            print(f'\nreferences of {name}: addon\'s frames ({name}-{install})', file=out)
+            out.flush()
+            ok = record_widescreen(name, out, root, build) and ok
+        else:
+            print(f'\nframes of {name}: the image ({name}-{install}) against addon\'s', file=out)
+            out.flush()
+            ok = compare_widescreen(name, install, out, root, build) and ok
+    print(('WIDESCREEN RECORDED' if ok else 'WIDESCREEN NOT RECORDED') if record else
+          ('WIDESCREEN FRAMES MATCH' if ok else 'WIDESCREEN FRAMES DIFFER'), file=out)
     return ok
 
 
@@ -706,7 +887,8 @@ def standalone_rebirth_flags(root=ROOT):
 
 
 def launch_install(install):
-    """The install run() is given for one of plan()'s: --widescreen's "rebirth-nohooks" is "rebirth" without hooks."""
+    """The install run() is given for one of plan()'s: --widescreen --record's "rebirth-nohooks" is "rebirth"
+    without hooks."""
     return install[:-len('-nohooks')] if install.endswith('-nohooks') else install
 
 
@@ -735,6 +917,7 @@ def parse_args(argv=None):
     ap.add_argument('--dgvoodoo', action='store_true')
     ap.add_argument('--fresh', action='store_true')
     ap.add_argument('--widescreen', action='store_true')
+    ap.add_argument('--record', action='store_true')
     ap.add_argument('--golden', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
@@ -744,9 +927,9 @@ def parse_args(argv=None):
 
 
 def standalone_mode(args):
-    """Whether args ask for the standalone image's runs: the default since S21. --hooked, --no-hooks, --native,
-    --dgvoodoo and --widescreen run game.exe."""
-    return not (args.hooked or args.no_hooks or args.native or args.dgvoodoo or args.widescreen)
+    """Whether args ask for the standalone image's runs: the default since S21, also with --widescreen. --hooked,
+    --no-hooks, --native, --dgvoodoo and --widescreen --record run game.exe."""
+    return not (args.hooked or args.no_hooks or args.native or args.dgvoodoo or getattr(args, 'record', False))
 
 
 def has_golden(name, install, root=ROOT):
@@ -756,15 +939,20 @@ def has_golden(name, install, root=ROOT):
 
 def plan(args, root=ROOT):
     """The runs args ask for: (scenario, install) pairs in the summary's order. install is standalone,
-    standalone-rebirth, vanilla, rebirth, native or rebirth-nohooks (--widescreen); the run folder is
-    <scenario>-<install>. Also used by tools/work_sched.py (`work.py test`), so a batch holds the runs run_all
+    standalone-rebirth, vanilla, rebirth, native or rebirth-nohooks (--widescreen --record); the run folder
+    is <scenario>-<install>. Also used by tools/work_sched.py (`work.py test`), so a batch holds the runs run_all
     would make."""
     names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
                                      for p in glob.glob(os.path.join(root, 'tests', 'scenarios', '*.txt')))
     standalone = standalone_mode(args)
     if args.standalone and not standalone:
         sys.exit('--standalone runs our code on our renderer: not with --hooked, --no-hooks, --native, --dgvoodoo '
-                 'or --widescreen')
+                 'or --record')
+    if getattr(args, 'record', False) and not args.widescreen:
+        sys.exit("--record records --widescreen's references: --widescreen --record [scenario names]")
+    if args.widescreen and (args.hooked or args.no_hooks or args.native or args.dgvoodoo or args.vanilla_only):
+        sys.exit("--widescreen compares the image on the Rebirth install with addon's recorded frames (--record "
+                 'records them): not with --hooked, --no-hooks, --native, --dgvoodoo or --vanilla-only')
     installs = ['vanilla', 'rebirth']
     if args.vanilla_only: installs = ['vanilla']
     if args.rebirth_only: installs = ['rebirth']
@@ -784,8 +972,9 @@ def plan(args, root=ROOT):
     jobs = [(name, install) for name in names for install in installs
             if install not in ('rebirth', 'standalone-rebirth') or name in rebirth]
     if args.widescreen:
+        # addon's WideScreen exists on the Rebirth install only: the image there, or addon's runs to record
         names = args.scenarios or WIDESCREEN_SCENARIOS
-        jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
+        jobs = [(name, 'rebirth-nohooks' if args.record else 'standalone-rebirth') for name in names]
     path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
     kept = [(n, i) for n, i in jobs if not switches_display(path(n))
             or our_renderer(path(n), launch_install(i), uses_hooks(i, args), wants_dgvoodoo(args))]
@@ -803,10 +992,9 @@ def plan(args, root=ROOT):
 
 
 def wants_dgvoodoo(args):
-    """Whether runs of our code draw through dgVoodoo: --dgvoodoo, and --widescreen, whose frames are compared with
-    the original's (dgVoodoo's) pixel by pixel: across the renderers 0.2-1% of a 4K interface frame differ by more
-    than 8 (texture filtering of the scene behind the panels, up to 150-230), the water's phase up to 20% (R10)."""
-    return getattr(args, 'dgvoodoo', False) or getattr(args, 'widescreen', False)
+    """Whether runs of our code draw through dgVoodoo: --dgvoodoo. (--widescreen compares the image, always on our
+    renderer, with addon's frames drawn by dgVoodoo: WIDESCREEN_COMPARE allows for the two renderers.)"""
+    return getattr(args, 'dgvoodoo', False)
 
 
 def uses_hooks(install, args):
@@ -880,9 +1068,9 @@ def line(name, install, result, seconds, failures, notes, root=ROOT, build=BUILD
 
 def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUILD):
     """Prints what follows the table: runs not passed, message boxes after quit, verify mismatches,
-    --widescreen's frame comparisons, --verified-candidates and the totals line. results:
+    --verified-candidates and the totals line (--widescreen's frames and --golden come after it). results:
     {(scenario, install): (result, seconds, failures, notes)} for every job; totals: {function:
-    [calls, mismatches]}. True when every run passed (and the frames matched)."""
+    [calls, mismatches]}. True when every run passed."""
     out = out or sys.stdout
     ok = all(r[0] in ('PASS', 'PASS*') for r in results.values())
     failed = [(n, i) for n, i in jobs if results[(n, i)][0] not in ('PASS', 'PASS*')]
@@ -900,11 +1088,6 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
         print('\nverify mismatches:', file=out)
         for fn, (calls, mismatches) in bad:
             print(f'  {fn}: {mismatches} of {calls}', file=out)
-    if args.widescreen:
-        for name in args.scenarios or WIDESCREEN_SCENARIOS:
-            print(f'\nframes of {name}: ours (rebirth) against addon\'s alone (rebirth-nohooks)', file=out)
-            out.flush()
-            ok = compare_widescreen(name, out, root, build) and ok
     if args.verified_candidates:
         print(f'\nfunctions with >= {args.verified_candidates} calls and no mismatch (names; map them to addresses '
               'in tests/verify/*.cpp before adding to verified.txt):', file=out)
@@ -979,7 +1162,7 @@ def main():
     sys.stdout.flush()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
+        # (--widescreen --record's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
         futures = {pool.submit(run_with_retries, n, launch_install(i), uses_hooks(i, args), args.retries, f'{n}-{i}',
                                functools.partial(run, clock=args.clock, dgvoodoo=wants_dgvoodoo(args), fresh=args.fresh),
                                keep_attempt): (n, i)
@@ -998,6 +1181,8 @@ def main():
 
     save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()})
     ok = summary(jobs, results, totals, args, time.time() - started)
+    if args.widescreen:
+        ok = widescreen_check(jobs, args.record) and ok
     if args.golden:
         ok = golden_check(jobs) and ok
     return 0 if ok else 1

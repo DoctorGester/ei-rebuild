@@ -1,11 +1,12 @@
 # Rebirth's WideScreen (src/game/ui_widescreen.h, docs/notes/rebirth.md "WideScreen"): the interface
 # at a mode wider than 4:3, frames captured for comparison with Rebirth's own.
 #   python tools\run_all.py --widescreen
-# runs it under Rebirth with our hooks and with --no-hooks (addon's code only) and compares the
-# frames (tools/compare_frames.py). The harness answers the starter's settings for the run
-# (harness_starter.h): the desktop's mode (another mode would switch the display under dgVoodoo)
-# and WideScreen on. In the vanilla install the flag is on as well (rebirthflags): our layout
-# widths and scaling run there without addon's panel builders (W2-W4), so its frames are not compared.
+# runs it on the standalone image on the Rebirth install and compares the frames with addon's
+# (tools/run_all.py compare_widescreen), recorded once from game.exe with addon.dll and no hooks
+# (--widescreen --record: again only when the steps change). The harness answers the starter's
+# settings for the run (harness_starter.h): the desktop's mode (another mode would switch the display
+# under dgVoodoo) and WideScreen on. On the vanilla data the flag is on as well (rebirthflags): the
+# image's runs there (the default suite) have no addon to compare with.
 # The virtual clock (deterministic) gives the menu's animations the same phase in both runs; the
 # zone's loading still depends on real time (and the menu's creatures are not quite repeatable), so
 # a frame has a "_later" twin and run_all leaves out what moved between the two (the hero, his
