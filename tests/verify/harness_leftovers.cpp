@@ -1,4 +1,5 @@
-// Never-set bytes zeroed in the original (harness_leftovers.h; tickets SV7b3, SV7b2, SV7d3, SV7d4, S17a, SV7b7).
+// Never-set bytes zeroed in the original (harness_leftovers.h; tickets SV7b3, SV7b2, SV7d3, SV7d4, S17a, SV7b7,
+// SV7b6a).
 #include "harness_leftovers.h"
 
 #include "../../src/game/class_templates.h"
@@ -93,7 +94,7 @@ CObject3D* __fastcall ZeroedViewConstruct(CObject3D* object) {
 // The families, one EI_LEFTOVERS bit each.
 enum Family {
     kStatsCopies, kServerObjects, kMapObjects, kSuspection, kFear, kTemplates, kViewPositions, kParticleSources,
-    kFamilies
+    kLights, kFamilies
 };
 const char* const kFamilyNotes[kFamilies] = {
     "a unit statistics stack copy zeroed first, SV7b3",
@@ -104,14 +105,16 @@ const char* const kFamilyNotes[kFamilies] = {
     "a class template's weights tail zeroed first, SV7b2",
     "a new 3D object's view position zeroed, S17a",
     "a particle source allocated zeroed, SV7b7",
+    "a light allocated zeroed, SV7b6a",
 };
 // The families patched only in runs without hooks (EI_NO_HOOKS=1). Their sites all sit in functions ours
 // replaces (NewObjectImpl, CreateObject, AddSuspectionMode, AddFearMode, ApplyBehaviour, SSCCmd::Execute,
-// the party manager's builder, CreateClassTemplate, NewParticleSource), and ours zeroes the same blocks; patched in a hooked
+// the party manager's builder, CreateClassTemplate, NewParticleSource, the light manager's NewObjectImpl), and
+// ours zeroes the same blocks; patched in a hooked
 // run they would make InstallHooks leave those rewrites out (a harness patch in the body), so the
 // original would run in their place (SSCCmd::Execute without addon's commands on the vanilla install).
 constexpr unsigned kNoHooksOnly = 1u << kServerObjects | 1u << kMapObjects | 1u << kSuspection | 1u << kFear |
-                                  1u << kTemplates | 1u << kParticleSources;
+                                  1u << kTemplates | 1u << kParticleSources | 1u << kLights;
 
 struct Site {
     std::uintptr_t call;     // a CALL rel32
@@ -190,6 +193,9 @@ const Site kSites[] = {
     // NewParticleSource 004981B0 (SV7b7): the first Tick reads the emission point (+0x98), which nothing sets
     // before Attach.
     {0x004981CD, kOperatorNew, kNew, kParticleSources},
+    // CLightFactory::NewObjectImpl 0068DA40 (SV7b6a): nothing sets a directional light's position (+0x1C), whose z the
+    // terrain's sun lighting reads under water (ShadeSun 006C36B0).
+    {0x0068DA7C, kOperatorNew, kNew, kLights},
 };
 
 bool Redirect(const Site& site) {

@@ -7,7 +7,7 @@
 // - SetPoint / SetDirectional: the original on a scratch copy, ours on the light; the whole object
 //   compared (TiltTowards is the same rewritten code in both runs) and the results.
 // - Everything that allocates, releases or registers runs ours only (stolen bytes 0); the state left
-//   is checked.
+//   is checked (a new light's positions zero: the block is allocated zeroed, SV7b6a).
 // - The class name / id getters and slots 2 / 3 run against the original.
 #include "verify.h"
 
@@ -143,7 +143,12 @@ CLightFactory* __fastcall ManagerDeleteVerify(CLightFactory* self, void*, unsign
 CEngineObject* __fastcall ManagerNewObjectVerify(CLightFactory* self, void*, int type) {
     CEngineObject* object = self->CLightFactory::NewObjectImpl(type);
     bool known = type == 0x2E || type == 0x31;
-    bool ok = object ? known && VtableOf(object) == CLight::kVtableAddress && object->type_ == type : !known;
+    // The block starts zeroed (SV7b6a): the positions the constructor leaves are zero.
+    const auto* light = static_cast<const CLight*>(object);
+    bool zeroed = !object || (light->position_.x == 0.0f && light->position_.y == 0.0f && light->position_.z == 0.0f &&
+                              light->localPosition_.x == 0.0f && light->localPosition_.y == 0.0f &&
+                              light->localPosition_.z == 0.0f);
+    bool ok = object ? known && VtableOf(object) == CLight::kVtableAddress && object->type_ == type && zeroed : !known;
     ei::verify::Check("CLightFactory::NewObject", true, ok, "manager %p type 0x%X -> %p", self, type, object);
     return object;
 }

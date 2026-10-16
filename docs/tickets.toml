@@ -1196,6 +1196,13 @@ model = "opus"
 files = ["tests/verify/harness_heap.cpp", "src/lib/crt.cpp"]
 note = "SV7c: EI_HEAP_JITTER / EI_HEAP_FILL act on game.exe's import slots (harness_heap.cpp), which the standalone image does not use: its malloc / operator new are the host CRT's (EI_REPLACE_STANDALONE), so --standalone runs under jitter are plain runs (no 'heap jitter' log line). The goldens already hold on that other heap (S20: 168 the same), but once the hook builds retire (S21) only the image runs: give its allocator the same seeded spacers and fill so layout independence stays checked."
 
+[[ticket]]
+id = "SV7b6b"
+title = "Transform objects' never-set positions"
+group = "verification"
+depends = ["SV7b6a"]
+note = "SV7b6a: CTransformObject's constructor (00453400) leaves position_ / localPosition_, and the sun light's z was read (lights are now allocated zeroed). Audit the other factories whose objects derive from it (cameras, lightning, sky, effects) for reads of positions before any set, and zero those blocks the SV7b2 way (ours + harness_leftovers without hooks). Check with frame hashes plain vs EI_HEAP_JITTER 1 / 2 and fill."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
