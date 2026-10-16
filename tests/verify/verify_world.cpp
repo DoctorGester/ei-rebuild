@@ -560,13 +560,15 @@ static std::uint32_t __fastcall DepthLessVerify(DepthLess* self, void*, const in
 }
 EI_VERIFY(0x00573A60, DepthLessVerify, 5, s_depthLess);
 
-// 00574300: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes).
+// 00574300: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes). Our address order is checked against the
+// original's; the order the sorts get is ours (UnitOrderLess::Less): by name in harness runs
+// (address_order::ById, SV7b6), so the original's sorts in the verify wrappers sort the same way.
 static std::uint32_t(__fastcall* s_unitOrder)(UnitOrderLess*, void*, CEngineObject*, CEngineObject*);
 static std::uint32_t __fastcall UnitOrderVerify(UnitOrderLess* self, void*, CEngineObject* a, CEngineObject* b) {
     std::uint32_t expected = s_unitOrder(self, nullptr, a, b);
-    bool actual = self->Less(a, b);
+    bool actual = UnitOrderLess::LessByAddress(a, b);
     ei::verify::Check("UnitOrderLess::Less", static_cast<std::uint8_t>(expected), static_cast<std::uint8_t>(actual), "%p %p", a, b);
-    return expected;
+    return self->Less(a, b) ? 1u : 0u;
 }
 EI_VERIFY(0x00574300, UnitOrderVerify, 6, s_unitOrder);
 

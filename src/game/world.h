@@ -1766,9 +1766,13 @@ struct DepthLess {
     void* manager;                        // +4 CBaseManager holding the objects
     bool Less(const int* a, const int* b);
 };
-// 00574300. Orders units by group rank, then sequence number, then +0x30.
+// 00574300. The draw lists' order (DrawPass): by the first part set's texture, then the figure, then
+// the view depth (+0x30). The original compares the texture and the figure by address; with
+// address_order::ById (harness runs, the standalone) by name instead (address_order::DrawBefore).
 struct UnitOrderLess {
     bool Less(CEngineObject* a, CEngineObject* b);
+    // The original's order: texture and figure by address.
+    static bool LessByAddress(CEngineObject* a, CEngineObject* b);
 };
 // 00589580. Orders entries by the unsigned value at +0x1C of the object they point to (+8).
 struct EntryIdLess {
