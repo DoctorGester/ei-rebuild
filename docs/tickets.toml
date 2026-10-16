@@ -935,7 +935,7 @@ id = "SV7"
 title = "Goldens independent of heap layout"
 group = "verification"
 size = 2
-note = "User 2026-10-15: exact heap layouts are not worth preserving (the standalone's allocator and the STL cleanup change them). Goldens (digest of world / generators / players / object field hashes, dumps, saves) must not depend on addresses. Steps: (a) SV7a: a harness heap jitter mode and two --no-hooks runs of each scenario with different layouts; every digest / dump field that differs is address-dependent game behaviour: inventory the sites (orders by pointer, pointer-keyed hash iteration, uninitialised reads). (b) canonicalise each site by object id in both the original (harness patch, as the update countdown already is) and ours, kept in the standalone as a determinism fix. (c) re-record goldens with jitter on; ours must match under any layout, path or check order. (d) decoded saves (field by field, SV3b) as checkpoint comparisons. Replaces the SV2h line (twin ordering for heap layout): SV2h1c, SV2h3a-c, SV2d go when this lands."
+note = "Done 2026-10-16: SV7a-d and SV7b1-b8, SV7c (goldens hold under jitter/fill, both installs, original+hooked+standalone). Open: SV7b5 (net replication, later), SV7b6a (our renderer's frames), SV7c1 (one-off), SV7c2 (standalone heap jitter)."
 
 [[ticket]]
 id = "SV7a"
