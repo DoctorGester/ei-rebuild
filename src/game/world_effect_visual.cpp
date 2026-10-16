@@ -67,54 +67,15 @@ Vector3& LightPosition(CLight* light) { return light->position_; }
 // The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
-__declspec(naked) int __fastcall StepFraction(const Vector3* /*velocity*/, const Vector3* /*dxdy*/, float* /*t*/) {
-    __asm {
-        fld dword ptr [ecx + 8]
-        fld dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fld st(3)
-        fmul st, st(4)
-        faddp st(1), st
-        fsqrt
-        fstp st(3)
-        fstp st(0)
-        fstp st(0)
-        // ST0 = speed. dxdy = {dx, dy}.
-        fld dword ptr [edx + 4]
-        fmul dword ptr [edx + 4]
-        fld dword ptr [edx]
-        fmul dword ptr [edx]
-        faddp st(1), st
-        fsqrt
-        fcom dword ptr ds:[0073B858h]
-        fnstsw ax
-        test ah, 41h
-        jne skip
-        fcom st(1)
-        fnstsw ax
-        test ah, 1
-        je keep
-        fstp st(0)
-        fld st(0)
-    keep:
-        fxch st(1)
-        fdiv st, st(1)
-        mov eax, dword ptr [esp + 4]
-        fstp dword ptr [eax]
-        fstp st(0)
-        mov eax, 1
-        ret 4
-    skip:
-        fstp st(0)
-        fstp st(0)
-        xor eax, eax
-        ret 4
-    }
+int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
+    const double speed = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
+    const double dist = x87::fsqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
+    // FCOM 0073B858; TEST AH,0x41: on only when above.
+    if (!(dist > *reinterpret_cast<const float*>(0x0073B858))) return 0;
+    // FCOM ST(1); TEST AH,1: the speed when the distance is below it or they are unordered.
+    const double divisor = dist >= speed ? dist : speed;
+    *t = static_cast<float>(speed / divisor);
+    return 1;
 }
 
 // Particle types that play once (no warm-up limit, a lifetime of 60 ticks; 0x2019: 120).
@@ -150,29 +111,10 @@ std::uint32_t InlineRandom() {
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in the original's x87 order.
-__declspec(naked) void __fastcall WallScorchShape(const Vector3* /*direction*/, const float* /*half*/,
-                                                  float* /*angleAndOuter*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fpatan
-        fstp dword ptr [eax]
-        fld dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fsqrt
-        fstp st(2)
-        fstp st(0)
-        fadd dword ptr [edx]
-        fadd dword ptr ds:[0073C54Ch]
-        fstp dword ptr [eax + 4]
-        ret 4
-    }
+void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
+    angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
+    const double outer = x87::fsqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
+    angleAndOuter[1] = static_cast<float>((outer + *half) + *reinterpret_cast<const float*>(0x0073C54C));
 }
 
 } // namespace

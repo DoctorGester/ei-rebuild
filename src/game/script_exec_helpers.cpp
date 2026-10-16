@@ -88,42 +88,14 @@ int LightCount(CScript* script) { return script->pointLights_.size; }
 // MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
 // the y and z differences are rounded to float first, as the original computes them.
 void LightStep(ScriptPointLight* light, const float* target, const float* position) {
-    float y;
-    float z;
-    float dy;
-    float dz;
-    float inverse;
-    float* destination = &light->step.x;
-    int* steps = &light->steps;
-    __asm {
-        mov eax, target
-        mov edx, position
-        fld dword ptr [eax]
-        fld dword ptr [eax + 4]
-        fstp y
-        fld dword ptr [eax + 8]
-        fstp z
-        fsub dword ptr [edx]
-        fld y
-        fsub dword ptr [edx + 4]
-        fstp dy
-        fld z
-        fsub dword ptr [edx + 8]
-        fstp dz
-        mov ecx, steps
-        fild dword ptr [ecx]
-        fdivr dword ptr ds:[0x0073B84C]
-        fstp inverse
-        fmul inverse
-        mov ecx, destination
-        fstp dword ptr [ecx]
-        fld dy
-        fmul inverse
-        fstp dword ptr [ecx + 4]
-        fld dz
-        fmul inverse
-        fstp dword ptr [ecx + 8]
-    }
+    const double dx = static_cast<double>(target[0]) - position[0];
+    const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
+    const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
+    // FILD steps; FDIVR 1.0f (0073B84C), rounded to float.
+    const float inverse = static_cast<float>(static_cast<double>(*reinterpret_cast<const float*>(0x0073B84C)) / light->steps);
+    light->step.x = static_cast<float>(dx * inverse);
+    light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
+    light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
 }
 
 } // namespace

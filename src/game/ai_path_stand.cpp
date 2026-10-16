@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "map_object.h"
 #include "originals_ai.h"
+#include "lib/vecmath.h"
 
 #include "ei/hook.h"
 
@@ -17,59 +18,19 @@
 
 namespace {
 
-// The facing direction from the quaternion {a, b, c, d} at ECX (the unit's +0x34) into EDX:
-// x = -2(cb - da) (rounded once), y = -(aa - (bb + dd + cc) + 2cc) and z = -2(cd + ba), the
-// last two rounded to floats before the negation, as the original.
-__declspec(naked) void __fastcall FacingFromQuaternion(const float* /*q*/, float* /*out*/) {
-    __asm {
-        sub esp, 8
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [ecx + 4]
-        fld dword ptr [ecx + 0Ch]
-        fmul dword ptr [ecx]
-        fsubp st(1), st
-        fadd st, st
-        fld dword ptr [ecx]
-        fld dword ptr [ecx + 0Ch]
-        fld dword ptr [ecx + 8]
-        fld st(0)
-        fmulp st(1), st
-        fld dword ptr [ecx + 4]
-        fld st(3)
-        fmul st, st(4)
-        fld st(3)
-        fmul st, st(4)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fadd st, st(3)
-        fsubp st(1), st
-        fxch st(2)
-        fadd st, st
-        faddp st(2), st
-        fxch st(1)
-        fstp dword ptr [esp]
-        fstp st(0)
-        fstp st(0)
-        fstp st(0)
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [ecx + 0Ch]
-        fld dword ptr [ecx + 4]
-        fmul dword ptr [ecx]
-        faddp st(1), st
-        fadd st, st
-        fstp dword ptr [esp + 4]
-        fchs
-        fstp dword ptr [edx]
-        fld dword ptr [esp]
-        fchs
-        fstp dword ptr [edx + 4]
-        fld dword ptr [esp + 4]
-        fchs
-        fstp dword ptr [edx + 8]
-        add esp, 8
-        ret
-    }
+// The facing direction from the quaternion {w, x, y, z} (the unit's +0x34): x = -2(yx - zw) (rounded
+// once), y = -((ww - ((zz + xx) + yy)) + 2yy) and z = -2(yz + xw), the last two rounded to floats
+// before the negation, as the original.
+void FacingFromQuaternion(const float* q, float* out) {
+    const double w = q[0], x = q[1], y = q[2], z = q[3];
+    const double across = y * x - z * w;
+    const double squares = LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z);
+    const float up = static_cast<float>((w * w - squares) + (y * y + y * y));
+    const double along = Dot2DUnrounded<double>(z, x, y, w);
+    const float forward = static_cast<float>(along + along);
+    out[0] = static_cast<float>(-(across + across));
+    out[1] = -up;
+    out[2] = -forward;
 }
 
 // The order's follow-ups through their original addresses (ai_motion.cpp), the arguments as the

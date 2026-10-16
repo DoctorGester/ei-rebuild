@@ -15,23 +15,11 @@ const float kOne = 1.0f;   // 0073B84C
 
 // The intersection parameter t = (limit - a) / (b - a), exactly as the original computes it: the
 // value is stored to `store` as a float (FST) while the unrounded quotient is compared with 1.
-// Returns non-zero when t > 1 (FCOMP; FNSTSW; TEST AH,0x41 clear).
-__declspec(naked) int __cdecl StoreRatio(float /*limit*/, float /*a*/, float /*b*/, float* /*store*/) {
-    __asm {
-        fld dword ptr [esp + 4]
-        fsub dword ptr [esp + 8]
-        fld dword ptr [esp + 12]
-        fsub dword ptr [esp + 8]
-        fdivp st(1), st
-        mov eax, dword ptr [esp + 16]
-        fst dword ptr [eax]
-        fcomp dword ptr [kOne]
-        fnstsw ax
-        test ah, 0x41
-        setz al
-        movzx eax, al
-        ret
-    }
+// Returns non-zero when t > 1 (FCOMP; FNSTSW; TEST AH,0x41 clear: above, not equal or unordered).
+int StoreRatio(float limit, float a, float b, float* store) {
+    const double t = (static_cast<double>(limit) - a) / (static_cast<double>(b) - a);
+    *store = static_cast<float>(t);
+    return t > kOne ? 1 : 0;
 }
 
 // One colour byte: a + fistp(float((b - a) * t)).
