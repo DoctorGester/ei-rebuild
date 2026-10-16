@@ -3,6 +3,7 @@
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "bink_video.h"
 #include "combat.h"
+#include "game_arrays.h"
 #include "game_lists.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
@@ -24,6 +25,7 @@
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "mod_folders.h"
+#include "model.h"
 #include "world_effect.h"
 #include "world_map_files.h"
 
@@ -150,9 +152,8 @@ void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
 void __fastcall MarkNew(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
-// 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save.
-__declspec(naked) void __fastcall ProjectileLoad(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E7D0)
-__declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E960)
+// 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save: CSpellEffect's
+// (Projectile is the missile's view of it).
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
 // 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
 // 0040A3A0. CRefObject::Release.
@@ -165,8 +166,6 @@ __declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_O
 __declspec(naked) void __fastcall TimeWheelSave(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAFA0)
 __declspec(naked) void __fastcall CommandQueueLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0D00)
 __declspec(naked) void __fastcall CommandQueueSave(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0F90)
-__declspec(naked) void __fastcall CountdownsLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x006D4660)
-__declspec(naked) void __fastcall CountdownsSave(void*, void*, WorldStream*) EI_ORIGINAL(0x006D47E0)
 // 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
@@ -190,7 +189,6 @@ __declspec(naked) SharedObjectNode* __fastcall SharedObjectsNewNode(SharedObject
                                                                      SharedObjectNode* /*next*/) EI_ORIGINAL(0x0059CA60)
 __declspec(naked) void __fastcall DwordListAddTail(DwordList*, void*, std::uint32_t) EI_ORIGINAL(0x0059CC60)
 } // namespace
-__declspec(naked) void SharedObject::Load(WorldStream*) EI_ORIGINAL(0x00589CA0)
 
 namespace {
 
@@ -479,7 +477,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 static_cast<Projectile*>(memory)->references = 0;   // written before the null test
                 // (Projectile is the missile's view of the spell effect CSpellEffect::Construct builds.)
                 auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
-                ProjectileLoad(missile, nullptr, stream);
+                reinterpret_cast<CSpellEffect*>(missile)->Load(stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
                 RefPtrAssign(&node->data, nullptr, missile);
@@ -493,7 +491,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
-            if (stream->version_ >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
+            if (stream->version_ >= kVersionCountdowns)   // the countdowns are a tween array (006D4660)
+                TweenLoadEntries(reinterpret_cast<TweenArray*>(countdowns_), nullptr, stream);
 
             // Counted references to items (added at the head of the list).
             for (;;) {
@@ -702,7 +701,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         auto* next = node->next;
         Projectile* missile = node->data;
         WriteCopy(stream, static_cast<std::uint8_t>(1));
-        ProjectileSave(missile, nullptr, stream);
+        reinterpret_cast<CSpellEffect*>(missile)->Save(stream);
         node = next;
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));
@@ -712,7 +711,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);
-    CountdownsSave(countdowns_, nullptr, stream);
+    TweenSave(reinterpret_cast<const TweenArray*>(countdowns_), nullptr, stream);   // 006D47E0
 
     for (auto* node = counted_.head; node;) {
         auto* next = node->next;
@@ -764,8 +763,11 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
 namespace {
 
-// 0059B8F0 (RET 4). CArray<CRefPtr>::Copy.
-__declspec(naked) void __fastcall ObjectPtrArrayCopy(ObjectPtrArray*, void*, const ObjectPtrArray*) EI_ORIGINAL(0x0059B8F0)
+// 0059B8F0 (RET 4). CArray<CRefPtr>::Copy (gamearrays::ObjectPtrCopy).
+void ObjectPtrArrayCopy(ObjectPtrArray* to, const ObjectPtrArray* from) {
+    gamearrays::ObjectPtrCopy(reinterpret_cast<gamearrays::ObjectPtrs::Array*>(to), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectPtrs::Array*>(from));
+}
 // 0059C8C0 (RET 8). CArray<CRefPtr>::SetSize(size, growBy); the same code the original inlines
 // in LoadSharedObject.
 __declspec(naked) void __fastcall ObjectPtrArraySetSize(ObjectPtrArray*, void*, int, int) EI_ORIGINAL(0x0059C8C0)
@@ -789,7 +791,7 @@ SharedObject* SharedObject::CopyFrom(const SharedObject* from) {
     objectId = from->objectId;
     player = from->player;
     money = from->money;
-    ObjectPtrArrayCopy(&objects, nullptr, &from->objects);
+    ObjectPtrArrayCopy(&objects, &from->objects);
     return this;
 }
 EI_REPLACE_METHOD(0x0059B510, SharedObject::CopyFrom);
@@ -801,8 +803,8 @@ SharedObject* SharedObject::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0059DDE0, SharedObject::DeletingDestruct);
 
-void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
-    auto* entry = static_cast<SharedObject*>(entryArg);
+void SharedObject::Load(WorldStream* stream) {
+    SharedObject* entry = this;
     stream->Read(&entry->objectId, 4);
     stream->Read(&entry->player, 4);
     stream->Read(&entry->money, 4);
@@ -826,7 +828,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     SharedObjectList& shared = sharedObjects_;
     ObjectPtrArray empty{SharedObject::ObjectsVtable(), nullptr, 0, 0, 0};
     SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, nullptr, shared.head);
-    ObjectPtrArrayCopy(&node->data.objects, nullptr, &empty);
+    ObjectPtrArrayCopy(&node->data.objects, &empty);
     if (shared.head) shared.head->prev = node;
     else shared.tail = node;
     shared.head = node;
@@ -914,7 +916,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
 EI_REPLACE_METHOD(0x00595480, CWorldServer::NewZone);
 
 EI_REPLACE_METHOD(0x005956E0, CWorldServer::PrepareSave);
-EI_REPLACE(0x00589CA0, LoadSharedObject);
+EI_REPLACE_METHOD(0x00589CA0, SharedObject::Load);
 EI_REPLACE_METHOD(0x005947E0, CWorldServer::AddSharedObject);
 EI_REPLACE_METHOD(0x00596E70, CWorldServer::LoadSave);
 EI_REPLACE_METHOD(0x00597BD0, CWorldServer::SaveWorld);

@@ -12,6 +12,7 @@
 #include "net_session.h"
 #include "sky_object.h"
 #include "ui_flying_hit_points.h"
+#include "view_matrices.h"
 #include "world.h"
 
 #include "camera.h"
@@ -81,8 +82,6 @@ constexpr int kStackScene1 = 1;    // +0x1C
 constexpr int kStackScene2 = 2;    // +0x24
 constexpr int kStackWorld = 5;     // +0x3C
 constexpr int kStackView = 9;      // +0x5C
-// 004F0EF0: the view matrix of the camera (0079B2A8) into `out`.
-__declspec(naked) void __fastcall DeviceViewMatrix(CTransformPipeline*, void*, float*, const void*) EI_ORIGINAL(0x004F0EF0)
 
 // Pushes `matrix` on `stack`, as the original inlines it.
 void PushMatrix(MatrixStack& stack, const float* matrix) {
@@ -129,15 +128,8 @@ float LandscapeDrawRadius() {
 
 // DrawPass's callees.
 __declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
-__declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
 __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
 __declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
-__declspec(naked) void __fastcall IntroSortByModelAt(CEngineObject**, CEngineObject**, void*, int, void*)
-    EI_ORIGINAL(0x005740D0)
-__declspec(naked) void __fastcall FinalSortByModelAt(CEngineObject**, CEngineObject**, void*) EI_ORIGINAL(0x00574390)
-__declspec(naked) void __fastcall IntroSortByModelUseAt(CEngineObject**, CEngineObject**, void*, int, void*)
-    EI_ORIGINAL(0x00573D50)
-__declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngineObject**, void*) EI_ORIGINAL(0x00573F10)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
 __declspec(naked) void __fastcall VectorErase(stlp::vector<CEngineObject*>*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
@@ -191,14 +183,15 @@ int Log2(int n) {
     return depth;
 }
 
-// Sorts one draw list with UnitOrderLess (the comparator gets the renderer).
-void SortByModel(FrameList list, CTextureDevice* renderer) {
+// Sorts one draw list with UnitOrderLess. (The original pushes the renderer as the empty comparator,
+// which nothing reads.)
+void SortByModel(FrameList list) {
     stlp::vector<CEngineObject*>& v = FrameObjects(list);
     CEngineObject** first = v.begin();
     CEngineObject** last = v.end();
     if (first == last) return;
-    IntroSortByModelAt(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, renderer);
-    FinalSortByModelAt(first, last, renderer);
+    IntroSortByModel(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, 0);
+    FinalSortByModel(first, last, 0);
 }
 
 // Calls `draw` on every object of a draw list (in list order).
@@ -263,7 +256,7 @@ int CWorldClient::Render() {
     UpdateLighting();
     Flush(renderer);
     Matrix4 view;
-    DeviceViewMatrix(device, nullptr, view.m, camera::TheCamera());
+    view::CameraViewMatrix(view.m, camera::TheCamera());   // 004F0EF0 (thiscall on the pipeline, not read)
     PopMatrix(device->stacks_[kStackView]);
     PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
@@ -435,7 +428,7 @@ int CWorldClient::DrawPass() {
                                          FrameList::Shadow52,    FrameList::TouchedModels};
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
-    const float* position = CameraPosition(camera_);
+    const float* position = &CameraAnchor(camera_)->x;
     if (void* listener = owned1B0_) static_cast<CEffectMoshka*>(listener)->Update(animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
@@ -480,8 +473,8 @@ int CWorldClient::DrawPass() {
     if (models.begin() != models.end()) {
         CEngineObject** first = models.begin();
         CEngineObject** last = models.end();
-        IntroSortByModelUseAt(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, nullptr);
-        FinalSortByModelUseAt(first, last, nullptr);
+        IntroSortByModelUse(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, 0);
+        FinalSortByModelUse(first, last, 0);
         int count = touched >> 3;
         if (count < 10) count = 10;
         for (CEngineObject** p = models.begin(); p != models.end() && count != 0; --count) {
@@ -511,10 +504,10 @@ int CWorldClient::DrawPass() {
         Flush(renderer);
     }
     if (flags_ & 0x40) {
-        SortByModel(FrameList::Visible54, renderer);
-        SortByModel(FrameList::VisibleOther, renderer);
-        SortByModel(FrameList::Visible5D, renderer);
-        SortByModel(FrameList::Visible52, renderer);
+        SortByModel(FrameList::Visible54);
+        SortByModel(FrameList::VisibleOther);
+        SortByModel(FrameList::Visible5D);
+        SortByModel(FrameList::Visible52);
         SetRenderState(renderer, 24, 0xC8);
         DrawEach(FrameList::VisibleOther, kDraw);
         DrawEach(FrameList::Visible5D, kDrawUnit);
@@ -526,7 +519,7 @@ int CWorldClient::DrawPass() {
         Flush(renderer);
     }
     if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
-        SortByModel(FrameList::VisibleUnits, renderer);
+        SortByModel(FrameList::VisibleUnits);
         SetRenderState(renderer, 24, 10);
         ApplyStateBlock(renderer, StateBlockAlpha());
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
@@ -548,10 +541,10 @@ int CWorldClient::DrawPass() {
 
     // Shadows: projected along the camera's Z axis (its rotation, 0079B2DC) scaled by 0073F750.
     if (flags_ & 0x200) {
-        SortByModel(FrameList::Shadow54, renderer);
-        SortByModel(FrameList::ShadowOther, renderer);
-        SortByModel(FrameList::Shadow5D, renderer);
-        SortByModel(FrameList::Shadow52, renderer);
+        SortByModel(FrameList::Shadow54);
+        SortByModel(FrameList::ShadowOther);
+        SortByModel(FrameList::Shadow5D);
+        SortByModel(FrameList::Shadow52);
         Matrix4 matrix = {};
         matrix.m[15] = 1.0f;
         matrix.m[10] = 1.0f;

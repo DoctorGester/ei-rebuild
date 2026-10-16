@@ -306,6 +306,10 @@ __declspec(naked) inline void __fastcall ViewStackFreeMap(void** /*map*/, int /*
 using NearbyList = stlp::list<CObject3D*>;
 using NearbyNode = NearbyList::Node;
 
+// 0040FB20 (camera_object.cpp): the point the camera is placed by: its own position when playing a
+// file or placed freely, else the focus.
+const Vector3* __fastcall CameraAnchor(const CCamera* self);
+
 // Names for the game's globals and constants the camera code uses. The floating-point constants
 // are read from the exe at run time (volatile): the original multiplies them at run time and the
 // products round at the FPU's precision, which folding at compile time would not.

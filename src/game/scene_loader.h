@@ -390,12 +390,6 @@ struct TextureLinkRecord {
     std::uint32_t id;
     std::uint32_t value;
 };
-// A texture of the unit's material holder (CObject3D::attached; 0051B2F0 finds one by id, 0051B470
-// adds a link): only its name is written here.
-struct SceneTexture {
-    std::uint8_t engineObject[0x1C];    // +0x00 the CEngineObject part
-    mfc::CString name;                  // +0x1C
-};
 
 constexpr std::uint32_t kVersionWithNormals = 0x1468FCCA;
 

@@ -305,13 +305,10 @@ const mfc::CString& MoviesFolder() { return *reinterpret_cast<const mfc::CString
 // 00596E70 / 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::LoadSave, WakeUnitsAround, Tick and
 // SetZoneExits, through their addresses (rewritten in world_save / world_tick / world_zone).
 __declspec(naked) int __fastcall LoadSaveAt(CWorldServer*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
-__declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const void*) EI_ORIGINAL(0x005915E0)
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
 void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { a0->SetTimeImpl(std::bit_cast<float>(a2)); }
-// 004BEB00. Resets the scripts (007C27D4) for a zone without its own.
-__declspec(naked) void __fastcall ScriptsResetZone(void*, void*) EI_ORIGINAL(0x004BEB00)
 
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world
 // catch up with the time spent away (one tick per elapsed unit, at most 1000, waking the units
@@ -445,10 +442,10 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
             mfc::CString scripts = RecordMob(zoneRecord) + game::Text(kMobExtension);
             World()->LoadZoneScripts(scripts);
         } else {
-            ScriptsResetZone(reinterpret_cast<void*>(0x007C27D4), nullptr);
+            ScriptResetZone(World()->MainScript());   // 004BEB00: the scripts reset for a zone without its own
         }
     }
-    SetZoneExitsAt(World(), nullptr, &zoneRecord->exits);
+    World()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
     return result;
 }
 
@@ -472,7 +469,6 @@ __declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0
 // assigns a string from a range) and the message 0041A500(8, zone).
 __declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
-__declspec(naked) void __fastcall HostRecordConstruct(net::HostMessage*, void*) EI_ORIGINAL(0x004186E0)
 
 // A session or a replicated record is usable: there, and not detached by its owner.
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
@@ -490,7 +486,7 @@ void AnnounceHost(const char* zone) {
     auto* memory = static_cast<net::HostMessage*>(net::NewRefObject(sizeof(net::HostMessage)));
     net::HostMessage* record = nullptr;
     if (memory) {
-        HostRecordConstruct(memory, nullptr);
+        net::MessageConstructBase(memory);   // 004186E0
         StringInitEmpty(&memory->address_);
         StringInitEmpty(&memory->zone_);
         ei::SetVtable(memory, net::HostMessage::kVtableAddress);
@@ -574,7 +570,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     }
     for (int i = 0; i < exits.size; ++i)
         *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = game::Text(kNetworkExitTarget);
-    SetZoneExitsAt(World(), nullptr, &exits);
+    World()->SetZoneExits(&exits);
     World()->SetClimate(zoneRecord->setting2C);
     World()->SetCave(zoneRecord->setting30);
     CampaignMode() = 1;
@@ -708,8 +704,8 @@ namespace {
 // The multiplayer start zones by the client session's game type (gameType_): 1..3 -> bz2mpg ..
 // bz4mpg, anything else bz1mpg.
 
-// The party manager (007AA5A0): 004A88C0 resets it, 004A8890 (originals_world.h) begins a redeploy of a party.
-__declspec(naked) void __fastcall PartyManagerReset(void*, void*) EI_ORIGINAL(0x004A88C0)
+// The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890 (originals_world.h)
+// begins a redeploy of a party.
 
 void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
@@ -724,7 +720,7 @@ mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
 }
 
 void GameFlow::BeginMultiplayerGame() {
-    PartyManagerReset(PartyManager(), nullptr);
+    PartyManagerNewGameFour(PartyManager());
     if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
@@ -1169,8 +1165,7 @@ void* const kNetLog = reinterpret_cast<void*>(0x007C56B0);   // the network log'
 
 // 00598EF0. The connection list's destructor.
 __declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(0x00598EF0)
-// 0066C180. The player list makes a new player. 00665990 (RET 4): the player takes a connection.
-__declspec(naked) void __fastcall PlayerAttach(WorldPlayer*, void*, void*) EI_ORIGINAL(0x00665990)
+// 0066C180. The player list makes a new player. 00665990 (CPlayer::Connect): the player takes a connection.
 
 } // namespace
 
@@ -1192,7 +1187,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         auto* next = node->next;
         netlink::NetLink* connection = node->data;
         WorldPlayer* player = static_cast<WorldPlayer*>(PlayerCreateOriginal(players_));
-        PlayerAttach(player, nullptr, connection);
+        reinterpret_cast<CPlayer*>(player)->Connect(connection);
         player->dirty = 0xFFFFFFFFu;
         player->sessionKind = sessionKind_;
         std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
@@ -1774,7 +1769,7 @@ int GameFlow::LoadGame(const char* slot) {
         if (!opened) return 0;
         LoadMission(&file.stream);
         file.Close();
-        SetZoneExitsAt(World(), nullptr, &zoneRecord->exits);
+        World()->SetZoneExits(reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits));
     }
     void* console = OstreamPutString(kConsole, nullptr, game::Text(kLoadedText));
     console = OstreamPutString(console, nullptr, slot);
@@ -2082,8 +2077,6 @@ __declspec(naked) bool __fastcall PartyRecordsLoad(void*, void*, const char*) EI
 // (00455930).
 __declspec(naked) void __fastcall RecordsPart661640(void*) EI_ORIGINAL(0x00661640)
 __declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
-__declspec(naked) void __fastcall RecordsArrayDestroy(void*) EI_ORIGINAL(0x006643F0)
-__declspec(naked) void __fastcall RecordsPart664160(void*) EI_ORIGINAL(0x00664160)
 // 004616A0 (RET 4, FloatTableDeleteNodeOriginal): the variables table frees one node (what the original's inlined clear does).
 
 void DestroyPartyEntry(SavedPartyEntry* entry) {
@@ -2094,8 +2087,8 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
     RecordsPart661640(records);
     AsCString(records->zone).~CString();
     RecordsVariablesDestroy(&records->variables);
-    RecordsArrayDestroy(records->array40);
-    RecordsPart664160(&records->recordArrayVtable);
+    reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
+    DestructPartyMemberArray(reinterpret_cast<PartyMemberArray*>(&records->recordArrayVtable));   // 00664160
     EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(records));
 }
 

@@ -12,6 +12,8 @@
 #include "console.h"
 #include "figure_mesh.h"
 #include "map_object_figures.h"
+#include "map_object_shadow.h"
+#include "texture.h"
 #include "world.h"
 
 #include "../lib/crt.h"
@@ -140,7 +142,6 @@ __declspec(naked) void __fastcall SetSizeNormals(NormalRecords*, void*, int, int
 __declspec(naked) void __fastcall SetSizeMorphHeads(MorphHeadRecords*, void*, int, int) EI_ORIGINAL(0x00475BE0)
 __declspec(naked) void __fastcall ConstructPointBlock(PointBuffer*) EI_ORIGINAL(0x00475F10)
 __declspec(naked) void __fastcall SetSizePointBlock(PointBuffer*, void*, int, int) EI_ORIGINAL(0x00475F40)
-__declspec(naked) void __fastcall DestroyPointBlock(PointBuffer*) EI_ORIGINAL(0x00475F20)
 
 // The helpers array (+0x56C).
 __declspec(naked) void __fastcall SetSizeHelpers(VtArray*, void*, int, int) EI_ORIGINAL(0x00453550)
@@ -511,7 +512,7 @@ void Loader::SkipRecord() {
         Read(file_, &morphHeads.data[k].frame, 4);
         Read(file_, &morphHeads.data[k].extra, 4);
         Read(file_, points.data, h.pointCount * 12);
-        DestroyPointBlock(&points);
+        points.FreeData();   // 00475F20
     }
     DestroyNormals(&normals);
     DestroyMorphHeads(&morphHeads);
@@ -730,8 +731,6 @@ __declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C
 __declspec(naked) mfc::BOOL __fastcall BuildSkeleton(VtArray*, VtArray*, int, void*) EI_ORIGINAL(0x00448A40)
 __declspec(naked) void __fastcall PlaceMeshes(void*) EI_ORIGINAL(0x0044E3B0)
 __declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
-__declspec(naked) SceneTexture* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
-__declspec(naked) SceneTexture* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return static_cast<CMaterialManager*>(a0)->FillMaterial(static_cast<CMaterial*>(a2), a3); }
 
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
@@ -906,22 +905,24 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     // The textures named in the registry file (without ".bmp") and their links.
     for (int t = 0; t < s.textureNames.size; ++t) {
-        void* owner = u->Object3D()->attached;
-        SceneTexture* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
+        // The unit's material holder: its texture of the id (0051B2F0) named, then a material
+        // (0051B470) for each link of the id.
+        auto* owner = static_cast<CObject3DClientSpecific*>(u->Object3D()->attached);
+        mfc::CString& texture = *owner->FindOrAddTexture(static_cast<int>(s.textureNames.Id(t)))->Name();
         bool bmp = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s.textureNames.Name(t).Right(4))),
                                    reinterpret_cast<const unsigned char*>(scenedata::BmpExtText())) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
-            texture->name = static_cast<const char*>(name.Left(Length(name) - 4));
+            texture = static_cast<const char*>(name.Left(Length(name) - 4));
         } else {
-            texture->name = static_cast<const char*>(s.textureNames.Name(t));
+            texture = static_cast<const char*>(s.textureNames.Name(t));
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
             // The manager context's slot 33 (CWorld::MaterialManager).
             void* manager = static_cast<CWorld*>(ManagerContextOf(fakeUnit))->MaterialManager();
             std::uint32_t id = s.textureLinks.Record(l).id;
             if (id != s.textureNames.Id(t)) continue;
-            SceneTexture* linked = AddTextureLink(owner, nullptr, id, s.textureLinks.Record(l).value);
+            CMaterial* linked = owner->FindOrAddMaterial(static_cast<int>(id), static_cast<int>(s.textureLinks.Record(l).value));
             linked->name = static_cast<const char*>(s.textureNames.Name(t));
             RegisterTexture(manager, nullptr, linked, s.textureLinks.Record(l).value);
         }

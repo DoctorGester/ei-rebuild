@@ -39,8 +39,6 @@
 #include <cmath>
 #include <cstring>
 
-// 0040FB20 (camera_object.cpp): the point the camera is placed by.
-const Vector3* __fastcall CameraAnchor(const CCamera* self);
 
 namespace {
 

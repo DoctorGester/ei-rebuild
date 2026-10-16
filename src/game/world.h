@@ -436,7 +436,9 @@ struct SharedObject {
     // (an MFC row: the array's destructor 0059A100 at +0x0C, every object released), then operator
     // delete when bit 0 of the flags is set. Returns this.
     SharedObject* DeletingDestruct(unsigned flags);
-    void Load(WorldStream* stream);           // 00589CA0 (RET 4)
+    // 00589CA0 (RET 4; world_save.cpp). Reads the entry: id, player, value, then object ids resolved
+    // by the item manager (007AFFB4); each found object is appended with a reference.
+    void Load(WorldStream* stream);
 };
 static_assert(sizeof(SharedObject) == 0x20);
 // MFC CList<SharedObject> (its NewNode 0059CA60 constructs the element).
@@ -2098,10 +2100,6 @@ inline int& NextClientObjectId() { return *reinterpret_cast<int*>(0x007AF63C); }
 // 007AFFB4: the world server's item manager (the item factory, CWorld slot 18 / itemManager_).
 inline CEngineObject* WorldItemManager() { return *reinterpret_cast<CEngineObject* const*>(0x007AFFB4); }
 
-// 00589CA0 (thiscall on a shared-object entry, RET 4; world_save.cpp). Reads an entry of the
-// shared-object list: id, player, value, then object ids resolved by the item manager (007AFFB4);
-// each found object is appended with a reference.
-void __fastcall LoadSharedObject(void* entry, void*, WorldStream* stream);
 
 // 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A
 // lightning strike from `from` to `to`, as a script line on the queue at 007C29CC: one time in
