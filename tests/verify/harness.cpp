@@ -198,7 +198,7 @@
 // off, saves and config\tutorial.ini kept in harness_saves next to the DLL, every other write under
 // the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...) going to a
 // copy-on-write overlay there too, no registry writes, and a UDP port of its own for the multiplayer
-// sessions instead of 8888 (harness_net.h).
+// sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "verify.h"
@@ -945,6 +945,7 @@ void WriteReport() {
     for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
     noforeground::Report(f);
+    netlocal::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
@@ -2567,9 +2568,10 @@ void LogMainThreadStackBounded() {
 
 DWORD WINAPI Watchdog(void*) {
     const DWORD start = GetTickCount();
-    for (;;) {
+    for (unsigned beat = 1;; ++beat) {
         Sleep(250);
         if (g_watchdogStopped) Sleep(INFINITE);
+        if (beat % 4 == 0) netlocal::Scan();   // binds outside loopback, whoever made them (harness_net.h)
         if (g_quitting) {
             Sleep(5000);
             Log("harness: the game did not exit 5 s after quit; terminating it");
@@ -2951,7 +2953,7 @@ struct Harness {
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
-        net_port::Install();   // a UDP port of its own (harness_net.h)
+        netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
         leftovers::Install();   // never-set blocks zeroed in the original too (harness_leftovers.h, SV7b3, SV7b2)
