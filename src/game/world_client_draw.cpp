@@ -252,7 +252,6 @@ void SortByModel(FrameList list, CTextureDevice* renderer) {
     CEngineObject** first = v.begin();
     CEngineObject** last = v.end();
     if (first == last) return;
-    if (g_drawSortCheck) g_drawSortCheck(list, first, last);
     IntroSortByModelAt(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, renderer);
     FinalSortByModelAt(first, last, renderer);
 }
@@ -298,8 +297,6 @@ template <typename T>
 bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
 
 } // namespace
-
-void (*g_drawSortCheck)(FrameList list, CEngineObject** first, CEngineObject** last) = nullptr;
 
 int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;

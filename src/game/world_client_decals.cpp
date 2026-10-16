@@ -2,8 +2,8 @@
 // The decal builder (ground_decal.h) is a function-local static of the original (007AF488, guard
 // bit 1 of 007AF504), as is the work array of transformed part points (007AF478, bit 2); both are
 // made on first use and freed at exit by the original's handlers. The builder's members are called
-// through their addresses so that their verify wrappers stay in the path (AddTriangle's rewrite is
-// unhooked: tests/verify/disabled.txt). See docs/notes/models.md ("Ground prints").
+// through their addresses (the verify wrappers' path until S21d; AddTriangle's rewrite was left out of
+// game.exe by disabled.txt until S21e, the image runs it). See docs/notes/models.md ("Ground prints").
 #include "world.h"
 
 #include "figure_mesh.h"          // VertexPacket, MeshCorner

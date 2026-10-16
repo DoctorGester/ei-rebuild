@@ -1,8 +1,9 @@
 # Worker brief (common part)
 
 You are working on a C++ rebuild of Evil Islands' game.exe (1.06, MSVC6) in the repo at your
-current working directory (a git worktree of E:\workspace\ei). Rewritten functions replace the
-originals in the running game through a hook DLL. Your task is ONE ticket, given in your prompt;
+current working directory (a git worktree of E:\workspace\ei). The product is the standalone image:
+ei_standalone.exe lays out game.exe's data without its code, and ei_hook.dll writes a jump to each
+rewritten function at its original address. Your task is ONE ticket, given in your prompt;
 do it, commit, report, and stop. Don't start other work.
 
 First commands: merge main into your worktree, then `python tools/work.py start <ID>` (registers you
@@ -31,8 +32,8 @@ Rules:
   It queues behind other workers' batches on the machine's 16 game slots and runs to completion, also
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
-  `--no-hooks` runs the original (golden recording; with `EI_VECTORS=1`, vector recording). Since S21c no tool
-  runs our code inside game.exe; the verify wrappers were deleted in S21d. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
+  `--no-hooks` runs the original (golden recording; with `EI_VECTORS=1`, vector recording). game.exe only ever runs
+  as the original game (S21e: ei_launch always sets EI_NO_HOOKS for it; the vector recorders are its only hooks). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
@@ -42,7 +43,8 @@ Rules:
 - Write clean code (rewrite guide, "Clean code"): members not offsets, virtual calls not VCall,
   named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).
-- Build `build.cmd verify` and `build.cmd release` (your worktree's, by full path) with no errors
+- Build `build.cmd verify` (the harness build: the image plus the harness and the vector recorders,
+  what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
   or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
   (vector recorders) and the checks build.cmd runs at 0 problems.
 - Notes: append what you did to the ticket's notes file.

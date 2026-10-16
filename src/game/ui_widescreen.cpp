@@ -92,9 +92,6 @@ Layout g_layout;
 bool g_computed;
 
 int g_panelOffset;                 // ours (addon's 100BD0A0)
-int* g_panelOffsetAt = &g_panelOffset;
-
-float g_foundLayoutWidth, g_foundPanelRight;
 
 float ReadFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -106,49 +103,11 @@ void WriteFloat(std::uintptr_t address, float value) {
     VirtualProtect(p, sizeof(float), old, &old);
 }
 
-// addon's CUiRegion::SetRect (the target of its JMP at 005FC9E0) adds its panel offset with
-// ADD ECX,[offset] ... ADD EAX,[offset]: the variable's address is that operand. Only while addon's
-// code is there (a Rebirth launch, before our hooks): our builders then write that variable, and
-// addon's builders run by the verify build's side-by-side wrappers set the one our callees read.
-// Never in the standalone image (no addon, our jump at 005FC9E0).
-int* AddonPanelOffset() {
-    if (ei::Standalone()) return nullptr;
-    constexpr std::uintptr_t kSetRect = std::uintptr_t(0x005FC9E0);
-    const auto* start = reinterpret_cast<const std::uint8_t*>(kSetRect);
-    if (start[0] != 0xE9) return nullptr;
-    std::int32_t rel;
-    std::memcpy(&rel, start + 1, sizeof(rel));
-    const auto* handler = reinterpret_cast<const std::uint8_t*>(kSetRect + 5 + rel);
-    HMODULE owner = nullptr;
-    char name[MAX_PATH] = {};
-    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                            reinterpret_cast<LPCSTR>(handler), &owner) ||
-        !GetModuleFileNameA(owner, name, MAX_PATH))
-        return nullptr;
-    const char* file = std::strrchr(name, '\\');
-    if (_stricmp(file ? file + 1 : name, "addon.dll") != 0) return nullptr;
-    for (int i = 0; i + 12 < 0x60; ++i) {
-        if (handler[i] != 0x03 || handler[i + 1] != 0x0D) continue;   // ADD ECX,[m32]
-        std::uint32_t first;
-        std::memcpy(&first, handler + i + 2, sizeof(first));
-        for (int j = i + 6; j + 6 < 0x60; ++j) {
-            std::uint32_t second;
-            std::memcpy(&second, handler + j + 2, sizeof(second));
-            if (handler[j] == 0x03 && handler[j + 1] == 0x05 && second == first)   // ADD EAX,[same]
-                return reinterpret_cast<int*>(static_cast<std::uintptr_t>(first));
-        }
-        return nullptr;
-    }
-    return nullptr;
-}
-
-// Before the hooks are installed: the layout, the two widths written as addon writes them, and in a
-// Rebirth launch addon's panel offset shared.
+// Before the jumps are written (a startup action of the image): the layout, and the two widths written
+// as addon writes them.
 void Startup() {
     g_layout = Compute();
     g_computed = true;
-    g_foundLayoutWidth = ReadFloat(kLayoutWidthAddress);
-    g_foundPanelRight = ReadFloat(kPanelRightAddress);
     if (!g_layout.active) return;
     // addon: FILD extra; FADD 800.0 / 695.0 (doubles); FSTP dword.
     WriteFloat(kLayoutWidthAddress, static_cast<float>(g_layout.extra + 800.0));
@@ -156,10 +115,6 @@ void Startup() {
     ei::Log("WideScreen: %dx%d, 4:3 part %d, margin %d pixels = %d layout units; layout width %g, panel right %g",
             g_layout.width, g_layout.height, g_layout.width43, g_layout.margin, g_layout.extra,
             ReadFloat(kLayoutWidthAddress), ReadFloat(kPanelRightAddress));
-    if (int* addon = AddonPanelOffset()) {
-        g_panelOffsetAt = addon;
-        ei::Log("WideScreen: addon.dll's panel offset at %p: shared", static_cast<void*>(addon));
-    }
 }
 EI_STARTUP_ACTION(Startup);
 
@@ -178,8 +133,8 @@ const Layout& Get() {
     return g_layout;
 }
 
-int PanelOffset() { return *g_panelOffsetAt; }
-void SetPanelOffset(int offset) { *g_panelOffsetAt = offset; }
+int PanelOffset() { return g_panelOffset; }
+void SetPanelOffset(int offset) { g_panelOffset = offset; }
 
 int EdgeShift() {
     const Layout& l = Get();
@@ -283,7 +238,5 @@ void ShowHeroCurtains(CUiWindow* window, int mode) {
 // addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
 int LayoutRight() { return kLayoutWidth + Get().extra; }
 
-float FoundLayoutWidth() { return g_foundLayoutWidth; }
-float FoundPanelRight() { return g_foundPanelRight; }
 
 } // namespace widescreen

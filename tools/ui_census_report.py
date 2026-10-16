@@ -11,12 +11,8 @@ Call chains in the CSVs are code addresses: game.exe as is (named from config/fu
 E+offset in ei_hook.dll (named from build/verify/ei_hook.map, and given the game address the
 function replaces from the EI_REPLACE lines in src/), A+offset in addon.dll. The call site of a row
 is the first frame that is not MFC / library code and not one of the surface helpers (GetDC,
-DrawTextIn, the fills, the text extent); the helpers passed on the way are its "via".
-
-Verify wrappers run a rewritten function's original body as well as ours, so a call made from game
-code inside a rewritten function (up to the site) is that duplicate: it is counted apart
-("verify_dup") and left out of the counts. In a Rebirth run the functions Rebirth patches run their
-game code for real (docs/rebirth-patched-functions.txt), so they are not taken for duplicates there.
+DrawTextIn, the fills, the text extent); the helpers passed on the way are its "via". A run of the
+standalone image counts under its data's install (standalone: vanilla, standalone-rebirth: rebirth).
 """
 import argparse, bisect, collections, csv, glob, os, re, sys
 
@@ -37,17 +33,8 @@ WRAPPERS = {
 HELPER_NAMES = re.compile(r'GameDC::|SurfaceDC::|CallSlot|SurfaceDrawText|SurfaceDraw::|ui_gdi::|census::|'
                           r'SurfaceGetDC|SurfaceReleaseDC|SurfaceFill|SurfaceClear|SurfaceFrameRect|'
                           r'GameFont::|GamePen::|GameBrush::|ComCall|LockSurface|UnlockSurface|\bBlt\b|'
-                          r'Verify|RawBytes|ReadLevels|FillLevels|lambda|CreateFontA|ei::verify|std::|'
+                          r'RawBytes|ReadLevels|FillLevels|lambda|CreateFontA|std::|'
                           r'ObservePixels|CUiSurface::(CaptureScreen|Rgb565Copy|Greyscale|SwapContents)')
-# The verify wrappers' own pixel helpers (tests/verify): they lock and read surfaces to compare the
-# original body with ours, so their reads are not the game's, and a chain that passes one is inside a
-# verify wrapper whose bodies run more than once (its counts are high by up to 3-4x).
-VERIFY_ONLY = re.compile(r'\b(AccessPixels|CopySurfaceDC|WindowBytes|DiffPixels|FirstDifferentRow|CompareDrawing)\b')
-# A whole-surface pixel helper's row (g_uiSurfacePixelObserver) that a verify wrapper's CompareDrawing
-# called is still the game's call: the wrapper hooks the game's own call, runs the original body
-# (which the observer does not see) and ours once, so ours is that call, not an extra one.
-PIXEL_HELPERS = re.compile(r'(CaptureScreen|Rgb565Copy|Greyscale|PixelAt|SwapContents)')
-VERIFY_ONLY_PIXEL_HELPER = re.compile(r'(AccessPixels|CopySurfaceDC|WindowBytes|DiffPixels|FirstDifferentRow)')
 KINDS_ORDER = ['text', 'draw', 'write', 'read', 'metric', 'state', 'font', 'dc', 'uncaught']
 
 
@@ -79,16 +66,6 @@ def load_replacements(bare_only=False):
     return out
 
 
-def load_rebirth_patched():
-    out = set()
-    path = os.path.join(ROOT, 'docs', 'rebirth-patched-functions.txt')
-    for line in open(path, encoding='utf-8', errors='replace'):
-        m = re.match(r'([0-9A-F]{8})\s', line)
-        if m:
-            out.add(int(m.group(1), 16))
-    return out
-
-
 def plain_name(decorated):
     """?Name@Class@ns@@... -> ns::Class::Name (enough to read; no undname needed)."""
     if not decorated.startswith('?'):
@@ -112,12 +89,10 @@ class Resolver:
         # so: the bare aliases of qualified names (Send for SessionBase::Send) would make every
         # function called Send, a lambda in an anonymous namespace among them, the game's.
         self.replaced_bare = load_replacements(bare_only=True)
-        self.replaced_addresses = set(self.replaced.values())
         self.our_names = {}
         for name, address in self.replaced.items():
             if '::' in name or address not in self.our_names:
                 self.our_names[address] = name
-        self.rebirth_patched = load_rebirth_patched()
         self.cache = {}
 
     def frame(self, token):
@@ -155,24 +130,16 @@ class Resolver:
         self.cache[token] = out
         return out
 
-    def site(self, chain, install='vanilla', skipped=frozenset(), primitive=''):
-        """(site, via, rebirth, duplicate, verify): the first caller frame (with the rewritten or game
-        function it lies in when it is a helper of ours without a game address), the surface
-        helpers before it, addon code involved, whether the call ran in a verify wrapper's
-        original body, and whether a verify pixel helper is on the stack."""
+    def site(self, chain):
+        """(site, via, rebirth): the first caller frame (with the rewritten or game function it lies in
+        when it is a helper of ours without a game address), the surface helpers before it, and whether
+        addon code is involved."""
         tokens = [t for t in chain.split() if t and t != '?']
         via = []
-        rebirth = duplicate = False
-        only = VERIFY_ONLY_PIXEL_HELPER if PIXEL_HELPERS.match(primitive) else VERIFY_ONLY
-        verify = any(only.search(self.frame(t)[0]) for t in tokens)
+        rebirth = False
         site = None
         for i, token in enumerate(tokens):
             label, address, category = self.frame(token)
-            if VERIFY_ONLY.search(label):
-                continue
-            if (re.fullmatch(r'[0-9A-F]{8}', token) and address in self.replaced_addresses and
-                    not (install == 'rebirth' and address in self.rebirth_patched) and address not in skipped):
-                duplicate = True
             if category == 'addon':
                 rebirth = True
                 site = label
@@ -182,8 +149,7 @@ class Resolver:
                 if address is None:   # one of ours with no game address: name the function it is in
                     for later in tokens[i + 1:i + 4]:
                         outer, outer_address, outer_category = self.frame(later)
-                        if (outer_address is not None and outer_category in ('game', 'ei') and
-                                not VERIFY_ONLY.search(outer)):
+                        if outer_address is not None and outer_category in ('game', 'ei'):
                             site += ' < ' + outer
                             break
                 break
@@ -191,7 +157,7 @@ class Resolver:
                 via.append(WRAPPERS[address])
         if site is None:
             site = self.frame(tokens[0])[0] if tokens else '?'
-        return site, ' > '.join(via), rebirth, duplicate, verify
+        return site, ' > '.join(via), rebirth
 
 
 def window_names():
@@ -256,24 +222,13 @@ def read_runs(paths):
         m = re.search(r'install=(\w+)', header)
         install = m.group(1) if m else folder.rsplit('-', 1)[-1]
         scenario = folder.rsplit('-', 1)[0] if '-' in folder else folder
+        for image in ('-standalone-rebirth', '-standalone'):
+            if folder.endswith(image):
+                scenario = folder[:-len(image)]
+        install = {'standalone': 'vanilla', 'standalone-rebirth': 'rebirth'}.get(install, install)
         rows = list(csv.DictReader([l for l in lines if not l.startswith('#')]))
-        runs.append((scenario, install, rows, skipped_hooks(os.path.dirname(f))))
+        runs.append((scenario, install, rows))
     return runs
-
-
-def skipped_hooks(folder):
-    """Game addresses whose hook the run left out ("SKIP <name> at <address>: ..." in its
-    ei_hook.log: patched by EI_Plugin.asi, by a Rebirth patch we do not implement, or by another
-    mod). Only the game code runs there, so it is not a verify wrapper's second run (CChatWindow::
-    Update 006095A0 under Rebirth, which EI_Plugin.asi patches)."""
-    out = set()
-    log = os.path.join(folder, 'ei_hook.log')
-    if os.path.exists(log):
-        for line in open(log, encoding='cp1251', errors='replace'):
-            m = re.search(r'\bSKIP \S+ at ([0-9A-F]{8}):', line)
-            if m:
-                out.add(int(m.group(1), 16))
-    return out
 
 
 def main():
@@ -292,7 +247,7 @@ def main():
     merged = collections.OrderedDict()
     surfaces = collections.defaultdict(lambda: collections.Counter())
     surface_runs = collections.defaultdict(set)
-    for scenario, install, rows, skipped in runs:
+    for scenario, install, rows in runs:
         for r in rows:
             owner = owner_name(r['owner'], names)
             if r['kind'] == 'surface':
@@ -304,16 +259,11 @@ def main():
                     c[k] = max(c[k], int(v)) if k == 'maxrun' else c[k] + int(v)
                 surface_runs[(owner, r['size'], install)].add(scenario)
                 continue
-            site, via, rebirth, duplicate, verify = res.site(r['chain'], install, skipped, r['primitive'])
-            if verify:
-                site += ' [in verify]'
+            site, via, rebirth = res.site(r['chain'])
             key = (owner, '', r['primitive'], r['kind'], site, via)
-            e = merged.setdefault(key, {'vanilla': 0, 'rebirth': 0, 'other': 0, 'dup': 0, 'frames': 0,
+            e = merged.setdefault(key, {'vanilla': 0, 'rebirth': 0, 'other': 0, 'frames': 0,
                                         'scenarios': set(), 'details': [], 'addon': False})
-            if duplicate:
-                e['dup'] += int(r['count'])
-            else:
-                e[install if install in ('vanilla', 'rebirth') else 'other'] += int(r['count'])
+            e[install if install in ('vanilla', 'rebirth') else 'other'] += int(r['count'])
             e['frames'] = max(e['frames'], int(r['frames']))
             e['scenarios'].add(scenario)
             e['addon'] |= rebirth
@@ -325,10 +275,10 @@ def main():
     with open(args.out, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
         w.writerow(['owner', 'size', 'primitive', 'kind', 'site', 'via', 'rebirth', 'vanilla_count', 'rebirth_count',
-                    'verify_dup', 'max_frames_in_a_run', 'scenarios', 'details'])
+                    'max_frames_in_a_run', 'scenarios', 'details'])
         for (owner, size, prim, kind, site, via), e in sorted(merged.items()):
             mark = 'addon' if e['addon'] else ('rebirth only' if e['rebirth'] and not e['vanilla'] else '')
-            w.writerow([owner, size, prim, kind, site, via, mark, e['vanilla'], e['rebirth'], e['dup'], e['frames'],
+            w.writerow([owner, size, prim, kind, site, via, mark, e['vanilla'], e['rebirth'], e['frames'],
                         ' '.join(sorted(e['scenarios'])), ' | '.join(e['details'])])
     print(f'{len(runs)} runs, {len(merged)} rows -> {args.out}')
     if not args.summary:
@@ -338,7 +288,7 @@ def main():
     print('\n== drawing per surface (text / draw / write kinds) ==')
     by_owner = collections.defaultdict(list)
     for (owner, size, prim, kind, site, via), e in merged.items():
-        if kind in ('text', 'draw', 'write') and not (kind == 'write' and site.endswith('[in verify]')):
+        if kind in ('text', 'draw', 'write'):
             by_owner[(owner, size)].append((prim, site, via, e))
     for (owner, size), items in sorted(by_owner.items()):
         print(f'{owner} {size}')
@@ -351,7 +301,7 @@ def main():
             p[3] |= e['addon']
         for prim, (v, rb, sites, addon) in sorted(prims.items()):
             if not v and not rb:
-                continue   # only verify wrappers' second calls
+                continue
             print(f'    {prim:24} vanilla {v:7} rebirth {rb:7}{"  ADDON" if addon else ""}')
             for s in sorted(sites)[:6]:
                 print(f'        {s}')
@@ -371,17 +321,11 @@ def main():
         if kind == 'font':
             print(f'    {prim:20} {e["vanilla"]:5} {e["rebirth"]:5} {site}  {" | ".join(e["details"])}')
 
-    print('\n== readers (not the per-frame blit 005FDA80, not ReleaseDC\'s empty lock, not verify helpers) ==')
-    verify_reads = collections.Counter()
+    print('\n== readers (not the per-frame blit 005FDA80, not ReleaseDC\'s empty lock) ==')
     for (owner, size, prim, kind, site, via), e in sorted(merged.items()):
-        if kind == 'read' and site.endswith('[in verify]'):
-            verify_reads[owner] += e['vanilla'] + e['rebirth']
-        elif kind == 'read' and not site.startswith('005FDA80') and 'ReleaseDC' not in via:
+        if kind == 'read' and not site.startswith('005FDA80') and 'ReleaseDC' not in via:
             print(f'    {owner} {size}: {prim} by {site}{" (via " + via + ")" if via else ""} '
                   f'v{e["vanilla"]} r{e["rebirth"]}  {" | ".join(e["details"][:2])}')
-
-    if verify_reads:
-        print('    verify helpers\' reads: ' + ', '.join(f'{o} {n}' for o, n in verify_reads.most_common()))
 
     print('\n== changes no hooked call explains ==')
     for (owner, size, prim, kind, site, via), e in sorted(merged.items()):

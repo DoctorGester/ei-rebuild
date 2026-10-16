@@ -46,8 +46,6 @@
 
 #pragma warning(disable : 4740) // inline assembly: no optimisation across it
 
-ScriptCommandObserver* g_scriptCommandObserver = nullptr;
-
 namespace {
 
 // ---- x87 helpers --------------------------------------------------------------------------------
@@ -776,7 +774,6 @@ BOOL ScriptRun::Execute(CScript* script) {
         for (int i = 0; i < cmd->subCalls.size; ++i)
             CalcParametersOrig(cmd, nullptr, script, &vars, &cmd->subCalls.data[i]);
         cont = 1;
-        if (g_scriptCommandObserver) g_scriptCommandObserver->before(this, script, cmd);
         bool done = false;
         if (scriptaddon::Enabled()) {   // Rebirth's AddNewScriptCommands (hook at 004B684E)
             scriptaddon::Call call{cmd, script, nullptr, &cont, this};
@@ -1596,7 +1593,6 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
 
-        if (g_scriptCommandObserver) g_scriptCommandObserver->after(this, script, cmd, cont);
         FreeTemporariesOrig(script);
         if (cont) ++index;
     }

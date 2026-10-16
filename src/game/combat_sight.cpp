@@ -439,23 +439,6 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     plan->rangeSq = outerSq;
     float reach = reachSq;
-    PlanTrace& trace = LastPlanTrace();
-    trace.now = now;
-    trace.duration = duration;
-    trace.ticks = ticks;
-    trace.castDelay = castDelay;
-    trace.heading = heading;
-    trace.turnSpeed = turnSpeed;
-    trace.reachSq = reachSq;
-    trace.outerSq = outerSq;
-    trace.predict = predict;
-    auto note = [&](int tick, float distanceSq, float turn, int turnTicks, std::uint8_t path) {
-        if (tick < 0 || tick >= 64) return;
-        trace.at[tick].distanceSq = distanceSq;
-        trace.at[tick].turn = turn;
-        trace.at[tick].turnTicks = turnTicks;
-        trace.at[tick].path = path;
-    };
     float best = std::bit_cast<float>(kBestStartBits);
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
@@ -473,21 +456,17 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             // Out of reach: wait while the target comes closer, give up once it moves off.
             if (!Greater(stored, best)) {
                 tryHere = false;
-                note(tick, stored, 0.0f, -1, 0);
             } else if (!LessOrUnordered(stored, outerSq)) {
-                note(tick, stored, 0.0f, -1, 1);
                 break;
             }
         }
         if (tryHere) {
             bool facingIt = (ZeroOrUnordered(delta.x) && ZeroOrUnordered(delta.y)) ||
                             (targetUnit && targetUnit->id_ == unit->id_);
-            float turnSeen = 0.0f;
             int turnTicks = -1;
             if (!facingIt) {
                 float turn = static_cast<float>(Fpatan(delta.y, delta.x) - heading);
                 turn = std::bit_cast<float>(Bits(turn) & 0x7FFFFFFFu);
-                turnSeen = turn;
                 double angle = turn;
                 if (Greater(turn, kPi)) angle = static_cast<double>(kPi) + kPi - turn;
                 if (!Greater(angle, kPercent)) {
@@ -498,11 +477,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 }
             }
             if (facingIt) {
-                if (!CallCanActFrom(order, &aim.x, tick + duration + now)) {
-                    note(tick, stored, turnSeen, turnTicks, 4);
-                    break;
-                }
-                note(tick, stored, turnSeen, turnTicks, 2);
+                if (!CallCanActFrom(order, &aim.x, tick + duration + now)) break;
                 plan->targetId = order->target ? order->target->id_ : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
@@ -517,7 +492,6 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 DestroySteps(&steps);
                 return true;
             }
-            note(tick, stored, turnSeen, turnTicks, 3);
         }
         best = stored;
     }

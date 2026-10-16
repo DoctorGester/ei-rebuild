@@ -9,7 +9,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-option(EI_VERIFY "Build ei_hook with the harness and the vector recorders (tests/verify, tests/vectors)" OFF)
+# Two builds (build.cmd): `release` is the product, the standalone image (ei_standalone.exe with ei_hook.dll's
+# code); `verify` is the harness build, the same image and code plus the harness (tests/verify: scenario runs
+# of the image, and of the original game.exe with EI_NO_HOOKS for goldens) and the vector recorders
+# (tests/vectors/record_*.cpp, installed only in the original game.exe with EI_VECTORS=1).
+option(EI_HARNESS "Build ei_hook with the harness and the vector recorders (tests/verify, tests/vectors)" OFF)
 
 # x87 floating point, as in the original: SSE rounds differently and would change behaviour.
 # /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
@@ -20,14 +24,14 @@ add_compile_options(/arch:IA32 /fp:precise /W4 /permissive- /utf-8)
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
 # The new renderer (docs/notes/renderer.md): sokol_gfx on Direct3D 11, switched on with EI_RENDER.
-# The verify build turns on sokol's validation layer (messages go to ei_hook.log).
+# The harness build turns on sokol's validation layer (messages go to ei_hook.log).
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES})
 target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
 # Interface text (render_text.cpp): the fonts' default folder while developing; a host can change it.
 target_compile_definitions(ei_render PRIVATE EI_FONT_DIR="${CMAKE_SOURCE_DIR}/third_party/fonts")
-if(EI_VERIFY)
+if(EI_HARNESS)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
 
@@ -45,11 +49,11 @@ add_library(ei_hook SHARED
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)
-if(EI_VERIFY)
-    file(GLOB EI_VERIFY_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
-    # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1).
+if(EI_HARNESS)
+    file(GLOB EI_HARNESS_SOURCES CONFIGURE_DEPENDS tests/verify/*.cpp)
+    # Function vector record mode (tests/vectors/vectors.h, EI_VECTORS=1 in game.exe).
     file(GLOB EI_RECORD_SOURCES CONFIGURE_DEPENDS tests/vectors/record_*.cpp)
-    target_sources(ei_hook PRIVATE ${EI_VERIFY_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
+    target_sources(ei_hook PRIVATE ${EI_HARNESS_SOURCES} ${EI_RECORD_SOURCES} tests/vectors/vectors_record.cpp)
 endif()
 # Hooks register themselves via static objects; keep them even if nothing references them.
 # /MAP: ei_hook.map lets the harness crash log (ei_hook+offset) be resolved to functions.
@@ -131,6 +135,3 @@ target_include_directories(ei_text_check PRIVATE src)
 target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
 target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 
-# Rewrites found broken in game: not hooked in game.exe (InstallHooks; the image runs them).
-add_custom_command(TARGET ei_hook POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/tests/verify/disabled.txt $<TARGET_FILE_DIR:ei_hook>/disabled.txt)

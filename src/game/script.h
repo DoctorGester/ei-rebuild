@@ -732,15 +732,6 @@ struct ScriptRun {
 };
 static_assert(sizeof(ScriptRun) == 0xB4);
 
-// Observer of ScriptRun::Execute (null in normal builds): `before` runs once a command's arguments
-// are evaluated, `after` once it ran (`cont` 0: the run waits on it), before the temporaries are
-// freed. The verify build installs one to check each command's effect.
-struct ScriptCommandObserver {
-    void (*before)(ScriptRun* run, CScript* script, SSCCmd* cmd);
-    void (*after)(ScriptRun* run, CScript* script, SSCCmd* cmd, int cont);
-};
-extern ScriptCommandObserver* g_scriptCommandObserver;
-
 // 004BCC60 (CScript::RunWorldScript). Adds a run of `block` (empty variables, no kill flag) at
 // the head of the run list; it first executes on the next tick.
 void __fastcall ScriptRunWorldScript(CScript* script, void* edx, ScriptDecl* block);

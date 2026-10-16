@@ -167,18 +167,13 @@ public:
     // carried spell's school, a frame behind it, the modifier marks of a spell container, and a
     // shade over items the strip's mode cannot take (virtual slot 43, CanEquip).
     void DrawItem(int pass, ItemCell* cell);
-    // The cached model of `item` (the model cache's entry for its slot 20 name), or null; leaves
-    // the cache untouched. For the verify wrapper.
-    std::uint8_t* CachedModel(CItem* item);
     // 005ED7B0 (RET 8). Draws the face of `cell`'s prototype: model "infa<model>me<n + 1>face" (the
     // figure prototype's +0xE8 model name, the prototype's +0x10) with texture "face<m|f><+0xC,
     // two digits>" ("m" for model "unhuma", "f" for "unhufe", else nothing), both cached as the
     // items are, tilted back by (y - 300) / 1000 radians, over the cell frame.
     void DrawHeroFace(int pass, HeroFaceCell* cell);
-    // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do),
-    // and the cached model of a name or null (cache untouched). For the verify wrapper.
+    // The face's model and texture names (the lookups insert unknown names as DrawHeroFace's do).
     static void FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture);
-    std::uint8_t* CachedModelNamed(const char* name);
     // 005EDD80. The screens' common Create: the icon window (+0x16C, CItemIconWindow, a child
     // with the screen's texture 0, built), textures "modifiers2" and "campslots", the display's
     // settings, and the caches' limits (30, or 20 with 00784754 set) applied (ui_item_screen.cpp).

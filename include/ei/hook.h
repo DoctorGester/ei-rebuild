@@ -1,9 +1,10 @@
 // Function replacement framework.
 //
-// While the rebuild is incomplete, ei_hook.dll is loaded into the original game.exe and every
-// function we have rewritten is redirected to the new code with a 5-byte JMP at its original
-// address. Functions not yet rewritten are reached through EI_ORIGINAL forwarders that jump
-// straight into game.exe.
+// The standalone image (ei_standalone.exe, docs/notes/standalone.md section 2) lays out game.exe's
+// headers and data without its code and loads ei_hook.dll, whose InstallHooks writes a 5-byte JMP to
+// each rewritten function at its original address (until S18 links the code in place). In game.exe,
+// which runs only as the original game (the original's harness), nothing of ours is installed but the
+// vector recorders (EI_RECORD, with EI_VECTORS=1). EI_ORIGINAL forwarders name original addresses.
 #pragma once
 
 #include <cstdint>
@@ -19,68 +20,29 @@ struct HookEntry {
     void* replacement;        // our implementation
     const char* name;
     HookEntry* next;
-    int stolen = 0;           // >0: build a trampoline from this many prologue bytes
+    int stolen = 0;           // recorders: build a trampoline from this many prologue bytes
     void** original = nullptr; // receives the trampoline (original function) address
-    bool record = false;      // vector recorder (EI_RECORD): installed only in record mode, then alone
-    bool recordOurs = false;  // EI_RECORD_OURS: our replacement's own entry leads to the recorder too
-    bool shortFunction = false; // EI_REPLACE_SHORT / EI_REPLACE_DISPATCH: installed in the standalone image only
-    bool dispatch = false;      // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
-    bool standaloneOnly = false; // EI_REPLACE_STANDALONE: the game's runtime (heap, exit list), image only
+    bool record = false;      // vector recorder (EI_RECORD): installed only in game.exe with EI_VECTORS=1
+    bool dispatch = false;    // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
 struct HookRegistrar {
     HookEntry entry;
     HookRegistrar(std::uintptr_t address, void* replacement, const char* name);
-    // Vector recorder (RecordRegistrar): runs the original through a trampoline. `stolen` must cover
+    // Vector recorder (EI_RECORD): runs the original through a trampoline. `stolen` must cover
     // whole instructions with no relative operands (tools/check_stolen.py).
     HookRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original);
 };
 
-// Record mode (tests/vectors, EI_VECTORS=1 in the verify build): a recorder runs the original through
-// its trampoline and keeps a sample of its calls as test vectors. In record mode it is the only hook
-// at its address; otherwise it is not installed.
-struct RecordRegistrar {
-    HookRegistrar registrar;
-    RecordRegistrar(std::uintptr_t address, void* recorder, const char* name, int stolen, void** original,
-                    bool ours = false)
-        : registrar(address, recorder, name, stolen, original) {
-        registrar.entry.recordOurs = ours;
-    }
-};
-
-// A game function under five bytes (src/game/short_functions.cpp): too short for a jump in game.exe,
-// so the hook build leaves it to the original; the standalone image, where the next function leaves
-// room, jumps to the replacement.
-struct ShortRegistrar {
-    HookRegistrar registrar;
-    ShortRegistrar(std::uintptr_t address, void* replacement, const char* name)
-        : registrar(address, replacement, name) {
-        registrar.entry.shortFunction = true;
-    }
-};
-
 // A game function that is itself a bare vtable dispatch (MOV EAX,[ECX]; JMP [EAX+n]) to another slot:
-// the replacement is compiled to the same bytes. The hook build leaves it to the original (an
-// identical jump); the standalone image jumps to the replacement, and the installer checks that its
-// dispatch bytes equal the original's.
+// the replacement is compiled to the same bytes, and the installer checks that its dispatch bytes
+// equal the original's.
 struct DispatchRegistrar {
     HookRegistrar registrar;
     DispatchRegistrar(std::uintptr_t address, void* replacement, const char* name)
         : registrar(address, replacement, name) {
-        registrar.entry.shortFunction = true;
         registrar.entry.dispatch = true;
-    }
-};
-
-// A library function whose state the hook build must keep sharing with the exe's remaining library
-// code (the CRT heap, operator new's handler, the atexit list): the hook build leaves the original;
-// the standalone image, which has no such code, jumps to the replacement.
-struct StandaloneRegistrar {
-    HookRegistrar registrar;
-    StandaloneRegistrar(std::uintptr_t address, void* replacement, const char* name)
-        : registrar(address, replacement, name) {
-        registrar.entry.standaloneOnly = true;
     }
 };
 
@@ -99,11 +61,11 @@ int InstallHooks();
 
 // The harness (verify build) patches `size` bytes of game code at `address` (`what`, a string
 // literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:
-// their registrations are left out as expected, not as unexpected skips.
+// in game.exe their recorders are left out as expected, not as unexpected skips.
 void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what);
-// Registrations InstallHooks left out for a reason other than the harness's or another mod's patches
-// (an unknown function start, a second hook on one address, ...): their rewrites never run. The
-// harness fails a run with any (SV6).
+// Registrations InstallHooks left out for a reason other than the harness's patches (an unknown
+// function start, a second hook on one address, ...): their rewrites never run. The harness fails a
+// run with any (SV6).
 int UnexpectedSkips();
 
 // True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): no
@@ -116,10 +78,9 @@ const char* StandaloneExePath();
 // of the blank code section), before the process ends: the harness (verify build) puts it in its report.
 void SetMissingCodeHandler(void (*handler)(const char* what));
 
-// Code that runs once, in every build, right before the hooks are installed: the Rebirth flags are
-// known and other mods' patches are in place, nothing is hooked yet (the standalone build runs it
-// at startup). For data a Rebirth patch rewrites before WinMain (the widescreen layout widths).
-// Not run with EI_NO_HOOKS.
+// Code that runs once in the standalone image, right before the jumps are written: the Rebirth flags
+// are known, nothing is hooked yet. For data a Rebirth patch rewrites before WinMain (the widescreen
+// layout widths). Never run in game.exe (the original game).
 struct StartupAction {
     void (*run)();
     const char* name;
@@ -130,7 +91,8 @@ struct StartupActionRegistrar {
     StartupActionRegistrar(void (*run)(), const char* name);
 };
 
-// Arranges for InstallHooks() to run when game.exe's WinMain is entered (after other mods patch).
+// game.exe (the original game's harness): arranges for InstallHooks() (the recorders), the coverage
+// breakpoints and the profiler to go in when WinMain is entered (after other mods patch).
 void InstallHooksAtWinMain();
 
 } // namespace ei
@@ -141,7 +103,7 @@ void InstallHooksAtWinMain();
 // InstallHooks would install (two plain replacements, two recorders).
 #pragma section(".eireg", read, write)
 namespace ei {
-enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegDispatch, kRegRecord, kRegRecordOurs };
+enum RegKind : int { kRegReplace, kRegStandalone, kRegShort, kRegDispatch, kRegRecord };
 struct RegRecord {
     std::uintptr_t address;
     const char* file;
@@ -163,20 +125,23 @@ struct RegRecord {
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
 // Register a method whose body is a tail call through the vtable, the same dispatch as the original's
-// own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar. Standalone image only.
+// own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar.
 #define EI_REPLACE_DISPATCH(addr, method) \
     EI_REG_RECORD(ei_reg_dispatch_, addr, ::ei::kRegDispatch); \
     static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
-// Replace the library function at `addr` in the standalone image only (StandaloneRegistrar).
+// Replace the library function at `addr`: the game's runtime (the CRT heap, operator new's handler, the
+// atexit list), which the image has instead of the exe's library code. Installed as EI_REPLACE; a kind
+// of its own for check_registrations and the dashboard's counts.
 #define EI_REPLACE_STANDALONE(addr, fn) \
     EI_REG_RECORD(ei_reg_standalone_, addr, ::ei::kRegStandalone); \
-    static ::ei::StandaloneRegistrar EI_CAT(ei_standalone_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
+    static ::ei::HookRegistrar EI_CAT(ei_standalone_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
-// Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
+// Replace the function under five bytes at `addr` (src/game/short_functions.cpp): the image writes its
+// jump over the room before the next function (tools/check_short_functions.py checks the kinds).
 #define EI_REPLACE_SHORT(addr, fn) \
     EI_REG_RECORD(ei_reg_short_, addr, ::ei::kRegShort); \
-    static ::ei::ShortRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
+    static ::ei::HookRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Define a function body that forwards to original code not rewritten yet. Works for any calling
 // convention (including __thiscall methods) because it is a bare jump with the stack untouched.
@@ -192,17 +157,15 @@ extern "C" void ei_replay_dispatch();
     { __asm { mov eax, addr } __asm { jmp eax } }
 #endif
 
-// Verification build only (tests/vectors/record_*.cpp): in record mode route `addr` to `recorder`, and
-// store in `orig` a trampoline running the original (its first `stolen` bytes, then a jump back).
-#define EI_RECORD(addr, recorder, stolen, orig)     EI_REG_RECORD(ei_reg_record_, addr, ::ei::kRegRecord);     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
+// Verify build only (tests/vectors/record_*.cpp): in game.exe with EI_VECTORS=1 (the original game, the
+// recorders its only hooks) route `addr` to `recorder`, and store in `orig` a trampoline running the
+// original (its first `stolen` bytes, then a jump back), which the recorder calls and samples.
+#define EI_RECORD(addr, recorder, stolen, orig) \
+    EI_REG_RECORD(ei_reg_record_, addr, ::ei::kRegRecord); \
+    static ::ei::HookRegistrar EI_CAT(ei_record_, __LINE__)( \
+        addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
 
-// EI_RECORD for a function whose callers are rewritten (they call our replacement directly, never the
-// address): in record mode our replacement's entry also jumps to the recorder, so their calls run the
-// original and are recorded too. Only for replacements of at least 5 bytes not shared with another
-// function.
-#define EI_RECORD_OURS(addr, recorder, stolen, orig)     EI_REG_RECORD(ei_reg_record_ours_, addr, ::ei::kRegRecordOurs);     static ::ei::RecordRegistrar EI_CAT(ei_record_, __LINE__)(         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig), true)
-
-// Run `fn` (void()) once before the hooks are installed, in every build (StartupAction).
+// Run `fn` (void()) once in the standalone image before the jumps are written (StartupAction).
 #define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)
 
 #define EI_CAT_(a, b) a##b

@@ -1,4 +1,4 @@
-"""Checks the stolen-byte counts of every EI_RECORD / EI_RECORD_OURS registration against the original code.
+"""Checks the stolen-byte counts of every EI_RECORD registration against the original code.
 
 A vector recorder (tests/vectors/record_*.cpp; EI_VECTORS recording in the original game) calls the
 original through a trampoline holding the function's first N bytes.
@@ -26,7 +26,7 @@ def main():
     total = 0
     for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp'))):
         text = open(path, encoding='utf-8').read()
-        for m in re.finditer(r'EI_(?:RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*[\w:<>]+\s*,\s*(\d+)\s*,', text):
+        for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*[\w:<>]+\s*,\s*(\d+)\s*,', text):
             address, stolen = int(m.group(1), 16), int(m.group(2))
             if stolen == 0:
                 continue

@@ -19,13 +19,11 @@ const char* const kNames[] = {
 };
 static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
 
-bool g_followAddon = true;
 int g_pluginNPlayers = 7;
 int g_pluginPause = 1;
 char g_secondMaster[256];
 char g_queued[1024];                         // QueueSpec runs before any C++ object may be used
 const Implements* g_implements = nullptr;    // constant-initialised: registrations come first
-const LiveStolen* g_liveStolen = nullptr;
 
 void SetAll(bool on) {
     for (bool& e : detail::g_enabled) e = on;
@@ -80,7 +78,6 @@ bool ApplySpec(const char* spec) {
         Patch patch;
         if (_stricmp(token, "all") == 0) SetAll(on);
         else if (_stricmp(token, "none") == 0) SetAll(!on);
-        else if (_stricmp(token, "FollowAddon") == 0) g_followAddon = on;
         else if (FromName(token, &patch)) Set(patch, on);
         else ok = false;
     }
@@ -98,7 +95,6 @@ void LoadSettings(const char* iniPath) {
         int value = static_cast<int>(GetPrivateProfileIntA("Rebirth", kNames[i], -1, iniPath));
         if (value >= 0) detail::g_enabled[i] = value != 0;
     }
-    g_followAddon = GetPrivateProfileIntA("Rebirth", "FollowAddon", 1, iniPath) != 0;
     GetPrivateProfileStringA("Rebirth", "SecondMaster", "", g_secondMaster, sizeof(g_secondMaster), iniPath);
     char env[1024];
     DWORD n = GetEnvironmentVariableA("EI_REBIRTH", env, sizeof(env));
@@ -106,30 +102,11 @@ void LoadSettings(const char* iniPath) {
     ApplySpec(g_queued);
 }
 
-bool FollowAddon() { return g_followAddon; }
-
 Implements::Implements(std::uintptr_t address_, const Patch* patches_, int count_)
     : address(address_), patches(patches_), count(count_), next(g_implements) {
     g_implements = this;
 }
 
 const Implements* FirstImplements() { return g_implements; }
-
-LiveStolen::LiveStolen(std::uintptr_t address_) : address(address_), next(g_liveStolen) { g_liveStolen = this; }
-
-bool LiveStolenAt(std::uintptr_t address) {
-    for (const LiveStolen* l = g_liveStolen; l; l = l->next)
-        if (l->address == address) return true;
-    return false;
-}
-
-bool ImplementsAt(std::uintptr_t address, Patch p) {
-    for (const Implements* i = g_implements; i; i = i->next) {
-        if (i->address != address) continue;
-        for (int k = 0; k < i->count; ++k)
-            if (i->patches[k] == p) return true;
-    }
-    return false;
-}
 
 } // namespace ei::rebirth

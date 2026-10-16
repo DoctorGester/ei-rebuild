@@ -163,7 +163,7 @@ def declarations(map_path=MAP):
 
 
 def registrations():
-    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_RECORD(_OURS)
+    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_RECORD
     ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/."""
     regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
@@ -178,7 +178,7 @@ def registrations():
         rel = os.path.relpath(path, ROOT)
         for m in re.finditer(r'EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
-        for m in re.finditer(r'EI_(?:RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
+        for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'record', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))

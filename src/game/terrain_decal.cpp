@@ -16,8 +16,8 @@ constexpr float kMargin = 1.0f;   // 0073B84C: one cell around the quad
 
 float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
 
-// 004D8490 through its address: the rewrite stays unhooked (tests/verify/disabled.txt, X17 / X18),
-// so the original runs.
+// 004D8490 through its address (the image runs our rewrite there; disabled.txt kept it out of
+// game.exe until S21e: X17 / X18's rare clip-edge differences, which the goldens have not shown).
 __declspec(naked) void __fastcall AddTerrainTriangleAt(DecalBuilder*, void*, const Vector3*, const Vector3*,
                                                        const Vector3*) EI_ORIGINAL(0x004D8490)
 

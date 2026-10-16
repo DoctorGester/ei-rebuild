@@ -3,16 +3,19 @@
 Readable C++ source for the Russian `game.exe` 1.06, rebuilt with modern MSVC (x86). The goal is
 identical behaviour, not identical bytes.
 
-While the rewrite is incomplete, `ei_hook.dll` is loaded into the original `game.exe` and each
-rewritten function replaces the original with a jump. Everything else still runs the original code.
+The product is the standalone image: `ei_standalone.exe` lays out the original `game.exe`'s headers and
+data without its code and loads `ei_hook.dll`, which writes a jump to each rewritten function at its original
+address (docs/notes/standalone.md). The original `game.exe` runs only as the original game, for the harness's
+references (goldens, function vectors, Rebirth's frames).
 
 ## Build
 
 Requires the VS 2022 Build Tools (MSVC 14.43, x86) at `E:\bin\vs\buildtools` (edit `build.cmd` if elsewhere).
 
 ```
-build.cmd release    # rewritten functions replace the originals
-build.cmd verify     # adds the harness (tests/verify) and the vector recorders (tests/vectors)
+build.cmd release    # the product: the standalone image (ei_standalone.exe, ei_hook.dll)
+build.cmd verify     # the harness build: the same image plus the harness (tests/verify) and the
+                     # vector recorders (tests/vectors); what harness.cmd, run_all and work.py run
 ```
 
 ## Run
@@ -24,13 +27,15 @@ launch-vanilla.cmd
 Starts the standalone image (`build\verify\ei_standalone.exe`: `run\vanilla`'s `game.exe` laid out without its
 code, our code from `ei_hook.dll`) on the GOG install's data in `F:\games\EvilIslands`, with our renderer
 (`ei_launch --standalone`, `EI_RENDER=new,present`). Nothing in the game folder is modified. The log is written next
-to the DLL: `build\<config>\ei_hook.log`. Since S21c no tool starts `game.exe` with our hooks
-(docs/notes/standalone.md section 5); `ei_launch` without `--standalone` (game.exe with the hooks) goes with S21e.
+to the DLL: `build\<config>\ei_hook.log`. `ei_launch` without `--standalone` starts the original `game.exe`
+with `ei_hook.dll` (the harness) and `EI_NO_HOOKS=1`: none of our code replaces the original there (since S21e;
+docs/notes/standalone.md section 5).
 
 ## Layout
 
 - `src/game/` rewritten game code. Each function notes its original address.
-- `src/hook/` the replacement framework (`include/ei/hook.h`).
+- `src/hook/` the replacement framework (`include/ei/hook.h`): the jumps into the image, the image's
+  start (`standalone.cpp`), and in game.exe the vector recorders, coverage and profiler.
 - `src/render/` the new renderer (sokol_gfx on Direct3D 11, `third_party/sokol`), switched on with
   `EI_RENDER=new` (`docs/notes/renderer.md`).
 - `tests/verify/` the harness (scenario runs of the image and of the original game), compiled into the `verify` build.

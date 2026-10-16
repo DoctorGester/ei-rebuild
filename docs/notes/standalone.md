@@ -1777,3 +1777,40 @@ guide "Verification": a rewrite is checked by a golden scenario that reaches it,
   216 from world update 600); two `--fresh` repeats of it were the same: S21c1's non-repeating original. `EI_VECTORS=1 units
   --no-hooks --vanilla-only`: PASS, 66 recorders the only hooks, 47 .vec files, merged into a scratch folder and replayed by
   ei_vectors with 0 problems. Tools' unit tests: 84 OK (test_work_sched's stand-in runs return empty counts).
+
+**S21e (2026-10-16): InstallHooks' game.exe mode out; `verify` is the harness build.** game.exe only ever runs as the original
+game; the standalone image is the only place our code runs.
+- src/hook/hook.cpp InstallHooks: in the image every replacement goes in (EI_REPLACE, _METHOD, _DISPATCH, _STANDALONE, _SHORT);
+  in game.exe nothing, except with EI_VECTORS=1 the vector recorders (refused, nothing installed, when addon.dll is loaded:
+  recordings are the vanilla code's). Gone: the game.exe replacement installation (HookEntry's shortFunction / standaloneOnly,
+  PaddingAfter's jumps over padding), disabled.txt (tests/verify/disabled.txt: 004D8490, 004D85F0, 004D7BD0, kept out of
+  game.exe since X18; the image always ran them), DumpPatchedFunctions (patched_functions.txt), the Rebirth checks. The
+  trampolines stay for the recorders (check_stolen reads 64 EI_RECORD lines; a units run installs 66 recorders). The
+  Rebirth settings (LoadSettings, SettingsOnly), the FPU line and the startup actions run in the image only.
+- Rebirth detection: rebirth_hook Detect / Check / RelocateStolen / DumpSites / DumpUnknownDiffs, rebirth_sites.inc and
+  tools/gen_rebirth_sites.py deleted; rebirth_hook keeps SettingsOnly and RebirthLaunch (the harness's starter). include/ei/rebirth.h:
+  FollowAddon, LiveStolen / EI_REBIRTH_LIVE_STOLEN (3 uses in ui_interface.cpp) and ImplementsAt gone; EI_REBIRTH_IMPLEMENTS stays as
+  documentation (nothing reads it at run time: S21h). config/rebirth_patches.csv stays (tools/rebirth/make_csv.py).
+- EI_RECORD_OURS (RedirectOurs: our replacement's entry jumping to the recorder) gone: with no rewrite running in game.exe the
+  original callers reach every recorder. The 9 uses are EI_RECORD; RegKind lost kRegRecordOurs (check_registrations, check_stolen,
+  check_signatures follow). EI_COVER=hooks gone (cover.cpp reads only an address file: rebirth_coverage.py).
+- tools/launcher/launch.cpp: game.exe always gets EI_NO_HOOKS=1 (the image never: an inherited one is cleared); `--no-hooks` is
+  accepted and changes nothing. run_all's NOT_GAME_ENV has EI_NO_HOOKS. A game.exe without it (injected by hand) still runs the
+  original, with a log line (the harness's leftover patches follow the variable).
+- Hook points only the wrappers set: g_drawSortCheck (world.h), g_scriptCommandObserver (script.h), PlanTrace (combat_plan.h,
+  combat_sight.cpp's notes), CItemScreen::CachedModel / CachedModelNamed, widescreen FoundLayoutWidth / FoundPanelRight and
+  AddonPanelOffset (addon's panel offset shared in a hooked Rebirth launch; the panel offset is ours alone now). The interface
+  census's observers stay (tests/verify/ui_census.cpp sets them). ui_census_report.py: no verify_dup / "[in verify]" rows, no
+  SKIP list; image runs count under their data's install.
+- Builds: CMake option EI_VERIFY is EI_HARNESS; build.cmd, CMakeLists, README, the brief and rewrite guide rule 9 (Rebirth's
+  patches are flags; the "call Rebirth-patched callees through their addresses" rule went with game.exe's mode) say what the
+  builds are: `release` the product (the image), `verify` the harness build (the image plus tests/verify and the recorders).
+- Size: 44 files, 1436 lines out, 285 in (hook.cpp 28.9 to 20.2 KB, rebirth_hook.cpp 18.2 to 1.3 KB, rebirth_sites.inc 18.2 KB).
+- Not done: harness_heap.cpp's SetOrderObserver / heap::Aside (S21c1's file; S21g), EI_PROFILE in the image (InstallProfiler is
+  only called at game.exe's WinMain, so image runs sample nothing; S21f).
+- Runs (`work.py test S21e ... --jobs 4`): both builds no errors or warnings, every build.cmd check 0, check_x87 / check_stolen
+  (64) / check_signatures 0; tools' unit tests 84 OK. `--golden` (the image): 186 runs ALL PASS, 175 goldens the same, 0 differ.
+  `--no-hooks --golden --fresh units movement ui_saveload spells`: 8 runs PASS (ei_hook.log "game.exe: running the original game
+  code", 0 hooks), 7 the same, spells on Rebirth differs (Wolf4's #unit field from world update 180): S21c1's non-repeating
+  original. `EI_VECTORS=1 units --no-hooks --vanilla-only --fresh`: PASS, 66 recorders the only hooks, 47 .vec files, merged
+  into a scratch folder and replayed by ei_vectors with 0 problems. `--widescreen`: 4 runs PASS, WIDESCREEN FRAMES MATCH.

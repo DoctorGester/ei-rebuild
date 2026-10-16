@@ -68,8 +68,7 @@ comes from a bug we already hit.
    the function has one; when it has none and a second file needs it, move it there instead of
    declaring another forwarder. Decide its signature from the disassembly (RET n, what callers read
    in EAX/AL/ST0). `build.cmd` runs `tools/check_forwarders.py`, which fails on any function newly
-   forwarded from more than one file. A rewritten function is called directly, except Rebirth-patched
-   ones (rule 9).
+   forwarded from more than one file. A rewritten function is called directly (rule 9).
    Naked functions cannot have members with constructors/destructors in the class layout path; use raw
    pointers in layouts where needed (see `mfc::CFile`).
 6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),
@@ -100,16 +99,14 @@ comes from a bug we already hit.
 
 8. **x87 compare semantics:** `FCOM; TEST AH,0x41; JNZ` means "jump if <= or NaN"; `TEST AH,1` means
    "less or NaN". Write `!(a > b)` / `!(a >= b)` so NaN behaves the same.
-9. **Mods patch the original in memory.** The installer compares each function's whole body with the
-   exe on disk and skips patched ones (they install only in the vanilla launch). When rewritten code
-   calls a function that a mod patches, call it through its original address (an `EI_ORIGINAL`
-   forwarder), not directly, so the mod's patch still runs. `docs/rebirth-patched-functions.txt`
-   lists every function Rebirth patches; check it for each callee you call directly. Rebirth also
-   overwrites some data constants in the exe at startup (00742B08, the interface's 800-pixel layout
-   width, becomes its widescreen width): read constants from the exe's memory, as the original
-   does, instead of compiling their values in. (The UI
-   scaling functions are on it; calling our copies made `CUiWindow::RegionAt` disagree under Rebirth.)
-   A rewrite may reproduce a Rebirth patch behind its flag (`ei::rebirth::Enabled(Patch::<name>)`,
+9. **Rebirth's patches are flags.** The standalone image never loads Rebirth's addon.dll or
+   EI_Plugin.asi; what they change in game.exe is our code's to reproduce. (Until S21e rewrites also
+   ran inside game.exe, where the installer skipped functions addon.dll had patched and rewritten
+   callers had to reach them through their original addresses; those `EI_ORIGINAL` calls are C13's
+   to make direct.) The image keeps Rebirth's data constants in memory as addon writes them (00742B08,
+   the interface's 800-pixel layout width, becomes its widescreen width in WideScreen's startup
+   action): read such constants from memory, as the original does, instead of compiling their values
+   in. A rewrite may reproduce a Rebirth patch behind its flag (`ei::rebirth::Enabled(Patch::<name>)`,
    `include/ei/rebirth.h`; what each patch does is in `docs/notes/rebirth.md` and
    `config/rebirth_patches.csv`). Declare it with `EI_REBIRTH_IMPLEMENTS(addr, Patch::<name>)`.
    Flags are off by default; with a flag off the code must behave exactly as the original; the image's

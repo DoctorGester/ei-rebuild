@@ -2,7 +2,7 @@
 patch #n, address, size), site_instr.txt (the original instructions at each site and the function
 it lies in), the tables below (summaries, statuses) and src/hook/function_sizes.inc.
 
-usage: python tools/rebirth/make_csv.py, then python tools/gen_rebirth_sites.py
+usage: python tools/rebirth/make_csv.py
 (docs/notes/rebirth.md, "Flags in the rebuild").
 """
 import csv, os, re
