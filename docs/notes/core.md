@@ -23,17 +23,16 @@ File: `core_maths.cpp`, `core_transform.cpp`, `core_transform_math.cpp`, `quater
 `random.cpp`. Verify: `verify_core_maths`, `verify_core_transform`, `verify_quaternion`,
 `verify_random_init`.
 
-| Address | Name | Verify |
-|---|---|---|
-| 0040CDC0, 00402200, 00410770, 004022D0 | `AddVectors` (`__fastcall`: out ECX, a EDX, b stack), `NegateVector`, `ScaleVector`, `ClampUnit` (`__stdcall`, [-1, 1], NaN gives -1) | pure, side by side |
-| 00410750 | `Vector3::AddInPlace` (returns its argument) | scratch copy |
-| 0040CB00, 004018A0 | `Quaternion::SetIdentity` (returns this), `PreMultiply` (`*this = r * *this`) | pure / scratch copy |
-| 0040D940, 0040F560, 0040D6B0 | `Quaternion::AxisX/Y/Z` | pure |
-| 0049E790, 0049E800, 0049E870, 0049E950, 0049ED20 | `SetAngleAxis`, `SetAxisAngle`, `PreMultiplyConjugate`, `MultiplyByConjugate`, `Slerp` | pure / scratch copy |
-| 0040E3D0, 0040E440, 0040E460 | `CubicSegment::SetBSpline`, `Evaluate`; `CubicCurve3::Evaluate` | writes its object only / pure |
-| 00401490, 0040CB80, 0040CC30, 00401510, 00401540 | `CTransformObject` slots 13-17: CopyTransform, CombineRotation, UpdateWorld, SaveTransform, LoadTransform | scratch copy; UpdateWorld on a scratch copy with the base vtable; Save / Load against a recording file |
-| 00401570, 00401680, 00401940, 00401B50, 00401E50, 00401F00, 00402220 | `CTransformObject` WorldMatrix (4x4), TiltTowards (down axis a tenth of the way to a target), TurnTowards (forward axis onto a target), RollTowards, Rotate(axis, angle), TurnUpTowards, SetHeading (atan2 about +Z) | scratch copy, rotation / matrix bitwise |
-| 004667F0, 0049EE70, 0049F150, 0049F660, 0049F4B0 | `IsaacRandom::Next`, `Refill`, `Init` (the generator is at 007A9D40), `Seed` (1 KB of a random file on drive C, xored with `rand()`; A-S10), `FindSeedFile` (its recursive CFileFind walk) | Init: original on a scratch copy with the seed material replayed through the wrapper on 0049F660; Seed ours only; FindSeedFile against the original (two walks) |
+Rewritten (grep the address): `AddVectors` 0040CDC0 (`__fastcall`: out ECX, a EDX, b stack), `NegateVector` 00402200, `ScaleVector`
+00410770, `ClampUnit` 004022D0 (`__stdcall`, [-1, 1], NaN gives -1), `Vector3::AddInPlace` 00410750 (returns its argument),
+`Quaternion::SetIdentity` 0040CB00 (returns this), `PreMultiply` 004018A0 (`*this = r * *this`), `AxisX/Y/Z` 0040D940 / 0040F560 /
+0040D6B0, `SetAngleAxis` 0049E790, `SetAxisAngle` 0049E800, `PreMultiplyConjugate` 0049E870, `MultiplyByConjugate` 0049E950, `Slerp`
+0049ED20, `CubicSegment::SetBSpline` 0040E3D0 / `Evaluate` 0040E440, `CubicCurve3::Evaluate` 0040E460, `CTransformObject` slots 13-17
+(CopyTransform 00401490, CombineRotation 0040CB80, UpdateWorld 0040CC30, SaveTransform 00401510, LoadTransform 00401540), WorldMatrix
+00401570 (4x4), TiltTowards 00401680 (down axis a tenth of the way to a target), TurnTowards 00401940 (forward axis onto a target),
+RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetHeading 00402220 (atan2 about +Z), `IsaacRandom::Next`
+004667F0, `Refill` 0049EE70, `Init` 0049F150 (the generator is at 007A9D40), `Seed` 0049F660 (1 KB of a random file on drive C, xored with
+`rand()`; A-S10), `FindSeedFile` 0049F4B0 (its recursive CFileFind walk).
 
 - `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
@@ -120,15 +119,16 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   reference and takes it back.
 - `CoderState` (0x2828) and the LZ coder are in `network.md` (compression).
 
-| Address | Name | Verify |
-|---|---|---|
-| 0041DD70, 004173D0 / 004790A0, 004173B0 / 004790D0, 00417350 | `CMemoryStream` Construct, Destruct (two copies), DeletingDestruct (two), Clear | scratch copy (buffer cleared where the original would free) |
-| 0047A200, 004174E0, 00417400 | `CStream` ConstructBase / DestructBase / DeletingDestruct | scratch copy |
-| 00412720 / 00413430, 00412730, 00419720, 00412700 | `CRefObject` / `RefValue` base destructors and deleting destructors | scratch copy |
-| 0047B940, 0047B620 | `AlignedPointerArrayAlloc`, `AlignedObjectArray::Clear` (32-byte aligned blocks, header pointer before the data) | ours only: alignment, emptied array |
-| 0042FCA0 | `CoderState::Construct` | scratch copy (0x2828 bytes) |
-| 0042BEC0-0042D0E0 (30) | `Chunk` Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write Float / Int / Byte / Vector3 / Quad / Quaternion / Bytes / Blob; 0042C580 ReadString, 0042C650 ReadEncodedString (content decoded by 004D8E10), 0042C820 WriteString, 0042CA20 / 0042CB80 Read / WriteStringArray; RootChunk Open / Destruct | recorded file (below); ForEachChild, strings through the recording proxy; ForEachChild ours only |
-| 00409070-0040A5A0 (24) | `ChunkArchive` NextChild, FindChild, CountChildrenOf, CountChunks, Field, EnterChunk, LeaveChunk, AppendChild, ResizeToCurrent, `Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField (004093A0), StringField (00409470), StreamField (00409640), SaveObjectRef (0040A440), ObjectRef (0040A5A0) | pure side by side; EnterChunk original first (chunk popped) then ours; others ours only + depth / size; loading fields: original into a scratch |
+Rewritten (grep the address): `CMemoryStream` Construct 0041DD70, Destruct 004173D0 / 004790A0 (two copies), DeletingDestruct 004173B0 /
+004790D0, Clear 00417350; `CStream` ConstructBase 0047A200, DestructBase 004174E0, DeletingDestruct 00417400; `CRefObject` / `RefValue` base
+destructors and deleting destructors 00412720 / 00413430, 00412730, 00419720, 00412700; `AlignedPointerArrayAlloc` 0047B940 and
+`AlignedObjectArray::Clear` 0047B620 (32-byte aligned blocks, header pointer before the data); `CoderState::Construct` 0042FCA0; the `Chunk`
+family 0042BEC0-0042D0E0 (Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write
+Float / Int / Byte / Vector3 / Quad / Quaternion / Bytes / Blob; ReadString 0042C580, ReadEncodedString 0042C650 (content decoded by 004D8E10),
+WriteString 0042C820, ReadStringArray 0042CA20, WriteStringArray 0042CB80; RootChunk Open / Destruct); the `ChunkArchive` family
+00409070-0040A5A0 (NextChild, FindChild, CountChildrenOf, CountChunks, Field, EnterChunk, LeaveChunk, AppendChild, ResizeToCurrent,
+`Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField 004093A0, StringField 00409470, StreamField 00409640,
+SaveObjectRef 0040A440, ObjectRef 0040A5A0).
 
 - Recorded-file verify (chunks, FileStream, transform save / load): ours runs with the CFile's vtable swapped for a
   recorder, the original on a byte copy whose CFile replays the log; calls, bytes, chunk chains and outputs compared
@@ -171,18 +171,17 @@ Layout is in `camera.h` (named members). Not obvious from it: flags 0x8 follow t
 bounded, 0x200 briefing limits; the view stack at +0x1E0 is a deque (push 00410E70 / pop 00410EF0, no Ghidra functions); keys at +0x2F0 are 0x24 bytes (time, ?,
 position, rotation); +0x2E0..+0x2E8 near / far / fov are read by `renderer_init`; pitch is kept in degrees (+0x104, settings +0x1D8 / +0x1DC).
 
-| Address | Name | Verify |
-|---|---|---|
-| 0040FB30, 0040F8B0 | `Update(dt)` (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes), `ApplyView` | scratch copy of the first 0x120 bytes; Update ours only while shakes run |
-| 0040D9B0 | `SampleTerrain` (`__stdcall`, 9 args: average / min / max surface height on a grid) | outputs into scratch |
-| 0040F5C0, 0040F230, 0040F430, 004107A0 | `SetFocus`, `Pan`, `StopMotion`, `ZoomBy` (mouse wheel, 1.05^steps via `_CIpow`) | scratch copy |
-| 0040E810, 0040F360 / 0040F3C0 / 0040F420, 0040D3B0 / 0040D420 | `GroundPoint`, `SetTurnRate` / `SetTiltRate` / `SetZoomTarget`, `SetTarget` / `SetTargetId` | output / scratch copy |
-| 00410860 / 004108D0, 00411470, 00410D70 / 00410D10, 004109E0, 00410E50 / 00411060 / 00411360, 004110D0, 0040D710, 0040E4C0 | `SaveView` / `RestoreView` (F9-F12; a modifier saves), `SetDistancePitch`, `ViewsToSettings` / `FromSettings` (`_CIacos`), `SetHeading`, `SetFree` / `LookFrom` / `SetBounds`, `LookDirection`, `AlignToTarget`, `ClampAboveObjects` | scratch copy (0x1E0 + settings record) |
-| 004113A0 | `Shake` (distance by `_hypot`, node added to the list at +0x108) | original on a scratch camera with a private list, ours on the real one; new node compared |
-| 0040F1B0 / 0040EFB0 | `PlaybackStart` / `PlaybackStep` (camera\*.cam, PlayCamera) | scratch copy (0x308) + result |
-| 0040C8B0 .. 0040FB20 (17) | constructor, destructors, class name / id, Create / Destroy, Init, GetRange, Anchor, engine-object / transform destructors | `BuiltCompare`, side by side |
-| 0040E910 / 0040EB60 / 0040ECB0, 00410AB0 / 00410C10 | OpenFile (`.\camera\` + name; an existing camera.cam renamed first) / RecordFrame / CloseFile; LoadState / SaveState (slots 0073BA04 / 08) | ours; recording only with camera recording on |
-| 00412120 | the recorded-path array allocation (36-byte records, 32-byte aligned) | |
+Rewritten (grep the address): `Update(dt)` 0040FB30 (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes),
+`ApplyView` 0040F8B0, `SampleTerrain` 0040D9B0 (`__stdcall`, 9 args: average / min / max surface height on a grid), `SetFocus` 0040F5C0,
+`Pan` 0040F230, `StopMotion` 0040F430, `ZoomBy` 004107A0 (mouse wheel, 1.05^steps via `_CIpow`), `GroundPoint` 0040E810,
+`SetTurnRate` / `SetTiltRate` / `SetZoomTarget` 0040F360 / 0040F3C0 / 0040F420, `SetTarget` / `SetTargetId` 0040D3B0 / 0040D420,
+`SaveView` / `RestoreView` 00410860 / 004108D0 (F9-F12; a modifier saves), `SetDistancePitch` 00411470, `ViewsToSettings` /
+`FromSettings` 00410D70 / 00410D10 (`_CIacos`), `SetHeading` 004109E0, `SetFree` / `LookFrom` / `SetBounds` 00410E50 / 00411060 /
+00411360, `LookDirection` 004110D0, `AlignToTarget` 0040D710, `ClampAboveObjects` 0040E4C0, `Shake` 004113A0 (distance by `_hypot`, node
+added to the list at +0x108), `PlaybackStart` / `PlaybackStep` 0040F1B0 / 0040EFB0 (camera\*.cam, PlayCamera), the constructor,
+destructors, class name / id, Create / Destroy, Init, GetRange, Anchor in 0040C8B0 .. 0040FB20, OpenFile 0040E910 (`.\camera\` + name; an
+existing camera.cam renamed first) / RecordFrame 0040EB60 / CloseFile 0040ECB0, LoadState / SaveState 00410AB0 / 00410C10 (slots 0073BA04 /
+08; recording only with camera recording on), the recorded-path array allocation 00412120 (36-byte records, 32-byte aligned).
 
 Float notes: `camera.cpp` and `camera_motion.cpp` use `float_control(precise, on)`; constants the
 original multiplies at run time (pi, 1/180, 90, 1.05, the 0 of `StopMotion`) are read from the exe
