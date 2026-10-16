@@ -24,7 +24,6 @@ __declspec(naked) inline void* __fastcall ManagerContextOf(const void* /*object*
 __declspec(naked) inline void* __fastcall ObjectWorld(const void* /*object*/) EI_ORIGINAL(0x00455950)
 __declspec(naked) inline std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const char*) EI_ORIGINAL(0x0045E850)
 __declspec(naked) inline void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
-__declspec(naked) inline void __fastcall SessionPump(void*, void*, void*) EI_ORIGINAL(0x00479E30)
 // Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
 // 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
 __declspec(naked) inline int __fastcall TextsOpenSection(void* /*texts*/, void*, const char* /*key*/)
@@ -39,8 +38,6 @@ __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, floa
 // (RET 8, EAX 0/1).
 __declspec(naked) inline float __fastcall NamedTableGet(void* /*table*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x00460AF0)
-__declspec(naked) inline void __fastcall NamedTableSet(void* /*table*/, void*, const char* /*name*/,
-                                                       std::uint32_t /*valueBits*/) EI_ORIGINAL(0x00460BC0)
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 

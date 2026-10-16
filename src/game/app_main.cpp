@@ -171,21 +171,13 @@ void* PartyRecordFactory() { return &Global<char>(0x00457740); }
 // 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
 __declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
 __declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
-// The client world's graphics (00563710, RET 4).
-__declspec(naked) void __fastcall ClientSetUpGraphicsAt(CWorldClient*, void*, CTextureDevice*) EI_ORIGINAL(0x00563710)
 // The camera: 0040D0A0 (RET 0x10) Init, 0040FB30 (RET 4) the update, 0040EB60 / 0040EFB0 (RET 4) a
 // frame written to / read from the camera file at a time in ticks.
-__declspec(naked) int __fastcall CameraInitAt(CCamera*, void*, GameOptions*, float /*nearClip*/, float /*farClip*/, float /*fieldOfView*/)
-    EI_ORIGINAL(0x0040D0A0)
 __declspec(naked) void __fastcall CameraUpdateAt(CCamera*, void*, float /*seconds*/) EI_ORIGINAL(0x0040FB30)
-__declspec(naked) int __fastcall CameraRecordFrameAt(CCamera*, void*, float /*time*/) EI_ORIGINAL(0x0040EB60)
 // The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
-__declspec(naked) void __fastcall RendererCreateAt(CSceneRenderer*, void*, HWND, GameOptions*) EI_ORIGINAL(0x00500B70)
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
 // registry file, 006B7060 / 006B7AB0 (RET 4) the wave archives, the three volumes (RET 4).
-__declspec(naked) int __fastcall SoundOpenAt(CSoundManager*, void*, HWND, int /*reverb*/, int /*device*/, unsigned /*rate*/, int /*bits*/)
-    EI_ORIGINAL(0x006B6A30)
 __declspec(naked) int __fastcall SoundSetPathAt(CSoundManager*, void*, const char* /*folder*/, const char* /*registry*/) EI_ORIGINAL(0x006BAE20)
 // The databases read from the resources folder (RET 4; the others are in originals_world.h).
 // 00463390 is patched by Rebirth.
@@ -418,7 +410,7 @@ DWORD CreateRenderer() {
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    RendererCreateAt(static_cast<CSceneRenderer*>(DisplayObject()), nullptr, MainWindow(), options);
+    static_cast<CSceneRenderer*>(DisplayObject())->CreateRendererImpl(MainWindow(), options);
 
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
@@ -445,7 +437,7 @@ std::uintptr_t OpenSound() {
     mfc::CString textFolder(TextFolder());
     mfc::CString dataFolder(DataFolder());
     mfc::CString discFolder(DiscFolder());
-    SoundOpenAt(Sound(), nullptr, MainWindow(), 1, -1, 44100, 16);
+    Sound()->Open(MainWindow(), 1, -1, 44100, 16);
     {
         mfc::CString registry = textFolder + game::Text(0x0078485C);   // "streamsn.reg"
         mfc::CString folder = dataFolder + game::Text(0x00784854);     // "stream\"
@@ -665,7 +657,7 @@ bool RunPass() {
         FrameCameraUpdate()(camera, nullptr, CameraSeconds(elapsed));
         if (!client->paused_) {
             if (camera->flags_ & CCamera::kRecording)
-                CameraRecordFrameAt(camera, nullptr, static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
+                camera->RecordFrame(std::bit_cast<std::uint32_t>(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_)));
             if (camera->flags_ & CCamera::kPlaying)
                 camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
         }
@@ -745,8 +737,9 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     Client()->Setup();
     Server()->Setup();
     // The field of view: pi * 2 / 7 (51.4 degrees).
-    CameraInitAt(Camera(), nullptr, options, options->nearClipDistance_, options->farClipDistance_,
-                 static_cast<float>(ExeDouble(0x0073C308) * ExeDouble(0x0073B9D8)));
+    Camera()->Init(reinterpret_cast<CameraSettings*>(options), std::bit_cast<std::uint32_t>(options->nearClipDistance_),
+                   std::bit_cast<std::uint32_t>(options->farClipDistance_),
+                   std::bit_cast<std::uint32_t>(static_cast<float>(ExeDouble(0x0073C308) * ExeDouble(0x0073B9D8))));
     Client()->SetCamera(Camera());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
@@ -774,7 +767,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     CloseLoadingMovie();
     LoadDatabases();
     Mouse()->Setup(MainWindow(), instance);
-    ClientSetUpGraphicsAt(Client(), nullptr, RenderDeviceObject());
+    Client()->SetUpGraphics(RenderDeviceObject());
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursorsOriginal(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,

@@ -100,7 +100,7 @@ __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORI
 // 00460AF0 / 00460BC0. Named float table Get (ST0) / Set (RET 8).
 double VariableGet(NamedFloatTable* table, const char* name) { return (double)NamedTableGet(table, nullptr, name); }
 void VariableSet(NamedFloatTable* table, const char* name, float value) {
-    NamedTableSet(table, nullptr, name, std::bit_cast<std::uint32_t>(value));
+    static_cast<NamedFloatTable*>(table)->Set(name, value);
 }
 // 0057C460 (RET 8). Starts zone `zone` (mode 2: the main menu). Patched by Rebirth: original address.
 __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
@@ -1884,7 +1884,7 @@ __declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
 void __fastcall VariablesConstruct(NamedFloatTable* a0) { NamedTableConstructOriginal(a0); }
 __declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
-void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { NamedTableSet(table, nullptr, name, bits); }
+void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
 inline void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 __declspec(naked) void __fastcall FlowVariableChanged(void*, void*, const void*) EI_ORIGINAL(0x00580840)

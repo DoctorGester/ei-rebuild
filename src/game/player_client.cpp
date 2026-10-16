@@ -3,6 +3,7 @@
 
 #include "ai_map.h"
 #include "map_object_shadow.h"
+#include "object_tables.h"
 #include "player_client.h"
 
 #include "camera.h"
@@ -234,7 +235,7 @@ int CPlayerClient::OnSetVariable() {
     in_.Read(&value, 4);
     void* variables = &Owner()->Party()->variables_;
     NamedTableGet(variables, nullptr, name);
-    NamedTableSet(variables, nullptr, name, value);
+    static_cast<NamedFloatTable*>(variables)->Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
         static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, std::bit_cast<float>(value));
         static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, std::bit_cast<float>(value));

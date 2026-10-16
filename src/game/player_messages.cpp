@@ -1,6 +1,7 @@
 // CPlayerServer's message writers and the party record lookup. See player_messages.h and
 // docs/notes/objects.md.
 
+#include "object_tables.h"
 #include "player_messages.h"
 #include "item.h"
 #include "party.h"
@@ -22,7 +23,7 @@
 namespace {
 
 // The variables table (object_tables.cpp / not rewritten), through the game addresses.
-void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
+void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0047DA80: writes a state value into the stream; 006D4570: an object writes itself into one.
 __declspec(naked) void __fastcall StreamWriteState(BitStream* /*stream*/, void*, int /*value*/) EI_ORIGINAL(0x0047DA80)

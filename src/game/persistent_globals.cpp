@@ -26,7 +26,7 @@ namespace {
 
 // 00461540 (clear, FloatTableClearOriginal) and 00460BC0 (Set, RET 8: name, value) of the game's table, through
 // their addresses.
-void __fastcall TableSet(NamedFloatTable* a0, void*, const char* a2, float a3) { NamedTableSet((void*)a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
+void __fastcall TableSet(NamedFloatTable* a0, void*, const char* a2, float a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, a3); }
 
 // MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list,
 // two list positions per bucket (first and last of its range; end() when empty), mask and

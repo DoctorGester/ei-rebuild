@@ -41,7 +41,7 @@ void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // 00460BC0 (RET 8). Named float table Set.
-void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { NamedTableSet(a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
+void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, a3); }
 // Rewritten here, through their addresses.
 __declspec(naked) mfc::CString* __stdcall BriefingSpeakerAt(void* /*out*/, const char*) EI_ORIGINAL(0x0057FC90)
 

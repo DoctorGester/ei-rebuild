@@ -6,6 +6,7 @@
 // morph frame per frame of the animation whose points are the morph keys interpolated linearly in
 // between; then a child bone per child node. A node with a pivot other than (0, 0, 0) is a fatal
 // error. Names provisional; see docs/notes/objects.md ("Rewritten").
+#include "core_maths.h"
 #include "figure.h"
 #include "scene_loader.h"
 
@@ -144,7 +145,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             const Vector3* b = &KeyPoints(node, key).data[j];
             Vector3 d, s, r;
             VectorSubtract(&d, b, a);
-            VectorScaleCopyOriginal(&s, &d, toNext);
+            ScaleVector(&s, d, toNext);
             const Vector3* sum = VectorAdd(&r, a, &s);
             std::memcpy(p, sum, sizeof(Vector3));
         }

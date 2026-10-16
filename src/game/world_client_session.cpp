@@ -62,7 +62,7 @@ namespace {
 void PumpSources(CWorldClient* world) {
     if (CRefObject* source = world->shared5C_.ptr) static_cast<CPlayerSource*>(source)->Pump();
     if (CRefObject* source = world->handle_.ptr) static_cast<CPlayerSource*>(source)->Pump();
-    if (void* session = world->netSession_) SessionPump(session, nullptr, net::GameClient());
+    if (void* session = world->netSession_) static_cast<netlink::DriverSession*>(session)->PumpDrivers(net::GameClient());
 }
 
 } // namespace

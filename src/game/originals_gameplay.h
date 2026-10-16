@@ -25,7 +25,6 @@ __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORI
 __declspec(naked) inline void* __fastcall PartyMapAtOriginal(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x004A91B0)
 __declspec(naked) inline void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*)
     EI_ORIGINAL(0x0066C1D0)
-__declspec(naked) inline void __fastcall PlayerSendPair(void*, void*, int, float) EI_ORIGINAL(0x0066F2C0)
 __declspec(naked) inline void __fastcall MissileSetTarget(CEngineObject*, void*, int) EI_ORIGINAL(0x0067AC70)
 __declspec(naked) inline Projectile* __fastcall ProjectileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
@@ -60,12 +59,6 @@ __declspec(naked) inline void* __fastcall PartyAddMemberOriginal(void* /*party*/
                                                                  const char* /*prototype*/, const char* /*extra*/)
     EI_ORIGINAL(0x006628D0)
 
-// 006625B0 (RET 4): the party gives `record` its prototype's starting equipment (its weapons and spells released
-// first; weapons, quick items and spells from the prototype's lists (by text 5), its experience). 1 in EAX, 0
-// without a prototype.
-__declspec(naked) inline int __fastcall PartyEquipFromPrototypeOriginal(void* /*party*/, void*, void* /*record*/)
-    EI_ORIGINAL(0x006625B0)
-
 // C3i part 2. 00613820: the quick item record by name (RET 4). 006AD000: item factory MakeItem (RET 0x10, returns the item);
 // 006AD1E0: CreateSpell(name, owner) (RET 8, returns the spell). 006611D0: party record builder destructor, 00665200: player
 // clear, 00665A10: player disconnect (all plain RET, EAX not a result). 0066C180: creates a player object for a session (plain RET, EAX is the player or null).
@@ -82,10 +75,6 @@ __declspec(naked) inline void* __fastcall PartyCopyConstructOriginal(void* /*par
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
-// 0066D730 (CPlayerServer::SendValue12, RET 8; player_messages.cpp): message 0x12. Through its
-// address, so that its verify wrapper runs (CPlayerManager::SendValueToAll is its only caller).
-__declspec(naked) inline void __fastcall PlayerServerSend12Original(void* /*server*/, void*, int /*unused*/, int /*value*/)
-    EI_ORIGINAL(0x0066D730)
 // 0059C3D0 (RET 8, no result): SetSize(count, growBy) of the unit placements (an MFC CArray of 0x28-byte records whose
 // new elements 004CEE20 builds), the player state's +0x74 and the zone entry's list.
 __declspec(naked) inline void __fastcall PlacementsSetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
@@ -140,8 +129,6 @@ __declspec(naked) inline void __fastcall PlayerPathMessageOriginal(void* /*sink*
                                                                    const void* /*motionOrder*/, const float* /*point*/,
                                                                    int /*kind*/, int /*flag*/, std::uint32_t /*limitBits*/)
     EI_ORIGINAL(0x0066D490)
-__declspec(naked) inline int __fastcall StateObjectsAddedOriginal(void* /*state*/, void*, const void* /*objects*/)
-    EI_ORIGINAL(0x0066D7F0)
 
 // A-I7. A class template's stock lists (+0x11C all, +0x1D4 spells and modifiers; thiscall on the list, RET 4): each
 // appends the record to its vector unless already there (no result): 00699080 armour, 006990E0 weapon, 00699140 quick

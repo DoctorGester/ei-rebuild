@@ -429,7 +429,7 @@ int CWorldClient::Segment() {
     }
     if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
     if (handle_.ptr) static_cast<CWorldHandle*>(handle_.ptr)->Pump();
-    if (void* p = netSession_) SessionPump(p, nullptr, net::GameClient());
+    if (void* p = netSession_) static_cast<netlink::DriverSession*>(p)->PumpDrivers(net::GameClient());
     if (WorldSession* session = Session()) {
         CPlayerConnection* view = session->localView;
         if (!paused_) PlayerTickOriginal(session);

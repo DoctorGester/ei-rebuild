@@ -94,7 +94,7 @@ int CWorldServer::Update() {
     }
     if (void* pending = netSession_) {
         net::ServerSession* server = net::GameServer();
-        if (server && !(server->flags7_ & CRefCounted::kDetached)) SessionPump(pending, nullptr, server);
+        if (server && !(server->flags7_ & CRefCounted::kDetached)) static_cast<netlink::DriverSession*>(pending)->PumpDrivers(server);
         AcceptNewPlayers(netSession_);
     }
 

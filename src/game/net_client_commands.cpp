@@ -2,6 +2,7 @@
 // command message for the server (0041D260), the client's own server entry (0041D420, slot 16), the
 // start of the game (0041D410, slot 15) and the ratio of a received buffer (0041D9A0).
 // See net_classes.h and docs/notes/network.md.
+#include "net_classes.h"
 #include "net_messages.h"
 #include "game_strings.h"
 #include "core_refcount.h"
@@ -123,7 +124,7 @@ EI_REPLACE_METHOD(0x0041D260, ClientSession::SendCommand);
 void ClientSession::CreateEntryImpl(RefPtr* out) {
     auto* entry = NewMessageMemory<ServerEntry>();
     if (entry) {
-        ServerEntryConstructBase(entry);
+        entry->ConstructBase();
         StringRep* name = &entry->name_;
         StringRep* description = &entry->description_;
         std::uint8_t allocator = 0;

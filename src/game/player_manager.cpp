@@ -83,7 +83,7 @@ void CPlayerManager::ChangeId(CEngineObject* object, int id) {
 }
 
 void CPlayerManager::SendValueToAll(int unused, int value) {
-    ForEachPlayer(this, [&](CEngineObject* player) { PlayerServerSend12Original(Server(player), nullptr, unused, value); });
+    ForEachPlayer(this, [&](CEngineObject* player) { Server(player)->SendValue12(unused, value); });
 }
 
 void CPlayerManager::SendTextToAll(int unused, const char* text) {

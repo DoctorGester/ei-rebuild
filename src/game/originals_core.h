@@ -57,12 +57,8 @@ __declspec(naked) inline void __fastcall ReleaseCountedOriginal(void* /*object*/
 // C3m. 0040CDC0 (rewritten as AddVectors): out = a + b, each component one rounded add (ECX out; returns out).
 __declspec(naked) inline Vector3* __fastcall VectorAdd(Vector3* /*out*/, const Vector3* /*a*/, const Vector3* /*b*/)
     EI_ORIGINAL(0x0040CDC0)
-// C3m. 004413E0 (rewritten as ServerEntryBase::ConstructBase): the client base of a server entry (0x48 bytes).
-__declspec(naked) inline void __fastcall ServerEntryConstructBase(net::ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
 // C3n. 00401F00 / 00402220 (rewritten as TurnUpTowardsHook / SetHeadingHook; thiscall on the transform object, RET 8 / 4):
 // turns the object up towards a direction (`reduced` 1: by the reduced angle), sets its heading from a direction.
-__declspec(naked) inline void __fastcall TransformTurnUpTowards(CTransformObject* /*object*/, void*, const float* /*direction*/,
-                                                                int /*reduced*/) EI_ORIGINAL(0x00401F00)
 __declspec(naked) inline void __fastcall TransformSetHeading(CTransformObject* /*object*/, void*, const float* /*direction*/)
     EI_ORIGINAL(0x00402220)
 // C3n. 00404920 / 00404960 (rewritten as ObjectListIterator::First / Next; thiscall on the 8-byte list iterator, RET 4 /
@@ -85,6 +81,3 @@ __declspec(naked) inline void* __fastcall ManagerConstructBaseOriginal(void* /*m
 // hash_map<int, T*>) removes `*key`; EAX the removed value, or null when the key was not there.
 __declspec(naked) inline void* __fastcall IdMapRemoveKeyOriginal(void* /*map*/, void*, const int* /*key*/)
     EI_ORIGINAL(0x00405350)
-// C3o. 00448A10 (rewritten as ScaleVector; fastcall: ECX out, EDX v, RET 4 the float): out = v * s; returns out.
-__declspec(naked) inline Vector3* __fastcall VectorScaleCopyOriginal(Vector3* /*out*/, const Vector3* /*v*/, float /*s*/)
-    EI_ORIGINAL(0x00448A10)

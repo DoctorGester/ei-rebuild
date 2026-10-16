@@ -303,7 +303,7 @@ void CWorldServer::SendFreshObjects() {
         AlignedArraySetAtGrow(&objects, nullptr, objects.size, object);
         node = next;
     }
-    StateObjectsAddedOriginal(state, nullptr, &objects);
+    state->SendObjectsAdded(&objects);
     static_cast<CPlayerServer*>(state)->WriteTo(header);
     PlayerListRelease(PlayerList(), nullptr, temporary);
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);

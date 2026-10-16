@@ -13,6 +13,7 @@
 #include "combat_plan.h"
 
 #include "base_manager.h"
+#include "core_transform.h"
 #include "game_lists.h"
 #include "item.h"
 #include "map_object.h"
@@ -601,7 +602,7 @@ void CUnitServer::TickAction() {
         MotionSample(unit->motion, nullptr, context, Motion(this),
                      static_cast<float>(TickOf(context)), &turning, &position, &direction, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
-        TransformTurnUpTowards(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x, 0);
+        reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
         return;
     }
     // The action's moment has come: it is carried out and the plan cleared.

@@ -80,7 +80,7 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The player state's (CPlayerServer) messages and updates.
 __declspec(naked) int __fastcall StateSendWind(CPlayerServer*, void*, Vector3 /*direction*/, std::uint32_t /*strength*/)
     EI_ORIGINAL(0x0066ECD0)
-void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
+void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { static_cast<CPlayerServer*>(a0)->SendObjectsAdded(a2); }
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
 __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
 // 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,

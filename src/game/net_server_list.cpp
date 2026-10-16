@@ -71,7 +71,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
             }
             auto* entry = NewMessageMemory<ServerEntry>();
             if (entry) {
-                ServerEntryConstructBase(entry);
+                entry->ConstructBase();
                 StringInitEmpty(&entry->name_);
                 StringInitEmpty(&entry->description_);
                 ei::SetVtable(entry, ServerEntry::kVtableAddress);

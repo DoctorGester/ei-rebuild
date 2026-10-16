@@ -67,7 +67,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     }
     player->Clear(1, 0);
     player->AddMember(kHeroName, prototype, prototype);
-    PartyEquipFromPrototypeOriginal(player, nullptr, player->members_.data);
+    static_cast<CParty*>(player)->EquipFromPrototype(player->members_.data);
     PartyUnitRecord* hero = player->members_.data;
     auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
     if (mode_ == kModeList) {

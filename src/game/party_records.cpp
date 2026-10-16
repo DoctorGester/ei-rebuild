@@ -1,6 +1,7 @@
 // The named party records of the object at 007AA5A0 (+0x24): reset at new game (004A5BD0), and
 // the script commands' helpers to find (004A5E10), add (004A5E90) and remove (004A5FA0) a record
 // by name. See party_records.h and docs/notes/world.md ("Party records and class templates").
+#include "object_tables.h"
 #include "party_records.h"
 #include "core_refcount.h"
 #include "game_strings.h"
@@ -13,6 +14,8 @@
 #include "originals_gameplay.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+
+#include <bit>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -33,7 +36,7 @@ __declspec(naked) void __fastcall RecordInsertOverflow(NamedPartyRecords*, void*
                                                        unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
-void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
+void __fastcall PartySetVar(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 
 const char* const kHero = reinterpret_cast<const char*>(0x0078B0F4);           // "Hero"
 const char* const kHumanHero = reinterpret_cast<const char*>(0x0078B0FC);      // "Human Hero"

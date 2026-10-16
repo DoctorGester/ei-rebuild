@@ -4,6 +4,7 @@
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
 // (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
+#include "core_transform.h"
 #include "map_object_figures.h"
 #include "unit.h"
 #include "unit_client_models.h"
@@ -67,10 +68,10 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     static_cast<CWorld*>(ObjectWorld(controller))->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
-        TransformTurnUpTowards(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x, 0);
+        reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
     }
     if (unit->flags_ & 0x10000000) {
-        TransformTurnUpTowards(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x, 1);
+        reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 1);
     } else if (!x87::IsNaN(rate) && rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
         FacingAxis(&unit->orientation, nullptr, &axis);

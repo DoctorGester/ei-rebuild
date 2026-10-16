@@ -137,7 +137,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     float w = q[0];
     Vector3 cross, turned, scaled, sum, rotated;
     VectorCross(&cross, &v, p);
-    VectorScaleCopyOriginal(&turned, &cross, static_cast<float>(static_cast<double>(w) + w));
+    ScaleVector(&turned, cross, static_cast<float>(static_cast<double>(w) + w));
     float ww = static_cast<float>(static_cast<double>(w) * w);
     float k = static_cast<float>(ww - DotRaw(&v, &v));
     VectorScale(&scaled, p, k);
