@@ -134,10 +134,16 @@ struct ModeCalls {
     ModeCalls* Suspicion();                              // 004BA610 (0x18)
     ModeCalls* CorpseWatcher();                          // 004BA920 (0x08)
 };
-__declspec(naked) ModeCalls* ModeCalls::Sentry(const Vector3*) EI_ORIGINAL(0x004BA360)
-__declspec(naked) ModeCalls* ModeCalls::Guard(const Vector3*, float, float) EI_ORIGINAL(0x004BA1C0)
-__declspec(naked) ModeCalls* ModeCalls::Follow(CEngineObject*) EI_ORIGINAL(0x004BA450)
-__declspec(naked) ModeCalls* ModeCalls::Patrol() EI_ORIGINAL(0x005D0F60)
+ModeCalls* ModeCalls::Sentry(const Vector3* point) {
+    return reinterpret_cast<ModeCalls*>(reinterpret_cast<SentryMode*>(this)->ScriptSentryModeConstruct(point));
+}
+ModeCalls* ModeCalls::Guard(const Vector3* point, float r1, float r2) {
+    return reinterpret_cast<ModeCalls*>(reinterpret_cast<GuardMode*>(this)->ScriptGuardModeConstruct(point, r1, r2));
+}
+ModeCalls* ModeCalls::Follow(CEngineObject* leader) {
+    return reinterpret_cast<ModeCalls*>(reinterpret_cast<FollowMode*>(this)->ScriptFollowModeConstruct(leader));
+}
+ModeCalls* ModeCalls::Patrol() { return reinterpret_cast<ModeCalls*>(reinterpret_cast<PatrolMode*>(this)->Construct()); }
 ModeCalls* ModeCalls::Player() { return (ModeCalls*)static_cast<PlayerMode*>((void*)this)->Construct(); }
 // Fear and Suspicion zero the mode's fields first (SV7b2, SV7d4: FearMode / SuspectionMode::ClearFields).
 ModeCalls* ModeCalls::Fear(int on) {
@@ -145,14 +151,20 @@ ModeCalls* ModeCalls::Fear(int on) {
     mode->ClearFields();
     return reinterpret_cast<ModeCalls*>(mode->Construct(static_cast<std::uint8_t>(on)));
 }
-__declspec(naked) ModeCalls* ModeCalls::Aggression() EI_ORIGINAL(0x004BA710)
-__declspec(naked) ModeCalls* ModeCalls::Revenge(int) EI_ORIGINAL(0x004BA830)
+ModeCalls* ModeCalls::Aggression() {
+    return reinterpret_cast<ModeCalls*>(reinterpret_cast<AggressionMode*>(this)->ScriptAggressionModeConstruct());
+}
+ModeCalls* ModeCalls::Revenge(int on) {
+    return reinterpret_cast<ModeCalls*>(reinterpret_cast<AggressionMode*>(this)->ScriptRevengeModeConstruct(on));
+}
 ModeCalls* ModeCalls::Suspicion() {
     auto* mode = reinterpret_cast<SuspectionMode*>(this);
     mode->ClearFields();
     return reinterpret_cast<ModeCalls*>(mode->ScriptSuspectionModeConstruct());
 }
-__declspec(naked) ModeCalls* ModeCalls::CorpseWatcher() EI_ORIGINAL(0x004BA920)
+ModeCalls* ModeCalls::CorpseWatcher() {
+    return reinterpret_cast<ModeCalls*>(reinterpret_cast<CorpseWatcherMode*>(this)->ScriptCorpseWatcherModeConstruct());
+}
 
 // operator new for a mode: the command writes 0 to +4 (the reference count) before testing the
 // pointer.
@@ -165,30 +177,13 @@ ModeCalls* NewMode(std::size_t size) {
 // A constructed mode as the brain takes it.
 AIMode* AsMode(ModeCalls* mode) { return reinterpret_cast<AIMode*>(mode); }
 
-struct PatrolCalls {
-    void AddPoint(const Vector3* point);                 // 005D12B0
-    PatrolPoint* LastPoint();                            // 005D1690
-};
-void PatrolCalls::AddPoint(const Vector3* a0) { static_cast<PatrolMode*>((void*)this)->AppendPoint(a0); }
-__declspec(naked) PatrolPoint* PatrolCalls::LastPoint() EI_ORIGINAL(0x005D1690)
-
-// A look (16 bytes: point and a flag) as the patrol commands build it.
-struct PatrolLook {
-    PatrolLook* Set(float x, float y, float z, int flag);   // 004BA1A0
-    std::uint32_t data[4];
-};
-__declspec(naked) PatrolLook* PatrolLook::Set(float, float, float, int) EI_ORIGINAL(0x004BA1A0)
-
-__declspec(naked) void __fastcall PatrolLooksSetAtGrow(AILookArray*, void*, int, PatrolLook*) EI_ORIGINAL(0x004CDCB0)
 
 // The unit's server half (CUnit::controller).
 struct ControllerCalls : ControllerOriginals {
     void PlayAnimation(const char* name);                // 00555700
-    void SetMoveStyle(int style);                        // 00555270 (0 lie, 1 crawl, 2 walk, 3 run)
     void Reposition();                                   // 00554450
 };
 void ControllerCalls::PlayAnimation(const char* name) { ControllerPlayAnimationOriginal(this, nullptr, name); }
-__declspec(naked) void ControllerCalls::SetMoveStyle(int) EI_ORIGINAL(0x00555270)
 void ControllerCalls::Reposition() { ControllerRepositionOriginal((void*)this); }
 
 struct UnitCalls {
@@ -341,6 +336,8 @@ void* UnitState(CEngineObject* unit) { return static_cast<CUnit*>(unit)->control
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
 ControllerCalls* ControllerOf(void* state) { return static_cast<ControllerCalls*>(state); }
 AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
+// The brain's patrol mode, null when it has none.
+PatrolMode* PatrolOf(void* state) { return static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode()); }
 UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
 Vector3* Position(CEngineObject* object) { return &static_cast<CMapObject*>(object)->position; }
 PlayerStateCalls* StateOf(WorldPlayer* player) { return reinterpret_cast<PlayerStateCalls*>(player->server); }
@@ -1098,7 +1095,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             if (!state) break;
             int style = cmd->id == 0xC9 ? 0 : cmd->id == 0x3E ? 1 : cmd->id == 0x41 ? 3 : 2;
-            ControllerOf(state)->SetMoveStyle(style);
+            Controller(state)->SetMoveStyle(style);   // 0 lie, 1 crawl, 2 walk, 3 run
             break;
         }
         case 0xB0: {   // Rest(unit)
@@ -1159,22 +1156,22 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* patrol = reinterpret_cast<PatrolCalls*>(BrainOf(state)->FindPatrolMode());
+            PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            patrol->AddPoint(&point);
+            patrol->AppendPoint(&point);
             break;
         }
         case 0x2B: {   // UMPatrolAddPointLook(unit, x, y, z): a look at the last point
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* patrol = reinterpret_cast<PatrolCalls*>(BrainOf(state)->FindPatrolMode());
+            PatrolMode* patrol = PatrolOf(state);
             if (!patrol) break;
             PatrolPoint* last = patrol->LastPoint();
             if (!last) break;
-            PatrolLook look;
-            PatrolLook* value = look.Set(f[0], f[1], f[2], 0);
-            PatrolLooksSetAtGrow(&last->looks, nullptr, last->looks.size, value);
+            AILook look;
+            AILook* value = look.ScriptAILookConstruct(f[0], f[1], f[2], 0);
+            ScriptLooksSetAtGrow(&last->looks, nullptr, last->looks.size, value);
             break;
         }
         case 0x31: {   // UMPlayer

@@ -527,7 +527,7 @@ bool CUnitServer::ChangeMoveMode() {
     unit->UpdateSizeClass();
     bool placed;
     if (!sameMode &&
-        !(passableBefore ? ServerAIMap()->IsUnitCellPassable(unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
+        !(passableBefore ? ServerAIMap()->IsUnitCellPassable(unit) : ServerAIMap()->CanLeaveCell(unit)))
         placed = false;
     else
         placed = SectorMapAdd(ServerSectors(), nullptr, unit);

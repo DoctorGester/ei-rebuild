@@ -379,7 +379,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = 2;
         unit->UpdateSizeClass();
-        if (!AIMapCanLeaveCellOriginal(map, nullptr, unit)) unit->moveMode = mode;
+        if (!static_cast<CAIMap*>(map)->CanLeaveCell(unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
     std::uint32_t flag = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);

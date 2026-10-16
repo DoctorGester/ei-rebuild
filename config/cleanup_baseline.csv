@@ -120,7 +120,7 @@ src/game/object3d_animations.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/object3d_figure_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,4
 src/game/options.cpp,0,0,0,0,124,0,0,0,0,0,0,0,0,0
-src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
+src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,28
 src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,27
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,8
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
@@ -162,7 +162,7 @@ src/game/script_construct.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_copy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_destroy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_eval.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,26
+src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
 src/game/script_exec_helpers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_exec_run.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/script_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,17

@@ -112,7 +112,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     }
     tamerSide = tamer->side;
-    BrainStopActionOriginal(&brain);
+    brain.StopAction();
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
         action2.kind = kOrderNone;
         ReferenceRelease(&action2.target);

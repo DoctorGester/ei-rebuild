@@ -143,7 +143,7 @@ void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 // 00665200. Empties a player before it is loaded.
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
-// FindFreeCellNear (ai_map.cpp; the last two through AIMapCanLeaveCellOriginal, FindFreeCellNearOriginal).
+// FindFreeCellNear (ai_map.cpp).
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 __declspec(naked) void __fastcall SaveMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596730)
@@ -305,7 +305,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
         CEngineObject* object = node->value;
         if (object->GetClassId() != world::kClassUnit) continue;
-        if (AIMapCanLeaveCellOriginal(world->AIMap(), nullptr, static_cast<CUnit*>(object))) continue;
+        if (world->AIMap()->CanLeaveCell(static_cast<CUnit*>(object))) continue;
         int id = object->id_;
         int index = stranded.size;
         DwordArraySetSizeOriginal(&stranded, nullptr, index + 1, -1);

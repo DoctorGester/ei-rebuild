@@ -279,7 +279,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
         static_cast<AIBrain*>(brain)->AddMode((memory ? static_cast<PlayerMode*>(memory)->Construct() : nullptr));
-        BrainStopActionOriginal(brain);
+        static_cast<AIBrain*>(brain)->StopAction();
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));

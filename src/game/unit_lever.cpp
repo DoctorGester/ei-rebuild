@@ -107,7 +107,7 @@ void Lever::SetState(int wanted, float duration) {
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         void* unit = node->data;
-        if (!AIMapCanLeaveCellOriginal(map, nullptr, reinterpret_cast<CUnit*>(unit))) {
+        if (!static_cast<CAIMap*>(map)->CanLeaveCell(reinterpret_cast<CUnit*>(unit))) {
             Vector3* at = &AsMapObject(unit)->position;
             Vector3 free = {at->x, at->y, at->z};
             static_cast<CAIMap*>(map)->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);

@@ -98,11 +98,6 @@ __declspec(naked) inline void __fastcall PlayerUpdateCombatOriginal(void* /*mode
 // width x height (not cleared) unless it already has that size.
 __declspec(naked) inline void __fastcall GridCellsResizeOriginal(void* /*cells*/, void*, int /*width*/, int /*height*/)
     EI_ORIGINAL(0x005CD3A0)
-// C3n. The AI map (CAIMap, the global 007B00D0 = world + 0x170; thiscall): 005BA830 CanLeaveCell (RET 4: the unit's
-// cell; AL). 005BA9D0 FindFreeCellNearOriginal is above.
-__declspec(naked) inline bool __fastcall AIMapCanLeaveCellOriginal(void* /*map*/, void*, CUnit* /*unit*/) EI_ORIGINAL(0x005BA830)
-// C3n. The AI brain (AIBrain, the unit controller + 0x980; thiscall): 005D7790 StopAction (plain RET).
-__declspec(naked) inline void __fastcall BrainStopActionOriginal(void* /*brain*/) EI_ORIGINAL(0x005D7790)
 // 005B8BA0 (rewritten as CAIMap::CellMark; RET 0x14): the passability mark of cell (x, y) at `level` (scratch state
 // carried from level to level); EAX the mark.
 __declspec(naked) inline std::uint32_t __fastcall AIMapCellMarkOriginal(CAIMap*, void*, void* /*scratch*/, int /*level*/,
