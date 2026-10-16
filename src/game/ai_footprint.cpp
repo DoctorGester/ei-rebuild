@@ -263,11 +263,11 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     if (object->GetClassId() == kClassUnit) {
         auto* unit = static_cast<CUnit*>(object);
         if (unit->IsDead()) return true;
-        void* shape = UnitShape(unit->standingHeight);
+        auto* shape = static_cast<const CUnitShape*>(UnitShape(unit->standingHeight));
         if (!shape) return true;
         CUnitLayer* layer = unit->IsLargeUnit() ? &unitLayerLarge : &unitLayerSmall;
         if (remove) layer->Remove(unit, cellX - 8, cellY - 8);
-        else UnitLayerAddOriginal(layer, nullptr, unit, shape, cellX - 8, cellY - 8);
+        else layer->Add(unit, shape, cellX - 8, cellY - 8);
         return true;
     }
 

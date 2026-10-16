@@ -1,6 +1,7 @@
 // CWorldServer::CreateUnits (0058EF20): creates units from unit records (script AddUnitToServer,
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
+#include "ai_map.h"
 #include "core_streams.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
@@ -278,12 +279,12 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         static_cast<AIBrain*>(brain)->ClearModes();
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
-        BrainAddModeOriginal(brain, nullptr, (memory ? ModePlayerConstructOriginal(memory) : nullptr));
+        static_cast<AIBrain*>(brain)->AddMode((memory ? static_cast<PlayerMode*>(memory)->Construct() : nullptr));
         BrainStopActionOriginal(brain);
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));
-        FindFreeCellNearOriginal(aiMap_, nullptr, unit, position, &free);
+        AIMap()->FindFreeCellNear(AsUnit(unit), position, &free);
         std::memcpy(&AsUnit(unit)->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
@@ -317,7 +318,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = IsPassableForClassOriginal(aiMap_, nullptr, 1, &AsUnit(unit)->position);
+            bool flagged = AIMap()->IsPassableForClass(1, &AsUnit(unit)->position);
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }

@@ -33,13 +33,6 @@ void FacingFromQuaternion(const float* q, float* out) {
     out[2] = -forward;
 }
 
-// The order's follow-ups through their original addresses (ai_motion.cpp), the arguments as the
-// caller's dwords.
-__declspec(naked) void __fastcall OrderSetTurn(AIPath*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x005C7C00)
-__declspec(naked) void __fastcall OrderSetTrack(AIPath*, void*, std::uint32_t, std::uint32_t, std::uint32_t)
-    EI_ORIGINAL(0x005C7C20)
-__declspec(naked) void __fastcall OrderSetTurnUntil(AIPath*, void*, std::uint32_t, std::uint32_t, std::uint32_t)
-    EI_ORIGINAL(0x005C7C40)
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -69,22 +62,21 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
 } // namespace
 
 // 005B1DE0 (RET 0x10).
-void AIPath::StandAndTurn(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t rate) {
+void AIPath::StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, float rate) {
     StandAt(this, &time, unit);
-    OrderSetTurn(this, nullptr, direction, rate);
+    SetTurn(direction, rate);
 }
 
 // 005B1F10 (RET 0x14).
-void AIPath::StandAndTrack(int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from, std::uint32_t to) {
+void AIPath::StandAndTrack(int time, std::uint8_t* unit, int id, int from, int to) {
     StandAt(this, &time, unit);
-    OrderSetTrack(this, nullptr, id, from, to);
+    SetTrack(id, from, to);
 }
 
 // 005B2050 (RET 0x14).
-void AIPath::StandAndTurnUntil(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t a,
-                               std::uint32_t b) {
+void AIPath::StandAndTurnUntil(int time, std::uint8_t* unit, const Vector3* direction, int a, int b) {
     StandAt(this, &time, unit);
-    OrderSetTurnUntil(this, nullptr, direction, a, b);
+    SetTurnUntil(direction, a, b);
 }
 
 // 005B2190 (RET 4).

@@ -22,7 +22,7 @@
 namespace {
 
 constexpr int kUnreachable = 0x7FFFFFFF;
-constexpr std::uint32_t kAllOffsets = 0x60AD78EC;   // the spiral radius covering every offset
+constexpr float kAllOffsets = 1.0e20f;   // the spiral radius covering every offset (0x60AD78EC)
 
 // The chain of regions is a CList<PathCell> (block x, y); the waypoints a CList of {x, y, the
 // region node it belongs to} whose NewNode stays the instantiation's (005BEDB0).
@@ -37,20 +37,11 @@ static_assert(sizeof(WaypointNode) == 0x14);
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
 void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
-// 005B0D90 (RET 0x1C, AL). The region map's chain of regions from (fromX, fromY) to (toX, toY),
-// avoiding the blocks in `excluded` (AIPath::excludedBlocks).
-__declspec(naked) bool __fastcall RegionChain(CRegionMap*, void*, int, int, int, int, int, PathCellList*,
-                                              BlockPointArray*) EI_ORIGINAL(0x005B0D90)
-// 005B9BC0 (RET 4). Prepares the region chain (CAIMap).
-__declspec(naked) void __fastcall PrepareChain(CAIMap*, void*, PathCellList*) EI_ORIGINAL(0x005B9BC0)
 // 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next).
 __declspec(naked) WaypointNode* __fastcall WaypointNewNode(WaypointList*, void*, WaypointNode*, WaypointNode*) EI_ORIGINAL(0x005BEDB0)
-// 005BFC40 (RET 8). SpiralCache::Get (radius as float bits).
-__declspec(naked) const std::int16_t* __fastcall SpiralGet(void*, void*, std::uint32_t, int*) EI_ORIGINAL(0x005BFC40)
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
 // a cell was reached (RET 8, AL), the cost of a cell (RET 8), commit, finish, reset.
-bool __fastcall SearchBegin(void* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return LocalSearchBeginOriginal(a0, nullptr, (void*)a2, a3, a4, a5, a6); }
-__declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
+bool __fastcall SearchBegin(LocalSearch* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return a0->Begin(a2, a3, a4, a5, a6); }
 // 006E727B. atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
@@ -80,13 +71,13 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     }
     int sizeClass = unit->sizeClass;
     CellListRemoveAllOriginal(&path->cells);
-    bool ok = RegionChain(&regionMap, nullptr, sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
+    bool ok = regionMap.FindRegionChain(sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
         chain.vtable = PathCellListVtable();
         CellListRemoveAllOriginal(&chain);
         return false;
     }
-    PrepareChain(this, nullptr, &chain);
+    ClearMarksAround(&chain);
 
     // The waypoints: each region's representative cell (the region cell byte's nibbles inside its
     // 8x8 block), then the target.
@@ -123,7 +114,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     }
 
     int count = 0;
-    const std::int16_t* offsets = SpiralGet(Spiral(), nullptr, kAllOffsets, &count);
+    const std::int16_t* offsets = static_cast<SpiralCache*>(Spiral())->Get(kAllOffsets, &count);
     LocalSearch* search = &forwardSearch;
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint
@@ -135,7 +126,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         if (!(w->data.x == curX && w->data.y == curY)) {
             bool exact;
             result = legs == 0 ? SearchBegin(search, nullptr, unit, curX, curY, w->data.x, w->data.y)
-                               : SearchContinue(search, nullptr, curX, curY, w->data.x, w->data.y, reachedLast ? 0 : 1);
+                               : search->Recenter(curX, curY, w->data.x, w->data.y, reachedLast ? 0 : 1);
             ++legs;
             if (!result) {
                 failed = true;
@@ -170,7 +161,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             if (!next && search->CostAt(toX, toY) == kUnreachable) {
                 // The last leg did not reach the target: one more leg from the best cell.
                 search->CommitDirections();
-                if (!SearchContinue(search, nullptr, bestX, bestY, toX, toY, 1)) {
+                if (!search->Recenter(bestX, bestY, toX, toY, 1)) {
                     failed = true;
                     failedAt = w;
                     break;

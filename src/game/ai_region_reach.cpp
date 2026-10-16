@@ -10,6 +10,7 @@
 // class's region grid is cleared, and every block still 0 starts a new region (1, 2, ...) flooded
 // by 005AFF10 from a queue of blocks. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
+#include "ai_grids.h"
 #include "core_streams.h"
 
 #include "ei/hook.h"
@@ -33,8 +34,7 @@ std::uint8_t& BlocksGuard() { return ei::GameData<std::uint8_t>(0x007C2EF4); }
 using ExitFn = void(__cdecl*)();
 ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
 
-// The local search at +0x98: flood (RET 4) and reset.
-__declspec(naked) void __fastcall SearchFlood(LocalSearch*, void*, int) EI_ORIGINAL(0x005C33F0)
+// The local search at +0x98: reset.
 void __fastcall SearchReset(LocalSearch* a0, void*) { static_cast<LocalSearch*>(a0)->Reset(); }
 
 // LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
@@ -45,8 +45,6 @@ std::uint8_t& FloodGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F24)
 ExitFn FloodQueueDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0360)); }
 ExitFn FloodSecondDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0350)); }
 
-// 005AFF10 (RET 0x10). Floods `label` from the queued blocks for a size class.
-__declspec(naked) void __fastcall FloodRegion(CRegionMap*, void*, int, PointArray*, PointArray*, int) EI_ORIGINAL(0x005AFF10)
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
@@ -66,26 +64,16 @@ __declspec(naked) void __stdcall ConstructBlockCosts(void*, int) EI_ORIGINAL(0x0
 void BlockCostElements::Construct(BlockCost* elements, int count) { ConstructBlockCosts(elements, count); }
 
 namespace {
-// The region map's constructor helpers: the local search's two member constructors (their counts
-// preset to 1), the CRT's `eh vector constructor iterator` (array, size, count, ctor, dtor).
-__declspec(naked) void __fastcall ConstructSearchPart1(void*) EI_ORIGINAL(0x005B1470)
-void __fastcall ConstructSearchPart2(void* a0) { SearchPartConstructOriginal(a0); }
+// The region map's constructor helper: the CRT's `eh vector constructor iterator` (array, size,
+// count, ctor, dtor).
 void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
 
-// 005C1EA0 (RET 8): the local search's set-up for a map (map, 0).
-__declspec(naked) void __fastcall SearchAttach(LocalSearch*, void*, CAIMap*, int) EI_ORIGINAL(0x005C1EA0)
-
 // The region map's per size class grids are allocated for their size by 005B1550 (edge words,
-// +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C). 005AED60
-// (RET 8) rebuilds a derived table from the map (+0 and +0x4C, the second with 1).
-__declspec(naked) void __fastcall AllocateEdges(void*) EI_ORIGINAL(0x005B1550)
-__declspec(naked) void __fastcall AllocateCells(void*) EI_ORIGINAL(0x005B15F0)
-__declspec(naked) void __fastcall AllocateRegions(void*) EI_ORIGINAL(0x005B1680)
-__declspec(naked) void __fastcall RebuildTable(BlockSearch*, void*, CRegionMap*, int) EI_ORIGINAL(0x005AED60)
+// +0x11C), 005B15F0 (representative cells, +0x19C) and 005B1680 (regions, +0x21C).
 
 // A grid resized (freed and reallocated) when the size changes.
 template <typename T>
-void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(void*)) {
+void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
     gamecrt::operator_delete(grid.data);
     gamecrt::operator_delete(grid.rows);
@@ -95,15 +83,6 @@ void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)
 }
 // The region map's two block searches: BlockSearch (ai_map.h).
 
-// 005B0AF0 (RET 0x14, AL): seeds a search (size class, which side, the search, cell x, y).
-// 005AF5F0 (RET 4, AL): joins the two searches into the region chain list.
-__declspec(naked) bool __fastcall SeedBlockSearch(CRegionMap*, void*, int, int, BlockSearch*, int, int) EI_ORIGINAL(0x005B0AF0)
-__declspec(naked) bool __fastcall JoinBlockSearchesAt(CRegionMap*, void*, void*) EI_ORIGINAL(0x005AF5F0)
-
-// The block search (thiscall): the path to block (x, y) into a list (RET 0xC).
-__declspec(naked) void __fastcall BlockPathTo(BlockSearch*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005AF1C0)
-// The path list: a reversed copy into `out` (RET 4, returns out), append (RET 4), fix-up.
-void __fastcall ChainFixUp(PathCellList* a0) { PathCellListFixUpOriginal((void*)a0); }
 
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
 
@@ -198,7 +177,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     local.backward = true;
     LocalSearch* search = &local;
     search->BeginInRectForClass(sizeClass, x0, y0, x1, y1, x, y);
-    SearchFlood(search, nullptr, 1);
+    search->SaveLevels(true);
     search->ExpandAll();
     search->RestoreLevels();
 
@@ -246,7 +225,7 @@ void CRegionMap::LabelRegions() {
                 PointArraySetSizeOriginal(&queue, nullptr, n + 1, -1);
                 queue.data[n].x = bx;
                 queue.data[n].y = by;
-                FloodRegion(this, nullptr, sizeClass, &queue, &second, label);
+                FloodRegionFrom(sizeClass, &queue, &second, label);
                 ++label;
             }
     }
@@ -269,7 +248,7 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
     local.backward = flag;
     LocalSearch* search = &local;
     search->BeginInRectForClass(sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, x, y);
-    SearchFlood(search, nullptr, 1);
+    search->SaveLevels(true);
     search->ExpandAll();
     search->RestoreLevels();
     std::uint8_t** cellRows = cells[sizeClass].rows;
@@ -340,17 +319,17 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
         SearchGrid<std::int16_t>& edgeGrid = edges[c];
         SearchGrid<std::uint8_t>& cellGrid = cells[c];
         SearchGrid<std::uint16_t>& regionGrid = regions[c];
-        Fit(edgeGrid, width, height, &AllocateEdges);
-        Fit(cellGrid, width, height, &AllocateCells);
-        Fit(regionGrid, width, height, &AllocateRegions);
+        Fit(edgeGrid, width, height, &AllocateEdgeGrid);
+        Fit(cellGrid, width, height, &AllocateZeroedByteGrid);
+        Fit(regionGrid, width, height, &AllocateRegionGrid);
         for (int y = 0; y < BlocksHigh(this); ++y) {
             read(edgeGrid.rows[y], width * 16);
             read(cellGrid.rows[y], width);
             read(regionGrid.rows[y], width * 2);
         }
     }
-    RebuildTable(&forward, nullptr, this, 0);
-    RebuildTable(&backward, nullptr, this, 1);
+    forward.Attach(this, false);
+    backward.Attach(this, true);
     // The stream's state byte as it is (AL).
     bool ok;
     std::memcpy(&ok, &stream->ok_, sizeof(ok));
@@ -400,19 +379,19 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     }
 }
 
-bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded) {
+bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCellList* chain,
+                                 BlockPointArray* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
     // The excluded blocks (CArray<{x, y}>) are marked visited in both.
-    const auto* excludedBlocks = static_cast<const PointArray*>(excluded);
-    const BlockPoint* points = excludedBlocks->data;
-    for (int i = 0; i < excludedBlocks->size; ++i) {
+    const BlockPoint* points = excluded->data;
+    for (int i = 0; i < excluded->size; ++i) {
         Exclude(forward, points[i].x, points[i].y);
         Exclude(backward, points[i].x, points[i].y);
     }
-    bool ok = SeedBlockSearch(this, nullptr, sizeClass, 0, &forward, fromX, fromY);
-    if (ok) ok = SeedBlockSearch(this, nullptr, sizeClass, 1, &backward, toX, toY);
-    if (ok) ok = JoinBlockSearchesAt(this, nullptr, chain);
+    bool ok = SeedSearch(sizeClass, false, &forward, fromX, fromY);
+    if (ok) ok = SeedSearch(sizeClass, true, &backward, toX, toY);
+    if (ok) ok = JoinBlockSearches(chain);
     FinishSearch(forward);
     FinishSearch(backward);
     return ok;
@@ -421,7 +400,7 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
 int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell (through the original address, 005B0370).
     BlockCostList blocks{BlockCostListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    NearbyBlocksOriginal(this, nullptr, sizeClass, false, x, y, &blocks);
+    NearbyBlocks(sizeClass, false, x, y, &blocks);
     // Count the blocks per region, in first-seen order (the original keeps a CList of {region,
     // count}; at most nine entries).
     std::uint16_t seen[9];
@@ -481,19 +460,19 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
     }
     PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
     if (ok) {
-        BlockPathTo(&forward, nullptr, x, y, chain);
-        BlockPathTo(&backward, nullptr, x, y, &scratch);
+        BlockSearchPathTo(&forward, nullptr, x, y, chain);
+        BlockSearchPathTo(&backward, nullptr, x, y, &scratch);
         PathCellList reversed;
-        ListAppend(chain, nullptr, ListReversed(&scratch, nullptr, &reversed));
+        PathCellsAppend(chain, nullptr, PathCellsReversed(&scratch, nullptr, &reversed));
         DestroyPathList(reversed);
-        ChainFixUp(chain);
+        PathCellsRemoveRepeats(chain);
     }
     DestroyPathList(scratch);
     return ok;
 }
 
-void __fastcall BlockSearchPathTo(void* searchIn, void*, int x, int y, PathCellList* path) {
-    auto& search = *static_cast<BlockSearch*>(searchIn);
+void __fastcall BlockSearchPathTo(BlockSearch* searchIn, void*, int x, int y, PathCellList* path) {
+    auto& search = *searchIn;
     // The inlined RemoveAll.
     path->count = 0;
     path->free = nullptr;
@@ -584,11 +563,11 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
 }
 
 void CRegionMap::Attach(CAIMap* map) {
-    SearchAttach(&local, nullptr, map, 0);
+    local.Attach(map, false);
     int width = map->width / 8, height = map->height / 8;
     for (int c = 0; c < 8; ++c) {
-        Fit(edges[c], width, height, &AllocateEdges);
-        Fit(cells[c], width, height, &AllocateCells);
+        Fit(edges[c], width, height, &AllocateEdgeGrid);
+        Fit(cells[c], width, height, &AllocateZeroedByteGrid);
         // The region grid's allocation is inlined here: u16 per block, rows of `width`.
         SearchGrid<std::uint16_t>& grid = regions[c];
         if (grid.width == width && grid.height == height) continue;
@@ -601,8 +580,8 @@ void CRegionMap::Attach(CAIMap* map) {
         grid.rows = static_cast<std::uint16_t**>(gamecrt::operator_new(static_cast<std::size_t>(grid.height * 4)));
         for (int y = 0; y < grid.height; ++y) grid.rows[y] = data + grid.width * y;
     }
-    RebuildTable(&forward, nullptr, this, 0);
-    RebuildTable(&backward, nullptr, this, 1);
+    forward.Attach(this, false);
+    backward.Attach(this, true);
 }
 
 // 005AF3D0 (thiscall, returns this): the region map's constructor.
@@ -621,10 +600,10 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
     LocalSearch& local = self->local;
     local.nodes.width = 1;
     local.nodes.height = 1;
-    ConstructSearchPart1(&local.nodes);
+    AllocateNodeGrid(&local.nodes);
     local.levels.width = 1;
     local.levels.height = 1;
-    ConstructSearchPart2(&local.levels);
+    AllocateByteGrid(&local.levels);
     local.cellRowsVtable = reinterpret_cast<void*>(kCellRowArrayVtable);
     local.cellRows = nullptr;
     local.cellRowGrowBy = 0;
@@ -637,8 +616,8 @@ CRegionMap* __fastcall ConstructRegionMap(CRegionMap* self) {
                     reinterpret_cast<void*>(kCellGridDestructor));
     VectorConstruct(self->regions, sizeof(self->regions[0]), 8, reinterpret_cast<void*>(kRegionGridConstructor),
                     reinterpret_cast<void*>(kRegionGridDestructor));
-    RebuildTable(&self->forward, nullptr, self, 0);
-    RebuildTable(&self->backward, nullptr, self, 1);
+    self->forward.Attach(self, false);
+    self->backward.Attach(self, true);
     self->progress = nullptr;
     return self;
 }
@@ -671,9 +650,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     return first && second;
 }
 
-void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, int label) {
-    auto* frontier = static_cast<PointArray*>(frontierIn);
-    auto* next = static_cast<PointArray*>(nextIn);
+void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, BlockPointArray* next, int label) {
     const int* dx = StepX();
     const int* dy = StepY();
     std::int16_t** edgeRows = edges[sizeClass].rows;

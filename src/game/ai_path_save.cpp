@@ -15,10 +15,8 @@
 
 namespace {
 
-// 005BD2A0 (RET 4): appends a copy of a cell. 005BD340 (RET 4): GetNext (the data, the position
-// advanced).
+// 005BD2A0 (RET 4): appends a copy of a cell.
 __declspec(naked) void __fastcall AppendCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD2A0)
-__declspec(naked) PathCell* __fastcall NextCell(PathCellList*, void*, PathCellList::Node**) EI_ORIGINAL(0x005BD340)
 
 } // namespace
 
@@ -31,7 +29,7 @@ void AIPath::LoadPath(CStream* stream) {
         AppendCell(&cells, nullptr, &cell);
     }
     for (PathCellList::Node* position = cells.head; position;)
-        stream->Read(NextCell(&cells, nullptr, &position), 8);
+        stream->Read(&cells.GetNext(position), 8);
     LoadOrder(stream);
     stream->Read(&targetX, 8);
     stream->Read(&goal, 0xC);
@@ -53,7 +51,7 @@ void AIPath::SavePath(CStream* stream) {
     int count = cells.count;
     stream->Write(&count, 4);
     for (PathCellList::Node* position = cells.head; position;)
-        stream->Write(NextCell(&cells, nullptr, &position), 8);
+        stream->Write(&cells.GetNext(position), 8);
     SaveOrder(stream);
     stream->Write(&targetX, 8);
     stream->Write(&goal, 0xC);

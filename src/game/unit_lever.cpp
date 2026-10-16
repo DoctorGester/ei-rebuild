@@ -109,7 +109,7 @@ void Lever::SetState(int wanted, float duration) {
         if (!AIMapCanLeaveCellOriginal(map, nullptr, reinterpret_cast<CUnit*>(unit))) {
             Vector3* at = &AsMapObject(unit)->position;
             Vector3 free = {at->x, at->y, at->z};
-            FindFreeCellNearOriginal(map, nullptr, AsEngineObject(unit), at, &free);
+            static_cast<CAIMap*>(map)->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);
             std::memcpy(at, &free, sizeof(free));
             ControllerResync(static_cast<CUnit*>(AsEngineObject(unit))->controller);
         }

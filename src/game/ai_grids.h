@@ -56,6 +56,9 @@ void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid);
 // to the vector constructor iterator).
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);
 
+// 005B4150 (fastcall on the map; ai_area_lists.cpp): fills the six area lists from their tables.
+void __fastcall FillAreaLists(CAIMap* map);
+
 // CAIMap's dirty rectangle (+0x004: dirtyMinX .. dirtyMaxY).
 struct AIDirtyRect {
     // 005B40F0. Empty: the minimums 10000, the maximums 0.

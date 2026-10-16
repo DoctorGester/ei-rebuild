@@ -384,6 +384,13 @@ struct CList {
 
     int GetCount() const { return count; }
     bool IsEmpty() const { return count == 0; }
+    // GetNext: the element at `position`, the position advanced (the game's out-of-line copies
+    // 00497D40, 005BD340, ...).
+    T& GetNext(Node*& position) {
+        Node* node = position;
+        position = node->next;
+        return node->data;
+    }
 
     // NewNode: take a node from the free list, carving a new block of `blockSize` when empty (the
     // block's nodes are pushed last to first, so the first node is used first).

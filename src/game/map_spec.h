@@ -45,7 +45,7 @@ static_assert(sizeof(Patrol) == 0x20);
 struct Behaviour {
     mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(void* stream);
-    void Write(void* stream);
+    void Write(void* stream) const;
     std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     mfc::CArray<Patrol> patrols;       // +0x04 (vtable 0073C37C)
     Vector3 guard;               // +0x18 the unit's position when saved

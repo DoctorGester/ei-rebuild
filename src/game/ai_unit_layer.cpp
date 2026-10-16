@@ -36,11 +36,11 @@ bool AnyLevel(const UnitLayerNode* node) {
 }
 } // namespace
 
-void CUnitLayer::Add(CUnit* unit, const std::uint8_t* shape, int x, int y) {
+void CUnitLayer::Add(CUnit* unit, const CUnitShape* shape, int x, int y) {
     // The shape placed in a 20x20 grid at the unit's offset within its 4-cell block.
     std::uint8_t grid[20 * 20] = {};
     std::uint8_t* row = grid + (x & 3) + (y & 3) * 20;
-    for (int r = 0; r < 16; ++r, row += 20) std::memcpy(row, shape + 8 + r * 16, 16);
+    for (int r = 0; r < 16; ++r, row += 20) std::memcpy(row, shape->levels[r], 16);
 
     UnitLayerNode* node = TakeNode(this);
     for (int by = 0; by < 5; ++by) {

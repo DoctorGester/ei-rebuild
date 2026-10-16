@@ -1,6 +1,7 @@
 // Combat, third part: whether an order can be carried out from where the unit stands (reach, units
 // in the way, line of sight) and the planner that finds the moment it can. See combat.h,
 // combat_plan.h and docs/notes/combat.md ("Order lifecycle").
+#include "ai_map.h"
 #include "combat.h"
 #include "combat_plan.h"
 
@@ -249,7 +250,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.z = unit->position.z;
     eye.z = static_cast<float>(UnitGroundHeight(unit, nullptr, eye.x, eye.y) + sight.eyeHeight);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
-    double visibility = LineOfSightOriginal(map, nullptr, &eye, &sight.point);
+    double visibility = map->LineOfSight(&eye, &sight.point);
     return !LessOrUnordered(visibility, kPointOne);
 }
 EI_REPLACE_METHOD(0x0054C2F0, CUnitServer::CanActFrom);

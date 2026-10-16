@@ -26,9 +26,8 @@ void __fastcall FacingDirection(const Quaternion* q, void*, Vector3* out) { Quat
 // Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
 // long-range planner.
 bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, int y1) {
-    return LocalSearchBeginOriginal(search, nullptr, unit, x0, y0, x1, y1);
+    return search->Begin(unit, x0, y0, x1, y1);
 }
-__declspec(naked) bool __fastcall BuildLocalPath(CAIMap*, void*, PathCellList*, int) EI_ORIGINAL(0x005B9690)
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
 __declspec(naked) int __fastcall SmoothPath(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
     EI_ORIGINAL(0x005C46C0)
@@ -290,7 +289,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
                     if (!BeginLocalSearch(&backwardSearch, unit, tx, ty, ux, uy)) {
                         static_cast<LocalSearch*>(&forwardSearch)->Reset();
                     } else {
-                        found = BuildLocalPath(this, nullptr, &pathCells, 0);
+                        found = JoinLocalSearches(&pathCells, nullptr);
                         tried = found;
                     }
                 }

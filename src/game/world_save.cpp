@@ -336,7 +336,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             Vector3 to;
             std::memcpy(&from, position, sizeof(Vector3));
             std::memcpy(&to, position, sizeof(Vector3));
-            FindFreeCellNearOriginal(world->AIMap(), nullptr, unit, &from, &to);
+            world->AIMap()->FindFreeCellNear(static_cast<CUnit*>(unit), &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             SectorMapAdd(world->Sectors(), nullptr, unit);
             ControllerRepositionOriginal((static_cast<CUnit*>(unit)->controller));

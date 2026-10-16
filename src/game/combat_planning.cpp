@@ -266,7 +266,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         if (!(LengthSquared2DUnrounded(sy, sx) >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
-        double visible = LineOfSightOriginal(MapOf(ManagerContextOf(this)), nullptr, &from, &sight.point);
+        double visible = MapOf(ManagerContextOf(this))->LineOfSight(&from, &sight.point);
         if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
         t += 5.0f;
     }

@@ -1,5 +1,6 @@
 // The AI's eye (the world server's +0x2838): what a unit sees each brain tick (005CAA00), the
 // nearby units (005CA1D0), seeing new ones (005CA5A0) and the eye's height and facing (005CA410).
+#include "ai_map.h"
 #include "unit_ai.h"
 
 #include "console.h"
@@ -145,7 +146,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
             double along = DotZYX(d, facing);
             if (!(static_cast<double>(coneLimit) * distance > along)) {
                 Vector3 to = eye + d;
-                seen = LineOfSightOriginal(map, nullptr, &eye, &to) * sight > distance;
+                seen = map->LineOfSight(&eye, &to) * sight > distance;
             }
         }
         bool alive = !dead;

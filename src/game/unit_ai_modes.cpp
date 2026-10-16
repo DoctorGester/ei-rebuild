@@ -223,7 +223,7 @@ EI_REPLACE_METHOD(0x005D0F00, GuardMode::Save);
 
 // --- Patrol --------------------------------------------------------------------------------------
 
-void PatrolMode::AddPoint(const Vector3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
+void PatrolMode::AddPoint(const Vector3* a0) { AppendPoint(a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;

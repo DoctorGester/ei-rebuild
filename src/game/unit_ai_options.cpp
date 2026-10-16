@@ -74,7 +74,7 @@ void AIAttackOption::Load(CStream* stream) {
     stream->Read(damage, sizeof(damage));
 }
 
-void AIAttackOption::Save(CStream* stream) {
+void AIAttackOption::Save(CStream* stream) const {
     // The fields after the first go through a stack copy, as the original writes them.
     stream->Write(&kind, 4);
     for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),

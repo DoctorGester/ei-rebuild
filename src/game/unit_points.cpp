@@ -2,6 +2,7 @@
 // 0073BFE8): 52 the position predicted along its path (0052FCC0) and 53 the point its current
 // animation acts on (0052FDF0). Registered as free functions (thiscall as fastcall; rule 4). See
 // docs/notes/units.md ("Unit points").
+#include "ai_map.h"
 #include "ai_motion.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -112,7 +113,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
     if (world->IsServer()) {
         Vector3 point = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
-        if (!IsPassableForClassOriginal(world->AIMap(), nullptr, 3, &point)) {
+        if (!world->AIMap()->IsPassableForClass(3, &point)) {
             CopyPosition(out, unit);
             return out;
         }

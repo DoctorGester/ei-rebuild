@@ -114,7 +114,7 @@ void BlockSearch::Expand() {
 bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
     BlockCostList blocks{reinterpret_cast<void*>(0x0073FCFC), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    NearbyBlocksOriginal(this, nullptr, sizeClass, flag, x, y, &blocks);
+    NearbyBlocks(sizeClass, flag, x, y, &blocks);
     for (BlockCostList::Node* node = blocks.head; node; node = node->next) {
         int cost = node->data.cost / 128;
         BlockRecord* record = &search->records.rows[node->data.y][node->data.x];

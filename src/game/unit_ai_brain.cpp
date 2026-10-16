@@ -495,7 +495,7 @@ void AIBrain::UpdateMemory(UnitController* who) {
         --reports.size;
         --i;
     }
-    AiCallsUpdateOriginal(&calls, nullptr, who->unit, memory);
+    CallsUpdate(&calls, nullptr, who->unit, memory);
     // The AI events are the world server's +0x2838 (007B2798).
     AiEventsUpdateMemoryOriginal(WorldServer()->timeWheel_, nullptr, who, memory);
     noticedLevel += noticedKind;
@@ -625,7 +625,7 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&value, 4);
     action = value;
     stream->Read(&actionPoint, 12);
-    LooksLoadOriginal(&looks, stream);
+    LoadLooks(&looks, stream);
     stream->Read(&actionTime, 4);
     reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
     reinterpret_cast<AIRef*>(&seen)->Load(stream, WorldServer());
@@ -682,7 +682,7 @@ EI_REPLACE_METHOD(0x005D8310, AIBrain::Load);
 void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, action);
     stream->Write(&actionPoint, 12);
-    LooksSaveOriginal(&looks, stream);
+    SaveLooks(&looks, stream);
     WriteCopy(stream, actionTime);
     reinterpret_cast<AIRef*>(&target)->Save(stream);
     reinterpret_cast<AIRef*>(&seen)->Save(stream);
@@ -710,13 +710,13 @@ void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, alerted);
     WriteCopy(stream, alarm);
     WriteCopy(stream, alarmRecords.size);
-    for (int i = 0; i < alarmRecords.size; ++i) AlarmRecordWriteOriginal(&alarmRecords.data[i], nullptr, stream);
+    for (int i = 0; i < alarmRecords.size; ++i) alarmRecords.data[i].Write(stream);
     WriteCopy(stream, alarmCountdown);
     WriteCopy(stream, alwaysUpdated);
     WriteCopy(stream, attention.weapons.size);
-    for (int i = 0; i < attention.weapons.size; ++i) AttackOptionSaveOriginal(&attention.weapons.data[i], nullptr, stream);
+    for (int i = 0; i < attention.weapons.size; ++i) attention.weapons.data[i].Save(stream);
     WriteCopy(stream, attention.spells.size);
-    for (int i = 0; i < attention.spells.size; ++i) AttackOptionSaveOriginal(&attention.spells.data[i], nullptr, stream);
+    for (int i = 0; i < attention.spells.size; ++i) attention.spells.data[i].Save(stream);
     WriteCopy(stream, attention.healWeight);
     WriteCopy(stream, alarmSlot);
 }

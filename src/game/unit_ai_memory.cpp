@@ -1,6 +1,7 @@
 // The perception memory's queries over the visible units (005CB260, 005CB480, 005CB670), the
 // exposure to hostile units (005CB850), corpses seen (005CBE90), forcing
 // an object into sight (005CBC80) and the counted lists' AddTail (005CD500).
+#include "ai_map.h"
 #include "unit_ai.h"
 
 #include "console.h"
@@ -186,7 +187,7 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
         if (!(distance >= sight)) {
             Vector3 theirEye;
             Vector3 to = *static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
-            double range = LineOfSightOriginal(WorldServer()->AIMap(), nullptr, &eye, &to) * sight;
+            double range = WorldServer()->AIMap()->LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
         KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[2].current) * self->stats.valuesE0[2].current));

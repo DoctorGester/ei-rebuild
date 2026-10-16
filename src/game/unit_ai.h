@@ -702,7 +702,7 @@ struct AIAttackOption {
     // version 0x5A only the part, a dropped dword and the damage were saved: the kind becomes
     // part >= 0, the range 1, the rest 0.
     void Load(CStream* stream);
-    void Save(CStream* stream);
+    void Save(CStream* stream) const;
 
     int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
     int part;                       // +0x04 -1 a weapon, else the spell

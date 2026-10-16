@@ -123,7 +123,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.RemoveAt(node);
         node = next;
     }
-    PlayerAddPartyTargetsOriginal(this, nullptr, brain, &candidates);
+    AddPartyTargets(brain, &candidates);
     unit->flags_ |= kChoosingFlag;
     brain->ChooseTarget(best, &candidates, PositionOf(unit), 0, 0);
     unit->flags_ &= ~kChoosingFlag;
@@ -134,7 +134,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
             // The other followers that are not fighting stop following.
             AIObjectList party;
             InitList(party);
-            PlayerCollectPartyOriginal(this, nullptr, brain, &party);
+            CollectParty(brain, &party);
             for (auto* node = party.head; node;) {
                 auto* other = static_cast<CUnit*>(node->data);
                 node = node->next;

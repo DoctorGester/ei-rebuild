@@ -5,6 +5,7 @@
 // vanilla game. Every callee is reached through its original address (forwarders below): several
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
+#include "ai_map.h"
 #include "object_tables.h"
 #include "script.h"
 #include "game_strings.h"
@@ -156,7 +157,7 @@ __declspec(naked) void AIMapCalls::FindUnitsInRadius(const Vector3*, void*, floa
 __declspec(naked) void AIMapCalls::Remove(CEngineObject*) EI_ORIGINAL(0x004BA0C0)
 __declspec(naked) void AIMapCalls::Add(CEngineObject*) EI_ORIGINAL(0x004BA0A0)
 bool AIMapCalls::CanLeaveCell(CEngineObject* object) { return AIMapCanLeaveCellOriginal(this, nullptr, static_cast<CUnit*>(object)); }
-bool AIMapCalls::FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out) { return FindFreeCellNearOriginal(this, nullptr, object, from, out); }
+bool AIMapCalls::FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out) { return reinterpret_cast<CAIMap*>(this)->FindFreeCellNear(static_cast<CUnit*>(object), from, out); }
 __declspec(naked) char AIMapCalls::SetUpdates(int) EI_ORIGINAL(0x004BA090)
 AIMapCalls* TheAIMap() { return reinterpret_cast<AIMapCalls*>(WorldServer()->AIMap()); }
 
@@ -186,7 +187,7 @@ void BrainCalls::ClearModes() { static_cast<AIBrain*>((void*)this)->ClearModes()
 void BrainCalls::StopAction() { BrainStopActionOriginal(this); }
 __declspec(naked) void BrainCalls::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
 __declspec(naked) void BrainCalls::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
-void BrainCalls::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }
+void BrainCalls::AddMode(void* a0) { reinterpret_cast<AIBrain*>(this)->AddMode(static_cast<AIMode*>(a0)); }
 __declspec(naked) void* BrainCalls::FindPatrolMode() EI_ORIGINAL(0x005D5E30)
 void BrainCalls::RemoveMode(int a0) { static_cast<AIBrain*>((void*)this)->RemoveModesOfType(a0); }
 
@@ -210,7 +211,7 @@ __declspec(naked) ModeCalls* ModeCalls::Sentry(const Vector3*) EI_ORIGINAL(0x004
 __declspec(naked) ModeCalls* ModeCalls::Guard(const Vector3*, float, float) EI_ORIGINAL(0x004BA1C0)
 __declspec(naked) ModeCalls* ModeCalls::Follow(CEngineObject*) EI_ORIGINAL(0x004BA450)
 __declspec(naked) ModeCalls* ModeCalls::Patrol() EI_ORIGINAL(0x005D0F60)
-ModeCalls* ModeCalls::Player() { return (ModeCalls*)ModePlayerConstructOriginal((void*)this); }
+ModeCalls* ModeCalls::Player() { return (ModeCalls*)static_cast<PlayerMode*>((void*)this)->Construct(); }
 // Fear and Suspicion zero the mode's fields first (SV7b2, SV7d4: FearMode / SuspectionMode::ClearFields).
 ModeCalls* ModeCalls::Fear(int on) {
     auto* mode = reinterpret_cast<FearMode*>(this);
@@ -238,7 +239,7 @@ struct PatrolCalls {
     void AddPoint(const Vector3* point);                 // 005D12B0
     PatrolPoint* LastPoint();                            // 005D1690
 };
-void PatrolCalls::AddPoint(const Vector3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
+void PatrolCalls::AddPoint(const Vector3* a0) { static_cast<PatrolMode*>((void*)this)->AppendPoint(a0); }
 __declspec(naked) PatrolPoint* PatrolCalls::LastPoint() EI_ORIGINAL(0x005D1690)
 
 // A look (16 bytes: point and a flag) as the patrol commands build it.

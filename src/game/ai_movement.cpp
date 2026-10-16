@@ -3,6 +3,7 @@
 #include "ai_map.h"
 
 #include "ai_shape_cache.h"
+#include "ai_unit_layer.h"
 #include "core_refcount.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -19,9 +20,10 @@ namespace {
 // A handle into the cache of unit occupancy shapes (UnitShapes(), ai_shape_cache.h), keyed by
 // standing height rounded to 0.1. 16x16 signed levels start at shape + 8.
 using ShapeHandle = ShapeCacheHandle;
+// 005BCCB0 / 005BD7F0 through their addresses: ei_vectors links this file without the cache's
+// (ai_shape_cache.cpp, game_hashes.cpp).
 __declspec(naked) ShapeHandle* __fastcall ShapeHandleInit(ShapeHandle*, void*) EI_ORIGINAL(0x005BCCB0)
-__declspec(naked) const std::int8_t* __fastcall ShapeCacheGet(UnitShapeCache*, void*, ShapeHandle*)
-    EI_ORIGINAL(0x005BD7F0)
+__declspec(naked) CRefObject* __fastcall ShapeCacheGet(UnitShapeCache*, void*, ShapeHandle*) EI_ORIGINAL(0x005BD7F0)
 
 // 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
@@ -63,14 +65,14 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         float otherHeight = other->standingHeight;
         ShapeHandle handle;
         ShapeHandleInit(&handle, nullptr);
-        const std::int8_t* shape = nullptr;
+        const CUnitShape* shape = nullptr;
         if (!(otherHeight > kShapeMinHeight)) {
             if (handle.ref) handle.ref->Release();
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
             std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
-            shape = ShapeCacheGet(UnitShapes(), nullptr, &handle);
+            shape = static_cast<const CUnitShape*>(ShapeCacheGet(UnitShapes(), nullptr, &handle));
             if (CRefObject* ref = handle.ref) {
                 if (--ref->refs_ == 0) delete ref;
             }
@@ -81,7 +83,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         int dxCells = unitX - otherX + 8;
         int dyCells = unitY - otherY + 8;
         if (!shape || dxCells < 0 || dyCells < 0 || dxCells >= 16 || dyCells >= 16 ||
-            shape[8 + dyCells * 16 + dxCells] >= minLevel) {
+            static_cast<std::int8_t>(shape->levels[dyCells][dxCells]) >= minLevel) {
             blocker = other;
             break;
         }
@@ -241,7 +243,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             }
             if (!noLineOfSight) {
                 cell.z = static_cast<float>(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
-                double seen = LineOfSightOriginal(this, nullptr, eye, &cell) * radius;
+                double seen = LineOfSight(eye, &cell) * radius;
                 if (!(seen >= distance)) continue;
             }
             grid->rows[gy][gx] = 1;
@@ -261,8 +263,6 @@ __declspec(naked) ShapeCacheIterator* __fastcall ShapeMapFind(ShapeMap*, void*, 
     EI_ORIGINAL(0x005BE320)
 __declspec(naked) ShapeCacheIterator* __fastcall ShapeIteratorInit(ShapeCacheIterator*, void*, ShapeMap::Node*,
                                                                     const ShapeMap*) EI_ORIGINAL(0x005BE450)
-// The pair's destructor.
-__declspec(naked) void __fastcall ShapePairDestroy(ShapePair*, void*) EI_ORIGINAL(0x005BE280)
 // hash_map insert_unique_noresize-style lookup or insert; returns the node's pair.
 __declspec(naked) ShapePair* __fastcall ShapeMapInsert(ShapeMap*, void*, const ShapePair*) EI_ORIGINAL(0x005BE730)
 
@@ -317,7 +317,7 @@ void* CAIMap::UnitShape(float standingHeight) {
         ShapePair pair;
         ConstructShapePair(&pair, nullptr, &handle, &none);
         RefPtr* slot = &ShapeMapInsert(map, nullptr, &pair)->value;
-        ShapePairDestroy(&pair, nullptr);
+        DestroyShapePair(&pair);
         none.Destroy();
         if (shape != slot->ptr) {
             slot->Destroy();

@@ -318,7 +318,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
         SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
-        StampWaterPatchOriginal(world->AIMap(), nullptr, position, 1);
+        world->AIMap()->StampWaterPatch(position, 1);
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
@@ -334,7 +334,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     UnitOf(c)->altPassCosts = current;
     if (liftBlocker) {
         SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
-        StampWaterPatchOriginal(world->AIMap(), nullptr, position, 0);
+        world->AIMap()->StampWaterPatch(position, 0);
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     if (found) {
@@ -405,8 +405,8 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     Vector3 direction;
     float speed;
     int cellX, cellY;
-    bool going = MotionSample(UnitOf(c)->Motion(), nullptr, world, MotionPathOf(c), TimeAsFloat(&time), &turning,
-                              &position, &direction, &speed, &cellX, &cellY);
+    bool going = UnitOf(c)->Motion()->Sample(world, &MotionPathOf(c)->motionOrder, TimeAsFloat(&time), &turning,
+                              &position.x, &direction.x, &speed, &cellX, &cellY);
     bool motionOver = !going;
     FromHalfCells(&position.x);
 

@@ -33,16 +33,15 @@ AiLogStream* AiLogStream::Put(int c) { return static_cast<AiLogStream*>(OstreamP
 AiLogStream* AiLogStream::Apply(void* manipulator) { return static_cast<AiLogStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 AiLogStream* AlarmLog() { return *reinterpret_cast<AiLogStream**>(0x007C2EB8); }
 
-// 00455940: the owner's manager context (the world). 0058D340 (RET 8): the object says a remark.
-static inline std::uint8_t* ManagerContextAt(void* object) { return static_cast<std::uint8_t*>(ManagerContextOf(object)); }
-__declspec(naked) void __fastcall SayRemark(void*, void*, void*, int) EI_ORIGINAL(0x0058D340)
+// 00455940: the owner's manager context (the world server).
+static inline CWorldServer* ManagerContextAt(void* object) { return static_cast<CWorldServer*>(ManagerContextOf(object)); }
 
 } // namespace
 
 void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
     auto* state = reinterpret_cast<AIAlarm*>(stateIn);
     auto* server = reinterpret_cast<CUnitServer*>(owner);
-    std::uint8_t* world = ManagerContextAt(owner);
+    CWorldServer* world = ManagerContextAt(owner);
     if (state->pending != 0) {
         if (state->pending > state->level) {
             state->active = state->pending;
@@ -51,15 +50,15 @@ void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
             AlarmLog()->Write(game::Text(0x0078FDBC))->Write(static_cast<long>(unit->id_))->Write(game::Text(0x007910E0));
             std::uintptr_t what;
             switch (state->active) {
-            case 1: SayRemark(world, nullptr, server->unit, 0x31); what = 0x007910CC; break;
-            case 2: SayRemark(world, nullptr, server->unit, 0x32); what = 0x007910CC; break;
+            case 1: world->TellParties(server->unit, 0x31); what = 0x007910CC; break;
+            case 2: world->TellParties(server->unit, 0x32); what = 0x007910CC; break;
             case 3: what = 0x007910B4; break;   // "back from Suspection"
             case 4: what = 0x0079109C; break;   // "back from Aggression"
-            case 5: SayRemark(world, nullptr, server->unit, 0x2F); what = 0x0079108C; break;
-            case 6: SayRemark(world, nullptr, server->unit, 0x2E); what = 0x0079107C; break;
+            case 5: world->TellParties(server->unit, 0x2F); what = 0x0079108C; break;
+            case 6: world->TellParties(server->unit, 0x2E); what = 0x0079107C; break;
             case 7: what = 0x00791070; break;   // "to Alarm!"
             case 8: what = 0x0079105C; break;   // "ALARM ALARM ALARM"
-            case 9: SayRemark(world, nullptr, server->unit, 0x30); what = 0x0079104C; break;
+            case 9: world->TellParties(server->unit, 0x30); what = 0x0079104C; break;
             default: what = 0x00791040; break;  // "error... :)"
             }
             AlarmLog()->Write(game::Text(what))->Put(10)->Apply(reinterpret_cast<void*>(0x00435000));
@@ -74,7 +73,7 @@ void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
         return;
     }
     int side = server->unit->side;
-    std::uint32_t allies = reinterpret_cast<CWorldServer*>(world)->diplomacy_.allied_[side];
+    std::uint32_t allies = world->diplomacy_.allied_[side];
     for (auto* node = server->Brain()->nearby.head; node; node = node->next) {
         auto* member = static_cast<CUnit*>(node->data);
         if (!(allies & (1u << (member->side & 31)))) continue;

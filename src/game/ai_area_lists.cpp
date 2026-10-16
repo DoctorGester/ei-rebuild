@@ -5,6 +5,7 @@
 // (005BEC40) as the original inlines it.
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
+#include "ai_grids.h"
 
 #include "ei/hook.h"
 

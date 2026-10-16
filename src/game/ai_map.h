@@ -218,9 +218,9 @@ static_assert(sizeof(MotionOrder) == 0x20);
 struct AIPath {
     void LoadPath(CStream* stream);
     void SavePath(CStream* stream);
-    void StandAndTurn(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t rate);
-    void StandAndTrack(int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from, std::uint32_t to);
-    void StandAndTurnUntil(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t a, std::uint32_t b);
+    void StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, float rate);
+    void StandAndTrack(int time, std::uint8_t* unit, int id, int from, int to);
+    void StandAndTurnUntil(int time, std::uint8_t* unit, const Vector3* direction, int a, int b);
     void StandStill(std::uint8_t* unit);
     // The order in the first 0x20 bytes (MotionOrder, ai_motion.h); src/game/ai_motion.cpp.
     // 005C7D50. Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
@@ -301,6 +301,7 @@ static_assert(offsetof(AIPath, smoothing) == 0x84);
 
 class CAIMap;
 class CSectorMap;
+class CUnitShape;   // ai_unit_layer.h
 
 // A terrain type of the AI map (0x118 bytes; CAIMap::materials, indexed by the low 5 bits of a
 // cell's occluder word): a section of tileDesc.reg in the text resources' aiinfo.res, whose name
@@ -503,6 +504,9 @@ static_assert(offsetof(BlockSearch, map) == 0x10);
 static_assert(offsetof(BlockSearch, open) == 0x1C);
 static_assert(offsetof(BlockSearch, bestCost) == 0x40);
 static_assert(sizeof(BlockSearch) == 0x4C);
+// 005AF1C0 (thiscall on the search, RET 0xC; ai_region_reach.cpp): the path from the search's start to
+// block (x, y) into `path` (emptied first).
+void __fastcall BlockSearchPathTo(BlockSearch* search, void*, int x, int y, PathCellList* path);
 
 // The region map at CAIMap + 0x22F8 (0x29C bytes): connected areas of 8x8-cell blocks per size class.
 struct CRegionMap {
@@ -531,7 +535,8 @@ struct CRegionMap {
     void PickRepresentatives(class CAIMap* map, int bx, int by);
     // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
     // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
-    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
+    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCellList* chain,
+                         BlockPointArray* excluded);
     // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
     // joins their paths into `chain`; false when one runs out.
     bool JoinBlockSearches(PathCellList* chain);
@@ -547,7 +552,7 @@ struct CRegionMap {
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
     // 005AFF10 (RET 0x10; ai_region_reach.cpp). Floods `label` over the blocks connected through open
     // edges, breadth first from `frontier` (CArray<{x, y}>), `next` holding the following ring.
-    void FloodRegionFrom(int sizeClass, void* frontier, void* next, int label);
+    void FloodRegionFrom(int sizeClass, BlockPointArray* frontier, BlockPointArray* next, int label);
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
@@ -739,7 +744,7 @@ public:
 
     // 005B36B0. Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
     // (x, y): one node per non-empty 4x4 block, each announced through Merge.
-    void Add(CUnit* unit, const std::uint8_t* shape, int x, int y);
+    void Add(CUnit* unit, const CUnitShape* shape, int x, int y);
     // 005B3890. Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);

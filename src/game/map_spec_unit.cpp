@@ -541,12 +541,12 @@ void Behaviour::Read(void* stream) {
 EI_REPLACE_METHOD(0x0045D610, Behaviour::Read);
 
 // 0045D760: the record to a stream (the same fields).
-void Behaviour::Write(void* stream) {
+void Behaviour::Write(void* stream) const {
     StreamWrite(stream, &type, 4);
     int n = patrols.size;
     StreamWrite(stream, &n, 4);
     for (int i = 0; i < patrols.size; ++i) {
-        Patrol* p = &patrols.data[i];
+        const Patrol* p = &patrols.data[i];
         StreamWrite(stream, &p->position, 12);
         WaypointsWrite(&p->waypoints, stream);
     }
