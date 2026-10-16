@@ -1943,6 +1943,45 @@ the decoded saves the same; `golden.py saves` recorded them for zone_gz3g (vanil
 Then a full plain `--no-hooks --golden` pass: 124 goldens the same, 0 differ (no other golden's saves changed);
 hooked and `--standalone --golden` on both scenarios: the 3 goldens the same, saves included. After merging main: the same.
 
+## SV7b6: pointer-keyed containers, and the draw lists' order by address (2026-10-16)
+
+**The two hashes the ticket names do not reach output.** `CRenderHelper::records_` (model.h, keyed by CRenderPreset*)
+is iterated only by the helper's destructor (004FCD50), when the renderer is destroyed (ShutDown) or replaced
+(CreateHelper): the walk decides which presets' state blocks are deleted on the old device (its stray step over a
+freed node can leave some behind), never a frame. `CMappedResource::filesByData_` (resource.h, keyed by the data
+pointer) is iterated only by FreeAllFiles (00672040), which frees the files in that order: heap layout only. Every
+other lookup in both is by key. Other address-keyed containers in src/: mod_folders.cpp's `overridden` / `ignored`
+(lookups only), net_connection's maps (SV7b5), and the renderer's holder-keyed maps (src/render; below).
+
+**What the frame captures found instead: UnitOrderLess 00574300.** DrawPass (0056AFE0) sorts its draw lists (objects
+and their shadows) by the first part set's texture *address*, then the figure's (CLinkMesh*) address, then view
+depth, so objects and shadows blend in heap order. render_scene (vanilla), `--no-hooks` (dgVoodoo): EI_HEAP_JITTER=1
+moves 502 pixels at tree / water edges (up to 12 levels), and hooked `--dgvoodoo` 2240 (seed 1, pillar bases) and
+10870 (seed 2, the altar's shadow outline, 1 level); world_t (objects off) stays equal, and two plain runs or two
+seed-1 runs repeat exactly.
+
+**Fix** (world_rules.cpp, address_order.h; harness_address_order.cpp): with address_order::ById (harness runs, the
+standalone) UnitOrderLess::Less is address_order::DrawBefore: the texture (null first, then its name), the figure
+(null first, then name and morph weights), then the view depth as before; the original's order stays as
+UnitOrderLess::LessByAddress, checked against 00574300 by its verify wrapper. Patching 00574300 alone is not
+enough: the original's final insertion sort (00574390) compares with the first element by address inline and calls
+00574300 for the unguarded scans, and the two orders mixed ran off the array (C0000005 in the first frame). So the
+harness jumps 005740D0 and 00574390 to ours (PtrSort with UnitOrderLess), and with ById their verify wrappers sort
+with ours alone and check the final order.
+
+**Runs** (frames hashed; 16 capture scenarios without hooks, 186 frames; 19 with hooks, 210 frames): `--no-hooks`
+plain, plain again, seed 1, seed 2: all 186 equal; render_scene hooked `--dgvoodoo` seeds 1 and 2 equal to plain and
+equal to the original's frame; frames_basic and ui_widescreen hooked `--dgvoodoo` equal under seed 1. Hooked
+`--golden` under seed 1 (frames_basic, ui_saveload, render_present, ui_widescreen, render_cpuwindows): 7 goldens the
+same. **Left (SV7b6a):** with our renderer (`render new`) hooked frames still part under jitter (seed 1: 27 of
+210, e.g. frames_basic's water in world, the menu's figures; seed 2: 24, Rebirth) while the world digest stays the
+same, and with dgVoodoo they do not: something in src/render follows addresses, the holder-keyed maps (g_textures,
+g_windows, g_memory, g_pictures, g_movies: an entry found for a new holder made at a freed one's address) first.
+
+**Suites after merging main:** hooked `--golden` 146 runs all pass, 124 goldens the same; `--no-hooks --golden` 124
+the same (its failures are the scenarios that need our renderer); `--standalone --golden` over the 95 golden
+scenarios, 190 runs all pass, 168 the same, 0 differ.
+
 ## SV7c: the goldens under heap jitter on both installs (2026-10-16)
 
 Every golden scenario on both installs with `--golden`, once per variant: `EI_HEAP_JITTER` 1, 2, 3, `2,fill`, `3,fill`
