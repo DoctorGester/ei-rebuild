@@ -171,6 +171,45 @@ class DirectCallsTest(unittest.TestCase):
     def test_reindent(self):
         self.assertEqual(dc.reindent('a,\n       b,\n   c)', 7, -3), 'a,\n    b,\n   c)')
 
+    def test_loose_match(self):
+        classes = dc.Classes([dc.Source('src/game/c.h', 'struct Base {};\nstruct Derived : Base {};\n')])
+        member = dc.Sig('public: int __thiscall Derived::Bar(unsigned int,struct Base *,char)', 'x')
+        kind, conv = dc.match_loose(dc.Sig('int __fastcall F(void *,void *,int,void *,int)', 'x'), member, classes)
+        self.assertEqual(kind, 'loose')
+        self.assertEqual(conv['self'], 'cast')
+        self.assertEqual(conv['args'], [None, ('cast', 'Base*'), ('cast', 'char')])
+        _, conv = dc.match_loose(dc.Sig('int __fastcall F(struct Base *,void *,int,struct Derived *,char)', 'x'),
+                                 member, classes)
+        self.assertEqual((conv['self'], conv['args']), ('cast', [None, None, None]))
+        # A float's bits, a bool, unrelated classes and a result read as another class stay forwarders.
+        for fwd in ('int __fastcall F(void *,void *,float,void *,char)', 'bool __fastcall F(void *,void *,int,void *,char)',
+                    'int __fastcall F(struct Other *,void *,int,void *,char)',
+                    'int __fastcall F(void *,void *,int,struct Other *,char)'):
+            self.assertIsNone(dc.match_loose(dc.Sig(fwd, 'x'), member, classes)[0], fwd)
+        free = dc.Sig('struct Derived * __stdcall G(struct Vector3 const &)', 'x')
+        kind, conv = dc.match_loose(dc.Sig('struct Base * __fastcall H(struct Vector3 const *)', 'x'), free, classes)
+        self.assertEqual((kind, conv['args'], conv['ret']), ('loose', [('deref',)], None))
+        _, conv = dc.match_loose(dc.Sig('struct Derived * __fastcall H(struct Vector3 const *)', 'x'),
+                                 dc.Sig('struct Base * __stdcall G(struct Vector3 const &)', 'x'), classes)
+        self.assertEqual(conv['ret'], ('cast', 'Derived*'))
+
+    def test_loose_rewrite(self):
+        header = '#pragma once\nstruct Foo {\n    int Bar(unsigned int n, char c);\n};\n'
+        definition = ('#include "foo.h"\nint Foo::Bar(unsigned int n, char c) { return n + c; }\n'
+                      'EI_REPLACE_METHOD(0x00401000, Foo::Bar);\n')
+        user = ('#include "ei/hook.h"\nnamespace {\n'
+                '__declspec(naked) int __fastcall BarAt(void*, void*, int, int) EI_ORIGINAL(0x00401000)\n}\n'
+                'int User::Run(Foo* p, int n) {\n    BarAt((void*)p, nullptr, n, n);\n    return BarAt(p, nullptr, 1, n);\n}\n')
+        decls = {'Foo::Bar': [dc.Sig('public: int __thiscall Foo::Bar(unsigned int,char)', 'foo.cpp.obj')],
+                 'BarAt': [dc.Sig("int __fastcall `anonymous namespace'::BarAt(void *,void *,int,int)", 'user.cpp.obj')]}
+        sources = [dc.Source('src/game/foo.h', header), dc.Source('src/game/foo.cpp', definition),
+                   dc.Source('src/game/user.cpp', user)]
+        fwds, _ = run(sources, decls, {'cast': True})
+        self.assertEqual({f.name: f.reason for f in fwds}['BarAt'], 'types differ')
+        fwds, out = run(sources, decls, {'cast': True, 'loose': True})
+        self.assertIn('    p->Bar(n, static_cast<char>(n));\n    return p->Bar(1, static_cast<char>(n));\n',
+                      out['src/game/user.cpp'])
+
     def test_kept(self):
         # A name used other than in a call, or a recorder's address, keeps the forwarder.
         sources = [dc.Source('src/game/foo.h', HEADER), dc.Source('src/game/foo.cpp', DEFINITION),

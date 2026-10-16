@@ -9,6 +9,7 @@
 #include "map_object.h"
 #include "spell.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -60,7 +61,7 @@ constexpr int kPtrListBlockSize = 10;
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
 VictimNode* __fastcall VictimNewNode(VictimList* a0, void*, VictimNode* a2, VictimNode* a3) { return (VictimNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) void __fastcall VictimFreeNode(VictimList*, void*, VictimNode*) EI_ORIGINAL(0x0052CE20)
-void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefAssignOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
 PtrNode* __fastcall PtrNewNode(PtrList* a0, void*, PtrNode* a2, PtrNode* a3) { return (PtrNode*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 inline void __fastcall PtrRemoveAll(PtrList* l) { PtrListRemoveAllOriginal(l); }
 
@@ -263,7 +264,7 @@ namespace {
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
 // [00403F40, rewritten in base_manager.cpp].
-void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { AIRef::Of(a0)->Save(a2); }
 
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;

@@ -186,9 +186,9 @@ struct UnitCalls {
     void MarkChanged(int what);                          // 0050E9F0
 };
 void UnitCalls::SetHostileMask(std::uint32_t a0) { static_cast<CUnit*>((void*)this)->SetHostileMask(a0); }
-void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
-void UnitCalls::GiveQuestItem(CEngineObject* item) { UnitAddCarriedOriginal(this, nullptr, item); }
-void UnitCalls::AddSpell(CEngineObject* spell) { UnitAddSpellOriginal(this, nullptr, spell); }
+void UnitCalls::SetController(WorldPlayer* player) { reinterpret_cast<CUnit*>(this)->SetPlayer(reinterpret_cast<char*>(player)); }
+void UnitCalls::GiveQuestItem(CEngineObject* item) { reinterpret_cast<CUnit*>(this)->AddCarried(item); }
+void UnitCalls::AddSpell(CEngineObject* spell) { reinterpret_cast<CUnit*>(this)->AddSpell(spell); }
 void UnitCalls::MarkChanged(int what) { reinterpret_cast<CMapObject*>(this)->MarkChanged(what); }
 UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
 

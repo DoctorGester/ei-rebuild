@@ -48,7 +48,7 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     int zero = 0;
     StringEndOfStorageOriginal(&key.eos, nullptr, &allocatorTag, &zero);
     StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-    auto* model = static_cast<FigureModel*>(FigureManagerFindModelOriginal(this, nullptr, &key));
+    auto* model = static_cast<FigureModel*>(FindModel(reinterpret_cast<const stlp::string*>(&key)));
     StringBufferFree(&key);
 
     std::uint32_t* data;

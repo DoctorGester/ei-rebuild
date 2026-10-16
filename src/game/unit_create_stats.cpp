@@ -68,7 +68,7 @@ std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fi
 // 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
 // 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
-void* FindSkill(void* database, void*, const void* name) { return SkillFindOriginal(database, nullptr, name); }
+void* FindSkill(void* database, void*, const void* name) { return static_cast<SkillDatabase*>(database)->FindLevel(static_cast<const char*>(name)); }
 // 00526450. Statistics: learns `skill` of the skill database (UnitStats::LearnSkill).
 void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
     stats->LearnSkill(database, record);

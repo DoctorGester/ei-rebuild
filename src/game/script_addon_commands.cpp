@@ -245,7 +245,7 @@ bool GiveUnitWeapon(Call* call) {
     auto* item = static_cast<CItemWeapon*>(WorldServer()->CreateItemNamed(name));
     if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
-    int slot = UnitAddWeaponOriginal(unit, nullptr, item);
+    int slot = static_cast<CUnit*>(unit)->AddWeapon(item);
     if (slot == -1) return true;
     AsCUnit(unit)->pendingWeapon = slot;
     if (override) {
@@ -283,7 +283,7 @@ bool GiveUnitArmor(Call* call) {
     CEngineObject* item = WorldServer()->CreateItemNamed(name);
     if (override && unit->id_ >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
-    UnitEquipArmourOriginal(unit, nullptr, item);
+    static_cast<CUnit*>(unit)->EquipArmour(item);
     if (override) {
         UnitStatPair* protection = static_cast<CMapObjectServer*>(AsCUnit(unit)->companion)->vitals.protection;
         const UnitPrototypeRecord* prototype = PrototypeOf(unit);

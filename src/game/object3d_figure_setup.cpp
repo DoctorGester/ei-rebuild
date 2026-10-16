@@ -3,6 +3,7 @@
 // Lever::SetState and the unit controller): the state takes the model, one box and one name per
 // animated part, and the object's bounds around the boxes. See map_object_figures.h and
 // docs/notes/map_objects.md ("Figures").
+#include "figure_manager.h"
 #include "map_object_figures.h"
 
 #include "ai_map.h"
@@ -108,14 +109,14 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         void* figureModel;
         {
             stlp::string modelName(model, model + std::strlen(model));
-            figureModel = FigureManagerFindModelOriginal(manager, nullptr, &modelName);
+            figureModel = static_cast<CFigureManager*>(manager)->FindModel(&modelName);
         }
         int index = 0;
         for (auto* node = animation->bones.head; node; ++index) {
             FigureBone* bone = node->data;
             node = node->next;
             FootprintPart* box = &partBoxes[index];
-            FigureManagerPartBoundsOriginal(manager, nullptr, box, figureModel, model, bone->GetName(),
+            static_cast<CFigureManager*>(manager)->LoadFigureBounds(reinterpret_cast<ClipBounds*>(box), static_cast<FigureModel*>(figureModel), model, bone->GetName(),
                                             std::bit_cast<std::uint32_t>(scale.x),
                                             std::bit_cast<std::uint32_t>(scale.y),
                                             std::bit_cast<std::uint32_t>(scale.z));
@@ -237,8 +238,7 @@ EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
 
 CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
     CEngineObject* manager = FigureManagerOf(this);
-    auto* part = static_cast<CFigureMesh*>(FigureManagerLoadPartOriginal(
-        manager, nullptr, name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
+    auto* part = static_cast<CFigureMesh*>(static_cast<CFigureManager*>(manager)->NewPart(name, partName, static_cast<FigureModel*>(model), std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
         game::DebugLog(kCantLoadPart, partName, name);
@@ -276,7 +276,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
     if (!present) {
         AddAt(&parts, nullptr, part);
         ++part->refCount_;
-        FigurePartSetOwnerOriginal(part, nullptr, this);
+        part->SetObject(this);
         if (animation) static_cast<CFigureAnimationState*>(animation)->AttachMesh(part);
         if (attached) Specific()->OnPartAdded(part);
     }
@@ -293,7 +293,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     void* cached;
     {
         stlp::string key(model, model + std::strlen(model));
-        cached = FigureManagerFindModelOriginal(manager, nullptr, &key);
+        cached = static_cast<CFigureManager*>(manager)->FindModel(&key);
     }
     *reinterpret_cast<mfc::CString*>(&name) = model;
     if (!manager) return game::FatalError(kNoFigureManager);
@@ -346,7 +346,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
     }
     auto* names = static_cast<const PartNameArray*>(partList);
     if (names->size == 0 && animation) {
-        AnimationStatePartNamesOriginal(animation, nullptr, partList);
+        animation->CollectBoneNames(static_cast<mfc::CStringArray*>(partList));
         stlp::string key(model, model + std::strlen(model));
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         FigureRef().Assign(made);

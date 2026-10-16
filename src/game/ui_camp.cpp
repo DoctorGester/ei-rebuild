@@ -963,7 +963,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         }
         if (heroes_[hero_]) {
             void* worn = RecordAddWornEntryOriginal(hero, nullptr, item);   // 00660C90
-            UnitEquipArmourOriginal(heroes_[hero_], nullptr, worn);         // 00530730
+            static_cast<CUnit*>(heroes_[hero_])->EquipArmour(static_cast<CEngineObject*>(worn));         // 00530730
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
         RebuildArmourLayers(hero);
@@ -1147,7 +1147,7 @@ void CCampPages::RefreshWeapons() {
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);   // 005310D0
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
-        UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);                           // 00531070
+        static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);                           // 00531070
     unit->SendEquipment();                                                      // 00531110
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();

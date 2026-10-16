@@ -780,15 +780,15 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
-            UnitAddWeaponOriginal(unit, nullptr, record->weapons[j]);
+            static_cast<CUnit*>(unit)->AddWeapon(record->weapons[j]);
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
+            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) static_cast<CUnit*>(unit)->EquipArmour(armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
-            UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
+            static_cast<CUnit*>(unit)->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
         slots->SetScriptName(record->texts[0]);

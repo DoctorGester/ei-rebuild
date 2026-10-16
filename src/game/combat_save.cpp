@@ -6,6 +6,7 @@
 
 #include "map_object.h"
 #include "object.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -68,7 +69,7 @@ CEngineObject* ReadObject(CStream* stream, void* manager) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
-    CountedRefLoadOriginal(&order->target, nullptr, (void*)stream, WorldServer());
+    AIRef::Of(&order->target)->Load(stream, WorldServer());
     stream->Read(&order->point, 0xC);
     stream->Read(&order->param, 4);
     stream->Read(&order->modifier, 1);
@@ -78,7 +79,7 @@ void LoadOrder(CStream* stream, UnitAction* order) {
 void SaveOrder(CStream* stream, UnitAction* order) {
     stream->Write(&order->kind, 4);
     stream->Write(&order->source, 4);
-    CountedRefSaveOriginal(&order->target, nullptr, (void*)stream);
+    AIRef::Of(&order->target)->Save(stream);
     stream->Write(&order->point, 0xC);
     WriteCopy(stream, order->param);
     WriteCopy(stream, order->modifier);
@@ -186,7 +187,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&sneakWait, 4);
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
-    UnitStatsLoadOriginal(&stats, nullptr, stream);
+    stats.LoadFrom(stream);
     if (stream->version_ < kVersionFixedMaximum)
         std::memcpy(&stats.fixedMaxHitPoints, &static_cast<CMapObjectServer*>(unit->companion)->vitals.maxHitPoints, 4);
     for (int i = 0; i < 4; ++i) stream->Read(&moveFactors[i], 4);
@@ -250,7 +251,7 @@ void CUnitServer::SaveServer(CStream* stream) {
     WriteCopy(stream, sneakWait);
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
-    UnitStatsSaveOriginal(&stats, nullptr, stream);
+    stats.SaveTo(stream);
     for (int i = 0; i < 4; ++i) WriteCopy(stream, moveFactors[i]);
     stream->Write(&tameStage, 4);
     WriteCopy(stream, ownSide);

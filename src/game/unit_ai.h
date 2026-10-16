@@ -593,6 +593,8 @@ struct AIRef {
     // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
     void Load(CStream* stream, void* world);
     void Save(CStream* stream);
+    // A counted object pointer (a member of another object) seen as the reference it is.
+    static AIRef* Of(CEngineObject** slot) { return reinterpret_cast<AIRef*>(slot); }
 
     CEngineObject* object;
 };

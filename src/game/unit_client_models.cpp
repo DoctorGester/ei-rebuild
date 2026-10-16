@@ -1,5 +1,6 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
+#include "figure_manager.h"
 #include "item.h"
 #include "resource.h"
 #include "unit_client_models.h"
@@ -96,7 +97,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     void* model;
     {
         stlp::string name(unit->name);
-        model = FigureManagerFindModelOriginal(manager, nullptr, &name);
+        model = static_cast<CFigureManager*>(manager)->FindModel(&name);
     }
     if (!model) return false;
     const char* armour = ArmourRecord(type);
@@ -158,7 +159,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     void* model;
     {
         stlp::string name(unit->name);
-        model = FigureManagerFindModelOriginal(FigureManager(), nullptr, &name);
+        model = static_cast<CFigureManager*>(FigureManager())->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
@@ -208,7 +209,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     void* model;
     {
         stlp::string name(unit->name);
-        model = FigureManagerFindModelOriginal(FigureManager(), nullptr, &name);
+        model = static_cast<CFigureManager*>(FigureManager())->FindModel(&name);
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);

@@ -26,6 +26,8 @@ usage:
   python tools/direct_calls.py --report [--scope GLOB ...] [--verbose]   counts by reason (nothing written)
   python tools/direct_calls.py --apply --scope GLOB [...]                rewrites forwarders declared in GLOB
   python tools/direct_calls.py --count                                   forwarders left to rewritten code
+  --loose (with --report / --apply) also converts forwarders whose types differ in ways a call can spell
+  (match_loose); compile errors at the calls go into --cast-sites or are fixed by hand.
 Needs a current `build.cmd verify` (its map) and undname (the script puts the VS tools on PATH itself).
 """
 import argparse
@@ -901,7 +903,7 @@ _VOID_DECL = re.compile(r'\bvoid\s*(?:const\s*)?\*\s*(?:const\s+)?([A-Za-z_]\w*)
 _VOID_NAMES = {}
 
 
-def looks_void(expr, src):
+def looks_void(expr, src, local=False):
     # An object expression that is void* for sure (it names void) or by its last name: declared as a void*
     # in its file or in a header. Saves a compile round per call (--cast-sites does the rest).
     if 'void' in expr:
@@ -914,7 +916,7 @@ def looks_void(expr, src):
                                   for n in _VOID_DECL.findall(h.code)}
     if src.path not in _VOID_NAMES:
         _VOID_NAMES[src.path] = set(_VOID_DECL.findall(src.code))
-    return last.group(1) in _VOID_NAMES[src.path] or last.group(1) in _VOID_NAMES['headers']
+    return last.group(1) in _VOID_NAMES[src.path] or (not local and last.group(1) in _VOID_NAMES['headers'])
 
 
 _MEMBER_DEF = re.compile(r'^[A-Za-z_][^;(\n]*?\b([A-Za-z_]\w*)::~?[A-Za-z_]\w*\s*\(', re.M)
@@ -944,6 +946,8 @@ def enclosing_prefix(src, offset):
 def rewrite_site(f, site):
     """(start, end, pieces) for one call site, or a reason. Pieces are strings and (start, end) ranges of
     the raw text, which are written with the edits inside them (a forwarder call in the arguments)."""
+    if f.kind == 'loose':
+        return rewrite_loose(f, site)
     s = site.src
     open_paren, close, args = site.args
     if f.kind == 'rename':
@@ -998,6 +1002,115 @@ def rewrite_site(f, site):
     old_col = column(s.raw, rest[0])
     delta = column(s.raw, site.start) + width - old_col
     return (site.start, close + 1, head + ['(', (rest[0], close, old_col, delta), ')']), ''
+
+
+def result_unused(s, site, close):
+    """The call is a statement of its own (its result is not read)."""
+    tok, _ = prev_token(s.bare, site.start)
+    return s.bare[close + 1:].lstrip().startswith(';') and tok in (';', '{', '}', ')', 'else')
+
+
+_VOID_CAST = re.compile(r'\(\s*(?:const\s+)?void\s*(?:const\s*)?\*\s*\)\s*|'
+                        r'(?:static|reinterpret)_cast\s*<\s*(?:const\s+)?void\s*(?:const\s*)?\*\s*>\s*\(')
+
+
+def unvoided(s, a, b):
+    """The range of the argument s.code[a:b] without a cast to void* written for the forwarder: `(void*)x`
+    and `static_cast<void*>(x)` -> x."""
+    m = _VOID_CAST.match(s.code, a, b)
+    if not m:
+        return a, b
+    if m.group(0).endswith('('):
+        close, _ = parse_args(s.bare, m.end() - 1)
+        return _trimmed(s.code, m.end(), close) if close == b - 1 else (a, b)
+    return (m.end(), b) if is_postfix(s.code[m.end():b].strip()) else (a, b)
+
+
+def rewrite_loose(f, site):
+    """rewrite_site for a 'loose' forwarder: the call with the conversions of f.conv written at it. Casts are
+    written where they are needed: a narrowing integer, a pointer for a reference, and an object or argument
+    the compiler did not take (its line in --cast-sites) or that is void* for sure."""
+    s = site.src
+    open_paren, close, args = site.args
+    t, conv = f.target, f.conv
+    cast_here = (s.path, s.line_of(site.start)) in CAST_SITES
+    if conv['mode'] == 'free':
+        if site.obj or site.qualifier not in ('', '::'):
+            return None, 'free forwarder called as a member or qualified'
+        if t.anonymous and s.path != f.target_src_path:
+            return None, 'target in an anonymous namespace of another file'
+        name = spelled_target(t, s, site.start)
+        start, head, rest = site.start, ['::' + name if f.global_qualify else name], args
+    elif conv['mode'] == 'member':
+        if site.qualifier and normalize_type(site.qualifier[:-2]).split('::')[-1] != t.scope.split('::')[-1]:
+            return None, 'qualified member call through another class'
+        start, head, rest = site.name_start, [t.simple], args
+    else:
+        if site.obj or site.qualifier not in ('', '::'):
+            return None, 'qualified call'
+        nparams = len(f.sig.params)
+        if len(args) != nparams:
+            return None, 'argument count differs'
+        sa, sb = _trimmed(s.code, *args[0])
+        self_code = s.code[sa:sb]
+        if '\n' in self_code or s.code[sa:sb] != s.raw[sa:sb]:
+            return None, 'object expression spans lines or has a comment'
+        if nparams >= 2:
+            dummy = s.bare[args[1][0]:args[1][1]].strip()
+            if not re.fullmatch(r'nullptr|0|NULL|[A-Za-z_]\w*', dummy):
+                return None, f'EDX argument with an effect ({dummy})'
+        m = t.simple
+        sa, sb = unvoided(s, sa, sb)
+        self_code = s.code[sa:sb]
+        own_member = self_code == 'this' and enclosing_class(s, site.start) == t.scope.split('::')[-1]
+        if conv['self'] and not own_member and (cast_here or not f.unique or looks_void(self_code, s, True)):
+            const = 'const ' if f.sig.params[0].endswith('const*') else ''
+            head = [f'static_cast<{const}{spelled_type(t.scope, s, site.start)}*>(', (sa, sb), ')->' + m]
+        elif self_code == 'this':
+            head = [m]
+        elif self_code.startswith('&') and not self_code.startswith('&&') and is_postfix(self_code[1:]):
+            head = [_trimmed(s.code, sa + 1, sb), '.' + m]
+        elif is_postfix(self_code):
+            head = [(sa, sb), '->' + m]
+        else:
+            head = ['(', (sa, sb), ')->' + m]
+        start, rest = site.start, args[2:] if nparams > 2 else []
+    if len(rest) != len(conv['args']):
+        return None, 'argument count differs'
+    pieces = head + ['(']
+    for i, ((a, b), c) in enumerate(zip(rest, conv['args'])):
+        ta, tb = _trimmed(s.code, a, b)
+        if i:
+            pieces.append(',')
+            if a < ta:
+                pieces.append((a, ta))
+        narrowing = c and c[0] == 'cast' and c[1] in INT_WIDTH
+        if c is None or (c[0] == 'cast' and not narrowing):
+            # An argument cast to void* for the forwarder loses that cast; one of another type reaches the
+            # target as it is unless the compiler said otherwise (--cast-sites) or it is void* for sure.
+            ua, ub = unvoided(s, ta, tb)
+            if c and (cast_here or looks_void(s.code[ua:ub], s, True)):
+                pieces += [f'static_cast<{spelled(c[1], s, site.start)}>(', (ua, ub), ')']
+            else:
+                pieces.append((ua, ub))
+        elif c[0] in ('cast', 'reinterpret'):
+            kind = 'static_cast' if c[0] == 'cast' else 'reinterpret_cast'
+            pieces += [f'{kind}<{spelled(c[1], s, site.start)}>(', (ta, tb), ')']
+        else:
+            text = s.code[ta:tb]
+            if text.startswith('&') and not text.startswith('&&') and is_postfix(text[1:].strip()):
+                pieces.append(_trimmed(s.code, ta + 1, tb))
+            elif is_postfix(text):
+                pieces += ['*', (ta, tb)]
+            else:
+                pieces += ['*(', (ta, tb), ')']
+        if tb < b and '\n' in s.raw[tb:b]:
+            pieces.append((tb, b))
+    pieces.append(')')
+    if conv['ret'] and not result_unused(s, site, close):
+        kind = 'static_cast' if conv['ret'][0] == 'cast' else 'reinterpret_cast'
+        pieces = [f'{kind}<{spelled(conv["ret"][1], s, site.start)}>('] + pieces + [')']
+    return (start, close + 1, pieces), ''
 
 
 def column(raw, offset):
@@ -1109,6 +1222,10 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
             f.reason = 'target constructor / destructor / operator'
             continue
         f.kind = match(f.sig, t)
+        if not f.kind and tiers.get('loose'):
+            f.kind, f.conv = match_loose(f.sig, t, classes)
+            if not f.kind:
+                f.loose_why = f.conv
         if not f.kind:
             f.reason = 'types differ'
             continue
@@ -1497,6 +1614,8 @@ def main(argv):
     ap.add_argument('--library', action='store_true', help='also forwarders to EI_REPLACE_STANDALONE code')
     ap.add_argument('--verbose', '-v', action='store_true')
     ap.add_argument('--cast', action='store_true', help='also forwarders taking the object as void*')
+    ap.add_argument('--loose', action='store_true', help='also forwarders whose types differ in ways a call site '
+                    'can spell (casts written at the calls; see match_loose)')
     ap.add_argument('--cast-sites', help='file of path:line calls that need static_cast<T*> (compile errors)')
     ap.add_argument('--map', default=MAP)
     args = ap.parse_args(argv)
@@ -1513,7 +1632,7 @@ def main(argv):
             m = re.match(r'(.+):(\d+)\s*$', line.strip())
             if m:
                 CAST_SITES.add((m.group(1).replace('\\', '/'), int(m.group(2))))
-    fwds, classes = analyse(sources, decls, args.library, args.scope, {'cast': args.cast})
+    fwds, classes = analyse(sources, decls, args.library, args.scope, {'cast': args.cast, 'loose': args.loose})
     edits, includes, done = plan(fwds, classes) if (args.apply or args.report) else ({}, {}, [])
     scoped = [f for f in fwds if f.in_scope]
     reasons = Counter('listed in config/direct_calls_skip.csv' if f.reason.startswith('listed: ')
@@ -1529,6 +1648,8 @@ def main(argv):
                 print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: {f.reason}')
                 if f.reason == 'types differ':
                     print(f'      forwarder: {f.sig.und}\n      target:    {f.target.und}')
+                    if getattr(f, 'loose_why', ''):
+                        print(f'      loose:     {f.loose_why}')
         for f in done:
             print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: '
                   f'convertible ({f.kind}, {len(f.sites)} call sites)')

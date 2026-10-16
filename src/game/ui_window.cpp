@@ -1,5 +1,6 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
 #include "figure_manager.h"
+#include "figure_mesh.h"
 #include "ui.h"
 
 #include "material.h"
@@ -418,7 +419,7 @@ CEngineObject* NewModelObject(const char* name) {
     return reinterpret_cast<CEngineObject*>(static_cast<CFigureManager*>(UiModelManager())->NewFigure(name));
 }
 // 0059F3D0 (thiscall on the object): attaches it to the window.
-void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { static_cast<CFigureMesh*>(a0)->SetObject(reinterpret_cast<CObject3D*>(a2)); }   // the window as the owner (sic)
 // 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
 double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
 void __fastcall SetSpriteScale(void* a0, void*, float a2) { SpriteSetScaleOriginal(a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }

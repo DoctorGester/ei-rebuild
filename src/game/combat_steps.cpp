@@ -145,7 +145,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
     if (!entry) return 0;
     volatile std::int64_t wide = Get<std::uint32_t>(entry, offset);
     float frames = static_cast<float>(wide);
-    double speed = UnitResistanceToOriginal(unit, nullptr, entry);
+    double speed = unit->ActionSpeed(reinterpret_cast<const FigureAnimation*>(entry));
     return FtolQuotient(frames, speed);
 }
 

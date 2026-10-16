@@ -2,6 +2,7 @@
 // source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
 #include "map_object_shadow.h"
+#include "unit_ai.h"
 #include "world_effect.h"
 
 #include "base_manager.h"
@@ -391,7 +392,7 @@ void CEffectArrowFigure::LoadState(void* stream) {
     s->Read(&casterId_, 4);
     s->Read(&velocity_, 12);
     s->Read(&arrived_, 4);
-    CountedRefLoadOriginal(&figure_, nullptr, s, ManagerContext());
+    AIRef::Of(&figure_)->Load(s, ManagerContext());
     s->Read(&hit_, sizeof(hit_));
     s->Read(&fromCaster_, 1);
 }
@@ -407,7 +408,7 @@ void CEffectArrowFigure::SaveState(void* stream) {
     s->Write(&velocity_, 12);
     std::memcpy(&copy, &arrived_, 4);
     s->Write(&copy, 4);
-    CountedRefSaveOriginal(&figure_, nullptr, s);
+    AIRef::Of(&figure_)->Save(s);
     s->Write(&hit_, sizeof(hit_));
     std::uint8_t flag = fromCaster_;
     s->Write(&flag, 1);

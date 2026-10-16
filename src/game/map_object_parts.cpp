@@ -1,5 +1,6 @@
 // The 3D object's figure parts by name, their removal and their place in the world, and its
 // animation database. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
+#include "figure_mesh.h"
 #include "map_object_figures.h"
 
 #include "base_manager.h"
@@ -63,7 +64,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     int index = IndexOf(parts, part);
     if (index >= 0) {
         RemoveAt(parts, index);
-        FigurePartSetOwnerOriginal(part, nullptr, nullptr);
+        part->SetObject(nullptr);
     } else {
         index = IndexOf(pendingParts, part);
         if (index < 0) return 0;

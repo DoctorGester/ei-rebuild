@@ -246,7 +246,7 @@ void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, v
 EI_REPLACE_METHOD(0x0053DD00, ChunkArchive::SerializeNpcs);
 
 void ChunkArchive::SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitModelRecord* r) { UnitModelDestroyOriginal(r); },
+    SerializeRecords(this, id, records, [](UnitModelRecord* r) { unitdb::DestroyModelRecord(r); },
                      UnitModelsResizeOriginal, ModelSerializeAt);
 }
 EI_REPLACE_METHOD(0x0053DF50, ChunkArchive::SerializeModels);

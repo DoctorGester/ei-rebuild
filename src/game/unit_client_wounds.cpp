@@ -255,11 +255,10 @@ bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
     if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
-    const auto* found = static_cast<const std::uint8_t*>(
-        AnimationStateFindNodeOriginal(unit->Object3D()->animation, nullptr, static_cast<const char*>(node)));
+    const FigureBone* found = unit->Object3D()->animation->FindBone(static_cast<const char*>(node));
     if (!found) return false;
-    // The bone's position in figure space (FigureBone::position, +0x74).
-    const Vector3& position = reinterpret_cast<const FigureBone*>(found)->position;
+    // The bone's position in figure space.
+    const Vector3& position = found->position;
     out->x = position.x;
     out->y = position.y;
     out->z = position.z;

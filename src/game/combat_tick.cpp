@@ -281,7 +281,7 @@ void LeaveMoveMode(CUnitServer* self) {
 // updates. Not while turning (state 2).
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
-    if (!StepsQueueHoldsOriginal(&self->queue, nullptr, (const void*)idle)) {
+    if (!self->queue.SameAs(idle)) {
         if (self->queue.count == 0 && self->queue.extra == -1) {
             int now = WorldTick(self);
             idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
