@@ -162,7 +162,7 @@ src/game/script_construct.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_copy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_destroy.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_eval.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,63
+src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,49
 src/game/script_exec_helpers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_exec_run.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/script_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,17

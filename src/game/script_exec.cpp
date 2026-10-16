@@ -110,53 +110,7 @@ void* __cdecl Renderer() { return DisplayObject(); }
 CWorldServer* TheWorld() { return static_cast<CWorldServer*>(WorldServer()); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
-struct AIMapCalls {
-    void Move(CEngineObject* object, const Vector3* point);                 // 004BA0E0
-    void FindUnitsInRadius(const Vector3* point, void* list, float radius); // 004BA100
-    void Remove(CEngineObject* object);                                     // 004BA0C0
-    void Add(CEngineObject* object);                                        // 004BA0A0
-    bool CanLeaveCell(CEngineObject* object);                               // 005BA830
-    bool FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out);   // 005BA9D0
-    char SetUpdates(int on);                                                // 004BA090 (byte +2)
-};
-__declspec(naked) void AIMapCalls::Move(CEngineObject*, const Vector3*) EI_ORIGINAL(0x004BA0E0)
-__declspec(naked) void AIMapCalls::FindUnitsInRadius(const Vector3*, void*, float) EI_ORIGINAL(0x004BA100)
-__declspec(naked) void AIMapCalls::Remove(CEngineObject*) EI_ORIGINAL(0x004BA0C0)
-__declspec(naked) void AIMapCalls::Add(CEngineObject*) EI_ORIGINAL(0x004BA0A0)
-bool AIMapCalls::CanLeaveCell(CEngineObject* object) { return AIMapCanLeaveCellOriginal(this, nullptr, static_cast<CUnit*>(object)); }
-bool AIMapCalls::FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out) { return reinterpret_cast<CAIMap*>(this)->FindFreeCellNear(static_cast<CUnit*>(object), from, out); }
-__declspec(naked) char AIMapCalls::SetUpdates(int) EI_ORIGINAL(0x004BA090)
-AIMapCalls* TheAIMap() { return reinterpret_cast<AIMapCalls*>(WorldServer()->AIMap()); }
-
-// A unit's AI brain (CUnitServer::Brain()).
-struct BrainCalls {
-    void Walk(const Vector3* point, int a, int b);       // 005D7AE0
-    void TurnTowards(const Vector3* direction, int a);   // 005D7B30
-    void Follow(CEngineObject* leader);                  // 005D7E40
-    void AttackTarget(CEngineObject* target);            // 005D7B50
-    void CastAt(int a, const Vector3* point, int b);     // 005D7DA0
-    void ResetTarget();                                  // 005D7C30
-    void ClearModes();                                   // 005D4DF0
-    void StopAction();                                   // 005D7790
-    void Guard(const Vector3* point, float radius);      // 005D6230
-    void Sentry(const Vector3* point);                   // 005D64E0
-    void AddMode(void* mode);                            // 005D5F60
-    void* FindPatrolMode();                              // 005D5E30
-    void RemoveMode(int type);                           // 005D6140
-};
-__declspec(naked) void BrainCalls::Walk(const Vector3*, int, int) EI_ORIGINAL(0x005D7AE0)
-__declspec(naked) void BrainCalls::TurnTowards(const Vector3*, int) EI_ORIGINAL(0x005D7B30)
-__declspec(naked) void BrainCalls::Follow(CEngineObject*) EI_ORIGINAL(0x005D7E40)
-__declspec(naked) void BrainCalls::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
-__declspec(naked) void BrainCalls::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x005D7DA0)
-__declspec(naked) void BrainCalls::ResetTarget() EI_ORIGINAL(0x005D7C30)
-void BrainCalls::ClearModes() { static_cast<AIBrain*>((void*)this)->ClearModes(); }
-void BrainCalls::StopAction() { BrainStopActionOriginal(this); }
-__declspec(naked) void BrainCalls::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
-__declspec(naked) void BrainCalls::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
-void BrainCalls::AddMode(void* a0) { reinterpret_cast<AIBrain*>(this)->AddMode(static_cast<AIMode*>(a0)); }
-__declspec(naked) void* BrainCalls::FindPatrolMode() EI_ORIGINAL(0x005D5E30)
-void BrainCalls::RemoveMode(int a0) { static_cast<AIBrain*>((void*)this)->RemoveModesOfType(a0); }
+CAIMap* TheAIMap() { return WorldServer()->AIMap(); }
 
 // Unit modes (the brain's behaviour list): allocated by the command (NewMode) and constructed by
 // these.
@@ -201,6 +155,9 @@ ModeCalls* NewMode(std::size_t size) {
     p->refCount = 0;
     return p;
 }
+
+// A constructed mode as the brain takes it.
+AIMode* AsMode(ModeCalls* mode) { return reinterpret_cast<AIMode*>(mode); }
 
 struct PatrolCalls {
     void AddPoint(const Vector3* point);                 // 005D12B0
@@ -441,7 +398,7 @@ __declspec(naked) void __fastcall ResetDamageInfoAt(void*) EI_ORIGINAL(0x00522B4
 void* UnitState(CEngineObject* unit) { return static_cast<CUnit*>(unit)->controller; }
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
 ControllerCalls* ControllerOf(void* state) { return static_cast<ControllerCalls*>(state); }
-BrainCalls* BrainOf(void* state) { return reinterpret_cast<BrainCalls*>(Controller(state)->Brain()); }
+AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
 StatsCalls* StatsOf(void* state) { return reinterpret_cast<StatsCalls*>(&Controller(state)->stats); }
 Vector3* Position(CEngineObject* object) { return &static_cast<CMapObject*>(object)->position; }
 PlayerStateCalls* StateOf(WorldPlayer* player) { return reinterpret_cast<PlayerStateCalls*>(player->server); }
@@ -502,19 +459,19 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     CEngineObject* object = Arg(cmd, 0);
     if (!object) return;
     const float* f = cmd->floatArgs.data;
-    AIMapCalls* map = TheAIMap();
+    CAIMap* map = TheAIMap();
     if (fast) {
-        map->SetUpdates(0);
+        map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
-        map->Move(object, &point);
+        map->MoveInSectors(object, &point);
         if (object->GetClassId() == kClassUnit) ControllerOf(UnitState(object))->Reposition();
-        map->SetUpdates(1);
+        map->SetRefreshUnits(1);
         UnitOf(object)->MarkChanged(2);
         return;
     }
     float oldZ = Position(object)->z;
     Vector3 point = {f[0], f[1], f[2]};
-    map->Move(object, &point);
+    map->MoveInSectors(object, &point);
     if (object->GetClassId() == kClassUnit) {
         ControllerOf(UnitState(object))->Reposition();
         if (!(FcomStatus(oldZ, Position(object)->z) & 0x40)) UnitOf(object)->MarkChanged(2);
@@ -529,19 +486,19 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     for (PtrList::Node* pos = units.head; pos;) {
         auto* unit = static_cast<CEngineObject*>(pos->data);
         pos = pos->next;
-        map->Remove(unit);
+        map->RemoveFromSectors(unit);
     }
     for (PtrList::Node* pos = units.head; pos;) {
         Vector3 free;
         auto* unit = static_cast<CEngineObject*>(pos->data);
         pos = pos->next;
-        if (!map->CanLeaveCell(unit)) {
+        if (!map->CanLeaveCell(static_cast<CUnit*>(unit))) {
             free = *Position(unit);
-            map->FindFreeCellNear(unit, Position(unit), &free);
+            map->FindFreeCellNear(static_cast<CUnit*>(unit), Position(unit), &free);
             *Position(unit) = free;
             ControllerOf(UnitState(unit))->Reposition();
         }
-        map->Add(unit);
+        map->AddToSectors(unit);
     }
     UnitOf(object)->MarkChanged(2);
     PtrListDestruct4C96F0Original(&units);
@@ -646,33 +603,33 @@ void UnitModes(const SSCCmd* cmd) {
     // UMAg: aggression set 0..3 replaces modes 3, 4, 5 and 7.
     void* state = UnitStateArg(cmd);
     if (!state) return;
-    BrainCalls* brain = BrainOf(state);
-    brain->RemoveMode(3);
-    brain->RemoveMode(4);
-    brain->RemoveMode(5);
-    brain->RemoveMode(7);
+    AIBrain* brain = BrainOf(state);
+    brain->RemoveModesOfType(3);
+    brain->RemoveModesOfType(4);
+    brain->RemoveModesOfType(5);
+    brain->RemoveModesOfType(7);
     switch (Round(cmd->floatArgs.data[0])) {
     case 0:
-        brain->AddMode(NewMode(0x2C)->Fear(1));
-        brain->AddMode(NewMode(0x18)->Suspicion());
-        brain->AddMode(NewMode(0x08)->CorpseWatcher());
+        brain->AddMode(AsMode(NewMode(0x2C)->Fear(1)));
+        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
+        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
         break;
     case 1:
-        brain->AddMode(NewMode(0x2C)->Fear(0));
-        brain->AddMode(NewMode(0x18)->Suspicion());
-        brain->AddMode(NewMode(0x08)->CorpseWatcher());
+        brain->AddMode(AsMode(NewMode(0x2C)->Fear(0)));
+        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
+        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
         break;
     case 2:
-        brain->AddMode(NewMode(0x18)->Revenge(1));
-        brain->AddMode(NewMode(0x2C)->Fear(0));
-        brain->AddMode(NewMode(0x18)->Suspicion());
-        brain->AddMode(NewMode(0x08)->CorpseWatcher());
+        brain->AddMode(AsMode(NewMode(0x18)->Revenge(1)));
+        brain->AddMode(AsMode(NewMode(0x2C)->Fear(0)));
+        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
+        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
         break;
     case 3:
-        brain->AddMode(NewMode(0x18)->Aggression());
-        brain->AddMode(NewMode(0x2C)->Fear(0));
-        brain->AddMode(NewMode(0x18)->Suspicion());
-        brain->AddMode(NewMode(0x08)->CorpseWatcher());
+        brain->AddMode(AsMode(NewMode(0x18)->Aggression()));
+        brain->AddMode(AsMode(NewMode(0x2C)->Fear(0)));
+        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
+        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
         break;
     default:
         break;
@@ -1150,7 +1107,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0xE8: {   // ResetTarget(unit)
             void* state = UnitStateArg(cmd);
-            if (state) BrainOf(state)->ResetTarget();
+            if (state) BrainOf(state)->ResetBehaviour();
             break;
         }
         case 0x3D: {   // Cast(unit, x, y): at the ground height there
@@ -1180,14 +1137,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->Guard(&point, f[2]);
+            BrainOf(state)->StandardGuard(&point, f[2]);
             break;
         }
         case 0x94: {   // Sentry(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            BrainOf(state)->Sentry(&point);
+            BrainOf(state)->StandardSentry(&point);
             break;
         }
         case 0x1B: {   // PlayAnimation(unit, name)
@@ -1223,7 +1180,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
             ModeCalls* mode = NewMode(0x14);
-            BrainOf(state)->AddMode(mode ? mode->Sentry(&point) : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Sentry(&point) : nullptr));
             break;
         }
         case 0x26:     // UMGuard(unit, x, y, radius)
@@ -1236,7 +1193,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (cmd->id == 0x26) std::memcpy(&radius2, "\x00\x00\x80\xBF", 4);   // -1.0f
             else radius2 = f[3];
             ModeCalls* mode = NewMode(0x20);
-            BrainOf(state)->AddMode(mode ? mode->Guard(&point, radius, radius2) : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Guard(&point, radius, radius2) : nullptr));
             break;
         }
         case 0xCA: {   // UMFollow(unit, leader)
@@ -1244,14 +1201,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             CEngineObject* leader = Arg(cmd, 1);
             ModeCalls* mode = NewMode(0x0C);
-            BrainOf(state)->AddMode(mode ? mode->Follow(leader) : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Follow(leader) : nullptr));
             break;
         }
         case 0x28: {   // UMPatrol
             void* state = UnitStateArg(cmd);
             if (!state) break;
             ModeCalls* mode = NewMode(0x20);
-            BrainOf(state)->AddMode(mode ? mode->Patrol() : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Patrol() : nullptr));
             break;
         }
         case 0x29: {   // UMPatrolClear
@@ -1264,7 +1221,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* patrol = static_cast<PatrolCalls*>(BrainOf(state)->FindPatrolMode());
+            auto* patrol = reinterpret_cast<PatrolCalls*>(BrainOf(state)->FindPatrolMode());
             if (!patrol) break;
             Vector3 point = {f[0], f[1], 0.0f};
             patrol->AddPoint(&point);
@@ -1273,7 +1230,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x2B: {   // UMPatrolAddPointLook(unit, x, y, z): a look at the last point
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            auto* patrol = static_cast<PatrolCalls*>(BrainOf(state)->FindPatrolMode());
+            auto* patrol = reinterpret_cast<PatrolCalls*>(BrainOf(state)->FindPatrolMode());
             if (!patrol) break;
             PatrolPoint* last = patrol->LastPoint();
             if (!last) break;
@@ -1285,10 +1242,10 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x31: {   // UMPlayer
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainCalls* brain = BrainOf(state);
+            AIBrain* brain = BrainOf(state);
             brain->ClearModes();
             ModeCalls* mode = NewMode(0x24);
-            brain->AddMode(mode ? mode->Player() : nullptr);
+            brain->AddMode(AsMode(mode ? mode->Player() : nullptr));
             brain->StopAction();
             break;
         }
@@ -1298,27 +1255,27 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x2C: {   // UMStandard: aggression, suspicion, corpse watcher
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            BrainCalls* brain = BrainOf(state);
+            AIBrain* brain = BrainOf(state);
             ModeCalls* mode = NewMode(0x18);
-            brain->AddMode(mode ? mode->Aggression() : nullptr);
+            brain->AddMode(AsMode(mode ? mode->Aggression() : nullptr));
             mode = NewMode(0x18);
-            brain->AddMode(mode ? mode->Suspicion() : nullptr);
+            brain->AddMode(AsMode(mode ? mode->Suspicion() : nullptr));
             mode = NewMode(0x08);
-            brain->AddMode(mode ? mode->CorpseWatcher() : nullptr);
+            brain->AddMode(AsMode(mode ? mode->CorpseWatcher() : nullptr));
             break;
         }
         case 0x2D: {   // UMAggression
             void* state = UnitStateArg(cmd);
             if (!state) break;
             ModeCalls* mode = NewMode(0x18);
-            BrainOf(state)->AddMode(mode ? mode->Aggression() : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Aggression() : nullptr));
             break;
         }
         case 0x2E: {   // UMRevenge
             void* state = UnitStateArg(cmd);
             if (!state) break;
             ModeCalls* mode = NewMode(0x18);
-            BrainOf(state)->AddMode(mode ? mode->Revenge(1) : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Revenge(1) : nullptr));
             break;
         }
         case 0xC7: {   // UMFear(unit, on)
@@ -1326,21 +1283,21 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             int on = ZeroOrNaN(f[0]) ? 0 : 1;
             ModeCalls* mode = NewMode(0x2C);
-            BrainOf(state)->AddMode(mode ? mode->Fear(on) : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Fear(on) : nullptr));
             break;
         }
         case 0x2F: {   // UMSuspection
             void* state = UnitStateArg(cmd);
             if (!state) break;
             ModeCalls* mode = NewMode(0x18);
-            BrainOf(state)->AddMode(mode ? mode->Suspicion() : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->Suspicion() : nullptr));
             break;
         }
         case 0x30: {   // UMCorpseWatcher
             void* state = UnitStateArg(cmd);
             if (!state) break;
             ModeCalls* mode = NewMode(0x08);
-            BrainOf(state)->AddMode(mode ? mode->CorpseWatcher() : nullptr);
+            BrainOf(state)->AddMode(AsMode(mode ? mode->CorpseWatcher() : nullptr));
             break;
         }
 

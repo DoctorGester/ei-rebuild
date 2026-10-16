@@ -33,8 +33,6 @@ address,reason
 0058E520,src/game/script_exec_helpers.cpp passes a World * as void* (the target is CWorldServer's method)
 00593AA0,src/game/script_group.cpp passes a ObjectRegistry * as void* (the target is CWorldServer's method)
 0059F030,src/game/sky_object.cpp passes a CSkyObject * as void* (the target is CFigureMesh's method)
-005BA830,src/game/script_exec.cpp passes a AIMapCalls * as void* (the target is CAIMap's method)
-005D7790,src/game/script_exec.cpp passes a BrainCalls * as void* (the target is AIBrain's method)
 006611D0,src/game/world_game.cpp passes a PartyRecords * as void* (the target is CParty's method)
 00661700,src/game/world_game.cpp passes a PartyRecords * as void* (the target is CParty's method)
 00665200,src/game/world_client_maps.cpp passes a WorldSession * as void* (the target is CPlayer's method)
