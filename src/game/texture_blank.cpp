@@ -3,14 +3,11 @@
 // made through 005FF0B0 / 005EC020) and the blank surface it gets (0068F6C0, also used by the
 // shadow textures 00692010 / 00692140).
 //
-// In the switch-over ("present" with "cpuwindows", ticket R8) the textures of 00691D80 have no
-// DirectDraw texture: their holder has only the new renderer's memory (NewMemoryTextureHolder,
-// dx_surface.cpp), which the writers fill through DirectPixels (ui_item_view.cpp, ui_global_map.cpp,
-// ui_saveload.cpp) and the new renderer reads. The old path's SetTexture then binds no texture for
-// them (004EB300 / 004EBAF0 / 00501AF0 pass the holder's null surface), and the texture manager
-// touches their surface nowhere else (SetPriority in the cache, texture_cache.cpp, is left out for a
-// holder without a surface). The shadow textures (00692010 / 00692140, texture_shadow.cpp) are
-// memory-only there too since R8's second part. See docs/notes/renderer.md (section 7).
+// The blank surface is no DirectDraw texture (ticket R8; R11b removed the DirectDraw one): its holder
+// has only the new renderer's memory (NewMemoryTextureHolder, dx_surface.cpp), which the writers
+// fill through DirectPixels (ui_item_view.cpp, ui_global_map.cpp, ui_saveload.cpp,
+// texture_shadow.cpp) and the new renderer reads. The binders' SetTexture gets the holder's null
+// surface (004EB300 / 004EBAF0 / 00501AF0). See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "dx_surface.h"
@@ -25,22 +22,6 @@
 #include <cstring>
 
 namespace {
-
-// DDSURFACEDESC2 (0x7C bytes) as dwords.
-enum DescIndex { kSize = 0, kFlags = 1, kHeight = 2, kWidth = 3, kMipCount = 6, kPixelFormat = 18, kCaps = 26,
-                 kCaps2 = 27, kDescWords = 31 };
-constexpr std::uint32_t kDescFlags = 0x1007;              // CAPS | HEIGHT | WIDTH | PIXELFORMAT
-constexpr std::uint32_t kDescFlagsMipMaps = 0x21007;      // ... | MIPMAPCOUNT
-constexpr std::uint32_t kCapsTexture = 0x1000;            // DDSCAPS_TEXTURE
-constexpr std::uint32_t kCapsMipMaps = 0x401008;          // TEXTURE | MIPMAP | COMPLEX
-constexpr std::uint32_t kCapsSystemMemory = 0x800;
-constexpr std::uint32_t kCaps2TextureManage = 0x10;
-constexpr std::uint32_t kCaps2Opaque = 0x80, kCaps2HintStatic = 0x8, kCaps2HintDynamic = 0x4;
-
-// CEngineObject::flags_ of a texture: its kind as the manager's CreateObject (00691AA0) sets it
-// (0x40 the default, 0x80 kind 0x3E, 0x100 kind 0x3F, 0x200 kind 0x40: the shadow textures) and
-// 0x400, the shadow's render surface in system memory (00692140).
-constexpr std::uint32_t kKindDefault = 0x40, kKindStatic = 0x80, kKindDynamic = 0x700, kSystemMemory = 0x400;
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
 
@@ -70,45 +51,15 @@ const BlankFormat* FormatOfKind(int kind) {
 
 // --- 0068F6C0 ----------------------------------------------------------------------------------------
 
-int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) { return MakeBlank(device, header, false); }
-
-int CTexture::MakeBlank(CTextureDevice* device, const MmpHeader* header, bool memoryOnly) {
+int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     if (block_) gamecrt::operator_delete(reinterpret_cast<void**>(block_)[-1]);
-    std::uint32_t desc[kDescWords] = {};
-    desc[kSize] = sizeof(desc);
-    desc[kFlags] = kDescFlags;
-    desc[kCaps] = kCapsTexture;
-    std::memcpy(&desc[kPixelFormat], &format_, sizeof(PixelFormat));
     block_ = nullptr;
-    if (header->mipCount > 1) {
-        desc[kFlags] = kDescFlagsMipMaps;
-        desc[kCaps] = kCapsMipMaps;
-        desc[kMipCount] = header->mipCount;
-    }
-    std::uint32_t flags = flags_;
-    if (flags & kSystemMemory)
-        desc[kCaps] |= kCapsSystemMemory;
-    else
-        desc[kCaps2] = kCaps2TextureManage;
-    desc[kWidth] = header->width;
-    desc[kHeight] = header->width;
-    if (flags & kKindDefault)
-        desc[kCaps2] |= kCaps2Opaque;
-    else if (flags & kKindStatic)
-        desc[kCaps2] |= kCaps2HintStatic;
-    else if (flags & kKindDynamic)
-        desc[kCaps2] |= kCaps2HintDynamic;
-
-    // The holder: in the switch-over (memoryOnly) only the new renderer's memory, else 004EFA60's
-    // DirectDraw texture (which throws when it cannot be made).
-    CDXSurface* surface = nullptr;
-    if (memoryOnly)
-        surface = NewMemoryTextureHolder(device, static_cast<int>(desc[kWidth]), static_cast<int>(desc[kHeight]),
-                                         format_.words);
-    if (!surface) {
-        void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-        if (memory) surface = static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, desc));
-    }
+    // A square of header->width (the height is not read). The holder: only the new renderer's memory,
+    // one level (the original: 004EFA60's DirectDraw texture with header->mipCount levels and caps by
+    // the kind flags, which throws, with the holder's sizes zero, when it cannot be made).
+    const std::uint32_t size = header->width;
+    CDXSurface* surface = NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format_.words);
+    if (!surface) ThrowSurfaceNotMade(device, 0, 0);
     CDXSurface* previous = surface_;
     surface_ = surface;
     if (surface) ++surface->refCount;
@@ -118,7 +69,7 @@ int CTexture::MakeBlank(CTextureDevice* device, const MmpHeader* header, bool me
     // the channel split's first field, which 004EDAA0 never writes: it is always 0.
     ChannelLayout layout;
     layout.Split(&format_);
-    uploadResult_ = static_cast<int>((layout.bitCount * desc[kHeight] * desc[kWidth]) >> 3);
+    uploadResult_ = static_cast<int>((layout.bitCount * size * size) >> 3);
     return 1;
 }
 EI_REPLACE_METHOD(0x0068F6C0, CTexture::CreateBlank);
@@ -158,7 +109,7 @@ CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
     header.width = static_cast<std::uint32_t>(width);
     header.height = static_cast<std::uint32_t>(height);
     header.mipCount = 1;
-    if (!texture->MakeBlank(device_, &header, true)) {
+    if (!texture->CreateBlank(device_, &header)) {
         texture->Release();
         return nullptr;
     }

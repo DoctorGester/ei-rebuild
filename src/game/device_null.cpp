@@ -920,9 +920,6 @@ HRESULT DrawIndexedPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD
 HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated) {
     return NoDirectDraw(ddraw) ? FillDirectDrawCaps(driver, emulated) : ddraw->GetCaps(driver, emulated);
 }
-HRESULT CreateSurface(IDirectDraw7* ddraw, DDSURFACEDESC2* desc, IDirectDrawSurface7** surface) {
-    return NoDirectDraw(ddraw) ? RefuseSurface(desc, surface) : ddraw->CreateSurface(desc, surface, nullptr);
-}
 HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc) {
     if (!NoDirectDraw(ddraw)) return ddraw->GetDisplayMode(desc);
     if (!desc) return DDERR_INVALIDPARAMS;
@@ -932,9 +929,6 @@ HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc) {
 HRESULT EnumDisplayModes(IDirectDraw7* ddraw, DWORD flags, DDSURFACEDESC2* filter, void* context,
                          LPDDENUMMODESCALLBACK2 callback) {
     return NoDirectDraw(ddraw) ? EnumMode(context, callback) : ddraw->EnumDisplayModes(flags, filter, context, callback);
-}
-HRESULT SetDisplayMode(IDirectDraw7* ddraw, DWORD width, DWORD height, DWORD bits, DWORD refreshRate, DWORD flags) {
-    return NoDirectDraw(ddraw) ? DD_OK : ddraw->SetDisplayMode(width, height, bits, refreshRate, flags);
 }
 HRESULT RestoreDisplayMode(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->RestoreDisplayMode(); }
 HRESULT SetCooperativeLevel(IDirectDraw7* ddraw, HWND window, DWORD flags) {

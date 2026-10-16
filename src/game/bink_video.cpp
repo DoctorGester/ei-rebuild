@@ -15,8 +15,8 @@
 // And the frame player's open (005DBA50, ticket R7). The movies' holders (004EF7B0) have no
 // DirectDraw surface: nothing decodes into them and BinkDDSurfaceType is not asked (the type kept is
 // that of the CPU copy). The original's Lock / BinkCopyToBuffer / Unlock into the holder's surface
-// and its Blts are gone with the DirectDraw fallback (R11a); 005DB9E0 (the colour fill of a holder)
-// has no caller of ours any more.
+// and its Blts are gone with the DirectDraw fallback (R11a), and so is the holder's colour fill
+// 005DB9E0, which nothing of ours calls (R11b).
 #include "app.h"
 #include "bink_video.h"
 #include "game_strings.h"
@@ -71,14 +71,7 @@ BinkHeader* OpenBink(const char* name, unsigned flags) {
     return BinkOpen()(name, flags);
 }
 
-constexpr int kBlt = 5;                                      // IDirectDrawSurface7::Blt
-constexpr unsigned long kBltColourFill = 0x1000400;          // DDBLT_WAIT | DDBLT_COLORFILL
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
 
 // The loading screen's movie (005DA400): globals from 007C551C on.
 struct LoadingMovie {
@@ -99,7 +92,6 @@ template <typename T>
 T& Global(std::uintptr_t address) {
     return *reinterpret_cast<T*>(address);
 }
-CRITICAL_SECTION* DeviceLock() { return &Global<CRITICAL_SECTION>(0x007AEE78); }
 CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
 void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }
 CSoundManager* Sound() { return Global<CSoundManager*>(0x007AF784); }
@@ -149,7 +141,7 @@ unsigned CBinkVideo::Frame(char toPrimary) {
 }
 EI_REPLACE_METHOD(0x005DBD80, CBinkVideo::Frame);
 
-// --- The movie players outside the frame (005DB3F0, 005DB9E0, 005DA400) -------------------------
+// --- The movie players outside the frame (005DB3F0, 005DA400) -----------------------------------
 
 namespace {
 
@@ -174,20 +166,6 @@ void PresentMovieFrame() { DevicePresentOriginal(DeviceObject()); }
 int g_movieKey;   // the blocking player's movie in the new renderer
 
 } // namespace
-
-// 005DB9E0 (thiscall on a surface holder, RET 8): a colour fill of `rect` with `colour`
-// (DDBLT_COLORFILL) under the device lock; returns Blt's result.
-long CDXSurface::Fill(RECT* rect, std::uint32_t colour) {
-    std::uint32_t fx[0x19] = {};   // DDBLTFX
-    fx[0] = 100;
-    fx[0x50 / 4] = colour;         // dwFillColor
-    gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(surface, kBlt, rect, static_cast<void*>(nullptr), static_cast<void*>(nullptr), kBltColourFill,
-                      static_cast<void*>(fx));
-    gameapi::LeaveCriticalSection(DeviceLock());
-    return hr;
-}
-EI_REPLACE_METHOD(0x005DB9E0, CDXSurface::Fill);
 
 // 005DB3F0 (fastcall: the file name, the time per frame in ms or 0 for the movie's own rate; then on
 // the stack: Esc / Space end it, Space jumps to the next frame (when they do not end it), fill the

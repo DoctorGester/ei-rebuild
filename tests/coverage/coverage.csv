@@ -3037,8 +3037,8 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 004E6880,DeviceDelete,src/game/render_helper.cpp,30,golden,0,98,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +4
 004E68A0,CTextureDevice::Destruct,src/game/device_object.cpp,767,golden,0,98,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +4
 004E6BA0,SurfaceHolderRelease,src/game/device_helpers.cpp,20,unreached,40,0,,,
-004E6BC0,CTextureDevice::FindDepthFormat,src/game/pixel_formats.cpp,102,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
-004E6C30,CTextureDevice::CreateDepthBuffer,src/game/device_object.cpp,673,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004E6BC0,FindDepthFormatVerify,,102,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004E6C30,CreateDepthBufferVerify,,673,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004E6EE0,CTextureDevice::BuildFormatTable,src/game/device_object.cpp,952,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004E7800,RendererBaseDelete,src/game/device_helpers.cpp,32,unreached,64,0,,,
 004E7820,CTextureDevice::LockVertexBuffer,src/game/device_helpers.cpp,5,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
@@ -3072,29 +3072,29 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 004ECB70,AllocateVertices,src/game/device_helpers.cpp,26,unreached,52,0,,,
 004ED540,static_lists::ConstructDirectDrawDrivers,src/game/static_lists.cpp,176,unreached,704,0,,,
 004ED5F0,ei::static_init::Exit004ED5F0,src/standalone/static_exit.cpp,31,golden,0,4,magic_traps_victims ui_camp_make unit_ai_corpse unit_cast_at,,
-004ED610,DriverEnumCallback,src/game/directdraw_holder.cpp,358,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
-004ED820,Direct3DDeviceEnumCallback,src/game/device_object.cpp,517,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004ED610,DriverCallbackVerify,,358,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004ED820,DeviceCallbackVerify,,517,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004EDAA0,ChannelLayout::Split,src/game/pixel_formats.cpp,346,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004EDC00,ChannelLayout::ToNative,src/game/pixel_formats.cpp,110,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004EDC70,ChannelLayout::FromNative,src/game/pixel_formats.cpp,118,golden,0,95,camera combat combat_more console +84,,rebirth_flags render_movie render_terrain +4
 004EDD70,CTextureDevice::ConstructDirectDraw,src/game/directdraw_holder.cpp,1380,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004EE310,DirectDrawHolderDelete,src/game/render_helper.cpp,30,unreached,60,0,,,
 004EE330,CTextureDevice::DestructDirectDraw,src/game/directdraw_holder.cpp,353,golden,0,98,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +4
-004EE4A0,EnumerateDirectDrawDrivers,src/game/directdraw_holder.cpp,105,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
-004EE5D0,FirstHardwareDirectDrawDriver,src/game/directdraw_holder.cpp,253,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004EE4A0,EnumerateDriversVerify,,105,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004EE5D0,FirstHardwareDriverVerify,,253,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004EE6D0,DriverAt,src/game/render_helper.cpp,65,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
-004EEA90,CTextureDevice::CreateDirectDraw,src/game/directdraw_holder.cpp,298,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
-004EEBC0,CTextureDevice::SetDisplayMode,src/game/directdraw_holder.cpp,155,unreached,620,0,,,
+004EEA90,CreateDirectDrawVerify,,298,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004EEBC0,SetDisplayModeVerify,,155,unreached,620,0,,,
 004EEC60,CTextureDevice::RestoreDisplayMode,src/game/directdraw_holder.cpp,140,golden,0,1,render_present_fullscreen,,
 004EECF0,CTextureDevice::SetCooperativeLevel,src/game/directdraw_holder.cpp,310,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
-004EEE30,CTextureDevice::CreateSurfaces,src/game/directdraw_holder.cpp,1756,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004EEE30,CreateSurfacesVerify,,1756,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004EF610,DevicePresent,src/game/device_present.cpp,122,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004EF790,CDXSurface::DeleteScalar,src/game/device_helpers.cpp,30,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004EF7B0,CDXSurface::Construct,src/game/dx_surface.cpp,676,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
-004EFA60,CDXSurface::ConstructFromDesc,src/game/dx_surface.cpp,504,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004EFA60,FromDescVerify,,504,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004EFC60,CDXSurface::ConstructFromPicture,src/game/dx_surface.cpp,184,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004EFD20,DXSurfaceDestroy,src/game/dx_surface.cpp,96,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
-004EFEA0,DXSurfaceDescribe,src/game/dx_surface.cpp,137,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+004EFEA0,DescribeVerify,,137,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004F0060,CDXSurface::LoadPictureData,src/game/dx_surface.cpp,1110,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 004F0510,ListIteratorCopy,src/game/device_helpers.cpp,11,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 004F0520,stlp::ListAbi<DirectDrawDriver>::Destruct,src/game/static_lists.cpp,87,golden,0,4,magic_traps_victims ui_camp_make unit_ai_corpse unit_cast_at,,
@@ -4423,7 +4423,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00552B90,CUnitServer::TickItemSpells,src/game/combat_update.cpp,202,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 00552C60,CUnitServer::UseItemCharge,src/game/combat_actions.cpp,98,unreached,588,0,,,
 00552CD0,CUnitServer::ForgetClaims,src/game/combat_stat_slots.cpp,21,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
-00552CF0,UnitController::AddHostileMask,src/game/unit_ai_brain.cpp,16,golden,0,16,models movement sound spells_hero +12,,
+00552CF0,CUnitServer::AddHostileMask,src/game/unit_ai_brain.cpp,16,golden,0,16,models movement sound spells_hero +12,,
 00552D00,CUnitServer::ClaimHostility,src/game/combat_object_slots.cpp,248,golden,0,18,ground_prints models movement sound +14,,
 00552E00,CUnitServer::PropagateHostility,src/game/combat_actions.cpp,296,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 00552F30,CUnitServer::UpdateMoveFactorsSlot53,src/game/combat_server_slots.cpp,8,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
@@ -5934,7 +5934,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 005DB340,CBinkVideo::Construct,src/game/bink_video.cpp,16,golden,0,2,render_titles_present ui_main_menu,,
 005DB350,CBinkVideo::Destruct,src/game/bink_video.cpp,158,golden,0,2,render_titles_present ui_main_menu,,
 005DB3F0,PlayMovie,src/game/bink_video.cpp,1519,golden,0,3,render_cursor_present render_movie_present,,render_movie
-005DB9E0,CDXSurface::Fill,src/game/bink_video.cpp,98,suite,98,1,,,render_movie
+005DB9E0,HolderFillVerify,,98,suite,196,1,,,render_movie
 005DBA50,CBinkVideo::Open,src/game/bink_video.cpp,810,golden,0,2,render_titles_present ui_main_menu,,
 005DBD80,CBinkVideo::Frame,src/game/bink_video.cpp,495,golden,0,2,render_titles_present ui_main_menu,,
 005DBF70,CBinkVideo::Close,src/game/bink_video.cpp,77,golden,0,2,render_titles_present ui_main_menu,,
@@ -6057,9 +6057,9 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 005E52A0,CursorThreadEntry,src/game/ui_cursor_frame.cpp,12,unreached,48,0,,,
 005E52E0,CCursor::UpdatePosition,src/game/ui_cursor_setup.cpp,438,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 005E54A0,CursorDrawFrame,src/game/ui_cursor_frame.cpp,404,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
-005E5640,CDXSurface::Blt,src/game/ui_cursor_frame.cpp,70,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+005E5640,HolderBltVerify,,70,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 005E5690,CursorThread,src/game/ui_cursor_frame.cpp,1453,golden,0,1,render_cursor_present,,
-005E5C40,CCursor::Blit,src/game/ui_cursor.cpp,1125,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+005E5C40,CursorBlitVerify,,1125,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 005E60B0,CCursor::Init,src/game/ui_cursor_setup.cpp,426,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 005E6260,CCursor::Start,src/game/ui_cursor_setup.cpp,125,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 005E62E0,CCursor::Shutdown,src/game/ui_cursor_setup.cpp,263,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
@@ -7968,14 +7968,14 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 0068E970,CMaterialManager::NewMaterial,src/game/material.cpp,196,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 0068EAF0,CMaterialManager::FillMaterial,src/game/material.cpp,169,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 0068F6C0,CTexture::CreateBlank,src/game/texture_blank.cpp,404,unreached,808,0,,,
-0068FA10,CTexture::FillSurface,src/game/texture_fill.cpp,467,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+0068FA10,FillSurfaceVerify,,467,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
 0068FBF0,CTexture::LoadBmpFiles,src/game/texture_bmp.cpp,1646,unreached,3292,0,,,
 00690260,CTexture::LoadBmp,src/game/texture_fill.cpp,455,unreached,910,0,,,
 00690430,CTexture::CreateFromMmp,src/game/texture_mmp.cpp,1189,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 006908E0,MmpHeader::MipOffset,src/game/texture_mmp.cpp,67,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
-00690970,CTexture::CopyToSurface,src/game/texture_fill.cpp,442,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
-00690B30,CTexture::ConvertToSurface,src/game/texture_fill.cpp,498,unreached,996,0,,,
-00690D30,CTexture::UnpackToSurface,src/game/texture_fill.cpp,437,unreached,874,0,,,
+00690970,CopyToSurfaceVerify,,442,golden,0,4,render_cpuwindows render_scene,,render_movie render_terrain
+00690B30,ConvertToSurfaceVerify,,498,unreached,1992,0,,,
+00690D30,UnpackToSurfaceVerify,,437,unreached,1748,0,,,
 00690FA0,CTexture::FreeBlock,src/game/texture_slots.cpp,31,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 00690FC0,CTexture::LockPixels,src/game/texture_shadow.cpp,101,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7
 00691030,CTexture::UnlockPixels,src/game/texture_shadow.cpp,56,golden,0,101,camera combat combat_more console +87,,rebirth_flags render_movie render_terrain +7

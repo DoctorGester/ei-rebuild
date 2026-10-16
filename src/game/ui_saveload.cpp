@@ -9,12 +9,9 @@
 // and SaveGame writes to the new save's shot.sav. Like the original, the 0x18000 bytes are one
 // block from the start of the pixels (a pitch of 512 bytes is taken for granted).
 //
-// With the new renderer's "cpuwindows" option both textures also keep their pixels in game-owned
-// memory (GivePictureMemory: a DIB section per holder, dx_surface.cpp), which the new renderer
-// owns and reads (render::SurfaceMemory). Outside the switch-over the pixels still go through a Lock of
-// the DirectDraw texture, which the old path draws, and the filled block is copied into the
-// memory; in the switch-over ("present") they are written into and read from the memory only,
-// with no Lock (DirectPixels). Without the option everything is as the original.
+// Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per
+// holder, dx_surface.cpp; render::SurfaceMemory): written into and read from that memory with no
+// Lock (DirectPixels).
 #include "app.h"
 #include "app_helpers.h"
 #include "core_streams.h"
@@ -44,8 +41,6 @@
 #include "record_lifetime.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
-
-#include <ddraw.h>
 
 #include <cstdint>
 #include <cstring>
@@ -162,42 +157,20 @@ struct LocalEntry {
 
 CDXSurface* HolderOf(CEngineObject* texture) { return static_cast<CTexture*>(texture)->surface_; }
 
-// The pixels of a picture texture for one fill or read. In the switch-over with game-owned memory
-// they are that memory (no DirectDraw); otherwise the surface is locked with flags 0 as the
-// original does (the result in the holder's +8, a failure reported), and Mirror copies the filled
-// block into the game-owned memory, when there is some, before the Unlock.
+// The pixels of a picture texture for one fill or read: the holder's memory (the original: a Lock
+// with flags 0 and the Unlock after).
 class PicturePixels {
 public:
     explicit PicturePixels(CDXSurface* holder) : holder_(holder) { desc_[0] = 0x7C; }
 
-    // False when the Lock failed and the report said stop.
-    bool Begin() {
-        direct_ = DirectPixels(holder_, desc_);
-        if (direct_) return true;
-        long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)
-                      ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc_), 0, nullptr);
-        holder_->result = hr;
-        return hr == 0 || app::FatalErrorCode(hr, game::savewords::CantLockSurface()) != 0;
-    }
+    // False without memory (the textures always have it: 00691D80; the original's failed Lock whose
+    // report said stop).
+    bool Begin() { return DirectPixels(holder_, desc_); }
     std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
-    void Mirror() const {
-        std::uint32_t memory[0x1F] = {};
-        if (direct_ || !Bits() || !ClientPixels(holder_, memory)) return;
-        std::uint32_t size = memory[2] * memory[4];   // height * pitch
-        std::memcpy(reinterpret_cast<void*>(static_cast<std::uintptr_t>(memory[9])), Bits(),
-                    size < kShotBytes ? size : kShotBytes);
-    }
-    void End() {
-        if (direct_) return;
-        long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)->Unlock(nullptr);
-        holder_->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::savewords::CantUnlockSurface());
-    }
 
 private:
     CDXSurface* holder_;
     std::uint32_t desc_[0x1F] = {};
-    bool direct_ = false;
 };
 
 // The escape menu's 256x192 5:6:5 copy of the screen (interface +0x5C), or null.
@@ -262,9 +235,7 @@ void CSaveLoadWindow::ShowPicture() {
     }
     file.Read(pixels.Bits(), kShotBytes);
     file.Close();
-    pixels.Mirror();
     gameapi::LeaveCriticalSection(DeviceLock());
-    pixels.End();
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_.data[1];
 }
@@ -384,7 +355,6 @@ void CSaveLoadWindow::SaveGame() {
         CFileWrite(&shot, nullptr, pixels.Bits(), kShotBytes);
         shot.Close();
         gameapi::LeaveCriticalSection(DeviceLock());
-        pixels.End();
     }
     CursorSetShape(kCursor, nullptr, 0);
     interface_->SetPendingValue(kClosed);
@@ -511,9 +481,7 @@ void CSaveLoadWindow::FillEntries() {
             // bar as it was (the original's tail 00656464).
             if (!pixels.Begin()) return;
             std::memcpy(pixels.Bits(), SavePicture(interface_), kShotBytes);
-            pixels.Mirror();
             gameapi::LeaveCriticalSection(DeviceLock());
-            pixels.End();
         }
     }
 

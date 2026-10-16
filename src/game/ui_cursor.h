@@ -88,10 +88,6 @@ class CCursor {
 public:
     // 0x005E6630 (ui_cursor_frame.cpp).
     void SaveBackground(char fromPrimary);
-    // 005E5C40 (RET 0xC). Locks `from` of the image, `to` of the target surface (+0x64) and the
-    // from-sized top left of the background copy (+0x60), and writes over `to`
-    // (background & saved) | image per pixel (16 or 32 bits, by the image's bit depth).
-    void Blit(CursorImage* image, RECT* to, RECT* from);
     // 005E5200 (ChangeShape). Selects cursor shape `shape`; returns the
     // previous one (-1 when the cursor is not set up).
     int SetShape(int shape) { return ChangeShape(shape); }

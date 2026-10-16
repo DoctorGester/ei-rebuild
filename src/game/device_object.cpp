@@ -1,8 +1,9 @@
-// The device object itself (CTextureDevice, texture.h; vtable 0073D760): its constructor (004E5E50)
-// with the Direct3D device enumeration callback (004ED820), its destructor body (004E68A0), the
-// depth buffer (004E6C30) and the texture format table (004E6EE0). A-S13: IDirectDraw7, IDirect3D7,
-// IDirect3DDevice7 and IDirectDrawSurface7 are called as the original calls them. The base class is
-// in directdraw_holder.cpp. See docs/notes/renderer.md (section 12).
+// The device object itself (CTextureDevice, texture.h; vtable 0073D760): its constructor (004E5E50),
+// its destructor body (004E68A0) and the texture format table (004E6EE0). A-S13: IDirect3DDevice7 is
+// called as the original calls it, through device.h (the stand-in answers). The Direct3D device
+// enumeration callback (004ED820) and the depth buffer (004E6C30) had no caller of ours left and
+// went in R11b (config/dead_code.csv). The base class is in directdraw_holder.cpp. See
+// docs/notes/renderer.md (sections 9, 12).
 //
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way, and every such throw ends the game in WinMain.
@@ -58,23 +59,6 @@ HRESULT CALLBACK PixelFormatCallback(DDPIXELFORMAT* format, void* context) {
     std::memcpy(&copy, format, sizeof(copy));
     static_cast<stlp::list<PixelFormat>*>(context)->PushBack(copy);
     return D3DENUMRET_OK;
-}
-
-// A holder made from a surface description (004EFA60), on the game's heap.
-CDXSurface* NewHolder(CTextureDevice* device, DDSURFACEDESC2* desc) {
-    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    if (!memory) return nullptr;
-    return static_cast<CDXSurface*>(
-        static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, reinterpret_cast<const std::uint32_t*>(desc)));
-}
-
-// A depth buffer format of `depthBits` and `stencilBits` as FindDepthFormat takes it.
-void DepthRequest(DDPIXELFORMAT& format, int depthBits, int stencilBits) {
-    format = {};
-    format.dwSize = sizeof(format);
-    format.dwFlags = stencilBits ? (DDPF_ZBUFFER | DDPF_STENCILBUFFER) : DDPF_ZBUFFER;
-    format.dwZBufferBitDepth = static_cast<DWORD>(depthBits);
-    format.dwStencilBitDepth = static_cast<DWORD>(stencilBits);
 }
 
 // The four state blocks of texture stage 0 (kStageBlocks) recorded on the device.
@@ -147,20 +131,6 @@ void ConstructBatch(DeviceVertexBatch& batch) {
 
 } // namespace
 
-// 004ED820 (stdcall, RET 0x10: IDirect3D7::EnumDevices's callback). Appends the device to the list
-// `context`: its name, description and capabilities. Returns 1 (go on).
-HRESULT CALLBACK Direct3DDeviceEnumCallback(char* description, char* name, D3DDEVICEDESC7* desc, void* context) {
-    Direct3DDeviceRecord record;
-    stlp::string::Reserve(record.name, 8);
-    stlp::string::Reserve(record.description, 8);
-    record.name.Assign(name, name + std::strlen(name));
-    record.description.Assign(description, description + std::strlen(description));
-    record.desc = *desc;
-    static_cast<stlp::list<Direct3DDeviceRecord>*>(context)->PushBack(record);
-    return D3DENUMRET_OK;
-}
-EI_REPLACE(0x004ED820, Direct3DDeviceEnumCallback);
-
 void CTextureDevice::BuildFormatTable() {
     textureFormats_.ClearWith([](PixelFormat*) {});
     lastLoadResult_ = device::EnumTextureFormats(device::D3D(this), &PixelFormatCallback, &textureFormats_);
@@ -218,37 +188,6 @@ void CTextureDevice::BuildFormatTable() {
     }
 }
 EI_REPLACE_METHOD(0x004E6EE0, CTextureDevice::BuildFormatTable);
-
-void CTextureDevice::CreateDepthBuffer(int depthBits, int stencilBits) {
-    DDSURFACEDESC2 desc = {};
-    desc.dwSize = sizeof(desc);
-    desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
-    desc.ddsCaps.dwCaps = DDSCAPS_ZBUFFER | DDSCAPS_VIDEOMEMORY;
-    if (primary_) {
-        desc.dwWidth = static_cast<DWORD>(renderTarget_->width);
-        desc.dwHeight = static_cast<DWORD>(renderTarget_->height);
-    }
-    // The format: of the render target's bit depth, else of the depth asked for.
-    auto* format = reinterpret_cast<PixelFormat*>(&desc.ddpfPixelFormat);
-    DepthRequest(desc.ddpfPixelFormat, renderTarget_->bitsPerPixel, stencilBits);
-    if (!FindDepthFormat(format)) {
-        // "Can't find render-compartible z-buffer format %d:%d\n"
-        game::DebugLog(game::Text(0x0078E200), renderTarget_->bitsPerPixel, stencilBits);
-        DepthRequest(desc.ddpfPixelFormat, depthBits, stencilBits);
-        // "Can't find acceptable z-buffer format %d:%d.\n"
-        if (!FindDepthFormat(format)) ThrowGameError(game::Text(0x0078E1D0), depthBits, stencilBits);
-    }
-    depthFormat_ = *format;
-
-    device::AssignHolder(depth_, NewHolder(this, &desc));
-    lastLoadResult_ = device::Surface(renderTarget_)->AddAttachedSurface(device::Surface(depth_));
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E1AC));   // "pDXSRender->AddAttachedSurface.\n"
-    // A second depth surface of one pixel.
-    desc.dwHeight = 1;
-    desc.dwWidth = 1;
-    device::AssignHolder(depth2_, NewHolder(this, &desc));
-}
-EI_REPLACE_METHOD(0x004E6C30, CTextureDevice::CreateDepthBuffer);
 
 void CTextureDevice::Destruct() {
     ei::SetVtable(this, 0x0073D760);

@@ -3,16 +3,13 @@
 // 0051CE60 writes the render surface through (00690FC0 / 00691030) and its copy of the render
 // surface into the shadow's texture (LoadPixelsFrom; inline in 0051CE60).
 //
-// In the switch-over ("present" with "cpuwindows", ticket R8) both have no DirectDraw texture: their
-// holders have only the new renderer's memory (MakeBlank -> NewMemoryTextureHolder), the lock
-// describes that memory, the copy is a CPU copy of its rows, and the new renderer reads the shadow
-// texture's memory when a draw binds it (004EA4A0 through 0051CE60). Outside the switch-over they
-// are the original's DirectDraw textures and the copy is the device's Load. See
-// docs/notes/renderer.md (section 7).
+// Both have no DirectDraw texture (ticket R8): their holders have only the new renderer's memory
+// (CreateBlank -> NewMemoryTextureHolder), the lock describes that memory (no Lock / Unlock), the copy
+// (the original: the device's Load) is a CPU copy of its rows, and the new renderer reads the shadow
+// texture's memory when a draw binds it (004EA4A0 through 0051CE60). See docs/notes/renderer.md
+// (section 7).
 #include "app.h"
 #include "texture.h"
-
-#include "device.h"
 
 #include "dx_surface.h"
 #include "game_strings.h"
@@ -30,10 +27,6 @@
 namespace {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-const char* CantLockText() { return game::Text(0x0078E30C); }     // "Can't lock surface.\n"
-const char* CantUnlockText() { return game::Text(0x0078E2F4); }   // "Can't unlock surface.\n"
-
-constexpr std::uint32_t kLockWriteWait = 0x821;   // DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK
 constexpr std::uint32_t kDescBytes = 0x7C;        // DDSURFACEDESC2
 enum : int { kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kBits = 21 };
 
@@ -78,7 +71,7 @@ MmpHeader ShadowHeader() {
 }
 
 // A new texture of the shadows' size and format with the kind bits `keep` / `flag`, its surface
-// made by MakeBlank (memory-only in the switch-over). Null when the surface cannot be made (the
+// made by CreateBlank (only the new renderer's memory). Null when the surface cannot be made (the
 // texture released again); with no 4:4:4:4 format FatalError's result, which the callers return as
 // their texture (`*missing` set).
 CTexture* MakeShadowTexture(CTextureManager* manager, std::uint32_t keep, std::uint32_t flag, bool* missing) {
@@ -95,7 +88,7 @@ CTexture* MakeShadowTexture(CTextureManager* manager, std::uint32_t keep, std::u
     }
     texture->format_ = format;
     texture->flags_ = (texture->flags_ & keep) | flag;
-    if (!texture->MakeBlank(manager->device_, &header, true)) {   // (never: it returns 1)
+    if (!texture->CreateBlank(manager->device_, &header)) {   // (never: it returns 1)
         texture->Release();
         return nullptr;
     }
@@ -127,23 +120,16 @@ EI_REPLACE_METHOD(0x00692140, CTextureManager::ShadowRenderSurface);
 
 // --- 00690FC0 / 00691030 ---------------------------------------------------------------------------
 
-// A holder without a DirectDraw surface (the switch-over) is written in the new renderer's memory:
-// no Lock / Unlock then, the result 0 in the holder.
+// The holder's pixels are the new renderer's memory: described, no Lock / Unlock, the result 0 in
+// the holder.
 int CTexture::LockPixels(std::uint32_t* desc) {
     CDXSurface* holder = surface_;
     if (!holder) return 0;
     gameapi::EnterCriticalSection(DeviceLock());
     std::memset(desc, 0, kDescBytes);
     desc[0] = kDescBytes;
-    if (!holder->surface) {
-        holder->result = 0;
-        return ClientPixels(holder, desc) ? 1 : 0;   // (always memory: MakeBlank made it)
-    }
-    long hr = device::Surface(holder)->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), kLockWriteWait,
-                                            nullptr);
-    holder->result = hr;
-    if (hr != 0) return app::FatalErrorCode(hr, CantLockText());
-    return 1;
+    holder->result = 0;
+    return ClientPixels(holder, desc) ? 1 : 0;   // (always memory: CreateBlank made it)
 }
 EI_REPLACE_METHOD(0x00690FC0, CTexture::LockPixels);
 
@@ -151,13 +137,7 @@ void CTexture::UnlockPixels() {
     CDXSurface* holder = surface_;
     if (!holder) return;
     gameapi::LeaveCriticalSection(DeviceLock());
-    if (!holder->surface) {
-        holder->result = 0;
-        return;
-    }
-    long hr = device::Surface(holder)->Unlock(nullptr);
-    holder->result = hr;
-    if (hr != 0) app::FatalErrorCode(hr, CantUnlockText());
+    holder->result = 0;
 }
 EI_REPLACE_METHOD(0x00691030, CTexture::UnlockPixels);
 
@@ -166,23 +146,15 @@ EI_REPLACE_METHOD(0x00691030, CTexture::UnlockPixels);
 void CTexture::LoadPixelsFrom(CTextureDevice* device, const CTexture* source) {
     const CDXSurface* to = surface_;
     const CDXSurface* from = source->surface_;
-    if (to->surface && from->surface) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        device->lastLoadResult_ = device::D3D(device)->Load(device::Surface(to), nullptr, device::Surface(from),
-                                                            nullptr, 0);
-        gameapi::LeaveCriticalSection(DeviceLock());
-        return;
-    }
-    // The switch-over: both in the new renderer's memory (the same size and format), copied row by row.
+    // Both in the new renderer's memory (the same size and format), copied row by row.
     device->lastLoadResult_ = 0;
     std::uint32_t target[kDescBytes / 4];
     std::uint32_t pixels[kDescBytes / 4];
-    if (to->surface || from->surface || !ClientPixels(to, target) || !ClientPixels(from, pixels)) {
-        // Only when the memory for one of them could not be made (it then has a DirectDraw texture).
+    if (!ClientPixels(to, target) || !ClientPixels(from, pixels)) {
+        // (Never: CreateBlank gives both memory or throws.)
         if (!g_mixedLogged) {
             g_mixedLogged = true;
-            ei::Log("cpuwindows: a shadow texture and its render surface are not both in the new renderer's memory; "
-                    "the shadow is not copied");
+            ei::Log("cpuwindows: a shadow texture or its render surface has no memory; the shadow is not copied");
         }
         return;
     }
