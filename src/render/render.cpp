@@ -11,7 +11,6 @@
 #define NOMINMAX
 #include <windows.h>
 #include <d3d11.h>
-#include <ddraw.h>
 #include <float.h>
 
 #include "../game/device_switchover.h"   // device::WithoutDirectDraw, SwitchOverRenderState
@@ -367,57 +366,14 @@ int AddMatrix(const Matrix4& m) {
     return static_cast<int>(g_frame.matrices.size()) - 1;
 }
 
-void LockGameDevice() { EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
-void UnlockGameDevice() { LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
-
-namespace {
-// The game's IDirect3DDevice7 (in the switch-over the device object's stand-in, device.h).
-void* OldDevice() {
-    CTextureDevice* device = DeviceObject();
-    return device ? device->d3dDevice_ : nullptr;
-}
-} // namespace
-
-// IDirect3DDevice7::GetRenderState (slot 21).
-// Without DirectDraw the switch-over device's states (device_switchover.h).
+// The stand-in device's states (device_switchover.h): what the game last set, Direct3D 7's defaults
+// before that.
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
-    if (device::WithoutDirectDraw()) {
-        for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
-        return;
-    }
-    void* d3d = OldDevice();
-    for (int i = 0; i < count; ++i) values[i] = 0;
-    if (!d3d) return;
-    using GetState = long(__stdcall*)(void*, unsigned long, unsigned long*);
-    auto get = reinterpret_cast<GetState>((*static_cast<void***>(d3d))[21]);
-    LockGameDevice();
-    for (int i = 0; i < count; ++i) {
-        unsigned long value = 0;
-        get(d3d, states[i], &value);
-        values[i] = static_cast<std::uint32_t>(value);
-    }
-    UnlockGameDevice();
+    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
 }
 
-// IDirect3DDevice7::GetTextureStageState (slot 36).
 void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count) {
-    if (device::WithoutDirectDraw()) {
-        for (int i = 0; i < count; ++i)
-            values[i] = device::SwitchOverStageState(static_cast<std::uint32_t>(stage), states[i]);
-        return;
-    }
-    void* d3d = OldDevice();
-    for (int i = 0; i < count; ++i) values[i] = 0;
-    if (!d3d) return;
-    using GetStage = long(__stdcall*)(void*, unsigned long, unsigned long, unsigned long*);
-    auto get = reinterpret_cast<GetStage>((*static_cast<void***>(d3d))[36]);
-    LockGameDevice();
-    for (int i = 0; i < count; ++i) {
-        unsigned long value = 0;
-        get(d3d, static_cast<unsigned long>(stage), states[i], &value);
-        values[i] = static_cast<std::uint32_t>(value);
-    }
-    UnlockGameDevice();
+    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverStageState(static_cast<std::uint32_t>(stage), states[i]);
 }
 
 // The fog the old path draws with: FOGENABLE (28) and FOGCOLOR (34), once per frame.
@@ -609,12 +565,9 @@ struct ChannelPack {
 
 bool CopyFrameTo(const void* holder, const Rect& source) {
     if (!holder || !Active() || !EnsureStarted()) return false;
-    auto* dd = static_cast<IDirectDrawSurface7*>(static_cast<const CDXSurface*>(holder)->surface);
-    // In the switch-over a surface with memory of the renderer's is written there directly (no
-    // DirectDraw); a holder made in the switch-over has nothing else.
+    // The holders the screen copies write (005FD3D0) have only memory of the renderer's.
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
-    bool direct = memory != nullptr;
-    if (!dd && !direct) return false;
+    if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
     FpuGuard fpu;
     if (!g_frameDrawn && !DrawPending()) return false;
     if (!g_colour.id) return false;
@@ -630,62 +583,35 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     UINT pitch = 0;
     if (!MapTarget(box, &rgba, &pitch)) return false;
     int sw = r.right - r.left, sh = r.bottom - r.top;
-    // Into the surface, stretched to its size as DirectDraw's Blt does (nearest texel).
-    DDSURFACEDESC2 desc{};
-    desc.dwSize = sizeof(desc);
-    HRESULT hr = S_OK;
-    if (direct) {
-        GdiFlush();   // GDI drawing still queued for the memory must not land on the copy
-        desc.dwWidth = static_cast<DWORD>(memory->width);
-        desc.dwHeight = static_cast<DWORD>(memory->height);
-        desc.lPitch = memory->pitch;
-        desc.lpSurface = memory->bits;
-        desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-        desc.ddpfPixelFormat.dwFlags = DDPF_RGB | (memory->alphaMask ? DDPF_ALPHAPIXELS : 0);
-        desc.ddpfPixelFormat.dwRGBBitCount = static_cast<DWORD>(memory->bitsPerPixel);
-        desc.ddpfPixelFormat.dwRBitMask = memory->redMask;
-        desc.ddpfPixelFormat.dwGBitMask = memory->greenMask;
-        desc.ddpfPixelFormat.dwBBitMask = memory->blueMask;
-        desc.ddpfPixelFormat.dwRGBAlphaBitMask = memory->alphaMask;
-    } else {
-        LockGameDevice();
-        hr = dd->Lock(nullptr, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, nullptr);
-    }
-    bool ok = SUCCEEDED(hr) && desc.lpSurface && (desc.ddpfPixelFormat.dwFlags & DDPF_RGB) &&
-              (desc.ddpfPixelFormat.dwRGBBitCount == 16 || desc.ddpfPixelFormat.dwRGBBitCount == 32);
-    if (ok) {
-        const DDPIXELFORMAT& pf = desc.ddpfPixelFormat;
-        int dw = static_cast<int>(desc.dwWidth), dh = static_cast<int>(desc.dwHeight);
-        std::uint32_t alpha = (pf.dwFlags & DDPF_ALPHAPIXELS) ? pf.dwRGBAlphaBitMask : 0;
-        ChannelPack pr(pf.dwRBitMask), pg(pf.dwGBitMask), pb(pf.dwBBitMask);
-        std::vector<int> columns(static_cast<std::size_t>(dw));
-        for (int x = 0; x < dw; ++x) columns[static_cast<std::size_t>(x)] = static_cast<int>(static_cast<long long>(x) * sw / dw) * 4;
-        bool bgrx = pf.dwRGBBitCount == 32 && pf.dwRBitMask == 0xFF0000 && pf.dwGBitMask == 0xFF00 && pf.dwBBitMask == 0xFF;
-        for (int y = 0; y < dh; ++y) {
-            const std::uint8_t* src = rgba + static_cast<std::size_t>(static_cast<long long>(y) * sh / dh) * pitch;
-            auto* row = static_cast<std::uint8_t*>(desc.lpSurface) + static_cast<std::size_t>(y) * desc.lPitch;
-            if (pf.dwRGBBitCount == 32) {
-                auto* out = reinterpret_cast<std::uint32_t*>(row);
-                for (int x = 0; x < dw; ++x) {
-                    const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
-                    out[x] = bgrx ? (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2] | alpha
-                                  : pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha;
-                }
-            } else {
-                auto* out = reinterpret_cast<std::uint16_t*>(row);
-                for (int x = 0; x < dw; ++x) {
-                    const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
-                    out[x] = static_cast<std::uint16_t>(pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha);
-                }
+    // Into the memory, stretched to its size as DirectDraw's Blt did (nearest texel).
+    GdiFlush();   // GDI drawing still queued for the memory must not land on the copy
+    int dw = memory->width, dh = memory->height;
+    std::uint32_t alpha = memory->alphaMask;
+    ChannelPack pr(memory->redMask), pg(memory->greenMask), pb(memory->blueMask);
+    std::vector<int> columns(static_cast<std::size_t>(dw));
+    for (int x = 0; x < dw; ++x) columns[static_cast<std::size_t>(x)] = static_cast<int>(static_cast<long long>(x) * sw / dw) * 4;
+    bool bgrx = memory->bitsPerPixel == 32 && memory->redMask == 0xFF0000 && memory->greenMask == 0xFF00 &&
+                memory->blueMask == 0xFF;
+    for (int y = 0; y < dh; ++y) {
+        const std::uint8_t* src = rgba + static_cast<std::size_t>(static_cast<long long>(y) * sh / dh) * pitch;
+        auto* row = static_cast<std::uint8_t*>(memory->bits) + static_cast<std::size_t>(y) * memory->pitch;
+        if (memory->bitsPerPixel == 32) {
+            auto* out = reinterpret_cast<std::uint32_t*>(row);
+            for (int x = 0; x < dw; ++x) {
+                const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
+                out[x] = bgrx ? (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2] | alpha
+                              : pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha;
+            }
+        } else {
+            auto* out = reinterpret_cast<std::uint16_t*>(row);
+            for (int x = 0; x < dw; ++x) {
+                const std::uint8_t* p = src + columns[static_cast<std::size_t>(x)];
+                out[x] = static_cast<std::uint16_t>(pr(p[0]) | pg(p[1]) | pb(p[2]) | alpha);
             }
         }
     }
-    if (!direct) {
-        if (SUCCEEDED(hr)) dd->Unlock(nullptr);
-        UnlockGameDevice();
-    }
     UnmapTarget();
-    return ok;
+    return true;
 }
 
 void EndFrame() {

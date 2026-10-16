@@ -1,8 +1,9 @@
 // The interface windows' surfaces in the new renderer. The game composes most of its interface on
-// the CPU: every window (CUiSurface) owns an off-screen DirectDraw surface that it fills with GDI
-// text, fills and pixel code, and 005FDA80 blits it onto the frame (plainly or with a source colour
-// key) in the windows' draw order, between the sprites and 3D previews of the same windows. The
-// new renderer reads such a surface when its contents changed (render_textures.cpp) and draws it as
+// the CPU: every window (CUiSurface) owns an off-screen surface holder whose pixels (memory the new
+// renderer owns) it fills with GDI text, fills and pixel code, and 005FDA80 blits it onto the frame
+// (plainly or with a source colour key) in the windows' draw order, between the sprites and 3D
+// previews of the same windows. The new renderer reads such a surface when its contents changed
+// (render_textures.cpp) and draws it as
 // a screen rectangle that copies texels one to one (a stretch when the sizes differ), keyed texels
 // left out. Also here: the depth clear the old path does in the middle of the frame.
 #include "render.h"
@@ -13,7 +14,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
-#include <ddraw.h>
 #include <d3d11.h>
 
 #include "../game/texture.h"   // CDXSurface
@@ -414,63 +414,20 @@ void Fill(const Rect& to, std::uint32_t colour) {
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask || !Active() || !Started()) return;
     const auto* holder = static_cast<const CDXSurface*>(imageHolder);
-    auto* dd = static_cast<IDirectDrawSurface7*>(holder->surface);
     int w = from.right - from.left, h = from.bottom - from.top;
     if (w <= 0 || h <= 0 || w > 256 || h > 256) return;
     FpuGuard fpu;
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
     // The image loaded from its picture (004EFC60, render::PictureFromMmp): the colours from the
-    // file, the mask (the holder's width, in its pixel size) from the game's memory.
+    // file, the mask (the holder's width, in its pixel size) from the game's memory. A picture holder
+    // has no surface: without a decoded picture there is nothing to draw.
     int maskWidth = holder->width;
     int maskBytes = holder->bitsPerPixel / 8;
     // The whole picture is kept with its mask for the cursor thread (render_cursor.cpp).
-    if (const Picture* picture = PictureOf(imageHolder);
-        picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) &&
-        CursorPicturePart(imageHolder, mask, maskBytes, *picture, from, &rgba)) {
+    const Picture* picture = PictureOf(imageHolder);
+    if (picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) &&
+        CursorPicturePart(imageHolder, mask, maskBytes, *picture, from, &rgba))
         CursorBlit(rgba, w, h, to, ImageUse::Cursor);
-        return;
-    }
-    // Otherwise read from the image's surface (a picture holder made in the switch-over has none:
-    // its colours always come from the picture above).
-    if (!dd) return;
-    DDSURFACEDESC2 d{};
-    d.dwSize = sizeof(d);
-    LockGameDevice();
-    HRESULT hr = dd->Lock(nullptr, &d, DDLOCK_WAIT | DDLOCK_READONLY, nullptr);
-    const DDPIXELFORMAT& pf = d.ddpfPixelFormat;
-    int bytes = static_cast<int>(pf.dwRGBBitCount / 8);
-    bool ok = SUCCEEDED(hr) && d.lpSurface && (pf.dwFlags & DDPF_RGB) && (bytes == 2 || bytes == 4) && from.left >= 0 &&
-              from.top >= 0 && from.right <= static_cast<int>(d.dwWidth) && from.bottom <= static_cast<int>(d.dwHeight);
-    if (ok) {
-        auto expand = [](std::uint32_t pixel, std::uint32_t m) -> std::uint8_t {
-            if (!m) return 0;
-            int shift = 0, bits = 0;
-            while (!((m >> shift) & 1)) ++shift;
-            while (shift + bits < 32 && ((m >> (shift + bits)) & 1)) ++bits;
-            std::uint32_t v = (pixel & m) >> shift;
-            return static_cast<std::uint8_t>(bits >= 8 ? v >> (bits - 8) : (v << (8 - bits)) | (v >> (2 * bits - 8 > 0 ? 2 * bits - 8 : 0)));
-        };
-        std::uint32_t colourBits = pf.dwRBitMask | pf.dwGBitMask | pf.dwBBitMask;
-        for (int y = 0; y < h; ++y) {
-            const auto* row = static_cast<const std::uint8_t*>(d.lpSurface) + static_cast<std::size_t>(from.top + y) * d.lPitch;
-            const auto* mrow = static_cast<const std::uint8_t*>(mask) +
-                               (static_cast<std::size_t>(from.top + y) * d.dwWidth + from.left) * bytes;
-            for (int x = 0; x < w; ++x) {
-                std::uint32_t pixel = 0, m = 0;
-                std::memcpy(&pixel, row + static_cast<std::size_t>(from.left + x) * bytes, static_cast<std::size_t>(bytes));
-                std::memcpy(&m, mrow + static_cast<std::size_t>(x) * bytes, static_cast<std::size_t>(bytes));
-                std::uint8_t* o = &rgba[(static_cast<std::size_t>(y) * w + x) * 4];
-                o[0] = expand(pixel, pf.dwRBitMask);
-                o[1] = expand(pixel, pf.dwGBitMask);
-                o[2] = expand(pixel, pf.dwBBitMask);
-                o[3] = (m & colourBits) == 0 ? 255 : 0;
-            }
-        }
-    }
-    if (SUCCEEDED(hr)) dd->Unlock(nullptr);
-    UnlockGameDevice();
-    if (!ok) return;
-    CursorBlit(rgba, w, h, to, ImageUse::Cursor);
 }
 
 namespace {
