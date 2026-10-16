@@ -1981,3 +1981,22 @@ g_windows, g_memory, g_pictures, g_movies: an entry found for a new holder made 
 **Suites after merging main:** hooked `--golden` 146 runs all pass, 124 goldens the same; `--no-hooks --golden` 124
 the same (its failures are the scenarios that need our renderer); `--standalone --golden` over the 95 golden
 scenarios, 190 runs all pass, 168 the same, 0 differ.
+
+## SV7b6a: the sun's never-set position, read by the terrain lighting (2026-10-16)
+
+**Not the renderer's maps.** Hashing every terrain batch our renderer draws (plain vs EI_HEAP_JITTER=1, frames_basic)
+showed the same textures and positions but other vertex colours from the first frame on; per vertex, ground vertices
+at water depth 0 lit by the sun in the plain run (E5E5E5) and by ambient only under seed 1 (81877D). ShadeSun
+(006C36B0) dims the sun under water by `1 - sun.position_.z^2 * loss`, and the sun (the renderer's default light,
+AddDefaultLight: SetDirectional only) never gets a position: CTransformObject's constructor leaves it, so its z is
+what the heap block held (0 plain, a NaN under seed 1, and NaN * 0 takes the sun away). The water, the menu's and
+world's shallow shores and the save pictures of them followed. dgVoodoo's runs allocate it on fresh (zero) memory.
+
+**Fix:** CLightFactory::NewObjectImpl (0068DA40) allocates the light zeroed in ours (kept in the standalone), and
+harness_leftovers zeroes the original's (its operator new CALL at 0068DA7C, family bit 8, without hooks only, as
+SV7b2's). verify_light checks a new light's positions are zero. The holder-keyed maps in src/render were not involved
+(HolderGone already drops a holder's entries when it dies).
+
+**Runs** (frames hashed; 19 capture scenarios hooked with our renderer, 38 runs, 214 frames): plain against seed 1
+and against seed 2, 210 the same; the 4 that differ are render_cursor_present's `menu_stall` / `game_stall`, which
+also differ between two plain runs (the cursor thread and the mouse glide run on real time).
