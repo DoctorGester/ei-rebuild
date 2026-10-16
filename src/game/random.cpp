@@ -104,6 +104,10 @@ struct CStringSlot {
     mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
 };
 
+// 0049F660 through its address: the harness's deterministic runs replace its entry with a fixed seed
+// (tests/verify/harness.cpp, FixedIsaacSeed).
+__declspec(naked) void __fastcall SeedAt(IsaacRandom*) EI_ORIGINAL(0x0049F660)
+
 } // namespace
 
 int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
@@ -217,7 +221,7 @@ struct InitMix {
 
 void IsaacRandom::Init() {
     if (seeded_ != 0) return;
-    Seed();
+    SeedAt(this);
     c_ = 0;
     b_ = 0;
     a_ = 0;

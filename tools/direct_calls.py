@@ -332,6 +332,14 @@ def kept_shims(sources):
                         (REBIRTH, 'Rebirth-patched function (EI_REBIRTH_IMPLEMENTS)')):
             for m in rx.finditer(s.code):
                 kept.setdefault(int(m.group(1), 16), why)
+        # The harness replaces some entries (the fixed ISAAC seed 0049F660, the random trace's rand):
+        # a direct call would pass its replacement by.
+        if s.path.startswith('tests/verify/'):
+            consts = {m.group(1): m.group(2) for m in re.finditer(r'\b(k\w+)\s*=\s*0x([0-9A-Fa-f]{8})\b', s.code)}
+            for m in re.finditer(r'\bJump(?:To|From)\(\s*(?:0x([0-9A-Fa-f]{8})|(k\w+))\b', s.code):
+                at = m.group(1) or consts.get(m.group(2))
+                if at:
+                    kept.setdefault(int(at, 16), f'the harness replaces its entry ({s.path})')
     with open(os.path.join(ROOT, 'config', 'rebirth_patches.csv'), encoding='utf-8') as f:
         for r in csv.DictReader(f):
             fn = (r.get('function') or '').split('+')[0]
@@ -1202,6 +1210,9 @@ def main(argv):
         for f in scoped:
             if f.reason:
                 print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: {f.reason}')
+        for f in done:
+            print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: '
+                  f'convertible ({f.kind}, {len(f.sites)} call sites)')
     if args.apply:
         deleted = defaultdict(set)
         for f in done:

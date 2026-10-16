@@ -147,6 +147,7 @@ src/game/player_sync.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/quest_database.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/quest_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/quest_records.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/random.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/render_helper.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/renderer_init.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,4
