@@ -68,12 +68,6 @@ void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); 
 // 0040CB00. Quaternion::SetIdentity.
 __declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
-// 0047FB70. The network record array and its streams: emptied.
-__declspec(naked) void __fastcall ResetNetRecords(DeltaState*) EI_ORIGINAL(0x0047FB70)
-// 00510340. A network record's destructor.
-__declspec(naked) void __fastcall DestroyNetRecord(DeltaField*) EI_ORIGINAL(0x00510340)
-// 00516080. CObject3D: releases its parts, animation and figure.
-__declspec(naked) void __fastcall ReleaseParts(CObject3D*) EI_ORIGINAL(0x00516080)
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
 __declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
@@ -84,7 +78,6 @@ inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { Compa
 // 00511B90. A counted reference: assign.
 void __fastcall AssignReference(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefStoreOriginal(a0, nullptr, a2); }
 // The server unit controller's members (00546230).
-__declspec(naked) void __fastcall ControllerClearOrders(void*) EI_ORIGINAL(0x00546480)
 __declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
 __declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410)
 __declspec(naked) void __fastcall BrainList90Destroy(void*) EI_ORIGINAL(0x00557890)
@@ -94,13 +87,9 @@ void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
 void __fastcall Brain14Destroy(void* a0) { AiLookArrayDestructOriginal(a0); }
 inline void __fastcall ControllerListDestroy(void* list) { AnimationStepsDestroyOriginal(list); }
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
-// Rewritten elsewhere or here, through their game addresses (verify wrappers in the path):
-// 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,
-// 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
-__declspec(naked) int __fastcall ResetPackedVitals(void*) EI_ORIGINAL(0x005233B0)
+// This file's 3D object constructor and destructor bodies, through their game addresses.
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
-__declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {
@@ -179,7 +168,7 @@ EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
 
 void CObject3D::DestructBody() {
     SetVtable(this, CObject3D::kVtableAddress);
-    ReleaseParts(this);
+    Destroy3D();
     partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     StringArrayDestruct(&partNameArrayVtable);
@@ -233,10 +222,10 @@ CMapObject* CMapObject::Construct() {
     stream->data_ = nullptr;
     stream->Reset();
     SetVtable(stream, CMemoryStream::kQueueVtableAddress);
-    ResetNetRecords(records);
+    records->Reset();
     SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
-    ResetPackedVitals(PackedVitals());
+    static_cast<UnitVitalsPacked*>(PackedVitals())->Reset();
     sectorCellX = -1;
     sectorCellY = -1;
     SetBits(animationSpeed, kOne);
@@ -252,7 +241,7 @@ void CMapObject::DestructBody() {
     SetVtable(records, kRecordArrayVtable);
     if (DeltaField* data = records->fields_) {
         int count = records->fieldCount_;
-        for (int i = 0; i < count; ++i) DestroyNetRecord(data + i);
+        for (int i = 0; i < count; ++i) (data + i)->Destruct();
         gamecrt::operator_delete(records->fields_);
     }
     DestroyString(&name2);
@@ -300,7 +289,7 @@ CUnit* CUnit::Construct() {
     SetVtable(this, CUnit::kVtableAddress);
     controller = nullptr;
     player = nullptr;
-    ResetUnitAt(this);
+    Reset();
     return this;
 }
 EI_REPLACE_METHOD(0x0052E110, CUnit::Construct);
@@ -345,7 +334,7 @@ void CUnit::Reset() {
     carriedCapacity = 0;
     carriedCount = 0;
     altPassCosts = 0;
-    ResetNetRecords(MapObject()->NetState());
+    MapObject()->NetState()->Reset();
     fightAtWill = 1;
 }
 EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
@@ -357,7 +346,7 @@ void CUnit::DestructBody() {
     using Slot = void(__fastcall*)(CUnit*);
     reinterpret_cast<const Slot*>(CUnit::kVtableAddress)[5](this);
     DestroyMapObject();
-    ResetUnitAt(this);
+    Reset();
     carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
@@ -466,7 +455,7 @@ EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);
 
 void CUnitServer::DestructBody() {
     SetVtable(this, kUnitServerVtable);
-    ControllerClearOrders(this);
+    ResetController();
     AIBrain* b = Brain();
     static_cast<AIBrain*>(b)->Init();
     BrainMemoryDestroy(&b->memory);

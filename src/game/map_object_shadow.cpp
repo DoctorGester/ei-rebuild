@@ -105,7 +105,6 @@ __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
 __declspec(naked) void* __fastcall RenderSurface(void*) EI_ORIGINAL(0x00692140)
 __declspec(naked) int __fastcall LockSurface(void*, void*, void*) EI_ORIGINAL(0x00690FC0)
-__declspec(naked) void __fastcall UnlockSurface(void*) EI_ORIGINAL(0x00691030)
 // 0056C750 (ClientProjectDecalOriginal, originals_world.h). The shadow projector: lays the texture's quad on
 // the ground.
 // 00501AF0. Texture stages: binds a texture.
@@ -370,7 +369,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
     }
     std::memcpy(description.lpSurface, pixels.data(), pixels.size());
-    UnlockSurface(surface);
+    static_cast<CTexture*>(surface)->UnlockPixels();
 
     // Copy the surface into the shadow texture (the device's Load; in the switch-over both are in the
     // new renderer's memory, texture_shadow.cpp).

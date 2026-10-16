@@ -1,5 +1,6 @@
 // The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
+#include "library_net_lists.h"
 #include "net_classes.h"
 #include "game_strings.h"
 #include "net_coder.h"
@@ -347,9 +348,7 @@ EI_REPLACE_METHOD(0x004368D0, SessionBase::DeletingDestruct);
 namespace net {
 
 namespace {
-// 0043D7D0: a counted connection pointer from a raw one (pointer in ECX, connection in EDX);
 // 00439E30: the clients list's insert(pos, value); 00425040: another STLport string destructor.
-__declspec(naked) Connection** __fastcall ClientRefInit(Connection** /*ref*/, Connection* /*connection*/) EI_ORIGINAL(0x0043D7D0)
 __declspec(naked) ClientNode** __fastcall ClientsInsert(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/,
                                                         Connection* const* /*value*/) EI_ORIGINAL(0x00439E30)
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -367,7 +366,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     auto* memory = NewMessageMemory<Connection>();
     Connection* connection = memory ? memory->Construct(id) : nullptr;
     Connection* ref;
-    ClientRefInit(&ref, connection);
+    netlists::InitClientRef(&ref, connection);
     ClientNode* end;
     ClientsEnd(&clients_, nullptr, &end);
     ClientNode* inserted;

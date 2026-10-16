@@ -24,7 +24,9 @@
 #include "app_helpers.h"
 #include "camera.h"
 #include "console.h"
+#include "logic_settings.h"
 #include "model.h"
+#include "object_tables.h"
 #include "options.h"
 #include "sound.h"
 #include "texture.h"
@@ -46,6 +48,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <ddraw.h>
 
@@ -165,72 +168,36 @@ __declspec(naked) std::uint32_t __cdecl DirectXVersionAt() EI_ORIGINAL(0x0045E31
 __declspec(naked) void __fastcall RegisterClassAt(void* /*registry*/, void*, std::uint32_t /*id*/, void* /*factory*/) EI_ORIGINAL(0x00458570)
 void* ClassTemplateFactory() { return &Global<char>(0x00457850); }
 void* PartyRecordFactory() { return &Global<char>(0x00457740); }
-// 0055EA10: the start folder kept. 005CE0F0 (RET 4): the logic settings read from a .reg file.
-__declspec(naked) void __cdecl StoreStartFolderAt() EI_ORIGINAL(0x0055EA10)
-__declspec(naked) void __fastcall LogicSettingsLoadAt(void* /*settings*/, void*, const char* /*path*/) EI_ORIGINAL(0x005CE0F0)
 // 0045B210 / 0045C560 (RET 4): the options read from and written to the registry key.
 __declspec(naked) void __fastcall OptionsLoadAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045B210)
 __declspec(naked) void __fastcall OptionsSaveAt(GameOptions*, void*, const char* /*key*/) EI_ORIGINAL(0x0045C560)
-// The worlds: set up (00561E50 client, 0058AE10 server) and torn down (00563290, 0058B020); the
-// client's camera (00565670, RET 4) and graphics (00563710, RET 4).
-__declspec(naked) int __fastcall ClientSetupAt(CWorldClient*) EI_ORIGINAL(0x00561E50)
-__declspec(naked) void __fastcall ClientTeardownAt(CWorldClient*) EI_ORIGINAL(0x00563290)
-__declspec(naked) int __fastcall ServerSetupAt(CWorldServer*) EI_ORIGINAL(0x0058AE10)
-__declspec(naked) void __fastcall ServerTeardownAt(CWorldServer*) EI_ORIGINAL(0x0058B020)
-__declspec(naked) void __fastcall ClientSetCameraAt(CWorldClient*, void*, CCamera*) EI_ORIGINAL(0x00565670)
+// The client world's graphics (00563710, RET 4).
 __declspec(naked) void __fastcall ClientSetUpGraphicsAt(CWorldClient*, void*, CTextureDevice*) EI_ORIGINAL(0x00563710)
-// The client's state for the loop (all AL / EAX): 00566EF0 the local player is idle, 00566EC0 the
-// local view is in mode 2, 00566E20 / 00566E70 server updates are waiting / how many.
-__declspec(naked) bool __fastcall ClientLocalPlayerIdleAt(CWorldClient*) EI_ORIGINAL(0x00566EF0)
-__declspec(naked) bool __fastcall ClientViewModeTwoAt(CWorldClient*) EI_ORIGINAL(0x00566EC0)
-__declspec(naked) bool __fastcall ClientHasIncomingAt(CWorldClient*) EI_ORIGINAL(0x00566E20)
-__declspec(naked) int __fastcall ClientIncomingCountAt(CWorldClient*) EI_ORIGINAL(0x00566E70)
 // The camera: 0040D0A0 (RET 0x10) Init, 0040FB30 (RET 4) the update, 0040EB60 / 0040EFB0 (RET 4) a
 // frame written to / read from the camera file at a time in ticks.
 __declspec(naked) int __fastcall CameraInitAt(CCamera*, void*, GameOptions*, float /*nearClip*/, float /*farClip*/, float /*fieldOfView*/)
     EI_ORIGINAL(0x0040D0A0)
 __declspec(naked) void __fastcall CameraUpdateAt(CCamera*, void*, float /*seconds*/) EI_ORIGINAL(0x0040FB30)
 __declspec(naked) int __fastcall CameraRecordFrameAt(CCamera*, void*, float /*time*/) EI_ORIGINAL(0x0040EB60)
-__declspec(naked) int __fastcall CameraPlaybackStepAt(CCamera*, void*, float /*time*/) EI_ORIGINAL(0x0040EFB0)
 // The renderer (007AF060): 00500B70 its creation (slot 2 of its vtable, RET 8), 00504A60 (RET 0xC)
 // the display's brightness, contrast and gamma.
 __declspec(naked) void __fastcall RendererCreateAt(CSceneRenderer*, void*, HWND, GameOptions*) EI_ORIGINAL(0x00500B70)
-__declspec(naked) bool __fastcall RendererSetGammaAt(CSceneRenderer*, void*, float, float, float) EI_ORIGINAL(0x00504A60)
 // The sound manager: 006B6A30 (RET 0x14) opened, 006BAE20 (RET 8) the music folder and its
 // registry file, 006B7060 / 006B7AB0 (RET 4) the wave archives, the three volumes (RET 4).
 __declspec(naked) int __fastcall SoundOpenAt(CSoundManager*, void*, HWND, int /*reverb*/, int /*device*/, unsigned /*rate*/, int /*bits*/)
     EI_ORIGINAL(0x006B6A30)
 __declspec(naked) int __fastcall SoundSetPathAt(CSoundManager*, void*, const char* /*folder*/, const char* /*registry*/) EI_ORIGINAL(0x006BAE20)
-__declspec(naked) void __fastcall SoundClearWaveSourcesAt(CSoundManager*) EI_ORIGINAL(0x006B7060)
-__declspec(naked) int __fastcall SoundAddWaveSourceAt(CSoundManager*, void*, const char* /*path*/) EI_ORIGINAL(0x006B7AB0)
-// 005DA3C0: the loading screen's movie closed.
-__declspec(naked) void __cdecl CloseLoadingMovieAt() EI_ORIGINAL(0x005DA3C0)
 // The databases read from the resources folder (RET 4; the others are in originals_world.h).
 // 00463390 is patched by Rebirth.
 __declspec(naked) int __fastcall QuestDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006AE3A0)
 __declspec(naked) int __fastcall LeverTableLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x00463390)
 __declspec(naked) int __fastcall AckDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006D7620)
 __declspec(naked) int __fastcall PrintsDatabaseLoadAt(void*, void*, const char* /*folder*/) EI_ORIGINAL(0x006D0630)
-// The mouse: 0065EAD0 (RET 8) DirectInput set up for the window; 004578B0 (RET 4) slot 0 of its
-// vtable, the deleting destructor.
-__declspec(naked) int __fastcall MouseSetupAt(CDirectInputMouse*, void*, HWND, HINSTANCE) EI_ORIGINAL(0x0065EAD0)
-__declspec(naked) CDirectInputMouse* __fastcall MouseDeleteAt(CDirectInputMouse*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004578B0)
 // The interface (007C7D50): 005F4990 (RET 4) created on the device, 005F57C0 its update, 005F4F90
 // shut down.
 __declspec(naked) void __fastcall InterfaceCreateAt(CInterface3D*, void*, CTextureDevice*) EI_ORIGINAL(0x005F4990)
-__declspec(naked) void __fastcall InterfaceUpdateAt(CInterface3D*) EI_ORIGINAL(0x005F57C0)
 __declspec(naked) void __fastcall InterfaceShutdownAt(CInterface3D*) EI_ORIGINAL(0x005F4F90)
-// 0045EA00: the map list read. 00456140: the first map loaded, or the main menu opened.
-__declspec(naked) bool __fastcall MapDatabaseLoadAllAt(void*) EI_ORIGINAL(0x0045EA00)
-__declspec(naked) int __cdecl StartFirstMapAt() EI_ORIGINAL(0x00456140)
-// 005790E0 (RET 4; the glue object is not read): the players' data scrambled (0) or plain (1).
-__declspec(naked) void __fastcall GuardPlayerDataAt(void* /*glue*/, void*, char /*plain*/) EI_ORIGINAL(0x005790E0)
-// The game flow (007AFE20): 0057F390 a new client session, 00581660 both sessions closed.
-__declspec(naked) void __fastcall FlowRecreateClientSessionAt(GameFlow*) EI_ORIGINAL(0x0057F390)
-// The messages: 00457970 (ECX message, EDX wParam, RET 4) to the interface's input, 00457D40 the
-// window procedure.
-__declspec(naked) LRESULT __fastcall DispatchInputAt(UINT, WPARAM, LPARAM) EI_ORIGINAL(0x00457970)
-__declspec(naked) LRESULT __stdcall WindowProcAt(HWND, UINT, WPARAM, LPARAM) EI_ORIGINAL(0x00457D40)
+// The game flow (007AFE20): 00581660 both sessions closed.
 // 006916F0 (ECX the texture manager; not read): the composed textures' files deleted.
 __declspec(naked) void __fastcall DeleteComposedTexturesAt(void* /*textureManager*/) EI_ORIGINAL(0x006916F0)
 
@@ -415,7 +382,7 @@ bool CheckDrives(const console::CStringArray& messages) {
 
 // One reference of the mouse object dropped: deleted at the last (slot 0 of its vtable).
 void ReleaseMouse(CDirectInputMouse* mouse) {
-    if (--mouse->references_ == 0) MouseDeleteAt(mouse, nullptr, 1);
+    if (--mouse->references_ == 0) mouse->DeletingDestruct(1);
 }
 
 // The mouse object made (not set up yet) and kept with one reference.
@@ -467,7 +434,7 @@ DWORD CreateRenderer() {
     device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
     LittleNonLocalMemory() = free <= kLittleMemory;
     DeviceNamed() = options->driverIndex_ != 0;
-    RendererSetGammaAt(static_cast<CSceneRenderer*>(SceneContext()), nullptr, options->brightness_, options->contrast_, options->gamma_);
+    static_cast<CSceneRenderer*>(SceneContext())->SetGamma(options->brightness_, options->contrast_, options->gamma_);
     return free;
 }
 
@@ -487,13 +454,13 @@ std::uintptr_t OpenSound() {
     {
         mfc::CString effects = textFolder + game::Text(0x0078484C);   // "sfx.res"
         CSoundManager* sound = Sound();
-        SoundClearWaveSourcesAt(sound);
-        SoundAddWaveSourceAt(sound, nullptr, effects);
+        sound->ClearWaveSources();
+        sound->AddWaveSource(effects);
     }
     {
         mfc::CString unused = discFolder + game::Text(0x0078483C);   // "res\speech.res" (built twice)
         mfc::CString speech = discFolder + game::Text(0x0078483C);
-        SoundAddWaveSourceAt(Sound(), nullptr, speech);
+        Sound()->AddWaveSource(speech);
     }
     Sound()->SetEffectsVolume(options->audioSfx_);
     Sound()->SetSpeechVolume(options->audioSpeech_);
@@ -609,7 +576,7 @@ bool RunWorlds() {
             ServerBacklog() -= TickLength();
             NetworkTimers();
         }
-        if (ClientBacklog() >= TickLength() && (ClientHasIncomingAt(Client()) || !ClientViewModeTwoAt(Client()))) {
+        if (ClientBacklog() >= TickLength() && (Client()->PumpHasIncoming() || !Client()->IsLocalViewMode2())) {
             if (!ClientSegment()(Client(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             ClientBacklog() -= tick;
@@ -655,13 +622,13 @@ bool RunPass() {
     std::uint32_t elapsed = TimeSinceLastPass();
     void* glue = GameGlueObject();
     if (!(static_cast<CSceneRenderer*>(DisplayObject())->flags_ & 1)) {
-        GuardPlayerDataAt(glue, nullptr, 0);
+        GuardPlayerData(glue, nullptr, 0);
         return false;
     }
-    GuardPlayerDataAt(glue, nullptr, 1);
+    GuardPlayerData(glue, nullptr, 1);
     CWorldClient* client = Client();
-    if (ClientLocalPlayerIdleAt(client)) {
-        if (IsNetworkClientOriginal()) FlowRecreateClientSessionAt(TheGameFlow());
+    if (client->IsLocalPlayerIdle()) {
+        if (IsNetworkClientOriginal()) TheGameFlow()->RecreateClientSession();
         else TheGameFlow()->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
@@ -673,7 +640,7 @@ bool RunPass() {
         elapsed = gamecrt::Ftol(gamecrt::ceil(frame));
     }
     ServerBacklog() += elapsed;
-    if (!ClientViewModeTwoAt(client)) ClientSpeed() = 1.0f;
+    if (!client->IsLocalViewMode2()) ClientSpeed() = 1.0f;
     ClientBacklog() =
         gamecrt::Ftol(Step(x87::FromUnsigned(elapsed) * ClientSpeed()) + static_cast<double>(static_cast<std::int32_t>(ClientBacklog())));
     if (ClientBacklog() > kBacklogLimit) ClientBacklog() = 0;
@@ -682,7 +649,7 @@ bool RunPass() {
         FlowProcessRequestOriginal(TheGameFlow());
         const float fraction = static_cast<float>(x87::FromUnsigned(ClientBacklog()) / static_cast<double>(static_cast<std::int32_t>(TickLength())));
         if (!client->paused_) client->tickFraction_ = fraction;
-        const double balance = Step(static_cast<double>(ClientIncomingCountAt(client)) - fraction);
+        const double balance = Step(static_cast<double>(client->PumpIncomingCount()) - fraction);
         const float roundedBalance = static_cast<float>(balance);
         ClientSpeed() = SpeedForBalance(balance, roundedBalance);
         if (ShowClientSpeed()) PrintClientSpeed(ClientSpeed(), roundedBalance);
@@ -700,10 +667,10 @@ bool RunPass() {
             if (camera->flags_ & CCamera::kRecording)
                 CameraRecordFrameAt(camera, nullptr, static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
             if (camera->flags_ & CCamera::kPlaying)
-                CameraPlaybackStepAt(camera, nullptr, static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
+                camera->PlaybackStep(static_cast<float>(static_cast<double>(client->tick_) + client->tickFraction_));
         }
     }
-    InterfaceUpdateAt(Interface());
+    Interface()->Update();
     FrameStepOriginal(static_cast<char>(MovieModeFlag()), 1);
     return true;
 }
@@ -725,8 +692,8 @@ int RunMainLoop(bool interfaceInput) {
         }
         if (!gameapi::GetMessageA(&message, nullptr, 0, 0)) return static_cast<int>(message.wParam);
         gameapi::TranslateMessage(&message);
-        if (interfaceInput) DispatchInputAt(message.message, message.wParam, message.lParam);
-        else WindowProcAt(MainWindow(), message.message, message.wParam, message.lParam);
+        if (interfaceInput) DispatchInput(message.message, message.wParam, message.lParam);
+        else WindowProc(MainWindow(), message.message, message.wParam, message.lParam);
     }
 }
 
@@ -739,12 +706,12 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
-    RendererSetGammaAt(static_cast<CSceneRenderer*>(SceneContext()), nullptr, 0.0f, 0.0f, 0.0f);
+    static_cast<CSceneRenderer*>(SceneContext())->SetGamma(0.0f, 0.0f, 0.0f);
     static_cast<CSceneRenderer*>(DisplayObject())->DestroyRenderer();
     OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
-    ClientSetCameraAt(Client(), nullptr, nullptr);
-    ServerTeardownAt(Server());
-    ClientTeardownAt(Client());
+    Client()->SetCamera(nullptr);
+    Server()->Teardown();
+    Client()->Teardown();
     gamecrt::set_new_handler(previousHandler);
 }
 
@@ -767,20 +734,20 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     RegistryRoot() = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
                          : game::Text(0x007848A8);   // "Software\Nival Interactive\EvilIslands"
-    StoreStartFolderAt();
+    StoreStartFolder();
     {
         mfc::CString settings = StartFolder() + game::Text(0x00784898);   // "config\ai.reg"
-        LogicSettingsLoadAt(LogicSettingsObject(), nullptr, settings);
+        static_cast<LogicSettings*>(LogicSettingsObject())->Load(settings);
     }
     OptionsLoadAt(options, nullptr, RegistryRoot());
     const gamecrt::NewHandler previousHandler =
         gamecrt::set_new_handler(reinterpret_cast<gamecrt::NewHandler>(&Global<char>(0x00455A30)));
-    ClientSetupAt(Client());
-    ServerSetupAt(Server());
+    Client()->Setup();
+    Server()->Setup();
     // The field of view: pi * 2 / 7 (51.4 degrees).
     CameraInitAt(Camera(), nullptr, options, options->nearClipDistance_, options->farClipDistance_,
                  static_cast<float>(ExeDouble(0x0073C308) * ExeDouble(0x0073B9D8)));
-    ClientSetCameraAt(Client(), nullptr, Camera());
+    Client()->SetCamera(Camera());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
@@ -804,18 +771,18 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     PlayMoviesOriginal(game::Text(0x00784834), 1, 1, 1, 1);   // "Start"
     LoadingMovieName() = game::Text(0x00784828);              // "Progres.bik"
     ShowLoadingMovie(0);
-    CloseLoadingMovieAt();
+    CloseLoadingMovie();
     LoadDatabases();
-    MouseSetupAt(Mouse(), nullptr, MainWindow(), instance);
+    Mouse()->Setup(MainWindow(), instance);
     ClientSetUpGraphicsAt(Client(), nullptr, RenderDeviceObject());
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
     SetUpCursorsOriginal(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
                          DeviceNamed() == 0);
     InterfaceCreateAt(Interface(), nullptr, RenderDeviceObject());
-    MapDatabaseLoadAllAt(MapDatabaseObject());
-    StartFirstMapAt();
-    RendererSetGammaAt(static_cast<CSceneRenderer*>(SceneContext()), nullptr, options->brightness_, options->contrast_, options->gamma_);
+    static_cast<CMapDatabase*>(MapDatabaseObject())->LoadAll();
+    StartFirstMap();
+    static_cast<CSceneRenderer*>(SceneContext())->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
     const int result = RunMainLoop((reusedSlot >> 24) != 0);
     ShutDown(previousHandler);

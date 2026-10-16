@@ -75,7 +75,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         colour.y = Max(water.materialColour.y, record->materialColour.y);
         colour.z = Max(water.materialColour.z, record->materialColour.z);
     }
-    if (shadows && terrain->SunReachesAtOriginal(position) == 0) {
+    if (shadows && terrain->SunReaches(position) == 0) {
         record->lit.x = AtMostOne(static_cast<float>(ambient.x + colour.x));
         record->lit.y = AtMostOne(static_cast<float>(ambient.y + colour.y));
         record->lit.z = AtMostOne(static_cast<float>(ambient.z + colour.z));
@@ -179,4 +179,3 @@ EI_REPLACE_METHOD(0x006C31C0, SectorData::LightVertex);
 
 } // namespace terrain
 
-__declspec(naked) int Terrain::SunReachesAtOriginal(const terrain::SectorPosition*) EI_ORIGINAL(0x006C92C0)

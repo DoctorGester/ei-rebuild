@@ -26,18 +26,10 @@ constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices
 float DetailNear() { return *reinterpret_cast<const float*>(0x0079BD2C); }
 float DetailFar() { return *reinterpret_cast<const float*>(0x0079BD30); }
 
-// The passes' callees run through their addresses, so that their verify wrappers keep running.
-__declspec(naked) SectorData* __fastcall SectorAtAt(Terrain*, void*, int /*sx*/, int /*sy*/, std::uint32_t /*wanted*/,
-                                                    int /*create*/) EI_ORIGINAL(0x006C8140)
-__declspec(naked) void __fastcall ChooseDetailAt(Terrain*, void*, SectorData*) EI_ORIGINAL(0x006C66E0)
-__declspec(naked) int __fastcall IsDrawnAt(const SectorData*) EI_ORIGINAL(0x006BFB00)
 __declspec(naked) void __fastcall ClipTestAt(SectorData*, void*, CSceneRenderer*) EI_ORIGINAL(0x006BFB20)
 __declspec(naked) void __fastcall FindSeamsAt(SectorData*) EI_ORIGINAL(0x006BFB80)
-__declspec(naked) int __fastcall ProjectAt(SectorData*, void*, CTransformPipeline*) EI_ORIGINAL(0x006BFC80)
 __declspec(naked) int __fastcall DrawSectorPageAt(SectorData*, void*, CSceneRenderer*, Terrain*, int /*page*/,
                                                   int /*unused*/) EI_ORIGINAL(0x006BFF40)
-__declspec(naked) int __fastcall DrawPagesAt(Terrain*, void*, CSceneRenderer*, int /*firstPage*/, int /*lastPage*/)
-    EI_ORIGINAL(0x006C6460)
 
 // Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is
 // there once lit; a visit returning false ends the walk (false).
@@ -45,7 +37,7 @@ template <typename Visit>
 bool ForVisibleSectors(Terrain* terrain, Visit visit) {
     for (int row = 0; row < terrain->visibleColumnFirst.size; ++row) {
         for (int column = terrain->visibleColumnFirst[row]; column <= terrain->visibleColumnLast[row]; ++column) {
-            SectorData* sector = SectorAtAt(terrain, nullptr, column, terrain->visibleRowFirst + row, kLit, 1);
+            SectorData* sector = terrain->SectorAt(column, terrain->visibleRowFirst + row, kLit, 1);
             if (sector && !visit(sector)) return false;
         }
     }
@@ -71,7 +63,7 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
     CTransformPipeline* pipeline = renderer->pipeline_;
     pipeline->PushMatrixProduct(matrix, CTransformPipeline::kClipStack);
     pipeline->PushMatrixProduct(matrix, kProjectStack);
-    DrawPagesAt(terrain, nullptr, renderer, firstPage, lastPage);
+    terrain->DrawPages(renderer, firstPage, lastPage);
     pipeline = renderer->pipeline_;
     pipeline->PopMatrix(CTransformPipeline::kClipStack);
     pipeline->PopMatrix(kProjectStack);
@@ -105,7 +97,7 @@ void SectorData::FindSeams() {
     // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
     // the seam triangles (terrain_draw.cpp). The lookup does not load anything (create 0).
     const auto coarser = [&](int nx, int ny, int detail) {
-        const SectorData* neighbour = SectorAtAt(reinterpret_cast<Terrain*>(owner), nullptr, nx, ny, kLit, 0);
+        const SectorData* neighbour = reinterpret_cast<Terrain*>(owner)->SectorAt(nx, ny, kLit, 0);
         return neighbour && neighbour->detail == detail && neighbour->IsDrawn();
     };
     if (detail == 0) {
@@ -136,21 +128,21 @@ EI_REPLACE_METHOD(0x006C66E0, Terrain::ChooseDetail);
 int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return 0;
     ForVisibleSectors(this, [&](SectorData* sector) {
-        ChooseDetailAt(this, nullptr, sector);
+        ChooseDetail(sector);
         ClipTestAt(sector, nullptr, renderer);
         return true;
     });
     ForVisibleSectors(this, [&](SectorData* sector) {
-        if (IsDrawnAt(sector)) {
+        if (sector->IsDrawn()) {
             FindSeamsAt(sector);
-            ProjectAt(sector, nullptr, renderer->pipeline_);
+            sector->Project(renderer->pipeline_);
         }
         return true;
     });
     for (int page = firstPage; page <= lastPage; ++page) {
         bool bound = false;
         bool drawn = ForVisibleSectors(this, [&](SectorData* sector) {
-            if (!IsDrawnAt(sector) || !HasTilesOn(sector, page)) return true;
+            if (!sector->IsDrawn() || !HasTilesOn(sector, page)) return true;
             if (!bound) {
                 renderer->SetTexture(0, pageTextures[page % (pages + 2)]);
                 bound = true;

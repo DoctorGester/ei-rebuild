@@ -16,11 +16,6 @@ constexpr float kMargin = 1.0f;   // 0073B84C: one cell around the quad
 
 float CellSize() { return *reinterpret_cast<const float*>(0x007441D0); }
 
-// 004D8490 through its address (the image runs our rewrite there; disabled.txt kept it out of
-// game.exe until S21e: X17 / X18's rare clip-edge differences, which the goldens have not shown).
-__declspec(naked) void __fastcall AddTerrainTriangleAt(DecalBuilder*, void*, const Vector3*, const Vector3*,
-                                                       const Vector3*) EI_ORIGINAL(0x004D8490)
-
 // The original's select idioms (FCOMP; C0 picks): the lower of `a` and `b` (a when unordered), and
 // `a` raised to `bound` (bound when unordered).
 float Lower(float a, float b) { return !(a >= b) ? a : b; }
@@ -78,8 +73,8 @@ void Terrain::AddDecalTriangles(DecalBuilder* builder, float* const* corners) {
             auto* b = reinterpret_cast<const Vector3*>(VertexAt(x, y + 1, 0));
             auto* c = reinterpret_cast<const Vector3*>(VertexAt(x + 1, y, 0));
             auto* d = reinterpret_cast<const Vector3*>(VertexAt(x + 1, y + 1, 0));
-            AddTerrainTriangleAt(builder, nullptr, a, c, d);
-            AddTerrainTriangleAt(builder, nullptr, a, d, b);
+            builder->AddTerrainTriangle(a, c, d);
+            builder->AddTerrainTriangle(a, d, b);
         }
     }
 }

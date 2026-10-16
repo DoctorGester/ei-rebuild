@@ -97,3 +97,7 @@ address,reason
 00573740,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
 00575BC0,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
 00576D40,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
+0042FCA0,src/game/net_server_list.cpp passes a uint8_t [10280] as void* (the target is CoderState's method)
+00695B80,src/game/app_frame.cpp passes a uint8_t [4] as void* (the target is CIniFile's method)
+00695BE0,src/game/app_frame.cpp passes a uint8_t [4] as void* (the target is CIniFile's method)
+00695BF0,src/game/app_frame.cpp passes a uint8_t [4] as void* (the target is CIniFile's method)

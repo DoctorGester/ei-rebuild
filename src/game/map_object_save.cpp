@@ -15,10 +15,6 @@
 namespace {
 constexpr std::uint32_t kBaseScaleVersion = 0x4E;   // base scale saved after this version
 
-// Not rewritten (forwarders): 00688550 / 006885A0, MapEffect Load / Save (RET 4: the stream).
-__declspec(naked) void __fastcall MapEffectLoad(MapEffect*, void*, CStream*) EI_ORIGINAL(0x00688550)
-__declspec(naked) void __fastcall MapEffectSave(const MapEffect*, void*, CStream*) EI_ORIGINAL(0x006885A0)
-
 mfc::CString& AsString(char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 mfc::CString& AsString(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 
@@ -50,7 +46,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&count, sizeof(count));
     EffectArraySetSizeOriginal(&effectsVtable, nullptr, count, -1);
-    for (int i = 0; i < effectCount; ++i) MapEffectLoad(&effects[i], nullptr, stream);
+    for (int i = 0; i < effectCount; ++i) effects[i].Load(stream);
     std::uint32_t flags = flags_;   // the original's local starts as stack garbage
     stream->Read(&flags, sizeof(flags));
     flags_ = flags;
@@ -72,7 +68,7 @@ void CMapObject::SaveMapObject(CStream* stream) {
     stream->Write(&scale, sizeof(scale));
     int count = effectCount;
     stream->Write(&count, sizeof(count));
-    for (int i = 0; i < effectCount; ++i) MapEffectSave(&effects[i], nullptr, stream);
+    for (int i = 0; i < effectCount; ++i) effects[i].Save(stream);
     std::uint32_t flags = flags_;
     stream->Write(&flags, sizeof(flags));
     WriteText(stream, name2);

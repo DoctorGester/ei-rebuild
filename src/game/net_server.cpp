@@ -18,8 +18,6 @@ namespace {
 
 // 00421800: STLport string constructor with room for n bytes, library.
 inline StringRep* __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { return (StringRep*)StringReserveOriginal((void*)a0, nullptr, a2, a3); }
-// 00418530: fills the queued maps from the game flow (ServerSession::QueueMapList), through its address.
-__declspec(naked) void __fastcall ServerLoadList(ServerSession* /*server*/) EI_ORIGINAL(0x00418530)
 
 // STLport list constructors, list taking the allocator; one per element type, library.
 __declspec(naked) void* __fastcall ListConstruct41FD30(void* /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FD30)
@@ -90,7 +88,7 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     nextLine_ = 0;
     kind_ = kind;
     maxPlayers_ = 8;
-    ServerLoadList(this);
+    QueueMapList();
     std::memset(&announceTimer_, 0, sizeof(announceTimer_));
     public_ = 0;
     masterToken_ = 0;

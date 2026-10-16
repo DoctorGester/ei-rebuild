@@ -134,18 +134,6 @@ void ReleaseSource(CParticleSource* source) { reinterpret_cast<CEngineObject*>(s
 // The feeble mind sequence's chooser (005117C0): the first name once, then the second.
 int __fastcall FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
-// 00510B80 / 005112A0 (rewritten below; through their game addresses so their wrappers see the
-// calls). 005114D0 likewise.
-__declspec(naked) void __fastcall CallUpdateEffectParticles(CMapObjectClientSpecific*, void*, bool)
-    EI_ORIGINAL(0x00510B80)
-__declspec(naked) void __fastcall CallUpdateEffectSounds(CMapObjectClientSpecific*, void*, bool)
-    EI_ORIGINAL(0x005112A0)
-__declspec(naked) void __fastcall CallPlayEffectSound(bool, EffectSoundRecord*, const float*, int, const char*)
-    EI_ORIGINAL(0x005114D0)
-// 0051CCA0 / 0051CD60 (rewritten below).
-__declspec(naked) void __fastcall CallResetPartAlpha(CObject3DClientSpecific*) EI_ORIGINAL(0x0051CCA0)
-__declspec(naked) void __fastcall CallClearPartTints(CObject3DClientSpecific*) EI_ORIGINAL(0x0051CD60)
-
 CObject3DClientSpecific* ClientHalf(CMapObject* owner) {
     return static_cast<CObject3DClientSpecific*>(owner->attached);
 }
@@ -174,9 +162,6 @@ float DefaultLightRadius() { return *reinterpret_cast<const float*>(0x0079BEBC);
 CObject3DSpecific* SideHalf(CMapObject* owner) {
     return owner->Specific();
 }
-
-// 00511950 (rewritten below; through its game address so the wrapper sees the calls).
-__declspec(naked) void __fastcall CallShowLight(CMapObjectClientSpecific*) EI_ORIGINAL(0x00511950)
 
 // The light goes out for good: no longer held, hidden, its id off the list, released.
 void DropLight(CMapObjectClientSpecific* self) {
@@ -227,8 +212,8 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
 EI_REPLACE(0x005114D0, PlayEffectSound);
 
 void CMapObjectClientSpecific::OnEffectsChanged(bool first) {
-    CallUpdateEffectParticles(this, nullptr, first);
-    CallUpdateEffectSounds(this, nullptr, first);
+    UpdateEffectParticles(first);
+    UpdateEffectSounds(first);
 }
 EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::OnEffectsChanged);
 
@@ -337,12 +322,12 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kStun:
             if (OtherRecordOfType(particles, i, kStun)) break;
             CompanionOwner(this)->flags_ &= ~kFlagStunned;
-            CallClearPartTints(ClientHalf(CompanionOwner(this)));
+            ClientHalf(CompanionOwner(this))->ClearPartTints();
             break;
         case kInvisibility:
             if (OtherRecordOfType(particles, i, kInvisibility)) break;
             CompanionOwner(this)->flags_ &= ~kFlagInvisible;
-            CallResetPartAlpha(ClientHalf(CompanionOwner(this)));
+            ClientHalf(CompanionOwner(this))->ResetPartAlpha();
             break;
         case kLichdom:
         case kStrengthen:
@@ -397,7 +382,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         added.handle = -1;
         added.timer = 0;
         added.present = 1;
-        CallPlayEffectSound(!first, &added, &CompanionOwner(this)->position.x, added.kind, "\\start.wav");
+        PlayEffectSound(!first, &added, &CompanionOwner(this)->position.x, added.kind, "\\start.wav");
         int index = sounds.size;
         CompanionSoundsSetSizeOriginal(&sounds, nullptr, index + 1, -1);
         std::memcpy(&sounds.data[index], &added, sizeof(added));
@@ -408,7 +393,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         if (record->present) continue;
         CMapObject* target = CompanionOwner(this);
         bool alive = !ObjectSlots(target)->IsDead();
-        CallPlayEffectSound(alive, record, &target->position.x, record->kind, "\\end.wav");
+        PlayEffectSound(alive, record, &target->position.x, record->kind, "\\end.wav");
         int tail = sounds.size - i - 1;
         if (tail != 0) std::memmove(&sounds.data[i], &sounds.data[i + 1], tail * sizeof(EffectSoundRecord));
         --sounds.size;
@@ -467,7 +452,7 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     point->inverseRangeSquared_ = static_cast<float>(1.0 / squared);
     light->flags_ |= kLightNew;
     if (flag) light->flags_ |= kLightFlag40;
-    CallShowLight(this);
+    ShowLight();
 }
 EI_REPLACE_METHOD(0x00511830, CMapObjectClientSpecific::CreateLight);
 
@@ -478,7 +463,7 @@ void CMapObjectClientSpecific::ApplyLightMode(int mode) {
             CompanionCreateLightOriginal(this, nullptr, colour, DefaultLightRadius(), 1);
         } else {
             light->flags_ &= ~kLightHeld;
-            CallShowLight(this);
+            ShowLight();
         }
         light->flags_ |= kLightHeld;
         int id = light->id_;

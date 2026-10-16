@@ -35,7 +35,6 @@ CPlayer* AsPlayer(void* player) { return static_cast<CPlayer*>(player); }
 
 // The unit's equipment ids (11 words: 4, the weapon, 6) [0052EC10 (out)]; the path's writer
 // [005C7DB0 on the controller's path (field)].
-__declspec(naked) void __fastcall EquipmentIds(void*, void*, std::uint32_t*) EI_ORIGINAL(0x0052EC10)
 // (005C7DB0: PathWriteOriginal, originals_ai.h.)
 
 constexpr int kClassServerController = 0x3E;
@@ -85,7 +84,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
     }
     if (DeltaField* field = state->BeginField(5)) {
         std::uint32_t ids[11];
-        EquipmentIds(unit, nullptr, ids);
+        static_cast<CUnit*>(unit)->GetEquipmentIds(ids);
         for (int i = 0; i < 4; ++i) PutWord(field, ids[i]);
         PutWord(field, (unit->flags_ & 0x40000000) ? 0xFFFFFFFFu : ids[4]);
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
@@ -225,8 +224,6 @@ namespace {
 // the motion's 005C67D0 (path) on +0x27C; a player's unit list remove / add [00665B50 / 00665A70
 // (unit)]; the object's manager context [00455940] and the client's local view [005699F0]; the
 // field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
-__declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
-__declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
 
@@ -344,9 +341,9 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         static_cast<AIPath*>(path)->ReadState(field);
         if (unit->pathTimeShift == 1) static_cast<AIPath*>(path)->ShiftTime(-1);
         AIPath* path2 = unit->Controller()->Path();
-        PathSetOwner(path2, nullptr, unit->id_);
+        static_cast<AIPath*>(path2)->ForgetObject(unit->id_);
         float walk, run;
-        UnitMoveSpeeds(unit, nullptr, &walk, &run);
+        static_cast<CUnit*>(unit)->GetMoveSpeeds(&walk, &run);
         UnitMotion* motion = unit->Motion();   // +0x27C
         motion->segment = -1;
         motion->speedScale = walk;

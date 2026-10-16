@@ -23,8 +23,6 @@ __declspec(naked) int __fastcall ManagerSetAnimation(CEngineObject* /*manager*/,
 __declspec(naked) int __fastcall ManagerAnimateBone(CEngineObject* /*manager*/, void*, FigureBone* /*bone*/,
                                                     AnimationTrack* /*animator*/, const char* /*animation*/)
     EI_ORIGINAL(0x005ACA60)
-// Rewritten below, called through its game address so its verify wrapper stays in the path.
-__declspec(naked) void __fastcall CallSetTime(CFigureAnimationState*, void*, float) EI_ORIGINAL(0x0050D600)
 
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
@@ -88,7 +86,7 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
             AnimateBone(bone, animation);
         }
     }
-    CallSetTime(this, nullptr, 0.0f);
+    SetTime(0.0f);
     current = animation;
 }
 EI_REPLACE_METHOD(0x0050CA50, CFigureAnimationState::Play);
@@ -122,5 +120,5 @@ void CFigureAnimationState::SetTime(float frame) {
 }
 EI_REPLACE_METHOD(0x0050D600, CFigureAnimationState::SetTime);
 
-void CFigureAnimationState::Advance(float frames) { CallSetTime(this, nullptr, frames + time); }
+void CFigureAnimationState::Advance(float frames) { SetTime(frames + time); }
 EI_REPLACE_METHOD(0x0050D5E0, CFigureAnimationState::Advance);

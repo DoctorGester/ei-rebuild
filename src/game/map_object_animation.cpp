@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -14,8 +15,6 @@
 // double locals where it keeps, float locals where it stores.
 
 namespace {
-// The CRT's modf (006EAD0B): the fraction in ST0, the whole part in *whole.
-__declspec(naked) double __cdecl GameModf(double, double*) EI_ORIGINAL(0x006EAD0B)
 // 0049ED20 Quaternion::Slerp of quaternion.cpp, through its game address.
 __declspec(naked) void __fastcall SlerpAt(void*, void*, float, const void*, const void*) EI_ORIGINAL(0x0049ED20)
 
@@ -39,7 +38,7 @@ void LerpPoint(float* out, const float* from, const float* to, float s) {
 
 void AnimationTrack::Evaluate(float atTime) {
     double whole;
-    float fraction = static_cast<float>(GameModf(atTime, &whole));
+    float fraction = static_cast<float>(libcrt::Modf(atTime, &whole));
     float wholeF = static_cast<float>(whole);
     int index = x87::fistp(wholeF);
     int next = index + 1;

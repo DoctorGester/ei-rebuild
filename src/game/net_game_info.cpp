@@ -14,9 +14,8 @@ namespace net {
 namespace {
 
 // The growing buffer's out-of-line string and overflow handling (outside the range):
-// 004DA380 writes a length-prefixed string, 004DA200 reads one (at most `maxLength` bytes),
+// 004DA200 reads a length-prefixed string (at most `maxLength` bytes),
 // 004DA170 reads past the end (zeroes the target, sets error bit 3, takes what is left).
-__declspec(naked) void __fastcall BufferWriteString(GameBuffer* /*buffer*/, void*, const StringRep* /*s*/) EI_ORIGINAL(0x004DA380)
 __declspec(naked) int __fastcall BufferReadString(GameBuffer* /*buffer*/, void*, StringRep* /*s*/, int /*maxLength*/) EI_ORIGINAL(0x004DA200)
 
 // A value written the way the record writer inlines it: in place (marking the buffer written)
@@ -73,8 +72,8 @@ EI_REPLACE_METHOD(0x00401340, GameBuffer::ReadBytes);
 void GameInfoRecord::Write(GameBuffer* buffer) const {
     Put(buffer, &masterKey, 4);
     Put(buffer, &masterToken, 4);
-    BufferWriteString(buffer, nullptr, &name);
-    BufferWriteString(buffer, nullptr, &description);
+    buffer->WriteString(&name);
+    buffer->WriteString(&description);
     Put(buffer, &players, 1);
     Put(buffer, &maxPlayers, 1);
     Put(buffer, &hasPassword, 1);

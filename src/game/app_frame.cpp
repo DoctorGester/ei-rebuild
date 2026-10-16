@@ -4,6 +4,7 @@
 // callee is reached through its original address. See docs/notes/app.md.
 #include "dib.h"
 #include "game_strings.h"
+#include "model.h"
 #include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "ei/hook.h"
@@ -14,6 +15,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "ui.h"
 #include "ui_cursor.h"
 
 #include <ddraw.h>
@@ -34,9 +36,6 @@ void* Screen() { return reinterpret_cast<void*>(0x007C7BD8); }
 bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
 CRITICAL_SECTION* RenderLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-__declspec(naked) int __fastcall GameStep(void*) EI_ORIGINAL(0x00503F40)
-__declspec(naked) void __fastcall InterfaceUpdate(void*) EI_ORIGINAL(0x005F5220)
-__declspec(naked) void __fastcall GameDraw(void*) EI_ORIGINAL(0x005040A0)
 __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5320)
 // The software cursor's lock (005E65F0) is called through the target of the original CALL at
 // 004580D7 (the original body stays in place behind the hook's jump): the harness's frame capture
@@ -96,9 +95,9 @@ void __fastcall FrameStep(bool draw, bool cursor) {
         gameapi::Sleep(50);
         return;
     }
-    if (!GameStep(Game())) return;
-    InterfaceUpdate(Interface());
-    GameDraw(Game());
+    if (!static_cast<CSceneRenderer*>(Game())->BeginScene()) return;
+    static_cast<CInterface3D*>(Interface())->Draw();
+    static_cast<CSceneRenderer*>(Game())->EndScene();
     if (cursor) InterfaceDrawCursor(Interface());
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());

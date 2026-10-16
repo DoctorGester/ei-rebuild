@@ -16,10 +16,6 @@
 
 namespace {
 
-// 004F6D30 through its address: the verify build's wrapper runs there.
-__declspec(naked) int __fastcall AddArchiveOriginal(CLinkFigureLoader*, void*, const stlp::string* /*path*/)
-    EI_ORIGINAL(0x004F6D30)
-
 const char* FiguresArchive() { return reinterpret_cast<const char*>(0x0078EC24); }   // "figures.res"
 const char* MenusArchive() { return reinterpret_cast<const char*>(0x0078EC18); }     // "menus.res"
 constexpr std::size_t kFigureSetBuckets = 100;   // the hint the figure sets' table is created with
@@ -47,16 +43,16 @@ CLinkFigureLoader* CLinkFigureLoader::Construct(CTextureDevice* renderer, const 
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& modPath : modfolders::FigureArchives()) {
             const stlp::string path(modPath.c_str());
-            AddArchiveOriginal(this, nullptr, &path);
+            AddArchive(&path);
         }
     }
     {
         const stlp::string path = stlp::Plus(*folder, FiguresArchive());
-        AddArchiveOriginal(this, nullptr, &path);
+        AddArchive(&path);
     }
     {
         const stlp::string path = stlp::Plus(*folder, MenusArchive());
-        AddArchiveOriginal(this, nullptr, &path);
+        AddArchive(&path);
     }
     return this;
 }

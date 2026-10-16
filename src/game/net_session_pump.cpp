@@ -2,6 +2,7 @@
 // (net_link.h) per remote player. The session keeps two STLport lists of the drivers (+8 owning,
 // +0xC plain holders); the lists' members are library code, called at their original addresses.
 // See docs/notes/network.md.
+#include "net_classes.h"
 #include "net_link.h"
 
 #include "core_refcount.h"
@@ -35,8 +36,6 @@ __declspec(naked) void* __fastcall HolderDelete(RefPtr*, void*, unsigned) EI_ORI
 __declspec(naked) void __fastcall BufferUpdateHigh(GameBuffer*) EI_ORIGINAL(0x00419CC0)
 // 00417E40 (thiscall on the game server, RET 4): whether the connection is one of its players.
 __declspec(naked) bool __fastcall ServerHasConnection(net::ServerSession*, void*, net::Connection*) EI_ORIGINAL(0x00417E40)
-// 00413250 (__fastcall size): operator new with the reference count cleared.
-__declspec(naked) void* __fastcall AllocRefObject(std::size_t) EI_ORIGINAL(0x00413250)
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
@@ -75,7 +74,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         if (!IsLive(server)) continue;
         if (!ServerHasConnection(server, nullptr, node->connection)) continue;
         player = node->connection;
-        DriverLink* driver = NewDriver(this, player, AllocRefObject(sizeof(DriverLink)));
+        DriverLink* driver = NewDriver(this, player, net::NewRefObject(sizeof(DriverLink)));
         // The original then destroys the emptied temporary holder (00413270 on null: nothing).
         RefPtr held{driver};
         DriverNode* out;

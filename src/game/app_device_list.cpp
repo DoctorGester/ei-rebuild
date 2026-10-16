@@ -22,11 +22,8 @@ static_assert(sizeof(LeverRecordVector) == 12);
 
 namespace {
 // The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
-// STLport (library): copy (first, last, dest), resize.
-__declspec(naked) LeverRecord* __fastcall RecordsCopy(LeverRecord*, LeverRecord*, LeverRecord*, const void*, int) EI_ORIGINAL(0x00465B20)
+// STLport (library): resize.
 __declspec(naked) void __fastcall RecordsResize(LeverRecordVector*, void*, unsigned) EI_ORIGINAL(0x00465180)
-// The record's own functions through their addresses (rewritten below).
-__declspec(naked) void __fastcall RecordDestructAt(LeverRecord*) EI_ORIGINAL(0x004652A0)
 __declspec(naked) void __fastcall RecordArchiveAt(LeverRecord*, void*, void*) EI_ORIGINAL(0x00463030)
 
 void CopyPlain(LeverRecord* to, const LeverRecord* from) {
@@ -107,8 +104,8 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
     int n;
     if (ar->loading_) {
         LeverRecord* end = list->end();
-        LeverRecord* kept = RecordsCopy(end, end, list->begin(), list, 0);
-        for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestructAt(r);
+        LeverRecord* kept = RecordsCopyForward(end, end, list->begin(), list, 0);
+        for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestruct(r);
         list->Finish() = kept;
         n = ar->CountChunks(1);
         RecordsResize(list, nullptr, static_cast<unsigned>(n));

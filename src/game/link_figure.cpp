@@ -1,6 +1,7 @@
 // The 3D library's figure meshes and their part loaders (004F2650-004FBD80); see link_figure.h.
 #include "link_figure.h"
 
+#include "model.h"
 #include "originals_script.h"
 #include "texture.h"   // CTextureDevice
 
@@ -249,12 +250,6 @@ EI_REPLACE_METHOD(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------
 
-namespace {
-// 004F3800 (CLinkMesh::SetPartVertices, below), called through its address so its check sees these calls.
-__declspec(naked) bool __fastcall SetPartVerticesAt(CLinkMesh*, void*, const stlp::string*, const VertexPacket*, unsigned)
-    EI_ORIGINAL(0x004F3800)
-} // namespace
-
 void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
                                        float t, float u) {
     LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
@@ -265,7 +260,7 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
     if (count) pipeline_->FitBounds(&header->bounds, packets, count);
-    SetPartVerticesAt(mesh, nullptr, name, packets, static_cast<unsigned>(count));
+    mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REPLACE_METHOD(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
@@ -278,7 +273,7 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
     if (count) pipeline_->FitBounds(&header->bounds, packets, count);
-    SetPartVerticesAt(mesh, nullptr, name, packets, static_cast<unsigned>(count));
+    mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REPLACE_METHOD(0x004FA670, CLinkFigureLoader::RemorphOldPart);
@@ -303,10 +298,6 @@ EI_REPLACE_METHOD(0x004F3800, CLinkMesh::SetPartVertices);
 // ---- CLinkMesh's slots ----------------------------------------------------------------------------
 
 namespace {
-
-// 004F7480 (thiscall on the loader, RET 8, AL): loads part `name` into `mesh` unless it has it.
-__declspec(naked) bool __fastcall LoaderLoadPart(CLinkFigureLoader* /*loader*/, void*, CLinkMesh* /*mesh*/,
-                                                 const stlp::string* /*name*/) EI_ORIGINAL(0x004F7480)
 
 // Moves the elements after [start, start + count) down over them and shortens the array (the
 // capacity and block stay).
@@ -355,7 +346,7 @@ void CLinkMesh::CollectPartNamesImpl(stlp::vector<stlp::string>* out) {
 }
 EI_REPLACE_METHOD(0x004F2FB0, CLinkMesh::CollectPartNamesImpl);
 
-bool CLinkMesh::LoadPartImpl(const stlp::string* name) { return LoaderLoadPart(loader_, nullptr, this, name); }
+bool CLinkMesh::LoadPartImpl(const stlp::string* name) { return loader_->LoadPartInto(this, name); }
 EI_REPLACE_METHOD(0x004F30D0, CLinkMesh::LoadPartImpl);
 
 bool CLinkMesh::RemovePartImpl(const stlp::string* name) {

@@ -36,8 +36,6 @@ const char* const kStenchSoundFormat = reinterpret_cast<const char*>(0x0078EFB8)
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-// 00688530 (thiscall). --ticksLeft; is it still positive?
-__declspec(naked) BOOL __fastcall TickEffect(MapEffect*) EI_ORIGINAL(0x00688530)
 // 00524FE0 (thiscall, units range). Applies a hit to the server's statistics block (+0x20);
 // returns 1.
 __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /*hit*/) EI_ORIGINAL(0x00524FE0)
@@ -69,7 +67,7 @@ int CMapObjectServer::Update() {
     if (owner->effectCount <= 0) return 0;
     int i = 0;
     do {
-        if (!TickEffect(&owner->effects[i])) {
+        if (!owner->effects[i].Tick()) {
             int type = owner->effects[i].type;
             int tail = owner->effectCount - i - 1;
             if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));

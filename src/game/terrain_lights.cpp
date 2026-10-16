@@ -59,9 +59,6 @@ VertexRange RangeIn(const LightArea* area, int sx, int sy) {
             sx == area->lastSectorX ? area->lastX : kLastVertex, sy == area->lastSectorY ? area->lastY : kLastVertex};
 }
 
-// The area and vertex updates are called through their addresses, so that their verify wrappers run.
-__declspec(naked) void __fastcall LightAreaOfAt(Terrain*, void*, CLight*, const Vector3*, LightArea*)
-    EI_ORIGINAL(0x006CAA70)
 __declspec(naked) void __stdcall UpdateVertexLightsAt(SectorData*, CLight*, const Vector3*, const LightArea*, int)
     EI_ORIGINAL(0x006CAC10)
 
@@ -232,7 +229,7 @@ void Terrain::RelightArea(const LightArea* area) {
             SectorData* sector = BuiltSector(this, sx, sy, 4);
             if (!sector) continue;
             VertexRange range = RangeIn(area, sx, sy);
-            sector->LightAtOriginal(sun, this, 1, range.x0, range.y0, range.x1, range.y1);
+            sector->Light(sun, this, 1, range.x0, range.y0, range.x1, range.y1);
         }
     }
 }
@@ -245,7 +242,7 @@ void Terrain::AddLight(CLight* light) {
     ++light->refCount_;
     LandscapeLight entry;
     entry.light = light;
-    LightAreaOfAt(this, nullptr, light, nullptr, &entry.area);
+    LightAreaOf(light, nullptr, &entry.area);
     int id = light->id_;
     if (id > maxLightId) maxLightId = id;
     lights[id] = entry;
@@ -277,14 +274,14 @@ void Terrain::MoveLight(CLight* light, const Vector3* delta) {
     // unregistered light writes its area to address 4); ours does the same through a null entry.
     LightTable::Node* node = lights.Find(light->id_);
     LightArea* area = node ? &node->value.area : nullptr;
-    LightAreaOfAt(this, nullptr, light, delta, area);
+    LightAreaOf(light, delta, area);
     Vector3 position = light->position_;
     if (delta) position = position + *delta;
     UpdateArea(this, light, &position, area, 0);
     Vector3 old = light->position_;
     light->position_ = old + *delta;
     RelightArea(area);
-    LightAreaOfAt(this, nullptr, light, nullptr, area);
+    LightAreaOf(light, nullptr, area);
     light->position_ = old;
 }
 EI_REPLACE_METHOD(0x006CA830, Terrain::MoveLight);
