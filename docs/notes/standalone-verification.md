@@ -2030,3 +2030,38 @@ goldens (91 V, 77 R) the same; `work.py test SV7c --golden --jobs 4`: 146 runs A
 
 Scratch driver: build\SV7c\passes.py (`<nohooks|hooked|standalone> <label>=<J..|F..>`, SV7C_ONLY / SV7C_NAMES /
 SV7C_ARGS).
+
+## WB12: standalone runs out of sight (2026-10-16)
+
+**Where a harness window could show or activate.** The game makes one top-level window (GameMain, app_main.cpp:
+CreateWindowExA WS_POPUP at 0,0, the harness's 1280x720, then ShowWindow / UpdateWindow); the new renderer adds child
+windows only (render.cpp's split view, the swap chains of render_window.cpp and render_cursor.cpp present into the game
+window, windowed, DXGI_MWA_NO_WINDOW_CHANGES); present_window.cpp's CoverMonitor moves the window over its monitor in
+full screen (no display mode change); the rich edit of ui_scrolling_surface.cpp is a child; the popup that
+app_main.cpp brings to the front is another game's (FindWindowA, which the harness answers with none). Activation was
+already closed off by SV1c (`noforeground::`: SetForegroundWindow, BringWindowToTop, SetActiveWindow, SetFocus,
+SwitchToThisWindow do nothing, ShowWindow / SetWindowPos never activate, top-level windows WS_EX_NOACTIVATE; the
+harness sends the game its WM_ACTIVATE). Message boxes never show (HarnessMessageBoxA/W). What was left: the window
+itself, on the screen and on the taskbar.
+
+**Change** (tests/verify/harness.cpp, `noforeground::`, standalone image only; `EI_HARNESS_SHOW_WINDOW=1` turns it
+off): every top-level window (made through CreateWindowExA/W, or shown through ShowWindow) is cloaked
+(DwmSetWindowAttribute DWMWA_CLOAK) and made a tool window (WS_EX_TOOLWINDOW, WS_EX_APPWINDOW taken off, also through
+SetWindowLong). Windows still composes a cloaked window, so its swap chains present as before; its position, size,
+visibility and messages do not change, so the game's own course, the posted input, GetCursorPos's mapping and
+captures (which read the renderer's target, harness_capture.cpp) are the same. Message-only windows (Miles,
+DirectSound) are skipped: DWM refuses them (E_HANDLE) and they are never seen. Hooked runs are unchanged (dgVoodoo
+presents into their window).
+
+**Check.** `noforeground::Watch` (from the main loop's peeks, at most every 200 ms of real time) enumerates the
+process's top-level windows: shown (visible, not cloaked or minimised, on the virtual screen), on the taskbar
+(not a tool window, or WS_EX_APPWINDOW), in front (GetForegroundWindow). A change is logged (`harness: in sight: ...`);
+the report gets `WINDOW: out of sight (N checks ...)` or `WINDOW: in sight: <the first>`, and run_all's summary
+`game windows: N of M checked runs kept every window out of sight and out of the foreground` with the runs that saw
+one. Each cloak is logged (`harness: window ... (class EIGAME) cloaked`). No desktop screenshots.
+
+**Runs.** `work.py test WB12 --golden --jobs 4` (standalone and standalone-rebirth): 190 runs ALL PASS, 168 goldens
+the same, 0 differ; 189 reports `WINDOW: out of sight` (1960 checks in all; the 190th, watchdog_ei_launch, ends as
+expected by ei_launch's TIMEOUT, before its report), 190 game windows cloaked, none in sight, none in front. Frames: the
+158 captured frames of the 18 capture scenarios' runs byte for byte the same as main's runs of the same scenarios
+just before (03:24-03:27, SV7b6a's merge).
