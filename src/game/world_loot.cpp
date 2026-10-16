@@ -1,5 +1,6 @@
 // CWorldServer::Loot (005942D0): a player takes what a dead body or a container holds. See
 // world.h and docs/notes/world.md.
+#include "unit.h"
 #include "world.h"
 
 #include "map_object.h"
@@ -29,8 +30,6 @@ __declspec(naked) CEngineObject** __fastcall PtrListGetNext(ObjectList*, void*, 
     EI_ORIGINAL(0x0059A670)
 // 0059CAD0 (RET 4). Frees a node of the shared-object list (+0x12E60).
 __declspec(naked) void __fastcall SharedListFreeNode(void*, void*, void* /*node*/) EI_ORIGINAL(0x0059CAD0)
-// 005301A0. CUnit: whether the unit belongs to a player (+0x24C).
-__declspec(naked) int __fastcall UnitHasOwner(CEngineObject*, void*) EI_ORIGINAL(0x005301A0)
 // 00665470 (RET 8). The player receives the objects of a list.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
@@ -79,7 +78,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         abandon();
         return false;
     }
-    if (UnitHasOwner(object, nullptr) && ObjectSlots(object)->IsDead() == 0) {
+    if (static_cast<CUnit*>(object)->HasPlayer() && ObjectSlots(object)->IsDead() == 0) {
         abandon();
         return false;   // a living unit of a player
     }

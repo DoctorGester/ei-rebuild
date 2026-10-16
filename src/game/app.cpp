@@ -5,6 +5,9 @@
 // original addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
+#include "world_glue.h"
+#include "sound.h"
+#include "ui_cursor.h"
 #include "dx_errors.h"
 #include "game_strings.h"
 #include "present_window.h"
@@ -61,34 +64,11 @@ Ostream* Ostream::Manipulate(void* manipulator) { return static_cast<Ostream*>(O
 Ostream* Console() { return reinterpret_cast<Ostream*>(0x007C55A8); }
 void* const kFlush = reinterpret_cast<void*>(0x00435000);
 
-// Objects told about activation changes.
-struct Renderer {          // 007C7BD8
-    void SetActive(int active);   // 005E5270
-};
-void Renderer::SetActive(int a0) { CursorShowOriginal(this, nullptr, a0); }
-struct Device {            // pointer at 007AF080 (flag byte +0x20 bit 0: full screen)
-    void Deactivate();     // 004EEC60
-};
-__declspec(naked) void Device::Deactivate() EI_ORIGINAL(0x004EEC60)
-struct DeviceHolder {      // 007AF060
-    void Restore();        // 00504780
-};
-__declspec(naked) void DeviceHolder::Restore() EI_ORIGINAL(0x00504780)
-struct Sound {             // pointer at 0079BA08
-    void SetActive(int active);   // 0065EC70
-};
-__declspec(naked) void Sound::SetActive(int) EI_ORIGINAL(0x0065EC70)
-struct Network {           // pointer at 007AF784
-    void Pause();          // 006B7320
-    void Resume();         // 006B7380
-};
-__declspec(naked) void Network::Pause() EI_ORIGINAL(0x006B7320)
-__declspec(naked) void Network::Resume() EI_ORIGINAL(0x006B7380)
-// 005DAE70 (__fastcall): resets the interface after the device was restored. The original pushes
-// the second stack argument from EAX after loading only AL, so its upper bytes are those of the
-// device pointer; the value below rebuilds them.
-__declspec(naked) void __fastcall ResetInterface(bool, void*, int, std::uint32_t)
-    EI_ORIGINAL(0x005DAE70)
+// Objects told about activation changes: the cursor (007C7BD8), the display device
+// (RenderDeviceObject), the scene renderer, the mouse (pointer at 0079BA08) and the sound manager
+// (pointer at 007AF784).
+CCursor* TheCursor() { return reinterpret_cast<CCursor*>(0x007C7BD8); }
+CDirectInputMouse* TheMouse() { return Global<CDirectInputMouse*>(0x0079BA08); }
 
 std::uint8_t& ActiveFlag() { return Global<std::uint8_t>(0x0079BC5C); }
 std::uint8_t& ActivationSeen() { return Global<std::uint8_t>(0x0079BC5D); }
@@ -99,17 +79,16 @@ LRESULT OnActivate(WPARAM wParam) {
         ActiveFlag() = 0;
         return 1;
     }
-    auto* network = Global<Network*>(0x007AF784);
+    auto* sounds = Global<CSoundManager*>(0x007AF784);
     unsigned state = wParam & 0xFFFF;
-    auto* renderer = reinterpret_cast<Renderer*>(0x007C7BD8);
     if (state == 0) {   // WA_INACTIVE
         ActiveFlag() = 0;
         ActivationSeen() = 1;
-        renderer->SetActive(0);
-        auto* device = Global<std::uint8_t*>(0x007AF080);
-        if (device && (device[0x20] & 1)) reinterpret_cast<Device*>(device)->Deactivate();
-        if (auto* sound = Global<Sound*>(0x0079BA08)) sound->SetActive(0);
-        if (network) network->Pause();
+        TheCursor()->ShowImage(0);
+        CTextureDevice* device = RenderDeviceObject();
+        if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
+        if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(0);
+        if (sounds) sounds->PauseAll();
         gameapi::ShowWindow(MainWindow(), SW_MINIMIZE);
         return 1;
     }
@@ -117,20 +96,24 @@ LRESULT OnActivate(WPARAM wParam) {
     ActiveFlag() = 1;
     ActivationSeen() = 1;
     gameapi::ShowWindow(MainWindow(), SW_RESTORE);
-    if (auto* sound = Global<Sound*>(0x0079BA08)) sound->SetActive(1);
-    auto* device = Global<std::uint8_t*>(0x007AF080);
-    if (device && (device[0x20] & 1)) {
-        reinterpret_cast<DeviceHolder*>(0x007AF060)->Restore();
-        device = Global<std::uint8_t*>(0x007AF080);
+    if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(1);
+    CTextureDevice* device = RenderDeviceObject();
+    if (device && (device->flags_ & 1)) {
+        SceneRenderer()->RestoreSurfaces();
+        device = RenderDeviceObject();
         if (device) {
-            std::uint32_t value = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
+            // 005DAE70 (ResetCursors) after the device was restored. The original pushes the last
+            // argument from EAX after loading only AL, so its upper bytes are those of the device
+            // pointer; the value below rebuilds them. The context is the mouse.
+            std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
                                   (Global<std::uint8_t>(0x00784756) == 0 ? 1u : 0u);
-            ResetInterface(Global<int>(0x0079BCF0) != 0, Global<void*>(0x0079BA08), 0, value);
+            ResetCursors(Global<int>(0x0079BCF0) != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(TheMouse())), 0,
+                         static_cast<int>(flags));
         }
     }
-    renderer->SetActive(1);
-    if (network) network->Resume();
-    reinterpret_cast<InterfaceOriginals*>(TheInput())->ResetInput();
+    TheCursor()->ShowImage(1);
+    if (sounds) sounds->ResumeAll();
+    TheInput()->ResetInput();
     return 1;
 }
 
@@ -166,14 +149,6 @@ int HighUnsigned(LPARAM v) { return static_cast<int>(static_cast<unsigned>(v) >>
 
 bool AltDown(LPARAM lParam) { return (lParam & 0x20000000) != 0; }
 
-// The script loader of the mission script (007C27D4).
-// 00456360. Copies the script's error text, code and line.
-struct ScriptError {
-    char* text;   // CString
-    int code;
-    int line;
-};
-__declspec(naked) ScriptError* __fastcall GetScriptError(void*, void*, ScriptError*) EI_ORIGINAL(0x00456360)
 
 void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
 int __fastcall WorldLoadMap(void* a0, void*, const char* a2, const char* a3, int a4) { return WorldNewZoneOriginal(a0, nullptr, a2, a3, (const char*)a4); }
@@ -312,11 +287,9 @@ int __cdecl StartFirstMap() {
         loaded = static_cast<CScript*>(script)->LoadFile(path);
     }
     if (loaded) return 1;
-    ScriptError error;
-    GetScriptError(script, nullptr, &error);
-    int result = game::FatalError(reinterpret_cast<const char*>(0x007847CC), error.text, error.line);   // "%s, line %i"
-    reinterpret_cast<mfc::CString*>(&error.text)->~CString();
-    return result;
+    ScriptErrorInfo error;   // GetError constructs the text over the empty one
+    static_cast<CScript*>(script)->GetError(&error);
+    return game::FatalError(reinterpret_cast<const char*>(0x007847CC), static_cast<const char*>(error.text), error.line);   // "%s, line %i"
 }
 EI_REPLACE(0x00456140, StartFirstMap);
 

@@ -8,6 +8,7 @@
 // error. Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "core_maths.h"
 #include "figure.h"
+#include "object_maths.h"
 #include "scene_loader.h"
 
 #include "../lib/containers.h"
@@ -43,7 +44,6 @@ __declspec(naked) void __fastcall PointsCopy(PointArray*, void*, const PointArra
 __declspec(naked) void __fastcall ChildrenSetSize(lib::AlignedArray<CAnimationNode*>*, void*, int, int) EI_ORIGINAL(0x0044F540)
 // Vector helpers, __fastcall out in ECX: b - a [00448A10 scales instead: v * t, t as float bits],
 // a + b [0040CDC0]. Each component is one rounded operation.
-__declspec(naked) Vector3* __fastcall VectorSubtract(Vector3*, const Vector3* /*b*/, const Vector3* /*a*/) EI_ORIGINAL(0x0044A230)
 
 // --- x87 -----------------------------------------------------------------------------------------
 
@@ -144,7 +144,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             const Vector3* a = &KeyPoints(node, key - 1).data[j];
             const Vector3* b = &KeyPoints(node, key).data[j];
             Vector3 d, s, r;
-            VectorSubtract(&d, b, a);
+            SubtractVectors(&d, *b, *a);
             ScaleVector(&s, d, toNext);
             const Vector3* sum = VectorAdd(&r, a, &s);
             std::memcpy(p, sum, sizeof(Vector3));

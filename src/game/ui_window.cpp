@@ -1,5 +1,7 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
 #include "figure_manager.h"
+#include "figure_mesh.h"
+#include "texture.h"
 #include "ui.h"
 
 #include "material.h"
@@ -196,7 +198,8 @@ void CUiWindow::RedrawTips() {
 EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
-    for (int i = 0; i < sceneObjects_.size; ++i) SpriteDrawOriginal(sceneObjects_.data[i], nullptr, pass);
+    for (int i = 0; i < sceneObjects_.size; ++i)
+        static_cast<CUiMesh*>(sceneObjects_.data[i])->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
     for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
@@ -308,10 +311,10 @@ EI_REPLACE_METHOD(0x005FFC50, CUiWindow::ClearSurfaces);
 
 CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
     void* manager = UiTextureManager();
-    auto* texture = static_cast<CEngineObject*>(TextureNamedOriginal(manager, nullptr, kind, name));
+    auto* texture = static_cast<CEngineObject*>(static_cast<CTextureManager*>(manager)->FindOrCreate(kind, name));
     if (!texture) return nullptr;
-    int loaded = directory ? TextureLoadFromOriginal(manager, nullptr, texture, directory)
-                           : TextureLoadOriginal(manager, nullptr, texture);
+    int loaded = directory ? static_cast<CTextureManager*>(manager)->LoadTextureFrom(static_cast<CTexture*>(texture), directory)
+                           : static_cast<CTextureManager*>(manager)->LoadTexture(static_cast<CTexture*>(texture));
     if (!loaded) return nullptr;
     objects_.Add(texture);
     ++texture->refCount_;
@@ -418,10 +421,7 @@ CEngineObject* NewModelObject(const char* name) {
     return reinterpret_cast<CEngineObject*>(static_cast<CFigureManager*>(UiModelManager())->NewFigure(name));
 }
 // 0059F3D0 (thiscall on the object): attaches it to the window.
-void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
-// 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
-double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
-void __fastcall SetSpriteScale(void* a0, void*, float a2) { SpriteSetScaleOriginal(a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
+void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { static_cast<CFigureMesh*>(a0)->SetObject(reinterpret_cast<CObject3D*>(a2)); }   // the window as the owner (sic)
 
 } // namespace
 
@@ -441,8 +441,8 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         x87::CopyFloat(&sprite->textureOffsetV_, &old->textureOffsetV_);
         std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
         sprite->texture_ = old->texture_;
-        float scale = static_cast<float>(SpriteScale(old));
-        SetSpriteScale(made, nullptr, scale);
+        float scale = static_cast<CUiMesh*>(old)->GetScaleX();
+        static_cast<CUiMesh*>(made)->SetScale(scale);
         sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);
         reinterpret_cast<ReleaseFn>((*reinterpret_cast<void***>(object))[4])(object);
@@ -486,7 +486,7 @@ EI_REPLACE_METHOD(0x005FF3C0, CUiWindow::AddSprite);
 namespace {
 // 0040CB20: the engine object's base constructor (thiscall).
 // The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
-// MaterialCreateOriginal), 0068EAF0 registers it (RET 8, MaterialRegisterOriginal).
+// MaterialCreateOriginal), 0068EAF0 registers it (RET 8, CMaterialManager::FillMaterial).
 
 // A material's emissive colour (+0x50..+0x58, every component `value`) and one more reference.
 void PrepareMaterial(CMaterial* material, float value) {
@@ -530,11 +530,11 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     void* materials = *reinterpret_cast<void* const*>(0x007AF740);
     auto* white = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     whiteMaterial_ = white;
-    MaterialRegisterOriginal(materials, nullptr, white, 0x16);
+    static_cast<CMaterialManager*>(materials)->FillMaterial(white, 0x16);
     PrepareMaterial(white, 1.0f);
     auto* black = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     blackMaterial_ = black;
-    MaterialRegisterOriginal(materials, nullptr, black, 0x16);
+    static_cast<CMaterialManager*>(materials)->FillMaterial(black, 0x16);
     PrepareMaterial(black, 0.0f);
     enabled_ = 1;
     CallSlot19(this, 1);

@@ -354,7 +354,7 @@ int Terrain::SetupPages(int count) {
             pageTextures.SetAtGrow(pageTextures.size, nullptr);
             pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
         }
-        CTexture* texture = static_cast<CTexture*>(TextureNamedOriginal(Textures(), nullptr, kPageTexture, name));
+        CTexture* texture = static_cast<CTexture*>(Textures()->FindOrCreate(kPageTexture, name));
         pageTextures[i] = texture;
         ++texture->refCount_;
         CMaterial* material = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(Materials())->NewMaterial(kPageMaterial));
@@ -367,7 +367,7 @@ int Terrain::SetupPages(int count) {
         material->colors.emissive.x = material->colors.emissive.y = material->colors.emissive.z = 0.0f;
         material->colors.diffuse.w = 1.0f;
         material->colors.power = 5.0f;
-        if (!TextureLoadOriginal(Textures(), nullptr, pageTextures[i])) return 0;
+        if (!static_cast<CTextureManager*>(Textures())->LoadTexture(pageTextures[i])) return 0;
     }
     return 1;
 }

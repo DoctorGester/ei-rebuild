@@ -2,6 +2,8 @@
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "world_glue.h"
+#include "combat.h"
 #include "ui_briefing.h"
 
 #include "console.h"
@@ -56,8 +58,6 @@ const char* ZonePrefix() { return reinterpret_cast<const char*>(0x00793408); }  
 const char* QuestSection() { return reinterpret_cast<const char*>(0x00790790); }       // "quest "
 void* BriefingRecords() { return reinterpret_cast<void*>(0x007C87D4); }   // hash_map<string, BriefingRecord*>
 void* ItemManager() { return *reinterpret_cast<void* const*>(0x007AF60C); }
-void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 
 // 006023F0: what a speaker's controller calls when its dialogue animation has finished.
 using ActionDone = void(__fastcall*)(CUnit*);
@@ -149,7 +149,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (spoke) {
         // "#phrase <speaker> [voice]": the speaker's name (its unit's name, else its "pers" text,
         // else the word itself), then the text up to the next '#'.
-        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(words[1])));
+        auto* unit = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(words[1])));
         if (!unit) {
             speaker = words[1];
         } else {
@@ -236,7 +236,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
-                if (auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, 0))) {
+                if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0))) {
                     for (auto* node = player->items.head; node; node = node->next) {
                         CEngineObject* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;
@@ -264,8 +264,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
     // only while comparing with a speaker).
     auto named = [&words] { return static_cast<const char*>(words.data[1]); };
     if (!skip || last) {
-        if (leader_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, leader_->id_, 0.0f);
-        if (person_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, person_->id_, 0.0f);
+        if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
+        if (person_) GameSetUnitHeight(person_->id_, 0.0f);
         for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
             if (Compare(speakers_[i].name, named()) != 0) continue;
             if (view) {
@@ -308,11 +308,11 @@ void CBriefingScreen::NextPhrase(bool skip) {
             }
             if (animation > 0) {
                 if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_))) {
-                    auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
-                    ControllerStopActionOriginal(controller);
+                    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+                    controller->StopAction();
                     controller->actionDone = SpeakerActionDone();
                     if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(animation))
-                        ControllerPlayAnimationOriginal(controller, nullptr, played);
+                        controller->PlayAnimation(played->name);
                 }
             } else {
                 PlaySpeakerAnimation(unit, 1, 0);

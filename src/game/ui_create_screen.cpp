@@ -4,6 +4,7 @@
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
 #include "app.h"
+#include "world.h"
 #include "ui_camp.h"
 #include "ui_create_screen.h"
 
@@ -28,8 +29,6 @@ namespace {
 
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
-
-__declspec(naked) void __fastcall ConstructScreen8(void*, void*, CInterface3D*, int, const void*) EI_ORIGINAL(0x005F6D50)
 
 // Member constructors (thiscall on the member).
 __declspec(naked) void __fastcall Member5C1760(void*) EI_ORIGINAL(0x005C1760)
@@ -113,7 +112,7 @@ void CInterface3D::CreateScreen(int id) {
         break;
     case 8:
         screen = gamecrt::operator_new(0x1FC);
-        if (screen) ConstructScreen8(screen, nullptr, this, 0, reinterpret_cast<const void*>(0x00793084));
+        if (screen) Screen8Construct(screen, nullptr, this, 0, reinterpret_cast<const char*>(0x00793084));
         break;
     case 9:
         screen = gamecrt::operator_new(0x1B8);
@@ -123,7 +122,7 @@ void CInterface3D::CreateScreen(int id) {
         screen = reinterpret_cast<void*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
         break;
     }
-    reinterpret_cast<InterfaceOriginals*>(this)->Activate(static_cast<CUiWindow*>(screen));
+    Activate(static_cast<CUiWindow*>(screen));
 }
 
 // --- 005F7350: PushWindow --------------------------------------------------------------------------
@@ -175,17 +174,17 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     bool second = static_cast<std::uint8_t>(b) != 0;
     if (first && !second) {
         backdropMode_ = 3;
-        FrameStepOriginal(0, 1);
+        app::FrameStep(false, true);
     }
     // One window open (the byte difference with its low two bits cleared is 4).
     std::uint32_t bytes = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stackEnd_) -
                                                      reinterpret_cast<std::uintptr_t>(stackBegin_));
     if ((bytes & ~3u) == 4) {
         serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
-        if (!IsNetworkClientOriginal()) GameSetServerPaused(1);
+        if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (first && second) {
             backdropMode_ = 1;
-            FrameStepOriginal(0, 1);
+            app::FrameStep(false, true);
         }
     }
     ctrlDown_ = false;
@@ -241,7 +240,7 @@ void CInterface3D::Activate(CUiWindow* window) {
         }
         --stackEnd_;
     }
-    reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
+    ResetInput();
     app::PumpMessages();
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
     if (!window) {

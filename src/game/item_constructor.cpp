@@ -13,6 +13,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp_hash.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_engine.h"
@@ -415,7 +416,6 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
 // (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
-__declspec(naked) char* __fastcall FindTable14Named(void*, void*, const char*) EI_ORIGINAL(0x006AD580)
 void* const kWeaponTable = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmorTable = reinterpret_cast<void*>(0x007C8718);
 void* const kQuickTable = reinterpret_cast<void*>(0x007C8738);
@@ -424,7 +424,7 @@ void* const kTable15 = reinterpret_cast<void*>(0x007C8778);
 void* const kMaterialTable = reinterpret_cast<void*>(0x007C86D8);
 
 // 006AD000 (RET 0x10). The item manager makes an item (kind, record index, a, b).
-CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a4, int a5) { return (CItem*)FactoryMakeItemOriginal((void*)a0, nullptr, a2, a3, a4, a5); }
+CItem* __fastcall ManagerMakeItem(CItemManager* a0, void*, int a2, int a3, int a4, int a5) { return (CItem*)a0->MakeItem(a2, a3, a4, a5); }
 
 // The string-keyed maps the loot item's table index comes from (STLport strings handled through
 // the original members; see class_templates.cpp): operator[] of the weapon (007C8704, 006AD670),
@@ -520,7 +520,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
         CItem* item = nullptr;
         if (spell) {
-            char* record = (char*)FindQuickItemOriginal(kQuickTable, nullptr, kSpellContainer);
+            char* record = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, kSpellContainer);
             int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
             item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
             if (item) item->AttachSpell(spell);
@@ -530,11 +530,11 @@ CItem* CItemManager::CreateItem(const char* name) {
 
     // "prototype[.material]".
     const char* prototypeName = parts.data[0];
-    char* prototype = (char*)FindWeaponOriginal(kWeaponTable, nullptr, prototypeName);
-    if (!prototype) prototype = (char*)FindArmorOriginal(kArmorTable, nullptr, prototypeName);
-    if (!prototype) prototype = (char*)FindQuickItemOriginal(kQuickTable, nullptr, prototypeName);
-    if (!prototype) prototype = FindTable14Named(kTable14, nullptr, prototypeName);
-    if (!prototype) prototype = FindTable15Named(kTable15, nullptr, prototypeName);
+    char* prototype = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kWeaponTable), nullptr, prototypeName);
+    if (!prototype) prototype = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kArmorTable), nullptr, prototypeName);
+    if (!prototype) prototype = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, prototypeName);
+    if (!prototype) prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kTable14), nullptr, prototypeName));
+    if (!prototype) prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kTable15), nullptr, prototypeName));
     if (!prototype) {
         // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
@@ -544,7 +544,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     constructor->SetManager(this);
     constructor->BeginCreateItem(RecordSlots(reinterpret_cast<ItemRecordHead*>(prototype))->Kind(), -1);
     char* material = nullptr;
-    if (parts.size > 1) material = FindMaterialNamed(kMaterialTable, nullptr, parts.data[1]);
+    if (parts.size > 1) material = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kMaterialTable), nullptr, parts.data[1]));
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
@@ -619,7 +619,7 @@ EI_REPLACE_METHOD(0x006AD000, CItemManager::MakeItem);
 CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
     CSpell* spell = static_cast<CSpellManager*>(spells)->CreateSpellFromText(spellText);
     if (!spell) return nullptr;
-    char* record = (char*)FindQuickItemOriginal(kQuickTable, nullptr, kSpellContainer);
+    char* record = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, kSpellContainer);
     int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
     CItem* item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
     if (item) item->AttachSpell(spell);

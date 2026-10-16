@@ -4,6 +4,7 @@
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui_camp.h"
+#include "world_glue.h"
 #include "game_strings.h"
 
 #include "object_tables.h"
@@ -59,9 +60,6 @@ bool SameName(const char* a, const char* b) {
 const char* MoveSound() { return game::Text(0x00794180); }      // "buttons\globalmap\move.wav"
 const char* TransitSound() { return game::Text(0x0079372C); }   // "buttons\globalmap\transit.wav"
 const char* OkSound() { return game::Text(0x0079419C); }        // "buttons\globalmap\ok.wav"
-// The client's glue objects (their members do not read them).
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
-void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
 
 constexpr int kRegionTurnLeft = 0;
 constexpr int kRegionTurnRight = 1;
@@ -157,8 +155,8 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     if (region == kRegionCamp) {
         if (noCamp_ == 1) return;
         interface_->PlaySound(TransitSound(), 0);
-        GameSetConstructorOriginal(UnitGlue(), nullptr, 0.0f);
-        GameRequestScreenOriginal(ClientGlue(), nullptr, kCampScreen);
+        GameSetConstructionVariable(std::bit_cast<std::uint32_t>(0.0f));
+        GameSendLeave04(kCampScreen);
         return;
     }
     int link;
@@ -181,14 +179,14 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             void* memory = gamecrt::operator_new(kObjectivesSize);
             void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(interface_) : nullptr;
             static_cast<CObjectivesWindow*>(window)->Setup(target_, &arrivals_, 1, 0);
-            InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+            interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
             return;
         }
     }
     // A link: the party goes there at once when there is a way.
     SearchWays(this, AsString(links_.data[link].name));
     if (!found_ || !MayTravelTo(this)) return;
-    PassTravelTimeOriginal(UnitGlue(), nullptr, Arrival(arrivals_, 0));
+    GamePassTime(Arrival(arrivals_, 0));
     ::RequestZone(links_.data[link].name, 0);
 }
 

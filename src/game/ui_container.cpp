@@ -1,5 +1,6 @@
 // Containers (CUiContainer, ui.h): the default input handlers of their input side, which pass an
 // event on to the extra input sides and the child windows. See docs/notes/ui.md ("Container input dispatch").
+#include "model.h"
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -15,7 +16,7 @@ void** ContainerInputVtable() { return reinterpret_cast<void**>(0x00740FD4); }
 
 // The display object (00500960): slot 6 gives the last frame's length in milliseconds.
 std::uint32_t FrameMilliseconds() {
-    void* display = DisplayObject();
+    void* display = SceneRenderer();
     using Fn = std::uint32_t(__thiscall*)(void*);
     return reinterpret_cast<Fn>((*static_cast<void***>(display))[6])(display);
 }

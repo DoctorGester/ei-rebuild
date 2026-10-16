@@ -4,6 +4,7 @@
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "bink_video.h"
+#include "library_trees.h"
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
@@ -367,7 +368,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         open = false;
         break;
     }
-    if (open) InterfacePushWindowOriginal(ui, nullptr, opened, 1, 1);
+    if (open) ui->PushWindow(static_cast<CUiWindow*>(opened), 1, 1);
     UiContainerMouseDown(window.InputSide(), nullptr, buttons, x, y);
 }
 
@@ -378,30 +379,15 @@ EI_REPLACE_METHOD(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
 // --- Main menu clicks (00632D70) ------------------------------------------------------------------
 
 namespace {
-// Not rewritten. The game menu object (007AFEA4 / 007AFEA5, thiscall): 00578DC0 the game's folder,
-// 00578E20 the text table (004E0020 a key's text, RET 8), 00578D10 the server flag (RET 4),
-// 00578920 (RET 4) / 00578940 before the titles. 005F75B0 (on 007C7D50, RET 4) shows a status text.
-// 005DB3F0 plays a movie (ECX path, EDX 0, five flags), 00455F20 quits (exit code in ECX).
-struct MenuGlue {
-    const mfc::CString* Directory();   // 00578DC0
-    void* TextTable();                 // 00578E20
-    void SetServer(int on);            // 00578D10
-    void BeforeTitles(int value);      // 00578920
-    void BeforeTitles2();              // 00578940
-};
-const mfc::CString* MenuGlue::Directory() { return GameDirectoryOriginal(this); }
-void* MenuGlue::TextTable() { return GameFlowOriginal(); }
-void MenuGlue::SetServer(int f) { GameSetServerPaused(f); }
-void MenuGlue::BeforeTitles(int a0) { GameStopSounds(a0); }
-void MenuGlue::BeforeTitles2() { GameStopAmbience(); }
-MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }
+// The game glue (world_glue.h) gives the game's folder, the text table (004E0020 a key's text,
+// RET 8), the server flag and, before the titles, stops the sounds and the ambience. 005F75B0 (on
+// 007C7D50, RET 4) shows a status text. 005DB3F0 plays a movie (ECX path, EDX 0, five flags),
+// 00455F20 quits (exit code in ECX).
 
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
 __declspec(naked) void __fastcall MenuTitlesVector(void*, void*, const void*) EI_ORIGINAL(0x00634300)
-__declspec(naked) void __fastcall MenuModelCache(void*) EI_ORIGINAL(0x00633F50)
-__declspec(naked) void __fastcall MenuTextureCache(void*) EI_ORIGINAL(0x00633FF0)
 __declspec(naked) void __fastcall MenuHeroVector(void*, void*, const void*) EI_ORIGINAL(0x006342A0)
 
 // The empty CString's data pointer (00796E48), stored as a CString member is.
@@ -422,7 +408,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
                                       1);   // "option_difficulty", ""
             SetVtables(box, 0x0074225C, 0x00742228);
         }
-        InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+        ui->PushWindow(box, 1, 1);
         break;
     }
     case 1: {
@@ -432,13 +418,13 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // (Like the original, these two stores do not check the allocation.)
         w->isSave_ = false;
         w->sliding_ = false;
-        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
+        ui->PushWindow(w, 1, 1);
         break;
     }
     case 2: {
         // Exit: the exit movie, then quit.
         {
-            mfc::CString path = *Glue(0x007AFEA4)->Directory() + game::Text(0x0079422C);   // "Movies\Exit.bik"
+            mfc::CString path = *GameBasePathString() + game::Text(0x0079422C);   // "Movies\Exit.bik"
             PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
         }
         QuitGame(0);
@@ -449,13 +435,13 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound(okSound, 0);
         COptionsWindow* w = NewOptionsWindow(ui);
         w->sliding_ = false;   // (unchecked, as the original)
-        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
+        ui->PushWindow(w, 1, 1);
         break;
     }
     case 4: {
         // The titles (opened over a cleared menu, not as a dialog).
-        Glue(0x007AFEA5)->BeforeTitles(0);
-        Glue(0x007AFEA5)->BeforeTitles2();
+        GameStopSounds(0);
+        GameStopAmbience();
         ui->PlaySound(okSound, 0);
         ClearSurfaces();
         auto* w = static_cast<CCreditsScreen*>(gamecrt::operator_new(sizeof(CCreditsScreen)));
@@ -469,7 +455,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->fromGame_ = true;
             SetVtables(&w->window, 0x00740C3C, 0x00740C08);
         }
-        InterfacePushWindowOriginal(ui, nullptr, w, 0, 1);
+        ui->PushWindow(&w->window, 0, 1);
         break;
     }
     case 5: {
@@ -477,16 +463,16 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // its second master server (its call at 006330A9, net_second_master.h).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
-        TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
+        TextsGetString(GameClientTexts(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
         static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
-        Glue(0x007AFEA4)->SetServer(1);
+        GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
             w->hoveredItem_ = nullptr;
-            MenuModelCache(&w->models_);
-            MenuTextureCache(&w->textures_);
+            lib_trees::ConstructHeroItemCache(reinterpret_cast<lib_trees::HeroItemCache*>(&w->models_));
+            lib_trees::ConstructHeroItemCache(reinterpret_cast<lib_trees::HeroItemCache*>(&w->textures_));
             SetVtables(&w->window, 0x00740A2C, 0x007409F8);   // the item screens' base
             char allocators[4] = {};
             FirstListConstruct(&w->defaults_, nullptr, &allocators[1]);
@@ -496,7 +482,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             MenuHeroVector(&w->voiceLists_[1], nullptr, &allocators[3]);
             SetVtables(&w->window, 0x0074214C, 0x00742118);
         }
-        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
+        ui->PushWindow(&w->window, 1, 1);
         break;
     }
     default:
@@ -536,9 +522,9 @@ CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
     return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));
 }
 void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF text, COLORREF caret) {
-    EditFieldSetLookOriginal(edit, nullptr, a, b, font, c, text, caret);
+    static_cast<CUiEditField*>(edit)->SetLook(a, static_cast<char>(b), font, c, text, caret);
 }
-void EditSetText(CUiWindow* edit, void*, const char* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
+void EditSetText(CUiWindow* edit, void*, const char* text) { static_cast<CUiEditField*>(edit)->SetText(text); }
 } // namespace
 
 void CMessageBox::Build() {
@@ -676,7 +662,7 @@ namespace {
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator.
-CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(DisplayObject()); }
+CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(SceneRenderer()); }
 
 struct TitlesTokenizer {
     int position;                    // -1 at the end
@@ -767,10 +753,10 @@ void CCreditsScreen::Build() {
         headerSurface_ = window.AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, ui, &rect, 5) : nullptr);
         headerSurface_->Freeze(0, 0);
     }
-    if (fromGame_) Glue(0x007AFEA4)->SetServer(0);
+    if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
-    static_cast<CBinkVideo*>(&player_)->Open(mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), game::Text(0x00784A4C)), name),
+    static_cast<CBinkVideo*>(&player_)->Open(mfc::operator+(mfc::operator+(mfc::operator+(*GameBasePathString(), game::Text(0x00784A4C)), name),
                                                             game::Text(0x00794018)),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;

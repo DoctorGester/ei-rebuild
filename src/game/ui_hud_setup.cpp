@@ -8,6 +8,7 @@
 // 00649910) are called through their addresses. See ui.h ("Battle screen and its HUD panels"),
 // docs/notes/items_spells.md ("A-H26") and docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
+#include "world.h"
 
 #include "ui_mesh_build.h"
 #include "ui_widescreen.h"
@@ -17,7 +18,7 @@
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "originals_ui.h"       // SpritePlaceOriginal
-#include "originals_world.h"    // IsNetworkClientOriginal
+#include "originals_world.h"
 
 #include <cmath>
 #include <cstdint>
@@ -104,7 +105,7 @@ void CHudClock::SetupVanilla(int fast) {
         for (const ArcPoint& corner : corners) sector->CallAddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
     }
     regions_.data[0]->SetTip(0x28A0, 1, 1);
-    if (!IsNetworkClientOriginal()) {
+    if (!IsMultiplayerClient()) {
         regions_.data[1]->SetTip(0x28A2, 1, 2);
         regions_.data[2]->SetTip(0x28A3, 1, 3);
     }

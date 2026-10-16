@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "figure_manager.h"
 #include "map_object_figures.h"
 #include "originals_library.h"
 #include "originals_engine.h"
@@ -49,7 +50,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     if (!animation) return static_cast<CFigureAnimationState*>(figure)->ClearBoneTracks();
     RawString key;
     MakeString(key, modelName);
-    void* model = FigureManagerFindModelOriginal(manager, nullptr, &key);
+    void* model = static_cast<CFigureManager*>(manager)->FindModel(reinterpret_cast<const stlp::string*>(&key));
     StringDeallocate(&key.eos, nullptr, key.start, static_cast<int>(key.eos - key.start));
     if (!model) {
         game::DebugLog(reinterpret_cast<const char*>(0x00790DC0), modelName);

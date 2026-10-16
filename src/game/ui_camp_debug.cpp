@@ -41,7 +41,7 @@ constexpr std::uint32_t kMaterialCount = 20;
 // The list's copy of `item`: counted for the call, added (keeping its count, merged), released.
 void AddCounted(CParty* list, CItem* item) {
     ++item->refCount_;
-    PartyAddItemOriginal(list, nullptr, item, 1, 1);
+    list->AddItem(item, 1, 1);
     item->Release();
 }
 

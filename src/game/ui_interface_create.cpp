@@ -39,13 +39,13 @@ void** FontVtable() { return reinterpret_cast<void**>(0x0073BFB4); }
 ui_gdi::GameFont* NewFont() {
     auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(sizeof(ui_gdi::GameFont)));
     if (!font) return nullptr;
-    font->handle_ = nullptr;
-    font->vtable_ = FontVtable();
+    font->handle = nullptr;
+    font->vtable = FontVtable();
     return font;
 }
 
 bool CreateFont(ui_gdi::GameFont* font, int size) {
-    if (FontCreatePointOriginal(font, nullptr, size, FontFace(), nullptr)) return true;
+    if (font->CreatePointFont(size, FontFace(), nullptr)) return true;
     game::FatalError(game::Text(0x00793008));   // "CInterface3D::Create.\n Cannot create font.\n"
     return false;
 }
@@ -130,7 +130,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     fonts_[0] = NewFont();
     if (!CreateFont(fonts_[0], kMeasureSize)) return;
     LOGFONTA measured;
-    gameapi::GetObjectA(fonts_[0]->handle_, sizeof(measured), &measured);
+    gameapi::GetObjectA(fonts_[0]->handle, sizeof(measured), &measured);
     const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
     const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
     if (fonts_[0]) fonts_[0]->Delete();

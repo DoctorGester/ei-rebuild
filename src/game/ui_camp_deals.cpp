@@ -1,5 +1,6 @@
 // The camp's two action buttons (00611220 / 00611760) and taking a spell container apart
 // (00612500). See docs/notes/ui.md, section 5.
+#include "item_stock.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -8,10 +9,13 @@
 #include "item_db.h"
 #include "party.h"
 #include "spell.h"
+#include "ui_item_info.h"
+#include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/stlp_hash.h"
 #include "originals_gameplay.h"
 #include "originals_ui.h"
 
@@ -65,15 +69,15 @@ void* MagicList(ClassTemplate* t) { return &t->magic; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
 void ReturnToStrip(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
-    CItem* last = ItemScreenReturnAllOriginal(camp, nullptr, to, list);
-    ItemStripScrollToItemOriginal(strip, nullptr, last);
+    CItem* last = camp->ReturnAll(static_cast<CParty*>(to), static_cast<CParty*>(list));
+    strip->ScrollToItem(last);
 }
 
 // The made spell or item replaces the results: every result removed, the made one added
 // and released.
 void TakeMade(CParty* results, CEngineObject*& made) {
-    while (ItemCount(results) != 0) PartyRemoveItemOriginal(results, nullptr, ItemAt(results, 0), 0);
-    PartyAddItemOriginal(results, nullptr, made, 0, 0);
+    while (ItemCount(results) != 0) results->RemoveItem(ItemAt(results, 0), 0);
+    results->AddItem(static_cast<CItem*>(made), 0, 0);
     made->Release();
     made = nullptr;
 }
@@ -86,7 +90,7 @@ void ReturnResults(CCampPages* camp, CParty* results, void* constructorList, CUi
         bool made = MadeByConstructor(item);
         void* to = made ? constructorList : static_cast<void*>(PlayerParty());
         CItem* moved = ItemScreenMoveItemOriginal(camp, nullptr, item, to, results, 0, 1, 0);
-        ItemStripScrollToItemOriginal(made ? constructorStrip : camp->itemStrip_, nullptr, moved);
+        static_cast<CUiItemStrip*>(made ? constructorStrip : camp->itemStrip_)->ScrollToItem(moved);
     }
 }
 
@@ -102,7 +106,7 @@ CItemLoot* NewLoot(CParty* party, const char* name) {
     return item;
 }
 void AddAndRelease(CParty* party, CItemLoot* item) {
-    PartyAddItemOriginal(party, nullptr, item, 0, 0);
+    party->AddItem(item, 0, 0);
     item->Release();
 }
 } // namespace
@@ -112,7 +116,7 @@ bool CCampPages::DeconstructSpell() {
     CItem* copy = results->CopyItem(ItemAt(results, 0));
     spellMade_ = reinterpret_cast<std::uint8_t*>(copy);
     ++copy->refCount_;
-    PartyRemoveItemOriginal(results, nullptr, ItemAt(results, 0), 0);
+    results->RemoveItem(ItemAt(results, 0), 0);
     auto* spell = static_cast<CSpell*>(copy->spell_);
 
     CItemLoot* prototype = NewLoot(results, kPrototypeItem);
@@ -160,7 +164,7 @@ bool CCampPages::DeconstructItem() {
     CItem* copy = results->CopyItem(ItemAt(results, 0));
     itemMade_ = reinterpret_cast<std::uint8_t*>(copy);
     ++copy->refCount_;
-    PartyRemoveItemOriginal(results, nullptr, ItemAt(results, 0), 0);
+    results->RemoveItem(ItemAt(results, 0), 0);
 
     if (const char* instruction = InstructionName(copy->type_))
         AddNamed(results, instruction, PrototypeIndex(copy), true);
@@ -177,14 +181,14 @@ bool CCampPages::DeconstructItem() {
     }
     if (copy->spell_) {
         CResourceManager* manager = results->ItemManager();
-        auto* record = static_cast<const char*>(FindQuickItemOriginal(QuickItemsByName(), nullptr, SpellContainerText()));
+        auto* record = static_cast<const char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(QuickItemsByName()), nullptr, SpellContainerText()));
         int index = static_cast<int>(record - itemdb::QuickItems().begin) / itemdb::kQuickItemSize;
-        auto* container = static_cast<CItem*>(FactoryMakeItemOriginal(manager, nullptr, kSpellContainerClass, index, 0, -1));
+        auto* container = static_cast<CItem*>(static_cast<CItemManager*>(manager)->MakeItem(kSpellContainerClass, index, 0, -1));
         if (container) {
             ++container->refCount_;
             CSpell* clone = static_cast<CSpell*>(copy->spell_)->Clone(results->SpellManager());
             container->AttachSpell(clone);
-            PartyAddItemOriginal(results, nullptr, container, 0, 0);
+            results->AddItem(container, 0, 0);
             container->Release();
         }
     }
@@ -209,13 +213,13 @@ void StockSpells(CCampPages* camp, CParty* list) {
         if (static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item))) {
             char* prototype = static_cast<CSpell*>(item->spell_)->GetPrototype();
             const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
-            StockAddSpellOriginal(stock, nullptr, SpellPrototypeByNameOriginal(SpellTable(), nullptr, name));
+            static_cast<ItemStock*>(stock)->AddSpell(static_cast<char*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(SpellTable()), nullptr, name))));
         } else if (ItemKindIsSpellOriginal(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            StockAddSpellOriginal(stock, nullptr, itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
+            static_cast<ItemStock*>(stock)->AddSpell(itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
         } else if (ItemKindIsModifierOriginal(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            StockAddModifierOriginal(stock, nullptr, itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
+            static_cast<ItemStock*>(stock)->AddModifier(itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
         }
     }
 }
@@ -240,14 +244,14 @@ void StockItems(CCampPages* camp, CParty* list) {
             index = loot->index_;
             if (loot->recordType_ <= kRecordQuickItem) kind = static_cast<int>(loot->recordType_);
         } else if (item->type_ == kLootClass && static_cast<CItemLoot*>(item)->kind_ == kKindOwnPrice) {
-            PartyRemoveItemOriginal(list, nullptr, item, 1);
+            list->RemoveItem(item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
-            StockAddWeaponOriginal(stock, nullptr, itemdb::Weapons().RecordAt(index, itemdb::kWeaponSize));
+            static_cast<ItemStock*>(stock)->AddWeapon(itemdb::Weapons().RecordAt(index, itemdb::kWeaponSize));
         else if (kind == static_cast<int>(kRecordArmor))
-            StockAddArmorOriginal(stock, nullptr, itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
+            static_cast<ItemStock*>(stock)->AddArmor(itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
         else if (kind == static_cast<int>(kRecordQuickItem))
-            StockAddQuickItemOriginal(stock, nullptr, itemdb::QuickItems().RecordAt(index, itemdb::kQuickItemSize));
+            static_cast<ItemStock*>(stock)->AddQuickItem(itemdb::QuickItems().RecordAt(index, itemdb::kQuickItemSize));
     }
 }
 

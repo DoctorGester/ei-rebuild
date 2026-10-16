@@ -15,7 +15,6 @@
 #include "ui.h"            // GameDeviceLock, UiTextureManager
 #include "originals_engine.h"   // game::FatalError
 #include "originals_render.h"
-#include "originals_ui.h"       // TextureLoadOriginal, TextureFindOriginal
 
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable
@@ -290,7 +289,7 @@ int __fastcall TextureHolderEnsureLoaded(CTexture** holder) {
     CTexture* texture = *holder;
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;
-    return TextureLoadOriginal(UiTextureManager(), nullptr, texture);
+    return static_cast<CTextureManager*>(UiTextureManager())->LoadTexture(texture);
 }
 EI_REPLACE(0x00500970, TextureHolderEnsureLoaded);
 

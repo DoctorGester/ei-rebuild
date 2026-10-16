@@ -1,6 +1,7 @@
 // The AI's eye (the world server's +0x2838): what a unit sees each brain tick (005CAA00), the
 // nearby units (005CA1D0), seeing new ones (005CA5A0) and the eye's height and facing (005CA410).
 #include "ai_map.h"
+#include "combat.h"
 #include "unit_ai.h"
 
 #include "console.h"
@@ -40,7 +41,7 @@ constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
-UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
@@ -86,7 +87,7 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
     brain->nearbyCountdown = (gamecrt::rand() & 3) + 8;
     int blockX = cellX / 32;
     int blockY = cellY / 32;
-    UnitController* control = ControllerOf(self);
+    CUnitServer* control = ControllerOf(self);
     float hearing = control->stats.valuesB0[2].current;
     float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
     float reach = !(sight >= hearing) ? hearing : sight;
@@ -116,7 +117,7 @@ void __fastcall RefreshHook(AIViewer* self, void*, CUnit* unit, std::uint8_t* me
 EI_REPLACE(0x005CA1D0, RefreshHook);
 
 void AIViewer::See(CUnit* self, AIBrain* brain) {
-    UnitController* ours = ControllerOf(self);
+    CUnitServer* ours = ControllerOf(self);
     bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
     self->flags_ &= ~kFlagSeeAll;
     for (auto* node = brain->nearby.head; node;) {
@@ -135,7 +136,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         Vector3 theirEye;
         static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
         Vector3 d = theirEye - eye;
-        UnitController* theirs = ControllerOf(other);
+        CUnitServer* theirs = ControllerOf(other);
         float coneLimit = ours->stats.sightCone;
         float distance = Length2D({d.x, d.y});
         double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
@@ -184,7 +185,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
 void __fastcall SeeHook(AIViewer* self, void*, CUnit* unit, std::uint8_t* memory) { self->See(unit, BrainOfMemory(memory)); }
 EI_REPLACE(0x005CA5A0, SeeHook);
 
-void AIViewer::Update(UnitController* owner, AIBrain* brain) {
+void AIViewer::Update(CUnitServer* owner, AIBrain* brain) {
     CUnit* self = owner->unit;
     bool hasPlayer = self->player != nullptr;
     float reachFactor = hasPlayer ? kOne : kNonPlayerReach;
@@ -216,9 +217,9 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
             if (Allied(self->side, other->side)) AddCountedTail(&brain->corpses, nullptr, other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
-            UnitController* theirs = ControllerOf(other);
+            CUnitServer* theirs = ControllerOf(other);
             AIBrain* theirBrain = theirs->Brain();
-            if (theirs->busy && theirBrain->target == static_cast<CEngineObject*>(self)) continue;
+            if (theirs->Busy() && theirBrain->target == static_cast<CEngineObject*>(self)) continue;
             double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.valuesE0[0].current *
                            owner->stats.valuesB0[0].current * reachFactor;
             if (sight > distance) continue;
@@ -235,7 +236,7 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
     SeeHook(this, nullptr, self, memory);
 }
 
-void __fastcall UpdateHook(AIViewer* self, void*, UnitController* owner, std::uint8_t* memory) {
+void __fastcall UpdateHook(AIViewer* self, void*, CUnitServer* owner, std::uint8_t* memory) {
     self->Update(owner, BrainOfMemory(memory));
 }
 EI_REPLACE(0x005CAA00, UpdateHook);
@@ -251,8 +252,8 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     GridCellsResizeOriginal(&grid->data, nullptr, 1, 1);
     std::memset(grid->data, 0, static_cast<std::size_t>(grid->height * grid->width));
 
-    UnitController* mine = ControllerOf(seer);
-    UnitController* theirs = ControllerOf(observer);
+    CUnitServer* mine = ControllerOf(seer);
+    CUnitServer* theirs = ControllerOf(observer);
     float cone = mine->stats.sightCone;
     float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
                                theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);

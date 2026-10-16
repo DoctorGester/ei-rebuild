@@ -2,6 +2,7 @@
 // map_object_figures.h): its lifetime, the bones the skeleton file links (005AC880 calls LinkPiece
 // per link, then FindRoot), the meshes the bones carry, and placing the skeleton when the
 // animation or the figure's morph changes. See docs/notes/map_objects.md.
+#include "figure_manager.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
 
@@ -190,7 +191,7 @@ int CFigureAnimationState::LinkBone(void* model, FigureBone* bone) {
     bone->morphS = morphS;
     bone->morphT = morphT;
     bone->morphU = morphU;
-    FigureManagerLoadBonesOriginal(bone->owner_, nullptr, model, bone);
+    static_cast<CFigureManager*>(bone->owner_)->LoadFigureBones(static_cast<FigureModel*>(model), bone);
     changed = 1;
     return 1;
 }
@@ -232,7 +233,7 @@ EI_REPLACE_METHOD(0x0050D2E0, CFigureAnimationState::FindRoot);
 
 int CFigureAnimationState::SetModel(const char* model) {
     changed = 1;
-    return FigureManagerLinkSkeletonOriginal(FigureManagerOf(this), nullptr, this, model);
+    return static_cast<CFigureManager*>(FigureManagerOf(this))->LoadSkeletonLinks(this, model);
 }
 EI_REPLACE_METHOD(0x0050D320, CFigureAnimationState::SetModel);
 
@@ -293,7 +294,7 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
     void* model;
     {
         stlp::string key(owner->name, owner->name + std::strlen(owner->name));
-        model = FigureManagerFindModelOriginal(FigureManagerOf(this), nullptr, &key);
+        model = static_cast<CFigureManager*>(FigureManagerOf(this))->FindModel(&key);
     }
     for (auto* node = bones.head; node;) {
         FigureBone* bone = node->data;
@@ -301,7 +302,7 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
         bone->morphS = s;
         bone->morphT = t;
         bone->morphU = u;
-        FigureManagerLoadBonesOriginal(bone->owner_, nullptr, model, bone);
+        static_cast<CFigureManager*>(bone->owner_)->LoadFigureBones(static_cast<FigureModel*>(model), bone);
     }
     morphS = s;
     morphT = t;

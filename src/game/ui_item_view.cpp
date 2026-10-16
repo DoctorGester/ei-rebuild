@@ -6,6 +6,7 @@
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
 // operand order (precise floating point), constants are read from the exe's memory.
 #include "app.h"
+#include "texture.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
 #include "plugin_fixes.h"
@@ -17,6 +18,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -65,21 +67,9 @@ std::uint32_t PackColour(const float* rgb) {
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
-// A sprite of the interface (CUiMesh) as the model view uses it (thiscall).
-struct Sprite : SpritePositionOriginal {
-    void Place(float x, float y, float depth);   // 005E6FA0 (Rebirth-patched)
-    void SetScale(float scale);                  // 005E7060 (+0x23C, +0x250, +0x264)
-    double Scale();                              // 005E70B0 (+0x23C, in ST0)
-    void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
-                      int u1, int v1);           // 005E70E0 (Rebirth-patched)
-    void Draw(int pass);                         // 005E6D90
-};
-void Sprite::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
-void Sprite::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-double Sprite::Scale() { return SpriteScaleOriginal((void*)this); }
-void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-void Sprite::Draw(int pass) { SpriteDrawOriginal(this, nullptr, pass); }
-Sprite* AsSprite(void* p) { return static_cast<Sprite*>(p); }
+// A sprite of the interface (CUiMesh); the draw pass is the scene renderer.
+CUiMesh* AsSprite(void* p) { return static_cast<CUiMesh*>(p); }
+CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
 // The caches' STLport map (thiscall on the cache; library code): find into `out` (RET 8; the
 // model and the texture cache's own instantiations) and operator[] (RET 4; the value {object,
@@ -185,7 +175,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
     Quaternion q;
     float pi;
     std::memcpy(&pi, reinterpret_cast<const void*>(0x007402C0), 4);
-    QuaternionSetAxisAngleOriginal(&q, nullptr, &axis, pi);
+    q.SetAxisAngle(axis, pi);
     return q;
 }
 
@@ -313,7 +303,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
             Quaternion b;
-            QuaternionSetAxisAngleOriginal(&b, nullptr, &axis, turn->angle);
+            b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductA(a, b));
         } else if (Get<int>(itemBytes, 0x10) == 0x3007 && Get<int>(itemBytes, 0x4C) == 2 &&
                    (Get<int>(itemBytes, 0x50) == 0 || Get<int>(itemBytes, 0x50) == 1 || Get<int>(itemBytes, 0x50) == 2)) {
@@ -323,7 +313,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {0.0f, 1.0f, 0.0f};
             Quaternion b;
-            QuaternionSetAxisAngleOriginal(&b, nullptr, &axis, turn->angle);
+            b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductB(a, b));
         }
 
@@ -334,22 +324,22 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                       static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
         Set(frame, 0x280, objects_.data[2]);
-        AsSprite(frame)->Draw(pass);
+        AsSprite(frame)->Draw(PassRenderer(pass));
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
     }
 
     Set(model, 0xD4, PackColour(reinterpret_cast<const float*>(model + 0x224)));
     Set(model, 0x08, Get<std::uint32_t>(model, 0x08) | 0x100);
     if (Get<void*>(itemBytes, 0x44)) SetSpecular(1);
-    AsSprite(model)->Draw(pass);
+    AsSprite(model)->Draw(PassRenderer(pass));
     if (Get<void*>(itemBytes, 0x44)) SetSpecular(0);
 
     // A spell container's modifiers: a mark per modifier around the model (eight places).
     void* spell = Get<void*>(itemBytes, 0x44);
     if (Get<int>(itemBytes, 0x10) == 0x3008 && spell && reinterpret_cast<CSpell*>(spell)->GetModifierCount() > 0) {
         float px, py, pz;
-        AsSprite(model)->Position(&px, &py, &pz);
-        float scale = static_cast<float>(AsSprite(model)->Scale());
+        AsSprite(model)->GetPlacement(&px, &py, &pz);
+        float scale = AsSprite(model)->GetScaleX();
         CUiMesh* mark = AddSprite(0);
         AsSprite(mark)->SetRectangle(static_cast<float>(D(pz) * D(GameFloat(0x0073CD70))), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                                      0x20, 0x20);
@@ -379,7 +369,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                 dy = d;
             float depth = static_cast<float>(D(pz) * D(GameFloat(0x0073CD70)));
             AsSprite(mark)->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
-            AsSprite(mark)->Draw(pass);
+            AsSprite(mark)->Draw(PassRenderer(pass));
         }
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(mark));
     }
@@ -396,7 +386,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         Set<std::uint32_t>(shade, 0x280, 0);
         Set(shade, 0x08, Get<std::uint32_t>(shade, 0x08) | 0x100);
         Set<std::uint32_t>(shade, 0xD4, 0x82804040);
-        AsSprite(shade)->Draw(pass);
+        AsSprite(shade)->Draw(PassRenderer(pass));
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(shade));
     }
 }
@@ -480,7 +470,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
+    tilt.SetAxisAngle(axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
     Quaternion orientation;
     SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 
@@ -491,9 +481,9 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                   static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
     Set(frame, 0x280, objects_.data[2]);
-    AsSprite(frame)->Draw(pass);
+    AsSprite(frame)->Draw(PassRenderer(pass));
     RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
-    AsSprite(model)->Draw(pass);
+    AsSprite(model)->Draw(PassRenderer(pass));
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 // EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
@@ -502,7 +492,7 @@ EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 namespace {
 
-void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
 void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
 
 // The texture manager (thiscall): 00691D80 makes a texture (width, height, format), 00691CF0 finds
@@ -510,7 +500,6 @@ void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
 std::uint8_t* NewManagedTexture(void* manager, void*, int width, int height, int kind) {
     return NewManagedTextureOriginal(manager, nullptr, width, height, kind);
 }
-__declspec(naked) std::uint8_t* __fastcall FindImage(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
 
@@ -564,7 +553,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     {
         mfc::CString base(name);
         mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
-        image = FindImage(manager, nullptr, file);
+        image = static_cast<unsigned char*>(static_cast<CTextureManager*>(manager)->GetFileData(file));
     }
     int width, height;
     if (!image) {
@@ -634,7 +623,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     {
         mfc::CString base(name);
         mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
-        image = FindImage(TextureManager(), nullptr, file);
+        image = static_cast<unsigned char*>(TextureManager()->GetFileData(file));
     }
     std::uint32_t* pixels = nullptr;
     if (image) {

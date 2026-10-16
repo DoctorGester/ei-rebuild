@@ -25,10 +25,7 @@ constexpr int kBottomRow = 4;             // slots 0-3
 
 CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
 
-// 005E7060 is rewritten below; its callers here go through its address so its wrapper runs.
-void SetSpriteScale(CUiMesh* sprite, float scale) {
-    SpriteSetScaleOriginal(sprite, nullptr, std::bit_cast<std::uint32_t>(scale));
-}
+void SetSpriteScale(CUiMesh* sprite, float scale) { sprite->SetScale(scale); }
 
 // The columns' button highlight (0063E750 and 0063F730 are the same code).
 void HighlightButton(CUiWindow* column, int* selected, int index, int on) {

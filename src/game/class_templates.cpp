@@ -16,6 +16,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "lib/stlp_hash.h"
 
 #include <cstring>
 #include "originals_library.h"
@@ -77,11 +78,11 @@ static RawString* StringFromChars(RawString* s, void*, const char* text, const v
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
-void AddArmor(void* list, void*, void* record) { StockAddArmorOriginal(list, nullptr, record); }
-void AddWeapon(void* list, void*, void* record) { StockAddWeaponOriginal(list, nullptr, record); }
-void AddQuickItem(void* list, void*, void* record) { StockAddQuickItemOriginal(list, nullptr, record); }
-void AddSpell(void* list, void*, void* record) { StockAddSpellOriginal(list, nullptr, record); }
-void AddModifier(void* list, void*, void* record) { StockAddModifierOriginal(list, nullptr, record); }
+void AddArmor(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddArmor(static_cast<char*>(record)); }
+void AddWeapon(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddWeapon(static_cast<char*>(record)); }
+void AddQuickItem(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddQuickItem(static_cast<char*>(record)); }
+void AddSpell(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddSpell(static_cast<char*>(record)); }
+void AddModifier(void* list, void*, void* record) { static_cast<ItemStock*>(list)->AddModifier(static_cast<char*>(record)); }
 
 // The bit of the template's class (+0x08) in a record's class mask (SHL by CL: modulo 32).
 bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
@@ -113,12 +114,12 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
 
     ListWeapons(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = FindWeaponOriginal(kWeapons, nullptr, names.data[i]);
+        void* record = stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kWeapons), nullptr, names.data[i]);
         if (record && Allowed(t, record)) AddWeapon(AllList(t), nullptr, record);
     }
     ListArmors(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = FindArmorOriginal(kArmors, nullptr, names.data[i]);
+        void* record = stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kArmors), nullptr, names.data[i]);
         if (record && Allowed(t, record)) AddArmor(AllList(t), nullptr, record);
     }
     ListQuickItems(items, nullptr, &names);

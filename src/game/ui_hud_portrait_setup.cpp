@@ -239,7 +239,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].ModelSuffix().Format(game::Text(0x00794598), hair + 1);             // "%dface"
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;
-        BattleShowPanelUnitOriginal(owner_, nullptr, owner_->party_[i], &tip);
+        owner_->UnitName(owner_->party_[i], &tip);
         const int tipId = 0x37 + i;
         regions_.data[i]->SetTipString(tip, 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }

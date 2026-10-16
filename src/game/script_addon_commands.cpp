@@ -2,6 +2,7 @@
 // 100115AC-10011703, 10011CC5-10011F43, 100124F4, 10012813-10012C7B, 10012D0F-10012EFB). The game
 // functions they call are the rewritten members, or their original addresses where not rewritten.
 #include "script_addon_handlers.h"
+#include "world_glue.h"
 
 #include "combat.h"
 #include "console.h"
@@ -35,10 +36,6 @@ namespace scriptaddon {
 
 namespace {
 
-// The camera script player (the client glue object, not read): start (005787F0) and stop
-// (005787D0) saving a camera path.
-__declspec(naked) void __fastcall CameraStartSave(void*, void*, const char*) EI_ORIGINAL(0x005787F0)
-__declspec(naked) void __fastcall CameraStopSave(void*) EI_ORIGINAL(0x005787D0)
 
 // 0079BE6C: the "draw all units" flag (the console's spectator mode).
 int& DrawAllUnits() { return *reinterpret_cast<int*>(0x0079BE6C); }
@@ -147,12 +144,12 @@ bool GiveUnitExp(Call* call) {
 }
 
 bool StartCameraSave(Call* call) {
-    CameraStartSave(ClientGlueObject(), nullptr, Text(call, 0));
+    GameStartCameraRecording(Text(call, 0));
     return true;
 }
 
 bool StopCameraSave(Call*) {
-    CameraStopSave(ClientGlueObject());
+    GameStopCameraRecording();
     return true;
 }
 
@@ -245,7 +242,7 @@ bool GiveUnitWeapon(Call* call) {
     auto* item = static_cast<CItemWeapon*>(WorldServer()->CreateItemNamed(name));
     if (override && unit->id_ >= 1000000000) override = false;   // (a warning with EnableShowingScriptErrors)
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
-    int slot = UnitAddWeaponOriginal(unit, nullptr, item);
+    int slot = static_cast<CUnit*>(unit)->AddWeapon(item);
     if (slot == -1) return true;
     AsCUnit(unit)->pendingWeapon = slot;
     if (override) {
@@ -283,7 +280,7 @@ bool GiveUnitArmor(Call* call) {
     CEngineObject* item = WorldServer()->CreateItemNamed(name);
     if (override && unit->id_ >= 1000000000) override = false;
     if (!item) return Report("GiveUnitArmor", "Can't create item \"%s\"", name);
-    UnitEquipArmourOriginal(unit, nullptr, item);
+    static_cast<CUnit*>(unit)->EquipArmour(item);
     if (override) {
         UnitStatPair* protection = static_cast<CMapObjectServer*>(AsCUnit(unit)->companion)->vitals.protection;
         const UnitPrototypeRecord* prototype = PrototypeOf(unit);
@@ -331,7 +328,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsNetworkClientOriginal()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsMultiplayerClient()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 

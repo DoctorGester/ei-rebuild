@@ -44,7 +44,6 @@ __declspec(naked) void __fastcall UnitDestroy(void*) EI_ORIGINAL(0x0052E590)
 __declspec(naked) void* __fastcall FakeUnitDestructAt(void*) EI_ORIGINAL(0x00446910)
 // 00446C10 (__stdcall file, regFile, unit; ECX the unit as well): the scene loader.
 __declspec(naked) int __fastcall LoadScene(void* /*ecx unit*/, void*, const char*, const char*, void*) EI_ORIGINAL(0x00446C10)
-__declspec(naked) void __fastcall FigureAttach(void* /*figure*/, void*, void*) EI_ORIGINAL(0x0059F390)
 
 // The skin emptied and the unit's own Destroy (the start of both the destructor and slot 3).
 void ReleaseParts(FakeUnitScene* self) {
@@ -132,7 +131,7 @@ int __fastcall FakeUnitLoadScene(FakeUnitScene* self, void*, const char* file, c
     for (int i = 0; i < Figures(self).size; ++i) {
         CBaseManager* manager = static_cast<CWorld*>(ManagerContextOf(self))->SpecificManager();
         CEngineObject* object = manager->CreateObject(0x45, -1);
-        FigureAttach(&Figures(self).data[i], nullptr, object);
+        static_cast<CFigureMesh*>(&Figures(self).data[i])->SetDrawer(reinterpret_cast<FigureMeshDrawer*>(object));
     }
     return 1;
 }

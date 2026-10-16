@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/stlp_hash.h"
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -181,7 +182,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     else flags_ &= ~kDisabled;
     static_cast<CWorldClient*>(ClientWorldObject())->QueueSynchronised(this);
     if (first == 1) {
-        const LeverRecord* record = LeverRecordOriginal(LeverTable(), nullptr, name);
+        const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(LeverTable()), nullptr, name));
         if (record && Differ(from, to))
             sound::Manager()->Play3D(record->sound, 0, &position.x, kSoundNear, kSoundFar, 0, 0);
     }

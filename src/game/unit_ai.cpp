@@ -2,6 +2,7 @@
 #include "unit_ai.h"
 
 #include "ai_alarm.h"
+#include "combat.h"
 #include "random.h"
 
 #include "ei/hook.h"
@@ -15,6 +16,7 @@
 #include "originals_ai.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "world.h"
 #include "world_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -27,11 +29,10 @@ constexpr float kArrivedDistanceSq = 1.0f;                              // 0073F
 
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
-constexpr std::uintptr_t kWorld = 0x007AFF60;
 constexpr std::uintptr_t kGameTime = 0x007AFFC4;
 constexpr std::uintptr_t kConsole = 0x007C54E8;     // the console's ostream*
 
-int GameTime() { return *reinterpret_cast<const int*>(kGameTime); }
+int GameTicks() { return *reinterpret_cast<const int*>(kGameTime); }
 
 // CEngineObject::Release through the object's vtable, then clear the slot (inlined everywhere).
 void ReleaseRef(CEngineObject*& ref) {
@@ -83,9 +84,6 @@ const char* MotivationFormat() { return reinterpret_cast<const char*>(0x00791E20
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-__declspec(naked) void UnitController::Turn(const Vector3*, float) EI_ORIGINAL(0x005546B0)
-void UnitController::Say(int what) { alarm.Raise(what); }  // 005AEA60
-
 void AIMode::Release() { RefObjectRelease((void*)this); }
 int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
 void AIMode::Execute(AIBrain* brain) { Virtuals()->Execute(brain); }
@@ -96,18 +94,6 @@ void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDelete
 
 // AIRef (0052B030, 0052A8F0, 0050E220, 0050E290): counted_ref.cpp.
 
-__declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
-__declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
-__declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINAL(0x00554F50)
-__declspec(naked) void UnitController::Attack(CEngineObject*, int, int, int) EI_ORIGINAL(0x00554B30)
-bool UnitController::CheckOrder(const void* a0) { return UnitCheckOrderOriginal((void*)this, nullptr, a0); }
-__declspec(naked) bool UnitController::CheckOrderAt(const AIOrder*, const Vector3*) EI_ORIGINAL(0x0054C960)
-__declspec(naked) void UnitController::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x00554D00)
-__declspec(naked) void UnitController::UseOnPoint(CEngineObject*, int, int) EI_ORIGINAL(0x00555570)
-__declspec(naked) void UnitController::UseOnUnit(CEngineObject*, int) EI_ORIGINAL(0x005553B0)
-__declspec(naked) void UnitController::UseOnUnit2(CEngineObject*, int) EI_ORIGINAL(0x00555480)
-__declspec(naked) void UnitController::UseSpecial(CEngineObject*, int) EI_ORIGINAL(0x00555630)
-
 __declspec(naked) void __fastcall LooksSetSizeAt(AILookArray*, void*, int, int) EI_ORIGINAL(0x005D8EE0)
 __declspec(naked) void __fastcall LooksCopyAt(AILookArray*, void*, const AILookArray*) EI_ORIGINAL(0x005D8B60)
 void __fastcall LooksDestroyAt(AILookArray* looks) { AiLookArrayDestructOriginal(looks); }
@@ -117,12 +103,12 @@ __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 // separate objects; these forwarders pass the sub-object as `this`.
 namespace {
 struct AIMemory {
-    void Update(UnitController* owner);                 // 005CB700
+    void Update(CUnitServer* owner);                 // 005CB700
     // 005CC020 (AIBrain::Forget, unit_ai_brain.cpp), called through its address so its verify
     // wrapper sees OnObjectDeleted's calls.
     void Forget(CEngineObject* object);
 };
-__declspec(naked) void AIMemory::Update(UnitController*) EI_ORIGINAL(0x005CB700)
+__declspec(naked) void AIMemory::Update(CUnitServer*) EI_ORIGINAL(0x005CB700)
 __declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
 
 // 005D0030 (AIAttention::Choose, unit_ai_targets.cpp) through its address, so its verify wrapper
@@ -138,7 +124,7 @@ __declspec(naked) void AIMemoryLists::CollectEnemies(CUnit*, void*) EI_ORIGINAL(
 AIMemory* MemoryOf(AIBrain* brain) { return reinterpret_cast<AIMemory*>(brain->memory); }
 } // namespace
 
-void AIBrain::Perceive(UnitController* who) { MemoryOf(this)->Update(who); }
+void AIBrain::Perceive(CUnitServer* who) { MemoryOf(this)->Update(who); }
 void AIBrain::Report(CEngineObject* object, int what) { ReportsAdd(&reports, nullptr, object, what); }
 AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&corpses, nullptr, out); }
 bool AIBrain::IsReported(CEngineObject* object) { return ReportsContains(&reports, nullptr, object); }
@@ -183,8 +169,8 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            reinterpret_cast<WorldAlarmOriginal*>(kWorld)->InvokeAlarm(alarm, &owner->unit->position, 0);
-            owner->Say(kVoiceAlarm);
+            WorldServer()->InvokeAlarm(alarm, &owner->unit->position.x, 0);
+            owner->voice.Raise(kVoiceAlarm);
         }
     }
     decay = (decay * kDecayScale + kOne) * kDecayDivisor;
@@ -266,11 +252,11 @@ void AIBrain::Think() {
     switch (action) {
     case kActionNone:
         ReleaseRef(target);
-        reinterpret_cast<ControllerOriginals*>(owner)->Idle();
+        owner->Idle();
         return;
     case kActionWalk:
         ReleaseRef(target);
-        if (owner->command == 1 || owner->nextCommand == 1 || owner->command == 2 || owner->nextCommand == 2) return;
+        if (owner->action.kind == 1 || owner->action2.kind == 1 || owner->action.kind == 2 || owner->action2.kind == 2) return;
         action = kActionNone;
         return;
     case kActionMove:
@@ -281,14 +267,14 @@ void AIBrain::Think() {
         UpdateAttack();
         return;
     case kActionCast:
-        if (owner->command == 4 || owner->command == 5 || owner->nextCommand == 4 || owner->nextCommand == 5) return;
-        if (target && owner->inCombat) Report(target, 0xF);
+        if (owner->action.kind == 4 || owner->action.kind == 5 || owner->action2.kind == 4 || owner->action2.kind == 5) return;
+        if (target && owner->orderStopped) Report(target, 0xF);
         ReleaseRef(target);
         action = kActionNone;
         return;
     case kActionUse:
         ReleaseRef(target);
-        if (owner->command == 6 || owner->nextCommand == 6) return;
+        if (owner->action.kind == 6 || owner->action2.kind == 6) return;
         action = kActionNone;
         return;
     case kActionFollow:
@@ -402,7 +388,7 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
 }
 EI_REPLACE_METHOD(0x005D50E0, AIBrain::IsNearPath);
 
-std::uint32_t AIBrain::SetOwner(UnitController* newOwner) {
+std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
     if (newOwner == owner) return reinterpret_cast<std::uint32_t>(newOwner);
     owner = newOwner;
     constexpr std::uint32_t kUnset = 0xC4A42000u;      // -1313.0
@@ -431,9 +417,9 @@ EI_REPLACE_METHOD(0x005D58D0, AIBrain::OnObjectDeleted);
 // --- Actions -------------------------------------------------------------------------------------
 
 void AIBrain::UpdateMove() {
-    UnitController* o = owner;
-    if (o->command == 1 || o->nextCommand == 1 || o->command == 2 || o->nextCommand == 2) return;
-    if (o->inCombat) {
+    CUnitServer* o = owner;
+    if (o->action.kind == 1 || o->action2.kind == 1 || o->action.kind == 2 || o->action2.kind == 2) return;
+    if (o->orderStopped) {
         CUnit* unit = o->unit;
         double dy = actionPoint.y - unit->position.y;     // kept on the FPU stack
         double dx = actionPoint.x - unit->position.x;
@@ -461,19 +447,19 @@ void AIBrain::UpdateMove() {
         direction.z = 0.0f;
         direction.x = static_cast<float>(x87::fcos(angle));
         direction.y = static_cast<float>(x87::fsin(angle));
-        o->Turn(&direction, look->time);
+        o->OrderTurn(&direction.x, std::bit_cast<std::uint32_t>(look->time));   // the float's bits as the time (sic)
         return;
     }
     if (actionTime == kLookStarted) {
-        if (looks.data->stopFirst) reinterpret_cast<ControllerOriginals*>(o)->StopQueued();
-        float end = static_cast<float>(GameTime()) + looks.data->wait;     // FILD + FADD, FSTP float
+        if (looks.data->stopFirst) o->StopQueued();
+        float end = static_cast<float>(GameTicks()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = looks.size - 1;
         if (remaining != 0) GameMemmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
         --looks.size;
         return;
     }
-    if (GameTime() > actionTime) actionTime = kNoTime;
+    if (GameTicks() > actionTime) actionTime = kNoTime;
 }
 EI_REPLACE_METHOD(0x005D7520, AIBrain::UpdateMove);
 
@@ -482,7 +468,7 @@ void AIBrain::UpdateAttack() {
         action = kActionNone;
         return;
     }
-    UnitController* o = owner;
+    CUnitServer* o = owner;
     bool giveUp = false;
     if (o->unit->player != nullptr) {      // 005301A0
         if (IsGone(target) != 0) {
@@ -500,10 +486,10 @@ void AIBrain::UpdateAttack() {
         return;
     }
     o = owner;
-    if (o->command == 3 && o->commandTarget == target) return;
-    if (o->nextCommand == 3 && o->nextTarget == target) return;
-    if (o->command == 4 || o->command == 5) return;
-    if (o->nextCommand == 4 || o->nextCommand == 5) return;
+    if (o->action.kind == 3 && o->action.target == target) return;
+    if (o->action2.kind == 3 && o->action2.target == target) return;
+    if (o->action.kind == 4 || o->action.kind == 5) return;
+    if (o->action2.kind == 4 || o->action2.kind == 5) return;
     action = kActionNone;
 }
 EI_REPLACE_METHOD(0x005D76A0, AIBrain::UpdateAttack);
@@ -524,16 +510,6 @@ void HoldRef(CEngineObject*& ref, CEngineObject* object) {
     ref = object;
 }
 
-// The order the player's check (0054C8B0) is asked about before an attack.
-struct AttackOrder {
-    int kind;                       // +0x00 3
-    int what;                       // +0x04 6
-    CEngineObject* object;          // +0x08 counted
-    Vector3 point;                  // +0x0C left uninitialised by the original
-    std::uint8_t flag;              // +0x18
-    std::uint8_t unused_19[3];
-};
-static_assert(sizeof(AttackOrder) == 0x1C);
 } // namespace
 
 void AIBrain::AttackTarget(CEngineObject* object) {
@@ -541,7 +517,7 @@ void AIBrain::AttackTarget(CEngineObject* object) {
     HoldRef(target, object);
     int flags = 0x1C;
     if (owner->unit->player) {
-        AttackOrder order{};
+        AIOrder order{};
         order.kind = 3;
         order.what = 6;
         order.object = nullptr;
@@ -550,11 +526,11 @@ void AIBrain::AttackTarget(CEngineObject* object) {
             order.object = object;
             ++object->refCount_;
         }
-        if (owner->CheckOrder(&order)) flags = -1;
+        if (owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
         if (order.object) order.object->Release();
         order.object = nullptr;
     }
-    owner->Attack(target, 6, 0, flags);
+    owner->OrderAttack(target, 6, 0, flags);
 }
 EI_REPLACE_METHOD(0x005D7B50, AIBrain::AttackTarget);
 
@@ -562,7 +538,7 @@ void AIBrain::AttackWith(CEngineObject* object, int how, int unknown) {
     if (owner->unit->player == nullptr && object->GetClassId() == kClassUnit && IsEnemy(owner->unit, object) == 0) return;
     action = kActionAttack;
     HoldRef(target, object);
-    owner->Attack(target, how, unknown, 2);
+    owner->OrderAttack(target, how, unknown, 2);
 }
 EI_REPLACE_METHOD(0x005D7C60, AIBrain::AttackWith);
 
@@ -572,16 +548,16 @@ void AIBrain::UseOn(CEngineObject* object, int kind, int a, int b) {
     ReleaseRef(target);
     switch (kind) {
     case 0:
-        owner->UseOnPoint(object, a, b);
+        owner->OrderUse(object, a, b);
         return;
     case 1:
-        if (object->GetClassId() == kClassUnit) owner->UseOnUnit(object, b);
+        if (object->GetClassId() == kClassUnit) owner->OrderSteal(object, b);
         return;
     case 2:
-        if (object->GetClassId() == kClassUnit) owner->UseOnUnit2(object, b);
+        if (object->GetClassId() == kClassUnit) owner->OrderTame(object, b);
         return;
     case 0x18A95:
-        if (object->GetClassId() == kClassUnit) owner->UseSpecial(object, b);
+        if (object->GetClassId() == kClassUnit) owner->OrderSearchBody(object, b);
         return;
     default:
         return;
@@ -591,20 +567,20 @@ EI_REPLACE_METHOD(0x005D7CE0, AIBrain::UseOn);
 
 void AIBrain::Walk(const Vector3* point, int run, int unknown) {
     action = kActionWalk;
-    owner->MoveTo(point, run, unknown, 1000000.0f);    // 0x49742400
+    owner->OrderMove(&point->x, run, unknown, 1000000.0f);    // 0x49742400
 }
 EI_REPLACE_METHOD(0x005D7AE0, AIBrain::Walk);
 
 void AIBrain::TurnTowards(const Vector3* direction, float time) {
     action = kActionWalk;
-    owner->Turn(direction, time);
+    owner->OrderTurn(&direction->x, std::bit_cast<std::uint32_t>(time));   // the float's bits as the time (sic)
 }
 EI_REPLACE_METHOD(0x005D7B30, AIBrain::TurnTowards);
 
 void AIBrain::CastAt(int spell, const Vector3* point, int run) {
-    if (!owner->CanCast(spell)) action = kActionCast;
+    if (!owner->IsScrollSource(spell)) action = kActionCast;
     actionTime = spell;
-    owner->CastAt(spell, point, run);
+    owner->OrderCastAt(spell, &point->x, run);
 }
 EI_REPLACE_METHOD(0x005D7DA0, AIBrain::CastAt);
 

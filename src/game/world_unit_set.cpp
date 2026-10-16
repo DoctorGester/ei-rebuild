@@ -2,6 +2,7 @@
 // client's reader of the unit looks (0055A190). See docs/notes/world.md ("Client maps", the unit
 // set). The set's three STLport hash_maps are walked with the original's iterator helpers, so the
 // order matches theirs.
+#include "core_streams.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -170,7 +171,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &names, 4);
         CStringVectorResizeOriginal(&record->names, nullptr, names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
-            StreamReadCStringOriginal(stream, nullptr, &record->names[i]);
+            stream->ReadInto(reinterpret_cast<mfc::CString*>(&record->names[i]));
     }
     Get(stream, &count, 4);
     ResizeDressed(dressed, nullptr, count);

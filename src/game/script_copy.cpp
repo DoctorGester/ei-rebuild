@@ -250,7 +250,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
             group->data[k].Reset();
-            RefConstruct(&group->data[k], nullptr, &member);
+            group->data[k].Construct(member);
             member.Reset();
         }
         copy.vtable = scriptvtable::kRefsBase;
@@ -280,7 +280,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
         RefAt(&other->objects, nullptr, &value, i);
         ScriptObjectRef* slot = &objects.data[i];
         slot->Reset();
-        RefConstruct(slot, nullptr, &value);
+        slot->Construct(value);
         value.Reset();
     }
     ScriptNamesCopyConstruct(&objectNames, nullptr, &other->objectNames);

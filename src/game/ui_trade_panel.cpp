@@ -2,6 +2,7 @@
 // schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "item_db_text.h"
+#include "world.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 #include "party.h"
@@ -22,6 +23,7 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "unit_db.h"
+#include "world_glue.h"
 
 namespace {
 
@@ -41,7 +43,7 @@ __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGIN
 struct TextGlue {
     void* Table();   // 00578E20
 };
-void* TextGlue::Table() { return GameFlowOriginal(); }
+void* TextGlue::Table() { return GameClientTexts(); }
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (RET 0xC).
@@ -357,14 +359,13 @@ EI_REPLACE(0x006261A0, TradeDrawLists);
 
 namespace {
 // 0062A0B0 (thiscall, RET 0xC): vector<TradeRecord>'s insert that reallocates; 00626F10
-// (__fastcall): fills record +0x150 from the local player's unit records; 00578BA0 (on 007AFEA5):
+// (__fastcall): fills record +0x150 from the local player's unit records; LocalPlayerData (00578BA0):
 // the local player's data (+0x34 the number of unit records).
 __declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, TradeRecord* /*pos*/, const TradeRecord*,
                                                         int /*n*/) EI_ORIGINAL(0x0062A0B0)
 void __fastcall TradeSnapshotRecord(CTradePanel*);
-inline std::uint8_t* TradePlayerData(void* glue) { return GameLocalPlayerDataOriginal(glue); }
 
-int PartyRecordCount() { return *reinterpret_cast<int*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)) + 0x34); }
+int PartyRecordCount() { return *reinterpret_cast<int*>(LocalPlayerData() + 0x34); }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
@@ -467,7 +468,7 @@ EI_REPLACE(0x00625430, TradeResetRecords);
 namespace {
 
 UnitStats* PartyMemberStats(int index) {
-    CParty* party = reinterpret_cast<CParty*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)));
+    CParty* party = reinterpret_cast<CParty*>(LocalPlayerData());
     return reinterpret_cast<UnitStats*>(party->members_.data[index].stats);
 }
 } // namespace

@@ -233,7 +233,7 @@ void CUiEditField::DrawContentsVanilla() {
     if (caretX >= 0 && caretX < width) {
         ui_gdi::GamePen pen;
         pen.Construct(PS_SOLID, 1, caretColour_);
-        void* oldPen = dc->SelectPen(&pen);
+        mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
         POINT top{caretX, 0};
         POINT bottom{caretX, height};
         // WideScreen (0065C51F / 0065C544: XOR ECX,ECX): without the margin.
@@ -241,7 +241,7 @@ void CUiEditField::DrawContentsVanilla() {
         interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);
         dc->LineTo(bottom.x, bottom.y);
-        dc->SelectPen(oldPen);
+        dc->SelectObject(oldPen);
         pen.Destruct();
     }
     SurfaceReleaseDC(surface);

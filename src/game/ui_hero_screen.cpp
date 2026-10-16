@@ -2,6 +2,7 @@
 // (00615850), and the trade panel's experience figures it shows (00625530 / 00625560).
 // See docs/notes/ui.md, section 5.
 #include "ui.h"
+#include "world_glue.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
@@ -42,8 +43,6 @@ float NewHeroPoints() { return *reinterpret_cast<const volatile float*>(0x00741C
 float FullTurn() { return *reinterpret_cast<const volatile float*>(0x007C7F10); }
 // The multiplayer heroes object (its vector at +4 is MpHeroes()).
 void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
-// The client glue the record hand-over is called on (not read).
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
 
@@ -109,7 +108,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
     if (!hoveredItem_ && topic == 0) hoveredItem_ = static_cast<CUiWindow*>(spellPanel_)->VirtualItemAt(x, y, &topic);
 
     if (hoveredItem_) {
-        if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(reinterpret_cast<CItem*>(hoveredItem_));
     } else if (topic != 0) {
         if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else {
@@ -189,9 +188,9 @@ void CMpHeroScreen::Close() {
         RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
         records.data[size] = record;
     }
-    GameTakeUnitRecordsOriginal(ClientGlue(), nullptr, &records);
+    GameRemoveUnitsOf(&records);
     previewModel_ = nullptr;
-    InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x00615850, CMpHeroScreen::Close);
@@ -359,8 +358,8 @@ void CMpHeroScreen::MakePreview(int flag) {
     int size = records.size;
     RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
     records.data[size] = reinterpret_cast<std::uint8_t*>(first);
-    GameTakeUnitRecordsFlagOriginal(ClientGlue(), nullptr, &records, flag);
-    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, player->members_.data->unitId));
+    GameCreatePartyUnits(&records, flag);
+    auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data->unitId));
     unit->SetPrototype23C(unit->GetPrototype());
     previewModel_ = reinterpret_cast<std::uint8_t*>(unit);
     if (unit) {
@@ -392,19 +391,19 @@ void CMpHeroScreen::ShowHero(int index) {
         int size = records.size;
         RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(player->members_.data);
-        GameTakeUnitRecordsOriginal(ClientGlue(), nullptr, &records);
+        GameRemoveUnitsOf(&records);
     }
     heroIndex_ = -1;
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
         PartyCopyFrom(player, nullptr, MpHero(index));
-        MpHeroesSelectOriginal(MpHeroesObject(), nullptr, MpHero(index));
+        static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
     }
     MakePreview(1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
-    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, hero->unitId));
+    auto* unit = static_cast<CUnit*>(GameFindClientUnit(hero->unitId));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);
+    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CUnit*>(unit)->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();

@@ -1,6 +1,7 @@
 // The message box's and the difficulty question's input handlers (CMessageBox / CDifficultyBox,
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
+#include "world_glue.h"
 #include "game_strings.h"
 
 #include "ei/hook.h"
@@ -16,8 +17,6 @@ namespace {
 const char* OkSound() { return game::Text(0x00793A88); }       // "buttons\messbox\ok.wav"
 const char* CancelSound() { return game::Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
 const char* ExitMovie() { return game::Text(0x0079422C); }     // "Movies\Exit.bik"
-// The client glue object the original passes in ECX (not read).
-void* Glue() { return reinterpret_cast<void*>(0x007AFEA4); }
 
 // The result of the exit question: OK plays the exit movie and quits.
 constexpr std::uint32_t kExitResult = 0xFFFF0000;
@@ -27,7 +26,7 @@ constexpr std::uint32_t kAnswerCancel = 2;
 
 void PlayExitMovieAndQuit() {
     {
-        mfc::CString path = *GameDirectoryOriginal(Glue()) + ExitMovie();
+        mfc::CString path = *GameBasePathString() + ExitMovie();
         PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
     }
     QuitGame(0);
@@ -44,7 +43,7 @@ void CMessageBox::CopyEditText() {
 }
 
 void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     if (region == 0) {
         if (result_ == kExitResult) {
@@ -62,7 +61,7 @@ void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
 }
 
 void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (inputHandled_) return;
     if (key == VK_RETURN) {
         if (result_ == kExitResult) {
@@ -115,7 +114,7 @@ void CDifficultyBox::OnLButtonDown(int, int x, int y) {
 }
 
 void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (inputHandled_) return;
     if (key == VK_RETURN) {
         GameDifficulty() = easy_;

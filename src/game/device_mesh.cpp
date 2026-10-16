@@ -73,8 +73,6 @@ using devicebuffers::Outcodes;
 // The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
 // clipped TL vertices (004E86B0, the array and their outcodes); the draws with one (004EB550) or
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
-__declspec(naked) int __fastcall DrawPrimitive2(CTextureDevice*, void*, void*, void*, int, int, void*, int,
-                                                std::uint16_t*, int, int) EI_ORIGINAL(0x004EB370)
 
 TLVertex* VertexData() { return Vertices().data; }
 
@@ -134,10 +132,10 @@ void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* ind
         return;
     }
     if (textures) {
-        DrawPrimitive2(device, nullptr, textures->first, textures->second, 4, 0x1C4, Vertices().data, count, indices,
+        device->DrawTwoTextures(static_cast<CDXSurface*>(textures->first), static_cast<CDXSurface*>(textures->second), 4, 0x1C4, Vertices().data, count, indices,
                        indexCount, 0);
     } else {
-        DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
+        device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
     }
 }
 

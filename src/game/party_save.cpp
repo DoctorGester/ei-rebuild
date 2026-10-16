@@ -32,7 +32,7 @@ void WriteValue(CStream* stream, T value) {
 }
 
 void ReadText(CStream* stream, mfc::CString& text) {
-    StreamReadCStringOriginal(stream, nullptr, &text);
+    stream->ReadInto(&text);
 }
 
 // A list's count, then each item's id (-1 for an empty entry).
@@ -105,7 +105,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     ReadText(stream, texts[5]);
     texts[6] = texts[5];
     stream->Read(&unitId, sizeof(unitId));
-    UnitStatsLoadOriginal(stats, nullptr, stream);
+    reinterpret_cast<UnitStats*>(stats)->LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x724, +0x728 and the height
     ReadItemIds(stream, ItemList(weapons), LoadingParty()->ItemManager());
     ReadItemIds(stream, ItemList(quickItems), LoadingParty()->ItemManager());
@@ -132,7 +132,7 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteText(stream, texts[4]);
     WriteText(stream, texts[5]);
     WriteValue(stream, unitId);
-    UnitStatsSaveOriginal(stats, nullptr, stream);
+    reinterpret_cast<UnitStats*>(stats)->SaveTo(stream);
     stream->Write(&scaleX, 0xC);
     WriteItemIds(stream, ItemList(weapons));
     WriteItemIds(stream, ItemList(quickItems));

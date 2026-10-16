@@ -1,6 +1,8 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
+#include "world_glue.h"
+#include "combat.h"
 #include "player_messages.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -10,6 +12,7 @@
 #include "core_transform.h"
 #include "object_tables.h"
 #include "sound.h"
+#include "ui_camera_keys.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
@@ -34,9 +37,6 @@ namespace {
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
-void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
-void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
 void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
 void* MapDatabase() { return reinterpret_cast<void*>(0x0079BF00); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
@@ -98,7 +98,7 @@ WorldPlayer* LocalViewPlayer() {
 }
 
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
-UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -123,13 +123,13 @@ void EraseMover(BriefingMover* node) {
 void PlaceMover(BriefingMover* node) {
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
-    UnitController* controller = ControllerOf(unit);
+    CUnitServer* controller = ControllerOf(unit);
     Vector3 target{node->target.x, node->target.y, node->target.z};
     SectorMapMove(SectorMap(), nullptr, unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
     reinterpret_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
-    ControllerRepositionOriginal(controller);
+    controller->ResyncWithUnit();
 }
 
 // A walking mover near its target starts turning (its server unit turns over a second).
@@ -242,8 +242,8 @@ void CBriefingScreen::Create() {
         Music()->PlayBriefing(DefaultAllod());
         noWalk_ = false;
     }
-    GameMarkInterfaceChangedOriginal(ClientGlue());
-    GameSetWeatherOriginal(UnitGlue(), nullptr, 0, 0.0f);
+    GameStartAmbience();
+    GameSetWeather(0, 0.0f);
 
     // The screen's own input side (its third dword is left as allocated) and the view's.
     auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
@@ -253,7 +253,7 @@ void CBriefingScreen::Create() {
     }
     AddInput(input);
     memory = gamecrt::operator_new(0x2C);
-    AddInput(memory ? static_cast<UiInputSide*>(ViewInputConstructOriginal(memory, nullptr, interface_)) : nullptr);
+    AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null, as the original), the alternate limits, no target.
@@ -269,7 +269,7 @@ void CBriefingScreen::Create() {
     voice_ = -1;
     speaking_ = nullptr;
 
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         memory = gamecrt::operator_new(0x170);
         chat_ = memory ? ChatWindowConstruct(memory, nullptr, interface_) : nullptr;
         AddChild(chat_);
@@ -392,7 +392,7 @@ void CBriefingScreen::MarkPeople() {
     for (int* id = people_.begin(); id != people_.end(); ++id) {
         if (!WorldFindUnit(ClientWorld(), nullptr, *id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
-        auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(ServerWorld(), nullptr, 0));
+        auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(ServerWorld())->GetPlayer(0));
         if (player && player->server)
             static_cast<CPlayerServer*>(player->server)->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }
@@ -408,19 +408,19 @@ void CBriefingScreen::LeaveIfExitOpen() {
     };
     const auto* party = reinterpret_cast<const PartyRecords*>(LocalPlayerData());
     if (!exitPending_ || party->count <= 0) return;
-    mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
+    mfc::CString zone(GameExitTarget(exit_));
     if (Compare(zone, NoZone()) == 0) return;
     mfc::CString variable(ZoneVariablePrefix());
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     if (visited == 1.0f || x87::IsNaN(visited)) return;
-    mfc::CArray<void*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
-    mfc::CArray<void*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<std::uint8_t*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<std::uint8_t*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
     records.SetSize(1);
-    records[0] = party->records;
-    if (GameCanLeaveZoneOriginal(ClientGlue(), nullptr, &records, exit_, &second)) {
+    records[0] = static_cast<std::uint8_t*>(party->records);
+    if (GamePartyInExit(&records, exit_, &second)) {
         InterfaceHasScreen() = false;
-        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, exit_);
+        GameLeaveThroughExit(exit_);
     }
     second.FreeData();
     records.FreeData();

@@ -1,6 +1,7 @@
 // The torch's client half (CTorchObjectClientSpecific, 0052D0D0-0052D670; torch_client_spec.h):
 // lifetime, its effects shown / hidden, and the setters that rebuild the particles, the light and
 // the sound. A-U11.
+#include "terrain.h"
 #include "torch_client_spec.h"
 
 #include "camera.h"        // TheTerrain (the light manager, 007AF738)
@@ -9,7 +10,7 @@
 #include "map_object.h"    // CMapObject::position
 #include "sound.h"         // CSoundManager
 #include "spell.h"         // CLight, CLightFactory
-#include "originals_effects.h"   // ParticleManagerObject, LightManagerAddOriginal, RemoveLight
+#include "originals_effects.h"   // ParticleManagerObject
 
 #include "ei/hook.h"
 #include "ei/vcall.h"      // SetVtable
@@ -118,7 +119,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     if (particles_) particles_->StartEmitting();
     if (light_ && (light_->flags_ & kLightHidden)) {
         light_->flags_ &= ~kLightHidden;
-        LightManagerAddOriginal(camera::TheTerrain(), nullptr, light_);
+        static_cast<Terrain*>(camera::TheTerrain())->AddLight(light_);
     }
     if (sound_) Sounds()->StopSound(sound_);
     const float far = values_[1] * kShowFarFactor;
@@ -130,7 +131,7 @@ void CTorchObjectClientSpec::HideEffects() {
     if (particles_) particles_->StopEmitting();
     if (light_ && !(light_->flags_ & kLightHidden)) {
         light_->flags_ |= kLightHidden;
-        RemoveLight(camera::TheTerrain(), nullptr, light_);
+        static_cast<Terrain*>(camera::TheTerrain())->RemoveLight(light_);
     }
     if (sound_) {
         Sounds()->StopSound(sound_);
@@ -169,7 +170,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     SetFlame(offset, radius, colour);
     const Vector3 at = AtTorch(torch_, offset);
     if (light_) {
-        RemoveLight(camera::TheTerrain(), nullptr, light_);
+        static_cast<Terrain*>(camera::TheTerrain())->RemoveLight(light_);
         CLight* old = light_;
         light_ = nullptr;
         if (old) old->Release();
@@ -186,7 +187,7 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     const float squared = static_cast<float>(radius * radius);
     light_->rangeSquared_ = squared;
     light_->inverseRangeSquared_ = 1.0f / squared;
-    LightManagerAddOriginal(camera::TheTerrain(), nullptr, light_);
+    static_cast<Terrain*>(camera::TheTerrain())->AddLight(light_);
 }
 EI_REPLACE_METHOD(0x0052D410, CTorchObjectClientSpec::SetLightAt);
 

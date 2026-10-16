@@ -81,7 +81,7 @@ void CInterface3D::Update() {
             if (block5C_) gamecrt::operator_delete(block5C_);
             block5C_ = nullptr;
             backdropMode_ = 0;
-            if (!IsNetworkClientOriginal()) GameSetServerPaused(serverFlag_);
+            if (!IsMultiplayerClient()) GameSetServerPaused(serverFlag_);
             serverFlag_ = 0;
         }
         if (stackBegin_ != stackEnd_) {
@@ -106,17 +106,17 @@ void CInterface3D::Update() {
             if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
             --stackEnd_;
         }
-        reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
+        ResetInput();
         app::PumpMessages();
         *reinterpret_cast<bool*>(0x00784750) = false;
     }
     if (queuedWindow_) {
-        reinterpret_cast<InterfaceOriginals*>(this)->Activate(queuedWindow_);
+        Activate(queuedWindow_);
         queuedWindow_ = nullptr;
     }
     mouseX_ = *reinterpret_cast<int*>(0x007C7C50);
     mouseY_ = *reinterpret_cast<int*>(0x007C7C54);
-    if (disconnected_ && IsNetworkClientOriginal() && net::GameClient()->joinState_ != 2) {
+    if (disconnected_ && IsMultiplayerClient() && net::GameClient()->joinState_ != 2) {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
                 static_cast<unsigned>(net::GameClient()->joinState_));
@@ -124,7 +124,7 @@ void CInterface3D::Update() {
         void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, this, reinterpret_cast<const char*>(0x0079242C),
                                                          reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)
                            : nullptr;
-        InterfacePushWindowOriginal(this, nullptr, box, 1, 1);
+        PushWindow(static_cast<CUiWindow*>(box), 1, 1);
     } else if (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->VirtualUpdate();
     }
@@ -173,7 +173,7 @@ void CInterface3D::OnStringEvent(const char* event) {
         const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
         void* memory = gamecrt::operator_new(0x180);
         void* window = memory ? MessageWindowConstruct(memory, nullptr, this, title, message, 0x20000, 3, 1) : nullptr;
-        InterfacePushWindowOriginal(this, nullptr, window, 1, 1);
+        PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };

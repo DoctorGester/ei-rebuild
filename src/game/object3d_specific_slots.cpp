@@ -4,6 +4,7 @@
 #include "map_object_shadow.h"
 
 #include "map_object_figures.h"
+#include "material.h"
 #include "world.h"
 
 #include "link_figure.h"   // CLinkMesh::screenRect_
@@ -26,7 +27,7 @@ void CObject3DClientSpecific::RegisterPartMaterials() {
     if (materials.size <= 0) return;
     materialCursor = 0;
     for (CMaterial* material = materials[0]; material;) {
-        MaterialRegisterOriginal(manager, nullptr, material, static_cast<std::uint32_t>(material->type_));
+        static_cast<CMaterialManager*>(manager)->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
         ++materialCursor;
         if (materials.size <= materialCursor) break;
         material = materials[materialCursor];

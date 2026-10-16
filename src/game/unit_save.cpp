@@ -148,7 +148,7 @@ void SetCarriedSize(CUnit* unit, int size) {
 void* PlayerById(CUnit* unit, int id) {
     void* player = nullptr;
     if (ContextWorld(unit)->GetClassId() == kWorldServerClassId)
-        player = WorldGetPlayer(unit->ManagerContext(), nullptr, id);
+        player = static_cast<CWorldServer*>(unit->ManagerContext())->GetPlayer(id);
     return player;
 }
 } // namespace

@@ -2,6 +2,7 @@
 // scene's BeginScene and EndScene) and the screen fade drawn over it (CScreenFade::Draw 005E69C0).
 // See docs/notes/ui.md, section 3, and docs/notes/renderer.md, section 2.
 #include "ui.h"
+#include "world.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -130,7 +131,7 @@ EI_REPLACE_METHOD(0x005E6B90, CScreenFade::Start);
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualDraw(DisplayObject());
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualDraw(SceneRenderer());
     fade_->Draw(SceneRenderer());
     return 1;
 }
@@ -166,7 +167,7 @@ void CInterface3D::DrawOverlays() {
         backdrop_->CaptureScreen();
         backdropMode_ = 4;
     }
-    if (IsNetworkClientOriginal() && stackEnd_ - stackBegin_ == 1) CallSlot(root_, kRedrawSlot);
+    if (IsMultiplayerClient() && stackEnd_ - stackBegin_ == 1) CallSlot(root_, kRedrawSlot);
     strmap::PanelTick(panel);
 
     ++fpsFrames_;

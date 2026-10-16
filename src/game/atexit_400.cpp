@@ -4,6 +4,8 @@
 // not) through its original address. See docs/notes/core.md.
 #include "ei/hook.h"
 #include "game_data.h"
+#include "game_lists.h"
+#include "hash_tables_400.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -12,9 +14,6 @@ namespace atexit400 {
 
 namespace {
 __declspec(naked) void __fastcall CameraDestruct(void* /*camera*/) EI_ORIGINAL(0x0040CE60)
-__declspec(naked) void __fastcall ClassRegistryDestruct(void* /*registry*/) EI_ORIGINAL(0x00408D60)
-__declspec(naked) void __fastcall RefPtrRelease(void* /*ref*/) EI_ORIGINAL(0x00412260)
-__declspec(naked) void __fastcall RefPtrRelease2(void* /*ref*/) EI_ORIGINAL(0x004122B0)
 __declspec(naked) void __fastcall Vector8Destruct(void* /*vector*/) EI_ORIGINAL(0x004387D0)
 
 // The once-only flags of the two buffers (bit 0: 0079B900, bit 1: 0079B8E0).
@@ -24,10 +23,10 @@ std::uint8_t& BufferFlags() { return *reinterpret_cast<std::uint8_t*>(0x0079B8FC
 // 0040C8A0: the camera at 0079B2A8.
 void __cdecl DestroyGlobalCamera() { CameraDestruct(&ei::GameData<char>(0x0079B2A8)); }
 // 00408D50: the chunk archive's class registry at 0079B270.
-void __cdecl DestroyClassRegistry() { ClassRegistryDestruct(&ei::GameData<char>(0x0079B270)); }
+void __cdecl DestroyClassRegistry() { hash400::ClassRegistryDestruct(&ei::GameData<ChunkArchive::ClassRegistry>(0x0079B270)); }
 // 00412250 / 004122A0: the counted pointers to the game server (0079B5DC) and client (0079B5D8).
-void __cdecl ReleaseGlobalServer() { RefPtrRelease(&ei::GameData<char>(0x0079B5DC)); }
-void __cdecl ReleaseGlobalClient() { RefPtrRelease2(&ei::GameData<char>(0x0079B5D8)); }
+void __cdecl ReleaseGlobalServer() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x0079B5DC)); }
+void __cdecl ReleaseGlobalClient() { ::RefPtrRelease(&ei::GameData<RefPtr>(0x0079B5D8)); }
 // 0042D900: the CWordArray at 0079B668.
 void __cdecl DestroyGlobalWordArray() { WordArrayDestructOriginal(&ei::GameData<char>(0x0079B668)); }
 // 00432CC0 / 00432D00: the growing buffers at 0079B900 and 0079B8E0, each destroyed once.

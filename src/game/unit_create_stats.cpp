@@ -68,7 +68,7 @@ std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fi
 // 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
 // 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
-void* FindSkill(void* database, void*, const void* name) { return SkillFindOriginal(database, nullptr, name); }
+void* FindSkill(void* database, void*, const void* name) { return static_cast<SkillDatabase*>(database)->FindLevel(static_cast<const char*>(name)); }
 // 00526450. Statistics: learns `skill` of the skill database (UnitStats::LearnSkill).
 void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
     stats->LearnSkill(database, record);
@@ -77,8 +77,6 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
 // This file's functions through their addresses, so their verify wrappers stay in the path.
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
 // CUnit::SetPrototype23C, rewritten elsewhere.
-__declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
-__declspec(naked) std::uint32_t __fastcall SetPrototype23CAt(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005308A0)
 
 // The records by name (null when there is none).
 const Prototype* FindPrototype(const char* name) {
@@ -612,7 +610,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
-        SetServerDataAt(object, nullptr, &vitals);
+        static_cast<CMapObject*>(object)->SetServerDataImpl(&vitals);
         mapObject->SetStats(&stats);
         // The figure stands lower by the model's height.
         float lift = static_cast<float>(-static_cast<double>(model->height));
@@ -626,7 +624,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
         std::memcpy(&mapObject->baseScale, &scale, sizeof(scale));
         mapObject->ApplyBaseScale();
-        SetPrototype23CAt(object, nullptr, reinterpret_cast<const char*>(prototype));
+        static_cast<CUnit*>(object)->SetPrototype23C(reinterpret_cast<const char*>(prototype));
     }
     char* record = unitdb::PrototypeTable().FindByName(name);
     object->prototypeId_ = record

@@ -22,6 +22,7 @@
 #include "unit.h"
 #include "map_object_figures.h"
 #include "world.h"
+#include "world_glue.h"
 
 #include <cstdint>
 #include <cstring>
@@ -42,9 +43,8 @@ void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
-// container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
-void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
-void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
+// container (RET 4); 0065C290 an edit window's text (RET 4).
+void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }   // 005FDC00
@@ -58,7 +58,7 @@ __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGI
 struct TextGlue {
     void* Table();   // 00578E20
 };
-void* TextGlue::Table() { return GameFlowOriginal(); }
+void* TextGlue::Table() { return GameClientTexts(); }
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
@@ -146,7 +146,7 @@ mfc::CString& MpHeroName(int index) {
 void CMpHeroScreen::CloseRenameEdit() {
     SurfaceFreeze(window.surfaces_.data[3], nullptr, 0, 0);
     renameEdit_->SetEnabled(0, 1);
-    EditActivate(renameEdit_, nullptr, 0);
+    renameEdit_->SetFocused(false);
 }
 
 void CMpHeroScreen::BackToNewHero() {
@@ -183,7 +183,7 @@ void CMpHeroScreen::FinishRename() {
 }
 
 void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (UiHandled(this)) return;
     CInterface3D* ui = window.interface_;
     bool renaming = renameEdit_->focused_;
@@ -251,7 +251,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
 
 void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (renameEdit_->focused_) return;
-    InputOf(this)->BaseLButtonDown(flags, x, y);
+    InputOf(this)->OnLeftDown(flags, x, y);
     if (UiHandled(this)) return;
     CInterface3D* ui = window.interface_;
     int region = window.RegionAt(x, y);
@@ -375,7 +375,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, game::Text(0x00793A30), game::Text(0x00793A40),
                                                  0x10000, 3, 1)
                            : nullptr;
-        InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+        ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
         return;
     }
     case 8: {
@@ -383,7 +383,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
         CCampPages* camp = BuildCamp(window.interface_, &flags);
-        InterfacePushWindowOriginal(window.interface_, nullptr, camp, 0, 1);
+        window.interface_->PushWindow(camp, 0, 1);
         return;
     }
     default:
@@ -415,7 +415,7 @@ constexpr std::uint32_t kBright = 0xA7D7E4;
 void CMpHeroScreen::Rename() {
     if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
     renameEdit_->SetEnabled(1, 1);
-    EditActivate(renameEdit_, nullptr, 1);
+    renameEdit_->SetFocused(true);
     mfc::CString name(MpHeroName(heroIndex_));
     int bar = CStringFindTextOriginal(&name, nullptr, RenameBar());
     if (bar < 0) {
@@ -520,13 +520,13 @@ void CMpHeroScreen::Continue() {
     ui->PlaySound(SoundOk(), 0);
     if (heroIndex_ >= 0 && static_cast<unsigned>(heroIndex_) < static_cast<unsigned>(HeroCount())) {
         static_cast<SavedParties*>(MpHeroesObject())->SaveAll();
-        InterfacePushWindowOriginal(ui, nullptr, BuildConnectScreen(ui), 1, 1);
+        ui->PushWindow(BuildConnectScreen(ui), 1, 1);
         return;
     }
     void* memory = gamecrt::operator_new(0x180);
     void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, game::Text(0x00793AA8), game::Text(0x00793AB4), 0x20000, 1, 1)
                        : nullptr;
-    InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+    ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 namespace {
 void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
@@ -600,7 +600,7 @@ void MpHeroRoster::Select(const MpHeroRecord* hero) { current.Assign(hero); }
 EI_REPLACE_METHOD(0x00662F80, MpHeroRoster::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
-    PartyRecordsConstructOriginal(party);   // 00661050 by address: its wrapper runs
+    Party()->Construct();   // 00661050 by address: its wrapper runs
     new (&file) mfc::CString();
     return this;
 }
@@ -722,20 +722,20 @@ void CMpHeroScreen::AddNewHero() {
     // Only the chosen equipment stays (each list walked from its end; the count read once).
     for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
         if (static_cast<void*>(hero->weapons[i]) != weapon_)
-            RecordRemoveQuickEntryOriginal(hero, nullptr, hero->weapons[i]);
+            static_cast<PartyUnitRecord*>(hero)->RemoveWeapon(static_cast<CItem*>(hero->weapons[i]));
     for (int i = static_cast<int>(hero->quickItemCount) - 1; i >= 0; --i)
         if (static_cast<void*>(hero->quickItems[i]) != armor_)
-            RecordRemoveBeltEntryOriginal(hero, nullptr, hero->quickItems[i]);
+            static_cast<PartyUnitRecord*>(hero)->RemoveQuickItem(static_cast<CItem*>(hero->quickItems[i]));
     for (int i = static_cast<int>(hero->spellCount) - 1; i >= 0; --i)
         if (static_cast<void*>(hero->spells[i]) != spellContainer_)
-            RecordRemoveSpellEntryOriginal(hero, nullptr, hero->spells[i]);
+            static_cast<PartyUnitRecord*>(hero)->RemoveSpell(static_cast<CItem*>(hero->spells[i]));
     hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
     if (static_cast<int>(hero->spellCount) > 0) {
         auto* container = static_cast<CItem*>(hero->spells[0]);
         auto* spell = reinterpret_cast<char*>(container->spell_);
         if (spell && !HeroCanUseSpell(hero->stats, spell)) {
-            PartyAddItemOriginal(LocalPlayerData(), nullptr, container, 0, 1);
-            RecordRemoveSpellEntryOriginal(hero, nullptr, container);
+            reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(static_cast<CItem*>(container), 0, 1);
+            hero->RemoveSpell(container);
         }
     }
 

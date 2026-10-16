@@ -46,12 +46,12 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
             return;
         }
     } else {
-        InputOf(this)->BaseMouseMove(buttons, x, y);
+        InputOf(this)->OnMouseMove(buttons, x, y);
         if (inputHandled_) return;
     }
     // The original passes the address of its own (x, y) arguments and reads them back.
     int point[2] = {x, y};
-    CUnit* unit = WorldUnitAtPointOriginal(WorldClient(), nullptr, point);
+    CUnit* unit = static_cast<CUnit*>(WorldClient()->UnitAt(reinterpret_cast<const long*>(point)));
     HoverUnit(unit, point[0], point[1]);
 }
 namespace {
@@ -66,7 +66,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
         return;
     }
     if (!viewPressed_) {
-        InputOf(this)->BaseLButtonDown(buttons, x, y);
+        InputOf(this)->OnLeftDown(buttons, x, y);
         if (inputHandled_) return;
     }
     viewPressed_ = true;

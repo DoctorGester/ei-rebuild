@@ -15,6 +15,7 @@
 // there reads its depth buffer (its interface and world meshes are off). The item models go through
 // 005ECA10 and the mesh draws, which hand over already.
 #include "item.h"
+#include "world_glue.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -76,10 +77,10 @@ void Flush(UiRenderer* device) {
 
 // 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
-    MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
+    GameRender();
     if (mouseMove) self->InputMouseMove(0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
-    return ContainerDrawOriginal(self, nullptr, pass);
+    return static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
 }
 
 } // namespace

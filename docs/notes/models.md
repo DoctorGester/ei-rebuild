@@ -256,8 +256,8 @@ Create / Destroy call them through their addresses. terrain.h now declares `arch
 `vertexTiles` (+0x1E8; `terrain::VertexTiles` moved there from terrain_sector.h).
 
 The decal projector 0056C750 is `CWorldClient::ProjectDecal` (world_client_decals.cpp; S: the original into private copies of
-the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers reach it through
-`ClientProjectDecalOriginal`, originals_world.h). Statics: the builder 007AF488 and the part points (Vector4 array 007AF478),
+the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers call it directly).
+Statics: the builder 007AF488 and the part points (Vector4 array 007AF478),
 guard 007AF504, exit handlers 0056CE30 / 0056CE10. The platform pass walks the platform faces (an object with several faces
 adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
 (`kDecalStack`), transforms the part's packets with the transposed top through the transform object's slot 26

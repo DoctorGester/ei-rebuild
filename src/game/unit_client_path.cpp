@@ -108,7 +108,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     std::memcpy(&length, &animation->stride, sizeof(length));
     // FCOMP + TEST AH,0x40: equal to 0 (or unordered).
     if (x87::IsNaN(length) || length == 0.0f) {
-        unit->animationSpeed = static_cast<float>(UnitResistanceToOriginal(unit, nullptr, animation));
+        unit->animationSpeed = static_cast<float>(unit->ActionSpeed(animation));
         return;
     }
     // The database the animation is in: its index (read as a dword) back to the first one.

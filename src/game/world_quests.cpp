@@ -293,8 +293,8 @@ namespace {
 static const char** UnitPrototype(CEngineObject* object, void*) { return static_cast<const char**>(::UnitPrototypeOf(object)); }
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
-void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
-void __fastcall PartyRemoveMember(CParty* a0, void*, unsigned a2) { PartyRemoveMemberOriginal(a0, nullptr, a2); }
+void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { a0->AddMember(a2, a3, a4); }
+void __fastcall PartyRemoveMember(CParty* a0, void*, unsigned a2) { a0->RemoveMember(a2); }
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 
 // One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
@@ -484,22 +484,20 @@ constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
-inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
+inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) { return (int)a0->AddItem(static_cast<CItem*>(a2), a3, a4); }
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
-void __fastcall RecordRemoveWorn(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveWornEntryOriginal((void*)a0, nullptr, a2); }
-void __fastcall RecordRemoveQuick(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveQuickEntryOriginal((void*)a0, nullptr, a2); }
-void __fastcall RecordRemoveSpell(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveSpellEntryOriginal((void*)a0, nullptr, a2); }
-void __fastcall RecordRemoveBelt(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveBeltEntryOriginal((void*)a0, nullptr, a2); }
-CEngineObject* __fastcall RecordAddQuick(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddQuickEntryOriginal((void*)a0, nullptr, a2); }
-CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddWornEntryOriginal((void*)a0, nullptr, a2); }
-CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddBeltEntryOriginal((void*)a0, nullptr, a2); }
-CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddSpellEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveWorn(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveArmor(static_cast<CItem*>(a2)); }
+void __fastcall RecordRemoveQuick(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveWeapon(static_cast<CItem*>(a2)); }
+void __fastcall RecordRemoveSpell(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveSpell(static_cast<CItem*>(a2)); }
+void __fastcall RecordRemoveBelt(PartyUnitRecord* a0, void*, void* a2) { a0->RemoveQuickItem(static_cast<CItem*>(a2)); }
+CEngineObject* __fastcall RecordAddQuick(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddWeapon(static_cast<CItem*>(a2)); }
+CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddArmor(static_cast<CItem*>(a2)); }
+CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddQuickItem(static_cast<CItem*>(a2)); }
+CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddSpell(static_cast<CItem*>(a2)); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
-// 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
-__declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
@@ -519,7 +517,7 @@ ItemSourceRef* NewItemRecord(bool refValueBase) {
     auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
     memory->refs = 0;   // before the null test
     if (!memory) return nullptr;
-    if (!refValueBase) return static_cast<ItemSourceRef*>(ItemRecordConstruct(memory, nullptr));
+    if (!refValueBase) return reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
     RefValueConstructBase(memory);
     memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
     return memory;
@@ -575,7 +573,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         if (!spell) continue;
         AddToRecord(party, record, spell, RecordAddSpell);
     }
-    ControllerStoreStats(controller, nullptr, record->stats);
+    controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
 }
 
 } // namespace
@@ -609,7 +607,7 @@ using PlacementArray = mfc::CArray<UnitPlacement>;
 
 __declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
-inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
+inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
@@ -636,7 +634,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot)) AddToRecord(party, record, spell, RecordAddSpell);
-    ControllerStoreStats(controller, nullptr, record->stats);
+    controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
     if (world->sessionKind_ == 1) {
         record->moveMode2 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;

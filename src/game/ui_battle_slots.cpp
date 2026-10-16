@@ -43,7 +43,6 @@ struct LocalPlayerBlock {
 LocalPlayerBlock* LocalPlayer() { return reinterpret_cast<LocalPlayerBlock*>(LocalPlayerData()); }
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
 float SelectedFaceAngle() {
@@ -109,7 +108,7 @@ EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
 // --- 006364E0: slot 30 --------------------------------------------------------------------------
 
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
@@ -163,7 +162,7 @@ void CBattleScreen::MarkPortrait(int index) {
 }
 
 void CBattleScreen::OnUnitJoined(CUnit* unit) {
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
@@ -224,7 +223,7 @@ EI_REPLACE_METHOD(0x006361B0, CBattleScreen::OnUnitJoined);
 void CBattleScreen::OnMessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
-        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, pendingExit_);
+        GameLeaveThroughExit(pendingExit_);
         break;
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
@@ -242,7 +241,7 @@ void CBattleScreen::OnMessageResult(int result) {
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;
         window->sliding_ = false;
-        InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+        interface_->PushWindow(window, 1, 1);
         break;
     }
     case kGameOverQuit:
@@ -276,6 +275,6 @@ void CBattleScreen::OnGameOver(char won) {
                                                    game::Text(0x007942FC), static_cast<int>(0xFFFF0000u), 3, 1)   // "end_of_game_msg"
                      : nullptr;
     }
-    InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 EI_REPLACE_METHOD(0x006365E0, CBattleScreen::OnGameOver);

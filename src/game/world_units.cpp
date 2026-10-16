@@ -3,10 +3,14 @@
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "core_streams.h"
+#include "lever.h"
+#include "magic_trap.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
 #include "spell.h"
 #include "unit_ai.h"
+#include "unit_create.h"
+#include "unit_record.h"
 #include "world.h"
 #include "world_data.h"
 #include "game_strings.h"
@@ -80,15 +84,11 @@ static RawString* RawStringInit(RawString* s, void*, const char* text, void* all
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
-__declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
 // Placement on the maps.
 // The unit's setup.
-inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall UnitSet780(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x0052E9B0)
-__declspec(naked) void __fastcall UnitRefreshStats(CEngineObject*, void*) EI_ORIGINAL(0x0050F080)
-void __fastcall UnitGiveItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
+inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
+void __fastcall UnitGiveItem(CEngineObject* a0, void*, CEngineObject* a2) { static_cast<CUnit*>(a0)->AddWeapon(static_cast<CEngineObject*>(a2)); }
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
-__declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0052EB10)
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
@@ -190,7 +190,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
             memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
             record = memory;
         } else {
-            record = static_cast<ItemSourceRef*>(ItemRecordConstruct(memory, nullptr));
+            record = reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
         }
     }
     record->itemId = static_cast<std::uint32_t>(itemRecord->id_);
@@ -244,7 +244,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         object.skinTexture = record->texts[4];
         StringArraySetSize(&object.parts, nullptr, 0, -1);
         const char* prototypeName = record->texts[5];
-        int type = PrototypeClass(MapObjectManager(), nullptr, prototypeName);
+        int type = PrototypeObjectClass(prototypeName);
         object.parentId = type;   // +0x50: the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
@@ -289,8 +289,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         UnitSetController(unit, nullptr, player);
         slots->SetScriptName(record->texts[0]);
-        UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->fightAtWill));
-        UnitRefreshStats(unit, nullptr);
+        static_cast<CUnit*>(unit)->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
+        static_cast<CMapObject*>(unit)->ClearProtectionBases();
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         AsUnit(unit)->ReleaseAllItems();
 
@@ -300,15 +300,15 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             UnitGiveItem(unit, nullptr, MakeItem(this, record->weapons[n], false));
         AsUnit(unit)->Controller()->ShowWeapon(0);
         for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
-            UnitEquipArmourOriginal(unit, nullptr, MakeItem(this, record->armor[n], true));
+            static_cast<CUnit*>(unit)->EquipArmour(MakeItem(this, record->armor[n], true));
         for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
             auto* item = static_cast<CItem*>(MakeItem(this, record->quickItems[n], true));
             item->count_ = static_cast<CItem*>(record->quickItems[n])->count_;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
-            UnitAddQuickItemOriginal(unit, nullptr, item);
+            static_cast<CUnit*>(unit)->AddQuickItem(item);
         }
         for (int n = 0; n < static_cast<int>(record->spellCount); ++n)
-            UnitAddSpellOriginal(unit, nullptr, MakeItem(this, record->spells[n], true));
+            static_cast<CUnit*>(unit)->AddSpell(MakeItem(this, record->spells[n], true));
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
@@ -318,10 +318,10 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         if (sessionKind_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = AIMap()->IsPassableForClass(1, &AsUnit(unit)->position);
-            if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
+            if (flagged) static_cast<CUnit*>(unit)->SetMoveModes(placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }
-        ControllerRepositionOriginal(controller);
+        static_cast<CUnitServer*>(controller)->ResyncWithUnit();
         if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
             AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
         if (placement && sessionKind_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
@@ -338,7 +338,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             void* brain = &static_cast<CUnitServer*>(controller)->brain;
             void* follow = static_cast<AIBrain*>(brain)->FindPlayerMode();
             if (!follow) continue;
-            FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->leaderId));
+            static_cast<PlayerMode*>(follow)->SetLeader(static_cast<AIBrain*>(brain), WorldFindUnit(this, nullptr, record->leaderId));
         }
     }
 
@@ -387,12 +387,8 @@ void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { static_cast<CMapObjec
 void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { static_cast<CObject3D*>((void*)a0)->SetUpAnimatedFigure(a2); }
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
-__declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { static_cast<CUnit*>((void*)a0)->SetHostileMask((std::uint32_t)a2); }
-__declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
 UnitPrototypeRecord** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (UnitPrototypeRecord**)PrototypeMapAtOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
-__declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
 void __fastcall MarkNewObject(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
 
 // The timed objects' types (world_effect.h).
@@ -502,7 +498,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         static_cast<CMapObject*>(object)->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
-        if (object->GetClassId() == world::kClassUnit) ControllerRepositionOriginal(AsUnit(object)->controller);
+        if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
         ObjectSetName(object, nullptr, spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
@@ -533,7 +529,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
-        ObjectSetup7(object, nullptr, &reinterpret_cast<mapspec::TrapSpec*>(message)->diplomacy);
+        static_cast<MagicTrap*>(object)->SetUp(reinterpret_cast<const MagicTrapRecord*>(&reinterpret_cast<mapspec::TrapSpec*>(message)->diplomacy));
         return result;
     }
     case 1:
@@ -563,13 +559,13 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             reinterpret_cast<CUnit*>(object)->SetSide(spec->side);
             UnitSetDiplomacy(object, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
-            ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);
+            reinterpret_cast<CMapObjectManager*>(MapObjectManager())->GiveStartingEquipment(static_cast<CUnit*>(object), unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
-                UnitAddQuickItemOriginal(object, nullptr, ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
+                static_cast<CUnit*>(object)->AddQuickItem(ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
             }
-            UnitRecordApply(unitSpec->stats, nullptr, object);
+            reinterpret_cast<unitrecord::UnitRecord*>(unitSpec->stats)->ApplyTo(static_cast<CUnit*>(object));
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
             const char* prototypeName = unitSpec->prototype;
             UnitPrototypeRecord* prototype;
@@ -599,7 +595,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             static_cast<CMapObject*>(object)->MarkChanged(6);
             static_cast<CMapObject*>(object)->MarkChanged(0xB);
         } else if (type == 8) {
-            ObjectSetup8(object, nullptr, reinterpret_cast<mapspec::LeverSpec*>(message)->stats);
+            static_cast<Lever*>(object)->SetUp(reinterpret_cast<const LeverSetup*>(reinterpret_cast<mapspec::LeverSpec*>(message)->stats));
             static_cast<CMapObject*>(object)->MarkChanged(5);
         } else {
             ManagerRegister(MapObjectManager(), nullptr, object);
@@ -612,7 +608,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         ObjectSetName(object, nullptr, spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
-        if (object->GetClassId() == world::kClassUnit) ControllerRepositionOriginal(AsUnit(object)->controller);
+        if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);

@@ -11,6 +11,7 @@
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/mfc_gdi.h"
 #include "originals_ui.h"
 
 namespace {
@@ -24,7 +25,7 @@ HWND GameWindow() { return *reinterpret_cast<HWND*>(0x0079BC28); }
 
 int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
     if (!holder_) return 0;
-    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(dc_));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
@@ -57,13 +58,13 @@ EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
 SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
-    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(gameapi::GetDC(GameWindow())));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(gameapi::GetDC(GameWindow())));
     void* oldFont = dc->SelectFont(fonts_[font]);
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
-    gameapi::GetTextExtentPoint32A(dc->hdc_, text, text.GetLength(), &size);
+    gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);
     dc->SelectFont(oldFont);
-    gameapi::ReleaseDC(GameWindow(), dc->hdc_);
+    gameapi::ReleaseDC(GameWindow(), dc->hdc);
     if (widescreen::Active()) {
         // WideScreen (addon's 80 bytes at 005F83CF): by the 4:3 part's width and the mode's height.
         *out = widescreen::TextExtentToLayout(size);

@@ -190,8 +190,6 @@ __declspec(naked) int __fastcall PrintsDatabaseLoadAt(void*, void*, const char* 
 __declspec(naked) void __fastcall InterfaceCreateAt(CInterface3D*, void*, CTextureDevice*) EI_ORIGINAL(0x005F4990)
 __declspec(naked) void __fastcall InterfaceShutdownAt(CInterface3D*) EI_ORIGINAL(0x005F4F90)
 // The game flow (007AFE20): 00581660 both sessions closed.
-// 006916F0 (ECX the texture manager; not read): the composed textures' files deleted.
-__declspec(naked) void __fastcall DeleteComposedTexturesAt(void* /*textureManager*/) EI_ORIGINAL(0x006916F0)
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -410,7 +408,7 @@ DWORD CreateRenderer() {
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    static_cast<CSceneRenderer*>(DisplayObject())->CreateRendererImpl(MainWindow(), options);
+    static_cast<CSceneRenderer*>(SceneRenderer())->CreateRendererImpl(MainWindow(), options);
 
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
@@ -531,10 +529,10 @@ void TakeActivationChange() {
             device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
             gameapi::LeaveCriticalSection(DeviceLock());
         }
-        static_cast<CSceneRenderer*>(DisplayObject())->flags_ |= 1;
+        static_cast<CSceneRenderer*>(SceneRenderer())->flags_ |= 1;
         gameapi::SetCursor(nullptr);
     } else {
-        static_cast<CSceneRenderer*>(DisplayObject())->flags_ &= ~1u;
+        static_cast<CSceneRenderer*>(SceneRenderer())->flags_ &= ~1u;
         gameapi::InvalidateRect(nullptr, nullptr, TRUE);
     }
     ActivationChanged() = 0;
@@ -613,14 +611,14 @@ bool RunPass() {
     TakeActivationChange();
     std::uint32_t elapsed = TimeSinceLastPass();
     void* glue = GameGlueObject();
-    if (!(static_cast<CSceneRenderer*>(DisplayObject())->flags_ & 1)) {
+    if (!(static_cast<CSceneRenderer*>(SceneRenderer())->flags_ & 1)) {
         GuardPlayerData(glue, nullptr, 0);
         return false;
     }
     GuardPlayerData(glue, nullptr, 1);
     CWorldClient* client = Client();
     if (client->IsLocalPlayerIdle()) {
-        if (IsNetworkClientOriginal()) TheGameFlow()->RecreateClientSession();
+        if (IsMultiplayerClient()) TheGameFlow()->RecreateClientSession();
         else TheGameFlow()->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
@@ -663,7 +661,7 @@ bool RunPass() {
         }
     }
     Interface()->Update();
-    FrameStepOriginal(static_cast<char>(MovieModeFlag()), 1);
+    app::FrameStep(static_cast<char>(MovieModeFlag()) != 0, true);
     return true;
 }
 
@@ -692,14 +690,14 @@ int RunMainLoop(bool interfaceInput) {
 // ---- Shutdown --------------------------------------------------------------------------------------
 
 void ShutDown(gamecrt::NewHandler previousHandler) {
-    DeleteComposedTexturesAt(TextureManager());
+    DeleteComposedTextures();
     InterfaceShutdownAt(Interface());
     static_cast<CCursor*>(GameCursor())->Shutdown();
     CDirectInputMouse* mouse = Mouse();
     Mouse() = nullptr;
     if (mouse) ReleaseMouse(mouse);
     static_cast<CSceneRenderer*>(SceneContext())->SetGamma(0.0f, 0.0f, 0.0f);
-    static_cast<CSceneRenderer*>(DisplayObject())->DestroyRenderer();
+    static_cast<CSceneRenderer*>(SceneRenderer())->DestroyRenderer();
     OptionsSaveAt(options::TheOptions(), nullptr, RegistryRoot());
     Client()->SetCamera(nullptr);
     Server()->Teardown();

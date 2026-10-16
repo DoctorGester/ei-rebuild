@@ -261,13 +261,6 @@ int __fastcall Tokenize(const char* text, CStringArray* out);
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix);
 
-// The error the mission script loader reports (text, code, line).
-struct ScriptLoadError {
-    mfc::CString text;
-    int code = 0;
-    int line = 0;
-};
-
 // Command handlers (console_commands.cpp).
 namespace commands {
 void __fastcall Help(CStringArray* args);          // 005DF5E0 help

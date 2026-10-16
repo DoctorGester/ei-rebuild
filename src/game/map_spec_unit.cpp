@@ -2,7 +2,9 @@
 // records (0x4C bytes: patrols of waypoints and the guard settings), the small chunk classes that
 // read and write those (vtables 0073C710 waypoint, 0073C718 patrol, 0073C720 behaviour) and the
 // patrol array's copy. See docs/notes/objects.md ("Rewritten").
+#include "ai_map.h"
 #include "map_object.h"
+#include "combat.h"
 #include "map_spec.h"
 #include "core_streams.h"
 #include "record_arrays.h"
@@ -66,8 +68,6 @@ __declspec(naked) Patrol* __fastcall PatrolDelete(Patrol*, void*, unsigned) EI_O
 __declspec(naked) Waypoint* __fastcall WaypointAt(const Array<Waypoint>*, void*, Waypoint* /*out*/, int) EI_ORIGINAL(0x0046EFA0)
 // The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
 // object; the world object's updates.
-__declspec(naked) void __fastcall SelectionTurnObject(void*, void*, void* /*object*/, const Quaternion*) EI_ORIGINAL(0x005BC180)
-void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -378,7 +378,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
         return;
     }
     SectorMapMove(reinterpret_cast<void*>(0x007B01F4), nullptr, AsEngineObject(b.object), &b.position);
-    SelectionTurnObject(reinterpret_cast<void*>(0x007B00D0), nullptr, b.object, &b.rotation);
+    reinterpret_cast<CAIMap*>(0x007B00D0)->TurnObject(static_cast<CEngineObject*>(b.object), &b.rotation);
     auto* unit = static_cast<CUnit*>(b.object);
     std::memcpy(&unit->orientation, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);
@@ -387,7 +387,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     std::uint32_t& flags = unit->flags_;
     if (!self->object.visible) flags |= 8;
     else flags &= ~8u;
-    UnitResetMotion(unit->controller);
+    static_cast<CUnitServer*>(unit->controller)->ResyncWithUnit();
     static_cast<CMapObject*>(b.object)->MarkChanged(1);
 }
 EI_REPLACE(0x0046C4D0, UnitSpecApply);

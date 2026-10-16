@@ -97,7 +97,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
                 if (width < titleRect.right - titleRect.left) {
                     ui_gdi::GamePen pen;
                     pen.Construct(PS_SOLID, 1, kCaretColour);
-                    void* oldPen = dc->SelectPen(&pen);
+                    mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
                     // WideScreen (006569F7 / 00656A08: XOR ECX,ECX): without the margin.
@@ -105,7 +105,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
                     interface_->CallScalePointToScreenNoMargin(&bottom);
                     dc->MoveTo(top.x, top.y);
                     dc->LineTo(bottom.x, bottom.y);
-                    dc->SelectPen(oldPen);
+                    dc->SelectObject(oldPen);
                     pen.Destruct();
                 }
             }

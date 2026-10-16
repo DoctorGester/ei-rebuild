@@ -711,7 +711,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         if (!self->player) return;
         message = kMessageCannotDo;
     } else {
-        PathToMotionOrder(path, nullptr, &end);
+        path->ToMotionOrder(reinterpret_cast<AIPath*>(&end));
         float dy = self->position.y - goal[1];
         float dx = self->position.x - goal[0];
         float reached = LengthSquared2DUnrounded(dx, dy);
@@ -736,8 +736,8 @@ EI_REPLACE_METHOD(0x0054EB30, CUnitServer::ReportPath);
 namespace {
 // 0052B030 a reference's release, 0052A8F0 its assignment; 00544E70 does the queue hold `steps`.
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
-void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefAssignOriginal((void*)a0, nullptr, (void*)a2); }
-bool __fastcall QueueHolds(AnimationSteps* a0, void*, const AnimationSteps* a2) { return StepsQueueHoldsOriginal((void*)a0, nullptr, (const void*)a2); }
+void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { AIRef::Of(a0)->Assign(a2); }
+bool __fastcall QueueHolds(AnimationSteps* a0, void*, const AnimationSteps* a2) { return static_cast<AnimationSteps*>(a0)->SameAs(a2); }
 IsaacRandom& Random() { return IsaacRandom::Global(); }   // 007A9D40
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.

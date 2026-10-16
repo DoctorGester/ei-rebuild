@@ -1,6 +1,7 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
+#include "base_manager.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
 #include "world.h"
@@ -136,8 +137,6 @@ void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOrigin
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 0059D6D0. The other id maps' clear.
 __declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
-// 00404410. A manager's clear.
-__declspec(naked) void __fastcall ManagerClear(CEngineObject*, void*) EI_ORIGINAL(0x00404410)
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
@@ -186,9 +185,9 @@ void CWorldServer::ResetZone() {
     EndTimedObjects(this);
     *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
     *reinterpret_cast<mfc::CString*>(&zoneName_) = game::EmptyText();
-    if (manager3C_) ManagerClear(manager3C_, nullptr);
-    if (manager40_) ManagerClear(manager40_, nullptr);
-    if (manager44_) ManagerClear(manager44_, nullptr);
+    if (manager3C_) static_cast<CBaseManager*>(manager3C_)->FreeSpares();
+    if (manager40_) static_cast<CBaseManager*>(manager40_)->FreeSpares();
+    if (manager44_) static_cast<CBaseManager*>(manager44_)->FreeSpares();
 }
 
 // ---- TeardownZone -----------------------------------------------------------------------------

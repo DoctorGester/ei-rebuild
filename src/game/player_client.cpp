@@ -314,7 +314,7 @@ int CPlayerClient::OnExperienceAll() {
     CPlayer::ObjectMap& units = Owner()->units_;
     for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
-        ClientShowNumberOriginal(WorldClient(), nullptr, unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        WorldClient()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
@@ -325,7 +325,7 @@ int CPlayerClient::OnExperience() {
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
     auto* unit = static_cast<CUnit*>(WorldFindUnit(WorldClient(), nullptr, id));
-    if (unit != nullptr) ClientShowNumberOriginal(WorldClient(), nullptr, id, ScaledExperience(unit, amount), kNumberExperience);
+    if (unit != nullptr) WorldClient()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 
@@ -365,10 +365,6 @@ const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF
 // 0052EA40 (RET 8): a unit's motion speeds (float bits; only this handler calls it).
 __declspec(naked) void __fastcall UnitSetMotionSpeeds(void* /*unit*/, void*, std::uint32_t, std::uint32_t)
     EI_ORIGINAL(0x0052EA40)
-// 00535240 (RET 8): the unit's client controller keeps the two marker sources (+0x24, +0x28; the
-// old ones stopped and released, the new ones referenced).
-__declspec(naked) void __fastcall ControllerSetMarkers(void* /*controller*/, void*, void* /*path*/, void* /*marker*/)
-    EI_ORIGINAL(0x00535240)
 
 // The STLport table's inlined destructor: every node deleted (004616A0), the buckets cleared, the
 // count zeroed, then the bucket vector destroyed (00609F50).
@@ -481,7 +477,7 @@ int CPlayerClient::OnPathMarker() {
         if (MarkersShown()) {
             UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);
             auto* source = static_cast<CParticleSource*>(
-                ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
+                static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
             source->Attach(walker);
             source->typeParam = value;
@@ -494,12 +490,11 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = static_cast<CParticleSource*>(ParticleCreateSourceOriginal(
-            ParticleManagerObject(), nullptr, flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        auto* marker = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
         marker->position = at;
         CEngineObject* owner = player_;
         CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) ControllerSetMarkers(static_cast<CUnit*>(unit)->controller, nullptr, pathSource, marker);
+        if (unit != nullptr) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(unit)->controller)->SetMarkers(reinterpret_cast<CParticleSource*>(pathSource), reinterpret_cast<CParticleSource*>(marker));
     }
     field->Destruct();
     return 1;
@@ -577,10 +572,6 @@ bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 // 00455B50: the 1% check (rand) that runs 00455BA0 / 00458DA0 (ECX is the client, not read).
 __declspec(naked) void __fastcall NewObjectCheckOriginal(void* /*client*/) EI_ORIGINAL(0x00455B50)
-// 005654F0 (RET 8): the client world's variable name for an object's second name, as a CString
-// constructed at `out`; returns `out`.
-__declspec(naked) mfc::CString* __fastcall ClientVariableNameOriginal(void* /*world*/, void*, void* /*out*/,
-                                                                     const char* /*name*/) EI_ORIGINAL(0x005654F0)
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
     return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
@@ -675,7 +666,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            static_cast<CParticleSource*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kWispParticles));
+            static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kWispParticles));
         source->Attach(created);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;
@@ -713,7 +704,7 @@ int CPlayerClient::OnNewObject() {
     WorldClient()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        ClientVariableNameOriginal(WorldClient(), nullptr, variable.bytes, object->name2);
+        static_cast<CWorldClient*>(WorldClient())->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
         object->SetVisibilityLevel(NamedTableGet(&player->Party()->variables_, nullptr, *variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)

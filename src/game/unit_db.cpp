@@ -19,7 +19,6 @@ namespace {
 // `size` bytes (missing ones read as zero), a CString field, entering / leaving chunk `id`.
 // Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
 // as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
-__declspec(naked) void __fastcall FourDwords(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
@@ -82,7 +81,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         ar->LeaveChunk();
     }
     if (ar->EnterChunk(0x1C)) {
-        FourDwords(&secondGold, nullptr, ar);
+        SerializeFourDwords(reinterpret_cast<unsigned int*>(&secondGold), nullptr, ar);
         ar->LeaveChunk();
     }
     ar->SerializeCStrings(0x1D, &lootItems, ar);
@@ -246,7 +245,7 @@ void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, v
 EI_REPLACE_METHOD(0x0053DD00, ChunkArchive::SerializeNpcs);
 
 void ChunkArchive::SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitModelRecord* r) { UnitModelDestroyOriginal(r); },
+    SerializeRecords(this, id, records, [](UnitModelRecord* r) { unitdb::DestroyModelRecord(r); },
                      UnitModelsResizeOriginal, ModelSerializeAt);
 }
 EI_REPLACE_METHOD(0x0053DF50, ChunkArchive::SerializeModels);

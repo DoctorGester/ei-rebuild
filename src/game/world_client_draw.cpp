@@ -10,6 +10,8 @@
 #include "ground_print.h"
 #include "renderer_lines.h"
 #include "net_session.h"
+#include "sky_object.h"
+#include "ui_flying_hit_points.h"
 #include "world.h"
 
 #include "camera.h"
@@ -100,15 +102,8 @@ void PopMatrix(MatrixStack& stack) {
 }
 
 // Render's callees.
-__declspec(naked) void __fastcall SkyDraw(void*, void*, void*, const void*) EI_ORIGINAL(0x004D96E0)
-__declspec(naked) void __fastcall CameraFrame(CCamera*, void*, void*) EI_ORIGINAL(0x0040E810)
-__declspec(naked) void __fastcall TerrainDrawFirst(Terrain*, void*, void*) EI_ORIGINAL(0x006C6230)
-__declspec(naked) void __fastcall TerrainDrawSecond(Terrain*, void*, void*) EI_ORIGINAL(0x006C6330)
 __declspec(naked) int __fastcall DrawPassAt(CWorldClient*) EI_ORIGINAL(0x0056AFE0)
-__declspec(naked) void __fastcall EffectsDraw(void*, void*, void*) EI_ORIGINAL(0x004E2700)
 __declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL(0x00468940)
-__declspec(naked) void __fastcall RibbonsDraw(void*, void*, void*) EI_ORIGINAL(0x004E5680)
-__declspec(naked) void __fastcall HitPointsDraw(void*, void*, void*) EI_ORIGINAL(0x005E18E0)
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
 // addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
@@ -285,7 +280,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
         renderer->distanceFog_ = 0;
-        SkyDraw(skyDome_, nullptr, SceneContext(), &camera_->localPosition_);
+        static_cast<CSky*>(skyDome_)->Draw(static_cast<CSceneRenderer*>(SceneContext()), static_cast<const Vector3*>(&camera_->localPosition_));
         Flush(renderer);
         renderer->distanceFog_ = 1;
         SetRenderState(renderer, 22, 2);
@@ -294,25 +289,25 @@ int CWorldClient::Render() {
     }
     net::Pump();
     if ((flags_ & 0x100) && terrain_) {
-        char frame[12];
-        CameraFrame(camera_, nullptr, frame);
+        Vector3 frame;
+        camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         ApplyStateBlock(renderer, StateBlockTerrain());
-        TerrainDrawFirst(terrain_, nullptr, SceneContext());
+        terrain_->DrawGround(static_cast<CSceneRenderer*>(SceneContext()));
         Flush(renderer);
     }
     DrawPassAt(this);
     net::Pump();
     if ((flags_ & 0x100) && terrain_) {
-        char frame[12];
-        CameraFrame(camera_, nullptr, frame);
+        Vector3 frame;
+        camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         Flush(renderer);
         SetRenderState(renderer, 15, 0);
         ApplyStateBlock(renderer, StateBlockScene());
-        TerrainDrawSecond(terrain_, nullptr, SceneContext());
+        terrain_->DrawWater(static_cast<CSceneRenderer*>(SceneContext()));
         Flush(renderer);
     }
     net::Pump();
@@ -324,7 +319,7 @@ int CWorldClient::Render() {
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        EffectsDraw(arrayManager_, nullptr, SceneContext());
+        static_cast<ClientArrayManager*>(arrayManager_)->DrawImpl(static_cast<CSceneRenderer*>(SceneContext()));
         Flush(renderer);
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
@@ -338,7 +333,7 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
-        RibbonsDraw(RainSnow(), nullptr, SceneContext());
+        static_cast<CRainSnow*>(RainSnow())->DrawImpl(static_cast<CSceneRenderer*>(SceneContext()));
         Flush(renderer);
         SetRenderState(renderer, 14, 1);
     }
@@ -352,7 +347,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 7, 0);
         ApplyStateBlock(renderer, StateBlockAlpha());
         renderer->distanceFog_ = 0;
-        HitPointsDraw(numbers_, nullptr, SceneContext());
+        static_cast<CFlyingHitPoints*>(numbers_)->Draw(static_cast<CSceneRenderer*>(SceneContext()));
         renderer->distanceFog_ = 1;
         Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);

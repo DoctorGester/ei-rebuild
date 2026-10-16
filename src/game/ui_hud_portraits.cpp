@@ -79,8 +79,6 @@ constexpr std::uint32_t kMarkerDepth = 0x41200000;   // 10.0f
 // The interface sprite helpers on scene objects (CUiMesh, ui.h).
 CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
 
-using SpriteQuery = SpritePositionOriginal;   // 005E7010: the sprite's layout position (x, y) and depth
-
 Quaternion* RotationOf(CEngineObject* object) {
     return &Sprite(object)->localRotation_;
 }
@@ -297,7 +295,7 @@ void CHudPortraits::Update() {
         if (SelectedUnitId() == unit->id_) {
             Sprite(sceneObjects_.data[0])->visible_ = 1;
             float x, y, depth;
-            reinterpret_cast<SpriteQuery*>(object(4))->Position(&x, &y, &depth);
+            Sprite(object(4))->GetPlacement(&x, &y, &depth);
             Sprite(sceneObjects_.data[0])->Place(x, static_cast<float>(D(y) - kMarkerRise), FloatFromBits(kMarkerDepth));
         }
     }

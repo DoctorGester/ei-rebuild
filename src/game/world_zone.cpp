@@ -1,6 +1,7 @@
 // CWorldServer: zone loading and teardown (zone exits, .mob object files, clearing the map
 // objects), the script's AddUnitToServer, and writing the map objects into a save. See world.h and
 // docs/notes/world.md.
+#include "map_spec.h"
 #include "world.h"
 #include "game_strings.h"
 
@@ -54,9 +55,6 @@ Quaternion DefaultRotation() {
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
-// 00481660 (RET 8). Reads the objects of an opened .mob file into the server (AL).
-__declspec(naked) bool __fastcall ReadMapObjectFile(Chunk*, void*, CWorldServer*, int /*keepIds*/)
-    EI_ORIGINAL(0x00481660)
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
 // 0059DDB0 (RET 4). Destructor of a counted pointer (releases through slot 4; flags & 1 frees it).
 __declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, unsigned /*flags*/)
@@ -71,9 +69,9 @@ struct UnitRecordBuilder {
     alignas(4) std::uint8_t storage[sizeof(CParty)];
 
     CParty* Party() { return reinterpret_cast<CParty*>(storage); }
-    void Construct() { PartyRecordsConstructOriginal(Party()); }
+    void Construct() { static_cast<CParty*>(Party())->Construct(); }
     void Fill(const char* text, const char* prototype, const char* name) {
-        PartyAddMemberOriginal(Party(), nullptr, text, prototype, name);
+        Party()->AddMember(text, prototype, name);
     }
     void Destruct() { PartyRecordsDestructOriginal(Party()); }
     PartyUnitRecord* Record() { return Party()->members_.data; }
@@ -156,7 +154,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     if (!root->Open(path, 0x8020)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
-        bool read = ReadMapObjectFile(root, nullptr, this, keepIds);
+        bool read = mapspec::LoadMobFile(root, nullptr, this, keepIds);
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }

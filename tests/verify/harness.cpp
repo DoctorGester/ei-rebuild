@@ -217,6 +217,7 @@
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "ei/hook.h"
+#include "game/world_glue.h"
 #include "harness_capture.h"
 #include "harness_address_order.h"
 #include "harness_clock.h"
@@ -257,6 +258,8 @@
 #include "game/object_tables.h"
 #include "game/player_messages.h"
 #include "game/ui.h"
+#include "game/unit.h"
+#include "game/world.h"
 
 #include <windows.h>
 #include <dwmapi.h>
@@ -286,11 +289,11 @@ SyncFn g_sync;
 // 005DC620: the console's command executor; the command text is passed in ECX.
 __declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
 
-// 00578B00 (GameRequestScreenOriginal): the client asks the server for interface screen `id` (the server answers
+// 00578B00 (GameSendLeave04): the client asks the server for interface screen `id` (the server answers
 // with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
-void RequestScreen(int id) { GameRequestScreenOriginal(nullptr, nullptr, id); }
-// 00578560 (GameSetConstructorOriginal): sets player 0's "constr_current" (the constructor the camp opens with).
-void SetCurrentConstructor(float constructor) { GameSetConstructorOriginal(nullptr, nullptr, constructor); }
+void RequestScreen(int id) { GameSendLeave04(id); }
+// 00578560 (GameSetConstructionVariable): sets player 0's "constr_current" (the constructor the camp opens with).
+void SetCurrentConstructor(float constructor) { GameSetConstructionVariable(std::bit_cast<std::uint32_t>(constructor)); }
 // 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
 __declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 constexpr std::uintptr_t kClassTemplates = 0x007AA5D8;
@@ -318,7 +321,7 @@ constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
 // The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
-void* LocalWorldPlayer() { return WorldGetPlayer(reinterpret_cast<void*>(kServerWorld), nullptr, kLocalPlayer); }
+void* LocalWorldPlayer() { return reinterpret_cast<CWorldServer*>(kServerWorld)->GetPlayer(kLocalPlayer); }
 // Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
 // script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
@@ -1381,7 +1384,6 @@ void PostRegionMouse(const std::string& verb, int index) {
 // step tries the rectangle's centre and then a grid inside it until 00565E40 answers with the
 // unit, so a click there selects or orders that unit and no other in front of it.
 // 00461360 (__fastcall) turns the script name into the id AddUnitToServer gave the unit.
-__declspec(naked) void* __fastcall HarnessUnitAtPoint(void* /*client world*/, void*, int* /*x, y*/) EI_ORIGINAL(0x00565E40)
 constexpr std::uintptr_t kClientWorld = 0x007AF5B8;
 constexpr int kClientPickList = 0xF0;
 constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 requires of the unit
@@ -1423,7 +1425,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     }
     for (const POINT& p : candidates) {
         int at[2] = {p.x, p.y};
-        void* hit = byId ? static_cast<void*>(HoverObjectAt(world, nullptr, at)) : HarnessUnitAtPoint(world, nullptr, at);
+        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(reinterpret_cast<const long*>(at))) : reinterpret_cast<CWorldClient*>(world)->UnitAt(reinterpret_cast<const long*>(at));
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;
@@ -1470,8 +1472,6 @@ std::string PostUnitMouse(const std::string& argument) {
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
-__declspec(naked) void* __fastcall HarnessUnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
-
 std::string HudState(const std::string& argument) {
     auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
     auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
@@ -1486,7 +1486,7 @@ std::string HudState(const std::string& argument) {
         CUnit* member = battle->party_[i];
         if (!member) continue;
         void* quick[4];
-        for (int s = 0; s < 4; ++s) quick[s] = HarnessUnitQuickItem(member, nullptr, s);
+        for (int s = 0; s < 4; ++s) quick[s] = member->GetQuickItem(s);
         Log("harness: hudstate: member %d %p flags %08X, quick items %p %p %p %p", i, member,
             at(member, 0x08), quick[0], quick[1], quick[2], quick[3]);
     }

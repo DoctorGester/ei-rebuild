@@ -51,7 +51,7 @@ void ServerSession::DescribeImpl(RefPtr* out) {
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
         std::uint32_t title = 0;   // CString
-        const char* text = *static_cast<const char**>(WorldMapTitle(TheGameFlow(), nullptr, &title));
+        const char* text = *SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
         const char* end = text + std::strlen(text);
         std::size_t length = static_cast<std::size_t>(end - text);
         std::size_t size = static_cast<std::size_t>(description->finish - description->start);

@@ -1,6 +1,7 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
 #include "item.h"
+#include "world_glue.h"
 #include "texture.h"
 #include "ui.h"
 
@@ -18,6 +19,7 @@
 #include "ui_screens.h"
 #include "ui_widescreen.h"
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -474,16 +476,16 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 0: {   // the pause button
         inputHandled_ = true;
         interface_->PlaySound(kSoundClock, 0);
-        const bool paused = GameIsPausedOriginal(GameGlueObject());
-        GameSetPausedOriginal(GameGlueObject(), nullptr, paused ? 0 : 1);
+        const bool paused = GameClientPaused();
+        GameSendFlag10(paused ? 0 : 1);
         return;
     }
     case 1:     // the normal speed
     case 2:     // the fast speed
         inputHandled_ = true;
         // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
-        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        if (GameIsPausedOriginal(GameGlueObject())) GameSetPausedOriginal(GameGlueObject(), nullptr, 0);
+        if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
+        if (GameClientPaused()) GameSendFlag10(0);
         fast_ = region - 1;
         UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;
@@ -513,7 +515,7 @@ void CHudClock::OpenObjectives() {
         BriefingPlayerName zone;
         static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
     }
-    InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
 }
 EI_REPLACE_METHOD(0x00648F10, CHudClock::OpenObjectives);
 
@@ -569,7 +571,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
-        marker->localRotation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
+        marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
         const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
         SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
@@ -688,10 +690,9 @@ void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)-
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
 // CPlayerClient::SendFollow, through its address).
-// CUnit::GetQuickItem, CItem::GetCategory and the sprite's SetScale, through their addresses
-// (the camera's SetTarget too: CameraSetTargetOriginal).
+// The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
 void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
-    SpriteSetScaleOriginal(sprite, nullptr, scaleBits);
+    static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(scaleBits));
 }
 
 constexpr int kCategoryWand = 8;
@@ -730,7 +731,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return HoverObjectAt(WorldClient(), nullptr, point);
+        return static_cast<CUnit*>(WorldClient()->PickAt2(reinterpret_cast<const long*>(point)));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };
@@ -1017,15 +1018,11 @@ UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
 
 namespace {
 
-// The local player glue (ClientGlueObject(), 007AFEA5, thiscall): 00578A00 the zone exit at a
-// point (RET 8; jumps to the client world's 00567440), 00578A40 an exit's zone name (RET 4;
-// GameExitZoneOriginal).
-__declspec(naked) int __fastcall GlueExitAt(void*, void*, const Vector3*, int*) EI_ORIGINAL(0x00578A00)
 // The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0,
 // PartyArraySetSizeOriginal).
 using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
-// (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
+// (CPlayerClient::SendWalk), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
 // 0073B84C: the constant 1.0f the zone variable is compared with.
 float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
@@ -1046,8 +1043,8 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     exitPending_ = 0;
     int exit;
     void* glue = ClientGlueObject();
-    if (GlueExitAt(glue, nullptr, &point, &exit) && selected > 0) {
-        mfc::CString name(GameExitZoneOriginal(glue, nullptr, exit));
+    if (GameFindExitAt(&point.x, &exit) && selected > 0) {
+        mfc::CString name(GameExitTarget(exit));
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                             reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
@@ -1076,7 +1073,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         if (static_cast<std::uint8_t>(mode) != 0)
             view->SendGoTo(&units, &point, ctrl & 0xFF);
         else
-            LocalViewSendWalkOriginal(view, nullptr, &units, &point.x, ctrl & 0xFF);
+            view->SendWalk(&units, &point, ctrl & 0xFF);
     }
     units.vtable = reinterpret_cast<void*>(kUnitPtrArrayVtable);
     units.FreeData();

@@ -1,6 +1,7 @@
 // CWorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
 // the id maps. See world.h.
 #include "player_messages.h"
+#include "unit.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -56,7 +57,7 @@ CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, n
 // 00599A80 (RET 4). An id map's erase(key).
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
-inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
+inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
 // 004BED90. A script command queue (+0x12874, +0x12A6C) drops what refers to removed objects.
 __declspec(naked) void __fastcall CommandQueuePurge(void*, void*) EI_ORIGINAL(0x004BED90)
 // 0067EF00 (RET 4). A missile forgets `object`: 0 when it is the missile's owner (+0x1C; the missile

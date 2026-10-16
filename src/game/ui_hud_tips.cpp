@@ -78,7 +78,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             ItemName(weapon, 20, &model);
             AddWeaponSprite(this, nullptr, model.data, image.data);
         }
-        TextManagerItemTexts(Texts(), nullptr, weapon, &tip, &description, &line);
+        Texts()->GetItemTexts(weapon, &tip, &description, &line);
         tip += game::Text(0x00784340);   // "\n"
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
@@ -128,7 +128,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     mfc::CString line;
     text->Empty();
     // (The original passes one CString as the description and the kind.)
-    TextManagerItemTexts(Texts(), nullptr, item, text, &line, &line);
+    Texts()->GetItemTexts(item, text, &line, &line);
     auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
     const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);

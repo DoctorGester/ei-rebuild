@@ -40,16 +40,6 @@ T Read(const std::uint8_t* p, int offset) {
 // 00660840 (thiscall on the hero record): the weight the hero carries, in ST0.
 __declspec(naked) double __fastcall CarriedWeight(const std::uint8_t*) EI_ORIGINAL(0x00660840)
 
-// The panel's row painters (thiscall on the panel).
-struct StatsRows {
-    // 006242E0: "<label>" and the value (and "/ max" unless -1) in `rect`.
-    void Row(RECT* rect, const char* label, int value, int maximum);
-    // 00624590: a body part's armour line.
-    void Part(RECT* rect, const char* name, int part);
-};
-__declspec(naked) void StatsRows::Row(RECT*, const char*, int, int) EI_ORIGINAL(0x006242E0)
-__declspec(naked) void StatsRows::Part(RECT*, const char*, int) EI_ORIGINAL(0x00624590)
-
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
     void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
@@ -147,7 +137,6 @@ void CHeroStatsPanel::DrawStats() {
     mfc::CString line;
     mfc::CString text;
     CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
-    StatsRows* rows = reinterpret_cast<StatsRows*>(this);
     RECT rect;
 
     if (page_ == 10) {
@@ -157,17 +146,17 @@ void CHeroStatsPanel::DrawStats() {
         int intelligence = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x1C))));
         int sum = intelligence + dexterity + strength;
         rect = RECT{0x14, 0x41, 0x82, 0x50};
-        rows->Row(&rect, Label(0x00793BF0), strength, -1);
+        DrawRow(&rect, Label(0x00793BF0), strength, -1);
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BF4), dexterity, -1);
+        DrawRow(&rect, Label(0x00793BF4), dexterity, -1);
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BF8), intelligence, -1);
+        DrawRow(&rect, Label(0x00793BF8), intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        rows->Row(&rect, texts_[5], static_cast<int>(gamecrt::Ftol(D(GameFloat(0x00741F04)) - D(sumF))), -1);
+        DrawRow(&rect, texts_[5], static_cast<int>(gamecrt::Ftol(D(GameFloat(0x00741F04)) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
-        rows->Row(&rect, texts_[6], points_, -1);
+        DrawRow(&rect, texts_[6], points_, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
@@ -204,13 +193,13 @@ void CHeroStatsPanel::DrawStats() {
         texts->GetString(game::Text(0x00793DC0), &text);   // "infoitem_25"
         draw->Text(text, &rect, 0, kBright, 0, 1);
         Down(&rect);
-        rows->Part(&rect, game::Text(0x00793DB8), 0);   // skull
+        DrawPart(&rect, game::Text(0x00793DB8), 0);   // skull
         Down(&rect);
-        rows->Part(&rect, game::Text(0x00793DB0), 2);   // arms
+        DrawPart(&rect, game::Text(0x00793DB0), 2);   // arms
         Down(&rect);
-        rows->Part(&rect, game::Text(0x00793DA8), 1);   // torso
+        DrawPart(&rect, game::Text(0x00793DA8), 1);   // torso
         Down(&rect);
-        rows->Part(&rect, game::Text(0x00793DA0), 4);   // legs
+        DrawPart(&rect, game::Text(0x00793DA0), 4);   // legs
         Down(&rect);
         Down(&rect);
         if (Read<int>(hero(), 0x774) == -1) {
@@ -258,27 +247,27 @@ void CHeroStatsPanel::DrawStats() {
         }
         int weight = static_cast<int>(gamecrt::Ftol(CarriedWeight(hero())));
         int capacity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x54))));
-        rows->Row(&rect, Label(0x00793C0C), weight, capacity);   // Encumbrance
+        DrawRow(&rect, Label(0x00793C0C), weight, capacity);   // Encumbrance
         Down(&rect);
         if (weight > capacity) draw->Text(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);
         draw->Text(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
-        rows->Row(&rect, Label(0x00793BF0), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x10)))), -1);   // Strength
+        DrawRow(&rect, Label(0x00793BF0), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x10)))), -1);   // Strength
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BF4), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x18)))), -1);   // Dexterity
+        DrawRow(&rect, Label(0x00793BF4), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x18)))), -1);   // Dexterity
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BF8), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x20)))), -1);   // Intelligence
+        DrawRow(&rect, Label(0x00793BF8), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x20)))), -1);   // Intelligence
         Down(&rect);
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BFC), static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->HitPointCurve())), -1);              // Health
+        DrawRow(&rect, Label(0x00793BFC), static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->HitPointCurve())), -1);              // Health
         Down(&rect);
-        rows->Row(&rect, Label(0x00793C00), static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->ManaCurve())), -1);            // Mana
+        DrawRow(&rect, Label(0x00793C00), static_cast<int>(gamecrt::Ftol(reinterpret_cast<UnitStats*>(stats)->ManaCurve())), -1);            // Mana
         Down(&rect);
-        rows->Row(&rect, Label(0x00793C04), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x30)))), -1);   // Actions
+        DrawRow(&rect, Label(0x00793C04), static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x30)))), -1);   // Actions
         Down(&rect);
-        rows->Row(&rect, Label(0x00793C08),
+        DrawRow(&rect, Label(0x00793C08),
                   static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x700)) + D(Read<float>(stats, 0x04)))), -1);   // Experience
         Down(&rect);
         double carried;
@@ -290,7 +279,7 @@ void CHeroStatsPanel::DrawStats() {
         }
         int weight = static_cast<int>(gamecrt::Ftol(carried));
         int capacity = static_cast<int>(gamecrt::Ftol(D(Read<float>(stats, 0x54))));
-        rows->Row(&rect, Label(0x00793C0C), weight, capacity);   // Encumbrance
+        DrawRow(&rect, Label(0x00793C0C), weight, capacity);   // Encumbrance
         Down(&rect);
         if (weight > capacity) draw->Text(texts_[4], &rect, 0, 0xFF, 2, 1);
         Down(&rect);

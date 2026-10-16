@@ -29,11 +29,8 @@ namespace lib { template <typename T> struct AlignedArray; }
 __declspec(naked) inline void __fastcall ObjectMapClearOriginal(void* /*map*/) EI_ORIGINAL(0x0047B670)
 __declspec(naked) inline double __fastcall SurfaceHeightRaw(void* /*owner*/, void*, float /*x*/, float /*y*/)
     EI_ORIGINAL(0x00564070)
-__declspec(naked) inline CUnit* __fastcall HoverObjectAt(void*, void*, const int*) EI_ORIGINAL(0x005659D0)
 // 00565E40: the client world (007AF5B8) picks the unit drawn at a screen point (thiscall, RET 4: the address of
 // the point's x, y; EAX = the unit or null). The battle screen passes its own (x, y) argument slots.
-__declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*world*/, void*, int* /*point*/)
-    EI_ORIGINAL(0x00565E40)
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
 // 00512030 (library: STLport list<id>::erase(iterator), the client's selection list +0x7BC; thiscall, RET 8: the result
 // slot, the node).
@@ -51,7 +48,6 @@ __declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*ve
 // The figure models (FigureModel, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor.
 __declspec(naked) inline void* __fastcall FigureModelConstructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9A50)
 __declspec(naked) inline void __fastcall FigureModelDestructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9C90)
-__declspec(naked) inline void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 __declspec(naked) inline double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
 // 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
 // record; EAX the object's id. Patched by Rebirth.
@@ -62,13 +58,6 @@ __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*,
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game
 // flow (007AFE20) applies a multiplayer client's update from the server (thiscall, plain RET).
 __declspec(naked) inline void __fastcall FlowUpdateFromServerOriginal(void* /*flow*/) EI_ORIGINAL(0x005800C0)
-// 0057F440 (rewritten as IsMultiplayerClient): no arguments (a plain RET, ECX is not read); AL/EAX = 1 when
-// the network game exists and is not the host (flag 0x80000000 of its +4 clear), else 0.
-__declspec(naked) inline bool __cdecl IsNetworkClientOriginal() EI_ORIGINAL(0x0057F440)
-__declspec(naked) inline void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/)
-    EI_ORIGINAL(0x005814C0)
-__declspec(naked) inline void __fastcall TickAt(CWorldServer*, void*, int /*force*/) EI_ORIGINAL(0x0058DCD0)
-__declspec(naked) inline void* __fastcall ItemRecordConstruct(void*, void*) EI_ORIGINAL(0x0058FBB0)
 // 005935C0 (rewritten as CWorldServer::RemoveObject; RET 4): removes the object with this id from the world
 // (EAX on return is not a result).
 __declspec(naked) inline void __fastcall WorldRemoveObject(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
@@ -77,8 +66,6 @@ __declspec(naked) inline CEngineObject* __fastcall WorldFindUnit(void* /*world*/
     EI_ORIGINAL(0x0055FB00)
 // 0058E5D0 (rewritten as CWorldServer::RemoveTimedObject; RET 4): EAX on return is not a result.
 __declspec(naked) inline void __fastcall WorldRemoveTimed(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x0058E5D0)
-// 00594180 (rewritten as CWorldServer::GetPlayer; RET 4): the player record with this id, or null.
-__declspec(naked) inline void* __fastcall WorldGetPlayer(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x00594180)
 __declspec(naked) inline void __fastcall IdMapEraseOriginal(ObjectIdMap*, void*, const unsigned*)
     EI_ORIGINAL(0x00599A80)
 
@@ -92,7 +79,6 @@ __declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/,
     EI_ORIGINAL(0x00595BA0)
 
 // C3j. 00578E20: the game flow object (global 007AF788; plain RET, ECX unused, EAX = flow, callers use it).
-__declspec(naked) inline void* __cdecl GameFlowOriginal() EI_ORIGINAL(0x00578E20)
 // 00595480: CWorldServer::NewZone(map, mob, zone) (RET 0xC, EAX 0 = failed).
 __declspec(naked) inline int __fastcall WorldNewZoneOriginal(void* /*world*/, void*, const char* /*map*/, const char* /*mob*/,
                                                              const char* /*zone*/) EI_ORIGINAL(0x00595480)
@@ -111,9 +97,6 @@ __declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/
 // A quest variable ("q." prefix) changed: 005F7FC0 tells the quest log (007C7D50), 00565380 the client world (007AF5B8)
 // (both RET 8: name, value bits; EAX not a result).
 
-// A-I10. 00578A40: the client glue (007AFEA5, not read) names the zone exit `exit` leads to (thiscall, RET 4; a C string,
-// "none" for none).
-__declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glue*/, void*, int /*exit*/) EI_ORIGINAL(0x00578A40)
 // D3b. 00573080: CArray<ZoneExit>::SetSize(size, growBy) (RET 8, no result; -1 keeps growBy, new records constructed).
 __declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00573080)
@@ -125,29 +108,12 @@ __declspec(naked) inline int __fastcall LandscapeLoadMapOriginal(void* /*terrain
 inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 // The local player's client glue object (007AFEA5; its thiscall methods 00578xxx do not read it).
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }
-// The game's glue object before it (007AFEA4; GameDirectoryOriginal and the like do not read it).
+// The game's glue object before it (007AFEA4; the glue functions of world_glue.h do not read it).
 inline void* GameGlueObject() { return reinterpret_cast<void*>(0x007AFEA4); }
-// 00578D50 (the game's glue, not read; AL): whether the game is paused. 00578D30 (RET 4): pauses
-// or resumes it (the low byte of `paused` is all its callee reads). The battle screen's keys and
-// the clock's buttons.
-__declspec(naked) inline bool __fastcall GameIsPausedOriginal(void* /*glue*/) EI_ORIGINAL(0x00578D50)
-__declspec(naked) inline void __fastcall GameSetPausedOriginal(void* /*glue*/, void*, int /*paused*/)
-    EI_ORIGINAL(0x00578D30)
 // A-X5. 0056C750 (CWorldClient::ProjectDecal, world_client_decals.cpp; called through its address so its
 // wrapper runs; thiscall on the client world, RET 0x24): lays a decal on the ground (the quad `corners`, one
 // 64-byte block of four corners, projected along `direction` from `point`) into the three arrays. Shadows
 // (0051CE60) and the ground prints (006CEDE0).
-__declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*world*/, void*, const Vector3* /*direction*/,
-                                                                    const Vector3* /*point*/, float /*depth*/,
-                                                                    VertexPacket* const* /*corners*/,
-                                                                    lib::AlignedArray<VertexPacket>* /*points*/,
-                                                                    lib::AlignedArray<DecalTexCoord>* /*texCoords*/,
-                                                                    lib::AlignedArray<std::uint16_t>* /*indices*/,
-                                                                    int /*skipOnPlatform*/, int /*objects*/)
-    EI_ORIGINAL(0x0056C750)
-// 0056CE40 (RET 0xC): the client world shows a number over the unit with id `id` (the value, the kind bits).
-__declspec(naked) inline void __fastcall ClientShowNumberOriginal(void* /*world*/, void*, int /*id*/, int /*value*/,
-                                                                int /*kind*/) EI_ORIGINAL(0x0056CE40)
 class CFigureMesh;
 // A-W13. The resource databases' switch (0057CB50, world_game.cpp): each database's compiler-generated
 // reset (destroyed and constructed again in place: units 0057CBE0, skills 0057CD60, spell tables 0057CE80,
@@ -182,16 +148,6 @@ __declspec(naked) inline int __fastcall ClientRenderOriginal(void* /*client*/) E
 __declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*server*/) EI_ORIGINAL(0x0058DFF0)
 __declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow*/) EI_ORIGINAL(0x0057C700)
 
-// C3m. 00593FC0 (rewritten as CWorldServer::InvokeAlarm; the world, thiscall): raises an alarm of `type` at `point`.
-// Base of the views of the world.
-struct WorldAlarmOriginal {
-    void InvokeAlarm(int type, const Vector3* point, int raise);
-};
-__declspec(naked) inline void WorldAlarmOriginal::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
-
-// C3n batch 3. 00578BA0 (rewritten as LocalPlayerData, world_rules.cpp; plain RET): the game glue (007AFEA5) gives the
-// local player's data (the unit records at +0x30 / +0x34).
-__declspec(naked) inline std::uint8_t* __fastcall GameLocalPlayerDataOriginal(void* /*glue*/) EI_ORIGINAL(0x00578BA0)
 // The server world (007AFF60; CWorldServer, world_*.cpp), thiscall, through its addresses so the wrappers run:
 // 0058D3D0 WakeUnitsAround (RET 8: position, radius); 0058E520 AddTimedObject (RET 4);
 // 0058E850 CastSpell (RET 0x18: spell, caster, from, target, to, extra); 0058EF20 CreateUnits (RET 0x20: player, records,

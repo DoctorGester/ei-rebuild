@@ -21,6 +21,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "world_glue.h"
 
 #include <cstdint>
 #include <cstring>
@@ -47,7 +48,7 @@ using OrderUnits = mfc::CArray<CUnit*>;
 // the selection, 00566030 (RET 4) controls a unit.
 inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerClient*>(static_cast<CWorldClient*>(client)->LocalView()); }
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
-// LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
+// CPlayerClient::SendAttack), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
 
 // Speech: 006D8430 (__fastcall: unit, event) and 006D8A40 (__fastcall: unit, text, flag; RET 4)
@@ -55,9 +56,9 @@ inline CPlayerClient* LocalView(void* client) { return reinterpret_cast<CPlayerC
 __declspec(naked) std::uint8_t* __fastcall SpeechPhrase(CUnit*, unsigned) EI_ORIGINAL(0x006D8430)
 __declspec(naked) std::uint8_t* __fastcall SpeechPhraseFor(CUnit*, char*, bool) EI_ORIGINAL(0x006D8A40)
 // 0063B920 (thiscall on the battle screen, RET 8): the unit's name line into a CString.
-void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
+void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* a3) { a0->UnitName(a2, a3); }
 // 00578E20 (thiscall on 007AFEA4): the text manager.
-CTextManager* __fastcall TextTable(void*) { return (CTextManager*)GameFlowOriginal(); }
+CTextManager* __fastcall TextTable(void*) { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddLine(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
@@ -75,7 +76,7 @@ __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Ve
 void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall SpellPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { SpriteSetScaleOriginal(a0, nullptr, a2); }
+void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { static_cast<CUiMesh*>(a0)->SetScale(std::bit_cast<float>(a2)); }
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;
@@ -123,7 +124,7 @@ void NodPortrait(CBattleScreen* self, int i) {
 void CBattleScreen::ToggleMember(int index) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return party->data[i]; };
-    if (IsNetworkClientOriginal()) return;
+    if (IsMultiplayerClient()) return;
     if (index >= party->size) return;
 
     UiDwordArray chosen{reinterpret_cast<void*>(0x0073C3D0), nullptr, 0, 0, 0};
@@ -163,7 +164,7 @@ void CBattleScreen::ToggleMember(int index) {
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
     if (*reinterpret_cast<const int*>(0x007B0098) == 1) {
-        if (auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(kServerWorld, nullptr, 0))) {
+        if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(kServerWorld)->GetPlayer(0))) {
             for (int i = 0; i < player->mercCount; ++i) {
                 if (i >= party->size) continue;
                 PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
@@ -200,7 +201,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
-    if (units.size != 0) LocalViewSendAttackOriginal(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);
+    if (units.size != 0) LocalView(kWorld)->SendAttack(&units, target, kind, ctrl & 0xFF);
     units.vtable = reinterpret_cast<void*>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }

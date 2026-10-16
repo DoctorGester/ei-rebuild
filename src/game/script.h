@@ -448,8 +448,9 @@ public:
 
     // Not rewritten (forwarders).
     struct ScriptDecl* NewCommandList();          // 004BF540: a command block owned by the script
-    mfc::CArray<SSCCmd>* NewWorldScript();           // 004BF900: the WorldScript block
-    void RunWorldScript(mfc::CArray<SSCCmd>* block); // 004BCC60
+    // 004BCC60 (ScriptRunWorldScript): through the address, which the vector replay stands in for
+    // (tests/vectors/replay_script_load.cpp; the runtime is not replayed).
+    void RunWorldScript(struct ScriptDecl* block);
 
     // Fields used by the loader.
     mfc::CArray<struct ScriptDefinition>& Scripts() { return definitions_; }
@@ -545,9 +546,9 @@ public:
 
     // 004D0A50. Constructor: array vtables set, everything empty; returns this.
     SSCCmd* Construct();
-    // 004B5F70 (forwarder). Empties every array (nested calls are deleted); id and +0x90 become 0.
+    // 004B5F70 (ScriptCmdClear). Empties every array (nested calls are deleted); id and +0x90 become 0.
     void Clear();
-    // 004BF640 (forwarder). Destructor body (frees the arrays and the nested calls).
+    // 004BF640 (ScriptCmdDestruct). Destructor body (frees the arrays and the nested calls).
     void Destruct();
     // 004C6BC0 (RET 4; script_copy.cpp). Assignment, returns this: the arrays through the instantiations'
     // SetSize / Copy, floats through the FPU, the nested calls deep-copied (004C6D10).

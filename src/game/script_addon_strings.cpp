@@ -5,6 +5,7 @@
 // FloatToStr formats with the C runtime's "%.<n>f" (addon's MSVC 2010 CRT; here the game's, the
 // same float formatting code) and StrToFloat parses with atof (likewise the game's).
 #include "net_classes.h"
+#include "world.h"
 #include "script_addon_handlers.h"
 
 #include "console.h"
@@ -152,7 +153,7 @@ bool StrUpper(Call* call) {
 
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         void* server = *reinterpret_cast<void**>(0x0079B5DC);
         if (server && !(*reinterpret_cast<std::uint32_t*>(static_cast<char*>(server) + 4) & 0x80000000u)) {
             std::string text = Joined(call);

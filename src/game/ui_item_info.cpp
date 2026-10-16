@@ -8,6 +8,7 @@
 // with the game's _ftol are converted the same way; values computed by original functions are
 // truncated straight from the FPU stack (StatFtol), as the original does, so no rounding happens
 // in between. Compiled with precise floating point so that products keep the original's order.
+#include "party.h"
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui_item_info.h"
@@ -133,7 +134,7 @@ BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(thi
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)static_cast<CTextManager*>((void*)this)->ReadLine(a0, (int)a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
-    return TextManagerItemTexts(reinterpret_cast<CTextManager*>(this), nullptr, item, name, description, kind);
+    return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
 }
 Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
 
@@ -147,14 +148,12 @@ const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
     return reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype());
 }
 int CategoryOf(CItem* item) { return item->GetCategory(); }
-__declspec(naked) int __fastcall WeaponTypeOf(CItem*) EI_ORIGINAL(0x006A07F0)
-__declspec(naked) void __fastcall DamageTypesOf(CItem*, void*, float*) EI_ORIGINAL(0x006A0770)
 const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
     return reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
-// (PartyResetOriginal), filled by 00661DB0 (PartyAddItemOriginal).
+// (PartyResetOriginal), filled by 00661DB0 (CParty::AddItem).
 
 } // namespace
 
@@ -422,7 +421,7 @@ void CItemInfoPanel::DescribeItem() {
             // Damage: min-max and the first damage kind with a weight ("damage_<n>"; the text
             // keeps the material line's otherwise).
             float weights[7];
-            DamageTypesOf(item, nullptr, weights);
+            static_cast<CItemWeapon*>(item)->GetDamageTypes(weights);
             unsigned first = FirstDamageKind(weights);
             if (first < 7) {
                 w.line.Format(game::Text(0x00792EFC), first);   // "damage_%d"
@@ -438,7 +437,7 @@ void CItemInfoPanel::DescribeItem() {
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
             w.Number(38, PackedFtol(0x006A2D40, PackedIdOf(item)));
-            if (WeaponTypeOf(item) == 5 || WeaponTypeOf(item) == 6)
+            if (static_cast<CItemWeapon*>(item)->GetType() == 5 || static_cast<CItemWeapon*>(item)->GetType() == 6)
                 w.Number(10, FtolOf(Read<float>(item, 0x58)));
             else
                 w.Number(39, PackedFtol(0x006A2D90, PackedIdOf(item)));
@@ -876,7 +875,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
 void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItem* weapon = info->weapon;
     const std::uint8_t* stats = info->stats;
-    int type = WeaponTypeOf(weapon);
+    int type = static_cast<CItemWeapon*>(weapon)->GetType();
     if (MbsCmp(info->text, game::Text(0x00792F88)) == 0 && (type == 5 || type == 6)) {   // "defense"
         w.Wrapped(w.T(34), 2);
         w.Down();
@@ -1074,7 +1073,7 @@ void CItemInfoPanel::Describe(CItem* item) {
         if (reinterpret_cast<SameFn>((*reinterpret_cast<void***>(shown))[14])(shown, item)) return;
     }
     PartyResetOriginal(itemList_, nullptr, 1, 0);
-    if (item) PartyAddItemOriginal(itemList_, nullptr, item, 0, 1);
+    if (item) ItemParty()->AddItem(item, 0, 1);
     DescribeItem();
 }
 EI_REPLACE_METHOD(0x005EE6C0, CItemInfoPanel::Describe);

@@ -107,7 +107,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
         Fill(target, count, colours, uvs);
         if (target == Vertices().data) {
             Scale(count, &zScale);
-            DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
+            device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
             return 0;
         }
         device->AppendBatchIndices(indices, indexCount);
@@ -131,7 +131,7 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
     transform->ToScreenClipped(Vertices().data, Vertices().size);
     if (vertexCount == 0 || clippedIndices == 0) return 0;
     Scale(vertexCount, &zScale);
-    DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
+    device->DrawIndexed(4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
     return 0;
 }
 

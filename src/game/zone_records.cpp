@@ -14,7 +14,6 @@ namespace zone {
 namespace {
 // The records keep their CStrings as the bare data pointer.
 void DestroyString(char*& text) { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
-__declspec(naked) void __fastcall ExitDestructAt(void*) EI_ORIGINAL(0x00460460)
 } // namespace
 
 // 00460460: a zone exit's destructor (its CString at +0x28).
@@ -23,7 +22,7 @@ EI_REPLACE(0x00460460, ExitDestruct);
 
 // 004608B0: the zone exit's scalar deleting destructor.
 void* __fastcall ExitDelete(void* self, void*, unsigned flags) {
-    ExitDestructAt(self);
+    ExitDestruct(static_cast<MapExit*>(self));
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }

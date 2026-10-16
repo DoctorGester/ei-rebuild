@@ -250,7 +250,7 @@ namespace {
 
 // 006AD000 (RET 0x10). The item factory (world slot 18) makes an item: type, record index, the
 // two halves of the item's +0x18, -1.
-CEngineObject* __fastcall FactoryMakeItem(void* a0, void*, int a2, int a3, int a4, int a5) { return (CEngineObject*)FactoryMakeItemOriginal(a0, nullptr, a2, a3, a4, a5); }
+CEngineObject* __fastcall FactoryMakeItem(void* a0, void*, int a2, int a3, int a4, int a5) { return (CEngineObject*)static_cast<CItemManager*>(a0)->MakeItem(a2, a3, a4, a5); }
 // 00599FA0 (RET 4). CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
 __declspec(naked) void __fastcall CountedAddTail(void*, void*, CEngineObject*) EI_ORIGINAL(0x00599FA0)
 
@@ -290,7 +290,7 @@ CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemMana
 
 CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return (CEngineObject*)FactoryCreateSpellOriginal(manager, nullptr, name, SpellManager());
+    return (CEngineObject*)static_cast<CItemManager*>(manager)->CreateSpellItem(name, static_cast<CSpellManager*>(SpellManager()));
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {

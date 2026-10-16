@@ -2,6 +2,7 @@
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "sound.h"
+#include "ui.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -9,6 +10,7 @@
 #include "item_db_text.h"
 #include "map_object_figures.h"
 #include "random.h"
+#include "unit_create.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -26,11 +28,9 @@
 
 namespace {
 
-// The client glue objects (thiscall targets the original passes in ECX; they are not read) and the
+// The game's glue object (a thiscall target the original passes in ECX; it is not read) and the
 // game flow.
 void* GlueA() { return reinterpret_cast<void*>(0x007AFEA4); }
-void* GlueB() { return reinterpret_cast<void*>(0x007AFEA5); }
-void* GlueC() { return reinterpret_cast<void*>(0x007AFEA6); }
 GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
@@ -120,7 +120,7 @@ void CMainMenu::Create() {
         inert->vtable_ = InertInputVtable();
         inert->owner_ = interface_;
     }
-    ContainerAddInputOriginal(this, nullptr, inert);
+    static_cast<CUiContainer*>(this)->AddInput(inert);
     hovered_ = -1;
     rect_ = RECT{0, 0, 800, 600};
     AddVersionLine();
@@ -128,20 +128,20 @@ void CMainMenu::Create() {
         CUiRegion* region = AddRegion();
         RECT rect;
         gameapi::CopyRect(&rect, &MenuRects()[i]);
-        RegionSetRectFromOriginal(region, nullptr, rect.left, rect.top, rect.right, rect.bottom);
+        region->SetRectFrom(rect);
     }
-    GamePlayMusicOriginal(GlueB(), nullptr, nullptr);
+    GamePlayMusic(nullptr);
     savedEdgeFade_ = MapEdgeFade();
     MapEdgeFade() = kMenuEdgeFade;
     rain_ = (Random().Next() & 1) == 1;
     // Unordered compares (NaN) count as false, as FCOMP with TEST AH,0x41 / AH,1.
     // The hour is read three times (FCOMP of the unrounded result): after dawn (NaN: no), before
     // dusk (NaN: yes), before dawn (NaN: yes).
-    daylight_ = GameTimeOfDayOriginal(GlueC()) > kDawn && !(GameTimeOfDayOriginal(GlueC()) >= kDusk);
-    if (!(GameTimeOfDayOriginal(GlueC()) >= kDawn) && rain_)
-        GameSetWeatherOriginal(GlueC(), nullptr, kWeatherRain, kWeatherStrength);
-    GameMarkInterfaceChangedOriginal(GlueB());
-    GamePlayCameraPathOriginal(GlueB(), nullptr, kCameraPath);
+    daylight_ = GameServerTimeOfDay() > kDawn && !(GameServerTimeOfDay() >= kDusk);
+    if (!(GameServerTimeOfDay() >= kDawn) && rain_)
+        GameSetWeather(kWeatherRain, kWeatherStrength);
+    GameStartAmbience();
+    GameShowCameraPath(kCameraPath);
     hour_ = 0.0f;
     static_cast<CMusicSystem*>(MusicSystem())->PlayMainMenu();
 }
@@ -151,10 +151,10 @@ EI_REPLACE_METHOD(0x006326B0, CMainMenu::Create);
 
 void CMainMenu::Update() {
     UiUpdateChildrenOriginal(this);
-    int hour = static_cast<int>(GameTimeOfDayOriginal(GlueC()));
+    int hour = static_cast<int>(GameServerTimeOfDay());
     if (hour != static_cast<int>(hour_) && rain_) {
-        if (hour == kRainStartHour) GameSetWeatherOriginal(GlueC(), nullptr, kWeatherRain, kWeatherStrength);
-        else if (hour == kRainEndHour) GameSetWeatherOriginal(GlueC(), nullptr, kWeatherClear, kWeatherStrength);
+        if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
+        else if (hour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
     }
     if (!daylight_ && rain_ && hour < kLightningBeforeHour && (InterfaceOptions() & 1) != 0) {
         std::uint32_t now = gameapi::GetTickCount();
@@ -171,7 +171,7 @@ void CMainMenu::Update() {
             }
         }
     }
-    hour_ = static_cast<float>(GameTimeOfDayOriginal(GlueC()));
+    hour_ = static_cast<float>(GameServerTimeOfDay());
 }
 EI_REPLACE_METHOD(0x00632B10, CMainMenu::Update);
 
@@ -191,19 +191,19 @@ void CMainMenu::OnMessageResult(int result) {
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
-            mfc::CString path = *GameDirectoryOriginal(GlueA()) + kExitMovie;
+            mfc::CString path = *GameBasePathString() + kExitMovie;
             PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
         }
         QuitGame(0);
     } else if (result == 0x20001) {
         {
-            mfc::CString path = *GameDirectoryOriginal(GlueA()) + kIntroMovie;
+            mfc::CString path = *GameBasePathString() + kIntroMovie;
             PlayMovieFile(path, 0, 1, 1, 1, 1, 1);
         }
         InterfaceHasScreen() = false;
         Flow()->RequestState3();
     } else if (static_cast<std::uint32_t>(result) == 0xCCCCCCCC) {
-        GameMarkInterfaceChangedOriginal(GlueB());
+        GameStartAmbience();
         AddVersionLine();
     }
 }
@@ -220,24 +220,24 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = ManagerFindNamedOriginal(ObjectManager(), nullptr, &name, kRestPoseKind);
-            FigurePlayAnimationOriginal(stones, nullptr, animation, 1);
+                animation = reinterpret_cast<CMapObjectManager*>(ObjectManager())->FindAnimation(&name, kRestPoseKind);
+            static_cast<CObject3D*>(stones)->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
             interface_->PlaySound(kStoneSound, 0);
         }
         hovered_ = region;
     }
-    InputOf(this)->BaseMouseMove(buttons, x, y);
+    InputOf(this)->OnMouseMove(buttons, x, y);
 }
 namespace {
 } // namespace
 EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
     void* box = gamecrt::operator_new(0x180);
     if (box) box = MessageBoxConstructOriginal(box, nullptr, interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
-    InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 namespace {
 } // namespace

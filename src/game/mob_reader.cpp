@@ -13,6 +13,7 @@
 #include "object_diplomacy.h"
 #include "script.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -44,10 +45,6 @@ constexpr int kBehaviourCount = 5;
 float MobWindLimit() { return *reinterpret_cast<const float*>(0x0079BE58); }
 // The mission script (CScript at 007C27D4).
 CScript* MissionScript() { return reinterpret_cast<CScript*>(0x007C27D4); }
-
-// 005D6D20 (RET 8): the AI brain takes `count` alarm records (0x4C bytes each) from `records`.
-__declspec(naked) void __fastcall BrainSetAlarmRecords(void* /*brain*/, void*, const void* /*records*/, int /*count*/)
-    EI_ORIGINAL(0x005D6D20)
 
 // A record of the given chunk id, allocated and constructed, or null for other ids.
 Spec* NewRecord(std::uint32_t id) {
@@ -215,7 +212,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
         bool skip = spec->id == 2 && GameMbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = static_cast<CUnitServer*>(static_cast<CUnit*>(spec->object)->controller);
-            BrainSetAlarmRecords(&controller->brain, nullptr, UnitSpecBehaviours(reinterpret_cast<UnitSpec*>(spec)),
+            static_cast<AIBrain*>(&controller->brain)->SetAlarmRecords(static_cast<const Behaviour*>(UnitSpecBehaviours(reinterpret_cast<UnitSpec*>(spec))),
                                  kBehaviourCount);
         }
         reinterpret_cast<SpecRecord*>(spec)->DeleteRecord(1);

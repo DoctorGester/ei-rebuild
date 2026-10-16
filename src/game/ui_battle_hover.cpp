@@ -2,6 +2,7 @@
 // cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
 #include "item.h"
+#include "world_glue.h"
 #include "ui.h"
 
 #include "ui_cursor.h"
@@ -78,7 +79,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return HoverObjectAt(kClientWorld, nullptr, point);
+        return static_cast<CUnit*>(static_cast<CWorldClient*>(kClientWorld)->PickAt2(reinterpret_cast<const long*>(point)));
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
@@ -96,7 +97,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             panel->hoverUnit_ = unit;
             std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->panelViewSize, 4);
             std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->height, 4);
-            BattleShowPanelUnitOriginal(panel->owner_, nullptr, (void*)panel->hoverUnit_, &panel->strings_[1]);
+            static_cast<CBattleScreen*>(panel->owner_)->UnitName(static_cast<CUnit*>(panel->hoverUnit_), reinterpret_cast<mfc::CString*>(&panel->strings_[1]));
         }
     } else if (panel->hoverUnit_) {
         panel->hoverUnit_ = nullptr;
@@ -157,7 +158,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             Vector3 at = pick();
             int exit;
             if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
-            mfc::CString name(GameExitZoneOriginal(kPlayerGlue, nullptr, exit));
+            mfc::CString name(GameExitTarget(exit));
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                 reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
                 name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."

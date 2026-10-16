@@ -125,7 +125,7 @@ void CHelpWindow::Finish() {
 }
 
 void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case 0:
         if (page_ > 0) {
@@ -150,7 +150,7 @@ void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
 }
 
 void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key == VK_RETURN && page_ < lines_.size - 1) {
         interface_->PlaySound(NextSound(), 0);
         ++page_;

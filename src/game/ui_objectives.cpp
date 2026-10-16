@@ -7,6 +7,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "stl_sorts.h"
+#include "world_glue.h"
 #include "text_reader.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -77,7 +78,6 @@ int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find
 mfc::CString& LastQuest() { return *reinterpret_cast<mfc::CString*>(0x007C8178); }
 
 // The local player's variables, copied by name prefix into an STLport hash_map<CString, float>.
-LocalPlayerOriginal* LocalPlayerVariables() { return reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5); }
 
 // 00609C10 (not rewritten): hash_map constructor with at least `buckets` buckets (the three
 // pointers are the hasher, key-equal and allocator objects, one byte each).
@@ -92,7 +92,7 @@ public:
         char functors[3] = {};
         ConstructTable(&table_, nullptr, 100, &functors[0], &functors[1], &functors[2]);
     }
-    void Fill(const char* prefix) { LocalPlayerVariables()->CopyVariables(prefix, &table_); }
+    void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
     ~VariableTable() { Destroy(); }
 
     // Iteration in STLport's order: buckets in order, each chain from its head.
@@ -329,7 +329,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         float base = static_cast<float>(D(y) + kMarkerHeight);
         marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
-        markerScale_ = static_cast<float>(SpriteScaleOriginal(marker));   // the sprite's scale (005E70B0, left in ST0)
+        markerScale_ = marker->GetScaleX();
         RECT rect;
         rect.left = static_cast<int>(gamecrt::Ftol(D(x) - kExitHalf));
         rect.top = static_cast<int>(gamecrt::Ftol(D(y) - kExitHalf));
@@ -437,7 +437,6 @@ namespace {
 // The text reader's line steps (text_reader.cpp; called through their addresses).
 // The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
 // [0065CFE0].
-__declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
@@ -469,7 +468,7 @@ void CObjectivesWindow::ShowQuest() {
     mfc::CString variable;
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
-    LogClear(children_.data[0]);
+    static_cast<CUiScrollText*>(children_.data[0])->Clear();
     mfc::CStringArray* quests = &quests_;
     if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
     LastQuest() = (*quests)[selectedQuest_];

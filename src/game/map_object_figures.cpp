@@ -1,5 +1,7 @@
 // The 3D object base under CMapObject: loading the figure's parts, rescaling them and their
 // bounding box. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
+#include "figure_manager.h"
+#include "figure_mesh.h"
 #include "map_object_figures.h"
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "world.h"   // CWorld: the figure manager and cache
@@ -42,7 +44,7 @@ template <std::floating_point T> float Float(T) = delete;
 __declspec(naked) void __fastcall BuildPart(void*, void*, CFigureMesh*, void*, std::uint32_t, std::uint32_t,
                                             std::uint32_t) EI_ORIGINAL(0x005AC2F0)
 // 0059F3D0. Part: remembers its owner.
-void __fastcall SetPartOwner(CFigureMesh* a0, void*, CObject3D* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall SetPartOwner(CFigureMesh* a0, void*, CObject3D* a2) { a0->SetObject(a2); }
 // 0050D0E0. Animation state: a part was added.
 void AnimationAddPart(void* state, void*, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
 // 0050D7C0. Animation state: rescale to x, y, z.
@@ -205,7 +207,7 @@ int CObject3D::LoadFigures() {
     void* model;
     {
         stlp::string key(name);
-        model = FigureManagerFindModelOriginal(manager, nullptr, &key);
+        model = static_cast<CFigureManager*>(manager)->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
         BuildPart(manager, nullptr, static_cast<CFigureMesh*>(pendingParts.data[i]), model, Bits(scale.x),

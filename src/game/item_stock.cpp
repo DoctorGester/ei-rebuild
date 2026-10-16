@@ -18,6 +18,8 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/stlp_hash.h"
+#include "lib/stlp_pair.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -30,35 +32,10 @@ namespace {
 
 // ---- Original code --------------------------------------------------------------------------------
 
-// The item constructor, through its game addresses (item_constructor.cpp; the verify wrappers stay
-// in the path), and 006A6480: whether the prototype and material allow a spell (not for kinds
-// 0x11 / 0x12 without a material), with the level (prototype +0x44 + material +0x1C, as a float)
-// and the power limit (prototype +0x40 + material +0x18). Sets only AL.
-struct Constructor : ItemConstructorManagerOriginal {
-    int BeginCreateItem(int kind, int key) {        // 006A5C50
-        return reinterpret_cast<CItemConstructor*>(this)->BeginCreateItem(kind, key);
-    }
-    int SetMaterial(char* material) {               // 006A5CC0
-        return reinterpret_cast<CItemConstructor*>(this)->SetMaterial(material);
-    }
-    int SetPrototype(char* prototype) {             // 006A5CD0
-        return reinterpret_cast<CItemConstructor*>(this)->SetPrototype(prototype);
-    }
-    int SetSpellObject(void* spell) {               // 006A5CE0
-        return reinterpret_cast<CItemConstructor*>(this)->SetSpellObject(static_cast<CSpell*>(spell));
-    }
-    CItem* EndCreateItem() {                        // 006A5CF0
-        return reinterpret_cast<CItemConstructor*>(this)->EndCreateItem();
-    }
-    int Cancel();                                   // 006A5D30
-    bool MagicCapacity(float* level, float* power); // 006A6480
-
-    std::uint8_t unused_00[0x30];
-    int count;                                      // +0x30 the stack size (CItemConstructor::count_)
-};
-__declspec(naked) int Constructor::Cancel() EI_ORIGINAL(0x006A5D30)
-__declspec(naked) bool Constructor::MagicCapacity(float*, float*) EI_ORIGINAL(0x006A6480)
-static_assert(offsetof(Constructor, count) == offsetof(CItemConstructor, count_));
+// The item constructor (CItemConstructor, item_constructor.cpp); MagicCapacity (006A6480): whether
+// the prototype and material allow a spell (not for kinds 0x11 / 0x12 without a material), with the
+// level (prototype +0x44 + material +0x1C, as a float) and the power limit (prototype +0x40 +
+// material +0x18).
 
 // 0069A480 (RET 4): fills the stock's spell and modifier maps from a spell table (007C8568 for
 // weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
@@ -101,7 +78,7 @@ void* TableObject(const RecordTable& table) { return const_cast<RecordTable*>(&t
 // The template's party object (ItemStock::context): slot 16 the item constructor, 18 the item
 // manager, 22 the spell manager.
 CParty* PartyOf(const ItemStock* stock) { return static_cast<CParty*>(static_cast<CEngineObject*>(stock->context)); }
-Constructor* ConstructorOf(const ItemStock* stock) { return reinterpret_cast<Constructor*>(PartyOf(stock)->ItemConstructor()); }
+CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
 
 int Compare(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -245,7 +222,7 @@ void DestroySpellList(StockList& list) {
 
 // The random spell of a weapon or armor: half the time, when the material allows magic, one of the
 // spells 0069A780 generates for the item's level, if within the power limit.
-void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
+void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockList& spells) {
     if (GlobalRandom().Next() % 101 >= 50) return;
     float level = 0.0f;
     float power = 0.0f;
@@ -262,7 +239,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     void* spell = node->data;
     float spellPower;   // CSpell +0x40, the prototype's +0x18 as float bits
     std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_, 4);
-    if (!(spellPower > power)) ctor->SetSpellObject(spell);
+    if (!(spellPower > power)) ctor->SetSpellObject(static_cast<CSpell*>(spell));
 }
 
 } // namespace
@@ -271,7 +248,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxCount, StockList* out, int kind) {
-    Constructor* ctor = ConstructorOf(this);
+    CItemConstructor* ctor = ConstructorOf(this);
     void* manager = PartyOf(this)->ItemManager();
     if (kind == 0 || kind == 3)
         CallFillSpellMaps(this, nullptr, stock::WeaponSpellRecipes());
@@ -292,7 +269,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
     for (char** p = taken.begin(); p != taken.end(); ++p) {
         char* prototype = *p;
         if (Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
-        ctor->SetManager(manager);
+        ctor->SetManager(static_cast<CBaseManager*>(manager));
         ctor->BeginCreateItem(itemdb::RecordSlots(Record(prototype))->Kind(), -1);
         ctor->SetPrototype(prototype);
         candidates.Finish() = candidates.begin();   // erase(begin, end)
@@ -361,7 +338,7 @@ EI_REPLACE_METHOD(0x0069B590, ItemStock::GenerateQuickItems);
 // ---- 0069A110 -------------------------------------------------------------------------------------
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
-    Constructor* ctor = ConstructorOf(this);
+    CItemConstructor* ctor = ConstructorOf(this);
     void* manager = PartyOf(this)->ItemManager();
     int count = RandomCount(minCount, maxCount);
     StockMaterialVector& taken = TakenMaterials();
@@ -373,14 +350,14 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     } else if (&materials != &taken) {
         AssignMaterials(taken, materials);
     }
-    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, game::MaterialText());
+    char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, game::MaterialText()));
     for (StockMaterial* e = taken.begin(); e != taken.end(); ++e) {
-        ctor->SetManager(manager);
+        ctor->SetManager(static_cast<CBaseManager*>(manager));
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(e->record);
         int range = e->maxCount - e->minCount + 1;
-        ctor->count = gamecrt::rand() * range / 0x7FFF % range + e->minCount;
+        ctor->count_ = gamecrt::rand() * range / 0x7FFF % range + e->minCount;
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
@@ -400,15 +377,15 @@ namespace {
 // `table` (records of `recordSize` bytes) and +0x48 a random count.
 void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, const char* prototypeName, const RecordTable& table,
                           int recordSize, const char* skip, int minCount, int maxCount, StockList* out) {
-    Constructor* ctor = ConstructorOf(stock);
+    CItemConstructor* ctor = ConstructorOf(stock);
     void* manager = PartyOf(stock)->ItemManager();
     StockPtrVector& taken = TakenPrototypes();
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source);
-    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
+    char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, prototypeName));
     for (char** p = taken.begin(); p != taken.end(); ++p) {
         if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
-        ctor->SetManager(manager);
+        ctor->SetManager(static_cast<CBaseManager*>(manager));
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
@@ -468,8 +445,6 @@ __declspec(naked) void __fastcall RecipeListDestroy(StockList*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall RecipeListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069C2E0)
 __declspec(naked) void __fastcall RecipeListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
     EI_ORIGINAL(0x0069C2F0)
-__declspec(naked) void __fastcall RecipePairConstruct(void*, void*, const stlp::string* /*key*/, const StockList*)
-    EI_ORIGINAL(0x0069C1C0)
 void __fastcall RecipePairDestroy(void* pair) { stlp::PairAbi::DestroyStringList(static_cast<stlp::StringListPair*>(pair)); }
 // The modifier map (+0x64, STLport map<string, modifier*>): clear 004AB2B0, operator[] with a
 // {key, null} pair 0069D1E0 (returns the node's pair: the value at +0xC).
@@ -481,7 +456,7 @@ char** __fastcall SpellByName(void* a0, void*, const void* a2) { return (char**)
 // The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
 // (00689310, RET 8: prototype, modifier list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
-    return reinterpret_cast<itemdb::SpellRecord*>(SpellPrototypeByNameOriginal(TableObject(itemdb::Spells()), nullptr, name));
+    return reinterpret_cast<itemdb::SpellRecord*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Spells())), nullptr, name)));
 }
 __declspec(naked) CEngineObject* __fastcall BuildSpell(void*, void*, itemdb::SpellRecord* /*prototype*/, StockList* /*modifiers*/)
     EI_ORIGINAL(0x00689310)
@@ -559,7 +534,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         char allocator = 0;
         RecipeListConstruct(&list, nullptr, &allocator);
         alignas(4) std::uint8_t pair[0x10];
-        RecipePairConstruct(pair, nullptr, &recipe->spell, &list);
+        stlp::PairAbi::ConstructStringList(reinterpret_cast<stlp::StringListPair*>(pair), nullptr, &recipe->spell, &list);
         StockRecipeEntry* inserted = RecipeMapInsert(spellMap, nullptr, pair);
         RecipePairDestroy(pair);
         RecipeListDestroy(&list);
@@ -673,9 +648,9 @@ namespace {
 // 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
 // 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
 // they insert a null for a new name).
-char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
-char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)FindWeaponOriginal(a0, nullptr, a2); }
-char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
+char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
+char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
+char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
 __declspec(naked) char** __fastcall ModifierByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x00684B20)
 // push_back of the pointer vectors (thiscall, &value): 0069BD30 (the three item lists), 0069BDC0
 // (spells), 0069BDF0 (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20 (position,
@@ -756,7 +731,7 @@ void ItemStock::LoadLists(void* stream) {
         name.MakeLower();
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
-        entry.record = FindMaterialNamed(TableObject(itemdb::Materials()), nullptr, name);
+        entry.record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Materials())), nullptr, name));
         entry.minCount = values[0];
         entry.maxCount = values[1];
         entry.left = values[2];
@@ -882,14 +857,14 @@ int ModifierIndex(char* record) {
 void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, StockPtrVector& taken,
                                PtrAllocateCopyFn allocate, PtrDeallocateFn deallocate, const char* prototypeName,
                                int (*indexOf)(char*), int minCount, int maxCount, StockList* out) {
-    Constructor* ctor = ConstructorOf(stock);
+    CItemConstructor* ctor = ConstructorOf(stock);
     void* manager = PartyOf(stock)->ItemManager();
     PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source, allocate, deallocate);
-    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
+    char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, prototypeName));
     for (char** p = taken.begin(); p != taken.end(); ++p) {
-        ctor->SetManager(manager);
+        ctor->SetManager(static_cast<CBaseManager*>(manager));
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
@@ -925,7 +900,7 @@ constexpr int kScrollTries = 10;
 
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* out) {
-    Constructor* ctor = ConstructorOf(this);
+    CItemConstructor* ctor = ConstructorOf(this);
     void* manager = PartyOf(this)->ItemManager();
     PartyOf(this)->SpellManager();   // (fetched and not used)
     CallFillSpellMaps(this, nullptr, stock::ScrollSpellRecipes());
@@ -942,11 +917,11 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     }
     char* prototype = FindQuickItemNamed(TableObject(itemdb::QuickItems()), nullptr, game::SpellContainerText());
     for (StockListNode* n = list.head->next; n != list.head; n = n->next) {
-        ctor->SetManager(manager);
+        ctor->SetManager(static_cast<CBaseManager*>(manager));
         ctor->BeginCreateItem(0x3008, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
-        ctor->SetSpellObject(n->data);
+        ctor->SetSpellObject(static_cast<CSpell*>(n->data));
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);

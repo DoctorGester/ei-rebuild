@@ -271,6 +271,8 @@ public:
     CItem* FirstItem() const;
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }
+    // The item list as the party it is (itemList_ through itemCount_).
+    CParty* ItemParty() { return reinterpret_cast<CParty*>(itemList_); }
 
     std::uint8_t itemList_[0x40];    // +0x150 an item list (0x70 bytes, 00661050 class); its
     CItem** items_;                  // +0x190   entries

@@ -1,6 +1,7 @@
 // CUnit's own virtual slots (vtable 0073EA8C, shared by CFakeUnit 0073BFE8): the per-tick update
 // and the slots that pass map object events on to the unit's controller (CUnit + 0x240), plus
 // standing on the ground. See unit.h and docs/notes/units.md.
+#include "combat.h"
 #include "unit.h"
 
 #include "map_object.h"
@@ -15,7 +16,6 @@
 #include <cstring>
 
 namespace {
-constexpr int kClassUnitServer = 0x3E;        // CUnitServer (combat.h)
 constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit controllers
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // CUnit::movementKind
@@ -26,9 +26,6 @@ CWorld* WorldOf(CUnit* unit) { return static_cast<CWorld*>(unit->World()); }
 
 // The map object's (map_object.cpp) and the 3D object's (map_object_figures.cpp) bodies these slots
 // run are rewritten and called directly.
-// 00552F40, CUnitServer::SetStats: copies `stats` into its own copy. unit_create.cpp.
-__declspec(naked) std::uintptr_t __fastcall CallServerSetStats(CEngineObject*, void*, const UnitStats*)
-    EI_ORIGINAL(0x00552F40)
 
 int CUnit::Tick() {
     controller->RunTick();
@@ -90,7 +87,7 @@ EI_REPLACE_METHOD(0x0052EB30, CUnit::ScaleEffectChangedImpl);
 std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
-    return CallServerSetStats(controller, nullptr, stats);
+    return static_cast<CUnitServer*>(controller)->SetStats(stats);
 }
 EI_REPLACE_METHOD(0x00530A20, CUnit::SetStatsImpl);
 

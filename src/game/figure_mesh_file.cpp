@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "object_maths.h"
 #include "originals_core.h"
 
 #include <cstring>
@@ -91,7 +92,6 @@ namespace {
 __declspec(naked) void __fastcall TransformCopy(void*, void*, const void*) EI_ORIGINAL(0x00401490)
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
-__declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
 
 float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
@@ -136,7 +136,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     VectorMake(&along, nullptr, x, y, z);
     float w = q[0];
     Vector3 cross, turned, scaled, sum, rotated;
-    VectorCross(&cross, &v, p);
+    CrossProduct(&cross, v, *p);
     ScaleVector(&turned, cross, static_cast<float>(static_cast<double>(w) + w));
     float ww = static_cast<float>(static_cast<double>(w) * w);
     float k = static_cast<float>(ww - DotRaw(&v, &v));

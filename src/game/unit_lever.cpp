@@ -1,6 +1,7 @@
 // A lever's state change (0052B7A0) and the spots it is used from (0052BBE0). See
 // docs/notes/units.md ("Levers").
 #include "lever.h"
+#include "combat.h"
 
 #include "ai_map.h"
 #include "map_object.h"
@@ -11,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp_hash.h"
 
 #include <cmath>
 #include <cstdint>
@@ -36,7 +38,6 @@ void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
-void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
 // A unit from the sector map: its position and controller.
 CMapObject* AsMapObject(void* unit) { return static_cast<CMapObject*>(AsEngineObject(unit)); }
@@ -112,7 +113,7 @@ void Lever::SetState(int wanted, float duration) {
             Vector3 free = {at->x, at->y, at->z};
             static_cast<CAIMap*>(map)->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);
             std::memcpy(at, &free, sizeof(free));
-            ControllerResync(static_cast<CUnit*>(AsEngineObject(unit))->controller);
+            static_cast<CUnitServer*>(static_cast<CUnit*>(AsEngineObject(unit))->controller)->ResyncWithUnit();
         }
         SectorMapAdd(sectors, nullptr, AsEngineObject(unit));
         node = next;
@@ -126,8 +127,6 @@ namespace {
 
 // The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
 // at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
-__declspec(naked) const LeverRecord* __fastcall LeverRecordByName(void* /*table*/, void*, const char*)
-    EI_ORIGINAL(0x0052CB40)
 __declspec(naked) void __fastcall SpotsSetAtGrow(LeverSpots*, void*, int, const Vector3*) EI_ORIGINAL(0x0052CC50)
 
 void* const kLeverTable = reinterpret_cast<void*>(0x0079C1A0);
@@ -142,7 +141,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     }
     out->capacity = 0;
     out->size = 0;
-    const LeverRecord* record = LeverRecordByName(kLeverTable, nullptr, name);
+    const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kLeverTable), nullptr, name));
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = orientation;
     // The count is read again each time; a count above 2 reads on into the record (sic).

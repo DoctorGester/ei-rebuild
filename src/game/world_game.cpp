@@ -108,7 +108,7 @@ __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
 void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
-void __fastcall StreamSaveScripts(CMemoryStream* a0, void*, void* a2) { StreamWriteSizedOriginal((void*)a0, nullptr, a2); }
+void __fastcall StreamSaveScripts(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->WriteSized(static_cast<CStream*>(a2)); }
 // The console's ostream.
 
 // The CString fields of the records the flow copies as CStrings (MFC's shared assignment).
@@ -138,7 +138,7 @@ struct LocalFileStream {
 // The record builder of the party (PartyRecords, unit.h), built and torn down by the originals.
 struct LocalRecords {
     PartyRecords party;
-    LocalRecords() { PartyRecordsConstructOriginal(&party); }
+    LocalRecords() { reinterpret_cast<CParty*>(&party)->Construct(); }
     ~LocalRecords() { PartyRecordsDestructOriginal(&party); }
     LocalRecords(const LocalRecords&) = delete;
     LocalRecords& operator=(const LocalRecords&) = delete;
@@ -202,7 +202,7 @@ int GameFlow::SaveGame(const char* slot) {
     currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
     ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
-        if (WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0)))
+        if (WorldPlayer* player = static_cast<WorldPlayer*>(reinterpret_cast<CWorldServer*>(0x007AFF60)->GetPlayer(0)))
             PartyManagerBeginRedeploy(kParty, nullptr, player->Party());
     }
     LocalRecords records;
@@ -374,7 +374,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
             WorldWakeUnits(World(), nullptr, &point, kCatchUpRadius);
-            TickAt(World(), nullptr, 1);
+            World()->Tick(static_cast<char>(1));
         }
     }
     return result;
@@ -710,7 +710,6 @@ namespace {
 
 // The party manager (007AA5A0): 004A88C0 resets it, 004A8890 (originals_world.h) begins a redeploy of a party.
 __declspec(naked) void __fastcall PartyManagerReset(void*, void*) EI_ORIGINAL(0x004A88C0)
-__declspec(naked) mfc::CString* __fastcall MultiplayerZoneAt(GameFlow*, void*, void* /*out*/) EI_ORIGINAL(0x0057E6B0)
 
 void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
@@ -729,7 +728,7 @@ void GameFlow::BeginMultiplayerGame() {
     if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
+        mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
         AsCString(GlobalParty()->zone) = *zone;
         zone->~CString();
     }
@@ -737,7 +736,7 @@ void GameFlow::BeginMultiplayerGame() {
     PartyManagerBeginRedeploy(PartyManager(), nullptr, GlobalParty());
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-        mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
+        mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
         state_ = 4;   // the state: load the zone
         AsCString(requestTarget_) = static_cast<const char*>(*zone);
         requestArg_ = 0;
@@ -889,8 +888,6 @@ constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk 
 
 // 00595BA0 (RET 8, patched by Rebirth). The full path of a map file, constructed into `out`.
 mfc::CString* __fastcall MapPathInto(CWorldServer* a0, void*, void* a2, const char* a3) { return (mfc::CString*)ServerMapPathOriginal((void*)a0, nullptr, a2, a3); }
-// 004A4A90 (RET 8, AL). Finds the chunk `id` in a stream and reads it into `out`.
-__declspec(naked) bool __fastcall StreamReadChunk(void*, void*, std::uint32_t, void* /*out*/) EI_ORIGINAL(0x004A4A90)
 
 } // namespace
 
@@ -905,7 +902,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
             mobFile.Open(*path, kOpenRead, 1);
             path->~CString();
         }
-        if (StreamReadChunk(&mobFile.stream, nullptr, kGraphChunk, out)) found = 1;
+        if (mobFile.stream.FindTagged(kGraphChunk, static_cast<CStream*>(out))) found = 1;
         mobFile.Close();
         if (found) return found;
     }
@@ -988,15 +985,15 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         file.Open(*path, kOpenRead, 1);
         path->~CString();
     }
-    StreamReadChunk(&file.stream, nullptr, kScriptsChunk, &scripts.s);
-    if (StreamReadChunk(&scripts.s, nullptr, kScriptEncoded, &text.s)) {
+    file.stream.FindTagged(kScriptsChunk, &scripts.s);
+    if (scripts.s.FindTagged(kScriptEncoded, &text.s)) {
         const std::uint8_t* data = text.s.data_;
         std::uint32_t size = text.s.size_;
         char zero = 0;
         CharVectorResizeOriginal(&decoder.input, nullptr, size, &zero);
         std::memmove(decoder.input.begin(), data, size);
-        TextDecodeOriginal(&decoder, nullptr, &script);
-    } else if (StreamReadChunk(&scripts.s, nullptr, kScriptPlain, &text.s)) {
+        decoder.Decode(&script);
+    } else if (scripts.s.FindTagged(kScriptPlain, &text.s)) {
         text.s.SeekImpl(text.s.size_);
         char zero = 0;
         text.s.Write(&zero, 1u);
@@ -1031,7 +1028,7 @@ void GameFlow::SwitchMultiplayerZone() {
         bool host = Active(net::GameServer());
         {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
-            mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
+            mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
             ToMainMenu() = 1;
             ViewRequestZoneAt(WorldClient()->LocalView(), nullptr, *zone, 0);
             zone->~CString();
@@ -1064,7 +1061,7 @@ void GameFlow::SwitchMultiplayerZone() {
         }
     }
     LocalRecords records;
-    WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(World(), nullptr, 0));
+    WorldPlayer* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(World())->GetPlayer(0));
     if (player && player->server->flag70_) {
         World()->SyncPartyRecords(player);
         PartyCopyFrom(&records.party, nullptr, player->Party());
@@ -1103,10 +1100,6 @@ __declspec(naked) void __fastcall FlowAfterServer(GameFlow*, void*) EI_ORIGINAL(
 // 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
 // 00440440 (RET 8). A 16-byte network address from a host name and a port.
 __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
-// 00436C60 (RET 8). A buffer takes bytes.
-__declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int) EI_ORIGINAL(0x00436C60)
-// 00442980 (RET 8). The client connects to an address with a hello buffer.
-__declspec(naked) void __fastcall ClientConnect(void*, void*, void*, GameBuffer*) EI_ORIGINAL(0x00442980)
 
 } // namespace
 
@@ -1132,8 +1125,8 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         static_cast<GameBuffer*>(&hello)->ConstructGrowing();
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
-        BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
-        ClientConnect(net::GameClient(), nullptr, address, &hello);
+        hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
+        static_cast<net::ClientBase*>(net::GameClient())->Join(reinterpret_cast<const net::NetAddress*>(address), &hello);
         GrowingBufferDestruct(&hello);
     }
     LocalLogin()->host_ = 1;
@@ -1162,8 +1155,8 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     static_cast<GameBuffer*>(&hello)->ConstructGrowing();
     char secret[kPasswordSize] = {};
     if (password) gamecrt::strncpy(secret, password, kPasswordSize);
-    BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
-    ClientConnect(net::GameClient(), nullptr, const_cast<net::NetAddress*>(address), &hello);
+    hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
+    static_cast<net::ClientBase*>(net::GameClient())->Join(const_cast<net::NetAddress*>(address), &hello);
     GrowingBufferDestruct(&hello);
 }
 EI_REPLACE_METHOD(0x0057E970, GameFlow::JoinServer);
@@ -1306,7 +1299,7 @@ constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals (0079B2A8
 constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C7D50) too
 
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
-void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { StreamReadSizedOriginal((void*)a0, nullptr, a2); }
+void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
 // 00596E70 (RET 8). CWorldServer::LoadSave through its address.
 __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
 
@@ -1520,7 +1513,6 @@ int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOrigina
 // flow's party copy (00665CC0, +8).
 __declspec(naked) void __fastcall ViewAutoplayOn(void*, void*, const char*) EI_ORIGINAL(0x00669710)
 __declspec(naked) void __fastcall ViewAutoplayOff(void*) EI_ORIGINAL(0x00669750)
-__declspec(naked) void __fastcall PlayerTakeParty(void*, void*, void*) EI_ORIGINAL(0x00665CC0)
 
 mfc::CString& LastResources() { return *reinterpret_cast<mfc::CString*>(0x007AFDEC); }
 std::uint8_t& LastResourcesGuard() { return *reinterpret_cast<std::uint8_t*>(0x007AFDF0); }
@@ -1629,7 +1621,7 @@ void GameFlow::ProcessRequest() {
     case kStatePartyZone: {
         const char* zone = requestTarget_;
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
-        PlayerTakeParty(player, nullptr, RequestParty());
+        reinterpret_cast<CPlayer*>(player)->AssignParty(reinterpret_cast<CParty*>(RequestParty()));
         World()->TeardownZone();
         if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
             if (Active(net::GameClient())) {
@@ -1645,7 +1637,7 @@ void GameFlow::ProcessRequest() {
     case kStateNetworkZone: {
         StartNetworkZoneAt(requestTarget_);
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
-        PlayerTakeParty(player, nullptr, RequestParty());
+        reinterpret_cast<CPlayer*>(player)->AssignParty(reinterpret_cast<CParty*>(RequestParty()));
         ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 1;
         break;
@@ -1667,8 +1659,7 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // 005F8420), the scripts (004A51C0, a stream method), the globals (00410AB0); the world from
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
-void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { StreamReadSizedOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall FlowLoadMission(GameFlow*, void*, FileStream*) EI_ORIGINAL(0x00579E60)
+void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
 int& LoadedScriptsVersion() { return *reinterpret_cast<int*>(0x007AFE00); }
 
 } // namespace
@@ -1781,7 +1772,7 @@ int GameFlow::LoadGame(const char* slot) {
             opened = file.Open(path, kOpenRead, 1);
         }
         if (!opened) return 0;
-        FlowLoadMission(this, nullptr, &file.stream);
+        LoadMission(&file.stream);
         file.Close();
         SetZoneExitsAt(World(), nullptr, &zoneRecord->exits);
     }
@@ -2128,7 +2119,7 @@ void SavedParties::Reload() {
         // The party records and the file name, side by side as the list's entries are.
         alignas(SavedPartyEntry) std::uint8_t storage[sizeof(SavedPartyEntry)];
         auto* entry = reinterpret_cast<SavedPartyEntry*>(storage);
-        PartyRecordsConstructOriginal(&entry->records);
+        reinterpret_cast<CParty*>(&entry->records)->Construct();
         new (&entry->fileName) mfc::CString();
         AsCString(entry->fileName) = found.cFileName;
         if (PartyRecordsLoad(&entry->records, nullptr, folder_)) {

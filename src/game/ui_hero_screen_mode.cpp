@@ -108,7 +108,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         window.surfaces_.data[0]->Freeze(1, 1);
         window.surfaces_.data[1]->Freeze(1, 1);
         Enable(nameEdit_, 0);
-        EditFieldActivateOriginal(nameEdit_, nullptr, 0);
+        nameEdit_->SetFocused(false);
         SetSelectionFrame(this, 110.0f, 250.0f, 370.0f, 274.0f);
         AddRows(this, 110, 370, 250, 24);
         CallShowHero(heroIndex_);
@@ -132,7 +132,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         regions[1]->SetTip(0x9D6C, 1, 0);
         regions[4]->SetTip(0x9D6E, 1, 0);
         Enable(nameEdit_, 1);
-        EditFieldActivateOriginal(nameEdit_, nullptr, 1);
+        nameEdit_->SetFocused(true);
         window.surfaces_.data[2]->Freeze(1, 1);
         SetSelectionFrame(this, 15.0f, 310.0f, 180.0f, 325.0f);
         AddRows(this, 10, 180, 325, 15);
@@ -152,10 +152,10 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         regions[4]->SetTip(0x9E36, 1, 0);
         window.surfaces_.data[2]->Freeze(1, 1);
         Enable(nameEdit_, 0);
-        EditFieldActivateOriginal(nameEdit_, nullptr, 0);
+        nameEdit_->SetFocused(false);
         static_cast<CTradePanel*>(tradePanel_)->SelectHero(0);
     }
-    InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
     static_cast<CHeroStatsPanel*>(statsPanel_)->ShowStats(mode);
     mode_ = mode;
     // Rebirth's WideScreen (addon's handler after the original): the curtains shown but on the list.

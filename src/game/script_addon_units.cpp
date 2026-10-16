@@ -26,7 +26,7 @@ namespace scriptaddon {
 namespace {
 
 // The world (007AFF60): the player with a number (00594180).
-void* GetPlayer(int number) { return WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, number); }
+void* GetPlayer(int number) { return reinterpret_cast<CWorldServer*>(0x007AFF60)->GetPlayer(number); }
 
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).

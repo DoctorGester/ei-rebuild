@@ -16,8 +16,6 @@ struct DeltaField;
 struct DeltaState;
 struct ParticleElement;
 
-__declspec(naked) inline void __fastcall DiplomacyOnAttack(void*, void*, CEngineObject*, CEngineObject*, int)
-    EI_ORIGINAL(0x00455680)
 __declspec(naked) inline char __fastcall QuitGame(int) EI_ORIGINAL(0x00455F20)
 // 00455940 (rewritten as CEngineObject::ManagerContext): the object's manager context (+0x14 -> +0xAC, the world).
 __declspec(naked) inline void* __fastcall ManagerContextOf(const void* /*object*/) EI_ORIGINAL(0x00455940)
@@ -47,24 +45,11 @@ __declspec(naked) inline void** __fastcall SpellMapAtOriginal(void* /*map*/, voi
 __declspec(naked) inline void* __fastcall ModifierMapFindOrInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
     EI_ORIGINAL(0x004ACC10)
 
-// C3i part 2. 004A51C0: CMemoryStream reads a sized block from `from` into this stream (RET 4, EAX not a result).
-// 004E5840: reads a CString from the stream into `out` (RET 4, EAX not a result). 004AB720 / 004AB820: the weapon / armour
-// record by name (RET 4, record or null).
-__declspec(naked) inline void __fastcall StreamReadSizedOriginal(void* /*stream*/, void*, void* /*to*/) EI_ORIGINAL(0x004A51C0)
-__declspec(naked) inline void __fastcall StreamReadCStringOriginal(void* /*stream*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x004E5840)
-__declspec(naked) inline void* __fastcall FindWeaponOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x004AB720)
-__declspec(naked) inline void* __fastcall FindArmorOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x004AB820)
-
 // C3j. 004849F0: particle source attaches to an object (RET 4, no result).
 __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
     EI_ORIGINAL(0x004849F0)
-// 004A5250: writes a stream with a size prefix into this stream (RET 4, no result).
-__declspec(naked) inline void __fastcall StreamWriteSizedOriginal(void* /*to*/, void*, void* /*from*/) EI_ORIGINAL(0x004A5250)
 // 004A5D50: copies a counted pointer (RET 4, returns this).
 __declspec(naked) inline void* __fastcall CountedPtrCopyOriginal(void* /*to*/, void*, void* const* /*from*/) EI_ORIGINAL(0x004A5D50)
-// 004D8E10: decodes the chunk text into `out` (RET 4, no result).
-__declspec(naked) inline void __fastcall TextDecodeOriginal(void* /*decoder*/, void*, void* /*out CString*/) EI_ORIGINAL(0x004D8E10)
 
 // C3k. 004ABBD0: the quick-item map's operator[](name) (RET 4: the key; EAX the address of the value slot, a new node is
 // added when the name is missing). ECX is the map.

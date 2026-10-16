@@ -35,15 +35,7 @@ constexpr std::ptrdiff_t kUiInputOffset = 0x94;
 
 // The input sub-object at window+0x94: the base screen class's handlers (vtable 00741008 subclass
 // of CUiWindow), not rewritten. Derived handlers call them first or last, as the original does.
-struct UiInput {
-    void BaseLButtonDown(int flags, int x, int y);   // 00601110
-    void BaseLButtonUp(int flags, int x, int y);     // 006011F0
-    void BaseMouseMove(int flags, int x, int y);     // 006012D0
-    void BaseKeyDown(int key, int repeat, int flags);   // 00601820
-    void BaseKeyUp(int key, int repeat, int flags);     // 006019A0
-    void BaseChar(int key, int repeat, int flags);      // 006018E0
-    int BaseWheel(int flags, int delta, int x, int y);  // 00601730 (RET 0x10; returns 1)
-
+struct UiInput : UiContainerInput {   // the default handlers (UiContainerInput::On...)
     // The input side's slot 0 of a window (SUB ECX,0x94; JMP to the window's deleting destructor,
     // ui_window_delete.cpp): `Delete` is that window class's own method; returns the window.
     template <auto Delete>
@@ -204,7 +196,7 @@ public:
     // the tab so the last entry `item` is the same as (CItem slot 14) is visible: its position
     // moves into [index - 6, index]. The scroll stops (pending and speed 0); count_ is not
     // updated. Null does nothing.
-    void ScrollToItem(char* item);
+    void ScrollToItem(CItem* item);
     // The tab of `item` under the current filter (0 for an unknown filter), as both rebuilds
     // choose it.
     int TabOf(const char* item);
@@ -911,8 +903,6 @@ public:
     // `fromBelow` (the offset minus the surface's height in twips; the DC taken and released for
     // its resolution); the end offset 0, the start time the game time.
     void Start(float speed, char fromBelow);
-    // Load and Start through their addresses (the checks run): ui_credits.cpp.
-    bool LoadThroughHook(void* archive, const char* name);
     // 0065F020 (ui_scrolling_surface.cpp, A-H17). Renders the RichEdit's text into the surface:
     // the DC held, the surface cleared, the background colour (+0x34) set (EM_SETBKGNDCOLOR), the
     // whole text formatted (EM_FORMATRANGE) into the surface's size in twips shifted by the scroll

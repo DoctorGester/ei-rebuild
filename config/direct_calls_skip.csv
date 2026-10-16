@@ -5,9 +5,6 @@ address,reason
 00525AF0,src/game/unit_record.cpp passes a unitrecord::Slots * as void* (the target is UnitStats's method)
 0052B030,src/game/world_effect_missile.cpp passes a CEngineObject ** as void* (the target is AIRef's method)
 0052E310,src/game/fake_unit.cpp passes a scene::FakeUnitScene * as void* (the target is CUnit's method)
-00554450,src/game/ui_briefing_create.cpp passes a UnitController * as void* (the target is CUnitServer's method)
-00554830,src/game/unit_ai_modes.cpp passes a UnitController * as void* (the target is CUnitServer's method)
-00555840,src/game/ui_briefing_start.cpp passes a UnitController * as void* (the target is CUnitServer's method)
 005DB340,src/game/ui_create_screen.cpp passes a uint8_t * as void* (the target is CBinkVideo's method)
 005E5270,src/game/app.cpp passes a app::Renderer * as void* (the target is CCursor's method)
 005E8450,src/game/ui_hero_panels.cpp passes a SpriteBuild * as void* (the target is CUiMeshBuilder's method)
@@ -15,7 +12,6 @@ address,reason
 00600270,src/game/ui_trade_panel_input.cpp passes a CTradePanel * as void* (the target is CUiContainer's method)
 00600BA0,src/game/ui_item_screen.cpp passes a CItemScreen * as void* (the target is CUiContainer's method)
 006010E0,src/game/ui_exchange.cpp passes a CExchangeScreen * as void* (the target is CUiContainer's method)
-00601110,src/game/ui_screens.cpp passes a UiInput * as void* (the target is UiContainerInput's method)
 0064A7A0,src/game/ui_battle_setup.cpp passes a RawPanel * as void* (the target is CHudTopPanel's method)
 00661FE0,src/game/ui_exchange.cpp passes a uint8_t * as void* (the target is CParty's method)
 00524CD0,src/game/ui_trade_panel.cpp passes a uint8_t * as void* (the target is UnitStats's method)
@@ -104,3 +100,4 @@ address,reason
 00544F60,src/game/combat_save.cpp passes a OrderPlan * as void* (the target is AnimationSteps's method)
 00560E10,src/game/ai_footprint.cpp passes a float * as void* (the target is const MatrixRows's method)
 005B40F0,src/game/ai_map_construct.cpp passes a int * as void* (the target is AIDirtyRect's method)
+00419CD0,RefPtr::Assign: callers hold the counted pointer in fields of view types (ItemSourceRef / ItemTurn links; net sessions): C13a2

@@ -6,6 +6,7 @@
 #include "base_manager.h"
 #include "console.h"
 #include "map_object_figures.h"
+#include "unit_create.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -19,11 +20,11 @@ namespace {
 
 // 005187B0 (thiscall on the object, RET 8): plays `animation` (with `restart` 1 from here).
 void PlayAnimation(CObject3D* object, void*, FigureAnimation* animation, int restart) {
-    FigurePlayAnimationOriginal(object, nullptr, animation, restart);
+    object->PlayAnimation(animation, restart);
 }
 // 00512B20 (thiscall on the object manager 007AF5F8, RET 8): the object of `kind` named `name`.
 FigureAnimation* FindNamed(void* manager, void*, const mfc::CString* name, std::uint32_t kind) {
-    return static_cast<FigureAnimation*>(ManagerFindNamedOriginal(manager, nullptr, name, kind));
+    return static_cast<FigureAnimation*>(static_cast<CMapObjectManager*>(manager)->FindAnimation(name, kind));
 }
 void* ObjectManager() { return *reinterpret_cast<void* const*>(0x007AF5F8); }
 constexpr std::uint32_t kRestPoseKind = 0x80590000;

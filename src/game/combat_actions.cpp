@@ -29,6 +29,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "world_effect.h"
 
 #include <bit>
 #include <cstring>
@@ -104,16 +105,13 @@ void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGi
 void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
     PlayerSendObject0BOriginal(messages, nullptr, unit, code);
 }
-// 00531400. CUnit: takes a random carried item away (stealing); null when there is none
-// (CUnit::TakeRandomItem, unit_steal.cpp; called through its address).
-__declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x00531400)
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
 void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->Raise(a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
-void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
+void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(a2, a3, a4, a5); }
 // 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)
@@ -189,7 +187,7 @@ void CUnitServer::FinishAction(int location, char) {
     ActionClear(&action);
     action.param = 0;
     action.modifier = 0;
-    if (action2.kind == 9) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+    if (action2.kind == 9) Idle();
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 
@@ -204,7 +202,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         const Vector3* from = unit->EyePoint(&position);
         char* bytes = reinterpret_cast<char*>(missile);
         std::memcpy(bytes + 0x1C, from, sizeof(Vector3));
-        MissileSetTarget(missile, nullptr, target->id_);
+        static_cast<CEffectMissile*>(missile)->SetTarget(target->id_);
         bytes[0x154] = 1;
         *reinterpret_cast<int*>(bytes + 0x15C) = unit->id_;
         std::memcpy(bytes + 0x160, hit, sizeof(DamageInfo));
@@ -215,7 +213,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
+        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
     }
 }
 EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
@@ -443,7 +441,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         if (char* player = unit->player) static_cast<CWorldServer*>(WorldServer())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(WorldServer(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
+        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
         return;
     }
     std::uint32_t skill = action.source;
@@ -498,7 +496,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 1: {
         if (!other) return;
         if (other->player) return;
-        CItem* item = UnitTakeRandomItem(other);
+        CItem* item = static_cast<CItem*>(other->TakeRandomItem());
         if (item) {
             GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
             if (char* player = unit->player) {

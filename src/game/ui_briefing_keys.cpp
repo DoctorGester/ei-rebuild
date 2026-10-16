@@ -61,14 +61,14 @@ void OpenObjectives(CInterface3D* ui) {
         if (parts.size != kQuestNameParts || Bits(node->value) != kOneBits) continue;
         MapRecord* questZone = MapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
-        if (!IsNetworkClientOriginal() && CompareNames(questZone->allod, zone->allod) != 0) continue;
+        if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
         void* memory = gamecrt::operator_new(kObjectivesSize);
         void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(ui) : nullptr;
         {
             BriefingPlayerName player;
             static_cast<CObjectivesWindow*>(window)->Setup(player, nullptr, 0, 1);
         }
-        InterfacePushWindowOriginal(ui, nullptr, window, 1, 1);
+        ui->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         break;
     }
 }
@@ -82,17 +82,17 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         if (key == VK_ESCAPE) chatActive_ = 0;
         return;
     }
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     switch (key) {
     case VK_BACK:
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
         break;
     case VK_RETURN:
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
@@ -113,7 +113,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
                 menu->vtable_ = EscMenuVtable();
                 menu->inputVtable_ = EscMenuInputVtable();
             }
-            InterfacePushWindowOriginal(interface_, nullptr, menu, 1, 1);
+            interface_->PushWindow(menu, 1, 1);
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
             while (state_ == 3) NextPhrase(1);

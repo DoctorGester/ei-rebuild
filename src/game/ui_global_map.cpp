@@ -7,6 +7,8 @@
 // stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
 // as the original does.
 #include "app.h"
+#include "global_map_clouds.h"
+#include "world_glue.h"
 #include "sound.h"
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -87,35 +89,12 @@ bool NonEmpty(const char* cstring) { return reinterpret_cast<const int*>(cstring
 
 // --- Not rewritten ------------------------------------------------------------------------------
 
-// The global map's own helpers (thiscall on the map).
-struct MapScreen {
-    mfc::CString* AllodTitle(mfc::CString* out, const char* allod);     // 00631110
-    Vector3* ZonePosition(Vector3* out, const char* zone);              // 00630E00
-    mfc::CString* ZoneTitle(mfc::CString* out, const char* zone);       // 00631030
-    mfc::CString* QuestTitle(mfc::CString* out, const char* quest);     // 00630F50
-    Vector3* QuestPosition(Vector3* out, const char* quest);            // 00630CC0
-    void SetWeather();                                                   // 0062EE90 (entry +0x260)
-};
-__declspec(naked) mfc::CString* MapScreen::AllodTitle(mfc::CString*, const char*) EI_ORIGINAL(0x00631110)
-__declspec(naked) Vector3* MapScreen::ZonePosition(Vector3*, const char*) EI_ORIGINAL(0x00630E00)
-__declspec(naked) mfc::CString* MapScreen::ZoneTitle(mfc::CString*, const char*) EI_ORIGINAL(0x00631030)
-__declspec(naked) mfc::CString* MapScreen::QuestTitle(mfc::CString*, const char*) EI_ORIGINAL(0x00630F50)
-__declspec(naked) Vector3* MapScreen::QuestPosition(Vector3*, const char*) EI_ORIGINAL(0x00630CC0)
-__declspec(naked) void MapScreen::SetWeather() EI_ORIGINAL(0x0062EE90)
-
 // The links' and the quests' SetSize (00631E70 / 00631FF0, thiscall, RET 8) and their elements'
 // assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
 __declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631E70)
 __declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631FF0)
-
-// Sprites (CUiMesh) beyond ui.h.
-struct SpriteOps : SpritePositionOriginal {
-    void SetScale(float scale);                         // 005E7060
-};
-void SpriteOps::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
@@ -163,12 +142,6 @@ private:
 struct SoundMixer {
     void ResetMusic() { reinterpret_cast<CMusicSystem*>(this)->Stop(); }   // 006B4F70 (the object at *007AF760)
 };
-struct WeatherObject {
-    void Construct(int size);                           // 00499DC0
-    void Start();                                       // 00499EE0
-};
-__declspec(naked) void WeatherObject::Construct(int) EI_ORIGINAL(0x00499DC0)
-__declspec(naked) void WeatherObject::Start() EI_ORIGINAL(0x00499EE0)
 // The scene renderer (007AF060, what 00500960 returns).
 CSceneRenderer* Renderer() { return reinterpret_cast<CSceneRenderer*>(0x007AF060); }
 // 006570E0: saves the game into saves\<name> (ECX name, DL flag).
@@ -222,7 +195,7 @@ public:
         CUiMesh* sprite = AddFigure(map_, figure);
         SetPosition(sprite, ModelPoint(local));
         SetTexture(sprite, Texture(1));
-        Ops(sprite)->SetScale(scale);
+        sprite->SetScale(scale);
         Turn(sprite);
         return sprite;
     }
@@ -248,7 +221,6 @@ private:
     CGlobalMap* map_;
 };
 
-MapScreen* Screen(CGlobalMap* map) { return reinterpret_cast<MapScreen*>(map); }
 
 // Element templates with real strings (layouts of GlobalMapZone / GlobalMapPlace).
 struct ZoneTemplate {
@@ -277,7 +249,7 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 // A region over a marker sprite (its layout position): 20 to each side, 25 above, 10 below.
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
-    Ops(sprite)->Position(&x, &y, &depth);
+    sprite->GetPlacement(&x, &y, &depth);
     int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
     int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
     int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));
@@ -309,13 +281,13 @@ void CGlobalMap::Create() {
     AllodView* allod = reinterpret_cast<AllodView*>(MapDatabase()->FindAllod(current->allod));
     {
         alignas(4) std::uint8_t raw[4];
-        mfc::CString* title = Screen(this)->AllodTitle(reinterpret_cast<mfc::CString*>(raw), allod->name);
+        mfc::CString* title = AllodTitle(reinterpret_cast<mfc::CString*>(raw), allod->name);
         *reinterpret_cast<mfc::CString*>(&allodTitle_) = *title;
         title->~CString();
     }
     {
         Vector3 position;
-        Screen(this)->ZonePosition(&position, current->name);
+        ZonePosition(&position, current->name);
         std::memcpy(&position_, &position, 12);
     }
     const mfc::CString& allodName = *reinterpret_cast<const mfc::CString*>(&allod->name);
@@ -373,7 +345,7 @@ void CGlobalMap::Create() {
         *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].name) = *reinterpret_cast<mfc::CString*>(&zone->name);
         {
             alignas(4) std::uint8_t raw[4];
-            mfc::CString* title = Screen(this)->ZoneTitle(reinterpret_cast<mfc::CString*>(raw), zone->name);
+            mfc::CString* title = ZoneTitle(reinterpret_cast<mfc::CString*>(raw), zone->name);
             *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].title) = *title;
             title->~CString();
         }
@@ -386,7 +358,7 @@ void CGlobalMap::Create() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
         variable.Format(game::Text(0x00794140), zones_.data[i].name);   // "q.%s"
-        reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5)->CopyVariables(variable, vars.Table());
+        GameLocalPlayerVariables(variable, vars.Table());
         VariableIterator it;
         FloatTableBeginOriginal(vars.Table(), nullptr, &it);
         while (NamedFloatTable::Node* node = it.node) {
@@ -403,24 +375,24 @@ void CGlobalMap::Create() {
                     quests_.data[n].zone = i;
                     {
                         alignas(4) std::uint8_t raw[4];
-                        mfc::CString* title = Screen(this)->QuestTitle(reinterpret_cast<mfc::CString*>(raw), parts[2]);
+                        mfc::CString* title = QuestTitle(reinterpret_cast<mfc::CString*>(raw), parts[2]);
                         *reinterpret_cast<mfc::CString*>(&quests_.data[n].title) = *title;
                         title->~CString();
                     }
                     {
                         Vector3 position;
-                        Screen(this)->QuestPosition(&position, parts[2]);
+                        QuestPosition(&position, parts[2]);
                         std::memcpy(&quests_.data[n].position, &position, 12);
                     }
                     CUiMesh* sprite = AddFigure(this, allod->questMarker);
                     Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
-                    Ops(sprite)->SetScale(GameFloat(0x007420D0));
+                    sprite->SetScale(GameFloat(0x007420D0));
                     builder.Turn(sprite);
                     SetWhite(sprite);
                     float x, y, depth;
-                    Ops(sprite)->Position(&x, &y, &depth);
+                    sprite->GetPlacement(&x, &y, &depth);
                     ++questCount_;
                 }
             }
@@ -451,20 +423,20 @@ void CGlobalMap::Create() {
             *reinterpret_cast<mfc::CString*>(&links_.data[n].name) = *reinterpret_cast<mfc::CString*>(&way->name);
             {
                 alignas(4) std::uint8_t raw[4];
-                mfc::CString* title = Screen(this)->ZoneTitle(reinterpret_cast<mfc::CString*>(raw), way->name);
+                mfc::CString* title = ZoneTitle(reinterpret_cast<mfc::CString*>(raw), way->name);
                 *reinterpret_cast<mfc::CString*>(&links_.data[n].title) = *title;
                 title->~CString();
             }
             {
                 Vector3 position;
-                Screen(this)->ZonePosition(&position, way->name);
+                ZonePosition(&position, way->name);
                 std::memcpy(&links_.data[n].position, &position, 12);
             }
             CUiMesh* sprite = AddFigure(this, way->figure);
             Vector3 local = links_.data[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
-            Ops(sprite)->SetScale(GameFloat(0x007420D0));
+            sprite->SetScale(GameFloat(0x007420D0));
             builder.Turn(sprite);
             SetWhite(sprite);
             AddMarkerRegion(this, sprite);
@@ -584,10 +556,10 @@ void CGlobalMap::Create() {
     selectPending_ = 1;
     SelectZone(-1, 0);
     dragging_ = false;
-    GameSetWeatherOriginal(reinterpret_cast<void*>(0x007AFEA6), nullptr, 0, 0.0f);   // clear
+    GameSetWeather(0, 0.0f);   // clear
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
     {
-        WeatherObject* weather = static_cast<WeatherObject*>(gamecrt::operator_new(0x34));
+        auto* weather = static_cast<CCloudNoise*>(gamecrt::operator_new(0x34));
         if (weather) {
             weather->Construct(0x100);
             *reinterpret_cast<std::uintptr_t*>(weather) = 0x007420D4;
@@ -600,7 +572,7 @@ void CGlobalMap::Create() {
     for (int i = 0; i < 18; ++i) weatherTable_[i] = kWeather[i];
     for (int i = 0; i < 18; ++i) {
         weatherIndex_ = i;
-        Screen(this)->SetWeather();
+        SetWeather();
     }
     using UpdateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<UpdateFn>(vtable_[24])(this);   // slot 24 (+0x60)
@@ -697,7 +669,7 @@ void CGlobalMap::Update() {
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
-            Ops(sprite)->Position(&x, &y, &depth);
+            sprite->GetPlacement(&x, &y, &depth);
         }
         for (int i = 0; i < linkCount_; ++i) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + questCount_ + zoneCount_ + i]);
@@ -705,7 +677,7 @@ void CGlobalMap::Update() {
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
-            Ops(sprite)->Position(&x, &y, &depth);
+            sprite->GetPlacement(&x, &y, &depth);
             int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
             int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
             int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));

@@ -1,6 +1,8 @@
 // CEffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
+#include "effects.h"
 #include "map_object_shadow.h"
+#include "unit_ai.h"
 #include "world_effect.h"
 
 #include "ai_map.h"
@@ -243,7 +245,7 @@ void CEffectMoshka::Follow(int objectId) {
     mfc::CString texture(game::MoshkaTextureText());
     int id = NextClientObjectId()--;
     CEngineObject* object = camera::ObjectManager()->CreateObject(kClassFigureObject, id);
-    CountedRefAssignOriginal(&bird_, nullptr, object);
+    AIRef::Of(&bird_)->Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, as the original does.
     auto* bird = static_cast<CObject3D*>(bird_);
@@ -263,7 +265,7 @@ void CEffectMoshka::Follow(int objectId) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);
     }
-    auto* source = static_cast<CEngineObject*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kBirdParticles));
+    auto* source = reinterpret_cast<CEngineObject*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kBirdParticles));
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;

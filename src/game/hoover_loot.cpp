@@ -34,7 +34,6 @@ using PtrListNode = PtrList::Node;
 // and weapons (with the same effects).
 inline PtrListNode* __fastcall NewNode(PtrList* l, void*, PtrListNode* prev, PtrListNode* next) { return static_cast<PtrListNode*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
-__declspec(naked) void __fastcall UnitRemoveQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x005311E0)
 void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
@@ -106,7 +105,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     }
     for (int slot = 0; slot < 4; ++slot) {
         if (void* item = cunit->GetQuickItem(slot)) Append(drops, item);
-        UnitRemoveQuickItem(unit, nullptr, slot);
+        cunit->RemoveQuickItem(slot);
     }
     for (int i = 0; i < cunit->carriedCount; ++i) {
         if (void* item = cunit->carried[i]) Append(drops, item);

@@ -5,6 +5,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
+#include "ui.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
@@ -16,6 +17,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstdint>
 
@@ -36,7 +38,7 @@ CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 // --- 0062C8F0 / 0062C920: closing, message box answers -----------------------------------------------
 
 void CExchangeScreen::Close() {
-    InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
     delete scratch_;   // slot 0 with 1 (the game's deleting destructor)
 }
 EI_REPLACE_METHOD(0x0062C8F0, CExchangeScreen::Close);
@@ -49,8 +51,8 @@ EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
 void CExchangeScreen::Update() {
     UiUpdateChildrenOriginal(this);
     if (!LiveOffer()) {
-        ItemScreenReturnAllOriginal(this, nullptr, LocalParty(), ownOffer_);
-        GlueBackToWorldOriginal(UiClientGlue());
+        ReturnAll(LocalParty(), ownOffer_);
+        GameRejoin();
         return;
     }
     bool changed = moneyField_->changed_;
@@ -64,7 +66,7 @@ EI_REPLACE_METHOD(0x0062C930, CExchangeScreen::Update);
 // --- 0062CF70: the left button (input slot 2) --------------------------------------------------------
 
 void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
@@ -101,11 +103,11 @@ EI_REPLACE_METHOD(0x0062CF70, InputForward<&CExchangeScreen::OnLButtonDown>::Cal
 void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
     PartyReleaseItemsOriginal(LocalPlayerData());
     auto* local = reinterpret_cast<CParty*>(LocalPlayerData());
-    ItemScreenReturnAllOriginal(this, nullptr, local, partyC);
-    ItemScreenReturnAllOriginal(this, nullptr, reinterpret_cast<CParty*>(LocalPlayerData()), partyB);
+    ReturnAll(local, partyC);
+    ReturnAll(reinterpret_cast<CParty*>(LocalPlayerData()), partyB);
     int money = partyB->Money() - partyA->Money() + partyC->Money();
     reinterpret_cast<CParty*>(LocalPlayerData())->Money() = money;
-    GlueBackToWorldOriginal(UiClientGlue());
+    GameRejoin();
 }
 EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);
 
@@ -181,7 +183,7 @@ void CExchangeScreen::Create() {
 
     // The scratch party (made through its slot 2, not checked), our offer cleared, the partner's.
     void* memory = gamecrt::operator_new(sizeof(CParty));
-    scratch_ = memory ? static_cast<CParty*>(PartyRecordsConstructOriginal(memory)) : nullptr;
+    scratch_ = memory ? static_cast<CParty*>(static_cast<CParty*>(memory)->Construct()) : nullptr;
     scratch_->Create();
     net::ClientSession* client = net::GameClient();
     ownOffer_ = reinterpret_cast<CParty*>(&client->parties_[0]);
@@ -192,7 +194,7 @@ void CExchangeScreen::Create() {
     auto* panel = NewChild<CItemInfoPanel>(sizeof(CItemInfoPanel), interface_, ItemPanelVtables());
     if (panel) {
         panel->owner_ = this;
-        PartyRecordsConstructOriginal(panel->itemList_);
+        panel->ItemParty()->Construct();
         panel->itemTexts_.Construct();
         panel->skillTexts_.Construct();
         SetVtables(panel, InfoPanelVtables());
@@ -236,8 +238,8 @@ void CExchangeScreen::Create() {
                                                                                  0x16E))
                          : nullptr;
     AsContainer(this)->AddChild(moneyField_);
-    EditFieldSetLookOriginal(moneyField_, nullptr, 1, 1, 1, 9, 0xFFFFFF, 0x31B3FF);
-    EditFieldSetTextOriginal(moneyField_, nullptr, game::Text(0x0079B298));   // ""
+    moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
+    static_cast<CUiEditField*>(moneyField_)->SetText(game::Text(0x0079B298));   // ""
 
     AddSurface(NewSurface(interface_, 0x19A, 0x1C2));
     AddSurface(NewSurface(interface_, 0x136, 0x15E));
@@ -273,14 +275,14 @@ BOOL CExchangeScreen::Draw(int pass) {
     if (!hoveredItem_ && !topic)
         hoveredItem_ = reinterpret_cast<CItem*>(grid_->VirtualItemAt(MouseScreenX(), MouseScreenY(), &topic));
     if (hoveredItem_) {
-        if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(hoveredItem_);
     } else if (topic) {
         if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else if (descPanel_) {
-        InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+        static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
     }
 
-    auto* texts = static_cast<CTextManager*>(GameFlowOriginal());
+    auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());
     mfc::CString text, line;
     net::ClientSession* client = net::GameClient();
 
@@ -384,7 +386,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);
         CParty* offer = ownOffer_;
         CItem* held = ItemScreenMoveItemOriginal(this, nullptr, item, LocalParty(), offer, 0, 1, 0);
-        ItemStripScrollToItemOriginal(strip_, nullptr, held);
+        static_cast<CUiItemStrip*>(strip_)->ScrollToItem(held);
         ClientPublishPartyOriginal(net::GameClient());
         return;
     }

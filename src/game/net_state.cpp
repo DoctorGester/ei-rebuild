@@ -348,7 +348,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         motion->segment = -1;
         motion->speedScale = walk;
         motion->baseTurnRate = run;
-        MotionBuild(motion, nullptr, path2);
+        motion->Build(path2);
         static_cast<CMapObject*>(unit)->MarkChanged(10);
         unit->Controller()->MotionChanged();
         complete &= SnapshotConsumed();
@@ -364,8 +364,8 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         if (id == -1) {
             if (current) {
                 unit->player = nullptr;
-                PlayerRemoveUnitOriginal(current, nullptr, unit);
-                if (char* now = unit->player) PlayerAddUnitOriginal(now, nullptr, unit);
+                reinterpret_cast<CPlayer*>(current)->RemoveUnit(unit);
+                if (char* now = unit->player) reinterpret_cast<CPlayer*>(now)->AddUnit(unit);
                 static_cast<CMapObject*>(unit)->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
@@ -375,8 +375,8 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
             if ((AsPlayer(local)->id_ == id || view->localSession) && unit->player != local) {
                 char* old = unit->player;
                 unit->player = local;
-                if (old) PlayerRemoveUnitOriginal(old, nullptr, unit);
-                if (char* now = unit->player) PlayerAddUnitOriginal(now, nullptr, unit);
+                if (old) reinterpret_cast<CPlayer*>(old)->RemoveUnit(unit);
+                if (char* now = unit->player) reinterpret_cast<CPlayer*>(now)->AddUnit(unit);
                 static_cast<CMapObject*>(unit)->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(local);
             }

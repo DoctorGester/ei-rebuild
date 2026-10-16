@@ -2,6 +2,7 @@
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
 // See script.h and docs/notes/script.md.
 #include "game_arrays.h"
+#include "game_lists.h"
 #include "script.h"
 #include "game_strings.h"
 
@@ -26,7 +27,6 @@ namespace {
 // hidden pointer: copy-constructed into `out`, the node freed).
 __declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C69B0)
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
-__declspec(naked) void __fastcall DeclDestruct(void*) EI_ORIGINAL(0x004C54A0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // Node element destructors (__thiscall (flags), 0 = in place): WorldScript block (0x18), FX
 // source (0x34), particle source (0x24); lightning DestructElements (__stdcall (first, count)).
@@ -123,7 +123,7 @@ void __fastcall ScriptReset(CScript* script) {
     // Command blocks, removed from the head.
     while (script->blocks_.count != 0) {
         BlocksRemoveHead(&script->blocks_, nullptr, element);
-        DeclDestruct(element);
+        ScriptDeclDestruct(reinterpret_cast<ScriptDecl*>(element));
     }
 }
 EI_REPLACE(0x004BE6E0, ScriptReset);

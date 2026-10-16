@@ -28,21 +28,11 @@ struct UnitStatsBuilder;
 struct UnitStats;
 struct UnitVitals;
 
-// 005287A0 / 00528800: UnitStats Load / Save (RET 4: the stream; no result).
-__declspec(naked) inline void __fastcall UnitStatsLoadOriginal(void* /*stats*/, void*, void* /*stream*/) EI_ORIGINAL(0x005287A0)
-__declspec(naked) inline void __fastcall UnitStatsSaveOriginal(void* /*stats*/, void*, void* /*stream*/) EI_ORIGINAL(0x00528800)
-__declspec(naked) inline int __fastcall PrototypeClass(void*, void*, const char*) EI_ORIGINAL(0x00513240)
 __declspec(naked) inline int __fastcall SkillRecordIndex(const void*, void*, const void*) EI_ORIGINAL(0x0051FF00)
 __declspec(naked) inline void __fastcall UnitParameterBlock(void*, void*, void*, void*, int) EI_ORIGINAL(0x005270E0)
 __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
-// 00555840 (the unit's server controller, CUnit + 0x240; plain RET): the controller drops its action and orders (state 6,
-// commands 9). 00555700 (RET 4): it plays the animation named by its argument (callers pass a FigureAnimation, whose
-// name comes first, or a name) as its action. Both rewritten (CUnitServer::StopAction / PlayAnimation).
-__declspec(naked) inline void __fastcall ControllerStopActionOriginal(void* /*controller*/) EI_ORIGINAL(0x00555840)
-__declspec(naked) inline void __fastcall ControllerPlayAnimationOriginal(void* /*controller*/, void*, const void* /*animation*/)
-    EI_ORIGINAL(0x00555700)
 __declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 __declspec(naked) inline void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
 __declspec(naked) inline void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*)
@@ -55,49 +45,23 @@ __declspec(naked) inline void __fastcall StepsSetAtGrow(AnimationSteps*, void*, 
 
 // 00530730 / 00531070: equip armour (RET 4, returns the item it replaced or null) / add weapon (RET 4, slot index,
 // 1 when already there, -1 when full). 00554450: the unit controller resyncs with its unit (plain RET, no result).
-__declspec(naked) inline void* __fastcall UnitEquipArmourOriginal(void* /*unit*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x00530730)
-__declspec(naked) inline int __fastcall UnitAddWeaponOriginal(void* /*unit*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x00531070)
-__declspec(naked) inline void __fastcall ControllerRepositionOriginal(void* /*controller*/) EI_ORIGINAL(0x00554450)
 // 00557E70: destructor of the animation-step array / controller list (ECX = object, plain RET, no result).
 __declspec(naked) inline void __fastcall AnimationStepsDestroyOriginal(void* /*steps*/) EI_ORIGINAL(0x00557E70)
 
-// C3h. 005300D0: unit.SetController(player) (RET 4, EAX not a result).
-__declspec(naked) inline void __fastcall UnitSetControllerOriginal(void* /*unit*/, void*, void* /*player*/)
-    EI_ORIGINAL(0x005300D0)
-
-// 00544E70: AnimationSteps equal-length test against another (RET 4, AL).
-__declspec(naked) inline bool __fastcall StepsQueueHoldsOriginal(void* /*steps*/, void*, const void* /*other*/)
-    EI_ORIGINAL(0x00544E70)
 // 00556870: AnimationSteps copy constructor (RET 4, returns this).
 __declspec(naked) inline void* __fastcall StepsCopyConstructOriginal(void* /*steps*/, void*, const void* /*source*/)
     EI_ORIGINAL(0x00556870)
-// 0054C8B0: unit controller checks an order against its state (RET 4, AL).
-__declspec(naked) inline bool __fastcall UnitCheckOrderOriginal(void* /*controller*/, void*, const void* /*action*/)
-    EI_ORIGINAL(0x0054C8B0)
 // 00556D10: cell list constructor (block size; RET 4, returns this).
 __declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
     EI_ORIGINAL(0x00556D10)
-// 0059F3D0: sets a figure part's owner object (stores at +0x98; RET 4, no result).
-__declspec(naked) inline void __fastcall FigurePartSetOwnerOriginal(void* /*part*/, void*, void* /*owner*/)
-    EI_ORIGINAL(0x0059F3D0)
 
 // C3k. A counted reference is a pointer slot whose object keeps a count at +4 and has Release as virtual slot 4.
 // 0052B030 releases the object and clears the slot (plain RET); 0052A8F0 assigns an object unless it is the one
 // already held (RET 4); 00511B90 stores the object, adds a reference and then releases the old one (RET 4). None of
 // them leaves a result in EAX.
 __declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/) EI_ORIGINAL(0x0052B030)
-__declspec(naked) inline void __fastcall CountedRefAssignOriginal(void* /*slot*/, void*, void* /*object*/)
-    EI_ORIGINAL(0x0052A8F0)
 __declspec(naked) inline void __fastcall CountedRefStoreOriginal(void* /*slot*/, void*, void* /*object*/)
     EI_ORIGINAL(0x00511B90)
-// 0050E220 / 0050E290: a counted reference's Load(stream, context) (RET 8: the id is read from the stream and resolved
-// in `context`) and Save(stream) (RET 4: the object's id at +0xC, or -1); EAX is not a result.
-__declspec(naked) inline void __fastcall CountedRefLoadOriginal(void* /*ref*/, void*, void* /*stream*/, void* /*context*/)
-    EI_ORIGINAL(0x0050E220)
-__declspec(naked) inline void __fastcall CountedRefSaveOriginal(void* /*ref*/, void*, void* /*stream*/)
-    EI_ORIGINAL(0x0050E290)
 // 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4): reads a count, then appends that many counted references to
 // the CList of objects, each loaded with 0050E220 in `context`. EAX is not a result.
 __declspec(naked) inline void __fastcall CountedListLoadOriginal(void* /*list*/, void* /*stream*/, void* /*context*/)
@@ -164,36 +128,10 @@ __declspec(naked) inline void __fastcall CompanionCreateLightOriginal(void* /*co
                                                                       float /*radius*/, int /*flag*/) EI_ORIGINAL(0x00511830)
 
 // 0051FE00: the skill database (007AF268) finds the skill level named `name` by _mbsicmp (thiscall, RET 4), or null.
-__declspec(naked) inline void* __fastcall SkillFindOriginal(void* /*database*/, void*, const void* /*name*/)
-    EI_ORIGINAL(0x0051FE00)
 
-// 0050CC20: the animation state's node (bone) named `name`, or null (thiscall, RET 4); its +0x74 is the node's position.
-__declspec(naked) inline void* __fastcall AnimationStateFindNodeOriginal(void* /*state*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x0050CC20)
-// 0050D920: the animation state appends the name (+0x1C) of each part it animates to the CStringArray `out` (thiscall,
-// RET 4; no result).
-__declspec(naked) inline void __fastcall AnimationStatePartNamesOriginal(void* /*state*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x0050D920)
-// 005AA5F0 (rewritten as FindFigureModel, figure_models.cpp): the figure manager's model named `name` (an STLport
-// string; thiscall, RET 4). 005AC010 (rewritten as LoadFigureBounds): a figure part's bounding volume into `out`
-// (thiscall on the manager, RET 0x1C; returns 1, 0 without data). Through their addresses so the wrappers run.
-__declspec(naked) inline void* __fastcall FigureManagerFindModelOriginal(void* /*manager*/, void*, const void* /*name*/)
-    EI_ORIGINAL(0x005AA5F0)
-__declspec(naked) inline int __fastcall FigureManagerPartBoundsOriginal(void* /*manager*/, void*, void* /*out*/, void* /*model*/,
-                                                                        const char* /*directory*/, const char* /*name*/,
-                                                                        std::uint32_t, std::uint32_t, std::uint32_t)
-    EI_ORIGINAL(0x005AC010)
-// 005AC2B0 (thiscall on the figure manager, RET 0x20): a new figure part object (the manager's CreateObject, class 0x42,
-// or 0x41 when `detached`, the object's flags_ & 0x1000, is 0) named `part` (+0x120) of the model `modelName` (+0x124);
-// the cached model, the scale x, y, z (float bits) and `arg` are not read. Returns the part.
-__declspec(naked) inline void* __fastcall FigureManagerLoadPartOriginal(void* /*manager*/, void*, const char* /*modelName*/,
-                                                                        const char* /*part*/, void* /*model*/, std::uint32_t,
-                                                                        std::uint32_t, std::uint32_t, std::uint32_t /*arg*/,
-                                                                        std::uint32_t /*detached*/) EI_ORIGINAL(0x005AC2B0)
 // A-U11 (unit_db.cpp, unit_db_destroy.cpp). The unit database's records: 0053EBC0 / 0053ED30 / 0053EE70 destroy a
 // prototype / NPC / model record (rewritten in unit_db_destroy.cpp; thiscall, plain RET); 0053E2A0 / 0053E520 / 0053E730 /
 // 0053E9B0 resize the vectors of prototypes / NPCs / models / level records (STLport, RET 4: count). No results.
-__declspec(naked) inline void __fastcall UnitModelDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x0053EE70)
 __declspec(naked) inline void __fastcall UnitPrototypesResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x0053E2A0)
 __declspec(naked) inline void __fastcall UnitNpcsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
@@ -215,10 +153,6 @@ __declspec(naked) inline void __fastcall AnimationTrackLoadOriginal(void* /*trac
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).
-__declspec(naked) inline int __fastcall FigureManagerLoadBonesOriginal(void* /*manager*/, void*, void* /*model*/,
-                                                                       void* /*bone*/) EI_ORIGINAL(0x005ACB80)
-__declspec(naked) inline int __fastcall FigureManagerLinkSkeletonOriginal(void* /*manager*/, void*, void* /*state*/,
-                                                                          const char* /*model*/) EI_ORIGINAL(0x005AC880)
 // 00693180 (rewritten as ComposeTexture, texture_compose.cpp; through its address so the wrapper runs): the texture
 // manager composes the skin `request` into the cached texture `name` (or `fallback`), its name into `out` (thiscall,
 // RET 0x1C; 1 / 0).
@@ -235,8 +169,6 @@ __declspec(naked) inline void __fastcall SoundSystemListFilesOriginal(void* /*so
 struct LeverRecord;   // lever.h
 // 0052CA40 (thiscall on the lever table 0079C1A0, RET 4): the record of model `name` (its map's
 // operator[], STLport library code: an unknown name adds a null record).
-__declspec(naked) inline const LeverRecord* __fastcall LeverRecordOriginal(void* /*table*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x0052CA40)
 struct LockKey;   // unit.h
 // 00522A80 LockKey::Opens (unit_stats.cpp; Rebirth's FixLeversActivate patches it, so callers go
 // through its address): thiscall on the key, RET 4, BOOL.
@@ -247,14 +179,6 @@ struct DeltaField;        // net_delta.h
 // C3m. 0050E660 (rewritten as CMapObject::DestructBody): the map object's destructor body.
 __declspec(naked) inline void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 
-// C3m. The unit's server controller (thiscall, plain RET): 00555180 (rewritten as CUnitServer::Idle) and 00555200
-// (rewritten as CUnitServer::StopQueued). Cast the controller's pointer; the views derive from this.
-struct ControllerOriginals {
-    void Idle();
-    void StopQueued();
-};
-__declspec(naked) inline void ControllerOriginals::Idle() EI_ORIGINAL(0x00555180)
-__declspec(naked) inline void ControllerOriginals::StopQueued() EI_ORIGINAL(0x00555200)
 // C3n. 0052F820 / 0052F8B0 (rewritten as CUnit::CanCastSpell / CanUseQuickItem; thiscall, RET 8): whether the unit can
 // cast the spell / use the quick item of a slot at `point` (0 when it can).
 __declspec(naked) inline int __fastcall UnitCanCastSpell(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
@@ -275,19 +199,3 @@ __declspec(naked) inline void __fastcall UnitStatsResetToBaseOriginal(void* /*st
 // 00525AF0 (rewritten as UnitStats::RefillSlots; plain RET): every slot of kind 2 or more back to its maximum; EAX the
 // end of the slot array.
 __declspec(naked) inline void* __fastcall UnitStatsRefillSlotsOriginal(void* /*stats*/) EI_ORIGINAL(0x00525AF0)
-// 00531180 / 00531820 (rewritten as CUnit::AddQuickItem / AddSpell; RET 4): adds a quick item / a spell; EAX the slot,
-// 1 when already there, -1 when full (0 for a null item). 00531220 (rewritten as CUnit::AddCarried; RET 4): adds a
-// carried (quest) item; EAX not a result.
-__declspec(naked) inline int __fastcall UnitAddQuickItemOriginal(void* /*unit*/, void*, void* /*item*/) EI_ORIGINAL(0x00531180)
-__declspec(naked) inline void __fastcall UnitAddCarriedOriginal(void* /*unit*/, void*, void* /*item*/) EI_ORIGINAL(0x00531220)
-__declspec(naked) inline int __fastcall UnitAddSpellOriginal(void* /*unit*/, void*, void* /*spell*/) EI_ORIGINAL(0x00531820)
-// 00554830 (rewritten as CUnitServer::PlanMove; thiscall on the unit controller, RET 0x10): plans a move to `point`;
-// `range` is a float.
-__declspec(naked) inline void __fastcall ControllerPlanMoveOriginal(void* /*controller*/, void*, const float* /*point*/,
-                                                                    int /*moving*/, int /*run*/, float /*range*/)
-    EI_ORIGINAL(0x00554830)
-// 005327D0 (rewritten as CUnit::ResistanceTo; RET 4): the unit's factor (+0x4B0..+0x4C4) for the kind in the hit's (or
-// animation entry's) flags at +0x14, 1 by default; FLD of a float, so declared float. The step code reads it as the speed
-// factor of an animation entry.
-__declspec(naked) inline float __fastcall UnitResistanceToOriginal(void* /*unit*/, void*, const void* /*hit*/)
-    EI_ORIGINAL(0x005327D0)

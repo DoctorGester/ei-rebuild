@@ -1,5 +1,6 @@
 // A new unit's starting equipment from its prototype (005141F0; the world adds zone units with it
 // after ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
+#include "item.h"
 #include "unit_create.h"
 #include "game_strings.h"
 
@@ -29,8 +30,8 @@ constexpr int kManagerWorld = 0xAC;         // the manager's map object context 
 // item manager's item by name (item_constructor.cpp); 00480080 FatalError (app.cpp); CUnit's
 // EquipArmour / AddWeapon / AddSpell (unit_items.cpp, unit.cpp). 006AD1E0, the item manager's
 // spell by name (with world slot 22), is not rewritten.
-CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
-int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
+CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)static_cast<CUnit*>(a0)->EquipArmour(a2); }
+int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return static_cast<CUnit*>(a0)->AddWeapon(a2); }
 
 std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); }
 
@@ -74,8 +75,8 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CEngineObject* spell = (CEngineObject*)FactoryCreateSpellOriginal(items, nullptr, prototype->spellNames.begin()[i], spellOwner);
-        if (spell) UnitAddSpellOriginal(unit, nullptr, spell);
+        CEngineObject* spell = (CEngineObject*)static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
+        if (spell) static_cast<CUnit*>(unit)->AddSpell(spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }
     return 1;

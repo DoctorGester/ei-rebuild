@@ -95,7 +95,7 @@ void CMpConnectScreen::DrawListVanilla() {
     const int show = newGame ? 1 : 0;
     playersSlider_->SetEnabled(show, 1);
     nameEdit_->SetEnabled(show, 1);
-    EditFieldActivateOriginal(nameEdit_, nullptr, show);
+    nameEdit_->SetFocused(show != 0);
     sprite(kSpriteUnlisted)->visible_ = show;
     sprite(kSpritePassword)->visible_ = show;
     if (!newGame) {
@@ -142,7 +142,7 @@ void CMpConnectScreen::DrawListVanilla() {
     // The line under the titles.
     ui_gdi::GamePen pen;
     pen.Construct(PS_SOLID, 1, TextColour());
-    void* oldPen = dc->SelectPen(&pen);
+    mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
     // WideScreen (0061DB0E / 0061DB3E: XOR ECX,ECX): without the margin.
@@ -259,7 +259,7 @@ void CMpConnectScreen::DrawListVanilla() {
             }
         }
     }
-    dc->SelectPen(oldPen);
+    dc->SelectObject(oldPen);
     SurfaceReleaseDC(surface);
     pen.Destruct();
 }

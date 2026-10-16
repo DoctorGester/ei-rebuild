@@ -236,15 +236,10 @@ EI_REPLACE_METHOD(0x0050F020, CMapObject::PlaceOnGroundImpl);
 
 // --- Companion -------------------------------------------------------------------------------
 
-namespace {
-// 00515950 (map_object_companion.cpp), through its game address.
-__declspec(naked) std::uintptr_t __fastcall ServerSetData(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00515950)
-} // namespace
-
 std::uintptr_t CMapObject::SetServerDataImpl(const void* data) {
     int classId = companion->GetClassId();
     if (classId != kClassMapObjectServer) return static_cast<std::uintptr_t>(classId);
-    return ServerSetData(companion, nullptr, data);
+    return static_cast<CMapObjectServer*>(companion)->SetData(data);
 }
 EI_REPLACE_METHOD(0x0050F050, CMapObject::SetServerDataImpl);
 

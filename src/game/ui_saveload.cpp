@@ -85,9 +85,6 @@ int __fastcall CursorSetShape(void* a0, void*, int a2) { return static_cast<CCur
 // 005F75B0 (RET 4): the interface shows `text` in a notice band and draws a frame.
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top.
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-// 00578B50 / 00578A90 (RET 4): the local player's variable `name` (ST0) and zone (a CString
-// constructed at `out`, returned).
-__declspec(naked) mfc::CString* __fastcall PlayerZone(void*, void*, void* /*out*/) EI_ORIGINAL(0x00578A90)
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
 // 006FE508: CTime::GetCurrentTime (time(), returned through `out`).
 __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_ORIGINAL(0x006FE508)
@@ -332,7 +329,7 @@ void CSaveLoadWindow::SaveGame() {
             CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(),
                                                           0x30000, 1, 1)
                                     : nullptr;
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(box, 1, 1);
             return;
         }
     }
@@ -439,14 +436,14 @@ void CSaveLoadWindow::FillEntries() {
                     Str(entry->map_) = *map;
                     map->~CString();
                 }
-                StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->zone_)));
+                static_cast<CStream*>(&info.s)->ReadInto(static_cast<mfc::CString*>((void*)(&Str(entry->zone_))));
                 // +8 of the stream: the version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.version_) > 2) StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->title_)));
+                if (static_cast<int>(info.s.version_) > 2) static_cast<CStream*>(&info.s)->ReadInto(static_cast<mfc::CString*>((void*)(&Str(entry->title_))));
             }
             info.Close();
             if (console::Length(Str(entry->title_)) == 0) entry->MakeTitle(1);
@@ -489,7 +486,7 @@ void CSaveLoadWindow::FillEntries() {
         entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::savewords::GameTime()));
         {
             alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-            mfc::CString* zone = PlayerZone(kGlue, nullptr, storage);
+            mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
             Str(entry->zone_) = *zone;
             zone->~CString();
         }
@@ -555,7 +552,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     double space = app::DiskFreeSpace(GameFolder());
     // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
     if ((space < 0.0 || space > 0.0) && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
-    if (stepFrame) FrameStepOriginal(0, 1);
+    if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     CUiSurface* surface = memory != nullptr
@@ -579,7 +576,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::savewords::GameTime()));
     {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-        mfc::CString* current = PlayerZone(kGlue, nullptr, storage);
+        mfc::CString* current = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
         zone = *current;
         current->~CString();
     }
@@ -649,7 +646,7 @@ constexpr const char* kEveryFile = "\\*.*";                             // 0078B
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
     void* memory = gamecrt::operator_new(kMessageBoxBytes);
     CUiWindow* box = memory != nullptr ? ConstructMessageBox(memory, nullptr, ui, name, text, result, 3, 1) : nullptr;
-    InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+    ui->PushWindow(box, 1, 1);
 }
 } // namespace
 

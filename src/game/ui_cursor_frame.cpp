@@ -18,6 +18,7 @@
 // (render::CursorBetweenFrames, ticket R9c2); as in the original, not while the image is hidden (the
 // movie players and the loading screen hide it). The cursor's holders made in the switch-over have no
 // DirectDraw surface at all (ticket R7): the old path's draws need one (OldPathDraws).
+#include "model.h"
 #include "ui_cursor.h"
 #include "device.h"
 #include "texture.h"
@@ -46,8 +47,8 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 LONG CursorWidth() { return *reinterpret_cast<LONG*>(0x007C7C90); }
 LONG CursorHeight() { return *reinterpret_cast<LONG*>(0x007C7C94); }
 
-// 00500960: the renderer object (007AF060); its +4 bit 0 is the software cursor display option.
-bool SoftwareCursor() { return (*(static_cast<std::uint8_t*>(DisplayObject()) + 4) & 1) != 0; }
+// 00500960: the renderer object (007AF060); its flags' bit 0 is the software cursor display option.
+bool SoftwareCursor() { return (SceneRenderer()->flags_ & 1) != 0; }
 
 CDXSurface* RenderTarget(const CDXSurface* holder) { return holder->device->renderTarget_; }
 CDXSurface* Primary(const CDXSurface* holder) { return holder->device->primary_; }

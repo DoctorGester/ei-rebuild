@@ -3,6 +3,7 @@
 // which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
+#include "unit_create.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "ui_camp.h"
@@ -85,7 +86,6 @@ constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
 const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
-void* ObjectManagerNow() { return *reinterpret_cast<void* const*>(0x007AF5F8); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
 CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
@@ -116,7 +116,7 @@ CUiItemPanel* NewPanel(std::size_t size, CInterface3D* ui, CUiWindow* owner, Vta
 CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CUiWindow* owner) {
     auto* panel = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), ui, owner, ItemPanelVtables()));
     if (!panel) return nullptr;
-    PartyRecordsConstructOriginal(panel->itemList_);
+    panel->ItemParty()->Construct();
     panel->itemTexts_.Construct();
     panel->skillTexts_.Construct();
     SetVtables(panel, InfoPanelVtables());
@@ -144,7 +144,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 // An item list of the constructors: made through its slot 2 (not checked, as in the original).
 CParty* NewItemList() {
     void* memory = gamecrt::operator_new(sizeof(CParty));
-    CParty* list = memory ? static_cast<CParty*>(PartyRecordsConstructOriginal(memory)) : nullptr;
+    CParty* list = memory ? static_cast<CParty*>(static_cast<CParty*>(memory)->Construct()) : nullptr;
     list->Create();
     return list;
 }
@@ -180,7 +180,7 @@ void CCampPages::BuildPages() {
     if (constructor > 0) {
         constructor_ = ClassTemplatesFind(ClassTemplates(), nullptr, constructor);
         if (!constructor_) {
-            GlueBackToWorldOriginal(UiClientGlue());
+            GameRejoin();
             return;
         }
         spellConstructor_ = constructor_->flag0D != 0;
@@ -376,23 +376,22 @@ void CCampPages::BuildPages() {
     turning_ = 0;
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     CParty* player = LocalParty();
-    void* objects = ObjectManagerNow();
     const int count = player->members_.size;
     for (int i = 0; i < count; ++i) {
         player->members_.data[i].unitId += kRecordBias;
-        if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
+        if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
         PartyUnitRecord* record = &player->members_.data[i];
         int size = records.size;
         RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(record);
     }
-    GameTakeUnitRecordsFlagOriginal(UiClientGlue(), nullptr, &records, 1);
+    GameCreatePartyUnits(&records, 1);
 
     heroes_.SetSize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
-        if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
-        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, player->members_.data[i].unitId));
+        if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
+        auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data[i].unitId));
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {
@@ -421,7 +420,7 @@ void CCampPages::BuildPages() {
     reinterpret_cast<NextHeroFn>(vtable_[kSlotNextHero])(this);
 
     // The pages' titles.
-    auto* texts = static_cast<CTextManager*>(GameFlowOriginal());
+    auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());
     mfc::CString title;
     auto& titles = pageTitles_;
     const char* const titleKeys[] = {

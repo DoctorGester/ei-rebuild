@@ -34,12 +34,12 @@ ConsoleWindow* ConsoleWindow::Construct(int* screen) {
     shift_ = false;
     auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(sizeof(ui_gdi::GameFont)));
     if (font) {
-        font->handle_ = nullptr;
-        font->vtable_ = FontVtable();
+        font->handle = nullptr;
+        font->vtable = FontVtable();
     }
     font_ = font;
     // As the original: a failed allocation still calls CreatePointFont on null.
-    if (!FontCreatePointOriginal(font, nullptr, kFontSize, kFontFace, nullptr)) {
+    if (!font->CreatePointFont(kFontSize, kFontFace, nullptr)) {
         if (font_) font_->Delete();
         font_ = nullptr;
     }

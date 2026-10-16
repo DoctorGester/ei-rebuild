@@ -178,7 +178,7 @@ class CUnit;
 // declared; give them their signature when calling them; docs/notes/map_objects.md ("Virtual slot
 // names")). The
 // controller classes do not derive from this declaration (their rewritten slots are registered by
-// address); CUnit::Controller() reaches it. unit_ai.h's UnitController names fields of the same
+// address); CUnit::Controller() reaches it. unit_ai.h's CUnitServer names fields of the same
 // objects.
 class CUnitController : public CEngineObject {
 public:

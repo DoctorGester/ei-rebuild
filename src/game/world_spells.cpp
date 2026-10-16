@@ -1,6 +1,8 @@
 // CWorldServer: casting spells into the world (CastSpell 0058E850) and the missile that carries
 // one (CreateMissile 0058E670). See world.h and docs/notes/world.md.
+#include "object_diplomacy.h"
 #include "world.h"
+#include "combat.h"
 
 #include "core_maths.h"
 #include "map_object.h"
@@ -108,8 +110,8 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     if (target && target->GetClassId() == world::kClassUnit && caster) {
         CEngineObject* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
-            reinterpret_cast<UnitController*>(controller)->Brain()->SetSeen(caster);
-            DiplomacyOnAttack(&diplomacy_, nullptr, caster, target, 10);
+            reinterpret_cast<CUnitServer*>(controller)->Brain()->SetSeen(caster);
+            static_cast<CDiplomacy*>(&diplomacy_)->OnAttack(static_cast<CUnit*>(caster), static_cast<CUnit*>(target), 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }
@@ -207,7 +209,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
             UnitList::Node* friends =
-                reinterpret_cast<UnitController*>(static_cast<CUnit*>(caster)->controller)->Brain()->visible.head;
+                reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(caster)->controller)->Brain()->visible.head;
             while (friends && friends->data != best) friends = friends->next;
             if (friends) {
                 hit = true;

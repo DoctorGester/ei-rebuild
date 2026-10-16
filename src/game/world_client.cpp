@@ -220,7 +220,7 @@ void CWorldClient::CreateExitMarkers() {
             continue;
         }
         auto* source = static_cast<CParticleSource*>(
-            ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kExitParticles));
+            static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kExitParticles));
         auto* marker = reinterpret_cast<CEngineObject*>(source);
         AssignCounted(&countedA0_[i], marker);
         const ZoneExit& exit = exits_[i];
@@ -463,7 +463,7 @@ int CWorldClient::Segment() {
             object->RunTick();
         if (owned1B0_) owned1B0_->RunTick();
     }
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         if (static_cast<int>(worlddata::PeerList().size()) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;

@@ -2,6 +2,7 @@
 // zone / quest display are in ui_objectives.cpp. See ui.h (CObjectivesWindow) and
 // docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
+#include "world_glue.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -36,16 +37,13 @@ constexpr int kRegionNextZone = 3;
 constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
-// The client glue PassTravelTimeOriginal (originals_ui.h) is called on.
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
-
 // The quest database's index (007C87B4; operator[] adds an empty slot for an unknown name).
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 
 } // namespace
 
 void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
     switch (region) {
@@ -56,7 +54,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
         } else if (nearestExit_ >= 0) {
             const ObjectiveExit& exit = exits_[nearestExit_];
             int index = exit.exit_;
-            PassTravelTimeOriginal(ClientGlue(), nullptr, exit.distance_);
+            GamePassTime(exit.distance_);
             RequestZone(shownZone_, index);
         }
         return;
@@ -106,7 +104,7 @@ constexpr int kActionObjectives = 4;   // "obj" in the key table
 } // namespace
 
 void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -116,7 +114,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
         } else if (nearestExit_ >= 0) {
             const ObjectiveExit& exit = exits_[nearestExit_];
             int index = exit.exit_;
-            PassTravelTimeOriginal(ClientGlue(), nullptr, exit.distance_);
+            GamePassTime(exit.distance_);
             RequestZone(shownZone_, index);
         }
         inputHandled_ = true;

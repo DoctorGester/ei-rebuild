@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "unit_db.h"
 
 #include <cstdint>
 
@@ -16,7 +17,7 @@ namespace {
 
 const char* const kPerkSound = reinterpret_cast<const char*>(0x00793DF0);   // "buttons\camp\perk.wav"
 // The skill database (levels by record name).
-void* SkillDatabase() { return reinterpret_cast<void*>(0x007AF268); }
+SkillDatabase* Skills() { return reinterpret_cast<SkillDatabase*>(0x007AF268); }
 
 constexpr int kHeldRows = 10;
 constexpr int kLearnableRows = 23;
@@ -88,15 +89,14 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
         if (index >= static_cast<std::uint32_t>(learnable_.Count())) return;
         row = &learnable_.begin[index];
         if (row->price > experience_ || !row->learnable) return;
-        stats->LearnSkill(SkillDatabase(), SkillFindOriginal(SkillDatabase(), nullptr, row->key));
+        stats->LearnSkill(Skills(), Skills()->FindLevel(row->key));
     } else {
         // 34 and up, and (as unsigned) anything below 0: the next level of a held perk.
         std::uint32_t index = static_cast<std::uint32_t>(perkTop_ + region - kFirstHeld);
         if (index >= static_cast<std::uint32_t>(perks_.Count())) return;
         row = &perks_.begin[index];
         if (row->price > experience_ || TextLength(row->nextKey) == 0) return;
-        stats->LearnSkill(SkillDatabase(),
-                                SkillFindOriginal(SkillDatabase(), nullptr, row->nextKey));
+        stats->LearnSkill(Skills(), Skills()->FindLevel(row->nextKey));
     }
     stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
     record.bought = 1;

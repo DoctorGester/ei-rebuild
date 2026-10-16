@@ -13,7 +13,7 @@
 #include "net_connection.h"
 #include "net_messages.h"
 #include "net_second_master.h"
-#include "originals_world.h"   // WorldMapTitle
+#include "originals_world.h"
 #include "world.h"             // TheGameFlow
 
 #include "ei/hook.h"
@@ -66,7 +66,7 @@ void ServerSession::AnnounceToMaster() {
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-        auto* title = static_cast<mfc::CString*>(WorldMapTitle(TheGameFlow(), nullptr, storage));
+        mfc::CString* title = SessionMapNameInto(reinterpret_cast<mfc::CString*>(storage));
         const char* text = *title;
         description.Assign(text, text + std::strlen(text));
         title->~CString();

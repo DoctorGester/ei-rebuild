@@ -79,7 +79,7 @@ void CSaveLoadWindow::ShowSelection() {
 
 void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     int step = 0;
     switch (key) {
     case kKeyEnter:
@@ -206,14 +206,14 @@ void CSaveLoadWindow::OnChar(int key, int repeat, int flags) {
         break;
     }
     }
-    InputOf(this)->BaseChar(key, repeat, flags);
+    InputOf(this)->OnChar(key, repeat, flags);
 }
 
 // --- 00650E40 ------------------------------------------------------------------------------------
 
 void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     if (sliding_) return;
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (waitingForKey_) {
         // The key for the selected binding row, by scan code.
         int scan = flags & 0x1FF;
@@ -258,7 +258,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(box, 1, 1);
             return;
         }
         CommitBinding();

@@ -43,6 +43,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/stlp_hash.h"
 #include "lib/stlp_list_refs.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -290,8 +291,6 @@ void __fastcall IdMapErase(PendingMap* map, void*, const PendingMap::Node* node,
 }
 void __fastcall IdMapClear(PendingMap* map) { HashClearOriginal(map); }
 
-// 00538EA0 on a unit's controller (a hero leaving a session of kind 3).
-__declspec(naked) void __fastcall HeroLeft(CEngineObject*) EI_ORIGINAL(0x00538EA0)
 // ClearMaps: the session's player data [00665200].
 void __fastcall SessionPlayerClear(WorldSession* session) { PlayerClearOriginal(session); }
 
@@ -536,7 +535,7 @@ void CWorldClient::RemoveObject(int id) {
             hero = next;
         }
         DropRef(value);
-        if (Session()->gameKind == 3) HeroLeft(static_cast<CUnit*>(object)->controller);
+        if (Session()->gameKind == 3) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller)->DropFaceTexture();
     }
     if (SectorList* cell = CellFor(objectGrid_, object)) {
         CEngineObject* value = object;
@@ -780,15 +779,15 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
-            UnitAddWeaponOriginal(unit, nullptr, record->weapons[j]);
+            static_cast<CUnit*>(unit)->AddWeapon(record->weapons[j]);
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
+            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) static_cast<CUnit*>(unit)->EquipArmour(armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
-            UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
+            static_cast<CUnit*>(unit)->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
         slots->SetScriptName(record->texts[0]);
@@ -1164,7 +1163,6 @@ __declspec(naked) void __fastcall Construct570E40(void*) EI_ORIGINAL(0x00570E40)
 __declspec(naked) void __fastcall Construct56FD30(void*) EI_ORIGINAL(0x0056FD30)
 __declspec(naked) void __fastcall Construct570E70(void*) EI_ORIGINAL(0x00570E70)
 __declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
-__declspec(naked) void __fastcall Construct571050(void*) EI_ORIGINAL(0x00571050)
 __declspec(naked) void __fastcall Construct570DE0(void*) EI_ORIGINAL(0x00570DE0)
 __declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
 __declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690)
@@ -1176,7 +1174,6 @@ __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
 __declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
-__declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
 // vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
 __declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
     EI_ORIGINAL(0x00573520)
@@ -1314,7 +1311,7 @@ int CWorldClient::Setup() {
         MmioResourceConstructOriginal(&terrain->archive);
         Construct570E70(&terrain->vertexTiles);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
-        Construct571050(&terrain->lights);
+        stlp::ConstructTableWithDword(reinterpret_cast<stlp::TableWithDword*>(&terrain->lights));
         Construct570DE0(&terrain->wavePhases);
         Construct56FD30(&terrain->visibleColumnFirst);
         Construct56FD30(&terrain->visibleColumnLast);
@@ -1406,7 +1403,7 @@ int CWorldClient::Setup() {
     arrayManager_ = arrays;
     arrays->Init(this);
     std::uint8_t* memory = New(0x58);
-    auto* owned = static_cast<CMusicSystem*>(memory ? Construct6B4350(memory) : nullptr);
+    CMusicSystem* owned = memory ? reinterpret_cast<CMusicSystem*>(memory)->Construct() : nullptr;
     music_ = owned;
     owned->Create();
 
@@ -1616,7 +1613,6 @@ namespace {
 __declspec(naked) void __fastcall FlowUpdateAndAcknowledgeAt(GameFlow*) EI_ORIGINAL(0x0057F150)
 __declspec(naked) void __fastcall ExitReadAt(ZoneExit*, void*, CStream*) EI_ORIGINAL(0x004E5750)
 __declspec(naked) void __fastcall CreateExitMarkersAt(CWorldClient*) EI_ORIGINAL(0x00567500)
-__declspec(naked) void __fastcall ViewAppendReceivedAt(CPlayerClient*, void*, void* /*source*/) EI_ORIGINAL(0x00667B40)
 __declspec(naked) void __fastcall BuildUnitSkinsAt(CWorldClient*, void*, const void* /*figured*/, const void* /*dressed*/)
     EI_ORIGINAL(0x00568800)
 
@@ -1761,7 +1757,7 @@ int CWorldClient::LoadZone(CStream* block) {
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    ViewAppendReceivedAt(Session() ? Session()->LocalClient() : nullptr, nullptr, GameObject7C2D60());
+    (Session() ? Session()->LocalClient() : nullptr)->AppendReceived(static_cast<CMemoryStream*>(GameObject7C2D60()));
     ticksRun_ = 0;
     BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
     // The wind option that is neither 0 nor a NaN sets the waves.

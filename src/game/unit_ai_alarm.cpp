@@ -1,6 +1,7 @@
 // The unit AI brain's behaviour (alarm) records: the zone file's records copied into the brain
 // (005D6D20) and one applied as the unit's modes (005D6630), and the record array's element code.
 #include "unit_ai.h"
+#include "combat.h"
 
 #include "logic_settings.h"
 #include "net_classes.h"
@@ -214,7 +215,7 @@ void AIBrain::HearAlarm(int slot) {
     if (slot < 0 || slot >= alarmRecords.size) return;
     const AIAlarmRecord* record = &alarmRecords.data[slot];
     if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
-    owner->Say(kAlarmHeard);
+    owner->voice.Raise(kAlarmHeard);
 }
 EI_REPLACE_METHOD(0x005D5940, AIBrain::HearAlarm);
 

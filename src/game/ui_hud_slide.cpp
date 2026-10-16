@@ -26,7 +26,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "originals_render.h"   // QuaternionSetAxisAngleOriginal
 #include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
 
 #include <concepts>
@@ -120,7 +119,7 @@ void AdvanceSlide(Panel* panel) {
 void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
-    reinterpret_cast<CUiMesh*>(sling)->localRotation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
+    reinterpret_cast<CUiMesh*>(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
     SpritePlaceOriginal(sling, nullptr, x, kSlingY, FromBits(kSlingDepthBits));
 }
 
@@ -514,7 +513,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiSurface* dot = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 700, 80, 705, 85, 5, 1) : nullptr;
     AddSurface(dot);
     ui_gdi::GameDC* dc = SurfaceGetDC(dot);
-    gameapi::SetPixel(dc->hdc_, 0, 0, 0xFFFFFF);
+    gameapi::SetPixel(dc->hdc, 0, 0, 0xFFFFFF);
     SurfaceReleaseDC(dot);
 
     // The view polygon: the disc's sixteen corners.

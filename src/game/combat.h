@@ -49,6 +49,10 @@ struct UnitAction {
 };
 static_assert(sizeof(UnitAction) == 0x24);
 
+// The AI's and the players' order checks (CanReachAndPlan / From) build only an AIOrder (unit_ai.h, the
+// first 0x1C bytes of a UnitAction) on the stack and pass it as the order, as the original does.
+inline const UnitAction* AsUnitAction(const AIOrder* order) { return reinterpret_cast<const UnitAction*>(order); }
+
 // One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620). 00550A60
 // constructs a blank one: animation 0xFF, +1 0xFF, +2 0, duration -1, +8 0. It never sets byte 3,
 // nor do the builders' inline stack steps, so the original's steps carried a stack byte there;
@@ -426,9 +430,10 @@ public:
     // 005546B0. Kind 2 (turn) towards `direction`; +0x1C = `time`.
     void OrderTurn(const float* direction, std::uint32_t time);
     // 00554740. Kind 1 (move) to `point`: source = `walk` != 0 (low byte), +0x20 = `run` (low
-    // byte), the point's z replaced by `z` (sic). A party unit with a real point (z not -1313)
-    // either has +0x1C set to 1 (the world's +0x6C byte clear) or turns there (00554830).
-    void OrderMove(const float* point, int run, int walk, std::uint32_t z);
+    // byte), the point's z replaced by `range` (sic). A party unit with a real point (z not -1313)
+    // either has +0x1C set to 1 (the world's +0x6C byte clear) or plans the move within `range`
+    // (00554830).
+    void OrderMove(const float* point, int run, int walk, float range);
     // 00554B30. Kind 3 (attack) on `target` (not null, not the unit itself) at body part
     // `location` (6, all, unless the target's part kind is 3); +0x20 = `calledShot`. Dropped when
     // the target is out of reach (message 0x0C to the party) or the planner (0054E600) refuses.
@@ -726,9 +731,6 @@ public:
     // back and the result reported (ReportPath).
     void PlanMove(const float* point, int moving, int run, float range);
 
-    // The same through the game's address (combat_orders.cpp; 00554830 PlanMove is
-    // ControllerPlanMoveOriginal in originals_units.h): 0054E600 (PlanOrderRoute).
-
     // combat_object_slots.cpp (A-U5).
     // 00552D00 (RET 8). `claimant` claims the players in `mask` are enemies of this unit: they join
     // claimedHostile and the AI memory hears a call of kind 0x1E carrying the mask, with the text
@@ -789,7 +791,8 @@ public:
     int actingCheckTime;            // +0x180 world tick + 10 when acting starts (StartAction), -1 reset
     int nextAttackTime;             // +0x184 world tick of the next attack
     int interceptTime;              // +0x188 the tick a chase aims at (the target's position then); saved
-    std::uint8_t orderStopped;      // +0x18C set when a move order ends, cleared when one starts; saved, never read
+    std::uint8_t orderStopped;      // +0x18C set when a move order ends, cleared when one starts; saved; the AI
+                                    //        brain reports its target only while it is set (unit_ai.cpp)
     std::uint8_t deathReported;     // +0x18D the death was reported to the world (the dead unit's update)
     std::uint8_t searchingTarget;   // +0x18E TargetBusy counts a search under way when set (or in state 5)
     std::uint8_t unused_18F;
@@ -836,6 +839,12 @@ public:
     // +0x174 (moveMode2.flag4) is also read by the hit code: while it is set the unit cannot be
     // backstabbed (0054F580 on the target's controller, 00553DF0 on the defender).
     std::uint8_t NoBackstab() const { return moveMode2.flag4; }
+    // The AI modes that keep the unit occupied (fear, aggression, ...) set the same byte.
+    void SetBusy(std::uint8_t busy) { moveMode2.flag4 = busy; }
+    std::uint8_t Busy() const { return moveMode2.flag4; }
+
+    // unit_ai_brain.cpp. 00552CF0 (RET 4). The unit's CUnit::AddHostileMask (its EAX returned).
+    std::uintptr_t AddHostileMask(std::uint32_t mask);
 };
 static_assert(offsetof(CUnitServer, unit) == 0x1C);
 static_assert(offsetof(CUnitServer, pendingHit) == 0x108);

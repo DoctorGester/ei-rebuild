@@ -2,9 +2,12 @@
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
+#include "effects.h"
 #include "lightning.h"
 #include "net_delta.h"
 #include "script.h"
+#include "spell.h"
+#include "terrain.h"
 #include "world.h"
 #include "world_effect_internal.h"
 #include "originals_effects.h"
@@ -26,7 +29,7 @@ void __fastcall AssignLight(CLight** a0, void*, void* a2) { CountedRefStoreOrigi
 __declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
 // CParticleSource (effects.cpp, through the game addresses).
-inline void* __fastcall CreateSource(void* manager, void*, int type) { return ParticleCreateSourceOriginal(manager, nullptr, type); }
+inline void* __fastcall CreateSource(void* manager, void*, int type) { return static_cast<CParticleManager*>(manager)->CreateSource(type); }
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
@@ -121,7 +124,7 @@ void WallScorchShape(const Vector3* direction, const float* half, float* angleAn
 void CEffectPointLight::Reset() {
     ClearBase(this);
     if (light_ != nullptr) {
-        RemoveLight(LightManager(), nullptr, light_);
+        static_cast<Terrain*>(LightManager())->RemoveLight(light_);
         CLight* old = light_;
         light_ = nullptr;
         if (old != nullptr) old->Release();
@@ -144,9 +147,9 @@ int CEffectPointLight::Tick() {
     std::memcpy(&delta, &velocity_, sizeof(Vector3));
     if ((FrameCounter() & 0xF) == 0) {
         // Every 16th frame the light is re-registered at its new place.
-        RemoveLight(LightManager(), nullptr, light_);
+        static_cast<Terrain*>(LightManager())->RemoveLight(light_);
         std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
-        LightManagerAddOriginal(LightManager(), nullptr, light_);
+        static_cast<Terrain*>(LightManager())->AddLight(light_);
         return 1;
     }
     MoveLight(LightManager(), nullptr, light_, &delta);
@@ -166,10 +169,10 @@ void CEffectPointLight::Start(int update) {
         x87::CopyFloat(&color.x, &color_.x);
         x87::CopyFloat(&color.y, &color_.y);
         x87::CopyFloat(&color.z, &color_.z);
-        SetLightColorPosition(light_, nullptr, &color, &position);
+        light_->SetPoint(&color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
-        LightManagerAddOriginal(LightManager(), nullptr, light_);
+        static_cast<Terrain*>(LightManager())->AddLight(light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
         x87::CopyFloat(&light_->color_[0], &color_.x);
@@ -189,10 +192,10 @@ void CEffectPointLight::Start(int update) {
             MoveLight(LightManager(), nullptr, light_, &delta);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
         } else {
-            RemoveLight(LightManager(), nullptr, light_);
+            static_cast<Terrain*>(LightManager())->RemoveLight(light_);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
             SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
-            LightManagerAddOriginal(LightManager(), nullptr, light_);
+            static_cast<Terrain*>(LightManager())->AddLight(light_);
         }
     }
     // A negative range (or NaN) sets flag 0x400.
@@ -205,9 +208,9 @@ void CEffectPointLight::Start(int update) {
 int CEffectPointLight::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    ReadFloat16x3(field, nullptr, &color_);
-    ReadFloat16(field, nullptr, &range_);
-    ReadFloat16x3(field, nullptr, &velocity_);
+    field->ReadFloat16x3(&color_.x);
+    field->ReadFloat16(&range_);
+    field->ReadFloat16x3(&velocity_.x);
     field->ReadDelta(&lightFlags_, 4);
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
@@ -219,9 +222,9 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
 void CEffectPointLight::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
     field->WritePosition(&position);
-    WriteFloat16x3(field, nullptr, &color_);
+    field->WriteFloat16x3(&color_.x);
     field->WriteFloat16(Bits(range_));
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WriteDelta(&lightFlags_, 4);
 }
 
@@ -300,13 +303,13 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     field->ReadPosition(&position);
     field->ReadDelta(&startTick_, 4);
     field->ReadDelta(&type_, 4);
-    ReadFloat16(field, nullptr, &size_);
+    field->ReadFloat16(&size_);
     field->ReadDelta(&attachedTo_, 4);
-    ReadFloat16x3(field, nullptr, &velocity_);
+    field->ReadFloat16x3(&velocity_.x);
     field->ReadPosition(&target_);
     field->ReadDelta(&unitId_, 4);
-    ReadFloat16(field, nullptr, &alpha_);
-    ReadFloat16(field, nullptr, &param164_);
+    field->ReadFloat16(&alpha_);
+    field->ReadFloat16(&param164_);
     moving_ = IsMoving(velocity_);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == 0x4A && !SnapshotReadToEnd()) return 0;
@@ -377,7 +380,7 @@ void CEffectParticle::Pack(DeltaField* field) {
     field->WriteFloat16(Bits(size_));
     value = attachedTo_;
     field->WriteDelta(&value, 4);
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WritePosition(&target_);
     value = unitId_;
     field->WriteDelta(&value, 4);
@@ -515,7 +518,7 @@ void CEffectWall::SetDirection(const Vector3* direction) {
 
 int CEffectWall::Unpack(int update, DeltaField* field) {
     if (ParticleUnpackAt(this, nullptr, update, field) == 0) return 0;
-    ReadFloat16x3(field, nullptr, &direction_);
+    field->ReadFloat16x3(&direction_.x);
     if (!SnapshotReadToEnd()) return 0;
     if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
     if (update == 0 && type_ == 0x2010) {
@@ -539,13 +542,13 @@ void CEffectWall::Pack(DeltaField* field) {
     field->WriteFloat16(Bits(size_));
     value = attachedTo_;
     field->WriteDelta(&value, 4);
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WritePosition(&target_);
     value = unitId_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16(Bits(alpha_));
     field->WriteFloat16(Bits(param164_));
-    WriteFloat16x3(field, nullptr, &direction_);
+    field->WriteFloat16x3(&direction_.x);
 }
 
 void CEffectWall::LoadState(void* stream) {
@@ -602,7 +605,7 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
     field->ReadPosition(&position);
     field->ReadPosition(&from_);
     field->ReadPosition(&to_);
-    ReadFloat16(field, nullptr, &width_);
+    field->ReadFloat16(&width_);
     field->ReadDelta(&flag_, 1);
     field->ReadDelta(&toObject_, 4);
     field->ReadDelta(&fromObject_, 4);

@@ -2,6 +2,8 @@
 // and quests from the texts and map.txt, the zone selection's marker colours and the weather. The
 // map's Create (0062D350, ui_global_map.cpp) calls them through their addresses. See
 // docs/notes/ui.md ("Camp, global map, hero screens").
+#include "model.h"
+#include "app.h"
 #include "ui_camp.h"
 
 #include "console.h"
@@ -38,13 +40,6 @@ mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name
     return new (out) mfc::CString(text);
 }
 
-// The display object (00500960): +0x14 the colour weather entries 0-3 set (the pick render of
-// 00630670 clears it while it draws).
-struct DisplayColours {
-    std::uint8_t unused_00[0x14];
-    std::uint32_t colour;            // +0x14 ARGB
-};
-DisplayColours* Display() { return static_cast<DisplayColours*>(DisplayObject()); }
 
 // ARGB from four table ints as the original combines them: no masking, alpha shifted in first.
 std::uint32_t Argb(const int* entry) {
@@ -167,10 +162,10 @@ void CGlobalMap::RefreshSelection() {
     ShowAllButZones(0);
     SetRenderState(interface_->renderer_->device_, kShadeMode, 1);
     SetRenderState(interface_->renderer_->device_, kDitherEnable, 0);
-    std::uint32_t colour = Display()->colour;
-    Display()->colour = 0;
-    FrameStepOriginal(0, 0);
-    Display()->colour = colour;
+    std::uint32_t colour = SceneRenderer()->fogColour_;
+    SceneRenderer()->fogColour_ = 0;
+    app::FrameStep(false, false);
+    SceneRenderer()->fogColour_ = colour;
     SetRenderState(interface_->renderer_->device_, kShadeMode, 2);
     SetRenderState(interface_->renderer_->device_, kDitherEnable, 1);
     surfaces_.data[1]->Freeze(1, 0);
@@ -187,7 +182,7 @@ EI_REPLACE_METHOD(0x00630670, CGlobalMap::RefreshSelection);
 void CGlobalMap::SetWeather() {
     int index = weatherIndex_;
     if (index < 4) {
-        Display()->colour = Argb(&weatherTable_[0]);
+        SceneRenderer()->fogColour_ = Argb(&weatherTable_[0]);
     } else if (index < 8) {
         Marker(markerCount_)->flatColour_ = Argb(&weatherTable_[4]);
     } else if (index < 12) {

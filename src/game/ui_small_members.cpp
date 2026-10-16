@@ -188,7 +188,7 @@ void CInterface3D::ChatKeyBackspace() {
 }
 EI_REPLACE_METHOD(0x005F7C80, CInterface3D::ChatKeyBackspace);
 
-void CCampPages::OnKeyUp(int key, int repeat, int flags) { InputOf(this)->BaseKeyUp(key, repeat, flags); }
+void CCampPages::OnKeyUp(int key, int repeat, int flags) { InputOf(this)->OnKeyUp(key, repeat, flags); }
 namespace {
 } // namespace
 EI_REPLACE_METHOD(0x0060F690, InputForward<&CCampPages::OnKeyUp>::Call);

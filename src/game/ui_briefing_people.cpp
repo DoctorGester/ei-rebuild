@@ -2,6 +2,8 @@
 // person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "library_containers.h"
+#include "world_glue.h"
+#include "combat.h"
 #include "player_messages.h"
 #include "ui_briefing.h"
 
@@ -29,7 +31,6 @@
 namespace {
 
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
 void* LootNames() { return reinterpret_cast<void*>(0x007C8764); }   // the loot table's (007C8758) name index
 float TurnedOver() { return *reinterpret_cast<const float*>(0x007410D0); }   // pi
@@ -83,7 +84,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     (void)z;   // the server unit's height is used instead
     auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_));
     if (!serverUnit) return;
-    auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
     if (!controller) return;
     Vector3 target{x, y, serverUnit->position.z};
     if (immediate) {
@@ -91,7 +92,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
         Vector3 facing = Normalised(dx, dy, dz);
         reinterpret_cast<CTransformObject*>(serverUnit)->SetHeading(&facing.x);
         reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
-        ControllerRepositionOriginal(controller);
+        controller->ResyncWithUnit();
         return;
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
@@ -121,7 +122,7 @@ EI_REPLACE_METHOD(0x006089D0, CBriefingScreen::MovePerson);
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     (void)unused;
-    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(name)));
+    auto* unit = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(name)));
     if (unit) {
         // A person joins the speakers (at the end, once).
         BriefingSpeaker* entry = speakers_;
@@ -145,11 +146,11 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         }
         speakersEnd_[-1].unit = unit;
         speakersEnd_[-1].name = name;
-        auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(ServerWorld(), nullptr, 0));
+        auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(ServerWorld())->GetPlayer(0));
         if (player->server) static_cast<CPlayerServer*>(player->server)->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_))) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
-            reinterpret_cast<UnitController*>(serverUnit->controller)->actionDone = SpeakerActionDone();
+            reinterpret_cast<CUnitServer*>(serverUnit->controller)->actionDone = SpeakerActionDone();
         }
         return;
     }

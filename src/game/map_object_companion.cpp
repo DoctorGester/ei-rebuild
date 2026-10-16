@@ -36,10 +36,6 @@ const char* const kStenchSoundFormat = reinterpret_cast<const char*>(0x0078EFB8)
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-// 00524FE0 (thiscall, units range). Applies a hit to the server's statistics block (+0x20);
-// returns 1.
-__declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /*hit*/) EI_ORIGINAL(0x00524FE0)
-
 // The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
 // 006CA830. Points a light along `direction`.
@@ -87,7 +83,7 @@ std::uintptr_t CMapObjectServer::SetData(const void* data) {
 EI_REPLACE_METHOD(0x00515950, CMapObjectServer::SetData);
 
 BOOL CMapObjectServer::TakeHit(const void* hit) {
-    if (!ApplyHit(&vitals, nullptr, hit)) return 0;
+    if (!static_cast<UnitVitals*>(&vitals)->TakeHit(static_cast<const DamageInfo*>(hit))) return 0;
     owner->MarkChanged(0);
     if (CompanionSlots(this)->IsDead()) {
         owner->ClearEffects();

@@ -6,13 +6,14 @@
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "lib/mfc_gdi.h"
 #include "originals_ui.h"
 
 void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     if (!holder_) return;
     ui_gdi::GameBrush brush;
     brush.Construct();
-    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(dc_));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
@@ -21,16 +22,14 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
         interface_->CallScaleRectToScreen(&frame);   // 005F7CA0 (Rebirth-patched)
     }
     brush.Attach(gameapi::CreateSolidBrush(colour));
-    gameapi::FrameRect(dc->hdc_, &frame, brush.Handle());
+    gameapi::FrameRect(dc->hdc, &frame, brush.Handle());
     brush.Destruct();
 }
 EI_REPLACE_METHOD(0x005FDCB0, CUiSurface::FrameRect);
 
-__declspec(naked) void ui_gdi::GameDC::FillSolidRect(const RECT*, COLORREF) EI_ORIGINAL(0x0070BADA)
-
 void CUiSurface::Fill(COLORREF colour) {
     if (!holder_) return;
-    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(dc_));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));
     RECT whole = rect_;
     gameapi::OffsetRect(&whole, -whole.left, -whole.top);
     dc->FillSolidRect(&whole, colour);

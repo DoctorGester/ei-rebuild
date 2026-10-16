@@ -21,7 +21,7 @@
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
-#include "originals_render.h"    // QuaternionSetAxisAngleOriginal, the batch flushes
+#include "originals_render.h"    // the batch flushes
 #include "originals_ui.h"        // the sprite draw and Place, the surface's DC
 #include "render/render.h"
 #include "render/render_state.h"
@@ -109,7 +109,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     Sprite(this, kMoreMark)->visible_ = 0;
     // The background alone, before anything else.
     Sprite(this, kBackground)->visible_ = 1;
-    SpriteDrawOriginal(sceneObjects_.data[kBackground], nullptr, pass);
+    Sprite(this, kBackground)->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
     Sprite(this, kBackground)->visible_ = 0;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.
@@ -162,10 +162,10 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             const Vector3 axisZ = {0.0f, 0.0f, 1.0f};
             const Vector3 axisX = {1.0f, 0.0f, 0.0f};
             Quaternion first, second, third;
-            Quaternion* q1 = QuaternionSetAxisAngleOriginal(&first, nullptr, &axisZ, SlingTurn() * TurnAboutZ());
-            Quaternion* q2 = QuaternionSetAxisAngleOriginal(&second, nullptr, &axisX, SlingTurn() * TurnAboutX());
+            Quaternion* q1 = first.SetAxisAngle(axisZ, SlingTurn() * TurnAboutZ());
+            Quaternion* q2 = second.SetAxisAngle(axisX, SlingTurn() * TurnAboutX());
             const Quaternion tilted = Product(*q1, *q2, false);
-            Quaternion* q3 = QuaternionSetAxisAngleOriginal(&third, nullptr, &axisZ, SlingTurn() * SecondTurnAboutZ());
+            Quaternion* q3 = third.SetAxisAngle(axisZ, SlingTurn() * SecondTurnAboutZ());
             model->orientation = Product(tilted, *q3, true);
 
             const float scale = static_cast<float>(One() / size);

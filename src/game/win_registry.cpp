@@ -15,30 +15,6 @@ namespace {
 constexpr REGSAM kAllAccess = 0xF003F;   // KEY_ALL_ACCESS
 char kNoClass[] = "";                    // the key class RegCreateKeyExA gets
 
-// A CString passed by value to original code (which destroys it): the bits of a string that holds a
-// reference of its own.
-struct RawString {
-    char* data;
-};
-RawString CopyString(const mfc::CString& s) {
-    RawString copy;
-    new (&copy) mfc::CString(s);
-    return copy;
-}
-
-// The workers behind SetString / GetString, called through their addresses so that their verify
-// wrappers run (the public methods are their only callers).
-struct RegistryWorkers {
-    void* key;
-    BOOL SetStringInt(const char* subkey, const char* name, RawString value);              // 00697460
-    mfc::CString GetStringInt(const char* subkey, const char* name, RawString defaultValue);  // 006976B0
-};
-static_assert(sizeof(RegistryWorkers) == sizeof(CWinRegistry));
-__declspec(naked) BOOL RegistryWorkers::SetStringInt(const char*, const char*, RawString) EI_ORIGINAL(0x00697460)
-__declspec(naked) mfc::CString RegistryWorkers::GetStringInt(const char*, const char*, RawString) EI_ORIGINAL(0x006976B0)
-
-RegistryWorkers& Workers(CWinRegistry* registry) { return *reinterpret_cast<RegistryWorkers*>(registry); }
-
 HKEY Handle(void* key) { return static_cast<HKEY>(key); }
 
 // Creates (or opens) `subkey` below `root` for writing; logs `failure` when it cannot.
@@ -153,7 +129,7 @@ BOOL CWinRegistry::SetStringInt(const char* subkey, const char* name, mfc::CStri
 EI_REPLACE_METHOD(0x00697460, CWinRegistry::SetStringInt);
 
 BOOL CWinRegistry::SetString(const char* subkey, const char* name, mfc::CString value) {
-    return Workers(this).SetStringInt(subkey, name, CopyString(value));
+    return SetStringInt(subkey, name, value);
 }
 EI_REPLACE_METHOD(0x00697FC0, CWinRegistry::SetString);
 
@@ -214,6 +190,6 @@ mfc::CString CWinRegistry::GetStringInt(const char* subkey, const char* name, mf
 EI_REPLACE_METHOD(0x006976B0, CWinRegistry::GetStringInt);
 
 mfc::CString CWinRegistry::GetString(const char* subkey, const char* name, mfc::CString defaultValue) {
-    return Workers(this).GetStringInt(subkey, name, CopyString(defaultValue));
+    return GetStringInt(subkey, name, defaultValue);
 }
 EI_REPLACE_METHOD(0x006988A0, CWinRegistry::GetString);

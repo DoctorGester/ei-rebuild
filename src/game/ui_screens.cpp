@@ -65,14 +65,6 @@ void SetScrollPos(void* bar, int position) {
 
 // --- Shared ---------------------------------------------------------------------------------
 
-void UiInput::BaseLButtonDown(int flags, int x, int y) { ContainerLeftDownOriginal(this, nullptr, flags, x, y); }
-__declspec(naked) void UiInput::BaseLButtonUp(int, int, int) EI_ORIGINAL(0x006011F0)
-__declspec(naked) void UiInput::BaseMouseMove(int, int, int) EI_ORIGINAL(0x006012D0)
-__declspec(naked) void UiInput::BaseKeyDown(int, int, int) EI_ORIGINAL(0x00601820)
-__declspec(naked) void UiInput::BaseKeyUp(int, int, int) EI_ORIGINAL(0x006019A0)
-__declspec(naked) void UiInput::BaseChar(int, int, int) EI_ORIGINAL(0x006018E0)
-__declspec(naked) int UiInput::BaseWheel(int, int, int, int) EI_ORIGINAL(0x00601730)
-
 __declspec(naked) void __fastcall UiItemsSetSize(UiItemArray*, void*, int, int) EI_ORIGINAL(0x0062A390)
 
 // --- Item predicates -------------------------------------------------------------------------
@@ -279,9 +271,9 @@ int CUiItemStrip::TabOf(const char* item) {
     }
 }
 
-void CUiItemStrip::ScrollToItem(char* item) {
+void CUiItemStrip::ScrollToItem(CItem* item) {
     if (!item) return;
-    auto* wanted = reinterpret_cast<CItem*>(item);
+    CItem* wanted = item;
     float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
     UiItemsSetSize(&list_, nullptr, 0, -1);
     // The original inlines the array's SetSize (0062A390) in the second loop.
@@ -294,7 +286,7 @@ void CUiItemStrip::ScrollToItem(char* item) {
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
     } else {
-        int tab = TabOf(item);
+        int tab = TabOf(reinterpret_cast<const char*>(item));
         if (TabKeysEnabled()) SetTab(tab);
         for (int i = 0; i < source_->size; ++i)
             if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
@@ -585,7 +577,7 @@ char* CMpHeroScreen::GetHero() { return *reinterpret_cast<char**>(LocalPlayerDat
 EI_REPLACE_METHOD(0x00616900, CMpHeroScreen::GetHero);
 
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
-    InputOf(this)->BaseLButtonUp(flags, x, y);
+    InputOf(this)->OnLeftUp(flags, x, y);
     // Releasing a rotate arrow.
     void*& capture = UiCapture(window.interface_);
     if (capture == CaptureValue(InputOf(this))) capture = nullptr;
@@ -631,11 +623,11 @@ void CEscMenu::OnMouseMove(int flags, int x, int y) {
         hovered_ = -1;
         break;
     }
-    InputOf(this)->BaseMouseMove(flags, x, y);
+    InputOf(this)->OnMouseMove(flags, x, y);
 }
 
 void CEscMenu::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
         uiorig::PlayUiSound(window.interface_, kSoundMenuOk, 0);
         window.interface_->SetPendingValue(0);
@@ -677,7 +669,7 @@ EI_REPLACE_METHOD(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
 // --- CExchangeScreen --------------------------------------------------------------------------
 
 void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (UiHandled(this)) return;
     switch (key) {
     case VK_BACK:

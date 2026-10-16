@@ -1,5 +1,6 @@
 // The flying hit points (ui_flying_hit_points.h): the list and its drawing. docs/notes/ui.md, section 3.
 #include "ui_flying_hit_points.h"
+#include "world_glue.h"
 
 #include "clip.h"
 #include "core_maths.h"
@@ -163,7 +164,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
         if (age > 1.0f || !(age >= 0.0f)) continue;
-        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, point.target));
+        auto* unit = static_cast<CUnit*>(GameFindClientUnit(point.target));
         if (!unit) continue;
         if (!(unit->flags_ & kUnitDrawn) || (unit->flags_ & kUnitHidden) || !(unit->flags_ & kUnitPickable)) continue;
         const RECT* rect = UnitScreenRect(unit);

@@ -8,6 +8,7 @@
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
 #include "../../src/game/ai_motion.h"
+#include "../../src/game/combat.h"
 #include "../../src/game/map_object.h"
 #include "../../src/game/party.h"
 #include "../../src/game/random.h"
@@ -343,14 +344,14 @@ void ReadController(CUnit* u, Builder& b) {
         b.Int("controller", controller ? controller->GetClassId() : -1);
         return;
     }
-    auto* c = reinterpret_cast<UnitController*>(controller);
+    auto* c = static_cast<CUnitServer*>(controller);
     b.Int("state", c->state);
-    b.Unsigned("busy", c->busy);
-    b.Unsigned("inCombat", c->inCombat);
-    b.Int("command", c->command);
-    b.Int("commandTarget", IdOf(c->commandTarget));
-    b.Int("nextCommand", c->nextCommand);
-    b.Int("nextTarget", IdOf(c->nextTarget));
+    b.Unsigned("busy", c->Busy());
+    b.Unsigned("inCombat", c->orderStopped);
+    b.Int("command", c->action.kind);
+    b.Int("commandTarget", IdOf(c->action.target));
+    b.Int("nextCommand", c->action2.kind);
+    b.Int("nextTarget", IdOf(c->action2.target));
     b.Float("experience", c->stats.experience);
     b.Float("speed", c->stats.speed);
     b.Bits("statFlags", c->stats.flags);

@@ -91,9 +91,6 @@ inline CWorld* ContextWorld(const void* object) { return static_cast<CWorld*>(Ma
 // --- Replicated fields (net_delta.cpp, through the game addresses) --------------------------------
 
 inline void __fastcall ResizeStream(BitStream* a0, void*, std::uint32_t a2) { static_cast<CMemoryStream*>((void*)a0)->Resize(a2); }
-__declspec(naked) inline void __fastcall WriteFloat16x3(DeltaField*, void*, const void*) EI_ORIGINAL(0x0047F4D0)
-__declspec(naked) inline void __fastcall ReadFloat16(DeltaField*, void*, void*) EI_ORIGINAL(0x0047F3D0)
-__declspec(naked) inline void __fastcall ReadFloat16x3(DeltaField*, void*, void*) EI_ORIGINAL(0x0047F7F0)
 
 // The four streams of a field emptied (the original's 00675F70 or its inline copy).
 inline void EmptyField(DeltaField* f) {
@@ -124,11 +121,8 @@ inline void WriteCopy(void* stream, const void* field) {
 
 // --- MFC strings --------------------------------------------------------------------------------
 
-// 006773A0 (ReadSavedStrings, world_effect.cpp; through its address so its wrapper runs): reads a
-// count and that many CStrings from a save stream, appending them (ECX array, EDX stream).
-__declspec(naked) inline void __fastcall ReadStringArray(mfc::CStringArray*, void* /*stream*/) EI_ORIGINAL(0x006773A0)
 // 004E5840: reads a CString from a save stream (thiscall on the stream).
-inline void __fastcall ReadStreamCString(void* a0, void*, void* a2) { StreamReadCStringOriginal(a0, nullptr, a2); }
+inline void __fastcall ReadStreamCString(void* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadInto(static_cast<mfc::CString*>(a2)); }
 inline const char* EmptyCString() { return game::EmptyText(); }
 
 } // namespace effect

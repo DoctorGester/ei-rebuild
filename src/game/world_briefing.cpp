@@ -42,8 +42,6 @@ void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // 00460BC0 (RET 8). Named float table Set.
 void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, a3); }
-// Rewritten here, through their addresses.
-__declspec(naked) mfc::CString* __stdcall BriefingSpeakerAt(void* /*out*/, const char*) EI_ORIGINAL(0x0057FC90)
 
 // A CString constructed by a callee into raw storage, destroyed explicitly.
 struct StringSlot {
@@ -82,7 +80,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
 
 mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
     StringSlot speaker;
-    BriefingSpeakerAt(speaker.Raw(), briefing);
+    BriefingSpeakerInto(static_cast<mfc::CString*>(speaker.Raw()), briefing);
     if (!IsEmpty(speaker.Get())) {
         mfc::CString prefix(game::briefingwords::VariablePrefix());
         mfc::CString withSpeaker = prefix + speaker.Get();

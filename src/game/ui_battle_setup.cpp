@@ -4,6 +4,7 @@
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
 #include "ui.h"
+#include "ui_camera_keys.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -70,7 +71,7 @@ __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
 void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
 void RawPanel::AddLogText(const char* a0) { static_cast<CUiScrollText*>((void*)this)->AddText(a0); }
-void* RawPanel::ConstructViewInput(CInterface3D* ui) { return ViewInputConstructOriginal(this, nullptr, ui); }
+void* RawPanel::ConstructViewInput(CInterface3D* ui) { return reinterpret_cast<CCameraInput*>(this)->Construct(ui); }
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 
@@ -78,21 +79,12 @@ RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 struct ContainerInputs {
     void AddInput(void* input);   // 00600CC0
 };
-void ContainerInputs::AddInput(void* input) { ContainerAddInputOriginal(this, nullptr, input); }
+void ContainerInputs::AddInput(void* input) { reinterpret_cast<CUiContainer*>(this)->AddInput(static_cast<UiInputSide*>(input)); }
 
 // The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
 // game being loaded (at 007AFE1C).
 int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
-
-// The world server (007AFF60) through the game object's helpers.
-struct GameObjects {
-    void SetServerFlag(std::uint8_t flag);      // 00578D10 (on 007AFEA4)
-    void MarkInterfaceChanged();                // 00578950 (on 007AFEA5)
-};
-void GameObjects::SetServerFlag(std::uint8_t f) { GameSetServerPaused(f); }
-void GameObjects::MarkInterfaceChanged() { GameMarkInterfaceChangedOriginal(this); }
-GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }
 
 // A panel constructed inline by Create: the window base, the owner (the battle screen, declared
 // apart as CBattleScreen), the two vtables.
@@ -134,7 +126,7 @@ void CBattleScreen::Create() {
         stream->Read(&mapZoom, 4);
         std::uint8_t serverFlag;
         stream->Read(&serverFlag, 1);
-        GameAt(0x007AFEA4)->SetServerFlag(serverFlag);
+        GameSetServerPaused(serverFlag);
         if (SaveVersion() >= 0x47) {
             int unused;
             stream->Read(&unused, 4);
@@ -293,8 +285,8 @@ void CBattleScreen::Create() {
     *reinterpret_cast<std::uint32_t*>(0x0079B2B0) &= ~0x40u;
     pendingAction_ = 0;
     pendingSlot_ = -1;
-    GameSetWeatherOriginal(GameAt(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
-    GameAt(0x007AFEA5)->MarkInterfaceChanged();
+    GameSetWeather(0, 0.0f);   // clear weather
+    GameStartAmbience();
     PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
     viewPressed_ = false;
     boxSelecting_ = false;
@@ -323,7 +315,7 @@ constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 } // namespace
 
 BOOL CBattleScreen::Draw(void* target) {
-    MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
+    GameRender();
     if (boxSelecting_) {   // the selection box, a dark rectangle with an outline (renderer slot 19)
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
@@ -341,7 +333,7 @@ BOOL CBattleScreen::Draw(void* target) {
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    ContainerDrawOriginal(this, nullptr, reinterpret_cast<int>(target));   // 00600EF0: CUiContainer::DrawContainer
+    DrawContainerImpl(reinterpret_cast<int>(target));   // 00600EF0: CUiContainer::DrawContainer
     return 1;
 }
 

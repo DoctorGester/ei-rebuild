@@ -1,6 +1,7 @@
 // The unit AI brain's attention (+0xA4): what it attacks now and looking for a better target
 // (005CF220, 005CFE40).
 #include "unit_ai.h"
+#include "combat.h"
 
 #include "world.h"
 
@@ -61,15 +62,15 @@ void AIBrain::LookAround(int unused) {
                     order.what = 6;
                     ++chosen->refCount_;
                     order.object = chosen;
-                    if (owner->CheckOrder(&order)) flags = -1;
+                    if (owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
                     reinterpret_cast<AIRef*>(&order.object)->Reset();
                 }
-                owner->Attack(target, 6, 0, flags);
+                owner->OrderAttack(target, 6, 0, flags);
             } else {
-                if (!owner->CanCast(part)) action = kActionCast;
+                if (!owner->IsScrollSource(part)) action = kActionCast;
                 Hold(target, chosen);
                 actionTime = part;
-                owner->Cast(part, chosen, 0);
+                owner->OrderCast(part, chosen, 0);
             }
         }
     }

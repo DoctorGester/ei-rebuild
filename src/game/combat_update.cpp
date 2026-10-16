@@ -78,7 +78,7 @@ constexpr int kRemarkBored = 0x29;
 // (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
 // size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
-inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
+inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<CUnit*>(a0)->SetPlayer(a2); }
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 // The AI: 005C9770 AIViewer::StepNoise (world + 0x2838; the step noise, returns 0; unit_ai_hearing),
@@ -579,7 +579,7 @@ void CUnitServer::TickAction() {
             auto* particle = reinterpret_cast<CEffectParticle*>(effect);
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
-            ParticleSetAttachedToOriginal(effect, nullptr, unit->id_);
+            static_cast<CEffectParticle*>(effect)->SetAttachedTo(unit->id_);
             WorldAddTimed(world, nullptr, effect);
             CEngineObject* old = effectObject;
             effectObject = effect;

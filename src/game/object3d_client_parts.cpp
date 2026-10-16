@@ -5,6 +5,7 @@
 #include "game_strings.h"
 
 #include "map_object_figures.h"
+#include "material.h"
 #include "texture.h"
 #include "world.h"
 
@@ -382,7 +383,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         if (!set || !set->texture) continue;
         CTexture* skin = set->texture;
         *skin->Name() = name;
-        TextureLoadOriginal(manager, nullptr, skin);
+        manager->LoadTexture(skin);
     }
     return 1;
 }
@@ -395,7 +396,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
     } else {
         materialCursor = 0;
         for (CMaterial* material = materials[0]; material;) {
-            MaterialRegisterOriginal(manager, nullptr, material, static_cast<std::uint32_t>(material->type_));
+            static_cast<CMaterialManager*>(manager)->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
             ++materialCursor;
             if (materials.size <= materialCursor) break;
             material = materials[materialCursor];

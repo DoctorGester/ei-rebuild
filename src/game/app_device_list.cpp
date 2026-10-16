@@ -24,7 +24,6 @@ namespace {
 // The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
 // STLport (library): resize.
 __declspec(naked) void __fastcall RecordsResize(LeverRecordVector*, void*, unsigned) EI_ORIGINAL(0x00465180)
-__declspec(naked) void __fastcall RecordArchiveAt(LeverRecord*, void*, void*) EI_ORIGINAL(0x00463030)
 
 void CopyPlain(LeverRecord* to, const LeverRecord* from) {
     std::memcpy(to->spots, from->spots, sizeof(to->spots));
@@ -116,7 +115,7 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
         ar->Current()->occurrence = i + 1;
         LeverRecord* record = list->begin() + i;
         if (!ar->EnterChunk(1)) continue;
-        RecordArchiveAt(record, nullptr, archive);
+        record->Archive(static_cast<ChunkArchive*>(archive));
         ar->LeaveChunk();
     }
     ar->LeaveChunk();

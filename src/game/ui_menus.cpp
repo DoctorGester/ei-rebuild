@@ -1,5 +1,6 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
 // drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
+#include "model.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "sound.h"
@@ -61,7 +62,7 @@ struct UiDisplaySettings {
     void** vtable_;   // slot 22: applies three values (gamma and two more)
 };
 // 00500960 (not rewritten). Returns the display settings object (007AF060).
-UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)DisplayObject(); }
+UiDisplaySettings* DisplaySettings() { return (UiDisplaySettings*)SceneRenderer(); }
 
 template <typename T>
 T Global(std::uintptr_t address) {
@@ -72,9 +73,9 @@ T Global(std::uintptr_t address) {
 // --- Forwarders --------------------------------------------------------------------------------
 
 __declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
-BOOL CUiContainer::DrawContainer(int pass) { return ContainerDrawOriginal(this, nullptr, pass); }
+BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
 void __fastcall UiContainerMouseDown(void* input, void*, int buttons, int x, int y) {
-    ContainerLeftDownOriginal(input, nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(input)->OnLeftDown(buttons, x, y);
 }
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
 

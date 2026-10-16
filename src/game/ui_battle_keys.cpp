@@ -8,6 +8,7 @@
 // (CBattleScreen) and
 // docs/notes/ui.md, section 6.
 #include "ui.h"
+#include "world_glue.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -118,19 +119,19 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     if (key == VK_RETURN) {
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
             inputHandled_ = true;
             return;
         }
     } else if (key == VK_BACK) {
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
     }
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (inputHandled_) return;
     if (flags & kKeyRepeated) return;
 
@@ -156,7 +157,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             menu->vtable_ = EscMenuVtable();
             menu->inputVtable_ = EscMenuInputVtable();
         }
-        InterfacePushWindowOriginal(interface_, nullptr, menu, 1, 1);
+        interface_->PushWindow(menu, 1, 1);
         inputHandled_ = true;
         return;
     }
@@ -167,16 +168,16 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionPause: {
         auto* clock = static_cast<CHudClock*>(clock_);
         clock->interface_->PlaySound(ClockSound(), 0);
-        const bool paused = GameIsPausedOriginal(GameGlueObject());
-        GameSetPausedOriginal(GameGlueObject(), nullptr, paused ? 0 : 1);
+        const bool paused = GameClientPaused();
+        GameSendFlag10(paused ? 0 : 1);
         inputHandled_ = true;
         return;
     }
     case kActionNormalSpeed:
     case kActionFastSpeed: {
         auto* clock = static_cast<CHudClock*>(clock_);
-        if (GameIsPausedOriginal(GameGlueObject())) return;
-        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
+        if (GameClientPaused()) return;
+        if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool fast = action == kActionFastSpeed;
         clock->fast_ = fast ? 1 : 0;
@@ -197,7 +198,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             static_cast<CObjectivesWindow*>(window)->Setup(static_cast<const char*>(*zone), nullptr, 0, 0);
             zone->~CString();
         }
-        InterfacePushWindowOriginal(clock->interface_, nullptr, window, 1, 1);
+        clock->interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         inputHandled_ = true;
         return;
     }
@@ -336,7 +337,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kActionSelectAll:
-        if (IsNetworkClientOriginal()) return;
+        if (IsMultiplayerClient()) return;
         interface_->PlaySound(OnOffSound(), 0);
         for (int i = 0; i < hud->party_.size; ++i) {
             MarkPortrait(i);

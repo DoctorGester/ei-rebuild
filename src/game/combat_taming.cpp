@@ -5,6 +5,7 @@
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "map_object.h"
+#include "object_diplomacy.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -28,7 +29,7 @@ constexpr int kStatTaming = 2;
 // Forwarders (thiscall as __fastcall with the unused EDX).
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
-inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
+inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<CUnit*>(a0)->SetPlayer(a2); }
 // 00665D20 the player: prepares to take a unit in (no arguments).
 __declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
@@ -76,7 +77,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        DiplomacyOnAttack(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_, nullptr, tamer, unit, 10);
+        static_cast<CDiplomacy*>(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_)->OnAttack(tamer, unit, 10);
         return 0;
     }
     char* tamerPlayer = tamer->player;

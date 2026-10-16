@@ -2,6 +2,7 @@
 // whom to fight (005D4170), the party's targets (005D3F50), the party itself (005D4600) and
 // whether the unit's followers keep up (005D4860).
 #include "unit_ai.h"
+#include "combat.h"
 
 #include "logic_settings.h"
 #include "map_object.h"
@@ -27,7 +28,7 @@ constexpr float kMovingSlack = 2.0f;                            // 0x40000000
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
-UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 AIBrain* BrainOf(const CUnit* unit) { return ControllerOf(unit)->Brain(); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
@@ -72,7 +73,7 @@ int AttackFlags(AIBrain* brain, CEngineObject* object, bool clearTwice) {
     } else {
         order.MakeAttack(object);
     }
-    if (brain->owner->CheckOrder(&order)) flags = -1;
+    if (brain->owner->CanReachAndPlan(AsUnitAction(&order))) flags = -1;
     reinterpret_cast<AIRef*>(&order.object)->Reset();
     return flags;
 }
@@ -81,7 +82,7 @@ void Attack(AIBrain* brain, CEngineObject* object, bool clearTwice) {
     brain->action = AIBrain::kActionAttack;
     reinterpret_cast<AIRef*>(&brain->target)->Assign(object);
     int flags = AttackFlags(brain, object, clearTwice);
-    brain->owner->Attack(brain->target, kAttackHow, 0, flags);
+    brain->owner->OrderAttack(brain->target, kAttackHow, 0, flags);
 }
 } // namespace
 
@@ -113,7 +114,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     for (auto* node = candidates.head; node;) {
         auto* next = node->next;
         auto* other = static_cast<CUnit*>(node->data);
-        UnitController* control = ControllerOf(other);
+        CUnitServer* control = ControllerOf(other);
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
         float hearing = control->stats.valuesB0[2].current;
         float reach = (sight < hearing || x87::IsNaN(sight) || x87::IsNaN(hearing)) ? hearing : sight;

@@ -44,7 +44,6 @@ UnitDatabase* Units() { return reinterpret_cast<UnitDatabase*>(0x007AF358); }
 // Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
 // figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is
 // in link_loader_create.cpp).
-__declspec(naked) void __fastcall TextureManagerSetDevice(CTextureManager*, void*, void* /*device*/) EI_ORIGINAL(0x006913A0)
 __declspec(naked) CLinkFigureLoader* __fastcall ConstructFigureLoader(CLinkFigureLoader*, void*, void* /*renderer*/,
                                                                       const stlp::string* /*resource*/)
     EI_ORIGINAL(0x004F68C0)
@@ -107,15 +106,15 @@ int CWorldClient::LoadLights(const char* file) {
 EI_REPLACE_METHOD(0x00563930, CWorldClient::LoadLights);
 
 void CWorldClient::SetUpGraphics(void* device) {
-    TextureManagerSetDevice(TextureManager(), nullptr, device);
+    TextureManager()->SetDevice(static_cast<CTextureDevice*>(device));
     LoadSky();
     static_assert(sizeof(CFlyingHitPoints) == 8);
     auto* numbers = static_cast<CFlyingHitPoints*>(gamecrt::operator_new(sizeof(CFlyingHitPoints)));
     numbers_ = numbers ? numbers->Construct() : nullptr;
-    auto* texture = static_cast<CTexture*>(TextureNamedOriginal(TextureManager(), nullptr, kNumbersKind, NumbersName()));
+    auto* texture = static_cast<CTexture*>(TextureManager()->FindOrCreate(kNumbersKind, NumbersName()));
     if (texture) {
         ++texture->refCount_;
-        TextureLoadOriginal(TextureManager(), nullptr, texture);
+        static_cast<CTextureManager*>(TextureManager())->LoadTexture(texture);
         numbers_->object_ = texture;
         texture->flags_ |= kTextureKeep;
     }

@@ -61,7 +61,7 @@ int __fastcall WindowDrawBlended(CUiWindow* self, void*, int pass) {
     SetState(self, kSourceBlend, 5);
     SetState(self, kDestBlend, 6);
     SetState(self, kAlphaRef, 1);
-    ContainerDrawOriginal(self, nullptr, pass);
+    static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
     return 1;
 }
 EI_REPLACE(0x0062EFC0, WindowDrawBlended);
@@ -71,7 +71,7 @@ int __fastcall WindowDrawAlphaRef(CUiWindow* self, void*, int pass) {
     Flush(self);
     std::uint32_t savedRef = GetState(self, kAlphaRef);
     SetState(self, kAlphaRef, 1);
-    ContainerDrawOriginal(self, nullptr, pass);
+    static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
     Flush(self);
     SetState(self, kAlphaRef, savedRef);
     return 1;

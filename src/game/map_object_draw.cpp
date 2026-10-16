@@ -49,7 +49,6 @@ __declspec(naked) void* __fastcall AllocateLights(int) EI_ORIGINAL(0x0051EF90)
 __declspec(naked) void __fastcall AddLight(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0051EE50)
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.
-__declspec(naked) void __fastcall SetDeviceTexture(CTextureDevice*, void*, void*) EI_ORIGINAL(0x004EB170)
 // 00457720. A temporary texture reference: released.
 void __fastcall ReleaseTemporary(void* object) { ReleaseCountedOriginal(object); }
 
@@ -159,7 +158,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         }
         CEngineObject* temporary = nullptr;
         // The first set takes +0xDC (woundsMaterial) as stage 0's texture.
-        SetDeviceTexture(RenderDeviceObject(), nullptr, k == 0 ? static_cast<void*>(woundsMaterial) : temporary);
+        RenderDeviceObject()->SetMaterial(static_cast<CDeviceMaterial*>(k == 0 ? static_cast<void*>(woundsMaterial) : temporary));
         if (k != 0 && temporary) ReleaseTemporary(temporary);   // never set
         set = partSets[k];
         for (int g = 0; g < set->groups.size; ++g) {
@@ -217,7 +216,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     }
     if (anyDirty) object->flags_ |= kObjectDirty;
     else object->flags_ &= ~kObjectDirty;
-    SetDeviceTexture(RenderDeviceObject(), nullptr, nullptr);
+    RenderDeviceObject()->SetMaterial(nullptr);
     Finish(lights, list);
     return 1;
 }

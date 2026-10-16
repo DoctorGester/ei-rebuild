@@ -45,7 +45,7 @@ Rewritten targets stay forwarders (called through the original address) so the h
 Conventions (keep following them):
 
 - A plain `RET` function declared `(T*, void*)` dropped its dummy EDX: declare `__fastcall` with only the real arguments; a function that
-  never reads ECX takes no `this` (`IsNetworkClientOriginal()`, `GameFlowOriginal()`, `SetServerFlagOriginal(int)`: the old `this` arguments
+  never reads ECX takes no `this` (`GameFlowOriginal()`, `SetServerFlagOriginal(int)`: the old `this` arguments
   were dummies).
 - Constructors and copies return `this` (`void*`); results callers never read are `void`; a result in ST0 is declared `double` (so it stays
   unrounded) and `float` arguments the function only copies are passed as raw dword bits (`std::bit_cast`; no FPU load touches a NaN payload).

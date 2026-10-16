@@ -15,6 +15,7 @@
 #include "registry.h"
 #include "unit.h"
 #include "unit_ai.h"
+#include "combat.h"
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
@@ -56,7 +57,7 @@ constexpr std::uintptr_t kUnitArrayVtable = std::uintptr_t(0x007402AC);
 using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, id)); }
-UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
@@ -233,8 +234,8 @@ int CPlayerServer::OnUseOrder() {
             }
             if (!nearest) break;
             if (!first) first = nearest;
-            UnitController* controller = ControllerOf(nearest);
-            if (controller->CheckOrder(&order)) {
+            CUnitServer* controller = ControllerOf(nearest);
+            if (controller->CanReachAndPlan(AsUnitAction(&order))) {
                 chosen = nearest;
                 accepted = true;
                 break;
@@ -246,7 +247,7 @@ int CPlayerServer::OnUseOrder() {
             } else {
                 from = *PositionOf(nearest);
             }
-            if (controller->CheckOrderAt(&order, &from)) {
+            if (controller->CanReachAndPlanFrom(AsUnitAction(&order), &from)) {
                 chosen = nearest;
                 accepted = true;
                 break;

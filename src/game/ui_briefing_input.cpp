@@ -2,6 +2,8 @@
 // the click and double click (input slots 2 and 7), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "world_glue.h"
+#include "combat.h"
 #include "ui_briefing.h"
 
 #include "item_db_text.h"
@@ -22,7 +24,6 @@
 namespace {
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
 const char* ClickSound() { return reinterpret_cast<const char*>(0x00793394); }    // "buttons\base\click1.wav"
 const char* TopicPrefixKey() { return reinterpret_cast<const char*>(0x007934F4); }   // "topic_prefix"
@@ -67,16 +68,16 @@ const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900
 
 // The server's unit with the id of a client object, or null.
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
-UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
 bool CanTalk(CEngineObject* person) {
     CUnit* unit = ServerUnit(person->id_);
     if (!unit || !unit->controller) return true;
-    UnitController* controller = ControllerOf(unit);
-    return (controller->command == kCommandStand || controller->command == kCommandIdle) &&
-           controller->nextCommand == kNextCommandNone;
+    CUnitServer* controller = ControllerOf(unit);
+    return (controller->action.kind == kCommandStand || controller->action.kind == kCommandIdle) &&
+           controller->action2.kind == kNextCommandNone;
 }
 
 CWorldClient* TheClientWorld() { return static_cast<CWorldClient*>(ClientWorld()); }
@@ -103,12 +104,12 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         if (chat_) chat_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
         return;
     }
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     if (inputHandled_) return;
     switch (state_) {
     case 0: {
         int point[2] = {x, y};
-        CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
+        CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(ClickSound(), 0);
@@ -150,7 +151,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     GameCursor()->SetShape(kCursorNormal);
-    InputOf(this)->BaseMouseMove(buttons, x, y);
+    InputOf(this)->OnMouseMove(buttons, x, y);
     if (state_ == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
@@ -167,10 +168,10 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (interface_->rightDown_ || state_ != 0) return;
 
     int point[2] = {x, y};
-    CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
+    CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
     if (IsPerson(object)) {
         int id = object->id_;
-        if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
+        if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         FindTopics(id);
         if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);
@@ -193,7 +194,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
-    mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
+    mfc::CString zone(GameExitTarget(exit_));
     if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
                         reinterpret_cast<const unsigned char*>(NoZone())) == 0)
         return;
@@ -214,7 +215,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
         return;
     }
     int point[2] = {x, y};
-    CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
+    CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
     if (IsPerson(object)) {
         for (BriefingMover* mover = movers_->next; mover != movers_; mover = mover->next)
             if (mover->person->id_ == object->id_) return;

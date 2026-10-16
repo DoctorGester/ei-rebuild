@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "item.h"
 #include "game_strings.h"
+#include "item_db_text.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
@@ -31,6 +32,7 @@
 #include <bit>
 #include "originals_ui.h"
 #include "world.h"
+#include "world_glue.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -44,11 +46,8 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
 // 0064B060 (thiscall, RET 8): the entries' CArray SetSize (zeroed new entries; `growBy` -1 keeps
 // the step). The original inlines the same code after each sprite.
 __declspec(naked) void __fastcall EntriesSetSize(void*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x0064B060)
-// 00578BC0 (jumps to 005699F0 with the world 007AF5B8): the local player's view; its +0x1C is the
-// player.
-__declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x00578BC0)
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
-void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScaleOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
+void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { static_cast<CUiMesh*>(static_cast<CFigureMesh*>(a0))->SetScale(a2); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
 void __fastcall SpritePlace(CEngineObject* a0, void*, float a2, float a3, float a4) { SpritePlaceOriginal((void*)a0, nullptr, a2, a3, a4); }
 
@@ -119,9 +118,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
     // The local player's own unit also shows up to four of the player's 0x3009 items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
-    std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(LocalView(reinterpret_cast<void*>(0x007AFEA5)) + 0x1C);
+    std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
     if (!PlayerOwnsUnitOriginal(player, nullptr, unit_)) return;
-    player = *reinterpret_cast<std::uint8_t**>(LocalView(reinterpret_cast<void*>(0x007AFEA5)) + 0x1C);
+    player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
     std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(player + 0xE8);
     if (!node) return;
     int slot = 4;
@@ -140,7 +139,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        TextManagerItemTexts(*reinterpret_cast<CTextManager**>(0x007AF788), nullptr, item, &tip, &unused, &unused);
+        (*reinterpret_cast<CTextManager**>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
@@ -165,7 +164,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
-void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }
+void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { a0->UnitName(a2, static_cast<mfc::CString*>(a3)); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
@@ -182,8 +181,6 @@ __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
 __declspec(naked) void __fastcall IdsDestroyA(IdVector*) EI_ORIGINAL(0x004E2A20)
 __declspec(naked) void __fastcall IdsDestroyB(IdVector*) EI_ORIGINAL(0x005F9880)
-// 006381E0 (thiscall, RET 4): both id vectors equal (AL).
-__declspec(naked) bool __fastcall PartyIdsEqual(const PartyIds*, void*, const PartyIds*) EI_ORIGINAL(0x006381E0)
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
@@ -196,13 +193,6 @@ __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AE
 // message box's constructor.
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-
-// The game menu object 007AFEA5: 00578BA0 the local player's data (its +0x30 / +0x34 unit
-// records, 0x784 bytes each), 00578A20 (RET 0xC) whether the saved zone exit can be taken now
-// (the records, the exit, a second array it fills).
-int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* second) {
-    return GameCanLeaveZoneOriginal(glue, nullptr, records, exit, second);
-}
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
@@ -271,7 +261,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     }
     SortIds(&ids.withUnit);
     SortIds(&ids.without);
-    if (!PartyIdsEqual(&ids, nullptr, &screen->clientParty_)) {
+    if (!ids.Equals(screen->clientParty_)) {
         auto* party = &screen->party_;
         PartyArraySetSizeOriginal(party, nullptr, 0, -1);
         bool cameraFirst = false;
@@ -352,27 +342,27 @@ void CBattleScreen::Update() {
         }
     }
 
-    if (IsNetworkClientOriginal()) RebuildClientParty(this);
+    if (IsMultiplayerClient()) RebuildClientParty(this);
 
     UpdateChildren(this);
     interface_->ShowMessage(0);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
-        PtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
-        PtrArray second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
-        void* menu = reinterpret_cast<void*>(0x007AFEA5);
-        PartyRecords* data = reinterpret_cast<PartyRecords*>(GameLocalPlayerDataOriginal(menu));
+        // The local player's unit records (0x784 bytes each) and the ones in the exit.
+        mfc::CArray<std::uint8_t*> records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+        PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
         for (int i = 0; i < data->count; ++i)
             RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
-        if (CanLeaveZone(menu, nullptr, &records, pendingExit_, &second)) {
+        if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,
                                                      reinterpret_cast<const char*>(0x007943FC),    // "leave_zone"
                                                      reinterpret_cast<const char*>(0x00794408),    // "leave_zone_msg"
                                                      0x10000, 3, 1)
                                : nullptr;
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             exitPending_ = 0;
         }
         second.vtable = reinterpret_cast<void*>(0x0073FAA4);
@@ -468,19 +458,19 @@ namespace {
 
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
-CUnit* UnitAtPoint(void* world, void*, int* point) { return WorldUnitAtPointOriginal(world, nullptr, point); }
+CUnit* UnitAtPoint(void* world, void*, int* point) { return static_cast<CUnit*>(static_cast<CWorldClient*>(world)->UnitAt(reinterpret_cast<const long*>(point))); }
 
 } // namespace
 
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        InputOf(this)->BaseLButtonUp(buttons, x, y);
+        InputOf(this)->OnLeftUp(buttons, x, y);
         return;
     }
     viewPressed_ = false;
     void* world = UiClientWorld();
-    if (!boxSelecting_ || IsNetworkClientOriginal()) {
+    if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};
         CUnit* unit = UnitAtPoint(world, nullptr, point);
@@ -565,7 +555,7 @@ namespace {
 struct TextGlue {
     CTextManager* Table();
 };
-CTextManager* TextGlue::Table() { return (CTextManager*)GameFlowOriginal(); }
+CTextManager* TextGlue::Table() { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 
@@ -606,7 +596,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         mfc::CString colour(game::Text(0x00794370));   // colour code 0x31E3EE43 and a space
         text = colour + title + game::Text(0x0078DA40) + text;
     } else if (parts.size == 4) {
-        if (!IsNetworkClientOriginal()) {
+        if (!IsMultiplayerClient()) {
             const char* dot = game::Text(0x00783D78);
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = HoverPlayerVariable(reinterpret_cast<void*>(0x007AFEA5), nullptr, variable);

@@ -164,7 +164,7 @@ bool IsSpellContainer(const void* item) { return static_cast<std::uint8_t>(ItemK
 
 void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
     sprite->Place(x, y, 3.0f);
-    SpriteDrawOriginal(sprite, nullptr, pass);
+    sprite->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
 }
 
 CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data[4])); }
