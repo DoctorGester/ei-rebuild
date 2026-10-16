@@ -282,11 +282,13 @@ come first, then what holds for the present path (the subsection names are cited
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
   the global map's clouds on the GPU.
-- **R11a** (ready): the game code's DirectDraw path behind `!render::Presenting()` / `render::CpuWindows()` (the
-  holders' DirectDraw surfaces and Locks in dx_surface.cpp, bink_video.cpp, ui_cursor_frame.cpp, ui_surface_*.cpp,
-  texture_*.cpp, renderer_init.cpp, ui_container_draws.cpp, app_dxversion.cpp) runs only when the renderer is off or its
-  Direct3D 11 device cannot be made; whether to keep that fallback (a player without Direct3D 11) or remove it is
-  open. The renderer side has none left (R11).
+- **R11b**: R11a removed the fallback's switches and draws; what is left only runs for a holder with a DirectDraw
+  surface, which the stand-ins never make: the `!DirectPixels` Lock / Unlock branches (ui_surface_pixels.cpp,
+  dx_surface.cpp, texture_shadow.cpp, ui_cursor.cpp, ui_saveload.cpp, ui_item_view.cpp, ui_global_map.cpp), the
+  GetDC / ReleaseDC fallback (ui_surface_dc.cpp), CreateSurface in dx_surface.cpp, texture_bmp / texture_mmp's
+  DirectDraw upload, texture_cache's SetPriority, texture_fill, ui_surface_create's colour fill, and the ports kept
+  registered with no caller of ours (004EE4A0, 004EE5D0, 004ED610, 004EEA90, 004EEE30, 004EEBC0, 004E6C30, 004ED820,
+  005DB9E0, 005E5640).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
