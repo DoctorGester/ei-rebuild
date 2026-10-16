@@ -140,7 +140,7 @@ before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and r
 game sees those files under its `saves\` (e.g. `magic_traps.txt` and `tools/make_trap_mob.py`).
 
 Timing runs: `EI_PROFILE=1` samples the main thread into the run's `profile.txt` (`python tools\profile_report.py
-<run folder>`: time per function between harness steps; not yet in the image, S21f), and `EI_BUILD_DIR` points
+<run folder>`: time per function between harness steps; the image's own code shows as `ours:`, S21f), and `EI_BUILD_DIR` points
 run_all at another verify build.
 
 `--no-hooks` (harness.cmd, run_all, `ei_launch`) runs the same scenario on the original code only, as a baseline. Add

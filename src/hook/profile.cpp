@@ -3,6 +3,7 @@
 // output folder. tools/profile_report.py turns that into time per function between harness steps.
 // The stack is scanned, not walked (the game's code omits frame pointers), so a stale return address
 // can show up as a caller; only words that follow a CALL instruction in game.exe or ei_hook count.
+#include "ei/hook.h"
 #include "log.h"
 
 #include <windows.h>
@@ -105,7 +106,7 @@ DWORD WINAPI Sampler(void*) {
 
 } // namespace
 
-// From WinMain (the main thread).
+// From WinMain's hook (game.exe) or EiStandaloneMain before WinMain (the image): the main thread.
 void InstallProfiler() {
     char value[4];
     if (!GetEnvironmentVariableA("EI_PROFILE", value, sizeof value) || value[0] != '1') return;
@@ -118,8 +119,15 @@ void InstallProfiler() {
     GetModuleInformation(GetCurrentProcess(), self, &info, sizeof info);
     g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
     g_selfEnd = g_selfBase + info.SizeOfImage;
-    GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(nullptr), &info, sizeof info);
-    g_exeEnd = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll) + info.SizeOfImage;
+    // game.exe's range: its module, or in the standalone image (the host exe's own module sits below
+    // 0x400000) the headers the host laid out at the image base.
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(kImageBase);
+    if (Standalone()) {
+        g_exeEnd = kImageBase + reinterpret_cast<const IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew)->OptionalHeader.SizeOfImage;
+    } else {
+        GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(nullptr), &info, sizeof info);
+        g_exeEnd = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll) + info.SizeOfImage;
+    }
     HANDLE thread = CreateThread(nullptr, 0, Sampler, nullptr, 0, nullptr);
     SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
     CloseHandle(thread);

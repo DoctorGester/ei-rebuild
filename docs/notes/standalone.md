@@ -265,8 +265,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 ### Open
 
 S2a (short getters as named members), S5a (unreached MFC pieces), S11b, S16e (`find_vtables.py` should take only
-function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d, S21f
-(EI_PROFILE in the image), S21g, S21h. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
+function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d, S21g, S21h. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
 CWorldClient::DisconnectLocalPlayer 00566E00, S16c) cannot be a scenario: in net_lobby's lobby the client's next
 segment then ends the game in its "packet parsing error" box, the original's too. Multiplayer client paths and many container members are reached by no
 scenario (tests/coverage/coverage.csv).
@@ -333,7 +332,9 @@ User 2026-10-15: the standalone image is the only product, checked by the golden
   plans (renderer-only scenarios, rebirth_flags on the vanilla data, render_present_fullscreen). render_movie and
   render_terrain were dropped (their goldens equalled render_movie_present's / render_scene's).
 - How verification works now: docs/notes/standalone-verification.md section 1.
-- Left: `harness_heap.cpp`'s order observer and heap::Aside (S21g), EI_PROFILE in the image (S21f),
+- EI_PROFILE=1 samples the image (S21f): EiStandaloneMain calls InstallProfiler before WinMain; the game's code range is
+  the image headers' SizeOfImage from 0x400000 (the host exe sits below), and profile_report names the image's functions `ours:`.
+- Left: `harness_heap.cpp`'s order observer and heap::Aside (S21g),
   EI_REBIRTH_IMPLEMENTS as documentation only (S21h), 173 src/ comments that call through an address "so the verify
   wrapper sees it" (C13 makes those calls direct), tests/coverage/reach.txt (the last hook build's reach, kept).
 

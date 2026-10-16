@@ -14,4 +14,7 @@ void OutputPath(const char* name, char* out);
 // paths.cpp: point the game's registry path lookups at EI_GAME_ROOT when ei_launch sets it.
 void RedirectGamePaths();
 
+// profile.cpp: starts the sampler when EI_PROFILE=1, from the thread that runs WinMain.
+void InstallProfiler();
+
 } // namespace ei
