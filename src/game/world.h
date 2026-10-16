@@ -1408,8 +1408,8 @@ public:
     // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
     // are not a result; the callers do not read it).
     bool QueueSynchronised(CEngineObject* object);
-    // 0056D7A0 (the options' display mode change). Every filed object whose kind has no shadows
-    // (0051E200 false) drops its shadow (0051E280).
+    // 0056D7A0 (the options' OK after a shadow switch changed). Every filed object whose kind has
+    // no shadows (0051E200 false) drops its shadow (0051E280).
     void DropShadows();
     // 00566100 (RET 4; the battle screen and the interface's selection). Takes `object` out of the
     // selection list +0x7BC, its highlight off (flags 0x110 cleared, side half slots 25 / 26 with
