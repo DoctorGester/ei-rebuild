@@ -11,14 +11,6 @@
 namespace {
 constexpr int kUnreached = 0x7FFFFFFF;
 
-// The region map's steps, through their original addresses so the verify build's wrappers see
-// the calls (all rewritten in ai_region_reach.cpp; thiscall).
-__declspec(naked) void __fastcall PickRepresentativesAt(CRegionMap*, void*, CAIMap*, int, int) EI_ORIGINAL(0x005AF900)
-__declspec(naked) void __fastcall MeasureBlockEdgesAt(CRegionMap*, void*, void*, int, int) EI_ORIGINAL(0x005AFAE0)
-__declspec(naked) void __fastcall ClampEdgeCostsAt(CRegionMap*) EI_ORIGINAL(0x005B0F70)
-__declspec(naked) void __fastcall LabelRegionsAt(CRegionMap*) EI_ORIGINAL(0x005B0050)
-// 005AFC70 through its address (for the 005AFEE0 thunk).
-__declspec(naked) void __fastcall UpdateBlocksAt(CRegionMap*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFC70)
 
 // Progress steps of UpdateBlocks: the representative cells take the first eighth, the edges the rest.
 constexpr float kFirstPassShare = 0.125f;   // 0073C520
@@ -143,22 +135,22 @@ void CRegionMap::UpdateBlocks(CAIMap* aiMap, int x0, int x1, int y0, int y1) {
     if (x0 < 0) x0 = 0;
     if (edges[0].width <= x1) x1 = edges[0].width;
     for (int y = y0; y < y1; ++y) {
-        for (int x = x0; x < x1; ++x) PickRepresentativesAt(this, nullptr, aiMap, x, y);
+        for (int x = x0; x < x1; ++x) PickRepresentatives(aiMap, x, y);
         if (progress) progress(static_cast<float>(static_cast<double>(y) / edges[0].height * kFirstPassShare));
     }
     for (int y = y0; y < y1; ++y) {
-        for (int x = x0; x < x1; ++x) MeasureBlockEdgesAt(this, nullptr, aiMap, x, y);
+        for (int x = x0; x < x1; ++x) MeasureBlockEdges(aiMap, x, y);
         if (progress)
             progress(static_cast<float>(static_cast<double>(y) / edges[0].height * kSecondPassShare + kFirstPassShare));
     }
-    ClampEdgeCostsAt(this);
+    ClampEdgeCosts();
     AttachSearches();
-    LabelRegionsAt(this);
+    LabelRegions();
     progress = nullptr;
 }
 
 void CRegionMap::UpdateBlocksFor(CAIMap* aiMap, int x0, int x1, int y0, int y1) {
-    UpdateBlocksAt(this, nullptr, aiMap, x0, x1, y0, y1);
+    UpdateBlocks(aiMap, x0, x1, y0, y1);
 }
 
 void CRegionMap::AttachSearches() {

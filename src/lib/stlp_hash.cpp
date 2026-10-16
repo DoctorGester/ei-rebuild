@@ -342,5 +342,5 @@ EI_REPLACE(0x0069D130, StrList::FindOrInsert);
 
 // hash_map<int, unsigned>::operator[] of the AI map's bridge heights (resize 005BEA80, node
 // 005BE1B0). The original's new value is the caller's stack dword after the key argument (VC6's
-// T() for a scalar); it is zero here, which its one caller (CAIMap::ApplyBridges) overwrites.
+// T() for a scalar); it is zero here, which its one caller (CAIMap::ApplyBridgeDecks) overwrites.
 EI_REPLACE(0x005BCDE0, Map8::Subscript);

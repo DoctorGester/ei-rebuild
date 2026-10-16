@@ -53,8 +53,6 @@ bool __fastcall SearchBegin(void* a0, void*, CUnit* a2, int a3, int a4, int a5, 
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
-// 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
-__declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
 // 006E727B. atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
@@ -239,7 +237,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
 
     if (result) {
         marks.rows[fromY][fromX] = 0;
-        BuildCells(this, nullptr, toX, toY, &path->cells);
+        BuildCellsTo(toX, toY, &path->cells);
         PathCellList::Node* first = path->cells.head;
         if (first->data.x != fromX || first->data.y != fromY) result = false;
     }

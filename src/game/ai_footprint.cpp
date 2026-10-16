@@ -85,9 +85,6 @@ EI_REPLACE_METHOD(0x005B2F40, FootprintCellSet::GetBounds);
 
 // --- Footprints ----------------------------------------------------------------------------------
 
-__declspec(naked) bool CAIMap::ApplyBridges(FootprintCellSet*, bool) EI_ORIGINAL(0x005B6740)
-__declspec(naked) bool CAIMap::AddOccluder(FootprintCell*) EI_ORIGINAL(0x005B61B0)
-__declspec(naked) bool CAIMap::ClearOccluder(FootprintCell*) EI_ORIGINAL(0x005B6380)
 __declspec(naked) void CAIMap::Refresh(int, int, int, int) EI_ORIGINAL(0x005B8FA0)
 
 namespace {
@@ -274,7 +271,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
         return true;
     }
 
-    if (CollectFootprint(object, &footprint, &bridges)) ApplyBridges(&bridges, remove);
+    if (CollectFootprint(object, &footprint, &bridges)) ApplyBridgeDecks(&bridges, remove);
     bool fits = ApplyFootprint(&footprint, remove);
 
     int a[4] = {10000, 0, 10000, 0}, b[4] = {10000, 0, 10000, 0};
@@ -295,12 +292,12 @@ EI_REPLACE_METHOD(0x005B6A80, CAIMap::MarkFootprint);
 
 bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
-        for (int i = 0; i < set->cells.size; ++i) ClearOccluder(&set->cells[i]);
+        for (int i = 0; i < set->cells.size; ++i) ClearOccluderRecord(&set->cells[i]);
         return true;
     }
     for (int i = 0; i < set->cells.size; ++i) {
-        if (!AddOccluder(&set->cells[i])) {
-            for (int j = 0; j < i; ++j) ClearOccluder(&set->cells[j]);
+        if (!AddOccluderRecord(&set->cells[i])) {
+            for (int j = 0; j < i; ++j) ClearOccluderRecord(&set->cells[j]);
             return false;
         }
     }

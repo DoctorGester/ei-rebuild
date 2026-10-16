@@ -27,13 +27,6 @@ int AreaList(int level) {
 }
 
 // 005B8BA0 (RET 0x14, AL). The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
-// 005B89F0 (RET 0x1C). A level's special area over the inner rectangle.
-__declspec(naked) void __fastcall ApplyArea(CAIMap*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005B89F0)
-// 005B8710 (RET 0x10). The second pass over the inner rectangle.
-__declspec(naked) void __fastcall RefreshSecondPass(CAIMap*, void*, int, int, int, int) EI_ORIGINAL(0x005B8710)
-// The sector map (+0x124): objects within a radius of a point into a list (RET 0xC), Remove, Add.
-// 005AFEE0 (RET 0x14). The region map updates the blocks [x0, x1] x [y0, y1].
-__declspec(naked) void __fastcall RegionsUpdate(CRegionMap*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFEE0)
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -80,10 +73,10 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         const mfc::CArray<AreaOffset>& areas = areaLists[AreaList(level)];
         for (int i = 0; i < areas.size; ++i) {
             const AreaOffset& entry = areas.data[i];
-            ApplyArea(this, nullptr, level, entry.dx, entry.dy, ix0, ix1, iy0, iy1);
+            ClearUnmarkedArea(level, entry.dx, entry.dy, ix0, ix1, iy0, iy1);
         }
     }
-    RefreshSecondPass(this, nullptr, ix0, ix1, iy0, iy1);
+    LimitSteepCells(ix0, ix1, iy0, iy1);
 
     // The three outermost rows and columns are never passable.
     for (int x = ox0; x <= ox1; ++x) {
@@ -124,7 +117,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));
         node = next;
     }
-    RegionsUpdate(&regionMap, nullptr, this, bx0, bx1, by0, by1);
+    regionMap.UpdateBlocksFor(this, bx0, bx1, by0, by1);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
         SectorMapAdd(sectors, nullptr, AsEngineObject(node->data));

@@ -144,7 +144,7 @@ static_assert(sizeof(PathCellList::Node) == 0x10);
 
 // The speed word and terrain bits a path builder gives its cells (SV7d2): the plain step speed, no
 // terrain bits. The originals leave stack leftovers there (SearchPathTo 005C3200 the caller's
-// register, BuildCells 005B9A20 a search's row offset, PathSmoother::Smooth 005C46C0 the open cost
+// register, BuildCellsTo 005B9A20 a search's row offset, PathSmoother::Smooth 005C46C0 the open cost
 // or a list vtable); the harness patches them to this too (tests/verify/harness_path_cells.cpp).
 // SetStepSpeeds rewrites both words of every step but the last, whose speed word becomes
 // UnitMotion's last step speed (read only by a single-cell trajectory).
@@ -512,10 +512,8 @@ struct CRegionMap {
     // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
     // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
     int DominantRegion(int sizeClass, int x, int y);
-    // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI map's,
-    // CAIMap::marks: 1 yes, 2 no).
-    bool Reaches(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
-    // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
+    // 005B07C0 (ai_region_reach.cpp). Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI
+    // map's, CAIMap::marks: 1 yes, 2 no).
     bool ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
     // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
     void LabelRegions();
@@ -935,10 +933,7 @@ public:
     void MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit, float targetHeight,
                           struct VisibilityGrid* grid);
 
-    // Not rewritten (forwarders):
-    // 005B6740. Applies or clears the bridge decks of a footprint.
-    bool ApplyBridges(FootprintCellSet* set, bool remove);
-    // The rewrite of 005B6740 (ai_bridges.cpp); ApplyBridges stays the forwarder to its address.
+    // 005B6740 (ai_bridges.cpp). Applies or clears the bridge decks of a footprint.
     bool ApplyBridgeDecks(FootprintCellSet* set, bool remove);
     // 005BC750 (RET 8, ST0; ai_line_step.cpp). The largest ground step between consecutive cells on
     // the line, in world height; 1.0 for a zero-length line, 100.0 when an end is off the map.
@@ -952,10 +947,7 @@ public:
     // 005B7EF0 (RET 8; ai_water_patch.cpp). Adds (or lifts) the water depths around `position` as
     // a pseudo unit of the small-unit layer.
     void StampWaterPatch(const Vector3* position, bool add);
-    // 005B61B0 / 005B6380. Adds / removes one footprint cell's occluder.
-    bool AddOccluder(FootprintCell* cell);
-    bool ClearOccluder(FootprintCell* cell);
-    // The rewrites of 005B61B0 / 005B6380 (ai_occluders.cpp); the two above stay the forwarders.
+    // 005B61B0 / 005B6380 (ai_occluders.cpp). Adds / removes one footprint cell's occluder.
     bool AddOccluderRecord(FootprintCell* cell);
     bool ClearOccluderRecord(FootprintCell* cell);
     // 005B8FA0. Recomputes passability in the rectangle (inclusive, grown by 3 cells).

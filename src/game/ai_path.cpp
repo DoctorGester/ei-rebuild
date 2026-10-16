@@ -15,7 +15,6 @@
 // --- Forwarders to original code not rewritten yet -----------------------------------------------
 
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
-__declspec(naked) bool CRegionMap::Reaches(int, int, int, int, SearchGrid<std::int8_t>*) EI_ORIGINAL(0x005B07C0)
 
 namespace {
 // 005BD200: appends a copy of `cell` to the list.
@@ -33,9 +32,6 @@ __declspec(naked) bool __fastcall BuildLocalPath(CAIMap*, void*, PathCellList*, 
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
 __declspec(naked) int __fastcall SmoothPath(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
     EI_ORIGINAL(0x005C46C0)
-// 005BA400 (CAIMap::SetStepSpeeds, ai_movement.cpp): the steps' speed words. Called through the
-// original address so the verify build's wrapper sees it.
-__declspec(naked) void __fastcall SteerAlong(CAIMap*, void*, CUnit*, PathCellList*) EI_ORIGINAL(0x005BA400)
 
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
@@ -145,7 +141,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
                 std::uint8_t mark = markRows[cy][cx];
                 if (mark != 1) {
                     if (mark == 2) continue;
-                    if (!Regions()->Reaches(sizeClass, cx, cy, region, &marks)) continue;
+                    if (!Regions()->ReachesRegion(sizeClass, cx, cy, region, &marks)) continue;
                 }
             }
             if (r != 0) {
@@ -228,7 +224,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
         path->reached = true;
     }
     path->SetTarget(x, y);
-    SteerAlong(this, nullptr, unit, &path->steps);
+    SetStepSpeeds(unit, &path->steps);
 }
 EI_REPLACE_METHOD(0x005BB190, CAIMap::AdvancePath);
 

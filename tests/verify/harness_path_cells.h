@@ -4,7 +4,7 @@
 // ticket SV7d2).
 //
 // The original path builders give each cell's speed word and terrain bits (PathCell +4) a stack slot
-// they never write: SearchPathTo (005C3200) its caller's saved register, BuildCells (005B9A20) the
+// they never write: SearchPathTo (005C3200) its caller's saved register, BuildCellsTo (005B9A20) the
 // row offset the search left, and the smoother (PathSmoother::Smooth 005C46C0) the open cost of the
 // local search's meeting cell or the planner's list vtable for the rebuilt tail, and a saved frame
 // pointer or that vtable for the other rebuilt cells. The last step's speed word reaches the saves

@@ -15,12 +15,6 @@
 
 namespace {
 
-// The sector's record pool (Sector::NewOccluder / RemoveOccluder / FreeOccluder, sector_map.cpp),
-// called through the original addresses so their verify wrappers see these calls.
-__declspec(naked) int __fastcall NewRecord(Sector*) EI_ORIGINAL(0x005BFE70)
-__declspec(naked) int __fastcall RemoveRecord(Sector*, void*, int, int, int, int, int) EI_ORIGINAL(0x005BFFD0)
-__declspec(naked) void __fastcall FreeRecord(Sector*, void*, int) EI_ORIGINAL(0x005C0060)
-
 constexpr std::uint32_t kNone = 0x100;
 constexpr std::uint32_t kChained = 0x80;
 constexpr std::uint32_t kKeepAroundIndex = 0xE00001FF;
@@ -51,7 +45,7 @@ bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
     Sector* sector = SectorOf(this, x, y);
     if (!(word & kChained)) {
         // The inline occluder moves into the first record of a chain.
-        int index = NewRecord(sector);
+        int index = sector->NewOccluder();
         std::uint32_t w = word;
         SectorOccluder& first = sector->occluders[index];
         first.top = static_cast<std::int16_t>((w >> 12) & 0x3FF);
@@ -61,7 +55,7 @@ bool CAIMap::AddOccluderRecord(FootprintCell* cell) {
         first.next = -1;
         word = WithIndex(w, index) | kChained;
     }
-    int index = NewRecord(sector);
+    int index = sector->NewOccluder();
     SectorOccluder& record = sector->occluders[index];
     record.top = static_cast<std::int16_t>(cell->high);
     record.bottom = static_cast<std::int16_t>(cell->low);
@@ -84,7 +78,7 @@ bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     }
     Sector* sector = SectorOf(this, x, y);
     int head = static_cast<int>((word >> 9) & 0xFFFFF);
-    int index = RemoveRecord(sector, nullptr, head, cell->low, cell->high, cell->kind, cell->transparency);
+    int index = sector->RemoveOccluder(head, cell->low, cell->high, cell->kind, cell->transparency);
     word = WithIndex(word, index);
     index = static_cast<int>((word >> 9) & 0xFFFFF);
     SectorOccluder& last = sector->occluders[index];
@@ -96,7 +90,7 @@ bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     w = (w & ~0xE00u) | (static_cast<std::uint32_t>(last.kind & 7) << 9);
     w = (w & ~0xE0u) | (static_cast<std::uint32_t>(last.transparency & 3) << 5);
     word = w;
-    FreeRecord(sector, nullptr, index);
+    sector->FreeOccluder(index);
     return true;
 }
 
