@@ -71,9 +71,8 @@ int Round(float value) { return x87::fistp(value); }
 
 // ---- Original code reached by the commands ------------------------------------------------------
 //
-// The callees as the original reaches them: thiscall entry points on the game's objects, declared
-// as members of call-only facades (`...Calls`, no fields) over the real objects, so each call goes
-// through the original address.
+// The commands call the game's classes directly; what is left here are the container entry points
+// (MFC lists and arrays of script records) the original reaches out of line.
 
 constexpr int kClassLever = 0x5D;
 constexpr int kClassQuestItem = 0x14;
@@ -118,106 +117,29 @@ CWorldServer* TheWorld() { return static_cast<CWorldServer*>(WorldServer()); }
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
 CAIMap* TheAIMap() { return WorldServer()->AIMap(); }
 
-// Unit modes (the brain's behaviour list): allocated by the command (NewMode) and constructed by
-// these.
-struct ModeCalls {
-    void* vtable;
-    int refCount;                                        // +0x04 written 0 by the command first
-    ModeCalls* Sentry(const Vector3* point);             // 004BA360 (0x14 bytes)
-    ModeCalls* Guard(const Vector3* point, float r1, float r2);   // 004BA1C0 (0x20)
-    ModeCalls* Follow(CEngineObject* leader);            // 004BA450 (0x0C)
-    ModeCalls* Patrol();                                 // 005D0F60 (0x20)
-    ModeCalls* Player();                                 // 005D3760 (0x24)
-    ModeCalls* Fear(int on);                             // 005D2850 (0x2C)
-    ModeCalls* Aggression();                             // 004BA710 (0x18)
-    ModeCalls* Revenge(int on);                          // 004BA830 (0x18)
-    ModeCalls* Suspicion();                              // 004BA610 (0x18)
-    ModeCalls* CorpseWatcher();                          // 004BA920 (0x08)
-};
-ModeCalls* ModeCalls::Sentry(const Vector3* point) {
-    return reinterpret_cast<ModeCalls*>(reinterpret_cast<SentryMode*>(this)->ScriptSentryModeConstruct(point));
+// Unit modes (the brain's behaviour list): operator new for a mode, then its script constructor.
+// The command zeroes the reference dword (+4) before testing the pointer.
+template <typename Mode>
+Mode* NewMode(std::size_t size) {
+    auto* mode = static_cast<Mode*>(gamecrt::operator_new(size));
+    mode->refs = 0;
+    mode->refsHigh = 0;
+    return mode;
 }
-ModeCalls* ModeCalls::Guard(const Vector3* point, float r1, float r2) {
-    return reinterpret_cast<ModeCalls*>(reinterpret_cast<GuardMode*>(this)->ScriptGuardModeConstruct(point, r1, r2));
-}
-ModeCalls* ModeCalls::Follow(CEngineObject* leader) {
-    return reinterpret_cast<ModeCalls*>(reinterpret_cast<FollowMode*>(this)->ScriptFollowModeConstruct(leader));
-}
-ModeCalls* ModeCalls::Patrol() { return reinterpret_cast<ModeCalls*>(reinterpret_cast<PatrolMode*>(this)->Construct()); }
-ModeCalls* ModeCalls::Player() { return (ModeCalls*)static_cast<PlayerMode*>((void*)this)->Construct(); }
 // Fear and Suspicion zero the mode's fields first (SV7b2, SV7d4: FearMode / SuspectionMode::ClearFields).
-ModeCalls* ModeCalls::Fear(int on) {
-    auto* mode = reinterpret_cast<FearMode*>(this);
+FearMode* ConstructFear(FearMode* mode, int on) {
     mode->ClearFields();
-    return reinterpret_cast<ModeCalls*>(mode->Construct(static_cast<std::uint8_t>(on)));
+    return mode->Construct(static_cast<std::uint8_t>(on));
 }
-ModeCalls* ModeCalls::Aggression() {
-    return reinterpret_cast<ModeCalls*>(reinterpret_cast<AggressionMode*>(this)->ScriptAggressionModeConstruct());
-}
-ModeCalls* ModeCalls::Revenge(int on) {
-    return reinterpret_cast<ModeCalls*>(reinterpret_cast<AggressionMode*>(this)->ScriptRevengeModeConstruct(on));
-}
-ModeCalls* ModeCalls::Suspicion() {
-    auto* mode = reinterpret_cast<SuspectionMode*>(this);
+SuspectionMode* ConstructSuspicion(SuspectionMode* mode) {
     mode->ClearFields();
-    return reinterpret_cast<ModeCalls*>(mode->ScriptSuspectionModeConstruct());
-}
-ModeCalls* ModeCalls::CorpseWatcher() {
-    return reinterpret_cast<ModeCalls*>(reinterpret_cast<CorpseWatcherMode*>(this)->ScriptCorpseWatcherModeConstruct());
+    return mode->ScriptSuspectionModeConstruct();
 }
 
-// operator new for a mode: the command writes 0 to +4 (the reference count) before testing the
-// pointer.
-ModeCalls* NewMode(std::size_t size) {
-    auto* p = static_cast<ModeCalls*>(gamecrt::operator_new(size));
-    p->refCount = 0;
-    return p;
-}
+CUnit* UnitOf(CEngineObject* unit) { return static_cast<CUnit*>(unit); }
 
-// A constructed mode as the brain takes it.
-AIMode* AsMode(ModeCalls* mode) { return reinterpret_cast<AIMode*>(mode); }
-
-
-struct UnitCalls {
-    void SetHostileMask(std::uint32_t mask);             // 0052E970
-    void SetController(WorldPlayer* player);             // 005300D0
-    void GiveQuestItem(CEngineObject* item);             // 00531220
-    void AddSpell(CEngineObject* spell);                 // 00531820
-    void MarkChanged(int what);                          // 0050E9F0
-};
-void UnitCalls::SetHostileMask(std::uint32_t a0) { static_cast<CUnit*>((void*)this)->SetHostileMask(a0); }
-void UnitCalls::SetController(WorldPlayer* player) { reinterpret_cast<CUnit*>(this)->SetPlayer(reinterpret_cast<char*>(player)); }
-void UnitCalls::GiveQuestItem(CEngineObject* item) { reinterpret_cast<CUnit*>(this)->AddCarried(item); }
-void UnitCalls::AddSpell(CEngineObject* spell) { reinterpret_cast<CUnit*>(this)->AddSpell(spell); }
-void UnitCalls::MarkChanged(int what) { reinterpret_cast<CMapObject*>(this)->MarkChanged(what); }
-UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
-
-// A player (CWorldServer::GetPlayer).
-struct PlayerCalls {
-    void GiveItems(void* list, int flag);                // 00665470
-    void EraseQuestItem(int id);                         // 00665780
-};
-void PlayerCalls::GiveItems(void* a0, int a1) { PlayerGiveItemsOriginal(this, nullptr, a0, a1); }
-void PlayerCalls::EraseQuestItem(int a0) { PlayerEraseQuestItemOriginal(this, nullptr, a0); }
-PlayerCalls* PlayerOf(WorldPlayer* player) { return reinterpret_cast<PlayerCalls*>(player); }
-
-// The player's server half (WorldPlayer::server): quest variables, music, zone change.
-struct PlayerStateCalls {
-    void SetVar(const char* name, float value) { PlayerStateSetVariableOriginal(this, nullptr, name, value); }          // 0066EE10
-    void SetVarMax(const char* name, float value) { PlayerStateSetVariableMaxOriginal(this, nullptr, name, value); }    // 0066EE80
-    void PrepareRedeploy();                              // 0066EF80
-};
-void PlayerStateCalls::PrepareRedeploy() { static_cast<CPlayerServer*>((void*)this)->SendParty(); }
-
-// Party records of a player (PartyRecordsFor) and one record.
-struct PartyRecordsCalls {
-    void AddUnit(const char* name, const char* prototype, const char* extra);   // 006628D0
-    void RemoveUnit(int key);                            // 006620F0
-};
-void PartyRecordsCalls::AddUnit(const char* a0, const char* a1, const char* a2) { reinterpret_cast<CParty*>(this)->AddMember(a0, a1, a2); }
-void PartyRecordsCalls::RemoveUnit(int a0) { reinterpret_cast<CParty*>(this)->RemoveMember(static_cast<unsigned>(a0)); }
-// 00660500: a record copies the items of `source` (with the records they belong to).
-__declspec(naked) void __fastcall RecordCopyItemsFrom(PartyUnitRecord*, void*, PartyUnitRecord*, PartyRecordsCalls*) EI_ORIGINAL(0x00660500)
+// A player (CWorldServer::GetPlayer): the world's view of the CPlayer it is.
+CPlayer* PlayerOf(WorldPlayer* player) { return reinterpret_cast<CPlayer*>(player); }
 
 PartyManager* ThePartyManager() { return GamePartyManager(); }
 
@@ -231,12 +153,6 @@ void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { party->RemoveI
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
-// The game flow: multiplayer state and quest checks.
-struct FlowCalls {
-    bool IsMultiplayer();                                // 0057F440
-};
-bool FlowCalls::IsMultiplayer() { return IsNetworkClientOriginal(); }
-FlowCalls* TheNetwork() { return reinterpret_cast<FlowCalls*>(TheGameFlow()); }
 
 // STLport strings of the server's variable calls, built and destroyed with the original routines
 // (two constructions are used, as in the original).
@@ -272,30 +188,11 @@ bool ServerActive() {
 CPlayerManager* TheEvents() { return static_cast<CPlayerManager*>(WorldServer()->players_); }
 
 // The world's spell manager (CWorld::manager4C_).
-struct SpellManagerCalls {
-    CEngineObject* CreateSpellFromText(const char* text) {   // 00689030
-        return reinterpret_cast<CEngineObject*>(
-            reinterpret_cast<CSpellManager*>(this)->CreateSpellFromText(text));
-    }
-};
-SpellManagerCalls* TheSpellManager() { return reinterpret_cast<SpellManagerCalls*>(WorldServer()->manager4C_); }
+CSpellManager* TheSpellManager() { return static_cast<CSpellManager*>(WorldServer()->manager4C_); }
 
-// A particle source's effect (ScriptParticleSource::object, a CEffectParticle).
-struct ParticleCalls {
-    void AttachTo(int objectId) { static_cast<CEffectParticle*>(reinterpret_cast<CEngineObject*>(this))->SetAttachedTo(objectId); }   // 00679280
-};
-ParticleCalls* ParticleOf(ScriptParticleSource* source) { return reinterpret_cast<ParticleCalls*>(source->object); }
+// A particle source's effect (ScriptParticleSource::object).
+CEffectParticle* ParticleOf(ScriptParticleSource* source) { return static_cast<CEffectParticle*>(source->object); }
 
-// The console's ostream.
-struct OstreamCalls {
-    OstreamCalls* PutString(const char* text);           // 006FC31D
-    OstreamCalls* Manipulate(void* manipulator);         // 00434FE0
-};
-OstreamCalls* OstreamCalls::PutString(const char* text) { return static_cast<OstreamCalls*>(OstreamPutString(this, nullptr, text)); }
-OstreamCalls* OstreamCalls::Manipulate(void* manipulator) { return static_cast<OstreamCalls*>(OstreamManipulate(this, nullptr, manipulator)); }
-OstreamCalls* Console() { return reinterpret_cast<OstreamCalls*>(&console::Out()); }
-// 004BA9D0: a float argument put to the console (sets +4 = 1, then << double).
-OstreamCalls* ConsoleFloat(float value) { return reinterpret_cast<OstreamCalls*>(&console::Out().PutFloatArgument(value)); }
 // 004BA9F0: the manipulator that ends a console line.
 void* EndLine() { return reinterpret_cast<void*>(0x004BA9F0); }
 
@@ -330,7 +227,6 @@ AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(sta
 PatrolMode* PatrolOf(void* state) { return static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode()); }
 UnitStats* StatsOf(void* state) { return &Controller(state)->stats; }
 Vector3* Position(CEngineObject* object) { return &static_cast<CMapObject*>(object)->position; }
-PlayerStateCalls* StateOf(WorldPlayer* player) { return reinterpret_cast<PlayerStateCalls*>(player->server); }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
 const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
@@ -395,7 +291,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->MoveInSectors(object, &point);
         if (object->GetClassId() == kClassUnit) Controller(UnitState(object))->ResyncWithUnit();
         map->SetRefreshUnits(1);
-        UnitOf(object)->MarkChanged(2);
+        static_cast<CMapObject*>(object)->MarkChanged(2);
         return;
     }
     float oldZ = Position(object)->z;
@@ -403,7 +299,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     map->MoveInSectors(object, &point);
     if (object->GetClassId() == kClassUnit) {
         Controller(UnitState(object))->ResyncWithUnit();
-        if (!(FcomStatus(oldZ, Position(object)->z) & 0x40)) UnitOf(object)->MarkChanged(2);
+        if (!(FcomStatus(oldZ, Position(object)->z) & 0x40)) static_cast<CMapObject*>(object)->MarkChanged(2);
         return;
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
@@ -429,7 +325,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         }
         map->AddToSectors(unit);
     }
-    UnitOf(object)->MarkChanged(2);
+    static_cast<CMapObject*>(object)->MarkChanged(2);
     PtrListDestruct4C96F0Original(&units);
 }
 
@@ -455,7 +351,7 @@ void GiveSkill(const SSCCmd* cmd) {
 void RedeployParty(const SSCCmd* cmd) {
     WorldPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]));
     if (!player) return;
-    PlayerStateCalls* state = StateOf(player);
+    CPlayerServer* state = player->server;
     PartyArray slots;
     PartySlotsConstruct(&slots);
     TheWorld()->CollectParty(player, &slots);
@@ -465,7 +361,7 @@ void RedeployParty(const SSCCmd* cmd) {
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
     if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unitId);
-    state->PrepareRedeploy();
+    state->SendParty();
     player->server->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);
     PartySlotsDestruct(&slots);
@@ -539,26 +435,26 @@ void UnitModes(const SSCCmd* cmd) {
     brain->RemoveModesOfType(7);
     switch (Round(cmd->floatArgs.data[0])) {
     case 0:
-        brain->AddMode(AsMode(NewMode(0x2C)->Fear(1)));
-        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
-        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
+        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 1));
+        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
+        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
         break;
     case 1:
-        brain->AddMode(AsMode(NewMode(0x2C)->Fear(0)));
-        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
-        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
+        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 0));
+        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
+        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
         break;
     case 2:
-        brain->AddMode(AsMode(NewMode(0x18)->Revenge(1)));
-        brain->AddMode(AsMode(NewMode(0x2C)->Fear(0)));
-        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
-        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
+        brain->AddMode(NewMode<AggressionMode>(0x18)->ScriptRevengeModeConstruct(1));
+        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 0));
+        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
+        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
         break;
     case 3:
-        brain->AddMode(AsMode(NewMode(0x18)->Aggression()));
-        brain->AddMode(AsMode(NewMode(0x2C)->Fear(0)));
-        brain->AddMode(AsMode(NewMode(0x18)->Suspicion()));
-        brain->AddMode(AsMode(NewMode(0x08)->CorpseWatcher()));
+        brain->AddMode(NewMode<AggressionMode>(0x18)->ScriptAggressionModeConstruct());
+        brain->AddMode(ConstructFear(NewMode<FearMode>(0x2C), 0));
+        brain->AddMode(ConstructSuspicion(NewMode<SuspectionMode>(0x18)));
+        brain->AddMode(NewMode<CorpseWatcherMode>(0x08)->ScriptCorpseWatcherModeConstruct());
         break;
     default:
         break;
@@ -712,14 +608,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x12: {   // AttachParticleSource(id, objectId)
             int objectId = Round(f[1]);
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->AttachTo(objectId);
+            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->SetAttachedTo(objectId);
             break;
         }
         case 0xE7: {   // AttachParticles(id, object)
             CEngineObject* object = Arg(cmd, 0);
             if (!object) break;
             int objectId = object->id_;
-            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->AttachTo(objectId);
+            if (ScriptParticleSource* entry = FindParticle(script, Round(f[0]))) ParticleOf(entry)->SetAttachedTo(objectId);
             break;
         }
         case 0xBA: {   // SetParticleSourceSize(id, size)
@@ -818,10 +714,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            ConsoleFloat(f[0])->Manipulate(EndLine());
+            console::Out().PutFloatArgument(f[0]).Apply(EndLine());
             break;
         case 0x7E:   // ConsoleString(text)
-            Console()->PutString(Text(cmd, 0))->Manipulate(EndLine());
+            (console::Out() << Text(cmd, 0)).Apply(EndLine());
             break;
         case 0xC3: {   // AddRectToArea(area, x1, y1, x2, y2)
             void* area = script->FindArea(Round(f[0]));
@@ -936,12 +832,12 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x83: {   // AddUnitUnderControl(player, unit)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
-            if (player && unit) UnitOf(unit)->SetController(player);
+            if (player && unit) UnitOf(unit)->SetPlayer(reinterpret_cast<char*>(player));
             break;
         }
         case 0x84: {   // RemoveUnitFromControl(player, unit)
             CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
-            if (unit) UnitOf(unit)->SetController(nullptr);
+            if (unit) UnitOf(unit)->SetPlayer(nullptr);
             break;
         }
         case 0x42:   // SetSpellAggression(unit, value): reads the unit's +0x170 and does nothing
@@ -964,7 +860,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CEngineObject* unit = cmd->objectArgs.data[0]->AsUnit();
             if (!unit) break;
             CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
-            if (item && item->GetClassId() == kClassQuestItem) UnitOf(unit)->GiveQuestItem(item);
+            if (item && item->GetClassId() == kClassQuestItem) UnitOf(unit)->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)
@@ -1104,8 +1000,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             if (!state) break;
             Vector3 point = {f[0], f[1], 0.0f};
-            ModeCalls* mode = NewMode(0x14);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Sentry(&point) : nullptr));
+            auto* mode = NewMode<SentryMode>(0x14);
+            BrainOf(state)->AddMode(mode ? mode->ScriptSentryModeConstruct(&point) : nullptr);
             break;
         }
         case 0x26:     // UMGuard(unit, x, y, radius)
@@ -1117,23 +1013,23 @@ BOOL ScriptRun::Execute(CScript* script) {
             float radius2;
             if (cmd->id == 0x26) std::memcpy(&radius2, "\x00\x00\x80\xBF", 4);   // -1.0f
             else radius2 = f[3];
-            ModeCalls* mode = NewMode(0x20);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Guard(&point, radius, radius2) : nullptr));
+            auto* mode = NewMode<GuardMode>(0x20);
+            BrainOf(state)->AddMode(mode ? mode->ScriptGuardModeConstruct(&point, radius, radius2) : nullptr);
             break;
         }
         case 0xCA: {   // UMFollow(unit, leader)
             void* state = UnitStateArg(cmd);
             if (!state) break;
             CEngineObject* leader = Arg(cmd, 1);
-            ModeCalls* mode = NewMode(0x0C);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Follow(leader) : nullptr));
+            auto* mode = NewMode<FollowMode>(0x0C);
+            BrainOf(state)->AddMode(mode ? mode->ScriptFollowModeConstruct(leader) : nullptr);
             break;
         }
         case 0x28: {   // UMPatrol
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            ModeCalls* mode = NewMode(0x20);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Patrol() : nullptr));
+            auto* mode = NewMode<PatrolMode>(0x20);
+            BrainOf(state)->AddMode(mode ? mode->Construct() : nullptr);
             break;
         }
         case 0x29: {   // UMPatrolClear
@@ -1169,8 +1065,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             AIBrain* brain = BrainOf(state);
             brain->ClearModes();
-            ModeCalls* mode = NewMode(0x24);
-            brain->AddMode(AsMode(mode ? mode->Player() : nullptr));
+            auto* mode = NewMode<PlayerMode>(0x24);
+            brain->AddMode(mode ? mode->Construct() : nullptr);
             brain->StopAction();
             break;
         }
@@ -1181,71 +1077,71 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             if (!state) break;
             AIBrain* brain = BrainOf(state);
-            ModeCalls* mode = NewMode(0x18);
-            brain->AddMode(AsMode(mode ? mode->Aggression() : nullptr));
-            mode = NewMode(0x18);
-            brain->AddMode(AsMode(mode ? mode->Suspicion() : nullptr));
-            mode = NewMode(0x08);
-            brain->AddMode(AsMode(mode ? mode->CorpseWatcher() : nullptr));
+            auto* aggression = NewMode<AggressionMode>(0x18);
+            brain->AddMode(aggression ? aggression->ScriptAggressionModeConstruct() : nullptr);
+            auto* suspicion = NewMode<SuspectionMode>(0x18);
+            brain->AddMode(suspicion ? ConstructSuspicion(suspicion) : nullptr);
+            auto* watcher = NewMode<CorpseWatcherMode>(0x08);
+            brain->AddMode(watcher ? watcher->ScriptCorpseWatcherModeConstruct() : nullptr);
             break;
         }
         case 0x2D: {   // UMAggression
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            ModeCalls* mode = NewMode(0x18);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Aggression() : nullptr));
+            auto* mode = NewMode<AggressionMode>(0x18);
+            BrainOf(state)->AddMode(mode ? mode->ScriptAggressionModeConstruct() : nullptr);
             break;
         }
         case 0x2E: {   // UMRevenge
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            ModeCalls* mode = NewMode(0x18);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Revenge(1) : nullptr));
+            auto* mode = NewMode<AggressionMode>(0x18);
+            BrainOf(state)->AddMode(mode ? mode->ScriptRevengeModeConstruct(1) : nullptr);
             break;
         }
         case 0xC7: {   // UMFear(unit, on)
             void* state = UnitStateArg(cmd);
             if (!state) break;
             int on = ZeroOrNaN(f[0]) ? 0 : 1;
-            ModeCalls* mode = NewMode(0x2C);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Fear(on) : nullptr));
+            auto* mode = NewMode<FearMode>(0x2C);
+            BrainOf(state)->AddMode(mode ? ConstructFear(mode, on) : nullptr);
             break;
         }
         case 0x2F: {   // UMSuspection
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            ModeCalls* mode = NewMode(0x18);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->Suspicion() : nullptr));
+            auto* mode = NewMode<SuspectionMode>(0x18);
+            BrainOf(state)->AddMode(mode ? ConstructSuspicion(mode) : nullptr);
             break;
         }
         case 0x30: {   // UMCorpseWatcher
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            ModeCalls* mode = NewMode(0x08);
-            BrainOf(state)->AddMode(AsMode(mode ? mode->CorpseWatcher() : nullptr));
+            auto* mode = NewMode<CorpseWatcherMode>(0x08);
+            BrainOf(state)->AddMode(mode ? mode->ScriptCorpseWatcherModeConstruct() : nullptr);
             break;
         }
 
         // ---- Players: variables, parties, items -------------------------------------------------
         case 0x7F: {   // GSSetVar(player, name, value)
-            if (TheNetwork()->IsMultiplayer() && ServerActive()) {
+            if (IsMultiplayerClient() && ServerActive()) {
                 GSSetVarMultiplayer(cmd);
                 break;
             }
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) StateOf(player)->SetVar(Text(cmd, 0), f[1]);
+            if (player) player->server->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
             break;
         }
         case 0x98:     // GSSetVarMax(player, name, value)
         case 0x82: {   // GSDelVar(player, name)
             bool setMax = cmd->id == 0x98;
-            if (TheNetwork()->IsMultiplayer() && ServerActive()) {
+            if (IsMultiplayerClient() && ServerActive()) {
                 GSVarMultiplayer(cmd, setMax);
                 break;
             }
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            if (setMax) StateOf(player)->SetVarMax(Text(cmd, 0), f[1]);
+            if (setMax) player->server->SetVariableMax(Text(cmd, 0), f[1]);
             else player->server->DeleteVariable(Text(cmd, 0));
             break;
         }
@@ -1267,12 +1163,12 @@ BOOL ScriptRun::Execute(CScript* script) {
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             mfc::CString name(cmd->stringArgs.data[0]);
-            auto* records = static_cast<PartyRecordsCalls*>(PartyForScript(player, &name));
+            auto* records = static_cast<CParty*>(PartyForScript(player, &name));
             if (records) {
                 if (cmd->id == 0x86)
-                    records->AddUnit(name, Text(cmd, 1), game::EmptyText());
+                    records->AddMember(name, Text(cmd, 1), game::EmptyText());
                 else
-                    records->RemoveUnit(TextKeyFromName(name));
+                    records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }
             break;
         }
@@ -1282,13 +1178,13 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!player) break;
             mfc::CString from(cmd->stringArgs.data[0]);
             mfc::CString to(cmd->stringArgs.data[1]);
-            auto* fromRecords = static_cast<PartyRecordsCalls*>(PartyForScript(player, &from));
-            auto* toRecords = static_cast<PartyRecordsCalls*>(PartyForScript(player, &to));
+            auto* fromRecords = static_cast<CParty*>(PartyForScript(player, &from));
+            auto* toRecords = static_cast<CParty*>(PartyForScript(player, &to));
             PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
             PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
             if (source && target) {
                 if (cmd->id == 0xD4) {
-                    RecordCopyItemsFrom(target, nullptr, source, toRecords);
+                    target->CopyItemsFrom(source, toRecords);
                 } else {
                     std::memcpy(target->stats, source->stats, sizeof(target->stats));
                     target->texts[0] = source->texts[0];
@@ -1318,7 +1214,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xA7: {   // GiveMoney(player, amount): player +0xC0
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            PtrList items;
+            mfc::CTypedPtrList<CEngineObject> items;
             ItemListConstructOriginal(&items, nullptr, 10);
             player->Party()->Money() += Ftol(f[1]);
             PlayerOf(player)->GiveItems(&items, 0);
@@ -1329,7 +1225,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xA6: {   // GiveItem(player, item)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            PtrList items;
+            mfc::CTypedPtrList<CEngineObject> items;
             ItemListConstructOriginal(&items, nullptr, 10);
             CEngineObject* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item) {
@@ -1341,7 +1237,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x93: {   // EraseQuestItem(player, id)
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) PlayerOf(player)->EraseQuestItem(Ftol(f[1]));
+            if (player) PlayerOf(player)->TakeLoot(Ftol(f[1]));
             break;
         }
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
@@ -1358,7 +1254,7 @@ BOOL ScriptRun::Execute(CScript* script) {
 
         // ---- Quests -----------------------------------------------------------------------------
         case 0x9F: {   // QuestComplete(player, quest)
-            if (TheNetwork()->IsMultiplayer()) {
+            if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {
                     void* quest = TheQuestTable()->Find(Text(cmd, 0));
                     if (quest) TheWorld()->AwardExperience(nullptr, static_cast<QuestRecord*>(quest)->exp);
