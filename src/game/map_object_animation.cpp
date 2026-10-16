@@ -15,8 +15,6 @@
 // double locals where it keeps, float locals where it stores.
 
 namespace {
-// 0049ED20 Quaternion::Slerp of quaternion.cpp, through its game address.
-__declspec(naked) void __fastcall SlerpAt(void*, void*, float, const void*, const void*) EI_ORIGINAL(0x0049ED20)
 
 // from + (to - from) * s as the original computes it: the x difference and product unrounded,
 // y and z stored to floats first; every result stored.
@@ -52,7 +50,8 @@ void AnimationTrack::Evaluate(float atTime) {
     }
 
     if (next < rotationCount) {
-        SlerpAt(&rotation, nullptr, fraction, rotations + 4 * index, rotations + 4 * next);
+        rotation.Slerp(fraction, *reinterpret_cast<const Quaternion*>(rotations + 4 * index),
+                       *reinterpret_cast<const Quaternion*>(rotations + 4 * next));
     } else if (rotationCount != 0) {
         std::memcpy(&rotation, rotations + 4 * (rotationCount - 1), 16);
     } else {

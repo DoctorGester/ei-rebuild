@@ -16,6 +16,10 @@ struct AnimationTrack;
 class CFigureAnimationState;
 struct FigureBone;
 
+// 005ACCF0 (figure_animation.cpp; RET 0xC). The figure manager sets `animation` (an entry, read as
+// its name) of the model `modelName` on `figure` (a CFigureAnimationState); 0 when it cannot.
+int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char* modelName, const char* animation);
+
 // FigureModel, the cached model, is in model.h.
 
 class CFigureManager : public CResourceManager {

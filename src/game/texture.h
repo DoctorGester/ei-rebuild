@@ -15,6 +15,7 @@ static_assert(sizeof(PixelFormat) == 32);
 
 struct CDXSurface;
 class CTexture;
+struct ClipBounds;   // model.h
 class CTransformPipeline;
 class CDeviceMaterial;   // device_material.h
 struct NamedTexture;   // ground_print.h
@@ -61,7 +62,7 @@ public:
     int SetMaterial(CDeviceMaterial* material);
     // 0x004EA4A0 (device_shadow.cpp).
     int DrawFlatBlocks(const void* positions, const char* uvs, int blocks, const std::uint16_t* indices, int indexCount,
-                 std::uint32_t colour, std::uint32_t specular, std::uint32_t last, float zScale);
+                 std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
     // 0x004E9A50 (device_mesh.cpp).
     int DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions, int blocks, int unused5,
                   int colourCount, std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,

@@ -29,8 +29,7 @@ struct RawString {
 // node allocator's deallocate (ECX p, EDX n).
 inline void __fastcall StringDeallocate(char**, void*, char* a2, int a3) { libcrt::NodeDeallocateCheckedStd(a2, (std::size_t)a3); }
 void __fastcall NodeDeallocate(char* a0, int a1) { libcrt::NodeDeallocateChecked((void*)a0, (std::size_t)a1); }
-// 005AA5F0: the manager's model of a name; 005A9EF0 (RET 4): the model's animation of a name.
-__declspec(naked) void* __fastcall FindAnimation(void*, void*, const RawString*) EI_ORIGINAL(0x005A9EF0)
+// 005AA5F0: the manager's model of a name; 005A9EF0 (FigureModel::FindAnimation): the model's animation of a name.
 // The figure: set an animation (RET 8: animation, name).
 __declspec(naked) int __fastcall SetAnimation(void*, void*, void*, const char*) EI_ORIGINAL(0x0050DA10)
 // 0044C470: the game's debug message (cdecl, printf-style).
@@ -58,7 +57,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     }
     RawString name;
     MakeString(name, animation);
-    void* found = FindAnimation(model, nullptr, &name);
+    void* found = static_cast<FigureModel*>(model)->FindAnimation(reinterpret_cast<const stlp::string*>(&name));
     NodeDeallocate(name.start, static_cast<int>(name.eos - name.start));
     if (!found) {
         game::DebugLog(reinterpret_cast<const char*>(0x00790D94), animation, modelName);

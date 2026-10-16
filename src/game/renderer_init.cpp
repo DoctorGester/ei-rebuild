@@ -43,7 +43,6 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
 }
 // Matrices (model.cpp, called through their addresses): 004F1370 viewport,
 // 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
-__declspec(naked) Matrix4* __stdcall ViewportMatrixOriginal(Matrix4*, const RECT*) EI_ORIGINAL(0x004F1370)
 __declspec(naked) Matrix4* __stdcall AxisSwapMatrix(Matrix4*) EI_ORIGINAL(0x004F1330)
 // The game's operator new, keeping EDX as the allocator leaves it (see CreateHelper).
 __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::uint32_t* /*edx out*/) {
@@ -59,9 +58,6 @@ __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::ui
         ret
     }
 }
-// 0068D0A0: a light's colour and position; 005007C0: the renderer adds a light.
-__declspec(naked) void __fastcall LightSet(CLight*, void*, const float* /*colour*/, const Vector3* /*position*/)
-    EI_ORIGINAL(0x0068D0A0)
 
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
@@ -134,7 +130,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     Matrix4 m;
     ProjectionMatrix(&m, fov, std::bit_cast<float>(0x3FAAAAABu), zNear, zFar);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
-    ViewportMatrixOriginal(&m, &renderer->device_->screen_);
+    ViewportMatrix(&m, reinterpret_cast<const int*>(&renderer->device_->screen_));
     StackPush(stacks[kViewport], &m);
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);
@@ -214,7 +210,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
     auto* light = static_cast<CLight*>(TheLightFactory()->CreateObject(0x2E, -1));
     float colour[3] = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
-    LightSet(light, nullptr, colour, &position);
+    light->SetDirectional(reinterpret_cast<const Vector3*>(colour), &position);   // 0068D0A0
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
     std::memcpy(&light->range_, &range, 4);
     std::memcpy(&light->rangeSquared_, &rangeSquared, 4);
@@ -324,7 +320,7 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     Matrix4 m;
     ProjectionMatrix(&m, fov, static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
     StackPush(stacks[kProjection], &m);
-    ViewportMatrixOriginal(&m, screen);
+    ViewportMatrix(&m, reinterpret_cast<const int*>(screen));
     StackPush(stacks[kViewport], &m);
     AxisSwapMatrix(&m);
     StackPush(stacks[kAxisSwap], &m);

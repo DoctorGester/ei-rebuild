@@ -54,9 +54,11 @@ std::uint32_t AnimatedDrawerFlags() { return *reinterpret_cast<const std::uint32
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
-// 0068D280 (CLight::SetLitColors): a light's colours for a material and the ambient level (float bits).
-__declspec(naked) void __fastcall LightForMaterial(CLight*, void*, CMaterial* /*material*/, std::uint32_t /*ambient*/)
-    EI_ORIGINAL(0x0068D280)
+// A light's colours for a material (its two colours at +0x20 / +0x40) at the ambient level (float bits;
+// CLight::SetLitColors, 0068D280).
+void LightForMaterial(CLight* light, CMaterial* material, std::uint32_t ambient) {
+    light->SetLitColors(reinterpret_cast<const float*>(material), std::bit_cast<float>(ambient));
+}
 // 005197B0: map<string, LinkPartHeader>::find on a figure's part headers: the node to *out.
 void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const RawString* a3) {
     StringMapFindOriginal(a0, nullptr, reinterpret_cast<void**>(a2), a3);
@@ -238,13 +240,13 @@ void Light(Part& part) {
         Vector3 moved;
         TransformPoint(g_lastInverse, &light->position_.x, &moved.x);
         std::memcpy(&light->localPosition_, &moved, sizeof(moved));
-        LightForMaterial(light, nullptr, part.material, ambient);
+        LightForMaterial(light, part.material, ambient);
     }
     if (CLight* sun = worlddata::SceneSun()) {
         Vector3 moved;
         TransformSun(g_lastInverse, &sun->direction_.x, &moved.x);
         std::memcpy(&sun->localDirection_, &moved, sizeof(moved));
-        LightForMaterial(sun, nullptr, part.material, ambient);
+        LightForMaterial(sun, part.material, ambient);
         transform->AddSun(sun);
     }
 

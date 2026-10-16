@@ -28,12 +28,6 @@ using devicebuffers::Projected;
 using devicebuffers::ProjectedVertex;
 using devicebuffers::Vertices;
 
-// 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
-// outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.
-// (CTransformPipeline::ProjectBlocks, through its address.)
-__declspec(naked) int __fastcall ProjectBlocks(CTransformPipeline*, void*, const void*, void*, void*, int, std::uint32_t)
-    EI_ORIGINAL(0x004F2650)
-
 // The pipeline's screen stack (1; the projection uses it or the clip stack 2, which get the same pushes).
 constexpr int kScreenStack = 1;
 
@@ -86,14 +80,15 @@ void HandOver(CTextureDevice* device, const void* positions, const char* uvs, in
 }
 
 int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int blocks, const std::uint16_t* indices,
-             int indexCount, std::uint32_t colour, std::uint32_t specular, std::uint32_t last, float zScale) {
+             int indexCount, std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale) {
     CTransformPipeline* pipeline = device->pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
     Projected().SetSizeDiscard(count * 10);
     Outcodes().SetSizeDiscard(count);
-    int visibility = ProjectBlocks(pipeline, nullptr, positions, Projected().data, Outcodes().data, blocks, last);
+    // 004F2650: the blocks projected with outcodes; 0 on screen, 1 crossing, 2 outside.
+    int visibility = pipeline->ProjectBlocks(positions, Projected().data, Outcodes().data, blocks, bounds);
     if (visibility != 2)
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
@@ -138,13 +133,13 @@ int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int
 } // namespace
 
 // 004EA4A0. `positions` blocks of four vertices (`blocks` of them), `uvs` one (u, v) per vertex,
-// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `last` passed
-// to the projection, `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
+// `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `bounds` passed
+// to the projection (null: crossing), `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
 // visible, else 0.
 int CTextureDevice::DrawFlatBlocks(const void* positions, const char* uvs, int blocks,
                               const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
-                              std::uint32_t last, float zScale) {
-    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
+                              const ClipBounds* bounds, float zScale) {
+    int result = DrawFlat(this, positions, uvs, blocks, indices, indexCount, colour, specular, bounds, zScale);
     render::EndMesh();
     return result;
 }

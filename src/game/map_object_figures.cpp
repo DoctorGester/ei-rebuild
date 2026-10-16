@@ -40,9 +40,6 @@ template <std::floating_point T> float Float(T) = delete;
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
-// 005AC2F0. Figure manager: builds `part` from `model` at the scale x, y, z given as float bits.
-__declspec(naked) void __fastcall BuildPart(void*, void*, CFigureMesh*, void*, std::uint32_t, std::uint32_t,
-                                            std::uint32_t) EI_ORIGINAL(0x005AC2F0)
 // 0059F3D0. Part: remembers its owner.
 void __fastcall SetPartOwner(CFigureMesh* a0, void*, CObject3D* a2) { a0->SetObject(a2); }
 // 0050D0E0. Animation state: a part was added.
@@ -210,8 +207,8 @@ int CObject3D::LoadFigures() {
         model = static_cast<CFigureManager*>(manager)->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        BuildPart(manager, nullptr, static_cast<CFigureMesh*>(pendingParts.data[i]), model, Bits(scale.x),
-                  Bits(scale.y), Bits(scale.z));
+        static_cast<CFigureManager*>(manager)->LoadPart(static_cast<CFigureMesh*>(pendingParts.data[i]),   // 005AC2F0
+                                                        static_cast<FigureModel*>(model), scale.x, scale.y, scale.z);
         --static_cast<CFigureMesh*>(pendingParts.data[i])->refCount_;   // no release at 0
         auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
         bool known = false;

@@ -6,6 +6,7 @@
 // the animation state's LinkPiece (0050CC60) with the model; FindRoot (0050D2E0) finishes it.
 // Returns 1. See docs/notes/models.md.
 #include "figure_manager.h"       // CFigureManager, FigureModel
+#include "map_object_cage.h"
 #include "map_object_figures.h"   // CFigureAnimationState, FigureBone
 
 #include "ei/hook.h"
@@ -33,10 +34,6 @@ static_assert(sizeof(StringSlot) == sizeof(stlp::string));
 // The animation state: LinkPiece (RET 0xC), FindRoot (map_object_animation_bones.cpp).
 // 00480080: game::FatalError(format, ...).
 
-// The bone's cage interpolation (map_object_cage.h; RET 4: {data, size}): 0x48-byte data (a prism of
-// six points), or any other size (a cube of eight).
-__declspec(naked) void __fastcall LoadBones48(FigureBone*, void*, void*) EI_ORIGINAL(0x0050BC00)
-__declspec(naked) void __fastcall LoadBonesOther(FigureBone*, void*, void*) EI_ORIGINAL(0x0050B8C0)
 
 } // namespace
 
@@ -97,8 +94,12 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         bones.data = GetFile(path, &bones.size);
     }
     if (!bones.data) return 0;
-    if (bones.size == 0x48) LoadBones48(bone, nullptr, &bones);
-    else LoadBonesOther(bone, nullptr, &bones);
+    // The bone's cage interpolation (map_object_cage.h): 0x48-byte data (a prism of six points), or
+    // any other size (a cube of eight); the stream is the data pointer, advanced as it is read.
+    auto* cage = reinterpret_cast<CageInterpolator*>(bone);
+    auto** stream = reinterpret_cast<const float**>(static_cast<void*>(&bones.data));
+    if (bones.size == 0x48) cage->InterpolatePrism(stream);
+    else cage->InterpolateCube(stream);
     return 1;
 }
 EI_REPLACE_METHOD(0x005ACB80, CFigureManager::LoadFigureBones);

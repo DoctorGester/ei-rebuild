@@ -11,6 +11,7 @@
 #include "game/unit.h"
 
 namespace aligned {
+std::uint32_t* __fastcall AllocateDwords(int count);   // 0051EF90 (aligned_arrays.cpp)
 void __fastcall ArrayAt8Free(void* self);   // 00454380 (aligned_arrays.cpp)
 void __fastcall ArrayAt4Free(void* self);   // 004543C0
 } // namespace aligned

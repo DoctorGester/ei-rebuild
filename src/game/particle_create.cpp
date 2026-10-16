@@ -11,6 +11,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
+#include "map_object_figures.h"
 #include "texture.h"
 
 #include "random.h"
@@ -62,8 +63,6 @@ double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr
 // 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
 
-// 00518AE0. Detaches `source` from the object it is attached to. __thiscall on that object.
-__declspec(naked) void __fastcall DetachSource(void* /*object*/, void*, CParticleSource* /*source*/) EI_ORIGINAL(0x00518AE0)
 
 // The scene light colour the Tornado takes its particle colour from (007AF07C, +0x98 r, g, b).
 const float* SceneLightColor() {
@@ -846,7 +845,8 @@ void CParticleSource::Clear() {
     void* held = texture;
     texture = nullptr;
     if (held) (*static_cast<void (__fastcall***)(void*, void*)>(held))[4](held, nullptr);
-    if (attachedTo) DetachSource(attachedTo, nullptr, this);
+    if (attachedTo)   // 00518AE0: detached from the object it is attached to
+        static_cast<CObject3D*>(attachedTo)->RemoveEffectSource(reinterpret_cast<CEngineObject*>(this));
     Reset();
 }
 EI_REPLACE_METHOD(0x00484710, CParticleSource::Clear);

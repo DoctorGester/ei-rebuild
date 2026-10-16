@@ -74,7 +74,6 @@ __declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
 __declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
-__declspec(naked) void* __fastcall ConstructUnit2CC(float*) EI_ORIGINAL(0x0052E230)
 inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
@@ -275,7 +274,7 @@ CUnit* CUnit::Construct() {
     SetVtable(&m->waypoints, kMotionWaypointsVtable);
     ConstructUnitArray(&m->stepSpeeds);
     SetVtable(&m->stepSpeeds, kMotionSpeedsVtable);
-    ConstructUnit2CC(&m->fromX);
+    // (0052E230, the segment part's constructor at +0x50, only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;

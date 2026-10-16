@@ -35,7 +35,6 @@ void __fastcall DeallocatePointers(void* a0, int a1) { BucketsDeallocateOriginal
 // (ECX node, EDX count) the node allocator's deallocate, 00674DF0 the base destructor.
 __declspec(naked) void __fastcall ManagerCleanUp(CFigureManager*) EI_ORIGINAL(0x00674F40)
 __declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x004FC080)
-__declspec(naked) void __fastcall ManagerBaseDestroy(CFigureManager*) EI_ORIGINAL(0x00674DF0)
 
 // Visits every node as the game's iterator walks them: the chain, then the head of the next
 // non-empty bucket after the one the node's key hashes to (004298D0).
@@ -112,6 +111,6 @@ void __fastcall DestroyFigureManager(char* object) {
     stlp::vector<Node*>& buckets = Buckets(table);
     if (buckets.Start())
         Deallocate(buckets.Start(), static_cast<std::size_t>(buckets.EndOfStorage() - buckets.Start()) * 4);
-    ManagerBaseDestroy(manager);
+    manager->CResourceManager::Destruct();   // 00674DF0
 }
 EI_REPLACE(0x005AA1C0, DestroyFigureManager);

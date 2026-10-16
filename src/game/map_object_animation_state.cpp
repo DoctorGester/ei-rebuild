@@ -15,11 +15,6 @@ constexpr std::uint32_t kKeyEndMask = 0xC0000000; // FigureAnimation::key: what 
 constexpr std::uint32_t kKeyLoops = 0x80000000;
 
 // Not rewritten here (forwarders):
-// 005ACCF0 (figure_animation.cpp; RET 0xC). The figure manager sets `animation` (an entry, read as
-// its name) of the model `model` on `figure`; 0 when it cannot.
-__declspec(naked) int __fastcall ManagerSetAnimation(CEngineObject* /*manager*/, void*, CFigureAnimationState* /*figure*/,
-                                                     const char* /*model*/, const char* /*animation*/)
-    EI_ORIGINAL(0x005ACCF0)
 
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
@@ -42,7 +37,7 @@ CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
 // The figure manager or else each bone takes `animation`.
 void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
     CEngineObject* manager = FigureManagerOf(state);
-    if (ManagerSetAnimation(manager, nullptr, state, ModelName(state), animation ? animation->name : nullptr)) return;
+    if (SetFigureAnimation(manager, nullptr, state, ModelName(state), animation ? animation->name : nullptr)) return;
     for (auto* node = state->bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
@@ -76,7 +71,7 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
         bone->pose = AnimatorOf(bone);
     }
     CEngineObject* manager = FigureManagerOf(this);
-    if (!ManagerSetAnimation(manager, nullptr, this, ModelName(this), animation ? animation->name : nullptr)) {
+    if (!SetFigureAnimation(manager, nullptr, this, ModelName(this), animation ? animation->name : nullptr)) {
         for (auto* node = bones.head; node;) {
             FigureBone* bone = node->data;
             node = node->next;

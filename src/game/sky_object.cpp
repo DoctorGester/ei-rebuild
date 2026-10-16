@@ -1,6 +1,7 @@
 // CSkyObject and CSky's lighting (A-S7, 004D9110-004D9DE0). See sky_object.h.
 #include "sky_object.h"
 #include "texture.h"
+#include "world.h"
 // windows.h (texture.h) renames CEngineObject's GetClassName.
 #undef GetClassName
 
@@ -127,9 +128,6 @@ constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // 0073D61C: radians per world 
 const void* const kSkyDrawA = reinterpret_cast<const void*>(std::uintptr_t(0x007AA890));
 const void* const kSkyDrawB = reinterpret_cast<const void*>(std::uintptr_t(0x007AA8A0));
 
-// 00578B40 (the client glue, not read): the world time in ticks, whole ticks plus the fraction of
-// the current one (ST0).
-__declspec(naked) double __fastcall ClientWorldTime(void* /*glue*/) EI_ORIGINAL(0x00578B40)
 } // namespace
 
 CSky* CSky::Construct() {
@@ -148,7 +146,9 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     if (turns) {
         const Vector3 up{0.0f, 0.0f, 1.0f};
         Quaternion turn;
-        object->localRotation_ = *turn.SetAxisAngle(up, static_cast<float>(ClientWorldTime(nullptr) * kSkyTurnRate));
+        // 00578B40 (thiscall on the client glue, not read): the world time in ticks, whole ticks plus
+        // the fraction of the current one.
+        object->localRotation_ = *turn.SetAxisAngle(up, static_cast<float>(static_cast<double>(GameTime()) * kSkyTurnRate));
     }
     object->localPosition_ = Vector3{x, y, z};
     float* m = object->matrix_.m;

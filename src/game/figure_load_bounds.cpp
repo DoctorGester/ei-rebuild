@@ -8,16 +8,12 @@
 
 #include "ei/hook.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
 namespace {
 
-// The bounds morphs (figure_mesh.cpp) through their original addresses; ECX is not used.
-__declspec(naked) void __fastcall MorphFig(CFigureManager*, void*, ClipBounds*, const void*, std::uint32_t, std::uint32_t,
-                                           std::uint32_t, std::uint32_t) EI_ORIGINAL(0x005AAE60)
-__declspec(naked) void __fastcall MorphPlain(CFigureManager*, void*, ClipBounds*, const void*, std::uint32_t,
-                                             std::uint32_t, std::uint32_t) EI_ORIGINAL(0x005AB9A0)
 
 constexpr std::uint32_t kFigMagic = 0x474946;   // "FIG"
 
@@ -40,8 +36,13 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
     if (!data) return 0;
     std::uint32_t magic;
     std::memcpy(&magic, data, 4);
-    if ((magic & 0xFFFFFF) == kFigMagic) MorphFig(this, nullptr, out, data + 0x28, s, t, u, magic);
-    else MorphPlain(this, nullptr, out, data + 8, s, t, u);
+    // The bounds morphs (figure_mesh.cpp; 005AAE60 / 005AB9A0, thiscall on the manager, not read).
+    if ((magic & 0xFFFFFF) == kFigMagic)
+        MorphFigureBounds(out, reinterpret_cast<const float*>(data + 0x28), std::bit_cast<float>(s), std::bit_cast<float>(t),
+                          std::bit_cast<float>(u), magic);
+    else
+        MorphFigureBounds6(out, reinterpret_cast<const float*>(data + 8), std::bit_cast<float>(s), std::bit_cast<float>(t),
+                           std::bit_cast<float>(u));
     if (model) model->mesh->CloseFile(data);
     else CloseFile(data);
     return 1;

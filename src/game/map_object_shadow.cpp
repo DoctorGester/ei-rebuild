@@ -12,6 +12,7 @@
 #include "terrain.h"
 #include "unit.h"               // CUnit
 #include "unit_client_models.h" // CUnitClientSpecific
+#include "view_matrices.h"
 #include "maths.h"
 #include "object.h"
 #include "texture.h"
@@ -96,9 +97,6 @@ volatile double g_minimumTilt = 20.0;
 
 
 // --- Not rewritten, forwarders ----------------------------------------------------------------
-// 004F1440 / 004F15C0. Scene: the view matrix and the rotation that look along a direction.
-__declspec(naked) void __fastcall LightViewMatrix(void*, void*, float*, const float*) EI_ORIGINAL(0x004F1440)
-__declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quaternion*) EI_ORIGINAL(0x004F15C0)
 // 005A0E80. Figure mesh: rasterises its projected points into the texture.
 __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
@@ -253,14 +251,14 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Look from the light; the object turned to face it.
     Matrix4 view;
-    LightViewMatrix(pipeline, nullptr, view.m, &direction.x);
+    view::LightShearMatrix(view.m, &direction);   // 004F1440 (thiscall on the pipeline, not read)
     pipeline->PushMatrixProduct(view, kShadowStack);
     // The point and pixel buffers grow without keeping their contents (004545A0 / 004F65B0 allocate).
     Points().SetSizeDiscard(kPointBufferSize);
     Pixels().SetSizeDiscard(kPointBufferSize);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
-    LightRotation(pipeline, nullptr, &direction.x, &turn);
+    view::LightRotation(&direction, &turn);   // 004F15C0 (likewise)
     CObject3D* object = self->object;
     // The original turns the object back with the conjugate (0051D4E0 PreMultiply), which is not exact:
     // each re-rendered shadow moved the orientation by an ulp, and how often that ran followed the frame
@@ -494,7 +492,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
     static_cast<CTextureDevice*>(RenderDevice())
         ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,
-                         indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, 0,
+                         indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
                          std::bit_cast<float>(kDrawDepth));
     return 1;
 }

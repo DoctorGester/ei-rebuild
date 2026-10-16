@@ -283,7 +283,7 @@ int GroundPrint::Draw() {
     CTextureDevice* device = RenderDeviceObject();
     device->BindNamedTexture(0, &texture_);
     return device->DrawFlatBlocks(positions_.data, reinterpret_cast<const char*>(texCoords_.data), positions_.size,
-                                  indices_.data, indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, 0, 1.0f);
+                                  indices_.data, indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }
 
 void GroundPrint::Destruct() {

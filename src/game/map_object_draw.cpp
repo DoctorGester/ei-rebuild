@@ -1,5 +1,6 @@
 // Drawing a 3D object on the client (CObject3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
+#include "game_arrays.h"          // aligned::AllocateDwords
 #include "map_object.h"           // ObjectSlots
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -44,8 +45,7 @@ constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
 // Not rewritten, forwarders:
-// 0051EF90 / 0051EE50. The light list: aligned storage for `count` pointers; SetAtGrow.
-__declspec(naked) void* __fastcall AllocateLights(int) EI_ORIGINAL(0x0051EF90)
+// 0051EE50. The light list's SetAtGrow (its storage from aligned::AllocateDwords, 0051EF90).
 __declspec(naked) void __fastcall AddLight(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0051EE50)
 // 006CB020. Light manager: is the point lit, AL.
 // 004EB170. Device: sets the texture of stage 0.
@@ -107,7 +107,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     LightList list{nullptr, 0, 0, 0};
     ObjectListIterator lights{nullptr, nullptr};
     CEngineObject* light = lights.First(TheLightFactory());
-    list.data = static_cast<CEngineObject**>(AllocateLights(0x10));
+    list.data = reinterpret_cast<CEngineObject**>(aligned::AllocateDwords(0x10));
     list.capacity = 0x10;
     list.size = 0;
     for (; light; light = lights.Next()) {

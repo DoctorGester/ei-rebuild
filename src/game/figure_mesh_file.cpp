@@ -88,8 +88,6 @@ void CFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
 
 namespace {
 
-// 00401490 (RET 4). The transform base's copy.
-__declspec(naked) void __fastcall TransformCopy(void*, void*, const void*) EI_ORIGINAL(0x00401490)
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
@@ -99,7 +97,7 @@ float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 } // namespace
 
 void CFigureMesh::CopyFigure(const CFigureMesh* other) {
-    TransformCopy(this, nullptr, other);
+    CTransformObject::CopyTransformImpl(*other);   // 00401490: the transform base's copy
     name_ = other->name_;
     buffers_.corners = other->buffers_.corners;
     buffers_.cornerCount = other->buffers_.cornerCount;

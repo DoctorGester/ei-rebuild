@@ -28,15 +28,10 @@ constexpr int kRow = 33;
 // 1 / the water depth scale (007C8908, set by a static initialiser from 0074417C).
 float WaterFalloff() { return *reinterpret_cast<const float*>(0x007C8908); }
 
-// The light's shading of a colour (r, g, b, a) for a vertex normal: 0068D310 directional (the sun:
-// its direction +0xD4), 0068D5A0 a point light at `distance` along the unit `direction`. Both clamp
-// each channel to 1 and copy the alpha through (RET 0x10 / 0x18).
-__declspec(naked) void __fastcall ShadeDirectional(CLight* /*light*/, void*, float* /*out*/, float /*attenuation*/,
-                                                   const float* /*colour*/, const float* /*normal*/)
-    EI_ORIGINAL(0x0068D310)
-__declspec(naked) void __fastcall ShadePoint(CLight* /*light*/, void*, float* /*out*/, float /*attenuation*/,
-                                             const float* /*colour*/, const float* /*normal*/,
-                                             const Vector3* /*direction*/, float /*distance*/) EI_ORIGINAL(0x0068D5A0)
+// The light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddDirectional (0068D310,
+// the sun: its direction +0xD4) or AddPoint (0068D5A0, a point light at `distance` along the unit
+// `direction`). Both clamp each channel to 1 and copy the alpha through.
+
 
 // The original's select idioms (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or
 // unordered", picks b).
@@ -84,7 +79,8 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
     // The fourth component is an uninitialised stack slot in the original; only copied through.
     float shaded[4];
     float source[4] = {colour.x, colour.y, colour.z, 0.0f};
-    ShadeDirectional(sun, nullptr, shaded, attenuation, source, &record->normal.x);
+    sun->AddDirectional(reinterpret_cast<Vector4*>(shaded), attenuation, reinterpret_cast<const Vector4*>(source),
+                        &record->normal);
     record->lit.x = Max(shaded[0], ambient.x);
     record->lit.y = Max(shaded[1], ambient.y);
     record->lit.z = Max(shaded[2], ambient.z);
@@ -113,7 +109,8 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
         }
         float source[4] = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
         float shaded[4];
-        ShadePoint(light, nullptr, shaded, attenuation, source, &record->normal.x, &direction, distance);
+        light->AddPoint(reinterpret_cast<Vector4*>(shaded), attenuation, reinterpret_cast<const Vector4*>(source),
+                        &record->normal, &direction, distance);
         if (light->flags_ & 0x40) {
             specular.x = Max(specular.x, shaded[0]);
             specular.y = Max(specular.y, shaded[1]);
