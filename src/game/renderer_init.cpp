@@ -8,7 +8,6 @@
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "ei/hook.h"
-#include "render/render.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "camera.h"
@@ -245,24 +244,9 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
     CreateBase(window, settings);
-    // In the switch-over (the new renderer presents, device.h) no DirectDraw driver is listed or
-    // tried: the device object is built without one (the primary display's, should the new
-    // renderer fail to start and DirectDraw be used after all).
+    // The switch-over (the new renderer presents, device.h): no DirectDraw driver is listed or
+    // tried; the device object is built without one.
     GUID* driverId = nullptr;
-    if (!render::Presenting()) {
-        EnumerateDirectDrawDrivers();
-        DirectDrawDriver* driver = FirstHardwareDirectDrawDriver();
-        if (!driver) {
-            game::FatalError(game::Text(0x0078E534));   // "Can't find any driver with HW 3D..."
-            libcrt::Exit(-1);
-        }
-        int index = settings->driverIndex_;
-        if (index != -1) {
-            driver = DriverAt(index);
-            if (!driver) driver = FirstHardwareDirectDrawDriver();
-        }
-        driverId = driver->guid;
-    }
     void* memory = gamecrt::operator_new(0x17C);
     CTextureDevice* device = nullptr;
     if (memory) {

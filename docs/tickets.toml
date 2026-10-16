@@ -238,6 +238,15 @@ group = "renderer"
 depends = ["R11"]
 note = "User 2026-10-16: remove the DirectDraw fallback; the image needs the new renderer, and Presenting() / CpuWindows() / Active() become one query. Start after C13a1 merges (same game files)."
 
+[[ticket]]
+id = "R11b"
+title = "Holders' DirectDraw surface branches left after R11a"
+group = "renderer"
+size = 1
+model = "opus"
+depends = ["R11a"]
+note = "From R11a: the fallback's switches and draws are gone; what is left runs only for a holder with a DirectDraw surface, which the stand-ins never make (they refuse CreateSurface). Remove the !DirectPixels Lock / Unlock branches (ui_surface_pixels.cpp, dx_surface.cpp, texture_shadow.cpp, ui_cursor.cpp, ui_saveload.cpp, ui_item_view.cpp, ui_global_map.cpp), the GetDC / ReleaseDC fallback (ui_surface_dc.cpp), dx_surface's CreateSurface tries, texture_bmp / texture_mmp's DirectDraw upload, texture_cache's SetPriority, texture_fill and ui_surface_create's colour fill; decide the ports kept registered with no caller of ours (004EE4A0, 004EE5D0, 004ED610, 004EEA90, 004EEE30, 004EEBC0, 004E6C30, 004ED820, 005DB9E0, 005E5640). Standalone goldens and --no-hooks goldens as the check; renderer.md Open items."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

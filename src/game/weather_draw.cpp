@@ -42,7 +42,7 @@ int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
     if (currentMode == 1) result = DrawRain(renderer);
     else if (currentMode == 2) result = DrawSnow(renderer);
     else return 0;
-    if (render::Active()) HandOver(this, renderer);
+    HandOver(this, renderer);
     return result;
 }
 EI_REPLACE_METHOD(0x004E5680, CRainSnow::DrawImpl);

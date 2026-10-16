@@ -7,7 +7,7 @@
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
 #include "texture.h"       // CTextureDevice, CTexture, CDXSurface
-#include "device.h"        // device::WithoutDirectDraw
+#include "device.h"        // the old device's calls
 
 #include "figure_mesh.h"   // CFigureMesh
 #include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer
@@ -231,34 +231,10 @@ void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) 
 }
 EI_REPLACE_METHOD(0x00504A40, CSceneRenderer::GetGamma);
 
-// Without a primary surface the original passes an unwritten local as all three display mode values
-// (not reproducible; ours passes 0). A full-screen device always has one.
-bool CSceneRenderer::RestoreSurfaces() {
-    if (!device_) return false;
-    // The switch-over (device.h) has no DirectDraw surfaces to lose, nor a display mode to set
-    // again (a lost Direct3D 11 device is ticket R9c's).
-    if (device::WithoutDirectDraw()) return true;
-    if (device_->flags_ & 1) {
-        RECT screen = device_->screen_;
-        static_cast<CTextureDevice*>(device_)->SetCooperativeLevel(1, &screen);
-        CTextureDevice* device = device_;
-        int width = 0, height = 0, bits = 0;
-        if (device->primary_) {
-            width = device->renderTarget_->width;
-            height = device->renderTarget_->height;
-            bits = device->renderTarget_->bitsPerPixel;
-        }
-        static_cast<CTextureDevice*>(device)->SetDisplayMode(width, height, bits, 0);
-    }
-    CTextureDevice* device = device_;
-    gameapi::EnterCriticalSection(GameDeviceLock());
-    device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
-    gameapi::LeaveCriticalSection(GameDeviceLock());
-    Surface(device_->primary_)->Restore();
-    Surface(device_->renderTarget_)->Restore();
-    Surface(device_->depth_)->Restore();
-    return static_cast<CTextureManager*>(UiTextureManager())->ReloadAll();
-}
+// The original sets the cooperative level and the display mode again in full screen, restores every
+// DirectDraw surface and reloads the textures. The switch-over (device.h) has no DirectDraw surfaces
+// to lose, nor a display mode to set again (a lost Direct3D 11 device is ticket R9c's): true.
+bool CSceneRenderer::RestoreSurfaces() { return device_ != nullptr; }
 EI_REPLACE_METHOD(0x00504780, CSceneRenderer::RestoreSurfaces);
 
 // --- The device object's counted holder (+0x20) ----------------------------------------------------

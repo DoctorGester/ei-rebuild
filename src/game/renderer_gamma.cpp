@@ -1,9 +1,9 @@
 // The display's gamma ramp (00504A60, virtual slot 22 of the renderer at 007AF060, thiscall, RET
-// 0xC): brightness, contrast and gamma from the options become the primary surface's gamma ramp
-// through IDirectDrawGammaControl. Called by WinMain (00456440) at start-up and with zeros at exit,
+// 0xC): brightness, contrast and gamma from the options become the gamma ramp (the original's
+// primary surface's, through IDirectDrawGammaControl; ours the new renderer's, applied as the frame
+// goes to the window: ticket R9c). Called by WinMain (00456440) at start-up and with zeros at exit,
 // and by the options screen (00650B6E, 00650CAB, 006510BA) when a value changes; no caller reads the
 // result. See docs/notes/renderer.md.
-#include "device.h"   // the old device's calls
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CDXSurface
 
@@ -18,9 +18,6 @@
 #include <cstdint>
 
 namespace {
-
-// IID_IDirectDrawGammaControl (the game's copy is at 00745B90).
-constexpr GUID kGammaControlId = {0x69C11C3E, 0xB46B, 0x11D1, {0xAD, 0x7A, 0x00, 0xC0, 0x4F, 0xC2, 0x9B, 0x4E}};
 
 const float kLevelStep = std::bit_cast<float>(0x3B808081u);   // 1/255 (0073C36C)
 constexpr float kRampScale = 65280.0f;                         // 0073D9A8
@@ -58,37 +55,17 @@ void BuildRamp(DDGAMMARAMP& ramp, float brightness, float contrast, float gamma)
 bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
     CTextureDevice* device = device_;
     if (!device) return false;
-    if (device::WithoutDirectDraw()) {
-        // The switch-over (ticket R9c): no primary surface; the new renderer applies the ramp as
-        // the frame goes to the window (render::SetGammaRamp), so there is always gamma control.
-        brightness_ = brightness;
-        contrast_ = contrast;
-        gamma_ = gamma;
-        DDGAMMARAMP ramp;
-        BuildRamp(ramp, Clamp(brightness, -1.0f, 1.0f) * 0.5f, Clamp(contrast, -1.0f, 1.0f) * 0.5f,
-                  Clamp(gamma, -1.0f, 1.0f) * 0.5f);
-        render::SetGammaRamp(ramp.red, ramp.green, ramp.blue);
-        return true;
-    }
-    DDCAPS driverCaps{}, emulatedCaps{};
-    driverCaps.dwSize = sizeof(DDCAPS);
-    emulatedCaps.dwSize = sizeof(DDCAPS);
-    device::GetCaps(static_cast<IDirectDraw7*>(device->ddraw_), &driverCaps, &emulatedCaps);
-    if (!(driverCaps.dwCaps2 & DDCAPS2_PRIMARYGAMMA)) return false;
-    DWORD flags = (driverCaps.dwCaps2 & DDCAPS2_CANCALIBRATEGAMMA) ? DDSGR_CALIBRATE : 0;
-
-    IDirectDrawGammaControl* control = nullptr;
-    auto* primary = static_cast<IDirectDrawSurface7*>(device->primary_->surface);
-    if (FAILED(primary->QueryInterface(kGammaControlId, reinterpret_cast<void**>(&control)))) return false;
+    // No primary surface: the new renderer applies the ramp as the frame goes to the window
+    // (render::SetGammaRamp), so there is always gamma control (the original: false without
+    // DDCAPS2_PRIMARYGAMMA, else SetGammaRamp's success).
     brightness_ = brightness;
     contrast_ = contrast;
     gamma_ = gamma;
     DDGAMMARAMP ramp;
     BuildRamp(ramp, Clamp(brightness, -1.0f, 1.0f) * 0.5f, Clamp(contrast, -1.0f, 1.0f) * 0.5f,
               Clamp(gamma, -1.0f, 1.0f) * 0.5f);
-    HRESULT result = control->SetGammaRamp(flags, &ramp);
-    control->Release();
-    return result == DD_OK;
+    render::SetGammaRamp(ramp.red, ramp.green, ramp.blue);
+    return true;
 }
 // Slot 22 is not declared virtual in CSceneRenderer, so the member is registered as it is.
 EI_REPLACE_METHOD(0x00504A60, CSceneRenderer::SetGamma);

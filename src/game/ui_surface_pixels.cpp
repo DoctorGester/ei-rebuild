@@ -123,17 +123,9 @@ void CUiSurface::CaptureScreen() {
     if (!holder) return;
     SurfaceHolder* screen = holder->device->renderTarget_;
     if (device::SameSurface(screen, holder)) return;
-    // In the switch-over the old render target does not hold the frame being drawn: no copy from it
-    // (and a holder made in the switch-over has no DirectDraw surface to copy into).
-    if (!render::Presenting() && holder->surface) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        long hr = Blt(holder->surface, nullptr, screen->surface, &rect_, 0, nullptr);
-        gameapi::LeaveCriticalSection(DeviceLock());
-        if (hr != 0) ReportError(hr, game::Text(0x00793224));
-    }
-    // With the new renderer (src/render) the copy is taken from its frame: the old path's may lack
-    // what it no longer draws.
-    if (render::Active()) render::CopyFrameTo(holder, render::Rect{rect_.left, rect_.top, rect_.right, rect_.bottom});
+    // The copy is taken from the new renderer's frame (the original's Blt from the render target is
+    // gone with the DirectDraw fallback, R11a).
+    render::CopyFrameTo(holder, render::Rect{rect_.left, rect_.top, rect_.right, rect_.bottom});
 }
 
 std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {

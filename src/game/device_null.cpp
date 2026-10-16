@@ -813,8 +813,6 @@ bool g_withoutDirectDraw = false;
 
 namespace device {
 
-bool WithoutDirectDraw() { return g_withoutDirectDraw; }
-
 IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
     g_withoutDirectDraw = true;
     g_switchOver.SetMode(width, height, bitsPerPixel);

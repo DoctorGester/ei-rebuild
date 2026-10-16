@@ -5,17 +5,16 @@
 // code that used to talk to the old Direct3D 7 path hands its data here instead; the Direct3D 7 calls
 // left in game code go to stand-ins that draw nothing (device.h).
 //
-// Switch: the environment variable EI_RENDER (or the harness step "render <spec>" in a run of the
-// image), a comma-separated list. "new" turns the new renderer on: when the device object is built
-// (StartPresenting) the game gets no DirectDraw or Direct3D 7 device at all (ticket R9a), the new
-// renderer presents through its own swap chain on the game window, the holders of 004EF7B0 /
-// 004F0060 and the texture manager's textures have no DirectDraw surface (the CPU-written, shadow
-// and .bmp ones only memory the new renderer owns, SurfaceMemory; the .mmp ones only its decoded
-// copy, TextureFromMmp), and captures write the new frame. "present" and "cpuwindows" are what "new"
-// means (accepted: the launchers and scenarios name them). Without "new" (or when the Direct3D 11
-// device cannot be made) nothing here runs and the game builds its DirectDraw device as the original
-// does. The standalone image (ei::Standalone) without EI_RENDER runs "new,present"; the harness's
-// "render" step adds the words of EI_RENDER to its own.
+// The standalone image always draws with it: when the device object is built (StartPresenting) the
+// game gets no DirectDraw or Direct3D 7 device at all (ticket R9a), the new renderer presents through
+// its own swap chain on the game window, the holders of 004EF7B0 / 004F0060 and the texture
+// manager's textures have no DirectDraw surface (the CPU-written, shadow and .bmp ones only memory
+// the new renderer owns, SurfaceMemory; the .mmp ones only its decoded copy, TextureFromMmp), and
+// captures write the new frame. There is no DirectDraw fallback (R11a): when the new renderer cannot
+// start the game ends with an error. In game.exe (the harness and the vector recorders run in the
+// original's process) it is off. EI_RENDER (or the harness step "render <spec>"), a comma-separated
+// list, only carries the harness build's "removable"; "new", "present" and "cpuwindows" are accepted
+// and change nothing.
 
 #include <cstdint>
 #include <vector>
@@ -28,11 +27,13 @@ struct SectorData;
 
 namespace render {
 
-// Sets the switch from `spec` (the format of EI_RENDER). Without a call the environment is read at
-// the first use.
+// Sets the options from `spec` (the format of EI_RENDER) and EI_RENDER's. Without a call the
+// environment is read at the first use.
 void Configure(const char* spec);
 
-// The sidecar renders frames.
+// The new renderer draws: in the standalone image, until it failed (no Direct3D 11 device at the
+// start, a sokol panic, a lost device that could not be made again). Every call below does nothing
+// when it is off.
 bool Active();
 
 // The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
@@ -40,9 +41,7 @@ bool Active();
 // (NewSurfaceMemory) and have no DirectDraw surface. The new renderer reads a holder's (CDXSurface)
 // pixels there wherever it draws it. Texture holders have such memory too (the save / load screen's
 // pictures, the textures of 00691D80, the shadow and the .bmp textures): a mesh pass that binds one
-// reads the memory, again whenever it changed. On with "new" (also when the Direct3D 11 device
-// could not be made).
-bool CpuWindows();
+// reads the memory, again whenever it changed.
 // A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory
 // DC) of `width` x `height` pixels, 16 or 32 bits each, the channels at the given masks (`alphaMask`
 // 0 without alpha). The game code writes it (GDI, pixel code) and the new renderer reads it.
@@ -65,15 +64,9 @@ void HolderGone(const void* holder);
 // images): the new renderer keeps the picture's pixels from the file data.
 void PictureFromMmp(const void* holder, const void* data);
 
-// The new renderer is on and has not failed (the same as Active): the new frame is what the present
-// (004EF610) shows; the old path draws nothing that is handed over.
-bool Presenting();
-
 // The device object is being built (004EDD70): the new renderer starts now and from here on
 // presents through its own swap chain on the game window; the game then builds its device without
-// DirectDraw (device.h). "new" stays on whatever is configured later. False (and nothing changes)
-// without "new" or when the new renderer cannot start: the game builds its DirectDraw device as the
-// original does.
+// DirectDraw (device.h). False when the new renderer cannot start (the game then ends with an error).
 bool StartPresenting();
 // StartPresenting succeeded: the new renderer shows the frames itself.
 bool PresentsItself();
@@ -111,11 +104,9 @@ struct MeshDraw {
 };
 
 // A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
-// `mip` on (`levels` of them) that the game loads into the surface of `holder` (a CDXSurface). The
-// new renderer decodes them from the file instead of reading the surface back, keyed by the
-// holder: in the switch-over the holder has no DirectDraw surface at all and the decoded texture is
-// kept until the holder goes (HolderGone). False when it was not decoded (the sidecar is off, or
-// the format is not one it reads: the caller then gives the holder a DirectDraw texture).
+// `mip` on (`levels` of them) that the game loads for `holder` (a CDXSurface without a DirectDraw
+// surface): decoded from the file, keyed by the holder, kept until the holder goes (HolderGone).
+// False when it was not decoded (the new renderer is off, or the format is not one it reads).
 bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned levels);
 
 // The game made new pixels for a texture on the CPU (the shadow textures, 0051CE60) and copies

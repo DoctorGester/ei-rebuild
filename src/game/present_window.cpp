@@ -97,7 +97,7 @@ void CoverMonitor(HWND window) {
 } // namespace
 
 void Update(CTextureDevice* device) {
-    if (!device || !render::PresentsItself()) return;
+    if (!device) return;
     MapCursorImports();
     if ((device->flags_ & 1) && device->window_) CoverMonitor(device->window_);
 }

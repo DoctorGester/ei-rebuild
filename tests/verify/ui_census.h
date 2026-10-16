@@ -4,7 +4,7 @@
 // docs/notes/ui-census.md): which GDI primitives each window surface is drawn with, from where, how
 // often, who reads it back, and changes to its pixels that no hooked call explains. Switched on by
 // the scenario step "uicensus" or EI_UI_CENSUS=1; needs the window surfaces in memory DCs
-// (EI_RENDER / "render" with "new,cpuwindows"). Writes ui_census.csv next to the harness report.
+// (the standalone image). Writes ui_census.csv next to the harness report.
 
 namespace ei::verify::census {
 
