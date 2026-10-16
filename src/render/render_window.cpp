@@ -200,7 +200,7 @@ void DeviceLost(const char* where, HRESULT hr) {
     HRESULT reason = D3DDevice()->GetDeviceRemovedReason();
     ei::Log("render: the Direct3D 11 device was lost (%s: %08lX, reason %08lX)", where, static_cast<unsigned long>(hr),
             static_cast<unsigned long>(reason));
-    ReportDeviceLost();
+    ReportDeviceLost(hr, reason);
 }
 
 bool IsDeviceLost(HRESULT hr) {
@@ -377,7 +377,15 @@ void PresentWindow() {
 #endif
     // A loss asked for by the harness (render::LoseDevice) stands in for the Present that would
     // have reported it.
-    HRESULT hr = TakeSimulatedLoss() ? DXGI_ERROR_DEVICE_REMOVED : g_chain->Present(g_waitForVsync ? 1 : 0, 0);
+    HRESULT hr = DXGI_ERROR_DEVICE_REMOVED;
+    if (!TakeSimulatedLoss()) {
+#if defined(EI_RENDER_VALIDATION)
+        // A removal asked for (render::RemoveDevice) happens here, after the frame was drawn on a
+        // working device: this Present reports it.
+        RemoveIfAsked();
+#endif
+        hr = g_chain->Present(g_waitForVsync ? 1 : 0, 0);
+    }
     if (IsDeviceLost(hr)) {
         DeviceLost("Present", hr);
         return;
@@ -444,7 +452,7 @@ WindowPresentInfo WindowPresents() {
     info.rampCheckPending = g_checkRamp;
     info.rampIdentity = g_rampIdentity;
     info.failed = g_failed;
-    DeviceLossCounts(&info.deviceLosses, &info.deviceRecoveries);
+    DeviceLossCounts(&info);
     return info;
 }
 

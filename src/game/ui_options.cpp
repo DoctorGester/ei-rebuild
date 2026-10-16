@@ -83,9 +83,10 @@ float& OptSpeedB3() { return *reinterpret_cast<float*>(0x0079BDE0); }
 float& OptSpeedB4() { return *reinterpret_cast<float*>(0x0079BDC8); }
 int& Opt5() { return *reinterpret_cast<int*>(0x0079BDAC); }             // setting 5
 int& Opt6Tenths() { return *reinterpret_cast<int*>(0x0079BDB0); }       // setting 6 * 10
-int& OptDisplay7() { return *reinterpret_cast<int*>(0x0079BD14); }      // settings 7-9: the display mode
-int& OptDisplay8() { return *reinterpret_cast<int*>(0x0079BD18); }
-int& OptDisplay9() { return *reinterpret_cast<int*>(0x0079BD1C); }
+// Settings 7-9, the shadow switches (map_object_shadow.cpp): units, other objects, class 0x52.
+int& OptShadowUnits() { return *reinterpret_cast<int*>(0x0079BD14); }
+int& OptShadowBuildings() { return *reinterpret_cast<int*>(0x0079BD18); }
+int& OptShadowFlora() { return *reinterpret_cast<int*>(0x0079BD1C); }
 int& Opt10() { return *reinterpret_cast<int*>(0x0079BD50); }
 int& Opt11() { return *reinterpret_cast<int*>(0x0079BD4C); }
 int& Opt12() { return *reinterpret_cast<int*>(0x0079BE64); }
@@ -389,9 +390,9 @@ void COptionsWindow::LoadSettings() {
     s[5].value_ = Opt5();
     s[6].value_ = Opt6Tenths() / 10;
     s[20].value_ = static_cast<int>(Opt20() * static_cast<double>(ConstScrollFrom()));
-    s[7].value_ = OptDisplay7();
-    s[8].value_ = OptDisplay8();
-    s[9].value_ = OptDisplay9();
+    s[7].value_ = OptShadowUnits();
+    s[8].value_ = OptShadowBuildings();
+    s[9].value_ = OptShadowFlora();
     s[10].value_ = Opt10();
     s[11].value_ = Opt11();
     s[12].value_ = Opt12();
@@ -441,9 +442,9 @@ void COptionsWindow::Apply() {
     Opt5() = s[5].value_;
     Opt6Tenths() = s[6].value_ * 10;
     Opt20() = static_cast<float>(s[20].value_ * static_cast<double>(ConstScrollTo()));
-    OptDisplay7() = s[7].value_;
-    OptDisplay8() = s[8].value_;
-    OptDisplay9() = s[9].value_;
+    OptShadowUnits() = s[7].value_;
+    OptShadowBuildings() = s[8].value_;
+    OptShadowFlora() = s[9].value_;
     Opt10() = s[10].value_;
     Opt11() = s[11].value_;
     Opt12() = s[12].value_;
@@ -459,7 +460,7 @@ void COptionsWindow::Apply() {
         OptDifficultyCopy() = s[25].value_;
         GameDifficulty() = s[25].value_;
     }
-    if (displayModeChanged_) static_cast<CWorldClient*>(ClientWorldObject())->DropShadows();
+    if (shadowsChanged_) static_cast<CWorldClient*>(ClientWorldObject())->DropShadows();
 }
 EI_REPLACE_METHOD(0x006524A0, COptionsWindow::Apply);
 

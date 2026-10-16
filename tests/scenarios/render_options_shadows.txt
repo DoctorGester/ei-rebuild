@@ -1,0 +1,88 @@
+# R9c4: the options window's settings applied in the world while our renderer presents
+# (docs/notes/renderer.md, section 9, R9c4). The game has no resolution in its options (the 26
+# settings at 00787430; VideoResolution is read from the registry once, and the renderer and its
+# device are made once by WinMain), so there is no device re-creation to exercise. The settings the
+# OK applies that reach the renderer are the shadow switches (7-9: units, buildings, flora): OK
+# (Apply 006524A0) drops the shadows of every client object whose kind has them off (DropShadows
+# 0056D7A0), and switched on again they are rasterised anew (the shadow textures made again on the
+# CPU and uploaded, `TextureChanged` / `HolderGone`).
+#
+# Group 0 (region 2) holds the three as its rows 0-2 (spin controls; Enter steps the selected one,
+# Down selects the next). The world: the hero on zone1, blocked and standing; captures at frozen
+# moments with the shadows as they started, off (or on, when they started off), and back.
+render new,present
+reject Script error
+waitmenu
+frames 5
+console thingamabob
+
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 60
+wait 1000
+freeze
+capture shadows
+unfreeze
+
+# The three switches stepped, then OK (region 0; it closes the Esc menu too).
+key esc
+waitwindow 10 escmenu
+move 395 260
+click 395 260
+waitwindow 10 options
+clickregion 2
+frames 5
+key enter
+frames 3
+key down
+frames 3
+key enter
+frames 3
+key down
+frames 3
+key enter
+frames 3
+moveregion 0
+frames 3
+clickregion 0
+waitwindow 10 battle
+move 400 60
+frames 5
+wait 500
+freeze
+capture switched
+unfreeze
+
+# And back.
+key esc
+waitwindow 10 escmenu
+move 395 260
+click 395 260
+waitwindow 10 options
+clickregion 2
+frames 5
+key enter
+frames 3
+key down
+frames 3
+key enter
+frames 3
+key down
+frames 3
+key enter
+frames 3
+moveregion 0
+frames 3
+clickregion 0
+waitwindow 10 battle
+move 400 60
+frames 5
+wait 500
+freeze
+capture shadows_again
+unfreeze
+check IsAlive(GetLeader())
+report
+quit

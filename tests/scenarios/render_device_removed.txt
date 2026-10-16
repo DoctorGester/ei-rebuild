@@ -1,0 +1,60 @@
+# R9c5: a real removal of the new renderer's device (docs/notes/renderer.md, section 9). "removable"
+# (harness build only) makes the Direct3D 11 device through D3D11On12 on a Direct3D 12 device, and
+# "removedevice" removes that device (ID3D12Device5::RemoveDevice: this process only, no driver reset):
+# the swap chain's Present and GetDeviceRemovedReason report DXGI_ERROR_DEVICE_REMOVED as after a
+# driver reset, and the renderer releases everything and makes a new (removable) device, the frame
+# target, the swap chain, the window surfaces and the textures again. render_device_lost does the
+# same with the loss only reported (render::LoseDevice) on the hardware device players get. At one
+# frozen moment the frame before the removal and the frame after it must match, in the main menu, in
+# the world and in the camp (textures loaded on the second device).
+# no original: vanilla rebirth (removedevice needs our renderer; S21a)
+# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
+render new,present,removable
+reject Script error
+waitmenu
+waitpresent 10
+console thingamabob
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+removedevice 10
+waitpresent 10
+capture menu_again
+unfreeze
+samecapture menu menu_again
+
+# The hero on zone1, unblocked and standing still, the camera settled on him.
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 60
+wait 1000
+freeze
+capture world
+removedevice 10
+waitpresent 10
+capture world_again
+unfreeze
+samecapture world world_again
+
+# The camp (screen 5), loaded on the new device, and a removal there; Esc returns to the game.
+screen 5
+waitwindow 15 camp
+move 400 20
+wait 300
+freeze
+capture camp
+removedevice 10
+waitpresent 10
+capture camp_again
+unfreeze
+samecapture camp camp_again
+key esc
+waitwindow 15 battle
+waitpresent 10
+report
+quit

@@ -417,8 +417,7 @@ How they chain:
 
 **Tooltips for regions without a button** get SetTip(0, 1, 0), a fresh 0x184-byte tooltip with the empty text 0079B298 whose constructor 0065E320 writes the arguments (+0x164 / +0x168) and size (+0x174 / +0x178) only for a non-empty text: leftover heap bytes, compared only for tips with lines. FCOMP / `TEST AH,0x40` compares treat NaN as equal (damage "Unknown" when all weights are zero; quest values 2 and 3).
 
-Not exercised: the battle screen's drag (no drag step in the harness), mode 1 orders and the toggle with Shift (the harness cannot
-hold Shift during a click), the exit flag, RefreshSelection with several units, the attack kinds 0..5 and the level-gap speech,
+Not exercised: the battle screen's drag (no drag step in the harness), mode 1 orders and the toggle with Shift (Shift during a click: the harness's `shift` word), the exit flag, RefreshSelection with several units, the attack kinds 0..5 and the level-gap speech,
 the quest notice's sub-objective path, the mouse move's portrait pick branch (multiplayer).
 
 ## 7. Battle HUD panels
@@ -584,8 +583,11 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
   the button release 00638B30 calls it with the message's x, y) gathers entries whose rectangle holds the point (005718B0:
   PtInRect, then the object's +0x94 slot 24 finer test), sorts by depth (005659D0) and returns the first unit (type 0x50); the
   release then wants flag 0x400000. The step tries a 9x9 grid inside the unit's rectangle until the game's own pick answers with
-  that unit, so the click cannot land on a unit in front; it fails when the unit is off screen or hidden. `ctrl` holds Ctrl (scan
-  0x1D) around the click (SelectUnit's +0x7C branch then orders an attack, 00637190); the harness cannot hold Shift or drag.
+  that unit, so the click cannot land on a unit in front; it fails when the unit is off screen or hidden. Modifier words (`ctrl`, `shift`, `alt`) after any key or mouse step hold those keys around it (SelectUnit's
+  +0x7C branch with Ctrl orders an attack, 00637190), and `hold` / `release` keep them across steps (`ui_modifier_keys`:
+  Shift + portrait = ToggleMember's toggle, Ctrl / Alt + spell key 1 / quick item keys = 0063EF60 / 0063E020). They are posted as
+  key messages (Ctrl, Shift WM_KEYDOWN; Alt WM_SYSKEYDOWN with the context bit), the only way the game learns them; the harness
+  cannot drag.
 - **Zone steps**: `zone` calls `LeaveToZone` (0066F310) on the local player's connection (server world 007AFF60, `GetPlayer`
   00594180 with player 0) as the zone exit handler (00670C20) and script command 0x8A do; it needs state 1, and in campaign mode 1
   or 3 a dead or missing leader loses the game instead. `waitzone` waits for no pending game request, campaign mode (007C2CC4) not

@@ -200,12 +200,19 @@ bool CurrentWindowParts(WindowParts* parts);
 // (before sg_shutdown: the device is lost); the next DrawToWindow makes them on the new device.
 void DropWindow();
 // A lost device (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG, a driver error) was seen: everything is
-// made again at the end of the frame (render.cpp). DeviceIsLost: seen and not made again yet.
-void ReportDeviceLost();
+// made again at the end of the frame (render.cpp). `result`: what reported it (a DXGI error), `reason`:
+// GetDeviceRemovedReason then (S_OK for render::LoseDevice's). DeviceIsLost: seen and not made again yet.
+void ReportDeviceLost(long result, long reason);
 bool DeviceIsLost();
 // render::LoseDevice was called and not taken yet: true once, then false.
 bool TakeSimulatedLoss();
-void DeviceLossCounts(int* losses, int* recoveries);
+#if defined(EI_RENDER_VALIDATION)
+// render::RemoveDevice was called: the removable device is removed now (once). Called right before
+// the game window's Present, or at the end of the frame without one.
+void RemoveIfAsked();
+#endif
+// The losses and recoveries so far and the last loss (WindowPresents).
+void DeviceLossCounts(WindowPresentInfo* info);
 
 // A vertex or index buffer filled with sg_append_buffer, so that a frame can be drawn in several
 // passes (a copy of the frame taken in its middle, CopyFrameTo); replaced by a larger one when an

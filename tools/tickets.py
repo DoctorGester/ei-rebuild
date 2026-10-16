@@ -328,6 +328,8 @@ def describe(t, by_id, groups):
 
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):  # ticket text may hold Cyrillic zone names
+        sys.stdout.reconfigure(encoding='utf-8')
     ap = argparse.ArgumentParser(description='The ticket queue (docs/tickets.toml; status in the work database).')
     ap.add_argument('--json', help='where the board data goes (default build/tickets/tickets.json)')
     sub = ap.add_subparsers(dest='cmd')

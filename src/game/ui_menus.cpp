@@ -350,7 +350,7 @@ void COptionsWindow::Update() {
             int id = settings_[i].definition_->id_;
             if (id >= 7) {
                 if (id <= 9)
-                    displayModeChanged_ = true;
+                    shadowsChanged_ = true;
                 else if (id == 0x18)   // the sound system's pan switch
                     sound::Manager()->panDirect = value != 0;
             }

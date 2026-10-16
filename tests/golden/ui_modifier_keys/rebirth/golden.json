@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_modifier_keys",
+  "install": "rebirth",
+  "recorded": "2026-10-16",
+  "commit": "b77da843",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "I11: new scenario ui_modifier_keys (harness hold/release and modifier words)",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}

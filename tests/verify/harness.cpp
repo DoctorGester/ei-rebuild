@@ -52,11 +52,20 @@
 //   clickunit <name> [l|r|move] [ctrl]
 //                             left click (default), right click or move the mouse on the unit with
 //                             script name <name> (as GetObjectByName) where the game's own picking
-//                             (00565E40) finds it in this frame; "ctrl" holds Ctrl (CInterface3D
-//                             +0x7C) around it. Fails when the unit is not drawn or always hidden
+//                             (00565E40) finds it in this frame; modifiers as below. Fails when the unit is not drawn or always hidden
 //                             behind another object. "#<id>" names a map object by id instead (a
 //                             lever, "clickunit #1889"): found by the battle screen's object pick
 //                             (005659D0), as waitunit does
+//   hold <mods>, release <mods>
+//                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
+//                             spaces, "+" or ","), held over frames and further steps. The game takes
+//                             them from the window messages (CInterface3D +0x7C Ctrl / +0x7D Shift /
+//                             +0x7E Alt), never the real keyboard, so the original game and the image
+//                             see the same. Alt is sent as WM_SYSKEYDOWN / WM_SYSKEYUP, as Windows does
+//   <mods> as the last words of key, click, rclick, move, dblclick, rdblclick, ldown, lup, rdown, rup,
+//   wheel, clickregion, rclickregion, moveregion, clickunit (e.g. "click 90 320 shift", "key 1 ctrl",
+//   "clickunit Wolf0 l ctrl+shift"): the modifiers are pressed just before the step's input and
+//   released just after it (a plain "key ctrl" is still the key ctrl)
 //   hudstate [minquick]       log the battle screen's pending action, the party's selection and
 //                             quick items, the quick item panel and the spell column; with
 //                             <minquick>, fail when the quick item panel shows fewer of its unit's
@@ -145,6 +154,11 @@
 //                             chain and every image again; waits (default 10 s) until it has, and
 //                             presenting on the game window, until a frame is presented on the new
 //                             device. Fails on a timeout or when the new renderer gave up
+//   removedevice [seconds]    as losedevice, but the device is removed for real (render::RemoveDevice:
+//                             ID3D12Device5::RemoveDevice on the Direct3D 12 device under a device made
+//                             through D3D11On12; the scenario's "render" step names "removable").
+//                             Also fails when the loss seen was not that removal (GetDeviceRemovedReason
+//                             DXGI_ERROR_DEVICE_REMOVED) or the new device is not removable again
 //   mouseglide <ms> <x0> <y0> <x1> <y1>
 //                             move the harness's mouse (what the game's GetCursorPos reads) from
 //                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
@@ -410,8 +424,10 @@ bool g_waitPresentGamma = false;
 std::uint32_t g_waitPresentFrom = 0;
 Deadline g_waitPresentDeadline;
 int g_rampChecksSeen = 0;
-// A pending "losedevice" (R9c1): the new devices made when it started, its deadline.
+// A pending "losedevice" (R9c1) or "removedevice" (R9c5): the new devices made when it started, its
+// deadline, whether the device was removed for real.
 bool g_waitingNewDevice = false;
+bool g_newDeviceRemoved = false;
 int g_newDeviceFrom = 0;
 DWORD g_newDeviceDeadline = 0;
 // A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
@@ -465,6 +481,14 @@ std::uintptr_t g_selfBase, g_selfEnd;
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
     else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei_hook+%X", label, unsigned(a - g_selfBase));
+    else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
+        HMODULE m = nullptr;
+        char name[MAX_PATH] = "";
+        if (a > 0x10000 && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                              reinterpret_cast<LPCSTR>(a), &m) &&
+            GetModuleFileNameA(m, name, MAX_PATH) && (std::strstr(name, "d3d") || std::strstr(name, "dxgi")))
+            Log("  %s %s+%X", label, std::strrchr(name, '\\') + 1, unsigned(a - reinterpret_cast<std::uintptr_t>(m)));
+    }
 }
 
 void LogModuleOf(std::uintptr_t a) {
@@ -1051,6 +1075,73 @@ DWORD Now() { return clock::Now(); }
 // procedure 00457970 handles the mouse and key messages).
 HWND GameWindow() { return *reinterpret_cast<HWND*>(0x0079BC28); }
 
+// Modifier keys held around an input step ("hold", "release" and the <mods> words of the mouse and key
+// steps). The game reads them from the key messages (CInterface3D::OnKeyDown sets +0x7C / +0x7D / +0x7E
+// by scan code, OnKeyUp clears them by virtual key), so these are posted like a keyboard's: Ctrl and
+// Shift as WM_KEYDOWN / WM_KEYUP, Alt as the system messages Windows sends for it.
+enum Modifier : unsigned { kModCtrl = 1, kModShift = 2, kModAlt = 4 };
+
+// The modifier a word names (0: none).
+unsigned ModifierWord(const std::string& word) {
+    if (word == "ctrl") return kModCtrl;
+    if (word == "shift") return kModShift;
+    if (word == "alt") return kModAlt;
+    return 0;
+}
+
+// Words of `text` separated by spaces, "+" or ","; `bad` gets the first word that is no modifier.
+unsigned ParseModifiers(const std::string& text, std::string* bad) {
+    unsigned mods = 0;
+    std::string word;
+    for (std::size_t i = 0; i <= text.size(); ++i) {
+        char c = i < text.size() ? text[i] : ' ';
+        if (c == ' ' || c == '+' || c == ',' || c == '\t') {
+            if (!word.empty()) {
+                if (unsigned one = ModifierWord(word)) mods |= one;
+                else if (bad && bad->empty()) *bad = word;
+                word.clear();
+            }
+        } else {
+            word += c;
+        }
+    }
+    return mods;
+}
+
+void PostModifiers(unsigned mods, bool down) {
+    struct Key { unsigned mod; UINT vk, scan; bool system; };
+    static const Key keys[] = {{kModCtrl, VK_CONTROL, 0x1D, false}, {kModShift, VK_SHIFT, 0x2A, false}, {kModAlt, VK_MENU, 0x38, true}};
+    for (const Key& key : keys) {
+        if (!(mods & key.mod)) continue;
+        LPARAM lparam = 1 | (key.scan << 16) | (key.system ? 0x20000000 : 0);
+        if (down) PostMessageA(GameWindow(), key.system ? WM_SYSKEYDOWN : WM_KEYDOWN, key.vk, lparam);
+        else PostMessageA(GameWindow(), key.system ? WM_SYSKEYUP : WM_KEYUP, key.vk, lparam | 0xC0000000u);
+    }
+}
+
+// The modifiers at the end of an input step's argument, split off it (`argument` keeps the rest) and
+// held until this goes out of scope. Only words after at least one other word count, so "key ctrl"
+// stays the key ctrl. The press and release go through the same message queue as the step's input.
+struct HeldModifiers {
+    explicit HeldModifiers(std::string* argument) {
+        std::string rest = *argument;
+        for (;;) {
+            std::size_t end = rest.find_last_not_of(" \t+,");
+            if (end == std::string::npos) break;
+            std::size_t begin = rest.find_last_of(" \t+,", end);
+            if (begin == std::string::npos) break;   // a single word is the argument itself
+            unsigned one = ModifierWord(rest.substr(begin + 1, end - begin));
+            if (!one) break;
+            mods_ |= one;
+            rest.erase(begin);
+        }
+        *argument = rest;
+        PostModifiers(mods_, true);
+    }
+    ~HeldModifiers() { PostModifiers(mods_, false); }
+    unsigned mods_ = 0;
+};
+
 void PostKey(const std::string& name) {
     UINT vk = 0;
     if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
@@ -1073,6 +1164,7 @@ void PostKey(const std::string& name) {
     else if (name == "pgdn") vk = VK_NEXT;
     else if (name == "scrolllock") vk = VK_SCROLL;   // scan 0x46: the screenshot key (005F78C0)
     else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
+    else if (name == "shift") vk = VK_SHIFT;    // scan 0x2A: +0x7D
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
         Log("harness: unknown key '%s'", name.c_str());
@@ -1269,7 +1361,7 @@ void PostRegionMouse(const std::string& verb, int index) {
     }
 }
 
-// --- clickunit <name> [l|r|move] [ctrl] (ticket I8) -------------------------------------------
+// --- clickunit <name> [l|r|move] [mods] (ticket I8; the modifiers are HeldModifiers') -------------------------------------------
 // A click on a unit's body, placed where the game's own picking finds it. The client world
 // (007AF5B8) keeps a list (+0xF0, header pointer; nodes: next +0, value +8: 0x18 bytes, the
 // object id at +0xC and its screen rectangle at +0x10) of the objects drawn this frame with the
@@ -1332,10 +1424,9 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
 }
 
 std::string PostUnitMouse(const std::string& argument) {
-    char name[64] = "", button[8] = "l", modifier[8] = "";
-    if (sscanf_s(argument.c_str(), "%63s %7s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button)),
-                 modifier, unsigned(sizeof(modifier))) < 1)
-        return "clickunit needs <name> [l|r|move] [ctrl]";
+    char name[64] = "", button[8] = "l";
+    if (sscanf_s(argument.c_str(), "%63s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button))) < 1)
+        return "clickunit needs <name> [l|r|move] [ctrl|shift|alt]";
     POINT at{};
     void* hit = nullptr;
     std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
@@ -1352,9 +1443,6 @@ std::string PostUnitMouse(const std::string& argument) {
     g_mouseX = at.x;
     g_mouseY = at.y;
     LPARAM where = MAKELPARAM(at.x, at.y);
-    bool ctrl = std::strcmp(modifier, "ctrl") == 0;
-    constexpr UINT kCtrlScan = 0x1D;   // CInterface3D::OnKeyDown: +0x7C while down
-    if (ctrl) PostMessageA(GameWindow(), WM_KEYDOWN, VK_CONTROL, 1 | (kCtrlScan << 16));
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, where);
     if (std::strcmp(button, "l") == 0) {
         PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, where);
@@ -1363,7 +1451,6 @@ std::string PostUnitMouse(const std::string& argument) {
         PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, where);
         PostMessageA(GameWindow(), WM_RBUTTONUP, 0, where);
     }
-    if (ctrl) PostMessageA(GameWindow(), WM_KEYUP, VK_CONTROL, 1 | (kCtrlScan << 16) | 0xC0000000u);
     return "";
 }
 
@@ -1549,7 +1636,7 @@ bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit" ||
-           verb == "focus" || verb == "windowsize";
+           verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
 }
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
@@ -2040,13 +2127,27 @@ void RunSteps() {
         render::WindowPresentInfo now = render::WindowPresents();
         // Made again, and (presenting on the game window) a frame presented on the new device.
         bool presented = !render::PresentsItself() || now.presents > now.presentsAtRecovery;
+        const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
         if (now.deviceRecoveries > g_newDeviceFrom && presented && !now.failed) {
-            Log("harness: losedevice: a new Direct3D 11 device (%d lost, %d made again)%s", now.deviceLosses,
-                now.deviceRecoveries, render::PresentsItself() ? " presents on the game window" : "");
+            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
+                verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
+                static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
+                render::PresentsItself() ? " presents on the game window" : "");
+            // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
+            // device removable again.
+            if (g_newDeviceRemoved &&
+                (now.lastLossSimulated || now.lastLossReason != DXGI_ERROR_DEVICE_REMOVED || !now.removable)) {
+                char what[200];
+                std::snprintf(what, sizeof(what), "removedevice: not a real removal (reason %08lX, simulated %d) or the new device "
+                              "is not removable (%d)", static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated,
+                              now.removable);
+                Log("harness: %s", what);
+                g_failures.push_back(what);
+            }
             g_waitingNewDevice = false;
         } else if (now.failed || !render::Active() || Now() >= g_newDeviceDeadline) {
             char what[200];
-            std::snprintf(what, sizeof(what), "losedevice: %s (%d lost, %d made again, %u presented since)",
+            std::snprintf(what, sizeof(what), "%s: %s (%d lost, %d made again, %u presented since)", verb,
                           now.failed || !render::Active() ? "the new renderer failed" : "timed out", now.deviceLosses,
                           now.deviceRecoveries, now.presents - now.presentsAtRecovery);
             Log("harness: %s", what);
@@ -2171,18 +2272,32 @@ void RunSteps() {
         } else if (s.verb == "load") {
             g_request.argument = s.argument.c_str();
             g_request.kind = 2;
+        } else if (s.verb == "hold" || s.verb == "release") {
+            std::string bad;
+            unsigned mods = ParseModifiers(s.argument, &bad);
+            if (!bad.empty() || !mods) {
+                std::string error = s.verb + ": '" + (bad.empty() ? s.argument : bad) + "' is no modifier (ctrl, shift, alt)";
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            } else {
+                PostModifiers(mods, s.verb == "hold");
+            }
         } else if (s.verb == "key") {
+            HeldModifiers held(&s.argument);
             PostKey(s.argument);
         } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move" || s.verb == "dblclick" ||
                    s.verb == "rdblclick" || s.verb == "ldown" || s.verb == "lup" || s.verb == "rdown" || s.verb == "rup") {
             int x = 0, y = 0;
+            HeldModifiers held(&s.argument);
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());
         } else if (s.verb == "wheel") {
             int x = 0, y = 0, delta = 0;
+            HeldModifiers held(&s.argument);
             if (sscanf_s(s.argument.c_str(), "%d %d %d", &x, &y, &delta) == 3) PostWheel(x, y, delta);
             else Log("harness: wheel needs <x> <y> <delta>");
         } else if (s.verb == "clickregion" || s.verb == "rclickregion" || s.verb == "moveregion") {
+            HeldModifiers held(&s.argument);
             PostRegionMouse(s.verb, std::atoi(s.argument.c_str()));
         } else if (s.verb == "hudstate" || s.verb == "campputon" || s.verb == "modfile") {
             std::string error = s.verb == "hudstate" ? HudState(s.argument)
@@ -2192,6 +2307,7 @@ void RunSteps() {
                 g_failures.push_back(error);
             }
         } else if (s.verb == "clickunit") {
+            HeldModifiers held(&s.argument);
             std::string error = PostUnitMouse(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
@@ -2372,15 +2488,21 @@ void RunSteps() {
             g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
             return;
-        } else if (s.verb == "losedevice") {
+        } else if (s.verb == "losedevice" || s.verb == "removedevice") {
             int seconds = 10;
             sscanf_s(s.argument.c_str(), "%d", &seconds);
             if (!render::Active()) {
-                g_failures.push_back("losedevice: the new renderer is not on");
+                g_failures.push_back(s.verb + ": the new renderer is not on");
                 continue;
             }
             g_newDeviceFrom = render::WindowPresents().deviceRecoveries;
-            render::LoseDevice();
+            g_newDeviceRemoved = s.verb == "removedevice";
+            if (!g_newDeviceRemoved) {
+                render::LoseDevice();
+            } else if (!render::RemoveDevice()) {
+                g_failures.push_back("removedevice: the device is not removable (\"render new,present,removable\")");
+                continue;
+            }
             g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
             g_waitingNewDevice = true;
             return;

@@ -236,7 +236,7 @@ id = "R11a"
 title = "Game code's DirectDraw fallback behind !render::Presenting()"
 group = "renderer"
 depends = ["R11"]
-note = "Waiting on the user (asked 2026-10-16): keep the DirectDraw fallback for players without Direct3D 11, or remove it. Recommended: remove."
+note = "User 2026-10-16: remove the DirectDraw fallback; the image needs the new renderer, and Presenting() / CpuWindows() / Active() become one query. Start after C13a1 merges (same game files)."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -1569,6 +1569,15 @@ size = 0.25
 model = "sonnet"
 files = ["tools/test_*.py"]
 note = "Twice on 2026-10-16, 'python -m unittest discover -s tools -p test_*.py' gave FAILED (failures=1) when it ran right after build.cmd on main with workers' games running; 5 reruns when idle all passed (95 tests). Find the timing-dependent test (likely test_run_all_timeout or test_work_sched): run the suite repeatedly under CPU load, then make it independent of load."
+
+[[ticket]]
+id = "PF4"
+title = "Profile save and load on the slow map (Портал)"
+group = "harness"
+size = 1
+model = "opus"
+depends = ["S18"]
+note = "User 2026-10-16: after the standalone exe is complete. In the original game one map, the user remembers it as Портал (Portal), was very slow to save and load. Find the zone, add a scenario that saves and loads there, profile the image with EI_PROFILE=1 / tools/profile_report.py, and compare its timings with the original's. Then find the hot spots and speed them up without changing behaviour: save files and goldens must stay byte-identical."
 
 # ---------------------------------------------------------------- cleanup
 

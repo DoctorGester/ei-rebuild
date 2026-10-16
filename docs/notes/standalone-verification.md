@@ -84,7 +84,7 @@ its flag, the UTF-8 switch) re-records the affected goldens and says why; anythi
 (`<scenario>-standalone[-rebirth]`), accept only scenarios whose `# no original:` line names the install, and want at
 least `IMAGE_RUNS` (4) agreeing runs, plain and under jitter. Such a golden says the image keeps doing what it did, not
 that it does what the original does: render_cursor_present (V+R), render_present_shot (V+R), render_device_lost,
-render_present_window and render_present_fullscreen (vanilla). Their digests do not follow the renderer: the world moves
+render_device_removed, render_present_window and render_present_fullscreen (vanilla). Their digests do not follow the renderer: the world moves
 only with frames on the virtual clock, presents are counted on the main thread, a stall is one long frame.
 
 **WideScreen references** (S21b; tools/run_all.py `record_widescreen`, `compare_widescreen`): `run_all --widescreen
