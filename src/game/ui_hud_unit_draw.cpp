@@ -35,15 +35,6 @@
 
 namespace {
 
-// The page's displays and the animation's ratio are rewritten (ui_hud_panels.cpp,
-// ui_hud_unit_info.cpp, unit.cpp); the draw is their only caller, so they are called through their
-// addresses and their side-by-side checks keep running.
-__declspec(naked) void __fastcall ShowHealthAt(CHudUnitPanel*, void*, CUnit*) EI_ORIGINAL(0x006477E0)
-__declspec(naked) void __fastcall ShowPartsAt(CHudUnitPanel*, void*, CUnit*) EI_ORIGINAL(0x00647B70)
-__declspec(naked) void __fastcall ShowEffectsAt(CHudUnitPanel*, void*, CUnit*) EI_ORIGINAL(0x00646B90)
-__declspec(naked) void __fastcall DrawUnitInfoAt(CHudUnitPanel*, void*, CUnit*) EI_ORIGINAL(0x00647040)
-__declspec(naked) double __fastcall AnimationRatioAt(CUnit*) EI_ORIGINAL(0x00532E00)
-
 // The constants the original reads at run time.
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 float LayoutUnit() { return GameFloat(0x0074015C); }       // 0.0025: 1 / 400, half the layout's width
@@ -133,7 +124,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
         size = viewSize_[which];
         height = viewHeight_[which];
         if (hoverUnit_ == shownUnit_) size = viewSize_[0];
-        if (unit) size = static_cast<float>(AnimationRatioAt(unit) * size);
+        if (unit) size = static_cast<float>(unit->AnimationRatio() * size);
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
@@ -205,7 +196,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
         switch (bodyPart_) {
         case 0: {
-            ShowHealthAt(this, nullptr, unit);
+            ShowHealth(unit);
             // The height bar (scene object 8): the model's fifteen layout units, from the panel's
             // bottom.
             const float barScale = static_cast<float>(BarHeight() / size);
@@ -218,14 +209,14 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             break;
         }
         case 1:
-            ShowPartsAt(this, nullptr, unit);
-            ShowHealthAt(this, nullptr, unit);
+            ShowParts(unit);
+            ShowHealth(unit);
             break;
         case 2:
-            DrawUnitInfoAt(this, nullptr, unit);
+            DrawUnitInfo(unit);
             break;
         case 3:
-            ShowEffectsAt(this, nullptr, unit);
+            ShowEffects(unit);
             break;
         }
 

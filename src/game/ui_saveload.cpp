@@ -16,7 +16,9 @@
 // memory; in the switch-over ("present") they are written into and read from the memory only,
 // with no Lock (DirectPixels). Without the option everything is as the original.
 #include "app.h"
+#include "app_helpers.h"
 #include "core_streams.h"
+#include "stl_sorts.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -76,12 +78,8 @@ constexpr int kVisibleRows = 16;
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
 
 // 004800E0 (cdecl): DirectX error report; nonzero to go on.
-// 00455A90 (fastcall): the free space on the drive of `path` (0 when unknown).
-__declspec(naked) double __fastcall DiskFreeSpace(const char* /*path*/) EI_ORIGINAL(0x00455A90)
 // 0057BC30 (thiscall on the game flow): the space a save needs.
 __declspec(naked) int __fastcall SaveSpaceNeeded(void* /*flow*/) EI_ORIGINAL(0x0057BC30)
-// 00581610 (RET 4): GameFlow::SaveGame's thunk (world_game.cpp), through its address.
-__declspec(naked) int __fastcall SaveGameAt(void* /*flow*/, void*, const char* /*slot*/) EI_ORIGINAL(0x00581610)
 // 005E5200 (RET 4): the cursor's shape (3 busy, 0 normal).
 int __fastcall CursorSetShape(void* a0, void*, int a2) { return static_cast<CCursor*>(a0)->ChangeShape(a2); }
 // 005F75B0 (RET 4): the interface shows `text` in a notice band and draws a frame.
@@ -104,23 +102,9 @@ bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int 
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 __declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)
-__declspec(naked) SaveEntry* __fastcall EntryCopy(SaveEntry* /*at*/, void*, const SaveEntry* /*from*/) EI_ORIGINAL(0x00656640)
-__declspec(naked) void __fastcall EntryAssign(SaveEntry*, void*, const SaveEntry*) EI_ORIGINAL(0x006538E0)
-__declspec(naked) void __fastcall EntryDestruct(SaveEntry*) EI_ORIGINAL(0x00656720)
-// 00653A50 (RET 4): a title from the folder (quick / automatic saves) or the save's time.
-__declspec(naked) void __fastcall EntryMakeTitle(SaveEntry*, void*, int) EI_ORIGINAL(0x00653A50)
-__declspec(naked) SaveEntry* __fastcall EntryCopyBackward(SaveEntry* /*first*/, SaveEntry* /*last*/,
-                                                          SaveEntry* /*result end*/) EI_ORIGINAL(0x00657D50)
 __declspec(naked) void __fastcall EntriesInsertOverflow(void* /*vector*/, void*, SaveEntry* /*at*/, const SaveEntry*,
                                                         unsigned /*count*/) EI_ORIGINAL(0x006579C0)
 __declspec(naked) SaveEntry* __fastcall EntriesErase(void* /*vector*/, void*, SaveEntry*, SaveEntry*) EI_ORIGINAL(0x006578F0)
-// The sort (STLport's introsort loop and final insertion sort; `order` the empty comparison object
-// passed by value, `tag` the null value-type pointer) and copy_backward, called at their addresses
-// (stl_sorts.cpp, SaveIntroSort ...).
-__declspec(naked) void __fastcall EntriesSortLoop(SaveEntry*, SaveEntry*, void* /*tag*/, int /*depth*/, int /*order*/)
-    EI_ORIGINAL(0x00657DF0)
-__declspec(naked) void __fastcall EntriesFinalSort(SaveEntry*, SaveEntry*, int /*order*/) EI_ORIGINAL(0x00657F10)
-
 // CFileFind members beyond lib/mfc.h: FindNextFile (006E6653), IsDots (006E661A), Close
 // (006E63E9), and MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the
 // original calls it.
@@ -173,8 +157,8 @@ struct LocalEntry {
         StringArrayConstruct(&e.stringArrays_[0]);
         StringArrayConstruct(&e.stringArrays_[1]);
     }
-    explicit LocalEntry(const SaveEntry& from) { EntryCopy(&e, nullptr, &from); }
-    ~LocalEntry() { EntryDestruct(&e); }
+    explicit LocalEntry(const SaveEntry& from) { e.CopyConstruct(&from); }
+    ~LocalEntry() { e.Destruct(); }
     LocalEntry(const LocalEntry&) = delete;
     LocalEntry& operator=(const LocalEntry&) = delete;
 };
@@ -232,10 +216,7 @@ void* EntryVector(CSaveLoadWindow* w) { return &w->entriesBegin_; }
 __declspec(naked) void CSaveLoadWindow::CallSaveGame() EI_ORIGINAL(0x00655550)
 __declspec(naked) void CSaveLoadWindow::CallShowPicture() EI_ORIGINAL(0x00656E10)
 __declspec(naked) void CSaveLoadWindow::CallFillEntries() EI_ORIGINAL(0x00655D40)
-__declspec(naked) void CSaveLoadWindow::CallConfirm() EI_ORIGINAL(0x00655290)
-__declspec(naked) void CSaveLoadWindow::CallAskDelete() EI_ORIGINAL(0x00655380)
 __declspec(naked) void CSaveLoadWindow::CallDeleteSave() EI_ORIGINAL(0x00655B20)
-__declspec(naked) void CSaveLoadWindow::CallLoadSelected() EI_ORIGINAL(0x00655A10)
 
 // --- Game-owned memory ---------------------------------------------------------------------------
 
@@ -342,7 +323,7 @@ void CSaveLoadWindow::SaveGame() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entriesBegin_ + selected;
-    double space = DiskFreeSpace(GameFolder());
+    double space = app::DiskFreeSpace(GameFolder());
     // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
     if (space < 0.0 || space > 0.0) {
         int needed = SaveSpaceNeeded(kFlow);
@@ -360,7 +341,7 @@ void CSaveLoadWindow::SaveGame() {
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
     ShowStatusText(kInterface, nullptr, notice);
-    SaveGameAt(kFlow, nullptr, entry->folder_);
+    static_cast<GameFlow*>(kFlow)->SaveGameThunk(entry->folder_);
     CursorSetShape(kCursor, nullptr, 3);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -468,7 +449,7 @@ void CSaveLoadWindow::FillEntries() {
                 if (static_cast<int>(info.s.version_) > 2) StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->title_)));
             }
             info.Close();
-            if (console::Length(Str(entry->title_)) == 0) EntryMakeTitle(entry, nullptr, 1);
+            if (console::Length(Str(entry->title_)) == 0) entry->MakeTitle(1);
             entry->broken_ = false;
         }
         CloseFind(infoFind);
@@ -483,8 +464,8 @@ void CSaveLoadWindow::FillEntries() {
     if (first != end) {
         int depth = 0;
         for (int n = static_cast<int>(end - first); n != 1; n >>= 1) ++depth;
-        EntriesSortLoop(first, end, nullptr, depth * 2, found);
-        EntriesFinalSort(first, end, found);
+        stl_sorts::SaveIntroSort(first, end, nullptr, depth * 2, found);
+        stl_sorts::SaveFinalSort(first, end, found);
     }
 
     if (isSave_) {
@@ -494,14 +475,14 @@ void CSaveLoadWindow::FillEntries() {
         if (entriesEnd_ == entriesCapacity_) {
             EntriesInsertOverflow(EntryVector(this), nullptr, at, &fresh.e, 1);
         } else if (at == entriesEnd_) {
-            if (entriesEnd_) EntryCopy(entriesEnd_, nullptr, &fresh.e);
+            if (entriesEnd_) entriesEnd_->CopyConstruct(&fresh.e);
             ++entriesEnd_;
         } else {
             EntryConstruct(entriesEnd_, entriesEnd_ - 1);
             ++entriesEnd_;
             LocalEntry copy(fresh.e);
-            EntryCopyBackward(at, entriesEnd_ - 2, entriesEnd_ - 1);
-            EntryAssign(at, nullptr, &copy.e);
+            stl_sorts::SaveCopyBackward(at, entriesEnd_ - 2, entriesEnd_ - 1);
+            at->Assign(&copy.e);
         }
         SaveEntry* entry = entriesBegin_;
         Str(entry->folder_).Format(game::savewords::NewFolder(), highest + 1);
@@ -514,7 +495,7 @@ void CSaveLoadWindow::FillEntries() {
         }
         if (auto* record = reinterpret_cast<MapRecord*>(MapDatabaseFind(kMapDatabase, nullptr, entry->zone_)))
             Str(entry->map_) = Str(record->allod);
-        EntryMakeTitle(entry, nullptr, 1);
+        entry->MakeTitle(1);
         entry->broken_ = false;
 
         // The game's picture: a new texture filled from the escape menu's copy of the screen.
@@ -571,7 +552,7 @@ mfc::CString SlotFolder(const char* slot) {
 
 void __fastcall QuickSave(const char* slot, char stepFrame) {
     if (IsMultiplayerClient()) return;
-    double space = DiskFreeSpace(GameFolder());
+    double space = app::DiskFreeSpace(GameFolder());
     // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
     if ((space < 0.0 || space > 0.0) && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
     if (stepFrame) FrameStepOriginal(0, 1);
@@ -587,7 +568,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
     ShowStatusText(kInterface, nullptr, notice);
-    SaveGameAt(kFlow, nullptr, slot);
+    static_cast<GameFlow*>(kFlow)->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
     mfc::CString title;
@@ -724,7 +705,7 @@ EI_REPLACE_METHOD(0x00656720, SaveEntry::Destruct);
 void CSaveLoadWindow::Confirm() {
     if (selected_ < 0) return;
     if (!isSave_) {
-        CallLoadSelected();
+        LoadSelected();
         return;
     }
     interface_->PlaySound(kSoundOk, 0);

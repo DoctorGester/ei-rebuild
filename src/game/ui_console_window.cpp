@@ -66,7 +66,7 @@ void ConsoleWindow::Show(bool shown) {
                                                                 reinterpret_cast<const tagRECT*>(rect_), 4)
                               : nullptr;
         }
-        static_cast<ConsoleWindow*>(this)->DrawLines();
+        DrawLines();
         DrawInput();
         return;
     }
@@ -158,7 +158,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     default:
         return;
     }
-    static_cast<ConsoleWindow*>(this)->DrawLines();
+    DrawLines();
 }
 EI_REPLACE_METHOD(0x005E4180, ConsoleWindow::OnKeyDown);
 
@@ -172,9 +172,6 @@ mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
 // 006FED03. CStringArray::InsertAt(index, const CString&, count).
 __declspec(naked) void __fastcall InsertString(CStringArray*, void*, int, const mfc::CString*, int) EI_ORIGINAL(0x006FED03)
-// 005E4090 / 005DC620, through their addresses.
-__declspec(naked) void __fastcall AddTextAt(ConsoleWindow*, void*, const char*) EI_ORIGINAL(0x005E4090)
-
 // Rebirth's clipboard (ImproveConsole): the text as CF_UNICODETEXT, converted with the ANSI code
 // page, as addon's helpers do.
 void CopyToClipboard(const char* first, const char* last) {
@@ -267,7 +264,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         caret_ = 0;
         anchor_ = 0;
         DrawInput();
-        AddTextAt(this, nullptr, (mfc::CString(game::consoletexts::Prompt()) + commands_.data[0]) + game::NewLineText());
+        AddText((mfc::CString(game::consoletexts::Prompt()) + commands_.data[0]) + game::NewLineText());
         ExecuteAt(commands_.data[0]);
         return;
     }

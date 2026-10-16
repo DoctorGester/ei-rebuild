@@ -293,7 +293,9 @@ def find_forwarders(sources):
     out = []
     for s in sources:
         last = 0
+        # A declaration starts after the last ; { } forwarder or preprocessor line before it.
         bounds = [m.end() for m in re.finditer(r'[;{}]|' + ORIGINAL.pattern, s.bare)]
+        bounds += [m.end() for m in re.finditer(r'(?m)^[ \t]*#[^\n]*', s.code)]
         for m in ORIGINAL.finditer(s.code):
             i = max((b for b in bounds if b <= m.start()), default=0)
             start = i + len(s.code[i:m.start()]) - len(s.code[i:m.start()].lstrip())
@@ -902,7 +904,11 @@ def vector_sources():
         m = re.search(r'add_executable\(ei_vectors(.*?)\)', text, re.S)
         for path in re.findall(r'\bsrc/\S+\.cpp', m.group(1) if m else ''):
             full = os.path.join(ROOT, path)
-            _VECTORS[path] = os.path.exists(full) and 'EI_VECTORS_REPLAY' not in open(full, encoding='utf-8').read()
+            text = ''
+            if os.path.exists(full):
+                with open(full, encoding='utf-8') as fh:
+                    text = fh.read()
+            _VECTORS[path] = bool(text) and 'EI_VECTORS_REPLAY' not in text
         _VECTORS.setdefault('', False)
     return _VECTORS
 

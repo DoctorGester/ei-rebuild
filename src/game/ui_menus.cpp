@@ -76,9 +76,7 @@ BOOL CUiContainer::DrawContainer(int pass) { return ContainerDrawOriginal(this, 
 void __fastcall UiContainerMouseDown(void* input, void*, int buttons, int x, int y) {
     ContainerLeftDownOriginal(input, nullptr, buttons, x, y);
 }
-__declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
-__declspec(naked) void COptionsWindow::CallCommitBinding() EI_ORIGINAL(0x00652000)
 
 // --- Save/load window --------------------------------------------------------------------------
 
@@ -96,14 +94,14 @@ void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case 0:
-        CallConfirm();
+        Confirm();
         break;
     case 1:
         interface_->PlaySound(kSoundCancel, 0);
         interface_->SetPendingValue(kCloseSaveLoad);
         break;
     case 2:
-        CallAskDelete();
+        AskDelete();
         break;
     default:
         if (region >= 3) {
@@ -133,10 +131,10 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
                 selected_ = static_cast<int>(index);
                 TakeSelectedTitle();
             }
-            CallConfirm();
+            Confirm();
         }
     }
-    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
 }
 
 BOOL CSaveLoadWindow::Draw(int pass) {
@@ -233,7 +231,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
         if (region >= 2 && region < 13) {
             interface_->PlaySound(kSoundSelect, 0);
             waitingForKey_ = false;
-            CallShowGroup(region - 2);
+            ShowGroup(region - 2);
         }
         if (region >= 13) {
             OptionRow& row = RegionRow(region);
@@ -241,7 +239,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
                 interface_->PlaySound(kSoundSelect, 0);
                 selectedRow_ = region - 13;
                 waitingForKey_ = false;
-                CallRefreshRows();
+                RefreshRows();
             }
         }
     }
@@ -257,16 +255,16 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
             interface_->PlaySound(kSoundSelect, 0);
             selectedRow_ = region - 13;
             waitingForKey_ = true;
-            CallRefreshRows();
+            RefreshRows();
         } else if (row.setting_ && row.setting_->spin_) {
             int value;
             row.setting_->spin_->GetValue(&value);
             RegionRow(region).setting_->spin_->SetValue(value + 1);
             interface_->PlaySound(kSoundOk, 0);
-            CallRefreshRows();
+            RefreshRows();
         }
     }
-    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
 }
 
 BOOL COptionsWindow::Draw(int pass) {
@@ -291,8 +289,8 @@ void COptionsWindow::Redraw() {
 }
 
 void COptionsWindow::OnDialogResult(int result) {
-    if (result == 0x10001) CallCommitBinding();
-    CallRefreshRows();
+    if (result == 0x10001) CommitBinding();
+    RefreshRows();
 }
 
 const char* COptionsWindow::HelpTopic() {

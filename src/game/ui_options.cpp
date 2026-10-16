@@ -22,12 +22,7 @@
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) void COptionsWindow::CallRefreshRows() EI_ORIGINAL(0x00651350)
-__declspec(naked) void COptionsWindow::CallShowGroup(int) EI_ORIGINAL(0x00651D70)
 __declspec(naked) void COptionsWindow::CallApply() EI_ORIGINAL(0x006524A0)
-__declspec(naked) void COptionsWindow::CallBuildSettings() EI_ORIGINAL(0x00651940)
-__declspec(naked) void COptionsWindow::CallLoadSettings() EI_ORIGINAL(0x00652200)
-__declspec(naked) void COptionsWindow::CallBuildBindings() EI_ORIGINAL(0x00651600)
 
 namespace {
 // 00652930 (RET 0xC): the binding vector's _M_insert_overflow(pos, value, count): new storage,
@@ -35,9 +30,6 @@ namespace {
 __declspec(naked) void __fastcall BindingsInsertOverflow(stlp::vector<OptionBinding>* /*bindings*/, void*,
                                                          OptionBinding* /*pos*/, const OptionBinding* /*value*/,
                                                          unsigned /*count*/) EI_ORIGINAL(0x00652930)
-// 0056D7A0 (thiscall on the client world 007AF5B8, plain RET): every object of its list at +0xB8
-// for which 0051E200 is false gets 0051E280 (what the options' display mode change runs).
-__declspec(naked) void __fastcall ClientWorldRefreshObjectsOriginal(void* /*world*/) EI_ORIGINAL(0x0056D7A0)
 
 // Strings of the exe.
 const char* TextOptionPrefix() { return reinterpret_cast<const char*>(0x007948C8); }    // "option_"
@@ -240,11 +232,11 @@ void COptionsWindow::ShowGroup(int group) {
     while (row < kOptionRows && !rows_[row].binding_ && !rows_[row].setting_) ++row;
     if (row < kOptionRows) {
         selectedRow_ = row;
-        CallRefreshRows();
+        RefreshRows();
     }
     if (selectedRow_ == -1) selectedRow_ = 0;
     waitingForKey_ = false;
-    CallRefreshRows();
+    RefreshRows();
 }
 EI_REPLACE_METHOD(0x00651D70, COptionsWindow::ShowGroup);
 
@@ -467,7 +459,7 @@ void COptionsWindow::Apply() {
         OptDifficultyCopy() = s[25].value_;
         GameDifficulty() = s[25].value_;
     }
-    if (displayModeChanged_) ClientWorldRefreshObjectsOriginal(ClientWorldObject());
+    if (displayModeChanged_) static_cast<CWorldClient*>(ClientWorldObject())->DropShadows();
 }
 EI_REPLACE_METHOD(0x006524A0, COptionsWindow::Apply);
 

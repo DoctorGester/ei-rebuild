@@ -1,6 +1,7 @@
 // The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
+#include "camera.h"
 #include "item.h"
 #include "game_strings.h"
 #include "map_object.h"
@@ -9,6 +10,7 @@
 #include "net_messages.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "stl_sorts.h"
 #include "text_reader.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -109,7 +111,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItemSprite(this, nullptr, model.data, image.data);
         }
         finish(item, true);
-        ItemTipAt(slot, &tip);
+        ItemTip(slot, &tip);
         regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
@@ -179,8 +181,6 @@ __declspec(naked) void __fastcall UnitsInBox(void*, void*, const void*, void*) E
 using IdVector = CBattleScreen::IdVector;
 using PartyIds = CBattleScreen::PartyIds;
 __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
-__declspec(naked) void __fastcall IdsIntroSort(int*, int*, const int*, int) EI_ORIGINAL(0x0060B1E0)
-__declspec(naked) void __fastcall IdsFinalSort(int*, int*) EI_ORIGINAL(0x0064B750)
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
 __declspec(naked) void __fastcall IdsDestroyA(IdVector*) EI_ORIGINAL(0x004E2A20)
 __declspec(naked) void __fastcall IdsDestroyB(IdVector*) EI_ORIGINAL(0x005F9880)
@@ -193,15 +193,10 @@ __declspec(naked) void __fastcall PartySetAtGrow(mfc::CArray<CUnit*>*, void*, in
 __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
-// 0040D420 (thiscall on the camera 0079B2A8, RET 4): follows the unit with an id. 00637DC0
-// (thiscall on the battle screen): the selection's refresh.
-__declspec(naked) void __fastcall CameraFollow(void*, void*, int) EI_ORIGINAL(0x0040D420)
-
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
 // message box's constructor.
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
-__declspec(naked) void __fastcall ShowNextMessage(CInterface3D*, void*, int) EI_ORIGINAL(0x005F8A80)
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 
 // The game menu object 007AFEA5: 00578BA0 the local player's data (its +0x30 / +0x34 unit
@@ -245,8 +240,8 @@ void SortIds(IdVector* ids) {
     if (ids->begin() == ids->end()) return;
     int depth = 0;
     for (int n = static_cast<int>(ids->end() - ids->begin()); n != 1; n >>= 1) ++depth;
-    IdsIntroSort(ids->begin(), ids->end(), nullptr, depth * 2);
-    IdsFinalSort(ids->begin(), ids->end());
+    stl_sorts::IdIntroSort(ids->begin(), ids->end(), nullptr, depth * 2);
+    stl_sorts::IdFinalSort(ids->begin(), ids->end());
 }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
@@ -305,7 +300,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->clientParty_.camera != ids.camera) {
-            CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
+            static_cast<CCamera*>(reinterpret_cast<void*>(0x0079B2A8))->SetTargetId(ids.camera);
             static_cast<CBattleScreen*>(screen)->RefreshSelection();
         }
         IdsAssign(&screen->clientParty_.withUnit, nullptr, &ids.withUnit);
@@ -362,7 +357,7 @@ void CBattleScreen::Update() {
     if (IsNetworkClientOriginal()) RebuildClientParty(this);
 
     UpdateChildren(this);
-    ShowNextMessage(interface_, nullptr, 0);
+    interface_->ShowMessage(0);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
@@ -549,7 +544,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
         }
     }
-    static_cast<CBattleScreen*>(this)->RefreshSelection();
+    RefreshSelection();
     boxSelecting_ = false;
     FreeListNodes(&inside);
     if (inside.head) NodeFree(inside.head, 0xC);

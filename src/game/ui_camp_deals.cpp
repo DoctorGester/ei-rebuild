@@ -192,12 +192,6 @@ bool CCampPages::DeconstructItem() {
     itemMade_ = nullptr;
     return true;
 }
-
-namespace {
-// 00612500 / 006129C0 through their address (their wrappers run).
-__declspec(naked) bool __fastcall DeconstructSpellAt(CCampPages*) EI_ORIGINAL(0x00612500)
-__declspec(naked) bool __fastcall DeconstructItemAt(CCampPages*) EI_ORIGINAL(0x006129C0)
-} // namespace
 EI_REPLACE_METHOD(0x00612500, CCampPages::DeconstructSpell);
 EI_REPLACE_METHOD(0x006129C0, CCampPages::DeconstructItem);
 
@@ -285,7 +279,7 @@ void CCampPages::DoAction() {
         break;
     case kSpellMaker:
         if (deconstructing_) {
-            DeconstructSpellAt(this);
+            DeconstructSpell();
         } else if (spellMade_) {
             auto* made = reinterpret_cast<CEngineObject*>(spellMade_);
             TakeMade(PartyOf(spellResults_), made);
@@ -300,7 +294,7 @@ void CCampPages::DoAction() {
         break;
     case kItemMaker:
         if (deconstructing_) {
-            DeconstructItemAt(this);
+            DeconstructItem();
         } else if (itemMade_) {
             auto* made = reinterpret_cast<CEngineObject*>(itemMade_);
             TakeMade(PartyOf(itemResults_), made);

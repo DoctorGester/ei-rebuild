@@ -30,12 +30,6 @@ const char* const kRichEditClass = game::Text(0x00794C48);     // "RichEdit20A"
 HWND GameWindow() { return *reinterpret_cast<HWND*>(std::uintptr_t(0x0079BC28)); }
 HINSTANCE GameInstance() { return *reinterpret_cast<HINSTANCE*>(std::uintptr_t(0x0079BC24)); }
 
-// The class's own functions through their addresses, so their checks run.
-__declspec(naked) void __fastcall RenderTextThroughHook(CUiScrollingSurface*) EI_ORIGINAL(0x0065F020)
-__declspec(naked) bool __fastcall LoadRtfThroughHook(CUiScrollingSurface*, void*, const void* /*data*/, std::uint32_t /*size*/)
-    EI_ORIGINAL(0x0065EF80)
-__declspec(naked) void __fastcall DestructThroughHook(CUiScrollingSurface*) EI_ORIGINAL(0x0065EDE0)
-
 // The block being streamed into the RichEdit (the original reads it through a CMemFile; its
 // callback is 0065EF10).
 struct RtfSource {
@@ -87,7 +81,7 @@ void CUiScrollingSurface::DestructBody() {
 EI_REPLACE_METHOD(0x0065EDE0, CUiScrollingSurface::DestructBody);
 
 CUiScrollingSurface* CUiScrollingSurface::DeletingDestruct(unsigned deleteFlags) {
-    DestructThroughHook(this);
+    DestructBody();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -96,7 +90,7 @@ EI_REPLACE_METHOD(0x0065EDC0, CUiScrollingSurface::DeletingDestruct);
 bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
     std::uint32_t size = 0;
     void* data = archive->GetFile(name, &size);
-    if (data) LoadRtfThroughHook(this, nullptr, data, size);
+    if (data) LoadRtf(data, size);
     archive->CloseFile(data);
     return data != nullptr;
 }
@@ -108,7 +102,7 @@ bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
     textLength_ = static_cast<int>(
         gameapi::SendMessageA(richEdit_, EM_STREAMIN, SF_RTF, reinterpret_cast<LPARAM>(&stream)));
     offset_ = 0;
-    RenderTextThroughHook(this);
+    RenderText();
     return true;
 }
 EI_REPLACE_METHOD(0x0065EF80, CUiScrollingSurface::LoadRtf);
@@ -146,7 +140,7 @@ void CUiScrollingSurface::Draw() {
         const float now = GameTime();
         offset_ = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - startTime_) * speed_ + offset_));
         startTime_ = now;
-        RenderTextThroughHook(this);
+        RenderText();
     }
     SurfaceBlitOriginal(this);
 }

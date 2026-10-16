@@ -208,8 +208,6 @@ public:
     // The tab of `item` under the current filter (0 for an unknown filter), as both rebuilds
     // choose it.
     int TabOf(const char* item);
-    // 00620960 through its original address (its verify wrapper runs).
-    void CallSetTab(int tab);
     // 00621F30. Virtual slot 25: the item under the screen point (x, y), or null; sets the cursor
     // for the strip's action mode.
     char* ItemAt(int x, int y, int* cursor);
@@ -915,7 +913,6 @@ public:
     void Start(float speed, char fromBelow);
     // Load and Start through their addresses (the checks run): ui_credits.cpp.
     bool LoadThroughHook(void* archive, const char* name);
-    void StartThroughHook(float speed, char fromBelow);
     // 0065F020 (ui_scrolling_surface.cpp, A-H17). Renders the RichEdit's text into the surface:
     // the DC held, the surface cleared, the background colour (+0x34) set (EM_SETBKGNDCOLOR), the
     // whole text formatted (EM_FORMATRANGE) into the surface's size in twips shifted by the scroll

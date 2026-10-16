@@ -6,6 +6,7 @@
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
+#include "stl_sorts.h"
 #include "text_reader.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -18,6 +19,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/stlp_hash.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -81,8 +83,6 @@ LocalPlayerOriginal* LocalPlayerVariables() { return reinterpret_cast<LocalPlaye
 // pointers are the hasher, key-equal and allocator objects, one byte each).
 __declspec(naked) void __fastcall ConstructTable(NamedFloatTable*, void*, int /*buckets*/, const void*, const void*,
                                                  const void*) EI_ORIGINAL(0x00609C10)
-// 00460BA0 (STLport __stl_hash_string, not rewritten).
-__declspec(naked) std::uint32_t __fastcall HashName(const char*) EI_ORIGINAL(0x00460BA0)
 // 004DBE40 (not rewritten): splits `text` at `separator` into `out`.
 
 // A local hash_map<CString, float> filled with the player's variables starting with `prefix`.
@@ -105,7 +105,7 @@ public:
     NamedFloatTable::Node* Next(const NamedFloatTable::Node* node) const {
         if (node->next) return node->next;
         std::size_t n = BucketCount();
-        for (std::size_t b = HashName(node->key) % n + 1; b < n; ++b)
+        for (std::size_t b = stlp::HashText(node->key) % n + 1; b < n; ++b)
             if (table_.buckets[b]) return table_.buckets[b];
         return nullptr;
     }
@@ -150,25 +150,17 @@ void PushBack(ZoneNames* v, const mfc::CString& x) {
     }
 }
 
-// STLport sort<CString*> pieces, called at their addresses (stl_sorts.cpp, QuestIntroSort ...): the
-// introsort loop and the two insertion sorts.
-__declspec(naked) void __fastcall IntroSortLoop(mfc::CString* /*first*/, mfc::CString* /*last*/, void*, int /*depth*/,
-                                                int /*comp*/) EI_ORIGINAL(0x0064F310)
-__declspec(naked) void __fastcall InsertionSort(mfc::CString*, mfc::CString*, int /*comp*/) EI_ORIGINAL(0x0064F9A0)
-__declspec(naked) void __fastcall UnguardedInsertionSort(mfc::CString*, mfc::CString*, void*, int /*comp*/)
-    EI_ORIGINAL(0x0064FBD0)
-
 // std::sort as the original inlines it (the comparator is an empty object).
 void SortStrings(mfc::CString* first, mfc::CString* last) {
     if (first == last) return;
     int depth = 0;
     for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
-    IntroSortLoop(first, last, nullptr, depth * 2, 0);
+    stl_sorts::QuestIntroSort(first, last, nullptr, depth * 2, 0);
     if (last - first > 16) {
-        InsertionSort(first, first + 16, 0);
-        UnguardedInsertionSort(first + 16, last, nullptr, 0);
+        stl_sorts::QuestInsertionSort(first, first + 16, 0);
+        stl_sorts::QuestUnguardedInsertionSort(first + 16, last, nullptr, 0);
     } else {
-        InsertionSort(first, last, 0);
+        stl_sorts::QuestInsertionSort(first, last, 0);
     }
 }
 
@@ -241,9 +233,6 @@ float ExitTurn() { return *reinterpret_cast<const float*>(0x007C8170); }   // a 
 constexpr float kExitTurnDown = 3.1415927f; // 00742B24
 
 } // namespace
-
-__declspec(naked) void CObjectivesWindow::CallSelectExit(int) EI_ORIGINAL(0x0064E990)
-__declspec(naked) void CObjectivesWindow::CallRefreshQuests() EI_ORIGINAL(0x0064E8B0)
 
 // --- 0064CC10: the zone page ----------------------------------------------------------------------
 
@@ -366,7 +355,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         }
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    CallSelectExit(nearestExit_);
+    SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
         reinterpret_cast<CUiMesh*>(sceneObjects_.data[0])->visible_ = 0;
         regions_.data[0]->SetTip(0, 1, 0);
@@ -409,7 +398,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         bar_->SetMaximum(rows > 5 ? rows - 5 : 0);
         bar_->CallSetPosition(0);
         firstRow_ = 0;
-        CallRefreshQuests();
+        RefreshQuests();
 
         // The zone's title and description ("zone <name>") on surface 1.
         {
@@ -449,8 +438,6 @@ namespace {
 // The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
 // [0065CFE0].
 __declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
-// 0064EA80 [thiscall on the window]: fills the quest places (+0x1CC) of quest `name`.
-__declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, const char*) EI_ORIGINAL(0x0064EA80)
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
@@ -556,7 +543,7 @@ void CObjectivesWindow::ShowQuest() {
     // The quest's places on the zone picture: a red marker and a region each, after the exits'.
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
-    FillQuestPlaces(this, nullptr, (*quests)[selectedQuest_]);
+    LoadQuestPlaces((*quests)[selectedQuest_]);
     while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
     while (regions_.size > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};

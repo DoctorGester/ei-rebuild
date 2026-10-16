@@ -109,10 +109,6 @@ __declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, voi
     EI_ORIGINAL(0x00631E70)
 __declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631FF0)
-__declspec(naked) void __fastcall AssignLink(GlobalMapPlace*, void*, const GlobalMapPlace& /*from*/)
-    EI_ORIGINAL(0x00632490)
-__declspec(naked) void __fastcall AssignQuest(GlobalMapPlace*, void*, const GlobalMapPlace& /*from*/)
-    EI_ORIGINAL(0x006324E0)
 
 // 0046A4B0 (QuaternionRotate, map_spec.cpp; thiscall on the quaternion, RET 8): `out` = the vector
 // `v` turned by the quaternion.
@@ -406,7 +402,7 @@ void CGlobalMap::Create() {
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
                     QuestsSetSize(&quests_, nullptr, quests_.size + 1, -1);
-                    AssignQuest(&quests_.data[quests_.size - 1], nullptr, questTemplate.Get());
+                    quests_.data[quests_.size - 1].AssignCopy(questTemplate.Get());
                     GlobalMapPlace& quest = quests_.data[n];
                     *reinterpret_cast<mfc::CString*>(&quest.name) = parts[2];
                     quests_.data[n].zone = i;
@@ -455,7 +451,7 @@ void CGlobalMap::Create() {
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
             LinksSetSize(&links_, nullptr, links_.size + 1, -1);
-            AssignLink(&links_.data[links_.size - 1], nullptr, linkTemplate.Get());
+            links_.data[links_.size - 1].Assign(linkTemplate.Get());
             links_.data[n].zone = i;
             *reinterpret_cast<mfc::CString*>(&links_.data[n].name) = *reinterpret_cast<mfc::CString*>(&way->name);
             {
@@ -632,9 +628,6 @@ inline double __fastcall FrameTime(CUiWindow* w) { return WindowFrameTimeOrigina
 // 006010E0 (not rewritten): the container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 
-// CGlobalMap::RefreshSelection (00630670, thiscall).
-__declspec(naked) void __fastcall RefreshSelectionOriginal(CGlobalMap*) EI_ORIGINAL(0x00630670)
-
 // The weather (+0x214, a CCloudNoise): 00499F10 (RET 8) draws into locked surface memory.
 __declspec(naked) void __fastcall WeatherDrawOriginal(GlobalMapWeather*, void*, void* /*pixels*/, float /*seconds*/)
     EI_ORIGINAL(0x00499F10)
@@ -737,7 +730,7 @@ void CGlobalMap::Update() {
     SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, GameFloat(0x0073F8A0));
     SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, GameFloat(0x007420E0));
 
-    if (selectPending_ != 0) RefreshSelectionOriginal(this);
+    if (selectPending_ != 0) RefreshSelection();
     selectPending_ = 0;
 
     // The weather is drawn straight into texture 4's surface; in the switch-over that texture has

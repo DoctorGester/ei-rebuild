@@ -241,9 +241,6 @@ void DestroyVoices(MpVoiceVector& voices) {
 void DestroyStrings(const char** begin, const char** end) {
     for (const char** at = begin; at != end; ++at) CStringDestroy(at);
 }
-// 00634500 / 00634560 through their address (their wrappers run).
-__declspec(naked) void __fastcall ReleaseModelsAt(ItemObjectCache*) EI_ORIGINAL(0x00634500)
-__declspec(naked) void __fastcall ReleaseTexturesAt(ItemObjectCache*) EI_ORIGINAL(0x00634560)
 } // namespace
 
 void CMpHeroScreen::Destroy() {
@@ -255,9 +252,9 @@ void CMpHeroScreen::Destroy() {
     FreeBlock4Original(names_.begin(), static_cast<int>(names_.EndOfStorage() - names_.begin()));
     for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
     FreeBlock4ProxyOriginal(&defaultsCapacity_, nullptr, defaults_, static_cast<int>(defaultsCapacity_ - defaults_));
-    ReleaseTexturesAt(&screen->textures_);
+    ReleaseCachedObjects(&screen->textures_);
     DestroyTextureMapOriginal(&screen->textures_);
-    ReleaseModelsAt(&screen->models_);
+    ReleaseCachedObjects(&screen->models_);
     DestroyModelMapOriginal(&screen->models_);
     DestroyContainerBody(this);
 }

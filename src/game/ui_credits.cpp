@@ -1,6 +1,7 @@
 // The titles window's frame and close (0062BD80, 0062BD00) and its script lines' destructor
 // (0062BCB0). The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
 // ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
+#include "bink_video.h"
 #include "ui_screens.h"
 
 #include "world.h"
@@ -26,7 +27,6 @@ __declspec(naked) char __cdecl MovieModeOriginal() EI_ORIGINAL(0x00455E20)
 // CBinkVideo's frame step (005DBD80, RET 4: AL whether the movie still plays; rewritten in
 // bink_video.cpp) and close (005DBF70, plain RET).
 __declspec(naked) char __fastcall MovieFrameOriginal(CBinkVideo*, void*, char /*stretch*/) EI_ORIGINAL(0x005DBD80)
-__declspec(naked) void __fastcall MovieCloseOriginal(CBinkVideo*) EI_ORIGINAL(0x005DBF70)
 
 // The display object's (00500960) +0x14: the colour the titles keep cleared.
 struct DisplayColour {
@@ -39,13 +39,12 @@ DisplayColour* Display() { return static_cast<DisplayColour*>(DisplayObject()); 
 
 // --- 0062BFD0: a window above the titles closed (slot 27) ---------------------------------------------
 
-void CCreditsScreen::OnMessageResult(int) { MovieCloseOriginal(&player_); }
+void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
 EI_REPLACE_METHOD(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
-// --- 0065EF30 / 0065F1C0: the scrolling surface (ui_scrolling_surface.cpp), through their addresses ---
+// --- 0065EF30: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
 
 __declspec(naked) bool CUiScrollingSurface::LoadThroughHook(void*, const char*) EI_ORIGINAL(0x0065EF30)
-__declspec(naked) void CUiScrollingSurface::StartThroughHook(float, char) EI_ORIGINAL(0x0065F1C0)
 
 // --- 0062BCB0: a script line's destructor ---------------------------------------------------------
 
@@ -67,9 +66,9 @@ BOOL CCreditsScreen::Draw(int pass) {
         } else {
             const TitleLine& line = currentLine_->data;
             textSurface_->LoadThroughHook(archive_, line.style);
-            textSurface_->StartThroughHook(0.0f, 0);
+            textSurface_->Start(0.0f, 0);
             if (line.scroll) {
-                textSurface_->StartThroughHook(line.speed, 1);
+                textSurface_->Start(line.speed, 1);
                 SurfaceGetDC(headerSurface_);
                 SurfaceClearOriginal(headerSurface_);
                 RECT rect = {0, 0, 0, 0};
@@ -84,7 +83,7 @@ BOOL CCreditsScreen::Draw(int pass) {
         }
     }
     if (!MovieFrameOriginal(&player_, nullptr, MovieModeOriginal() != 1) && finished_) {
-        MovieCloseOriginal(&player_);
+        player_.Close();
         PlayMoviesOriginal(mfc::operator+(*reinterpret_cast<const mfc::CString*>(&name_), kOutroSuffix), 0, 0, 0, 0);
         InterfaceHasScreen() = false;
         Close();

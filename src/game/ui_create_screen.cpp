@@ -4,6 +4,7 @@
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
 #include "app.h"
+#include "ui_camp.h"
 #include "ui_create_screen.h"
 
 #include "ui.h"
@@ -28,8 +29,6 @@ namespace {
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
 
-__declspec(naked) void __fastcall ConstructIslandMap(void*, void*, CInterface3D*) EI_ORIGINAL(0x005F67A0)      // id 4
-__declspec(naked) void __fastcall ConstructScreen5(void*, void*, CInterface3D*, int) EI_ORIGINAL(0x005F6240)    // id 5
 __declspec(naked) void __fastcall ConstructScreen8(void*, void*, CInterface3D*, int, const void*) EI_ORIGINAL(0x005F6D50)
 __declspec(naked) void __fastcall ConstructScreen9(void*, void*, CInterface3D*) EI_ORIGINAL(0x005F6F30)
 
@@ -101,11 +100,11 @@ void CInterface3D::CreateScreen(int id) {
     }
     case 4:
         screen = gamecrt::operator_new(0x294);
-        if (screen) ConstructIslandMap(screen, nullptr, this);
+        if (screen) static_cast<CGlobalMap*>(screen)->Construct(this);
         break;
     case 5:
         screen = gamecrt::operator_new(0x260);
-        if (screen) ConstructScreen5(screen, nullptr, this, 0);
+        if (screen) static_cast<CCampPages*>(screen)->Construct(this, 0);
         break;
     case 7:
         screen = gamecrt::operator_new(0x168);
@@ -408,7 +407,6 @@ namespace {
 // STLport's node allocator: the free list of 0x18-byte nodes (0079B22C) and the refill
 // (004060E0, __fastcall with the size).
 void** FreeList18() { return reinterpret_cast<void**>(0x0079B22C); }
-__declspec(naked) void* __fastcall RefillNodes(std::size_t) EI_ORIGINAL(0x004060E0)
 
 void* AllocateNode18() {
     void* node = *FreeList18();
@@ -416,7 +414,7 @@ void* AllocateNode18() {
         *FreeList18() = *static_cast<void**>(node);
         return node;
     }
-    return RefillNodes(0x18);
+    return libcrt::NodeRefill(0x18);
 }
 void FreeNode18(void* node) {
     *static_cast<void**>(node) = *FreeList18();

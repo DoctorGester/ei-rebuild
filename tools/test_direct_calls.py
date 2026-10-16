@@ -119,6 +119,18 @@ class DirectCallsTest(unittest.TestCase):
         self.assertIn('int a = foo.Bar(1) + p->Bar(q->Bar(2));', out['src/game/user.cpp'])
         self.assertIn('return a + static_cast<Foo*>(Pick(p, q))->Bar(3);', out['src/game/user.cpp'])
 
+    def test_after_includes(self):
+        # A forwarder right after the #include lines: only its own line goes.
+        user = ('#include "ei/hook.h"\n#include "other.h"\n'
+                'static __declspec(naked) int __fastcall BarAt(Foo*, void*, int) EI_ORIGINAL(0x00401000)\n\n'
+                'int User::Run(Foo* p) {\n    return BarAt(p, nullptr, 1);\n}\n')
+        decls = dict(MAP, BarAt=[dc.Sig('int __fastcall BarAt(struct Foo *,void *,int)', 'user.cpp.obj')])
+        sources = [dc.Source('src/game/foo.h', HEADER), dc.Source('src/game/foo.cpp', DEFINITION),
+                   dc.Source('src/game/user.cpp', user)]
+        _, out = run(sources, decls)
+        self.assertEqual(out['src/game/user.cpp'], '#include "ei/hook.h"\n#include "foo.h"\n#include "other.h"\n\n'
+                         'int User::Run(Foo* p) {\n    return p->Bar(1);\n}\n')
+
     def test_reindent(self):
         self.assertEqual(dc.reindent('a,\n       b,\n   c)', 7, -3), 'a,\n    b,\n   c)')
 

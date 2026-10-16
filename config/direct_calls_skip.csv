@@ -54,3 +54,9 @@ address,reason
 005C7DB0,player_messages.cpp: its PartyRecords (party_record_lookup.h) clashes with unit.h's that the target's header brings in
 004C2290,player_messages.cpp: its PartyRecords (party_record_lookup.h) clashes with unit.h's that the target's header brings in
 0040A3A0,src/game/world_save.cpp passes a CItemLink * as void* (the target is CRefObject's method)
+005DB350,src/game/ui_create_screen.cpp passes a uint8_t * as void* (the target is CBinkVideo's method)
+005F6080,src/game/ui_create_screen.cpp passes a uint8_t * as void* (the target is CBattleScreen::PartyIds's method)
+005FD760,src/game/ui_hero_screen_click.cpp passes a SurfaceDraw * as void* (the target is CUiSurface's method)
+0066ADD0,src/game/ui_battle_commands.cpp passes a uint8_t * as void* (the target is CPlayerClient's method)
+005F5F90,src/game/ui_create_screen.cpp passes a uint8_t * as void* (the target is LockKey's method)
+0066ACD0,src/game/ui_battle_commands.cpp passes a uint8_t * as void* (the target is CPlayerClient's method)

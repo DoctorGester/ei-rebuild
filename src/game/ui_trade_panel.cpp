@@ -44,9 +44,7 @@ struct TextGlue {
 void* TextGlue::Table() { return GameFlowOriginal(); }
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
-// vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (TradeRow::CopyConstruct below),
-// 0062A7C0 destroys one (and frees it with flag 1; RET 4), 00629E60 the insert that reallocates (RET 0xC).
-__declspec(naked) void __fastcall RowDestroy(TradeRow*, void*, int) EI_ORIGINAL(0x0062A7C0)
+// vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (RET 0xC).
 __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow* /*pos*/, const TradeRow*, int /*n*/)
     EI_ORIGINAL(0x00629E60)
 
@@ -54,8 +52,6 @@ __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow
 // 006261A0 through its address (the rewrite below when hooked).
 void ClampScrollAt(CTradePanel* panel) { TradePanelClampScrollOriginal(panel); }
 void DrawListsAt(CTradePanel* panel) { TradePanelDrawListsOriginal(panel); }
-// 00626090 through its address (its verify wrapper runs).
-__declspec(naked) void __fastcall FormatPriceAt(CTradePanel*, void*, int, mfc::CString*) EI_ORIGINAL(0x00626090)
 
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
@@ -94,7 +90,7 @@ TradeRow* PushBack(TradeRows* rows, const TradeRow& value) {
 
 // erase(begin, end): the copy over the empty tail does nothing; the rows are destroyed.
 void Clear(TradeRows* rows) {
-    for (TradeRow* row = rows->begin; row != rows->end; ++row) RowDestroy(row, nullptr, 0);
+    for (TradeRow* row = rows->begin; row != rows->end; ++row) row->DeleteThis(0);
     rows->end = rows->begin;
 }
 
@@ -280,7 +276,7 @@ void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* scho
     RECT levelRect = shifted;
     draw->Text(*value, &levelRect, 0, kBright, 2, 1);
     if (school->level < 100) {
-        FormatPriceAt(panel, nullptr, school->price, value);
+        panel->FormatPrice(school->price, value);
         draw->Text(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
@@ -325,7 +321,7 @@ void CTradePanel::DrawLists() {
         draw->Text(perk->name, &row, 0, kBright, 0, 1);
         if (Str(perk->nextKey)->GetLength() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
-            FormatPriceAt(this, nullptr, perk->price, &value);
+            FormatPrice(perk->price, &value);
             draw->Text(value, &row, 0, colour, 2, 1);
             PriceSprite(this, row, 350.0f, 390.0f);
         }
@@ -345,7 +341,7 @@ void CTradePanel::DrawLists() {
             priceColour = PriceColour(perk->price, experience_);
         }
         draw->Text(perk->name, &row, 0, textColour, 0, 1);
-        FormatPriceAt(this, nullptr, perk->price, &value);
+        FormatPrice(perk->price, &value);
         draw->Text(value, &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
@@ -469,8 +465,6 @@ EI_REPLACE(0x00625430, TradeResetRecords);
 // --- 00626F10: the record from the hero ---------------------------------------------------------
 
 namespace {
-// 00626FA0 by its address (Settle calls it so that its verify wrapper runs).
-__declspec(naked) void __fastcall RestoreRecordAt(CTradePanel*) EI_ORIGINAL(0x00626FA0)
 
 UnitStats* PartyMemberStats(int index) {
     CParty* party = reinterpret_cast<CParty*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)));
@@ -537,7 +531,7 @@ void CTradePanel::Settle(int keep, int all) {
             if (keepIt)
                 FillRecord(this);
             else
-                RestoreRecordAt(this);
+                TradeRestoreRecord(this);
         }
         recordIndex_ = saved;
         return;
@@ -546,7 +540,7 @@ void CTradePanel::Settle(int keep, int all) {
     if (keepIt)
         FillRecord(this);
     else
-        RestoreRecordAt(this);
+        TradeRestoreRecord(this);
     TradePanelBuildListsOriginal(this);
 }
 EI_REPLACE_METHOD(0x006255A0, CTradePanel::Settle);

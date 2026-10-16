@@ -31,7 +31,7 @@ EI_REPLACE(0x00638A10, BattleScreenDeactivate);
 void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+        static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
         if (inputHandled_) return;
     }
     viewPressed_ = true;

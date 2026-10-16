@@ -41,10 +41,6 @@ __declspec(naked) void __fastcall ContinueAt(CMpHeroScreen*) EI_ORIGINAL(0x00618
 __declspec(naked) void __fastcall RenameAt(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
 __declspec(naked) void __fastcall PlayVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
 // 006167C0: the hero list drawn again (plain RET).
-// 00618FF0 / 00619090 (rewritten as ClampHeroSelection / ClampVoiceSelection; through their address so the
-// wrappers run; plain RET).
-__declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)
-__declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619090)
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
 void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
@@ -63,7 +59,6 @@ struct TextGlue {
     void* Table();   // 00578E20
 };
 void* TextGlue::Table() { return GameFlowOriginal(); }
-__declspec(naked) void __fastcall EndSession(void*) EI_ORIGINAL(0x0057ED00)
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
@@ -124,7 +119,7 @@ void BackToMainMenu(CInterface3D* ui) {
     TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
     ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-    EndSession(reinterpret_cast<void*>(0x007AFE20));
+    static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->EndSession();
     ui->SetPendingValue(0);
 }
 
@@ -242,11 +237,11 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     if (mode_ == kModeList) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         heroIndex_ += heroStep;
-        ClampHeroAt(this);
+        ClampHeroSelection();
     } else if (mode_ == kModeNewHero) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ += voiceStep;
-        ClampVoiceAt(this);
+        ClampVoiceSelection();
         PlayVoiceAt(this);
     } else {
         return;
@@ -640,8 +635,6 @@ MpHeroRecord*& MpHeroesEnd() { return *reinterpret_cast<MpHeroRecord**>(0x007C82
 std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
 constexpr std::uint32_t kListRows = 10;
 constexpr int kAnswerOk = 0x10001;
-// 00617E40 (rewritten as DeleteHero below) through its address so its wrapper runs.
-__declspec(naked) void __fastcall DeleteHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00617E40)
 } // namespace
 
 void CMpHeroScreen::DeleteHero() {
@@ -677,7 +670,7 @@ void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
 EI_REPLACE(0x00617E40, MpHeroDelete);
 
 void CMpHeroScreen::OnMessageResult(int result) {
-    if (result == kAnswerOk) DeleteHeroAt(this);
+    if (result == kAnswerOk) MpHeroDelete(this);
     if (heroIndex_ >= 0 && static_cast<std::uint32_t>(heroIndex_) < MpHeroCount()) {
         MpHeroRecord* hero = MpHeroesBegin() + heroIndex_;
         PartyCopyFrom(hero->party, nullptr, LocalPlayerData());

@@ -4,6 +4,8 @@
 // (EiPluginFixes, reproduced: the figures' sex test), so it is hooked in a Rebirth launch too; nothing in the
 // rewritten code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
+#include "stl_sorts.h"
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -74,14 +76,6 @@ float MenuTurn() { return GameFloat(0x007C7F14) * GameFloat(0x0073CDF4); }
 // The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
 // screen's mode, 00615D30, originals_ui.h).
 __declspec(naked) void __fastcall ReloadHeroesAt(MpHeroRoster*) EI_ORIGINAL(0x00662FB0)
-// std::sort over a vector<CString> (operator<: _mbscmp), the library's instantiation at its
-// addresses (stl_sorts.cpp, NameIntroSort / NameFinalSort, so their checks run): the introsort loop
-// (first, last, (T*)0, depth limit; RET 8) and the final insertion sort (first, last; plain RET).
-__declspec(naked) void __fastcall IntroSortLoop(mfc::CString* /*first*/, mfc::CString* /*last*/, mfc::CString*,
-                                                int /*depth*/) EI_ORIGINAL(0x0061A240)
-__declspec(naked) void __fastcall FinalInsertionSort(mfc::CString* /*first*/, mfc::CString* /*last*/)
-    EI_ORIGINAL(0x0061A300)
-
 MpHeroRoster* Heroes() { return reinterpret_cast<MpHeroRoster*>(0x007C82A0); }
 void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
 
@@ -144,8 +138,8 @@ void SortNames(NameList& names) {
     if (first == last) return;
     int depth = 0;
     for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
-    IntroSortLoop(first, last, nullptr, depth * 2);
-    FinalInsertionSort(first, last);
+    stl_sorts::NameIntroSort(first, last, nullptr, depth * 2);
+    stl_sorts::NameFinalSort(first, last);
 }
 
 // A figure the new hero can take: its voice (when the creature's record has the flag) and its
@@ -170,7 +164,7 @@ void CMpHeroScreen::Create() {
     TheGameFlow()->UseResources(true);
     window.LoadTexture(game::Text(0x0079365C), kTextureKind, nullptr);   // "campinfo"
     CUiModel* model = window.AddModel();
-    model->CallLoad(game::Text(0x0078A5C0), game::Text(0x007939F0), game::Text(0x007939FC));   // "unmoco2", "MainMenu00", "MainMenu00labels"
+    model->Load(game::Text(0x0078A5C0), game::Text(0x007939F0), game::Text(0x007939FC));   // "unmoco2", "MainMenu00", "MainMenu00labels"
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};

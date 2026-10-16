@@ -40,10 +40,6 @@ namespace {
 
 // --- Helpers ---------------------------------------------------------------------------------
 
-// 006233C0 (thiscall on the stats panel, RET 4; rewritten as CHeroStatsPanel::ShowStats): the
-// statistics for camp page `page`, through its address.
-__declspec(naked) void __fastcall StatsPanelShowStats(CHeroStatsPanel*, void*, int) EI_ORIGINAL(0x006233C0)
-
 // The local player's items (the party the client glue's 00578BA0 returns).
 CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 
@@ -191,7 +187,7 @@ void CCampPages::ShowPage(int page) {
     } else {
         if (page_ != page) interface_->PlaySound(game::Text(0x0079374C), 0);   // buttons\camp\slot.wav
         page_ = page;
-        StatsPanelShowStats(statsPanel_, nullptr, page);
+        statsPanel_->ShowStats(page);
         trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
         SurfaceGetDC(title);
@@ -861,12 +857,10 @@ namespace {
 // allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
 __declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
 __declspec(naked) void __stdcall FreeBlock18(void*, int) EI_ORIGINAL(0x006135F0)
-// 00613CF0 (rewritten as TradeRow::Destroy; thiscall): a row's destructor, through its address.
-__declspec(naked) void __fastcall DestroyRow(TradeRow*) EI_ORIGINAL(0x00613CF0)
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
-    for (TradeRow* at = rows.begin; at != rows.end; ++at) DestroyRow(at);
+    for (TradeRow* at = rows.begin; at != rows.end; ++at) at->Destroy();
     FreeBlock18(rows.begin, static_cast<int>(rows.capacity - rows.begin));
 }
 
@@ -895,16 +889,11 @@ void* GluePlayerData() { return GameLocalPlayerDataOriginal(UiClientGlue()); }
 // The hero's statistics (UnitStats at the record's +0x20).
 UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }
 
-// 005232B0 / 005230C0 (rewritten as UnitStats::ClearOuterLayers / AddArmourLayer; thiscall on the
-// statistics): clears the outer layers / adds one (RET 4), through their addresses.
-__declspec(naked) void __fastcall StatsClearOuterLayers(UnitStats*) EI_ORIGINAL(0x005232B0)
-__declspec(naked) void __fastcall StatsAddLayer(UnitStats*, void*, CEngineObject*) EI_ORIGINAL(0x005230C0)
-
 // The hero's statistics with the armour it wears as their outer layers again.
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = StatsOf(hero);
-    StatsClearOuterLayers(stats);
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) StatsAddLayer(stats, nullptr, hero->armor[i]);
+    stats->ClearOuterLayers();
+    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) stats->AddArmourLayer(hero->armor[i]);
 }
 
 } // namespace
@@ -959,10 +948,6 @@ EI_REPLACE_METHOD(0x0060FE40, CCampPages::TakeOff);
 
 // --- 0060FCA0: putting an item on the hero ----------------------------------------------------
 
-// The members the camp calls through their addresses (their hooks and wrappers see the calls).
-__declspec(naked) int CCampPages::CallTakeOff(std::uint8_t*) EI_ORIGINAL(0x0060FE40)
-__declspec(naked) void CCampPages::CallPutOn(std::uint8_t*) EI_ORIGINAL(0x0060FCA0)
-__declspec(naked) void CCampPages::CallPutOnFromStrip(std::uint8_t*) EI_ORIGINAL(0x00610920)
 __declspec(naked) void CCampPages::CallShowHero() EI_ORIGINAL(0x0060F830)
 
 void CCampPages::PutOn(std::uint8_t* item) {
@@ -980,7 +965,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         int type = reinterpret_cast<CItemArmor*>(item)->GetType();
         for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
             if (reinterpret_cast<CItemArmor*>(hero->armor[i])->GetType() == type)
-                CallTakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
+                TakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
         }
         if (heroes_[hero_]) {
             void* worn = RecordAddWornEntryOriginal(hero, nullptr, item);   // 00660C90
@@ -1024,7 +1009,7 @@ void CCampPages::PutOnFromStrip(std::uint8_t* item) {
     switch (page_) {
     case 0:
     case 1:
-        CallPutOn(item);
+        PutOn(item);
         return;
     case 2:
         MoveBetween(this, item, spellParts_[2], LocalPlayerData(), 8, 1, 0);
@@ -1074,10 +1059,10 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     };
     switch (mode) {
     case 0:
-        ScrollTo(itemStrip_, reinterpret_cast<void*>(static_cast<std::intptr_t>(CallTakeOff(item))));
+        ScrollTo(itemStrip_, reinterpret_cast<void*>(static_cast<std::intptr_t>(TakeOff(item))));
         return;
     case 1:
-        CallPutOnFromStrip(item);
+        PutOnFromStrip(item);
         return;
     case 2:
         if (page_ == 2)
@@ -1162,12 +1147,6 @@ EI_REPLACE_METHOD(0x00610AD0, CCampPages::MoveItem);
 
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
-namespace {
-// 00532A20 (rewritten as CUnit::SetFromStats; thiscall, RET 4): the unit takes statistics, through
-// its address.
-__declspec(naked) void __fastcall UnitTakeStats(CUnit*, void*, UnitStats*) EI_ORIGINAL(0x00532A20)
-} // namespace
-
 void CCampPages::RefreshWeapons() {
     PartyUnitRecord* hero = VirtualHeroRecord();
     CUnit* unit = heroes_[hero_];
@@ -1185,7 +1164,7 @@ EI_REPLACE_METHOD(0x0060F9E0, CCampPages::RefreshWeapons);
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
         PartyUnitRecord* hero = VirtualHeroRecord();
-        UnitTakeStats(heroes_[hero_], nullptr, StatsOf(hero));
+        heroes_[hero_]->SetFromStats(StatsOf(hero));
         heroes_[hero_]->Controller()->RefreshWounds();
     }
     static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();

@@ -44,9 +44,7 @@ constexpr int kLevelDifferenceLimit = 25;
 // The panel surface's text draw [005FDE20, Rebirth-patched: text, rectangle, 0, colour, 0, 1].
 // The text manager (007AF788): the text of a key [004E0020: key, out].
 // CUnit [thiscall]: the move speed of a mode [0052FAF0] or the current one [0052FA20] (in ST0),
-// the prototype [00530930], the level [00532D40].
-__declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(0x0052FAF0)
-__declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
+// the prototype [00530930], the level [00532D40] (rewritten, called directly).
 // The world (007AF5B8): the time of day [0055FC50, ST0].
 double __fastcall WorldDayTime(void* a0) { return static_cast<CWorld*>(a0)->NightLevel(); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
@@ -73,7 +71,7 @@ constexpr int kCombatInfoSlot = 50;
 // The speed shown: (00742408 * speed) * 00742AEC unrounded, the speed from 0052FAF0 (mode 3) for a
 // unit outside the group, else from 0052FA20.
 double ShownSpeed(void* unit, int outsideGroup) {
-    const double speed = outsideGroup ? MoveSpeedFor(unit, nullptr, 3) : MoveSpeed(unit);
+    const double speed = outsideGroup ? static_cast<CUnit*>(unit)->MoveSpeedFor(3) : static_cast<CUnit*>(unit)->MoveSpeed2();
     return static_cast<double>(*reinterpret_cast<const float*>(0x00742408)) * speed * *reinterpret_cast<const float*>(0x00742AEC);
 }
 

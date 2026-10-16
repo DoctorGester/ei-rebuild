@@ -79,7 +79,7 @@ void CHudTopPanel::Build(int page, int shown) {
     AddSprite(nullptr)->SetFrame(18.0f, 80.0f, 180.0f, -5.0f, 620.0f, 100.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
 
     page_ = page;
-    CallShowPage();
+    ShowPage();
     CallLayout();
 }
 EI_REPLACE_METHOD(0x00649AF0, CHudTopPanel::Build);

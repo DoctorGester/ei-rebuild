@@ -34,9 +34,6 @@ void Flush(CUiWindow* w) {
     w->interface_->renderer_->FlushBatchB();
 }
 
-// Through their original addresses (rewritten or not), as the original calls them.
-__declspec(naked) void __fastcall UpdateRegionTips(CUiWindow*, void*, int) EI_ORIGINAL(0x005FEBF0)
-
 } // namespace
 
 // 00600F70 (a container's). The children, each drawn (slot 21) when enabled.
@@ -45,8 +42,8 @@ void CUiContainer::DrawChildrenImpl(int pass) {
     Flush(this);
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
-    ::UpdateRegionTips(this, nullptr, pass);
-    const UiPtrArray<CUiWindow>& children = static_cast<CUiContainer*>(this)->children_;
+    UpdateRegionTips(pass);
+    const UiPtrArray<CUiWindow>& children = children_;
     for (int i = 0; i < children.size; ++i) {
         CUiWindow* child = children[i];
         if (!child->enabled_) continue;

@@ -4,6 +4,7 @@
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "sound.h"
+#include "text_helpers.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -40,7 +41,6 @@ __declspec(naked) void CUiRegion::CallAddPoint(int, int) EI_ORIGINAL(0x005FCA70)
 __declspec(naked) void CUiMesh::SetTriangle(float, float, float, float, float, float, float, float, float, float, float,
                                             float, float, float) EI_ORIGINAL(0x005E99D0)
 __declspec(naked) CUiSurface* CUiSurface::Construct(CInterface3D*, int, int, int, int, int, int) EI_ORIGINAL(0x005FCC00)
-__declspec(naked) void CUiModel::CallLoad(const char*, const char*, const char*) EI_ORIGINAL(0x005FC1F0)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
@@ -103,7 +103,7 @@ void Shade(CUiWindow* window, float depth, float left, float top, float right, f
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
 CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     CUiModel* model = window->AddModel();
-    model->CallLoad(game::Text(0x00793FA8), game::Text(0x00793FB0), game::Text(0x00793FBC));   // "unmoco1", "escMenu00", "escMenu00labels"
+    model->Load(game::Text(0x00793FA8), game::Text(0x00793FB0), game::Text(0x00793FBC));   // "unmoco1", "escMenu00", "escMenu00labels"
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
@@ -241,11 +241,11 @@ void COptionsWindow::Build() {
     if (sliding_) slide_ = 0.0f;
     waitingForKey_ = false;
     pressedKey_ = nullptr;
-    CallBuildSettings();
-    CallLoadSettings();
-    CallBuildBindings();
+    BuildSettings();
+    LoadSettings();
+    BuildBindings();
     displayModeChanged_ = false;
-    CallShowGroup(0);
+    ShowGroup(0);
     if (!sliding_) interface_->ShowHelp(0);
 }
 EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
@@ -255,7 +255,7 @@ EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 void CEscMenu::Build() {
     window.rect_ = RECT{0, 0, 800, 600};
     CUiModel* model = window.AddModel();
-    model->CallLoad(game::Text(0x00793FA8), game::Text(0x00793FB0), game::Text(0x00793FBC));
+    model->Load(game::Text(0x00793FA8), game::Text(0x00793FB0), game::Text(0x00793FBC));
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
@@ -675,8 +675,7 @@ namespace {
 // RECT*) constructs the scrolling text surface (0x58 bytes), 005FCDD0 (RET 0xC: interface, RECT*,
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
-// a separator; 0062C090 (RET 0xC, ECX unused) inserts a copy of a TitleLine before a list node.
-__declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
+// a separator.
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
 CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(DisplayObject()); }
 __declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
@@ -724,7 +723,7 @@ void CCreditsScreen::Build() {
         mfc::CString script;
         GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
-        TitlesRemoveCr(&script);
+        RemoveCarriageReturns(&script);
         TitlesTokenizer lines{0, &script, game::Text(0x00784340)};   // "\n"
         TitlesTokenStart(&lines);
         while (lines.position != -1 && static_cast<const char*>(lines.word) != nullptr) {

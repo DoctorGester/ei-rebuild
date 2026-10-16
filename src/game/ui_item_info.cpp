@@ -151,7 +151,6 @@ __declspec(naked) void __fastcall DamageTypesOf(CItem*, void*, float*) EI_ORIGIN
 const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
     return reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
-__declspec(naked) int __fastcall ModifierCountOf(void*) EI_ORIGINAL(0x0068BA60)
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
 // (PartyResetOriginal), filled by 00661DB0 (PartyAddItemOriginal).
@@ -748,11 +747,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Down();
     w.Down();
     w.Down();
-    if (ModifierCountOf(spell) > 0) {
+    if (static_cast<CSpell*>(spell)->GetModifierCount() > 0) {
         // "<infoitem_19> name, name, ...": each modifier's third text line ("modifier <code>"),
         // "?" without one.
         w.line = w.T(19);
-        for (int i = 0; i < ModifierCountOf(spell); ++i) {
+        for (int i = 0; i < static_cast<CSpell*>(spell)->GetModifierCount(); ++i) {
             w.line += game::Text(0x0078DA40);   // " "
             text = game::Text(0x00783D6C);      // "?"
             std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);

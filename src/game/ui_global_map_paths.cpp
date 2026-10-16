@@ -56,9 +56,6 @@ bool SameName(const char* a, const char* b) {
 
 // --- The click (0062F950) ---
 
-// 006312C0 through its address, as the original click calls it (the check's wrapper runs).
-__declspec(naked) void __fastcall FindPathsOriginal(CGlobalMap*, void*, MapRecord* /*from*/) EI_ORIGINAL(0x006312C0)
-
 const char* MoveSound() { return game::Text(0x00794180); }      // "buttons\globalmap\move.wav"
 const char* TransitSound() { return game::Text(0x0079372C); }   // "buttons\globalmap\transit.wav"
 const char* OkSound() { return game::Text(0x0079419C); }        // "buttons\globalmap\ok.wav"
@@ -91,7 +88,7 @@ void SearchWays(CGlobalMap* map, const mfc::CString& target) {
     map->arrivals_.Clear();
     map->found_ = false;
     map->beyondTarget_ = false;
-    FindPathsOriginal(map, nullptr, PlayerZone());
+    map->FindPaths(PlayerZone());
 }
 
 bool MayTravelTo(CGlobalMap* map) {

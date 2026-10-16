@@ -39,8 +39,6 @@ constexpr int kTypeSpellContainer = 0x3008;
 // Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
 __declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
-// 005FC730: a region's tooltip (text "tip_<id>").
-__declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int) EI_ORIGINAL(0x005FC730)
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
 BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
 // The hero screen's equipment panels.
@@ -159,7 +157,6 @@ void CUiItemStrip::SetTab(int tab) {
     scrollDirection_ = 0;
 }
 EI_REPLACE_METHOD(0x00620960, CUiItemStrip::SetTab);
-__declspec(naked) void CUiItemStrip::CallSetTab(int) EI_ORIGINAL(0x00620960)
 
 void CUiItemStrip::SetFilter(int filter) {
     for (float& position : position_) position = 0.0f;
@@ -177,7 +174,7 @@ void CUiItemStrip::SetFilter(int filter) {
     }
     for (int i = 2; i < 8; ++i) {
         std::memcpy(&window.SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
-        SetRegionTip(window.regions_.data[i], nullptr, tipBase + i, 1, 0);
+        window.regions_.data[i]->SetTip(tipBase + i, 1, 0);
     }
 }
 EI_REPLACE_METHOD(0x00621420, CUiItemStrip::SetFilter);
@@ -298,7 +295,7 @@ void CUiItemStrip::ScrollToItem(char* item) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
     } else {
         int tab = TabOf(item);
-        if (TabKeysEnabled()) CallSetTab(tab);
+        if (TabKeysEnabled()) SetTab(tab);
         for (int i = 0; i < source_->size; ++i)
             if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
     }

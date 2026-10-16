@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue people and items (CBriefingScreen, ui_briefing.h): a
 // person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "library_containers.h"
 #include "ui_briefing.h"
 
 #include "core_maths.h"
@@ -41,10 +42,7 @@ ActionDoneFn SpeakerActionDone() { return reinterpret_cast<ActionDoneFn>(0x00602
 // 0060AC20: the name index's find-or-insert (thiscall, RET 4; the value's address).
 __declspec(naked) const itemdb::ItemRecordHead** __fastcall LootNameAt(void* /*names*/, void*, const stlp::string* /*key*/)
     EI_ORIGINAL(0x0060AC20)
-// 0060AB00 (dest in ECX, source in EDX, plain RET): a speaker entry copy-constructed in place.
 // 0060A660 (thiscall on the speakers' vector, RET 0xC): insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall SpeakerCopyConstruct(BriefingSpeaker* /*dest*/, const BriefingSpeaker* /*source*/)
-    EI_ORIGINAL(0x0060AB00)
 __declspec(naked) void __fastcall SpeakersInsertOverflow(void* /*vector*/, void*, BriefingSpeaker* /*pos*/,
                                                          const BriefingSpeaker* /*value*/, int /*count*/) EI_ORIGINAL(0x0060A660)
 
@@ -139,7 +137,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         }
         BriefingSpeaker added{unit, mfc::CString(), false};
         if (speakersEnd_ != speakersCapacity_) {
-            SpeakerCopyConstruct(speakersEnd_, &added);
+            libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
         } else {
             SpeakersInsertOverflow(&speakers_, nullptr, speakersEnd_, &added, 1);

@@ -65,10 +65,6 @@ constexpr std::uint32_t kLabelColour = 0xA7D7E4;
 const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }         // "none"
 const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
 
-// 006078C0: a topic's title (thiscall on the screen, RET 8: out, the topic's name; returns out).
-__declspec(naked) mfc::CString* __fastcall TopicTitleAt(CBriefingScreen*, void*, mfc::CString* /*out*/,
-                                                        const char* /*topic*/) EI_ORIGINAL(0x006078C0)
-
 // The server's unit with the id of a client object, or null.
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
 UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
@@ -211,7 +207,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
 
 void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;
-    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
     if (inputHandled_) return;
     if (state_ != 0) {
         Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
@@ -265,7 +261,7 @@ void CBriefingScreen::DrawTopics() {
         RECT rect{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
         mfc::CString title;
-        TopicTitleAt(this, nullptr, &title, topics_[row]);
+        TopicTitle(&title, topics_[row]);
         mfc::CString text = prefix;
         text += TopicSeparator();
         text += title;
