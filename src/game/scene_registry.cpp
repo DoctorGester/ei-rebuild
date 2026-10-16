@@ -129,32 +129,14 @@ struct Mapping {
 };
 
 // u = (w / width) * u + x / width; v = 1 - ((h / height) * (1 - v) + y / height), each rounded once
-// (the quotients and products stay on the FPU). __fastcall: the coordinate in ECX, the mapping in EDX.
-__declspec(naked) void __fastcall MapTexCoord(float* /*uv*/, const Mapping* /*mapping*/) {
-    __asm {
-        push ecx
-        fld dword ptr [edx + 8]
-        fdiv dword ptr [edx + 10h]
-        fmul dword ptr [ecx]
-        fld dword ptr [edx]
-        fdiv dword ptr [edx + 10h]
-        faddp st(1), st
-        fld dword ptr ds:[0073B84Ch]
-        fsub dword ptr [ecx + 4]
-        fld dword ptr [edx + 0Ch]
-        fdiv dword ptr [edx + 14h]
-        fmulp st(1), st
-        fld dword ptr [edx + 4]
-        fdiv dword ptr [edx + 14h]
-        faddp st(1), st
-        fstp dword ptr [esp]
-        fstp dword ptr [ecx]
-        fld dword ptr ds:[0073B84Ch]
-        fsub dword ptr [esp]
-        fstp dword ptr [ecx + 4]
-        pop eax
-        ret
-    }
+// (the quotients and products unrounded; the inner v sum is rounded to float before 1 - it).
+void MapTexCoord(float* uv, const Mapping* mapping) {
+    const double one = *reinterpret_cast<const float*>(0x0073B84C);
+    const float u = static_cast<float>(static_cast<double>(mapping->w) / mapping->width * uv[0] + static_cast<double>(mapping->x) / mapping->width);
+    const float inner = static_cast<float>(static_cast<double>(mapping->h) / mapping->height * (one - uv[1]) +
+                                           static_cast<double>(mapping->y) / mapping->height);
+    uv[0] = u;
+    uv[1] = static_cast<float>(one - inner);
 }
 
 // FCOMP with -1.0 (0073B854), C3: equal (the values come from integers, never NaN).

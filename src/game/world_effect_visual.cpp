@@ -5,7 +5,9 @@
 #include "originals_effects.h"
 #include "originals_engine.h"
 #include "originals_units.h"
+#include "ei/x87.h"
 
+#include <bit>
 #include <cstring>
 
 using namespace effect;
@@ -51,21 +53,12 @@ void ClearBase(CEffect* e) {
 }
 
 // The light's range fields: +0xE0 = range, +0x100 = range^2, +0x104 = 1 / range^2 with the square
-// left unrounded in ST0 for the division (FMUL, FST, FDIV ST,ST(1)).
-__declspec(naked) void __fastcall SetLightRange(CEngineObject* /*light*/, std::uint32_t /*rangeBits*/) {
-    __asm {
-        mov dword ptr [ecx + 0E0h], edx
-        push edx
-        fld dword ptr [esp]
-        fmul dword ptr [esp]
-        fst dword ptr [ecx + 100h]
-        fld dword ptr ds:[0073B84Ch]
-        fdiv st, st(1)
-        fstp dword ptr [ecx + 104h]
-        fstp st(0)
-        pop edx
-        ret
-    }
+// left unrounded for the division (FMUL, FST, FDIV ST,ST(1)).
+void SetLightRange(CLight* light, std::uint32_t rangeBits) {
+    light->range_ = std::bit_cast<float>(rangeBits);
+    const double square = static_cast<double>(light->range_) * light->range_;
+    light->rangeSquared_ = static_cast<float>(square);
+    light->inverseRangeSquared_ = static_cast<float>(1.0 / square);
 }
 
 std::uint32_t& LightFlags(CLight* light) { return light->flags_; }
@@ -74,54 +67,15 @@ Vector3& LightPosition(CLight* light) { return light->position_; }
 // The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
-__declspec(naked) int __fastcall StepFraction(const Vector3* /*velocity*/, const Vector3* /*dxdy*/, float* /*t*/) {
-    __asm {
-        fld dword ptr [ecx + 8]
-        fld dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fld st(3)
-        fmul st, st(4)
-        faddp st(1), st
-        fsqrt
-        fstp st(3)
-        fstp st(0)
-        fstp st(0)
-        // ST0 = speed. dxdy = {dx, dy}.
-        fld dword ptr [edx + 4]
-        fmul dword ptr [edx + 4]
-        fld dword ptr [edx]
-        fmul dword ptr [edx]
-        faddp st(1), st
-        fsqrt
-        fcom dword ptr ds:[0073B858h]
-        fnstsw ax
-        test ah, 41h
-        jne skip
-        fcom st(1)
-        fnstsw ax
-        test ah, 1
-        je keep
-        fstp st(0)
-        fld st(0)
-    keep:
-        fxch st(1)
-        fdiv st, st(1)
-        mov eax, dword ptr [esp + 4]
-        fstp dword ptr [eax]
-        fstp st(0)
-        mov eax, 1
-        ret 4
-    skip:
-        fstp st(0)
-        fstp st(0)
-        xor eax, eax
-        ret 4
-    }
+int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
+    const double speed = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*velocity));
+    const double dist = x87::fsqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
+    // FCOM 0073B858; TEST AH,0x41: on only when above.
+    if (!(dist > *reinterpret_cast<const float*>(0x0073B858))) return 0;
+    // FCOM ST(1); TEST AH,1: the speed when the distance is below it or they are unordered.
+    const double divisor = dist >= speed ? dist : speed;
+    *t = static_cast<float>(speed / divisor);
+    return 1;
 }
 
 // Particle types that play once (no warm-up limit, a lifetime of 60 ticks; 0x2019: 120).
@@ -138,20 +92,10 @@ bool IsOneShotType(int type) {
     }
 }
 
-// The scorch mark's angle: a random value times the constant at 0073FFD0, the value loaded with
-// FILD qword (exact; a dword load plus 2^32 would round at 24-bit precision), FMUL qword, rounded
-// to float.
-__declspec(naked) float __cdecl RandomAngle(std::uint32_t /*random*/) {
-    __asm {
-        push 0
-        push dword ptr [esp + 8]
-        fild qword ptr [esp]
-        fmul qword ptr ds:[0073FFD0h]
-        fstp dword ptr [esp]
-        fld dword ptr [esp]
-        add esp, 8
-        ret
-    }
+// The scorch mark's angle: a random value times the double at 0073FFD0, the value loaded with
+// FILD qword (exact), FMUL qword, rounded to float.
+float RandomAngle(std::uint32_t random) {
+    return static_cast<float>(x87::FromUnsigned(random) * *reinterpret_cast<const double*>(0x0073FFD0));
 }
 
 // The ISAAC Next the 0x2030 scorch inlines (same as 004667F0).
@@ -167,29 +111,10 @@ std::uint32_t InlineRandom() {
 
 // The fire wall's scorch mark: angle = atan2(direction.y, direction.x) and outer =
 // sqrt(x*x + y*y) + half + 0.3, both rounded to float only when stored, in the original's x87 order.
-__declspec(naked) void __fastcall WallScorchShape(const Vector3* /*direction*/, const float* /*half*/,
-                                                  float* /*angleAndOuter*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fpatan
-        fstp dword ptr [eax]
-        fld dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fsqrt
-        fstp st(2)
-        fstp st(0)
-        fadd dword ptr [edx]
-        fadd dword ptr ds:[0073C54Ch]
-        fstp dword ptr [eax + 4]
-        ret 4
-    }
+void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
+    angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
+    const double outer = x87::fsqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
+    angleAndOuter[1] = static_cast<float>((outer + *half) + *reinterpret_cast<const float*>(0x0073C54C));
 }
 
 } // namespace
@@ -237,22 +162,22 @@ void CEffectPointLight::Start(int update) {
         CEngineObject* created = LightFactory()->CreateObject(0x31, -1);
         AssignLight(&light_, nullptr, created);
         Vector3 position;
-        CopyThroughFpu(&position.x, &localPosition_.x);
-        CopyThroughFpu(&position.y, &localPosition_.y);
-        CopyThroughFpu(&position.z, &localPosition_.z);
+        x87::CopyFloat(&position.x, &localPosition_.x);
+        x87::CopyFloat(&position.y, &localPosition_.y);
+        x87::CopyFloat(&position.z, &localPosition_.z);
         Vector3 color;
-        CopyThroughFpu(&color.x, &color_.x);
-        CopyThroughFpu(&color.y, &color_.y);
-        CopyThroughFpu(&color.z, &color_.z);
+        x87::CopyFloat(&color.x, &color_.x);
+        x87::CopyFloat(&color.y, &color_.y);
+        x87::CopyFloat(&color.z, &color_.z);
         SetLightColorPosition(light_, nullptr, &color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
         LightManagerAddOriginal(LightManager(), nullptr, light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
-        CopyThroughFpu(&light_->color_[0], &color_.x);
-        CopyThroughFpu(&light_->color_[1], &color_.y);
-        CopyThroughFpu(&light_->color_[2], &color_.z);
+        x87::CopyFloat(&light_->color_[0], &color_.x);
+        x87::CopyFloat(&light_->color_[1], &color_.y);
+        x87::CopyFloat(&light_->color_[2], &color_.z);
         float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
         float shownRange;
         std::memcpy(&shownRange, &light_->range_, 4);
@@ -407,8 +332,8 @@ void CEffectParticle::Spawn() {
         float baseSize;
         std::memcpy(&baseSize, &source_->baseSize, 4);
         ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
-        CopyThroughFpu(&source_->alpha, &alpha_);
-        CopyThroughFpu(&source_->typeParam, &param164_);
+        x87::CopyFloat(&source_->alpha, &alpha_);
+        x87::CopyFloat(&source_->typeParam, &param164_);
         ParticleAttachAt(this);
         return;
     }
@@ -419,8 +344,8 @@ void CEffectParticle::Spawn() {
     std::memcpy(&baseSize, &source_->baseSize, 4);
     ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
     ParticleSourceAttachOriginal(source_, nullptr, nullptr);
-    CopyThroughFpu(&source_->alpha, &alpha_);
-    CopyThroughFpu(&source_->typeParam, &param164_);
+    x87::CopyFloat(&source_->alpha, &alpha_);
+    x87::CopyFloat(&source_->typeParam, &param164_);
     ParticleAttachAt(this);
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).

@@ -9,6 +9,7 @@
 #include "ei/vcall.h"   // ei::SetVtable
 #include "lib/stlp.h"
 #include "originals_engine.h"
+#include "ei/x87.h"
 
 #include <cstring>
 #include <new>
@@ -24,19 +25,6 @@ std::uint32_t FileRead(void* file, void* data, std::uint32_t size) { return AsFi
 void FileWrite(void* file, const void* data, std::uint32_t size) { AsFile(file)->Write(data, size); }
 std::uint32_t FilePosition(void* file) { return AsFile(file)->GetPosition(); }
 void FileSeek(void* file, std::int32_t offset, std::uint32_t from) { AsFile(file)->Seek(offset, from); }
-
-// FLD + FSTP of a float, as the original copies some values it read (a signalling NaN comes out
-// quiet).
-__declspec(naked) std::uint32_t __cdecl FpuCopyBits(const void* /*value*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [eax]
-        push eax
-        fstp dword ptr [esp]
-        pop eax
-        ret
-    }
-}
 
 // The hook of slot 1 (a virtual: registered through this shim).
 void* __fastcall ChunkFileHook(Chunk* self) { return self->Chunk::File(); }
@@ -234,9 +222,9 @@ Vector3* Chunk::ReadVector3(Vector3* out) {
     ReadCounted(this, &v[0], 4);
     ReadCounted(this, &v[1], 4);
     ReadCounted(this, &v[2], 4);
-    std::uint32_t x = FpuCopyBits(&v[0]);
+    std::uint32_t x = x87::LoadStoreBits(&v[0]);
     std::memcpy(&out->x, &x, 4);
-    std::uint32_t z = FpuCopyBits(&v[2]);
+    std::uint32_t z = x87::LoadStoreBits(&v[2]);
     std::memcpy(&out->z, &z, 4);
     std::memcpy(&out->y, &v[1], 4);
     return out;

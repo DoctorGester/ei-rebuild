@@ -37,6 +37,7 @@ namespace {
 
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 
 template <typename T>
 T Get(const void* p, int offset) {
@@ -52,19 +53,8 @@ void CopyDword(void* p, int offset, std::uintptr_t source) {
     std::memcpy(static_cast<std::uint8_t*>(p) + offset, reinterpret_cast<const void*>(source), 4);
 }
 
-// The game's _ftol of a float times the float at `scale`, on the FPU.
-int ScaledFtol(float value, std::uintptr_t scale) {
-    int result;
-    __asm {
-        fld value
-        mov eax, scale
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
+// The game's _ftol of a float times the float at `scale`, the product unrounded.
+int ScaledFtol(float value, std::uintptr_t scale) { return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * GameFloat(scale))); }
 
 // A colour 0xFFrrggbb from three floats in 0..1 (each times 255, truncated).
 std::uint32_t PackColour(const float* rgb) {
@@ -147,59 +137,22 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 (FILD of the
 // unsigned word; FMUL float; FMUL double; FSTP float).
 float RandomPhase(std::uint32_t random) {
-    float result;
-    __asm {
-        push 0
-        push random
-        fild qword ptr [esp]
-        add esp, 8
-        fmul dword ptr ds:[0x007C7D20]
-        fmul qword ptr ds:[0x0073C468]
-        fstp result
-    }
-    return result;
+    return static_cast<float>(x87::FromUnsigned(random) * GameFloat(0x007C7D20) * GameDouble(0x0073C468));
 }
 
 // The spell glow: the phase advances by dt * 5 and wraps at 2 pi (_CIfmod); its sine scales the
 // school's colour (00740358, 16 bytes per school) into 0xFFrrggbb. The phase is stored as float
 // but the sine and the colour use the unrounded value, as the original.
 std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
-    std::uint32_t r, g, b;
-    __asm {
-        mov ecx, turn
-        fld dt
-        fmul qword ptr ds:[0x007403F0]
-        fadd dword ptr [ecx + 0x14]
-        fld qword ptr ds:[0x007402B8]
-        fadd st(0), st(0)
-        mov eax, 0x006E95AA
-        call eax
-        mov ecx, turn
-        fst dword ptr [ecx + 0x14]
-        fsin
-        fadd qword ptr ds:[0x0073BAC8]
-        fmul qword ptr ds:[0x007403E8]
-        mov edx, colour
-        fld st(0)
-        fmul dword ptr [edx]
-        fmul dword ptr ds:[0x0073C370]
-        mov eax, 0x006E853C
-        call eax
-        mov r, eax
-        mov edx, colour
-        fld st(0)
-        fmul dword ptr [edx + 4]
-        fmul dword ptr ds:[0x0073C370]
-        mov eax, 0x006E853C
-        call eax
-        mov g, eax
-        mov edx, colour
-        fmul dword ptr [edx + 8]
-        fmul dword ptr ds:[0x0073C370]
-        mov eax, 0x006E853C
-        call eax
-        mov b, eax
-    }
+    const double advanced = static_cast<double>(dt) * GameDouble(0x007403F0) + turn->glow;
+    const double pi = GameDouble(0x007402B8);
+    const double phase = libcrt::CiFmod(advanced, pi + pi);
+    turn->glow = static_cast<float>(phase);
+    const double strength = (x87::fsin(phase) + GameDouble(0x0073BAC8)) * GameDouble(0x007403E8);
+    const auto channel = [&](int i) { return gamecrt::Ftol(strength * colour[i] * GameFloat(0x0073C370)); };
+    const std::uint32_t r = channel(0);
+    const std::uint32_t g = channel(1);
+    const std::uint32_t b = channel(2);
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
@@ -217,26 +170,13 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
         turn->speed = static_cast<float>((pi + pi - D(turn->angle)) * D(GameFloat(0x0073BAA0)));
     }
     if (turn->speed > GameFloat(0x007402EC)) std::memcpy(&turn->speed, reinterpret_cast<const void*>(0x007402EC), 4);
-    // The angle is stored (FST) and compared unrounded with 2 pi.
-    __asm {
-        mov ecx, turn
-        fld dt
-        fmul dword ptr [ecx + 0x0C]
-        fadd dword ptr [ecx + 0x08]
-        fst dword ptr [ecx + 0x08]
-        fcomp dword ptr ds:[0x007C7D20]
-        fnstsw ax
-        test ah, 0x41
-        jnz done
-    again:
-        fld dword ptr [ecx + 0x08]
-        fsub dword ptr ds:[0x007C7D20]
-        fst dword ptr [ecx + 0x08]
-        fcomp dword ptr ds:[0x007C7D20]
-        fnstsw ax
-        test ah, 0x41
-        jz again
-    done:
+    // The angle is stored (FST) and compared unrounded with 2 pi (FCOMP; TEST AH,0x41: wraps while
+    // above, not when equal or unordered).
+    double angle = static_cast<double>(dt) * turn->speed + turn->angle;
+    turn->angle = static_cast<float>(angle);
+    while (angle > GameFloat(0x007C7D20)) {
+        angle = static_cast<double>(turn->angle) - GameFloat(0x007C7D20);
+        turn->angle = static_cast<float>(angle);
     }
 }
 

@@ -72,13 +72,6 @@ static_assert(sizeof(PrototypeNamePair) == 0x10);
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
-// _CIacos (006E7320): argument and result in ST0.
-__declspec(naked) double __cdecl CIacos(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E7320
-    __asm call eax
-    __asm ret
-}
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
@@ -151,7 +144,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
         angle = worlddata::Zero();
     } else {
         float axisStored = static_cast<float>(axis);
-        angle = CIacos(rx);
+        angle = gamecrt::acos(rx);
         angle = angle + angle;
         double sign = worlddata::One() / x87::fsqrt(axisStored) * rw;
         if (!(sign >= worlddata::Zero())) angle = -angle;

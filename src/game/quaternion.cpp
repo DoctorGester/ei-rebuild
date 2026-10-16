@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
@@ -29,14 +30,6 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 #define EI_ZERO_D GameDouble(0x0073C340)       // 0.0
 #define EI_ONE_D GameDouble(0x0073BAC8)        // 1.0
 #define EI_SLERP_LINEAR GameDouble(0x0073D078) // 1e-4: below this 1 - cos interpolates linearly
-
-// _CIacos (006E7320): argument and result in ST0.
-__declspec(naked) double __cdecl CIacos(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E7320
-    __asm call eax
-    __asm ret
-}
 
 // FCOM: "a < b or unordered" (C0), as `TEST AH,1` reads it.
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
@@ -130,7 +123,7 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
         weightA = static_cast<float>(D(EI_ONE_F) - D(t));
         weightB = t;
     } else {
-        double angle = CIacos(stored);
+        double angle = gamecrt::acos(stored);
         double inverseSine = one / x87::fsin(angle);
         weightA = static_cast<float>(x87::fsin((one - D(t)) * angle) * inverseSine);
         weightB = x87::fsin(angle * D(t)) * inverseSine;

@@ -63,16 +63,6 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
-// FLD/FSTP copy of a float.
-void FpuCopy(void* dst, const void* src) {
-    __asm {
-        mov eax, src
-        fld dword ptr [eax]
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
-
 // An MFC CList of units, as the brain keeps them (CObList layout: vtable, head, tail, count, ...).
 using UnitList = mfc::CTypedPtrList<CUnit>;
 using UnitListNode = UnitList::Node;
@@ -289,7 +279,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     CResourceManager* items = player->Party()->ItemManager();
     auto* copy = static_cast<CItem*>(items->FindObject(link->value));
     if (!copy) return;
-    FpuCopy(&copy->charge_, &item->charge_);
+    x87::CopyFloat(&copy->charge_, &item->charge_);
     PlayerItemChanged(player, nullptr, copy);
 }
 EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);

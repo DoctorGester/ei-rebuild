@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "originals_units.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -33,15 +34,6 @@ __declspec(naked) void __fastcall CallPackStats(UnitStats*, void*, CUnit*, UnitP
 __declspec(naked) float __stdcall CallScaleHitPoints(CUnit*, float) EI_ORIGINAL(0x00523E00)
 
 namespace {
-// The game's _ftol (006E853C): truncation of ST0 to 64 bits, low dword in EAX.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 } // namespace
 
 int CUnit::Tick() {
@@ -155,8 +147,8 @@ void CUnit::SetFromStats(UnitStats* stats) {
     CallPackStats(stats, nullptr, this, Params());
     float curve = static_cast<float>(UnitStatsHitPointCurve(stats));
     float limit = CallScaleHitPoints(this, curve);
-    packedVitals.maxHitPoints = static_cast<std::int16_t>(GameFtol(limit));
-    packedVitals.hitPoints = static_cast<std::int16_t>(GameFtol(stats->Reduce(limit)));
+    packedVitals.maxHitPoints = static_cast<std::int16_t>(gamecrt::Ftol(limit));
+    packedVitals.hitPoints = static_cast<std::int16_t>(gamecrt::Ftol(stats->Reduce(limit)));
 }
 EI_REPLACE_METHOD(0x00532A20, CUnit::SetFromStats);
 

@@ -15,10 +15,9 @@
 // its grouping, as a suffix (DotZYX) or a `Sum3` template argument (TransformRow<Sum3::ZYX>); there
 // is no default. A 4-term transform adds the translation last.
 //
-// Evaluation. The helpers below the float_control line are compiled with precise semantics whatever
-// the including file's flags (the build is /fp:precise since SV7d1a; /fp:fast regrouped an inlined
-// sum with the caller's expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ...,
-// verify_vecmath.cpp caught it); precise keeps the grouping written here. Each
+// Evaluation. The build is /fp:precise (since SV7d1a; /fp:fast regrouped an inlined sum with the
+// caller's expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ..., verify_vecmath.cpp caught
+// it), so the grouping written here is kept (C12 removed the precise-on pragma: no codegen change). Each
 // helper's float results are rounded to float when returned (as an FSTP to a float would round
 // them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
 // float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,
@@ -113,7 +112,7 @@ static_assert(sizeof(MatrixRows) == 48);
 // The grouping of a 3-term sum (see the top of this file).
 enum class Sum3 { XYZ, ZYX, ZXY };
 
-// ---- Transcendentals (not under precise: the results stay unrounded) -----------------------------
+// ---- Transcendentals (the results stay unrounded) ------------------------------------------------
 
 // atan2(y, x) by FPATAN, unrounded (64-bit significand whatever the precision control).
 __forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
@@ -121,9 +120,7 @@ __forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
 __forceinline double Acos(double c) { return gamecrt::acos(c); }
 __forceinline double Asin(double s) { return gamecrt::asin(s); }
 
-// ---- Arithmetic (precise semantics: the grouping written here is kept) ----------------------------
-
-#pragma float_control(precise, on, push)
+// ---- Arithmetic (the grouping written here is kept) ----------------------------------------------
 
 // Vector2: per component; each component is one operation.
 __forceinline Vector2 operator+(const Vector2& a, const Vector2& b) { return {a.x + b.x, a.y + b.y}; }
@@ -321,8 +318,6 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
             (q.w * q.w - ((q.x * q.x + q.y * q.y) + q.z * q.z)) + q.z * q.z * 2.0f};
 }
 
-#pragma float_control(pop)
-
 // ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
 //
 // The original keeps many 2D differences and sums on the FPU stack and compares or uses the
@@ -333,6 +328,7 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 // (static_cast<double>(a.x) - b.x), `float` where it uses float locals. Only 2-term sums (one
 // result in every order), and the caller's expression may regroup around them as /fp:fast does with
 // written-out code: use them for a sum that is compared, stored or passed on as a whole.
+// Kept (C12): removing this pragma changes the code of 39 objects (the sums get rounded through memory).
 #pragma float_control(precise, off, push)
 
 // x * x + y * y.

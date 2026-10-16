@@ -155,29 +155,9 @@ struct MarkState {
 
 // passage * e^(table * a * b), stored to a float and rounded (FISTP), with the original's
 // FLDL2E / F2XM1 / FSCALE sequence.
-__declspec(naked) int __cdecl Damp(int /*table*/, float /*a*/, float /*b*/, int /*passage*/) {
-    __asm {
-        fild dword ptr [esp + 4]
-        fmul dword ptr [esp + 8]
-        fmul dword ptr [esp + 12]
-        fldl2e
-        fmulp st(1), st
-        fld st(0)
-        frndint
-        fxch st(1)
-        fsub st, st(1)
-        f2xm1
-        fld1
-        faddp st(1), st
-        fscale
-        fstp st(1)
-        fimul dword ptr [esp + 16]
-        fstp dword ptr [esp + 8]
-        fld dword ptr [esp + 8]
-        fistp dword ptr [esp + 12]
-        mov eax, dword ptr [esp + 12]
-        ret
-    }
+int Damp(int table, float a, float b, int passage) {
+    const float damped = static_cast<float>(x87::fexp(static_cast<double>(table) * a * b) * passage);
+    return x87::fistp(damped);
 }
 
 int TableInt(const int* table, int i) { return table[i]; }

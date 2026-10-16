@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "lib/crt.h"
 
 namespace {
 
@@ -44,16 +45,6 @@ IsaacRandom* Random() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
-
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;           // 0073D734
@@ -138,22 +129,8 @@ Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
     return r;
 }
 
-// A random rotation angle in [-1, 1) * WobbleAngle() / 12 (two of them build a wobble target).
-// A random word as the original loads it: FILD of the zero-extended qword, exact in ST0. (MSVC's
-// own unsigned-to-double is FILD dword plus 2^32, an FADD the FPU rounds to its precision: under
-// the game's 24-bit precision that changed words of 2^31 and up.)
-__declspec(naked) double __cdecl Exact(std::uint32_t) {
-    __asm {
-        push 0
-        push dword ptr [esp + 8]
-        fild qword ptr [esp]
-        add esp, 8
-        ret
-    }
-}
-
 float RandomTilt(std::uint32_t r) {
-    return static_cast<float>((Exact(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
+    return static_cast<float>((x87::FromUnsigned(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -207,7 +184,7 @@ void CHudPortraits::Update() {
         CEngineObject* flash = object(5);
         if (slot.flash_ > 0.0f) {
             Sprite(flash)->visible_ = 1;
-            int alpha = GameFtol(D(slot.flash_) * kFlashAlpha);
+            int alpha = static_cast<int>(gamecrt::Ftol(D(slot.flash_) * kFlashAlpha));
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
             Sprite(flash)->flatColour_ = colour;
         } else {
@@ -261,15 +238,15 @@ void CHudPortraits::Update() {
         Quaternion wobble = {1.0f, 0.0f, 0.0f, 0.0f};
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
             std::uint32_t roll = Random()->Next();
-            if (D(dt) * kWobbleRate > Exact(roll) * RandomScale32()) {
-                slot.wobbleTime_ = static_cast<float>(Exact(Random()->Next()) * RandomDelayScale());
+            if (D(dt) * kWobbleRate > x87::FromUnsigned(roll) * RandomScale32()) {
+                slot.wobbleTime_ = static_cast<float>(x87::FromUnsigned(Random()->Next()) * RandomDelayScale());
                 slot.wobbleKind_ = 3;
                 std::uint32_t r1 = Random()->Next();
                 std::uint32_t r2 = Random()->Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = static_cast<float>(Exact(Random()->Next()) * RandomScale31() + 1.0f);
+                slot.wobbleSpeed_ = static_cast<float>(x87::FromUnsigned(Random()->Next()) * RandomScale31() + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {

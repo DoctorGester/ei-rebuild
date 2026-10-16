@@ -487,19 +487,6 @@ std::uint32_t UnpackFloat16(std::uint16_t q) {
 } // namespace delta
 
 namespace {
-// FLD + FSTP of a float, as the original copies it before packing (a signalling NaN comes out
-// quiet). Returns the bits.
-__declspec(naked) std::uint32_t __cdecl FpuCopyBits(const float* /*value*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [eax]
-        push eax
-        fstp dword ptr [esp]
-        pop eax
-        ret
-    }
-}
-
 void StoreBits(float* out, std::uint32_t bits) { std::memcpy(out, &bits, sizeof(bits)); }
 } // namespace
 
@@ -515,7 +502,7 @@ EI_REPLACE_METHOD(0x0047F3D0, DeltaField::ReadFloat16);
 
 void DeltaField::WriteFloat16x3(const float* values) {
     for (int i = 0; i < 3; ++i) {
-        std::uint16_t h = delta::PackFloat16(FpuCopyBits(&values[i]));
+        std::uint16_t h = delta::PackFloat16(x87::LoadStoreBits(&values[i]));
         WriteDelta(&h, 2);
     }
 }

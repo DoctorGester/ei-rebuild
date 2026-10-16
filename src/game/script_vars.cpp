@@ -6,6 +6,7 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "ei/x87.h"
 
 #include <cstdint>
 
@@ -19,16 +20,6 @@ struct StringValues {
     void CopyTo(int index, mfc::CString* dst);
 };
 __declspec(naked) void StringValues::CopyTo(int, mfc::CString*) EI_ORIGINAL(0x004C2F80)
-
-// A float copy through the FPU, like the original's FLD/FSTP pair (not a plain dword move).
-void CopyFloat(float* dst, const float* src) {
-    __asm {
-        mov eax, src
-        fld dword ptr [eax]
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
 
 int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
@@ -183,7 +174,7 @@ void SSCCmd::SetParameters(const mfc::CArray<ScriptBinding>* bindings, ScriptVar
         const ScriptBinding& b = bindings->data[k];
         switch (b.type) {
         case kScriptFloat:
-            CopyFloat(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex]);
+            x87::CopyFloat(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex]);
             break;
         case kScriptString:
             reinterpret_cast<StringValues*>(&vars->strings)->CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);

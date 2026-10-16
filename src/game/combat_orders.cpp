@@ -39,16 +39,6 @@ constexpr int kMessageCannotCast = 0x13;
 
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
 
-// FLD/FSTP copy of a float.
-void FpuCopy(void* dst, const void* src) {
-    __asm {
-        mov eax, src
-        fld dword ptr [eax]
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
-
 AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
 
 // The prototype records behind a spell and a unit.
@@ -136,7 +126,7 @@ void CUnitServer::FinishCast() {
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
         float capped = LessOrUnordered(left, maximum) ? left : maximum;
         float result = LessOrUnordered(kZero, capped) ? capped : kZero;
-        FpuCopy(mana, &result);
+        x87::CopyFloat(mana, &result);
         (*reinterpret_cast<CUnit**>(server + 0x1C))->MarkChanged(0);
         unit->MarkChanged(0);
     }

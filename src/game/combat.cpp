@@ -112,32 +112,11 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// FLD/FSTP copy of a float (the original copies these through the FPU).
-void FpuCopy(void* dst, const void* src) {
-    __asm {
-        mov eax, src
-        fld dword ptr [eax]
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
-
 // A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
 // the range) and +0x40 (+0x18, the mana cost).
 float SpellDamage(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->damage_); }
 float SpellRange(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->range_); }
 float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
-
-// The game's _ftol (006E853C): truncation; out-of-range values keep the low 32 bits of the
-// 64-bit result (unlike the modern CRT's conversion).
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 } // namespace
@@ -234,7 +213,7 @@ int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     if (kind != 3) return 0;
     int value;
     if (item) value = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype())->category);
-    else value = GameFtol(Combat().attackCategory);
+    else value = static_cast<int>(gamecrt::Ftol(Combat().attackCategory));
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
 }
@@ -268,7 +247,7 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, std::int16_t* out) {
     void* spell = SpellOfSource(source);
     std::memset(out, 0, 16);
     if (spell) {
-        auto value = static_cast<std::int16_t>(GameFtol(SpellDamage(spell)));
+        auto value = static_cast<std::int16_t>(gamecrt::Ftol(SpellDamage(spell)));
         int type = static_cast<CSpell*>(spell)->GetDamageType();
         out[1 + type] = value;
     }
@@ -454,20 +433,8 @@ int CUnitServer::Level() {
     float experience = Combat().experience;
     float base = Global7C5488();
     float step = Global7C548C();
-    float ratio;
     // ln(experience / base) / ln(step), as FYL2X with FLDLN2, rounded to float, then FISTP.
-    __asm {
-        fld experience
-        fdiv base
-        fldln2
-        fxch st(1)
-        fyl2x
-        fldln2
-        fld step
-        fyl2x
-        fdivp st(1), st
-        fstp ratio
-    }
+    const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);
 }
 EI_REPLACE_METHOD(0x00556760, CUnitServer::Level);
@@ -483,23 +450,23 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     int keyed = IsTextKey(self->id_) & 0xFF;
     CItemWeapon* weapon = ActiveWeapon(self);
     if (keyed && weapon) {
-        FpuCopy(&out->damageMin, &weapon->damage_);
+        x87::CopyFloat(&out->damageMin, &weapon->damage_);
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
-        FpuCopy(&out->speed, &weapon->weight_);
+        x87::CopyFloat(&out->speed, &weapon->weight_);
         float base = WeaponStat84(weapon->prototypeId_);
         double bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
-        out->attack = GameFtol(bonus + base);
+        out->attack = static_cast<int>(gamecrt::Ftol(bonus + base));
         base = WeaponStat88(weapon->prototypeId_);
         bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
-        out->defence = GameFtol(bonus + base);
+        out->defence = static_cast<int>(gamecrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
         std::memcpy(&out->damageMin, &Combat().damage, sizeof(float));
         out->damageMax = Combat().damageSpread + Combat().damage;
-        out->attack = GameFtol(Combat().attack);
-        out->defence = GameFtol(Combat().defence);
+        out->attack = static_cast<int>(gamecrt::Ftol(Combat().attack));
+        out->defence = static_cast<int>(gamecrt::Ftol(Combat().defence));
         std::memcpy(&out->speed, &Combat().speed, sizeof(float));
         if (weapon) {
             out->weaponType = weapon->GetType();
@@ -587,7 +554,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue_;
-        int sides = GameFtol(kFive);
+        int sides = static_cast<int>(gamecrt::Ftol(kFive));
         int drawn = gamecrt::rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;

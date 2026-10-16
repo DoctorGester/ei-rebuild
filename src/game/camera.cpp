@@ -18,6 +18,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -60,32 +61,6 @@ float ClampToMap(float v, float last) {
     float low = !(v >= 0.0f) ? 0.0f : v;
     float limit = static_cast<float>(last - 1.0f);
     return !(limit >= low) ? limit : low;
-}
-
-// The CRT's x87 helper functions (CIacos, CIpow: originals_library.h); atan2 and e^x as the original inlines them.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm fpatan
-    __asm ret
-}
-// e^x the way the original inlines it: 2^(x log2 e) through FRNDINT / F2XM1 / FSCALE.
-__declspec(naked) double __cdecl Exp(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fldl2e
-        fmulp st(1), st
-        fld st(0)
-        frndint
-        fxch st(1)
-        fsub st, st(1)
-        f2xm1
-        fld1
-        faddp st(1), st
-        fscale
-        fstp st(1)
-        ret
-    }
 }
 
 // Moves `rate` towards `target` by (target - rate) * response * dt; snaps to the target when the
@@ -284,7 +259,7 @@ void CCamera::ApplyView() {
     // Lifted over an object: aim back down at the focus.
     double dz = D(localPosition_.z) - focus_.z;
     double across = Hypot(D(localPosition_.x) - focus_.x, D(localPosition_.y) - focus_.y);
-    double angle = Fpatan(dz, across);
+    double angle = x87::fpatan(dz, across);
     std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
     const Quaternion s = localRotation_;
     Vector3 axis;
@@ -462,7 +437,7 @@ void CCamera::Update(float dt) {
     if (shakes_->next == shakes_) return;
     float offset = 0.0f;
     for (CameraShake* s = shakes_->next; s != shakes_;) {
-        double damping = Exp(-(D(s->decay) * s->elapsed));
+        double damping = x87::fexp(-(D(s->decay) * s->elapsed));
         double wave = x87::fcos(D(camera::ClockFloat()) * s->elapsed * kShakeFrequency);
         offset = static_cast<float>(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
@@ -529,7 +504,7 @@ void CCamera::ViewsToSettings(CameraSettings* settings) {
         double sum = LengthSquaredUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z);
         float sumF = static_cast<float>(sum);
         if (sum > kAxisTiny) {
-            double angle = CIacos(q.w);
+            double angle = gamecrt::acos(q.w);
             angle = angle + angle;
             double inv = 1.0 / x87::fsqrt(sumF);
             float invF = static_cast<float>(inv);

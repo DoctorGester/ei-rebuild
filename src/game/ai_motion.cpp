@@ -27,14 +27,6 @@ __declspec(naked) void __fastcall StepSpeedsSetAtGrow(mfc::CArray<float>*, void*
 __declspec(naked) void __fastcall PointsSetSize(mfc::CArray<MotionPoint>*, void*, int, int) EI_ORIGINAL(0x005C8560)
 __declspec(naked) void __fastcall WaypointsSetSize(mfc::CArray<MotionWaypoint>*, void*, int, int) EI_ORIGINAL(0x005C86B0)
 
-// FPATAN: atan2(y, x), unrounded.
-__declspec(naked) double __cdecl Fpatan(double, double) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm fpatan
-    __asm ret
-}
-
 // x87 FCOM followed by TEST AH,0x40: "equal", which unordered (NaN) operands also are.
 bool Equal(double a, double b) { return !(a < b) && !(a > b); }
 
@@ -131,7 +123,7 @@ bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) 
     double dx = direction->x;
     float dy = direction->y;
     double length = x87::fsqrt(LengthSquared2DUnrounded<double>(dy, dx));
-    double angle = length > 0.0 ? Fpatan(dy / length, dx / length) : 0.0;
+    double angle = length > 0.0 ? x87::fpatan(dy / length, dx / length) : 0.0;
     double x = kHalfCellScale * position->x;
     float y = static_cast<float>(kHalfCellScale * position->y);
     bool same = order->kind == 0 && Equal(order->angle, angle) && Equal(x, order->x) && Equal(order->y, y);
@@ -148,7 +140,7 @@ EI_REPLACE_METHOD(0x005C7B00, AIPath::Start);
 void AIPath::SetTurn(const Vector3* direction, float rate) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
-    float angle = static_cast<float>(Fpatan(direction->y, direction->x));
+    float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
     std::memcpy(&order->arg6, &rate, sizeof(rate));
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
@@ -167,7 +159,7 @@ void AIPath::SetTurnUntil(const Vector3* direction, int arg6, int arg7) {
     MotionOrder* order = OrderOf(this);
     order->kind = 4;
     order->arg7 = static_cast<std::uint32_t>(arg7);
-    float angle = static_cast<float>(Fpatan(direction->y, direction->x));
+    float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
     order->arg6 = static_cast<std::uint32_t>(arg6);
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
@@ -316,7 +308,7 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         int to = static_cast<int>(order->arg7);
         if (static_cast<double>(to) > time && to != order->startTime) {
             // Still turning towards it: interpolate the facing over [start, to].
-            double angleTo = Fpatan(ty - order->y, static_cast<double>(tx) - order->x) - order->angle;
+            double angleTo = x87::fpatan(ty - order->y, static_cast<double>(tx) - order->x) - order->angle;
             const double twoPi = static_cast<double>(kPi) + kPi;
             while (angleTo > kPi) angleTo = angleTo - twoPi;
             const float negPi = -kPi;
@@ -487,7 +479,7 @@ void UnitMotion::Build(AIPath* path) {
         }
         if (!Equal(rate, 0.0)) turnRate = rate;
         else turnRate = baseTurnRate;
-        NormalizeTurn(this, Fpatan(s, cf) - startAngle);
+        NormalizeTurn(this, x87::fpatan(s, cf) - startAngle);
         return;
     }
     case 4: {
@@ -499,7 +491,7 @@ void UnitMotion::Build(AIPath* path) {
             return;
         }
         turnRate = baseTurnRate;
-        NormalizeTurn(this, Fpatan(s, c) - startAngle);
+        NormalizeTurn(this, x87::fpatan(s, c) - startAngle);
         return;
     }
     default:
@@ -583,7 +575,7 @@ void UnitMotion::Build(AIPath* path) {
 
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
     MotionPoint* p = points.data;
-    if (x87::fcos(Fpatan(p->dirY, p->dirX) - startAngle) > 0.9) {
+    if (x87::fcos(x87::fpatan(p->dirY, p->dirX) - startAngle) > 0.9) {
         turn = 0.0f;
         p->dirX = static_cast<float>(x87::fcos(startAngle));
         points.data->dirY = static_cast<float>(x87::fsin(startAngle));
@@ -595,7 +587,7 @@ void UnitMotion::Build(AIPath* path) {
         AssignCells(path);
         return;
     }
-    double angle = Fpatan(p->dirY, p->dirX);
+    double angle = x87::fpatan(p->dirY, p->dirX);
     turnRate = baseTurnRate;
     NormalizeTurn(this, angle - startAngle);
     AssignCells(path);
@@ -680,8 +672,8 @@ void UnitMotion::LimitSpeeds(float rate) {
     const double twoPi = static_cast<double>(kPi) + kPi;
     for (int i = 0; i < points.size - 1; ++i) {
         MotionPoint* p = &points.data[i];
-        double a1 = Fpatan(p[0].dirY, p[0].dirX);
-        double a2 = Fpatan(p[1].dirY, p[1].dirX);
+        double a1 = x87::fpatan(p[0].dirY, p[0].dirX);
+        double a2 = x87::fpatan(p[1].dirY, p[1].dirX);
         double angle = AbsBits(static_cast<float>(a1 - a2));
         while (angle > twoPi) angle = angle - twoPi;
         if (angle > kPi) angle = twoPi - angle;

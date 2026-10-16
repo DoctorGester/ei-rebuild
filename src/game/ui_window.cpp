@@ -12,6 +12,7 @@
 #include "ui_widescreen.h"
 #include "originals_units.h"
 #include "originals_render.h"
+#include "ei/x87.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -423,15 +424,6 @@ void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { Figure
 double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
 void __fastcall SetSpriteScale(void* a0, void*, float a2) { SpriteSetScaleOriginal(a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 
-// FLD / FSTP of a float field (as the original copies +0xCC and +0xD0).
-void CopyFloat(void* to, const void* from) {
-    __asm {
-        mov eax, from
-        mov ecx, to
-        fld dword ptr [eax]
-        fstp dword ptr [ecx]
-    }
-}
 } // namespace
 
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
@@ -446,8 +438,8 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         sprite->material_ = blackMaterial_;
         sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
         std::memcpy(&sprite->localPosition_, &old->localPosition_, 12);
-        CopyFloat(&sprite->textureOffsetU_, &old->textureOffsetU_);
-        CopyFloat(&sprite->textureOffsetV_, &old->textureOffsetV_);
+        x87::CopyFloat(&sprite->textureOffsetU_, &old->textureOffsetU_);
+        x87::CopyFloat(&sprite->textureOffsetV_, &old->textureOffsetV_);
         std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
         sprite->texture_ = old->texture_;
         float scale = static_cast<float>(SpriteScale(old));

@@ -37,15 +37,8 @@ __declspec(naked) int __fastcall ProjectBlocks(CTransformPipeline*, void*, const
 // The pipeline's screen stack (1; the projection uses it or the clip stack 2, which get the same pushes).
 constexpr int kScreenStack = 1;
 
-// *z = *scale * *z (FLD scale, FMUL z, FSTP). __fastcall.
-__declspec(naked) void __fastcall ScaleZ(float* /*z*/, const float* /*scale*/) {
-    __asm {
-        fld dword ptr [edx]
-        fmul dword ptr [ecx]
-        fstp dword ptr [ecx]
-        ret
-    }
-}
+// *z = *scale * *z (FLD scale, FMUL z, FSTP).
+void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
 
 // FCOMP with 1.0 (0073B84C) and C3: equal, or unordered.
 bool OneOrNaN(const float* v) {

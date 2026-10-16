@@ -50,16 +50,6 @@ void ReleaseRef(CEngineObject*& ref) {
 
 int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
-// Copies a float through FLD/FSTP as the original does (a signalling NaN would be quietened).
-void FpuCopy(float* dst, const float* src) {
-    __asm {
-        mov eax, src
-        mov ecx, dst
-        fld dword ptr [eax]
-        fstp dword ptr [ecx]
-    }
-}
-
 template <typename T>
 void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
 
@@ -395,8 +385,8 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         return value;
     }
     level = brain->noticedLevel;
-    FpuCopy(&point.x, &brain->noticedX);
-    FpuCopy(&point.y, &brain->noticedY);
+    x87::CopyFloat(&point.x, &brain->noticedX);
+    x87::CopyFloat(&point.y, &brain->noticedY);
     point.z = 0.0f;
     return level;
 }

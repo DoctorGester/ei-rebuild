@@ -12,6 +12,7 @@
 #include "lib/containers.h"
 #include "ei/hook.h"
 #include "world_data.h"
+#include "ei/x87.h"
 
 #include <cstdint>
 #include <cstring>
@@ -85,94 +86,31 @@ void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
 
 // --- Points on a circle, as the original computes them on the FPU ------------------------------------
 // The angle of point j of n is (j * pi + j * pi) / n (FILD, FMUL float pi, FADD ST0,ST0, FDIV of
-// the FILD'd n), never stored.
+// the FILD'd n), never stored. The FCOS / FSIN result is used unrounded in the same expression.
+
+double CircleAngle(int j, int n) {
+    const double turn = static_cast<double>(j) * *reinterpret_cast<const float*>(0x00740154);
+    return (turn + turn) / n;
+}
 
 // cos or sin of the angle, times the float at `factor`, divided by the float at `divisor`; stored as float.
 float CircleScaled(int j, int n, bool sine, const float* factor, const float* divisor) {
-    float result;
-    __asm {
-        fild n
-        fild j
-        fmul dword ptr ds:[0x00740154]
-        fadd st(0), st(0)
-        fdiv st(0), st(1)
-        fstp st(1)
-        cmp sine, 0
-        jne take_sine
-        fcos
-        jmp scaled
-    take_sine:
-        fsin
-    scaled:
-        mov eax, factor
-        fmul dword ptr [eax]
-        mov eax, divisor
-        fdiv dword ptr [eax]
-        fstp result
-    }
-    return result;
+    const double angle = CircleAngle(j, n);
+    return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * *factor / *divisor);
 }
-// The same with (the float at `r` - the float at `w`) as the factor, computed on the FPU.
+// The same with (the float at `r` - the float at `w`) as the factor, computed unrounded.
 float CircleScaledInner(int j, int n, bool sine, const float* r, const float* w, const float* divisor) {
-    float result;
-    __asm {
-        mov eax, r
-        fld dword ptr [eax]
-        mov eax, w
-        fsub dword ptr [eax]
-        fild n
-        fild j
-        fmul dword ptr ds:[0x00740154]
-        fadd st(0), st(0)
-        fdiv st(0), st(1)
-        fstp st(1)
-        cmp sine, 0
-        jne take_sine
-        fcos
-        jmp scaled
-    take_sine:
-        fsin
-    scaled:
-        fmul st(0), st(1)
-        fstp st(1)
-        mov eax, divisor
-        fdiv dword ptr [eax]
-        fstp result
-    }
-    return result;
+    const double factor = static_cast<double>(*r) - *w;
+    const double angle = CircleAngle(j, n);
+    return static_cast<float>((sine ? x87::fsin(angle) : x87::fcos(angle)) * factor / *divisor);
 }
 // A texture coordinate on the circle of radius R around c (integers): (cos * R + c) / 256, or for v
-// 1 - (sin * R + c) / 256.
+// 1 - (sin * R + c) / 256 (the scale is the float at 0073EEB8, the one the float at 0073B84C).
 float CircleTexel(int j, int n, bool sine, int radius, int centre) {
-    float result;
-    __asm {
-        fild centre
-        fild radius
-        fild n
-        fild j
-        fmul dword ptr ds:[0x00740154]
-        fadd st(0), st(0)
-        fdiv st(0), st(1)
-        fstp st(1)
-        cmp sine, 0
-        jne take_sine
-        fcos
-        fmul st(0), st(1)
-        fadd st(0), st(2)
-        fmul dword ptr ds:[0x0073EEB8]
-        jmp done
-    take_sine:
-        fsin
-        fmul st(0), st(1)
-        fadd st(0), st(2)
-        fmul dword ptr ds:[0x0073EEB8]
-        fsubr dword ptr ds:[0x0073B84C]
-    done:
-        fstp result
-        fstp st(0)
-        fstp st(0)
-    }
-    return result;
+    const double angle = CircleAngle(j, n);
+    const double scale = *reinterpret_cast<const float*>(0x0073EEB8);
+    if (!sine) return static_cast<float>((x87::fcos(angle) * radius + centre) * scale);
+    return static_cast<float>(*reinterpret_cast<const float*>(0x0073B84C) - (x87::fsin(angle) * radius + centre) * scale);
 }
 
 } // namespace

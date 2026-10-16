@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "lib/crt.h"
+#include "world.h"
 
 namespace {
 
@@ -56,17 +58,8 @@ constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, t
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod 006E95AA), stored.
 float TimeOfDay() {
-    float result;
-    __asm {
-        fild dword ptr ds:[0x007AF61C]
-        fmul dword ptr ds:[0x007AF5D8]
-        fadd dword ptr ds:[0x007AF5D4]
-        fld qword ptr ds:[0x0073D108]
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
+    const CWorldClient* world = GameClientWorld();
+    return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
@@ -93,16 +86,6 @@ std::uint32_t Bits(float f) {
     std::uint32_t u;
     std::memcpy(&u, &f, sizeof(u));
     return u;
-}
-
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
 }
 
 } // namespace
@@ -212,7 +195,7 @@ void CHudTopPanel::Update() {
             double r2 = r * r;
             eased = 1.0f - (r2 + r2);
         }
-        offset_ = GameFtol(static_cast<double>(travel_) * eased);
+        offset_ = static_cast<int>(gamecrt::Ftol(static_cast<double>(travel_) * eased));
         if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f || x87::IsNaN(slide_)) sliding_ = 0;
         CallLayout();
         CEngineObject* sling = sceneObjects_.data[2];

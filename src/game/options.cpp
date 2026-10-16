@@ -9,6 +9,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "ei/x87.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -89,57 +90,23 @@ constexpr std::uint32_t kCurrentUser = 0x80000001;   // HKEY_CURRENT_USER
 constexpr std::uintptr_t kTimes255 = 0x0073C370;     // float 255
 constexpr std::uintptr_t kOver255 = 0x0073C36C;      // float 1/255
 
+float FloatAt(const void* p) { return *static_cast<const float*>(p); }
+float FloatAt(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+
 // _ftol(*value * *factor): the product rounded only by the FPU's precision, then truncated by the
 // game's _ftol (006E853C).
-__declspec(naked) int __cdecl FtolProduct(const void* /*value*/, std::uintptr_t /*factor*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [eax]
-        mov eax, dword ptr [esp + 8]
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
+int FtolProduct(const void* value, std::uintptr_t factor) {
+    return static_cast<int>(gamecrt::Ftol(static_cast<double>(FloatAt(value)) * FloatAt(factor)));
 }
 // _ftol(*value).
-__declspec(naked) int __cdecl Ftol(const void* /*value*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
+int Ftol(const void* value) { return static_cast<int>(gamecrt::Ftol(FloatAt(value))); }
 // *out = float(FILD of `value` as an unsigned 64-bit integer, times *factor): the product rounded
 // by the FPU's precision, then once to float by FSTP.
-__declspec(naked) void __cdecl StoreUnsignedProduct(void* /*out*/, std::uint32_t /*value*/, std::uintptr_t /*factor*/) {
-    __asm {
-        push 0
-        push dword ptr [esp + 0xC]
-        fild qword ptr [esp]
-        add esp, 8
-        mov eax, dword ptr [esp + 0xC]
-        fmul dword ptr [eax]
-        mov eax, dword ptr [esp + 4]
-        fstp dword ptr [eax]
-        ret
-    }
+void StoreUnsignedProduct(void* out, std::uint32_t value, std::uintptr_t factor) {
+    *static_cast<float*>(out) = static_cast<float>(x87::FromUnsigned(value) * FloatAt(factor));
 }
 // *out = float(FILD of `value` as an unsigned 64-bit integer).
-__declspec(naked) void __cdecl StoreUnsigned(void* /*out*/, std::uint32_t /*value*/) {
-    __asm {
-        push 0
-        push dword ptr [esp + 0xC]
-        fild qword ptr [esp]
-        add esp, 8
-        mov eax, dword ptr [esp + 4]
-        fstp dword ptr [eax]
-        ret
-    }
-}
-
+void StoreUnsigned(void* out, std::uint32_t value) { *static_cast<float*>(out) = static_cast<float>(x87::FromUnsigned(value)); }
 
 enum Kind { kInt, kDword, kFloat };
 

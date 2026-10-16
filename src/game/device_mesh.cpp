@@ -93,17 +93,8 @@ bool ZeroOrNaN(const float* value) {
     return (bits & 0x7FFFFFFFu) == 0 || ((bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0);
 }
 
-// *out = *offset + *value: FLD the offset, FADD the coordinate, FSTP (the operand order decides
-// which NaN comes out when both are NaNs).
-__declspec(naked) void __fastcall AddOffset(const float* /*offset*/, const float* /*value*/, float* /*out*/) {
-    __asm {
-        fld dword ptr [ecx]
-        fadd dword ptr [edx]
-        mov eax, dword ptr [esp + 4]
-        fstp dword ptr [eax]
-        ret 4
-    }
-}
+// *out = *offset + *value: FLD the offset, FADD the coordinate, FSTP.
+void AddOffset(const float* offset, const float* value, float* out) { *out = *offset + *value; }
 
 // --- The steps -----------------------------------------------------------------------------------
 

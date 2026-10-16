@@ -249,16 +249,6 @@ const char* NoCarrierMessage() { return reinterpret_cast<const char*>(0x0078AFA4
 // 0044C470: the game's debug message (cdecl, one argument).
 void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
 
-// The game's _ftol (006E853C): truncation.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 float AbsBits(float f) {
     std::uint32_t bits;
     std::memcpy(&bits, &f, sizeof(bits));
@@ -398,7 +388,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
             DebugMessage(NoCarrierMessage());
             return 0;
         }
-        int count = GameFtol(D(AbsBits(size)) * D(EI_TEN));
+        int count = static_cast<int>(gamecrt::Ftol(D(AbsBits(size)) * D(EI_TEN)));
         if (count < 1) count = 1;
         SetElementCount(this, count);
         PlaceModifierPoints(this);
@@ -621,7 +611,7 @@ int CParticleSource::UpdatePortal(Particle* p) {
 EI_REPLACE_METHOD(0x00494770, CParticleSource::UpdatePortal);
 
 // 00494930. Portal: |size| * 10 tries per tick (truncated by the game's _ftol).
-void CParticleSource::TickPortal(ParticleElement*) { emitCount = GameFtol(D(size) * D(EI_TEN)); }
+void CParticleSource::TickPortal(ParticleElement*) { emitCount = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_TEN))); }
 EI_REPLACE_METHOD(0x00494930, CParticleSource::TickPortal);
 
 // 00494CD0. Sparks: the spare ones (state set) get a random size once and are dropped after; the

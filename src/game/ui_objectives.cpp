@@ -55,16 +55,6 @@ float AbsBits(float f) {
 }
 
 
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 // --- Game data ----------------------------------------------------------------------------------
 
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map
@@ -278,8 +268,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     float heightShare = static_cast<float>(D(height) / D(larger));
     float halfHeight = static_cast<float>(D(heightShare) * kPictureHalf);
     float halfWidth = static_cast<float>(widthShare * kPictureHalf);
-    int u1 = GameFtol(widthShare * kTexels);
-    int v0 = GameFtol((1.0f - D(heightShare)) * kTexels);
+    int u1 = static_cast<int>(gamecrt::Ftol(widthShare * kTexels));
+    int v0 = static_cast<int>(gamecrt::Ftol((1.0f - D(heightShare)) * kTexels));
     CUiMesh* picture = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3]);
     picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
                           static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
@@ -351,10 +341,10 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale_ = static_cast<float>(SpriteScaleOriginal(marker));   // the sprite's scale (005E70B0, left in ST0)
         RECT rect;
-        rect.left = GameFtol(D(x) - kExitHalf);
-        rect.top = GameFtol(D(y) - kExitHalf);
-        rect.right = GameFtol(D(x) + kExitHalf);
-        rect.bottom = GameFtol(D(y) + kExitHalf);
+        rect.left = static_cast<int>(gamecrt::Ftol(D(x) - kExitHalf));
+        rect.top = static_cast<int>(gamecrt::Ftol(D(y) - kExitHalf));
+        rect.right = static_cast<int>(gamecrt::Ftol(D(x) + kExitHalf));
+        rect.bottom = static_cast<int>(gamecrt::Ftol(D(y) + kExitHalf));
         CUiRegion* region = AddRegion();
         region->SetTip(0x138EE, 1, 0);
         // The marker points away from the picture's centre: sideways or up/down by the larger
@@ -525,12 +515,12 @@ void CObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += game::Text(0x007946EC);
         if (experience > 0.0f) {   // 0073B858
-            part.Format(game::Text(0x007946E4), static_cast<const char*>(costExp), GameFtol(D(experience)));   // "%s %d\n"
+            part.Format(game::Text(0x007946E4), static_cast<const char*>(costExp), static_cast<int>(gamecrt::Ftol(D(experience))));   // "%s %d\n"
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part.Format(game::Text(0x007946E4), static_cast<const char*>(costMoney), GameFtol(D(money)));
+            part.Format(game::Text(0x007946E4), static_cast<const char*>(costMoney), static_cast<int>(gamecrt::Ftol(D(money))));
             text += part;
         }
     }
@@ -541,7 +531,7 @@ void CObjectivesWindow::ShowQuest() {
         if (!SameText(fields[0], game::Text(0x007946D4))) continue;  // "#subobj"
         variable.Format(game::Text(0x007946C8), shownZone_, static_cast<const char*>((*quests)[selectedQuest_]),
                         static_cast<const char*>(fields[1]));   // "q.%s.%s.%s"
-        int state = GameFtol(D(LocalPlayerVariable(variable)));
+        int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
         text += game::Text(0x0079349C);
@@ -586,10 +576,10 @@ void CObjectivesWindow::ShowQuest() {
         SetSpriteTexture(marker, objects_.data[1]);
         std::memcpy(marker->tint_, red, sizeof(red));
         CUiRegion* region = AddRegion();
-        int bottomPixel = GameFtol(D(bottom));
-        int rightPixel = GameFtol(D(right));
-        int topPixel = GameFtol(D(top));
-        int leftPixel = GameFtol(D(left));
+        int bottomPixel = static_cast<int>(gamecrt::Ftol(D(bottom)));
+        int rightPixel = static_cast<int>(gamecrt::Ftol(D(right)));
+        int topPixel = static_cast<int>(gamecrt::Ftol(D(top)));
+        int leftPixel = static_cast<int>(gamecrt::Ftol(D(left)));
         region->CallSetRect(leftPixel, topPixel, rightPixel, bottomPixel);
         region->SetTip(0x138F0, 1, 0);
     }

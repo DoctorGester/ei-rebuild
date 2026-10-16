@@ -68,24 +68,11 @@ struct CombatInfo {
 static_assert(sizeof(CombatInfo) == 0x20);
 constexpr int kCombatInfoSlot = 50;
 
-// The speed shown: (00742408 * speed) * 00742AEC on the FPU, the speed from 0052FAF0 (mode 3) for
-// a unit outside the group, else from 0052FA20 (`unit` in ECX, the flag in EDX).
-__declspec(naked) double __fastcall ShownSpeed(void* /*unit*/, int /*outsideGroup*/) {
-    __asm {
-        test edx, edx
-        je in_group
-        push 3
-        call MoveSpeedFor
-        jmp scale
-    in_group:
-        call MoveSpeed
-    scale:
-        fld dword ptr ds:[0x00742408]
-        fmul st, st(1)
-        fmul dword ptr ds:[0x00742AEC]
-        fstp st(1)
-        ret
-    }
+// The speed shown: (00742408 * speed) * 00742AEC unrounded, the speed from 0052FAF0 (mode 3) for a
+// unit outside the group, else from 0052FA20.
+double ShownSpeed(void* unit, int outsideGroup) {
+    const double speed = outsideGroup ? MoveSpeedFor(unit, nullptr, 3) : MoveSpeed(unit);
+    return static_cast<double>(*reinterpret_cast<const float*>(0x00742408)) * speed * *reinterpret_cast<const float*>(0x00742AEC);
 }
 
 struct Panel {

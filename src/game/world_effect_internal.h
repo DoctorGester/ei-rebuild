@@ -66,16 +66,6 @@ inline int IsMoving(const Vector3& v) {
     return EqualsZeroOrNaN(v.x) && EqualsZeroOrNaN(v.y) && EqualsZeroOrNaN(v.z) ? 0 : 1;
 }
 
-// A float copied with FLD / FSTP (a signalling NaN becomes quiet), as the original copies some.
-inline void CopyThroughFpu(float* to, const float* from) {
-    __asm {
-        mov eax, from
-        mov ecx, to
-        fld dword ptr [eax]
-        fstp dword ptr [ecx]
-    }
-}
-
 // `min(value, 1.0)` the way the scorch code selects it: the value when it compares below 1.0 or
 // is NaN (FCOMP sets C0), else 1.0. Works on the bits.
 inline std::uint32_t BelowOneOrOne(const float& value) {

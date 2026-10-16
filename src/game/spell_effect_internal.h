@@ -23,6 +23,8 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "originals_library.h"
+#include "ei/x87.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <cstring>
@@ -112,377 +114,143 @@ __declspec(naked) inline bool __fastcall AiMapPassableWithoutSelf(void*, void*, 
 inline void __fastcall ControllerReposition(void* a0) { ControllerRepositionOriginal(a0); }
 
 // --- x87 sequences ------------------------------------------------------------------------------
+// Plain C++ in the x87 order: double intermediates are the original's unrounded register values.
 
-// The spell's power factor, repeated inline about twenty times in the original: 1 when the
-// prototype's effect (+0x2C) compares equal to 0 (or is NaN), else
-// pow(min(max(damage / effect, 1), 8), 0.33) - 0.2 written as FYL2X / F2XM1 / FSCALE. The two
-// clamps select the float bits on C0 (1 < r or unordered; r < 8 or unordered), the first one
-// stored and reloaded. ECX = &damage, EDX = &prototype effect; the factor is left in ST0.
-// ClampPowCore is the part after the ratio: ECX = &ratio (a float).
-__declspec(naked) inline void ClampPowCore() {
-    __asm {
-        sub esp, 8
-        mov eax, dword ptr [ecx]
-        mov dword ptr [esp], eax
-        mov dword ptr [esp + 4], 3F800000h
-        fld dword ptr [esp + 4]
-        fcomp dword ptr [esp]
-        fnstsw ax
-        mov ecx, dword ptr [esp]
-        shl eax, 17h
-        sar eax, 1Fh
-        and ecx, eax
-        not eax
-        and eax, dword ptr [esp + 4]
-        or eax, ecx
-        mov dword ptr [esp + 4], eax
-        fld dword ptr [esp + 4]
-        fstp dword ptr [esp]
-        mov dword ptr [esp + 4], 41000000h
-        fld dword ptr [esp]
-        fcomp dword ptr [esp + 4]
-        fnstsw ax
-        mov ecx, dword ptr [esp]
-        shl eax, 17h
-        sar eax, 1Fh
-        and ecx, eax
-        not eax
-        and eax, dword ptr [esp + 4]
-        or eax, ecx
-        mov dword ptr [esp + 4], eax
-        fld dword ptr [esp + 4]
-        fldln2
-        fxch st(1)
-        fyl2x
-        fmul qword ptr ds:[007439A8h]
-        fldl2e
-        fmulp st(1), st
-        fld st(0)
-        frndint
-        fxch st(1)
-        fsub st, st(1)
-        f2xm1
-        fld1
-        faddp st(1), st
-        fscale
-        fstp st(1)
-        fsub qword ptr ds:[0073CCD0h]
-        add esp, 8
-        ret
-    }
+inline float GameConst(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+inline double GameConstDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
+
+// The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the
+// original as FYL2X / F2XM1 / FSCALE (x87::flog, x87::fexp; the logarithm is used unrounded). The
+// two clamps select the float bits on C0 (1 < r or unordered; r < 8 or unordered), the first one
+// stored and reloaded (FLD / FSTP).
+inline double ClampPow(float ratio) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &ratio, sizeof(bits));
+    const std::uint32_t lowBits = x87::LoadStoreBits(!(ratio <= 1.0f) ? bits : 0x3F800000u);
+    float low;
+    std::memcpy(&low, &lowBits, sizeof(low));
+    const float clamped = !(low >= 8.0f) ? low : 8.0f;
+    return x87::fexp(x87::flog(clamped) * GameConstDouble(0x007439A8)) - GameConstDouble(0x0073CCD0);
 }
 
-__declspec(naked) inline void PowerCore() {
-    __asm {
-        fld dword ptr [edx]
-        fcom dword ptr ds:[0073B858h]
-        fnstsw ax
-        test ah, 40h
-        jz ratio
-        fstp st(0)
-        fld dword ptr ds:[0073B84Ch]
-        ret
-    ratio:
-        fld dword ptr [ecx]
-        fdiv st, st(1)
-        push ecx
-        fstp dword ptr [esp]
-        fstp st(0)
-        mov ecx, esp
-        call ClampPowCore
-        pop ecx
-        ret
-    }
+// The spell's power factor, repeated inline about twenty times in the original: 1 (0073B84C) when
+// the prototype's effect (+0x2C) compares equal to 0 (0073B858) or is NaN (FCOM; TEST AH,0x40),
+// else ClampPow of damage / effect rounded to float.
+inline double PowerFactor(const float* damage, const float* effect) {
+    if ((x87::CompareStatus(*effect, GameConst(0x0073B858)) & x87::kC3) != 0) return GameConst(0x0073B84C);
+    return ClampPow(static_cast<float>(static_cast<double>(*damage) / *effect));
 }
 
 // The fireball explosion's size curve: pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2 with the
 // ratio rounded to float, the result rounded to float into *out.
-__declspec(naked) inline void __stdcall AreaCurve(const float* /*radius*/, const float* /*area*/, float* /*out*/) {
-    __asm {
-        mov eax, dword ptr [esp + 8]
-        mov ecx, dword ptr [esp + 4]
-        push ecx
-        fld dword ptr [eax]
-        fld dword ptr [ecx]
-        fld st(0)
-        fmul st, st(1)
-        fmul dword ptr ds:[00743964h]
-        fdiv st, st(2)
-        fstp dword ptr [esp]
-        fstp st(0)
-        fstp st(0)
-        mov ecx, esp
-        call ClampPowCore
-        pop ecx
-        mov eax, dword ptr [esp + 0Ch]
-        fstp dword ptr [eax]
-        ret 0Ch
-    }
+inline void AreaCurve(const float* radius, const float* area, float* out) {
+    const float ratio = static_cast<float>(static_cast<double>(*radius) * *radius * GameConst(0x00743964) / *area);
+    *out = static_cast<float>(ClampPow(ratio));
 }
 
 // *out = (float)((*a / *b) * *c), the quotient unrounded.
-__declspec(naked) inline void __stdcall DivideMultiply(const float* /*a*/, const float* /*b*/, const float* /*c*/, float* /*out*/) {
-    __asm {
-        mov eax, dword ptr [esp + 8]
-        fld dword ptr [eax]
-        mov eax, dword ptr [esp + 4]
-        fdivr dword ptr [eax]
-        mov eax, dword ptr [esp + 0Ch]
-        fmul dword ptr [eax]
-        mov eax, dword ptr [esp + 10h]
-        fstp dword ptr [eax]
-        ret 10h
-    }
+inline void DivideMultiply(const float* a, const float* b, const float* c, float* out) {
+    *out = static_cast<float>(static_cast<double>(*a) / *b * *c);
 }
 
 // The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50) with FILD / FIDIV,
 // unrounded until the game's _ftol truncates it.
-__declspec(naked) inline int __fastcall FrightLevel(const int* /*timer*/, const int* /*duration*/) {
-    __asm {
-        fild dword ptr [ecx]
-        fidiv dword ptr [edx]
-        fmul dword ptr ds:[0073BF48h]
-        fadd dword ptr ds:[0074023Ch]
-        mov eax, 006E853Ch
-        jmp eax
-    }
+inline int FrightLevel(const int* timer, const int* duration) {
+    return static_cast<int>(gamecrt::Ftol(static_cast<double>(*timer) / *duration * GameConst(0x0073BF48) + GameConst(0x0074023C)));
 }
 
 // *out = (float)(*a * *b + *c), unrounded in between.
-__declspec(naked) inline void __stdcall MultiplyAdd(const float* /*a*/, const float* /*b*/, const float* /*c*/, float* /*out*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [eax]
-        mov eax, dword ptr [esp + 8]
-        fmul dword ptr [eax]
-        mov eax, dword ptr [esp + 0Ch]
-        fadd dword ptr [eax]
-        mov eax, dword ptr [esp + 10h]
-        fstp dword ptr [eax]
-        ret 10h
-    }
+inline void MultiplyAdd(const float* a, const float* b, const float* c, float* out) {
+    *out = static_cast<float>(static_cast<double>(*a) * *b + *c);
 }
 
 // The game's _ftol (006E853C) of a float constant in memory.
-__declspec(naked) inline int __fastcall FtolOf(const float* /*value*/) {
-    __asm {
-        fld dword ptr [ecx]
-        mov eax, 006E853Ch
-        jmp eax
-    }
-}
+inline int FtolOf(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
 
 // The factor rounded to float.
-__declspec(naked) inline void __fastcall PowerToFloat(const float* /*damage*/, const float* /*effect*/, float* /*out*/) {
-    __asm {
-        call PowerCore
-        mov eax, dword ptr [esp + 4]
-        fstp dword ptr [eax]
-        ret 4
-    }
+inline void PowerToFloat(const float* damage, const float* effect, float* out) {
+    *out = static_cast<float>(PowerFactor(damage, effect));
 }
 
 // The factor times *scale (unrounded product), rounded to float.
-__declspec(naked) inline void __fastcall PowerScaledToFloat(const float*, const float*, const float* /*scale*/, float* /*out*/) {
-    __asm {
-        call PowerCore
-        mov eax, dword ptr [esp + 4]
-        fmul dword ptr [eax]
-        mov eax, dword ptr [esp + 8]
-        fstp dword ptr [eax]
-        ret 8
-    }
+inline void PowerScaledToFloat(const float* damage, const float* effect, const float* scale, float* out) {
+    *out = static_cast<float>(PowerFactor(damage, effect) * *scale);
 }
 
 // The factor times *scale, truncated by the game's _ftol.
-__declspec(naked) inline int __fastcall PowerScaledToInt(const float*, const float*, const float* /*scale*/) {
-    __asm {
-        call PowerCore
-        mov eax, dword ptr [esp + 4]
-        fmul dword ptr [eax]
-        mov eax, 006E853Ch
-        call eax
-        ret 4
-    }
+inline int PowerScaledToInt(const float* damage, const float* effect, const float* scale) {
+    return static_cast<int>(gamecrt::Ftol(PowerFactor(damage, effect) * *scale));
 }
 
-// World slot `slot` (x, y): a ground height left in ST0; *out = (float)(height + *add).
-__declspec(naked) inline void __stdcall HeightPlus(void* /*world*/, int /*slot*/, std::uint32_t /*x*/, std::uint32_t /*y*/,
-                                            const float* /*add*/, float* /*out*/) {
-    __asm {
-        mov ecx, dword ptr [esp + 4]
-        mov eax, dword ptr [ecx]
-        mov edx, dword ptr [esp + 8]
-        push dword ptr [esp + 10h]
-        push dword ptr [esp + 10h]
-        call dword ptr [eax + edx * 4]
-        mov eax, dword ptr [esp + 14h]
-        fadd dword ptr [eax]
-        mov eax, dword ptr [esp + 18h]
-        fstp dword ptr [eax]
-        ret 18h
-    }
+// World slot `slot` (thiscall on the world; x, y as the floats' bits): a ground height left
+// unrounded in ST0.
+inline double WorldHeight(void* world, int slot, std::uint32_t x, std::uint32_t y) {
+    using Slot = double(__fastcall*)(void* self, void* unused, std::uint32_t x, std::uint32_t y);
+    return reinterpret_cast<Slot>((*static_cast<void***>(world))[slot])(world, nullptr, x, y);
+}
+
+// *out = (float)(height + *add).
+inline void HeightPlus(void* world, int slot, std::uint32_t x, std::uint32_t y, const float* add, float* out) {
+    *out = static_cast<float>(WorldHeight(world, slot, x, y) + *add);
 }
 
 // The same with height - *sub (FSUB).
-__declspec(naked) inline void __stdcall HeightMinus(void*, int, std::uint32_t, std::uint32_t, const float* /*sub*/, float* /*out*/) {
-    __asm {
-        mov ecx, dword ptr [esp + 4]
-        mov eax, dword ptr [ecx]
-        mov edx, dword ptr [esp + 8]
-        push dword ptr [esp + 10h]
-        push dword ptr [esp + 10h]
-        call dword ptr [eax + edx * 4]
-        mov eax, dword ptr [esp + 14h]
-        fsub dword ptr [eax]
-        mov eax, dword ptr [esp + 18h]
-        fstp dword ptr [eax]
-        ret 18h
-    }
+inline void HeightMinus(void* world, int slot, std::uint32_t x, std::uint32_t y, const float* sub, float* out) {
+    *out = static_cast<float>(WorldHeight(world, slot, x, y) - *sub);
 }
 
 // The lightning's end: *out = (float)(height + *a * *b).
-__declspec(naked) inline void __stdcall HeightPlusProduct(void*, int, std::uint32_t, std::uint32_t, const float* /*a*/,
-                                                   const float* /*b*/, float* /*out*/) {
-    __asm {
-        mov ecx, dword ptr [esp + 4]
-        mov eax, dword ptr [ecx]
-        mov edx, dword ptr [esp + 8]
-        push dword ptr [esp + 10h]
-        push dword ptr [esp + 10h]
-        call dword ptr [eax + edx * 4]
-        mov eax, dword ptr [esp + 14h]
-        fld dword ptr [eax]
-        mov eax, dword ptr [esp + 18h]
-        fmul dword ptr [eax]
-        faddp st(1), st
-        mov eax, dword ptr [esp + 1Ch]
-        fstp dword ptr [eax]
-        ret 1Ch
-    }
+inline void HeightPlusProduct(void* world, int slot, std::uint32_t x, std::uint32_t y, const float* a, const float* b,
+                              float* out) {
+    *out = static_cast<float>(WorldHeight(world, slot, x, y) + static_cast<double>(*a) * *b);
 }
 
 // *out = (float)sqrt(y*y + x*x).
-__declspec(naked) inline void __fastcall PlanarLength(const Vector3* /*v*/, float* /*out*/) {
-    __asm {
-        fld dword ptr [ecx + 4]
-        fmul dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fmul dword ptr [ecx]
-        faddp st(1), st
-        fsqrt
-        fstp dword ptr [edx]
-        ret
-    }
+inline void PlanarLength(const Vector3* v, float* out) {
+    *out = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded<double>(v->y, v->x)));
 }
 
 // The fireball's velocity: v *= (speed * 1/15) / sqrt((y*y + x*x) + z*z), the factor unrounded,
 // each component rounded to float.
-__declspec(naked) inline void __fastcall ScaleToSpeed(Vector3* /*v*/, const float* /*speed*/) {
-    __asm {
-        fld dword ptr [ecx + 4]
-        fmul dword ptr [ecx + 4]
-        fld dword ptr [ecx]
-        fmul dword ptr [ecx]
-        faddp st(1), st
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [ecx + 8]
-        faddp st(1), st
-        fsqrt
-        fld dword ptr [edx]
-        fmul dword ptr ds:[00740544h]
-        fdivrp st(1), st
-        fld st(0)
-        fmul dword ptr [ecx]
-        fstp dword ptr [ecx]
-        fld st(0)
-        fmul dword ptr [ecx + 4]
-        fstp dword ptr [ecx + 4]
-        fmul dword ptr [ecx + 8]
-        fstp dword ptr [ecx + 8]
-        ret
-    }
+inline void ScaleToSpeed(Vector3* v, const float* speed) {
+    const double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*v));
+    const double k = static_cast<double>(*speed) * GameConst(0x00740544) / length;
+    v->x = static_cast<float>(k * v->x);
+    v->y = static_cast<float>(k * v->y);
+    v->z = static_cast<float>(k * v->z);
 }
 
 // FISTP((float)((distance / speed) * 15)): the missile's flight time in ticks.
-__declspec(naked) inline int __fastcall FlightTicks(const float* /*distance*/, const float* /*speed*/) {
-    __asm {
-        sub esp, 4
-        fld dword ptr [ecx]
-        fdiv dword ptr [edx]
-        fmul dword ptr ds:[0073C518h]
-        fstp dword ptr [esp]
-        fld dword ptr [esp]
-        fistp dword ptr [esp]
-        pop eax
-        ret
-    }
+inline int FlightTicks(const float* distance, const float* speed) {
+    return x87::fistp(static_cast<float>(static_cast<double>(*distance) / *speed * GameConst(0x0073C518)));
 }
 
 // The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`:
-// k = (float)(radius / sqrt(n.y*n.y + n.x*n.x)), then each component (float)(component * k).
-__declspec(naked) inline void __stdcall WallSpan(const Vector3* /*direction*/, const float* /*radius*/, Vector3* /*out*/) {
-    __asm {
-        push ebx
-        mov ecx, dword ptr [esp + 8]
-        mov ebx, dword ptr [esp + 0Ch]
-        mov edx, dword ptr [esp + 10h]
-        sub esp, 8
-        fld dword ptr [ecx + 4]
-        fchs
-        fst dword ptr [edx]
-        mov eax, dword ptr [ecx]
-        mov dword ptr [edx + 4], eax
-        mov dword ptr [edx + 8], 0
-        fld dword ptr [ebx]
-        fld dword ptr [edx + 4]
-        fmul dword ptr [edx + 4]
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fsqrt
-        fxch st(1)
-        fdiv st, st(1)
-        fstp dword ptr [esp]
-        fstp st(0)
-        fld dword ptr [esp]
-        fmul st, st(1)
-        fstp dword ptr [edx]
-        fstp st(0)
-        fld dword ptr [edx + 4]
-        fmul dword ptr [esp]
-        fstp dword ptr [edx + 4]
-        fld dword ptr [edx + 8]
-        fmul dword ptr [esp]
-        fstp dword ptr [edx + 8]
-        add esp, 8
-        pop ebx
-        ret 0Ch
-    }
+// k = (float)(radius / sqrt(n.y*n.y + n.x*n.x)), then each component (float)(component * k). The
+// normal is written to `out` first (d.x copied as bits) and read back, as the original does.
+inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out) {
+    const double nx = -static_cast<double>(direction->y);
+    out->x = static_cast<float>(nx);
+    std::memcpy(&out->y, &direction->x, sizeof(float));
+    out->z = 0.0f;
+    const double length = x87::fsqrt(LengthSquared2DUnrounded<double>(out->y, nx));
+    const float k = static_cast<float>(*radius / length);
+    out->x = static_cast<float>(k * nx);
+    out->y = static_cast<float>(static_cast<double>(out->y) * k);
+    out->z = static_cast<float>(static_cast<double>(out->z) * k);
 }
 
-// The light wall's half extent from its lightning's ends (+0x14C from, +0x158 to): x keeps the
-// difference unrounded before halving, y and z are rounded first.
-__declspec(naked) inline void __fastcall HalfSpan(const CEngineObject* /*lightning*/, Vector3* /*out*/) {
-    __asm {
-        fld dword ptr [ecx + 158h]
-        fsub dword ptr [ecx + 14Ch]
-        fld dword ptr [ecx + 15Ch]
-        fsub dword ptr [ecx + 150h]
-        fstp dword ptr [edx + 4]
-        fld dword ptr [ecx + 160h]
-        fsub dword ptr [ecx + 154h]
-        fstp dword ptr [edx + 8]
-        fmul dword ptr ds:[0073B86Ch]
-        fstp dword ptr [edx]
-        fld dword ptr [edx + 4]
-        fmul dword ptr ds:[0073B86Ch]
-        fstp dword ptr [edx + 4]
-        fld dword ptr [edx + 8]
-        fmul dword ptr ds:[0073B86Ch]
-        fstp dword ptr [edx + 8]
-        ret
-    }
+// The light wall's half extent from its lightning's ends: x keeps the difference unrounded before
+// halving (0073B86C), y and z are rounded first.
+inline void HalfSpan(const CEngineObject* lightning, Vector3* out) {
+    const auto* bolt = static_cast<const CEffectLightning*>(lightning);
+    const double half = GameConst(0x0073B86C);
+    const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;
+    out->y = static_cast<float>(static_cast<double>(bolt->to_.y) - bolt->from_.y);
+    out->z = static_cast<float>(static_cast<double>(bolt->to_.z) - bolt->from_.z);
+    out->x = static_cast<float>(dx * half);
+    out->y = static_cast<float>(static_cast<double>(out->y) * half);
+    out->z = static_cast<float>(static_cast<double>(out->z) * half);
 }
 
 // --- Small helpers ------------------------------------------------------------------------------

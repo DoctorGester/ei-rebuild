@@ -57,24 +57,9 @@ void CopyDword(To& to, const From& from) {
 }
 
 // FLD [src]; FST [a]; FSTP [b]: a float copied through the FPU to two places.
-__declspec(naked) void __fastcall FpuCopy2(float* /*a*/, float* /*b*/, const float* /*src*/) {
-    __asm {
-        mov eax, [esp + 4]
-        fld dword ptr [eax]
-        fst dword ptr [ecx]
-        fstp dword ptr [edx]
-        ret 4
-    }
-}
-
-// The game's _ftol (006E853C) of a float: truncation, low byte kept.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
+void FpuCopy2(float* a, float* b, const float* src) {
+    x87::CopyFloat(a, src);
+    x87::CopyFloat(b, src);
 }
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
@@ -135,7 +120,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
     stats->attributes[0] = RoundToByte(prototype->attributes01);
     stats->attributes[1] = RoundToByte(prototype->attributes01);
     stats->attributes[2] = RoundToByte(prototype->attribute2);
-    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(GameFtol(prototype->skills3to5[i]));
+    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(gamecrt::Ftol(prototype->skills3to5[i]));
 }
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
@@ -412,27 +397,8 @@ float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(ad
 
 // 007C5460 ^ (ln(experience / 007C545C) / ln(007C5464)): FYL2X with FLDLN2 and the CRT's
 // _CIpow (006E81A0), as the original computes it. Unrounded.
-__declspec(naked) double __cdecl HitPointExperienceCurve(const float* /*experience*/) {
-    __asm {
-        mov eax, 0x007C5460
-        fld dword ptr [eax]
-        mov eax, [esp + 4]
-        fld dword ptr [eax]
-        mov eax, 0x007C545C
-        fdiv dword ptr [eax]
-        fldln2
-        fxch st(1)
-        fyl2x
-        mov eax, 0x007C5464
-        fld dword ptr [eax]
-        fldln2
-        fxch st(1)
-        fyl2x
-        fdivp st(1), st
-        mov eax, 0x006E81A0
-        call eax
-        ret
-    }
+double HitPointExperienceCurve(const float* experience) {
+    return libcrt::CiPow(Global(0x007C5460), x87::flog(static_cast<double>(*experience) / Global(0x007C545C)) / x87::flog(Global(0x007C5464)));
 }
 
 // A level record's value (+0x34, unsigned) as the original's FILD of a zero-extended qword.

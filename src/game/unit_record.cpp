@@ -5,6 +5,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
+#include "ei/x87.h"
 
 #include <cstring>
 
@@ -48,30 +49,11 @@ Factory* TheFactory() { return *reinterpret_cast<Factory**>(0x007AFFB4); }
 std::uint32_t SpellOwner() { return *reinterpret_cast<const std::uint32_t*>(0x007AFFAC); }
 
 
-// FLD + FSTP of a float (a signalling NaN comes out quiet).
-__declspec(naked) std::uint32_t __cdecl FpuCopyBits(const void* /*value*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [eax]
-        push eax
-        fstp dword ptr [esp]
-        pop eax
-        ret
-    }
-}
-
 // *a = *b = float(value * *factor), the product rounded by the FPU's precision.
-__declspec(naked) void __cdecl StoreScaledTwice(void* /*a*/, void* /*b*/, int /*value*/, const void* /*factor*/) {
-    __asm {
-        fild dword ptr [esp + 0xC]
-        mov eax, dword ptr [esp + 0x10]
-        fmul dword ptr [eax]
-        mov eax, dword ptr [esp + 4]
-        fst dword ptr [eax]
-        mov eax, dword ptr [esp + 8]
-        fstp dword ptr [eax]
-        ret
-    }
+void StoreScaledTwice(void* a, void* b, int value, const void* factor) {
+    const float scaled = static_cast<float>(static_cast<double>(value) * *static_cast<const float*>(factor));
+    std::memcpy(a, &scaled, sizeof scaled);
+    std::memcpy(b, &scaled, sizeof scaled);
 }
 
 std::uint32_t Dword(const char* p, std::size_t offset) {
@@ -152,12 +134,12 @@ void UnitRecord::ApplyTo(CUnit* target) {
                          model + 0x6C + k * 4);
     }
     for (std::size_t i = 0; i < 6; ++i) {
-        std::uint32_t v = FpuCopyBits(r + field::kPairsA + i * 4);
+        std::uint32_t v = x87::LoadStoreBits(r + field::kPairsA + i * 4);
         SetDword(controller, 0x290 + i * 8, v);
         SetDword(controller, 0x294 + i * 8, v);
     }
     for (std::size_t i = 0; i < 6; ++i) {
-        std::uint32_t v = FpuCopyBits(r + field::kPairsB + i * 4);
+        std::uint32_t v = x87::LoadStoreBits(r + field::kPairsB + i * 4);
         SetDword(controller, 0x2C0 + i * 8, v);
         SetDword(controller, 0x2C4 + i * 8, v);
     }

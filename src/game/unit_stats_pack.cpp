@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <bit>
 #include <cstring>
@@ -17,16 +18,6 @@ constexpr float kOne = 1.0f;
 constexpr int kNoNaturalWeapon = 8;              // UnitStats +0xAC after Reset
 constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
-
-// The game's _ftol (006E853C): truncates ST0 to a 64-bit integer, low dword in EAX.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 
 // FISTP of a float the original first stores (FSTP float, FLD, FISTP).
 int RoundStored(float value) { return x87::fistp(value); }
@@ -110,8 +101,8 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
     params->movementKind = static_cast<std::uint8_t>(movementKind);
     for (int i = 0; i < 5; ++i) params->combat[i] = static_cast<std::uint8_t>(RoundStored(combat[i]));
-    params->damage = static_cast<std::uint8_t>(GameFtol(damage));         // truncated
-    params->damageSpread = static_cast<std::uint8_t>(GameFtol(damageSpread));
+    params->damage = static_cast<std::uint8_t>(gamecrt::Ftol(damage));         // truncated
+    params->damageSpread = static_cast<std::uint8_t>(gamecrt::Ftol(damageSpread));
     params->naturalWeapon = static_cast<std::uint8_t>(naturalWeapon);   // its low byte
     for (int i = 0; i < 6; ++i) {
         params->valuesB0[i] = static_cast<std::uint8_t>(RoundStored(valuesB0[i].current));

@@ -56,16 +56,6 @@ template <typename T> void CopyBits(T& to, const T& from) {
     std::memcpy(&to, &from, sizeof(T));
 }
 
-// A float copied with FLD / FSTP (a signalling NaN arrives quieted, as in the original).
-void FpuCopy(void* destination, const void* source) {
-    __asm {
-        mov eax, source
-        mov ecx, destination
-        fld dword ptr [eax]
-        fstp dword ptr [ecx]
-    }
-}
-
 // A record of kind R: the base record's construction (inline in Build; 006A63B0 as a function),
 // then the kind's vtable. Null when the allocation fails.
 template <typename R> R* NewRecordOf() {
@@ -142,11 +132,11 @@ __declspec(naked) BOOL __fastcall CallBuild(CItemConstructor*) EI_ORIGINAL(0x006
 void CItem::InitFromRecordImpl(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
     // quiets a signalling NaN; the other fields are copied as dwords.
-    FpuCopy(&conditionMax_, &head->condition);
-    FpuCopy(&condition_, &head->condition);
+    x87::CopyFloat(&conditionMax_, &head->condition);
+    x87::CopyFloat(&condition_, &head->condition);
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
-    FpuCopy(&chargeMax_, &head->charge);
-    FpuCopy(&charge_, &head->charge);
+    x87::CopyFloat(&chargeMax_, &head->charge);
+    x87::CopyFloat(&charge_, &head->charge);
     std::memcpy(&weight_, &head->value38, 4);
     std::memcpy(&price_, &head->price, 4);
     value3C_ = head->value3C;

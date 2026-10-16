@@ -54,16 +54,6 @@ template <std::floating_point T> float Bits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 // --- Game data ----------------------------------------------------------------------------------
 
 // An allod of the map database (AllodRecord, object_tables.h): its global map figures and zones.
@@ -294,10 +284,10 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
     Ops(sprite)->Position(&x, &y, &depth);
-    int bottom = GameFtol(D(y) + D(GameFloat(0x0073BAAC)));
-    int right = GameFtol(D(x) + D(GameFloat(0x0073CCF8)));
-    int top = GameFtol(D(y) - D(GameFloat(0x0073E124)));
-    int left = GameFtol(D(x) - D(GameFloat(0x0073CCF8)));
+    int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
+    int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
+    int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));
+    int left = static_cast<int>(gamecrt::Ftol(D(x) - D(GameFloat(0x0073CCF8))));
     map->AddRegion()->CallSetRect(left, top, right, bottom);
 }
 
@@ -385,7 +375,7 @@ void CGlobalMap::Create() {
         ZonesSetAtGrowAt(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
         variable.Format(game::Text(0x00794148), zone->name);   // "z.%s"
         zones_.data[zoneCount_].link = -1;
-        zones_.data[zoneCount_].state = GameFtol(D(LocalPlayerVariable(variable)));
+        zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].name) = *reinterpret_cast<mfc::CString*>(&zone->name);
         {
             alignas(4) std::uint8_t raw[4];
@@ -540,7 +530,7 @@ void CGlobalMap::Create() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = GameFtol(D(LocalPlayerVariable(game::Text(0x007420A4))) * D(GameFloat(0x0073F090)));   // gtime * 60
+    int minutes = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(game::Text(0x007420A4))) * D(GameFloat(0x0073F090))));   // gtime * 60
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
@@ -567,7 +557,7 @@ void CGlobalMap::Create() {
         CUiMesh* camp = AddSprite(0);
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         SetTexture(camp, builder.Texture(3));
-        noCamp_ = GameFtol(D(LocalPlayerVariable(game::Text(0x00794114))));   // "i.nocamp"
+        noCamp_ = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(game::Text(0x00794114)))));   // "i.nocamp"
         if (noCamp_ == 1) camp->visible_ = 0;
         CUiMesh* left = AddSprite(0);
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
@@ -647,18 +637,7 @@ __declspec(naked) void __fastcall WeatherDrawOriginal(GlobalMapWeather*, void*, 
     EI_ORIGINAL(0x00499F10)
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
-float FmodStored(float a, const float* divisor) {
-    float result;
-    __asm {
-        fld a
-        mov eax, divisor
-        fld dword ptr [eax]
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
-}
+float FmodStored(float a, const float* divisor) { return static_cast<float>(libcrt::CiFmod(a, *divisor)); }
 
 // The product the original inlines (r = b * a in its operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
@@ -677,7 +656,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
 // A layer's texture frame: the fractional part of time * rate (stored).
 void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
-    int whole = GameFtol(v);
+    int whole = static_cast<int>(gamecrt::Ftol(v));
     float fraction = static_cast<float>(v - static_cast<double>(whole));
     std::memcpy(&reinterpret_cast<CUiMesh*>(layer)->textureOffsetU_, &fraction, 4);
 }
@@ -736,10 +715,10 @@ void CGlobalMap::Update() {
             builder.Turn(sprite);
             float x, y, depth;
             Ops(sprite)->Position(&x, &y, &depth);
-            int bottom = GameFtol(D(y) + D(GameFloat(0x0073BAAC)));
-            int right = GameFtol(D(x) + D(GameFloat(0x0073CCF8)));
-            int top = GameFtol(D(y) - D(GameFloat(0x0073E124)));
-            int left = GameFtol(D(x) - D(GameFloat(0x0073CCF8)));
+            int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
+            int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
+            int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));
+            int left = static_cast<int>(gamecrt::Ftol(D(x) - D(GameFloat(0x0073CCF8))));
             regions_.data[3 + i]->CallSetRect(left, top, right, bottom);
         }
     }

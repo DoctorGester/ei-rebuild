@@ -601,14 +601,7 @@ int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
     } else {
         double value = self->Combat().attackCategory;
         // _ftol (006E853C), as the original truncates it.
-        int truncated;
-        __asm {
-            fld value
-            mov eax, 0x006E853C
-            call eax
-            mov truncated, eax
-        }
-        base = truncated;
+        base = static_cast<int>(gamecrt::Ftol(value));
     }
     float scaled = static_cast<float>(static_cast<double>(base) * factor);
     return x87::fistp(scaled);

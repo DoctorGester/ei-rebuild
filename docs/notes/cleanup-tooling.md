@@ -63,3 +63,29 @@ State: `docs/originals-report.md` groups every address forwarded from more than 
 directly), library code and not yet ported, and lists the "differ" group (declarations that disagree), including the pending `ui_*` sites
 (grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call the rewritten
 ones directly.
+
+## `__asm` and `float_control` (cleanup ticket C12)
+
+C12 took `__asm` blocks in `src/` from 221 to 7 and left one `float_control` pair. The build is `/fp:precise` on x87. The rules the
+conversions follow (they keep the goldens and `ei_vectors` unchanged):
+
+- A `double` local or a `double` expression stands for an unrounded register: at 24-bit (main thread) and 53-bit precision control,
+  storing an x87 result to a double changes nothing. Promote at the first operation (`static_cast<double>(a) - b`); `static_cast<float>`
+  or a float local is the FSTP.
+- Keep `x87::fsin` / `fcos` / `fsqrt` / `fexp` / `flog` / `fpatan` / `fistp` (their results are 64-bit significands; use them inside
+  the expression so the compiler takes ST0 as it is: checked in the object code for `ClampPow`, `CircleScaled`, `WallScorchShape`).
+  `gamecrt::Ftol` is the game's `_ftol`, `libcrt::CiPow` / `CiFmod` the bodies of `_CIpow` / `_CIfmod`, `x87::FromUnsigned` the FILD of
+  an unsigned.
+- FCOM status: `x87::CompareStatus` gives AH's C0 / C2 / C3 (`kC0`, `kC2`, `kC3`), or write the NaN-aware comparison directly
+  (`!(x <= 1.0f)` for "C0 of FCOM 1.0, x", `a >= b ? b : a` for TEST AH,1). An FLD / FSTP copy of a float quiets a signalling NaN:
+  `x87::CopyFloat` / `LoadStoreBits`.
+- An original returning in ST0 is called through a `double(__fastcall*)(self, void*, ...)` pointer (the value stays unrounded).
+- Sums over vector components use the `lib/vecmath.h` Unrounded helpers (`LengthSquared2DUnrounded`, `DotUnrounded<Sum3::...>`), which
+  `check_cleanup` asks for.
+
+`vecmath.h`'s `float_control(precise, on)` pair was redundant under `/fp:precise` (0 of 723 objects compiled differently without it)
+and is gone; the `precise, off` pair around the Unrounded helpers stays (39 objects differ without it). Left: the long transcriptions
+`InvertModelMatrix` and `CrownBlend` (figure_part_draw), `EmitFirstSection` and `EmitSection` (renderer_strip) (ticket C12a), and the
+register / stack shims `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick, reads
+the caller's frame), which go with the call-site work (C12b). `include/ei/x87.h` and `src/hook` (the hook framework) and
+`src/lib/crt_x87.cpp` (the CRT's register entries) keep theirs by design.

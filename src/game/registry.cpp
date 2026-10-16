@@ -21,13 +21,7 @@ __declspec(naked) int __cdecl MemICmp(const char*, const char*, std::size_t) EI_
 // 006FD4DE CString::CString(LPCTSTR, int) on raw storage.
 void __fastcall ConstructString(void* a0, void*, const char* a2, int a3) { new (a0) mfc::CString(a2, a3); }
 // _ftol (006E853C) of a float: FLD, then the game's _ftol (truncates).
-__declspec(naked) int __fastcall FloatToInt(const float*) {
-    __asm {
-        fld dword ptr [ecx]
-        mov eax, 0x006E853C
-        jmp eax
-    }
-}
+int FloatToInt(const float* value) { return static_cast<int>(gamecrt::Ftol(*value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
     std::uint16_t v;

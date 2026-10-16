@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "texture.h"           // CTextureDevice
+#include "world.h"
 
 #include <bit>
 #include <cstdint>
@@ -34,25 +35,13 @@ std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E70); }
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
 // 004E9010: the device's mesh draw (device_mesh.cpp).
 
-// *target = *offset + *target (FLD offset, FADD, FSTP). __fastcall.
-__declspec(naked) void __fastcall AddOffset(const float* /*offset*/, float* /*target*/) {
-    __asm {
-        fld dword ptr [ecx]
-        fadd dword ptr [edx]
-        fstp dword ptr [edx]
-        ret
-    }
-}
+// *target = *offset + *target (FLD offset, FADD, FSTP).
+void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
-// The world time: whole ticks (007AF61C, FILD) plus the fraction of the current one (007AFCA8),
-// rounded to a float. __fastcall: out in ECX.
-__declspec(naked) void __fastcall TickTime(float* /*out*/) {
-    __asm {
-        fild dword ptr ds:[007AF61Ch]
-        fadd dword ptr ds:[007AFCA8h]
-        fstp dword ptr [ecx]
-        ret
-    }
+// The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
+void TickTime(float* out) {
+    const CWorldClient* world = GameClientWorld();
+    *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
 void Fill(ColourArray& a, std::uint32_t value) {

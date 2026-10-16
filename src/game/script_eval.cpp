@@ -1,10 +1,9 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. See
 // script.h. Rebirth's AddNewScriptCommands dispatches to addon's functions first (script_addon.h).
 //
-// Floating point: the comparisons and the few multi-step computations are written with the
-// original's x87 instruction sequences (helpers below), because their results depend on 80-bit
-// intermediates and on how FCOM reports NaN. Single operations stored straight to a float (a + b,
-// a / b, int to float) are plain C++.
+// Floating point: the comparisons keep FCOM's status bits (x87::CompareStatus), so NaN arguments
+// behave as in the original; the multi-step computations keep their intermediates unrounded
+// (double locals) as the original keeps them in registers.
 #include "script.h"
 #include "script_addon.h"
 
@@ -35,10 +34,9 @@
 #include "originals_units.h"
 #include "originals_script.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
-
-#pragma warning(disable : 4740) // inline assembly: no optimisation across it
 
 namespace {
 
@@ -46,64 +44,24 @@ namespace {
 
 // FCOM status bits (from FNSTSW AX, in AH): C0 = 0x01 "less or unordered", C3 = 0x40 "equal or
 // unordered". The original tests these directly, so NaN arguments behave like the original.
-constexpr int kLess = 0x01;
-constexpr int kEqual = 0x40;
-constexpr int kLessOrEqual = 0x41;
+constexpr int kLess = x87::kC0;
+constexpr int kEqual = x87::kC3;
+constexpr int kLessOrEqual = x87::kC0 | x87::kC3;
 
-int Compare(float a, float b) {
-    int status;
-    __asm {
-        fld a
-        fcomp b
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return status;
-}
+int Compare(float a, float b) { return x87::CompareStatus(a, b); }
 
-// sqrt(dy * dy + dx * dx) with dx = x0 - x1 and dy = y0 - y1 kept in 80-bit registers.
+// sqrt(dy * dy + dx * dx) with dx = x0 - x1 and dy = y0 - y1 kept unrounded (in registers).
 float Distance(float x0, float y0, float x1, float y1) {
-    float result;
-    __asm {
-        fld x0
-        fsub x1
-        fld y0
-        fsub y1
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fsqrt
-        fstp result
-        fstp st(0)
-        fstp st(0)
-    }
-    return result;
+    const double dx = static_cast<double>(x0) - x1;
+    const double dy = static_cast<double>(y0) - y1;
+    return static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
 }
 
 // FCOM status of (dy * dy + dx * dx) against r2, as IsInArea tests circles.
 int CompareSquaredDistance(float x, float y, float centreX, float centreY, float r2) {
-    int status;
-    __asm {
-        fld x
-        fsub centreX
-        fld y
-        fsub centreY
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fcomp r2
-        fnstsw ax
-        fstp st(0)
-        fstp st(0)
-        movzx eax, ah
-        mov status, eax
-    }
-    return status;
+    const double dx = static_cast<double>(x) - centreX;
+    const double dy = static_cast<double>(y) - centreY;
+    return x87::CompareStatus(LengthSquared2DUnrounded(dy, dx), r2);
 }
 
 // 0073C468: 1 / (2^32 - 1).
@@ -111,53 +69,20 @@ const std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
 
 // value * range / (2^32 - 1): the 32-bit value loaded as a 64-bit integer, two multiplications.
 float ScaleRandom(std::uint32_t value, float range) {
-    std::uint32_t wide[2] = {value, 0};
-    const std::uint64_t* scale = &kRandomScaleBits;
-    float result;
-    __asm {
-        fild qword ptr [wide]
-        fmul range
-        mov eax, scale
-        fmul qword ptr [eax]
-        fstp result
-    }
-    return result;
+    return static_cast<float>(x87::FromUnsigned(value) * range * std::bit_cast<double>(kRandomScaleBits));
 }
 
 // FISTP((float)(time + add)): the sum is rounded to float before the conversion.
 int RoundTimeOffset(int time, float extra) {
-    float sum;
-    int result;
-    __asm {
-        fild time
-        fadd extra
-        fstp sum
-        fld sum
-        fistp result
-    }
-    return result;
+    return x87::fistp(static_cast<float>(static_cast<double>(time) + extra));
 }
 
 // The game's _ftol (006E853C): truncating conversion; out-of-range values keep the low 32 bits
 // of the 64-bit result.
-__declspec(naked) int __cdecl Ftol(float) {
-    __asm {
-        fld dword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
+int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 // Copies a float through the FPU (FLD/FSTP), like the original.
-void CopyFloat(float* dst, const float* src) {
-    __asm {
-        mov eax, src
-        fld dword ptr [eax]
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
+void CopyFloat(float* dst, const float* src) { x87::CopyFloat(dst, src); }
 
 void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
 constexpr std::uint32_t kZero = 0;
@@ -208,18 +133,8 @@ int WorldTick() { return WorldServer()->tick_; }
 
 // _CIfmod (006E95AA): ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
-    const double day = 24.0;   // 0073D108
-    float result;
-    __asm {
-        fild dword ptr ds:[0x007AFFC4]
-        fmul dword ptr ds:[0x007AFF80]
-        fadd dword ptr ds:[0x007AFF7C]
-        fld day
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
+    const CWorldServer* world = WorldServer();
+    return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
 CEngineObject* AsUnit(CEngineObject* o) { return o && o->GetClassId() == kClassUnit ? o : nullptr; }
@@ -730,17 +645,7 @@ inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOrigi
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // FNSTSW after FILD a, FCOMP b (AH).
-int CompareIntFloat(int a, float b) {
-    int status;
-    __asm {
-        fild a
-        fcomp b
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return status;
-}
+int CompareIntFloat(int a, float b) { return x87::CompareStatus(static_cast<double>(a), b); }
 
 // What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
 // visible list).

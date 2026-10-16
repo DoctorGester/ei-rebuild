@@ -296,15 +296,6 @@ constexpr int kMaxCatchUpTicks = 1000;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The game's _ftol (006E853C): truncation, on the value as the FPU holds it.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 CWorldServer* World() { return reinterpret_cast<CWorldServer*>(0x007AFF60); }
 const mfc::CString& MoviesFolder() { return *reinterpret_cast<const mfc::CString*>(0x007AF458); }
 
@@ -378,7 +369,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
             mfc::CString variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
-        int ticks = GameFtol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime));
+        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime)));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
@@ -411,7 +402,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables;
-    if (GameFtol(VariableGet(variables, game::Text(kMovieVariable))) == 1) {
+    if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, game::Text(kMovieVariable)))) == 1) {
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
                             reinterpret_cast<const unsigned char*>(game::Text(kMovieZone))) != 0) {
             {
@@ -1442,18 +1433,7 @@ inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_ca
 __declspec(naked) int __stdcall EnterZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A060)
 
 // `value` mod 24 through the game's _CIfmod (006E95AA), stored as float.
-float HoursOfDay(double value) {
-    float result;
-    __asm {
-        fld value
-        mov eax, 0x0073D108   ; 24.0 (double)
-        fld qword ptr [eax]
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
-}
+float HoursOfDay(double value) { return static_cast<float>(libcrt::CiFmod(value, 24.0)); }
 
 } // namespace
 

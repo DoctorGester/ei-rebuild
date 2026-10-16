@@ -28,6 +28,40 @@ inline bool IsNaN(float v) {
     return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
 }
 
+inline bool IsNaN(double v) {
+    std::uint64_t bits;
+    std::memcpy(&bits, &v, sizeof(bits));
+    return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
+}
+
+// The condition bits FCOM / FCOMP leave for FNSTSW AX, as the original reads them from AH: C0 "less or
+// unordered", C3 "equal or unordered"; unordered (a NaN) sets C0, C2 and C3.
+constexpr int kC0 = 0x01;
+constexpr int kC2 = 0x04;
+constexpr int kC3 = 0x40;
+inline int CompareStatus(double a, double b) {
+    if (IsNaN(a) || IsNaN(b)) return kC0 | kC2 | kC3;
+    if (a < b) return kC0;
+    if (a == b) return kC3;
+    return 0;
+}
+
+// A float loaded and stored back by FLD / FSTP: the same bits, except that a signalling NaN comes back
+// quiet. The original copies floats this way.
+inline std::uint32_t LoadStoreBits(std::uint32_t bits) {
+    const bool nan = (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
+    return nan ? bits | 0x00400000u : bits;
+}
+inline std::uint32_t LoadStoreBits(const void* from) {
+    std::uint32_t bits;
+    std::memcpy(&bits, from, sizeof(bits));
+    return LoadStoreBits(bits);
+}
+inline void CopyFloat(void* to, const void* from) {
+    const std::uint32_t bits = LoadStoreBits(from);
+    std::memcpy(to, &bits, sizeof(bits));
+}
+
 __declspec(naked) inline double __cdecl fsin(double) {
     __asm fld qword ptr [esp + 4]
     __asm fsin

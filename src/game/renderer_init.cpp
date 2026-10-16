@@ -136,14 +136,7 @@ void Transpose(float* m) {
     for (const auto& p : kPairs) {
         std::uint32_t lower;
         std::memcpy(&lower, &m[p[1]], 4);
-        float* from = &m[p[0]];
-        float* to = &m[p[1]];
-        __asm {
-            mov eax, from
-            mov ecx, to
-            fld dword ptr [eax]
-            fstp dword ptr [ecx]
-        }
+        x87::CopyFloat(&m[p[1]], &m[p[0]]);
         std::memcpy(&m[p[0]], &lower, 4);
     }
 }

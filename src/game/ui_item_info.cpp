@@ -58,16 +58,7 @@ template <std::floating_point T> float FloatOf(T) = delete;
 
 const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record); }
 
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-int FtolOf(float value) { return GameFtol(D(value)); }
+int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
 
 int MbsICmp(const char* a, const char* b) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -76,172 +67,44 @@ int MbsCmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
-// _ftol of what an original __thiscall function leaves in ST0 (optionally with one stack argument
-// and a multiplication by the float at `scale`), without the value leaving the FPU stack.
-int StatFtol(std::uintptr_t fn, const void* self) {
-    int result;
-    __asm {
-        mov ecx, self
-        mov eax, fn
-        call eax
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
-int StatFtolScaled(std::uintptr_t fn, const void* self, std::uintptr_t scale) {
-    int result;
-    __asm {
-        mov ecx, self
-        mov eax, fn
-        call eax
-        mov eax, scale
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
-int StatFtolArg(std::uintptr_t fn, const void* self, int arg) {
-    int result;
-    __asm {
-        push arg
-        mov ecx, self
-        mov eax, fn
-        call eax
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
+// What an original __thiscall function leaves in ST0, unrounded (called as __fastcall: the object in
+// ECX, EDX unused, an optional stack argument the callee pops).
+using StatFunction = double(__fastcall*)(const void* self, void* unused);
+using StatArgFunction = double(__fastcall*)(const void* self, void* unused, int arg);
+double Stat(std::uintptr_t fn, const void* self) { return reinterpret_cast<StatFunction>(fn)(self, nullptr); }
+double StatArg(std::uintptr_t fn, const void* self, int arg) { return reinterpret_cast<StatArgFunction>(fn)(self, nullptr, arg); }
+int Ftol(double value) { return static_cast<int>(gamecrt::Ftol(value)); }
+
+// _ftol of such a value (optionally with one stack argument and a multiplication by the float at
+// `scale`), the value kept unrounded.
+int StatFtol(std::uintptr_t fn, const void* self) { return Ftol(Stat(fn, self)); }
+int StatFtolScaled(std::uintptr_t fn, const void* self, std::uintptr_t scale) { return Ftol(Stat(fn, self) * GameFloat(scale)); }
+int StatFtolArg(std::uintptr_t fn, const void* self, int arg) { return Ftol(StatArg(fn, self, arg)); }
 int StatFtolArgScaled(std::uintptr_t fn, const void* self, int arg, std::uintptr_t scale) {
-    int result;
-    __asm {
-        push arg
-        mov ecx, self
-        mov eax, fn
-        call eax
-        mov eax, scale
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
+    return Ftol(StatArg(fn, self, arg) * GameFloat(scale));
 }
 // _ftol(_CIpow(base, exponent - subtrahend) * scale): the base is the double at `base`, the exponent a
-// float minus the float at `subtrahend` (FSUB), the product with the float at `scale`, all on the FPU.
+// float minus the float at `subtrahend` (FSUB), the product with the float at `scale`, all unrounded.
 int PowFtol(std::uintptr_t base, float exponent, std::uintptr_t subtrahend, std::uintptr_t scale) {
-    int result;
-    __asm {
-        mov eax, base
-        fld qword ptr [eax]
-        fld exponent
-        mov eax, subtrahend
-        fsub dword ptr [eax]
-        mov eax, 0x006E81A0
-        call eax
-        mov eax, scale
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
+    const double power = libcrt::CiPow(*reinterpret_cast<const double*>(base), static_cast<double>(exponent) - GameFloat(subtrahend));
+    return Ftol(power * GameFloat(scale));
 }
-// _ftol of a + b (FLD b; FADD a), optionally times the float at `scale`, on the FPU.
-int SumFtol(float a, float b) {
-    int result;
-    __asm {
-        fld b
-        fadd a
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
-int SumFtolScaled(float a, float b, std::uintptr_t scale) {
-    int result;
-    __asm {
-        fld b
-        fadd a
-        mov eax, scale
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
-int ScaledFtol(float a, std::uintptr_t scale) {
-    int result;
-    __asm {
-        fld a
-        mov eax, scale
-        fmul dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
-// _ftol(a - the float at `subtrahend`) on the FPU (FLD a; FSUB).
-int DifferenceFtol(float a, std::uintptr_t subtrahend) {
-    int result;
-    __asm {
-        fld a
-        mov eax, subtrahend
-        fsub dword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
-}
+// _ftol of a + b (FLD b; FADD a), optionally times the float at `scale`, unrounded.
+int SumFtol(float a, float b) { return Ftol(static_cast<double>(b) + a); }
+int SumFtolScaled(float a, float b, std::uintptr_t scale) { return Ftol((static_cast<double>(b) + a) * GameFloat(scale)); }
+int ScaledFtol(float a, std::uintptr_t scale) { return Ftol(static_cast<double>(a) * GameFloat(scale)); }
+// _ftol(a - the float at `subtrahend`) (FLD a; FSUB).
+int DifferenceFtol(float a, std::uintptr_t subtrahend) { return Ftol(static_cast<double>(a) - GameFloat(subtrahend)); }
 // value * factor * the float at `scale`, stored as float (FLD; FMUL; FMUL; FSTP).
 float ArmourValue(const void* value, const void* factor, std::uintptr_t scale) {
-    float result;
-    __asm {
-        mov eax, value
-        fld dword ptr [eax]
-        mov eax, factor
-        fmul dword ptr [eax]
-        mov eax, scale
-        fmul dword ptr [eax]
-        fstp result
-    }
-    return result;
+    return static_cast<float>(static_cast<double>(*static_cast<const float*>(value)) * *static_cast<const float*>(factor) * GameFloat(scale));
 }
 // 0 + p[0] + p[0x12] + p[0x24] (three armour layers 0x48 bytes apart), stored as float.
-float LayerSum(const float* p) {
-    float result;
-    __asm {
-        mov eax, p
-        fldz
-        fadd dword ptr [eax]
-        fadd dword ptr [eax + 0x48]
-        fadd dword ptr [eax + 0x90]
-        fstp result
-    }
-    return result;
-}
+float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 // An original function returning a float in ST0 with the packed id in ECX (006A2D40 / 006A2D90),
 // truncated.
 int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
-    int result;
-    __asm {
-        mov ecx, packedId
-        mov eax, fn
-        call eax
-        mov eax, 0x006E853C
-        call eax
-        mov result, eax
-    }
-    return result;
+    return Ftol(reinterpret_cast<double(__fastcall*)(std::uint32_t)>(fn)(packedId));
 }
 
 // The surface's drawing (thiscall on the surface).

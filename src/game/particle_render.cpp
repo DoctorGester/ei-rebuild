@@ -43,16 +43,6 @@ constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { SpriteArrayConstructOriginal((void*)a0); }
 void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
-// The game's _ftol (006E853C): truncation.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 // The arrays are function-local statics in the original (guard bits 1 and 2 of 007A9BF4, the
 // destructors 00497D30 / 00497D10 registered with atexit).
 void ConstructArrays() {
@@ -84,7 +74,7 @@ float Interpolation() {
 
 // One colour channel (at `shift`) between the previous and the current colour, truncated.
 int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t, float u) {
-    return GameFtol(Unsigned((current >> shift) & 0xFF) * D(t) + Unsigned((previous >> shift) & 0xFF) * D(u));
+    return static_cast<int>(gamecrt::Ftol(Unsigned((current >> shift) & 0xFF) * D(t) + Unsigned((previous >> shift) & 0xFF) * D(u)));
 }
 
 } // namespace

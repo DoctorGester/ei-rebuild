@@ -138,17 +138,9 @@ __declspec(naked) void CUnitServer::CallBuildCastSteps(AnimationSteps*, int*, in
 __declspec(naked) int CUnitServer::CallAnimationMoment(std::uint32_t) EI_ORIGINAL(0x00551A90)
 
 namespace {
-// _ftol (006E853C) of a / b with the quotient left unrounded in ST0, as the original divides
-// and truncates (storing the quotient as a double first can round it up to the next integer).
-__declspec(naked) int __cdecl FtolQuotient(double /*a*/, double /*b*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fdiv qword ptr [esp + 12]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
+// _ftol (006E853C) of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
+// precision a double holds it exactly).
+int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
 // Ticks of entry `index`'s field at `offset` (+0x20 the whole animation, +0x40 the moment of the
 // action): the frame count (FILD of the zero-extended dword, stored as a float) divided by the

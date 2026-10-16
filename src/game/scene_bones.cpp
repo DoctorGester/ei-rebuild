@@ -47,18 +47,7 @@ __declspec(naked) Vector3* __fastcall VectorSubtract(Vector3*, const Vector3* /*
 // --- x87 -----------------------------------------------------------------------------------------
 
 // (a - b) / (c - b) as FILD (a - b), FIDIV (c - b), FSTP: one rounded division of exact integers.
-__declspec(naked) void __fastcall FrameRatio(int /*numerator*/, int /*denominator*/, float* /*out*/) {
-    __asm {
-        push ecx
-        push edx
-        fild dword ptr [esp + 4]
-        fidiv dword ptr [esp]
-        mov eax, dword ptr [esp + 0Ch]
-        fstp dword ptr [eax]
-        add esp, 8
-        ret 4
-    }
-}
+void FrameRatio(int numerator, int denominator, float* out) { *out = static_cast<float>(static_cast<double>(numerator) / denominator); }
 
 // FCOMP with 0.0 (0073B858) and C3: equal, or unordered.
 bool ZeroOrNaN(float v) {

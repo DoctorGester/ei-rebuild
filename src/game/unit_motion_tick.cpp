@@ -23,6 +23,8 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
+#include "game_data.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <cstring>
@@ -61,122 +63,54 @@ __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
 
-// --- x87 sequences ------------------------------------------------------------------------------
+// --- Float helpers -------------------------------------------------------------------------------
+
+// The exe's constants: 0073EEE4 the cell size, 0073B86C 0.5, 0073B84C 1.0, 0073F088 the stamina
+// drain step (double).
+float CellSize() { return ei::GameData<const float>(0x0073EEE4); }
+float Half() { return ei::GameData<const float>(0x0073B86C); }
+float One() { return ei::GameData<const float>(0x0073B84C); }
+double DrainStep() { return ei::GameData<const double>(0x0073F088); }
 
 // World units to half-cells: (x, y) *= 1 / (cellSize * 0.5), the factor unrounded.
-__declspec(naked) void __fastcall ToHalfCells(float* /*xy*/) {
-    __asm {
-        fld dword ptr ds:[0073EEE4h]
-        fmul dword ptr ds:[0073B86Ch]
-        fdivr dword ptr ds:[0073B84Ch]
-        fld st(0)
-        fmul dword ptr [ecx]
-        fstp dword ptr [ecx]
-        fmul dword ptr [ecx + 4]
-        fstp dword ptr [ecx + 4]
-        ret
-    }
+void ToHalfCells(float* xy) {
+    const double factor = One() / (static_cast<double>(CellSize()) * Half());
+    xy[0] = static_cast<float>(factor * xy[0]);
+    xy[1] = static_cast<float>(factor * xy[1]);
 }
 
 // And back: (x, y) *= cellSize * 0.5.
-__declspec(naked) void __fastcall FromHalfCells(float* /*xy*/) {
-    __asm {
-        fld dword ptr ds:[0073EEE4h]
-        fmul dword ptr ds:[0073B86Ch]
-        fld st(0)
-        fmul dword ptr [ecx]
-        fstp dword ptr [ecx]
-        fmul dword ptr [ecx + 4]
-        fstp dword ptr [ecx + 4]
-        ret
-    }
+void FromHalfCells(float* xy) {
+    const double factor = static_cast<double>(CellSize()) * Half();
+    xy[0] = static_cast<float>(factor * xy[0]);
+    xy[1] = static_cast<float>(factor * xy[1]);
 }
 
 // Whether |a - b|^2, summed as (dz^2 + dy^2) + dx^2 unrounded, is above *limit (false for NaN).
-__declspec(naked) bool __fastcall FartherThan(const float* /*a*/, const float* /*b*/, const float* /*limit*/) {
-    __asm {
-        fld dword ptr [ecx]
-        fsub dword ptr [edx]
-        fld dword ptr [ecx + 4]
-        fsub dword ptr [edx + 4]
-        fld dword ptr [ecx + 8]
-        fsub dword ptr [edx + 8]
-        fld st(0)
-        fmul st, st(1)
-        fld st(2)
-        fmul st, st(3)
-        faddp st(1), st
-        fld st(3)
-        fmul st, st(4)
-        faddp st(1), st
-        mov eax, dword ptr [esp + 4]
-        fcomp dword ptr [eax]
-        fstp st(0)
-        fnstsw ax
-        fstp st(0)
-        test ah, 41h
-        fstp st(0)
-        sete al
-        ret 4
-    }
+bool FartherThan(const float* a, const float* b, const float* limit) {
+    const double dx = static_cast<double>(a[0]) - b[0];
+    const double dy = static_cast<double>(a[1]) - b[1];
+    const double dz = static_cast<double>(a[2]) - b[2];
+    return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz) > *limit;
 }
 
-// Whether `object`'s speed (virtual slot 59, left in ST0) compares below *than (or unordered).
-__declspec(naked) bool __fastcall SpeedBelow(CEngineObject* /*object*/, const float* /*than*/) {
-    __asm {
-        push esi
-        mov esi, edx
-        mov eax, dword ptr [ecx]
-        call dword ptr [eax + 0ECh]
-        fcomp dword ptr [esi]
-        fnstsw ax
-        test ah, 1
-        setne al
-        pop esi
-        ret
-    }
+// Whether `object`'s speed (virtual slot 59, unrounded) compares below *than (or unordered).
+bool SpeedBelow(CEngineObject* object, const float* than) {
+    return !(static_cast<CMapObject*>(object)->MoveSpeed() >= *than);
 }
 
 // The speed rounded to float.
-__declspec(naked) void __fastcall SpeedOf(CEngineObject* /*object*/, float* /*out*/) {
-    __asm {
-        push esi
-        mov esi, edx
-        mov eax, dword ptr [ecx]
-        call dword ptr [eax + 0ECh]
-        fstp dword ptr [esi]
-        pop esi
-        ret
-    }
-}
+void SpeedOf(CEngineObject* object, float* out) { *out = static_cast<float>(static_cast<CMapObject*>(object)->MoveSpeed()); }
 
 // *value -= *rate * (double)[0073F088]; true when the unrounded result compares below 0 (or is NaN).
-__declspec(naked) bool __fastcall Drain(float* /*value*/, const float* /*rate*/) {
-    __asm {
-        fld dword ptr [ecx]
-        fld dword ptr [edx]
-        fmul qword ptr ds:[0073F088h]
-        fsubp st(1), st
-        fst dword ptr [ecx]
-        fcomp dword ptr ds:[0073B858h]
-        fnstsw ax
-        test ah, 1
-        setne al
-        ret
-    }
+bool Drain(float* value, const float* rate) {
+    const double drained = static_cast<double>(*value) - *rate * DrainStep();
+    *value = static_cast<float>(drained);
+    return !(drained >= 0.0);
 }
 
 // FILD of the world's time, FSTP to float (the time Sample is called with).
-__declspec(naked) float __fastcall TimeAsFloat(const int* /*time*/) {
-    __asm {
-        push ecx
-        fild dword ptr [ecx]
-        fstp dword ptr [esp]
-        fld dword ptr [esp]
-        pop ecx
-        ret
-    }
-}
+float TimeAsFloat(const int* time) { return static_cast<float>(*time); }
 
 // --- Accessors -----------------------------------------------------------------------------------
 

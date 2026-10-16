@@ -58,16 +58,6 @@ IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40)
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
-// 006E853C, the game's _ftol: truncation of ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 // 00497EB0 AllocateElements, called through its address (the original calls it there for some
 // types and inlines it for others; the same code either way).
 
@@ -254,11 +244,11 @@ void SetupTornado(CParticleSource* s) {
     s->height = 0.2f;
     // The particle colour: 0x19 alpha, then the scene light's r, g, b (the delay field holds it).
     const float* light = SceneLightColor();
-    std::uint32_t color = static_cast<std::uint32_t>(GameFtol(D(light[0]) * D(EI_COLOR_SCALE)));
+    std::uint32_t color = gamecrt::Ftol(D(light[0]) * D(EI_COLOR_SCALE));
     color = (color | 0x1900) << 8;
-    color |= static_cast<std::uint32_t>(GameFtol(D(light[1]) * D(EI_COLOR_SCALE)));
+    color |= gamecrt::Ftol(D(light[1]) * D(EI_COLOR_SCALE));
     color <<= 8;
-    color |= static_cast<std::uint32_t>(GameFtol(D(light[2]) * D(EI_COLOR_SCALE)));
+    color |= gamecrt::Ftol(D(light[2]) * D(EI_COLOR_SCALE));
     SetBits(&s->frameDelay, color);
     SetupTornadoRings(s);
     std::memcpy(&s->elements[0].value[6], reinterpret_cast<const void*>(0x0073CB18), sizeof(float));  // 12.0
