@@ -82,7 +82,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   takes them from the window messages, so the original and the image see the same (`ui_modifier_keys.txt`).
   `clickunit <name> [l|r|move] [mods]` clicks the unit with that script name where the game's own
   picking finds it this frame (`ui_battle_commands.txt`); `clickunit #<id>` picks a map object by id (a lever,
-  `levers_key.txt`).
+  `levers_key.txt`). `clickground <x> <y> [click|dblclick|rclick|move]` does that mouse step where the game's
+  ground pick finds map point (x, y) (a walk order: `net_pair_zone.txt`).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the
   global map, 5 the camp); the camp's Esc returns to the game. `screen 5 <n>` opens the camp with
   constructor / trader class `<n>` as a base dialogue's "constrN" answer does (1, 3, 4, 5 after a

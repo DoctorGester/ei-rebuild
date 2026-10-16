@@ -1,0 +1,57 @@
+# SV5d1: kick and ban on the pair harness. This game hosts as net_pair_join does; the peer
+# (peer/net_pair_kick.txt) joins. Then:
+# - "kick" in the console without a name opens the host's player pick on the base (chatActive_ 1); a click on
+#   the peer's face sends command 4 with its serial (CChatWindow::OnLButtonDown 006097E0, ServerOnCommand
+#   0041B2A0 -> Kick): the peer's game shows the lost server box and goes back to the main menu.
+# - The peer joins again with a new hero ("z...") and "ban z" sends command 3 (by name prefix:
+#   FindGuestConnection, Ban): the peer is dropped again, and its next join is refused by the ban list
+#   (Admit), its game showing the refusal box.
+timeout 180
+peer net_pair_kick
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+peerwait 90 joined
+frames 20
+console kick
+frames 10
+vanilla click 715 25
+rebirth click 635 36
+frames 40
+peersignal kicked
+peerwait 120 back
+frames 60
+console ban z
+frames 40
+peersignal banned
+peerwait 120 refused
+frames 20
+report
+quit

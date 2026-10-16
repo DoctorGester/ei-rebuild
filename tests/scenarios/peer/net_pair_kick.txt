@@ -1,0 +1,98 @@
+# The peer of net_pair_kick: joins (as in net_pair_join), is kicked (the lost server box, back to the main
+# menu), joins again with a new hero ("zed"), is banned, and its third join (another new hero) is refused.
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+peerwait 60 kicked
+frames 20
+waitwindow 20 msgbox
+key enter
+waitmenu 30
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key z
+frames 3
+key e
+frames 3
+key d
+frames 3
+frames 2
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal back
+peerwait 60 banned
+frames 20
+waitwindow 20 msgbox
+key enter
+waitmenu 30
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key w
+frames 3
+key o
+frames 3
+frames 2
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+frames 60
+waitwindow 20 msgbox
+peersignal refused
+frames 2
+report
+quit
