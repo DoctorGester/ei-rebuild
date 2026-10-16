@@ -1623,3 +1623,30 @@ After the switch (main merged): `work.py test S21 --golden --jobs 4` (the defaul
 168 goldens the same, 0 differ. `--no-hooks --golden`: 124 goldens the same; 7 runs fail as before (S20a's renderer-only
 scenarios render_cursor_present V+R, render_device_lost, render_present_shot V+R, render_present_window, and rebirth_flags
 on the vanilla data, whose flags the original lacks): S21a can leave these out of `--no-hooks` plans.
+
+**S21a (2026-10-16): scenarios that only meant something hooked.** A scenario's line `# no original: <install>...`
+(tools/run_all.py `no_original`; words after the install names are the reason) leaves its `--no-hooks` runs on those
+installs out of plan() (and so out of work.py batches), with a "left out" line as for the display-mode rule. Decisions:
+- rebirth_flags: on the vanilla data kept as the image's crash smoke test with no golden (user 2026-10-16); `# no
+  original: vanilla`. Its Rebirth golden is S20c's. Header rewritten for the image.
+- render_cursor_present, render_device_lost, render_present_shot, render_present_window: `# no original: vanilla
+  rebirth`. They check our renderer (cursor presents between frames, a lost device, screenshots from the new frame,
+  gamma and the scaled window), stay in the image suite, and have no golden (the original cannot pass them; S20a).
+  render_present_fullscreen was already out of `--no-hooks` plans (it would switch the display mode).
+- render_movie: dropped with its goldens. "render new" next to the old path; on the image (always "present") the run
+  is render_movie_present's step for step, and the two scenarios' goldens (V+R) were byte for byte the same.
+  render_movie_present's header now says what render_movie's did.
+- render_terrain: dropped with its goldens. Its old-path frames (terrain on / off) do nothing on the image (the old
+  path stays off with "present", render.cpp OldPathSwitchable); what is left is render_scene's first half, and the
+  goldens (V+R) were the same as render_scene's.
+- render_scene, render_cpuwindows: kept (goldens; render_cpuwindows walks the camp and the global map, which
+  render_present_cpuwindows does not); headers say that on the image every capture is the new frame.
+- Kept as they are: harness_disk_full and the three watchdogs (harness checks; they pass on the image, no golden by
+  rule), net_second_master on the vanilla data (the original runs it; no golden by rule, SV7b8a), the four
+  ui_widescreen* (S21b), and the scenarios whose headers name verify wrappers or `--no-hooks` checks (movement,
+  script_exec, script_fx, script_quest, ui_saveload, spells, unit_ai, units): they have goldens; the wording goes
+  with the wrappers (S21d).
+tests/coverage/coverage.csv still names render_movie / render_terrain until it is next generated.
+Runs (with S20c's four goldens): `work.py test S20c --golden --jobs 4` (the image): 186 runs ALL PASS, 168 goldens the
+same, 0 differ, 18 runs without a golden; `--no-hooks --golden --jobs 4`: 7 runs left out by the new lines, 136 runs
+ALL PASS, 126 goldens the same, 0 differ.

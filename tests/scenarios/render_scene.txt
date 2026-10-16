@@ -13,9 +13,12 @@
 #   interface:    ... N A --mask F\world_i.bmp F\world_none.bmp
 #   scene without the interface:  ... N A --mask A F\world_i.bmp --mask-background
 # and look at them with: python tools\frame_preview.py out.png --scale 4 A N
-# Needs the hooks (the mesh draws 004E9010 / 004E9A50, the device draws 004EB550 / 004EB370, the
-# world draw 00569E40, the surface blit 005FDA80, the terrain page draw 006BFF40 and the present
-# 004EF610 are rewritten code).
+# The old frames need a hooked run on dgVoodoo (the mesh draws 004E9010 / 004E9A50, the device draws
+# 004EB550 / 004EB370, the world draw 00569E40, the surface blit 005FDA80, the terrain page draw
+# 006BFF40 and the present 004EF610 are rewritten code). On the standalone image (always "present")
+# the old path has no device and stays off (render.cpp, OldPathSwitchable): every capture is the new
+# frame, world / world_again must still match, and the golden checks the game state. (render_terrain,
+# this scenario's first half, went with S21a: on the image it was a subset of this run.)
 render new
 reject Script error
 waitmenu

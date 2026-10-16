@@ -6,6 +6,8 @@
 #   python tools\compare_frames.py <frames_basic run>\frames\camp.bmp <run>\frames\camp.bmp
 # ei_hook.log says "cpuwindows: client-memory surface ... refused" if DirectDraw (dgVoodoo) does not
 # take the memory (then plain surfaces are used). world / world_again must match.
+# On the standalone image (always "present") only the new frame is written, as in
+# render_present_cpuwindows; this run keeps its own walk (the camp, the global map) and golden.
 render new,cpuwindows
 reject Script error
 waitmenu

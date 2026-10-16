@@ -1,10 +1,13 @@
-# render_movie in the switch-over ("render new,present"; ticket R6): the movie players outside the
-# frame fill no DirectDraw surface and draw nothing to the primary; each movie frame is a frame of
-# the new renderer (the movie's texture, the black fill) shown by the old present (004EF610). The
-# cursor thread (005E5690) and the background saves (005E6630) draw nothing either; the cursor is
-# in the new frames (005E54A0 -> render::Cursor). Compare after_movie with render_movie's:
-#   python tools\compare_frames.py <render_movie run>\frames\after_movie.bmp <this run>\frames\after_movie.bmp
-# (not deterministic: expect small differences).
+# The movie players outside the game's frame in the switch-over ("render new,present"; ticket R6,
+# docs/notes/renderer.md): the loading movie (005DA400) during the new game's load, and the blocking
+# player (005DB3F0: its message loop and the screen fill 005DB9E0) through the script's PlayMovie with
+# a short movie (crdtfin.bik, 27 frames at 15 fps). They fill no DirectDraw surface and draw nothing
+# to the primary; each movie frame is a frame of the new renderer (the movie's texture, the black
+# fill) shown by the old present (004EF610). The cursor thread (005E5690) and the background saves
+# (005E6630) draw nothing either; the cursor is in the new frames (005E54A0 -> render::Cursor).
+# Captures cannot be taken inside the movie (the console step that starts it runs it to its end);
+# the capture after it checks the game's frames still come. (render_movie, the same beside the old
+# path, went with S21a: on the image it was this run, and its golden this one's.)
 render new,present
 reject Script error
 waitmenu

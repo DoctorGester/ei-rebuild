@@ -24,14 +24,12 @@ party_records,0,87
 rebirth_flags,1,89
 render_cpuwindows,0,89
 render_device_lost,0,88
-render_movie,0,87
 render_movie_present,0,87
 render_present,0,89
 render_present_cpuwindows,0,89
 render_present_fullscreen,0,88
 render_present_window,0,56
 render_scene,0,87
-render_terrain,0,87
 render_titles_present,0,51
 sandbox_actions,0,87
 sandbox_map,0,87

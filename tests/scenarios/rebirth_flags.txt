@@ -1,8 +1,9 @@
 # Rebirth's bug fixes in the rewritten code (include/ei/rebirth.h, docs/notes/rebirth.md), flags on.
-# Vanilla install: the rewrites that reproduce a fix and whose wrappers compare with the original run
-# without them (ei_hook.log: "UNVERIFIED ... the original does not have it"; the state-checking
-# wrappers of Move, LoadCommands and AddEffect still run), so this run checks that the game goes
-# through the changed code: the loading movie (FixProgressNames), spell effects added to the hero and a
+# Vanilla data: the flags on data the original never ran them with. The original cannot run it (no
+# --no-hooks run, no golden); on the standalone image it is a crash smoke test (user 2026-10-16,
+# S21a): the game must go through the changed code without a failure (hooked, the rewrites that
+# reproduce a fix and whose wrappers compare with the original run without them: ei_hook.log
+# "UNVERIFIED ... the original does not have it"): the loading movie (FixProgressNames), spell effects added to the hero and a
 # wolf over and over (FixSpellEffectsOverflow: at most 20, older duplicates removed), casts and
 # attacks for the battle music test (FixPlaingBattleMusicFromAntimagic), the camp's prices
 # (FixRepairPrice), items made by name (FixCreateItem), objects removed (FixRemoveMapObject) and
@@ -11,7 +12,9 @@
 # before "exec autoexec.cfg" of the new game (AutoExec), addon's script functions and commands
 # (AddNewScriptCommands; the existing lines also parse with its table and keyword rule), every frame
 # drawn with the starter's draw radii (ObjectsDrawRadius, LandscapeDrawRadius). Rebirth
-# install: the flags follow addon.dll and the wrappers compare with the patched originals.
+# install: the flags follow addon.dll (the image: config/ei_rebirth_standalone.ini), checked by the
+# Rebirth golden recorded from the original with addon.dll (S20c).
+# no original: vanilla (the flags are Rebirth's; on vanilla data a crash smoke test of the image, no golden; S21a)
 rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
 waitmenu
