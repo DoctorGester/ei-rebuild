@@ -1945,7 +1945,9 @@ and net_second_master leave only mp\1.mp (a hero file, which savefile.py does no
 
 **Standalone:** `work.py test S20c --golden --jobs 4 ui_mp_host net_second_master rebirth_flags` (the image, both
 installs): 6 runs ALL PASS, the 4 goldens the same (net_second_master and rebirth_flags on the vanilla data have no
-golden by rule). SV7c2 (the image under heap jitter) had not merged; its suite covers these goldens once it does.
+golden by rule). After merging main with SV7c2 (the image's heap takes the jitter): the same 6 runs with
+`EI_HEAP_JITTER` 1, `2,fill` and `3,fill` (the "heap jitter" log line present): each ALL PASS, the 4 goldens the same;
+the whole default suite (`--golden --jobs 4`): 186 runs ALL PASS, 168 goldens the same, 0 differ.
 
 ## S20d: a heard claim's point canonical (2026-10-16)
 
