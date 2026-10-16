@@ -191,7 +191,7 @@ DirectDrawDriver* __cdecl FirstHardwareDirectDrawDriver() {
     }
     if (found == drivers.End()) {
         game::FatalError(game::Text(0x0078E534));   // "Can't find any driver with HW 3D.\n"
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
     return &found->data;
 }
@@ -346,7 +346,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     }
     if (!(processor.features & kFeatureMmx)) {
         game::FatalError(game::Text(0x0078E348));   // "MMX required in this version !!!.\n"
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
 
     converterLibrary_ = gameapi::LoadLibraryA(game::Text(0x0078E46C));   // "2DintMMX.dll"

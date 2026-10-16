@@ -557,6 +557,16 @@ def find_sites(f, sources, decl_spans):
             if owner and owner not in [n for _, n in chain] + f.name.split('::')[:-1]:
                 continue
         obj = tok if tok in ('.', '->') else ''
+        # An unqualified call outside the forwarder's namespace is another function (hook.cpp's
+        # fseek is the host CRT's, not gamecrt::fseek), unless a using-directive brings it in.
+        named = [n for n in namespaces if n != "`anonymous namespace'"]
+        if named and not qual and not obj and not f.in_class and '::' not in f.name:
+            site_ns = [n for k, n in s.scope_at(a) if k == 'ns' and n != "`anonymous namespace'"]
+            prefix = enclosing_prefix(s, a)
+            if site_ns[:len(named)] != named and not (site_ns + prefix)[:len(named)] == named:
+                if re.search(r'\busing\s+(?:namespace\s+)?' + re.escape(namespaces[-1]) + r'\b', s.code):
+                    return None, f'called unqualified through a using-directive ({s.path}:{s.line_of(a)})'
+                continue
         declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
                                    or tok in ('*', '&', '>', '~'))
         if declaration and is_call and not qual and not f.in_class and not s.in_body(a):
@@ -709,6 +719,18 @@ def enclosing_class(src, offset):
     last = None
     for m in _MEMBER_DEF.finditer(src.raw, start + 1 if start >= 0 else 0, offset):
         last = m.group(1)
+    return last
+
+
+_DEF_PREFIX = re.compile(r'^[A-Za-z_][^;(\n]*?\b((?:[A-Za-z_]\w*::)+)~?[A-Za-z_]\w*\s*\(', re.M)
+
+
+def enclosing_prefix(src, offset):
+    # The scopes `a::b::` of the out-of-class definition the offset is in (first line at column 0), as a list.
+    start = src.raw.rfind('\n}', 0, offset)
+    last = []
+    for m in _DEF_PREFIX.finditer(src.raw, start + 1 if start >= 0 else 0, offset):
+        last = m.group(1).split('::')[:-1]
     return last
 
 
@@ -912,7 +934,8 @@ def vector_sources():
     """src/ files the ei_vectors executable links (CMakeLists.txt) -> True, or False when parts of the file are left
     out of it (EI_VECTORS_REPLAY). A call there must keep reaching a target that ei_vectors has."""
     if not _VECTORS:
-        text = open(os.path.join(ROOT, 'CMakeLists.txt'), encoding='utf-8').read()
+        with open(os.path.join(ROOT, 'CMakeLists.txt'), encoding='utf-8') as fh:
+            text = fh.read()
         m = re.search(r'add_executable\(ei_vectors(.*?)\)', text, re.S)
         for path in re.findall(r'\bsrc/\S+\.cpp', m.group(1) if m else ''):
             full = os.path.join(ROOT, path)

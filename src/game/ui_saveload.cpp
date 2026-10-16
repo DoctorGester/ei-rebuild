@@ -614,7 +614,7 @@ EI_REPLACE(0x006570E0, QuickSave);
 void __fastcall QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     mfc::CString folder = SlotFolder(slot);
-    if (gamecrt::access(folder, 0) == -1) return;
+    if (libcrt::Access(folder, 0) == -1) return;
     mfc::CString notice;
     Texts()->GetString(game::Text(kNotifyLoading), &notice);
     ShowStatusText(kInterface, nullptr, notice);

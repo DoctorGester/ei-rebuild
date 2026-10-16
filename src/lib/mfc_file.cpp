@@ -111,7 +111,7 @@ void Clearerr(gamecrt::CrtFile* stream) {
     if (InImage()) std::clearerr(Host(stream));
     else GameClearerr(stream);
 }
-int Fflush(gamecrt::CrtFile* stream) { return InImage() ? std::fflush(Host(stream)) : gamecrt::fflush(stream); }
+int Fflush(gamecrt::CrtFile* stream) { return InImage() ? std::fflush(Host(stream)) : libcrt::Fflush(stream); }
 bool AtEnd(gamecrt::CrtFile* stream) {
     if (InImage()) return std::feof(Host(stream)) != 0;
     return (reinterpret_cast<const GameStream*>(stream)->flags & kStreamEof) != 0;
@@ -541,7 +541,7 @@ BOOL CStdioFile::Open(const char* path, unsigned flags, CFileException* error) {
 
 unsigned CStdioFile::Read(void* buffer, unsigned count) {
     if (count == 0) return 0;
-    const unsigned read = static_cast<unsigned>(gamecrt::fread(buffer, 1, count, stream));
+    const unsigned read = static_cast<unsigned>(libcrt::Fread(buffer, 1, count, stream));
     if (read == 0 && !AtEnd(stream)) ThrowFileException(CFileException::generic, DosErrno(), fileName);
     if (Failed(stream)) {
         Clearerr(stream);
@@ -596,12 +596,12 @@ BOOL CStdioFile::ReadLine(CString& text) {
 }
 
 long CStdioFile::Seek(long offset, unsigned from) {
-    if (gamecrt::fseek(stream, offset, static_cast<int>(from)) != 0) ThrowFileException(CFileException::badSeek, DosErrno(), fileName);
-    return gamecrt::ftell(stream);
+    if (libcrt::Fseek(stream, offset, static_cast<int>(from)) != 0) ThrowFileException(CFileException::badSeek, DosErrno(), fileName);
+    return libcrt::Ftell(stream);
 }
 
 unsigned long CStdioFile::GetPosition() const {
-    const long position = gamecrt::ftell(stream);
+    const long position = libcrt::Ftell(stream);
     if (position == -1) ThrowFileException(CFileException::invalidFile, DosErrno(), fileName);
     return static_cast<unsigned long>(position);
 }
@@ -612,7 +612,7 @@ void CStdioFile::Flush() {
 
 void CStdioFile::Close() {
     int failed = 0;
-    if (stream) failed = gamecrt::fclose(stream);
+    if (stream) failed = libcrt::Fclose(stream);
     handle = kNoFile;
     closeOnDelete = FALSE;
     stream = nullptr;
@@ -620,7 +620,7 @@ void CStdioFile::Close() {
 }
 
 void CStdioFile::Abort() {
-    if (stream && closeOnDelete) gamecrt::fclose(stream);
+    if (stream && closeOnDelete) libcrt::Fclose(stream);
     handle = kNoFile;
     stream = nullptr;
     closeOnDelete = FALSE;

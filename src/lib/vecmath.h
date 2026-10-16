@@ -118,7 +118,7 @@ enum class Sum3 { XYZ, ZYX, ZXY };
 __forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
 // The game's CRT acos / asin (006E7334 / 006E83D4, the bodies of _CIacos / _CIasin), unrounded.
 __forceinline double Acos(double c) { return gamecrt::acos(c); }
-__forceinline double Asin(double s) { return gamecrt::asin(s); }
+__forceinline double Asin(double s) { return libcrt::CiAsin(s); }
 
 // ---- Arithmetic (the grouping written here is kept) ----------------------------------------------
 

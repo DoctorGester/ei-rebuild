@@ -103,7 +103,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * GameFloat(0x00740204) + angle_);   // 1 / 300
         angle_ = turned;
-        angle_ = static_cast<float>(gamecrt::fmod(turned, GameFloat(0x007C8020)));
+        angle_ = static_cast<float>(libcrt::StackFmod(turned, GameFloat(0x007C8020)));
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, GameFloat(0x00742098) * GameFloat(0x0073CCA8));   // pi * 0.8

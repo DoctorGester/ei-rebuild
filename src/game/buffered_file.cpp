@@ -195,21 +195,21 @@ EI_REPLACE_METHOD(0x004DB0F0, BufferedStream::SeekWindow);
 
 int BufferedFile::ReadAtFile(std::int32_t position, void* to, std::uint32_t size) {
     if (!file) return 0;
-    if (gamecrt::fseek(file, position, kSeekSet) != 0) return 0;
-    return static_cast<int>(gamecrt::fread(to, 1, size, file));
+    if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
+    return static_cast<int>(libcrt::Fread(to, 1, size, file));
 }
 EI_REPLACE_METHOD(0x004DB5E0, BufferedFile::ReadAtFile);
 
 int BufferedFile::WriteAtFile(std::int32_t position, const void* from, std::uint32_t size) {
     if (!file) return 0;
-    if (gamecrt::fseek(file, position, kSeekSet) != 0) return 0;
+    if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
     return static_cast<int>(gamecrt::fwrite(from, 1, size, file));
 }
 EI_REPLACE_METHOD(0x004DB630, BufferedFile::WriteAtFile);
 
 void BufferedFile::Close() {
     ReleaseBlock();
-    if (file) gamecrt::fclose(file);
+    if (file) libcrt::Fclose(file);
     file = nullptr;
 }
 EI_REPLACE_METHOD(0x004DB680, BufferedFile::Close);
@@ -233,13 +233,13 @@ EI_REPLACE_METHOD(0x00580EC0, BufferedFile::DeletingDestructFile);
 void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
     Close();
     flags = newFlags;
-    file = gamecrt::fopen(path, mode);
+    file = libcrt::Fopen(path, mode);
     if (!file) {
         flags |= kFlagError;
         return;
     }
-    gamecrt::fseek(file, 0, kSeekEnd);
-    long size = gamecrt::ftell(file);
+    libcrt::Fseek(file, 0, kSeekEnd);
+    long size = libcrt::Ftell(file);
     flags &= ~kFlagUnwritten;
     auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(kWindowBytes));
     end = block + kWindowBytes;

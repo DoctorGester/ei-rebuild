@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/mfc_thread.h"
 
 #include <cstring>
 #include <new>
@@ -496,7 +497,7 @@ void CSoundManager::StreamThread() {
         }
         gameapi::LeaveCriticalSection(Lock(streamLock));
     }
-    AfxEndThreadOriginal(0, 1);
+    mfc::impl::AfxEndThread(0, 1);
 }
 EI_REPLACE_METHOD(0x006BB910, CSoundManager::StreamThread);
 

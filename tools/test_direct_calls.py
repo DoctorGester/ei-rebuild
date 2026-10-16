@@ -140,6 +140,19 @@ class DirectCallsTest(unittest.TestCase):
         self.assertIn('    std::BarAt(p, nullptr, 0);\n', out['src/game/user.cpp'])
         self.assertIn('int a = foo.Bar(1) + p->Bar(q->Bar(2));', out['src/game/user.cpp'])
 
+    def test_namespace(self):
+        # crt::LenAt's own calls change; an unqualified LenAt outside namespace crt is another function.
+        lib = '#include "ei/hook.h"\nint __cdecl Len(const char* s) { return 0; }\nEI_REPLACE(0x00401040, Len);\n'
+        user = ('#include "ei/hook.h"\nnamespace crt {\n'
+                '__declspec(naked) int __cdecl LenAt(const char*) EI_ORIGINAL(0x00401040)\n}\n'
+                'int User::Run(const char* p) {\n    return crt::LenAt(p) + LenAt(p);\n}\n')
+        decls = {'Len': [dc.Sig('int __cdecl Len(char const *)', 'lib.cpp.obj')],
+                 'crt::LenAt': [dc.Sig('int __cdecl crt::LenAt(char const *)', 'user.cpp.obj')]}
+        sources = [dc.Source('src/game/lib.h', '#pragma once\nint __cdecl Len(const char* s);\n'),
+                   dc.Source('src/game/lib.cpp', '#include "lib.h"\n' + lib), dc.Source('src/game/user.cpp', user)]
+        _, out = run(sources, decls)
+        self.assertIn('return Len(p) + LenAt(p);', out['src/game/user.cpp'])
+
     def test_reindent(self):
         self.assertEqual(dc.reindent('a,\n       b,\n   c)', 7, -3), 'a,\n    b,\n   c)')
 

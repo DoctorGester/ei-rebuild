@@ -61,8 +61,8 @@ void Suffix(Ostream* stream) {
     ios.width = 0;
     if ((ios.flags & Ios::kUnitBuf) && ios.bp->Sync() == kEof) ios.state = Ios::kFail | Ios::kBad;
     if (ios.flags & Ios::kStdio) {
-        if (gamecrt::fflush(GameStdout()) == kEof) ios.state |= Ios::kFail;
-        if (gamecrt::fflush(GameStderr()) == kEof) ios.state |= Ios::kFail;
+        if (Fflush(GameStdout()) == kEof) ios.state |= Ios::kFail;
+        if (Fflush(GameStderr()) == kEof) ios.state |= Ios::kFail;
     }
     ios.bp->Unlock();
     ios.Unlock();

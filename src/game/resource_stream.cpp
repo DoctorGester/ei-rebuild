@@ -131,9 +131,9 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     // A readable loose file comes first.
-    if (gamecrt::access(name, 4) == 0) {
+    if (libcrt::Access(name, 4) == 0) {
         gamecrt::FindData data;
-        gamecrt::findfirst(name, &data);   // the handle is never closed
+        libcrt::Findfirst(name, &data);   // the handle is never closed
         file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
         if (file_ != nullptr) {
             if (size != nullptr) *size = data.size;

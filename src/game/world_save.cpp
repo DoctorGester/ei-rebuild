@@ -896,12 +896,12 @@ constexpr std::uintptr_t kCantLoadMap = std::uintptr_t(0x00790AAC);     // "CWor
 // Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
 // first: `site`).
 bool MapFileMissing(const char* name, modfolders::MapsSite site) {
-    if (gamecrt::access(name, 0) != -1) return false;
+    if (libcrt::Access(name, 0) != -1) return false;
     mfc::CString folder;
     modfolders::SelectMaps(name, site);
     MapsFolderAt(&folder);
     mfc::CString path = folder + name;
-    return gamecrt::access(path, 0) == -1;
+    return libcrt::Access(path, 0) == -1;
 }
 
 } // namespace

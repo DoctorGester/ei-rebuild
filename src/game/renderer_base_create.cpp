@@ -40,21 +40,21 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
     ReadProcessorInfo();
     if (!(TheProcessorInfo()->features & kProcessorMmx)) {
         game::FatalError(game::Text(kNoMmxText));
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
 
     graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");   // the exe's 0078E46C
     game::DebugLog(game::Text(kLibraryLoadedText));
     if (!graphicsLibrary_) {
         game::FatalError(game::Text(kNoLibraryText));
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
     using GetGraphicsProcessor = void*(__cdecl*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));   // the exe's 0078E42C
     if (!getProcessor) {
         game::FatalError(game::Text(kNoFunctionText));
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
     game::DebugLog(game::Text(kAcquiringText));
     graphicsProcessor_ = getProcessor();

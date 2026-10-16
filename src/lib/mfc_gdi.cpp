@@ -25,11 +25,6 @@ CFixedAlloc& TempGdiObjectAlloc() { return *reinterpret_cast<CFixedAlloc*>(0x007
 void* TempDCVtable() { return reinterpret_cast<void*>(0x007463E4); }
 void* TempGdiObjectVtable() { return reinterpret_cast<void*>(0x0074645C); }
 
-// The maps through their addresses: the original's module thread state in the hook build, MapHDC /
-// MapHGDIOBJ below in the image.
-__declspec(naked) CHandleMap* __stdcall MapHDCAt(BOOL) EI_ORIGINAL(0x00708D07)
-__declspec(naked) CHandleMap* __stdcall MapHGDIOBJAt(BOOL) EI_ORIGINAL(0x00709FEE)
-
 // A map of the image's thread, made as afxMapHDC / afxMapHGDIOBJ make it (under the critical new
 // handler). The thread state's destructor frees MFC's; the image's live until the process ends.
 CHandleMap* MakeMap(CHandleMap*& map, BOOL create, CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
@@ -62,12 +57,12 @@ EI_REPLACE_STANDALONE(0x00709FEE, MapHGDIOBJ);
 // ---- CGdiObject, CPen, CFont ----------------------------------------------------------------------
 
 CGdiObject* __stdcall CGdiObject::FromHandle(HGDIOBJ object) {
-    return static_cast<CGdiObject*>(MapHGDIOBJAt(TRUE)->FromHandle(object));
+    return static_cast<CGdiObject*>(mfc::impl::MapHGDIOBJ(TRUE)->FromHandle(object));
 }
 
 BOOL CGdiObject::Attach(HGDIOBJ object) {
     if (!object) return FALSE;
-    CHandleMap* map = MapHGDIOBJAt(TRUE);
+    CHandleMap* map = mfc::impl::MapHGDIOBJ(TRUE);
     handle = object;
     *map->permanentMap.At(object) = this;
     return TRUE;
@@ -76,7 +71,7 @@ BOOL CGdiObject::Attach(HGDIOBJ object) {
 HGDIOBJ CGdiObject::Detach() {
     const HGDIOBJ object = handle;
     if (object) {
-        if (CHandleMap* map = MapHGDIOBJAt(FALSE)) map->permanentMap.RemoveKey(handle);
+        if (CHandleMap* map = mfc::impl::MapHGDIOBJ(FALSE)) map->permanentMap.RemoveKey(handle);
     }
     handle = nullptr;
     return object;
@@ -165,7 +160,7 @@ CDC* CDC::Construct() {
 }
 
 CDC* __stdcall CDC::FromHandle(HDC dc) {
-    return static_cast<CDC*>(MapHDCAt(TRUE)->FromHandle(dc));
+    return static_cast<CDC*>(mfc::impl::MapHDC(TRUE)->FromHandle(dc));
 }
 
 void* __stdcall CreateTempDC() {

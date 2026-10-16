@@ -259,7 +259,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
         DirectDrawDriver* driver = FirstHardwareDirectDrawDriver();
         if (!driver) {
             game::FatalError(game::Text(0x0078E534));   // "Can't find any driver with HW 3D..."
-            ExitGame(-1);
+            libcrt::Exit(-1);
         }
         int index = settings->driverIndex_;
         if (index != -1) {

@@ -388,7 +388,7 @@ int __cdecl FatalError(const char* format, ...) {
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
     if (!carryOn) ShowMessageBox(text, kErrorBoxFlags);
     if (ErrorHook hook = FatalErrorHook()) hook(text);
-    if (++FatalErrorCount() >= 1 && !carryOn) ExitGame(-1);
+    if (++FatalErrorCount() >= 1 && !carryOn) libcrt::Exit(-1);
     return 0;
 }
 EI_REPLACE(0x00480080, FatalError);
@@ -407,7 +407,7 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     gamecrt::sprintf(report, CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report, kErrorBoxFlags);
     if (ErrorHook hook = FatalErrorHook()) hook(report);
-    if (++FatalErrorCount() >= 1) ExitGame(-1);
+    if (++FatalErrorCount() >= 1) libcrt::Exit(-1);
     return 0;
 }
 

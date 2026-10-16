@@ -129,10 +129,10 @@ src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,57
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,195
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,194
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,25
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,33
-src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,166
+src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,165
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,104
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,64
 src/game/particle_callbacks.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
@@ -197,7 +197,7 @@ src/game/terrain_lights.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_passes.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/terrain_sector.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/text_reader.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/text_sources.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+src/game/text_sources.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/texture_compose.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_battle_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/ui_battle_hover.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -307,12 +307,10 @@ src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/world_zone.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/zone_records.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,33
+src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,58
 src/lib/mfc_coll.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/lib/mfc_exception.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/lib/mfc_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
-src/lib/mfc_gdi.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/lib/mfc_state.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/lib/mfc_string.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/lib/mfc_time.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4

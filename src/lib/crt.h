@@ -56,35 +56,20 @@ inline bool SameIgnoringCase(const int* fold, const char* a, const char* b, int 
     return true;
 }
 
-// acos / asin: the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0 (same code
-// from the FLD of the argument on; the result is left unrounded in ST0).
+// acos: the C entry of the body behind _CIacos 006E7320 (same code from the FLD of the argument on;
+// the result is left unrounded in ST0).
 double __cdecl acos(double c);                                // 006E7334
-double __cdecl asin(double s);                                // 006E83D4
-// fmod: the C entry beside _CIfmod 006E95AA (the same FPREM loop; the result is left unrounded in
-// ST0).
-double __cdecl fmod(double x, double y);                      // 006E95A0
 // The game's _ftol (006E853C) for a value computed in C++: the low 32 bits of the 64-bit
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
 // Low-level I/O on CRT file descriptors.
 int __cdecl open(const char* path, int flags, ...);           // 006EB35C
-long __cdecl lseek(int fd, long offset, int origin);          // 006EB284
-int __cdecl read(int fd, void* buffer, unsigned count);       // 006EB046
 int __cdecl write(int fd, const void* buffer, unsigned count);// 006EB642
-int __cdecl close(int fd);                                    // 006EAF66
-int __cdecl access(const char* path, int mode);               // 006EAF20 _access
-long __cdecl filelength(int fd);                              // 006E904C _filelength
 
 // Stream I/O (the game's FILE is opaque here).
 struct CrtFile;
-CrtFile* __cdecl fopen(const char* path, const char* mode);                          // 006E9107
-int __cdecl fclose(CrtFile* file);                                                   // 006E8EB8
-int __cdecl fseek(CrtFile* file, long offset, int origin);                           // 006E95D2
-long __cdecl ftell(CrtFile* file);                                                   // 006E97C4
-std::size_t __cdecl fread(void* to, std::size_t size, std::size_t count, CrtFile* file);          // 006E8F35
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file); // 006E968B
-int __cdecl fflush(CrtFile* file);                                                   // 006ED534
 // A stream's file descriptor (the _fileno macro: FILE::_file, +0x10; in the standalone image the host
 // CRT's, libcrt::Fileno).
 int fileno(const CrtFile* file);
@@ -99,8 +84,6 @@ struct FindData {
     char name[260];
 };
 static_assert(sizeof(FindData) == 0x118);
-// _findfirst (006EB832): the search handle (a Win32 find handle; the game never closes it), or -1.
-long __cdecl findfirst(const char* pattern, FindData* data);
 
 // The handler operator new calls when the heap is exhausted (it returns nonzero to have the
 // allocation tried again; _set_new_handler 006E8D35 sets it).

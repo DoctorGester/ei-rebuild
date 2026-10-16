@@ -1,3 +1,5 @@
+#include "bink_video.h"
+#include "core_streams.h"
 #include "resource.h"
 #include "mod_folders.h"
 #include "originals_engine.h"
@@ -56,7 +58,7 @@ void CMappedResource::Destroy() {
     ei::SetVtable(this, kVtableAddress);
     CMappedResource::FreeAllFiles();   // called directly, not through the vtable
     if (fd_ >= 0) {
-        gamecrt::close(fd_);
+        libcrt::Close(fd_);
         fd_ = -1;
     }
     if (!image_) {
@@ -98,7 +100,7 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
     if (fd_ == -1)
         return game::FatalError("CMappedResource::OpenResourceImpl()\nUnable to open file \"" + mfc::CString(path) + "\"");
 
-    if (gamecrt::lseek(fd_, 0, 0) != -1 && gamecrt::read(fd_, &header_, sizeof(header_)) == sizeof(header_)) {
+    if (libcrt::Lseek(fd_, 0, 0) != -1 && libcrt::Read(fd_, &header_, sizeof(header_)) == sizeof(header_)) {
         if (header_.magic != kResMagic) {
             game::FatalError("Wrong format resource file \"" + mfc::CString(path) + "\"");
             CloseResource();
@@ -107,9 +109,9 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
         unsigned tableSize = header_.count * sizeof(ResEntry);
         entries_ = static_cast<ResEntry*>(gamecrt::operator_new(tableSize));
         names_ = static_cast<char*>(gamecrt::operator_new(header_.namesSize));
-        if (gamecrt::lseek(fd_, static_cast<long>(header_.tableOffset), 0) != -1 &&
-            static_cast<unsigned>(gamecrt::read(fd_, entries_, tableSize)) == tableSize &&
-            static_cast<std::uint32_t>(gamecrt::read(fd_, names_, header_.namesSize)) == header_.namesSize)
+        if (libcrt::Lseek(fd_, static_cast<long>(header_.tableOffset), 0) != -1 &&
+            static_cast<unsigned>(libcrt::Read(fd_, entries_, tableSize)) == tableSize &&
+            static_cast<std::uint32_t>(libcrt::Read(fd_, names_, header_.namesSize)) == header_.namesSize)
             return 1;
     }
     CloseResource();
@@ -134,7 +136,7 @@ BOOL CMappedResource::OpenFromMemoryImpl(const void* image) {
 void CMappedResource::CloseResource() {
     FreeAllFiles();
     if (fd_ >= 0) {
-        gamecrt::close(fd_);
+        libcrt::Close(fd_);
         fd_ = -1;
     }
     // The table and names were read into memory by OpenResource unless the archive is an image.
@@ -187,9 +189,9 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     file->data = gamecrt::operator_new(file->size);
     file->offset = entry.offset;
 
-    if (gamecrt::lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) != -1) {
+    if (libcrt::Lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) != -1) {
         std::uint32_t bytes = file->size;
-        if (static_cast<std::uint32_t>(gamecrt::read(fd_, file->data, bytes)) == bytes) {
+        if (static_cast<std::uint32_t>(libcrt::Read(fd_, file->data, bytes)) == bytes) {
             if (size) *size = bytes;
             {
                 stlp::string key(file->name);
@@ -219,7 +221,7 @@ bool CMappedResource::CloseFileImpl(void* data) {
     if (--file->refCount != 0) return true;
 
     if (writable_) {
-        if (gamecrt::lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) == -1 ||
+        if (libcrt::Lseek(fd_, static_cast<long>(file->offset), 0 /* SEEK_SET */) == -1 ||
             static_cast<std::uint32_t>(gamecrt::write(fd_, file->data, file->size)) != file->size) {
             // The original formats the data pointer as the file name.
             mfc::CString name;

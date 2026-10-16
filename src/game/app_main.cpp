@@ -218,16 +218,16 @@ void AppendDefaultMessages(console::CStringArray& messages) {
 
 // The lines of .\res\sysmsg.txt, or the built-in three when the file is missing or shorter.
 void LoadSystemMessages(console::CStringArray& messages) {
-    gamecrt::CrtFile* file = gamecrt::fopen(game::Text(0x007849D0), game::Text(0x007849E4));   // "rt"
+    gamecrt::CrtFile* file = libcrt::Fopen(game::Text(0x007849D0), game::Text(0x007849E4));   // "rt"
     if (!file) {
         AppendDefaultMessages(messages);
         return;
     }
-    const std::size_t length = static_cast<std::size_t>(gamecrt::filelength(gamecrt::fileno(file)));
+    const std::size_t length = static_cast<std::size_t>(libcrt::Filelength(gamecrt::fileno(file)));
     char* text = static_cast<char*>(gamecrt::operator_new(length));
     std::memset(text, 0, length);
-    gamecrt::fread(text, 1, length, file);
-    gamecrt::fclose(file);
+    libcrt::Fread(text, 1, length, file);
+    libcrt::Fclose(file);
     StringSplit(text, &messages, '\n');
     if (messages.size < kMessageLines) {
         messages.SetSize(0, -1);
@@ -320,7 +320,7 @@ void RegisterWindowClass(HINSTANCE instance) {
         gameapi::BringWindowToTop(popup);
         gameapi::SetForegroundWindow(popup);
     }
-    ExitGame(-1);
+    libcrt::Exit(-1);
 }
 
 // The buffers _splitpath fills, as the original sizes them.

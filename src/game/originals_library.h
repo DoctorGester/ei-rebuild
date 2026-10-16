@@ -63,7 +63,6 @@ __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const v
 __declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
-__declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
 __declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
@@ -120,7 +119,7 @@ __declspec(naked) inline void __fastcall CFileWrite(mfc::CFile* /*file*/, void*,
 // exponent in ST0), here with ordinary double arguments: the same bodies as acos 006E7334 / asin
 // 006E83D4 and libcrt::CiPow.
 inline double CIacos(double c) { return gamecrt::acos(c); }
-inline double CIasin(double s) { return gamecrt::asin(s); }
+inline double CIasin(double s) { return libcrt::CiAsin(s); }
 inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
