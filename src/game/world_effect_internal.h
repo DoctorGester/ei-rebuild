@@ -90,18 +90,8 @@ inline CWorld* ContextWorld(const void* object) { return static_cast<CWorld*>(Ma
 
 // --- Replicated fields (net_delta.cpp, through the game addresses) --------------------------------
 
-__declspec(naked) inline DeltaField* __fastcall BeginWrite(DeltaField*, void*, int /*channel1Only*/) EI_ORIGINAL(0x0047FA40)
-__declspec(naked) inline DeltaField* __fastcall BeginRead(DeltaField*, void*, int /*second*/, BitStream* /*reader*/) EI_ORIGINAL(0x0047FAA0)
-__declspec(naked) inline void __fastcall EndField(DeltaField*) EI_ORIGINAL(0x0047FAF0)
 inline void __fastcall ResizeStream(BitStream* a0, void*, std::uint32_t a2) { static_cast<CMemoryStream*>((void*)a0)->Resize(a2); }
-__declspec(naked) inline void __fastcall WritePosition(DeltaField*, void*, const Vector3*) EI_ORIGINAL(0x0047E3A0)
-__declspec(naked) inline void __fastcall WriteDelta(DeltaField*, void*, const void*, std::uint32_t) EI_ORIGINAL(0x0047DCA0)
-__declspec(naked) inline void __fastcall WriteString(DeltaField*, void*, const char*) EI_ORIGINAL(0x0047E2D0)
-__declspec(naked) inline void __fastcall WriteFloat16(DeltaField*, void*, std::uint32_t) EI_ORIGINAL(0x0047F1E0)
 __declspec(naked) inline void __fastcall WriteFloat16x3(DeltaField*, void*, const void*) EI_ORIGINAL(0x0047F4D0)
-__declspec(naked) inline void __fastcall ReadPosition(DeltaField*, void*, Vector3*) EI_ORIGINAL(0x0047E930)
-__declspec(naked) inline void __fastcall ReadDelta(DeltaField*, void*, void*, std::uint32_t) EI_ORIGINAL(0x0047E000)
-__declspec(naked) inline void __fastcall ReadText(DeltaField*, void*, char*, int /*maxLength*/) EI_ORIGINAL(0x0047E340)
 __declspec(naked) inline void __fastcall ReadFloat16(DeltaField*, void*, void*) EI_ORIGINAL(0x0047F3D0)
 __declspec(naked) inline void __fastcall ReadFloat16x3(DeltaField*, void*, void*) EI_ORIGINAL(0x0047F7F0)
 

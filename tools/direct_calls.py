@@ -276,7 +276,8 @@ class Forwarder:
         self.target_name = ''
         self.kind = ''
         self.sites = []                       # Site
-        self.redeclare = None                 # (place, namespaces): declare the target where the forwarder was
+        self.global_qualify = False           # the call is spelled ::Name (other functions have the name)
+        self.redeclare = None                # (place, namespaces): declare the target where the forwarder was
         self.reason = ''
 
 
@@ -561,6 +562,8 @@ def find_sites(f, sources, decl_spans):
             if owner and owner not in [n for _, n in chain] + f.name.split('::')[:-1]:
                 continue
         obj = tok if tok in ('.', '->') else ''
+        if obj and not f.in_class and '::' not in f.name:
+            continue        # a member of that name, not the free forwarder
         # An unqualified call outside the forwarder's namespace is another function (hook.cpp's
         # fseek is the host CRT's, not gamecrt::fseek), unless a using-directive brings it in.
         named = [n for n in namespaces if n != "`anonymous namespace'"]
@@ -568,9 +571,8 @@ def find_sites(f, sources, decl_spans):
             site_ns = [n for k, n in s.scope_at(a) if k == 'ns' and n != "`anonymous namespace'"]
             prefix = enclosing_prefix(s, a)
             if site_ns[:len(named)] != named and not (site_ns + prefix)[:len(named)] == named:
-                if re.search(r'\busing\s+(?:namespace\s+)?' + re.escape(namespaces[-1]) + r'\b', s.code):
-                    return None, f'called unqualified through a using-directive ({s.path}:{s.line_of(a)})'
-                continue
+                if not re.search(r'\busing\s+(?:namespace\s+)?' + re.escape(namespaces[-1]) + r'\b', s.code):
+                    continue    # another function; with a using-directive the call is the forwarder's
         declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
                                    or tok in ('*', '&', '>', '~'))
         if declaration and is_call and not qual and not f.in_class and not s.in_body(a):
@@ -753,7 +755,8 @@ def rewrite_site(f, site):
             return None, 'target in an anonymous namespace of another file'
         if site.obj:
             return None, 'free forwarder called as a member'
-        return renamed(s, site.start, site.name_end, spelled_target(t, s, site.start), close), ''
+        name = spelled_target(t, s, site.start)
+        return renamed(s, site.start, site.name_end, '::' + name if f.global_qualify else name, close), ''
     # 'this': F(self, edx, rest...) -> self->M(rest...)
     if site.obj or site.qualifier not in ('', '::'):
         return None, 'qualified call'
@@ -923,8 +926,7 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
                 f.reason = f'a derived class declares the target name ({hiding[0]}::{t.simple})'
                 continue
         elif others and not t.scope:
-            f.reason = f'other functions have the target name ({t.simple})'
-            continue
+            f.global_qualify = True     # `::Name`: the other functions of that name are not what the call finds
         sites, why = find_sites(f, sources, spans)
         if sites is None:
             f.reason = why
@@ -961,6 +963,7 @@ def plan(fwds, classes):
     edits = defaultdict(list)
     includes = defaultdict(set)
     done = []
+    HOISTED.clear()
     for f in fwds:
         if not f.in_scope or f.reason or not f.kind:
             continue
@@ -1030,7 +1033,10 @@ def plan(fwds, classes):
             edits[f.src].append(('redeclare', f.start, f.end, f.address, forward_declaration(f, f.redeclare[1])))
         elif f.redeclare:
             # The target is in an enclosing namespace of the forwarder's: declared before the inner one opens.
-            edits[f.src].append((f.redeclare[0], f.redeclare[0], [forward_declaration(f, f.redeclare[1], True)]))
+            text = forward_declaration(f, f.redeclare[1], True)
+            if (f.src.path, f.redeclare[0], text) not in HOISTED:      # two forwarders of one function: once
+                HOISTED.add((f.src.path, f.redeclare[0], text))
+                edits[f.src].append((f.redeclare[0], f.redeclare[0], [text]))
             edits[f.src].append(('delete', f.start, f.end, f.address))
         else:
             edits[f.src].append(('delete', f.start, f.end, f.address))
@@ -1041,6 +1047,7 @@ def plan(fwds, classes):
 
 
 _FREE_DECLS = {}
+HOISTED = set()      # (path, offset, text) of the declarations written before a namespace
 
 
 def declared_before(src, name, offset):

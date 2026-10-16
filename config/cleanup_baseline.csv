@@ -96,7 +96,7 @@ src/game/net_client_commands.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/net_client_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,29
 src/game/net_client_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,21
 src/game/net_client_party.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
-src/game/net_connection.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,43
+src/game/net_connection.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,41
 src/game/net_connection_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,44
 src/game/net_connection_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/net_game_info.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -256,7 +256,7 @@ src/game/unit_ai_modes.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_client_animation.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_attack.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/unit_client_models.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
+src/game/unit_client_models.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/unit_client_sounds.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_speech.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -284,7 +284,7 @@ src/game/world_client_view.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_create.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/world_deleting_destructors.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/world_effect.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
-src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,15
+src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_effect_visibility.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,62
@@ -305,7 +305,7 @@ src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/world_zone.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/zone_records.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,19
+src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,18
 src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,58
 src/lib/mfc_coll.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/lib/mfc_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7

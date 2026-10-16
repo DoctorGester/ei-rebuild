@@ -96,7 +96,7 @@ BOOL CMappedResource::OpenResourceImpl(const char* path, BOOL writable) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
     writable_ = writable;
-    fd_ = gamecrt::open(path, (writable ? 2 /* _O_RDWR */ : 0) | 0x8000 /* _O_BINARY */ | 0x10 /* _O_RANDOM */);
+    fd_ = libcrt::Open(path, (writable ? 2 /* _O_RDWR */ : 0) | 0x8000 /* _O_BINARY */ | 0x10 /* _O_RANDOM */);
     if (fd_ == -1)
         return game::FatalError("CMappedResource::OpenResourceImpl()\nUnable to open file \"" + mfc::CString(path) + "\"");
 

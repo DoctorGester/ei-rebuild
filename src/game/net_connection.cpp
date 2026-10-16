@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "stl_sorts.h"
 
+RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/);
 namespace net {
 
 namespace {
@@ -76,10 +77,6 @@ __declspec(naked) void __fastcall ReceivedInsertOverflow(std::int32_t** /*vector
                                                          std::uint32_t /*n*/) EI_ORIGINAL(0x0043B850)
 // pair<const int, Record> from a key and a Record (the counted pointer shared).
 __declspec(naked) void* __fastcall MakeRecordPair(void* /*pair*/, void*, const std::int32_t* /*key*/, const Record* /*record*/) EI_ORIGINAL(0x0043A090)
-// RefPtr<T>: default constructor, assignment of a raw pointer (00438110: the old object is released
-// as RefPtr::Destroy does, the new one shared as RefPtr::Share does; returns the holder).
-__declspec(naked) RefPtr* __fastcall RefPtrDefault(RefPtr* /*p*/) EI_ORIGINAL(0x00438A90)
-
 __declspec(naked) TypeRegistry::ByVtable::Node** __fastcall TypeFind(TypeRegistry::ByVtable* /*table*/, void*,
                                                                     TypeRegistry::ByVtable::Node** /*out*/,
                                                                     const std::uint32_t* /*key*/) EI_ORIGINAL(0x0042A810)
@@ -97,7 +94,6 @@ __declspec(naked) EntryMap::Node** __fastcall PriorityInsertHint(EntryMap* /*tre
                                                                  EntryMap::Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x00439730)
 __declspec(naked) void* __fastcall PriorityMakePair(void* /*pair*/, void*, ReplicaEntry* const* /*key*/, const RefPtr* /*value*/) EI_ORIGINAL(0x0043A070)
 __declspec(naked) std::uint32_t __fastcall PriorityErase(EntryMap* /*tree*/, void*, ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C900)
-__declspec(naked) RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/) EI_ORIGINAL(0x00438F50)
 // 0041DD50: a RefPtr from a raw pointer, adding a reference.
 // The static vector of 004346D0: constructor, erase of a range, introsort loop and final insertion
 // sort by object, atexit.
@@ -153,7 +149,7 @@ struct RecordPair {
 // records_.insert(hint, pair(key, Record())) as ReadRecord inlines it; returns the new node.
 RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::int32_t key) {
     Record empty;
-    RefPtrDefault(&empty.object);
+    ::RefPtrNull(&empty.object);
     empty.version = 0;   // left uninitialised by the original; overwritten by every caller
     RecordPair pair;
     MakeRecordPair(&pair, nullptr, &key, &empty);
@@ -532,7 +528,7 @@ void Connection::Track(Replicated* item) {
     ByObjectLowerBound(&byObject_, nullptr, &lb, &item->object);
     if (lb == byObject_.end() || reinterpret_cast<std::uintptr_t>(item->object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
         RefPtr none;
-        RefPtrNull(&none);
+        ::RefPtrNull(&none);
         struct {
             void* key;
             RefPtr value;
@@ -557,7 +553,7 @@ void Connection::Track(Replicated* item) {
     PriorityLowerBound(&map, nullptr, &lb2, &entry);
     if (lb2 == map.end() || reinterpret_cast<std::uintptr_t>(entry) < reinterpret_cast<std::uintptr_t>(lb2->first)) {
         RefPtr none;
-        RefPtrNull(&none);
+        ::RefPtrNull(&none);
         struct {
             void* key;
             RefPtr value;

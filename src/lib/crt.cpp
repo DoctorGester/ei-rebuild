@@ -77,7 +77,6 @@ const int* CaseFoldTable() {
 
 __declspec(naked) double __cdecl acos(double) EI_ORIGINAL(0x006E7334)
 
-__declspec(naked) int __cdecl open(const char*, int, ...) EI_ORIGINAL(0x006EB35C)
 __declspec(naked) int __cdecl write(int, const void*, unsigned) EI_ORIGINAL(0x006EB642)
 
 __declspec(naked) std::size_t __cdecl fwrite(const void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E968B)

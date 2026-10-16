@@ -64,7 +64,6 @@ double __cdecl acos(double c);                                // 006E7334
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
 // Low-level I/O on CRT file descriptors.
-int __cdecl open(const char* path, int flags, ...);           // 006EB35C
 int __cdecl write(int fd, const void* buffer, unsigned count);// 006EB642
 
 // Stream I/O (the game's FILE is opaque here).
