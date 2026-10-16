@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue (CBriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
+#include "combat.h"
 #include "ui.h"
 #include "ui_briefing.h"
 
@@ -113,11 +114,11 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     }
     auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_));
     if (!serverUnit) return;
-    auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
-    ControllerStopActionOriginal(controller);
+    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+    controller->StopAction();
     controller->actionDone = SpeakerActionDone();
     if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
-        ControllerPlayAnimationOriginal(controller, nullptr, animation);
+        controller->PlayAnimation(animation->name);
 }
 EI_REPLACE_METHOD(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
@@ -320,9 +321,9 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, person->id_))) {
             serverUnit->SetFlag40000000Off(true);
             GameSetUnitHeightOriginal(UnitGlue(), nullptr, person->id_, 0.0f);
-            auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+            auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
             controller->actionDone = nullptr;
-            ControllerStopActionOriginal(controller);
+            controller->StopAction();
             // (The original then looks for the person among the party's first members; the result
             // is not used.)
         }

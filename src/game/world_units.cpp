@@ -321,7 +321,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }
-        ControllerRepositionOriginal(controller);
+        static_cast<CUnitServer*>(controller)->ResyncWithUnit();
         if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
             AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
         if (placement && sessionKind_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
@@ -502,7 +502,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         static_cast<CMapObject*>(object)->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
-        if (object->GetClassId() == world::kClassUnit) ControllerRepositionOriginal(AsUnit(object)->controller);
+        if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
         ObjectSetName(object, nullptr, spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
@@ -612,7 +612,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         ObjectSetName(object, nullptr, spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();
-        if (object->GetClassId() == world::kClassUnit) ControllerRepositionOriginal(AsUnit(object)->controller);
+        if (object->GetClassId() == world::kClassUnit) static_cast<CUnitServer*>(AsUnit(object)->controller)->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);

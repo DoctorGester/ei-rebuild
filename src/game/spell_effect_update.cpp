@@ -369,7 +369,7 @@ void Teleport(CSpellEffect* e) {
     record.Construct();
     std::memcpy(&record, &e->effectRecord, sizeof(record));
     ObjectSlots(e->caster)->AddEffect(&record);
-    ControllerReposition(ControllerOf(e->caster));
+    ControllerOf(e->caster)->ResyncWithUnit();
     RiseLight(e);
 }
 

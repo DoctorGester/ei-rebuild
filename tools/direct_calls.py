@@ -431,6 +431,160 @@ def same_params(fparams, tparams):
     return True
 
 
+# ------------------------------------------------------------------------------- loose matching (C13a1)
+# --loose: a forwarder whose declaration differs from the target's only in ways a call site can spell is
+# converted too, the differences written at each call: an object or argument of another pointer type
+# through static_cast (void* to T*, a base to a derived class), a narrower integer through static_cast,
+# a pointer for a reference dereferenced, a result the caller reads through static_cast back to the
+# forwarder's type. Never converted: anything with float / double / bool on one side only (a float's
+# bits passed as an integer would be converted), unrelated classes, other parameter counts.
+
+INT_FAMILIES = [{'int', 'unsigned int', 'long', 'unsigned long'}, {'short', 'unsigned short'},
+                {'char', 'unsigned char', 'signed char'}]
+INT_WIDTH = {t: w for w, fam in zip((4, 2, 1), INT_FAMILIES) for t in fam}
+BUILTINS = set(INT_WIDTH) | {'void', 'bool', 'float', 'double', 'long double', '__int64', 'unsigned __int64', 'wchar_t'}
+_CLASS_NAME = re.compile(r'[A-Za-z_][\w]*(?:::[A-Za-z_]\w*)*')
+
+
+def pointer(t):
+    """(pointee, const) of a one-level pointer type, else None."""
+    if t.endswith('const*'):
+        base, const = t[:-6].rstrip(), True
+    elif t.endswith('*'):
+        base, const = t[:-1], False
+    else:
+        return None
+    if '*' in base or '&' in base or base.endswith('const'):
+        return None
+    return base, const
+
+
+def relation(a, b, classes):
+    """'up' when class a derives from b, 'down' when b derives from a, else None (simple names)."""
+    if not (_CLASS_NAME.fullmatch(a) and _CLASS_NAME.fullmatch(b)) or a in BUILTINS or b in BUILTINS:
+        return None
+    sa, sb = split_qualified(a)[-1], split_qualified(b)[-1]
+    if sa in classes.all_derived(sb):
+        return 'up'
+    if sb in classes.all_derived(sa):
+        return 'down'
+    return None
+
+
+def convert_param(a, b, classes):
+    """How a forwarder argument of type a reaches a target parameter of type b: None (as it is),
+    ('cast', b) / ('reinterpret', b) (written through that cast), ('deref',) or False (not convertible)."""
+    if a == b or same_params([a], [b]):
+        return None
+    if a in INT_WIDTH and b in INT_WIDTH:
+        return None if INT_WIDTH[a] <= INT_WIDTH[b] else ('cast', b)
+    if b.endswith('&') and not b.endswith('&&'):
+        ref = b[:-1]
+        if a in (ref + '*', ref.replace('const', '').strip() + '*') or (a.endswith('const*') and ref.endswith('const')
+                                                                       and a[:-6].rstrip() == ref[:-5].rstrip()):
+            return ('deref',)
+        return False
+    pa, pb = pointer(a), pointer(b)
+    if not pa or not pb:
+        return False
+    (ab, ac), (bb, bc) = pa, pb
+    if ac and not bc:
+        return False
+    if bb == 'void':
+        return None
+    if ab == 'void':
+        return False if '<' in bb else ('cast', b)
+    if ab in INT_WIDTH and bb in INT_WIDTH and INT_WIDTH[ab] == INT_WIDTH[bb]:
+        return ('reinterpret', b)
+    r = relation(ab, bb, classes)
+    if r == 'up':
+        return None
+    if r == 'down' and '<' not in bb:
+        return ('cast', b)
+    return False
+
+
+def convert_ret(fr, tr, classes):
+    """How the target's result reaches a caller that reads it as the forwarder's: None, ('cast', fr) /
+    ('reinterpret', fr), or False."""
+    if fr == 'void' or fr == tr:
+        return None
+    if fr in INT_WIDTH and tr in INT_WIDTH and INT_WIDTH[fr] == INT_WIDTH[tr]:
+        return None
+    pf, pt = pointer(fr), pointer(tr)
+    if not pf or not pt:
+        return False
+    (fb, fc), (tb, tc) = pf, pt
+    if tc and not fc:
+        return False
+    if fb == 'void':
+        return None
+    if '<' in fb:
+        return False
+    if tb == 'void':
+        return ('cast', fr)
+    if fb in INT_WIDTH and tb in INT_WIDTH and INT_WIDTH[fb] == INT_WIDTH[tb]:
+        return ('reinterpret', fr)
+    r = relation(tb, fb, classes)
+    if r == 'up':
+        return None
+    if r == 'down':
+        return ('cast', fr)
+    return False
+
+
+def match_loose(fsig, tsig, classes):
+    """('loose', conversions) or (None, why)."""
+    conv = {'mode': '', 'self': None, 'args': [], 'ret': None}
+    params = list(fsig.params)
+    if fsig.member:
+        if not tsig.member or tsig.scope != fsig.scope:
+            return None, 'member forwarder of another class'
+        if fsig.const and not tsig.const:
+            return None, 'const forwarder of a non-const target'
+        conv['mode'] = 'member'
+    elif not tsig.member:
+        conv['mode'] = 'free'
+    else:
+        if fsig.cc != '__fastcall' or tsig.cc != '__thiscall' or not params:
+            return None, 'calling conventions'
+        conv['mode'] = 'this'
+        self_t = params.pop(0)
+        if params:
+            if params[0] not in DUMMY_TYPES:
+                return None, 'no EDX parameter'
+            params.pop(0)
+        p = pointer(self_t)
+        if not p or (p[1] and not tsig.const):
+            return None, f'object {self_t}'
+        if p[0] != tsig.scope:
+            if '<' in tsig.scope or (p[0] != 'void' and relation(p[0], tsig.scope, classes) is None):
+                return None, f'object {self_t} for {tsig.scope}'
+            conv['self'] = 'cast'
+    if len(params) != len(tsig.params):
+        return None, 'parameter count'
+    for a, b in zip(params, tsig.params):
+        c = convert_param(a, b, classes)
+        if c is False:
+            return None, f'parameter {a} for {b}'
+        conv['args'].append(c)
+    r = convert_ret(fsig.ret, tsig.ret, classes)
+    if r is False:
+        return None, f'result {tsig.ret} read as {fsig.ret}'
+    conv['ret'] = r
+    return 'loose', conv
+
+
+def spelled(t, src, offset):
+    """A normalised type as C++ at a call site."""
+    p = pointer(t)
+    if p:
+        base, const = p
+        inner = base if base in BUILTINS else spelled_type(base, src, offset)
+        return ('const ' if const else '') + inner + '*'
+    return t if t in BUILTINS else spelled_type(t, src, offset)
+
+
 # ------------------------------------------------------------------------------------- class graph
 
 class Classes:
@@ -1373,6 +1527,8 @@ def main(argv):
         for f in scoped:
             if f.reason:
                 print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: {f.reason}')
+                if f.reason == 'types differ':
+                    print(f'      forwarder: {f.sig.und}\n      target:    {f.target.und}')
         for f in done:
             print(f'{f.address:08X} {f.src.path}:{f.src.line_of(f.start)} {f.name} -> {f.target_name}: '
                   f'convertible ({f.kind}, {len(f.sites)} call sites)')

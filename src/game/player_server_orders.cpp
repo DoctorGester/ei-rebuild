@@ -51,7 +51,7 @@ CUnit* FindUnit(CPlayer* player, int id) {
 }
 bool Alive(CUnit* unit) { return ObjectSlots(unit)->IsDead() == 0; }
 bool Able(CUnit* unit) { return unit && !(unit->flags_ & kFlagBlocked) && Alive(unit); }
-AIBrain* BrainOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller)->Brain(); }
+AIBrain* BrainOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller)->Brain(); }
 CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
 
 // The cast messages' layouts as they arrive (0xD / 0x15 bytes).

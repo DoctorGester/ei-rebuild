@@ -76,7 +76,7 @@ constexpr int kRemarkIdle = 1;
 
 // The idle remark every mode's Execute starts with (1 in 1001).
 void MaybeRemark(AIBrain* brain, int what) {
-    if (GameRandom()->Next() % 1001 == 1) brain->owner->Say(what);
+    if (GameRandom()->Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
 // An order on the stack: the looks array is constructed and given its derived vtable.
@@ -101,7 +101,7 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order->point, sizeof(Vector3));
     LooksCopyAt(&brain->looks, nullptr, &order->looks);
-    brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
+    brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
 }
 
 // The brain's remembered positions after choosing a new place to be.
@@ -133,7 +133,7 @@ void AIMode::EnterIdle(AIBrain* brain) {
     std::uint32_t roll = GameRandom()->Next();
     volatile std::int64_t wide = roll;             // FILD qword of the zero-extended value
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
-    brain->owner->busy = 0;
+    brain->owner->SetBusy(0);
 }
 EI_REPLACE_METHOD(0x005D0AF0, AIMode::EnterIdle);
 
@@ -414,7 +414,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     ConstructOrder(&order);
     order.Reset();
     if (brain->action == AIBrain::kActionNone) {
-        if (brain->owner->inCombat) level -= 50;
+        if (brain->owner->orderStopped) level -= 50;
         if (!brain->FindStandPoint(&point, kStandRadius, &order.point)) {
             level -= 5;
             LooksDestroyAt(&order.looks);
@@ -430,14 +430,14 @@ void SuspectionMode::Execute(AIBrain* brain) {
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
     LooksCopyAt(&brain->looks, nullptr, &order.looks);
-    brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
+    brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
     level = brain->noticedLevel;
     DestroyLooks(&order);
 }
 EI_REPLACE_METHOD(0x005D1F80, SuspectionMode::Execute);
 
 void SuspectionMode::Enter(AIBrain* brain) {
-    brain->owner->busy = 1;
+    brain->owner->SetBusy(1);
     AIMoveOrder order;
     ConstructOrder(&order);
     order.point = Vector3{0.0f, 0.0f, 0.0f};
@@ -446,14 +446,14 @@ void SuspectionMode::Enter(AIBrain* brain) {
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
     StartMove(brain, &order);
-    brain->owner->Say(5);
+    brain->owner->voice.Raise(5);
     DestroyLooks(&order);
 }
 EI_REPLACE_METHOD(0x005D21A0, SuspectionMode::Enter);
 
 void SuspectionMode::Leave(AIBrain* brain) {
-    brain->owner->busy = 0;
-    brain->owner->Say(3);
+    brain->owner->SetBusy(0);
+    brain->owner->voice.Raise(3);
 }
 EI_REPLACE_METHOD(0x005D2310, SuspectionMode::Leave);
 
@@ -510,7 +510,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 
 void AggressionMode::Execute(AIBrain* brain) {
-    if (GameRandom()->Next() % 1001 == 1) brain->owner->Say(2);
+    if (GameRandom()->Next() % 1001 == 1) brain->owner->voice.Raise(2);
     if (!chosen) return;
     brain->CallAllies(&static_cast<CMapObject*>(chosen)->position);
     int attack[2] = {-1, 0};        // {part, object} the brain is attacking now
@@ -527,7 +527,7 @@ void AggressionMode::Execute(AIBrain* brain) {
         brain->AttackTarget(object);
         return;
     }
-    if (!brain->owner->CanCast(part)) brain->action = AIBrain::kActionCast;
+    if (!brain->owner->IsScrollSource(part)) brain->action = AIBrain::kActionCast;
     if (object != brain->target) {
         if (brain->target) brain->target->Release();
         brain->target = nullptr;
@@ -535,7 +535,7 @@ void AggressionMode::Execute(AIBrain* brain) {
         brain->target = object;
     }
     brain->actionTime = part;
-    brain->owner->Cast(part, object, 0);
+    brain->owner->OrderCast(part, object, 0);
 }
 EI_REPLACE_METHOD(0x005D2580, AggressionMode::Execute);
 
@@ -554,10 +554,10 @@ EI_REPLACE_METHOD(0x005D2360, SuspectionMode::Save);
 // --- Aggression ----------------------------------------------------------------------------------
 
 void AggressionMode::Enter(AIBrain* brain) {
-    brain->owner->busy = 1;
+    brain->owner->SetBusy(1);
     ReleaseRef(brain->target);
     brain->action = AIBrain::kActionNone;
-    brain->owner->Say(6);
+    brain->owner->voice.Raise(6);
 }
 EI_REPLACE_METHOD(0x005D26D0, AggressionMode::Enter);
 
@@ -567,8 +567,8 @@ void AggressionMode::Leave(AIBrain* brain) {
         brain->noticedKind = 0;
     }
     ReleaseRef(enemy);
-    brain->owner->busy = 0;
-    brain->owner->Say(4);
+    brain->owner->SetBusy(0);
+    brain->owner->voice.Raise(4);
 }
 EI_REPLACE_METHOD(0x005D2710, AggressionMode::Leave);
 
@@ -600,13 +600,13 @@ EI_REPLACE_METHOD(0x005D27D0, CorpseWatcherMode::Evaluate);
 // --- Fear ----------------------------------------------------------------------------------------
 
 void FearMode::Enter(AIBrain* brain) {
-    brain->owner->busy = 1;
+    brain->owner->SetBusy(1);
     ReleaseRef(brain->target);
     brain->action = AIBrain::kActionNone;
 }
 EI_REPLACE_METHOD(0x005D3650, FearMode::Enter);
 
-void FearMode::Leave(AIBrain* brain) { brain->owner->busy = 0; }
+void FearMode::Leave(AIBrain* brain) { brain->owner->SetBusy(0); }
 EI_REPLACE_METHOD(0x005D3680, FearMode::Leave);
 
 void FearMode::Load(CStream* stream) {
@@ -668,7 +668,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        AIBrain* leaderBrain = reinterpret_cast<UnitController*>(static_cast<CUnit*>(leader)->controller)->Brain();
+        AIBrain* leaderBrain = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(leader)->controller)->Brain();
         for (auto* node = leaderBrain->modes.head; node;) {
             AIMode* mode = node->data;     // 005D9830 (GetNext)
             node = node->next;
@@ -706,7 +706,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             std::memcpy(&to.y, &point.y, 4);
             std::memcpy(&to.z, &kUnsetBits, 4);
             brain->action = AIBrain::kActionWalk;
-            brain->owner->MoveTo(&to, 0, 0, kMoveTime);
+            brain->owner->OrderMove(&to.x, 0, 0, kMoveTime);
         }
         if (state == kStateMoveTo) PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
@@ -750,7 +750,7 @@ void PlayerMode::CommandWalk(AIBrain* brain, const Vector3* to, int unknown, int
     state = kStateCommand;
     PrepareWalk(this, brain, to, runArg, offset);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->MoveTo(&point, run, unknown, kMoveTime);
+    brain->owner->OrderMove(&point.x, run, unknown, kMoveTime);
 }
 EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
 
@@ -759,13 +759,13 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
     PrepareWalk(this, brain, to, runArg, offset);
     if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
         std::memset(&point.z, 0, 4);
-        ControllerPlanMoveOriginal(brain->owner, nullptr, &point.x, unknown, 0, kMoveTime);
+        brain->owner->PlanMove(&point.x, unknown, 0, kMoveTime);
         return;
     }
     constexpr std::uint32_t kOneBits = 0x3F800000u;
     std::memcpy(&point.z, &kOneBits, 4);
     brain->action = AIBrain::kActionWalk;
-    brain->owner->MoveTo(&point, run, unknown, kMoveTime);
+    brain->owner->OrderMove(&point.x, run, unknown, kMoveTime);
 }
 EI_REPLACE_METHOD(0x005D3AE0, PlayerMode::CommandGoTo);
 
@@ -788,7 +788,7 @@ void PlayerMode::CommandAttack(AIBrain* brain, CEngineObject* object, int how, i
         if (object) ++object->refCount_;
         brain->target = object;
     }
-    brain->owner->Attack(brain->target, how, unknown, 2);
+    brain->owner->OrderAttack(brain->target, how, unknown, 2);
 }
 EI_REPLACE_METHOD(0x005D3C30, PlayerMode::CommandAttack);
 
@@ -801,7 +801,7 @@ EI_REPLACE_METHOD(0x005D3CF0, PlayerMode::CommandUse);
 void PlayerMode::CommandCast(AIBrain* brain, int spell, CEngineObject* object, int) {
     std::uint8_t running = run;
     state = kStateFollow;
-    if (!brain->owner->CanCast(spell)) brain->action = AIBrain::kActionCast;
+    if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;
     if (object != brain->target) {
         if (brain->target) brain->target->Release();
         brain->target = nullptr;
@@ -809,23 +809,23 @@ void PlayerMode::CommandCast(AIBrain* brain, int spell, CEngineObject* object, i
         brain->target = object;
     }
     brain->actionTime = spell;
-    brain->owner->Cast(spell, object, running);
+    brain->owner->OrderCast(spell, object, running);
 }
 EI_REPLACE_METHOD(0x005D3D20, PlayerMode::CommandCast);
 
 void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int) {
     std::uint8_t running = run;
     state = kStateFollow;
-    if (!brain->owner->CanCast(spell)) brain->action = AIBrain::kActionCast;
+    if (!brain->owner->IsScrollSource(spell)) brain->action = AIBrain::kActionCast;
     brain->actionTime = spell;
-    brain->owner->CastAt(spell, at, running);
+    brain->owner->OrderCastAt(spell, &at->x, running);
 }
 EI_REPLACE_METHOD(0x005D3D90, PlayerMode::CommandCastAt);
 
 namespace {
 // The first Player mode (type 6) in the brain of `unit`'s controller, or null.
 PlayerMode* PlayerModeOf(CUnit* unit) {
-    AIBrain* brain = reinterpret_cast<UnitController*>(unit->controller)->Brain();
+    AIBrain* brain = reinterpret_cast<CUnitServer*>(unit->controller)->Brain();
     for (auto* node = brain->modes.head; node; node = node->next)
         if (node->data->Virtuals()->GetType() == kModePlayer) return static_cast<PlayerMode*>(node->data);
     return nullptr;
@@ -849,7 +849,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CEngineObject* newLeader) {
             auto* next = mode ? static_cast<CUnit*>(mode->leader) : nullptr;
             if (!next) break;
             if (next == self) {
-                AIBrain* own = reinterpret_cast<UnitController*>(next->controller)->Brain();
+                AIBrain* own = reinterpret_cast<CUnitServer*>(next->controller)->Brain();
                 if (PlayerMode* ownMode = PlayerModeOf(next)) ownMode->SetLeader(own, nullptr);
                 break;
             }

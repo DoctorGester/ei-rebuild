@@ -1,6 +1,7 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
+#include "combat.h"
 #include "player_messages.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -98,7 +99,7 @@ WorldPlayer* LocalViewPlayer() {
 }
 
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
-UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -123,13 +124,13 @@ void EraseMover(BriefingMover* node) {
 void PlaceMover(BriefingMover* node) {
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
-    UnitController* controller = ControllerOf(unit);
+    CUnitServer* controller = ControllerOf(unit);
     Vector3 target{node->target.x, node->target.y, node->target.z};
     SectorMapMove(SectorMap(), nullptr, unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
     reinterpret_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
-    ControllerRepositionOriginal(controller);
+    controller->ResyncWithUnit();
 }
 
 // A walking mover near its target starts turning (its server unit turns over a second).

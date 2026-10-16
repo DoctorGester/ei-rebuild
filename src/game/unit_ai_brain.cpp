@@ -443,8 +443,8 @@ EI_REPLACE_METHOD(0x005CD670, AIReportArray::SetSize);
 EI_REPLACE_METHOD(0x005CD800, AIReportArray::RemoveAt);
 EI_REPLACE(0x00558D10, AIReportElements::Construct);
 
-std::uintptr_t UnitController::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
-EI_REPLACE_METHOD(0x00552CF0, UnitController::AddHostileMask);
+std::uintptr_t CUnitServer::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
+EI_REPLACE_METHOD(0x00552CF0, CUnitServer::AddHostileMask);
 
 void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memoryArg) {
     AIBrain* brain = BrainOfMemory(static_cast<std::uint8_t*>(memoryArg));
@@ -455,7 +455,7 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
             console::GameOStream* log = &(*AiLog() << "Unit ");
             log = static_cast<console::GameOStream*>(OstreamPutLongOriginal(log, nullptr, unit->id_));
             console::EndLine(*log << " hear delayed sound: " << call.text);
-            ControllerAddHostileMaskOriginal(unit->controller, nullptr, static_cast<std::uint32_t>(call.hostileMask));
+            static_cast<CUnitServer*>(unit->controller)->AddHostileMask(static_cast<std::uint32_t>(call.hostileMask));
         } else if (brain->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the
             // point is more than sqrt(10) away (TEST AH,0x41: NaN is near).
@@ -483,7 +483,7 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
 }
 EI_REPLACE(0x005CC9D0, CallsUpdate);
 
-void AIBrain::UpdateMemory(UnitController* who) {
+void AIBrain::UpdateMemory(CUnitServer* who) {
     for (int i = 0; i < reports.size; ++i) {
         AIReport* entry = &reports.data[i];
         if (--entry->what >= 0) continue;
@@ -501,7 +501,7 @@ void AIBrain::UpdateMemory(UnitController* who) {
     noticedLevel += noticedKind;
 }
 
-void __fastcall UpdateMemoryHook(std::uint8_t* memory, void*, UnitController* who) { BrainOfMemory(memory)->UpdateMemory(who); }
+void __fastcall UpdateMemoryHook(std::uint8_t* memory, void*, CUnitServer* who) { BrainOfMemory(memory)->UpdateMemory(who); }
 EI_REPLACE(0x005CB700, UpdateMemoryHook);
 
 int AIBrain::IsEnemy(CUnit* self, CEngineObject* other) {

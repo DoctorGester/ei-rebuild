@@ -145,14 +145,14 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
 }
 EI_REPLACE_METHOD(0x005546B0, CUnitServer::OrderTurn);
 
-void CUnitServer::OrderMove(const float* point, int run, int walk, std::uint32_t z) {
+void CUnitServer::OrderMove(const float* point, int run, int walk, float range) {
     const char* world = static_cast<const char*>(ManagerContext());
     ResetOrder(&action2);
     action2.kind = 1;
     std::memcpy(&action2.point, point, sizeof(action2.point));
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
-    std::memcpy(&action2.point.z, &z, sizeof(z));
+    std::memcpy(&action2.point.z, &range, sizeof(range));
     action2.modifier = static_cast<std::uint8_t>(run);
     action2.param = 0;
     if (!unit->player) return;
@@ -161,7 +161,7 @@ void CUnitServer::OrderMove(const float* point, int run, int walk, std::uint32_t
         action2.param = 1;
         return;
     }
-    ControllerPlanMoveOriginal(this, nullptr, point, walk, run, std::bit_cast<float>(z));
+    PlanMove(point, walk, run, range);
 }
 EI_REPLACE_METHOD(0x00554740, CUnitServer::OrderMove);
 

@@ -69,7 +69,7 @@ IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 int WorldTick() { return *reinterpret_cast<const int*>(0x007AFFC4); }
 CAIMap* AIMap() { return WorldServer()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->position; }
-UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CEngineObject>& list) {
@@ -78,10 +78,6 @@ void InitUnitList(mfc::CTypedPtrList<CEngineObject>& list) {
     list.blockSize = 10;
 }
 } // namespace
-
-bool UnitController::GetMovePoint(Vector3* out) {
-    return reinterpret_cast<CUnitServer*>(this)->GetMovePoint(&out->x) != 0;
-}
 
 // 005D5B40
 void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool far) {
@@ -100,7 +96,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     if (!(wander >= 0.0f)) wander = kDefaultWander;
     else wander = static_cast<float>(wander * kWanderScale);
     if (far) {
-        if (owner->busy || std::strncmp(owner->unit->name, kHumanPrefix, 4) == 0) {
+        if (owner->Busy() || std::strncmp(owner->unit->name, kHumanPrefix, 4) == 0) {
             far = false;
         } else {
             wander = static_cast<float>(static_cast<float>(count) * wander);
@@ -210,21 +206,21 @@ void AIBrain::UpdateFollow() {
     int now = WorldTick();
     float distance = static_cast<float>(
         x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
-    UnitController* leaderController = ControllerOf(leader);
+    CUnitServer* leaderController = ControllerOf(leader);
     float walkTime = static_cast<float>(distance * kRangePerDistance + kRangeBase);
 
-    if (leaderController->command != kOrderMove && leaderController->nextCommand != kOrderMove) {
+    if (leaderController->action.kind != kOrderMove && leaderController->action2.kind != kOrderMove) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
         if (!(static_cast<double>(distance) * distance >= nearSq)) {
-            reinterpret_cast<ControllerOriginals*>(owner)->Idle();
+            owner->Idle();
             return;
         }
         Vector3 goal;
-        if (!owner->GetMovePoint(&goal)) goal = *PositionOf(self);
+        if (!owner->GetMovePoint(&goal.x)) goal = *PositionOf(self);
         double gx = goal.x - leader->position.x;
         double gy = goal.y - leader->position.y;
         if (LengthSquared2DUnrounded(gx, gy) > farSq) {
-            owner->MoveTo(PositionOf(leader), 0, 0, walkTime);
+            owner->OrderMove(&PositionOf(leader)->x, 0, 0, walkTime);
             followTimer = 0;
         }
         return;
@@ -232,7 +228,7 @@ void AIBrain::UpdateFollow() {
 
     // The leader walks: where it will be in a moment.
     Vector3 goal = *PositionOf(self);
-    owner->GetMovePoint(&goal);
+    owner->GetMovePoint(&goal.x);
     Vector3 soon;
     ObjectSlots(leader)->PositionAt(&soon, now + kLeaderAhead);
     double sx = self->position.x - soon.x;
@@ -243,7 +239,7 @@ void AIBrain::UpdateFollow() {
         double fx = soon.x - goal.x;
         double fy = soon.y - goal.y;
         if (LengthSquared2DUnrounded(fy, fx) > farSq) {
-            owner->MoveTo(&soon, 0, 0, walkTime);
+            owner->OrderMove(&soon.x, 0, 0, walkTime);
             followTimer = kFollowPause;
         }
         return;
@@ -292,13 +288,13 @@ void AIBrain::UpdateFollow() {
     float offY = static_cast<float>(aside.y - targetY);
     double offX = aside.x - half * local.path.targetX;
     if (!(LengthSquared2DUnrounded<double>(offX, offY) >= kReachedSq)) {
-        owner->MoveTo(&aside, 0, 0, kPassRange);
+        owner->OrderMove(&aside.x, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
         double px = goal.x - passing.x;
         double py = goal.y - passing.y;
         if (LengthSquared2DUnrounded(px, py) > kHalf) {
-            owner->MoveTo(&passing, 0, 0, kPassTime);
+            owner->OrderMove(&passing.x, 0, 0, kPassTime);
             followTimer = kFollowPause;
         }
     }

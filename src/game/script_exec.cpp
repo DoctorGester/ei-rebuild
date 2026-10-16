@@ -178,14 +178,6 @@ ModeCalls* NewMode(std::size_t size) {
 AIMode* AsMode(ModeCalls* mode) { return reinterpret_cast<AIMode*>(mode); }
 
 
-// The unit's server half (CUnit::controller).
-struct ControllerCalls : ControllerOriginals {
-    void PlayAnimation(const char* name);                // 00555700
-    void Reposition();                                   // 00554450
-};
-void ControllerCalls::PlayAnimation(const char* name) { ControllerPlayAnimationOriginal(this, nullptr, name); }
-void ControllerCalls::Reposition() { ControllerRepositionOriginal((void*)this); }
-
 struct UnitCalls {
     void SetHostileMask(std::uint32_t mask);             // 0052E970
     void SetController(WorldPlayer* player);             // 005300D0
@@ -334,7 +326,6 @@ __declspec(naked) void __fastcall ResetDamageInfoAt(void*) EI_ORIGINAL(0x00522B4
 // The unit's server half (CUnit::controller).
 void* UnitState(CEngineObject* unit) { return static_cast<CUnit*>(unit)->controller; }
 CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); }
-ControllerCalls* ControllerOf(void* state) { return static_cast<ControllerCalls*>(state); }
 AIBrain* BrainOf(void* state) { return reinterpret_cast<AIBrain*>(Controller(state)->Brain()); }
 // The brain's patrol mode, null when it has none.
 PatrolMode* PatrolOf(void* state) { return static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode()); }
@@ -403,7 +394,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
         map->MoveInSectors(object, &point);
-        if (object->GetClassId() == kClassUnit) ControllerOf(UnitState(object))->Reposition();
+        if (object->GetClassId() == kClassUnit) Controller(UnitState(object))->ResyncWithUnit();
         map->SetRefreshUnits(1);
         UnitOf(object)->MarkChanged(2);
         return;
@@ -412,7 +403,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     Vector3 point = {f[0], f[1], f[2]};
     map->MoveInSectors(object, &point);
     if (object->GetClassId() == kClassUnit) {
-        ControllerOf(UnitState(object))->Reposition();
+        Controller(UnitState(object))->ResyncWithUnit();
         if (!(FcomStatus(oldZ, Position(object)->z) & 0x40)) UnitOf(object)->MarkChanged(2);
         return;
     }
@@ -435,7 +426,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
             free = *Position(unit);
             map->FindFreeCellNear(static_cast<CUnit*>(unit), Position(unit), &free);
             *Position(unit) = free;
-            ControllerOf(UnitState(unit))->Reposition();
+            Controller(UnitState(unit))->ResyncWithUnit();
         }
         map->AddToSectors(unit);
     }
@@ -1084,7 +1075,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x1B: {   // PlayAnimation(unit, name)
             void* state = UnitStateArg(cmd);
-            if (state) ControllerOf(state)->PlayAnimation(Text(cmd, 0));
+            if (state) Controller(state)->PlayAnimation(Text(cmd, 0));
             break;
         }
         case 0xC9:     // Lie
@@ -1100,7 +1091,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0xB0: {   // Rest(unit)
             void* state = UnitStateArg(cmd);
-            if (state) ControllerOf(state)->StopQueued();
+            if (state) Controller(state)->StopQueued();
             break;
         }
 

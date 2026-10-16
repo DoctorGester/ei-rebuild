@@ -189,7 +189,7 @@ void CUnitServer::FinishAction(int location, char) {
     ActionClear(&action);
     action.param = 0;
     action.modifier = 0;
-    if (action2.kind == 9) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+    if (action2.kind == 9) Idle();
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 

@@ -37,12 +37,6 @@ __declspec(naked) inline void __fastcall UnitParameterBlock(void*, void*, void*,
 __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
-// 00555840 (the unit's server controller, CUnit + 0x240; plain RET): the controller drops its action and orders (state 6,
-// commands 9). 00555700 (RET 4): it plays the animation named by its argument (callers pass a FigureAnimation, whose
-// name comes first, or a name) as its action. Both rewritten (CUnitServer::StopAction / PlayAnimation).
-__declspec(naked) inline void __fastcall ControllerStopActionOriginal(void* /*controller*/) EI_ORIGINAL(0x00555840)
-__declspec(naked) inline void __fastcall ControllerPlayAnimationOriginal(void* /*controller*/, void*, const void* /*animation*/)
-    EI_ORIGINAL(0x00555700)
 __declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 __declspec(naked) inline void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
 __declspec(naked) inline void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*)
@@ -59,7 +53,6 @@ __declspec(naked) inline void* __fastcall UnitEquipArmourOriginal(void* /*unit*/
     EI_ORIGINAL(0x00530730)
 __declspec(naked) inline int __fastcall UnitAddWeaponOriginal(void* /*unit*/, void*, void* /*item*/)
     EI_ORIGINAL(0x00531070)
-__declspec(naked) inline void __fastcall ControllerRepositionOriginal(void* /*controller*/) EI_ORIGINAL(0x00554450)
 // 00557E70: destructor of the animation-step array / controller list (ECX = object, plain RET, no result).
 __declspec(naked) inline void __fastcall AnimationStepsDestroyOriginal(void* /*steps*/) EI_ORIGINAL(0x00557E70)
 
@@ -73,9 +66,6 @@ __declspec(naked) inline bool __fastcall StepsQueueHoldsOriginal(void* /*steps*/
 // 00556870: AnimationSteps copy constructor (RET 4, returns this).
 __declspec(naked) inline void* __fastcall StepsCopyConstructOriginal(void* /*steps*/, void*, const void* /*source*/)
     EI_ORIGINAL(0x00556870)
-// 0054C8B0: unit controller checks an order against its state (RET 4, AL).
-__declspec(naked) inline bool __fastcall UnitCheckOrderOriginal(void* /*controller*/, void*, const void* /*action*/)
-    EI_ORIGINAL(0x0054C8B0)
 // 00556D10: cell list constructor (block size; RET 4, returns this).
 __declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
     EI_ORIGINAL(0x00556D10)
@@ -247,14 +237,6 @@ struct DeltaField;        // net_delta.h
 // C3m. 0050E660 (rewritten as CMapObject::DestructBody): the map object's destructor body.
 __declspec(naked) inline void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 
-// C3m. The unit's server controller (thiscall, plain RET): 00555180 (rewritten as CUnitServer::Idle) and 00555200
-// (rewritten as CUnitServer::StopQueued). Cast the controller's pointer; the views derive from this.
-struct ControllerOriginals {
-    void Idle();
-    void StopQueued();
-};
-__declspec(naked) inline void ControllerOriginals::Idle() EI_ORIGINAL(0x00555180)
-__declspec(naked) inline void ControllerOriginals::StopQueued() EI_ORIGINAL(0x00555200)
 // C3n. 0052F820 / 0052F8B0 (rewritten as CUnit::CanCastSpell / CanUseQuickItem; thiscall, RET 8): whether the unit can
 // cast the spell / use the quick item of a slot at `point` (0 when it can).
 __declspec(naked) inline int __fastcall UnitCanCastSpell(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
@@ -281,11 +263,6 @@ __declspec(naked) inline void* __fastcall UnitStatsRefillSlotsOriginal(void* /*s
 __declspec(naked) inline int __fastcall UnitAddQuickItemOriginal(void* /*unit*/, void*, void* /*item*/) EI_ORIGINAL(0x00531180)
 __declspec(naked) inline void __fastcall UnitAddCarriedOriginal(void* /*unit*/, void*, void* /*item*/) EI_ORIGINAL(0x00531220)
 __declspec(naked) inline int __fastcall UnitAddSpellOriginal(void* /*unit*/, void*, void* /*spell*/) EI_ORIGINAL(0x00531820)
-// 00554830 (rewritten as CUnitServer::PlanMove; thiscall on the unit controller, RET 0x10): plans a move to `point`;
-// `range` is a float.
-__declspec(naked) inline void __fastcall ControllerPlanMoveOriginal(void* /*controller*/, void*, const float* /*point*/,
-                                                                    int /*moving*/, int /*run*/, float /*range*/)
-    EI_ORIGINAL(0x00554830)
 // 005327D0 (rewritten as CUnit::ResistanceTo; RET 4): the unit's factor (+0x4B0..+0x4C4) for the kind in the hit's (or
 // animation entry's) flags at +0x14, 1 by default; FLD of a float, so declared float. The step code reads it as the speed
 // factor of an animation entry.

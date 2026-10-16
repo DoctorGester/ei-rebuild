@@ -2,6 +2,7 @@
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "combat.h"
 #include "ui_briefing.h"
 
 #include "console.h"
@@ -308,11 +309,11 @@ void CBriefingScreen::NextPhrase(bool skip) {
             }
             if (animation > 0) {
                 if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_))) {
-                    auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
-                    ControllerStopActionOriginal(controller);
+                    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
+                    controller->StopAction();
                     controller->actionDone = SpeakerActionDone();
                     if (FigureAnimation* played = unit->Object3D()->FindSkillAnimation(animation))
-                        ControllerPlayAnimationOriginal(controller, nullptr, played);
+                        controller->PlayAnimation(played->name);
                 }
             } else {
                 PlaySpeakerAnimation(unit, 1, 0);

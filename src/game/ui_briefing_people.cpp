@@ -2,6 +2,7 @@
 // person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "library_containers.h"
+#include "combat.h"
 #include "player_messages.h"
 #include "ui_briefing.h"
 
@@ -83,7 +84,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     (void)z;   // the server unit's height is used instead
     auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_));
     if (!serverUnit) return;
-    auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+    auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
     if (!controller) return;
     Vector3 target{x, y, serverUnit->position.z};
     if (immediate) {
@@ -91,7 +92,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
         Vector3 facing = Normalised(dx, dy, dz);
         reinterpret_cast<CTransformObject*>(serverUnit)->SetHeading(&facing.x);
         reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
-        ControllerRepositionOriginal(controller);
+        controller->ResyncWithUnit();
         return;
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
@@ -149,7 +150,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         if (player->server) static_cast<CPlayerServer*>(player->server)->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_))) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
-            reinterpret_cast<UnitController*>(serverUnit->controller)->actionDone = SpeakerActionDone();
+            reinterpret_cast<CUnitServer*>(serverUnit->controller)->actionDone = SpeakerActionDone();
         }
         return;
     }

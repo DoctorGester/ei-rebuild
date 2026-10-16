@@ -2,6 +2,7 @@
 // FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
 // See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
+#include "combat.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
@@ -256,9 +257,9 @@ void CBriefingScreen::FinishDialogue() {
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeightOriginal(UnitGlue(), nullptr, unit->id_, 0.0f);
-        auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+        auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
         controller->actionDone = nullptr;
-        ControllerStopActionOriginal(controller);
+        controller->StopAction();
         // (The original then looks for the unit among the party's first members; the result is
         // not used.)
     }

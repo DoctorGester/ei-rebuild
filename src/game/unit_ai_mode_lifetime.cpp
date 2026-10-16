@@ -4,6 +4,7 @@
 // constructors (005D8850, 005D6D10), the patrol point array's destructors (005D8CF0, 005D8CD0) and
 // two list / array template helpers (005D9830, 005D9E10).
 #include "unit_ai.h"
+#include "combat.h"
 
 #include "random.h"
 
@@ -21,7 +22,7 @@ constexpr int kTypeFear = 7;
 } // namespace
 
 void AIMode::LookAroundExecute(AIBrain* brain) {
-    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->Say(kRemarkIdle);
+    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
     brain->LookAround(0);
 }
 EI_REPLACE_METHOD(0x005D0A90, AIMode::LookAroundExecute);

@@ -2,6 +2,7 @@
 // the click and double click (input slots 2 and 7), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "combat.h"
 #include "ui_briefing.h"
 
 #include "item_db_text.h"
@@ -67,16 +68,16 @@ const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900
 
 // The server's unit with the id of a client object, or null.
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
-UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
 // A person can talk when their controller is idle (command 0 or 0xB, nothing queued); people
 // without a server unit or controller can always.
 bool CanTalk(CEngineObject* person) {
     CUnit* unit = ServerUnit(person->id_);
     if (!unit || !unit->controller) return true;
-    UnitController* controller = ControllerOf(unit);
-    return (controller->command == kCommandStand || controller->command == kCommandIdle) &&
-           controller->nextCommand == kNextCommandNone;
+    CUnitServer* controller = ControllerOf(unit);
+    return (controller->action.kind == kCommandStand || controller->action.kind == kCommandIdle) &&
+           controller->action2.kind == kNextCommandNone;
 }
 
 CWorldClient* TheClientWorld() { return static_cast<CWorldClient*>(ClientWorld()); }

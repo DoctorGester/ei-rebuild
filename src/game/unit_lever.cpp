@@ -1,6 +1,7 @@
 // A lever's state change (0052B7A0) and the spots it is used from (0052BBE0). See
 // docs/notes/units.md ("Levers").
 #include "lever.h"
+#include "combat.h"
 
 #include "ai_map.h"
 #include "map_object.h"
@@ -36,7 +37,6 @@ void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
-void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
 // A unit from the sector map: its position and controller.
 CMapObject* AsMapObject(void* unit) { return static_cast<CMapObject*>(AsEngineObject(unit)); }
@@ -112,7 +112,7 @@ void Lever::SetState(int wanted, float duration) {
             Vector3 free = {at->x, at->y, at->z};
             static_cast<CAIMap*>(map)->FindFreeCellNear(static_cast<CUnit*>(unit), at, &free);
             std::memcpy(at, &free, sizeof(free));
-            ControllerResync(static_cast<CUnit*>(AsEngineObject(unit))->controller);
+            static_cast<CUnitServer*>(static_cast<CUnit*>(AsEngineObject(unit))->controller)->ResyncWithUnit();
         }
         SectorMapAdd(sectors, nullptr, AsEngineObject(unit));
         node = next;

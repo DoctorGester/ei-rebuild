@@ -28,7 +28,7 @@ constexpr int kNoticeLevel = 1000;
 constexpr int kNoticeKind = -2;
 constexpr int kCalmLevel = 50;              // noticed levels above it keep the unit afraid
 constexpr int kKeepLevel = 500;             // with `flag`, levels above it are not forgotten
-constexpr int kCommandWalk = 1;             // UnitController::command / nextCommand
+constexpr int kCommandWalk = 1;             // CUnitServer::command / nextCommand
 constexpr int kLargeSizeClass = 6;
 
 constexpr float kZero = 0.0f;                                       // 0073B858
@@ -109,7 +109,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     order.object = nullptr;
     order.Clear();
     order.MakeAttack(enemy);
-    bool allowed = brain->owner->CheckOrderAt(&order, &end);
+    bool allowed = brain->owner->CanReachAndPlanFrom(AsUnitAction(&order), &end);
     reinterpret_cast<AIRef*>(&order.object)->Reset();
     if (!allowed) return false;
     double ex = static_cast<double>(dest.x) - end.x;
@@ -122,7 +122,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
 } // namespace
 
 int FearMode::Evaluate(AIBrain* brain) {
-    UnitController* owner = brain->owner;
+    CUnitServer* owner = brain->owner;
     CUnit* self = owner->unit;
     // The sum rounded first, as the main thread's 24-bit FPU does (SV7d1: under /fp:fast MSVC
     // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
@@ -152,7 +152,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         double dx = static_cast<double>(foe.x) - me.x;
         double dy = static_cast<double>(foe.y) - me.y;
         if (static_cast<double>(range) * range > LengthSquared2DUnrounded(dx, dy)) {
-            if (brain->owner->command == kCommandWalk || brain->owner->nextCommand == kCommandWalk) return kFlee;
+            if (brain->owner->action.kind == kCommandWalk || brain->owner->action2.kind == kCommandWalk) return kFlee;
             Vector3 flight;
             if (FindFlightPoint(brain, self, enemy, me, foe, static_cast<float>(dx), static_cast<float>(dy), &flight)) {
                 fleePoint = flight;
@@ -210,7 +210,7 @@ EI_REPLACE_METHOD(0x005D2960, FearMode::Evaluate);
 void FearMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     ConstructOrder(&order);
-    UnitController* owner = brain->owner;
+    CUnitServer* owner = brain->owner;
     const Vector3* here = PositionOf(owner->unit);
 
     // What to run from: the nearest enemy, a shelter to stay in, or the noticed point.
@@ -230,8 +230,8 @@ void FearMode::Execute(AIBrain* brain) {
     }
 
     double near2 = DistanceSquaredZYX(*here, from);
-    if (static_cast<double>(distance) * distance > near2 && brain->owner->command != kCommandWalk &&
-        brain->owner->nextCommand != kCommandWalk) {
+    if (static_cast<double>(distance) * distance > near2 && brain->owner->action.kind != kCommandWalk &&
+        brain->owner->action2.kind != kCommandWalk) {
         Vector3 dest;
         if (!ZeroOrNaN(fleePoint.z)) {
             dest = fleePoint;
@@ -268,7 +268,7 @@ void FearMode::Execute(AIBrain* brain) {
         float range = static_cast<float>(way * kThree + kRangeBase);
         if (Map()->FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
-            brain->owner->MoveTo(&dest, 0, 0, kMoveTime);
+            brain->owner->OrderMove(&dest.x, 0, 0, kMoveTime);
         }
         spread = static_cast<float>(static_cast<double>(spread) + spread);
     }
@@ -303,7 +303,7 @@ void FearMode::Execute(AIBrain* brain) {
             // 005D7970: the order assigned to the brain's action point and looks.
             brain->actionPoint = order.point;
             LooksCopyAt(&brain->looks, nullptr, &order.looks);
-            brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
+            brain->owner->OrderMove(&brain->actionPoint.x, 0, 0, kMoveTime);
         }
     }
     LooksDestroyAt(&order.looks);
@@ -322,7 +322,7 @@ void AIBrain::ApplyAttack(const int* partAndObject) {
         AttackTarget(object);
         return;
     }
-    if (!owner->CanCast(part)) action = kActionCast;
+    if (!owner->IsScrollSource(part)) action = kActionCast;
     if (object != target) {
         if (target) target->Release();
         target = nullptr;
@@ -330,7 +330,7 @@ void AIBrain::ApplyAttack(const int* partAndObject) {
         target = object;
     }
     actionTime = part;
-    owner->Cast(part, object, 0);
+    owner->OrderCast(part, object, 0);
 }
 
 void __fastcall ApplyAttackHook(AIAttention* attention, void*, AIBrain* brain, const int* partAndObject) {

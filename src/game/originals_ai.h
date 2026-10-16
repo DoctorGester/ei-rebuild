@@ -72,9 +72,6 @@ __declspec(naked) inline void __fastcall AiMemoryNoticeOriginal(void* /*memory*/
 
 // C3k. 004CB770: destructor of the AI look array (vtable 0073D460; frees the buffer; plain RET, EAX not a result).
 __declspec(naked) inline void __fastcall AiLookArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004CB770)
-// 00552CF0 (rewritten as UnitController::AddHostileMask), through its address so its wrapper sees the calls.
-__declspec(naked) inline std::uintptr_t __fastcall ControllerAddHostileMaskOriginal(void* /*controller*/, void*, std::uint32_t /*mask*/)
-    EI_ORIGINAL(0x00552CF0)
 // An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)
 

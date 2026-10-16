@@ -2,6 +2,7 @@
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "bink_video.h"
+#include "combat.h"
 #include "game_lists.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
@@ -283,7 +284,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             if (changed != 0 && (1u << (i & 31)) != 0) static_cast<CMapObject*>(object)->MarkChanged(i);
 
         if (object->GetClassId() == world::kClassUnit &&
-            reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->alwaysUpdated == 0)
+            reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(object)->controller)->Brain()->alwaysUpdated == 0)
             continue;   // a unit whose controller does not ask for updates (its brain's +0x37)
         AddToUpdateMap(object);
     }
@@ -323,7 +324,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             world->AIMap()->FindFreeCellNear(static_cast<CUnit*>(unit), &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             SectorMapAdd(world->Sectors(), nullptr, unit);
-            ControllerRepositionOriginal((static_cast<CUnit*>(unit)->controller));
+            static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller)->ResyncWithUnit();
         } else {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
@@ -865,7 +866,7 @@ void CWorldServer::PrepareSave() {
         CEngineObject* unit = node->value;
         if (unit->GetClassId() != world::kClassUnit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
         CEngineObject* controller = static_cast<CUnit*>(unit)->controller;
-        UnitStatsRefillSlotsOriginal(&reinterpret_cast<UnitController*>(controller)->stats);
+        UnitStatsRefillSlotsOriginal(&reinterpret_cast<CUnitServer*>(controller)->stats);
         static_cast<CUnitController*>(controller)->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }

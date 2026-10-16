@@ -2,6 +2,7 @@
 // exposure to hostile units (005CB850), corpses seen (005CBE90), forcing
 // an object into sight (005CBC80) and the counted lists' AddTail (005CD500).
 #include "ai_map.h"
+#include "combat.h"
 #include "unit_ai.h"
 
 #include "console.h"
@@ -23,7 +24,7 @@ constexpr float kZero = 0.0f;                   // 0073B858
 const float kFar = 1e30f;                       // 7149F2CA
 
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
-UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
@@ -109,8 +110,8 @@ EI_REPLACE(0x005CB670, NearestEnemyHook);
 void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     if (visible.Find(object)) return;
     auto* other = static_cast<CUnit*>(object);
-    UnitController* theirs = ControllerOf(other);
-    UnitController* ours = ControllerOf(self);
+    CUnitServer* theirs = ControllerOf(other);
+    CUnitServer* ours = ControllerOf(self);
     double dx = static_cast<double>(self->position.x) - other->position.x;
     double dy = static_cast<double>(self->position.y) - other->position.y;
     double dz = static_cast<double>(self->position.z) - other->position.z;
@@ -169,7 +170,7 @@ float Exposure(float distance, double range) {
 void KeepLower(float& slot, float value) { slot = !(value >= slot) ? value : slot; }
 } // namespace
 
-void AIBrain::MeasureExposure(UnitController* self, float* out) {
+void AIBrain::MeasureExposure(CUnitServer* self, float* out) {
     for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
     CUnit* unit = self->unit;
     Vector3 eye;
@@ -177,7 +178,7 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
     for (auto* node = nearby.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
-        UnitController* theirs = ControllerOf(other);
+        CUnitServer* theirs = ControllerOf(other);
         double dx = static_cast<double>(other->position.x) - unit->position.x;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dz = static_cast<double>(other->position.z) - unit->position.z;
@@ -197,7 +198,7 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
     }
 }
 
-void __fastcall MeasureExposureHook(std::uint8_t* memory, void*, UnitController* self, float* out) {
+void __fastcall MeasureExposureHook(std::uint8_t* memory, void*, CUnitServer* self, float* out) {
     BrainOfMemory(memory)->MeasureExposure(self, out);
 }
 EI_REPLACE(0x005CB850, MeasureExposureHook);

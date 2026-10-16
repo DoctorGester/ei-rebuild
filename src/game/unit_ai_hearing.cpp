@@ -2,6 +2,7 @@
 // 005CCBF0), the perception memory's two entry points (005CBBA0, 005CBBC0) and the AI events'
 // Noise (005C98C0). See unit_ai.h and docs/notes/unit_ai.md.
 #include "unit_ai.h"
+#include "combat.h"
 
 #include "ai_map.h"
 #include "console.h"
@@ -45,7 +46,7 @@ void AppendCall(AICallArray* calls, const Vector3& point, int kind, std::uint32_
     TextOf(added) = text;
 }
 
-UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 
 } // namespace
@@ -86,7 +87,7 @@ void __fastcall MemoryAddClaim(std::uint8_t* memory, void*, std::uint32_t mask, 
 }
 EI_REPLACE(0x005CBBC0, MemoryAddClaim);
 
-void AIViewer::Noise(UnitController* source, float loudness, int kind, const Vector3* at) {
+void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
     mfc::CTypedPtrList<CEngineObject> units{};
     units.vtable = kPtrListVtable;
     units.blockSize = 10;
@@ -97,7 +98,7 @@ void AIViewer::Noise(UnitController* source, float loudness, int kind, const Vec
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;
         if (!other->IsHostileTo(unit)) continue;
-        UnitController* control = ControllerOf(other);
+        CUnitServer* control = ControllerOf(other);
         AIBrain* brain = control->Brain();
         if (brain->noticedLevel >= kAlertedLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;
@@ -115,7 +116,7 @@ void AIViewer::Noise(UnitController* source, float loudness, int kind, const Vec
 }
 EI_REPLACE_METHOD(0x005C98C0, AIViewer::Noise);
 
-int AIViewer::StepNoise(const Vector3* position, UnitController* source) {
+int AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
     auto* ground = static_cast<const AITerrainType*>(WorldServer()->AIMap()->MaterialRecordAt(position));
     float loudness = source->moveFactors[0] * source->stats.valuesE0[3].current;

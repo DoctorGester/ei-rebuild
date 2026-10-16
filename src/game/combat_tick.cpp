@@ -118,7 +118,6 @@ namespace {
 // motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
 // into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
 // (taken by value), 00549690 the end of an order.
-bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { return UnitCheckOrderOriginal((void*)a0, nullptr, (const void*)a2); }
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
@@ -272,7 +271,7 @@ void LeaveMoveMode(CUnitServer* self) {
     UnitAction* order = &self->action;
     if (order->modifier && self->moveMode.mode != kModeRun) {
         int kind = order->kind;
-        if (!(IsActionKind(kind) && TickCheckOrder(self, nullptr, order))) self->SetUnitMoveMode2(kModeRun);
+        if (!(IsActionKind(kind) && self->CanReachAndPlan(order))) self->SetUnitMoveMode2(kModeRun);
     }
     self->SyncMoveModes();
     self->waitFrame = WorldServer()->tick_;
@@ -330,7 +329,7 @@ bool CUnitServer::StartMove() {
     double lengthSq = LengthSquaredZYX(offset);
     if (LessOrUnordered(lengthSq, kArrived)) {
         action.Reset();
-        if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+        if (action2.kind == kOrderEmpty) Idle();
         bool result = StartQueuedOrder();
         DestroyPtrList(&lifted);
         return result;
@@ -363,7 +362,7 @@ bool CUnitServer::StartMove() {
     }
     orderStopped = 1;
     action.Reset();
-    if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+    if (action2.kind == kOrderEmpty) Idle();
     StartQueuedOrder();
     DestroyPtrList(&lifted);
     return false;
@@ -466,7 +465,7 @@ bool CUnitServer::StartQueuedOrder() {
             if (ChangeMoveMode()) return true;
             TellParty(unit, kMessageStopped);
             action.Reset();
-            if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+            if (action2.kind == kOrderEmpty) Idle();
             return false;
         }
         TakeOver(this);
@@ -713,7 +712,7 @@ void CUnitServer::ExecuteOrder() {
     }
     if (stop) orderStopped = 1;
     ClearAction(&action);
-    if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+    if (action2.kind == kOrderEmpty) Idle();
 }
 EI_REPLACE_METHOD(0x0054D960, CUnitServer::ExecuteOrder);
 
@@ -757,7 +756,7 @@ void CUnitServer::ApproachTarget() {
         }
         Shout(action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
         action.Reset();
-        if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
+        if (action2.kind == kOrderEmpty) Idle();
         orderStopped = 1;
         return;
     }

@@ -104,7 +104,7 @@ EI_REPLACE_METHOD(0x00553260, CUnitServer::Resettle);
 
 int CUnitServer::CreateServer() {
     ResetController();
-    BrainOf(this)->SetOwner(reinterpret_cast<UnitController*>(this));
+    BrainOf(this)->SetOwner(this);
     return 1;
 }
 EI_REPLACE_METHOD(0x00546450, CUnitServer::CreateServer);

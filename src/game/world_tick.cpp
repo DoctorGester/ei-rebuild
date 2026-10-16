@@ -1,6 +1,7 @@
 // CWorldServer: the per-tick update (timed objects, missiles, countdowns), waking units near a
 // point, alarms and the game result. See world.h.
 #include "script.h"
+#include "combat.h"
 #include "spell.h"
 #include "world.h"
 #include "at_exit_functions.h"
@@ -207,7 +208,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
         if (object->GetClassId() == world::kClassUnit) {
             auto* unit = static_cast<CUnit*>(object);
             if (!unit->player) {
-                AIBrain* brain = reinterpret_cast<UnitController*>(unit->controller)->Brain();
+                AIBrain* brain = reinterpret_cast<CUnitServer*>(unit->controller)->Brain();
                 BrainHearAlarm(brain, nullptr, index);
                 if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }
