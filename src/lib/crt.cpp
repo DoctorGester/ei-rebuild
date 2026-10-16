@@ -743,6 +743,22 @@ gamecrt::NewHandler& HeapNewHandler() { return *reinterpret_cast<gamecrt::NewHan
 int NewMode() { return *reinterpret_cast<const int*>(0x007CAC7C); }
 constexpr std::size_t kHeapMaxRequest = 0xFFFFFFE0;
 
+// The CRT's heap (_crtheap, 007CAF08) is a Win32 heap of its own, as in game.exe: VC6's _heap_init
+// (006F54E6) makes it with HeapCreate(0, 0x1000, 0) and on NT 5+ __heap_select picks the system heap,
+// so malloc and the rest are HeapAlloc / HeapFree / HeapReAlloc / HeapSize on it, the size rounded up
+// to 16 bytes (_heap_alloc 006EAC0F). The calls go through the image's import slots, where the
+// harness's repeatable heap and its jitter take them as in game.exe (tests/verify/harness_heap.h,
+// SV7c2). Made at the first allocation: the image's start-up has no _heap_init of its own.
+HANDLE& CrtHeap() { return *reinterpret_cast<HANDLE*>(0x007CAF08); }
+
+HANDLE Heap() {
+    HANDLE& heap = CrtHeap();
+    if (!heap) heap = gameapi::HeapCreate(0, 0x1000, 0);
+    return heap;
+}
+
+std::size_t Paragraphs(std::size_t size) { return ((size ? size : 1) + 0xF) & ~std::size_t(0xF); }
+
 // After a failed allocation (_callnewh): with _newmode set, the CRT's new handler may free memory and
 // ask for another try.
 bool TryAgain(std::size_t size) {
@@ -755,14 +771,16 @@ bool TryAgain(std::size_t size) {
 void* __cdecl Malloc(std::size_t size) {
     for (;;) {
         if (size <= kHeapMaxRequest) {
-            if (void* p = std::malloc(size)) return p;
+            if (void* p = gameapi::HeapAlloc(Heap(), 0, Paragraphs(size))) return p;
         }
         if (!TryAgain(size)) return nullptr;
     }
 }
 EI_REPLACE_STANDALONE(0x006EABD1, libcrt::Malloc);
 
-void __cdecl Free(void* p) { std::free(p); }
+void __cdecl Free(void* p) {
+    if (p) gameapi::HeapFree(Heap(), 0, p);
+}
 EI_REPLACE_STANDALONE(0x006EA8AD, libcrt::Free);
 
 // A null block is malloc's; a zero size frees the block and gives null.
@@ -774,7 +792,8 @@ void* __cdecl Realloc(void* p, std::size_t size) {
     }
     for (;;) {
         if (size <= kHeapMaxRequest) {
-            if (void* q = std::realloc(p, size)) return q;
+            size = Paragraphs(size);
+            if (void* q = gameapi::HeapReAlloc(Heap(), 0, p, size)) return q;
         }
         if (!TryAgain(size)) return nullptr;
     }
@@ -784,16 +803,17 @@ EI_REPLACE_STANDALONE(0x006ED69A, libcrt::Realloc);
 // The byte count is count * size without an overflow check, as in VC6.
 void* __cdecl Calloc(std::size_t count, std::size_t size) {
     const std::size_t bytes = count * size;
+    const std::size_t rounded = bytes <= kHeapMaxRequest ? Paragraphs(bytes) : bytes;
     for (;;) {
-        if (bytes <= kHeapMaxRequest) {
-            if (void* p = std::calloc(1, bytes)) return p;
+        if (rounded <= kHeapMaxRequest) {
+            if (void* p = gameapi::HeapAlloc(Heap(), HEAP_ZERO_MEMORY, rounded)) return p;
         }
-        if (!TryAgain(bytes)) return nullptr;
+        if (!TryAgain(rounded)) return nullptr;
     }
 }
 EI_REPLACE_STANDALONE(0x006F0317, libcrt::Calloc);
 
-std::size_t __cdecl Msize(void* p) { return _msize(p); }
+std::size_t __cdecl Msize(void* p) { return gameapi::HeapSize(Heap(), 0, p); }
 EI_REPLACE_STANDALONE(0x006EEC7B, libcrt::Msize);
 
 char* __cdecl Strdup(const char* text) {
