@@ -159,7 +159,7 @@ void ServerSession::SetMap(const StringRep* name) {
 
     AwardHost(entry, false);
 }
-// 00418530: unloads the flow's quest texts, then queues a map message ("zone" + suffix, vtable
+// 00418530: unloads the flow's quest texts, then queues a map message ("zone" + "_1", vtable
 // 0073BCD0) on +0x25AC for each zone the flow picks for the server's kind (+0x25E4) after the
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
@@ -178,7 +178,7 @@ void ServerSession::QueueMapList() {
     PickZones(&zones, kind_, mapName_.start);
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
         StringRep key;
-        StringPlusText(&key, zone, game::ZoneSuffix2Text());
+        StringPlusText(&key, zone, game::ZoneSuffix1Text());
         auto* message = NewMessageMemory<ZoneMessage>();
         if (message) {
             MessageConstructBase(message);

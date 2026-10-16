@@ -163,9 +163,12 @@ until S21c); `EI_COVER=<addr,...>` on the original still watches single addresse
   magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`).
 - Multiplayer (SV5d): `net_pair_join` is a pair of games (section 6): a second game finds the first's hosted game in the
   lobby list, joins it (join request, admit, login, the client's BeginMultiplayerGame into bz1mpg), both say a chat
-  line, and the second leaves; goldens for both games. Still unreached there (SV5d1): the multiplayer zone switch out
-  of the base (exit 1 to "MPGame1" after the host's map choice; the console's `#` / `@` commands do nothing on the
-  multiplayer base), trades, kick / ban, awards, shared files, the master server.
+  line, and the second leaves; goldens for both games. SV5d1: `net_pair_zone` (an exchange on the base, the host's
+  map choice through the sheriff's topic, both games out through bz1mpg's gate into the game zone: the joiner as a
+  remote player of the host's world) and `net_pair_kick` (kick by serial, ban by name, a refused join); goldens for
+  both installs and both games. Walks use `clickground` (the console's `#` / `@` commands do nothing on the
+  multiplayer base). Still unreached (SV5d2): awards, leaving the game zone, shared files, the master server, the
+  drop paths.
 - Still unreached: TryTame (SV5a1), SuspectionMode
   Enter / Execute, patrol points, CTrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
   update after 500 bored ticks).
@@ -317,5 +320,5 @@ happen (the harness logs "share id" if one does).
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
-- SV5d1: more multiplayer on the pair harness: the zone switch out of the base, trades, kick / ban, awards (section 4).
+- SV5d2: more multiplayer on the pair harness: awards, leaving the game zone, shared files, drop paths (section 4).
 - WB12a: the original's runs are not cloaked.
