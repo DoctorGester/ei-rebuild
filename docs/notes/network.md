@@ -76,27 +76,17 @@ function does; this file keeps what is not visible in the code.
 
 ## Rewritten
 
-Verify idioms: *BuiltCompare* = the original builds a scratch object, ours the real one, dword by dword (heap pointers paired
-one to one, the +0x54 socket skipped); *deep copies* and *recorded CFile*: core.md ("Streams"); *ours only* = state checks.
-
-| Addresses | Names | Verify |
-|---|---|---|
-| 004122D0 | `net::Pump` (a gap over 5 s counts as 1 s) | ours only |
-| 0041BC40, 00412D80, 00436770 | `ClientSession` / `ServerSession` / `SessionBase::Construct` | BuiltCompare |
-| 00429F40, 0042A890, 00438930, 004377D0, 004142F0 | `TypeRegistry::TypeOf` / `Register` / `Create`, `AddHandler`, `RegisterMessageTypes` | pure / ours only |
-| 00413250, 004186E0, 0041C870 0041C680 0041C740 0041C7C0 00418C30 00413350 004138A0 00413C90 004140B0, 004279B0 ... 004288E0 (11) | `NewRefObject`, `MessageConstructBase`, message constructors, handler-registration templates (`net_handler_registrars.cpp`); the 17 message classes' factory / clone / reset / Write / Read / destructor body (`net_messages.cpp`) | scratch copy; Write / Read side by side; registrars ours only |
-| 00433BD0, 00433FA0, 00434CE0, 00434D70, 00434E50, 00434AE0, 00436470, 00436620, 00433B10 | `Connection::Tick`, Delivered, Acknowledge, ReadAcks, Accept, ProcessHeaders, ReadUpdate, Close, Silent (idle > 3 round trips) | ours only |
-| 00435A00, 00435F30, 004352F0, 00435F10, 00434C20, 00434990, 00433F20, 004346D0, 00434110, 004355B0 / 00435820, 004357C0 | `SendUpdate`, `ReadRecord`, AttachRecord, `IdPool::Allocate`, WriteAcks, QueueHeader, RollBack, CollectChanges, Track, WriteObjectRef / ReadObjectRef, `BufferCursor::PutBit` | ours only; PutBit side by side |
-| 00432DA0 .. 004344C0 (11) | `Connection` Construct / Reset / Destruct / Clone, `IdPool::CopyFrom`, replica entry clone / reset / destructors | BuiltCompare / ours only |
-| 00437370, 00436CC0 .. 00437340, 00436F60 .. 00436DD0, 00436A50 / 004368D0 | `SessionBase::Receive`, FindClient, RemoveClient, update, leave, the "Can't handle ..." loggers (slots 4, 5, 7-10), Send, RateFor, SendLeave, AddClient (drops an old connection to the address), destructors | ours only |
-| 00417EB0, 0041D050 | `ServerCollectReplicated` / `ClientCollectReplicated` (slot 13) | ours into the real vector, original into a scratch |
-| 0041ADB0, 004186F0, 00418530, 004193F0, 00418ED0, 00418CC0, 004191C0, 00419D90, 00419A00, 00419570-00419940, 0041A310-0041A770, 0041ACF0 / 0041B720-0041BA30, 00417E10, 00417BC0 / 00417A10, 0041B2A0, 0041B690, 0041AD80, 0041B0C0, 004182E0, 00417E40 | server: join handler, SetMap, QueueMapList, FinishMap, CompleteZone / LeaveZone, AwardHost, QueueAward, ShareFile, script variables (Find / FindOrAdd / Set / Raise / Remove / Get), Announce*, Describe, lookups, Admit, Kick, Ban, departures, trades, SetPublic, destructors, command / object-added / player-changed / player-gone handlers, Tick | ours only; lookups side by side |
-| 0041D600, 0041DA50, 00429FC0, 0041E220, 0041DDC0, 0041E180, 0041CCD0, 0041CD80, 0041CA10 / 0041C8B0, 0041D1A0, 0041D260, 0041D420, 0041D410, 0041D9A0, 0041E430-0041F3A0 (29 handlers), 0041E0A0 / 0041E270 / 0041E3E0 | client: server list reply, ClientPublishParty / FindSameMessage / FindParty / ApplyParty / CommitParty, Tick, ApplyAwards, destructors, AddTimed, SendCommand (kept 60 s), Describe, BeginGame, BufferRatio (`double`), message handlers, party-screen trade recording | ours only; FindParty / FindSameMessage side by side |
-| 004413E0-00442AD0 (21), 00442C60 .. 00443590, 00443770 .. 00444270, 00440440, 00440690, 004407F0-00440BE0, 00440C60-00440DE0 | lobby (`net_lobby.cpp`), 0x2C-byte query, UDP driver and master TCP link (`net_socket_driver.cpp`) | ours only |
-| 00430450, 00430960, 0042FD10, 004301E0 / 00430FE0, 00431040, 00430930 / 00430F60, 00430F90 / 0041D930 / 0041D960, 0042FAE0 | LZ coder, `BufferCursor` PutBits / GetBits / GetBit / WriteBytes / ReadBytes / EndWrite, coder tables | original on a scratch coder; GetBit runs a copy of its 44-byte body; EndWrite ours only |
-| 0047D7F0, 0047D970, 0047DA80, 0047DAE0, 0047E190, 0047E240, 0047D910-0047D960 | `BitStream::CompressTo / DecompressTo / WriteStream / ReadStream`, `DeltaField::WriteStreamBoth / ReadStream`, fixed-buffer-view Seek / destructors | deep copies (and a coder copy; the output cursor's pointers into the freed result are excluded) |
-| 0047DB70-0047FD80 (~35, `net_delta.cpp`) | delta replication | stream / field copies, globals mapped |
-| 00478470-004782E0, 00478960-00478CC0, 00479B10-00479D40, 0047B980-0047BB70, 0047A030, 00477E60, 00479E30 / 0047A080 | FileStream, NetLink base, LoopbackLink, ReplayLink, FramedLink, DriverLink, session pump / start | recorded CFile or copies with their own inbox; Disconnect / Destruct / Reset ours only |
+Everything in the files listed at the top is rewritten; every function carries its address in its source comment (grep the
+address), so the per-function table that used to be here is gone. Ranges: `net::Pump` 004122D0 (a gap over 5 s counts as 1 s);
+session constructors 0041BC40 (ClientSession), 00412D80 (ServerSession), 00436770 (SessionBase); type registry 00429F40 / 0042A890 /
+00438930 / 004377D0 / 004142F0; message constructors and the 17 message classes (`net_messages.cpp`, handler-registration templates in
+`net_handler_registrars.cpp`); `Connection` 00432DA0-00436620 (Tick 00433BD0, SendUpdate 00435A00, ReadRecord 00435F30, CollectChanges
+004346D0; Silent = idle > 3 round trips); `SessionBase` 00436A50-00437370; server session 00417A10-0041BA30 (`net_server_*.cpp`);
+client session 0041C680-0041F3A0 (29 handlers from 0041E430); lobby 004413E0-00444270, UDP driver and master TCP link
+00440440-00440DE0 (`net_socket_driver.cpp`); LZ coder 0042FAE0-00431040; `BitStream` CompressTo / DecompressTo / WriteStream /
+ReadStream 0047D7F0-0047E240; delta replication 0047DB70-0047FE90 (`net_delta.cpp`); links 00477E60-0047BB70.
+Facts that matter when touching them: `BufferCursor::GetBit` runs a copy of its 44-byte body in verify; the client's SendCommand
+keeps 60 s; BufferRatio is a `double`; the client's party-screen trade recording lives in 0041E0A0 / 0041E270 / 0041E3E0.
 
 ## Compression (LZ coder, 0x0042FCA0-0x00431070)
 
@@ -189,71 +179,50 @@ messages inline.
 
 ## Not rewritten / skipped
 
-- Rebirth-patched: 0041ECC0 (file chunk handler; `MQClient`), 00443080 (`FixProcessLogin`), 0041AA10 (master
-  announce, patched at a call site), 0041ACA0, 0041B1C0 (chat handler, call site patched).
-- Shorter than 5 bytes: 0041BA20 (a 0073BD78 handler), the 1-4 byte slots of the range.
-- Static initialisers: 0047C300 (WSAStartup(0x101) + atexit 0047C330: waits while 007A9774 is nonzero, then
-  WSACleanup; live only at exit), 0047D7D0.
-- Library classification: ~270 STLport / MFC instantiations of 0x400000-0x440000 and ~160 of 0x440000-0x480000
-  (config/library.csv, notes "range 400 / 440 / 470 review").
-- Dead (config/dead_code.csv): 0041A230, 0041A2B0, 0041AD40, 0041E1A0, 0041E1E0, 0047BC10 (a 0x2014-byte stack
-  frame, timeGetTime), 0047BE80, 0047C070, 0047C0F0, 0047C360 (installs 0073CA00), 0047C4B0, 0047C550, 0047D190,
-  0047D350, 0047D380 and the 0073CA10 slots.
-- Exception funclet targets and compiler-generated copy constructors of exception classes (0040C510, 0040C540,
-  0040C570, 00429130, 0043AD60) are reached only through C++ exception tables.
-- 0047A220 (0073F3B8, the session's Query: 3 bytes, cannot be hooked).
+- Rebirth-patched: 0041ECC0 (file chunk handler; `MQClient`), 00443080 (`FixProcessLogin`), 0041AA10 (master announce, patched at a
+  call site), 0041ACA0, 0041B1C0 (chat handler, call site patched); their vanilla bodies are ported (below).
+- Shorter than 5 bytes: 0041BA20 (a 0073BD78 handler), the 1-4 byte slots of the range; 0047A220 (0073F3B8, the session's Query: 3
+  bytes). Static initialisers: 0047C300 (WSAStartup(0x101) + atexit 0047C330: waits while 007A9774 is nonzero, then WSACleanup; live only
+  at exit), 0047D7D0.
+- Library classification: ~270 STLport / MFC instantiations of 0x400000-0x440000 and ~160 of 0x440000-0x480000 (config/library.csv,
+  notes "range 400 / 440 / 470 review"). Dead (config/dead_code.csv): 0041A230, 0041A2B0, 0041AD40, 0041E1A0, 0041E1E0, 0047BC10, 0047BE80,
+  0047C070, 0047C0F0, 0047C360 (installs 0073CA00), 0047C4B0, 0047C550, 0047D190, 0047D350, 0047D380 and the 0073CA10 slots. Exception
+  funclet targets and the compiler-generated copy constructors of exception classes (0040C510, 0040C540, 0040C570, 00429130, 0043AD60)
+  are reached only through C++ exception tables.
 
 ## A-E1: the leftovers of the delta code and the links
 
-- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask
-  joins `sentMask_` and becomes `lastMask_`, and both headers are rebuilt (the mask as 2 bytes, then each field's
-  output of that channel, byte aligned). After a full write the headers and the three masks are emptied. Main
-  thread (the world's update writes). Verified side by side on the state itself (`deltasnap::StateCopy` before,
-  the original run, its result copied, the first copy put back, ours run); the wrapper copies every field's
-  streams twice per call, which costs time in a verify run with many objects. Reached by every scenario that
-  runs a server world (each object's state write ends with it).
-- `DeltaField::ReadText` (0047E340): `ReadString` into a caller's buffer; a string of `size - 1` characters or
-  more leaves the buffer empty. Side by side on a copy of the reader, the texts compared by content. The unit
-  and effect readers of the client call it (a multiplayer or single-player client update with a named object).
-- The forwarders other files keep for these (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in
-  world_effect_internal.h) reach the hooked code.
-- The player sources' slot 6 (`TakeNew`, player_sources.cpp; the server world's AcceptNewPlayers 0058DAF0 calls
-  it with an MFC list of counted links, main thread). `CWorldHandle::TakeNew` (00478880): the pending link is
-  appended to the list (one more reference) and the handle drops its own. `DriverSession::TakeNew` (0047A230):
-  the link of every holder that is not detached is appended, then the holders list is emptied (each reference
-  dropped, the nodes pushed on the allocator's 12-byte list, the sentinel linked to itself). Both side by side:
-  the original on a copy of the source (its references added) with an empty list of the same kind, ours on the
-  real one; the lists' elements, the emptied source and the link's count compared. Registered through shims (a
-  pointer to a virtual member would dispatch). By reading, the handle's is reached when a server world takes
-  its local player (a new game); the session's only on a network server.
+- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask joins `sentMask_` and
+  becomes `lastMask_`, and both headers are rebuilt (the mask as 2 bytes, then each field's output of that channel, byte aligned). After
+  a full write the headers and the three masks are emptied. Reached by every scenario with a server world. The forwarders other files
+  keep (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in world_effect_internal.h) reach the hooked code.
+- `DeltaField::ReadText` (0047E340): `ReadString` into a caller's buffer; a string of `size - 1` characters or more leaves the buffer
+  empty. The unit and effect readers of the client call it.
+- The player sources' slot 6 (`TakeNew`, player_sources.cpp; the server world's AcceptNewPlayers 0058DAF0 calls it with an MFC list of
+  counted links). `CWorldHandle::TakeNew` (00478880): the pending link is appended to the list (one more reference) and the handle drops
+  its own. `DriverSession::TakeNew` (0047A230): the link of every holder that is not detached is appended, then the holders list is
+  emptied (each reference dropped, the nodes pushed on the allocator's 12-byte list, the sentinel linked to itself). Registered through
+  shims (a pointer to a virtual member would dispatch). The handle's is reached when a server world takes its local player (a new game);
+  the session's only on a network server.
 
 ## A-E1: the server's master announcement and two handlers (net_server_handlers.cpp)
 
-All on the main thread (the session's tick from `net::Pump`); none is called from a library's thread.
-
-- `ServerSession::AnnounceToMaster` (0041AA10; the tick calls it through its address every announcement
-  interval while a master host name is set): a `GameInfoRecord` on the stack (name, the played map's title
-  from 005814C0 or "" without a map, players, maximum, kind, password flag, +0x25FC, the dword the master
-  last sent, the session magic) written into a growing buffer and sent from the session's socket to the
-  master's address. Ours only (it sends a datagram).
-- `ServerSession::OnMaster` (0041ACA0, slot 10): a kind -1 packet from the master's address (16 bytes
-  compared) whose first dword equals +0x25FC stores its second dword at +0x2578; the first dword is consumed
-  either way. Side by side (the kept dword and the cursor put back between the runs).
-- `ServerOnSay` (0041B1C0, ECX the server, EDX the SayMessage; registered by the server's constructor): the
-  first binding of the connection being read (0079B924) names the player; "^<number><name>^7: <text>" is
-  announced to everybody (`Announce` with no player). Nothing without a live connection or binding. Ours
-  only.
-- Rebirth: EI_Plugin's NewMaster has sites in 0041AA10 (0041ABDA, the send) and 0041ACA0 (0041ACB7), addon's
-  ChatLog one in 0041B1C0 (0041B25B, disabled in this install). NewMaster's sites are reproduced behind its flag
-  (S19a, S19c: the copy to the second master server, net_second_master.cpp); ChatLog's is not, so 0041B1C0 is not
-  hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1);
-  nothing reaches 0041ACA0 or 0041B1C0 (a master server's answer, or a second client's chat line, is needed).
-- A-E2 (vanilla bodies, vanilla launch only; ours only, no scenario reaches them):
-  - 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`; Rebirth's MQClient): collects a file's chunks,
-    sorts and joins them and hands the file to the game flow (005813A0).
-  - 00443080 `ServerBase::OnLogin` (`net_lobby.cpp`; Rebirth's FixProcessLogin): a wrong magic is ignored; the
-    rate is cut to the address's limit; a connected client's login is ignored ("ERROR: Ignoring login..."); a
-    pending join is accepted again (a new id replaces the old with "WARNING: LinkID mismatch"); otherwise
-    `Admit` decides: accepted (a pending join appended, packet 6 with the id) or refused (packet 7 with the id
-    and the reason). The original leaves the new join's age as stack garbage (Rebirth's patch clears it); ours
-    writes 0.
+- `ServerSession::AnnounceToMaster` (0041AA10; the tick calls it through its address every announcement interval while a master host name
+  is set): a `GameInfoRecord` on the stack (name, the played map's title from 005814C0 or "" without a map, players, maximum, kind, password
+  flag, +0x25FC, the dword the master last sent, the session magic) written into a growing buffer and sent from the session's socket to the
+  master's address.
+- `ServerSession::OnMaster` (0041ACA0, slot 10): a kind -1 packet from the master's address (16 bytes compared) whose first dword equals
+  +0x25FC stores its second dword at +0x2578; the first dword is consumed either way.
+- `ServerOnSay` (0041B1C0, ECX the server, EDX the SayMessage; registered by the server's constructor): the first binding of the
+  connection being read (0079B924) names the player; "^<number><name>^7: <text>" is announced to everybody. Nothing without a live
+  connection or binding.
+- Rebirth: EI_Plugin's NewMaster has sites in 0041AA10 (0041ABDA, the send) and 0041ACA0 (0041ACB7), addon's ChatLog one in 0041B1C0
+  (0041B25B, disabled in this install). NewMaster's sites are reproduced behind its flag (net_second_master.cpp); ChatLog's is not, so
+  0041B1C0 is not hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1); nothing
+  reaches 0041ACA0 or 0041B1C0 (a master server's answer, or a second client's chat line, is needed).
+- A-E2 (vanilla bodies, vanilla launch only; no scenario reaches them): 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`) collects a
+  file's chunks, sorts and joins them and hands the file to the game flow (005813A0). 00443080 `ServerBase::OnLogin` (`net_lobby.cpp`): a
+  wrong magic is ignored; the rate is cut to the address's limit; a connected client's login is ignored ("ERROR: Ignoring login..."); a
+  pending join is accepted again (a new id replaces the old with "WARNING: LinkID mismatch"); otherwise `Admit` decides: accepted (a
+  pending join appended, packet 6 with the id) or refused (packet 7 with the id and the reason). The original leaves the new join's age as
+  stack garbage (Rebirth's patch clears it); ours writes 0.

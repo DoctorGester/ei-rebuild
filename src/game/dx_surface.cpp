@@ -15,7 +15,7 @@
 // system memory. The save / load screen's picture textures get such memory beside their DirectDraw
 // texture (AttachTextureMemory, ui_saveload.cpp); in the switch-over every texture the texture
 // manager makes for the CPU (00691D80, texture_blank.cpp) gets a holder with only such memory
-// (NewMemoryTextureHolder, ticket R8). See docs/notes/renderer.md (sections 5, 10, 14, 15).
+// (NewMemoryTextureHolder, ticket R8). See docs/notes/renderer.md (sections 5, 6, 7, 10).
 #include "dx_surface.h"
 #include "game_strings.h"
 #include "device.h"

@@ -31,29 +31,23 @@ When the game runs as its own exe, the source should look like this:
 6. **Comments explain the game, not the port.** One address tag per function
    (`// 0x00590700`) for archaeology; no "naked because", "rule 9", "verify wrapper" commentary.
 
-## Where we are (2026-10-04 baseline)
+## Hook-era leftovers the plan removes
 
-108k lines in 252 `.cpp` / 88 `.h` under `src/`, plus 196 verify files (34k lines). Measured
-leftovers of the hook era:
+`python tools/progress.py` reports the current counts of every artefact below (they only go down; the 2026-10-04 baseline is in git history).
 
-| Artefact | Count | Becomes |
-|---|---|---|
-| `EI_ORIGINAL` forwarders | 3,765 sites, 2,655 distinct functions: 765 already rewritten (called through the original address), 731 library code, 1,159 game code not yet rewritten | direct calls / library layer / ported code |
-| same function forwarded from several files | 538 functions | one declaration |
-| `__declspec(naked)` | 3,885, of which 328 are x87/asm helpers (the rest forwarders) | plain C++ or a documented exception |
-| `__asm` blocks | 233 | plain C++ |
-| `#pragma float_control(precise)` | 83 files | removed where tests allow |
-| `unknown_XXX` fields | 1,289 | named members or padding with a reason |
-| `At<>` / `Field<>` raw-offset access | 1,569 / 617 (47 files define their own `At`) | members |
-| `reinterpret_cast` | 4,186 | mostly gone with real types |
-| `ei::VCall` slot calls | 581 | virtual calls |
-| addresses of game data (`0x007xxxxx` etc.) | 2,294 distinct; 451 `constexpr uintptr_t kX = 0x00...` | ordinary globals, constants, class statics |
-| `__fastcall Fn(T* self, void*)` hook shims | 174 | member functions |
-| `*At` view structs over raw memory | 57 | the real class |
-| struct names defined in more than one file | 72 | one definition in a header |
-| anonymous-namespace blocks (many hold local layouts) | 563 | shared headers / real helpers |
-| `mfc::` / `stlp::` / `gamecrt::` / `gameapi::` uses | 1,400 / 148 / 500 / 140 | library layer |
-| `EI_REPLACE` registrations | 2,094 | removed |
+| Artefact | Becomes |
+|---|---|
+| `EI_ORIGINAL` forwarders (some already rewritten and called through the original address, some library code, some game code not yet rewritten) | direct calls / library layer / ported code |
+| same function forwarded from several files | one declaration (`originals_<area>.h`) |
+| `__declspec(naked)` (forwarders and x87/asm helpers), `__asm` blocks, `#pragma float_control(precise)` | plain C++ or a documented exception; pragmas removed where tests allow |
+| `unknown_XXX` fields | named members or padding with a reason |
+| `At<>` / `Field<>` raw-offset access, `reinterpret_cast`, `*At` view structs | members, real types |
+| `ei::VCall` slot calls | virtual calls |
+| addresses of game data (`0x007xxxxx` etc., `constexpr uintptr_t kX = 0x00...`) | ordinary globals, constants, class statics |
+| `__fastcall Fn(T* self, void*)` hook shims | member functions |
+| struct names defined in more than one file, anonymous-namespace layouts | one definition in a header |
+| `mfc::` / `stlp::` / `gamecrt::` / `gameapi::` uses | library layer |
+| `EI_REPLACE` registrations | removed |
 
 ## Order of work
 
@@ -184,25 +178,9 @@ the standalone build they turn into review items:
 
 ## Subsystem tickets
 
-Status per subsystem; workers pick the top unclaimed row. "Ported" is today's share of the
-subsystem's game code; cleanup of a subsystem should start once it is mostly ported, so its
+Subsystems, in the order they were taken: 1 engine base (objects, managers, archives, streams: `core_*`, `base_manager*`, `chunk_*`, `model*`, `object*`),
+2 world server / game flow / save-load (`world_*`), 3 AI map, paths, regions (`ai_*`), 4 units and combat (`unit_*`, `combat_*`), 5 scripts (`script_*`),
+6 items, spells, databases, 7 effects, particles, lights, 8 interface (`ui_*`), 9 network (`net_*`), 10 sound, 11 resources, textures, files, 12 app,
+input, options, startup, 13 library layer (`src/lib`), 14 tooling (the `originals.h` generator, artefact counts in `progress.py`). Their state is in
+`docs/tickets.toml` (`python tools/tickets.py list`) and the `cleanup-*.md` notes; cleanup of a subsystem starts once it is mostly ported, so its
 classes are seen whole.
-
-| # | Subsystem | Main files today | Ported | Phase 1 | Phase 2 | Owner |
-|---|---|---|---|---|---|---|
-| 1 | Engine base: objects, managers, archives, streams | `core_*`, `base_manager*`, `chunk_*`, `model*`, `object*` | ~70% | todo | todo | |
-| 2 | World server, game flow, save/load | `world_*` (22 files) | ~79% | todo | todo | |
-| 3 | AI map, paths, regions | `ai_*` (13 files) | high | todo | todo | |
-| 4 | Units and combat | `unit_*`, `combat_*` | ~37% | later | later | |
-| 5 | Scripts | `script_*` (13 files) | ~55% | todo | todo | |
-| 6 | Items, spells, databases | `item*`, `spell*`, `class_templates`, `party_records` | ~34% | later | later | |
-| 7 | Effects, particles, lights | `particle_*`, `world_effect*`, `spell_effect_*`, `lightning` | partial | later | later | |
-| 8 | Interface | `ui_*` (15+ files) | ~19-41% | later | later | |
-| 9 | Network | `net_*` (12 files) | ~70% | todo | todo | |
-| 10 | Sound | `sound_*` | partial | later | later | |
-| 11 | Resources, textures, files | `resource*`, `texture*` | partial | later | later | |
-| 12 | App, input, options, startup | `app*`, options | ~35% | later | later | |
-| 13 | Library layer (`src/lib`) | `crt`, `mfc`, `stlp`, `gameapi` | n/a | n/a | todo | |
-| 14 | Tooling: `originals.h` generator, artefact counts in `progress.py` | `tools/` | n/a | todo | n/a | |
-
-Start with 14 (tooling), then 2, 3, 9 and 1: they are the most complete and the most depended on.

@@ -52,7 +52,7 @@ def main():
     print(f'verified:       {len(verified & replaced)} of them listed in tests/verify/verified.txt')
 
 
-# ---- cleanup artefacts (docs/cleanup-plan.md, "Where we are") -------------------------------------
+# ---- cleanup artefacts (docs/cleanup-plan.md, "Hook-era leftovers the plan removes") -------------------------------------
 # Every count runs over src/ (*.cpp, *.h) with comments blanked; `sources` is srcscan.load_sources().
 
 def count_matches(sources, pattern):

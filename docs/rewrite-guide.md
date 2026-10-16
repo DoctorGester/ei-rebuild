@@ -79,45 +79,31 @@ comes from a bug we already hit.
 6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),
    STL containers through `stlp::` (the game's node pool), MFC lists through `mfc::CTypedPtrList`.
    Call the game's CRT (`gamecrt::tolower`, `strnicmp`, `sprintf`, ...) and Win32 through `gameapi::`.
-7. **Floating point.** Since 2026-10-04: write float maths as plain C++ (`float`/`double`, the
-   standard maths functions); do NOT hand-copy x87 instruction sequences (no new naked FPU helpers,
-   `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its
-   main thread at 24-bit precision anyway, and the standalone build will use SSE2 (docs/cleanup-plan.md).
-   Verify float results with `ei::verify::CheckNear` (a few ULPs), not the bitwise `Check`. When an
-   integer or a branch follows from a float that sits on a rounding edge, a rare mismatch there is
-   expected: say so in the wrapper and the notes rather than copying the FPU sequence. Rounding mode
-   still matters: FISTP rounds to nearest (use `x87::fistp` or `std::lrint`), a C++ cast truncates,
-   `_ftol` truncates. The existing hand-copied helpers stay until the cleanup removes them.
-   The build is `/arch:IA32 /fp:precise` (x87; since SV7d1a, before that `/fp:fast`): the grouping
-   written is the grouping compiled, and a `static_cast<float>`, a float local or a float return is
-   rounded to float (a store, which changes nothing at the main thread's 24 bits). `/fp:fast` had
-   distributed and refolded sums (FearMode's `(30x + d) * (1/31)` became `30/31 x + d/31` and
-   settled on another fixed point, SV7d1) and kept float locals unrounded (ticket X3: unrounded
-   atan2 angles flipped a facing quaternion's sign at 180 degrees, 1 call in 300k); the volatile
-   float store helpers and `float_control(precise)` pragmas written against that were removed
-   (SV7d1a1): round with `static_cast<float>` or a float variable.
-   Under precise, `std::sqrt / sin / cos / atan2 / exp / log / log10` call the modern CRT (SSE2 code
-   paths): use `x87::fsqrt / fsin / fcos / fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`,
-   the instructions the original's VC6 code inlines. A product of two constants that the original
-   computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler folds it
-   at double precision: write it as the float (`static_cast<float>(kPi * kPerDegree)`, checking the
-   rounding) or keep the operation; `tools/check_fp_fold.py` (build.cmd) finds such double constants.
-   The rules below about NaN tests and unsigned conversion still apply: they are about getting the
-   same results at all, not the last bit. (Earlier text kept for the existing code:) the old rule was
-   to keep the original's order of operations exactly and copy floats the original copies as dwords
-   with `memcpy`.
-   The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at
-   every frame boundary in both installs; other threads run at 53 bits). Still, a float the original
-   returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
-   callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and
-   callers that keep using ST0 need it. The verify build logs any wrapped function it sees running
-   above 24 bits ("FPU precision ..." in ei_hook.log, listed in harness_report.txt); see
-   docs/notes/rebirth.md.
-   Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never
-   `static_cast<double>`: MSVC adds 2^32 with an FADD that rounds; `tools/check_x87.py` checks this.
-   Test NaN with `x87::IsNaN` (a bit test; `v != v` was folded to false under /fp:fast and the
-   standalone's compiler flags may change again). The `!(a > b)` idioms below keep their NaN
-   behaviour (MSVC emits FCOMP; FNSTSW; TEST AH,5/0x41; JNP).
+7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
+   sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
+   thread at 24-bit precision anyway, and the standalone build will use SSE2 (docs/cleanup-plan.md). The existing hand-copied helpers stay
+   until the cleanup removes them. Verify float results with `ei::verify::CheckNear` (a few ULPs), not the bitwise `Check`. When an integer or a
+   branch follows from a float that sits on a rounding edge, a rare mismatch there is expected: say so in the wrapper and the notes rather than
+   copying the FPU sequence.
+   - The build is `/arch:IA32 /fp:precise` (x87): the grouping written is the grouping compiled, and a `static_cast<float>`, a float local or a float
+     return is rounded to float (a store, which changes nothing at the main thread's 24 bits). `/fp:fast` had distributed and refolded sums
+     (FearMode's `(30x + d) * (1/31)` became `30/31 x + d/31` and settled on another fixed point) and kept float locals unrounded (unrounded atan2
+     angles flipped a facing quaternion's sign at 180 degrees, 1 call in 300k); round with `static_cast<float>` or a float variable.
+   - Under precise, `std::sqrt / sin / cos / atan2 / exp / log / log10` call the modern CRT (SSE2 code paths): use `x87::fsqrt / fsin / fcos /
+     fpatan` (`vecmath::Atan2`) `/ fexp / flog / flog10`, the instructions the original's VC6 code inlines. A product of two constants that the
+     original computes at run time (FLD; FMUL / FDIV) is rounded to 24 bits there, while the compiler folds it at double precision: write it as the
+     float (`static_cast<float>(kPi * kPerDegree)`, checking the rounding) or keep the operation; `tools/check_fp_fold.py` (build.cmd) finds such
+     double constants.
+   - Rounding mode matters: FISTP rounds to nearest (use `x87::fistp` or `std::lrint`), a C++ cast truncates, `_ftol` truncates.
+   - The game's main thread runs at 24-bit precision (control word 007F, set by Direct3D; measured at every frame boundary in both installs; other
+     threads run at 53 bits). A float the original returns unrounded in ST0 must not be rounded on return: declare the function `double` and let
+     callers round when they store (see `CItemWeapon::RollDamage`); it is exact at 24 and 53 bits and callers that keep using ST0 need it. The
+     verify build logs any wrapped function it sees running above 24 bits ("FPU precision ..." in ei_hook.log, listed in harness_report.txt;
+     docs/notes/rebirth.md).
+   - Convert unsigned 32-bit values (random words, tick counts) with `x87::FromUnsigned`, never `static_cast<double>`: MSVC adds 2^32 with an FADD
+     that rounds; `tools/check_x87.py` checks this. Test NaN with `x87::IsNaN` (a bit test; `v != v` was folded to false under /fp:fast and the
+     standalone's compiler flags may change again).
+
 8. **x87 compare semantics:** `FCOM; TEST AH,0x41; JNZ` means "jump if <= or NaN"; `TEST AH,1` means
    "less or NaN". Write `!(a > b)` / `!(a >= b)` so NaN behaves the same.
 9. **Mods patch the original in memory.** The installer compares each function's whole body with the

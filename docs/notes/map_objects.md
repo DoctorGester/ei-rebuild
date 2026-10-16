@@ -59,72 +59,68 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
 
 ## Rewritten
 
-"Ours only" = consistency check on the resulting state. "Snapshot compare" = ours runs, the object
-is snapshotted and restored, the original runs, bytes and EAX compared.
-
-| Address | Name | Verify |
-|---|---|---|
-| 0050F1C0 | CMapObject::Update (slot 6) | ours only: returns 1 |
-| 00515820 | CMapObjectServer::Update (slot 6) | no effect runs out: ours, records restored, original, compared; otherwise ours only: list ends as predicted |
-| 00510890 | CMapObjectClientSpecific::Update (slot 6) | ours only: counts - 1, stench timers - 1 (16 after going negative), light unchanged or at object + (0, 0, 2) |
-| 0050F5B0, 0050F690 | CMapObject::ClearEffects, EffectValue | ours only / pure |
-| 0050F1E0 | CMapObject::AddEffect (slot 45) | Rebirth-patched: reproduces FixSpellEffectsOverflow behind the flag |
-| 0050F2D0 | CMapObject::RecomputeScale (slot 27) | snapshot compare (0x1E0 bytes) when slot 30 is 0050E440; units (slot 30 rebuilds figures through 00517700, must not run twice): ours only |
-| 0050E440 | ResetScale (slot 30) | snapshot compare |
-| 0050E4B0, 0050E4D0, 0050F730 | GetPosition (slot 52, RET 8), GetPosition2 (53, RET 4), GroundPoint (48) | output only |
-| 0050F020 | PlaceOnGround (slot 51) | z compared; the original runs through a naked stub repeating its first three instructions (PUSH ESI; MOV ESI,ECX; CALL 00455950) and jumping to 0050F028 |
-| 0050F050, 00515950 | SetServerData (slot 36), CMapObjectServer::SetData | snapshot compare (object 0x1E0, companion 0x78) |
-| 0050E8F0, 0050E890 | AttachCompanion, AttachObject (slot 19, type 0x47) | ours only: attached both ways, count |
-| 0050E970 | PackVitals (slot 32) | snapshot compare of the tracked bytes |
-| 0050FA10, 0050FA20, 0050E430 | IsInvisible, IsStunned, Flag20000 | pure |
-| 00515980 | CMapObjectServer::TakeHit (slot 20) | ours only: returns 1; a dead object has no effects and flags_ bit 1 |
-| 00518310 | CObject3D::ComputeBounds | ours, bounds restored, original; +0x124..+0x150 and EAX |
-| 00517700, 00517500, 005164B0 | SetFigureScale, LoadFigures, AddPart | ours only: scale as given / nothing pending, parts listed |
-| 00519E80, 00519D70 | AlignedPtrArray::SetAtGrow, SetSize | ours only: value, size, alignment |
-| 00516A80, 005169A0 | CObject3D::FindPartByPrefix (strstr at the name's start, case-sensitive), FindPart (strcmp); parts, then pending parts | pure |
-| 005167E0, 005168F0 | RemovePart (side half's slot 15 first; a placed part forgets its owner; animation 0050D350; released), RemovePartNamed | ours only: list one shorter, next entry moved down, result |
-| 005188B0 | PartWorldPosition (part position turned by the orientation, times the side half's slot 18 scale, plus the position) | output, CheckNear |
-| 00518CA0, 00518F80, 00518FC0 | Animations ("<name>.adb" through the owner's GetFile on first use, +0xA0), AnimationAt (key & 0xFF), FindSkillAnimation (kind 0x40000, number in bits 22-29) | pure once loaded (00518F80 through a stub repeating its first three instructions) |
-| 0050E770, 0050E840 | CMapObject::CreateMapObject / DestroyMapObject (slots 2 / 3; map_object_create.cpp) | ours only: blank state / nothing left |
-| 00515F70, 00516080 | CObject3D::Create3D / Destroy3D (slots 2 / 3; object3d_lifetime.cpp; Destroy3D drops the parts' references without releasing them) | ours only |
-| 00518A00, 00518AE0, 00519580 | AddEffectSource / RemoveEffectSource (particle sources at +0xA8, attached through 004849F0), CountedRef::Assign | ours only: list / reference counts |
-| 00518D30, 00517990 | AnimationFactor (units only: (start + (end - start) t) / length, 1 for a 0 / NaN length), FindPartIndex (_mbscmp over +0x114) | pure (CheckNear) |
-| 0051CE60, 0051B7E0 | DrawShadow, Draw | ours only: result 1; Draw: scene matrix stacks as deep as before |
-| 0050ACD0 | AnimationTrack::Evaluate | ours, values restored, original, compared |
-| 0050B8C0, 0050BC00 | CageInterpolator::InterpolateCube, Prism | ours, point and stream restored, original, compared |
-| 00515BD0, 0050E2D0, 0052E110, 00515610, 00510450 | Construct of CObject3D (0x170), CMapObject (0x238), CUnit (0x4DC), CMapObjectServer (0x94), CMapObjectClientSpecific (0x54) | original on a scratch copy of raw memory (they allocate nothing), ours on the object, bytes and results compared |
-| 0052E5B0 | CUnit::Reset | ours only: blank state |
-| 00515D70, 0050E660, 0052E310, 00515720, 00510560, 00546230 | destructor bodies | ours only: engine object base state (vtable 0073B8E0, no owner) |
-| 0052E2A0 | CUnit::DeletingDestructor (slot 0) | ours only: counted |
-| 0050CA50, 0050CBA0, 0050D600, 0050D5E0 | CFigureAnimationState Play, Queue, SetTime, Advance (map_object_animation_state.cpp; A-U2) | SetTime: original vs ours on +0x40..+0x78 when the animation does not end, else ours only; the rest ours only |
-| 00516370, 005161E0, 00516D50, 00515E90, 00516460, 00516420, 00516490 | CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5 RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp; A-U2) | 14: original vs ours (CheckNear); the rest ours only |
-| 0050F7A0, 0050F900, 005159D0, 00515AC0 | CMapObject LoadMapObject / SaveMapObject, CMapObjectServer LoadServer / SaveServer (slots 9 / 10; map_object_save.cpp; A-U2) | save: both into capture streams; load: ours through a recorder, round trip through the original Save |
-| 005157C0, 005157E0, 0050E460, 005391B0, 005391E0 | CMapObjectServer CreateServer / DestroyServer (slots 2 / 3), CMapObject::CompanionQuery (31), CUnitClientSpecific HasWeaponModels / HasArmourModels (36 / 37) (object_small_slots.cpp; A-U2) | create / destroy ours only; the rest pure |
-| 0050F0F0, 0050F120, 00510770, 00533E80 | CMapObject ApplyScience (41: logs, false) / FreeArray (44), CMapObjectClientSpecific::CreateClientCompanion (2), CUnitClientSpecific::DeleteClient (0) (object_small_slots.cpp; A-U2) | ours only |
-| 0051CC20, 0051CCD0 | CObject3DClientSpecific InvisiblePulse / StunnedPulse (unit_client_animation.cpp) | original, parts put back, ours; CheckNear |
-| 005117D0, 00510B80, 005112A0, 005114D0 | CMapObjectClientSpecific EffectsChanged (slot 13), UpdateEffectParticles, UpdateEffectSounds, PlayEffectSound (map_object_client_effects.cpp; A-U3) | ours only: records present, one per merged type at the highest power / per effect otherwise, one sound per type; stench timer 0, feeble mind handle toggles |
-| 0051CCA0, 0051CD60 | CObject3DClientSpecific ResetPartAlpha / ClearPartTints (invisibility / stun ended) | original, parts put back, ours; bitwise |
-| 00511830, 00511950, 005119B0, 00511A00, 005107B0 | CMapObjectClientSpecific CreateLight, ShowLight, HideLight, ApplyLightMode (slot 19; mode 1 holds the light on and lists its id at *007AF748 + 0xD4, mode 2 drops it), DestroyClientCompanion (slot 3) | ours only: hidden flag toggles as the rules say; new light class 0x31 with the radius at +0xE0; held light listed / no light |
-| 0050C230 | FigureBone::Place (class 0x300C skeleton bone, map_object_figures.h; figure_bones.cpp; A-U9): child = parent position + offset turned by the parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time factor) - origin; the mesh gets both and the pose's vertices (005A0B10) | the original's recursion goes straight to it inside the wrapper; subtree snapshotted, original, kept, restored, ours; bone and mesh poses within 4 ULPs |
-| 0050AF40, 0050B370, 0050B510, 0050B1D0, 0050B1B0 | FigureBone Construct, CreateBone (slot 2: reset; the matrices +0x90 emptied without freeing, as 0050DD40), DestroyBone (slot 3: mesh forgotten then released, pose only forgotten, animator / +0x54 / +0x58 released), DestructBody, DeleteBone (figure_bone_lifetime.cpp; A-U9; slots 7 / 11 / 12 0050B180 / 90 / A0 are trivial) | ctor: original into a raw copy, bytes compared except +0x90 and the unwritten offset; the rest ours only (blank state / engine object vtable) |
-| 00503A40, 00504A60 | CSceneRenderer DrawSelectionMarker (the green arrow under selected units; renderer_marker.cpp), SetGamma (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp) (A-U9) | marker: original with 004EA4A0's call recorded and skipped (flat_draw_capture.h), ours recorded and drawn, arguments compared (positions 4 ULPs); gamma: original, ramp read back (GetGammaRamp), ours, read again; results, kept values and ramps (entries within 1) compared |
-| 0050C5F0, 0050C730, 0050C710, 0050C860, 0050C8E0, 0050C990, 0050C9E0 | CFigureAnimationState Construct, DestructBody, DeleteState (slot 0), CreateState / DestroyState (slots 2 / 3), ReleaseBones, Reset (map_object_animation_bones.cpp; A-U10) | Construct: original into a raw copy, bytes +0..+0x74 compared; the rest ours only (blank state) |
-| 0050CC20, 0050CC60, 0050CD70, 0050D2E0, 0050D320 | FindBone, LinkPiece (a bone of class 0x300C from the figure manager), LinkBone (child of the first bone named as its parent unless it has a child of that name; list, reference, name3 = model, morph, 005ACB80), FindRoot (first bone without a parent name), SetModel (005AC880) | FindBone pure; FindRoot original vs ours (result, root, changed); the rest ours only |
-| 0050D0E0, 0050D350, 0050D3A0 | AttachMesh (the bone named as the part's slot 7 carries it: referenced, given the bone's position / rotation, old one released), DetachMesh, DetachMeshes | ours only |
-| 0050D3E0, 0050D450, 0050D5A0, 0050D7C0, 0050D920 | PlaceIfChanged / UpdatePose (tracks evaluated at the frame, then the root places the skeleton at owner AnimationFactor(scale.z) * defaultScale: x, y from the factor stored to float, z unrounded), Stop, Rescale (morph to every bone and the state, key frames reloaded, `changed` cleared, root placed), CollectBoneNames | ours only (Place compared by its own wrapper) |
-| 0050DFF0 | AlignedPtrArray::SetSize copy (the tracks' arrays) | ours only |
-| 00506710, 005068C0 | CAnimationNode Construct (cursors -1, identity rotations, +0x9C / +0xAC / position_ from 007AF0E0 / 007AF0F0) / DestructBody (the mesh only loses a reference; children destroyed and deleted) (animation_node_lifetime.cpp) | ctor: original into a raw copy, bytes compared except the unwritten pose / rest positions and morph; dtor ours only |
-| 00503F40, 005040A0, 00504860 | CSceneRenderer BeginScene / EndScene / DrawTexture (slots 4 / 5 / 21; renderer_scene.cpp): frame statistics +0x34..+0x58, device counters +0x16C..+0x178, debug panel "FPS" / "num verts" / "num trias" | ours only (Direct3D calls) |
-| 00504F70, 00505080, 00505150, 00505270, 00504E50, 0050DD40 | AlignedArray copies registered on the template (TLVertex SetSize / SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep) | ours only (verify_aligned_array_copies.cpp) |
-| 0051C3D0 | CObject3DClientSpecific::ShowWounds (unit_client_wounds.cpp): the wounds texture (kind 6) found / made, reloaded unless its .mmp extra block is unchanged; the material (WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds texture) | ours only (texture held, last stage draws it; 0: dropped or no part set) |
-| 0050A5D0, 0050A720, 0050A700, 0050A810, 0050A8C0 | AnimationTrack (class 0x300B, vtable 0073D9D8, 0x78 bytes) Construct, DestructBody, DeleteTrack (0), CreateTrack / DestroyTrack (2 / 3) (animation_track_lifetime.cpp); `frames` (+0x38) and `vertices` (+0x68) are AlignedArrays now | ctor: original into a raw copy, all bytes compared; the rest ours only |
-| 0050D950, 0050DA10 | CFigureAnimationState ClearBoneTracks / LoadBoneTracks (005ACCF0: the tracks cleared, or loaded from the model part's entry named as the bone, slot 5 / 0050AAF0) | ours only |
-| 0050AAF0 | AnimationTrack::LoadKeyFrames (rotations, positions, frame and vertex counts from the model entry; arrays sized without keeping contents; frame pointers into the entry) | ours only: counts, frame pointers and the cursor's end predicted from the entry |
-| 00500440, 00500460, 00500480, 005006E0, 00500740, 005007C0, 00500800, 00500960, 00500A70, 00500AA0, 00500AC0, 005019F0, 00501A40, 00501AA0, 00501AF0, 00501CC0, 00501CE0, 00501D00, 00501D40, 00504A40, 00504780, 00504E00, 00504E20 | CSceneRenderer lifetime and small slots (renderer_lifetime.cpp, A-U11): base class (vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase, SetBaseColour), SetSun / SetSunAndAmbient, SceneRenderer, ctor / deleting dtor / dtor, slots 3 DestroyRenderer, 8 ClearFrame, 9 ZEnable, 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13 DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces, the device holder | SceneRenderer, ZEnable, GetGamma: original vs ours; the rest ours only (fields, results, bound stage) |
-| 00500970, 00500A00, 00504F60, 00505140, 00505260 | texture holders' EnsureLoaded / Load (by kind and name), the sprite work arrays' constructors (AlignedArray::Construct) | ours only |
-| 00507C50, 00508BF0 | CAnimationNode::AttachMeshes (the first part named as the node becomes its mesh, placed at the pose; recursive), SceneSkin::BindMeshes (skin_rewind.cpp) | ours only: the tree bound as predicted |
-| 0051C130, 0051C160, 0051C1D0, 0051B2E0, 0051B2D0, 00516920, 0051AD50, 0051AD60, 0051AD00, 0051ACE0 | CObject3DClientSpecific picking slots 22-24 (dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect + IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type_, parts then pending), class name / id, the side half's base destructor (vtable 0073DEFC) (object3d_specific_slots.cpp, A-U11) | original vs ours; destructors ours only |
-| 00506C70 | MultiplyQuaternions (fastcall out, a, b: a * b, Hamilton; skin nodes, hero preview; skin_quaternion.cpp) | original vs ours, CheckNear |
+Every rewritten function carries its address in its source comment (grep the address); the per-function table that used to be
+here is gone. Facts a worker needs:
+- Slot numbers: `CMapObject::Update` 0050F1C0 (6; returns 1), `CMapObjectServer::Update` 00515820, `CMapObjectClientSpecific::Update`
+  00510890 (counts - 1, stench timers - 1, 16 after going negative, light unchanged or at object + (0, 0, 2)), AddEffect 0050F1E0
+  (45; Rebirth-patched, reproduces FixSpellEffectsOverflow behind the flag), RecomputeScale 0050F2D0 (27), ResetScale 0050E440
+  (30; for units slot 30 rebuilds figures through 00517700 and must not run twice), GetPosition 0050E4B0 (52, RET 8) /
+  GetPosition2 0050E4D0 (53, RET 4), GroundPoint 0050F730 (48), PlaceOnGround 0050F020 (51; the original's wrapper runs through a
+  naked stub repeating its first three instructions PUSH ESI; MOV ESI,ECX; CALL 00455950 and jumping to 0050F028), SetServerData
+  0050F050 (36), AttachObject 0050E890 (19, type 0x47), PackVitals 0050E970 (32), TakeHit 00515980 (20; ours returns 1; a dead
+  object has no effects and `flags_` bit 1), CreateMapObject / DestroyMapObject 0050E770 / 0050E840 (2 / 3), Create3D / Destroy3D
+  00515F70 / 00516080 (2 / 3; Destroy3D drops the parts' references without releasing them), AddEffectSource / RemoveEffectSource
+  (particle sources at +0xA8, attached through 004849F0).
+- CObject3D: ComputeBounds 00518310 (+0x124..+0x150 and EAX), FindPartByPrefix 00516A80 (strstr at the name's start,
+  case-sensitive) / FindPart 005169A0 (strcmp), both parts then pending parts; RemovePart 005167E0 (side half's slot 15 first; a
+  placed part forgets its owner; animation 0050D350; released); PartWorldPosition 005188B0 (part position turned by the
+  orientation, times the side half's slot 18 scale, plus the position); Animations 00518CA0 ("<name>.adb" through the owner's GetFile on
+  first use, +0xA0), AnimationAt 00518F80 (key & 0xFF), FindSkillAnimation 00518FC0 (kind 0x40000, number in bits 22-29; the
+  wrappers go through a stub repeating the first three instructions), AnimationFactor 00518D30 (units only: (start + (end - start)
+  t) / length, 1 for a 0 / NaN length), FindPartIndex 00517990 (_mbscmp over +0x114). Constructs: CObject3D 0x170, CMapObject 0x238, CUnit
+  0x4DC, CMapObjectServer 0x94, CMapObjectClientSpecific 0x54 (destructor bodies leave the engine object base state: vtable
+  0073B8E0, no owner). CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5
+  RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp). Map object Load / Save
+  0050F7A0 / 0050F900, server 005159D0 / 00515AC0 (slots 9 / 10); CMapObjectServer Create / Destroy 005157C0 / 005157E0 (2 / 3),
+  CompanionQuery 0050E460 (31), CUnitClientSpecific HasWeaponModels / HasArmourModels 005391B0 / 005391E0 (36 / 37),
+  ApplyScience 0050F0F0 (41: logs, false) / FreeArray (44), CreateClientCompanion 00510770 (2), DeleteClient 00533E80 (0).
+- Animation: `AnimationTrack::Evaluate` 0050ACD0 (class 0x300B, vtable 0073D9D8, 0x78 bytes; `frames` +0x38 and `vertices` +0x68 are
+  AlignedArrays; LoadKeyFrames 0050AAF0: rotations, positions, frame and vertex counts from the model entry, arrays sized without
+  keeping contents, frame pointers into the entry), `CageInterpolator::InterpolateCube` / `Prism` 0050B8C0 / 0050BC00,
+  CFigureAnimationState Play / Queue / SetTime / Advance 0050CA50 / 0050CBA0 / 0050D600 / 0050D5E0 (map_object_animation_state.cpp),
+  Construct / DestructBody / DeleteState (0) / CreateState / DestroyState (2 / 3) / ReleaseBones / Reset (0050C5F0..0050C9E0),
+  FindBone 0050CC20, LinkPiece 0050CC60 (a bone of class 0x300C from the figure manager), LinkBone 0050CD70 (child of the first bone
+  named as its parent unless it has a child of that name; list, reference, name3 = model, morph, 005ACB80), FindRoot 0050D2E0 (first
+  bone without a parent name), SetModel 0050D320 (005AC880), AttachMesh 0050D0E0 (the bone named as the part's slot 7 carries it:
+  referenced, given the bone's position / rotation, old one released) / DetachMesh / DetachMeshes, PlaceIfChanged / UpdatePose
+  0050D3E0 / 0050D450 (tracks evaluated at the frame, then the root places the skeleton at owner AnimationFactor(scale.z) *
+  defaultScale: x, y from the factor stored to float, z unrounded), Stop, Rescale 0050D7C0 (morph to every bone and the state, key
+  frames reloaded, `changed` cleared, root placed), CollectBoneNames, ClearBoneTracks / LoadBoneTracks 0050D950 / 0050DA10 (005ACCF0).
+  `FigureBone::Place` 0050C230 (class 0x300C skeleton bone, figure_bones.cpp): child = parent position + offset turned by the
+  parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time
+  factor) - origin; the mesh gets both and the pose's vertices (005A0B10); FigureBone Construct 0050AF40, CreateBone 0050B370 (slot 2:
+  reset; the matrices +0x90 emptied without freeing, as 0050DD40), DestroyBone 0050B510 (slot 3: mesh forgotten then released, pose
+  only forgotten, animator / +0x54 / +0x58 released), DestructBody, DeleteBone. CAnimationNode Construct 00506710 (cursors -1, identity
+  rotations, +0x9C / +0xAC / position_ from 007AF0E0 / 007AF0F0) / DestructBody 005068C0 (the mesh only loses a reference; children
+  destroyed and deleted); AttachMeshes 00507C50 (the first part named as the node becomes its mesh, placed at the pose; recursive),
+  SceneSkin::BindMeshes 00508BF0 (skin_rewind.cpp), MultiplyQuaternions 00506C70 (fastcall out, a, b: a * b, Hamilton).
+- Client companion: EffectsChanged 005117D0 (slot 13), UpdateEffectParticles 00510B80, UpdateEffectSounds 005112A0, PlayEffectSound
+  005114D0 (map_object_client_effects.cpp: records present, one per merged type at the highest power / per effect otherwise, one
+  sound per type; stench timer 0, feeble mind handle toggles), CreateLight 00511830, ShowLight 00511950, HideLight 005119B0, ApplyLightMode 00511A00
+  (slot 19; mode 1 holds the light on and lists its id at *007AF748 + 0xD4, mode 2 drops it; new light class 0x31 with the radius at
+  +0xE0), DestroyClientCompanion 005107B0 (slot 3), InvisiblePulse / StunnedPulse 0051CC20 / 0051CCD0, ResetPartAlpha / ClearPartTints
+  0051CCA0 / 0051CD60, ShowWounds 0051C3D0 (unit_client_wounds.cpp: the wounds texture (kind 6) found / made, reloaded unless its
+  .mmp extra block is unchanged; the material WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds
+  texture), picking slots 22-24 (0051C130, 0051C160, 0051C1D0: dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect +
+  IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type_, parts then pending).
+- CSceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene / DrawTexture 00503F40 / 005040A0 /
+  00504860 (slots 4 / 5 / 21; renderer_scene.cpp: frame statistics +0x34..+0x58, device counters +0x16C..+0x178, debug panel
+  "FPS" / "num verts" / "num trias"), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
+  SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
+  lifetime and small slots (renderer_lifetime.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
+  SetBaseColour; slots 3 DestroyRenderer, 8 ClearFrame, 9 ZEnable, 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13
+  DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces). AlignedArray copies registered on the template: TLVertex SetSize /
+  SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep.
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /

@@ -35,27 +35,31 @@ game.exe for the callbacks.
 
 ## Rewritten
 
-Verify "both" = ours first, state captured, restored, then the original, everything compared (source 0x1F0 bytes,
-particle 0x64, element 0x38, the ISAAC generator at 007A9D40 0x814 bytes, return value). "Setup" = the setup call that
-fills the element array is also compared against the original on a scratch source.
+Every function carries its address in its source comment (grep it); the per-function table that used to be here is gone.
+- `Tick` 00496EB0 (verified by replaying on a scratch copy with the same particles as ours left them, a keep-everything update callback,
+  no elements, no emission), `Draw` 004976B0, `AddParticle` 00496A20, `ParticleSpriteArray::SetSize` 00497D50, pool Release / Acquire 004987C0
+  / 00498870, `AllocateElements` 00497EB0, `BindParticleTexture` 00497CE0, `NewParticleSource` 004981B0, `Destruct` 00498310, `DrawAll`
+  00498940 with the depth sort (`SetAtGrow` 00499200, introsort 00499380, final sort 004994E0, pop heap 00499C20, make heap 00499CD0).
+- `CParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held_` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4)
+  00497FC0-00498630: slot 2 `Create`, slot 3 `Destroy` (held sources released, pooled particles deleted, then the base's), `CreateSource`
+  (CreateObject(type, -1), one reference held; flag +0xE4 stops 0x2001/3/4), `TickSources` (slot 6 of every source; paused: only flag 8; a
+  held source whose tick returned 0 is released), `ReleaseUnheld` (held sources with refCount 1; the client's zone load). 004981A0, the
+  manager's own part of its constructor (quietStart cleared), is `ParticleManagerClearQuietStart` in small_accessors.cpp; world_client_maps.cpp
+  reaches it through its forwarder when the client world sets its managers up. `CParticleSource` slots 11 / 12 ("CParticle" 0078B020,
+  class id 12) 004982D0 / 004982E0, slot 0 `DeletingDestruct` 004982F0.
+- `Clear` 00484710, `Reset` 004847E0, `WorldPosition` 00484AE0, `CreateForType` 00485540 (a 13 KB switch).
+- The per-type callbacks of ~50 effects in 00490130-00496990 (EmitModifier 00490130, EmitLightning 004923B0, UpdatePortal, TickPortal,
+  TickStartTrans, TickGroundPlane, UpdateGlow, UpdateSparks, UpdateGroundDust, Mushroom, Nuke, CastRing, Banshee, Tornado, Geyser, PoisonFog,
+  Healing, Vulkan, Blast, FireBall, ArrowSmoke, AcidRay, Stench, Link, Orbit, Tendril, Shower, Falling, ClayRing, Teleport, Modifier,
+  CastSwirl, Column, Casting, Lightning, ZoneExit, Glow, GroundDust, Bag, PortalStar, Cylinder, Portal, FireStar, Sparks, VisionStar,
+  Regeneration, Silence, FeebleMind, FeetCloud, Stun, CurseStars, ...): one function per address with its address tag in
+  `particle_callbacks.cpp`. Callbacks that let the source go (`Attach`: TickStartTrans when it detaches, TickShower from the fifth tick,
+  TickFalling from the second, Stun / CurseStars without a carrier or once the stun is over) and PoisonFog's emit (it moves particles from the
+  shared pool) cannot be compared against the original in place; the Stun wrapper asks the carrier's slot 55 once more before running the
+  callback.
 
-| Addresses | Names | Verify |
-|---|---|---|
-| 00496EB0 | `Tick`: ours on the real source, the original replays on a scratch copy with the same particles as ours left them, a keep-everything update callback, no elements, no emission (wind, motion, basis, bounds compared) | replay |
-| 004976B0 | `Draw`: original first with a stand-in renderer capturing the arrays, then ours; arrays, flag, hidden ticks compared | |
-| 00496A20, 00497D50, 004987C0 / 00498870, 00497EB0, 00497CE0, 004981B0, 00498310, 00498940, 00499200 | `AddParticle`, `ParticleSpriteArray::SetSize`, pool `Release` / `Acquire`, `AllocateElements`, `BindParticleTexture`, `NewParticleSource`, `Destruct`, `DrawAll`, depth-array `SetAtGrow` | ours only (list checks, alignment, sorted order and draw calls through the original sorts) |
-| 00497FC0, 00497FE0, 00498400, 00498480, 00498630 (A-S10) | `CParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held_` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4) slot 2 `Create`, slot 3 `Destroy` (held sources released, pooled particles deleted, then the base's), `CreateSource` (CreateObject(type, -1), one reference held; flag +0xE4 stops 0x2001/3/4), `TickSources` (slot 6 of every source; paused: only flag 8; a held source whose tick returned 0 is released), `ReleaseUnheld` (held sources with refCount 1; the client's zone load) | ours only (held_ keys = ids, counts, the manager's count back) |
-| 004982D0, 004982E0, 004982F0 (A-S10) | `CParticleSource` slots 11 / 12 ("CParticle" 0078B020, class id 12), slot 0 `DeletingDestruct` | both (11 / 12) / ours only |
-| 00499380, 004994E0, 00499C20, 00499CD0 | introsort, final sort, pop heap, make heap by depth | both on copies, compared |
-| 00484710, 004847E0, 00484AE0, 00485540 | `Clear` (ours only), `Reset` (original on a scratch copy), `WorldPosition`, `CreateForType` (13 KB switch; original first on a scratch source with the element array seeded from ours) | all 0x1F0 bytes and elements compared |
-| 00490130 EmitModifier, 004923B0 EmitLightning, 00495A30, 00492D30, 004957E0 | emitters | both (Modifier / Lightning: first emission against the original on a scratch source) |
-| 00494770, 00494930, 00496990, 004934F0, 00493280, 00494CD0, 004933F0 | UpdatePortal, TickPortal, TickStartTrans (ours only when it detaches), TickGroundPlane, UpdateGlow, UpdateSparks, UpdateGroundDust | both |
-| 00484710-00496990 | the per-type `Emit*` / `Update*` / `Tick*` callbacks of ~50 effects (Mushroom, Nuke, CastRing, Banshee, Tornado, Geyser, PoisonFog, Healing, Vulkan, Blast, FireBall, ArrowSmoke, AcidRay, Stench, Link, Orbit, Tendril, Shower, Falling, ClayRing, Teleport, Modifier, CastSwirl, Column, Casting, Lightning, ZoneExit, Glow, GroundDust, Bag, PortalStar, Cylinder, Portal, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, FeetCloud, Stun, CurseStars, StartTrans, ...): one function per address with its address tag in `particle_callbacks.cpp` | both; Setup for Mushroom, CastRing, Banshee, Healing, Stench, Link, Orbit, Column, Casting, Glow; PoisonFog emit ours only (moves particles from the shared pool: nothing emitted, the new disc inside the bounds); TickShower ours only from the fifth tick and TickFalling from the second (they detach); Stun / CurseStars ours only without a carrier or once the stun is over (Attach) |
-
-Only the `RET 4` / `RET 8` no-op stubs 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310,
-004957D0, 00495A20, 00496260, 004965D0 are not rewritten. Callbacks that let the source go (`Attach`) and the
-factory / destructor are verified ours only; the Stun wrapper asks the carrier's slot 55 once more before running
-the callback.
+Only the `RET 4` / `RET 8` no-op stubs 00485530, 00492FB0, 00493DD0, 00494A00, 00494DF0, 004950A0, 00495310, 004957D0, 00495A20, 00496260,
+004965D0 are not rewritten.
 
 ## Floating point
 
