@@ -1480,6 +1480,22 @@ title = "Crash stacks name the functions (ei_hook+offset through ei_hook.map, ga
 group = "harness"
 note = "X40 logs the code addresses on a crashed game's stack (ei_hook.log 'stack ei_hook+XXXX' / 'stack 006936BE (game.exe)'), raw. Resolve them to names in run_all's failure summary or a small tool, from build/<cfg>/ei_hook.map and the known game functions, and drop stale frames (addresses above the throw's frame chain)."
 
+[[ticket]]
+id = "WB12"
+title = "Standalone test runs out of sight: no visible window, no focus stealing"
+group = "harness"
+size = 0.5
+depends = ["S21"]
+note = "User 2026-10-16: after the switch to standalone, run the standalone tests quieter so the user doesn't see the game window at all and focus is not stolen. Options to check: an off-screen or hidden (not minimised) window, no SetForegroundWindow/activation (WS_EX_NOACTIVATE, SW_SHOWNOACTIVATE), a windowed present path that still renders and captures frames correctly; the harness must keep feeding input (it sends messages, not real input). Must not switch the display mode. Verify frames and goldens unchanged."
+
+[[ticket]]
+id = "WB13"
+title = "How many standalone games can run at once"
+group = "harness"
+size = 0.5
+depends = ["S21"]
+note = "User 2026-10-16: standalone runs look cheaper than hooked ones (vanilla suite 604 s standalone vs 1,537 s hooked), so more may run at once; investigate. The 16-game cap exists because 24 hooked games (and 16 with 8x AA) crashed Windows with NVIDIA TDR storms (memory gpu-game-limit; ~640 MB VRAM per game under dgVoodoo). Measure per-game VRAM, GPU and CPU load for standalone runs with the renderer they use, step up carefully (e.g. 16 -> 20 -> 24) while watching for TDR events (System log 4101 / 153), and recommend a number with evidence. Changing EI_HARNESS_SLOTS beyond 16 needs the user's OK."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
