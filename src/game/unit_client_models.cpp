@@ -137,8 +137,6 @@ namespace {
 // The figure parts 00516B50 collects: an array in 32-byte aligned storage (the block kept at
 // data[-1]), as SkinRequest's layers.
 using PartArray = lib::AlignedArray<CEngineObject*>;
-// 00516B50 (not rewritten). 3D object: every figure part named `name`, into `out`.
-__declspec(naked) void __fastcall FindParts(CUnit*, void*, const char*, PartArray*) EI_ORIGINAL(0x00516B50)
 
 int CompareNames(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -172,7 +170,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
             part.Format(game::Text(0x0078FB0C), hair);   // "hr.%.2d"
         }
         PartArray parts{nullptr, 0, 0, 0};
-        FindParts(unit, nullptr, part, &parts);
+        unit->CollectPartsByPrefix(part, reinterpret_cast<lib::AlignedArray<void*>*>(&parts));   // 00516B50
         if (parts.size == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (CompareNames(part, parts.data[0]->GetName()) != 0) {

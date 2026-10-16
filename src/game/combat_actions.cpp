@@ -98,8 +98,6 @@ void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
 // 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
 // 0058ECE0. CWorldServer: applies the quick item `item` (a potion) to `unit`.
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
-// 00665BE0. Player: an inventory item changed.
-__declspec(naked) void __fastcall PlayerItemChanged(WorldPlayer*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
 // 00665470. Player: receives the items in `list` (a CPtrList).
 void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) {
     reinterpret_cast<CPlayer*>(a0)->GiveItems(static_cast<const mfc::CTypedPtrList<CEngineObject>*>(a2), a3);
@@ -267,7 +265,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     auto* copy = static_cast<CItem*>(items->FindObject(link->value));
     if (!copy) return;
     x87::CopyFloat(&copy->charge_, &item->charge_);
-    PlayerItemChanged(player, nullptr, copy);
+    reinterpret_cast<CPlayer*>(player)->ItemUsed(copy);   // 00665BE0
 }
 EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
 

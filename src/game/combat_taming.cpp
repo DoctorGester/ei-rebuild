@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
+#include "player_messages.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -30,8 +31,6 @@ constexpr int kStatTaming = 2;
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<CUnit*>(a0)->SetPlayer(a2); }
-// 00665D20 the player: prepares to take a unit in (no arguments).
-__declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
 // bytes), 005D5F60 AddMode, 005D6140 RemoveMode(kind), 005D7790 StopAction.
 void* __fastcall ModePlayerConstruct(void* a0) { return static_cast<PlayerMode*>(a0)->Construct(); }
@@ -93,7 +92,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     case 2: {
         if (!tamerPlayer) break;
-        PlayerTakeUnit(tamerPlayer);
+        reinterpret_cast<CPlayer*>(tamerPlayer)->ReleaseTamedUnits();   // 00665D20
         unit->SetSide(tamer->side);
         UnitSetPlayer(unit, nullptr, tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));

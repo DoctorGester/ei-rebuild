@@ -9,6 +9,7 @@
 #include "originals_gameplay.h"
 #include "ei/x87.h"
 
+#include <bit>
 #include <cstring>
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -33,10 +34,8 @@ int Unit::AddWeapon(void* a0) { return reinterpret_cast<CUnit*>(this)->AddWeapon
 
 // The unit's body slots (controller +0x1E0, unit.h UnitStats).
 struct Slots {
-    void SetSlotMaxima(std::uint32_t maxHitPointsBits);   // 00525A00 (a float, pushed as bits)
     void* RefillSlots();                                   // 00525AF0
 };
-__declspec(naked) void Slots::SetSlotMaxima(std::uint32_t) EI_ORIGINAL(0x00525A00)
 void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
 
 // The item and spell factory (global pointer at 007AFFB4).
@@ -119,7 +118,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     SetFloat(stats, 0x34, static_cast<float>(static_cast<int>(Dword(r, 0x8))));
     SetFloat(stats, 0x38, static_cast<float>(static_cast<int>(Dword(r, 0xC))));
     Slots* slots = reinterpret_cast<Slots*>(controller + 0x1E0);
-    slots->SetSlotMaxima(Dword(stats, 0x2C));
+    reinterpret_cast<UnitStats*>(slots)->SetSlotMaxima(std::bit_cast<float>(Dword(stats, 0x2C)));   // 00525A00
     slots->RefillSlots();
     SetDword(controller, 0x8DC, Dword(stats, 0x2C));
     for (const auto& c : kControllerCopies) SetDword(controller, c[1], Dword(r, c[0]));

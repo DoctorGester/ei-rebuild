@@ -31,13 +31,6 @@ std::uint32_t FearDistanceBits() { return *reinterpret_cast<const std::uint32_t*
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
 
-// The perception memory of a brain (thiscall on brain + 0xD0).
-struct AIPerception {
-    // 005CBBA0 (RET 0xC). Hears a call of `kind` at `point` (the text is copied into +0x178).
-    void HearCall(const Vector3* point, int kind, const char* text);
-};
-__declspec(naked) void AIPerception::HearCall(const Vector3*, int, const char*) EI_ORIGINAL(0x005CBBA0)
-AIPerception* PerceptionOf(AIBrain* brain) { return reinterpret_cast<AIPerception*>(brain->memory); }
 } // namespace
 
 __declspec(naked) void __fastcall CallsSetSizeAt(AICallArray*, void*, int, int) EI_ORIGINAL(0x005CDD60)
@@ -326,7 +319,7 @@ void AIBrain::CallAllies(const Vector3* point) {
             message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
                            x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
-        PerceptionOf(ally)->HearCall(point, 0x1A, message);
+        CallsHear(&ally->calls, nullptr, point, 0x1A, message);   // 005CBBA0 on the ally's memory (+0xD0)
     }
     // The list's RemoveAll: no element destruction.
     units.RemoveAll();

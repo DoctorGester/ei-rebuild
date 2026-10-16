@@ -37,7 +37,7 @@ void FacingFromQuaternion(const float* q, float* out) {
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
 // The common part; `time` is read after the reset (005B2190 passes the path's own +0x10).
-void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
+void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->cells.RemoveAll();
     path->Reset();
     *reinterpret_cast<std::uint32_t*>(&path->targetX) = 0;
@@ -51,7 +51,6 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     path->reached = true;
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /
                    (static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
-    const CMapObject* object = reinterpret_cast<const CMapObject*>(unit);
     path->targetX = static_cast<float>(scale * object->position.x);
     path->targetY = static_cast<float>(scale * object->position.y);
     Vector3 facing;
@@ -62,25 +61,25 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
 } // namespace
 
 // 005B1DE0 (RET 0x10).
-void AIPath::StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, std::uint32_t rateBits) {
+void AIPath::StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits) {
     StandAt(this, &time, unit);
     SetTurn(direction, rateBits);
 }
 
 // 005B1F10 (RET 0x14).
-void AIPath::StandAndTrack(int time, std::uint8_t* unit, int id, int from, int to) {
+void AIPath::StandAndTrack(int time, const CMapObject* unit, int id, int from, int to) {
     StandAt(this, &time, unit);
     SetTrack(id, from, to);
 }
 
 // 005B2050 (RET 0x14).
-void AIPath::StandAndTurnUntil(int time, std::uint8_t* unit, const Vector3* direction, int a, int b) {
+void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b) {
     StandAt(this, &time, unit);
     SetTurnUntil(direction, a, b);
 }
 
 // 005B2190 (RET 4).
-void AIPath::StandStill(std::uint8_t* unit) {
+void AIPath::StandStill(const CMapObject* unit) {
     StandAt(this, &motionOrder.startTime, unit);
 }
 

@@ -28,7 +28,6 @@ constexpr float kZero = 0.0f;               // 0073B858
 // scale (this file; thiscall on the parameters, which it does not read: RET 8, ST0).
 __declspec(naked) double __fastcall WeaponSkillBonusAt(UnitParams*, void*, int /*type*/, const char* /*weapon*/)
     EI_ORIGINAL(0x00527850)
-__declspec(naked) float __fastcall ScaleDamageAt(UnitParams*, void*, CUnit*, float) EI_ORIGINAL(0x005285D0)
 // 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
 
 UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
@@ -82,8 +81,8 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         }
     }
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
-    out->damageMax = ScaleDamageAt(params, nullptr, owner, out->damageMax);
-    out->damageMin = ScaleDamageAt(params, nullptr, owner, out->damageMin);
+    out->damageMax = ScaleDamageByEffects(owner, out->damageMax);   // 005285D0 (thiscall on the parameters, not read)
+    out->damageMin = ScaleDamageByEffects(owner, out->damageMin);
     out->attackSpread = params->combat[2];
     out->ScaleForDifficulty(keyed);
 }

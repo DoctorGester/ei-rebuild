@@ -6,7 +6,8 @@
 
 #include <cstdint>
 
-class CStream;   // core_streams.h
+class CStream;       // core_streams.h
+class CUnitServer;   // combat.h
 
 struct AIAlarm {
     // 005AEA40. Everything cleared.
@@ -25,3 +26,7 @@ struct AIAlarm {
     int timer;      // +0x0C steps left of it
 };
 static_assert(sizeof(AIAlarm) == 0x10);
+
+// 005AEA80 (fastcall: ECX the alarm, the owner on the stack; RET 4): the step of `state`, the alarm of
+// `owner` (its +0xB10).
+void __fastcall StepAlarm(AIAlarm* state, void*, CUnitServer* owner);

@@ -86,9 +86,7 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { static_cast<C
 // 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
 // (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
 // 005D4E80 its reset on death (unit_ai.cpp, controller + 0x980).
-__declspec(naked) void* __fastcall EventsPresence(void*, void*, const float*, CUnitServer*) EI_ORIGINAL(0x005C9770)
 __declspec(naked) void __fastcall MemoryUpdate(void*, void*, CUnitServer*, void*) EI_ORIGINAL(0x005CB850)
-__declspec(naked) void __fastcall AlarmStep(void*, void*, CUnitServer*) EI_ORIGINAL(0x005AEA80)
 // The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
 // object (world_server.cpp); 00665440 does the player still have the unit.
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
@@ -232,7 +230,8 @@ int CUnitServer::UpdateServer() {
                 presence->x = unit->position.x;
                 presence->y = unit->position.y;
             }
-            presence = static_cast<AIEventPresence*>(EventsPresence(WorldServer()->timeWheel_, nullptr, &unit->position.x, this));
+            presence = reinterpret_cast<AIEventPresence*>(
+                static_cast<std::intptr_t>(WorldServer()->AIEvents()->StepNoise(&unit->position, this)));
         }
         TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
@@ -251,7 +250,7 @@ int CUnitServer::UpdateServer() {
                 }
             }
         }
-        AlarmStep(&voice, nullptr, this);
+        StepAlarm(&voice, nullptr, this);
         brain.Think();
         unit->flags_ &= ~kFlagSeen8000;
         PropagateHostility();
@@ -702,7 +701,6 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 // 00558C00 (FreeNode of the first), 00558C50 / 00429F10 (their destructors), 00558B10 / 00558B80
 // (NewNode / FreeNode of the spell list), 00558840 (its element's assignment), 00429B50 (a
 // reference's assignment).
-__declspec(naked) void __fastcall UnitCollectItems(CUnit*, void*, ItemList*, ItemList*) EI_ORIGINAL(0x005316F0)
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
 void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
@@ -714,7 +712,7 @@ __declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEn
 void CUnitServer::RefreshItemSpells() {
     ItemList items{reinterpret_cast<void*>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
     ItemList others{reinterpret_cast<void*>(0x0073F12C), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    UnitCollectItems(unit, nullptr, &items, &others);
+    unit->CollectItems(&items, reinterpret_cast<mfc::CTypedPtrList<void>*>(&others));
     // Weapons other than the one in use do not count.
     for (ItemList::Node* node = items.head; node;) {
         ItemList::Node* current = node;

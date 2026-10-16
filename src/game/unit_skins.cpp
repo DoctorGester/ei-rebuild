@@ -69,7 +69,6 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
 // out, weapon record; material record]; the weapon and material records [0056E440 on 007C86F8,
 // 0056E400 on 007C86D8].
-__declspec(naked) void __fastcall WeaponTextureName(mfc::CString*, const char*, const char*) EI_ORIGINAL(0x006A0BF0)
 __declspec(naked) const char* __fastcall WeaponRecord(const RecordTable*, void*, std::uint32_t) EI_ORIGINAL(0x0056E440)
 __declspec(naked) const char* __fastcall MaterialRecord(const RecordTable*, void*, std::uint32_t) EI_ORIGINAL(0x0056E400)
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
@@ -78,7 +77,6 @@ __declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*)
 __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
 __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
-__declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
 // The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
@@ -184,7 +182,8 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         const char* weapon = WeaponRecord(&itemdb::Weapons(), nullptr, id >> 16);
         mfc::CString name;
         const char* material = MaterialRecord(&itemdb::Materials(), nullptr, id & 0xFFFF);
-        WeaponTextureName(&name, weapon, material);
+        WeaponRecordModelName(&name, reinterpret_cast<const itemdb::WeaponRecord*>(weapon),   // 006A0BF0
+                              reinterpret_cast<const itemdb::MaterialRecordHead*>(material));
         AppendName(model, name, buffer);
     }
     StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
@@ -248,7 +247,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     }
 
     set.names.~CStringArray();
-    BytesDestroy(&set);
+    set.bytes.FreeData();   // 0051E5B0
     RecordListDestroy(listStorage);
 }
 

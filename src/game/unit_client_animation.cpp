@@ -38,10 +38,6 @@ constexpr float kHalf = 0.5f;                         // 0073B86C
 constexpr float kPulseBase = 0.2f;                    // 0073BAD4
 constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
-// 00535850 (unit_client_path.cpp, rewritten; through its game address so its wrapper sees the
-// call; RET 8). Places the unit on its path at `time`, turning by `rate`.
-__declspec(naked) void __fastcall CallPlaceOnPath(CUnitClientSpecific*, void*, float /*time*/, float /*rate*/)
-    EI_ORIGINAL(0x00535850)
 
 CObject3DClientSpecific* ClientHalf(CUnit* unit) {
     return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
@@ -90,7 +86,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     lastTime = time;
     if (ObjectSlots(unit)->InvisibleSlot()) ClientHalf(unit)->InvisiblePulse(step);
     if (unit->MapObject()->IsStunned()) ClientHalf(unit)->StunnedPulse(step);
-    if (unit->pathTimeShift == 0) CallPlaceOnPath(this, nullptr, time, step);
+    if (unit->pathTimeShift == 0) ClientPlaceOnPath(this, nullptr, time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {
         float scaled = step * unit->animationSpeed;

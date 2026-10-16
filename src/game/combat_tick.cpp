@@ -127,7 +127,6 @@ inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOr
 void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep(a2, a3); }
 inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
-__declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
 // The AI map's cell flag 0x80 under a point (005BBC70), the sector map (CSectorMap::Remove /
@@ -391,7 +390,7 @@ bool CUnitServer::StartQueuedOrder() {
         LeaveMoveMode(this);
         int time = action.param;
         int now = static_cast<CWorld*>(ManagerContext())->tick_;
-        MotionTurn(&motion, nullptr, now, unit, &action.point.x, time);
+        motion.StandAndTurn(now, unit, &action.point, static_cast<std::uint32_t>(time));
         unit->RefreshMotion();
         PlayIdle();
         SetState(1);

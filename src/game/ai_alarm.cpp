@@ -38,9 +38,8 @@ static inline CWorldServer* ManagerContextAt(void* object) { return static_cast<
 
 } // namespace
 
-void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
-    auto* state = reinterpret_cast<AIAlarm*>(stateIn);
-    auto* server = reinterpret_cast<CUnitServer*>(owner);
+void __fastcall StepAlarm(AIAlarm* state, void*, CUnitServer* owner) {
+    CUnitServer* server = owner;
     CWorldServer* world = ManagerContextAt(owner);
     if (state->pending != 0) {
         if (state->pending > state->level) {

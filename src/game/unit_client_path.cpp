@@ -47,8 +47,7 @@ float FullTurn() { return *reinterpret_cast<const float*>(0x007AF330); }   // se
 // +0x76 is set, then turns it: at once with unit flag 0x10000000, else blended toward the motion's
 // direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally the animation
 // speed factor +0x178 from the motion's speed and the figure's current animation.
-void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, float rate) {
-    auto* self = reinterpret_cast<CUnitClientSpecific*>(controller);
+void __fastcall ClientPlaceOnPath(CUnitClientSpecific* self, void*, float time, float rate) {
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
     float toCells = 1.0f / (kCellScale * kHalf);
@@ -59,14 +58,14 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     float speed;
     int cellX, cellY;
     bool turning;
-    void* world = ObjectWorld(controller);
+    void* world = ObjectWorld(self);
     unit->Motion()->Sample(static_cast<CWorld*>(world), OrderOf(self->MotionPath()), time, &turning, &position.x,
                            &direction.x, &speed, &cellX, &cellY);
     float toWorld = kCellScale * kHalf;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;
     position.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + unit->heightOffset);
-    static_cast<CWorld*>(ObjectWorld(controller))->MoveObject(unit, &position.x);   // the world's slot 41
+    static_cast<CWorld*>(ObjectWorld(self))->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
         reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
@@ -132,6 +131,6 @@ EI_REPLACE(0x00535850, ClientPlaceOnPath);
 // 00535B20 (slot 41 MotionChanged; A-U12): the unit placed on its new path at the time it was last
 // advanced to, without turning.
 void __fastcall ClientMotionChanged(CUnitClientSpecific* self) {
-    ClientPlaceOnPath(reinterpret_cast<std::uint8_t*>(self), nullptr, self->lastTime, 0.0f);
+    ClientPlaceOnPath(self, nullptr, self->lastTime, 0.0f);
 }
 EI_REPLACE(0x00535B20, ClientMotionChanged);

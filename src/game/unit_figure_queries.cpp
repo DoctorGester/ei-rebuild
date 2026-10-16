@@ -46,8 +46,10 @@ constexpr float kMosquitoExtentScale = 2.0f;    // 0073CDB8
 // the key's and whose variant bits include the key's, or exactly none for a key without them, and
 // which virtual slot 18 accepts; one picked with rand()), or of the key's kind only (00519380);
 // null when none (both RET 4).
-__declspec(naked) char* __fastcall CallRandomAnimation(CUnit*, void*, std::uint32_t /*key*/) EI_ORIGINAL(0x005190C0)
-__declspec(naked) char* __fastcall CallRandomAnimationOfKind(CUnit*, void*, std::uint32_t /*key*/) EI_ORIGINAL(0x00519380)
+char* CallRandomAnimation(CUnit* unit, std::uint32_t key) { return reinterpret_cast<char*>(unit->RandomAnimation(key)); }
+char* CallRandomAnimationOfKind(CUnit* unit, std::uint32_t key) {
+    return reinterpret_cast<char*>(unit->RandomAnimationOfKind(key));
+}
 
 // `v` turned by the rotation `q` as the original spells it out: 2 (u.v) u + (s^2 - u.u) v +
 // 2 s (u x v), with u the vector part and s the scalar part.
@@ -71,15 +73,15 @@ Vector3 Rotate(const Quaternion& q, const Vector3& v) {
 
 char* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
     if (type_ < kUnitTypeHero || type_ > kTypeLastUnit) return nullptr;
-    if (char* entry = CallRandomAnimation(this, nullptr, key)) return entry;
+    if (char* entry = CallRandomAnimation(this, key)) return entry;
     std::uint32_t kind = key & kKindBits;
-    if (char* entry = CallRandomAnimation(this, nullptr, kind)) return entry;
+    if (char* entry = CallRandomAnimation(this, kind)) return entry;
     if ((kind & kMoveBits) == kMove4Bit) {
-        if (char* entry = CallRandomAnimation(this, nullptr, kind & ~kMoveBits)) return entry;
-        if (char* entry = CallRandomAnimation(this, nullptr, (kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit)) return entry;
+        if (char* entry = CallRandomAnimation(this, kind & ~kMoveBits)) return entry;
+        if (char* entry = CallRandomAnimation(this, (kind & ~(kMove1Bit | kMove4Bit)) | kMove2Bit)) return entry;
     }
     if (!anyOfKind) return nullptr;
-    return CallRandomAnimationOfKind(this, nullptr, kind);
+    return CallRandomAnimationOfKind(this, kind);
 }
 EI_REPLACE_METHOD(0x005301B0, CUnit::FindAnimation);
 

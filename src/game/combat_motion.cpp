@@ -75,10 +75,6 @@ constexpr int kMessagePartial = 0x01;
 // 004B3330 ScriptGroup::Contains (script_group.cpp).
 // The motion (+0x3C, an AIPath; ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005C7B00 Start,
 // 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
-__declspec(naked) void __fastcall PathFollow(void*, void*, int /*now*/, CUnit*, int /*targetId*/, int /*until*/,
-                                             int /*start*/) EI_ORIGINAL(0x005B1F10)
-__declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, const float* /*direction*/,
-                                           int /*until*/, int /*start*/) EI_ORIGINAL(0x005B2050)
 // The step list of a motion order (a CList of path cells, vtable 0073EDB0): 00556D10 constructor
 // (block size), 00556D40 RemoveAll.
 void* __fastcall CellListConstruct(void* a0, void*, int a2) { return CellListConstructOriginal(a0, nullptr, a2); }
@@ -445,11 +441,11 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
     if (plan.targetId == -1) {
         int now = TickOf(ObjectWorld(this));
-        PathTurn(Motion(this), nullptr, now, unit, &plan.direction.x, plan.endTime, plan.startTime);
+        Motion(this)->StandAndTurnUntil(now, unit, &plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
         int now = TickOf(ObjectWorld(this));
-        PathFollow(Motion(this), nullptr, now, unit, plan.targetId, until, plan.startTime);
+        Motion(this)->StandAndTrack(now, unit, plan.targetId, until, plan.startTime);
     }
     unit->RefreshMotion();
     CWorldServer* world = ContextOf(this);

@@ -80,7 +80,6 @@ namespace {
 // then each record's destructor, then the record vector's storage.
 __declspec(naked) void __fastcall LevelNamesClear(NameTable*) EI_ORIGINAL(0x0053C5E0)
 __declspec(naked) void __fastcall LevelBucketsFree(HashNode***) EI_ORIGINAL(0x0053BF00)
-__declspec(naked) void __fastcall LevelRecordDestroy(char*, void*, int /*delete*/) EI_ORIGINAL(0x00540840)
 // 0053BEB0: deallocate(p, n) of 0x44-byte records, `this` the allocator proxy (the vector's eos).
 __declspec(naked) void __fastcall LevelsDeallocate(char**, void*, char* /*p*/, int /*n*/) EI_ORIGINAL(0x0053BEB0)
 __declspec(naked) void __fastcall ModelNamesClear(NameTable*) EI_ORIGINAL(0x0053C430)
@@ -194,7 +193,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     LevelNamesClear(&levels.names);
     LevelBucketsFree(&levels.names.buckets);
     for (char *p = levels.records.begin(), *end = levels.records.end(); p != end; p += 0x44)
-        LevelRecordDestroy(p, nullptr, 0);
+        reinterpret_cast<UnitLevelRecord*>(p)->DeleteScalar(0);   // 00540840
     LevelsDeallocate(&levels.records.EndOfStorage(), nullptr, levels.records.begin(),
                      static_cast<int>(levels.records.EndOfStorage() - levels.records.begin()) / 0x44);
 

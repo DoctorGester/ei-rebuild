@@ -125,8 +125,6 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->
 
 // Not rewritten (forwarders). UnitStats and CUnit methods of the unit range, as __fastcall with
 // the unused EDX.
-// 00523D30. Scales a damage value by two of the unit's effect values (types 0x1D / 0x1E).
-__declspec(naked) float __fastcall StatsScaleDamage(UnitStats*, void*, CUnit*, float) EI_ORIGINAL(0x00523D30)
 // 0052E0D0. Scales AttackParams::attack and ::defence by the difficulty unless `keyed`.
 // 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
 // 005254B0. Applies `hit` (with the attacker's `weapon`, may be null) to the unit's server stats;
@@ -221,7 +219,7 @@ void CUnitServer::GetDamageByType(std::int16_t* out) {
     if (self->player && self->activeWeapon < 4 &&
         (weapon = static_cast<CItemWeapon*>(self->weapons[self->activeWeapon])) != nullptr) {
         float total = weapon->damageSpread_ + weapon->damage_;
-        float scale = StatsScaleDamage(&stats, nullptr, self, total);
+        float scale = ScaleDamageByEffects(self, total);   // 00523D30 (thiscall on the stats, not read)
         float weights[7];
         weapon->GetDamageTypes(weights);
         for (int i = 0; i < 7; ++i) {
@@ -231,7 +229,7 @@ void CUnitServer::GetDamageByType(std::int16_t* out) {
         return;
     }
     float total = Combat().damageSpread + Combat().damage;
-    float scale = StatsScaleDamage(&stats, nullptr, self, total);
+    float scale = ScaleDamageByEffects(self, total);
     for (int i = 0; i < 7; ++i) {
         float value = scale * Combat().damageWeights[i];
         out[1 + i] = static_cast<std::int16_t>(x87::fistp(value));
@@ -480,8 +478,8 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         }
     }
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
-    out->damageMax = StatsScaleDamage(&stats, nullptr, self, out->damageMax);
-    out->damageMin = StatsScaleDamage(&stats, nullptr, self, out->damageMin);
+    out->damageMax = ScaleDamageByEffects(self, out->damageMax);
+    out->damageMin = ScaleDamageByEffects(self, out->damageMin);
     std::memcpy(&out->attackSpread, &Combat().attackSpread, sizeof(float));
     out->ScaleForDifficulty(keyed);
 }
@@ -572,7 +570,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         }
         out->amount = static_cast<float>(extra + Combat().damage);
     }
-    out->amount = StatsScaleDamage(&stats, nullptr, self, out->amount);
+    out->amount = ScaleDamageByEffects(self, out->amount);
     out->location = location;
     out->hitKind = 0;
     if (backstab) out->backstabFactor = static_cast<float>(stats.Value6E9Arg(static_cast<int>(reinterpret_cast<std::uintptr_t>(self))));

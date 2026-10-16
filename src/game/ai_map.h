@@ -218,10 +218,10 @@ static_assert(sizeof(MotionOrder) == 0x20);
 struct AIPath {
     void LoadPath(CStream* stream);
     void SavePath(CStream* stream);
-    void StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, std::uint32_t rateBits);
-    void StandAndTrack(int time, std::uint8_t* unit, int id, int from, int to);
-    void StandAndTurnUntil(int time, std::uint8_t* unit, const Vector3* direction, int a, int b);
-    void StandStill(std::uint8_t* unit);
+    void StandAndTurn(int time, const CMapObject* unit, const Vector3* direction, std::uint32_t rateBits);
+    void StandAndTrack(int time, const CMapObject* unit, int id, int from, int to);
+    void StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* direction, int a, int b);
+    void StandStill(const CMapObject* unit);
     // The order in the first 0x20 bytes (MotionOrder, ai_motion.h); src/game/ai_motion.cpp.
     // 005C7D50. Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
     int Reset();

@@ -60,7 +60,6 @@ inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) 
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
-__declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
 // UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample (005C6270 Clear is in originals_ai.h).
 // The controller's functions rewritten elsewhere: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
@@ -341,7 +340,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             unit->altPassCosts = 1;
             bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.bytes, kFar, 0.0f);
             unit->altPassCosts = saved43C;
-            if (!found) PathStandStill(path.bytes, nullptr, unit);
+            if (!found) path.Path()->StandStill(unit);
             if (target) {
                 SectorMapAdd(ServerSectors(), nullptr, target);
                 PathFlag() = savedFlag;

@@ -102,37 +102,18 @@ __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 // The perception memory at +0xD0, the report list at +0x164 and the corpse list at +0x148 are
 // separate objects; these forwarders pass the sub-object as `this`.
 namespace {
-struct AIMemory {
-    void Update(CUnitServer* owner);                 // 005CB700
-    // 005CC020 (AIBrain::Forget, unit_ai_brain.cpp), called through its address so its verify
-    // wrapper sees OnObjectDeleted's calls.
-    void Forget(CEngineObject* object);
-};
-__declspec(naked) void AIMemory::Update(CUnitServer*) EI_ORIGINAL(0x005CB700)
-__declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
-
-// 005D0030 (AIAttention::Choose, unit_ai_targets.cpp) through its address, so its verify wrapper
-// sees the modes' calls.
-__declspec(naked) void __fastcall ChooseThroughAddress(AIAttention*, void*, AIBrain*, int*, void*, const Vector3*, int, int)
-    EI_ORIGINAL(0x005D0030)
-
-struct AIMemoryLists {
-    void CollectEnemies(CUnit* self, void* list);       // 005CB260
-};
-__declspec(naked) void AIMemoryLists::CollectEnemies(CUnit*, void*) EI_ORIGINAL(0x005CB260)
-
-AIMemory* MemoryOf(AIBrain* brain) { return reinterpret_cast<AIMemory*>(brain->memory); }
 } // namespace
 
-void AIBrain::Perceive(CUnitServer* who) { MemoryOf(this)->Update(who); }
+void AIBrain::Perceive(CUnitServer* who) { UpdateMemory(who); }   // 005CB700 on the memory (+0xD0)
 void AIBrain::Report(CEngineObject* object, int what) { ReportsAdd(&reports, nullptr, object, what); }
 AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&corpses, nullptr, out); }
 bool AIBrain::IsReported(CEngineObject* object) { return ReportsContains(&reports, nullptr, object); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
-    ChooseThroughAddress(&attention, nullptr, this, partAndObject, candidates, from, a, b);
+    // 005D0030 reads `a` as a byte.
+    attention.Choose(this, partAndObject, static_cast<AIObjectList*>(candidates), from, static_cast<std::uint8_t>(a) != 0, b);
 }
 void AIBrain::CollectEnemies(CUnit* self, void* list) {
-    reinterpret_cast<AIMemoryLists*>(memory)->CollectEnemies(self, list);
+    FindEnemies(self, static_cast<AIObjectList*>(list));   // 005CB260 on the memory (+0xD0)
 }
 
 // --- The corpse list (005D8D50) ---------------------------------------------------------------
@@ -410,7 +391,7 @@ void AIBrain::OnObjectDeleted(CEngineObject* object) {
     }
     if (target == object && target) ReleaseRef(target);
     if (seen == object && seen) ReleaseRef(seen);
-    MemoryOf(this)->Forget(object);
+    Forget(object);   // 005CC020 on the memory (+0xD0)
 }
 EI_REPLACE_METHOD(0x005D58D0, AIBrain::OnObjectDeleted);
 
@@ -591,15 +572,11 @@ void AIBrain::Follow(CEngineObject* object) {
 EI_REPLACE_METHOD(0x005D7E40, AIBrain::Follow);
 
 namespace {
-struct AIMemoryRemember {
-    void Remember(CUnit* self, CEngineObject* object);  // 005CBC80
-};
-__declspec(naked) void AIMemoryRemember::Remember(CUnit*, CEngineObject*) EI_ORIGINAL(0x005CBC80)
 const std::uint32_t* Diplomacy() { return reinterpret_cast<const std::uint32_t*>(0x007C2BC4); }
 } // namespace
 
 void AIBrain::Remember(CUnit* self, CEngineObject* object) {
-    reinterpret_cast<AIMemoryRemember*>(memory)->Remember(self, object);
+    ForceSee(self, object);   // 005CBC80 on the memory (+0xD0)
 }
 
 void AIBrain::SetSeen(CEngineObject* object) {

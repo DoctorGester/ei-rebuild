@@ -2,6 +2,7 @@
 // them into the occluder grid, and refreshing passability around them.
 #include "ai_map.h"
 #include "ai_unit_layer.h"
+#include "record_arrays.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -92,9 +93,12 @@ namespace {
 void __fastcall QuaternionToMatrix(const void* a0, void*, void* a2) { QuaternionToMatrixOriginal(a0, nullptr, (float*)a2); }
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
     EI_ORIGINAL(0x00560E10)
-// CStringArray element by value (a CString constructed into `out`).
-__declspec(naked) char** __fastcall StringArrayGetAt(const void*, void*, char**, int)
-    EI_ORIGINAL(0x004698A0)
+// CStringArray element by value (004698A0: a CString constructed into `out`).
+char** StringArrayGetAt(const void* names, char** out, int index) {
+    recordarrays::StringGetAt(static_cast<const mfc::CArray<mfc::CString>*>(names), nullptr,
+                              reinterpret_cast<mfc::CString*>(out), index);
+    return out;
+}
 
 void DestroyString(char** s) { reinterpret_cast<mfc::CString*>(s)->~CString(); }
 
@@ -139,11 +143,11 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     bool hasBridge = false;
     for (int n = 0; n < names->size; ++n) {
         char* name;
-        int index = mapObject->FindPartIndex(*StringArrayGetAt(names, nullptr, &name, n));
+        int index = mapObject->FindPartIndex(*StringArrayGetAt(names, &name, n));
         DestroyString(&name);
         if (index < 0) {
             const char* objectName = mapObject->name;
-            game::FatalError(PartNotFoundFormat(), *StringArrayGetAt(names, nullptr, &name, n), objectName);
+            game::FatalError(PartNotFoundFormat(), *StringArrayGetAt(names, &name, n), objectName);
             DestroyString(&name);
             continue;
         }
