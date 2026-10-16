@@ -251,7 +251,7 @@ src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/world_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/lib/crt.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,18
-src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,58
+src/lib/mfc.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
 src/lib/mfc_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/lib/mfc_string.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/lib/mfc_time.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4

@@ -1,97 +1,187 @@
 ﻿#include "mfc.h"
 #include "mfc_try.h"
+#include "mfc_archive.h"
+#include "mfc_coll.h"
+#include "mfc_file.h"
+#include "mfc_string.h"
+#include "mfc_time.h"
 
 #include "ei/hook.h"
+
+#include <cstring>
+#include <new>
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc {
 
+namespace {
+// The classes here share their layouts with the implementations (mfc_string.h, mfc_file.h,
+// mfc_time.h, mfc_coll.h, mfc_archive.h), which are what the original addresses run.
+impl::CString* Impl(CString* s) { return reinterpret_cast<impl::CString*>(s); }
+const impl::CString* Impl(const CString* s) { return reinterpret_cast<const impl::CString*>(s); }
+// `result` (unset storage) takes the implementation string `s`'s data: no copy, no reference
+// counting; `s` is left empty (its destructor then does nothing).
+void Place(CString& result, impl::CString&& s) {
+    std::memcpy(static_cast<void*>(&result), &s, sizeof(result));
+    s.Init();
+}
+} // namespace
+
 // ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp): the
-// functions in the #ifndef blocks below. The other forwarders must not be called there.
+// functions in the #ifndef blocks below. The other members must not be called there unless their
+// implementation links into it (mfc_string.cpp, mfc_archive.cpp).
 #ifndef EI_VECTORS_REPLAY
 // _afxPchNil: the shared empty-string data pointer.
 CString::CString() : data_(*reinterpret_cast<char**>(0x00796E48)) {}
 
-__declspec(naked) CString::CString(const char*) EI_ORIGINAL(0x007009DE)
-__declspec(naked) CString::CString(const char*, int) EI_ORIGINAL(0x006FD4DE)
-__declspec(naked) CString::CString(const CString&) EI_ORIGINAL(0x007006E5)
-__declspec(naked) CString::~CString() EI_ORIGINAL(0x00700970)
-__declspec(naked) const CString& CString::operator=(const char*) EI_ORIGINAL(0x00700AF9)
-__declspec(naked) const CString& CString::operator=(const CString&) EI_ORIGINAL(0x00700AA9)
+CString::CString(const char* s) { ::new (static_cast<void*>(this)) impl::CString(s); }                       // 007009DE
+CString::CString(const char* s, int length) { ::new (static_cast<void*>(this)) impl::CString(s, length); }   // 006FD4DE
+CString::CString(const CString& s) { ::new (static_cast<void*>(this)) impl::CString(*Impl(&s)); }            // 007006E5
+CString::~CString() { Impl(this)->~CString(); }                                                              // 00700970
+const CString& CString::operator=(const char* s) { *Impl(this) = s; return *this; }                          // 00700AF9
+const CString& CString::operator=(const CString& s) { *Impl(this) = *Impl(&s); return *this; }               // 00700AA9
 #endif
 
-__declspec(naked) void __cdecl CString::Format(const char*, ...) EI_ORIGINAL(0x006FDF5F)
-__declspec(naked) void CString::FormatV(const char*, va_list) EI_ORIGINAL(0x006FDC12)
+// 006FDF5F (the implementation's Format is FormatV over its arguments).
+void __cdecl CString::Format(const char* format, ...) {
+    va_list arguments;
+    va_start(arguments, format);
+    Impl(this)->FormatV(format, arguments);
+    va_end(arguments);
+}
+void CString::FormatV(const char* format, va_list arguments) { Impl(this)->FormatV(format, arguments); }   // 006FDC12
 #ifndef EI_VECTORS_REPLAY
-__declspec(naked) CString CString::Left(int) const EI_ORIGINAL(0x006FDAE9)
-__declspec(naked) CString CString::Right(int) const EI_ORIGINAL(0x006FDA6D)
-__declspec(naked) CString CString::Mid(int) const EI_ORIGINAL(0x006FD9B4)
-__declspec(naked) CString CString::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
+CString CString::Left(int count) const {     // 006FDAE9
+    CString result(kUnset);
+    Place(result, Impl(this)->Left(count));
+    return result;
+}
+CString CString::Right(int count) const {   // 006FDA6D
+    CString result(kUnset);
+    Place(result, Impl(this)->Right(count));
+    return result;
+}
+CString CString::Mid(int first) const {       // 006FD9B4
+    CString result(kUnset);
+    Place(result, Impl(this)->Mid(first));
+    return result;
+}
+CString CString::Mid(int first, int count) const {                                                                    // 006FD9D7
+    CString result(kUnset);
+    Place(result, Impl(this)->Mid(first, count));
+    return result;
+}
 #endif
-__declspec(naked) int CString::Remove(char) EI_ORIGINAL(0x006FD963)
-__declspec(naked) int CString::FindOneOf(const char*) const EI_ORIGINAL(0x00700ECC)
-__declspec(naked) int CString::ReverseFind(char) const EI_ORIGINAL(0x006FDBB7)
+int CString::Remove(char ch) { return Impl(this)->Remove(ch); }                         // 006FD963
+int CString::FindOneOf(const char* set) const { return Impl(this)->FindOneOf(set); }    // 00700ECC
+int CString::ReverseFind(char ch) const { return Impl(this)->ReverseFind(ch); }        // 006FDBB7
 #ifndef EI_VECTORS_REPLAY
-__declspec(naked) int CString::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
-__declspec(naked) int CString::Find(const char*, int) const EI_ORIGINAL(0x006FDBE7)
-__declspec(naked) void CString::Empty() EI_ORIGINAL(0x007008FB)
+int CString::Find(const char* sub) const { return Impl(this)->Find(sub); }                     // 006FDBD9
+int CString::Find(const char* sub, int start) const { return Impl(this)->Find(sub, start); }   // 006FDBE7
+void CString::Empty() { Impl(this)->Empty(); }                                                 // 007008FB
 #endif
-__declspec(naked) char* CString::GetBufferSetLength(int) EI_ORIGINAL(0x00700E17)
-__declspec(naked) char* CString::GetBuffer(int) EI_ORIGINAL(0x00700DA0)
-__declspec(naked) void CString::ReleaseBuffer(int) EI_ORIGINAL(0x00700DEF)
-__declspec(naked) void CString::MakeLower() EI_ORIGINAL(0x00700EFE)
-__declspec(naked) void CString::AssignChar(char) EI_ORIGINAL(0x006FD559)
-__declspec(naked) void CString::TrimRight(const char*) EI_ORIGINAL(0x006FE08A)
+char* CString::GetBufferSetLength(int length) { return Impl(this)->GetBufferSetLength(length); }   // 00700E17
+char* CString::GetBuffer(int minLength) { return Impl(this)->GetBuffer(minLength); }               // 00700DA0
+void CString::ReleaseBuffer(int newLength) { Impl(this)->ReleaseBuffer(newLength); }               // 00700DEF
+void CString::MakeLower() { Impl(this)->MakeLower(); }                                             // 00700EFE
+void CString::AssignChar(char c) { *Impl(this) = c; }                                              // 006FD559
+void CString::TrimRight(const char* targets) { Impl(this)->TrimRight(targets); }                   // 006FE08A
 #ifndef EI_VECTORS_REPLAY
-__declspec(naked) const CString& CString::operator+=(const CString&) EI_ORIGINAL(0x00700D88)
-__declspec(naked) const CString& CString::operator+=(const char*) EI_ORIGINAL(0x00700D4C)
-#endif
+const CString& CString::operator+=(const CString& s) { *Impl(this) += *Impl(&s); return *this; }   // 00700D88
+const CString& CString::operator+=(const char* s) { *Impl(this) += s; return *this; }              // 00700D4C
 
+namespace {
+impl::CFile* Impl(CFile* file) { return reinterpret_cast<impl::CFile*>(file); }
+impl::CFileFind* Impl(CFileFind* find) { return reinterpret_cast<impl::CFileFind*>(find); }
+const impl::CFileFind* Impl(const CFileFind* find) { return reinterpret_cast<const impl::CFileFind*>(find); }
+impl::CStringArray* Impl(CStringArray* array) { return reinterpret_cast<impl::CStringArray*>(array); }
+const impl::CStringArray* Impl(const CStringArray* array) { return reinterpret_cast<const impl::CStringArray*>(array); }
+} // namespace
+
+CFile::CFile() { Impl(this)->Construct(); }                                         // 00701036
+CFile::~CFile() { Impl(this)->Destruct(); }                                         // 0070112B
+BOOL CFile::Open(const char* path, unsigned flags, void* error) {                   // 007011E8
+    return Impl(this)->Open(path, flags, static_cast<impl::CFileException*>(error));
+}
+unsigned CFile::GetLength() { return Impl(this)->GetLength(); }                     // 007014E2
+unsigned CFile::Read(void* buffer, unsigned count) { return Impl(this)->Read(buffer, count); }   // 00701305
+void CFile::Close() { Impl(this)->Close(); }                                        // 00701403
+
+CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int second, int dst) {   // 006FE3BB
+    reinterpret_cast<impl::CTime*>(this)->Construct(year, month, day, hour, minute, second, dst);
+    return this;
+}
+
+CFileFind::CFileFind() { Impl(this)->Construct(); }                                 // 006E6370
+CFileFind::~CFileFind() { Impl(this)->Destruct(); }                                 // 006E63AD
+BOOL CFileFind::FindFile(const char* pattern, unsigned long flags) { return Impl(this)->FindFile(pattern, flags); }   // 006E6433
+CString CFileFind::GetFilePath() const {                                            // 006E6722
+    CString result(CString::kUnset);
+    Place(result, Impl(this)->GetFilePath());
+    return result;
+}
+unsigned long CFileFind::GetLength() const { return Impl(this)->GetLength(); }      // 006E68AA
+
+void CStringArray::Construct() { Impl(this)->Construct(); }                         // 006FE925
+void CStringArray::Destruct() { Impl(this)->Destruct(); }                           // 006FE958
+void CStringArray::SetSize(int newSize, int newGrowBy) { Impl(this)->SetSize(newSize, newGrowBy); }              // 006FE9B8
+void CStringArray::SetAtGrow(int index, const CString& value) { Impl(this)->SetAtGrow(index, *Impl(&value)); }   // 006FEBFA
+void CStringArray::SetAtGrow(int index, const char* text) { Impl(this)->SetAtGrow(index, text); }                // 006FEBCE
+void CStringArray::RemoveAt(int index, int count) { Impl(this)->RemoveAt(index, count); }                        // 006FED3C
+void CStringArray::Copy(const CStringArray& source) { Impl(this)->Copy(*Impl(&source)); }                       // 006FEB61
+int CStringArray::Append(const CStringArray& source) { return Impl(this)->Append(*Impl(&source)); }             // 006FEB01
+#else
+// ei_vectors uses these (random.cpp, record_arrays.cpp) without mfc_file.cpp / mfc_coll.cpp.
 __declspec(naked) CFile::CFile() EI_ORIGINAL(0x00701036)
 __declspec(naked) CFile::~CFile() EI_ORIGINAL(0x0070112B)
 __declspec(naked) BOOL CFile::Open(const char*, unsigned, void*) EI_ORIGINAL(0x007011E8)
-__declspec(naked) unsigned CFile::GetLength() EI_ORIGINAL(0x007014E2)
-__declspec(naked) unsigned CFile::Read(void*, unsigned) EI_ORIGINAL(0x00701305)
 __declspec(naked) void CFile::Close() EI_ORIGINAL(0x00701403)
-
-__declspec(naked) CTime* CTime::Construct(int, int, int, int, int, int, int) EI_ORIGINAL(0x006FE3BB)
-
 __declspec(naked) CFileFind::CFileFind() EI_ORIGINAL(0x006E6370)
 __declspec(naked) CFileFind::~CFileFind() EI_ORIGINAL(0x006E63AD)
 __declspec(naked) BOOL CFileFind::FindFile(const char*, unsigned long) EI_ORIGINAL(0x006E6433)
 __declspec(naked) CString CFileFind::GetFilePath() const EI_ORIGINAL(0x006E6722)
 __declspec(naked) unsigned long CFileFind::GetLength() const EI_ORIGINAL(0x006E68AA)
-
 __declspec(naked) void CStringArray::Construct() EI_ORIGINAL(0x006FE925)
 __declspec(naked) void CStringArray::Destruct() EI_ORIGINAL(0x006FE958)
-__declspec(naked) void CStringArray::SetSize(int, int) EI_ORIGINAL(0x006FE9B8)
-__declspec(naked) void CStringArray::SetAtGrow(int, const CString&) EI_ORIGINAL(0x006FEBFA)
-__declspec(naked) void CStringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x006FEBCE)
-__declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)
-__declspec(naked) void CStringArray::Copy(const CStringArray&) EI_ORIGINAL(0x006FEB61)
-__declspec(naked) int CStringArray::Append(const CStringArray&) EI_ORIGINAL(0x006FEB01)
+#endif
 
-__declspec(naked) unsigned CArchive::Read(void*, unsigned) EI_ORIGINAL(0x00708832)
-__declspec(naked) void CArchive::Write(const void*, unsigned) EI_ORIGINAL(0x00708941)
-__declspec(naked) unsigned long CArchive::ReadCount() EI_ORIGINAL(0x00708B3D)
-__declspec(naked) void CArchive::WriteCount(unsigned long) EI_ORIGINAL(0x00708B0F)
-__declspec(naked) void CArchive::Flush() EI_ORIGINAL(0x007089D1)
+namespace {
+impl::CArchive* Impl(CArchive* archive) { return reinterpret_cast<impl::CArchive*>(archive); }
+} // namespace
+
+unsigned CArchive::Read(void* buffer, unsigned bytes) { return Impl(this)->Read(buffer, bytes); }   // 00708832
+void CArchive::Write(const void* buffer, unsigned bytes) { Impl(this)->Write(buffer, bytes); }      // 00708941
+unsigned long CArchive::ReadCount() { return Impl(this)->ReadCount(); }                           // 00708B3D
+void CArchive::WriteCount(unsigned long count) { Impl(this)->WriteCount(count); }                 // 00708B0F
+void CArchive::Flush() { Impl(this)->Flush(); }                                                   // 007089D1
 
 #ifndef EI_VECTORS_REPLAY
 __declspec(naked) CPlex* __stdcall PlexCreate(CPlex*&, unsigned, unsigned) EI_ORIGINAL(0x006FE8EF)
 __declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE90F)
 
-__declspec(naked) CString __stdcall operator+(const CString&, const char*) EI_ORIGINAL(0x00700C05)
-__declspec(naked) CString __stdcall operator+(const char*, const CString&) EI_ORIGINAL(0x00700C79)
-__declspec(naked) CString __stdcall operator+(const CString&, const CString&) EI_ORIGINAL(0x00700B9F)
+CString __stdcall operator+(const CString& a, const char* b) {         // 00700C05
+    CString result(CString::kUnset);
+    Place(result, *Impl(&a) + b);
+    return result;
+}
+CString __stdcall operator+(const char* a, const CString& b) {         // 00700C79
+    CString result(CString::kUnset);
+    Place(result, a + *Impl(&b));
+    return result;
+}
+CString __stdcall operator+(const CString& a, const CString& b) {      // 00700B9F
+    CString result(CString::kUnset);
+    Place(result, *Impl(&a) + *Impl(&b));
+    return result;
+}
 #endif
 
 // AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the destructor.
 __declspec(naked) ExceptionLink::ExceptionLink() EI_ORIGINAL(0x007020F1)
 namespace {
-__declspec(naked) void __cdecl TryCleanup() EI_ORIGINAL(0x0070212F)
+__declspec(naked) void __cdecl TryCleanupAt() EI_ORIGINAL(0x0070212F)
 }
-ExceptionLink::~ExceptionLink() { TryCleanup(); }
+ExceptionLink::~ExceptionLink() { TryCleanupAt(); }
 
 } // namespace mfc

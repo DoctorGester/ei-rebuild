@@ -52,6 +52,10 @@ public:
 
     operator const char*() const { return data_; }
 
+    // Storage for a result built in place (mfc.cpp): the pointer is left unset.
+    enum Unset { kUnset };
+    explicit CString(Unset) {}
+
 private:
     char* data_;
 };
