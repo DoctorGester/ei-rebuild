@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/stlp_hash.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -373,7 +374,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     } else if (&materials != &taken) {
         AssignMaterials(taken, materials);
     }
-    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, game::MaterialText());
+    char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, game::MaterialText()));
     for (StockMaterial* e = taken.begin(); e != taken.end(); ++e) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
@@ -405,7 +406,7 @@ void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, const 
     StockPtrVector& taken = TakenPrototypes();
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source);
-    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
+    char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, prototypeName));
     for (char** p = taken.begin(); p != taken.end(); ++p) {
         if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
@@ -481,7 +482,7 @@ char** __fastcall SpellByName(void* a0, void*, const void* a2) { return (char**)
 // The spell prototypes by name (thiscall on 007C8510, 00613920) and the spell manager's builder
 // (00689310, RET 8: prototype, modifier list; a new counted spell or null).
 itemdb::SpellRecord* FindSpellPrototype(const char* name) {
-    return reinterpret_cast<itemdb::SpellRecord*>(SpellPrototypeByNameOriginal(TableObject(itemdb::Spells()), nullptr, name));
+    return reinterpret_cast<itemdb::SpellRecord*>(static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Spells())), nullptr, name)));
 }
 __declspec(naked) CEngineObject* __fastcall BuildSpell(void*, void*, itemdb::SpellRecord* /*prototype*/, StockList* /*modifiers*/)
     EI_ORIGINAL(0x00689310)
@@ -673,9 +674,9 @@ namespace {
 // 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
 // 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
 // they insert a null for a new name).
-char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
-char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)FindWeaponOriginal(a0, nullptr, a2); }
-char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
+char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
+char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
+char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(a0), nullptr, a2); }
 __declspec(naked) char** __fastcall ModifierByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x00684B20)
 // push_back of the pointer vectors (thiscall, &value): 0069BD30 (the three item lists), 0069BDC0
 // (spells), 0069BDF0 (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20 (position,
@@ -756,7 +757,7 @@ void ItemStock::LoadLists(void* stream) {
         name.MakeLower();
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
-        entry.record = FindMaterialNamed(TableObject(itemdb::Materials()), nullptr, name);
+        entry.record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Materials())), nullptr, name));
         entry.minCount = values[0];
         entry.maxCount = values[1];
         entry.left = values[2];
@@ -887,7 +888,7 @@ void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, S
     PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source, allocate, deallocate);
-    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
+    char* prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(TableObject(itemdb::Loot())), nullptr, prototypeName));
     for (char** p = taken.begin(); p != taken.end(); ++p) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);

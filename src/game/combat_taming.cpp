@@ -5,6 +5,7 @@
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "map_object.h"
+#include "object_diplomacy.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -76,7 +77,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        DiplomacyOnAttack(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_, nullptr, tamer, unit, 10);
+        static_cast<CDiplomacy*>(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_)->OnAttack(tamer, unit, 10);
         return 0;
     }
     char* tamerPlayer = tamer->player;

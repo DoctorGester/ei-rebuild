@@ -18,6 +18,7 @@
 #include "ui_screens.h"
 #include "ui_widescreen.h"
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -513,7 +514,7 @@ void CHudClock::OpenObjectives() {
         BriefingPlayerName zone;
         static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
     }
-    InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
 }
 EI_REPLACE_METHOD(0x00648F10, CHudClock::OpenObjectives);
 
@@ -569,7 +570,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
-        marker->localRotation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
+        marker->localRotation_ = *turn.SetAxisAngle(axis, angle);
         const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
         const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
         SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
@@ -730,7 +731,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return HoverObjectAt(WorldClient(), nullptr, point);
+        return static_cast<CUnit*>(WorldClient()->PickAt2(reinterpret_cast<const long*>(point)));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };

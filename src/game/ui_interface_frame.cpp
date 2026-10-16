@@ -124,7 +124,7 @@ void CInterface3D::Update() {
         void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, this, reinterpret_cast<const char*>(0x0079242C),
                                                          reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)
                            : nullptr;
-        InterfacePushWindowOriginal(this, nullptr, box, 1, 1);
+        PushWindow(static_cast<CUiWindow*>(box), 1, 1);
     } else if (stackBegin_ != stackEnd_) {
         stackEnd_[-1]->VirtualUpdate();
     }
@@ -173,7 +173,7 @@ void CInterface3D::OnStringEvent(const char* event) {
         const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
         void* memory = gamecrt::operator_new(0x180);
         void* window = memory ? MessageWindowConstruct(memory, nullptr, this, title, message, 0x20000, 3, 1) : nullptr;
-        InterfacePushWindowOriginal(this, nullptr, window, 1, 1);
+        PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };

@@ -1,5 +1,6 @@
 // The unit's link to its controller and player: the hostile mask, the motion rebuilt after a path
 // change, the owning player, and the release / Destroy slots. See unit.h and docs/notes/units.md.
+#include "player_messages.h"
 #include "unit.h"
 
 #include "ai_motion.h"
@@ -49,8 +50,8 @@ void CUnit::SetPlayer(char* newPlayer) {
     char* old = player;
     if (old == newPlayer) return;
     player = newPlayer;
-    if (old) PlayerRemoveUnitOriginal(old, nullptr, this);
-    if (player) PlayerAddUnitOriginal(player, nullptr, this);
+    if (old) reinterpret_cast<CPlayer*>(old)->RemoveUnit(this);
+    if (player) reinterpret_cast<CPlayer*>(player)->AddUnit(this);
     MarkChanged(kPartRelations);
     if (controller) Controller()->PlayerChanged(newPlayer);
 }

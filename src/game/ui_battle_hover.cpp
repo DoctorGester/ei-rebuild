@@ -78,7 +78,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return HoverObjectAt(kClientWorld, nullptr, point);
+        return static_cast<CUnit*>(static_cast<CWorldClient*>(kClientWorld)->PickAt2(reinterpret_cast<const long*>(point)));
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
@@ -96,7 +96,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             panel->hoverUnit_ = unit;
             std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->panelViewSize, 4);
             std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->height, 4);
-            BattleShowPanelUnitOriginal(panel->owner_, nullptr, (void*)panel->hoverUnit_, &panel->strings_[1]);
+            static_cast<CBattleScreen*>(panel->owner_)->UnitName(static_cast<CUnit*>(panel->hoverUnit_), reinterpret_cast<mfc::CString*>(&panel->strings_[1]));
         }
     } else if (panel->hoverUnit_) {
         panel->hoverUnit_ = nullptr;

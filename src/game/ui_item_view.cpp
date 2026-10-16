@@ -17,6 +17,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -185,7 +186,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
     Quaternion q;
     float pi;
     std::memcpy(&pi, reinterpret_cast<const void*>(0x007402C0), 4);
-    QuaternionSetAxisAngleOriginal(&q, nullptr, &axis, pi);
+    q.SetAxisAngle(axis, pi);
     return q;
 }
 
@@ -313,7 +314,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
             Quaternion b;
-            QuaternionSetAxisAngleOriginal(&b, nullptr, &axis, turn->angle);
+            b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductA(a, b));
         } else if (Get<int>(itemBytes, 0x10) == 0x3007 && Get<int>(itemBytes, 0x4C) == 2 &&
                    (Get<int>(itemBytes, 0x50) == 0 || Get<int>(itemBytes, 0x50) == 1 || Get<int>(itemBytes, 0x50) == 2)) {
@@ -323,7 +324,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {0.0f, 1.0f, 0.0f};
             Quaternion b;
-            QuaternionSetAxisAngleOriginal(&b, nullptr, &axis, turn->angle);
+            b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductB(a, b));
         }
 
@@ -480,7 +481,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
+    tilt.SetAxisAngle(axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
     Quaternion orientation;
     SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 

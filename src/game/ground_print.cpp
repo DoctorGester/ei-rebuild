@@ -16,8 +16,6 @@
 #include "model.h"               // ThePrintsDatabase
 #include "originals_effects.h"
 #include "originals_render.h"    // DeviceDrawFlatOriginal
-#include "originals_ui.h"        // TextureNamedOriginal, TextureLoadOriginal
-#include "originals_world.h"     // ClientProjectDecalOriginal
 #include "terrain.h"             // Terrain::SurfaceClass
 #include "texture.h"
 #include "world.h"
@@ -129,8 +127,8 @@ void GroundPrint::SetTexture(const char* name) {
     CTextureManager* textures = Textures();
     AssignCounted(&texture_.texture, textures->FindTexture(name));
     if (texture_.texture) return;
-    AssignCounted(&texture_.texture, static_cast<CTexture*>(TextureNamedOriginal(textures, nullptr, kTextureKind, name)));
-    TextureLoadOriginal(textures, nullptr, texture_.texture);
+    AssignCounted(&texture_.texture, static_cast<CTexture*>(textures->FindOrCreate(kTextureKind, name)));
+    textures->LoadTexture(texture_.texture);
 }
 
 GroundPrint* GroundPrint::CopyConstruct(const GroundPrint* other) {
@@ -257,7 +255,7 @@ int GroundPrint::Draw() {
         }
         Vector3 down{0.0f, 0.0f, -1.0f};
         Vector3 above{position_.x, position_.y, z + kOne};
-        ClientProjectDecalOriginal(world, nullptr, &down, &above, 0.0f, &quad.data, &positions_, &texCoords_, &indices_, 1, 1);
+        world->ProjectDecal(&down, &above, 0.0f, &quad.data, &positions_, &texCoords_, &indices_, static_cast<unsigned char>(1), static_cast<unsigned char>(1));
 
         // The texture coordinates turned about the tile's centre, then into the tile. The original's
         // loop is unrolled four times: the fourth vertex stores its u part to a float before scaling

@@ -8,6 +8,7 @@
 #include "spell.h"
 #include "world_data.h"
 
+#include "ai_map.h"
 #include "combat.h"
 #include "console.h"
 #include "lib/mfc.h"
@@ -66,16 +67,8 @@ constexpr float kHalfBits = 0.5f;                       // immediate pushed to t
 
 // The world server's timed objects: WorldAddTimed (originals_world.h).
 // Effect setters (world_effect*.cpp).
-__declspec(naked) inline void __fastcall EffectSetVelocity(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00675D50)
-__declspec(naked) inline void __fastcall ParticleSetTarget(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00679310)
-__declspec(naked) inline void __fastcall WallSetDirection(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00679C30)
-__declspec(naked) inline void __fastcall LightningSetEnds(CEngineObject*, void*, const Vector3*, const Vector3*, float /*width*/)
-    EI_ORIGINAL(0x0067A6B0)
-__declspec(naked) inline void __fastcall LightningSetObjects(CEngineObject*, void*, int /*from*/, int /*to*/) EI_ORIGINAL(0x0067A890)
-__declspec(naked) inline void __fastcall LightningSetFlag(CEngineObject*, void*, int /*flag byte*/) EI_ORIGINAL(0x0067A8C0)
 // 0067AC70 (not rewritten): the missile's target object id.
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
-__declspec(naked) inline void __fastcall ShowVisibilitySetObjects(CEngineObject*, void*, int, int) EI_ORIGINAL(0x0067C640)
 // CPtrList constructor (block size) and destructor.
 inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return PtrListConstructOriginal(a0, nullptr, a2); }
 inline void __fastcall PtrListDestruct(void* a0) { PtrListDestruct4C96F0Original(a0); }
@@ -83,25 +76,17 @@ inline void __fastcall PtrListDestruct(void* a0) { PtrListDestruct4C96F0Original
 // with skill `skill` (0 when it failed).
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
 // direction (005B2A00) or a disc (005B2760); then stamped into / cleared from the AI map (ai_footprint.cpp).
-__declspec(naked) inline void __fastcall FootprintAlong(void* /*set*/, void*, void* /*aiMap*/, const Vector3*, float /*width*/, const Vector3*)
-    EI_ORIGINAL(0x005B2A00)
-__declspec(naked) inline void __fastcall FootprintDisc(void* /*set*/, void*, void* /*aiMap*/, const Vector3*, float /*radius*/)
-    EI_ORIGINAL(0x005B2760)
-__declspec(naked) inline bool __fastcall AiMapStamp(void* /*aiMap*/, void*, int /*owner*/, void* /*set*/) EI_ORIGINAL(0x005B7820)
-__declspec(naked) inline bool __fastcall AiMapClear(void* /*aiMap*/, void*, void* /*set*/) EI_ORIGINAL(0x005B78F0)
-inline void* SpellFootprint() { return reinterpret_cast<void*>(0x007C8478); }   // a FootprintCellSet (ai_map.h)
+inline FootprintCellSet* SpellFootprint() { return reinterpret_cast<FootprintCellSet*>(0x007C8478); }
 // The later states' callees.
-__declspec(naked) inline void __fastcall ParticleSetColors(CEngineObject*, void*, float /*a*/, float /*b*/) EI_ORIGINAL(0x006792E0)
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.
-inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, const Vector3* a5) { AiEventsNoiseOriginal(a0, nullptr, a2, a3, a4, (const void*)a5); }
+inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(static_cast<CUnitServer*>(a2), a3, a4, a5); }
 // 0058D3D0 CWorldServer::WakeUnitsAround (world_tick.cpp): WorldWakeUnits (originals_world.h).
 // 005CBBE0: the unit controller's AI memory (+0xA50) notices `point` at `level` / `kind`.
 inline void __fastcall AiMemoryNotice(void* a0, void*, const Vector3* a2, int a3, int a4) { AiMemoryNoticeOriginal(a0, nullptr, (const void*)a2, a3, a4); }
 // 004B31D0 ScriptGroup::InsertAll (script_group.cpp).
 __declspec(naked) inline void __fastcall GroupInsertAll(void*, void*, const void* /*list*/) EI_ORIGINAL(0x004B31D0)
 // 005B7A40 CAIMap::IsPassableWithoutSelf (ai_map.cpp); 005C11D0 CSectorMap::Move: originals_ai.h.
-__declspec(naked) inline bool __fastcall AiMapPassableWithoutSelf(void*, void*, CEngineObject*, const Vector3*) EI_ORIGINAL(0x005B7A40)
 
 // --- x87 sequences ------------------------------------------------------------------------------
 // Plain C++ in the x87 order: double intermediates are the original's unrounded register values.

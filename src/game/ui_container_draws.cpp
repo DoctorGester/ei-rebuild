@@ -79,7 +79,7 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
     if (mouseMove) self->InputMouseMove(0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
-    return ContainerDrawOriginal(self, nullptr, pass);
+    return static_cast<CUiContainer*>(self)->DrawContainerImpl(pass);
 }
 
 } // namespace

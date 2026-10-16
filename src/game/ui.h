@@ -1965,7 +1965,7 @@ public:
     double FrameTime();
     // 006010E0 (ui_container.cpp). Base update (slot 24): every child's slot 24.
     void UpdateBase();
-    // 00600EF0 (rewritten as DrawContainerImpl, ui_container_draws.cpp; this forwards to its address).
+    // 00600EF0 (rewritten as DrawContainerImpl, ui_container_draws.cpp; this calls it).
     // Base drawing (slot 20); returns 1.
     BOOL DrawContainer(int pass);
     int DrawContainerImpl(int pass);   // body of the slot above (registered by member pointer)

@@ -4,6 +4,7 @@
 // (EiPluginFixes, reproduced: the figures' sex test), so it is hooked in a Rebirth launch too; nothing in the
 // rewritten code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
+#include "party.h"
 #include "stl_sorts.h"
 #include "ui.h"
 #include "ui_screens.h"
@@ -245,7 +246,7 @@ void CMpHeroScreen::Create() {
     // The description panel on the right (its item list and text arrays constructed in place).
     auto* info = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), window.interface_, &window, ItemPanelVtables()));
     if (info) {
-        PartyRecordsConstructOriginal(info->itemList_);
+        info->ItemParty()->Construct();
         info->itemTexts_.Construct();
         info->skillTexts_.Construct();
         SetVtables(info, InfoPanelVtables());

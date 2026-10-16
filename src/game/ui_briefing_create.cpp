@@ -11,6 +11,7 @@
 #include "core_transform.h"
 #include "object_tables.h"
 #include "sound.h"
+#include "ui_camera_keys.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
@@ -254,7 +255,7 @@ void CBriefingScreen::Create() {
     }
     AddInput(input);
     memory = gamecrt::operator_new(0x2C);
-    AddInput(memory ? static_cast<UiInputSide*>(ViewInputConstructOriginal(memory, nullptr, interface_)) : nullptr);
+    AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
     // The camera: no longer free, kept within the zone's circle (the first lookup's record,
     // not checked for null, as the original), the alternate limits, no target.
@@ -393,7 +394,7 @@ void CBriefingScreen::MarkPeople() {
     for (int* id = people_.begin(); id != people_.end(); ++id) {
         if (!WorldFindUnit(ClientWorld(), nullptr, *id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
-        auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(ServerWorld(), nullptr, 0));
+        auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(ServerWorld())->GetPlayer(0));
         if (player && player->server)
             static_cast<CPlayerServer*>(player->server)->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }

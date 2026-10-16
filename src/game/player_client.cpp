@@ -314,7 +314,7 @@ int CPlayerClient::OnExperienceAll() {
     CPlayer::ObjectMap& units = Owner()->units_;
     for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
-        ClientShowNumberOriginal(WorldClient(), nullptr, unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        WorldClient()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
@@ -325,7 +325,7 @@ int CPlayerClient::OnExperience() {
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
     auto* unit = static_cast<CUnit*>(WorldFindUnit(WorldClient(), nullptr, id));
-    if (unit != nullptr) ClientShowNumberOriginal(WorldClient(), nullptr, id, ScaledExperience(unit, amount), kNumberExperience);
+    if (unit != nullptr) WorldClient()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 
@@ -481,7 +481,7 @@ int CPlayerClient::OnPathMarker() {
         if (MarkersShown()) {
             UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);
             auto* source = static_cast<CParticleSource*>(
-                ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
+                static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
             source->Attach(walker);
             source->typeParam = value;
@@ -494,8 +494,7 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = static_cast<CParticleSource*>(ParticleCreateSourceOriginal(
-            ParticleManagerObject(), nullptr, flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        auto* marker = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
         marker->position = at;
         CEngineObject* owner = player_;
         CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
@@ -675,7 +674,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            static_cast<CParticleSource*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kWispParticles));
+            static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kWispParticles));
         source->Attach(created);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;

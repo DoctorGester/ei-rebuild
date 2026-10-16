@@ -109,7 +109,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     switch (state_) {
     case 0: {
         int point[2] = {x, y};
-        CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
+        CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(ClickSound(), 0);
@@ -168,7 +168,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (interface_->rightDown_ || state_ != 0) return;
 
     int point[2] = {x, y};
-    CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
+    CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
     if (IsPerson(object)) {
         int id = object->id_;
         if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
@@ -215,7 +215,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
         return;
     }
     int point[2] = {x, y};
-    CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
+    CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
     if (IsPerson(object)) {
         for (BriefingMover* mover = movers_->next; mover != movers_; mover = mover->next)
             if (mover->person->id_ == object->id_) return;

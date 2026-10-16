@@ -711,7 +711,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         if (!self->player) return;
         message = kMessageCannotDo;
     } else {
-        PathToMotionOrder(path, nullptr, &end);
+        path->ToMotionOrder(reinterpret_cast<AIPath*>(&end));
         float dy = self->position.y - goal[1];
         float dx = self->position.x - goal[0];
         float reached = LengthSquared2DUnrounded(dx, dy);

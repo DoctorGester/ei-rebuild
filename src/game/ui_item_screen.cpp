@@ -1,6 +1,7 @@
 // The item screens' common setup (the camp, the multiplayer hero screen and the exchange window):
 // the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
+#include "model.h"
 #include "ui_item_info.h"
 #include "ui_camp.h"
 #include "core_streams.h"
@@ -70,7 +71,7 @@ void SpriteBuild::Rectangle(float a0, float a1, float a2, float a3, float a4, fl
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { UiMeshCellsOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 
 // 00500960: the display object; +0x14 a flag, +8 -> +0xC an object whose slot 5 takes two floats.
-std::uint8_t* __cdecl Display() { return (std::uint8_t*)DisplayObject(); }
+std::uint8_t* __cdecl Display() { return (std::uint8_t*)SceneRenderer(); }
 
 } // namespace
 
@@ -314,9 +315,9 @@ EI_REPLACE(0x005F7010, Screen9Destroy);
 namespace {
 // CParty::AddItem / RemoveItem (party_items.cpp) through their original addresses (verify wrappers).
 CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
-    return static_cast<CItem*>(PartyAddItemOriginal(list, nullptr, item, keepCount, merge));
+    return static_cast<CItem*>(list->AddItem(item, keepCount, merge));
 }
-void RemoveItemAt(CParty* list, CItem* item, int all) { PartyRemoveItemOriginal(list, nullptr, item, all); }
+void RemoveItemAt(CParty* list, CItem* item, int all) { list->RemoveItem(item, all); }
 void* TurnVtable() { return reinterpret_cast<void*>(0x007403F8); }
 } // namespace
 

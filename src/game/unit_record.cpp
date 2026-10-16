@@ -1,4 +1,5 @@
 // The unit record applied to a new unit (00477B00). See unit_record.h.
+#include "item.h"
 #include "unit.h"
 #include "unit_record.h"
 
@@ -45,7 +46,9 @@ struct Factory {
     }
     void* CreateSpell(std::uint32_t id, std::uint32_t owner);   // 006AD1E0
 };
-void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) { return FactoryCreateSpellOriginal((void*)this, nullptr, (const char*)a0, (void*)a1); }
+void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) {
+    return reinterpret_cast<CItemManager*>(this)->CreateSpellItem(reinterpret_cast<const char*>(a0), reinterpret_cast<CSpellManager*>(a1));
+}
 Factory* TheFactory() { return *reinterpret_cast<Factory**>(0x007AFFB4); }
 std::uint32_t SpellOwner() { return *reinterpret_cast<const std::uint32_t*>(0x007AFFAC); }
 

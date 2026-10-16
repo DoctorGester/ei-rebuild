@@ -8,6 +8,7 @@
 // with the game's _ftol are converted the same way; values computed by original functions are
 // truncated straight from the FPU stack (StatFtol), as the original does, so no rounding happens
 // in between. Compiled with precise floating point so that products keep the original's order.
+#include "party.h"
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui_item_info.h"
@@ -133,7 +134,7 @@ BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(thi
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)static_cast<CTextManager*>((void*)this)->ReadLine(a0, (int)a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
-    return TextManagerItemTexts(reinterpret_cast<CTextManager*>(this), nullptr, item, name, description, kind);
+    return reinterpret_cast<CTextManager*>(this)->GetItemTexts(item, name, description, kind);
 }
 Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
 
@@ -154,7 +155,7 @@ const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
 }
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
-// (PartyResetOriginal), filled by 00661DB0 (PartyAddItemOriginal).
+// (PartyResetOriginal), filled by 00661DB0 (CParty::AddItem).
 
 } // namespace
 
@@ -1074,7 +1075,7 @@ void CItemInfoPanel::Describe(CItem* item) {
         if (reinterpret_cast<SameFn>((*reinterpret_cast<void***>(shown))[14])(shown, item)) return;
     }
     PartyResetOriginal(itemList_, nullptr, 1, 0);
-    if (item) PartyAddItemOriginal(itemList_, nullptr, item, 0, 1);
+    if (item) ItemParty()->AddItem(item, 0, 1);
     DescribeItem();
 }
 EI_REPLACE_METHOD(0x005EE6C0, CItemInfoPanel::Describe);

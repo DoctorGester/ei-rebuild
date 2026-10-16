@@ -237,7 +237,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             texts->GetString(LostItemLabel(), &label);
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && topic_.GetLength() > 0 && Compare(topic_.Left(1), ZonePrefix()) == 0) {
-                if (auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, 0))) {
+                if (auto* player = static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0))) {
                     for (auto* node = player->items.head; node; node = node->next) {
                         CEngineObject* item = node->data;
                         if (item->GetClassId() != kClassQuestItem) continue;

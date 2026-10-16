@@ -1,6 +1,7 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
 #include "figure_manager.h"
 #include "figure_mesh.h"
+#include "texture.h"
 #include "ui.h"
 
 #include "material.h"
@@ -309,10 +310,10 @@ EI_REPLACE_METHOD(0x005FFC50, CUiWindow::ClearSurfaces);
 
 CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
     void* manager = UiTextureManager();
-    auto* texture = static_cast<CEngineObject*>(TextureNamedOriginal(manager, nullptr, kind, name));
+    auto* texture = static_cast<CEngineObject*>(static_cast<CTextureManager*>(manager)->FindOrCreate(kind, name));
     if (!texture) return nullptr;
-    int loaded = directory ? TextureLoadFromOriginal(manager, nullptr, texture, directory)
-                           : TextureLoadOriginal(manager, nullptr, texture);
+    int loaded = directory ? static_cast<CTextureManager*>(manager)->LoadTextureFrom(static_cast<CTexture*>(texture), directory)
+                           : static_cast<CTextureManager*>(manager)->LoadTexture(static_cast<CTexture*>(texture));
     if (!loaded) return nullptr;
     objects_.Add(texture);
     ++texture->refCount_;
@@ -487,7 +488,7 @@ EI_REPLACE_METHOD(0x005FF3C0, CUiWindow::AddSprite);
 namespace {
 // 0040CB20: the engine object's base constructor (thiscall).
 // The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
-// MaterialCreateOriginal), 0068EAF0 registers it (RET 8, MaterialRegisterOriginal).
+// MaterialCreateOriginal), 0068EAF0 registers it (RET 8, CMaterialManager::FillMaterial).
 
 // A material's emissive colour (+0x50..+0x58, every component `value`) and one more reference.
 void PrepareMaterial(CMaterial* material, float value) {
@@ -531,11 +532,11 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     void* materials = *reinterpret_cast<void* const*>(0x007AF740);
     auto* white = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     whiteMaterial_ = white;
-    MaterialRegisterOriginal(materials, nullptr, white, 0x16);
+    static_cast<CMaterialManager*>(materials)->FillMaterial(white, 0x16);
     PrepareMaterial(white, 1.0f);
     auto* black = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     blackMaterial_ = black;
-    MaterialRegisterOriginal(materials, nullptr, black, 0x16);
+    static_cast<CMaterialManager*>(materials)->FillMaterial(black, 0x16);
     PrepareMaterial(black, 0.0f);
     enabled_ = 1;
     CallSlot19(this, 1);

@@ -129,7 +129,7 @@ void CUnitServer::FinishCast() {
     static_cast<CWorldServer*>(world)->CastSpell(spell, unit, &unit->position, action.target, &at, 0);
     if (SpellPrototype(spell)->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
+        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
     }
     action.source = kNoSource;
 }

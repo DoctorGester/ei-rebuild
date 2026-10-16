@@ -11,10 +11,12 @@
 #include "spell.h"
 #include "texture.h"
 #include "ui_item_info.h"
+#include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/stlp_hash.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -62,7 +64,7 @@ std::uint8_t* MoveBetween(CCampPages* camp, std::uint8_t* item, void* to, void* 
     return reinterpret_cast<std::uint8_t*>(ItemScreenMoveItemOriginal(camp, nullptr, AsItem(item), to, from, limit, merge, turning));
 }
 // 00621570 (CUiItemStrip::ScrollToItem, through its address).
-void ScrollTo(CUiItemStrip* strip, void* item) { ItemStripScrollToItemOriginal(strip, nullptr, item); }
+void ScrollTo(CUiItemStrip* strip, void* item) { strip->ScrollToItem(static_cast<CItem*>(item)); }
 
 // Takes the made items out of `results` (re-read every time, as the original does): a made item
 // goes to `owner` and into `strip`, the others to the local player and into the item strip.
@@ -163,11 +165,11 @@ void CCampPages::ShowPage(int page) {
         // Leave: the trade is settled, the constructors' unused parts go back to their owners and
         // what they made goes into the strips.
         trade_->Settle(0, 1);
-        ItemScreenReturnAllOriginal(this, nullptr, spellParts_[0], spellParts_[1]);
-        ItemScreenReturnAllOriginal(this, nullptr, LocalPlayerData(), spellParts_[2]);
-        ItemScreenReturnAllOriginal(this, nullptr, itemParts_[0], itemParts_[1]);
-        ItemScreenReturnAllOriginal(this, nullptr, LocalPlayerData(), itemParts_[2]);
-        ItemScreenReturnAllOriginal(this, nullptr, LocalPlayerData(), itemExtra_);
+        ReturnAll(spellParts_[0], spellParts_[1]);
+        static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), spellParts_[2]);
+        ReturnAll(itemParts_[0], itemParts_[1]);
+        static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), itemParts_[2]);
+        static_cast<CItemScreen*>(this)->ReturnAll(PlayerParty(), itemExtra_);
         TakeResults(this, spellResults_, spellParts_[0], spellStrip_);
         TakeResults(this, itemResults_, itemParts_[0], partStrip_);
         interface_->PlaySound(game::Text(0x0079372C), 0);   // buttons\globalmap\transit.wav
@@ -489,14 +491,14 @@ void CCampPages::UpdateAction() {
                     cost_ = price(item, apartKind);
                     if (IsMade(item)) cost_ += price(item, recordKind);
                     deconstructing_ = true;
-                    InfoPanelDescribeOriginal(helpPanel_, nullptr, item);
+                    static_cast<CItemInfoPanel*>(helpPanel_)->Describe(AsItem(item));
                     described = true;
                     action = game::Text(apartText);
                     break;
                 }
                 if (isMaterial(item)) {
                     actionEnabled_ = (this->*canMake)();
-                    InfoPanelDescribeOriginal(helpPanel_, nullptr, made);
+                    static_cast<CItemInfoPanel*>(helpPanel_)->Describe(AsItem(made));
                     described = made != nullptr;
                     if (actionEnabled_) action = game::Text(makeText);
                 }
@@ -633,7 +635,7 @@ BOOL CCampPages::Draw(int pass) {
     }
 
     if (hoveredItem_) {
-        if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(hoveredItem_);
     } else if (topic != 0) {
         if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else {
@@ -714,9 +716,9 @@ bool CCampPages::CanMakeSpell() {
     CSpell* made = reinterpret_cast<CSpell*>(constructor->container_->spell_)->Clone(manager);
     constructor->CallSetManager(nullptr);
     void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
-    auto* record = static_cast<char*>(FindQuickItemOriginal(quickItems, nullptr, game::Text(0x007938A0)));   // "spell container"
+    auto* record = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(quickItems), nullptr, game::Text(0x007938A0)));   // "spell container"
     int index = static_cast<int>(record - itemdb::QuickItems().begin) / 0x8C;
-    auto* container = static_cast<std::uint8_t*>(FactoryMakeItemOriginal(factory, nullptr, 0x3008, index, 0, -1));
+    auto* container = reinterpret_cast<std::uint8_t*>(static_cast<CItemManager*>(factory)->MakeItem(0x3008, index, 0, -1));
     if (container) AsItem(container)->AttachSpell(made);
     spellMade_ = container;
     if (!container) return false;
@@ -828,8 +830,8 @@ void CCampPages::Close() {
     spellMade_ = nullptr;
     if (itemMade_) AsObject(itemMade_)->Release();
     itemMade_ = nullptr;
-    InfoPanelDescribeOriginal(helpPanel_, nullptr, nullptr);
-    InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+    static_cast<CItemInfoPanel*>(helpPanel_)->Describe(nullptr);
+    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
     // The part lists emptied (slot 3) and deleted (slot 0, the deleting destructor); the first of
     // each constructor's lists (the class template's) is not touched here.
     for (CParty** list : {&spellParts_[1], &spellParts_[2], &spellResults_, &itemParts_[1], &itemParts_[2],
@@ -898,7 +900,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     if (kind < 0x3004 || (kind > 0x3006 && kind != 0x3008)) return 0;
     PartyUnitRecord* hero = VirtualHeroRecord();
     // 00661DB0: the item among the player's items.
-    int result = reinterpret_cast<int>(PartyAddItemOriginal(GluePlayerData(), nullptr, item, 0, 1));
+    int result = reinterpret_cast<int>(static_cast<CParty*>(GluePlayerData())->AddItem(AsItem(item), 0, 1));
     switch (ItemType(item)) {
     case 0x3004: {
         // The chosen weapon moves back when the item lies before it.
@@ -909,7 +911,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
             if (static_cast<std::uint32_t>(i) < hero->weaponIndex) --hero->weaponIndex;
             break;
         }
-        RecordRemoveQuickEntryOriginal(hero, nullptr, item);   // 00660A50
+        hero->RemoveWeapon(AsItem(item));   // 00660A50
         if (hero->weaponIndex >= hero->weaponCount) hero->weaponIndex = hero->weaponCount - 1;
         VirtualRefreshWeapons();
         break;
@@ -922,15 +924,15 @@ int CCampPages::TakeOff(std::uint8_t* item) {
             heroes_[hero_]->Controller()->RefreshModel();
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
-        RecordRemoveWornEntryOriginal(hero, nullptr, item);    // 00660E10
+        hero->RemoveArmor(AsItem(item));    // 00660E10
         RebuildArmourLayers(hero);
         break;
     }
     case 0x3006:
-        RecordRemoveBeltEntryOriginal(hero, nullptr, item);    // 00660C30
+        hero->RemoveQuickItem(AsItem(item));    // 00660C30
         break;
     case 0x3008:
-        RecordRemoveSpellEntryOriginal(hero, nullptr, item);   // 00660FF0
+        hero->RemoveSpell(AsItem(item));   // 00660FF0
         break;
     default:
         break;
@@ -950,7 +952,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
     switch (ItemType(item)) {
     case 0x3004:
         if (hero->weaponCount >= 4) return;
-        RecordAddQuickEntryOriginal(hero, nullptr, item);   // 006608D0
+        hero->AddWeapon(AsItem(item));   // 006608D0
         if (hero->weaponCount == 1) hero->weaponIndex = 0;
         VirtualRefreshWeapons();
         break;
@@ -962,7 +964,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
                 TakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
         }
         if (heroes_[hero_]) {
-            void* worn = RecordAddWornEntryOriginal(hero, nullptr, item);   // 00660C90
+            void* worn = hero->AddArmor(AsItem(item));   // 00660C90
             static_cast<CUnit*>(heroes_[hero_])->EquipArmour(static_cast<CEngineObject*>(worn));         // 00530730
             heroes_[hero_]->Controller()->RefreshEquipment();
         }
@@ -971,16 +973,16 @@ void CCampPages::PutOn(std::uint8_t* item) {
     }
     case 0x3006:
         if (hero->quickItemCount >= 4) return;
-        RecordAddBeltEntryOriginal(hero, nullptr, item);    // 00660AB0
+        hero->AddQuickItem(AsItem(item));    // 00660AB0
         break;
     case 0x3008:
         if (hero->spellCount >= 8) return;
-        RecordAddSpellEntryOriginal(hero, nullptr, item);   // 00660E70
+        hero->AddSpell(AsItem(item));   // 00660E70
         break;
     default:
         return;
     }
-    PartyRemoveItemOriginal(GluePlayerData(), nullptr, item, 0);   // 00661F30
+    static_cast<CParty*>(GluePlayerData())->RemoveItem(AsItem(item), 0);   // 00661F30
     static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
 }
 EI_REPLACE_METHOD(0x0060FCA0, CCampPages::PutOn);
@@ -1240,7 +1242,7 @@ void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
     // The text table (00578E20 returns [007AF788]): 004DEFC0 whether it has a key (RET 4), 004DF8D0
     // its text into a CString (RET 8).
-    void* table = GameFlowOriginal();
+    void* table = GameClientTexts();
     mfc::CString name;
     mfc::CString own(static_cast<CEngineObject*>(unit)->GetName());
     if (own.GetLength() == 0) {

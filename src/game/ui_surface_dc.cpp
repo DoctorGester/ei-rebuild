@@ -13,6 +13,7 @@
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "lib/mfc_gdi.h"
 #include "render/render.h"
 
 #include <ddraw.h>
@@ -28,7 +29,7 @@ namespace {
 constexpr long kWasStillDrawing = static_cast<long>(0x8876021C);   // DDERR_WASSTILLDRAWING
 
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
-void* CdcFromHandle(HDC dc) { return CdcFromHandleOriginal(dc); }
+void* CdcFromHandle(HDC dc) { return mfc::impl::CDC::FromHandle(dc); }
 
 // The memory DCs given out, with the bitmap each had selected before ours.
 std::unordered_map<HDC, HGDIOBJ> g_memoryDcs;

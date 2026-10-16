@@ -16,6 +16,7 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/vecmath.h"
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
@@ -144,7 +145,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
         Quaternion turn;
         // pi (007410D0) * 1.05 (0073CEE0), passed as a float.
         sprite->localRotation_ =
-            *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, GameFloat(0x007410D0) * GameFloat(0x0073CEE0));
+            *turn.SetAxisAngle(axis, GameFloat(0x007410D0) * GameFloat(0x0073CEE0));
     } else {
         sprite = AddSprite(nullptr);
         sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,

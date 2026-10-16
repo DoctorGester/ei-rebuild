@@ -42,7 +42,7 @@ void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }        // "b."
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, 0)); }
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;

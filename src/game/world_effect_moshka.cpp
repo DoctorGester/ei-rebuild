@@ -1,5 +1,6 @@
 // CEffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
+#include "effects.h"
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
@@ -264,7 +265,7 @@ void CEffectMoshka::Follow(int objectId) {
         bird->animation->queue.RemoveAll();
         bird->animation->Play(first);
     }
-    auto* source = static_cast<CEngineObject*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kBirdParticles));
+    auto* source = reinterpret_cast<CEngineObject*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kBirdParticles));
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;

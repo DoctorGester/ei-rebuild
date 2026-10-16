@@ -1,5 +1,6 @@
 // The unit AI's save-game helpers: the looks (005D9010 / 005D91B0) and the perception memory
 // (005CC1E0 / 005CC350). The brain's own Load / Save are in unit_ai_brain.cpp.
+#include "core_streams.h"
 #include "unit_ai.h"
 
 #include "originals_engine.h"
@@ -84,7 +85,7 @@ void AIBrain::LoadMemory(CStream* stream) {
         call.hostileMask = 0;
         stream->Read(&call.point, 12);
         stream->Read(&call.kind, 4);
-        StreamReadCStringOriginal(stream, nullptr, &call.text);
+        stream->ReadInto(reinterpret_cast<mfc::CString*>(&call.text));
         stream->Read(&call.hostileMask, 4);
     }
     stream->Read(&noticedKind, 4);

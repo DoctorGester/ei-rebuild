@@ -1,5 +1,6 @@
 // The spell column's unit (0063E820): a sprite and a tooltip per spell of the unit. See ui.h
 // (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
+#include "item_db_text.h"
 #include "spell.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -70,7 +71,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             SpellName(spell, 20, &model);
             AddSpellSprite(this, nullptr, model.data, image.data);
         }
-        TextManagerItemTexts(static_cast<CTextManager*>(TextManager()), nullptr, spell, &tip, &description, &description);
+        static_cast<CTextManager*>(TextManager())->GetItemTexts(static_cast<CItem*>(spell), &tip, &description, &description);
 
         // The spell's numbers below its name: one line per label of the panel's table (+0x15C).
         std::uint8_t* data = Get<std::uint8_t*>(spell, 0x44);

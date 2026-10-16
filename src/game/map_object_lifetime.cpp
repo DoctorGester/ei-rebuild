@@ -11,6 +11,7 @@
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
 #include "spell.h"         // CLightFactory
+#include "terrain.h"
 #include "unit.h"
 #include "unit_ai.h"       // AIBrain
 
@@ -427,7 +428,7 @@ void CMapObjectClientSpecific::DestructBody() {
         light->flags_ &= ~0x200u;
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
-            RemoveLight(LightManager(), nullptr, light);
+            static_cast<Terrain*>(LightManager())->RemoveLight(static_cast<CLight*>(light));
             if (CUnit* unit = Unit()) {
                 if (CEngineObject* half = unit->Object3D()->attached)
                     static_cast<CObject3DSpecific*>(half)->SetLit(0);

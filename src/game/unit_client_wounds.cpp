@@ -182,7 +182,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!woundsTexture) {
         AssignTexture(&woundsTexture, static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(kWoundsTextureKind, name)));
         if (!woundsTexture) {
-            AssignTexture(&woundsTexture, static_cast<CTexture*>(TextureNamedOriginal(manager, nullptr, kWoundsTextureKind, name)));
+            AssignTexture(&woundsTexture, static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindOrCreate(kWoundsTextureKind, name)));
             if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
         }
     }
@@ -193,7 +193,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
                 std::memcmp(loaded.data, extra.data, static_cast<std::size_t>(extra.size)) == 0;
     if (!same) {
         woundsTexture->flags_ &= ~kTextureLoaded;
-        if (!TextureLoadOriginal(manager, nullptr, woundsTexture)) {
+        if (!static_cast<CTextureManager*>(manager)->LoadTexture(woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
             AsCountedRef(woundsMaterial).Assign(nullptr);
             extra.FreeData();
@@ -227,12 +227,12 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name, prototype->skin);
     else gamecrt::sprintf(name, kFace, unit->name);
-    auto* texture = static_cast<CEngineObject*>(TextureNamedOriginal(UiTextureManager(), nullptr, kFaceTextureKind, name));
+    auto* texture = static_cast<CEngineObject*>(static_cast<CTextureManager*>(UiTextureManager())->FindOrCreate(kFaceTextureKind, name));
     CEngineObject* old = faceTexture;
     faceTexture = texture;
     if (texture) ++texture->refCount_;
     if (old) old->Release();
-    TextureLoadOriginal(UiTextureManager(), nullptr, faceTexture);
+    static_cast<CTextureManager*>(UiTextureManager())->LoadTexture(static_cast<CTexture*>(faceTexture));
     CEngineObject* face = faceTexture;
     if (face->flags_ & kTextureLoaded) return true;
     faceTexture = nullptr;

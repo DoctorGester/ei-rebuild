@@ -1,6 +1,7 @@
 // A spell effect's later states: the per-tick dispatch (0067E6D0), the missiles' flight and impact
 // (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
+#include "ai_map.h"
 #include "map_object.h"
 #include "script.h"
 #include "spell.h"
@@ -10,6 +11,7 @@
 #include "player_messages.h"
 #include "unit.h"
 #include "unit_ai.h"
+#include "world_effect.h"
 
 using namespace spellfx;
 
@@ -92,7 +94,7 @@ void FireballFlight(CSpellEffect* e) {
         CEngineObject* blast = e->CreateParticle(0, 0x2002, &at, size, 1.0f, &kZeroVector, nullptr);
         float radius = e->radius;
         float alpha = Power(e);
-        ParticleSetColors(blast, nullptr, alpha, radius);
+        static_cast<CEffectParticle*>(blast)->SetColors(alpha, radius);
         e->CreateSound(0, game::Text(0x00795754), &at, &kZeroVector, kVolume, kHearing);
         Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
         float range = PrototypeRange(e);
@@ -127,7 +129,7 @@ void Linger(CSpellEffect* e) {
 
 void RiseLight(CSpellEffect* e) {
     Vector3 rise{0.0f, 0.0f, LightRise(e)};
-    EffectSetVelocity(e->light, nullptr, &rise);   // no null check
+    static_cast<CEffect*>(e->light)->SetVelocity(&rise);   // no null check
 }
 
 // 1 / 0x29: the lightning's bolt and sound go when the timer reaches 0, the light rises away.
@@ -147,7 +149,7 @@ void LightStrikeEcho(CSpellEffect* e) {
         Vector3 top = e->position;
         top.z = top.z + ConstAt(worlddata::StrikeHeight());
         CEngineObject* bolt = CreateObject(e, kClassLightning);
-        LightningSetEnds(bolt, nullptr, &top, &e->position, kStrikeWidthImmediate);
+        static_cast<CEffectLightning*>(bolt)->SetEnds(&top, &e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
     }
     CountDown(e);
@@ -357,7 +359,7 @@ void Teleport(CSpellEffect* e) {
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
     std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
-    if (!AiMapPassableWithoutSelf(e->world->AIMap(), nullptr, caster, &e->targetPoint)) {
+    if (!static_cast<CAIMap*>(e->world->AIMap())->IsPassableWithoutSelf(static_cast<CUnit*>(caster), &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }

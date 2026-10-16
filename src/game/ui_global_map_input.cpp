@@ -186,7 +186,7 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
             menu->vtable_ = EscMenuVtable();
             menu->inputVtable_ = EscMenuInputVtable();
         }
-        InterfacePushWindowOriginal(interface_, nullptr, menu, 1, 1);
+        interface_->PushWindow(menu, 1, 1);
         inputHandled_ = true;
     }
     if (inputHandled_) return;

@@ -42,7 +42,7 @@ void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 using ActionDone = void(__fastcall*)(CUnit*);
 ActionDone SpeakerActionDone() { return reinterpret_cast<ActionDone>(0x006023F0); }
 
-WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, 0)); }
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(0)); }
 
 constexpr int kEventPhrases = 3;
 constexpr int kStatePhrases = 3;

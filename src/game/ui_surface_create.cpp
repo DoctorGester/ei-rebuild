@@ -150,8 +150,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
         picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
     }
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    CDXSurface* made = memory ? static_cast<CDXSurface*>(DXSurfaceFromPictureOriginal(
-                                    memory, nullptr, self->interface_->renderer_, picture, 0))
+    CDXSurface* made = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromPicture(reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), picture, 0))
                               : nullptr;
     CDXSurface* previous = self->holder_;
     self->holder_ = made;

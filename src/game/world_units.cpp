@@ -190,7 +190,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
             memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
             record = memory;
         } else {
-            record = static_cast<ItemSourceRef*>(ItemRecordConstruct(memory, nullptr));
+            record = reinterpret_cast<ItemSourceRef*>(reinterpret_cast<CItemLink*>(memory)->Construct());
         }
     }
     record->itemId = static_cast<std::uint32_t>(itemRecord->id_);

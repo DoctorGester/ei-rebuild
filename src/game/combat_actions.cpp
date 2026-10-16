@@ -29,6 +29,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "world_effect.h"
 
 #include <bit>
 #include <cstring>
@@ -113,7 +114,7 @@ __declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x005
 void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->Raise(a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
-void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
+void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, const Vector3* a5) { static_cast<AIViewer*>(a0)->Noise(a2, a3, a4, a5); }
 // 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)
@@ -204,7 +205,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         const Vector3* from = unit->EyePoint(&position);
         char* bytes = reinterpret_cast<char*>(missile);
         std::memcpy(bytes + 0x1C, from, sizeof(Vector3));
-        MissileSetTarget(missile, nullptr, target->id_);
+        static_cast<CEffectMissile*>(missile)->SetTarget(target->id_);
         bytes[0x154] = 1;
         *reinterpret_cast<int*>(bytes + 0x15C) = unit->id_;
         std::memcpy(bytes + 0x160, hit, sizeof(DamageInfo));
@@ -215,7 +216,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
     TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
+        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
     }
 }
 EI_REPLACE_METHOD(0x0054F450, CUnitServer::DeliverAttack);
@@ -443,7 +444,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         if (char* player = unit->player) static_cast<CWorldServer*>(WorldServer())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(WorldServer(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
-        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
+        AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, nullptr);
         return;
     }
     std::uint32_t skill = action.source;

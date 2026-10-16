@@ -156,7 +156,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             menu->vtable_ = EscMenuVtable();
             menu->inputVtable_ = EscMenuInputVtable();
         }
-        InterfacePushWindowOriginal(interface_, nullptr, menu, 1, 1);
+        interface_->PushWindow(menu, 1, 1);
         inputHandled_ = true;
         return;
     }
@@ -197,7 +197,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             static_cast<CObjectivesWindow*>(window)->Setup(static_cast<const char*>(*zone), nullptr, 0, 0);
             zone->~CString();
         }
-        InterfacePushWindowOriginal(clock->interface_, nullptr, window, 1, 1);
+        clock->interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         inputHandled_ = true;
         return;
     }

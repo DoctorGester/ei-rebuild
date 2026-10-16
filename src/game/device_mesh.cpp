@@ -137,7 +137,7 @@ void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* ind
         DrawPrimitive2(device, nullptr, textures->first, textures->second, 4, 0x1C4, Vertices().data, count, indices,
                        indexCount, 0);
     } else {
-        DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
+        device->DrawIndexed(4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
     }
 }
 

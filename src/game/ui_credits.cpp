@@ -3,6 +3,7 @@
 // ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
 #include "app_helpers.h"
 #include "bink_video.h"
+#include "model.h"
 #include "ui_screens.h"
 
 #include "world.h"
@@ -27,12 +28,6 @@ constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 // CBinkVideo's frame step (005DBD80, RET 4: AL whether the movie still plays; rewritten in
 // bink_video.cpp) and close (005DBF70, plain RET).
 
-// The display object's (00500960) +0x14: the colour the titles keep cleared.
-struct DisplayColour {
-    std::uint8_t unused_00[0x14];
-    std::uint32_t colour;            // +0x14
-};
-DisplayColour* Display() { return static_cast<DisplayColour*>(DisplayObject()); }
 
 } // namespace
 
@@ -97,7 +92,7 @@ EI_REPLACE_METHOD(0x0062BD80, CCreditsScreen::Draw);
 void CCreditsScreen::OnClose() {
     lines_.ClearWith([](TitleLine* line) { line->Destroy(); });
     gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
-    Display()->colour = static_cast<std::uint32_t>(savedDisplay_);
+    SceneRenderer()->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     InterfaceHasScreen() = true;
     CursorShowOriginal(GameCursor(), nullptr, 1);
 }

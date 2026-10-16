@@ -116,7 +116,7 @@ CUiItemPanel* NewPanel(std::size_t size, CInterface3D* ui, CUiWindow* owner, Vta
 CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CUiWindow* owner) {
     auto* panel = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), ui, owner, ItemPanelVtables()));
     if (!panel) return nullptr;
-    PartyRecordsConstructOriginal(panel->itemList_);
+    panel->ItemParty()->Construct();
     panel->itemTexts_.Construct();
     panel->skillTexts_.Construct();
     SetVtables(panel, InfoPanelVtables());
@@ -144,7 +144,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 // An item list of the constructors: made through its slot 2 (not checked, as in the original).
 CParty* NewItemList() {
     void* memory = gamecrt::operator_new(sizeof(CParty));
-    CParty* list = memory ? static_cast<CParty*>(PartyRecordsConstructOriginal(memory)) : nullptr;
+    CParty* list = memory ? static_cast<CParty*>(static_cast<CParty*>(memory)->Construct()) : nullptr;
     list->Create();
     return list;
 }
@@ -421,7 +421,7 @@ void CCampPages::BuildPages() {
     reinterpret_cast<NextHeroFn>(vtable_[kSlotNextHero])(this);
 
     // The pages' titles.
-    auto* texts = static_cast<CTextManager*>(GameFlowOriginal());
+    auto* texts = reinterpret_cast<CTextManager*>(GameClientTexts());
     mfc::CString title;
     auto& titles = pageTitles_;
     const char* const titleKeys[] = {

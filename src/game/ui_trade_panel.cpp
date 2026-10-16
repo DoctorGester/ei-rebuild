@@ -22,6 +22,7 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "unit_db.h"
+#include "world_glue.h"
 
 namespace {
 
@@ -41,7 +42,7 @@ __declspec(naked) int __fastcall SchoolPrice(int /*from*/, int /*to*/) EI_ORIGIN
 struct TextGlue {
     void* Table();   // 00578E20
 };
-void* TextGlue::Table() { return GameFlowOriginal(); }
+void* TextGlue::Table() { return GameClientTexts(); }
 int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
 // vector<TradeRow> pieces (library): 00629E60 the insert that reallocates (RET 0xC).

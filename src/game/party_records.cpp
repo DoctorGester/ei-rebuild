@@ -24,7 +24,7 @@ namespace {
 // 006E848B _mbscmp.
 int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 // 00661050 constructor of the embedded party (returns this).
-void* __fastcall PartyConstruct(void* a0) { return PartyRecordsConstructOriginal(a0); }
+void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Construct(); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n).
@@ -86,7 +86,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     Release(temp);
 
     char* party = (*list->records.Start())->party;
-    PartyAddMemberOriginal(party, nullptr, kHero, kHumanHero, game::EmptyText());
+    reinterpret_cast<CParty*>(party)->AddMember(kHero, kHumanHero, game::EmptyText());
     CStringAssignTextOriginal(party + 0x68, nullptr, kFirstZone);
     *reinterpret_cast<int*>(party + 0x6C) = 0;
     PartySetVar(party + 0x54, nullptr, kGameTime, kSix);

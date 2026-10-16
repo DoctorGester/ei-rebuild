@@ -49,7 +49,7 @@ bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, 0x007856B8)
 CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
 
 // The world's player `id` (00594180, through its address), or null.
-WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, id)); }
+WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(static_cast<CWorldServer*>(WorldServer())->GetPlayer(id)); }
 // The client world's local player (its local view's player).
 WorldPlayer* LocalPlayer() {
     return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(WorldClient())->LocalView())->player;
@@ -258,7 +258,7 @@ EI_REPLACE(0x005DEC90, LoadVar);
 
 // 005DEEE0: "Current FPS: " 1000 / last frame time (printed as float).
 void __fastcall LastFps(CStringArray*) {
-    auto* timer = static_cast<CSceneRenderer*>(DisplayObject());
+    auto* timer = static_cast<CSceneRenderer*>(SceneRenderer());
     GameOStream& os = Out() << game::Text(0x00792710);
     unsigned ms = timer->FrameTime();
     double fps = *reinterpret_cast<const float*>(0x0073C34C) / x87::FromUnsigned(ms);

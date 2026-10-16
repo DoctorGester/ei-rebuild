@@ -110,7 +110,7 @@ __declspec(naked) void __fastcall AreaAddRound(void*, void*, float, float, float
 // Object id of a name (ECX = name).
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
 // 00500960: the renderer (returns the object whose 004BA120 sets the background colour).
-void* __cdecl Renderer() { return DisplayObject(); }
+void* __cdecl Renderer() { return SceneRenderer(); }
 
 // The world server.
 CWorldServer* TheWorld() { return static_cast<CWorldServer*>(WorldServer()); }
@@ -214,8 +214,8 @@ struct PartyRecordsCalls {
     void AddUnit(const char* name, const char* prototype, const char* extra);   // 006628D0
     void RemoveUnit(int key);                            // 006620F0
 };
-void PartyRecordsCalls::AddUnit(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
-void PartyRecordsCalls::RemoveUnit(int a0) { PartyRemoveMemberOriginal(this, nullptr, static_cast<unsigned>(a0)); }
+void PartyRecordsCalls::AddUnit(const char* a0, const char* a1, const char* a2) { reinterpret_cast<CParty*>(this)->AddMember(a0, a1, a2); }
+void PartyRecordsCalls::RemoveUnit(int a0) { reinterpret_cast<CParty*>(this)->RemoveMember(static_cast<unsigned>(a0)); }
 // 00660500: a record copies the items of `source` (with the records they belong to).
 __declspec(naked) void __fastcall RecordCopyItemsFrom(PartyUnitRecord*, void*, PartyUnitRecord*, PartyRecordsCalls*) EI_ORIGINAL(0x00660500)
 
@@ -227,8 +227,8 @@ __declspec(naked) CParty* __fastcall PartiesFind(NamedPartyRecords*, void*, cons
 NamedPartyRecords* Parties() { return &GamePartyManager()->records; }
 
 // A party's items (00661DB0 add, 00661F30 remove).
-int PartyAddItem(CParty* party, CEngineObject* item, int a, int b) { return (int)PartyAddItemOriginal(party, nullptr, item, a, b); }
-void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { PartyRemoveItemOriginal(party, nullptr, item, a); }
+int PartyAddItem(CParty* party, CEngineObject* item, int a, int b) { return (int)party->AddItem(static_cast<CItem*>(item), a, b); }
+void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { party->RemoveItem(static_cast<CItem*>(item), a); }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
@@ -283,7 +283,7 @@ SpellManagerCalls* TheSpellManager() { return reinterpret_cast<SpellManagerCalls
 
 // A particle source's effect (ScriptParticleSource::object, a CEffectParticle).
 struct ParticleCalls {
-    void AttachTo(int objectId) { ParticleSetAttachedToOriginal(reinterpret_cast<CEngineObject*>(this), nullptr, objectId); }   // 00679280
+    void AttachTo(int objectId) { static_cast<CEffectParticle*>(reinterpret_cast<CEngineObject*>(this))->SetAttachedTo(objectId); }   // 00679280
 };
 ParticleCalls* ParticleOf(ScriptParticleSource* source) { return reinterpret_cast<ParticleCalls*>(source->object); }
 

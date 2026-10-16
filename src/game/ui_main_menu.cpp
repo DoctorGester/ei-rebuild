@@ -2,6 +2,7 @@
 // answers, mouse move and keys; the interface's saved-state reset and the regions' SetRect from a
 // RECT. The click is in ui_layouts.cpp. See docs/notes/ui.md, section 4.
 #include "sound.h"
+#include "ui.h"
 #include "ui_screens.h"
 
 #include "base_manager.h"
@@ -9,6 +10,7 @@
 #include "item_db_text.h"
 #include "map_object_figures.h"
 #include "random.h"
+#include "unit_create.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -120,7 +122,7 @@ void CMainMenu::Create() {
         inert->vtable_ = InertInputVtable();
         inert->owner_ = interface_;
     }
-    ContainerAddInputOriginal(this, nullptr, inert);
+    static_cast<CUiContainer*>(this)->AddInput(inert);
     hovered_ = -1;
     rect_ = RECT{0, 0, 800, 600};
     AddVersionLine();
@@ -220,8 +222,8 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = ManagerFindNamedOriginal(ObjectManager(), nullptr, &name, kRestPoseKind);
-            FigurePlayAnimationOriginal(stones, nullptr, animation, 1);
+                animation = reinterpret_cast<CMapObjectManager*>(ObjectManager())->FindAnimation(&name, kRestPoseKind);
+            static_cast<CObject3D*>(stones)->PlayAnimation(static_cast<FigureAnimation*>(animation), 1);
             interface_->PlaySound(kStoneSound, 0);
         }
         hovered_ = region;
@@ -237,7 +239,7 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     if (key != VK_ESCAPE) return;
     void* box = gamecrt::operator_new(0x180);
     if (box) box = MessageBoxConstructOriginal(box, nullptr, interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);
-    InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 namespace {
 } // namespace

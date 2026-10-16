@@ -104,7 +104,7 @@ __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quat
 __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
 __declspec(naked) int __fastcall LockSurface(void*, void*, void*) EI_ORIGINAL(0x00690FC0)
-// 0056C750 (ClientProjectDecalOriginal, originals_world.h). The shadow projector: lays the texture's quad on
+// 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
 // the ground.
 // 00501AF0. Texture stages: binds a texture.
 void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { static_cast<CSceneRenderer*>(a0)->SetTextureImpl(a2, (void*)a3); }
@@ -448,8 +448,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    ClientProjectDecalOriginal(ShadowProjector(), nullptr, &direction, &point, self->object->radius, &Quads().data,
-                               &self->vertices, &self->texCoords, &self->indices, 0, keyedParts == 0);
+    static_cast<CWorldClient*>(ShadowProjector())->ProjectDecal(&direction, &point, self->object->radius, &Quads().data,
+                               &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (self->vertices.size != 0) {
         pipeline->transform_->FitBounds(&self->sphere, self->vertices.data, self->vertices.size);

@@ -242,7 +242,7 @@ void CBattleScreen::OnMessageResult(int result) {
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;
         window->sliding_ = false;
-        InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+        interface_->PushWindow(window, 1, 1);
         break;
     }
     case kGameOverQuit:
@@ -276,6 +276,6 @@ void CBattleScreen::OnGameOver(char won) {
                                                    game::Text(0x007942FC), static_cast<int>(0xFFFF0000u), 3, 1)   // "end_of_game_msg"
                      : nullptr;
     }
-    InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 EI_REPLACE_METHOD(0x006365E0, CBattleScreen::OnGameOver);

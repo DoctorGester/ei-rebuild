@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_world.h"
+#include "world.h"
 
 namespace {
 constexpr std::uintptr_t kClientClassName = std::uintptr_t(0x0078EF9C);   // "CMapObjectClientSpecific"
@@ -76,7 +77,7 @@ EI_REPLACE_METHOD(0x00510540, CMapObjectClientSpecific::DeleteClientCompanion);
 void CMapObjectClientSpecific::ShowHit(int damage, int kind) {
     if (ObjectSlots(owner)->IsDead() != 0) return;
     if (!(owner->flags_ & kShowsNumbers)) return;
-    ClientShowNumberOriginal(ManagerContext(), nullptr, owner->id_, damage, kind);
+    static_cast<CWorldClient*>(ManagerContext())->ShowNumber(owner->id_, damage, kind);
 }
 EI_REPLACE_METHOD(0x005117F0, CMapObjectClientSpecific::ShowHit);
 

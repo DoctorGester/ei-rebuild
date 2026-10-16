@@ -579,7 +579,7 @@ void CUnitServer::TickAction() {
             auto* particle = reinterpret_cast<CEffectParticle*>(effect);
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
-            ParticleSetAttachedToOriginal(effect, nullptr, unit->id_);
+            static_cast<CEffectParticle*>(effect)->SetAttachedTo(unit->id_);
             WorldAddTimed(world, nullptr, effect);
             CEngineObject* old = effectObject;
             effectObject = effect;

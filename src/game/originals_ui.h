@@ -59,11 +59,6 @@ __declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void
 __declspec(naked) inline void* __fastcall EditFieldConstructOriginal(void* /*memory*/, void*, CInterface3D*, int /*left*/,
                                                                      int /*top*/, int /*right*/, int /*bottom*/)
     EI_ORIGINAL(0x0065C010)
-__declspec(naked) inline void __fastcall EditFieldSetLookOriginal(void* /*edit*/, void*, int, int, int /*font*/, int,
-                                                                  std::uint32_t /*colour*/, std::uint32_t /*caret*/)
-    EI_ORIGINAL(0x0065C1A0)
-__declspec(naked) inline void __fastcall EditFieldSetTextOriginal(void* /*edit*/, void*, const void* /*text*/)
-    EI_ORIGINAL(0x0065C290)
 // 00634650: constructs a message box window in `memory` (RET 0x18, returns it).
 __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                       const char*, const char*, int, int, int)
@@ -112,10 +107,6 @@ __declspec(naked) inline void __fastcall SpriteDrawOriginal(void* /*sprite*/, vo
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
 __declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
-// 0063B920 (rewritten as CBattleScreen::UnitName; called through its address so the wrapper runs): the
-// battle screen writes a unit's name into a CString (RET 8: unit, out; no result).
-__declspec(naked) inline void __fastcall BattleShowPanelUnitOriginal(void* /*screen*/, void*, void* /*unit*/, void* /*extra*/)
-    EI_ORIGINAL(0x0063B920)
 // 005EE050 / 005EE080 / 005EE0D0: item record is a spell / modifier / part (RET 4, AL; free functions, ECX is not read, so the
 // members that forwarded them ignored their `this`).
 __declspec(naked) inline bool __stdcall ItemKindIsSpellOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE050)
@@ -128,10 +119,6 @@ __declspec(naked) inline void* __fastcall VariableIteratorNextOriginal(void* /*i
 // (thiscall, RET 0xC: key, repeat, flags; no result).
 __declspec(naked) inline void __fastcall ConsoleOnCharOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E44A0)
 
-// A-I4. 005F7350 (rewritten as CInterface3D::PushWindow; through its address so the wrapper runs): opens `window` on top
-// (thiscall, RET 0xC; no result). 00600CC0 (rewritten as CUiContainer::AddInput): appends an extra input side (RET 4).
-__declspec(naked) inline void __fastcall InterfacePushWindowOriginal(CInterface3D*, void*, void* /*window*/, int, int)
-    EI_ORIGINAL(0x005F7350)
 // 005F8340 (Rebirth-patched; thiscall, RET 0xC): the extent (a SIZE written to `out`, returned) of a text in interface
 // font `font`. The text is a CString taken by value: its data pointer is handed over and the callee releases it.
 __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface3D*, void*, void* /*out SIZE*/,
@@ -140,8 +127,6 @@ __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface
 // 005F7E30 (Rebirth-patched; the second copy of the screen-to-layout point scaling; thiscall, RET 4): returns the new y.
 __declspec(naked) inline int __fastcall InterfacePointFromScreenCopyOriginal(const CInterface3D*, void*, tagPOINT* /*point*/)
     EI_ORIGINAL(0x005F7E30)
-__declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*container*/, void*, void* /*input*/)
-    EI_ORIGINAL(0x00600CC0)
 // 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).
 __declspec(naked) inline void __fastcall RegionSetRectFromOriginal(class CUiRegion*, void*, int /*left*/, int /*top*/,
                                                                    int /*right*/, int /*bottom*/) EI_ORIGINAL(0x0062AC90)
@@ -168,22 +153,13 @@ __declspec(naked) inline void __fastcall GamePlayMusicOriginal(void*, void*, con
 __declspec(naked) inline void __fastcall GamePlayCameraPathOriginal(void*, void*, const char* /*file*/) EI_ORIGINAL(0x00578880)
 // 005187B0 (thiscall on a figure, RET 8): plays `animation` (`restart` 1: from the start). 00512B20 (thiscall on the object
 // manager 007AF5F8, RET 8): its object of `kind` named `name` (an animation for kind 0x80590000, the rest pose), or null.
-__declspec(naked) inline void __fastcall FigurePlayAnimationOriginal(void* /*figure*/, void*, void* /*animation*/,
-                                                                     int /*restart*/) EI_ORIGINAL(0x005187B0)
-__declspec(naked) inline void* __fastcall ManagerFindNamedOriginal(void* /*manager*/, void*, const mfc::CString* /*name*/,
-                                                                   std::uint32_t /*kind*/) EI_ORIGINAL(0x00512B20)
 
 // A-I5. The texture manager [007AF744] (thiscall): 00691D00 its texture of `kind` named `name`, found or made (RET 8);
 // 006922A0 / 006926F0 (rewritten in texture.cpp; through their address so the wrappers run) load it, from the archives or
 // from `directory` (RET 4 / 8; nonzero on success); 00691D80 (rewritten as CTextureManager::NewTexture) a new CPU-filled
 // texture (width, height, kind; RET 0xC).
-__declspec(naked) inline void* __fastcall TextureNamedOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
-    EI_ORIGINAL(0x00691D00)
-__declspec(naked) inline int __fastcall TextureLoadOriginal(void* /*manager*/, void*, void* /*texture*/) EI_ORIGINAL(0x006922A0)
 // 00692D30 (RET 8): the registered texture of `kind` named `name` (a byte compare), else the cached one (00691BF0);
 // null when neither has it.
-__declspec(naked) inline int __fastcall TextureLoadFromOriginal(void* /*manager*/, void*, void* /*texture*/,
-                                                                const char* /*directory*/) EI_ORIGINAL(0x006926F0)
 __declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,
                                                                             int /*height*/, int /*kind*/)
     EI_ORIGINAL(0x00691D80)
@@ -193,8 +169,6 @@ __declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) 
 // 005A6C80: the figure's slot 3 (its three arrays emptied, the parts' storage freed, then 0059F2B0, whose EAX is left;
 // thiscall, plain RET).
 __declspec(naked) inline int __fastcall FigureDestroyOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C80)
-// 00708D79: MFC's CDC::FromHandle (static, stdcall): the temporary CDC of `dc`.
-__declspec(naked) inline void* __stdcall CdcFromHandleOriginal(void* /*dc*/) EI_ORIGINAL(0x00708D79)
 // 007022A0: MFC's AfxBeginThread(procedure, parameter, priority, stack size, flags, security) (__stdcall; returns the
 // CWinThread).
 __declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedure*/, void* /*parameter*/, int /*priority*/,
@@ -218,9 +192,6 @@ __declspec(naked) inline void __fastcall PortraitsRebuildOriginal(void* /*portra
 __declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*/) EI_ORIGINAL(0x0064A7A0)
 // 006575B0: loads the saved game `name` (ECX; plain RET; not on a network client).
 __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*name*/) EI_ORIGINAL(0x006575B0)
-// 00621570 (rewritten as CUiItemStrip::ScrollToItem; through its address so the wrapper runs; RET 4).
-__declspec(naked) inline void __fastcall ItemStripScrollToItemOriginal(void* /*strip*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x00621570)
 // 00566030: the client world (007AF5B8) controls `unit` (thiscall, RET 4; no result).
 // 00578AC0: the client glue (007AFEA5, not read) leaves the zone through exit `exit` (a network client asks its
 // session; otherwise the local view, 0066B140; RET 4).
@@ -229,8 +200,6 @@ __declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*gl
 
 // A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp): 005EE6C0
 // Describe(item), 005F1590 DescribeStats(info) (each RET 4).
-__declspec(naked) inline void __fastcall InfoPanelDescribeOriginal(void* /*panel*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x005EE6C0)
 // 005EC300 (rewritten as CUiWindow::DrawHeroPreview): the hero preview (RET 0x14: pass, model, turn, depth, wide).
 __declspec(naked) inline void __fastcall WindowDrawHeroPreviewOriginal(void* /*window*/, void*, int /*pass*/,
                                                                        void* /*model*/, float /*turn*/,
@@ -254,8 +223,6 @@ __declspec(naked) inline int __stdcall ItemKindIsSpellContainerOriginal(const vo
 __declspec(naked) inline bool __stdcall ItemKindIsBuildableOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE130)
 // 005EE110: the item is a material (class 0x3007, kind 1; RET 4, AL; ECX not read).
 __declspec(naked) inline bool __stdcall ItemKindIsKindOneOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE110)
-__declspec(naked) inline CItem* __fastcall ItemScreenReturnAllOriginal(void* /*screen*/, void*, void* /*to*/, void* /*from*/)
-    EI_ORIGINAL(0x005EE2C0)
 __declspec(naked) inline CItem* __fastcall ItemScreenMoveItemOriginal(void* /*screen*/, void*, CItem* /*item*/, void* /*to*/,
                                                                       void* /*from*/, int /*limit*/, int /*merge*/,
                                                                       int /*turning*/) EI_ORIGINAL(0x005EE1B0)
@@ -272,7 +239,6 @@ __declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/
 // RET 4; EAX the unit or null). 00662F80: the multiplayer heroes (007C82A0) make `hero` the current one (RET 4).
 __declspec(naked) inline void* __fastcall GameUnitByIdOriginal(void* /*glue*/, void*, std::uint32_t /*id*/)
     EI_ORIGINAL(0x00578980)
-__declspec(naked) inline void __fastcall MpHeroesSelectOriginal(void* /*heroes*/, void*, void* /*hero*/) EI_ORIGINAL(0x00662F80)
 // 00625430 (rewritten): the trade panel's records again (plain RET).
 __declspec(naked) inline void __fastcall TradePanelResetRecordsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625430)
 // 005789C0: the client glue (007AFEA5, not read) hands a record array to the client world with a flag (00566F70 on
@@ -334,7 +300,6 @@ __declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*
 __declspec(naked) inline void* __fastcall ScrollTextConstructOriginal(void* /*memory*/, void*, CInterface3D*, const char* /*text*/,
                                                                       int /*left*/, int /*top*/, int /*right*/, int /*bottom*/,
                                                                       float /*depth*/) EI_ORIGINAL(0x0065CC00)
-__declspec(naked) inline void* __fastcall ViewInputConstructOriginal(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x005EACB0)
 // 00578A20 (the client glue 007AFEA5, not read; RET 0xC): whether exit `exit` can be taken now by the party whose unit
 // records are listed in `records` (a CArray of record pointers); fills `second` (the same kind of array). Returns 0 / 1.
 __declspec(naked) inline int __fastcall GameCanLeaveZoneOriginal(void* /*glue*/, void*, void* /*records*/, int /*exit*/,
@@ -342,8 +307,6 @@ __declspec(naked) inline int __fastcall GameCanLeaveZoneOriginal(void* /*glue*/,
 
 // A-I15. The client world (007AF5B8, thiscall, RET 4): 00565D00 the unit drawn at a screen point (the point's x, y; EAX
 // the object or null); 00566100 selects `unit` (null: clears the selection; no result).
-__declspec(naked) inline CEngineObject* __fastcall ClientUnitAtOriginal(void* /*world*/, void*, const int* /*point*/)
-    EI_ORIGINAL(0x00565D00)
 // The local view's orders (rewritten as CPlayerClient::SendWalk / SendAttack; through their address so the wrappers
 // run): 0066A7D0 walk (units, point, run; RET 0xC), 0066A880 attack (units, target, how, ctrl; RET 0x10). `units` is an
 // mfc::CArray<CUnit*>. Both return 1.
@@ -433,11 +396,6 @@ struct WindowConstructOriginal {
 };
 __declspec(naked) inline CUiWindow* WindowConstructOriginal::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)
 
-// C3n. 004E0150 (CTextManager::GetItemTexts; thiscall, RET 0x10) gives the name, description and kind texts of an item
-// or a spell.
-__declspec(naked) inline int __fastcall TextManagerItemTexts(CTextManager*, void*, CEngineObject* /*item*/,
-                                                             mfc::CString* /*name*/, mfc::CString* /*description*/,
-                                                             mfc::CString* /*kind*/) EI_ORIGINAL(0x004E0150)
 // C3o. 004DF030 (rewritten as TextFindLine; thiscall on the text reader, RET 4): moves to the line that starts with
 // `key`; a null key finds the next "#..." header. 1 when found, else 0 (the cursor at the end).
 __declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, void*, const char* /*key*/)
@@ -451,9 +409,6 @@ __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(con
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
 // 005FD120 (rewritten as UiSurfaceRelease; plain RET): the CUiSurface's destructor body (releases its DC and surface).
 __declspec(naked) inline void __fastcall SurfaceReleaseContentsOriginal(CUiSurface* /*surface*/) EI_ORIGINAL(0x005FD120)
-// 00600EF0 (rewritten as CUiContainer::DrawContainerImpl; RET 4): CUiContainer's draw of its children for pass `pass`. Returns 1.
-__declspec(naked) inline int __fastcall ContainerDrawOriginal(CUiWindow* /*container*/, void*, int /*pass*/)
-    EI_ORIGINAL(0x00600EF0)
 // 00601110 (rewritten as UiContainerInput::OnLeftDown; RET 0xC): the container's input side (window + 0x94) handles the
 // left button going down.
 __declspec(naked) inline void __fastcall ContainerLeftDownOriginal(void* /*input*/, void*, int /*buttons*/, int /*x*/, int /*y*/)

@@ -1,5 +1,6 @@
 // CEffectTornado: a tornado crossing the map in a straight line, hurting the units it passes.
 // See world_effect.h and docs/notes/effects.md ("Tornado").
+#include "effects.h"
 #include "world_effect.h"
 
 #include "game_strings.h"
@@ -170,7 +171,7 @@ void CEffectTornado::Start(int update) {
         sound_ = sound::Manager()->Play3D(game::TornadoSoundText(), 0, &localPosition_.x, kSoundNear, kSoundFar, 1, 0);
     }
     auto* source =
-        static_cast<CEngineObject*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kTornadoParticles));
+        reinterpret_cast<CEngineObject*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kTornadoParticles));
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;

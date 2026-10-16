@@ -1,6 +1,7 @@
 // The briefing / base screen's main-vtable slots (CBriefingScreen, ui_briefing.h): close, message
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
 // saved state. See docs/notes/ui.md, "Briefing / base screen".
+#include "ui.h"
 #include "ui_briefing.h"
 #include "game_strings.h"
 
@@ -136,7 +137,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
         // (Like the original, the flags are written again without checking the allocation.)
         window->isSave_ = false;
         window->sliding_ = false;
-        InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+        interface_->PushWindow(window, 1, 1);
         break;
     }
     case kGameOverQuit:
@@ -232,7 +233,7 @@ void CBriefingScreen::OnGameOver(int) {
     void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x0079350C),   // "game_over"
                                                      game::Text(0x00793518), kGameOverResult, 3, 1)       // "game_over_msg"
                        : nullptr;
-    InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 EI_REPLACE_METHOD(0x00608C70, CBriefingScreen::OnGameOver);
 

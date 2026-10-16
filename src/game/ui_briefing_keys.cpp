@@ -68,7 +68,7 @@ void OpenObjectives(CInterface3D* ui) {
             BriefingPlayerName player;
             static_cast<CObjectivesWindow*>(window)->Setup(player, nullptr, 0, 1);
         }
-        InterfacePushWindowOriginal(ui, nullptr, window, 1, 1);
+        ui->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
         break;
     }
 }
@@ -113,7 +113,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
                 menu->vtable_ = EscMenuVtable();
                 menu->inputVtable_ = EscMenuInputVtable();
             }
-            InterfacePushWindowOriginal(interface_, nullptr, menu, 1, 1);
+            interface_->PushWindow(menu, 1, 1);
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
             while (state_ == 3) NextPhrase(1);

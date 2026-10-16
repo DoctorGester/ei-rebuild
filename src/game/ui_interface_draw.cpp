@@ -130,7 +130,7 @@ EI_REPLACE_METHOD(0x005E6B90, CScreenFade::Start);
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
-    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualDraw(DisplayObject());
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualDraw(SceneRenderer());
     fade_->Draw(SceneRenderer());
     return 1;
 }

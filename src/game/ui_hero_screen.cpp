@@ -109,7 +109,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
     if (!hoveredItem_ && topic == 0) hoveredItem_ = static_cast<CUiWindow*>(spellPanel_)->VirtualItemAt(x, y, &topic);
 
     if (hoveredItem_) {
-        if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->Describe(reinterpret_cast<CItem*>(hoveredItem_));
     } else if (topic != 0) {
         if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else {
@@ -191,7 +191,7 @@ void CMpHeroScreen::Close() {
     }
     GameTakeUnitRecordsOriginal(ClientGlue(), nullptr, &records);
     previewModel_ = nullptr;
-    InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
+    static_cast<CItemInfoPanel*>(descPanel_)->Describe(nullptr);
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x00615850, CMpHeroScreen::Close);
@@ -398,7 +398,7 @@ void CMpHeroScreen::ShowHero(int index) {
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
         PartyCopyFrom(player, nullptr, MpHero(index));
-        MpHeroesSelectOriginal(MpHeroesObject(), nullptr, MpHero(index));
+        static_cast<MpHeroRoster*>(MpHeroesObject())->Select(reinterpret_cast<const MpHeroRecord*>(MpHero(index)));   // the record starts with its party
     }
     MakePreview(1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());

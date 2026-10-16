@@ -1341,7 +1341,7 @@ def plan(fwds, classes):
             continue
         for src, e in mine:
             edits[src].append(e)
-        if f.kind == 'cast':
+        if f.kind in ('cast', 'loose'):
             for site in f.sites:
                 MARKERS[site.src].append((site.start, f.address, getattr(site, 'uncast', False)))
         for src, inc in incs:

@@ -31,6 +31,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstdint>
 #include <cstring>
@@ -106,7 +107,7 @@ void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_
     void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, ui, title, text, static_cast<int>(result), flags,
                                                      kBoxFormat)
                        : nullptr;
-    InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+    ui->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 
 // The file stream the address book is written with, built and torn down inline (the archive is
@@ -295,7 +296,7 @@ void CMpConnectScreen::Update() {
                 mfc::CString text = key + MessageSuffix();
                 box = MessageBoxConstructOriginal(memory, nullptr, interface_, key, text, kBoxNotice, kBoxFlagsOk, kBoxFormat);
             }
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             return;
         }
     }
@@ -552,7 +553,7 @@ void CMpConnectScreen::MasterRequest() {
     CMasterRequestBox* box =
         memory ? static_cast<CMasterRequestBox*>(memory)->Construct(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
                : nullptr;
-    InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+    interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
 }
 EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
 
@@ -704,7 +705,7 @@ void CMpConnectScreen::Create() {
     sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->textureOffsetU_ = -kTabSelected;
     sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
 
-    void* texts = GameFlowOriginal();   // 00578E20: the client's text table
+    void* texts = GameClientTexts();   // 00578E20: the client's text table
     mfc::CString text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text.Format(AllodNameFormat(), i);

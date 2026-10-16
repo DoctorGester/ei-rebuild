@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "item.h"
 #include "game_strings.h"
+#include "item_db_text.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
@@ -31,6 +32,7 @@
 #include <bit>
 #include "originals_ui.h"
 #include "world.h"
+#include "world_glue.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -140,7 +142,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        TextManagerItemTexts(*reinterpret_cast<CTextManager**>(0x007AF788), nullptr, item, &tip, &unused, &unused);
+        (*reinterpret_cast<CTextManager**>(0x007AF788))->GetItemTexts(static_cast<CItem*>(item), &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
@@ -165,7 +167,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
-void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }
+void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { a0->UnitName(a2, static_cast<mfc::CString*>(a3)); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
@@ -372,7 +374,7 @@ void CBattleScreen::Update() {
                                                      reinterpret_cast<const char*>(0x00794408),    // "leave_zone_msg"
                                                      0x10000, 3, 1)
                                : nullptr;
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(static_cast<CUiWindow*>(box), 1, 1);
             exitPending_ = 0;
         }
         second.vtable = reinterpret_cast<void*>(0x0073FAA4);
@@ -468,7 +470,7 @@ namespace {
 
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
-CUnit* UnitAtPoint(void* world, void*, int* point) { return WorldUnitAtPointOriginal(world, nullptr, point); }
+CUnit* UnitAtPoint(void* world, void*, int* point) { return static_cast<CUnit*>(static_cast<CWorldClient*>(world)->UnitAt(reinterpret_cast<const long*>(point))); }
 
 } // namespace
 
@@ -565,7 +567,7 @@ namespace {
 struct TextGlue {
     CTextManager* Table();
 };
-CTextManager* TextGlue::Table() { return (CTextManager*)GameFlowOriginal(); }
+CTextManager* TextGlue::Table() { return (CTextManager*)GameClientTexts(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { static_cast<CUiScrollText*>((void*)a0)->AddText(a2); }
 

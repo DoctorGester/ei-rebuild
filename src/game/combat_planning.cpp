@@ -200,7 +200,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             if (path.Cost() >= best) continue;
             best = path.Cost();
             std::memcpy(&bestSpot, &spot, sizeof(bestSpot));
-            if (out) PathToMotionOrder(path.bytes, nullptr, out);
+            if (out) path.Path()->ToMotionOrder(static_cast<AIPath*>(out));
         }
         if (best == kNoSpot) {
             result = false;
@@ -222,7 +222,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     if (pathOrder->kind != kMotionPath) return 0.0f;
     ObjectWorld(this);
     LocalUnitMotion simulated;
-    MotionBuild(&simulated.motion, nullptr, motionOrder);
+    static_cast<UnitMotion*>(&simulated.motion)->Build(static_cast<AIPath*>(motionOrder));
     SightTarget sight;
     bool canSee = FindSightTarget(order, &sight);
     Vector3 previous = {0.0f, 0.0f, -1000.0f};
@@ -346,7 +346,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 SectorMapAdd(ServerSectors(), nullptr, target);
                 PathFlag() = savedFlag;
             }
-            PathToMotionOrder(path.bytes, nullptr, route.bytes());
+            path.Path()->ToMotionOrder(static_cast<AIPath*>(route.bytes()));   // a motion order is an AIPath's first part
             ok = actsFromDestination();
             if (ok) best = static_cast<float>(TimeUntilAction(order, route.bytes()));
         } else {

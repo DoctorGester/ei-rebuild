@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"   // ei::SetVtable
 #include "lib/stlp.h"
+#include "mob_script_decoder.h"
 #include "originals_engine.h"
 #include "ei/x87.h"
 
@@ -57,7 +58,7 @@ __declspec(naked) void __fastcall ByteVectorConstruct(ByteVector* /*v*/, void*, 
 __declspec(naked) void __fastcall ByteVectorErase(ByteVector* /*v*/, void*, std::uint8_t* /*first*/, std::uint8_t* /*last*/) EI_ORIGINAL(0x0042D340)
 __declspec(naked) void __fastcall ByteVectorFill(ByteVector* /*v*/, void*, std::uint8_t* /*pos*/, std::uint32_t /*n*/, const std::uint8_t* /*value*/) EI_ORIGINAL(0x0042D370)
 // 004D8E10: unpacks the input, unscrambles it and stores it in `out`.
-void __fastcall DecodeText(TextDecoder* a0, void*, mfc::CString* a2) { TextDecodeOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall DecodeText(TextDecoder* a0, void*, mfc::CString* a2) { reinterpret_cast<MobScriptDecoder*>(a0)->Decode(a2); }   // same layout
 
 } // namespace
 

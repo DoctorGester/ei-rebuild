@@ -258,7 +258,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(box, 1, 1);
             return;
         }
         CommitBinding();

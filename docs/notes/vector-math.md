@@ -145,7 +145,7 @@ pragmas 116 mismatch).
 
 **Done in V2**: the old local vector types (render::detail::Matrix, render `Vertex` / `DecalVertex` / `GlobalMapPlace`
 positions, chunk_stream.h `Float4` (Quaternion, still memcpy'd), Point, Vec3, UiVec3, V3, Quat, Quaternion4) are the vecmath
-types; 0049E800's forwarders are one `QuaternionSetAxisAngleOriginal` (originals_render.h); local helpers renamed where
+types; 0049E800 is called as `Quaternion::SetAxisAngle`; local helpers renamed where
 vecmath uses the name (`LengthDouble`, `DotUnrounded` / `CrossStored`, `LerpStored`). core_maths / object_maths /
 quaternion / matrix_math / maths use the operators, `Cross`, `Conjugate`, `static_cast<float>` (was `RoundToFloat`). Kept written out: Dot 00401E00,
 Length 00401E20 and the squared axis lengths of FromAxisAngle / SetAngleAxis / SetAxisAngle (unrounded sums: a

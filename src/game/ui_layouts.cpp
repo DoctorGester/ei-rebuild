@@ -367,7 +367,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         open = false;
         break;
     }
-    if (open) InterfacePushWindowOriginal(ui, nullptr, opened, 1, 1);
+    if (open) ui->PushWindow(static_cast<CUiWindow*>(opened), 1, 1);
     UiContainerMouseDown(window.InputSide(), nullptr, buttons, x, y);
 }
 
@@ -390,7 +390,7 @@ struct MenuGlue {
     void BeforeTitles2();              // 00578940
 };
 const mfc::CString* MenuGlue::Directory() { return GameDirectoryOriginal(this); }
-void* MenuGlue::TextTable() { return GameFlowOriginal(); }
+void* MenuGlue::TextTable() { return GameClientTexts(); }
 void MenuGlue::SetServer(int f) { GameSetServerPaused(f); }
 void MenuGlue::BeforeTitles(int a0) { GameStopSounds(a0); }
 void MenuGlue::BeforeTitles2() { GameStopAmbience(); }
@@ -422,7 +422,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
                                       1);   // "option_difficulty", ""
             SetVtables(box, 0x0074225C, 0x00742228);
         }
-        InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+        ui->PushWindow(box, 1, 1);
         break;
     }
     case 1: {
@@ -432,7 +432,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // (Like the original, these two stores do not check the allocation.)
         w->isSave_ = false;
         w->sliding_ = false;
-        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
+        ui->PushWindow(w, 1, 1);
         break;
     }
     case 2: {
@@ -449,7 +449,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound(okSound, 0);
         COptionsWindow* w = NewOptionsWindow(ui);
         w->sliding_ = false;   // (unchecked, as the original)
-        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
+        ui->PushWindow(w, 1, 1);
         break;
     }
     case 4: {
@@ -469,7 +469,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             w->fromGame_ = true;
             SetVtables(&w->window, 0x00740C3C, 0x00740C08);
         }
-        InterfacePushWindowOriginal(ui, nullptr, w, 0, 1);
+        ui->PushWindow(&w->window, 0, 1);
         break;
     }
     case 5: {
@@ -496,7 +496,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             MenuHeroVector(&w->voiceLists_[1], nullptr, &allocators[3]);
             SetVtables(&w->window, 0x0074214C, 0x00742118);
         }
-        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
+        ui->PushWindow(&w->window, 1, 1);
         break;
     }
     default:
@@ -536,9 +536,9 @@ CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
     return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));
 }
 void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF text, COLORREF caret) {
-    EditFieldSetLookOriginal(edit, nullptr, a, b, font, c, text, caret);
+    static_cast<CUiEditField*>(edit)->SetLook(a, static_cast<char>(b), font, c, text, caret);
 }
-void EditSetText(CUiWindow* edit, void*, const char* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
+void EditSetText(CUiWindow* edit, void*, const char* text) { static_cast<CUiEditField*>(edit)->SetText(text); }
 } // namespace
 
 void CMessageBox::Build() {
@@ -676,7 +676,7 @@ namespace {
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator.
-CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(DisplayObject()); }
+CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(SceneRenderer()); }
 
 struct TitlesTokenizer {
     int position;                    // -1 at the end

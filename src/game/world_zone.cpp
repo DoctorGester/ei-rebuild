@@ -71,9 +71,9 @@ struct UnitRecordBuilder {
     alignas(4) std::uint8_t storage[sizeof(CParty)];
 
     CParty* Party() { return reinterpret_cast<CParty*>(storage); }
-    void Construct() { PartyRecordsConstructOriginal(Party()); }
+    void Construct() { static_cast<CParty*>(Party())->Construct(); }
     void Fill(const char* text, const char* prototype, const char* name) {
-        PartyAddMemberOriginal(Party(), nullptr, text, prototype, name);
+        Party()->AddMember(text, prototype, name);
     }
     void Destruct() { PartyRecordsDestructOriginal(Party()); }
     PartyUnitRecord* Record() { return Party()->members_.data; }

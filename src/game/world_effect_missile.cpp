@@ -1,6 +1,7 @@
 // Missiles: CEffectMissile (the homing base), CEffectArrow (a spell missile carrying a particle
 // source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
 // world_effect.h and docs/notes/effects.md ("Missiles").
+#include "core_streams.h"
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
@@ -216,7 +217,7 @@ void CEffectArrow::LoadState(void* stream) {
     s->Read(&targetId_, 4);
     s->Read(&velocity_, 12);
     s->Read(&arrived_, 4);
-    StreamReadCStringOriginal(s, nullptr, &soundName_);
+    static_cast<CStream*>(s)->ReadInto(&soundName_);
     s->Read(&lightColor_, 12);
     s->Read(&lightRange_, 4);
     s->Read(&particleType_, 4);

@@ -1,5 +1,6 @@
 // Interface screen 7 (ui_view_screen.h): its Create, draw and close slots and the picked units'
 // input side. See docs/notes/ui.md, section 4.
+#include "ui_camera_keys.h"
 #include "ui_view_screen.h"
 
 #include "camera.h"
@@ -72,7 +73,7 @@ void CViewScreen::Build() {
     void* memory = gamecrt::operator_new(sizeof(UnitPickInput));
     AddInput(memory ? static_cast<UnitPickInput*>(memory)->Construct(interface_) : nullptr);
     memory = gamecrt::operator_new(0x2C);
-    AddInput(memory ? static_cast<UiInputSide*>(ViewInputConstructOriginal(memory, nullptr, interface_)) : nullptr);
+    AddInput(memory ? reinterpret_cast<UiInputSide*>(static_cast<CCameraInput*>(memory)->Construct(interface_)) : nullptr);
 
     CCamera* camera = camera::TheCamera();
     camera->flags_ &= ~CCamera::kFree;
@@ -121,7 +122,7 @@ EI_REPLACE_METHOD(0x005EB8F0, UnitPickInput::DeleteThis);
 void UnitPickInput::OnLeftDown(int, int x, int y) {
     CWorldClient* world = WorldClient();
     const int point[2] = {x, y};
-    CEngineObject* unit = ClientUnitAtOriginal(world, nullptr, point);
+    CEngineObject* unit = world->UnitAt2(reinterpret_cast<const long*>(point));
     if (!static_cast<CInterface3D*>(owner_)->ctrlDown_) {
         if (unit) {
             int n = picked_.size;

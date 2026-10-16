@@ -332,7 +332,7 @@ void CSaveLoadWindow::SaveGame() {
             CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(),
                                                           0x30000, 1, 1)
                                     : nullptr;
-            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
+            interface_->PushWindow(box, 1, 1);
             return;
         }
     }
@@ -439,14 +439,14 @@ void CSaveLoadWindow::FillEntries() {
                     Str(entry->map_) = *map;
                     map->~CString();
                 }
-                StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->zone_)));
+                static_cast<CStream*>(&info.s)->ReadInto(static_cast<mfc::CString*>((void*)(&Str(entry->zone_))));
                 // +8 of the stream: the version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.version_) > 2) StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->title_)));
+                if (static_cast<int>(info.s.version_) > 2) static_cast<CStream*>(&info.s)->ReadInto(static_cast<mfc::CString*>((void*)(&Str(entry->title_))));
             }
             info.Close();
             if (console::Length(Str(entry->title_)) == 0) entry->MakeTitle(1);
@@ -649,7 +649,7 @@ constexpr const char* kEveryFile = "\\*.*";                             // 0078B
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
     void* memory = gamecrt::operator_new(kMessageBoxBytes);
     CUiWindow* box = memory != nullptr ? ConstructMessageBox(memory, nullptr, ui, name, text, result, 3, 1) : nullptr;
-    InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
+    ui->PushWindow(box, 1, 1);
 }
 } // namespace
 

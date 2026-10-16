@@ -1,9 +1,11 @@
 // The camp's input side (buttons, keys), its message-result and help-topic slots (CCampPages,
 // ui_camp.h). See docs/notes/ui.md, section 5.
+#include "party.h"
 #include "ui.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
+#include "ui_screens.h"
 #include "unit.h"
 #include "world.h"
 
@@ -98,10 +100,10 @@ void CCampPages::OnMessageResult(int result) {
     PartyUnitRecord* hero = ShownHero(this);
     if (static_cast<int>(hero->weaponCount) <= 0) return;
     CEngineObject* weapon = hero->weapons[0];
-    void* item = PartyAddItemOriginal(LocalPlayerData(), nullptr, weapon, 0, 1);
-    RecordRemoveQuickEntryOriginal(hero, nullptr, weapon);   // 00660A50: the weapon list's Remove
+    void* item = reinterpret_cast<CParty*>(LocalPlayerData())->AddItem(static_cast<CItem*>(weapon), 0, 1);
+    hero->RemoveWeapon(static_cast<CItem*>(weapon));   // 00660A50: the weapon list's Remove
     hero->weaponIndex = 0xFFFFFFFFu;
-    ItemStripScrollToItemOriginal(itemStrip_, nullptr, item);
+    static_cast<CUiItemStrip*>(itemStrip_)->ScrollToItem(static_cast<CItem*>(item));
     CallVirtual(kSlotRefreshWeapons);
 }
 EI_REPLACE_METHOD(0x0060E900, CCampPages::OnMessageResult);

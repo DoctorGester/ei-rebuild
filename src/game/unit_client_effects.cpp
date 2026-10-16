@@ -161,7 +161,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
         auto* source = static_cast<CParticleSource*>(
-            ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kBloodParticles[blood - 1]));
+            static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kBloodParticles[blood - 1]));
         source->position = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->bounds_.radius * kBloodScale);
         source->typeParam = kBloodRate;
@@ -191,7 +191,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
 EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
 void CUnitClientSpecific::SparkEffect(int) {
-    auto* source = static_cast<CParticleSource*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kSparks));
+    auto* source = static_cast<CParticleSource*>(static_cast<CParticleManager*>(ParticleManagerObject())->CreateSource(kSparks));
     source->position = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->radius);
     source->alpha = kSparkAlpha;

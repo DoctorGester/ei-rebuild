@@ -39,7 +39,7 @@ EI_REPLACE_METHOD(0x0052C680, CTorchObjectSpec::DestroySpec);
 
 void CTorchObjectSpec::LoadSpec(CStream* stream) {
     stream->Read(&lightKind_, 4);
-    StreamReadCStringOriginal(stream, nullptr, &name_);
+    stream->ReadInto(&name_);
     stream->Read(&values_[0], 4);
     stream->Read(&values_[1], 4);
     stream->Read(&values_[2], 0x10);

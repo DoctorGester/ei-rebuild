@@ -4,6 +4,7 @@
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
 #include "ui.h"
+#include "ui_camera_keys.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -70,7 +71,7 @@ __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
 void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
 void RawPanel::AddLogText(const char* a0) { static_cast<CUiScrollText*>((void*)this)->AddText(a0); }
-void* RawPanel::ConstructViewInput(CInterface3D* ui) { return ViewInputConstructOriginal(this, nullptr, ui); }
+void* RawPanel::ConstructViewInput(CInterface3D* ui) { return reinterpret_cast<CCameraInput*>(this)->Construct(ui); }
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 
@@ -78,7 +79,7 @@ RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 struct ContainerInputs {
     void AddInput(void* input);   // 00600CC0
 };
-void ContainerInputs::AddInput(void* input) { ContainerAddInputOriginal(this, nullptr, input); }
+void ContainerInputs::AddInput(void* input) { reinterpret_cast<CUiContainer*>(this)->AddInput(static_cast<UiInputSide*>(input)); }
 
 // The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
 // game being loaded (at 007AFE1C).
@@ -341,7 +342,7 @@ BOOL CBattleScreen::Draw(void* target) {
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    ContainerDrawOriginal(this, nullptr, reinterpret_cast<int>(target));   // 00600EF0: CUiContainer::DrawContainer
+    DrawContainerImpl(reinterpret_cast<int>(target));   // 00600EF0: CUiContainer::DrawContainer
     return 1;
 }
 

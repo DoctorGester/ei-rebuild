@@ -279,9 +279,9 @@ int CUiItemStrip::TabOf(const char* item) {
     }
 }
 
-void CUiItemStrip::ScrollToItem(char* item) {
+void CUiItemStrip::ScrollToItem(CItem* item) {
     if (!item) return;
-    auto* wanted = reinterpret_cast<CItem*>(item);
+    CItem* wanted = item;
     float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
     UiItemsSetSize(&list_, nullptr, 0, -1);
     // The original inlines the array's SetSize (0062A390) in the second loop.
@@ -294,7 +294,7 @@ void CUiItemStrip::ScrollToItem(char* item) {
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
     } else {
-        int tab = TabOf(item);
+        int tab = TabOf(reinterpret_cast<const char*>(item));
         if (TabKeysEnabled()) SetTab(tab);
         for (int i = 0; i < source_->size; ++i)
             if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);

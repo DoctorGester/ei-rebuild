@@ -32,7 +32,7 @@ void WriteValue(CStream* stream, T value) {
 }
 
 void ReadText(CStream* stream, mfc::CString& text) {
-    StreamReadCStringOriginal(stream, nullptr, &text);
+    stream->ReadInto(&text);
 }
 
 // A list's count, then each item's id (-1 for an empty entry).

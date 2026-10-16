@@ -204,7 +204,7 @@ public:
     // the tab so the last entry `item` is the same as (CItem slot 14) is visible: its position
     // moves into [index - 6, index]. The scroll stops (pending and speed 0); count_ is not
     // updated. Null does nothing.
-    void ScrollToItem(char* item);
+    void ScrollToItem(CItem* item);
     // The tab of `item` under the current filter (0 for an unknown filter), as both rebuilds
     // choose it.
     int TabOf(const char* item);

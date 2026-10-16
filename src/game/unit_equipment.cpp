@@ -1,5 +1,6 @@
 // A new unit's starting equipment from its prototype (005141F0; the world adds zone units with it
 // after ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
+#include "item.h"
 #include "unit_create.h"
 #include "game_strings.h"
 
@@ -74,7 +75,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CEngineObject* spell = (CEngineObject*)FactoryCreateSpellOriginal(items, nullptr, prototype->spellNames.begin()[i], spellOwner);
+        CEngineObject* spell = (CEngineObject*)static_cast<CItemManager*>(items)->CreateSpellItem(prototype->spellNames.begin()[i], static_cast<CSpellManager*>(spellOwner));
         if (spell) static_cast<CUnit*>(unit)->AddSpell(spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }

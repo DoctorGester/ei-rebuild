@@ -237,6 +237,7 @@
 #include "game/object_tables.h"
 #include "game/player_messages.h"
 #include "game/ui.h"
+#include "game/world.h"
 
 #include <windows.h>
 #include <dwmapi.h>
@@ -298,7 +299,7 @@ constexpr std::uintptr_t kMapDatabase = 0x0079BF00;
 constexpr int kZoneRecordKind = 0x28;                   // map.txt type: 0 game, 1 edge, 2 brief
 
 // The local world player (CWorldServer::GetPlayer 00594180, thiscall, RET 4) or null.
-void* LocalWorldPlayer() { return WorldGetPlayer(reinterpret_cast<void*>(kServerWorld), nullptr, kLocalPlayer); }
+void* LocalWorldPlayer() { return reinterpret_cast<CWorldServer*>(kServerWorld)->GetPlayer(kLocalPlayer); }
 // Its server connection (the world player's +0x20, a CPlayerServer in single player; StateOf in
 // script_exec.cpp) or null; the connection's +0x20 is its state (1 in the world, 3 leaving the zone).
 void* LocalConnection() {
@@ -1319,7 +1320,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     }
     for (const POINT& p : candidates) {
         int at[2] = {p.x, p.y};
-        void* hit = byId ? static_cast<void*>(HoverObjectAt(world, nullptr, at)) : HarnessUnitAtPoint(world, nullptr, at);
+        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(reinterpret_cast<const long*>(at))) : HarnessUnitAtPoint(world, nullptr, at);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;

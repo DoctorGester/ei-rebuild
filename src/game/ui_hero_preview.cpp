@@ -8,6 +8,7 @@
 #include "model.h"
 
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
@@ -154,7 +155,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     // 2 (v.u) v + (w^2 - v.v) u + 2 w (v x u), with u = 0).
     Vector3 up = {0.0f, 1.0f, 0.0f};
     Quaternion q;
-    QuaternionSetAxisAngleOriginal(&q, nullptr, &up, turn);
+    q.SetAxisAngle(up, turn);
     Vector3 v = {q.x, q.y, q.z};
     Vector3 origin = {0.0f, 0.0f, 0.0f};
     float ww = static_cast<float>(D(q.w) * D(q.w));
@@ -174,12 +175,12 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
     Vector3 xAxis = {1.0f, 0.0f, 0.0f};
     Quaternion tilt;
-    q = Product(q, *QuaternionSetAxisAngleOriginal(&tilt, nullptr, &xAxis, GameFloat(0x007C7D24)), false);
+    q = Product(q, *tilt.SetAxisAngle(xAxis, GameFloat(0x007C7D24)), false);
     if (D(depth) > D(GameFloat(0x00740160))) {
         Vector3 zAxis = {0.0f, 0.0f, -1.0f};
         Quaternion side;
         q = Product(q,
-                    *QuaternionSetAxisAngleOriginal(&side, nullptr, &zAxis,
+                    *side.SetAxisAngle(zAxis,
                                                     static_cast<float>(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))),
                     true);
     }

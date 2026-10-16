@@ -1,5 +1,6 @@
 // CWorldServer: casting spells into the world (CastSpell 0058E850) and the missile that carries
 // one (CreateMissile 0058E670). See world.h and docs/notes/world.md.
+#include "object_diplomacy.h"
 #include "world.h"
 #include "combat.h"
 
@@ -110,7 +111,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
         CEngineObject* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
             reinterpret_cast<CUnitServer*>(controller)->Brain()->SetSeen(caster);
-            DiplomacyOnAttack(&diplomacy_, nullptr, caster, target, 10);
+            static_cast<CDiplomacy*>(&diplomacy_)->OnAttack(static_cast<CUnit*>(caster), static_cast<CUnit*>(target), 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }

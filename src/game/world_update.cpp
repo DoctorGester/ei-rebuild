@@ -101,7 +101,7 @@ int CWorldServer::Update() {
     if (!paused_) {
         for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
             PlayerTickOriginal(player);
-        TickAt(this, nullptr, 0);
+        Tick(static_cast<char>(0));
     }
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
         player->server->UpdatePartyUnits();

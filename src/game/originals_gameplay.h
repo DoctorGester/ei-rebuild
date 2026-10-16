@@ -25,7 +25,6 @@ __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORI
 __declspec(naked) inline void* __fastcall PartyMapAtOriginal(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x004A91B0)
 __declspec(naked) inline void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*)
     EI_ORIGINAL(0x0066C1D0)
-__declspec(naked) inline void __fastcall MissileSetTarget(CEngineObject*, void*, int) EI_ORIGINAL(0x0067AC70)
 __declspec(naked) inline Projectile* __fastcall ProjectileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
 // null).
@@ -49,24 +48,10 @@ __declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void
 // the folder (a CString; the heroes' folder 007C82A0) passed as an int; rewritten as MpHeroRecord::WriteFile
 // (party_file.cpp), called through its address so the verify wrapper runs.
 __declspec(naked) inline void __fastcall PartySendTransferOriginal(void* /*party*/, void*, int /*transfer*/) EI_ORIGINAL(0x00662AC0)
-__declspec(naked) inline void* __fastcall PartyAddItemOriginal(void* /*party*/, void*, void* /*item*/, int /*a*/,
-                                                               int /*b*/) EI_ORIGINAL(0x00661DB0)
-
-// C3i. 00661050: party record builder / embedded party constructor (plain RET, returns this). 006628D0: adds a member record
-// (name, prototype, extra; RET 0xC, EAX is the new record).
-__declspec(naked) inline void* __fastcall PartyRecordsConstructOriginal(void* /*party*/) EI_ORIGINAL(0x00661050)
-__declspec(naked) inline void* __fastcall PartyAddMemberOriginal(void* /*party*/, void*, const char* /*name*/,
-                                                                 const char* /*prototype*/, const char* /*extra*/)
-    EI_ORIGINAL(0x006628D0)
 
 // C3i part 2. 00613820: the quick item record by name (RET 4). 006AD000: item factory MakeItem (RET 0x10, returns the item);
 // 006AD1E0: CreateSpell(name, owner) (RET 8, returns the spell). 006611D0: party record builder destructor, 00665200: player
 // clear, 00665A10: player disconnect (all plain RET, EAX not a result). 0066C180: creates a player object for a session (plain RET, EAX is the player or null).
-__declspec(naked) inline void* __fastcall FindQuickItemOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x00613820)
-__declspec(naked) inline void* __fastcall FactoryMakeItemOriginal(void* /*factory*/, void*, int, int, int, int)
-    EI_ORIGINAL(0x006AD000)
-__declspec(naked) inline void* __fastcall FactoryCreateSpellOriginal(void* /*factory*/, void*, const char* /*name*/,
-                                                                     void* /*owner*/) EI_ORIGINAL(0x006AD1E0)
 __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*party*/) EI_ORIGINAL(0x006611D0)
 // 006613C0 (RET 4; CParty::CopyConstruct, party_save.cpp): the party copy-constructed from `source` (which it
 // reads non-const); returns the party. Through its address so its check runs.
@@ -89,39 +74,16 @@ __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /
 // adds a reference (+4), appends it to the list and returns it (RET 4); Remove(entry) releases the entry through slot 4 and
 // closes the gap (RET 4, no result). Add: 006608D0 quick, 00660AB0 belt, 00660C90 worn, 00660E70 spells; Remove: 00660A50 quick,
 // 00660C30 belt, 00660E10 worn, 00660FF0 spells (world_quests.cpp used the names of the other lists for the removers).
-__declspec(naked) inline void* __fastcall RecordAddQuickEntryOriginal(void* /*record*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x006608D0)
-__declspec(naked) inline void __fastcall RecordRemoveQuickEntryOriginal(void* /*record*/, void*, void* /*entry*/)
-    EI_ORIGINAL(0x00660A50)
-__declspec(naked) inline void* __fastcall RecordAddBeltEntryOriginal(void* /*record*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x00660AB0)
-__declspec(naked) inline void __fastcall RecordRemoveBeltEntryOriginal(void* /*record*/, void*, void* /*entry*/)
-    EI_ORIGINAL(0x00660C30)
-__declspec(naked) inline void* __fastcall RecordAddWornEntryOriginal(void* /*record*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x00660C90)
-__declspec(naked) inline void __fastcall RecordRemoveWornEntryOriginal(void* /*record*/, void*, void* /*entry*/)
-    EI_ORIGINAL(0x00660E10)
-__declspec(naked) inline void* __fastcall RecordAddSpellEntryOriginal(void* /*record*/, void*, void* /*item*/)
-    EI_ORIGINAL(0x00660E70)
-__declspec(naked) inline void __fastcall RecordRemoveSpellEntryOriginal(void* /*record*/, void*, void* /*entry*/)
-    EI_ORIGINAL(0x00660FF0)
 // 00661F30: takes an item out of the party's item list (RET 8: item, flag read as a byte; when the stack count at +0x48 is above
 // 1 and the flag is clear it only lowers the count and EAX is the item, otherwise the item is released and removed and EAX is
 // 0; no caller reads it). 006620F0: removes the member record (0x784 bytes) whose key at +0x1C equals the argument (RET 4; EAX 1
 // when found, else 0). 00665440 (rewritten as CPlayer::IsLeader, which compares the unit with the first party member; callers read it as "the player has the unit"; RET 4; EAX 0/1). 00665780: erases the quest item (type 0x3009)
 // with a number (RET 4; EAX 1 when found, else 0). 00665A70 / 00665B50: add / remove a unit of the player (RET 4, EAX is not a
 // result).
-__declspec(naked) inline void* __fastcall PartyRemoveItemOriginal(void* /*party*/, void*, void* /*item*/, int /*flag*/)
-    EI_ORIGINAL(0x00661F30)
-__declspec(naked) inline int __fastcall PartyRemoveMemberOriginal(void* /*party*/, void*, unsigned /*id*/)
-    EI_ORIGINAL(0x006620F0)
 __declspec(naked) inline int __fastcall PlayerOwnsUnitOriginal(const void* /*player*/, void*, const void* /*unit*/)
     EI_ORIGINAL(0x00665440)
 __declspec(naked) inline int __fastcall PlayerEraseQuestItemOriginal(void* /*player*/, void*, int /*number*/)
     EI_ORIGINAL(0x00665780)
-__declspec(naked) inline void __fastcall PlayerAddUnitOriginal(void* /*player*/, void*, void* /*unit*/) EI_ORIGINAL(0x00665A70)
-__declspec(naked) inline void __fastcall PlayerRemoveUnitOriginal(void* /*player*/, void*, void* /*unit*/)
-    EI_ORIGINAL(0x00665B50)
 // 0066D490: writes a path message about a unit to the message stream in ECX (the member at the player's +0x20; RET 0x18: unit,
 // motion order, point, kind, flag, limit; the limit is copied as a dword; EAX is not a result). 0066D7F0: StateObjectsAdded,
 // walks the pointer array it is given (data at +0, count at +4) (RET 4; EAX is always 1, no caller reads it).
@@ -130,23 +92,9 @@ __declspec(naked) inline void __fastcall PlayerPathMessageOriginal(void* /*sink*
                                                                    int /*kind*/, int /*flag*/, std::uint32_t /*limitBits*/)
     EI_ORIGINAL(0x0066D490)
 
-// A-I7. A class template's stock lists (+0x11C all, +0x1D4 spells and modifiers; thiscall on the list, RET 4): each
-// appends the record to its vector unless already there (no result): 00699080 armour, 006990E0 weapon, 00699140 quick
-// item, 006991A0 spell, 00699200 modifier.
-__declspec(naked) inline void __fastcall StockAddArmorOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x00699080)
-__declspec(naked) inline void __fastcall StockAddWeaponOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x006990E0)
-__declspec(naked) inline void __fastcall StockAddQuickItemOriginal(void* /*list*/, void*, void* /*record*/)
-    EI_ORIGINAL(0x00699140)
-__declspec(naked) inline void __fastcall StockAddSpellOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x006991A0)
-__declspec(naked) inline void __fastcall StockAddModifierOriginal(void* /*list*/, void*, void* /*record*/)
-    EI_ORIGINAL(0x00699200)
 // 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
-__declspec(naked) inline char* __fastcall SpellPrototypeByNameOriginal(void* /*table*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00613920)
 // C3m. 0069D290: a record of the material table by name; 0069D380: the class-0x15 prototype table's record by name
 // (thiscall on 007C8778, item_db.h's QuestItems() table). RET 4; null when missing.
-__declspec(naked) inline char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
-__declspec(naked) inline char* __fastcall FindTable15Named(void*, void*, const char*) EI_ORIGINAL(0x0069D380)
 // C3m. 0059C7A0 (the world server's missile list, an MFC CTypedPtrList of counted Projectile pointers): NewNode(prev,
 // next), a node taken from the free list or carved from a new block.
 __declspec(naked) inline mfc::CTypedPtrList<Projectile>::Node* __fastcall ProjectileNewNode(

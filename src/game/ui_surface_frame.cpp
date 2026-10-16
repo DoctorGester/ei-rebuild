@@ -6,13 +6,14 @@
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "lib/mfc_gdi.h"
 #include "originals_ui.h"
 
 void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     if (!holder_) return;
     ui_gdi::GameBrush brush;
     brush.Construct();
-    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(dc_));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
@@ -30,7 +31,7 @@ __declspec(naked) void ui_gdi::GameDC::FillSolidRect(const RECT*, COLORREF) EI_O
 
 void CUiSurface::Fill(COLORREF colour) {
     if (!holder_) return;
-    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(dc_));
+    auto* dc = reinterpret_cast<ui_gdi::GameDC*>(mfc::impl::CDC::FromHandle(dc_));
     RECT whole = rect_;
     gameapi::OffsetRect(&whole, -whole.left, -whole.top);
     dc->FillSolidRect(&whole, colour);

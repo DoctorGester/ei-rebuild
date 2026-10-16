@@ -181,7 +181,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             void* memory = gamecrt::operator_new(kObjectivesSize);
             void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(interface_) : nullptr;
             static_cast<CObjectivesWindow*>(window)->Setup(target_, &arrivals_, 1, 0);
-            InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+            interface_->PushWindow(static_cast<CUiWindow*>(window), 1, 1);
             return;
         }
     }
