@@ -52,58 +52,35 @@ searches per leg) -> `BuildCellsTo` (005B9A20).
 
 ## Rewritten
 
-Pure = same input, result compared; differential = original first, state kept (and put back), then ours,
-compared; ours only = consistency check.
-
-| Address | Name | File | Verify |
-|---|---|---|---|
-| 005B7B20, 005B7B70, 005B3160, 005B77F0, 005BB960, 005BBA10, 005BBB20, 005BC2A0, 005BBBD0, 005BBC70, 005BBD10, 005BBDB0, 005BBE40, 005BC1F0, 005B64E0, 005B81B0, 005BA6E0, 005BA790, 005BA830 | LevelForSizeClass, StandingLevel, BridgeHeight, GroundHeight, GroundHeightAt, SurfaceHeightAt, TopHeightAt, SlopeAt, IsBridgeAt, CellFlag80At, HasKind3Occluder(At), MaterialAt, MaterialRecordAt, BridgeDeckAt, CanStandAtFromHere, IsUnitCellPassable, IsPassableForClass, CanLeaveCell | ai_map.cpp | pure (float / int bits; out params and reason compared) |
-| 005B79D0, 005B80F0, 005BC3E0 | IsPassable, CanStandAt, LineOfSight | ai_map.cpp | pure (CanStandAt is in `verified.txt`) |
-| 005B7A40 | IsPassableWithoutSelf | ai_map.cpp | ours only: equals IsPassable at the cell afterwards |
-| 005BFC40, 005BA9D0 | SpiralCache::Get, FindFreeCellNear | ai_map.cpp | differential on a copy (return, cache, target bits) |
-| 005BD350, 005B2D10, 005B2E10 | FootprintCellSet::SetSize, AddTop, AddBottom | ai_footprint.cpp | deep copy: original on a clone (own game-heap storage), ours on the real set; sets over 4096 cells ours only |
-| 005B2F40 | FootprintCellSet::GetBounds | ai_footprint.cpp | output |
-| 005B6A80 | CAIMap::MarkFootprint | ai_footprint.cpp | non-units: our CollectFootprint into scratch first, then the original runs and its sets are captured at ApplyFootprint / ApplyBridges, compared (padding byte skipped); units: ours only |
-| 005B65B0, 005B7820, 005B78F0, 005B8B30, 005B8B80 | ApplyFootprint, StampFootprint, ClearFootprint, BeginRefresh, EndRefresh | ai_footprint.cpp | ours only (cells with low < high hold an occluder; owner stored; refreshUnits restored; batching flag / rectangle) |
-| 005B2760, 005B2A00 | FootprintDiscAt (cloud), FootprintAlongDirection (wall) | ai_footprint_shapes.cpp | differential on the cell list (byte 0x13 and `next` skipped) |
-| 005B6740 | ApplyBridgeDecks | ai_bridges.cpp | ours only inside the MarkFootprint spy (kind 4, ground >= deck, occluder bits 7) |
-| 005B61B0, 005B6380, 005BFE70 | AddOccluderRecord, ClearOccluderRecord, NewOccluderRecord | ai_occluders.cpp | ours only: word state |
-| 005B3C30, 005B5E10 | ConstructAIMap, ResetAIMap | ai_map_construct.cpp | ours only: refresh flag off, owner 0, inlined vtables and layer back pointers |
-| 005B4150, 005B6070 | FillAreaLists, InitCostTables | ai_area_lists.cpp, ai_cost_tables.cpp | differential |
-| 005B8FA0, 005B8BA0, 005B8710 | RefreshArea, CellMark, LimitSteepCells | ai_refresh.cpp | differential (RefreshArea runs twice: slow on big refreshes) |
-| 005AF1C0, 005AF3D0, 005AF5F0, 005AF7B0, 005AF900, 005AFAE0, 005AFF10, 005B0050, 005B0370, 005B0600, 005B07C0, 005B0C00, 005B0D90, 005B0F70, 005B1180 | CRegionMap: BlockSearchPathTo, ctor, JoinBlockSearches, CellSuitsBlockAt, PickRepresentatives, MeasureBlockEdges, FloodRegionFrom, LabelRegions, NearbyBlocks, DominantRegion, ReachesRegion, Attach, FindRegionChain, ClampEdgeCosts, LoadBlocks | ai_region_reach.cpp | differential except the allocating / stateful ones (ctor, JoinBlockSearches, Attach, FindRegionChain, LoadBlocks: ours only) |
-| 005B9C90 | CAIMap::PlanLongPath | ai_plan.cpp | ours only: a plan starts at the start cell, list linked |
-| 005B9690, 005B9A20 | JoinLocalSearches, BuildCellsTo | ai_join.cpp | ours only / differential on x, y |
-| 005BC750 | LargestStepAlong | ai_line_step.cpp | pure on the ST0 result (bits as double) |
-| 005B7EF0 | StampWaterPatch | ai_water_patch.cpp | ours only: shared patch exists, holds a reference |
-| 005AEA80 | StepAlarm | ai_alarm.cpp | ours only: pending / active / timer state |
-| 005BD7F0 | CacheGet (object cache lookup, used for unit shapes) | ai_shape_cache.cpp | ours only |
-| 005BAC10 | SnapTarget | ai_path.cpp | differential (result, target bits; with sameRegion both write the reachability marks) |
-| 005BB350, 005BB900, 005BB190, 005B1B70 | FindPath, ContinuePath, AdvancePath, PathCellList::NewNode | ai_path.cpp | ours only: both lists consistent, goal copied, flag 6F cleared on success; reached == no cells left |
-| 005B1DE0, 005B1F10, 005B2050, 005B2190 | stand orders | ai_path_stand.cpp | ours only: no cells, flags {1, 0, 0, 1}, target = unit's cell |
-| 005B2430, 005B2570 | LoadPath, SavePath | ai_path_save.cpp | save: differential through a recording stream; load: ours only |
-| 005C7430, 005C6FC0 | UnitMotion::Sample, SamplePath | ai_motion.cpp | original on a copy with scratch outputs; result, outputs and 0xA4 bytes compared |
-| 005C67D0, 005C6750, 005C66C0, 005C6370, 005C6290 | Build, AssignCells, Subdivide, SubdivideSegment, LimitSpeeds | ai_motion.cpp | deep copy (own game-heap arrays), arrays and scalars compared |
-| 005C6270, 005C73B0, 005C7410 | Clear, MotionCubic::Fit, Slope | ai_motion.cpp | copy / output / pure |
-| 005C7B00, 005C7D50, 005B23A0, 005C7C00, 005C7C40, 005C7C20, 005C7C70, 005C7CB0, 005C7D00 | AIPath Start, Reset, Clear, SetTurn, SetTurnUntil, SetTrack, SetTarget, ShiftTime, Destination | ai_motion.cpp | original on a copy with empty lists, header / EAX compared |
-| 005C7C90, 005C7CE0 | AIPath::ForgetObject, SetStepSpeeds | ai_motion.cpp | ours only |
-| 005B7BB0, 005B8350, 005B9510, 005BA5A0 | BlockingUnitAt, UnitShape, CostContext, StandsOnCheapCell | ai_movement.cpp | pure / output (UnitShape: same shape object) |
-| 005BA400 | CAIMap::SetStepSpeeds | ai_movement.cpp | original runs, its step words recorded and put back, ours, compared |
-| 005BC970 | MarkVisibleCells | ai_movement.cpp | original marks a copy of the grid, ours the real one, compared |
-| 005B36B0, 005B3890 | CUnitLayer::Add, Remove | ai_unit_layer.cpp | ours only: non-empty blocks / no nodes of the unit left |
-| 005B39D0, 005B3A70, 005B3B20, 005B3B90 | small / large layer Set, Merge | ai_unit_layer.cpp | original first (its 16 map bytes recorded and restored), then ours |
-| 005C35F0, 005C2F50, 005C2FB0, 005C3050, 005C3090, 005C1D50, 005C2D40, 005C30E0, 005C31A0, 005C3200 | LocalSearch Reset, PickCurrent, Requeue, Best, CostAt, StepCost, Expand, ExpandAll, ExpandUntil, PathTo | ai_local_search.cpp | in place: search header and node block recorded, original, recorded, put back, ours, compared (Expand / Requeue sampled after 512 calls); Best / CostAt / StepCost pure; PathTo x, y on a scratch list |
-| 005C22A0, 005C21A0, 005C2420, 005C24F0, 005C2B10, 005C2C90, 005C2CF0, 005C2A30, 005C33F0, 005C3530, 005C1EA0, 005C25D0, 005B9580 | LocalSearch PlaceWindow, SetUnit, Begin, BeginForClass, BeginInRect(For, ForClass), CommitDirections, Save / RestoreLevels, Attach, Recenter; CAIMap::CostContextFor | ai_local_search.cpp | in place as above (CommitDirections / levels with the map bytes under the window); Attach ours only (fresh grid); SaveLevels' first (allocating) call ours only; CostContextFor output |
-| 005BD200, 005BD2A0, 005C5DA0, 005C5E60, 005C6000, 005C5CC0 | PathCellList AddHead, AddTail, AppendList, Reversed, RemoveRepeats; PathCell::Step | ai_path_cells.cpp | ours only against a model of the list taken before (cells as 8-byte records, links checked); Reversed and Step: the original on scratch outputs |
-| 005C46C0, 005C45D0, 005C44D0, 005C4C20 | PathSmoother Smooth, Advance, Relax; SmoothPool::SetSize | ai_path_smooth.cpp | Smooth: the original on a copy of the path, result and cells' x, y compared; Advance: pool and states after the original (pool put back) and ours; Relax: the original on a scratch state; SetSize ours only |
-| 005AED60, 005AEE30, 005AEEC0, 005AEFF0, 005AF0C0, 005B0AF0, 005AFEC0 | BlockSearch Attach, Requeue, Relax, PickBest, Expand; CRegionMap SeedSearch, AttachSearches | ai_block_search.cpp | PickBest pure; the rest ours only (buckets sorted and linked, relaxed cost against a model, records reset) |
-| 005AFC70, 005AFEE0 | CRegionMap::UpdateBlocks, UpdateBlocksFor (thunk) | ai_block_search.cpp | ours only (steps called through their addresses, verified on their own) |
-| 005B89F0 | CAIMap::ClearUnmarkedArea | ai_refresh.cpp | differential on the cell words |
-| 005C8D40 | VisibilityGrid::Grow (Include stays the forwarder; registered only in A-W11, before that only the verify build ran it) | ai_movement.cpp | ours only: covers the square, keeps exactly the old marks |
-| 005C7860, 005C79B0, 005C06F0 | UnitMotion::LoadState / SaveState (the unit save, CUnit + 0x27C), CSectorMap::Init (A-W11) | ai_motion.cpp, sector_map.cpp | SaveState compared byte for byte on a recording stream; the rest ours only |
-| 005C9530, 005C97B0, 005CAE30, 005CAFA0 | AIEventTable (CWorldServer + 0x2838, unit_ai.h): Advance (the time wheel's tick), ForgetUnit (a dead unit's events), Load / Save; AIEvent records from the pool CList 007C43A8 and the free list 007C53F0 (A-W10) | ai_events.cpp | Save compared byte for byte on recording streams; the rest ours only (wheel slots emptied / consistent, no event of the dead unit left) |
-| 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
-| 005C7DB0, 005C7FC0 | AIPath::WriteState / ReadState (order and steps on a delta field) | ai_path_state.cpp | differential on field / reader copies (the read into a scratch path) |
+Every function carries its address in its source comment (grep the address); the per-function table that used to be here is gone.
+By file:
+- `ai_map.cpp`: cell queries and heights (LevelForSizeClass 005B7B20, StandingLevel, BridgeHeight, GroundHeight(At), SurfaceHeightAt,
+  TopHeightAt, SlopeAt, MaterialAt, CanStandAtFromHere 005B64E0, IsUnitCellPassable, IsPassableForClass, CanLeaveCell), IsPassable
+  005B79D0, IsPassableWithoutSelf 005B7A40, CanStandAt 005B80F0, LineOfSight 005BC3E0, SpiralCache::Get 005BFC40, FindFreeCellNear
+  005BA9D0. `ai_footprint*.cpp`: FootprintCellSet, MarkFootprint 005B6A80, Apply / Stamp / ClearFootprint, Begin / EndRefresh, the
+  cloud and wall shapes; `ai_bridges.cpp` ApplyBridgeDecks 005B6740 (kind 4, ground >= deck, occluder bits 7); `ai_occluders.cpp`;
+  `ai_map_construct.cpp` (ConstructAIMap 005B3C30, ResetAIMap 005B5E10: refresh flag off, owner 0, inlined vtables and layer back
+  pointers); `ai_area_lists.cpp`, `ai_cost_tables.cpp`; `ai_refresh.cpp` (RefreshArea 005B8FA0, CellMark, LimitSteepCells,
+  ClearUnmarkedArea 005B89F0); `ai_water_patch.cpp` StampWaterPatch 005B7EF0; `ai_alarm.cpp` StepAlarm 005AEA80; `ai_shape_cache.cpp`
+  CacheGet 005BD7F0 (object cache lookup for unit shapes); `ai_line_step.cpp` LargestStepAlong 005BC750.
+- `ai_region_reach.cpp` CRegionMap 005AF1C0-005B1180 (BlockSearchPathTo, JoinBlockSearches, FloodRegionFrom, LabelRegions,
+  DominantRegion, ReachesRegion, FindRegionChain, ...); `ai_block_search.cpp` (BlockSearch Attach / Requeue / Relax / PickBest /
+  Expand 005AED60-005AF0C0, SeedSearch, AttachSearches, UpdateBlocks 005AFC70).
+- Paths: `ai_path.cpp` (SnapTarget 005BAC10, FindPath 005BB350, ContinuePath 005BB900, AdvancePath 005BB190, PathCellList::NewNode),
+  `ai_path_stand.cpp` (stand orders: no cells, flags {1, 0, 0, 1}, target = the unit's cell), `ai_path_save.cpp` (LoadPath 005B2430,
+  SavePath 005B2570), `ai_plan.cpp` PlanLongPath 005B9C90, `ai_join.cpp` JoinLocalSearches 005B9690 / BuildCellsTo 005B9A20,
+  `ai_local_search.cpp` (LocalSearch 005C1D50-005C35F0, CostContextFor 005B9580), `ai_path_cells.cpp` (PathCellList 005BD200-005C6000,
+  PathCell::Step 005C5CC0), `ai_path_smooth.cpp` (PathSmoother Smooth 005C46C0 / Advance 005C45D0 / Relax 005C44D0, SmoothPool::SetSize
+  005C4C20), `ai_path_state.cpp` (AIPath::WriteState / ReadState 005C7DB0 / 005C7FC0, the order and steps on a delta field).
+- Motion: `ai_motion.cpp` (UnitMotion::Sample 005C7430, SamplePath 005C6FC0, Build 005C67D0, AssignCells, Subdivide(Segment),
+  LimitSpeeds, MotionCubic::Fit, AIPath Start / Reset / Clear / SetTurn / SetTurnUntil / SetTrack / SetTarget / ShiftTime /
+  Destination / ForgetObject, UnitMotion::LoadState / SaveState 005C7860 / 005C79B0 = the unit save at CUnit + 0x27C),
+  `ai_movement.cpp` (BlockingUnitAt 005B7BB0, UnitShape 005B8350, CostContext 005B9510, StandsOnCheapCell 005BA5A0,
+  CAIMap::SetStepSpeeds 005BA400, MarkVisibleCells 005BC970, VisibilityGrid::Grow 005C8D40 (Include stays the forwarder)),
+  `ai_unit_layer.cpp` (CUnitLayer Add 005B36B0 / Remove 005B3890, small / large Set / Merge 005B39D0-005B3B90).
+- `sector_map.cpp`: CSectorMap Init 005C06F0, UnitsAt 005C0930, FindUnitsInRadius 005C0BD0, Add 005C0DF0, Remove 005C1010, Move 005C11D0.
+  `ai_events.cpp`: AIEventTable (CWorldServer + 0x2838, unit_ai.h) Advance 005C9530 (the time wheel's tick), ForgetUnit 005C97B0 (a dead
+  unit's events), Load / Save 005CAE30 / 005CAFA0; AIEvent records come from the pool CList 007C43A8 and the free list 007C53F0.
 
 ## Original bugs and oddities kept on purpose
 
@@ -131,19 +108,19 @@ compared; ours only = consistency check.
 
 ## Skipped and why
 
-- 005C9310 (the event table's add, Rebirth-patched: ResOverride). 005D7970 (the fear order's operator=: only the original 005D30A0 calls it; our Fear inlines it).
-- Run only by static initialisers (before the hooks), ported in A-W15 and compared once at start-up with what the original built (`EI_STARTUP_CHECK`, verify_ai_static_tables.cpp; world.md "Rewritten"): the smoothing
-  tables 005C42B0 with 005C3690, 005C3840, 005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp`), the spiral 005BF8F0 / 005BF5F0 (`sector_map.cpp`), the shape cache 005B32E0 / 005B31F0 (`ai_shape_cache.cpp`). 005C4F30,
-  005C5930, 005C5AB0, 005C5A80 are MFC (library.csv).
-- Shape cache helpers 005BCCB0, 005BE320, 005BE450, 005BE730 (STLport hash_map instantiations) are in config/library.csv (A-W7).
-- CRegionMap has its members (ai_map.h: the two BlockSearch, the local search, `progress`, the per class grids).
-- 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
-  (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
+- 005C9310 (the event table's add, Rebirth-patched: ResOverride). 005D7970 (the fear order's operator=: only the original 005D30A0 calls
+  it; our Fear inlines it). 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000 (AI helpers of other systems: voice, groups) and
+  005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
+- Run only by static initialisers (before the hooks), ported and compared once at start-up with what the original built
+  (`EI_STARTUP_CHECK`, verify_ai_static_tables.cpp; world.md "Rewritten"): the smoothing tables 005C42B0 with 005C3690, 005C3840,
+  005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp`), the spiral 005BF8F0 / 005BF5F0 (`sector_map.cpp`), the shape cache 005B32E0 /
+  005B31F0 (`ai_shape_cache.cpp`). 005C4F30, 005C5930, 005C5AB0, 005C5A80 are MFC and the shape cache helpers 005BCCB0, 005BE320,
+  005BE450, 005BE730 STLport hash_map instantiations (config/library.csv).
 
 ## Risks
 
-- Float order follows the instruction order; intermediates are `double` where the original keeps them on the FPU stack (identical at 24 or 53-bit precision, could differ in the last bit at 64-bit). `CollectFootprint` (every
-  face of every part) is the most sensitive; its verify compares the full collected sets. MarkFootprint's verify depends on the ApplyFootprint / ApplyBridges hooks seeing the original's call (capture keyed on the map and
-  set addresses); the AddTop / AddBottom deep copies slow object stamping in the verify build.
-- `Sample` kind 3 calls the world's slot 0xA0/4 and the tracked object's slot 0xD0/4 or 0xD4/4 twice in the verify build (assumed free of side effects). Unit layers, `ForgetObject`, `SetStepSpeeds`, FindPath /
-  PlanLongPath are verified by consistency checks only; `UnitShape`'s create path follows the original's helper calls one by one and the verify compares only the returned object.
+- Float order follows the instruction order; intermediates are `double` where the original keeps them on the FPU stack (identical at 24 or
+  53-bit precision, could differ in the last bit at 64-bit). `CollectFootprint` (every face of every part) is the most sensitive.
+- `Sample` kind 3 calls the world's slot 0xA0/4 and the tracked object's slot 0xD0/4 or 0xD4/4 twice in the verify build (assumed free of
+  side effects). Unit layers, `ForgetObject`, `SetStepSpeeds`, FindPath / PlanLongPath were checked for consistency only; `UnitShape`'s
+  create path follows the original's helper calls one by one.

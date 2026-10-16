@@ -47,38 +47,43 @@ Forwarders are in `unit_ai.h`, `unit_ai_modes.cpp`, `originals_ai.h`.
 
 ## Rewritten
 
-All registered addresses are vtable or direct-call targets, so the game's own mode objects run them; callers inside the
-area call rewritten neighbours through their addresses so the wrappers count. V: P pure, O output (original on a copy), D
-differential (original first, state put back, ours, compared), C capture / recording streams, ours = consistency checks.
-
-| Address | Name (file) | V |
-|---|---|---|
-| 005D53B0, 005D58D0 | AIBrain::Think, OnObjectDeleted | ours |
-| 005D5DD0-005D5F20, 005D50E0 | FindMode, FindPatrolMode, FindPlayerMode, LeaderOrFollowed, PlayerModeLeader, AggressionEnemy, IsNearPath (AL) | P |
-| 005D5080 | SetOwner (0x190 bytes and EAX) | O |
-| 005D7520, 005D76A0, 005D7790, 005D7AE0-005D7E90, 005D6F90 | UpdateMove, UpdateAttack, StopAction, Walk, TurnTowards, AttackTarget, AttackWith, UseOn, CastAt, Follow, SetSeen, UpdateFollow | ours |
-| 005D0A80, 005D0AF0, 005D0A50 | aimode::Priority50 (P), EnterIdle (random decay in [0.8, 1.2]), ClearAction | |
-| 005D0B70, 005D1B50, 005D0BE0, 005D1700, 005D1B70, 005D1E10 | GuardMode::Set (O), SentryMode::Set (O), Guard / Patrol / Sentry / Follow Execute | ours |
-| 005D1690, 005D16B0, 005D1E90, 005D1F80, 005D21A0, 005D2310 | PatrolMode::LastPoint, Evaluate, SuspectionMode::Evaluate, Execute, Enter, Leave | P with points / ours |
-| 005D2390, 005D2580, 005D26D0, 005D2710, 005D27D0 | Aggression Evaluate (10000 with chosen = enemy, or -1000) / Execute / Enter / Leave, CorpseWatcherMode::Evaluate | ours |
-| 005D3650, 005D3680, 005D2850 (O), 005D2960 (D), 005D30A0, 005CF170 | FearMode::Enter / Leave / Construct (script UMFear / UMAg, alarm assembly) / Evaluate / Execute, AIBrain::ApplyAttack (Fear's fight-back) (`unit_ai_fear.cpp`; fields `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending)) | |
-| 005D37A0, 005D1DE0, 005D4A90, 005D39E0-005D3D90, 005D37E0 (D), 005D3DE0 | PlayerMode / FollowMode::OnObjectDeleted, PlayerMode::Execute (every tick for party units), CommandWalk, GoTo, Attack, Use, Cast, CastAt, PathClear, SetLeader (a leader chain back to the unit stops the unit's own Player mode following first; CreateUnits) | ours |
-| 005D4170, 005D3F50 (O), 005D4600 (O), 005D4860 (P) | UpdateCombat, AddPartyTargets, CollectParty, StaysWithParty (`unit_ai_player.cpp`) | |
-| 005D5F60, 005D6140, 005D4DF0, 005D4E80, 005D4F70, 005CB0F0 | AddMode, RemoveModesOfType, ClearModes, Reset, Init, ResetMemory (`unit_ai_brain.cpp`) | ours |
-| 005D6230, 005D64E0, 005D6300, 005D63B0, 005D63F0, 005D6440, 005D6480, 005D65B0 | StandardGuard, StandardSentry (script Guard / Sentry: exactly the five modes in order), AddGuardMode, AddSuspectionMode, AddAggressionMode, AddCorpseWatcherMode, AddFearMode, AddSentryMode (their only callers are the two above) | ours |
-| 005D6630, 005D6D20, 005D9840 | ApplyBehaviour (a behaviour record as modes), SetAlarmRecords (the .mob loader), the records' SetSize on the template (`unit_ai_alarm.cpp`; every zone load, an alarm heard) | ours |
-| 005D5990, 005CBBE0 (D), 005CC020, 005CC620, 005CC560 (P), 005CB700, 005CB7F0 (P) | CallAllies, Notice (Fear's Evaluate, spell effects), Forget, AIReportArray::Add / Contains (+0x164), UpdateMemory (each Think), IsEnemy | ours |
-| 005CB260 (O), 005CB480 (O), 005CB670 (P), 005CBC80, 005CD500, 005CB850 (O, CheckNear), 005CBE90 | FindEnemies, FindEnemiesNear, NearestEnemy, ForceSee ("is forced to see unit"), AddCountedTail, MeasureExposure (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse (OnDamaged) (`unit_ai_memory.cpp`) | |
-| 005CAA00, 005CA1D0, 005CA5A0, 005CA410 (O), 005CD210 (O) | AIViewer Update, Refresh, See, Prepare, MarkSightCells (the show-visibility effect) (`unit_ai_sight.cpp`) | ours |
-| 005CC9D0, 00558D00, 00552CF0, 005CDD60, 005CD880 | AICallArray::Update (heard calls, each tick), AICallRecord::Destruct, UnitController::AddHostileMask, the heard calls' SetSize / Add on the template (`unit_ai_brain.cpp`) | ours against a model taken before |
-| 005C98C0, 005CCD40, 005CCEA0, 005CCBF0, 005CBBA0, 005CBBC0 | AIViewer::Noise (attacks, skills, explosions: hostile units within 50 whose hearing x loudness reaches hear kind at the source's position), heard calls Hear / AddClaim / RemoveClaims, the memory's two entry points (`unit_ai_hearing.cpp`) | ours against a model; Noise: the hearers asked again |
-| 005CF220 (O), 005CFE40, 005D0030 (D), 005CF9A0 (P), 005CF7F0 (P), 005CFE20 (P), 00545F40, 005CF720, 005CF780, 005CF3C0 (D, AL) | AIBrain::CurrentAttack, LookAround (`unit_ai_attention.cpp`; `this` the attention +0xA4, brain passed), AIAttention::Choose, Score, IsUsable, AIDistance2, AIOrder Clear / MakeAttack / MakeCast, CanReach (spell aimed at no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target lifted) (`unit_ai_targets.cpp`) | |
-| 005CEED0 (D), 005CEA30 (O), 005CEA60, 005CEBD0, 005CEDC0 (P), 005CE9B0 (P), 005D9250, 005CE860, 005CE920 (C), 005D9B80 | AIAttention::Build (the option lists, when a unit's controller is set up (005535F0 / 00553610) and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, CArray<AIAttackOption>::SetSize, AIAttackOption Load / Save, LoadAttackOptions (`unit_ai_options.cpp`; unit_ai, units, spells_cast, ui_saveload) | |
-| 005D5B40 (D), 005D7F80 (D) | PlanLooks, FindStandPoint (`unit_ai_moves.cpp`; random state put back; 4 ULPs) | |
-| 005573F0 (O), 005D8EE0, 005D8B60, 005D9DE0 (O), 00545B20, 005D12B0, 005D93B0, 005D9F30 | CArray<AILook> Init, Resize, CopyFrom, ElementAt, AIMoveOrder::Clear, PatrolMode::AppendPoint, the patrol point array's Add / SetAtGrow (`unit_ai_looks.cpp`; PatrolPoint::operator=, PatrolPointElements) | ours |
-| 005D3760, 005D0F60, 005D1240, 005D1220, 005D2950, 005D2930, 005D1210 (P), 005D2920 (P), 005D0A90, 005D8850, 005D6D10, 005D8CF0, 005D8CD0, 005D9E10, 005D9830 | PlayerMode::Construct, PatrolMode::Construct, Patrol / Fear destructor and deleting destructor, GetType (1, 7), the abstract base's Execute (remark, LookAround), the abstract bases' constructors (0073D15C / 0073D22C), `PatrolPointArray` destructors, ZeroAttackOptions, CList::GetNext (`unit_ai_mode_lifetime.cpp`; `verify_unit_ai_templates.cpp`) | O / ours |
-| 005D8310, 005D8860, 005CC1E0, 005CC350, 005D9010, 005D91B0, 005D9D40 | brain Load / Save (`unit_ai.h` has the order), memory load / save, looks load / save (`unit_ai_save.cpp`), `RefPtr::ShareAssign` (`core_refcount.cpp`) | saves C, loads ours; world_load |
-| slots 11 / 12 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | C (load: the original reads into a copy, ours from the recording) |
+All registered addresses are vtable or direct-call targets, so the game's own mode objects run them. Every function carries its
+address in its source comment; the per-function table that used to be here is gone. By file:
+- `unit_ai.cpp` brain and actions: Think 005D53B0, OnObjectDeleted 005D58D0, UpdateMove 005D7520, UpdateAttack 005D76A0, StopAction,
+  Walk, TurnTowards, AttackTarget, AttackWith, UseOn, CastAt, Follow, SetSeen, UpdateFollow (005D6F90-005D7E90); lookups FindMode,
+  FindPatrolMode, FindPlayerMode, LeaderOrFollowed, PlayerModeLeader, AggressionEnemy (005D5DD0-005D5F20), IsNearPath 005D50E0 (AL),
+  SetOwner 005D5080.
+- `unit_ai_modes.cpp`: Priority50 005D0A80, EnterIdle 005D0AF0 (random decay in [0.8, 1.2]), ClearAction, Guard / Sentry Set / Execute,
+  Patrol (LastPoint, Evaluate), Suspection (Evaluate 005D1E90, Execute, Enter, Leave), Aggression Evaluate (10000 with chosen = enemy,
+  or -1000) / Execute / Enter / Leave, CorpseWatcher Evaluate 005D27D0. `unit_ai_fear.cpp`: FearMode 005D2850-005D3680 (script UMFear /
+  UMAg, alarm assembly; fields `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending)),
+  AIBrain::ApplyAttack 005CF170 (Fear's fight-back). `unit_ai_player.cpp`: PlayerMode / FollowMode OnObjectDeleted, PlayerMode::Execute
+  (every tick for party units), CommandWalk, GoTo, Attack, Use, Cast, CastAt, PathClear, SetLeader (a leader chain back to the unit stops
+  the unit's own Player mode following first), UpdateCombat 005D4170, AddPartyTargets 005D3F50, CollectParty 005D4600, StaysWithParty 005D4860.
+- `unit_ai_brain.cpp`: AddMode 005D5F60, RemoveModesOfType, ClearModes, Reset, Init, ResetMemory 005CB0F0; the script's StandardGuard
+  005D6230 / StandardSentry 005D64E0 (exactly the five modes in order) with AddGuardMode, AddSuspectionMode, AddAggressionMode,
+  AddCorpseWatcherMode, AddFearMode, AddSentryMode (only those two call them); `unit_ai_alarm.cpp` ApplyBehaviour 005D6630,
+  SetAlarmRecords 005D6D20 (the .mob loader), the records' SetSize (every zone load, an alarm heard); heard calls: AICallArray::Update
+  005CC9D0 (each tick), AICallRecord::Destruct 00558D00, UnitController::AddHostileMask 00552CF0, SetSize / Add on the template.
+- `unit_ai_memory.cpp`: CallAllies 005D5990, Notice 005CBBE0 (Fear's Evaluate, spell effects), Forget, AIReportArray Add / Contains
+  (+0x164), UpdateMemory 005CB700 (each Think), IsEnemy 005CB7F0, FindEnemies 005CB260, FindEnemiesNear, NearestEnemy, ForceSee ("is
+  forced to see unit"), AddCountedTail, MeasureExposure 005CB850 (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse
+  005CBE90 (OnDamaged). `unit_ai_sight.cpp`: AIViewer Update 005CAA00, Refresh, See, Prepare, MarkSightCells 005CD210 (the
+  show-visibility effect). `unit_ai_hearing.cpp`: AIViewer::Noise 005C98C0 (attacks, skills, explosions: hostile units within 50 whose
+  hearing x loudness reaches hear kind at the source's position), heard calls Hear 005CCD40 / AddClaim 005CCEA0 / RemoveClaims, the
+  memory's two entry points 005CBBA0 / 005CBBC0.
+- `unit_ai_attention.cpp` / `unit_ai_targets.cpp`: CurrentAttack 005CF220, LookAround 005CFE40 (`this` the attention +0xA4, brain passed),
+  AIAttention::Choose 005D0030, Score, IsUsable, AIDistance2, AIOrder Clear / MakeAttack / MakeCast, CanReach 005CF3C0 (spell aimed at
+  no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target
+  lifted). `unit_ai_options.cpp`: AIAttention::Build 005CEED0 (the option lists, when a unit's controller is set up (005535F0 / 00553610)
+  and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, SetSize,
+  Load / Save, LoadAttackOptions 005D9B80. `unit_ai_moves.cpp`: PlanLooks 005D5B40, FindStandPoint 005D7F80. `unit_ai_looks.cpp`:
+  CArray<AILook> and the patrol point array (AppendPoint 005D12B0).
+- `unit_ai_mode_lifetime.cpp` (+ `verify_unit_ai_templates.cpp`): PlayerMode / PatrolMode constructors, Patrol / Fear destructors, GetType
+  (1, 7), the abstract base's Execute (remark, LookAround), the abstract bases' constructors (0073D15C / 0073D22C), ZeroAttackOptions,
+  CList::GetNext. `unit_ai_save.cpp`: brain Load / Save 005D8310 / 005D8860 (`unit_ai.h` has the order), memory and looks load / save,
+  `RefPtr::ShareAssign` (`core_refcount.cpp`); slots 11 / 12 are the modes' Load / Save (Guard, Sentry, Suspection, Fear; Save only:
+  Follow, Aggression, Player).
 
 FearMode's unset x is -1313.0f (0xC4A42000). UpdateMemory's callees take over a noticed point inline (005CC9D0: a delayed
 sound, level 900, kind -3; 005CAA00: a corpse seen, 800 / -3, an enemy lost from sight, 1000 / -2), so the final add uses the

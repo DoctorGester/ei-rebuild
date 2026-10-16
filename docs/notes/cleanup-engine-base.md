@@ -62,10 +62,8 @@ hook and verify wrapper.
 ## C2z: the app files and the scattered rest of the gate
 
 Offset access, `VCall`, byte offset arithmetic, per-file vector struct and `SlotNN` are 0 in every file under `src/` except `src/render/`
-(4 byte arithmetic, renderer ticket). This ticket: offsets 8 -> 0, `VCall` 25 -> 0 (plus 3 from C2d's files: `effects_weather`, `dx_surface`),
-byte arithmetic 4 -> 0 (plus 3 in `app_device_list`), per-file vector struct 1 -> 0 (cleanup-network.md), `SlotNN` 7 -> 0 (the last one,
-`map_spec.h`, went with C2ms). Duplicate forwarders stay 0. Every new virtual call was checked in the release objects (dumpbin): none is
-devirtualised.
+(4 byte arithmetic, renderer ticket). Duplicate forwarders stay 0. Every new virtual call must be checked in the release objects (dumpbin):
+none may be devirtualised.
 
 - `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `primary_`, `renderTarget_` width / height, `screen_`,
   `lastLoadResult_`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted through
@@ -73,19 +71,18 @@ devirtualised.
 - `app_registry`: prototypes and counted pointers are `CRefCounted` (`delete` = slot 0 with 1, as `core_refcount.cpp`); WinMain's COM
   pointers are `IUnknown`. Signatures (`void*`) kept for the verify wrappers.
 - CFile slots through `mfc::CFileVirtuals` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`, which also uses
-  `ei::SetVtable` now); `FreeSpares` deletes the spare list through `mfc::CObjectVirtuals` (merged with C2d's identical declaration).
+  `ei::SetVtable`); `FreeSpares` deletes the spare list through `mfc::CObjectVirtuals`.
 - `refptr_copies`: `RefPtrRelease` deletes on `CRefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount_`),
   `world_deleting_destructors.cpp` and the verify wrappers follow. `party_records`: the record's party `Create()` (slot 2) and `delete` on the
   record as a `CRefCounted` (base vtable 0073BB68).
-- Named slots: `CPixelConverter` 1 `SetChannelMasks`, 11 / 12 `BlurShadow` / `BlurShadow2` (C2d named 10 `DecodeDxt`); `CFigureCache` 5
-  `Clear` (004F7020), 6 `ScaledFigure` (004F75E0); `CUnitController` 21 `Heal(amountBits)` returning int (the amount is pushed as bits, as the
-  original does); `CMappedResource` 4 `Flush` (hook `MmioFlushHook`); `GlobalMapWeather` 0 `NoiseOctave` / 1 `BuildStep`; `AIStream` 0
-  `DeletingDestruct` (the verify streams' overrides renamed).
+- Named slots: `CPixelConverter` 1 `SetChannelMasks`, 10 `DecodeDxt`, 11 / 12 `BlurShadow` / `BlurShadow2`; `CFigureCache` 5 `Clear` (004F7020), 6
+  `ScaledFigure` (004F75E0) (now `CLinkFigureLoader`, cleanup-figures.md); `CUnitController` 21 `Heal(amountBits)` returning int (the amount is
+  pushed as bits, as the original does); `CMappedResource` 4 `Flush` (hook `MmioFlushHook`); `GlobalMapWeather` 0 `NoiseOctave` / 1 `BuildStep`;
+  `AIStream` 0 `DeletingDestruct` (the verify streams' overrides renamed).
 - `menu_rects` calls the owner's `CBaseManager::GetFile` (slot 19), `text_reader` the archive's `CMappedResource::GetFile` (slot 5),
   `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).
 - `CParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
   manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading_` and `Current()->occurrence`.
-
-## F5a (duplicate declarations)
-- `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats); app_device_list.cpp's `DeviceRecord` is gone.
-- bink_video.cpp's `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `mapspec::Waypoint::wait` is `time`; world_update.cpp's `IsLocal` is `NoPendingPossession`; `LocalViewData::partyTaken` is `sendParty` (CPlayerClient::sendParty_, the same byte).
+- `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats). bink_video.cpp's
+  `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `LocalViewData::partyTaken` is `sendParty` (CPlayerClient::sendParty_, the same
+  byte).

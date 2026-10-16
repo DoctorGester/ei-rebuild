@@ -14,22 +14,15 @@ UpdateMissile directly and the factory constructs effects directly, so those wra
 count; Tick / Pack / Unpack go through the vtables. CWorld has slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId);
 CMapObject +0x144 is the extent.
 
-| Address | Name | Verify |
-|---|---|---|
-| 0067AAB0, 0067AC70 | Steer, SetTarget | ours, restore, original (velocity CheckNear) / bytes |
-| 0067AC90, 0067AD10, 0067B450, 0067B4E0 | Tick, Reset, MoveParts, Start | ours only: position moved / fields / parts at the arrow / parts' settings |
-| 0067B690, 0067B800, 0067B9A0, 0067B8E0 | Unpack, Pack, SaveState, LoadState | as the other effects (Load ours only: CString reader) |
-| 0067AE30, 0067B1C0, 0067B1A0 | Construct, Destruct, DeletingDestruct | original on seeded scratch, all bytes / ours only |
-| 00676C00, 00676FD0 (+ ten pickers 00676DD0..00676F90) | CEffectSoundSeq Start, Unpack (world_effect_sequence.cpp) | ours only (Start: an id or -1; Unpack result) |
-| 00677510, 006776E0, 006776C0 | CEffectAmbientSound Construct, Destruct (Reset inline, then again), DeletingDestruct (A-H22) | original on scratch, all bytes / ours only |
-| 0067E170 | effect factory EffectNewObject (manager slot 14, RET 4; world_effect_lifetime.cpp) | ours only: slot 12 and type_ equal the request |
-
+Rewritten (grep the address): `Steer` 0067AAB0, SetTarget 0067AC70, Tick 0067AC90, Reset 0067AD10, MoveParts 0067B450, Start 0067B4E0, Unpack 0067B690,
+Pack 0067B800, SaveState 0067B9A0, LoadState 0067B8E0, Construct 0067AE30, Destruct 0067B1C0, DeletingDestruct 0067B1A0; CEffectSoundSeq Start
+00676C00 and Unpack 00676FD0 (+ ten pickers 00676DD0..00676F90; world_effect_sequence.cpp); CEffectAmbientSound Construct 00677510, Destruct
+006776E0 (Reset inline, then again), DeletingDestruct 006776C0; effect factory EffectNewObject 0067E170 (manager slot 14, RET 4;
+world_effect_lifetime.cpp). Also 0067AA00 (CEffectMissile::ResetMissile, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it),
+00675FB0 / 0067B390 (CEffect::DestructEffect, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two abstract vtables), 0067B050
+(CEffect::Construct out of line), 00676900 (TickDefault: 1), 006773A0 (ReadSavedStrings; callers keep the forwarder). Nothing but unwinding
+reaches the first five.
 Kept: Load and Unpack do not recompute the moving flag; Start copies the sound name unbounded.
-A-H25: 0067AA00 (CEffectMissile::ResetMissile, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it now),
-00675FB0 / 0067B390 (CEffect::DestructEffect, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two
-abstract vtables), 0067B050 (CEffect::Construct out of line), 00676900 (TickDefault: 1), 006773A0 (ReadSavedStrings;
-callers keep the forwarder so its wrapper runs: the original into a scratch array, the stream sought back, texts
-compared). Nothing but unwinding reaches the first five.
 
 Sound sequences: the first name (when not empty) and the others go into a stack CStringArray handed to
 CSoundManager::AddSequence with a chooser for their count; an update moves the sequence through SetSoundPosition with

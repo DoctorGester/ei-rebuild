@@ -177,57 +177,46 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 
 ## Rewritten
 
-A-U9 (render / animation block 0x500000-0x50E000) is listed in `map_objects.md` (marker, gamma, bones) and `objects.md`
-(fake unit skeleton rewind), with that block's next candidates under "Skipped and why".
-
-V: P pure (float bits); O output (original into a scratch copy); S stateful (ours, object snapshotted and restored,
-original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ours = consistency checks.
-
-| Address | Name | File | V |
-|---|---|---|---|
-| 0050E9F0, 0050F630 | CUnit::MarkChanged, HasEffect (CMapObject methods kept on CUnit: forwarders from CMapObject; standalone: move them) | unit.cpp | S / P |
-| 0052E940, 00530180, 00530120, 0052E9B0, 0052EA90, 0052EAD0, 0052EAF0, 0052EB10, 0052EBE0, 0052F7F0 (46) | AddHostileMask, SetRelationsB, SetSide, SetUnknown438 / 254 / 25C / 260, SetMoveModes, SetFlag40000000Off, SetFlag1000000 | unit.cpp | S |
-| 00531070, 00531180, 00531820, 005310D0, 005311E0 | AddWeapon, AddQuickItem, AddSpell, RemoveWeapon, RemoveQuickItem | unit.cpp | S / ours |
-| 00530150, 005318B0, 00531920, 005319A0, 00531A10, 00530FA0, 005307B0, 0052F820, 0052F8B0, 0052FA20, 0052FAF0, 0052FBC0, 00530370, 005302F0, 00530930, 00530970, 005309E0, 005327D0, 00532DA0, 00532E00, 005271C0 | IsHostileTo, GetWeapon, GetQuickItem, GetSpell, GetSpellObject, HasRangedWeapon, TotalItemWeight, CanCastSpell, CanUseQuickItem, MoveSpeed2, MoveSpeedFor, ScaledValue, BaseSpeed, ModeSpeed, GetPrototype, GetPrototypeModel, GetPrototype23C, ActionSpeed, AcceptsTarget (18), AnimationRatio, UnitParams::Period | unit.cpp | P |
-| 0052EC10, 0052F920, 005308A0 | GetEquipmentIds, GetMoveSpeeds, SetPrototype23C | unit.cpp | O / O / S |
-| 005156A0, 005156C0, 005104D0, 005104F0 | CMapObjectServer / ClientSpecific IsDead, IsOverkilled (17 / 18) | unit.cpp | P |
-| 00523CD0, 00524020, 00524280, 005259B0, 00525CD0, 00525D60, 00525DF0, 00525E10, 00526780, 005267E0, 00527030, 00527050, 00528270, 00522A80, 00522B80, 00528840, 00522B40 | UnitStats Period20, ReduceKind1, Value6E8, Reduce, Value6E9, Value6E9Arg, AttributeBase, AttributeWithBonus, WeaponSkill, SkillLevelValue, SkillBase, SkillWithBonus, SkillLevelRecord; LockKey::Opens, HasElementalDamage; GetFactors (O), ResetDamageInfo (O) | unit_stats.cpp | P |
-| 00523740, 00524560, 005243D0, 00525800, 00525900, 00525930, 00525A00, 00525A70, 00525AF0, 00523C80, 00523920, 00523960, 00523C20, 005239B0 | UnitVitals::Regenerate, Recompute, RecomputeHitPoints, HealSlots, Heal, RegenerateSlots, SetSlotMaxima, ScaleSlotMaxima, RefillSlots, RestoreSlots, AddExperience, AddScaledExperience, TakePendingExperience, GainExperience | unit_vitals.cpp | S |
-| 00524060, 00524110, 005241C0, 00523E80, 00523F50, 00524320, 005282D0, 00523D30, 00523E00, 00523DB0 | LegsFactor, ArmsFactor, MovementState, HitPointCurve, ManaCurve, RateValue, SkillLevelValueCopy, ScaleDamageByEffects, ScaleHitPointsByEffects, HitPointEffectScale | unit_vitals.cpp | P |
-| 00528AB0, 00528DA0, 00529090, 00529220, 00529400 | RaiseSkill, RaiseAttribute, RaiseStrength / Dexterity / Intelligence | unit_vitals.cpp | S |
-| 00522C50, 00522CE0, 00523370, 005233B0, 00523550, 005233E0, 005232B0, 00523600, 005236A0, 005287A0, 00528800 | UnitVitals Pack / Reset, UnitStats Pack / Reset / ClearOuterLayers, UnitVitalsPacked / UnitParams / UnitStatSlot / UnitStatLayer Reset, UnitStats::LoadFrom (ours) / SaveTo (C) | unit_stats_pack.cpp, unit_stats_io.cpp | O |
-| 005254B0, 00525070, 005253E0, 00525720, 00524FE0, 00530A60 | ApplyHit, DamageSlot, WearItem, WearArmour (ours), UnitVitals::TakeHit (S), CUnit::IsBehind (P) | unit_hits.cpp | |
-| 0052F7D0 (6), 00532A80 (27), 00532AB0 (28), 00532AA0 (30), 00530A50 (37), 0052EB30 (33), 00530A20 (35), 0052E910 (26), 0052E870 (19), 0052EB50 (32), 005303A0 (48), 0052F740 (51), 00532A20, 00532D40 | CUnit virtual slots (Tick returns 1; LoadUnitFigures sets flags_ 0x80; AttachCompanion returns the reference count), StandPoint, PlaceUnitOnGround, SetFromStats, Level | unit_update.cpp | ours / O / S / P |
-| 00530730, 00530840, 005315B0, 00531220, 005313B0, 00531110, 005308D0, 00530920, 005316F0 | EquipArmour, UnequipArmour, ReleaseAllItems, AddCarried, RemoveCarried, SendEquipment, SetPrototype23CByName / Index, CollectItems (items and their spells; armour spell refresh 005528F0; O) | unit_items.cpp, unit_item_lists.cpp | ours |
-| 005321C0, 00531A80 | SaveUnit (C), LoadUnit (ours) | unit_save.cpp | |
-| 0050EAF0, 0052EC70, 0050EC30, 0052EF90 | map object / unit net state write / read | net_state.cpp | differential, sampled |
-| 00514930, 005144D0, 005145D0, 00513240, 005134F0, 005136D0, 00513DA0, 00524CD0, 00526450, 005260A0, 00526C70, 00513B60, 00512730 | prototype / NPC FindByName, PrototypeObjectClass, SetDefaults, BuildFromPrototype, BuildNpcStats (O), ResetToBase, LearnSkill (S), CanLearn, WeaponSkillBonus (P), ApplyPrototype, CMapObjectManager::CreateObject (ours) | unit_create*.cpp | |
-| 00552F40, 00552780, 00532AC0, 005141F0 | CUnitServer::SetStats, Shout, CUnit::DropBrokenEquipment, GiveStartingEquipment | unit_create.cpp, unit_equipment.cpp | ours |
-| 0052D740, 0052DC70, 0052DA60, 0053A050, 00539CE0, 0051FB50, 0053EE70, 0053A8E0 | Prototype / Model / Npc record Serialize (loading: ours, then the original reads the same record again, compared), DestroyUnitDatabase, NpcTable, SkillDatabase, ModelRecord, CountSoundFiles (S) | unit_db*.cpp, unit_sound_counts.cpp | |
-| 00539A10, 00539B20, 00539E70, 0053EBC0, 0053ED30, 0053A7B0 | ConstructUnitDatabase (the tables' STLport constructors forwarded), DestroyPrototypeTable / ModelTable (0057DEE0's reload; the name map clear shared with NpcTable as `DestroyNames`), DestroyPrototypeRecord / NpcRecord, ChunkArchive::Construct (= ConstructLocal; every database load) | unit_db_destroy.cpp, chunk_archive.cpp | ours |
-| 00527850, 00528050, 005285D0, 00538960, 005230C0, 00523300, 00523020, 00525E90, 00527EB0, 005270E0, 00526860 | WeaponSkillBonus (packed), SkillPrice, ScaleDamageByEffects copy, ClientGetAttackParams (O, 4 ULPs), AddArmourLayer, RebuildArmourLayers, PackBodyProtection, AttributeWithItems, SpellSchoolSkill, ProtectionBlock, WeaponPrototypeSkillBonus | unit_params_*.cpp, unit_skill_price.cpp, unit_armour_layers.cpp | P / O |
-| 00530570, 00525B20, 00531400, 005301B0, 00530240, 005304A0, 00530280, 00532860, 0052FCC0, 0052FDF0, 00535850 | UpdateSizeClass, PickLocation, TakeRandomItem, FindAnimation, AnimationEntry, BodyExtent, GroundHeight, EffectPoint (skipped where the original rotates uninitialised stack), UnitPredictPosition, UnitActionPoint, ClientPlaceOnPath | unit_size_class.cpp, unit_hit_location.cpp, unit_steal.cpp, unit_figure_queries.cpp, unit_points.cpp, unit_client_path.cpp | differential (random generators saved; 8 ULPs, quaternion strict) |
-| 0052E400, 0052BFC0, 0052E970, 0052E9D0, 005300D0, 0052E740, 0052E590, 0052EB70 | CUnit::CreateUnit, CTorchObject::CreateTorch, SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C rebuilt from GetMoveSpeeds; part 10), SetPlayer, ReleaseUnit, DestroyUnit, PackPrototypeStats (differential) | map_object_create.cpp, unit_controller.cpp, unit_prototype_stats.cpp | ours |
-| 0052FC40, 0050F170 | AdvanceUnitTime (controller slot 40, then a party unit's sight on the client world, 0056D740), CMapObject::SetVisibilityLevel (47) | unit_vision.cpp | ours |
-| 005341A0, 005344E0, 005344A0, 00539160, 00537360, 0051B6D0, 0051B6F0 | CUnitClientSpecific::UpdateClient (6), FiguresLoaded (13), RestartFadeIn (43; EAX 0), Level (24: ln(packed experience / 007C5488) / ln(007C548C), rounded; compared), RefreshWounds (31: through 005370F0 / 0051C3D0, else 0051C920), CObject3DClientSpecific::FirstDrawnPart / NextDrawnPart (cursor +0x48) | unit_client_update.cpp | ours |
-| 00537CB0, 00538C20, 00535590, 00535CB0, 00536300, 00536670, 005381B0, 005385A0 | ShowWeaponParts, UpdateArrow (bow arrow "rh3.arrow00" between frames +0x28 / +0x2C), ChangeWeaponModel, CollectArmourPartNames, BuildSkinLayers, ComposeSkin, WearArmourModel, RemoveArmourModel | unit_client_models.cpp | ours / O |
-| 00536100, 00536220, 00538140, 00538860, 005388C0, 00538920 | RefreshSkins (29), RefreshSimpleSkin (30), SetArmourModels (32), SetWeaponModels (33), AddWeaponModel (34), RemoveWeaponModel (35) | unit_client_equipment.cpp | ours |
-| 00534590, 00534760, 00534B60 | FootstepSound, ActionSound (rand() saved, compared), PlayStepSounds (ours: it plays sounds, shakes the camera and adds footprints) | unit_client_sounds.cpp | |
-| 00535B30, 005352B0, 00535480, 00537500, 00537C00, 005373D0, 00534140, 00533FE0, 005340C0, 00533AD0 (raw copy compared), 00533EA0 | AdvanceTime (40), RestartAnimation (14), StartIdleAnimation, HitEffect (46: hit sound by weapon class and material, blood particles, decal), SparkEffect (47), DeathEffect (48), OwnerPlayerChanged (18: party light), CreateClient / DestroyClient (2 / 3), ConstructClient (factory 0042D700), DestructClientBody (base vtable 0073EDBC) | unit_client_animation.cpp, unit_client_effects.cpp, unit_client_lifetime.cpp | ours |
-| 00538ED0, 00539010, 00533980, 00537D80, 00538040, 005380D0, 00537F60, 00537FD0 | BlinkClose / BlinkOpen, BlitMipChain, Say (51), StopSpeech (52), Speak, SpeechReplaced / SpeechFinished (filters compared) | unit_client_blink.cpp, unit_client_speech.cpp | ours |
-| 00536EA0, 005370F0, 0051C920, 00535770, 00538DB0 | WoundLevels (O), ComposeWoundsTexture, HideWounds (+0xD8 texture, +0xDC material), WeaponPoint (node by WeaponBaseFigure or "baserh3", its +0x74), LoadFaceTexture ("<model>mouth[_NN]" kind 0x3D) | unit_client_wounds.cpp | ours / O |
-| 005179E0, 00516DA0, 00518100, 00516B50, 00517240, 00517110, 00519A10, 005190C0, 00519380, 0051A010, 0051A190 | CObject3D::SetUpAnimatedFigure, MakeFigure (from the cache: whole for an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, flags_ 0x80), UpdatePartBounds (S, CheckNear), CollectPartsByPrefix, LoadPart (piece box, BASE / CROWN / EMPTY flags), LoadParts, AlignedPtrArray::Add, RandomAnimation (variant bits, chance +0x1C narrowing; S with rand saved), RandomAnimationOfKind, the candidate list's SetAtGrow / SetSize copies | object3d_figure_setup.cpp, object3d_animations.cpp | ours |
-| 0051AD20, 0051AC30, 0051C970 | CObject3DClientSpecific::ExtraScale (18: +0xF0..+0xF8), CObject3DServer's (1, 1, 1), RegisterPartMaterials (world slot 33 material manager, 0068EAF0) | object3d_specific_slots.cpp | P / ours |
-| 0052B7A0, 0052BBE0, 0052B1F0-0052BE40 (22) | Lever::SetState, CollectUseSpots (O, 8 ULPs); Lever Construct, DestructBody / DeletingDestruct, Create (2), Update (6), Load / Save, net state, SetUp (zone record), Enable, SetLock (S), slots 29 / 38-43 / 60, class name / id | unit_lever.cpp, lever_object.cpp | |
-| 00529DD0, 00529F90, 0052A100, 0052A200, 0052AC20, 0052AB30, 0052AC90, 0052A2C0, 0052A4B0, 0052A680, 0052ADC0, 0052B070 (C), 0052A920 (O) | MagicTrap Construct, DestructBody, CreateTrap, DestroyTrap, UpdateTrap, FireAtOccupants, ForgetObject, SetUp, CastAtUnits, UpdateVictims, LoadTrap (recording stream, round trip through the original Save), SaveTrap, FindTrapVictims | magic_trap.cpp | ours |
-| 0052BEE0-0052C2C0 (13), 0052C490-0052C680 (7) | CTorchObject lifetime, Destroy, Update, Load / Save, AttachTorchObject, net state; CTorchObjectSpec Create / Destroy / Load / Save / setters 16-18 | torch_object.cpp, torch_spec.cpp | C / S / P |
-| 005296E0-00529A10 (20), 0052B030 / 0052B050 / 0052A8F0 / 0050E220 / 0050E290 | CTree / CBuilding / CStone / CStuffObject (PlainMapObject<vtable>) lifetimes and class slots; AIRef Reset / Assign / Load / Save | map_object_kinds.cpp, counted_ref.cpp | |
-| 00529A80-00529DA0 (14), 00529F50 / 00529F60 / 00529F70, 00522AD0 | CTrapObject (class 0x55), the magic trap's class slots and deleting destructor, LockKey::AcceptedByTrap | trap_object.cpp | |
-| 0052D0D0-0052D610 (14), 0052C390 | CTorchObjectClientSpecific (A-U11, torch_client_spec.h: vtable 0073E954, 19 slots, 0x64): lifetime, 13 / 14 show / hide the particles, light and looping sound, 15 warms the particles up, 16-18 rebuild them (particle type + offset + scale, point light offset + radius + colour, sound name); the spec's network read (applies through slots 16-18, 13, 15) | torch_client_spec.cpp, torch_spec.cpp | ctor: original into a raw copy (+0..+0x60); class slots P; the rest ours |
-| 005229F0, 00522A30, 00511B90 / 0052C690 / 00556C40 / 00556C60 | LockKey ReadFrom / WriteTo (the lever's Load / Save), the counted-pointer assignment copies (ObjectHolderAssign) | lever_object.cpp, refptr_copies.cpp | WriteTo: capture compare; the rest ours |
-| 40 byte-identical copies (A-U11; found by comparing instruction streams with call targets resolved): aligned array free (14) / allocate (4) / SetSize (4) / SetAtGrow (0051EE50), RefPtr::Destroy (005587A0, 0055EDA0, 0055EDE0), ObjectHolderRelease (5), counted holder release (00519560, 0051E3E0, 0055FCE0 on DeviceHolderRelease), CountedRef::Assign (0051E4F0, 0051E570), AIRef::Reset (00558CE0), CountedPointerRelease (00545B80), ScriptRefDestroy (0052D030), TextSourceIterator::CopyTo (00539210) | registered beside the originals' rewrites | the originals' wrappers (compared where they compare); 0052D030 / 00545B80 ours only (verify_unit_range_copies.cpp) |
-| 0053DC10, 0053DD00, 0053DF50, 0053E1B0, 0052DF40, 0052DEE0, 0052D6F0, 0052D6A0 | Unit database (A-U11): ChunkArchive::SerializePrototypes / Npcs / Models / UnitLevels (the skill vectors' shape; records destroyed and resized through the originals), SerializeCStrings (InlineStrings), UnitLevelRecord (0x44: name, two runs of 7 dwords, +0x40, +0x04) / UnitModelSlot::Serialize, the four dwords | unit_db.cpp | records: O (read twice); vectors: ours (record count) |
-| 0051F3A0, 0051F480, 005207D0, 005208C0, 00521480, 0051FE00, 0051FE80, 0051FF00 | Skill (perk) database 007AF268 (A-U10): SkillRecord / SkillLevelRecord::Serialize (O: read twice), the archive's skill / level vectors and level chunk (ours: count), FindLevel / IndexOf (_mbsicmp on the level's +4 name) / IndexOfLevel (P) | unit_db.cpp | |
+A-U9 (render / animation block 0x500000-0x50E000) is listed in `map_objects.md` (marker, gamma, bones) and `objects.md` (fake
+unit skeleton rewind), with that block's next candidates under "Skipped and why". Every rewritten function carries its
+address in its source comment (grep the address); the per-function table that used to be here is gone. Files:
+- `unit.cpp` (CUnit setters, getters, item slots, speeds; `CUnit::MarkChanged` / `HasEffect` are CMapObject methods kept on
+  CUnit: forwarders from CMapObject), `unit_stats.cpp`, `unit_vitals.cpp` (regeneration, levelling, Raise*), `unit_stats_pack.cpp`
+  / `unit_stats_io.cpp`, `unit_hits.cpp`, `unit_update.cpp` (virtual slots), `unit_items.cpp` / `unit_item_lists.cpp`,
+  `unit_save.cpp`, `net_state.cpp` (map object / unit net state, differential sampled), `unit_create*.cpp`,
+  `unit_equipment.cpp`, `unit_db*.cpp` / `unit_sound_counts.cpp` / `chunk_archive.cpp` (the databases), `unit_params_*.cpp` /
+  `unit_skill_price.cpp` / `unit_armour_layers.cpp`, `unit_size_class.cpp` / `unit_hit_location.cpp` / `unit_steal.cpp` /
+  `unit_figure_queries.cpp` / `unit_points.cpp` / `unit_client_path.cpp`, `map_object_create.cpp` / `unit_controller.cpp` /
+  `unit_prototype_stats.cpp`, `unit_vision.cpp`, the client half `unit_client_*.cpp` (update, models, equipment, sounds,
+  animation, effects, lifetime, blink, speech, wounds), `object3d_figure_setup.cpp` / `object3d_animations.cpp` /
+  `object3d_specific_slots.cpp`, `unit_lever.cpp` / `lever_object.cpp`, `magic_trap.cpp`, `torch_object.cpp` / `torch_spec.cpp` /
+  `torch_client_spec.cpp`, `map_object_kinds.cpp` / `counted_ref.cpp` / `trap_object.cpp`, `refptr_copies.cpp`.
+- Facts about specific groups: `CUnit` virtual slots (Tick returns 1; LoadUnitFigures sets `flags_` 0x80; AttachCompanion
+  returns the reference count). Unit database loading: the records are read twice by the original verify (ours first, then
+  the original reads the same record again). `CUnitClientSpecific` slots: UpdateClient 6, FiguresLoaded 13, RestartFadeIn 43
+  (EAX 0), Level 24 (ln(packed experience / 007C5488) / ln(007C548C), rounded), RefreshWounds 31 (through 005370F0 /
+  0051C3D0, else 0051C920), RefreshSkins 29, RefreshSimpleSkin 30, SetArmourModels 32, SetWeaponModels 33, AddWeaponModel 34,
+  RemoveWeaponModel 35, HitEffect 46 (hit sound by weapon class and material, blood particles, decal), SparkEffect 47,
+  DeathEffect 48, OwnerPlayerChanged 18 (party light), Say 51, StopSpeech 52. `UpdateArrow`: the bow arrow "rh3.arrow00"
+  between frames +0x28 / +0x2C. `WeaponPoint`: node by WeaponBaseFigure or "baserh3", its +0x74. `LoadFaceTexture`:
+  "<model>mouth[_NN]" kind 0x3D. `HideWounds`: +0xD8 texture, +0xDC material. `CObject3D::MakeFigure`: from the cache, whole for
+  an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, `flags_` 0x80.
+  `RandomAnimation`: variant bits, chance +0x1C narrowing. `CObject3DClientSpecific::ExtraScale` (18: +0xF0..+0xF8),
+  `CObject3DServer`'s is (1, 1, 1); RegisterPartMaterials uses world slot 33 (material manager, 0068EAF0).
+  `CTorchObjectClientSpecific` (A-U11, torch_client_spec.h: vtable 0073E954, 19 slots, 0x64): 13 / 14 show / hide the
+  particles, light and looping sound, 15 warms the particles up, 16-18 rebuild them (particle type + offset + scale, point
+  light offset + radius + colour, sound name); the spec's network read applies through slots 16-18, 13, 15. Lever record
+  ReadFrom / WriteTo are the lever's Load / Save. The skill (perk) database is the global 007AF268
+  (SkillRecord / SkillLevelRecord::Serialize; `IndexOf` compares with `_mbsicmp` on the level's +4 name).
+  `UnitStats::LoadFrom` is ours, `SaveTo` through a capture stream. `0052FC40` AdvanceUnitTime: controller slot 40, then a
+  party unit's sight on the client world (0056D740). `RefreshMotion` 0052E9D0: path forgets the unit, motion +0x27C rebuilt
+  from GetMoveSpeeds. `EffectPoint` 00532860 is skipped in comparisons where the original rotates uninitialised stack.
+  `ClientGetAttackParams` 00538960 compares within 4 ULPs, `CollectUseSpots` within 8.
+- 40 byte-identical copies (A-U11; found by comparing instruction streams with call targets resolved) are registered
+  beside the originals' rewrites: aligned array free / allocate / SetSize / SetAtGrow (0051EE50), RefPtr::Destroy (005587A0,
+  0055EDA0, 0055EDE0), ObjectHolderRelease, counted holder release (00519560, 0051E3E0, 0055FCE0 on DeviceHolderRelease),
+  CountedRef::Assign (0051E4F0, 0051E570), AIRef::Reset (00558CE0), CountedPointerRelease (00545B80), ScriptRefDestroy
+  (0052D030), TextSourceIterator::CopyTo (00539210).
 
 ## Original bugs and oddities kept on purpose
 
@@ -385,14 +374,9 @@ own copies).
 
 **PF1a, part-name tests without a CRT call per byte.** `CObject3D::SetUpAnimatedFigure` (per bone) and `LoadPart` test each
 part name against BASE / CROWN / EMPTY; the game CRT's `_strnicmp` sends every upper-case byte through LCMapStringW under
-the game's locale. The case-fold table PF1 built for ClassifyToken (docs/notes/script.md) now lives in `src/lib/crt`
-(`gamecrt::CaseFoldTable`, `gamecrt::SameIgnoringCase`) and these tests use it. Profile first (EI_PLAIN=1 EI_PROFILE=1,
-world_load / models / net_lobby vanilla, about 2800-4900 samples of 2 ms each): `_strnicmp` was on the stack in 6 / 4 / 3
-samples, almost all of it under figure setup (`LoadFigureBounds`, `SetUpAnimatedFigure`) and `FindEntry`; after the change
-2 / 3 / 0, nearly all of them under `CMappedResource::FindEntry` (it compares the name of every resource it finds). The gain is
-about 10 ms of a 625 ms zone load. Skipped as not hot: `CMappedResource::FindEntry` (resource.cpp; 5 samples over the three
-runs after the change, ~4 ms per run) and `ServerSession::FindGuestConnection` (net_server_players.cpp; 0 samples). Verified:
-the part-name wrappers (SetUpAnimatedFigure, LoadPart) compare each part name against all three keywords both ways
-(`gamecrt::strnicmp` and ours) and require the flag where the original matches: "object3d_figure_setup part name fold"
-0 mismatches in 14k-23k checks per run over script_parse, models, world_load, units, unit_create and levers on both installs;
-the all-byte-pairs check "ClassifyToken case fold" (65536 pairs against `_strnicmp`) still 0 differ.
+the game's locale. The case-fold table PF1 built for ClassifyToken (docs/notes/script.md) lives in `src/lib/crt`
+(`gamecrt::CaseFoldTable`, `gamecrt::SameIgnoringCase`) and these tests use it. Profiling (EI_PLAIN=1 EI_PROFILE=1, world_load /
+models / net_lobby vanilla) found `_strnicmp` almost only under figure setup and `FindEntry`; the gain is about 10 ms of a 625 ms
+zone load. Skipped as not hot: `CMappedResource::FindEntry` (resource.cpp) and `ServerSession::FindGuestConnection`
+(net_server_players.cpp). Checks: the part-name wrappers compare each part name against all three keywords both ways
+("object3d_figure_setup part name fold"), and "ClassifyToken case fold" covers all 65536 byte pairs against `_strnicmp`.

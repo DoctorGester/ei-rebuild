@@ -12,6 +12,8 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `map_objects.md`, `units.md`, `combat.md`: map objects, units / statistics / levers / traps, the server unit controller.
 - `ai.md` (AI map, paths, motion), `unit_ai.md` (brain, modes), `world.md` (world server / client, game flow, figure meshes,
   party records), `effects.md` (world effects), `particles.md`.
+- `ui-native.md` (plan and state of the native 2D interface layer, tickets N / P), `ui-census.md` (what each interface surface is drawn
+  with, measured), `lua-scripting.md` (plan for Lua mission scripts, tickets L).
 - `ui.md`: the interface. `items_spells.md`: items, spells, texts, textures, registry, trader stock, party. `sound.md`.
 - `models.md`: 3D library, databases, device layer, terrain sectors, resources. `renderer.md`: the sidecar renderer and the
   switch-over (renderer workers read it whole).

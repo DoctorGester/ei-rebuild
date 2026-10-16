@@ -1,26 +1,24 @@
 # Application layer (0x00440000-0x00480000, outside the network code)
 
-Startup, the frame step, registries, option and device records, key bindings, small tables. Network
-code of the same range is in `network.md`. Names are provisional. Verify files are named after the
-source files (`verify_app_registry`, `verify_app_dxversion`, `verify_app_device_list`,
-`verify_string_map`, `verify_named_float_table`, `verify_key_bindings`); most functions run at startup
-or in every scenario.
+Startup, the frame step, registries, option and device records, key bindings, small tables. Network code of the same range is in
+`network.md`. Names are provisional. Every function carries its address in its source comment (grep it). Most run at startup or in
+every scenario.
 
-| Address | Name | File | Verify |
-|---|---|---|---|
-| 00458010 | WinMain's frame step (`FrameStep`) | `app_frame.cpp` | see "Frame capture" |
-| 00458270 | intro movies (list from the .ini, each played, the screen cleared by a Blt colour fill) | `app_frame.cpp` | ours |
-| 00458570, 00458540, 00458550, 004586E0 | type registration with a factory (vtable <-> id <-> factory) and COM releases | `app_registry.cpp` | ours |
-| 0045E310 | DirectX version probe | `app_dxversion.cpp` | ours |
-| 00463030, 004652A0, 004657E0, 00465A70, 00465BC0, 00465090 | device record list archiving and the record's members | `app_device_list.cpp` | ours |
-| 0045DE30, 0045DFB0, 0045D610, 0045D760 | waypoint lists and behaviour records read / written (stream chunks; 0045DE30 is a stream reader, not a CArray::SetSize) | `map_spec_unit.cpp` | ours |
-| 00460460, 004608B0, 00460970 | zone exit destructors (`ZoneExit`) and the map database's zone record destructor (eight CStrings, exit CArray at +0x48) | `zone_records.cpp` | ours |
-| 00460BC0, 00460DB0, 00460EE0, 00460FE0, 00461260 | `NamedFloatTable` (hash_map<CString, float>): Set (zero removes), Remove, CopyPrefixed, Load, Save | `object_tables.cpp` | ours only: the name holds the value or is gone; CopyPrefixed copies exactly the prefixed entries |
-| 00461190 | `CStream::ReadString` (bytes up to a zero into a CString; many callers keep forwarders) | `core_streams.cpp` | |
-| 00462C10, 00462DF0 | key bindings file load (key texts from `GetKeyNameTextA`, "command key" lines) and save; entries at 00787070 (code, name) | `key_bindings.cpp` | the original loads first, bindings and key texts compared after ours loads the same file |
-| 00463120 | atexit destructor of the lever table 0079C1A0 (vector of 0x2C records, hash map of vectors) | `lever_table.cpp` | ours |
-| 004447D0-00444F50 (10) | debug information panel at 0079B930 (set, remove, tick, redraw, show, release) | `string_map.cpp` | ours |
-| 0045C560 | `GameOptions::SaveToRegistry` (EI_Plugin's `NewMaster` NOPs 42 bytes at 0045D330 inside it: the Master Server Name is no longer saved) | `options.cpp` | |
+- `app_frame.cpp`: WinMain's frame step `FrameStep` 00458010 (see "Frame capture"), intro movies 00458270 (list from the .ini, each
+  played, the screen cleared by a Blt colour fill). `app_registry.cpp`: type registration with a factory (vtable <-> id <-> factory) and
+  COM releases (00458570, 00458540, 00458550, 004586E0). `app_dxversion.cpp`: DirectX version probe 0045E310. `app_device_list.cpp`:
+  device record list archiving (00463030-00465BC0).
+- `map_spec_unit.cpp`: waypoint lists and behaviour records read / written as stream chunks (0045DE30 is a stream reader, not a
+  CArray::SetSize; 0045DFB0, 0045D610, 0045D760). `zone_records.cpp`: zone exit destructors and the map database's zone record destructor
+  (eight CStrings, exit CArray at +0x48; 00460460, 004608B0, 00460970).
+- `object_tables.cpp`: `NamedFloatTable` (hash_map<CString, float>) Set 00460BC0 (zero removes; the value is tested with FCOMP against 0,
+  so NaN removes too), Remove, CopyPrefixed, Load, Save (00461260). `core_streams.cpp`: `CStream::ReadString` 00461190 (bytes up to a
+  zero into a CString; many callers keep forwarders). `key_bindings.cpp`: key bindings file load 00462C10 (key texts from
+  `GetKeyNameTextA`, "command key" lines) and save 00462DF0; entries at 00787070 (code, name). `lever_table.cpp`: the atexit destructor
+  00463120 of the lever table 0079C1A0 (vector of 0x2C records, hash map of vectors; it indexes the free lists with (0 - 1) >> 3 for a
+  zero-sized record block with a non-null pointer). `string_map.cpp`: the debug information panel at 0079B930 (004447D0-00444F50: set,
+  remove, tick, redraw, show, release). `options.cpp`: `GameOptions::SaveToRegistry` 0045C560 (EI_Plugin's `NewMaster` NOPs 42 bytes at
+  0045D330 inside it: the Master Server Name is no longer saved).
 
 ## Frame capture (harness)
 
@@ -36,10 +34,8 @@ calls comes before the call-site read; the standalone image has only those.
 
 ## Kept and skipped
 
-- Kept: `NamedFloatTable::Set` tests the value with FCOMP against 0 (NaN removes the entry like 0);
-  `FrameStep`'s movie capture passes two uninitialised stack words as the capture rectangle's size when there
-  is no render target; the lever table's destructor indexes the free lists with (0 - 1) >> 3 for a
-  zero-sized record block with a non-null pointer.
+- Kept: `FrameStep`'s movie capture passes two uninitialised stack words as the capture rectangle's size when there is no render
+  target.
 - Rebirth-patched: 00456440 (WinMain), 00443080, 00463390, 00468A00 are ported with the vanilla body and
   hooked in the vanilla launch only (A-E1, A-E2).
 - Static initialisers (run before the hooks): 0045E820, 004632A0 (lever table constructor); 00444740 (debug
@@ -80,16 +76,9 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   004BB050): one reference dropped (`--refCount_`, no delete), the pointer cleared. Ours only (its prologue is a
   short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
   unwind funclets only.
-- A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations (hash map
-  operator[] 00464750, node deallocators 00464730 / 00499800, list and pair destructors 0049C6E0, 004824B0,
-  00483D40, 00464DF0, the aligned allocators and vector helpers 004A2BF0, 004A3090, 004A3060, 004A2FC0,
-  00455890, 00482DD0, 004991C0, 004991E0, 00482790), MFC template helpers (the element constructors /
-  destructors / zero fills of the CArray and CList instantiations at 004763C0-00477530, 00499350, 0049BB10,
-  00475F20, 00498C80, 00498E30, 004553F0, 00462230, the CString thunks 004563A0 and 004B9F20, 0049F810) and
-  compiler-generated helpers (the four-dword buffer constructors 00474C70 / 00475F10 / 00498E20, the pointer
-  holder constructors 004983F0 / 004BB040, operator= 00474C50, the delete wrapper 00462520 and the helpers
-  only unwind funclets call: 00445FC0, 00481E50, 00447F40, 0047A3D0, 0047A3E0, 00455820, 00462610, 00482E90,
-  00498E50, 00457940, 004688F0, 00481560).
+- A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations, MFC template helpers (element
+  constructors / destructors of the CArray and CList instantiations at 004763C0-00477530 and others) and compiler-generated helpers
+  only unwind funclets call.
 - Rebirth-patched functions ported by A-E1 (vanilla behaviour, vanilla launch only): 00468A00 the lightning
   noise table's load (objects.md), 00463390 the lever table's load (units.md), 0040ECD0 the camera's path
   file load (core.md); and the network 0041AA10, 0041ACA0, 0041B1C0 (network.md).

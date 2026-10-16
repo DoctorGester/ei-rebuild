@@ -152,34 +152,43 @@ figure maker call CLinkFigureLoader::LoadFigure (morph floats as floats).
 
 ## Rewritten
 
-V: P pure; O output (original into a scratch copy); R random (generators (ISAAC, rand() seed at `_getptd` + 0x14) saved
-and restored around both runs, compared too); S stateful (ours, bytes restored, original, compared); C capture streams;
-ours = consistency checks (most order / update code: run every tick).
-
-| Address | Name | V |
-|---|---|---|
-| 0054B620, 0054B650, 0054B680, 0054B6C0, 0054B760, 0054B9C0, 0054B7C0, 0054B820, 0054B880, 0054BF80, 0054C070, 0054C800, 00550050, 005500A0, 00556760 (24), 005518F0, 00551A40, 00551A90, 0054C2F0, 00549D00, 00549D40, 0054C760, 005567A0 (36), 005567E0 (37), 0054BBC0 | AttackRange, WeaponType, HasRangedWeapon, AttacksFromRange, ScaledItemValue, ScaledAttackValue, SpellCarrier, IsScrollSource, SpellOfSource, CanCast, ActionDistance, CanReachTarget, WeaponTypeMask, MoveModeMask, Level, HitDirection, AnimationDuration, AnimationMoment, CanActFrom, CanReactFor, ActionInReach, TargetBusy, HasOtherArmour, HasMainArmour, SpellHasLineOfSight (ECX world, EDX spell; prototype +0x40 needsSight; from 0058E850's multi-target loop) | P |
-| 0054B580 | IsFighting (Rebirth-patched: FixPlaingBattleMusicFromAntimagic behind the flag) | |
-| 0054BA30, 0054BB20, 0054B520, 00555A00 (50), 0054BCB0 | GetDamageByType, GetSpellDamage, GetMovePoint, GetAttackParams, FindSightTarget | O |
-| 00553220 (49), 00552FB0 (23), 005536B0 (45), 0054A620, 005533B0 (19), 00553450, 00553500 (22), 00553560 (26), 005535C0 (27), 005535E0 (28), 00553360 (O) | UpdateSpellBlockFlag, UpdateSizeClasses, UpdateMoveFactors, SyncMoveModes, RefreshVitals, UpdateProtection, RepackStats, AddArmourLayerOf, RebuildArmourLayers, ClearOuterArmourLayers, CopyStats | S |
-| 00555BD0, 00553DF0, 0054F630, 0054F580, 0054C6B0, 0054CA40, 005516D0, 00550100, 00550620, 0054F970, 00550A80, 00550D90, 005511A0 | AttackRoll, ResolveHit, BuildAttackHit, PrepareAttack, CanPlanAction, PlanAction (ours into the real plan, the original into a deep copy), BuildTransition, BuildOrderSteps, BuildCastSteps, BuildAttackSteps, BuildDeathAnimation, BuildIdle, BuildMoveSteps (plans compared without byte 3) | R |
-| 00553F40 (20) | TakeHit (an unresolved hit comes back +-FLT_MAX; a result of 1 has set bit 0x10 of stats +0x6F8) | ours |
-| 00549EC0, 0054F450, 0054F850, 0054F8E0, 00552C60, 005543B0, 00553AC0, 005538D0, 00552E00, 0054F000, 00555180, 00546720, 0054EE10, 005546B0, 00554740, 00554B30, 00554D00, 00554F50, 00555200 | FinishAction, DeliverAttack, TriggerWeaponSpell, TriggerItemSpells, UseItemCharge, Heal, OnDamaged, WitnessMurder, PropagateHostility, UseSkill, Idle, SetDead, FinishCast, OrderTurn / Move / Attack / CastAt / Cast, StopQueued | ours |
-| 005561C0 / 00555D10 | SaveServer (10, C) / LoadServer (9) | |
-| 0054B230, 0054B320, 00546830, 0054A6E0, 0054A900, 0054B390, 0054DD70, 0054D960, 0054D140, 00552300 | UnitAction::Reset / Assign, SetUnitMoveMode2, TakeQueuedOrder, StartQueuedOrder, UpdateOrders, ContinueAction, ExecuteOrder, ApproachTarget, UpdateServer (6: returns 1; a living unit ends with hitDirection -1) | ours |
-| 005499F0, 00546F30, 00546C10, 00546C40, 00547090, 005467B0, 00547280, 00547100, 00549690, 00549160, 00552B90, 005528F0, 00546B40 (S) | UpdateState, AdvanceAnimation, ShowCurrentStep, PlaySteps, SetState, SetStanding, StandStill, PlayHitReaction, EndOrder, TickAction, TickItemSpells, RefreshItemSpells, PopFinishedSteps | ours |
-| 00548DE0, 00548FA0, 00550F30, 005474B0, 00551400, 005494D0, 00548520, 0054A150, 00548700, 005468D0, 0054EB30, 00546480, 00554450 | PlayAnimationOrder (state 3), PlayEmoteOrder (4), IdleAnimation, PlayIdle, NextAnimation, StartAction, UpdateSneak, ChangeMoveMode, PathTo, LiftNearby, ReportPath, ResetController, ResyncWithUnit (`combat_motion.cpp`) | ours |
-| 0054DF50, 0054E250 (ST0; compared), 0054E600, 00554830, 00551AE0, 00552280, 00547890 | FindUseSpot, TimeUntilAction, PlanOrderRoute, PlanMove, TryTame, UndoTaming, UpdateMotion | ours |
-| 0055EE40, 0055F8E0, 00558FA0 (C) | World::CreateManagers, CWorld::DestroyManagers, UnitSetEntryHead::Write (SendZone's unit set entry head; `world_unit_set.cpp`) | ours |
-| 0055F2E0 / 0055F2F0, 0055F1A0 (compared), 0055F1E0, 0055F280 / 0055F260, 0055F550 (compared), 0055F6B0, 0055F7B0 / 0055F790, 0055F410 | Player sources (`player_source.h`, `world_sessions.cpp`): CPlayerSource base destructor (vtable 0073F38C), CWorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession (+0x60, 0073F3A8; was "the game result object") Clone / OnShutdown / destructors, CWorld::OpenSession (new session ShareAssigned into +0x60) | ours |
-| 0055F310-0055F400 (names / ids P) | CPlayerManager, CEffectManager (0073F2C4), CItemManager class names, ids and destructors (`world_managers.cpp`); 0055F3B0 (CItemManager slot 25 "items") left: CResourceManager does not declare slot 25 | ours |
-| 0054A5A0, 00555270, 005552E0, 005553B0, 00555480, 00555570, 00555630, 00555700, 00555840, 00512F60 | FitsMoveMode, SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody, PlayAnimation, StopAction (state 6, orders 9 / 0, empty plan), FindFigureAnimation (`combat_order_setters.cpp`) | ours |
-| 005535F0 (29), 00552CD0 (38), 00553380, 00552D00, 00553610 (25), 00552670 (42), 00553260 (44), 00546450 (2), 00546080 (5), 005460A0 (39, P) | RefreshEquipment, ForgetClaims, AddExperience, ClaimHostility, TakeUpWeapon, OnObjectDeleted, Resettle, CreateServer, ResetSlot, TameStage | ours |
-| 00544CE0, 00544D50, 00544DD0, 00544E40 (P), 00544E70 (P), 00544F60 (C), 00544EF0, 00544FD0, 00545110 (O) | AnimationSteps::AddStep / AddEmote / SetStepFlags (ours on a deep copy, original on the list, compared without byte 3) / Duration / SameAs / Save / Load, OrderPlanReset, OrderPlan::TakeSteps (only for a queued order of kind 10, whose one setter 005557E0 is dead: unreachable) | |
-| 00545580, 00545990 (O on raw memory), 00545CB0 (this = brain + 0xD0), 005457E0, 00546100 | CUnitServer::Construct, AIBrain::Construct, AIBrain::DestructMemory, AIBrain::Destruct (only from unwind funclets), AIPath::Destruct (from CPlayerServer::OnUseOrder) (`combat_lifetime.cpp`; every spawn; destructors through 00546230 at zone changes) | |
-| 00558420, 00545430 (C), 005582A0, 005585F0 | SaveStepList, SaveArmourSpell, LoadStepList, LoadArmourSpells (`combat_save.cpp`; loads through a recorder, step lists round-tripped through the original save; world_load, ui_saveload) | |
-| 00551E10-00552180 (12) | Player / tamed AI mode slots: Clone, Reset (OnShutdown), Destruct, DeletingDestruct, priorities 10 / 100000000, types 6 / 8 (`unit_ai_player_mode_slots.cpp`) | constants P |
-| 005460C0, 005460D0, 005460E0, 00546090 (16), 005460B0 (17), 00552F30 (53), 00545F70, 00550A60 | CUnitServer class name / id, DeletingDestruct, MotionSlot, empty slot, slot 53 (UpdateMoveFactors), UnitAction / AnimationStep constructors (`combat_server_slots.cpp`) | P / ours |
+Every rewritten function carries its address in its source comment (grep the address); the per-function table that used to be
+here is gone. What it covered, by file:
+- `combat.cpp` queries and the hit (AttackRange, WeaponType, CanCast, ActionDistance, CanReachTarget, GetDamageByType,
+  GetSpellDamage, GetMovePoint, GetAttackParams (slot 50), FindSightTarget, AttackRoll, ResolveHit, BuildAttackHit,
+  PrepareAttack, TakeHit (slot 20)); stat slots (UpdateSpellBlockFlag 49, UpdateSizeClasses 23, UpdateMoveFactors 45, RefreshVitals
+  19, RepackStats 22, armour layers 26-28, CopyStats, RefreshEquipment 29, ForgetClaims 38, ClaimHostility, TakeUpWeapon 25,
+  OnObjectDeleted 42, Resettle 44, CreateServer 2, ResetSlot 5, TameStage 39); `SpellHasLineOfSight` 0054BBC0 (ECX world, EDX spell,
+  prototype +0x40 needsSight; from 0058E850's multi-target loop); IsFighting 0054B580 is Rebirth-patched
+  (FixPlaingBattleMusicFromAntimagic behind the flag).
+- Actions, orders and steps: FinishAction, DeliverAttack, TriggerWeaponSpell / TriggerItemSpells, UseItemCharge, Heal, OnDamaged,
+  WitnessMurder, PropagateHostility, UseSkill, SetDead, FinishCast; the per-tick order machine (UnitAction Reset / Assign,
+  TakeQueuedOrder, StartQueuedOrder, UpdateOrders, ContinueAction, ExecuteOrder, ApproachTarget, UpdateServer slot 6 which returns 1; a
+  living unit ends with hitDirection -1); state and animation (UpdateState, AdvanceAnimation, PlaySteps, SetState, StandStill,
+  PlayHitReaction, EndOrder, TickAction, TickItemSpells, RefreshItemSpells, PopFinishedSteps; `combat_motion.cpp`: PlayAnimationOrder
+  state 3, PlayEmoteOrder 4, IdleAnimation, NextAnimation, StartAction, UpdateSneak, ChangeMoveMode, PathTo, LiftNearby, ReportPath,
+  ResetController, ResyncWithUnit); planning (FindUseSpot, TimeUntilAction (ST0), PlanOrderRoute, PlanMove, TryTame, UndoTaming,
+  UpdateMotion); order setters (`combat_order_setters.cpp`: SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody,
+  PlayAnimation, StopAction = state 6, orders 9 / 0, empty plan; FindFigureAnimation 00512F60).
+- Steps and plans: BuildTransition, BuildOrderSteps, BuildCastSteps, BuildAttackSteps, BuildDeathAnimation, BuildIdle,
+  BuildMoveSteps; `AnimationSteps::AddStep / AddEmote / SetStepFlags / Duration / SameAs / Save / Load` 00544CE0-00545110;
+  `OrderPlan::TakeSteps` serves only a queued order of kind 10, whose one setter 005557E0 is dead (unreachable).
+- Save: SaveServer 005561C0 (slot 10) / LoadServer 00555D10 (9); `combat_save.cpp` SaveStepList 00558420, SaveArmourSpell 00545430,
+  LoadStepList 005582A0, LoadArmourSpells 005585F0.
+- Lifetime (`combat_lifetime.cpp`, every spawn): CUnitServer::Construct 00545580, AIBrain::Construct 00545990, AIBrain::DestructMemory
+  00545CB0 (this = brain + 0xD0), AIBrain::Destruct 005457E0 (only from unwind funclets), AIPath::Destruct 00546100 (from
+  CPlayerServer::OnUseOrder); destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /
+  id 005460C0 / 005460D0, DeletingDestruct 005460E0, MotionSlot, slot 16 / 17, slot 53 = UpdateMoveFactors 00552F30, the UnitAction /
+  AnimationStep constructors. Player / tamed AI mode slots 00551E10-00552180 (`unit_ai_player_mode_slots.cpp`: priorities 10 /
+  100000000, types 6 / 8).
+- World managers: World::CreateManagers 0055EE40, CWorld::DestroyManagers 0055F8E0, UnitSetEntryHead::Write 00558FA0
+  (`world_unit_set.cpp`, SendZone's unit set entry head); `world_managers.cpp` CPlayerManager / CEffectManager (0073F2C4) /
+  CItemManager class names, ids and destructors 0055F310-0055F400 (0055F3B0, CItemManager slot 25 "items", left because
+  CResourceManager does not declare slot 25). Player sources (`player_source.h`, `world_sessions.cpp`): CPlayerSource base
+  destructor (vtable 0073F38C), CWorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession
+  (+0x60, 0073F3A8; was "the game result object"), CWorld::OpenSession 0055F410 (new session ShareAssigned into +0x60).
+- Patterns: functions that start with PUSH / MOV and a relative CALL (005536B0) are reached through the naked stub
+  `OriginalUpdateMoveFactors`; slot-implementation bodies are `<Slot>Impl`.
 
 ## Original bugs and oddities kept on purpose
 
@@ -224,19 +233,21 @@ ours = consistency checks (most order / update code: run every tick).
 
 ## Skipped and left
 
-- 0055E990: Rebirth-patched. 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL; always
-  called through the address). 00536670 / 00535CB0 / 005381B0 are the client's (units.md). AI forwarders: 005CEED0
-  AttentionRebuild, 005CCBF0 CallsDropClaims, 005CBBC0 MemoryAddCall (originals_ai.h).
-- Library: containers, CArchive lists (00556E10-00558700), 11 container functions in 0x545000-0x557000 (the AnimationSteps
-  copies 0054B260 / 005483C0 / 00556870 / 00556950, list constructors / destructors), 21 MFC template functions in
-  0x5576C0-0x559000. EH-only helpers left unported: 005461E0 / 00545FD0 (an order's target release), 00546200, 00556AA0,
-  00545B80; 0054B220 is called only by the rewritten 0054A900. Game code left in 0x5576C0-0x559000: 005587A0 (a mode
-  reference's destructor), 00558840 (armour spell element assignment), 00558CA0 / 00558CC0 / 00558CE0 (the memory records'
-  deleting destructors and a reference reset).
+- 0055E990 (the maps folder) is Rebirth-patched (`world_map_files.cpp`, world.md). 0054C8B0 / 0054C960 return the FPU status word in AX
+  on one path (callers test AL; always called through the address; CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp).
+  00536670 / 00535CB0 / 005381B0 are the client's (units.md). AI forwarders: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims,
+  005CBBC0 MemoryAddCall (originals_ai.h).
+- Library (config/library.csv): containers, CArchive lists (00556E10-00558700), the AnimationSteps copies 0054B260 / 005483C0 /
+  00556870 / 00556950, list constructors / destructors, MFC template functions in 0x5576C0-0x559000, and the EH-only helpers 005461E0 /
+  00545FD0 (an order's target release), 00546200, 00556AA0, 00545B80, 005576B0 (an STLport count decrement). 0054B220 (WorldTick, 4 bytes,
+  not hookable) is called only by the rewritten 0054A900. The small records (`combat_small_records.cpp`) cover MotionSegmentInit
+  0054E5D0, PathConstructSteps 0054EAC0 (PlanOrderRoute, the AI's test paths), ArmourSpell::Assign 00558840 and the counted
+  reference / call record deleting destructors 00558CA0 / 00558CC0. Nothing else in 0x00540000-0x00560000 is unported except
+  0055E1B0-0055FF90's small slots (world.md).
 
 ## Risks
 
-- Almost everything is checked for consistency only, so a wrong branch that leaves a consistent state is invisible to the
+- Almost everything was checked for consistency only, so a wrong branch that leaves a consistent state is invisible to the
   wrappers; the scenarios are the behavioural check. TakeHit's log line goes through forwarded ostream code (006FC31D,
   006FC9C6, 006FC7FA, 006FC0B0, 00434FE0; log stream pointer 007AF3E8 = the console ostream at 007C5810) and must match
   character for character.
@@ -248,18 +259,3 @@ ours = consistency checks (most order / update code: run every tick).
   archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails `waitfor IsAlive`). An order
   given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel):
   scenarios wait 1 s after the spawn, give the order, wait 1 s and give it again (`hp0` is read before the first order).
-
-## A-U12 (the server controller's leftovers, 0x00540000-0x00559000)
-
-- **Ported** (`combat_small_records.cpp`; `verify_combat_small_records.cpp`, all ours only): WorldTick 0054B220 (4
-  bytes, not hookable), MotionSegmentInit 0054E5D0 (TimeUntilAction), PathConstructSteps 0054EAC0 (PlanOrderRoute, the
-  AI's test paths), ArmourSpell::Assign 00558840 (RefreshItemSpells), the deleting destructors of a counted reference
-  and of a call record (00558CA0, 00558CC0: the brain's memory arrays destroyed). The order checks 0054C8B0 / 0054C960
-  were ported by A-W13 at the same time (CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp); this ticket's copy
-  was dropped when main was merged (both read the disassembly the same way).
-- **The maps folder** (0055E990): A-W14 ported it at the same time (`world_map_files.cpp`, world.md); this ticket's
-  copy (`world_maps_folder.cpp`) was dropped by A-W15, since two definitions broke the link on main.
-- **config/library.csv**: 00545FD0, 005461E0, 00546200 (unwind-only destructors of locals), 005576B0 (an STLport count
-  decrement whose only caller is library code).
-- **Left**: 0055E1B0-0055FF90 (the world's small slots and helpers; world.md) for the AI / world area. Nothing else in
-  0x00540000-0x00560000 was unported when this ticket ended.

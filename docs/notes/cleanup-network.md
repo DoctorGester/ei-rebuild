@@ -36,85 +36,69 @@ qualified member).
 
 ## C2n: the remaining network files and the players
 
-The six counts (duplicate forwarders, `At<>` / `Field<>`, `VCall`, byte offset arithmetic, `*At` views, per-file containers) in
-`net_*` / `player*` went from 0 / 8 / 36 / 3 / 0 / 1 to 0 / 0 / 0 / 0 / 0 / 1 (`QueryVector`, kept: see "Left").
-
-- `ClientSession::parties_` are `PartyStorage` (a CParty's 0x70 bytes with `Party()`, as `CPlayer::party_`; the class is abstract in C++),
-  replacing the misnamed `UnitRecordBuilder`; `TradeRecordNode` (three parties) moved to `net_classes.h` and `tradeRecords_` is typed. The
-  party publish / apply (`net_client_party.cpp`) read our party's items (`items_`, `CItem::spell_`, `type_`, `unknown_18` the packed id,
-  `Save` / `Load` slots 10 / 9) and the partner party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23);
-  `PartyMessage::partyValue_` is `money_` (the party's money, `CParty::Money()`). The object vector is an `stlp::vector<CEngineObject*>`.
+- `ClientSession::parties_` are `PartyStorage` (a CParty's 0x70 bytes with `Party()`, as `CPlayer::party_`; the class is abstract in C++);
+  `TradeRecordNode` (three parties) is in `net_classes.h` and `tradeRecords_` is typed. The party publish / apply (`net_client_party.cpp`)
+  read our party's items (`items_`, `CItem::spell_`, `type_`, `unknown_18` the packed id, `Save` / `Load` slots 10 / 9) and the partner
+  party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23); `PartyMessage::partyValue_` is `money_`
+  (`CParty::Money()`). The object vector is an `stlp::vector<CEngineObject*>`.
 - `ApplyAwards` / the client tick go through `CPlayer` (`Party()->Money()`, `items_`, `connection_->state_`) and `CItem::IsSameAs` /
-  `GetClassId` / `Release`. Checked against Ghidra (0041CD80): kind 3 takes the first given item whose slot 14 returns 0, as ours did.
-- `CPlayerConnection` gained `state_` (+0x20, both connection classes); `CPlayer::unknown_130` is `dirty_` (the state bits the server's
-  writers clear); `CPlayerServer::player_` and `CPlayerClient::player_` are `CPlayer*`. The writers reach the party variables
-  (`Party()->variables_`, was +0xC4) and the game state (`sessionKind100_`, was +0x100) through `Owner()`. `WriteTo` takes a `CStream*`
-  (slot 7 `CopyFrom`, the world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the
-  item's `charge_` (+0x28; the FLD / FSTP copy is kept).
+  `GetClassId` / `Release`; kind 3 takes the first given item whose slot 14 returns 0 (checked against Ghidra, 0041CD80).
+- `CPlayerConnection` has `state_` (+0x20, both connection classes); `CPlayer::unknown_130` is `dirty_` (the state bits the server's writers
+  clear); `CPlayerServer::player_` and `CPlayerClient::player_` are `CPlayer*`. The writers reach the party variables
+  (`Party()->variables_`) and the game state (`sessionKind100_`) through `Owner()`. `WriteTo` takes a `CStream*` (slot 7 `CopyFrom`, the
+  world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the item's `charge_`
+  (+0x28; the FLD / FSTP copy is kept).
 - `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s CFile goes through `mfc::CFileVirtuals`
-  (`File()`), the `kFile*` slot numbers are gone.
-- `DriverSession::PumpDrivers` takes the `SessionBase` it is given (the game client or server; `clients_` was "+0x28 of the world") and asks
-  the game server (`GameServer()`, 00417E40) about each connection.
+  (`File()`). `DriverSession::PumpDrivers` takes the `SessionBase` it is given (the game client or server) and asks the game server
+  (`GameServer()`, 00417E40) about each connection.
 - Shared list values in `net_classes.h`: `RefNode` (= `stlp::list<RefPtr>::Node`), `TimedEntry` / `TimedNode` ({seconds as a float or its
-  bits, counted object}: the client's timers, the server's awards and finished trades; the client's and the award code's own entry structs are
-  gone). `net_lobby.cpp`'s `ValueOf` reads `stlp::list<T>::Node::data`. `SentPacket` is a history node's value: `RollBack` / `Delivered` take
-  it instead of "node + 8" bytes. `NewMessageMemory` moved to `net_classes.h` and replaces five inline copies (entries, connections, clones).
-- Calls checked in the release objects (dumpbin): every new virtual call dispatches through the vtable (no devirtualised call to a rewritten
-  body such as `CMemoryStream::Write` or `CItem::Save`).
-- Not the same instruction: `AppendServer` clears the copy-on-share bit with a byte AND of `flags6_` where the original ANDs the word at +6
-  with 0xFFFE (same result).
+  bits, counted object}: the client's timers, the server's awards and finished trades). `SentPacket` is a history node's value: `RollBack`
+  / `Delivered` take it. `NewMessageMemory` is in `net_classes.h`.
+- Every new virtual call must dispatch through the vtable (no devirtualised call to a rewritten body such as `CMemoryStream::Write` or
+  `CItem::Save`). `AppendServer` clears the copy-on-share bit with a byte AND of `flags6_` where the original ANDs the word at +6 with
+  0xFFFE (same result).
 
 ## Behaviour notes
 
-- The reset slots (slot 2) return 0 (the originals leave EAX undefined; only `CRefObject::Shutdown` passes it on and nobody reads it); `ReplicaEntry`'s
-  reset returns 0; the `if (!this)` of the inlined placement new is left out.
-- `Connection::Close` passed a 4-byte local as the 8-byte hash iterator out-parameter of 0042A810 (our port's stack overrun); it is a two-word iterator now.
-- Calls the old code made "at" an address on purpose (`net_lobby.cpp`'s `...At` forwarders, the server base tick from the game server's tick) are kept.
-  A call on a local buffer's slot is made through a pointer in `SendInfo` (a call on the local itself was devirtualised and did not link).
+- The reset slots (slot 2) return 0 (the originals leave EAX undefined; only `CRefObject::Shutdown` passes it on and nobody reads it);
+  `ReplicaEntry`'s reset returns 0; the `if (!this)` of the inlined placement new is left out.
+- `Connection::Close` passes a two-word hash iterator out-parameter to 0042A810 (a 4-byte local overran the stack).
+- Calls made "at" an address on purpose (`net_lobby.cpp`'s `...At` forwarders, the server base tick from the game server's tick) stay. A
+  call on a local buffer's slot is made through a pointer in `SendInfo` (a call on the local itself was devirtualised and did not link).
 
 ## Left
 
-- The `ClientSession` / `ServerSession` / `ClientBase` list members are still `void*` sentinels, typed at the use sites (`RefNode`, `TimedNode`,
-  `TradeRecordNode`); typing the members touches `ui_chat_window.cpp` (`ClientList(client->offers_)`). `net_lobby.cpp` walks its lists
-  (servers, waiting addresses, pending joins) through a links-only `Node`; `net_client_handlers.cpp`'s `Append` / `RemoveValue` take `void*` lists.
+- The `ClientSession` / `ServerSession` / `ClientBase` list members are still `void*` sentinels, typed at the use sites (`RefNode`,
+  `TimedNode`, `TradeRecordNode`); typing the members touches `ui_chat_window.cpp` (`ClientList(client->offers_)`). `net_lobby.cpp` walks
+  its lists through a links-only `Node`; `net_client_handlers.cpp`'s `Append` / `RemoveValue` take `void*` lists.
 - `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval_` and the halves of `clock_`): kept (no FPU load).
-- `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784 +
-  0x1C`), a `CParty` member with `PartyUnitRecord` (party owner); the `CPlayerServer` engine-object bytes (`vtable_`, `engineObject_`) are not a `CEngineObject` base.
-- `net_server_awards.cpp` / `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14) (world subsystem's registry).
-- `world_game.cpp`'s `AnnounceHost` builds a `HostMessage` by hand (can use `HostMessage` and `NewMessageMemory`).
-- Forwarders to the STLport list / vector / string instantiations the handlers call (library layer) and the timed-entry list nodes ({delay, object}) use raw
-  node offsets; the MFC `CFile` slots (FileStream, `world_savefile.cpp`) and its `CStream` VCalls on `void*` streams (world subsystem); GameBuffer's own slot
-  bodies (the view's Seek / destructors in `net_coder.cpp`) are free functions; the growing buffer's forwarders (004DA7F0 ...) are declared per file.
-- `StringRep` (raw STLport string layout) vs `stlp::string`; `hash_tables_400.cpp`'s own view
-  of the type registry (004368F0); the world object the pump reads players from (+0x28) and the manager 0079B5DC.
+- `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784
+  + 0x1C`); the `CPlayerServer` engine-object bytes (`vtable_`, `engineObject_`) are not a `CEngineObject` base. `net_server_awards.cpp` /
+  `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14). `world_game.cpp`'s `AnnounceHost` builds a `HostMessage`
+  by hand. Forwarders to the STLport list / vector / string instantiations the handlers call, the MFC `CFile` slots, GameBuffer's own
+  slot bodies (free functions) and the growing buffer's forwarders (004DA7F0 ...) are declared per file. `StringRep` vs `stlp::string`;
+  `hash_tables_400.cpp`'s own view of the type registry (004368F0).
 
 ## C2z: the client's queries
 
-`QueryVector` became `ClientQueries` (`net_classes.h`): `stlp::vector<Query> list` plus the `extra` dword saved with it (+0x0C). The
-original's vector functions are the game's `stlp::vector<Query>` instantiation and are forwarded with it as their `this`: 004439C0
-`_M_insert_overflow`, 00443BF0 `operator=`, 004442B0 `erase(first, last)`, 00444090 `resize`. `Ask` and `Forget` keep the inlined push_back /
-erase over `Finish()` / `EndOfStorage()`; `ui_connect_screen.cpp`'s address book and the verify wrappers follow (the constructor's wrapper copies
-raw bytes: the vector has no copy). The per-file vector struct count is 0.
+`ClientQueries` (`net_classes.h`): `stlp::vector<Query> list` plus the `extra` dword saved with it (+0x0C). The original's vector
+functions are the game's `stlp::vector<Query>` instantiation, forwarded with it as `this`: 004439C0 `_M_insert_overflow`, 00443BF0
+`operator=`, 004442B0 `erase(first, last)`, 00444090 `resize`. `Ask` and `Forget` keep the inlined push_back / erase over `Finish()` /
+`EndOfStorage()`; `ui_connect_screen.cpp`'s address book follows (the constructor's wrapper copies raw bytes: the vector has no copy).
 
-## F5: unknown fields of the rest (2026-10-14)
+## F5: meanings of unknown fields in the rest (2026-10-14)
 
-The 99 `unknown` members and locals of map_spec.h, net_*, player_*, sound*, script*, app_device_list.cpp,
-bink_video.cpp, quest_records.h, base_manager.h, engine_object.h, the small headers and src/lib are named or
-`unused_XXX` (F2's method: all renamed to unused_, the verify build with `-k 0`, each error a use). Meanings the
-code alone does not show:
-- `CEngineObject` +0x18 is `prototypeId_`: the database prototype (items: index << 16 | material; spells: index
-  << 16; units: the plain index).
-- `CPlayer` takes `WorldPlayer`'s names: +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110
-  `lastTick_`; `CPlayerClient` +0x84 is `localSession_` (`LocalViewData`). The login's +0x84 is the party id.
-- `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends
-  group50F8_ and resets it. world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a
-  pending possession passes).
-- `ServerSession` +0x25FC `masterKey_` (StartServer's last argument, the client queries' `extra`) and +0x2578
-  `masterToken_` (the master server's last dword, sent back); `GameInfoRecord` +0x1A..+0x23 carry them with the
-  kind and the password flag.
-- app_device_list.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb. F5a: one declaration now (CString members), app_device_list.cpp uses LeverRecord.
-- `mapspec::Waypoint` +0x10 / +0x12 are the look's wait and stop-first bit (its turning time is `time`, as AILook::time; was `wait`, F5a);
-  `Behaviour` +0x38 `enabled` (HearAlarm); `ObjectSpec` +0x6E `side`, +0x74 `skinTexture` (chunk B008).
-- Only written, nothing reads them: `CBaseManager` `reservedA_` / `reservedB_` (0 / 300 after Create),
-  `CPlayerServer::spare_`, `CSoundManager::spare`, `Spec::spareId` (copied); chunk or archive fields read and
-  written with their record only keep the field's id: `field0A`, `field04`, `field0E`, `field2`, `field10`.
+- `CEngineObject` +0x18 is `prototypeId_`: the database prototype (items: index << 16 | material; spells: index << 16; units: the plain
+  index).
+- `CPlayer` takes `WorldPlayer`'s names: +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110 `lastTick_`; `CPlayerClient`
+  +0x84 is `localSession_` (`LocalViewData`). The login's +0x84 is the party id.
+- `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends group50F8_ and resets it.
+  world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).
+- `ServerSession` +0x25FC `masterKey_` (StartServer's last argument, the client queries' `extra`) and +0x2578 `masterToken_` (the master
+  server's last dword, sent back); `GameInfoRecord` +0x1A..+0x23 carry them with the kind and the password flag.
+- app_device_list.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb.
+- `mapspec::Waypoint` +0x10 / +0x12 are the look's wait and stop-first bit (its turning time is `time`, as AILook::time); `Behaviour` +0x38
+  `enabled` (HearAlarm); `ObjectSpec` +0x6E `side`, +0x74 `skinTexture` (chunk B008).
+- Only written, nothing reads them: `CBaseManager` `reservedA_` / `reservedB_` (0 / 300 after Create), `CPlayerServer::spare_`,
+  `CSoundManager::spare`, `Spec::spareId` (copied); chunk or archive fields read and written with their record only keep the field's id
+  (`field0A`, `field04`, `field0E`, `field2`, `field10`).

@@ -1,24 +1,8 @@
 # Cleanup phase 1: the device layer and the old renderer (cleanup plan, ticket C2d)
 
-What changed in `device_*.cpp/.h`, `renderer_*.cpp/.h`, `weather_*.cpp`, `texture*.cpp`, `render_helper.cpp`
-and the headers that declare their classes, and what is left. Conventions as in `cleanup-engine-base.md`.
-
-Every rewritten address keeps its hook and verify wrapper; calls that went through a game address still do.
-Each group was compared with a disassembly diff of the release objects: the same vtable slots, the same x87
-sequences, only the helper calls gone and register / stack moves. Nothing disagreed with the original.
-
-## Counts in these files (before -> after)
-
-| Count | Before | After |
-|---|---|---|
-| Offset access (At<>/Field<>) | 55 | 0 |
-| VCall | 5 | 0 |
-| Byte arithmetic | 1 | 0 |
-| *At views | 0 | 0 |
-| Per-file containers | 0 | 0 |
-| Duplicate forwarders | 0 | 0 |
-
-The local `ComCall` / `ThisCall` / `Com` slot helpers (not counted) are gone from these files too.
+What changed in `device_*.cpp/.h`, `renderer_*.cpp/.h`, `weather_*.cpp`, `texture*.cpp`, `render_helper.cpp` and the headers that declare their
+classes, and what is left. Conventions as in `cleanup-engine-base.md`. The local `ComCall` / `ThisCall` / `Com` slot helpers are gone from these
+files.
 
 ## Declarations
 
