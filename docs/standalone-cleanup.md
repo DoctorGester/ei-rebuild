@@ -58,7 +58,7 @@ shared declarations are in `src/game/originals_<area>.h`. Grouped by what replac
   state blocks are opaque) and reads textures and the interface windows' pixels out of the old DirectDraw surfaces (`render_textures.cpp`).
   Standalone: the materials from the game's data, textures from the .mmp files, the window surfaces as CPU buffers (or native drawing,
   `docs/notes/renderer.md` section 5). The window, cursor, cursor image and movie holders already work that way in the switch-over (`present` with
-  `cpuwindows`, section 14): their pixels are only in the new renderer's memory (`render::SurfaceMemory`); outside it the same memory is still
+  `cpuwindows`, section 6): their pixels are only in the new renderer's memory (`render::SurfaceMemory`); outside it the same memory is still
   handed to DirectDraw as client memory, which goes with the old path.
 
 - `src/lib/gameapi.h` calls Win32 through game.exe's import table so other mods' API hooks apply.

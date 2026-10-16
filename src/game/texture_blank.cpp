@@ -10,7 +10,7 @@
 // them (004EB300 / 004EBAF0 / 00501AF0 pass the holder's null surface), and the texture manager
 // touches their surface nowhere else (SetPriority in the cache, texture_cache.cpp, is left out for a
 // holder without a surface). The shadow textures (00692010 / 00692140, texture_shadow.cpp) are
-// memory-only there too since R8's second part. See docs/notes/renderer.md (sections 15, 16).
+// memory-only there too since R8's second part. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "dx_surface.h"
