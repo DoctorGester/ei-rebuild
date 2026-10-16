@@ -402,7 +402,7 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 }
 
 void PlayMovie(const SSCCmd* cmd) {
-    mfc::CString path = *GameDirectoryOriginal(GameGlueObject()) + MoviesFolder();
+    mfc::CString path = *GameBasePathString() + MoviesFolder();
     mfc::CString file = path + cmd->stringArgs.data[0];
     PlayMovieFile(file, 0, 1, 1, 1, 1, 1);
 }

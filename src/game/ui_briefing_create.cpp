@@ -1,6 +1,7 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
+#include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
 #include "ui.h"
@@ -36,9 +37,6 @@ namespace {
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
-void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
-void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
 void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
 void* MapDatabase() { return reinterpret_cast<void*>(0x0079BF00); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
@@ -244,8 +242,8 @@ void CBriefingScreen::Create() {
         Music()->PlayBriefing(DefaultAllod());
         noWalk_ = false;
     }
-    GameMarkInterfaceChangedOriginal(ClientGlue());
-    GameSetWeatherOriginal(UnitGlue(), nullptr, 0, 0.0f);
+    GameStartAmbience();
+    GameSetWeather(0, 0.0f);
 
     // The screen's own input side (its third dword is left as allocated) and the view's.
     auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
@@ -410,19 +408,19 @@ void CBriefingScreen::LeaveIfExitOpen() {
     };
     const auto* party = reinterpret_cast<const PartyRecords*>(LocalPlayerData());
     if (!exitPending_ || party->count <= 0) return;
-    mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
+    mfc::CString zone(GameExitTarget(exit_));
     if (Compare(zone, NoZone()) == 0) return;
     mfc::CString variable(ZoneVariablePrefix());
     variable += zone;
     float visited = PlayerZeroVariable(variable);
     if (visited == 1.0f || x87::IsNaN(visited)) return;
-    mfc::CArray<void*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
-    mfc::CArray<void*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<std::uint8_t*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<std::uint8_t*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
     records.SetSize(1);
-    records[0] = party->records;
-    if (GameCanLeaveZoneOriginal(ClientGlue(), nullptr, &records, exit_, &second)) {
+    records[0] = static_cast<std::uint8_t*>(party->records);
+    if (GamePartyInExit(&records, exit_, &second)) {
         InterfaceHasScreen() = false;
-        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, exit_);
+        GameLeaveThroughExit(exit_);
     }
     second.FreeData();
     records.FreeData();

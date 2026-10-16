@@ -579,7 +579,7 @@ obvious.
 
 Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
 unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
-`GameIsPausedOriginal` / `GameSetPausedOriginal` in originals_world.h. The tables' vector serialisers are called through their
+`GameClientPaused` / `GameSendFlag10` in world_glue.h. The tables' vector serialisers are called through their
 addresses so that their wrappers run. The folder-only loads (quests, prints, acks) open "database.res" but report
 "databases.res" when that fails; the serialisers' unused third argument is whatever the original's stack held (null in ours);
 ItemDatabase / SpellDatabase / AckDatabase file a repeated key over the earlier record (operator[]);

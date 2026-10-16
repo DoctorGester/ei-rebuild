@@ -8,6 +8,7 @@
 // (CBattleScreen) and
 // docs/notes/ui.md, section 6.
 #include "ui.h"
+#include "world_glue.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -167,15 +168,15 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionPause: {
         auto* clock = static_cast<CHudClock*>(clock_);
         clock->interface_->PlaySound(ClockSound(), 0);
-        const bool paused = GameIsPausedOriginal(GameGlueObject());
-        GameSetPausedOriginal(GameGlueObject(), nullptr, paused ? 0 : 1);
+        const bool paused = GameClientPaused();
+        GameSendFlag10(paused ? 0 : 1);
         inputHandled_ = true;
         return;
     }
     case kActionNormalSpeed:
     case kActionFastSpeed: {
         auto* clock = static_cast<CHudClock*>(clock_);
-        if (GameIsPausedOriginal(GameGlueObject())) return;
+        if (GameClientPaused()) return;
         if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool fast = action == kActionFastSpeed;

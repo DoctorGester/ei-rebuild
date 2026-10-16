@@ -5,6 +5,7 @@
 // behave as in the original; the multi-step computations keep their intermediates unrounded
 // (double locals) as the original keeps them in registers.
 #include "script.h"
+#include "world_glue.h"
 #include "script_addon.h"
 
 #include "ai_map.h"
@@ -118,11 +119,6 @@ net::ServerSession* ActiveServer() {
     return nullptr;
 }
 
-// The local player's client glue (007AFEA5; the object is not read).
-struct ClientGlue {
-    int IsCameraPlaying();   // 005788B0
-};
-__declspec(naked) int ClientGlue::IsCameraPlaying() EI_ORIGINAL(0x005788B0)
 
 WorldAlarm& Alarm(int index) { return WorldServer()->alarms_[index]; }
 
@@ -479,7 +475,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0xA2:   // IsCameraPlaying
-        *result = static_cast<float>(static_cast<ClientGlue*>(ClientGlueObject())->IsCameraPlaying());
+        *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case 0xAA:   // IsNight (the world's day-time value, copied as a float)
         CopyFloat(result, reinterpret_cast<const float*>(&WorldServer()->nightLevel_));

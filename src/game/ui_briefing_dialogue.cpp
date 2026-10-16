@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue (CBriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
+#include "world_glue.h"
 #include "combat.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -204,9 +205,6 @@ EI_REPLACE_METHOD(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
 namespace {
 
-void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
-
 constexpr float kPi = 3.14159274f;          // 007410D0
 constexpr float kSixth = 0.166666672f;      // 0073CE40 (and -: 00741440)
 constexpr float kTwelfth = 0.0833333358f;   // 00741438 (and -: 00741430)
@@ -215,7 +213,7 @@ constexpr float kSunk = -100.0f;
 
 // A speaker who is not in the picture is moved below the ground.
 void Sink(CUnit* unit) {
-    if (unit) GameSetUnitHeightOriginal(UnitGlue(), nullptr, unit->id_, kSunk);
+    if (unit) GameSetUnitHeight(unit->id_, kSunk);
 }
 
 } // namespace
@@ -293,7 +291,7 @@ void EraseShown(BriefingShownItem* node) {
 } // namespace
 
 void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
-    auto* person = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(name)));
+    auto* person = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(name)));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(node->name)),
@@ -320,7 +318,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         model->BlinkOpen(true);
         if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, person->id_))) {
             serverUnit->SetFlag40000000Off(true);
-            GameSetUnitHeightOriginal(UnitGlue(), nullptr, person->id_, 0.0f);
+            GameSetUnitHeight(person->id_, 0.0f);
             auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
             controller->actionDone = nullptr;
             controller->StopAction();

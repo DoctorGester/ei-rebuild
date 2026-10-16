@@ -2,6 +2,7 @@
 // person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "library_containers.h"
+#include "world_glue.h"
 #include "combat.h"
 #include "player_messages.h"
 #include "ui_briefing.h"
@@ -30,7 +31,6 @@
 namespace {
 
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
 void* LootNames() { return reinterpret_cast<void*>(0x007C8764); }   // the loot table's (007C8758) name index
 float TurnedOver() { return *reinterpret_cast<const float*>(0x007410D0); }   // pi
@@ -122,7 +122,7 @@ EI_REPLACE_METHOD(0x006089D0, CBriefingScreen::MovePerson);
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     (void)unused;
-    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(name)));
+    auto* unit = static_cast<CUnit*>(GameFindClientUnit(TextKeyFromName(name)));
     if (unit) {
         // A person joins the speakers (at the end, once).
         BriefingSpeaker* entry = speakers_;

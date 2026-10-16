@@ -32,6 +32,6 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
 - `tests/verify/verify_script_exec.cpp` still uses `CScript::Field(offset)` (script.h) and `Field<int>`; with it gone the member can be removed.
 - `EffectManager()` is defined in three script files (script_effects, script_exec_run, script_exec_helpers); the local `World` views
   (`RemoveTimedObject` / `AddTimedObject` through the forwarders) remain in script_reset and script_exec_helpers.
-- `ScriptLoadError` (console.h) repeats `ScriptErrorInfo` (world_glue.h); `WorldPlayer` (world.h) and `CPlayer` (player_messages.h) declare the same
+- `WorldPlayer` (world.h) and `CPlayer` (player_messages.h) declare the same
   object; per-file `Interface()` accessors for 007C7D50 remain.
 - Raw game addresses (strings, globals such as 0079BC60, 00783E34) and `__asm` blocks are not covered.

@@ -1,6 +1,7 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
 // game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
 #include "console.h"
+#include "world_glue.h"
 #include "game_strings.h"
 #include "ui.h"
 
@@ -65,11 +66,6 @@ bool NetworkGame() { return IsNetworkClientOriginal(); }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
 
-// 005785D0 (RunScriptText, world_glue.h; thiscall on the glue 007AFEA6, which it does not read;
-// RET 0xC): loads `text` into the mission script 007C29CC, runs one tick when it loaded and `run`
-// is set, and copies the loader's error into `error`. Returns nonzero on success. Through its
-// address, so its verify wrapper runs.
-__declspec(naked) int __stdcall RunScriptTextAt(mfc::CString*, int /*run*/, ScriptLoadError*) EI_ORIGINAL(0x005785D0)
 
 void* const kFlush = reinterpret_cast<void*>(0x00435000);   // ostream& flush(ostream&)
 
@@ -281,7 +277,7 @@ EI_REPLACE(0x004DC200, Tokenize);
 // 005DD800. The arguments are joined back with single spaces.
 void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
                               const char* suffix) {
-    ScriptLoadError error;
+    ScriptErrorInfo error{};
     mfc::CString line(prefix);
     line += *text;
     for (int i = 0; i < args->GetSize(); ++i) {
@@ -290,7 +286,7 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
         line += arg;
     }
     Ops(line).AppendText(suffix);
-    if (!RunScriptTextAt(&line, 1, &error))
+    if (!RunScriptText(&line, 1, &error))
         EndLine(Out() << game::Text(0x007924CC) << static_cast<const char*>(error.text));   // "Script error: "
 }
 EI_REPLACE(0x005DD800, RunScriptLine);

@@ -2,6 +2,7 @@
 // the click and double click (input slots 2 and 7), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
+#include "world_glue.h"
 #include "combat.h"
 #include "ui_briefing.h"
 
@@ -23,7 +24,6 @@
 namespace {
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
 const char* ClickSound() { return reinterpret_cast<const char*>(0x00793394); }    // "buttons\base\click1.wav"
 const char* TopicPrefixKey() { return reinterpret_cast<const char*>(0x007934F4); }   // "topic_prefix"
@@ -194,7 +194,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
-    mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
+    mfc::CString zone(GameExitTarget(exit_));
     if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
                         reinterpret_cast<const unsigned char*>(NoZone())) == 0)
         return;

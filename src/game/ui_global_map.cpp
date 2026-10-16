@@ -7,6 +7,7 @@
 // stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
 // as the original does.
 #include "app.h"
+#include "world_glue.h"
 #include "sound.h"
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -386,7 +387,7 @@ void CGlobalMap::Create() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
         variable.Format(game::Text(0x00794140), zones_.data[i].name);   // "q.%s"
-        reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5)->CopyVariables(variable, vars.Table());
+        GameLocalPlayerVariables(variable, vars.Table());
         VariableIterator it;
         FloatTableBeginOriginal(vars.Table(), nullptr, &it);
         while (NamedFloatTable::Node* node = it.node) {
@@ -584,7 +585,7 @@ void CGlobalMap::Create() {
     selectPending_ = 1;
     SelectZone(-1, 0);
     dragging_ = false;
-    GameSetWeatherOriginal(reinterpret_cast<void*>(0x007AFEA6), nullptr, 0, 0.0f);   // clear
+    GameSetWeather(0, 0.0f);   // clear
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
     {
         WeatherObject* weather = static_cast<WeatherObject*>(gamecrt::operator_new(0x34));

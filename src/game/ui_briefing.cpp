@@ -27,7 +27,6 @@ namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
 float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
@@ -43,8 +42,6 @@ constexpr int kGameOverResult = 0x20000;
 
 // 006091C0: the chat window shows itself (thiscall, plain RET).
 __declspec(naked) void __fastcall ChatWindowShowAt(CUiWindow* /*chat*/) EI_ORIGINAL(0x006091C0)
-
-void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
 
 // The local player's unit records as the party order follows them (LocalPlayerData).
 struct LocalPartyRecords {
@@ -67,7 +64,7 @@ constexpr int kTopicNameParts = 3;
 
 BriefingVariables::BriefingVariables(const char* prefix) {
     NamedTableConstructOriginal(&table_);
-    GameCopyVariablesOriginal(VariableGlue(), nullptr, prefix, &table_);
+    PlayerZeroVariables(prefix, &table_);
 }
 
 BriefingVariables::~BriefingVariables() {
@@ -119,7 +116,7 @@ EI_REPLACE_METHOD(0x00602BB0, CBriefingScreen::Close);
 void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     switch (result) {
     case kLeaveZoneYes:
-        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, exit_);
+        GameLeaveThroughExit(exit_);
         break;
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));

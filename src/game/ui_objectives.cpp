@@ -7,6 +7,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "stl_sorts.h"
+#include "world_glue.h"
 #include "text_reader.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -77,7 +78,6 @@ int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find
 mfc::CString& LastQuest() { return *reinterpret_cast<mfc::CString*>(0x007C8178); }
 
 // The local player's variables, copied by name prefix into an STLport hash_map<CString, float>.
-LocalPlayerOriginal* LocalPlayerVariables() { return reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5); }
 
 // 00609C10 (not rewritten): hash_map constructor with at least `buckets` buckets (the three
 // pointers are the hasher, key-equal and allocator objects, one byte each).
@@ -92,7 +92,7 @@ public:
         char functors[3] = {};
         ConstructTable(&table_, nullptr, 100, &functors[0], &functors[1], &functors[2]);
     }
-    void Fill(const char* prefix) { LocalPlayerVariables()->CopyVariables(prefix, &table_); }
+    void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
     ~VariableTable() { Destroy(); }
 
     // Iteration in STLport's order: buckets in order, each chain from its head.

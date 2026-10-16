@@ -140,17 +140,6 @@ __declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(v
 __declspec(naked) inline void __fastcall SurfaceBlitOriginal(void* /*surface*/) EI_ORIGINAL(0x005FDA80)
 // 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
 __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
-// The client glue objects (007AFEA4 / 007AFEA5 / 007AFEA6, thiscall; the object is not read): 00578DC0 the game's
-// folder (a CString*); 00578950 marks the interface changed (the window list +0x94 flag 8); 005786A0 the weather
-// (kind 0 clear / 1 rain, strength; RET 8); 005786E0 the world's time of day, unrounded in ST0; 00578960 (RET 4) asks
-// the sound manager for a music stream (null: the default 0079BECC); 00578880 (RET 4) plays a camera path file.
-__declspec(naked) inline const mfc::CString* __fastcall GameDirectoryOriginal(void*) EI_ORIGINAL(0x00578DC0)
-__declspec(naked) inline void __fastcall GameMarkInterfaceChangedOriginal(void*) EI_ORIGINAL(0x00578950)
-__declspec(naked) inline void __fastcall GameSetWeatherOriginal(void*, void*, int /*kind*/, float /*strength*/)
-    EI_ORIGINAL(0x005786A0)
-__declspec(naked) inline double __fastcall GameTimeOfDayOriginal(void*) EI_ORIGINAL(0x005786E0)
-__declspec(naked) inline void __fastcall GamePlayMusicOriginal(void*, void*, const char* /*stream*/) EI_ORIGINAL(0x00578960)
-__declspec(naked) inline void __fastcall GamePlayCameraPathOriginal(void*, void*, const char* /*file*/) EI_ORIGINAL(0x00578880)
 // 005187B0 (thiscall on a figure, RET 8): plays `animation` (`restart` 1: from the start). 00512B20 (thiscall on the object
 // manager 007AF5F8, RET 8): its object of `kind` named `name` (an animation for kind 0x80590000, the rest pose), or null.
 
@@ -193,10 +182,6 @@ __declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*
 // 006575B0: loads the saved game `name` (ECX; plain RET; not on a network client).
 __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*name*/) EI_ORIGINAL(0x006575B0)
 // 00566030: the client world (007AF5B8) controls `unit` (thiscall, RET 4; no result).
-// 00578AC0: the client glue (007AFEA5, not read) leaves the zone through exit `exit` (a network client asks its
-// session; otherwise the local view, 0066B140; RET 4).
-__declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*glue*/, void*, int /*exit*/)
-    EI_ORIGINAL(0x00578AC0)
 
 // A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp): 005EE6C0
 // Describe(item), 005F1590 DescribeStats(info) (each RET 4).
@@ -207,10 +192,6 @@ __declspec(naked) inline void __fastcall WindowDrawHeroPreviewOriginal(void* /*w
     EI_ORIGINAL(0x005EC300)
 // The multiplayer hero screen (thiscall, plain RET): 006167C0 draws the hero list, 00616560 the voice list.
 __declspec(naked) inline void __fastcall HeroScreenDrawListOriginal(void* /*screen*/) EI_ORIGINAL(0x006167C0)
-// 005789E0: the client glue (007AFEA5, not read) hands a record array (CArray of unit records) to the client world
-// (00567400 on 007AF5B8; RET 4).
-__declspec(naked) inline void __fastcall GameTakeUnitRecordsOriginal(void* /*glue*/, void*, void* /*records*/)
-    EI_ORIGINAL(0x005789E0)
 // 0065A770 (library, RET 4): the interface's help topics (map<CString, int>, CInterface3D +0x98) operator[]: the
 // topic's value, a new entry with 0 when absent.
 __declspec(naked) inline int* __fastcall HelpTopicsAtOriginal(void* /*topics*/, void*, const mfc::CString* /*topic*/)
@@ -235,16 +216,8 @@ __declspec(naked) inline void __fastcall FreeBlock4ProxyOriginal(void* /*proxy*/
     EI_ORIGINAL(0x00520F20)
 __declspec(naked) inline void __fastcall DestroyModelMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634160)
 __declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634200)
-// 00578980: the client glue (007AFEA5, not read) finds the unit with id `id` in the client world (0055FB00 on 007AF5B8;
-// RET 4; EAX the unit or null). 00662F80: the multiplayer heroes (007C82A0) make `hero` the current one (RET 4).
-__declspec(naked) inline void* __fastcall GameUnitByIdOriginal(void* /*glue*/, void*, std::uint32_t /*id*/)
-    EI_ORIGINAL(0x00578980)
 // 00625430 (rewritten): the trade panel's records again (plain RET).
 __declspec(naked) inline void __fastcall TradePanelResetRecordsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625430)
-// 005789C0: the client glue (007AFEA5, not read) hands a record array to the client world with a flag (00566F70 on
-// 007AF5B8; RET 8).
-__declspec(naked) inline void __fastcall GameTakeUnitRecordsFlagOriginal(void* /*glue*/, void*, void* /*records*/, int /*flag*/)
-    EI_ORIGINAL(0x005789C0)
 // 00616560 (rewritten as CMpHeroScreen::DrawVoices; plain RET).
 __declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*screen*/) EI_ORIGINAL(0x00616560)
 // The trade panel (rewritten in ui_trade_panel.cpp; through their address so the wrappers run; ECX, plain RET):
@@ -262,22 +235,6 @@ __declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*in
 __declspec(naked) inline void** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, void** /*result*/,
                                                                        void* /*hint*/, const void* /*pair*/)
     EI_ORIGINAL(0x00609E70)
-// 00578760 (the client glue 007AFEA6, not read; RET 8): the server unit with id `id` is moved to height `z` (its
-// sector map entry updated, part 2 marked) unless it is there already. 006089D0 (the briefing screen; RET 0x28): `unit`
-// walks to a place (x, y, z) and turns to a direction (x, y, z); `waited` (byte) makes the dialogue wait for it,
-// `immediate` (byte) places it at once instead, `time` the walk's time argument.
-__declspec(naked) inline void __fastcall GameSetUnitHeightOriginal(void* /*glue*/, void*, int /*id*/, float /*z*/)
-    EI_ORIGINAL(0x00578760)
-// A-I12. 00578560 (the client glue 007AFEA6, not read; RET 4): the local player's "constr.current" = `constructor` (the
-// constructor the camp opens with; message to the server). 00578B00 (the client glue, not read; RET 4): the client
-// asks the server for interface screen `id` (1 battle, 3 briefing, 4 global map, 5 camp).
-__declspec(naked) inline void __fastcall GameSetConstructorOriginal(void* /*glue*/, void*, float /*constructor*/)
-    EI_ORIGINAL(0x00578560)
-__declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*/, void*, int /*id*/) EI_ORIGINAL(0x00578B00)
-// 00578700 (the client glue 007AFEA6, not read; RET 4): with a distance of at least 0, the players' times move on by
-// it (0058D280). The objectives window's exits and the global map's links call it before the zone change.
-__declspec(naked) inline void __fastcall PassTravelTimeOriginal(void* /*glue*/, void*, float /*distance*/)
-    EI_ORIGINAL(0x00578700)
 // 0065C2D0 (thiscall on an edit window, RET 4): its editing switched on (1) or off (0). The multiplayer hero screen's
 // name and rename edit windows.
 __declspec(naked) inline void __fastcall EditFieldActivateOriginal(void* /*edit*/, void*, int /*on*/) EI_ORIGINAL(0x0065C2D0)
@@ -289,10 +246,6 @@ __declspec(naked) inline void __fastcall HeroScreenSetModeOriginal(void* /*scree
 // 00607A60 (rewritten as CBriefingScreen::PlaySpeakerAnimation; RET 0xC).
 __declspec(naked) inline void __fastcall WorldCompleteBriefingOriginal(void* /*world*/, void*, int /*playerId*/,
                                                                       const char* /*name*/) EI_ORIGINAL(0x00592090)
-// 00578C40: the client glue (007AFEA4, not read) copies the local player's variables whose names start with `prefix`
-// into `out` (a NamedFloatTable; emptied when there is no player; RET 8).
-__declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*/, void*, const char* /*prefix*/,
-                                                                   void* /*out*/) EI_ORIGINAL(0x00578C40)
 // A-I13. 0065CC00: the scrolling text's constructor (CUiScrollText; RET 0x1C, returns this): the interface, a string
 // (the exe's empty text), the layout rectangle by value (left, top, right, bottom) and the sprites' depth (A-H20: the
 // scroll bar's depth, not a line height). 005EACB0: the
@@ -300,10 +253,6 @@ __declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*
 __declspec(naked) inline void* __fastcall ScrollTextConstructOriginal(void* /*memory*/, void*, CInterface3D*, const char* /*text*/,
                                                                       int /*left*/, int /*top*/, int /*right*/, int /*bottom*/,
                                                                       float /*depth*/) EI_ORIGINAL(0x0065CC00)
-// 00578A20 (the client glue 007AFEA5, not read; RET 0xC): whether exit `exit` can be taken now by the party whose unit
-// records are listed in `records` (a CArray of record pointers); fills `second` (the same kind of array). Returns 0 / 1.
-__declspec(naked) inline int __fastcall GameCanLeaveZoneOriginal(void* /*glue*/, void*, void* /*records*/, int /*exit*/,
-                                                                 void* /*second*/) EI_ORIGINAL(0x00578A20)
 
 // A-I15. The client world (007AF5B8, thiscall, RET 4): 00565D00 the unit drawn at a screen point (the point's x, y; EAX
 // the object or null); 00566100 selects `unit` (null: clears the selection; no result).
@@ -357,8 +306,6 @@ __declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*
 // 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
 // the chat is closed), the caret clamped to it.
 __declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)
-// 00578B20 (on the client glue 007AFEA5, ECX not read): the client leaves the interface screen for the world (message 5).
-__declspec(naked) inline void __fastcall GlueBackToWorldOriginal(void* /*glue*/) EI_ORIGINAL(0x00578B20)
 // 00661FE0 (thiscall on a CParty, plain RET): every item released (its slot 4), the item array's storage freed.
 __declspec(naked) inline void __fastcall PartyReleaseItemsOriginal(void* /*party*/) EI_ORIGINAL(0x00661FE0)
 // The game client's trade offer (ClientSession, thiscall on GameClient(); rewritten in net_client_*.cpp): 0041E180
@@ -371,20 +318,6 @@ __declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*clie
 void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 
 // C3m. Thiscall members of game objects, called through these views (cast the object's pointer).
-// 00578B70 (rewritten as GameLocalPlayerVariables; the object at 007AFEA5): copies the local player's variables whose
-// names start with `prefix` into an STLport hash_map<CString, float>.
-struct LocalPlayerOriginal {
-    void CopyVariables(const char* prefix, NamedFloatTable* out);
-};
-__declspec(naked) inline void LocalPlayerOriginal::CopyVariables(const char*, NamedFloatTable*) EI_ORIGINAL(0x00578B70)
-// The interface (CInterface3D): 005F71C0 (rewritten as InterfaceActivate) makes `window` the active screen; 005F8C50
-// (rewritten as CInterface3D::ResetInput) resets the input after the screens were closed. Both thiscall, no result.
-struct InterfaceOriginals {
-    void Activate(CUiWindow* window);
-    void ResetInput();
-};
-__declspec(naked) inline void InterfaceOriginals::Activate(CUiWindow*) EI_ORIGINAL(0x005F71C0)
-__declspec(naked) inline void InterfaceOriginals::ResetInput() EI_ORIGINAL(0x005F8C50)
 // 005E7010 (rewritten as CUiMesh::GetPlacement): a sprite's layout position (x, y) and depth. Base of the views.
 struct SpritePositionOriginal {
     void Position(float* x, float* y, float* depth);

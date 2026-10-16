@@ -1,6 +1,7 @@
 // The message box's and the difficulty question's input handlers (CMessageBox / CDifficultyBox,
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
+#include "world_glue.h"
 #include "game_strings.h"
 
 #include "ei/hook.h"
@@ -16,8 +17,6 @@ namespace {
 const char* OkSound() { return game::Text(0x00793A88); }       // "buttons\messbox\ok.wav"
 const char* CancelSound() { return game::Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
 const char* ExitMovie() { return game::Text(0x0079422C); }     // "Movies\Exit.bik"
-// The client glue object the original passes in ECX (not read).
-void* Glue() { return reinterpret_cast<void*>(0x007AFEA4); }
 
 // The result of the exit question: OK plays the exit movie and quits.
 constexpr std::uint32_t kExitResult = 0xFFFF0000;
@@ -27,7 +26,7 @@ constexpr std::uint32_t kAnswerCancel = 2;
 
 void PlayExitMovieAndQuit() {
     {
-        mfc::CString path = *GameDirectoryOriginal(Glue()) + ExitMovie();
+        mfc::CString path = *GameBasePathString() + ExitMovie();
         PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
     }
     QuitGame(0);

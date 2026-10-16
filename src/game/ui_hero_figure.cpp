@@ -1,5 +1,6 @@
 // The multiplayer hero screen's figure choice (00616AC0, slot 52). See docs/notes/ui.md, section 5.
 #include "ui.h"
+#include "world_glue.h"
 #include "ui_camp.h"
 #include "ui_screens.h"
 
@@ -19,8 +20,6 @@
 namespace {
 
 const char* const kHeroName = reinterpret_cast<const char*>(0x0078B0F4);   // "Hero"
-// The client glue the record hand-over is called on (not read).
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
 
@@ -63,7 +62,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
         int size = records.size;
         RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(first);
-        GameTakeUnitRecordsOriginal(ClientGlue(), nullptr, &records);
+        GameRemoveUnitsOf(&records);
     }
     player->Clear(1, 0);
     player->AddMember(kHeroName, prototype, prototype);

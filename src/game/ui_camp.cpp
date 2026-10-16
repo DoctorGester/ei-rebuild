@@ -177,7 +177,7 @@ void CCampPages::ShowPage(int page) {
             interface_->SetPendingValue(0);
             return;
         }
-        GlueBackToWorldOriginal(UiClientGlue());
+        GameRejoin();
         return;
     }
     default:
@@ -808,7 +808,7 @@ void CCampPages::Close() {
     // The local player's unit records, as the record array the client glue takes (005789E0; a
     // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.
     RecordPtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
-    auto* player = reinterpret_cast<CParty*>(GameLocalPlayerDataOriginal(UiClientGlue()));
+    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
         record->unitId += kRecordBias;
@@ -816,7 +816,7 @@ void CCampPages::Close() {
         RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
     }
-    GameTakeUnitRecordsOriginal(UiClientGlue(), nullptr, &records);
+    GameRemoveUnitsOf(&records);
     for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
 
     // The heroes array emptied (the CArray's SetSize(0) without elements to destroy).
@@ -880,7 +880,7 @@ namespace {
 
 
 // The local player's data as the client glue's 00578BA0 returns it (the party).
-void* GluePlayerData() { return GameLocalPlayerDataOriginal(UiClientGlue()); }
+void* GluePlayerData() { return LocalPlayerData(); }
 
 // The hero's statistics (UnitStats at the record's +0x20).
 UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }

@@ -46,9 +46,6 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
 // 0064B060 (thiscall, RET 8): the entries' CArray SetSize (zeroed new entries; `growBy` -1 keeps
 // the step). The original inlines the same code after each sprite.
 __declspec(naked) void __fastcall EntriesSetSize(void*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x0064B060)
-// 00578BC0 (jumps to 005699F0 with the world 007AF5B8): the local player's view; its +0x1C is the
-// player.
-__declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x00578BC0)
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
 void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScaleOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
@@ -121,9 +118,9 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
     // The local player's own unit also shows up to four of the player's 0x3009 items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
-    std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(LocalView(reinterpret_cast<void*>(0x007AFEA5)) + 0x1C);
+    std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
     if (!PlayerOwnsUnitOriginal(player, nullptr, unit_)) return;
-    player = *reinterpret_cast<std::uint8_t**>(LocalView(reinterpret_cast<void*>(0x007AFEA5)) + 0x1C);
+    player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
     std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(player + 0xE8);
     if (!node) return;
     int slot = 4;
@@ -196,13 +193,6 @@ __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AE
 // message box's constructor.
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-
-// The game menu object 007AFEA5: 00578BA0 the local player's data (its +0x30 / +0x34 unit
-// records, 0x784 bytes each), 00578A20 (RET 0xC) whether the saved zone exit can be taken now
-// (the records, the exit, a second array it fills).
-int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* second) {
-    return GameCanLeaveZoneOriginal(glue, nullptr, records, exit, second);
-}
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
@@ -359,13 +349,13 @@ void CBattleScreen::Update() {
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
     if (exitPending_) {
-        PtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
-        PtrArray second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
-        void* menu = reinterpret_cast<void*>(0x007AFEA5);
-        PartyRecords* data = reinterpret_cast<PartyRecords*>(GameLocalPlayerDataOriginal(menu));
+        // The local player's unit records (0x784 bytes each) and the ones in the exit.
+        mfc::CArray<std::uint8_t*> records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+        mfc::CArray<std::uint8_t*> second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
+        PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData());
         for (int i = 0; i < data->count; ++i)
             RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
-        if (CanLeaveZone(menu, nullptr, &records, pendingExit_, &second)) {
+        if (GamePartyInExit(&records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,
                                                      reinterpret_cast<const char*>(0x007943FC),    // "leave_zone"

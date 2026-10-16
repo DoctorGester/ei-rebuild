@@ -2,6 +2,7 @@
 // FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
 // See docs/notes/ui.md, "Briefing / base screen".
 #include "player_messages.h"
+#include "world_glue.h"
 #include "combat.h"
 #include "ui_briefing.h"
 
@@ -37,8 +38,6 @@ const char* ConstructorTopic() { return reinterpret_cast<const char*>(0x007933B4
 const char* BriefingSection() { return reinterpret_cast<const char*>(0x007906E4); }    // "briefing "
 const char* ShowLine() { return reinterpret_cast<const char*>(0x007906DC); }           // "#show"
 const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
-void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }        // "b."
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 
@@ -121,8 +120,8 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     if (Compare(topic_.Left(kConstructorPrefix), ConstructorTopic()) == 0) {
         int constructor = GameAtoi(console::Ops(topic_).Mid(kConstructorNumber));
         if (ClassTemplatesFind(ClassTemplates(), nullptr, constructor)) {
-            GameSetConstructorOriginal(UnitGlue(), nullptr, static_cast<float>(constructor));
-            GameRequestScreenOriginal(ClientGlue(), nullptr, kCampScreen);
+            GameSetConstructionVariable(std::bit_cast<std::uint32_t>(static_cast<float>(constructor)));
+            GameSendLeave04(kCampScreen);
         }
         state_ = 0;
         return;
@@ -142,7 +141,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         if (words.GetSize() < 2) continue;
         int id = TextKeyFromName(words[1]);
         if (id == leader_->id_) continue;
-        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, id));
+        auto* unit = static_cast<CUnit*>(GameFindClientUnit(id));
         if (!unit) continue;
         if (!person_)
             person_ = unit;
@@ -256,7 +255,7 @@ void CBriefingScreen::FinishDialogue() {
         auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_));
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
-        GameSetUnitHeightOriginal(UnitGlue(), nullptr, unit->id_, 0.0f);
+        GameSetUnitHeight(unit->id_, 0.0f);
         auto* controller = reinterpret_cast<CUnitServer*>(serverUnit->controller);
         controller->actionDone = nullptr;
         controller->StopAction();
@@ -268,8 +267,8 @@ void CBriefingScreen::FinishDialogue() {
     speakersEnd_ = speakers_;
     speaking_ = nullptr;
 
-    if (leader_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, leader_->id_, 0.0f);
-    if (person_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, person_->id_, 0.0f);
+    if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
+    if (person_) GameSetUnitHeight(person_->id_, 0.0f);
     if (third_) {
         MovePerson(third_, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
                                    thirdDirection_.y, thirdDirection_.z, 0, 0, 0);

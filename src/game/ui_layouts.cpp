@@ -379,23 +379,10 @@ EI_REPLACE_METHOD(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
 // --- Main menu clicks (00632D70) ------------------------------------------------------------------
 
 namespace {
-// Not rewritten. The game menu object (007AFEA4 / 007AFEA5, thiscall): 00578DC0 the game's folder,
-// 00578E20 the text table (004E0020 a key's text, RET 8), 00578D10 the server flag (RET 4),
-// 00578920 (RET 4) / 00578940 before the titles. 005F75B0 (on 007C7D50, RET 4) shows a status text.
-// 005DB3F0 plays a movie (ECX path, EDX 0, five flags), 00455F20 quits (exit code in ECX).
-struct MenuGlue {
-    const mfc::CString* Directory();   // 00578DC0
-    void* TextTable();                 // 00578E20
-    void SetServer(int on);            // 00578D10
-    void BeforeTitles(int value);      // 00578920
-    void BeforeTitles2();              // 00578940
-};
-const mfc::CString* MenuGlue::Directory() { return GameDirectoryOriginal(this); }
-void* MenuGlue::TextTable() { return GameClientTexts(); }
-void MenuGlue::SetServer(int f) { GameSetServerPaused(f); }
-void MenuGlue::BeforeTitles(int a0) { GameStopSounds(a0); }
-void MenuGlue::BeforeTitles2() { GameStopAmbience(); }
-MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }
+// The game glue (world_glue.h) gives the game's folder, the text table (004E0020 a key's text,
+// RET 8), the server flag and, before the titles, stops the sounds and the ambience. 005F75B0 (on
+// 007C7D50, RET 4) shows a status text. 005DB3F0 plays a movie (ECX path, EDX 0, five flags),
+// 00455F20 quits (exit code in ECX).
 
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
@@ -437,7 +424,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 2: {
         // Exit: the exit movie, then quit.
         {
-            mfc::CString path = *Glue(0x007AFEA4)->Directory() + game::Text(0x0079422C);   // "Movies\Exit.bik"
+            mfc::CString path = *GameBasePathString() + game::Text(0x0079422C);   // "Movies\Exit.bik"
             PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
         }
         QuitGame(0);
@@ -453,8 +440,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     }
     case 4: {
         // The titles (opened over a cleared menu, not as a dialog).
-        Glue(0x007AFEA5)->BeforeTitles(0);
-        Glue(0x007AFEA5)->BeforeTitles2();
+        GameStopSounds(0);
+        GameStopAmbience();
         ui->PlaySound(okSound, 0);
         ClearSurfaces();
         auto* w = static_cast<CCreditsScreen*>(gamecrt::operator_new(sizeof(CCreditsScreen)));
@@ -476,9 +463,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // its second master server (its call at 006330A9, net_second_master.h).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
-        TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
+        TextsGetString(GameClientTexts(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
         static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
-        Glue(0x007AFEA4)->SetServer(1);
+        GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
         if (w) {
@@ -766,10 +753,10 @@ void CCreditsScreen::Build() {
         headerSurface_ = window.AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, ui, &rect, 5) : nullptr);
         headerSurface_->Freeze(0, 0);
     }
-    if (fromGame_) Glue(0x007AFEA4)->SetServer(0);
+    if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
-    static_cast<CBinkVideo*>(&player_)->Open(mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), game::Text(0x00784A4C)), name),
+    static_cast<CBinkVideo*>(&player_)->Open(mfc::operator+(mfc::operator+(mfc::operator+(*GameBasePathString(), game::Text(0x00784A4C)), name),
                                                             game::Text(0x00794018)),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;

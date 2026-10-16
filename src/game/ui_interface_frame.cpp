@@ -106,12 +106,12 @@ void CInterface3D::Update() {
             if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
             --stackEnd_;
         }
-        reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
+        ResetInput();
         app::PumpMessages();
         *reinterpret_cast<bool*>(0x00784750) = false;
     }
     if (queuedWindow_) {
-        reinterpret_cast<InterfaceOriginals*>(this)->Activate(queuedWindow_);
+        Activate(queuedWindow_);
         queuedWindow_ = nullptr;
     }
     mouseX_ = *reinterpret_cast<int*>(0x007C7C50);

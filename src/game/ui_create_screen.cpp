@@ -121,7 +121,7 @@ void CInterface3D::CreateScreen(int id) {
         screen = reinterpret_cast<void*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
         break;
     }
-    reinterpret_cast<InterfaceOriginals*>(this)->Activate(static_cast<CUiWindow*>(screen));
+    Activate(static_cast<CUiWindow*>(screen));
 }
 
 // --- 005F7350: PushWindow --------------------------------------------------------------------------
@@ -239,7 +239,7 @@ void CInterface3D::Activate(CUiWindow* window) {
         }
         --stackEnd_;
     }
-    reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
+    ResetInput();
     app::PumpMessages();
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
     if (!window) {

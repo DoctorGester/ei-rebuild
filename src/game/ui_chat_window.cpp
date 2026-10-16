@@ -1,6 +1,7 @@
 // A network client's player list on the base screen (CChatWindow, 00608D20-00609900). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "ui_briefing.h"
+#include "world_glue.h"
 #include "game_strings.h"
 #include "plugin_fixes.h"
 
@@ -241,7 +242,7 @@ EI_REPLACE_METHOD(0x006091C0, CChatWindow::ShowPlayers);
 void CChatWindow::Update() {
     net::ClientSession* client = net::GameClient();
     if (Live(client->trade_)) {
-        GameRequestScreenOriginal(UiClientGlue(), nullptr, 9);
+        GameSendLeave04(9);
         return;
     }
     CUiSurface* surface = surfaces_.data[0];

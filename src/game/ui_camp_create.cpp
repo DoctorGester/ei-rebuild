@@ -180,7 +180,7 @@ void CCampPages::BuildPages() {
     if (constructor > 0) {
         constructor_ = ClassTemplatesFind(ClassTemplates(), nullptr, constructor);
         if (!constructor_) {
-            GlueBackToWorldOriginal(UiClientGlue());
+            GameRejoin();
             return;
         }
         spellConstructor_ = constructor_->flag0D != 0;
@@ -386,13 +386,13 @@ void CCampPages::BuildPages() {
         RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(record);
     }
-    GameTakeUnitRecordsFlagOriginal(UiClientGlue(), nullptr, &records, 1);
+    GameCreatePartyUnits(&records, 1);
 
     heroes_.SetSize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
         if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
-        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, player->members_.data[i].unitId));
+        auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data[i].unitId));
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {

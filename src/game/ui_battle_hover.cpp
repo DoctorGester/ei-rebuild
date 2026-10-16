@@ -2,6 +2,7 @@
 // cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
 #include "item.h"
+#include "world_glue.h"
 #include "ui.h"
 
 #include "ui_cursor.h"
@@ -157,7 +158,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             Vector3 at = pick();
             int exit;
             if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
-            mfc::CString name(GameExitZoneOriginal(kPlayerGlue, nullptr, exit));
+            mfc::CString name(GameExitTarget(exit));
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                 reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
                 name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."

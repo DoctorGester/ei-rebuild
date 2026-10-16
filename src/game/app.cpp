@@ -130,7 +130,7 @@ LRESULT OnActivate(WPARAM wParam) {
     }
     renderer->SetActive(1);
     if (network) network->Resume();
-    reinterpret_cast<InterfaceOriginals*>(TheInput())->ResetInput();
+    TheInput()->ResetInput();
     return 1;
 }
 

@@ -48,7 +48,6 @@ __declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*ve
 // The figure models (FigureModel, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor.
 __declspec(naked) inline void* __fastcall FigureModelConstructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9A50)
 __declspec(naked) inline void __fastcall FigureModelDestructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9C90)
-__declspec(naked) inline void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 __declspec(naked) inline double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
 // 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
 // record; EAX the object's id. Patched by Rebirth.
@@ -103,9 +102,6 @@ __declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/
 // A quest variable ("q." prefix) changed: 005F7FC0 tells the quest log (007C7D50), 00565380 the client world (007AF5B8)
 // (both RET 8: name, value bits; EAX not a result).
 
-// A-I10. 00578A40: the client glue (007AFEA5, not read) names the zone exit `exit` leads to (thiscall, RET 4; a C string,
-// "none" for none).
-__declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glue*/, void*, int /*exit*/) EI_ORIGINAL(0x00578A40)
 // D3b. 00573080: CArray<ZoneExit>::SetSize(size, growBy) (RET 8, no result; -1 keeps growBy, new records constructed).
 __declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00573080)
@@ -117,14 +113,8 @@ __declspec(naked) inline int __fastcall LandscapeLoadMapOriginal(void* /*terrain
 inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 // The local player's client glue object (007AFEA5; its thiscall methods 00578xxx do not read it).
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }
-// The game's glue object before it (007AFEA4; GameDirectoryOriginal and the like do not read it).
+// The game's glue object before it (007AFEA4; the glue functions of world_glue.h do not read it).
 inline void* GameGlueObject() { return reinterpret_cast<void*>(0x007AFEA4); }
-// 00578D50 (the game's glue, not read; AL): whether the game is paused. 00578D30 (RET 4): pauses
-// or resumes it (the low byte of `paused` is all its callee reads). The battle screen's keys and
-// the clock's buttons.
-__declspec(naked) inline bool __fastcall GameIsPausedOriginal(void* /*glue*/) EI_ORIGINAL(0x00578D50)
-__declspec(naked) inline void __fastcall GameSetPausedOriginal(void* /*glue*/, void*, int /*paused*/)
-    EI_ORIGINAL(0x00578D30)
 // A-X5. 0056C750 (CWorldClient::ProjectDecal, world_client_decals.cpp; called through its address so its
 // wrapper runs; thiscall on the client world, RET 0x24): lays a decal on the ground (the quad `corners`, one
 // 64-byte block of four corners, projected along `direction` from `point`) into the three arrays. Shadows
@@ -170,9 +160,6 @@ struct WorldAlarmOriginal {
 };
 __declspec(naked) inline void WorldAlarmOriginal::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
 
-// C3n batch 3. 00578BA0 (rewritten as LocalPlayerData, world_rules.cpp; plain RET): the game glue (007AFEA5) gives the
-// local player's data (the unit records at +0x30 / +0x34).
-__declspec(naked) inline std::uint8_t* __fastcall GameLocalPlayerDataOriginal(void* /*glue*/) EI_ORIGINAL(0x00578BA0)
 // The server world (007AFF60; CWorldServer, world_*.cpp), thiscall, through its addresses so the wrappers run:
 // 0058D3D0 WakeUnitsAround (RET 8: position, radius); 0058E520 AddTimedObject (RET 4);
 // 0058E850 CastSpell (RET 0x18: spell, caster, from, target, to, extra); 0058EF20 CreateUnits (RET 0x20: player, records,

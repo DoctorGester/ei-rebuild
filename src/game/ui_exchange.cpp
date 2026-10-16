@@ -52,7 +52,7 @@ void CExchangeScreen::Update() {
     UiUpdateChildrenOriginal(this);
     if (!LiveOffer()) {
         ReturnAll(LocalParty(), ownOffer_);
-        GlueBackToWorldOriginal(UiClientGlue());
+        GameRejoin();
         return;
     }
     bool changed = moneyField_->changed_;
@@ -107,7 +107,7 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
     ReturnAll(reinterpret_cast<CParty*>(LocalPlayerData()), partyB);
     int money = partyB->Money() - partyA->Money() + partyC->Money();
     reinterpret_cast<CParty*>(LocalPlayerData())->Money() = money;
-    GlueBackToWorldOriginal(UiClientGlue());
+    GameRejoin();
 }
 EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);
 

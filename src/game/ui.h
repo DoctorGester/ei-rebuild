@@ -1048,8 +1048,6 @@ inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750);
 
 // The client world (CWorldClient, world.h).
 inline class CWorldClient* UiClientWorld() { return reinterpret_cast<class CWorldClient*>(0x007AF5B8); }
-// The client glue object the interface asks for units (007AFEA5; its methods do not read it).
-inline void* UiClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 // Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return *reinterpret_cast<int*>(0x0079BE74); }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).

@@ -1,6 +1,7 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
 #include "item.h"
+#include "world_glue.h"
 #include "texture.h"
 #include "ui.h"
 
@@ -475,8 +476,8 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 0: {   // the pause button
         inputHandled_ = true;
         interface_->PlaySound(kSoundClock, 0);
-        const bool paused = GameIsPausedOriginal(GameGlueObject());
-        GameSetPausedOriginal(GameGlueObject(), nullptr, paused ? 0 : 1);
+        const bool paused = GameClientPaused();
+        GameSendFlag10(paused ? 0 : 1);
         return;
     }
     case 1:     // the normal speed
@@ -484,7 +485,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         inputHandled_ = true;
         // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
         if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        if (GameIsPausedOriginal(GameGlueObject())) GameSetPausedOriginal(GameGlueObject(), nullptr, 0);
+        if (GameClientPaused()) GameSendFlag10(0);
         fast_ = region - 1;
         UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;
@@ -1018,10 +1019,6 @@ UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
 
 namespace {
 
-// The local player glue (ClientGlueObject(), 007AFEA5, thiscall): 00578A00 the zone exit at a
-// point (RET 8; jumps to the client world's 00567440), 00578A40 an exit's zone name (RET 4;
-// GameExitZoneOriginal).
-__declspec(naked) int __fastcall GlueExitAt(void*, void*, const Vector3*, int*) EI_ORIGINAL(0x00578A00)
 // The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0,
 // PartyArraySetSizeOriginal).
 using OrderUnits = mfc::CArray<CUnit*>;
@@ -1047,8 +1044,8 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     exitPending_ = 0;
     int exit;
     void* glue = ClientGlueObject();
-    if (GlueExitAt(glue, nullptr, &point, &exit) && selected > 0) {
-        mfc::CString name(GameExitZoneOriginal(glue, nullptr, exit));
+    if (GameFindExitAt(&point.x, &exit) && selected > 0) {
+        mfc::CString name(GameExitTarget(exit));
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                             reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."

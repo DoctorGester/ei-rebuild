@@ -43,7 +43,6 @@ struct LocalPlayerBlock {
 LocalPlayerBlock* LocalPlayer() { return reinterpret_cast<LocalPlayerBlock*>(LocalPlayerData()); }
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
 // The portraits' selected-face turn: 007C8144 (pi) times 0073CDCC (1/7).
 float SelectedFaceAngle() {
@@ -224,7 +223,7 @@ EI_REPLACE_METHOD(0x006361B0, CBattleScreen::OnUnitJoined);
 void CBattleScreen::OnMessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
-        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, pendingExit_);
+        GameLeaveThroughExit(pendingExit_);
         break;
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));

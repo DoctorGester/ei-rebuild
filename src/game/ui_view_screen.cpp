@@ -20,8 +20,6 @@
 
 namespace {
 
-// The client glue (007AFEA5; its methods do not read it).
-void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 // An extra input side whose slots do nothing (vtable 00741154).
 void** InertInputVtable() { return reinterpret_cast<void**>(0x00741154); }
 // The orders' unit list (CArray<CUnit*>, vtable 007402AC; SetSize 005EBDB0).
@@ -87,7 +85,7 @@ void CViewScreen::Build() {
 EI_REPLACE_METHOD(0x0062A830, CViewScreen::Build);
 
 BOOL CViewScreen::DrawView(int) {
-    MenuFrame578910(ClientGlue());
+    GameRender();
     return TRUE;
 }
 EI_REPLACE_METHOD(0x0062AA50, CViewScreen::DrawView);
@@ -134,14 +132,14 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
         Vector3 ground;
         world->PickGround(&ground, x, y);
         for (int i = 0; i < picked_.size; ++i) {
-            auto* member = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, picked_.data[i]));
+            auto* member = static_cast<CUnit*>(GameFindClientUnit(picked_.data[i]));
             if (!member) continue;
             OneUnit order(member);
             LocalViewSendWalkOriginal(world->LocalView(), nullptr, &order.units, &ground.x, 0);
         }
     } else if (unit) {
         for (int i = 0; i < picked_.size; ++i) {
-            auto* member = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, picked_.data[i]));
+            auto* member = static_cast<CUnit*>(GameFindClientUnit(picked_.data[i]));
             if (!member) continue;
             OneUnit order(member);
             LocalViewSendAttackOriginal(world->LocalView(), nullptr, &order.units, unit, kAttackHow, 0);
