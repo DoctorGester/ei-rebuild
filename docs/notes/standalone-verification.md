@@ -273,6 +273,18 @@ happen (the harness logs "share id" if one does).
   1-2 ulps).
 - **Never-set memory** is made canonical, never emulated (section 5). Before adding a new site, find the field with
   EI_HEAP_FILL and check every pass (plain, jitter 1, 2, 3, `2,fill`, `3,fill`, `EI_HEAP_FILL=r7`).
+- **Whether anything reads a field before a set**: poison it in ours right after its constructor (a temporary
+  env-gated write, one bit per construction site; a quiet NaN and a finite 1e5), then run the `--golden` suite and
+  hash the capture scenarios' frames against a plain pass. A positive control must move something (the light's
+  positions, SV7b6a's field, moved 12 frames of frames_basic / ui_saveload).
+- **Transform positions** (SV7b6b): CTransformObject's constructor (00453400) and its inlined copies leave
+  localPosition_ / worldPosition_ (+0x1C..+0x34). Only the light reads them unset (SV7b6a, zeroed). Poisoned at the
+  camera (0040C8B0), terrain (in 00561E50), figure meshes and parts (005AABC0), sky (004D9110), scene meshes,
+  every effect (CEffect base), CObject3D (00515C21) and particle sources: 175 goldens and 174 frames the same.
+  Why: every effect's Reset zeroes the position in its constructor (ClearBase; CEffectShowVisibility sets it from
+  the seer before use), the terrain's reset sets it, the sky sets it before its matrix, the camera reads its own
+  only when placed (else the focus), scene meshes and figure parts are zero-filled arrays, map objects and figures
+  get theirs on placement / load. The 3DS readers' stack figure (004A0350) is unported dead code.
 - **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order
   in ours and a harness patch in the original. Pointer-keyed containers that reach no output (CRenderHelper::records_,
   CMappedResource::filesByData_, mod_folders' sets) need nothing.
@@ -291,6 +303,6 @@ happen (the harness logs "share id" if one does).
 - SV2c (watch): unit_create parted once in crt.rand only.
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
-- SV7b6b: transform objects' never-set positions. I13: a read-before-write detector for never-written heap bytes.
+- I13: a read-before-write detector for never-written heap bytes.
 - SV5d: multiplayer coverage needs a two-client harness (the harness starts only the lobby).
 - WB12a: the original's runs are not cloaked.
