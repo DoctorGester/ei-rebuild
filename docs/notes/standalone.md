@@ -1730,3 +1730,14 @@ original-game harness (`--no-hooks`, `--widescreen --record`, EI_VECTORS) and th
   record with `set EI_VECTORS=1` and `work.py test <ID> <scenarios> --no-hooks --vanilla-only`.
 - EI_PLAIN is no longer offered by any tool (hook.cpp still reads it until S21e); README, worker brief, golden.py,
   randtrace.py updated. test_tickets.py: its Namespace lacked `model` since `work.py start --model`.
+- Runs (`work.py test S21c ... --jobs 4`): `--golden` (the image): 186 runs ALL PASS, 168 goldens the same, 0 differ
+  (again after merging main: the same). `--widescreen`: 4 runs PASS, WIDESCREEN FRAMES MATCH. `EI_VECTORS=1 units
+  sandbox_actions --no-hooks --vanilla-only`: 2 PASS, 66 recorders the only hooks (no `hooked` / `verifying` line), 94
+  .vec files; merged into a scratch folder, ei_vectors replays them with 0 problems. Tools' unit tests: 84 OK
+  (test_resolve_crash's real run now reads harness_disk_full-standalone: a -vanilla run is the original code since S21c).
+  `--no-hooks --golden`: 136 runs, 120 goldens the same, 6 differ (combat, ground_prints, sandbox_actions, unit_ai,
+  zone_gz15h_tornado on vanilla, effects_bow on Rebirth: random counts and unit fields from world update 60-840) and
+  effects_bow on Rebirth failed twice (clickunit: BowWolf1 not drawn). The same six again with `--fresh`: 10 the same and
+  two others differ (zone_gz15h_tornado and effects_bow on Rebirth). These are game.exe runs with 0 hooks installed (the
+  log the same as before S21c) and main's run_all in the scheduler, so S21c did not change them: the original's runs no
+  longer repeat. S21a's run (before WB14's loopback binds, 04:18) had 0 differ; ticket S21c1.

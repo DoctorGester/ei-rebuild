@@ -220,10 +220,11 @@ class RunAll(Fixture):
 
 
 class RealRun(unittest.TestCase):
-    """The crash of tests/scenarios/harness_disk_full.txt, when a run of it is in build/verify/runs."""
+    """The crash of tests/scenarios/harness_disk_full.txt, when a run of it is in build/verify/runs: the image's
+    (-standalone; since S21c a -vanilla run is the original code, named from the function list)."""
 
     def test_disk_full_stack(self):
-        d = os.path.join(rc.ROOT, 'build', 'verify', 'runs', 'harness_disk_full-vanilla')
+        d = os.path.join(rc.ROOT, 'build', 'verify', 'runs', 'harness_disk_full-standalone')
         if not all(os.path.exists(os.path.join(rc.ROOT, 'build', 'verify', f)) for f in ('ei_hook.map', 'ei_hook.dll'))                 or not os.path.exists(os.path.join(d, 'ei_hook.log')):
             self.skipTest('no verify build or run of harness_disk_full here')
         text = rc.named_stack(d)
