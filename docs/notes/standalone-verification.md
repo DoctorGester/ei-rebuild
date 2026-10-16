@@ -2108,3 +2108,33 @@ the same, 0 differ; 189 reports `WINDOW: out of sight` (1960 checks in all; the 
 expected by ei_launch's TIMEOUT, before its report), 190 game windows cloaked, none in sight, none in front. Frames: the
 158 captured frames of the 18 capture scenarios' runs byte for byte the same as main's runs of the same scenarios
 just before (03:24-03:27, SV7b6a's merge).
+
+## WB14: harness games bind on 127.0.0.1 only (2026-10-16)
+
+Windows Firewall asked about `ei_standalone.exe` at worktrees' `build\verify` paths: launch.cpp's shared copy
+(`run\standalone\ei_standalone.exe`) falls back to the build's own host while a running game holds an older copy,
+and every new path that listens outside loopback prompts. Fixed at the source, in harness runs only
+(tests/verify/harness_net.cpp, `netlocal::`): the harness routes WSOCK32's bind (slot 0073B6DC) and sendto
+(0073B70C) through its own functions. game.exe and the standalone image call every WSOCK32 function through these
+slots (src/lib/crt.cpp's thunks in the image, the original thunks 006E6124 / 006E6130 in --hooked and --no-hooks
+runs), so one patch covers every build. A bind on every address (SocketDriver::Open 004409A0, MasterLink 00440C60)
+binds 127.0.0.1 on the asked port; a datagram from a socket not bound yet (the client session's, Open(-1), which
+Winsock would bind on every address) binds it to 127.0.0.1:0 first; a datagram to an address outside loopback goes
+to 127.0.0.1 on the same port: the lobby's ping to the host's broadcast address (00440A90, here 172.29.255.255)
+reaches the same game's server as the broadcast did, and under hooked Rebirth a datagram EI_Plugin sent to an
+internet master (45.90.218.225:28004) no longer leaves the machine. The free-port probe binds 127.0.0.1 too.
+The product (release, a launch without a scenario) is unchanged.
+
+Every bind is logged (`harness: net: bind UDP 127.0.0.1:29488 (...)`), and the watchdog checks the process's UDP
+endpoints and TCP listeners every second (GetExtendedUdpTable / GetExtendedTcpTable, by pid) and at the report,
+whoever bound them. The report's `NET:` line says `loopback only (N binds, M endpoint checks ...)` or lists what was
+outside; run_all prints `network: X of Y checked runs bound nothing outside 127.0.0.1` and the runs with one.
+
+launch.cpp: harness runs now start their build's own host (no copy: nothing they bind makes the firewall ask, and
+worktrees on different builds kept replacing the copy); a launch without a scenario keeps the shared copy, since a
+game to play hosts on every address.
+
+**Runs.** net_lobby, net_second_master, ui_mp_host on standalone / standalone-rebirth (`--golden`: net_lobby's two
+the same), `--hooked` and `--no-hooks` (vanilla, Rebirth): all PASS, every bind on 127.0.0.1. `work.py test WB14
+--golden --jobs 4`: 190 runs ALL PASS, 168 goldens the same, 0 differ; network: 195 of 195 checked runs (the suite
+plus the hooked / no-hooks net runs) bound nothing outside 127.0.0.1 (28 binds: 24 UDP, 4 TCP, all 127.0.0.1).
