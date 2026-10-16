@@ -1746,6 +1746,15 @@ model = "sonnet"
 depends = ["C13"]
 note = "About 500 forwarders tools/direct_calls.py lists with other reasons (--report -v --cast --library): config/direct_calls_skip.csv 111 (unrelated types at static_cast, header clashes: sky_object.h / windows.h order, two LightManager / PartyManager / PartyRecords definitions), used other than in a call 56, forwarder name declared twice 50, target name ambiguous 41, another declaration of the name 34, target declared in its .cpp only 33 (move the declaration to a header), no registration 26, declared after the call 24, ei_vectors links the caller without the target 23, derived class declares the name 17, overloaded 12, using-directive 10, class-template void* 10. Fix the cause per row (declarations to headers, includes untangled, the skip rows' types), then rerun the tool; one area per commit, goldens after each couple."
 
+[[ticket]]
+id = "C13d"
+title = "C13c leftovers: forwarders needing hand refactors"
+group = "cleanup"
+size = 2
+model = "sonnet"
+depends = ["C13c"]
+note = "What C13c left (2,720 in scope after it; 2,832 before): used other than in a call 29 (function-pointer tables; the item / spell record tables now use pointers to members, the same pattern fits the rest), forwarder name declared twice 50 and another declaration of the name 19 (same-named members of other classes; rename or qualify by hand), object passed as void* 29 and the skip-list rows' static_cast pairs (C13a, type recovery), ei_vectors links the caller without the target 19 (link the target into the vector files), target overloaded 9, derived class declares the target name 8, declared in its .cpp only 6, anonymous namespace of another file 3. Replay, Rebirth, vector recorder and harness-entry forwarders stay."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
