@@ -217,6 +217,7 @@
 #include "harness_watch.h"
 #include "harness_hooks.h"
 #include "harness_starter.h"
+#include "harness_input.h"
 #include "harness_net.h"
 #include "ui_census.h"
 #include "../vectors/vectors.h"
@@ -946,6 +947,7 @@ void WriteReport() {
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
     noforeground::Report(f);
     netlocal::Report(f);
+    input::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
@@ -2678,6 +2680,7 @@ LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam
     }
     if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
     if (message == WM_ACTIVATEAPP && !wParam) return 0;
+    if (LRESULT result; input::RealMouse(window, message, wParam, lParam, &result)) return result;
     return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
 }
 
@@ -2954,6 +2957,7 @@ struct Harness {
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
+        input::Install();      // the harness's mouse the game's only one (harness_input.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
         leftovers::Install();   // never-set blocks zeroed in the original too (harness_leftovers.h, SV7b3, SV7b2)
