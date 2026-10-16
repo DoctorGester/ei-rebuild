@@ -1,0 +1,95 @@
+  Activated!
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  1
+  1
+  1
+  Addon core version: 0.12.4.2
+  Usage:
+  NULL : object = null
+  VSS#i#val : object = <CUnit:1000011214>
+  i : object = <CUnit:1884>
+  Ogre : object = <CUnit:663>
+  GoblV1 : object = <CUnit:666>
+  Human_NPC_Male-699 : object = <CUnit:699>
+  Human_NPC_Female-702 : object = <CUnit:702>
+  GoblV2 : object = <CUnit:1766>
+  LoneWolf : object = <CUnit:1804>
+  DgunDragon : object = <CBuilding:1873>
+  Human_NPC_Male-1884 : object = <CUnit:1884>
+  VGate : object = <CLeverObject:1889>
+  Ogre1 : object = <CUnit:1898>
+  Ogre2 : object = <CUnit:1900>
+  BGoblin : object = <CUnit:1901>
+  BGoblin2 : object = <CUnit:1913>
+  VillageFC : object = <CTorchObject:2003>
+  DragonKins : group = empty
+  Banshees : group = empty
+  Heroes : group = <CUnit:1000011214>
+  Peasans : group = <CUnit:699>, <CUnit:702>, <CUnit:1884>
+  Cows : group = empty
+  Bgobl : group = <CUnit:1901>, <CUnit:1913>
+  Boars : group = <CUnit:1890>
+  GUI: hide, cursor: show
+  GUI: show, cursor: show
+  1234
+  462
+  4711
+  5432
+  8192
+  2114
+  4323
+  5007
+  1
+  1.34262
+  1
+  abcdef
+  3.14
+  cdef
+  fgh
+  MIXED
+  lower
+  1006
+  same
+  2.5
+  1000011214
+  one two three
+  0
+  813
+  7.67494
+  1
+  1
+  1
+  1
+  1
+  78
+  371
+  10
+  Human Hero/Human Male
+  1
+  1
+  1
+  1
+  1
+  1
+  1
+  Said1 = 1.000000
+  ZT1 = 1.000000
+  b.bz2g.z0 = 1.000000
+  gtime = 6.186667
+  z.gz2g_gz3g = 1.000000
+  z.gz1g_gz2g = 1.000000
+  zz.addon = 42.000000
+  AnimPray = 1.000000
+  0
+  0
+  1
+  1
+  1

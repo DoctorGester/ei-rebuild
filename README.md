@@ -175,7 +175,8 @@ end the process: a thread stuck in a driver call). `tests\scenarios\watchdog_*.t
 `python tools\run_all.py` runs every scenario on both installs' data, several games at once (`--jobs N`,
 default 16; the whole suite takes about 2 minutes). Since S21 these are runs of the standalone image (below;
 the hook builds retire, docs/notes/standalone.md section 5); `--hooked` runs game.exe with our hooks and verify
-wrappers as before, `--no-hooks` the original code. Each run writes to its own folder,
+wrappers as before, `--no-hooks` the original code (but on the installs a scenario's `# no original: vanilla rebirth`
+line names: checks only our renderer passes, Rebirth's flags on the vanilla data). Each run writes to its own folder,
 `build\verify\runs\<scenario>-<install>` (`ei_launch --out`, `EI_OUT_DIR`): its `ei_hook.log`,
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds

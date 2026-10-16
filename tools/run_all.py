@@ -20,7 +20,9 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    rebirth_coverage.py: the fewest that reach every function Rebirth patches twice) or does not list.
                    --native, --dgvoodoo and --widescreen are hooked runs too.
   --no-hooks       game.exe with the original code only, on the installs --hooked uses: the runs goldens are
-                   recorded from (tools/golden.py), kept in the reference cache (--fresh)
+                   recorded from (tools/golden.py), kept in the reference cache (--fresh). A scenario's line
+                   "# no original: <install>..." (vanilla, rebirth) leaves its runs there out: checks only our
+                   renderer can pass, flags the original lacks (S21a)
   --native        only the install without dgVoodoo (run\\native, tools/setup_native_run.cmd), with
                    EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
                    renderer presents through its own swap chain (docs/notes/renderer.md section 9);
@@ -276,6 +278,25 @@ def expected_result(scenario):
                 if text.startswith(EXPECT_PREFIX):
                     return text[len(EXPECT_PREFIX):].strip()
     return None
+
+
+NO_ORIGINAL_PREFIX = '# no original:'
+
+
+def no_original(scenario):
+    """The installs (vanilla, rebirth) a scenario's line "# no original: <install>... <why>" names: the original
+    code cannot pass it there (renderer-only checks, flags the original lacks; S21a), so plan() leaves those
+    --no-hooks runs out. Words after the install names are the reason."""
+    installs = set()
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(NO_ORIGINAL_PREFIX):
+                    for word in text[len(NO_ORIGINAL_PREFIX):].split():
+                        if word not in ('vanilla', 'rebirth'):
+                            break
+                        installs.add(word)
+    return installs
 
 
 def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None,
@@ -772,6 +793,12 @@ def plan(args, root=ROOT):
         if (n, i) not in kept:
             print(f'{n}-{i}: left out, full screen at its own mode without our renderer would switch the display',
                   file=sys.stderr)
+    if args.no_hooks:
+        for n, i in list(kept):
+            if i in no_original(path(n)):
+                kept.remove((n, i))
+                print(f'{n}-{i}: left out, the original cannot run it ("{NO_ORIGINAL_PREFIX}" in the scenario)',
+                      file=sys.stderr)
     return kept
 
 

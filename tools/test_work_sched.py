@@ -569,6 +569,13 @@ class SchedTest(unittest.TestCase):
                          [('boot', 'vanilla'), ('boot', 'rebirth')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', '--vanilla-only', 'boot']), root=self.tmp),
                          [('boot', 'vanilla')])
+        # "# no original:" leaves the original's runs out on the installs it names (S21a), and only those
+        flags = self.scenario('flags', '# no original: vanilla (flags the original lacks)\nwaitmenu\n')
+        self.assertEqual(run_all.no_original(flags), {'vanilla'})
+        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', 'flags']), root=self.tmp), [('flags', 'rebirth')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['flags']), root=self.tmp),
+                         [('flags', 'standalone'), ('flags', 'standalone-rebirth')])
+        os.remove(flags)
         # Without names the Rebirth data takes the scenarios config/rebirth_scenarios.csv marks, and any with a
         # Rebirth golden
         os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)

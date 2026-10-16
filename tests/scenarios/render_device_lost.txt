@@ -7,6 +7,7 @@
 # frame after it must match, in the main menu (window surfaces, the cursor) and in the world
 # (terrain, figures, objects, the interface's textures); then the game goes on to the camp, whose
 # textures are loaded on the new device, and the device is lost once more there.
+# no original: vanilla rebirth (losedevice needs our renderer; S20a, S21a)
 render new,present
 reject Script error
 waitmenu
