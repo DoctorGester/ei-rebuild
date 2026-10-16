@@ -36,22 +36,20 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
 
 ## Rewritten
 
-| Address | Name | Verification |
-|---|---|---|
-| 005DC150 / 005DC1B0, 005DC200 / 005DC240 / 005DC260 | ConsoleStreambuf Overflow / Sync, Construct / DeletingDestruct / Destruct | ours only: line contents, put area reset, return 0; fields, vtable, buffer |
-| 005DC620, 004DC200, 005DD800 | Execute, Tokenize, RunScriptLine | ours only: all 27 commands registered, cheat flag changes only for the cheat word; Tokenize original into a scratch CStringArray (tokens, size, capacity, result); "Script error" printed exactly when the script's file count (+0x1AC) did not grow |
-| 005DF5E0 help, 005DD920 debuginfo, 005DDBE0 console, 005DDF80 history, 005DDFE0 filter, 005DE460 show, 005DEA00 listvar, 005DEC90 loadvar, 005DEEE0 lastfps, 005E00D0 days, 005E0830 fps, 005E0990 rate, 005E0A10 localrate | handlers | side by side: output plus the state each touches (window rects, history depth, filter mask `007C7B68`, debug display flags `007AF5B8+0x88`, `00783E34` / `00783E38`), restored between runs |
-| 005DEF50 exec / execute, 005DF0F0 give, 005DF5B0 lootall, 005DF8E0 fadeout, 005E0570 partyresend, 005E0590 kick, 005E06E0 ban | handlers | ours only: exec "Cannot open file" exactly when the file is missing; money grows by the amount; lootall prints "Looting..."; fadeout prints "Ok" / usage; the rest silent |
-| 005DF9B0 | net | "net time" and usage side by side (`0079BC60` restored); network subcommands ours only, silent |
-| 005E3E90 / 005E3F90 / 005E4090 | ConsoleWindow SetRect / SetHistory / AddText | side by side: sizes, visible lines, rects, lines, history, scroll (a shown window gets its surface recreated twice; lines restored with CStringArray::Copy) |
+Every function carries its address in its source comment (grep it). `ConsoleStreambuf` Overflow / Sync 005DC150 / 005DC1B0, Construct /
+DeletingDestruct / Destruct 005DC200 / 005DC240 / 005DC260; Execute 005DC620, Tokenize 004DC200, RunScriptLine 005DD800 ("Script error" printed
+exactly when the script's file count (+0x1AC) did not grow); the handlers help 005DF5E0, debuginfo 005DD920, console 005DDBE0, history 005DDF80,
+filter 005DDFE0, show 005DE460, listvar 005DEA00, loadvar 005DEC90, lastfps 005DEEE0, days 005E00D0, fps 005E0830, rate 005E0990, localrate
+005E0A10, exec / execute 005DEF50, give 005DF0F0, lootall 005DF5B0, fadeout 005DF8E0, partyresend 005E0570, kick 005E0590, ban 005E06E0, net
+005DF9B0 (the network subcommands are silent and untested); ConsoleWindow SetRect / SetHistory / AddText 005E3E90 / 005E3F90 / 005E4090 (a shown
+window gets its surface recreated twice). State the handlers touch: window rects, history depth, filter mask `007C7B68`, debug display flags
+`007AF5B8+0x88`, `00783E34` / `00783E38`, `0079BC60`.
 
-Output capture (verify only): the console ostream's streambuf pointer (`ios` at `+8`, `bp` at `ios+4`) is pointed at a console
-streambuf built by the game's constructor whose vtable copy has a sync that stores the line; side-by-side wrappers capture the
-original's and ours' output, compare, and replay ours into the real streambuf (so the harness sees it). Captures nest. Handler
-addresses in the maps are the original addresses (they jump to the rewrites); calls between console functions go through the
-original addresses so verify wrappers and Rebirth's executor patch stay in the path. The handlers Ghidra has no function for (all
-but listvar, exec, give, fadeout) have entries in `function_sizes.inc` from a flow walk. `006FD9B4` is `Mid(int)` (library.csv
-says Right); `00700EFE` is `MakeLower`.
+Handler addresses in the maps are the original addresses (they jump to the rewrites); calls between console functions go through the
+original addresses so Rebirth's executor patch stays in the path. The handlers Ghidra has no function for (all but listvar, exec, give,
+fadeout) have entries in `function_sizes.inc` from a flow walk. `006FD9B4` is `Mid(int)` (library.csv says Right); `00700EFE` is `MakeLower`.
+Output capture (verify only): the console ostream's streambuf pointer (`ios` at `+8`, `bp` at `ios+4`) is pointed at a console streambuf
+built by the game's constructor whose vtable copy has a sync that stores the line.
 
 ## Original bugs and oddities kept
 
