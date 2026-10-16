@@ -1,0 +1,13 @@
+{
+  "scenario": "render_device_removed",
+  "install": "vanilla",
+  "recorded": "2026-10-16",
+  "commit": "94982ddf",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "R9c5: image-only golden (the original cannot run it: renderer-only checks); 4 agreeing image runs: plain x2, EI_HEAP_JITTER 1, 2,fill",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}

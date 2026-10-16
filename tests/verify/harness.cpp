@@ -145,6 +145,11 @@
 //                             chain and every image again; waits (default 10 s) until it has, and
 //                             presenting on the game window, until a frame is presented on the new
 //                             device. Fails on a timeout or when the new renderer gave up
+//   removedevice [seconds]    as losedevice, but the device is removed for real (render::RemoveDevice:
+//                             ID3D12Device5::RemoveDevice on the Direct3D 12 device under a device made
+//                             through D3D11On12; the scenario's "render" step names "removable").
+//                             Also fails when the loss seen was not that removal (GetDeviceRemovedReason
+//                             DXGI_ERROR_DEVICE_REMOVED) or the new device is not removable again
 //   mouseglide <ms> <x0> <y0> <x1> <y1>
 //                             move the harness's mouse (what the game's GetCursorPos reads) from
 //                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
@@ -407,8 +412,10 @@ bool g_waitPresentGamma = false;
 std::uint32_t g_waitPresentFrom = 0;
 Deadline g_waitPresentDeadline;
 int g_rampChecksSeen = 0;
-// A pending "losedevice" (R9c1): the new devices made when it started, its deadline.
+// A pending "losedevice" (R9c1) or "removedevice" (R9c5): the new devices made when it started, its
+// deadline, whether the device was removed for real.
 bool g_waitingNewDevice = false;
+bool g_newDeviceRemoved = false;
 int g_newDeviceFrom = 0;
 DWORD g_newDeviceDeadline = 0;
 // A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
@@ -462,6 +469,14 @@ std::uintptr_t g_selfBase, g_selfEnd;
 void LogCodeAddress(const char* label, std::uintptr_t a) {
     if (a >= 0x00401000 && a < 0x00730000) Log("  %s %08X (game.exe)", label, unsigned(a));
     else if (a >= g_selfBase && a < g_selfEnd) Log("  %s ei_hook+%X", label, unsigned(a - g_selfBase));
+    else {   // Direct3D and DXGI frames too (R9c5: crashes inside d3d11on12.dll and the driver)
+        HMODULE m = nullptr;
+        char name[MAX_PATH] = "";
+        if (a > 0x10000 && GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                              reinterpret_cast<LPCSTR>(a), &m) &&
+            GetModuleFileNameA(m, name, MAX_PATH) && (std::strstr(name, "d3d") || std::strstr(name, "dxgi")))
+            Log("  %s %s+%X", label, std::strrchr(name, '\\') + 1, unsigned(a - reinterpret_cast<std::uintptr_t>(m)));
+    }
 }
 
 void LogModuleOf(std::uintptr_t a) {
@@ -2040,13 +2055,27 @@ void RunSteps() {
         render::WindowPresentInfo now = render::WindowPresents();
         // Made again, and (presenting on the game window) a frame presented on the new device.
         bool presented = !render::PresentsItself() || now.presents > now.presentsAtRecovery;
+        const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
         if (now.deviceRecoveries > g_newDeviceFrom && presented && !now.failed) {
-            Log("harness: losedevice: a new Direct3D 11 device (%d lost, %d made again)%s", now.deviceLosses,
-                now.deviceRecoveries, render::PresentsItself() ? " presents on the game window" : "");
+            Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
+                verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
+                static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
+                render::PresentsItself() ? " presents on the game window" : "");
+            // A real removal: reported by the device itself (not LoseDevice's stand-in), and the new
+            // device removable again.
+            if (g_newDeviceRemoved &&
+                (now.lastLossSimulated || now.lastLossReason != DXGI_ERROR_DEVICE_REMOVED || !now.removable)) {
+                char what[200];
+                std::snprintf(what, sizeof(what), "removedevice: not a real removal (reason %08lX, simulated %d) or the new device "
+                              "is not removable (%d)", static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated,
+                              now.removable);
+                Log("harness: %s", what);
+                g_failures.push_back(what);
+            }
             g_waitingNewDevice = false;
         } else if (now.failed || !render::Active() || Now() >= g_newDeviceDeadline) {
             char what[200];
-            std::snprintf(what, sizeof(what), "losedevice: %s (%d lost, %d made again, %u presented since)",
+            std::snprintf(what, sizeof(what), "%s: %s (%d lost, %d made again, %u presented since)", verb,
                           now.failed || !render::Active() ? "the new renderer failed" : "timed out", now.deviceLosses,
                           now.deviceRecoveries, now.presents - now.presentsAtRecovery);
             Log("harness: %s", what);
@@ -2372,15 +2401,21 @@ void RunSteps() {
             g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
             return;
-        } else if (s.verb == "losedevice") {
+        } else if (s.verb == "losedevice" || s.verb == "removedevice") {
             int seconds = 10;
             sscanf_s(s.argument.c_str(), "%d", &seconds);
             if (!render::Active()) {
-                g_failures.push_back("losedevice: the new renderer is not on");
+                g_failures.push_back(s.verb + ": the new renderer is not on");
                 continue;
             }
             g_newDeviceFrom = render::WindowPresents().deviceRecoveries;
-            render::LoseDevice();
+            g_newDeviceRemoved = s.verb == "removedevice";
+            if (!g_newDeviceRemoved) {
+                render::LoseDevice();
+            } else if (!render::RemoveDevice()) {
+                g_failures.push_back("removedevice: the device is not removable (\"render new,present,removable\")");
+                continue;
+            }
             g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
             g_waitingNewDevice = true;
             return;
