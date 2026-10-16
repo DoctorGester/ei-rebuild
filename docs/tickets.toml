@@ -236,7 +236,7 @@ id = "R11a"
 title = "Game code's DirectDraw fallback behind !render::Presenting()"
 group = "renderer"
 depends = ["R11"]
-note = "From R11: src/render has no old-path or DirectDraw-surface code left; render::Presenting() and CpuWindows() are the same switch as Active(). The game code's !render::Presenting() / CpuWindows() branches (holders' DirectDraw surfaces and Locks in dx_surface.cpp, bink_video.cpp, ui_cursor_frame.cpp, ui_surface_*.cpp, texture_*.cpp, renderer_init.cpp, ui_container_draws.cpp, app_dxversion.cpp) run only when EI_RENDER lacks 'new' or the Direct3D 11 device cannot be made; no run reaches them (standalone logs: no stand-in CreateSurface, every run 'new renderer on (presenting'). Decide: keep as the fallback for a player without Direct3D 11, or remove (then the image needs the new renderer and the three render queries become one). After C13a (same files)."
+note = "Waiting on the user (asked 2026-10-16): keep the DirectDraw fallback for players without Direct3D 11, or remove it. Recommended: remove."
 
 # ---------------------------------------------------------------- native interface drawing
 
