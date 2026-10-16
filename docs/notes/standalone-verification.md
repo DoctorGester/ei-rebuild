@@ -161,7 +161,12 @@ until S21c); `EI_COVER=<addr,...>` on the original still watches single addresse
 - Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (CEffectTornado
   launches only on Rebirth and only in about half the runs: a strike needs open ground at a random point), ui_camp_make,
   magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`).
-- Still unreached: multiplayer-only code (SV5d: needs a two-client harness), TryTame (SV5a1), SuspectionMode
+- Multiplayer (SV5d): `net_pair_join` is a pair of games (section 6): a second game finds the first's hosted game in the
+  lobby list, joins it (join request, admit, login, the client's BeginMultiplayerGame into bz1mpg), both say a chat
+  line, and the second leaves; goldens for both games. Still unreached there (SV5d1): the multiplayer zone switch out
+  of the base (exit 1 to "MPGame1" after the host's map choice; the console's `#` / `@` commands do nothing on the
+  multiplayer base), trades, kick / ban, awards, shared files, the master server.
+- Still unreached: TryTame (SV5a1), SuspectionMode
   Enter / Execute, patrol points, CTrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
   update after 500 bored ticks).
 
@@ -239,6 +244,14 @@ happen (the harness logs "share id" if one does).
   server). Every game also gets a UDP port of its own instead of 8888. The watchdog checks the process's endpoints every
   second; the report's `NET:` line, run_all's `network:` summary. Harness runs start their build's own host (no shared
   copy, so the firewall never asks); a launch without a scenario keeps the shared copy and binds every address.
+- **Pairs** (SV5d, tests/verify/harness_pair.{h,cpp}): a scenario's `peer <name>` line makes ei_launch start a second
+  game on tests/scenarios/peer/<name>.txt (both the image or both the original, one job object, either side's hang
+  ends both; the peer's report in the run folder's peer\, merged into the host's as `FAILED: peer: ...`). The two run
+  in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame) and
+  their UDP sockets talk through a mailbox of virtual ports, not the loopback adapter (the real sockets are still
+  bound on 127.0.0.1; the `NET:` check is unchanged); `peersignal` / `peerwait` order the two scenarios. The report's
+  `PAIR:` line. A pair takes two machine slots (run_all's machine_slot(count=2), work_sched's games_of; ei_launch takes
+  the second itself when its caller held only one). Goldens keep both games (golden.py: the golden's peer\).
 - **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
   the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
   after quit is ended after 3 s with `exit_hang.txt` (each thread's EIP and return addresses).
@@ -304,5 +317,5 @@ happen (the harness logs "share id" if one does).
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
-- SV5d: multiplayer coverage needs a two-client harness (the harness starts only the lobby).
+- SV5d1: more multiplayer on the pair harness: the zone switch out of the base, trades, kick / ban, awards (section 4).
 - WB12a: the original's runs are not cloaked.

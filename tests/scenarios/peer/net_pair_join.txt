@@ -1,0 +1,53 @@
+# The peer of net_pair_join (started by ei_launch beside it; harness_pair.h): a hero of its own, the connection
+# screen's list, the host's game (row 1: the lobby found it by its ping on 8888), joined; the multiplayer start
+# zone as a network client, a chat line and the host's answer. Then it leaves (quits) while the host stays.
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+# The host has hosted; the list asks again (its refresh) and shows the host's game in row 1.
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+
+# A chat line (Enter opens it; typed; sent), and the host's answer.
+frames 20
+key enter
+frames 5
+key h
+key i
+frames 5
+key enterchar
+frames 20
+peersignal said
+peerwait 60 answered
+frames 60
+peersignal leaving
+frames 2
+report
+quit

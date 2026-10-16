@@ -21,10 +21,12 @@ function does; this file keeps what is not visible in the code.
   result and compares it with the input; checksum above version 0x6B).
 - Multiplayer only: the server / client sessions (`server <map>` in the console after the cheat word
   opens a lobby), lobby records, the TCP / UDP drivers, `DriverLink`s (remote players only), trades,
-  kick / ban, zone commands, awards, shared files. `net_lobby.txt` (`server bz7g-lmp`, ~25 s) is the
-  only scenario: the host's client connects to its own server over loopback, so constructors,
-  replication, the slot 13 collectors and the pump run every frame. Not reached by any scenario:
-  other players joining, trades, kick / ban, awards, shared files, `GameInfoRecord::Read`, the drop
+  kick / ban, zone commands, awards, shared files. `net_lobby.txt` (`server bz7g-lmp`, ~25 s): the
+  host's client connects to its own server over loopback, so constructors, replication, the slot 13
+  collectors and the pump run every frame. `net_pair_join.txt` (SV5d, a pair of games): one hosts from
+  the connect screen, the other finds it in the lobby list, joins and reaches the base screen, both
+  say a chat line (the Say from a remote connection, the Line to both), then the joiner
+  leaves. Not reached by any scenario: the zone switch out of the multiplayer base (SV5d1), trades, kick / ban, awards, shared files, `GameInfoRecord::Read`, the drop
   paths (timeouts, bad updates), recording and replay (no `.apl` file exists), the drivers.
 
 ## Class map
@@ -67,12 +69,16 @@ function does; this file keeps what is not visible in the code.
   004409A0 and ignores a failed bind: the session then has no socket), the local client's join of 127.0.0.1
   (StartServer 0057E740) and the lobby's pings. A second game on the machine therefore joins the first
   one's server and loses it when that game quits (the "disconnect" box, N0c); harness games each get a
-  port of their own (`tests/verify/harness_net.h`). Our `Open`, `ClientBase::RemoveClient` and the frame's
+  port of their own (`tests/verify/harness_net.h`), except the two games of a pair, which share a
+  network of virtual ports where the second game joins the first (`tests/verify/harness_pair.h`). Our `Open`, `ClientBase::RemoveClient` and the frame's
   disconnect box log a line to ei_hook.log (diagnostics only).
 - Lobby: client base 004413E0-00442AD0 (server list, direct queries, join request / retry, ping /
   info / accepted / refused, FlushBits 00442570), server base 00442C60-00443590 (pings answered,
   joins accepted / refused, pending joins aged), the 0x2C-byte query 00443770-00444270. The master's
-  server list reply (0041D600) is a compressed run of {address, GameInfoRecord}.
+  server list reply (0041D600) is a compressed run of {address, GameInfoRecord}. An info packet is
+  {echoed ping time, magic, entry}: the entry is foreign (+0x20; Connect then shows the wrong-version box
+  instead of joining) when the magic is not exactly the client's; the echoed time only gives the ping.
+  Our port compared the echoed time until SV5d's pair scenario joined a second game.
 
 ## Rewritten
 

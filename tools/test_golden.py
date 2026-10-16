@@ -160,6 +160,45 @@ class GoldenTest(unittest.TestCase):
         finally:
             golden.GOLDEN, golden.STORE = old
 
+    def test_pair_records_and_compares_both_games(self):
+        # SV5d: a pair's second game is the run folder's peer\ and the golden's peer\.
+        runs = []
+        for d in ('orig1', 'orig2'):
+            runs.append(os.path.dirname(self.run_folder(f'{d}/pair-vanilla', digest())))
+            self.run_folder(f'{d}/pair-vanilla/peer', digest(wolf_x='20.5'), console=('  peer',))
+        old, golden_folder = (golden.GOLDEN, golden.STORE), golden.golden_folder
+        golden.GOLDEN = os.path.join(self.dir, 'golden')
+        golden.STORE = os.path.join(golden.GOLDEN, 'saves')
+        golden.golden_folder = lambda name, install, root=None: os.path.join(golden.GOLDEN, name, install)
+        try:
+            args = type('A', (), dict(scenarios=['pair'], install='vanilla', reason='test', fields=12, image=False,
+                                      runs=runs))
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 0, out.getvalue())
+            target = os.path.join(golden.GOLDEN, 'pair', 'vanilla')
+            with open(os.path.join(target, 'peer', 'golden.json'), encoding='utf-8') as f:
+                self.assertEqual(json.load(f)['side'], 'peer')
+            self.assertEqual(golden.read_lines(os.path.join(target, 'peer', 'console.txt')), ['  peer'])
+            self.assertEqual(golden.golden_store(os.path.join(target, 'peer')), golden.STORE)
+            self.assertTrue(os.path.exists(os.path.join(target, 'peer', 'saves.txt')))
+            self.assertEqual(golden.compare_one('pair', 'vanilla', os.path.join(runs[1], 'pair-vanilla')), ('SAME', []))
+            bad = self.run_folder('bad/pair-vanilla', digest(hooks='on'))
+            self.run_folder('bad/pair-vanilla/peer', digest(hooks='on', wolf_x='20.5'), console=('  other',))
+            result, lines = golden.compare_one('pair', 'vanilla', bad)
+            self.assertEqual(result, 'DIFFERS')
+            self.assertTrue(lines and all(line.startswith('peer: ') for line in lines), lines)
+            shutil.rmtree(os.path.join(bad, 'peer'))
+            self.assertEqual(golden.compare_one('pair', 'vanilla', bad)[1][0][:17], 'peer: no run in ' + bad[:1])
+            # The second game's runs must repeat too.
+            shutil.rmtree(os.path.join(runs[1], 'pair-vanilla', 'peer'))
+            self.run_folder('orig2/pair-vanilla/peer', digest(wolf_x='21.5'), console=('  peer',))
+            with redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(golden.record(args), 2)
+            self.assertIn('peer differs', out.getvalue())
+        finally:
+            golden.GOLDEN, golden.STORE = old
+            golden.golden_folder = golden_folder
+
     def test_snapshot_skips_harness_screenshots(self):
         build = os.path.join(self.dir, 'build')
         folder = self.run_folder('build/runs/levers-vanilla', digest())

@@ -48,6 +48,9 @@ usage:
       the console, every digest record and dump (but the known differences, KNOWN). A scenario that does
       not is not recorded; its first difference is printed. The saves are kept (saves.txt) only when every
       run's saves decode to the same fields. No SCENARIO: every run folder of the install in the first DIR.
+      A pair (a scenario with a "peer" line, SV5d): the second game's run folder is the peer\ subfolder; it
+      must pass and agree the same way and is kept as the golden's peer\ (snapshot copies it, compare checks it,
+      its lines start "peer:").
       Run the games through the scheduler, e.g.:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
                                                                                 whose runs may hold an older digest)
@@ -617,7 +620,7 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
         saves_a = golden_saves(a) if golden else decoded_saves(a)
         saves_b = decoded_saves(b)
         if saves_a is not None and saves_b is not None:
-            store = os.path.join(os.path.dirname(os.path.dirname(a)), 'saves') if golden else STORE
+            store = golden_store(a) if golden else STORE
             lines += save_differences(saves_a, saves_b, name_a, name_b, fields, store,
                                       saves_known_pattern() if saves_known == 'default' else saves_known)
     return lines
@@ -667,14 +670,39 @@ def snapshot(args):
             print(f'{name}: no run folder')
             continue
         shutil.rmtree(dst, ignore_errors=True)
-        os.makedirs(dst)
-        for f in ['harness_report.txt', 'digest.txt'] + [os.path.basename(p) for p in dumps(src).values()]:
-            if os.path.exists(os.path.join(src, f)):
-                shutil.copyfile(os.path.join(src, f), os.path.join(dst, f))
-        if os.path.isdir(os.path.join(src, SAVES)):
-            shutil.copytree(os.path.join(src, SAVES), os.path.join(dst, SAVES), ignore=not_screenshots)
+        for side in sides(src):
+            copy_run(on_side(src, side), on_side(dst, side))
     print(f'{len(names)} run folders copied to {args.dest}')
     return 0
+
+
+def copy_run(src, dst):
+    """snapshot: what a golden reads of one game's run folder."""
+    os.makedirs(dst)
+    for f in ['harness_report.txt', 'digest.txt'] + [os.path.basename(p) for p in dumps(src).values()]:
+        if os.path.exists(os.path.join(src, f)):
+            shutil.copyfile(os.path.join(src, f), os.path.join(dst, f))
+    if os.path.isdir(os.path.join(src, SAVES)):
+        shutil.copytree(os.path.join(src, SAVES), os.path.join(dst, SAVES), ignore=not_screenshots)
+
+
+PEER = 'peer'   # a pair's second game (a scenario's "peer" line, SV5d): its run folder and golden are a subfolder
+
+
+def sides(folder):
+    """The games of a run folder or golden: [''] (the folder itself), and PEER when it holds a pair's second game."""
+    return [''] + ([PEER] if os.path.isdir(os.path.join(folder, PEER)) else [])
+
+
+def on_side(folder, side):
+    """The folder of one game of a run folder or golden (sides)."""
+    return os.path.join(folder, side) if side else folder
+
+
+def golden_store(folder):
+    """The shared save store of a golden (tests/golden/<scenario>/<install>[/peer]): tests/golden/saves."""
+    up = os.path.dirname(os.path.dirname(folder))
+    return os.path.join(os.path.dirname(up) if os.path.basename(folder) == PEER else up, 'saves')
 
 
 def flagged(name, root=ROOT):
@@ -719,17 +747,25 @@ def record(args):
         elif args.install == 'vanilla' and flagged(name):
             problem = ['its rebirthflags line turns on in our code what the vanilla original does not have, so '
                        'our vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
-        for other in folders[1:]:
-            if problem:
-                break
-            if report_result(other) != 'PASS':
-                problem = [f'{other} did not pass ({report_result(other) or "no report"})']
-            else:
-                label_a, label_b = (os.path.basename(os.path.dirname(f)) for f in (folders[0], other))
-                found = compare_folders(folders[0], other, label_a, label_b, ulps=0, records=1, fields=args.fields,
-                                        with_saves=False, known=known_pattern())
-                if found:
-                    problem = [f'{other} differs from {folders[0]}:'] + found
+        games = sides(folders[0])
+        for side in games:
+            # A pair (SV5d): the second game's runs must pass and agree as the first game's do.
+            runs = [on_side(f, side) for f in folders]
+            if not problem and side and report_result(runs[0]) != 'PASS':
+                problem = [f'{runs[0]} did not pass ({report_result(runs[0]) or "no report"})']
+            elif not problem and side and not os.path.exists(os.path.join(runs[0], 'digest.txt')):
+                problem = [f'{runs[0]} has no digest.txt']
+            for folder, other in zip(folders[1:], runs[1:]):
+                if problem:
+                    break
+                if report_result(other) != 'PASS':
+                    problem = [f'{other} did not pass ({report_result(other) or "no report"})']
+                else:
+                    label_a, label_b = (os.path.basename(os.path.dirname(f)) for f in (folders[0], folder))
+                    found = compare_folders(runs[0], other, label_a, label_b, ulps=0, records=1, fields=args.fields,
+                                            with_saves=False, known=known_pattern())
+                    if found:
+                        problem = [f'{other} differs from {runs[0]}:'] + found
         if problem:
             print(f'{name} {args.install}: not recorded: ' + problem[0])
             for line in problem[1:]:
@@ -738,23 +774,29 @@ def record(args):
             continue
         target = os.path.join(GOLDEN, name, args.install)
         shutil.rmtree(target, ignore_errors=True)
-        os.makedirs(target)
-        compact(digest, os.path.join(target, 'digest.txt'))
-        for dump, path in dumps(folders[0]).items():
-            compact(path, os.path.join(target, f'dump_{dump}.txt'))
-        with open(os.path.join(target, 'console.txt'), 'w', encoding='cp1251', errors='replace', newline='\n') as f:
-            f.writelines(line + '\n' for line in console(folders[0]))
-        meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
-                'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
-                'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
-        if args.image:
-            meta['source'] = 'image'   # the standalone image's runs: the original cannot run it (S20a)
-        keep_saves(target, folders, meta)
-        with open(os.path.join(target, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
-            json.dump(meta, f, indent=2)
-            f.write('\n')
+        for side in games:
+            runs = [on_side(f, side) for f in folders]
+            into = on_side(target, side)
+            os.makedirs(into)
+            digest = os.path.join(runs[0], 'digest.txt')
+            compact(digest, os.path.join(into, 'digest.txt'))
+            for dump, path in dumps(runs[0]).items():
+                compact(path, os.path.join(into, f'dump_{dump}.txt'))
+            with open(os.path.join(into, 'console.txt'), 'w', encoding='cp1251', errors='replace', newline='\n') as f:
+                f.writelines(line + '\n' for line in console(runs[0]))
+            meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
+                    'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
+                    'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
+            if side:
+                meta['side'] = side   # the pair's second game (tests/scenarios/peer/<name>.txt)
+            if args.image:
+                meta['source'] = 'image'   # the standalone image's runs: the original cannot run it (S20a)
+            keep_saves(into, runs, meta)
+            with open(os.path.join(into, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
+                json.dump(meta, f, indent=2)
+                f.write('\n')
         recorded += 1
-        print(f'{name} {args.install}: recorded in {shown_path(target)}')
+        print(f'{name} {args.install}: recorded in {shown_path(target)}' + (' (both games of the pair)' if len(games) > 1 else ''))
     print(f'{recorded} of {len(names)} recorded')
     return code
 
@@ -823,7 +865,7 @@ def add_saves(args):
         else:
             print(f'{name} {args.install}: {meta.get("saves", "no saves")}')
     used = set()
-    for path in glob.glob(os.path.join(GOLDEN, '*', '*', 'saves.txt')):
+    for path in glob.glob(os.path.join(GOLDEN, '*', '*', 'saves.txt')) + glob.glob(os.path.join(GOLDEN, '*', '*', PEER, 'saves.txt')):
         used.update((golden_saves(os.path.dirname(path)) or {}).values())
     for path in glob.glob(os.path.join(STORE, '*.txt.gz')):
         if os.path.basename(path)[:-7] not in used:
@@ -843,12 +885,21 @@ def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT, 
         return 'NO GOLDEN', []
     if report_result(folder) is None:
         return 'NO RUN', [f'no run in {folder}']
-    with open(os.path.join(golden, 'golden.json'), encoding='utf-8') as f:
-        meta = json.load(f)
-    lines = compare_folders(golden, folder, 'the golden', 'the run', ulps, records, fields,
-                            meta.get('left_out', ADDRESS_DEPENDENT), golden=True,
-                            known=None if strict else known_pattern(), clear=meta.get('clear') or '',
-                            saves_known=None if strict else 'default')
+    lines = []
+    for side in sides(golden):
+        # A pair's golden has the second game's in peer\, compared with the run's peer\ (SV5d).
+        expected, actual = on_side(golden, side), on_side(folder, side)
+        prefix = f'{side}: ' if side else ''
+        if report_result(actual) is None:
+            lines.append(f'{prefix}no run in {actual}')
+            continue
+        with open(os.path.join(expected, 'golden.json'), encoding='utf-8') as f:
+            meta = json.load(f)
+        found = compare_folders(expected, actual, 'the golden', 'the run', ulps, records, fields,
+                                meta.get('left_out', ADDRESS_DEPENDENT), golden=True,
+                                known=None if strict else known_pattern(), clear=meta.get('clear') or '',
+                                saves_known=None if strict else 'default')
+        lines += [prefix + line for line in found]
     return ('DIFFERS' if lines else 'SAME'), lines
 
 
