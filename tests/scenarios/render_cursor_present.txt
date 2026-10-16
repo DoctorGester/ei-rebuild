@@ -13,7 +13,8 @@
 # image's hot spot. The thread exists only with the options' FPSIndependentCursor on (the game's default;
 # off, the cursor runs in mode 1 without it and the original draws the cursor only in frames): answered
 # 1 for this run ("fpscursor").
-# no original: vanilla rebirth (the cursor thread's presents between frames: our renderer only; S20a, S21a)
+# no original: vanilla rebirth (the cursor thread's presents between frames: our renderer only; S21a)
+# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 fpscursor 1
 render new,present
 reject Script error

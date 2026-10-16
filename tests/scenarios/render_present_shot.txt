@@ -13,7 +13,8 @@
 # defaults to .\capture\, and counts for itself) must match too ("checkshot recorder"), within 3%:
 # a recorded frame lasts a fixed time (app_main.cpp), which overrides the freeze, so the client
 # runs and what animates (water, the sea's edge) moves between "world" and the first file.
-# no original: vanilla rebirth (the screenshots read our renderer's frame; S20a, S21a)
+# no original: vanilla rebirth (the screenshots read our renderer's frame; S21a)
+# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 render new,present
 reject Script error
 waitmenu

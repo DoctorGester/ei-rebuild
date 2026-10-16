@@ -2159,3 +2159,39 @@ game to play hosts on every address.
 the same), `--hooked` and `--no-hooks` (vanilla, Rebirth): all PASS, every bind on 127.0.0.1. `work.py test WB14
 --golden --jobs 4`: 190 runs ALL PASS, 168 goldens the same, 0 differ; network: 195 of 195 checked runs (the suite
 plus the hooked / no-hooks net runs) bound nothing outside 127.0.0.1 (28 binds: 24 UDP, 4 TCP, all 127.0.0.1).
+
+## S20a: the renderer-only scenarios get the image's own goldens (2026-10-16)
+
+render_cursor_present (V+R), render_device_lost, render_present_shot (V+R) and render_present_window have `# no
+original:` lines (S21a): the original has no cursor-thread presents, device loss, screenshot-from-frame or scaled
+window, so it cannot pass them and golden.py refused them a golden. **Decision: (a) for all four**, a golden recorded
+from the standalone image. Their own checks (cursorcheck, waitpresent, checkshot, samecapture after losedevice) stay
+as they are; the golden adds the world they play (the new games, the camp, the movie, the saves) to the image's
+regression check.
+
+Why the digest does not follow the renderer: on the virtual clock the world moves only with frames (five updates a
+frame) and the harness steps run once a frame; the game window's Present is on the main thread (render_window.cpp
+PresentWindow counts it), so `waitpresent` ends on the next frame; `stall` is one long frame, whatever it lasts; the
+cursor thread only reads (its presents are counted for cursorcheck, which prints nothing to the console); a lost
+device is recovered within the frame that reports it. The console holds no counts or times.
+
+**Tool** (tools/golden.py): `record --image` and `snapshot --image`. With `--image` the run folders are the image's
+(`<scenario>-standalone` for vanilla, `<scenario>-standalone-rebirth` for Rebirth); record accepts only scenarios
+whose `# no original:` line names the install (others keep the original's golden), wants at least `IMAGE_RUNS` (4)
+runs that all agree (console, every digest record, dumps; saves kept when they decode the same), and writes
+`"source": "image"` into golden.json. Without `--image` a refused image run's message points at it. Such a golden says
+the image keeps doing what it did, not that it does what the original does. README's golden paragraph says the same.
+
+**Recording** (this branch on main ceb177e5): `work.py test S20a --golden --jobs 4` over the four scenarios (named, so
+both installs), snapshotted with `golden.py snapshot --image` (scratch driver build\S20a\passes.py): plain three
+times, `EI_HEAP_JITTER=1` twice, `2,fill`, `3,fill`. Every pass ALL PASS (8 runs), and each run's final digest hash
+the same in all 7 passes (vanilla / Rebirth: cursor_present EFFBC343 / 7202629E, device_lost 444AF4D3 / 1A37B38E,
+present_shot 5B2E42D6 / 14A149B0, present_window D1ADD28A / AB59ABF3); the "heap jitter" line in all 8 logs of the
+passes checked for it (the second seed-1 pass and 3,fill). `golden.py record --image --runs` over the 7: recorded
+render_cursor_present and render_present_shot on both installs, render_device_lost and render_present_window on
+vanilla only (config/rebirth_scenarios.csv has them 0, and a Rebirth golden would add them to the Rebirth suite).
+cursor_present, device_lost and present_shot keep 3 decoded saves each (the same in the 7 runs; 6 new entries in
+the saves store), present_window none (it never leaves the menu). Then a fresh `EI_HEAP_JITTER=2,fill` pass
+against the new goldens: ALL PASS, 6 the same (the 2 without a golden: device_lost and present_window on Rebirth,
+which ran because the names were given).
+The scenario headers say where their golden comes from.

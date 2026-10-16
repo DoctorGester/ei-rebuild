@@ -11,7 +11,8 @@
 # Resize: the window resized to 1600x900, the frame is scaled into it with its aspect (1200x900 at
 # x 200, black bars); the mouse steps reach the menus through the mapping (the harness aims at frame
 # pixels through render::FrameToWindow, the game maps the messages back: present_window.h).
-# no original: vanilla rebirth (the gamma step and the scaled window are our renderer's; S20a, S21a)
+# no original: vanilla rebirth (the gamma step and the scaled window are our renderer's; S21a)
+# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 render new,present
 resolution 800x600
 fullscreen 0
