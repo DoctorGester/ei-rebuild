@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp_hash.h"
 
 #include <cmath>
 #include <cstdint>
@@ -126,8 +127,6 @@ namespace {
 
 // The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
 // at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
-__declspec(naked) const LeverRecord* __fastcall LeverRecordByName(void* /*table*/, void*, const char*)
-    EI_ORIGINAL(0x0052CB40)
 __declspec(naked) void __fastcall SpotsSetAtGrow(LeverSpots*, void*, int, const Vector3*) EI_ORIGINAL(0x0052CC50)
 
 void* const kLeverTable = reinterpret_cast<void*>(0x0079C1A0);
@@ -142,7 +141,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     }
     out->capacity = 0;
     out->size = 0;
-    const LeverRecord* record = LeverRecordByName(kLeverTable, nullptr, name);
+    const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kLeverTable), nullptr, name));
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = orientation;
     // The count is read again each time; a count above 2 reads on into the record (sic).

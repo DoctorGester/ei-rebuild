@@ -34,11 +34,6 @@ namespace {
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// 004E5E50: the device object's constructor (0x17C bytes, ten arguments).
-__declspec(naked) CTextureDevice* __fastcall DeviceConstruct(void*, void*, void* /*window*/, GUID* /*driver*/,
-                                                            int /*full screen*/, int /*width*/, int /*height*/,
-                                                            int /*colour bits*/, int, int, int /*z-buffer bits*/, int)
-    EI_ORIGINAL(0x004E5E50)
 // 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
 // one released.
 void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
@@ -271,7 +266,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     void* memory = gamecrt::operator_new(0x17C);
     CTextureDevice* device = nullptr;
     if (memory) {
-        device = DeviceConstruct(memory, nullptr, window, driverId, settings->fullScreen_, settings->resolutionX_,
+        device = static_cast<CTextureDevice*>(memory)->Construct(static_cast<HWND__*>(window), driverId, settings->fullScreen_, settings->resolutionX_,
                                  settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     }
     DeviceHolderAssign(&device_, nullptr, device);

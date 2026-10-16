@@ -6,6 +6,7 @@
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
 // operand order (precise floating point), constants are read from the exe's memory.
 #include "app.h"
+#include "texture.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
 #include "plugin_fixes.h"
@@ -503,7 +504,7 @@ EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 
 namespace {
 
-void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
 void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
 
 // The texture manager (thiscall): 00691D80 makes a texture (width, height, format), 00691CF0 finds
@@ -511,7 +512,6 @@ void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
 std::uint8_t* NewManagedTexture(void* manager, void*, int width, int height, int kind) {
     return NewManagedTextureOriginal(manager, nullptr, width, height, kind);
 }
-__declspec(naked) std::uint8_t* __fastcall FindImage(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
 
@@ -565,7 +565,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     {
         mfc::CString base(name);
         mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
-        image = FindImage(manager, nullptr, file);
+        image = static_cast<unsigned char*>(static_cast<CTextureManager*>(manager)->GetFileData(file));
     }
     int width, height;
     if (!image) {
@@ -635,7 +635,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     {
         mfc::CString base(name);
         mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
-        image = FindImage(TextureManager(), nullptr, file);
+        image = static_cast<unsigned char*>(TextureManager()->GetFileData(file));
     }
     std::uint32_t* pixels = nullptr;
     if (image) {

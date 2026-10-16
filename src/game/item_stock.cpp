@@ -19,6 +19,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
+#include "lib/stlp_pair.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -469,8 +470,6 @@ __declspec(naked) void __fastcall RecipeListDestroy(StockList*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall RecipeListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069C2E0)
 __declspec(naked) void __fastcall RecipeListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
     EI_ORIGINAL(0x0069C2F0)
-__declspec(naked) void __fastcall RecipePairConstruct(void*, void*, const stlp::string* /*key*/, const StockList*)
-    EI_ORIGINAL(0x0069C1C0)
 void __fastcall RecipePairDestroy(void* pair) { stlp::PairAbi::DestroyStringList(static_cast<stlp::StringListPair*>(pair)); }
 // The modifier map (+0x64, STLport map<string, modifier*>): clear 004AB2B0, operator[] with a
 // {key, null} pair 0069D1E0 (returns the node's pair: the value at +0xC).
@@ -560,7 +559,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         char allocator = 0;
         RecipeListConstruct(&list, nullptr, &allocator);
         alignas(4) std::uint8_t pair[0x10];
-        RecipePairConstruct(pair, nullptr, &recipe->spell, &list);
+        stlp::PairAbi::ConstructStringList(reinterpret_cast<stlp::StringListPair*>(pair), nullptr, &recipe->spell, &list);
         StockRecipeEntry* inserted = RecipeMapInsert(spellMap, nullptr, pair);
         RecipePairDestroy(pair);
         RecipeListDestroy(&list);

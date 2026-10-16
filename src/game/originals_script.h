@@ -19,8 +19,6 @@ struct ScriptObjectRef;
 struct ScriptRun;
 struct ScriptVars;
 
-__declspec(naked) inline CEngineObject* __fastcall RefConstruct(ScriptObjectRef*, void*, const ScriptObjectRef*)
-    EI_ORIGINAL(0x004B2500)
 __declspec(naked) inline int __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
 __declspec(naked) inline void __fastcall QueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
 

@@ -4,6 +4,7 @@
 // client's lists and tells the interface or the game flow. 0041ECC0 (the file chunk handler for
 // channel 0) is patched by Rebirth: ours installs in the vanilla launch only. The messages are
 // declared in net_messages.h. See docs/notes/network.md.
+#include "library_containers.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -71,7 +72,6 @@ __declspec(naked) void** __fastcall AwardsInsert(void*, void*, void**, void*, co
 void** __fastcall PartiesInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert423190Original(a0, nullptr, a2, a3, a4); }
 // The trade records (+0x2614: TradeRecordNode, net_classes.h).
 __declspec(naked) void** __fastcall TradesInsertDefault(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00424900)
-__declspec(naked) void __fastcall TradeRecordDestroy(void* /*record*/) EI_ORIGINAL(0x00424DB0)
 // Parties (00661050 class, outside this range).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
@@ -197,7 +197,7 @@ void ClearTradeRecords(ClientSession* self) {
     for (TradeRecordNode* node = first; node != self->tradeRecords_;) {
         TradeRecordNode* current = node;
         node = node->next;
-        TradeRecordDestroy(&current->acceptedRevision);
+        libcontainers::DestroyTradeRecord(reinterpret_cast<TradeRecord*>(&current->acceptedRevision));
         if (current) gamecrt::operator_delete(current);
     }
     self->tradeRecords_->next = self->tradeRecords_;

@@ -911,8 +911,6 @@ public:
     // `fromBelow` (the offset minus the surface's height in twips; the DC taken and released for
     // its resolution); the end offset 0, the start time the game time.
     void Start(float speed, char fromBelow);
-    // Load and Start through their addresses (the checks run): ui_credits.cpp.
-    bool LoadThroughHook(void* archive, const char* name);
     // 0065F020 (ui_scrolling_surface.cpp, A-H17). Renders the RichEdit's text into the surface:
     // the DC held, the surface cleared, the background colour (+0x34) set (EM_SETBKGNDCOLOR), the
     // whole text formatted (EM_FORMATRANGE) into the surface's size in twips shifted by the scroll

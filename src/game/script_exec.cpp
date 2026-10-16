@@ -223,7 +223,6 @@ PartyManager* ThePartyManager() { return GamePartyManager(); }
 
 // The named party records (party_records.h), through the originals: find 004A5E10 (a party),
 // add 004A5E90, remove 004A5FA0.
-__declspec(naked) CParty* __fastcall PartiesFind(NamedPartyRecords*, void*, const char*) EI_ORIGINAL(0x004A5E10)
 NamedPartyRecords* Parties() { return &GamePartyManager()->records; }
 
 // A party's items (00661DB0 add, 00661F30 remove).
@@ -474,8 +473,8 @@ void RedeployParty(const SSCCmd* cmd) {
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
     if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]))) return;
-    CParty* from = PartiesFind(Parties(), nullptr, Text(cmd, 0));
-    CParty* to = PartiesFind(Parties(), nullptr, Text(cmd, 1));
+    CParty* from = static_cast<CParty*>(Parties()->Find(Text(cmd, 0)));
+    CParty* to = static_cast<CParty*>(Parties()->Find(Text(cmd, 1)));
     if (!from || !to) return;
     if (replace) {
         while (to->items_.size != 0) PartyRemoveItem(to, static_cast<CEngineObject*>(to->items_.data[0]), 1);

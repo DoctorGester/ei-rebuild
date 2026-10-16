@@ -33,10 +33,6 @@
 
 namespace {
 
-// The helper's destructor body (004FCD50) is below; its deleting destructor reaches it through its
-// address.
-__declspec(naked) void __fastcall HelperDestructOriginal(void*) EI_ORIGINAL(0x004FCD50)
-
 using State = RenderPresetRecord::State;
 using StateVector = stlp::vector<State>;
 
@@ -481,7 +477,7 @@ EI_REPLACE(0x004EE310, DirectDrawHolderDelete);
 
 // 004FCC20: the helper's (the body above, through its address).
 void* __fastcall RenderHelperDelete(void* self, void*, unsigned flags) {
-    HelperDestructOriginal(self);
+    RenderHelperDestruct(static_cast<CRenderHelper*>(self));
     return DeleteIf(self, flags);
 }
 EI_REPLACE(0x004FCC20, RenderHelperDelete);

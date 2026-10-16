@@ -24,8 +24,6 @@ stlp::vector<typename Map::Node*>& Buckets(Map& table) {
     return *static_cast<stlp::vector<typename Map::Node*>*>(table.BucketVector());
 }
 
-// 005AE5B0 (RET 4): destroys a node's pair.
-__declspec(naked) void __fastcall DestroyPair(void*, void*, int) EI_ORIGINAL(0x005AE5B0)
 // 00404D70: STLport deallocate(p, bytes). 005AE150 (RET 8): the node allocator's deallocate(p, n).
 void __fastcall Deallocate(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 __declspec(naked) void __fastcall NodeDeallocate(void*, void*, FigureModel::AnimationMap::Node*, int) EI_ORIGINAL(0x005AE150)
@@ -36,7 +34,6 @@ void __fastcall DeallocatePointers(void* a0, int a1) { BucketsDeallocateOriginal
 // (CResourceManager::Destroy, the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080
 // (ECX node, EDX count) the node allocator's deallocate, 00674DF0 the base destructor.
 __declspec(naked) void __fastcall ManagerCleanUp(CFigureManager*) EI_ORIGINAL(0x00674F40)
-__declspec(naked) void __fastcall DestroyNamePair(void*, void*, int) EI_ORIGINAL(0x005AE5D0)
 __declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x004FC080)
 __declspec(naked) void __fastcall ManagerBaseDestroy(CFigureManager*) EI_ORIGINAL(0x00674DF0)
 
@@ -69,7 +66,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     });
     // clear().
     table.ClearWith([](Node* n) {
-        DestroyPair(&n->key, nullptr, 0);
+        records::LeadingStringDelete(&n->key, nullptr, 0);
         if (n) Deallocate(n, sizeof(Node));
     });
 
@@ -81,7 +78,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
 
     // The hash_map's destructor.
     table.ClearWith([&table](Node* n) {
-        DestroyPair(&n->key, nullptr, 0);
+        records::LeadingStringDelete(&n->key, nullptr, 0);
         NodeDeallocate(table.CountProxy(), nullptr, n, 1);
     });
     stlp::vector<Node*>& buckets = Buckets(table);
@@ -109,7 +106,7 @@ void __fastcall DestroyFigureManager(char* object) {
     });
     ManagerCleanUp(manager);
     table.ClearWith([](Node* n) {
-        DestroyNamePair(&n->key, nullptr, 0);
+        records::LeadingStringDelete(&n->key, nullptr, 0);
         NodeFree(n, 1);
     });
     stlp::vector<Node*>& buckets = Buckets(table);

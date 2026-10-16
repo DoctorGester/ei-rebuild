@@ -29,8 +29,6 @@ namespace {
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
 std::uint32_t EmptyString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }   // afxEmptyString
 
-__declspec(naked) void __fastcall ConstructScreen8(void*, void*, CInterface3D*, int, const void*) EI_ORIGINAL(0x005F6D50)
-
 // Member constructors (thiscall on the member).
 __declspec(naked) void __fastcall Member5C1760(void*) EI_ORIGINAL(0x005C1760)
 __declspec(naked) void __fastcall Member5F8F30(void*) EI_ORIGINAL(0x005F8F30)
@@ -113,7 +111,7 @@ void CInterface3D::CreateScreen(int id) {
         break;
     case 8:
         screen = gamecrt::operator_new(0x1FC);
-        if (screen) ConstructScreen8(screen, nullptr, this, 0, reinterpret_cast<const void*>(0x00793084));
+        if (screen) Screen8Construct(screen, nullptr, this, 0, reinterpret_cast<const char*>(0x00793084));
         break;
     case 9:
         screen = gamecrt::operator_new(0x1B8);

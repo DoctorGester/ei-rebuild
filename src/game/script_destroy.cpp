@@ -5,6 +5,7 @@
 // dropped, so only the base vtable is written, then the elements are destroyed and the storage
 // freed. Data pointers, sizes and capacities are left as they were. The definition's destructor
 // calls the arrays' out-of-line destructors for most of its variables instead.
+#include "game_lists.h"
 #include "script.h"
 
 #include "lib/crt.h"
@@ -44,7 +45,6 @@ __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29
 // and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
 void __fastcall GroupBody(void* a0) { static_cast<ScriptGroup*>(a0)->DestructBody(); }
 __declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
-__declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
 
 template <typename T>
 void SetBaseVtable(mfc::CArray<T>* a, void* vtable) {
@@ -177,7 +177,7 @@ void* __fastcall ScriptFxSourceDestroy(void* source, void*, int flags) {
 EI_REPLACE(0x004CE2B0, ScriptFxSourceDestroy);
 
 void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags) {
-    WorldBlockBody(block);
+    ScriptDeclDestruct(static_cast<ScriptDecl*>(block));
     return Finish(block, flags);
 }
 EI_REPLACE(0x004CE2D0, ScriptWorldBlockDestroy);

@@ -498,8 +498,6 @@ CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { 
 CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)a0->AddSpell(static_cast<CItem*>(a2)); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
-// 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
-__declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
@@ -575,7 +573,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         if (!spell) continue;
         AddToRecord(party, record, spell, RecordAddSpell);
     }
-    ControllerStoreStats(controller, nullptr, record->stats);
+    controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
 }
 
 } // namespace
@@ -636,7 +634,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (CEngineObject* spell = static_cast<CUnit*>(unit)->GetSpell(slot)) AddToRecord(party, record, spell, RecordAddSpell);
-    ControllerStoreStats(controller, nullptr, record->stats);
+    controller->CopyStats(reinterpret_cast<UnitStats*>(record->stats));
     if (world->sessionKind_ == 1) {
         record->moveMode2 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;

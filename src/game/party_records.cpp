@@ -146,8 +146,6 @@ EI_REPLACE_METHOD(0x004A5FA0, NamedPartyRecords::Remove);
 
 namespace {
 
-// Through their addresses (the rewritten ones run their verify wrappers).
-__declspec(naked) void __fastcall RecordsResetOrig(void*) EI_ORIGINAL(0x004A5BD0)
 __declspec(naked) void __fastcall TemplatesBuildOrig(void*, void*, unsigned) EI_ORIGINAL(0x004A7630)
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
@@ -173,13 +171,13 @@ void* NodeValue(MapNode* node) { return reinterpret_cast<char*>(node) + 8; }
 } // namespace
 
 void __fastcall PartyManagerNewGame(void* manager) {
-    RecordsResetOrig(Field(manager, 0x24));
+    PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
     TemplatesBuildOrig(Field(manager, 0x38), nullptr, 0);
 }
 EI_REPLACE(0x004A88A0, PartyManagerNewGame);
 
 void __fastcall PartyManagerNewGameFour(void* manager) {
-    RecordsResetOrig(Field(manager, 0x24));
+    PartyRecordsReset(reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24)));
     TemplatesBuildOrig(Field(manager, 0x38), nullptr, 1);
 }
 EI_REPLACE(0x004A88C0, PartyManagerNewGameFour);

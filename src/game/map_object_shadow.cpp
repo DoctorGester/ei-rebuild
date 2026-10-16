@@ -1,5 +1,6 @@
 // The shadow of a 3D object on the client. See map_object_shadow.h and docs/notes/map_objects.md
 // ("Shadows").
+#include "figure_mesh.h"
 #include "map_object_shadow.h"
 
 #include "link_figure.h"        // CLinkMesh
@@ -95,15 +96,12 @@ volatile double g_minimumTilt = 20.0;
 
 
 // --- Not rewritten, forwarders ----------------------------------------------------------------
-// 00692010. Texture manager: a new 64x64 texture.
-__declspec(naked) CEngineObject* __fastcall CreateShadowTexture(void*) EI_ORIGINAL(0x00692010)
 // 004F1440 / 004F15C0. Scene: the view matrix and the rotation that look along a direction.
 __declspec(naked) void __fastcall LightViewMatrix(void*, void*, float*, const float*) EI_ORIGINAL(0x004F1440)
 __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quaternion*) EI_ORIGINAL(0x004F15C0)
 // 005A0E80. Figure mesh: rasterises its projected points into the texture.
 __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
-__declspec(naked) int __fastcall LockSurface(void*, void*, void*) EI_ORIGINAL(0x00690FC0)
 // 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
 // the ground.
 // 00501AF0. Texture stages: binds a texture.
@@ -112,7 +110,6 @@ void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { static_
 // 004EA4A0 (DeviceDrawFlatOriginal, originals_render.h). Device: draws the shadow geometry.
 // 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
 // CFigureMesh::DrawOffset.
-__declspec(naked) int __fastcall ProjectPart(void*, void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0CD0)
 
 // 004EBE60: *slot = value with counted references; the old value is released (its slot 4).
 void AssignTexture(CEngineObject** slot, CEngineObject* value) {
@@ -300,7 +297,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
             count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &Points()[count].x,
                                          self->bounds);
         } else {
-            count += ProjectPart(PartAt(self->object, i), nullptr, pipeline, const_cast<float*>(TopMatrix(pipeline)),
+            count += PartAt(self->object, i)->DrawOffset(pipeline, const_cast<float*>(TopMatrix(pipeline)),
                                  &Points()[count].x, self->bounds);
         }
         pipeline->PopMatrix(kShadowStack);
@@ -332,7 +329,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // Rasterise into the render surface.
     void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
     DDSURFACEDESC2 description;
-    if (!LockSurface(surface, nullptr, &description)) {
+    if (!static_cast<CTexture*>(surface)->LockPixels(reinterpret_cast<std::uint32_t*>(&description))) {
         *failure = game::FatalError(reinterpret_cast<const char*>(0x0078F584), self->GetName());
         if (lights.manager) --lights.manager->refCount_;
         return false;
@@ -473,7 +470,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     if (ObjectSlots(object)->InvisibleSlot()) return 1;   // invisible
 
     if (!texture) {
-        AssignTexture(&texture, CreateShadowTexture(TextureManager()));
+        AssignTexture(&texture, static_cast<CTextureManager*>(TextureManager())->NewShadowTexture());
         if (!texture) return game::FatalError(reinterpret_cast<const char*>(0x0078F5B8));
         char name[0x100];
         gamecrt::sprintf(name, reinterpret_cast<const char*>(0x0078F5B0), object->id_);   // "SR%d"

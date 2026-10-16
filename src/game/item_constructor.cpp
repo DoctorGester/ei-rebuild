@@ -416,7 +416,6 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
 // (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
-__declspec(naked) char* __fastcall FindTable14Named(void*, void*, const char*) EI_ORIGINAL(0x006AD580)
 void* const kWeaponTable = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmorTable = reinterpret_cast<void*>(0x007C8718);
 void* const kQuickTable = reinterpret_cast<void*>(0x007C8738);
@@ -534,7 +533,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     char* prototype = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kWeaponTable), nullptr, prototypeName);
     if (!prototype) prototype = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kArmorTable), nullptr, prototypeName);
     if (!prototype) prototype = (char*)stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kQuickTable), nullptr, prototypeName);
-    if (!prototype) prototype = FindTable14Named(kTable14, nullptr, prototypeName);
+    if (!prototype) prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kTable14), nullptr, prototypeName));
     if (!prototype) prototype = static_cast<char*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kTable15), nullptr, prototypeName));
     if (!prototype) {
         // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.

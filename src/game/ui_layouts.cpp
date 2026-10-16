@@ -4,6 +4,7 @@
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
 #include "bink_video.h"
+#include "library_trees.h"
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
@@ -400,8 +401,6 @@ MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(addr
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
 __declspec(naked) void __fastcall MenuTitlesVector(void*, void*, const void*) EI_ORIGINAL(0x00634300)
-__declspec(naked) void __fastcall MenuModelCache(void*) EI_ORIGINAL(0x00633F50)
-__declspec(naked) void __fastcall MenuTextureCache(void*) EI_ORIGINAL(0x00633FF0)
 __declspec(naked) void __fastcall MenuHeroVector(void*, void*, const void*) EI_ORIGINAL(0x006342A0)
 
 // The empty CString's data pointer (00796E48), stored as a CString member is.
@@ -485,8 +484,8 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
             w->hoveredItem_ = nullptr;
-            MenuModelCache(&w->models_);
-            MenuTextureCache(&w->textures_);
+            lib_trees::ConstructHeroItemCache(reinterpret_cast<lib_trees::HeroItemCache*>(&w->models_));
+            lib_trees::ConstructHeroItemCache(reinterpret_cast<lib_trees::HeroItemCache*>(&w->textures_));
             SetVtables(&w->window, 0x00740A2C, 0x007409F8);   // the item screens' base
             char allocators[4] = {};
             FirstListConstruct(&w->defaults_, nullptr, &allocators[1]);

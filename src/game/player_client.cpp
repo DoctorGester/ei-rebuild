@@ -365,10 +365,6 @@ const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF
 // 0052EA40 (RET 8): a unit's motion speeds (float bits; only this handler calls it).
 __declspec(naked) void __fastcall UnitSetMotionSpeeds(void* /*unit*/, void*, std::uint32_t, std::uint32_t)
     EI_ORIGINAL(0x0052EA40)
-// 00535240 (RET 8): the unit's client controller keeps the two marker sources (+0x24, +0x28; the
-// old ones stopped and released, the new ones referenced).
-__declspec(naked) void __fastcall ControllerSetMarkers(void* /*controller*/, void*, void* /*path*/, void* /*marker*/)
-    EI_ORIGINAL(0x00535240)
 
 // The STLport table's inlined destructor: every node deleted (004616A0), the buckets cleared, the
 // count zeroed, then the bucket vector destroyed (00609F50).
@@ -498,7 +494,7 @@ int CPlayerClient::OnPathMarker() {
         marker->position = at;
         CEngineObject* owner = player_;
         CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
-        if (unit != nullptr) ControllerSetMarkers(static_cast<CUnit*>(unit)->controller, nullptr, pathSource, marker);
+        if (unit != nullptr) static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(unit)->controller)->SetMarkers(reinterpret_cast<CParticleSource*>(pathSource), reinterpret_cast<CParticleSource*>(marker));
     }
     field->Destruct();
     return 1;
@@ -576,10 +572,6 @@ bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 // 00455B50: the 1% check (rand) that runs 00455BA0 / 00458DA0 (ECX is the client, not read).
 __declspec(naked) void __fastcall NewObjectCheckOriginal(void* /*client*/) EI_ORIGINAL(0x00455B50)
-// 005654F0 (RET 8): the client world's variable name for an object's second name, as a CString
-// constructed at `out`; returns `out`.
-__declspec(naked) mfc::CString* __fastcall ClientVariableNameOriginal(void* /*world*/, void*, void* /*out*/,
-                                                                     const char* /*name*/) EI_ORIGINAL(0x005654F0)
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
     return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
@@ -712,7 +704,7 @@ int CPlayerClient::OnNewObject() {
     WorldClient()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;
-        ClientVariableNameOriginal(WorldClient(), nullptr, variable.bytes, object->name2);
+        static_cast<CWorldClient*>(WorldClient())->ObjectVariableName(reinterpret_cast<mfc::CString*>(variable.bytes), object->name2);
         object->SetVisibilityLevel(NamedTableGet(&player->Party()->variables_, nullptr, *variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)

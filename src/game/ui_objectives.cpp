@@ -437,7 +437,6 @@ namespace {
 // The text reader's line steps (text_reader.cpp; called through their addresses).
 // The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
 // [0065CFE0].
-__declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
@@ -469,7 +468,7 @@ void CObjectivesWindow::ShowQuest() {
     mfc::CString variable;
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
-    LogClear(children_.data[0]);
+    static_cast<CUiScrollText*>(children_.data[0])->Clear();
     mfc::CStringArray* quests = &quests_;
     if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
     LastQuest() = (*quests)[selectedQuest_];

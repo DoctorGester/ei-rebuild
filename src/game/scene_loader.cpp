@@ -732,9 +732,6 @@ __declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
 __declspec(naked) SceneTexture* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
 __declspec(naked) SceneTexture* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return static_cast<CMaterialManager*>(a0)->FillMaterial(static_cast<CMaterial*>(a2), a3); }
-__declspec(naked) void __fastcall AddFigure(void*, void*, void*) EI_ORIGINAL(0x005164B0)
-// SceneInfo::Load through its original address, so the verify build's wrapper sees the call.
-__declspec(naked) mfc::BOOL __fastcall LoadScene(SceneInfo*, void*, void*, VtArray*, VtArray*, VtArray*) EI_ORIGINAL(0x00471B10)
 
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
 // construction order, so C++ destroys them in its order.
@@ -815,7 +812,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         mfc::impl::MessageBoxText(message, 0x10, 0);
         return 0;
     }
-    LoadScene(&s.info, nullptr, &s.file, meshes, helpers, &s.nodes);
+    s.info.Load(reinterpret_cast<mfc::CFileVirtuals*>(&s.file), meshes, helpers, &s.nodes);
     s.file.Close();
 
     // Exactly one node may have no parent.
@@ -931,7 +928,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     for (int f = 0; f < figures->size; ++f) {
         figureArray.data[f].RefreshBuffers();
-        AddFigure(fakeUnit, nullptr, &figureArray.data[f]);
+        u->Object3D()->AddPart(static_cast<CFigureMesh*>(&figureArray.data[f]));
     }
     u->skin.BindMeshes(&u->Object3D()->parts);
     static_cast<SceneSkin*>(&u->skin)->Rewind();

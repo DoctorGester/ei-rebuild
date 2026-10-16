@@ -1,5 +1,6 @@
 // The figure's animation state (CFigureAnimationState, CObject3D + 0x98): what plays, the queue
 // behind it and the frame reached. See map_object_figures.h and docs/notes/map_objects.md.
+#include "figure_manager.h"
 #include "map_object_figures.h"
 
 #include "base_manager.h"
@@ -19,10 +20,6 @@ constexpr std::uint32_t kKeyLoops = 0x80000000;
 __declspec(naked) int __fastcall ManagerSetAnimation(CEngineObject* /*manager*/, void*, CFigureAnimationState* /*figure*/,
                                                      const char* /*model*/, const char* /*animation*/)
     EI_ORIGINAL(0x005ACCF0)
-// 005ACA60 (RET 0xC). The bone's manager starts `animator` on `animation` (null: none).
-__declspec(naked) int __fastcall ManagerAnimateBone(CEngineObject* /*manager*/, void*, FigureBone* /*bone*/,
-                                                    AnimationTrack* /*animator*/, const char* /*animation*/)
-    EI_ORIGINAL(0x005ACA60)
 
 // The bone's animator, made by its manager (counted) on first use.
 AnimationTrack* AnimatorOf(FigureBone* bone) {
@@ -68,7 +65,7 @@ FigureAnimation* PopQueued(CFigureAnimationState* state) {
 void CFigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* animation) {
     AnimationTrack* animator = AnimatorOf(bone);
     animator->animation = animation;
-    ManagerAnimateBone(animator->owner_, nullptr, animator->bone, animator, animation ? animation->name : nullptr);
+    static_cast<CFigureManager*>(animator->owner_)->LoadBoneAnimation(animator->bone, animator, animation ? animation->name : nullptr);
     animator->time = 0.0f;
 }
 

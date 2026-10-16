@@ -51,8 +51,6 @@ PtrList NewPtrList() { return PtrList{mfc::PtrListVtable(), nullptr, nullptr, 0,
 // with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
 // wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0, MagicTrap::CastAtUnits
 // below].
-__declspec(naked) void __fastcall FindVictims(void* /*context*/, void* /*area*/, std::uint32_t /*sides*/, PtrList* /*out*/)
-    EI_ORIGINAL(0x0052A920)
 // The sector map's units within `radius` of `point` into `list` (emptied first) [005C0BD0, rewritten
 // in sector_map.cpp].
 constexpr int kPtrListBlockSize = 10;
@@ -109,7 +107,7 @@ void MagicTrap::UpdateVictims() {
     void* context = ManagerContextOf(this);
     PtrList found = NewPtrList();
     PtrList newcomers = NewPtrList();
-    FindVictims(context, &area, sides, &found);
+    FindTrapVictims(context, &area, sides, &found);
     for (PtrNode* node = found.head; node;) {
         PtrNode* next = node->next;
         CEngineObject* unit = node->data;
@@ -462,7 +460,7 @@ void MagicTrap::FireAtOccupants() {
     void* context = ManagerContextOf(this);
     PtrList found = NewPtrList();
     if (flags_ & kArmed) {
-        FindVictims(context, &area, sides, &found);
+        FindTrapVictims(context, &area, sides, &found);
         if (found.count) CastAtUnits(&found);
     }
     DestroyPtrList(found);

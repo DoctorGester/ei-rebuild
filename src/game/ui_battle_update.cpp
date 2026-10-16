@@ -184,8 +184,6 @@ __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
 __declspec(naked) void __fastcall IdsDestroyA(IdVector*) EI_ORIGINAL(0x004E2A20)
 __declspec(naked) void __fastcall IdsDestroyB(IdVector*) EI_ORIGINAL(0x005F9880)
-// 006381E0 (thiscall, RET 4): both id vectors equal (AL).
-__declspec(naked) bool __fastcall PartyIdsEqual(const PartyIds*, void*, const PartyIds*) EI_ORIGINAL(0x006381E0)
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
@@ -273,7 +271,7 @@ void RebuildClientParty(CBattleScreen* screen) {
     }
     SortIds(&ids.withUnit);
     SortIds(&ids.without);
-    if (!PartyIdsEqual(&ids, nullptr, &screen->clientParty_)) {
+    if (!ids.Equals(screen->clientParty_)) {
         auto* party = &screen->party_;
         PartyArraySetSizeOriginal(party, nullptr, 0, -1);
         bool cameraFirst = false;

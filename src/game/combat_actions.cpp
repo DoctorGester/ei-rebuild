@@ -105,9 +105,6 @@ void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGi
 void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
     PlayerSendObject0BOriginal(messages, nullptr, unit, code);
 }
-// 00531400. CUnit: takes a random carried item away (stealing); null when there is none
-// (CUnit::TakeRandomItem, unit_steal.cpp; called through its address).
-__declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x00531400)
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
@@ -499,7 +496,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 1: {
         if (!other) return;
         if (other->player) return;
-        CItem* item = UnitTakeRandomItem(other);
+        CItem* item = static_cast<CItem*>(other->TakeRandomItem());
         if (item) {
             GameLog()->Put("Item has been stolen from")->PutChar(10)->Apply(kLogEndLine);
             if (char* player = unit->player) {

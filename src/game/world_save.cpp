@@ -147,12 +147,6 @@ void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*
 // FindFreeCellNear (ai_map.cpp).
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
-__declspec(naked) void __fastcall SaveMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596730)
-// 004047E0 / 00404860 (RET 4). A manager's changed objects, read / written by id.
-__declspec(naked) void __fastcall ManagerLoadObjects(CEngineObject*, void*, WorldStream*) EI_ORIGINAL(0x004047E0)
-__declspec(naked) void __fastcall ManagerSaveObjects(CEngineObject*, void*, WorldStream*) EI_ORIGINAL(0x00404860)
-// 004048F0. Releases the manager's objects nobody holds (reference count 0).
-__declspec(naked) void __fastcall ManagerReleaseUnused(CEngineObject*, void*) EI_ORIGINAL(0x004048F0)
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
 void __fastcall MarkNew(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
@@ -460,9 +454,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             itemManager_->Load(stream);
             ShowLoadProgress(kProgressManagers);
             LoadSavedMapObjects(stream);
-            ManagerLoadObjects(manager48_, nullptr, stream);
-            ManagerLoadObjects(manager4C_, nullptr, stream);
-            ManagerLoadObjects(itemManager_, nullptr, stream);
+            static_cast<CBaseManager*>(manager48_)->LoadObjects(stream);
+            static_cast<CBaseManager*>(manager4C_)->LoadObjects(stream);
+            static_cast<CBaseManager*>(itemManager_)->LoadObjects(stream);
             ShowLoadProgress(kProgressObjects);
 
             // Timed objects (spells, effects) by id.
@@ -585,10 +579,10 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 }
             }
 
-            ManagerReleaseUnused(manager40_, nullptr);
-            ManagerReleaseUnused(manager48_, nullptr);
-            ManagerReleaseUnused(manager4C_, nullptr);
-            ManagerReleaseUnused(itemManager_, nullptr);
+            static_cast<CBaseManager*>(manager40_)->ReleaseUnused();
+            static_cast<CBaseManager*>(manager48_)->ReleaseUnused();
+            static_cast<CBaseManager*>(manager4C_)->ReleaseUnused();
+            static_cast<CBaseManager*>(itemManager_)->ReleaseUnused();
             result = 1;
         }
     }
@@ -653,10 +647,10 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     ConstructSaveStream(&current);
 
     if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimes(0.0f);
-    ManagerReleaseUnused(manager40_, nullptr);
-    ManagerReleaseUnused(manager48_, nullptr);
-    ManagerReleaseUnused(manager4C_, nullptr);
-    ManagerReleaseUnused(itemManager_, nullptr);
+    static_cast<CBaseManager*>(manager40_)->ReleaseUnused();
+    static_cast<CBaseManager*>(manager48_)->ReleaseUnused();
+    static_cast<CBaseManager*>(manager4C_)->ReleaseUnused();
+    static_cast<CBaseManager*>(itemManager_)->ReleaseUnused();
 
     WriteString(stream, mobName_);
     WriteString(stream, mapName_);
@@ -694,10 +688,10 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager48_->Save(stream);
     manager4C_->Save(stream);
     itemManager_->Save(stream);
-    SaveMapObjectsAt(this, nullptr, stream);
-    ManagerSaveObjects(manager48_, nullptr, stream);
-    ManagerSaveObjects(manager4C_, nullptr, stream);
-    ManagerSaveObjects(itemManager_, nullptr, stream);
+    SaveMapObjects(stream);
+    static_cast<CBaseManager*>(manager48_)->SaveObjects(stream);
+    static_cast<CBaseManager*>(manager4C_)->SaveObjects(stream);
+    static_cast<CBaseManager*>(itemManager_)->SaveObjects(stream);
 
     for (auto* node = timedObjects_.map.First(); node; node = timedObjects_.map.After(node))
         WriteCopy(stream, node->value->id_);

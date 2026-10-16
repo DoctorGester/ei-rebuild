@@ -25,6 +25,7 @@ lacks it. The compiler checks the rest: a site that does not compile goes into t
 usage:
   python tools/direct_calls.py --report [--scope GLOB ...] [--verbose]   counts by reason (nothing written)
   python tools/direct_calls.py --apply --scope GLOB [...]                rewrites forwarders declared in GLOB
+  (--exclude GLOB [...] leaves the forwarders declared there)
   python tools/direct_calls.py --count                                   forwarders left to rewritten code
   --loose (with --report / --apply) also converts forwarders whose types differ in ways a call can spell
   (match_loose); compile errors at the calls go into --cast-sites or are fixed by hand.
@@ -1159,7 +1160,7 @@ def add_include(src, inc):
 
 # ------------------------------------------------------------------------------------------- driver
 
-def analyse(sources, decls, library=False, scope=None, tiers=None):
+def analyse(sources, decls, library=False, scope=None, tiers=None, exclude=()):
     tiers = tiers or {}
     simple_index = by_simple(decls)
     regs = registrations(sources, library)
@@ -1178,6 +1179,7 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
     name_count = Counter((f.src.path if f.src.path.endswith('.cpp') else '', f.simple) for f in fwds)
     for f in fwds:
         f.in_scope = scope is None or any(fnmatch.fnmatch(f.src.path, g) for g in scope)
+        f.in_scope = f.in_scope and not any(fnmatch.fnmatch(f.src.path, g) for g in exclude)
         if f.address not in regs:
             f.reason = 'library code' if not library else 'no registration'
             continue
@@ -1457,11 +1459,13 @@ def line_span(raw, a, b):
 
 
 def comment_above(raw, ls):
-    """Start of the // comment lines directly above the line starting at `ls`."""
+    """Start of the // comment lines directly above the line starting at `ls` (a section heading,
+    `// ---`, belongs to what follows it all and stays)."""
     i = ls
     while i > 0:
         p = raw.rfind('\n', 0, i - 1) + 1
-        if raw[p:i].strip().startswith('//'):
+        line = raw[p:i].strip()
+        if line.startswith('//') and not line.startswith('// ---'):
             i = p
         else:
             break
@@ -1611,6 +1615,7 @@ def main(argv):
     ap.add_argument('--apply', action='store_true')
     ap.add_argument('--count', action='store_true')
     ap.add_argument('--scope', nargs='*')
+    ap.add_argument('--exclude', nargs='*', default=[], help='forwarders declared in these GLOBs are left')
     ap.add_argument('--library', action='store_true', help='also forwarders to EI_REPLACE_STANDALONE code')
     ap.add_argument('--verbose', '-v', action='store_true')
     ap.add_argument('--cast', action='store_true', help='also forwarders taking the object as void*')
@@ -1632,7 +1637,8 @@ def main(argv):
             m = re.match(r'(.+):(\d+)\s*$', line.strip())
             if m:
                 CAST_SITES.add((m.group(1).replace('\\', '/'), int(m.group(2))))
-    fwds, classes = analyse(sources, decls, args.library, args.scope, {'cast': args.cast, 'loose': args.loose})
+    fwds, classes = analyse(sources, decls, args.library, args.scope, {'cast': args.cast, 'loose': args.loose},
+                            args.exclude)
     edits, includes, done = plan(fwds, classes) if (args.apply or args.report) else ({}, {}, [])
     scoped = [f for f in fwds if f.in_scope]
     reasons = Counter('listed in config/direct_calls_skip.csv' if f.reason.startswith('listed: ')

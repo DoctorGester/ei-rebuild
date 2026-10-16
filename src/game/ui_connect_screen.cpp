@@ -93,7 +93,6 @@ constexpr std::uint32_t kPlainSprite = 0x100;
 __declspec(naked) void __fastcall DrawListAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D780)   // Rebirth-patched
 __declspec(naked) void __fastcall MasterRequestAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D0D0)
 // The list's vector members (rewritten below): assignment and _M_insert_overflow(pos, x, n) (RET 0xC).
-__declspec(naked) MpAddressEntry* __fastcall AssignAt(MpAddressEntry*, void*, const MpAddressEntry*) EI_ORIGINAL(0x0061E8F0)
 __declspec(naked) void __fastcall InsertOverflow(MpAddressList*, void*, MpAddressEntry* /*pos*/,
                                                  const MpAddressEntry* /*x*/, unsigned /*n*/) EI_ORIGINAL(0x0061EC40)
 __declspec(naked) int __fastcall MasterLinkTickAt(net::MasterLink*) EI_ORIGINAL(0x00440DE0)
@@ -259,7 +258,7 @@ MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, 
         MpAddressEntry* to = finish - 1;
         for (int n = static_cast<int>((finish - 2) - pos); n > 0; --n) {
             --to;
-            AssignAt(to, nullptr, to - 1);
+            to->AssignFrom(*(to - 1));
         }
         MpAddressEntry entry{};
         pos->AssignFrom(entry);

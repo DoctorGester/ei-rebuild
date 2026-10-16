@@ -40,7 +40,6 @@ void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOrigi
 void __fastcall GroupConstruct(ScriptGroup* a0, void*) { ScriptGroupConstructOriginal((void*)a0); }
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
-__declspec(naked) void __fastcall GroupUnion(ScriptGroup*, void*, const ScriptGroup*, const ScriptGroup*) EI_ORIGINAL(0x004B2620)
 ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
 mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
 ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
@@ -134,7 +133,7 @@ int CWorldServer::Update() {
         if (!NoPendingPossession(state)) continue;
         ScriptGroup sum;
         InitGroup(&sum);
-        GroupUnion(&sum, nullptr, &state->partyUnits_, &heroes);
+        sum.Union(state->partyUnits_, heroes);
         GroupAssign(&heroes, nullptr, &sum);
         sum.vtable = scriptvtable::kRefsBase;
         if (sum.data) {
@@ -152,7 +151,7 @@ int CWorldServer::Update() {
             ScriptObjectRef* ref = GroupGetAt(&heroes, nullptr, &copy, i);
             ScriptObjectRef* slot = &state->partyUnits_.data[i];
             slot->Reset();
-            RefConstruct(slot, nullptr, ref);
+            slot->Construct(*ref);
             copy.Reset();
         }
     }

@@ -237,6 +237,7 @@
 #include "game/object_tables.h"
 #include "game/player_messages.h"
 #include "game/ui.h"
+#include "game/unit.h"
 #include "game/world.h"
 
 #include <windows.h>
@@ -1278,7 +1279,6 @@ void PostRegionMouse(const std::string& verb, int index) {
 // step tries the rectangle's centre and then a grid inside it until 00565E40 answers with the
 // unit, so a click there selects or orders that unit and no other in front of it.
 // 00461360 (__fastcall) turns the script name into the id AddUnitToServer gave the unit.
-__declspec(naked) void* __fastcall HarnessUnitAtPoint(void* /*client world*/, void*, int* /*x, y*/) EI_ORIGINAL(0x00565E40)
 constexpr std::uintptr_t kClientWorld = 0x007AF5B8;
 constexpr int kClientPickList = 0xF0;
 constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 requires of the unit
@@ -1320,7 +1320,7 @@ std::string FindUnitPoint(const char* name, const char* what, POINT* point, void
     }
     for (const POINT& p : candidates) {
         int at[2] = {p.x, p.y};
-        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(reinterpret_cast<const long*>(at))) : HarnessUnitAtPoint(world, nullptr, at);
+        void* hit = byId ? static_cast<void*>(reinterpret_cast<CWorldClient*>(world)->PickAt2(reinterpret_cast<const long*>(at))) : reinterpret_cast<CWorldClient*>(world)->UnitAt(reinterpret_cast<const long*>(at));
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
             *point = p;
             *unit = hit;
@@ -1372,8 +1372,6 @@ std::string PostUnitMouse(const std::string& argument) {
 // 0-3), and the quick item panel's (+0x198) unit, entries shown and region items, the spell
 // column's (+0x19C) count and highlight. With <minquick>, fails when the quick item panel shows
 // fewer than that many of its unit's own quick items (regions 0-3).
-__declspec(naked) void* __fastcall HarnessUnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
-
 std::string HudState(const std::string& argument) {
     auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
     auto* screen = reinterpret_cast<std::uint8_t*>(ui->GetActiveWindow());
@@ -1388,7 +1386,7 @@ std::string HudState(const std::string& argument) {
         CUnit* member = battle->party_[i];
         if (!member) continue;
         void* quick[4];
-        for (int s = 0; s < 4; ++s) quick[s] = HarnessUnitQuickItem(member, nullptr, s);
+        for (int s = 0; s < 4; ++s) quick[s] = member->GetQuickItem(s);
         Log("harness: hudstate: member %d %p flags %08X, quick items %p %p %p %p", i, member,
             at(member, 0x08), quick[0], quick[1], quick[2], quick[3]);
     }

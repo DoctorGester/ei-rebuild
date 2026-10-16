@@ -73,7 +73,6 @@ struct Registry : RegistryOriginals {
 // and the element assignment [006B4D40] (MFC template instantiations; the original inlines the
 // second SetSize and the first assignment, identically).
 __declspec(naked) void __fastcall ThemesSetSize(void*, void*, int, int) EI_ORIGINAL(0x006B59A0)
-__declspec(naked) void __fastcall ThemeAssign(MusicTheme*, void*, const void*) EI_ORIGINAL(0x006B4D40)
 
 // The theme being read, laid out as MusicTheme with constructed members.
 struct LocalTheme {
@@ -90,7 +89,7 @@ static_assert(sizeof(LocalTheme) == sizeof(MusicTheme));
 void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     int n = music->themeCount;
     ThemesSetSize(&music->themesVtable, nullptr, n + 1, -1);
-    ThemeAssign(&music->themes[n], nullptr, &theme);
+    music->themes[n].Assign(reinterpret_cast<const MusicTheme*>(&theme));
 }
 
 const mfc::CString& TextPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF45C); }

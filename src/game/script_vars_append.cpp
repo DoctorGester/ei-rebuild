@@ -101,7 +101,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
             group->data[k].Reset();
-            RefConstruct(&group->data[k], nullptr, &member);
+            group->data[k].Construct(member);
             Release(member.object);
         }
         // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.

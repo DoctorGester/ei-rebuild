@@ -38,8 +38,6 @@ EI_REPLACE_METHOD(0x0062BFD0, CCreditsScreen::OnMessageResult);
 
 // --- 0065EF30: the scrolling surface's load (ui_scrolling_surface.cpp), through its address -------
 
-__declspec(naked) bool CUiScrollingSurface::LoadThroughHook(void*, const char*) EI_ORIGINAL(0x0065EF30)
-
 // --- 0062BCB0: a script line's destructor ---------------------------------------------------------
 
 void TitleLine::Destroy() {
@@ -59,7 +57,7 @@ BOOL CCreditsScreen::Draw(int pass) {
             finished_ = true;
         } else {
             const TitleLine& line = currentLine_->data;
-            textSurface_->LoadThroughHook(archive_, line.style);
+            textSurface_->Load(reinterpret_cast<CMappedResource*>(archive_), line.style);
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {
                 textSurface_->Start(line.speed, 1);

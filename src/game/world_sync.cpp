@@ -92,8 +92,6 @@ __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray
 // 005593D0 and the set written with 00559E60.
 __declspec(naked) void __fastcall FiguredGroupsConstruct(void*, void*) EI_ORIGINAL(0x005985E0)
 __declspec(naked) void __fastcall FiguredGroupsDestruct(void*, void*) EI_ORIGINAL(0x005986B0)
-__declspec(naked) void __fastcall UnitSetAdd(UnitSet*, void*, CEngineObject*) EI_ORIGINAL(0x005593D0)
-__declspec(naked) void __fastcall UnitSetWrite(UnitSet*, void*, void* /*stream*/) EI_ORIGINAL(0x00559E60)
 __declspec(naked) void __fastcall DressedMapConstruct(void*, void*) EI_ORIGINAL(0x00598790)
 __declspec(naked) void __fastcall DressedMapDestruct(void*, void*) EI_ORIGINAL(0x00598860)
 
@@ -341,8 +339,8 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         FiguredGroupsConstruct(&units.figured, nullptr);
         DressedMapConstruct(&units.dressed, nullptr);
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
-            if (node->value->GetClassId() == world::kClassUnit) UnitSetAdd(&units, nullptr, node->value);
-        UnitSetWrite(&units, nullptr, &message);
+            if (node->value->GetClassId() == world::kClassUnit) units.Add(static_cast<CUnit*>(node->value));
+        units.Write(&message);
         DressedMapDestruct(&units.dressed, nullptr);
         FiguredGroupsDestruct(&units.figured, nullptr);
 

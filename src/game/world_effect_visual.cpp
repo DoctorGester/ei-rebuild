@@ -208,9 +208,9 @@ void CEffectPointLight::Start(int update) {
 int CEffectPointLight::Unpack(int update, DeltaField* field) {
     Vector3 position;
     field->ReadPosition(&position);
-    ReadFloat16x3(field, nullptr, &color_);
-    ReadFloat16(field, nullptr, &range_);
-    ReadFloat16x3(field, nullptr, &velocity_);
+    field->ReadFloat16x3(&color_.x);
+    field->ReadFloat16(&range_);
+    field->ReadFloat16x3(&velocity_.x);
     field->ReadDelta(&lightFlags_, 4);
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
@@ -222,9 +222,9 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
 void CEffectPointLight::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
     field->WritePosition(&position);
-    WriteFloat16x3(field, nullptr, &color_);
+    field->WriteFloat16x3(&color_.x);
     field->WriteFloat16(Bits(range_));
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WriteDelta(&lightFlags_, 4);
 }
 
@@ -303,13 +303,13 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     field->ReadPosition(&position);
     field->ReadDelta(&startTick_, 4);
     field->ReadDelta(&type_, 4);
-    ReadFloat16(field, nullptr, &size_);
+    field->ReadFloat16(&size_);
     field->ReadDelta(&attachedTo_, 4);
-    ReadFloat16x3(field, nullptr, &velocity_);
+    field->ReadFloat16x3(&velocity_.x);
     field->ReadPosition(&target_);
     field->ReadDelta(&unitId_, 4);
-    ReadFloat16(field, nullptr, &alpha_);
-    ReadFloat16(field, nullptr, &param164_);
+    field->ReadFloat16(&alpha_);
+    field->ReadFloat16(&param164_);
     moving_ = IsMoving(velocity_);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == 0x4A && !SnapshotReadToEnd()) return 0;
@@ -380,7 +380,7 @@ void CEffectParticle::Pack(DeltaField* field) {
     field->WriteFloat16(Bits(size_));
     value = attachedTo_;
     field->WriteDelta(&value, 4);
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WritePosition(&target_);
     value = unitId_;
     field->WriteDelta(&value, 4);
@@ -518,7 +518,7 @@ void CEffectWall::SetDirection(const Vector3* direction) {
 
 int CEffectWall::Unpack(int update, DeltaField* field) {
     if (ParticleUnpackAt(this, nullptr, update, field) == 0) return 0;
-    ReadFloat16x3(field, nullptr, &direction_);
+    field->ReadFloat16x3(&direction_.x);
     if (!SnapshotReadToEnd()) return 0;
     if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
     if (update == 0 && type_ == 0x2010) {
@@ -542,13 +542,13 @@ void CEffectWall::Pack(DeltaField* field) {
     field->WriteFloat16(Bits(size_));
     value = attachedTo_;
     field->WriteDelta(&value, 4);
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WritePosition(&target_);
     value = unitId_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16(Bits(alpha_));
     field->WriteFloat16(Bits(param164_));
-    WriteFloat16x3(field, nullptr, &direction_);
+    field->WriteFloat16x3(&direction_.x);
 }
 
 void CEffectWall::LoadState(void* stream) {
@@ -605,7 +605,7 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
     field->ReadPosition(&position);
     field->ReadPosition(&from_);
     field->ReadPosition(&to_);
-    ReadFloat16(field, nullptr, &width_);
+    field->ReadFloat16(&width_);
     field->ReadDelta(&flag_, 1);
     field->ReadDelta(&toObject_, 4);
     field->ReadDelta(&fromObject_, 4);

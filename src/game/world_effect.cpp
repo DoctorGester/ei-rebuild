@@ -144,9 +144,9 @@ int CEffectSound::Unpack(int update, DeltaField* field) {
     field->ReadPosition(&position);
     field->ReadDelta(&looping_, 4);
     field->ReadText(name_, 0xFF);
-    ReadFloat16(field, nullptr, &volume_);
-    ReadFloat16(field, nullptr, &radius_);
-    ReadFloat16x3(field, nullptr, &velocity_);
+    field->ReadFloat16(&volume_);
+    field->ReadFloat16(&radius_);
+    field->ReadFloat16x3(&velocity_.x);
     field->ReadDelta(&noFade_, 1);
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
@@ -163,7 +163,7 @@ void CEffectSound::Pack(DeltaField* field) {
     field->WriteStringBoth(name_);
     field->WriteFloat16(Bits(volume_));
     field->WriteFloat16(Bits(radius_));
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WriteDelta(&noFade_, 1);
 }
 
@@ -223,7 +223,7 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
     for (int i = 0; i < names_.size; ++i) field->WriteStringBoth(names_[i]);
     field->WriteFloat16(Bits(volume_));
     field->WriteFloat16(Bits(radius_));
-    WriteFloat16x3(field, nullptr, &velocity_);
+    field->WriteFloat16x3(&velocity_.x);
     field->WriteDelta(&noFade_, 1);
 }
 
@@ -231,7 +231,7 @@ void CEffectSoundSeq::LoadState(void* stream) {
     Read(stream, &localPosition_, 12);
     Read(stream, &velocity_, 12);
     ReadStreamCString(stream, nullptr, &name_);
-    ReadStringArray(&names_, stream);
+    ReadSavedStrings(&names_, static_cast<CStream*>(stream));
     Read(stream, &volume_, 4);
     Read(stream, &radius_, 4);
     moving_ = IsMoving(velocity_);
@@ -291,8 +291,8 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
         names_[i] = *text;
         text->~CString();
     }
-    ReadFloat16(field, nullptr, &volume_);
-    ReadFloat16(field, nullptr, &radius_);
+    field->ReadFloat16(&volume_);
+    field->ReadFloat16(&radius_);
     field->ReadDelta(&minInterval_, 4);
     field->ReadDelta(&maxInterval_, 4);
     if (!SnapshotReadToEnd()) return 0;
@@ -317,7 +317,7 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
 
 void CEffectAmbientSound::LoadState(void* stream) {
     Read(stream, &localPosition_, 12);
-    ReadStringArray(&names_, stream);
+    ReadSavedStrings(&names_, static_cast<CStream*>(stream));
     Read(stream, &volume_, 4);
     Read(stream, &radius_, 4);
     Read(stream, &minInterval_, 4);

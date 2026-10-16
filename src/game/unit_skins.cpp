@@ -94,7 +94,6 @@ __declspec(naked) stlp::string* __fastcall StringsCopy(void*, void*, int, const 
     EI_ORIGINAL(0x0053D7F0)
 void __fastcall StringsFree(stlp::string* a0, int a1) { NodeFree12Original(a0, static_cast<std::size_t>(a1)); }
 __declspec(naked) void __fastcall StringsDeallocate(void*, void*, stlp::string*, int) EI_ORIGINAL(0x0053BF40)
-__declspec(naked) void __fastcall StringCopyConstruct(stlp::string*, const void*) EI_ORIGINAL(0x004F5DF0)
 void __fastcall StringsInsertOverflow(void* a0, void*, stlp::string* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, a2, a3, static_cast<unsigned>(a4)); }
 __declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*, const stlp::string*, const stlp::string*, int)
     EI_ORIGINAL(0x00575E50)
@@ -298,7 +297,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
             StringInitWithAllocator(string, nullptr, &kAllocator);
             StringInitRange(string, nullptr, text, text + std::strlen(text), 0);
             if (first.Finish() != first.EndOfStorage()) {
-                StringCopyConstruct(first.Finish(), string);
+                stlp::StringAbi::ConstructAt(first.Finish(), reinterpret_cast<const stlp::string*>(string));
                 ++first.Finish();
             } else {
                 StringsInsertOverflow(&first, nullptr, first.Finish(), string, 1);
