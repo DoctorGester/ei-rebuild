@@ -4,6 +4,7 @@
 // flat geometry draw (004EA4A0) projects them with the scene's matrices. See docs/notes/renderer.md.
 #include "figure_mesh.h"   // VertexPacket
 #include "model.h"         // CSceneRenderer
+#include "texture.h"       // CTextureDevice
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
@@ -69,7 +70,7 @@ int CSceneRenderer::DrawSelectionMarker(const Vector3* point, float size, const 
     float uvs[kVertices][2] = {};
     std::uint16_t indices[18];
     for (int i = 0; i < 18; ++i) indices[i] = kIndices[i];
-    DeviceDrawFlatOriginal(device_, nullptr, blocks, uvs, kBlocks, indices, 18, kColour, kSpecular, nullptr, 1.0f);
+    device_->DrawFlatBlocks(blocks, reinterpret_cast<const char*>(uvs), kBlocks, indices, 18, kColour, kSpecular, 0, 1.0f);
     return 1;
 }
 EI_REPLACE_METHOD(0x00503A40, CSceneRenderer::DrawSelectionMarker);

@@ -162,7 +162,7 @@ namespace {
 CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
     CDXSurface* holder = nullptr;
-    if (memory) holder = reinterpret_cast<CDXSurface*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
+    if (memory) holder = static_cast<CDXSurface*>(memory)->Construct(device, width, height);
     if (holder) ++holder->refCount;
     return holder;
 }

@@ -24,19 +24,6 @@ __declspec(naked) inline int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSur
                                                   std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
                                                   std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
                                                   std::uint32_t, int, int) EI_ORIGINAL(0x004E9A50)
-__declspec(naked) inline void __cdecl ReportError(long, const char*) EI_ORIGINAL(0x004F0B00)
-__declspec(naked) inline void __fastcall LoadTextureOriginal(void** /*holder*/, void*, int /*kind*/, const char* /*name*/)
-    EI_ORIGINAL(0x00500A00)
-// 004EA4A0 (device_shadow.cpp, thiscall on the device object at the renderer's +0x20, RET 0x24): the
-// flat geometry draw [positions (blocks of four), uvs, blocks, indices, index count, colour, specular,
-// bounds (null: crossing), z scale]; 2 when nothing is visible, else 0. Called through its address so
-// its verify wrapper stays in the path.
-__declspec(naked) inline int __fastcall DeviceDrawFlatOriginal(void* /*device*/, void*, const void* /*positions*/,
-                                                               const void* /*uvs*/, int /*blocks*/,
-                                                               const void* /*indices*/, int /*indexCount*/,
-                                                               std::uint32_t /*colour*/, std::uint32_t /*specular*/,
-                                                               const void* /*bounds*/, float /*zScale*/)
-    EI_ORIGINAL(0x004EA4A0)
 
 // 00500960: the display / renderer object (the global at 007AF060; plain RET, no arguments).
 // 00468F70: 16-byte aligned scratch allocation of `count` 16-byte records (ECX, plain RET).
@@ -48,11 +35,6 @@ __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, 
 // C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
 __declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
     EI_ORIGINAL(0x004D9AA0)
-// 004EF7B0 (rewritten as DXSurfaceConstruct, dx_surface.cpp; called through its address so the wrapper runs):
-// the CDXSurface constructor on `memory` for an off-screen surface of the screen's format (thiscall: device
-// object, width, height; RET 0xC; returns `memory`).
-__declspec(naked) inline char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/,
-                                                                      int /*width*/, int /*height*/) EI_ORIGINAL(0x004EF7B0)
 // 00501A40: the renderer's clear of the render target (and depth) with its colour +0x14 (ECX = the renderer
 // 007AF060, plain RET, EAX 1).
 __declspec(naked) inline int __fastcall RendererClearOriginal(void* /*renderer*/) EI_ORIGINAL(0x00501A40)
@@ -64,9 +46,6 @@ __declspec(naked) inline int __fastcall DevicePresentOriginal(void* /*device*/) 
 __declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/, void*, const float* /*matrix*/, int /*index*/)
     EI_ORIGINAL(0x004D9B80)
 
-// C3k. 00500970: makes sure the texture behind a holder is loaded (plain RET; the manager loads it unless its flag 8 is
-// set; a null texture is a fatal error; EAX is not a result).
-__declspec(naked) inline void __fastcall TextureEnsureLoadedOriginal(void* /*holder*/) EI_ORIGINAL(0x00500970)
 
 // C3n. 004EB550 (rewritten as DeviceDrawIndexed; thiscall on the device, RET 0x1C): draws indexed primitives with the
 // current material (primitive type, FVF, vertices, vertex count, 16-bit indices, index count, flags); returns 1.

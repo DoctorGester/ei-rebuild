@@ -2,6 +2,7 @@
 // Plain float maths (rule 7); random words converted with x87::FromUnsigned. See
 // docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
+#include "texture.h"
 
 #include "random.h"
 
@@ -117,14 +118,14 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
     boundsMax_.y += 1.0f;
     boundsMax_.z += 1.0f;
     radius_ = boundsMax_.Length();
-    auto** glow = reinterpret_cast<void**>(&glowTexture_);
-    auto** main = reinterpret_cast<void**>(&texture_);
+    auto** glow = reinterpret_cast<CTexture**>(&glowTexture_);
+    auto** main = reinterpret_cast<CTexture**>(&texture_);
     if (demon) {
-        LoadTextureOriginal(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CE4));   // "DemonLight"
-        LoadTextureOriginal(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CD4));   // "DemonLightning"
+        TextureHolderLoad(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CE4));   // "DemonLight"
+        TextureHolderLoad(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CD4));   // "DemonLightning"
     } else {
-        LoadTextureOriginal(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CC8));   // "SmtgLight"
-        LoadTextureOriginal(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CBC));   // "Lightning"
+        TextureHolderLoad(glow, nullptr, 6, reinterpret_cast<const char*>(0x00787CC8));   // "SmtgLight"
+        TextureHolderLoad(main, nullptr, 6, reinterpret_cast<const char*>(0x00787CBC));   // "Lightning"
     }
 }
 

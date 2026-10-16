@@ -15,7 +15,6 @@
 #include "ground_decal.h"        // DecalTexCoord
 #include "model.h"               // ThePrintsDatabase
 #include "originals_effects.h"
-#include "originals_render.h"    // DeviceDrawFlatOriginal
 #include "terrain.h"             // Terrain::SurfaceClass
 #include "texture.h"
 #include "world.h"
@@ -283,8 +282,8 @@ int GroundPrint::Draw() {
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
     CTextureDevice* device = RenderDeviceObject();
     device->BindNamedTexture(0, &texture_);
-    return DeviceDrawFlatOriginal(device, nullptr, positions_.data, texCoords_.data, positions_.size, indices_.data,
-                                  indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
+    return device->DrawFlatBlocks(positions_.data, reinterpret_cast<const char*>(texCoords_.data), positions_.size,
+                                  indices_.data, indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, 0, 1.0f);
 }
 
 void GroundPrint::Destruct() {

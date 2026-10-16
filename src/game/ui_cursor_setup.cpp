@@ -34,7 +34,7 @@ void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
 CDXSurface* NewSurface(CTextureDevice* device, LONG width, LONG height) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
     if (!memory) return nullptr;
-    return reinterpret_cast<CDXSurface*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
+    return static_cast<CDXSurface*>(memory)->Construct(device, width, height);
 }
 
 } // namespace

@@ -6,6 +6,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -43,7 +44,7 @@ float TickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA
 constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { SpriteArrayConstructOriginal((void*)a0); }
-void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
+void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(a0)); }
 // The arrays are function-local statics in the original (guard bits 1 and 2 of 007A9BF4, the
 // destructors 00497D30 / 00497D10 registered with atexit).
 void ConstructArrays() {

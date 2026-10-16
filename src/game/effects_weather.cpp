@@ -1,4 +1,5 @@
 #include "effects.h"
+#include "texture.h"
 #include "at_exit_functions.h"
 
 #include "core_maths.h"
@@ -161,7 +162,7 @@ EI_REPLACE_METHOD(0x004E3B80, CRainSnow::Clear);
 EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
-    LoadTextureOriginal(reinterpret_cast<void**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());
+    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
         static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
         sound = 0;

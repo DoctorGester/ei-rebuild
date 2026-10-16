@@ -107,7 +107,7 @@ __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*
 // 00501AF0. Texture stages: binds a texture.
 void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { static_cast<CSceneRenderer*>(a0)->SetTextureImpl(a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.
-// 004EA4A0 (DeviceDrawFlatOriginal, originals_render.h). Device: draws the shadow geometry.
+// 004EA4A0 (CTextureDevice::DrawFlatBlocks). Device: draws the shadow geometry.
 // 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
 // CFigureMesh::DrawOffset.
 
@@ -492,10 +492,10 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
     std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
-    DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices.data, texCoords.data, vertices.size, indices.data, indices.size,
-                           colour,
-                           static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
-                           std::bit_cast<float>(kDrawDepth));
+    static_cast<CTextureDevice*>(RenderDevice())
+        ->DrawFlatBlocks(vertices.data, reinterpret_cast<const char*>(texCoords.data), vertices.size, indices.data,
+                         indices.size, colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, 0,
+                         std::bit_cast<float>(kDrawDepth));
     return 1;
 }
 EI_REPLACE_METHOD(0x0051CE60, CObject3DClientSpecific::DrawShadow);

@@ -11,6 +11,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
 #include "effects.h"
+#include "texture.h"
 
 #include "random.h"
 
@@ -872,7 +873,7 @@ int CParticleSource::CreateForType() {
 
     char name[268];
     std::memcpy(name, textureName, std::strlen(textureName) + 1);
-    LoadTextureOriginal(&texture, nullptr, 6, name);
+    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, 6, name);
     BuildFrames(this);
     return 1;
 }

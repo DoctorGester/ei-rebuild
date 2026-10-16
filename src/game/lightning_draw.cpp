@@ -3,6 +3,7 @@
 // glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
 // the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
+#include "texture.h"
 
 #include "core_maths.h"
 #include "model.h"
@@ -23,7 +24,7 @@
 namespace {
 
 // 00500970: makes sure the texture in `holder` is loaded.
-void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
+void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(a0)); }
 // 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the

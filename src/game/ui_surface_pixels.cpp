@@ -148,7 +148,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
         gameapi::EnterCriticalSection(DeviceLock());
         hr = Blt(to->surface, nullptr, from->surface, nullptr, kBltWait, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());
-        if (hr != 0) ReportError(hr, game::Text(0x00793248));
+        // (On a failure the original calls its error report, 004F0B00, with the result and a text; it is empty.)
     }
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
@@ -290,8 +290,8 @@ void CUiSurface::SwapContents(int restore) {
             void* memory = gamecrt::operator_new(0x20);
             SurfaceHolder* made = nullptr;
             if (memory) {
-                made = reinterpret_cast<SurfaceHolder*>(
-                    DXSurfaceConstructOriginal(memory, nullptr, interface_->renderer_, width_, height_));
+                made = reinterpret_cast<SurfaceHolder*>(static_cast<CDXSurface*>(memory)->Construct(
+                    reinterpret_cast<CTextureDevice*>(interface_->renderer_), width_, height_));
             }
             SurfaceHolder* previous = holder_;
             holder_ = made;

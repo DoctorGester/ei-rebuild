@@ -1,8 +1,10 @@
 // CSkyObject and CSky's lighting (A-S7, 004D9110-004D9DE0). See sky_object.h.
 #include "sky_object.h"
+#include "texture.h"
+// windows.h (texture.h) renames CEngineObject's GetClassName.
+#undef GetClassName
 
 #include "originals_core.h"
-#include "originals_render.h"   // LoadTextureOriginal, TextureEnsureLoadedOriginal
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -135,7 +137,7 @@ CSky* CSky::Construct() {
     material = nullptr;
     texture = nullptr;
     turns = 1;
-    LoadTextureOriginal(&texture, nullptr, kSkyTextureKind, kSkyTextureName);
+    TextureHolderLoad(reinterpret_cast<CTexture**>(&texture), nullptr, kSkyTextureKind, kSkyTextureName);
     return this;
 }
 EI_REPLACE_METHOD(0x004D9680, CSky::Construct);
@@ -161,7 +163,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     pipeline->PushMatrix(m, CTransformPipeline::kClipStack);
     pipeline->PushMatrix(m, 1);
-    TextureEnsureLoadedOriginal(&texture);
+    TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(&texture));
     renderer->SetTexture(0, texture);
     renderer->DrawFigure(object, kSkyDrawA, kSkyDrawB, 0, 0xFF, nullptr);
     const int stacks[2] = {CTransformPipeline::kClipStack, 1};

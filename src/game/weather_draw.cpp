@@ -5,6 +5,7 @@
 // indices) and draw them with the device directly; the new renderer (src/render) gets the same
 // triangles after they return. See docs/notes/effects.md and docs/notes/renderer.md.
 #include "effects.h"   // CRainSnow
+#include "texture.h"
 #include "model.h"     // CSceneRenderer
 #include "world.h"     // CWorld
 
@@ -35,7 +36,7 @@ int CRainSnow::DrawImpl(CSceneRenderer* renderer) {
     if (this->mode == 0) return 1;
     UpdateFade(static_cast<float>(currentWorld->tick_));
     if (this->mode == 0) return 1;
-    TextureEnsureLoadedOriginal(&texture);
+    TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(&texture));
     renderer->SetTexture(0, texture);
     int currentMode = mode;
     int result;

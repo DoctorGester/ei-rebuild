@@ -75,8 +75,9 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     self->width_ = rect->right - rect->left;
     self->height_ = rect->bottom - rect->top;
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    CDXSurface* made = memory ? reinterpret_cast<CDXSurface*>(DXSurfaceConstructOriginal(
-                                    memory, nullptr, self->interface_->renderer_, self->width_, self->height_))
+    // (The interface's renderer is the device object.)
+    CDXSurface* made = memory ? static_cast<CDXSurface*>(memory)->Construct(
+                                    reinterpret_cast<CTextureDevice*>(self->interface_->renderer_), self->width_, self->height_)
                               : nullptr;
     ReplaceHolder(self, made);
     CDXSurface* holder = self->holder_;
