@@ -12,6 +12,7 @@
 #include "../hook/log.h"
 
 #include <cstring>
+#include <unordered_map>
 
 namespace render {
 
@@ -108,9 +109,45 @@ struct Params {
 static_assert(sizeof(Params) == 96);
 
 sg_shader g_shader{};
-sg_pipeline g_ground{}, g_water{};
+std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
 GeometryStream g_geometry("ei-terrain");
 std::vector<sg_buffer> g_retiredBuffers;
+
+// The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
+// state the old path draws the page with. The ground pass (006C6230) runs under the terrain's state
+// block 007AEDDC with what the sky left (CULLMODE 2, ZWRITEENABLE 1; the world draw 00569E40), the
+// water pass (006C6330) under the scene's 007AEDD0; both with ALPHABLENDENABLE on (SRCALPHA /
+// INVSRCALPHA in the harness runs; the verify build logs each new pipeline's state).
+sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // water: for the verify build's log
+    std::uint32_t key = s.PipelineKey();
+    auto it = g_pipelines.find(key);
+    if (it != g_pipelines.end()) return it->second;
+    sg_pipeline_desc p{};
+    p.shader = g_shader;
+    p.layout.buffers[0].stride = sizeof(TerrainVertex);
+    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
+    p.layout.attrs[0].offset = 0;
+    p.layout.attrs[1].format = SG_VERTEXFORMAT_UBYTE4N;
+    p.layout.attrs[1].offset = 12;
+    p.layout.attrs[2].format = SG_VERTEXFORMAT_UBYTE4N;
+    p.layout.attrs[2].offset = 16;
+    p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
+    p.layout.attrs[3].offset = 20;
+    p.index_type = SG_INDEXTYPE_UINT32;
+    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
+    ApplyPassState(p, s);
+    p.sample_count = 1;
+    p.label = "ei-terrain";
+    sg_pipeline pipeline = sg_make_pipeline(&p);
+    if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID)
+        ei::Log("render: a terrain pipeline could not be created (state key %08X; see the sokol messages above)", key);
+#if defined(EI_RENDER_VALIDATION)
+    ei::Log("render: terrain pipeline (first for a %s page): blend %d (%u, %u), depth test %d write %d func %u, cull %u",
+            water ? "water" : "ground", s.blend ? 1 : 0, s.sourceBlend, s.destBlend, s.depthTest ? 1 : 0, s.depthWrite ? 1 : 0, s.depthFunc, s.cull);
+#endif
+    g_pipelines.emplace(key, pipeline);
+    return pipeline;
+}
 
 } // namespace
 
@@ -191,7 +228,7 @@ void GeometryStream::Destroy() {
     vertexOffset_ = indexOffset_ = -1;
 }
 
-bool CreateTerrainPipelines() {
+bool CreateTerrainShader() {
     sg_shader_desc s{};
     s.vertex_func.source = kTerrainSource;
     s.vertex_func.entry = "vs_main";
@@ -223,43 +260,8 @@ bool CreateTerrainPipelines() {
     s.texture_sampler_pairs[0].sampler_slot = 0;
     s.label = "ei-terrain";
     g_shader = sg_make_shader(&s);
-
-    sg_pipeline_desc p{};
-    p.shader = g_shader;
-    p.layout.buffers[0].stride = sizeof(TerrainVertex);
-    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[0].offset = 0;
-    p.layout.attrs[1].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[1].offset = 12;
-    p.layout.attrs[2].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[2].offset = 16;
-    p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
-    p.layout.attrs[3].offset = 20;
-    p.index_type = SG_INDEXTYPE_UINT32;
-    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-    p.cull_mode = SG_CULLMODE_NONE;
-    p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
-    p.depth.write_enabled = true;
-    p.colors[0].pixel_format = kColourFormat;
-    p.sample_count = 1;
-    p.label = "ei-terrain-ground";
-    g_ground = sg_make_pipeline(&p);
-    // Water: blended by the vertex colour's alpha over what is drawn, depth tested and written, as
-    // the old device draws it (the world draw 00569E40 turns ZWRITEENABLE back on after the sky and
-    // leaves it on through the water pass). A sector's water hides the water of sectors behind it
-    // that it covers on screen: without the write the far sea's last fully fogged sector ring was
-    // blended over the nearer water at the top of the battle screen (R10c).
-    p.colors[0].blend.enabled = true;
-    p.colors[0].blend.src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA;
-    p.colors[0].blend.dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-    p.colors[0].blend.src_factor_alpha = SG_BLENDFACTOR_ONE;
-    p.colors[0].blend.dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-    p.label = "ei-terrain-water";
-    g_water = sg_make_pipeline(&p);
-    bool ok = sg_query_pipeline_state(g_ground) == SG_RESOURCESTATE_VALID &&
-              sg_query_pipeline_state(g_water) == SG_RESOURCESTATE_VALID;
-    if (!ok) ei::Log("render: the terrain shader or pipelines could not be created (see the sokol messages above)");
+    bool ok = sg_query_shader_state(g_shader) == SG_RESOURCESTATE_VALID;
+    if (!ok) ei::Log("render: the terrain shader could not be created (see the sokol messages above)");
     return ok;
 }
 
@@ -271,7 +273,9 @@ void UploadTerrain(const Frame& f) {
 void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     sg_bindings b{};
     if (!g_geometry.Bind(b)) return;
-    sg_apply_pipeline(batch.water ? g_water : g_ground);
+    sg_pipeline pipeline = Pipeline(batch.state, batch.water);
+    if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
+    sg_apply_pipeline(pipeline);
     b.views[0] = TextureView(batch.texture);
     b.samplers[0] = LinearSampler();
     sg_apply_bindings(&b);
@@ -293,10 +297,9 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
 void DestroyTerrain() {
     g_geometry.Destroy();
     RetireBuffers();
-    if (g_ground.id) sg_destroy_pipeline(g_ground);
-    if (g_water.id) sg_destroy_pipeline(g_water);
+    for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
+    g_pipelines.clear();
     if (g_shader.id) sg_destroy_shader(g_shader);
-    g_ground = g_water = sg_pipeline{};
     g_shader = sg_shader{};
 }
 
@@ -367,15 +370,22 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     }
     int count = static_cast<int>(f.terrainIndices.size()) - firstIndex;
     if (count <= 0) return;
+    // The old device's state the page is drawn with; DrawPage changes none of what the pipeline
+    // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
+    PassState state;
+    {
+        FpuGuard fpu;
+        state = ReadPassState(nullptr);
+    }
     if (!f.commands.empty() && f.commands.back().kind == Command::Terrain) {
         TerrainBatch& last = f.terrainBatches[static_cast<std::size_t>(f.commands.back().index)];
         if (last.texture == texture && last.water == water && last.matrix == matrix &&
-            last.firstIndex + last.indexCount == firstIndex) {
+            last.state.PipelineKey() == state.PipelineKey() && last.firstIndex + last.indexCount == firstIndex) {
             last.indexCount += count;
             return;
         }
     }
-    f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, firstIndex, count});
+    f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, firstIndex, count, state});
     f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }
 

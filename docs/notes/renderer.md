@@ -104,7 +104,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Clip matrix of the current draw | transform pipeline (renderer 007AF060 +8): stacks of 64-byte row-major matrices, `+0x24/+0x28` clip space (axis swap * projection * view * model), `+0x1C` the same times the viewport, `+0x5C/+0x60` view stack | read at hand-over time | used |
 | Terrain sectors | SectorData (`terrain_sector.h`): positions +0x17C (33x33 per layer, water after ground), vertex records +0x190 (0x54 bytes, lit colour +0x11, specular / fog +0x15), tile lists per quarter and page +0x314, edge flags +0x2C4, quarter visibility +0x144, LOD +0x170, seam flags +0x174 / +0x178, owner TerrainFields +0x1C; page textures TerrainFields +0xD8 | DrawSectorPage 006BFF40 (`terrain_draw.cpp`) -> `render::TerrainPage` | drawn |
 | Meshes (figures, objects, sky, interface sprites and previews) | positions in blocks of four (morphed by the game), corners, colours as lit by the game (005A7A70 step 3; flag 4: device flat colour +0x150), texture coordinates; matrix = top of the screen stack converted back to clip space; distance fog switch +0x158 and range | DeviceDrawMesh 004E9010 / 004E9A50 (`device_mesh.cpp`) -> `render::BeginMesh` / `EndMesh`; `world_client_draw.cpp` (00569E40) -> `BeginWorld` / `EndWorld` | drawn |
-| Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (device +0x12C / +0x130) | `device_draw.cpp` -> `render::MeshPass` (section 5) | drawn |
+| Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (device +0x12C / +0x130) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `device_shadow.cpp` -> `render::BeginMesh` without corners; `map_object_shadow.cpp` (0051CE60) tells which texture changed (`TextureChanged`) | drawn; later GPU shadows |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
@@ -568,6 +568,13 @@ interface draws, movies, textures) are verified by wrappers and harness scenario
   writes depth as the old device does (ZWRITEENABLE stays 1 after the sky): without it the far sea's last, fully
   fogged sector ring blended over the nearer water at the top of the screen (a light strip with a straight lower edge,
   seen right of the top panel in WideScreen; R10c).
+  The terrain's pipelines come from the pass state at each page's hand-over (`ReadPassState`, R10d), as the meshes'
+  do: ground under the terrain block 007AEDDC and water under the scene block 007AEDD0, both with CULLMODE 2 (what the
+  sky leaves), ALPHABLENDENABLE 1 (SRCALPHA / INVSRCALPHA) and ZWRITEENABLE 1. The terrain shader still picks the
+  alpha (texture for ground, vertex colour for water) and always adds the specular colour (DrawSectorPage turns
+  SPECULARENABLE on around each of its draws, after the hand-over). The verify build logs each new terrain pipeline's
+  state ("render: terrain pipeline (first for a ground page): ..."). With it the standalone goldens stayed the same
+  and `--widescreen` matched addon's frames.
   Fog matches the old path. Cross-run comparisons are not meaningful (no determinism); A/B is always within one run.
 
 ### Frame capture
