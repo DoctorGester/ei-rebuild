@@ -1808,4 +1808,6 @@ SV7c2 were not involved: with the mouse left out and all of them in, the goldens
   the host's own routing of it (RouteImageCalls: "not found to route", then E_INVALIDARG and the game's "Can't create
   direct input object" box in every image run); it is now routed at the game's CreateWindowExA. Final build: `--golden`
   (the image) 186 runs ALL PASS, 174 goldens the same, 0 differ; `--no-hooks --golden --fresh` twice: 136 runs ALL PASS,
-  126 the same, 0 differ each time (about 30 runs a pass with the real cursor over a window, left out).
+  126 the same, 0 differ each time (about 30 runs a pass with the real cursor over a window, left out). After merging
+  main (S21d): `--golden` 186 runs ALL PASS, 175 the same, 0 differ; `--no-hooks --golden --fresh` 136 runs ALL PASS,
+  126 the same, 0 differ.
