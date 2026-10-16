@@ -236,7 +236,7 @@ id = "R11a"
 title = "Game code's DirectDraw fallback behind !render::Presenting()"
 group = "renderer"
 depends = ["R11"]
-note = "Waiting on the user (asked 2026-10-16): keep the DirectDraw fallback for players without Direct3D 11, or remove it. Recommended: remove."
+note = "User 2026-10-16: remove the DirectDraw fallback; the image needs the new renderer, and Presenting() / CpuWindows() / Active() become one query. Start after C13a1 merges (same game files)."
 
 # ---------------------------------------------------------------- native interface drawing
 
