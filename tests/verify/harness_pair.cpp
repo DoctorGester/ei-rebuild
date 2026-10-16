@@ -58,6 +58,7 @@ int g_side = -1;
 HANDLE g_turn[2];          // auto-reset events: "your turn may have come"
 HANDLE g_peerProcess;
 bool g_alone = false;      // the other game has ended (or never came): no more waiting
+bool g_cut = false;        // "netcut": nothing sent arrives, nothing sent here is received
 char g_name[96];
 
 // This process's sockets and their virtual ports, and the next port of its own.
@@ -68,7 +69,7 @@ std::uint16_t g_nextOwn = 0;
 // For the report.
 unsigned g_turns = 0;
 unsigned long long g_waitedMs = 0;
-unsigned g_sent = 0, g_unheard = 0, g_received = 0;
+unsigned g_sent = 0, g_unheard = 0, g_received = 0, g_lost = 0;
 long g_peerEndedAt = -1;   // our frame when the other game was seen ended
 std::vector<std::string> g_failures;
 
@@ -256,6 +257,10 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port) {
     }
     Locked lock;
     ++g_sent;
+    if (g_cut) {
+        ++g_lost;
+        return length;
+    }
     if (!Claimed(port)) {
         ++g_unheard;   // nobody holds the port: gone, as a datagram to a closed port is
         return length;
@@ -279,8 +284,15 @@ int RecvFrom(std::uintptr_t s, char* data, int length, sockaddr* from, int* from
     Datagram* oldest = nullptr;
     Locked lock;
     if (port) {
-        for (Datagram& d : g_shared->slots)
-            if (d.full && d.to == port && (!oldest || static_cast<std::int32_t>(d.seq - oldest->seq) < 0)) oldest = &d;
+        for (Datagram& d : g_shared->slots) {
+            if (!d.full || d.to != port) continue;
+            if (g_cut) {   // lost on the way
+                d.full = 0;
+                ++g_lost;
+                continue;
+            }
+            if (!oldest || static_cast<std::int32_t>(d.seq - oldest->seq) < 0) oldest = &d;
+        }
     }
     if (!oldest) {
         WSASetLastError(WSAEWOULDBLOCK);
@@ -321,9 +333,18 @@ void Close(std::uintptr_t s) {
         if (c.used && c.port == port && c.side == g_side) c.used = 0;
 }
 
+void Cut() {
+    if (!g_shared || g_cut) return;
+    Locked lock;
+    g_cut = true;
+    Log("harness: pair: this game's network is cut");
+}
+
 void Report(FILE* f) {
     if (!g_shared) return;
     char ended[80] = "still running at this report";
+    char cut[64] = "";
+    if (g_cut) std::snprintf(cut, sizeof(cut), "; cut by netcut (%u datagrams lost)", g_lost);
     if (g_peerEndedAt >= 0) std::snprintf(ended, sizeof(ended), "ended at this game's frame %ld", g_peerEndedAt);
     std::fprintf(f, "\nPAIR: side %d (%s): %u turns in lockstep, %llu ms waiting for the other game; %u datagrams sent "
                  "(%u to no one), %u received; the other game %s\n",

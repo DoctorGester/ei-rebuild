@@ -108,6 +108,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   on `tests\scenarios\peer\<name>.txt` beside this one, the two in lockstep on a network of their own (the second
   joins the first's hosted game over virtual UDP ports); `peersignal <tag>` / `peerwait <seconds> <tag>` order the
   two scenarios. The peer's report and logs are in the run folder's `peer\`; a pair takes two of run_all's slots.
+  `netcut` cuts one game's network (a client lost, `net_pair_leave.txt`); `hidefile <path>` makes an install file
+  read as missing in that game until it writes the file itself.
 - Harness runs use a virtual clock (`tests/verify/harness_clock.h`): each main-loop frame is five
   world updates, the main thread's sleeps and timed waits take no real time, sample ends come on
   virtual time, the date and the random seeds are fixed, and frames present without waiting for

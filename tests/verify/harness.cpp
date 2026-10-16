@@ -31,6 +31,9 @@
 //                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
 //                             grave (the console key), backspace, delete, home, end, pgup, pgdn, ctrl,
 //                             enterchar (Enter with its WM_CHAR, as text input such as the console needs).
+//                             A letter or digit is typed once (its WM_CHAR, lower case); the game's
+//                             TranslateMessage translates as the US layout with no key held, whatever the
+//                             user's own keyboard does (HarnessTranslateMessage).
 //                             Input steps (key and the mouse steps below) are posted from the game's
 //                             main loop only: the pump that window switches run drops waiting input
 //                             (see PeekMessageHook)
@@ -85,6 +88,11 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
+//   netcut                    in a pair's game: its network cable pulled from now on (harness_pair.h): nothing
+//                             it sends arrives, what the other game sends it is lost; both sessions time out
+//   hidefile <path>           an install file (relative to the game folder: maps\z6q1.mq) reads as missing in
+//                             this game until the game writes it (then its overlay copy is read): a player
+//                             who lacks a file the host has (the shared quest files, net_pair_leave)
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
@@ -762,12 +770,32 @@ void LogInstallWrite(const char* path, const char* shadow) {
     if (logged++ < 200) Log("harness: install write redirected: %s -> %s", path, shadow);
 }
 
-// For a read: the overlay copy when it exists, else `path` (saves always redirect).
+// "hidefile <path>": install files (relative to the game folder, e.g. maps\z6q1.mq) this game reads
+// as missing until it writes them itself (the overlay copy is then read): a player who lacks a file
+// another has (SV5d2: the multiplayer quest files the server shares). Set by steps on the main
+// thread before the game looks for the files; read by the file hooks.
+constexpr int kHiddenFiles = 8;
+char g_hiddenFiles[kHiddenFiles][MAX_PATH];
+volatile LONG g_hiddenCount = 0;
+
+bool Hidden(const char* relative) {
+    for (LONG i = 0; i < g_hiddenCount; ++i)
+        if (_stricmp(relative, g_hiddenFiles[i]) == 0) return true;
+    return false;
+}
+
+// For a read: the overlay copy when it exists, else `path` (saves always redirect); a hidden file
+// without an overlay copy reads as the missing overlay path.
 const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
     if (shadow && g_getFileAttributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
+    if (shadow && g_hiddenCount && Hidden(shadow + std::strlen(g_savesDir) + 1)) {
+        static int logged = 0;
+        if (logged++ < 20) Log("harness: hidden file read as missing: %s", path);
+        return shadow;
+    }
     return path;
 }
 
@@ -1158,6 +1186,49 @@ struct HeldModifiers {
     ~HeldModifiers() { PostModifiers(mods_, false); }
     unsigned mods_ = 0;
 };
+
+// The game's TranslateMessage (import slot 0073B450; WinMain's loop and the movie loop call it). Windows makes a
+// WM_CHAR from a key message with the thread's keyboard layout and key state, which follow the user's own layout
+// switches and held keys even though the harness's game never has the focus: in pairs a typed hero name came out
+// "ppeEeErR" (Shift held) or "peerr" (a layout without Latin letters) as well as "ppeeeerr" (SV5d2). Harness runs
+// translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
+// theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
+constexpr std::uintptr_t kTranslateMessageSlot = 0x0073B450;   // game.exe import table
+decltype(&::TranslateMessage) g_translateMessage;
+
+char FixedKeyChar(WPARAM vk) {
+    switch (vk) {
+    case VK_BACK: return 0x08;
+    case VK_TAB: return 0x09;
+    case VK_RETURN: return 0x0D;
+    case VK_ESCAPE: return 0x1B;
+    case VK_SPACE: return ' ';
+    case VK_MULTIPLY: return '*';
+    case VK_ADD: return '+';
+    case VK_SUBTRACT: return '-';
+    case VK_DIVIDE: return '/';
+    case VK_OEM_1: return ';';
+    case VK_OEM_PLUS: return '=';
+    case VK_OEM_COMMA: return ',';
+    case VK_OEM_MINUS: return '-';
+    case VK_OEM_PERIOD: return '.';
+    case VK_OEM_2: return '/';
+    case VK_OEM_3: return '`';
+    case VK_OEM_4: return '[';
+    case VK_OEM_5: return '\\';
+    case VK_OEM_6: return ']';
+    case VK_OEM_7: return '\'';
+    default: return 0;
+    }
+}
+
+BOOL WINAPI HarnessTranslateMessage(const MSG* message) {
+    if (!message || message->message != WM_KEYDOWN) return FALSE;   // no Alt in the key state: no WM_SYSCHAR
+    const char c = FixedKeyChar(message->wParam);
+    if (!c) return FALSE;
+    PostMessageA(message->hwnd, WM_CHAR, static_cast<unsigned char>(c), message->lParam);
+    return TRUE;
+}
 
 void PostKey(const std::string& name) {
     UINT vk = 0;
@@ -2432,6 +2503,19 @@ void RunSteps() {
             g_waitPeerTag = rest ? rest : "";
             g_waitPeerDeadline.Set(seconds * 1000);
             return;
+        } else if (s.verb == "netcut") {
+            if (!pair::Active()) g_failures.push_back("netcut: not a pair's game (a \"peer\" line starts the other)");
+            pair::Cut();
+        } else if (s.verb == "hidefile") {
+            if (g_hiddenCount >= kHiddenFiles || s.argument.empty() || s.argument.size() >= MAX_PATH) {
+                g_failures.push_back("hidefile: no room for " + s.argument);
+            } else {
+                strcpy_s(g_hiddenFiles[g_hiddenCount], s.argument.c_str());
+                for (char* p = g_hiddenFiles[g_hiddenCount]; *p; ++p)
+                    if (*p == '/') *p = '\\';
+                InterlockedIncrement(&g_hiddenCount);
+                Log("harness: %s reads as missing until this game writes it", s.argument.c_str());
+            }
         } else if (s.verb == "masterhost") {
             options::TheOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "zone") {
@@ -3167,6 +3251,7 @@ struct Harness {
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
+        PatchSlot(kTranslateMessageSlot, &HarnessTranslateMessage, g_translateMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);

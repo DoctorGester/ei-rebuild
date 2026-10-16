@@ -2,11 +2,11 @@
   "scenario": "net_pair_kick",
   "install": "rebirth",
   "recorded": "2026-10-16",
-  "commit": "8a1e4e5c",
+  "commit": "079e103c",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
   "repeated_in": 4,
-  "reason": "SV5d1: pair harness, the multiplayer zone switch with an exchange (net_pair_zone) and kick / ban (net_pair_kick); 4 passes agreed (plain x2, EI_HEAP_JITTER=1, 2,fill)",
+  "reason": "SV5d2: typed names as typed (harness TranslateMessage); net_pair_leave new",
   "side": "peer"
 }

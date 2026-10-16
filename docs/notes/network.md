@@ -29,9 +29,11 @@ function does; this file keeps what is not visible in the code.
   leaves. `net_pair_zone.txt` (SV5d1): an exchange on the base, the host's map choice and both games into
   the game zone (below). `net_pair_kick.txt` (SV5d1): kick by serial from the host's player pick, the
   joiner back from the main menu with a new hero, ban by name, the third join refused by the ban list.
-  Not reached by any scenario: awards (a quest completed in the zone: CompleteZone, Award messages),
-  leaving the game zone back to the base (command "_2"), shared files, `GameInfoRecord::Read`, the drop
-  paths (timeouts, bad updates), recording and replay (no `.apl` file exists), the master server (SV5d2).
+  `net_pair_leave.txt` (SV5d2): shared files (the peer lacks a quest file), the peer lost in the game zone
+  (its network cut), the host back out to the base and the map's reject topic (LeaveZone, the award).
+  Not reached by any scenario: a quest completed in the zone (CompleteZone 00418ED0 and its kind 0 / 1
+  awards, SV5d3), `GameInfoRecord::Read`, bad updates, recording and replay (no `.apl` file exists), the
+  master server's answer (OnMaster 0041ACA0).
 
 ## The multiplayer base and the zone switch (SV5d1)
 
@@ -58,6 +60,33 @@ function does; this file keeps what is not visible in the code.
   refusal box).
 - Port bug found (SV5d1): QueueMapList queued "<zone>_2" (the reject briefings) instead of "<zone>_1",
   so the image's base offered no map and nobody could leave it.
+
+## Leaving the game zone, awards, shared files, a lost client (SV5d2)
+
+- Zones on offer: FlowPickZones picks one zone per map group (zone3Obr, zone6, zone7, zone9 for bz1mpg) with
+  one IsaacRandom draw each, so the offer depends on the run: in the pair scenarios vanilla offers z3q2 z6q1
+  z7q2 z9q3, Rebirth z3q1 z6q1 z7q1 z9q1; after LeaveZone the next offer leaves out the zone just played
+  (z3q3 on both). The sheriff's topics after the map choice: "about life in the village", the map's reject
+  briefing ("<zone>_2"), "talk later".
+- Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy
+  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, flag80_ set: the client
+  state 1 and the start zone again; the host also sends command 9 with the announced zone to its guests and
+  drops the Host message). The base is local again; the zone's map message stays held.
+- The reject topic sends command 1 "<zone>_2": LeaveZone (text 6 announced, AwardHost with the final award for
+  the "<zone>_1" briefing's give-items, the lists emptied, the next zones queued and their .mq files shared,
+  the world's map cleared). Awards wait 60 s on the server's timed list (+0x25B4) before the Award message goes
+  to the host's connection (ClientOnAward lists it).
+- CompleteZone ("<zone>_3") needs the zone's quest done (the generated quest script's QuestComplete ->
+  FinishQuestMap 0057FB90 -> FinishMap queues "<zone>_3"); every z3 / z6 / z7 / z9 quest needs a fight with
+  level 2-8 monsters (z3q1: a chest by five bandits; z3q2: a level 5 toad), which a new hero does not win, and the
+  console's "@" commands do nothing in a network game (console::Execute). Not reached (SV5d3).
+- Shared files: ShareFile lists each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
+  that lacks one (005812F0) answers with a FileRequest, which the server lists with the sender's connection
+  (0041B690); the chunks come back and vanilla writes the file into Maps (identical to the host's in the pair
+  run); Rebirth's MQClient keeps the chunks and writes nothing.
+- A client lost in the zone: with its network cut (harness "netcut"), the server drops it after the session
+  timeout (60 s; ReportDeparture text 4, both players' message lines) and its own game shows the lost
+  server box and returns to the main menu.
 
 ## Class map
 

@@ -115,5 +115,4 @@
   Wrong player number
   FADEOUT nMillSec
   Current FPS: 3.63636
-  Unknown command
   1

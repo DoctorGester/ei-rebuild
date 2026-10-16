@@ -1,0 +1,52 @@
+# The peer of net_pair_leave: lacks z6q1.mq (offered by the host's server on both installs) and joins the host's
+# game (as in net_pair_join), follows the host into the game zone, then its network is cut there.
+timeout 300
+hidefile maps\z6q1.mq
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+
+peerwait 200 entered
+frames 20
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitwindow 60 battle
+frames 20
+peersignal peerin
+frames 20
+netcut
+peersignal cut
+waitwindow 150 msgbox
+key enter
+waitmenu 30
+report
+quit

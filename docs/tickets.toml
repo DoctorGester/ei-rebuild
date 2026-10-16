@@ -1281,6 +1281,14 @@ group = "verification"
 depends = ["SV5d1"]
 note = "SV5d1's net_pair_zone reaches the base exchange, the map choice (Nsheriff's topic, command 1, SetMap), the zone switch for both games (StartNetworkZone; the joiner through JoinGameClient / DriverSession); net_pair_kick reaches kick / ban and a refused join. Not reached: a quest completed in the game zone (CompleteZone 00418ED0, Award messages, AwardHost with the final award), leaving the zone back to the base (command '<zone>_2' -> LeaveZone 00418CC0, SwitchMultiplayerZone's second call), shared files (File / FileChunk / FileRequest), the drop paths (a client lost in a game zone, timeouts), the master server's answer (OnMaster 0041ACA0). clickground walks the leader; vanilla and Rebirth offer different zones (z3q2 / z3q1) and lay the base's faces and the exchange window out differently (vanilla / rebirth steps)."
 
+[[ticket]]
+id = "SV5d3"
+title = "Multiplayer on the pair harness: a quest completed in the game zone (CompleteZone), the master's answer"
+group = "verification"
+depends = ["SV5d2"]
+files = ["tests/scenarios/net_pair_*.txt", "tests/scenarios/peer/", "tools/"]
+note = "SV5d2's net_pair_leave reaches shared files (File / FileRequest / FileChunk), a client lost in the game zone (harness netcut: ReportDeparture 4), the zone left back to the base (SwitchMultiplayerZone's second call), the reject topic (LeaveZone 00418CC0, AwardHost with the final award, QueueAward, ClientOnAward). Not reached: CompleteZone 00418ED0 (and its kind 0 / 1 awards): the zone's quest must finish (generated quest script -> QuestComplete -> FinishQuestMap 0057FB90 -> FinishMap queues '<zone>_3', then the sheriff's '_3' topic on the base). Every offered quest (z3q1 chest by five level 2 bandits, z3q2 level 5 toad, z6q1 level 7 shaman, z9q1 crypt by level 8 skeletons, ...) needs a fight a new level 1 hero loses, and '@' console commands are refused in a network game. Ideas: a prepared strong multiplayer hero (a '# prepare:' tool writing mp\\<hero>.mp into harness_saves, its format first), or mercenaries bought on the base (b.merc topics). Also unreached: the master server's answer (OnMaster 0041ACA0, needs a fake master on 127.0.0.1), GameInfoRecord::Read, bad updates."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
