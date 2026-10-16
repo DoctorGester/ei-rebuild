@@ -1169,6 +1169,24 @@ title = "zone_gz3g and zone_gz15h_tornado: saves left out of the goldens (brain 
 group = "verification"
 note = "From S20 on top of SV7b2a: two plain --no-hooks passes of zone_gz3g (vanilla) and zone_gz15h_tornado (vanilla, Rebirth) decode to different savea/mission.sav in 2 to 8 objects' controller.brain.memory.call0.point.z (values near 1e-28, e.g. obj3328 / obj3329 in gz3g, obj338784..338792 in the tornado zone): an uninitialised float that follows the heap, another leftover family like SV7b2/SV7b3. Their goldens keep console, digest and dumps; golden.json says 'saves: not kept'. Find the writer of call0.point (a brain memory slot built by a script command or SSCCmd::Execute), zero it in ours and in the original (harness_leftovers / harness_save_leftovers), then 'golden.py saves' for the three."
 
+[[ticket]]
+id = "SV7c1"
+title = "Vanilla menu unit cunit2 not hidden (flags 8) once under EI_HEAP_JITTER=3"
+group = "verification"
+size = 1
+model = "opus"
+files = ["src/game/unit_client_update.cpp", "src/game/unit_client_animation.cpp", "tests/verify/harness_watch.h"]
+note = "SV7c, one-off: vanilla --no-hooks EI_HEAP_JITTER=3 ui_saveload, record 0 (update 20, main menu): cunit2 unmoco2 flags 0x100004A2 where the golden has 0x100004AA (bit 8, not drawn, which UpdateClient 005341A0 sets at update 4 from the current animation's key: a still idle). Same isaac and crt.rand state, same place, same animation entries. Did not repeat in three fresh j3 reruns, one with EI_WATCH_CUNIT=2,flags, nor in any other of ~1600 jitter / fill runs. Candidate: which menu unit takes which IsaacRandom draw in AdvanceTime 00535B30's long first step (500..600), so the idle's phase at update 4; or a timing effect. Chase with EI_WATCH_CUNIT=2,flags over many runs if it shows again."
+
+[[ticket]]
+id = "SV7c2"
+title = "Heap jitter for the standalone image's host heap"
+group = "verification"
+size = 1
+model = "opus"
+files = ["tests/verify/harness_heap.cpp", "src/lib/crt.cpp"]
+note = "SV7c: EI_HEAP_JITTER / EI_HEAP_FILL act on game.exe's import slots (harness_heap.cpp), which the standalone image does not use: its malloc / operator new are the host CRT's (EI_REPLACE_STANDALONE), so --standalone runs under jitter are plain runs (no 'heap jitter' log line). The goldens already hold on that other heap (S20: 168 the same), but once the hook builds retire (S21) only the image runs: give its allocator the same seeded spacers and fill so layout independence stays checked."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
