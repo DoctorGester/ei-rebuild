@@ -129,7 +129,7 @@ class GoldenTest(unittest.TestCase):
         golden.GOLDEN = os.path.join(self.dir, 'golden')
         golden.STORE = os.path.join(golden.GOLDEN, 'saves')
         try:
-            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test', fields=12,
+            args = type('A', (), dict(scenarios=['levers'], install='vanilla', reason='test', fields=12, image=False,
                                       runs=[os.path.dirname(orig1), os.path.dirname(ours), os.path.join(self.dir, 'orig2')]))
             with redirect_stdout(io.StringIO()) as out:
                 self.assertEqual(golden.record(args), 0, out.getvalue())
