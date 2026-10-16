@@ -80,29 +80,26 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
 
 ## Rewritten (objects, scenes, options, tables)
 
-V: P pure (floats as bits); C the original on a scratch copy of the bytes it touches, ours on the real object, compared; O ours
-only (state checks).
-
-| Address | Name | File | V |
-|---|---|---|---|
-| 00455940, 00455970, 00455930, 00453400, 00461C10, 00461C80, 00468C20 | CEngineObject ManagerContext, SetOwner, DestructBase; CTransformObject::ConstructBase (0x54), CHoover Construct / Destruct; CMemoryStream::Reset | object.cpp | P / C |
-| 00446820, 00446880, 00446890, 004468A0, 00453440, 004547C0 | UnitGetName, UnitGetFlag274 / 278, UnitGetValue328, FigureGetName, FakeFigureGetName | object.cpp | P |
-| 004554B0, 00455630, 00455660, 004557C0, 004557F0, 004554E0, 00455680 | CDiplomacy Reset, GetRelation, GetHostileMask, ReadFrom, WriteTo, SetRelation, OnAttack (O) | object_diplomacy.cpp | C / P |
-| 004489D0, 0044A230, 0044CC10, 00448A10, 004679B0, 004679D0 | CrossProduct, SubtractVectors (2D 0044CC10), ScaleVector copy (= 00410770), Vector3::DivideInPlace, Vector4::FromPoint | object_maths.cpp | P / C |
-| 00461360, 004613A0, 0045E850, 0045E910, 00460AF0, 00462F70 | TextKeyFromName, IsTextKey, CMapDatabase FindMap / FindAllod, NamedFloatTable::Get (needs the game's CRT heap), FindCommandByKey | object_tables.cpp | P |
-| 00460BC0, 00460DB0, 00460EE0, 00460FE0, 00461260 | NamedFloatTable Set, Remove, CopyPrefixed, Load, Save (`core.md`) | object_tables.cpp | `verify_named_float_table.cpp` |
-| 00466190, 004662C0, 00466CE0, 00466820, 00466FD0, 00467150, 004672E0, 00467E10 | NoiseKey::Randomize, LightningSegment SampleNoise / Animate / Init, CLightning ExpandBounds / UpdateBounds / Animate / SetEndpoints | lightning.cpp | C (random state restored) |
-| 00466EA0, 00468790, 00468940, 004680D0, 00468680, 00468810, 00467AD0, 00467590 | CLightning Register, Reset, DrawAll, start (textures "SmtgLight" / "Lightning" or "DemonLight" / "DemonLightning" via 00500A00), factory, destructor body, draw, glow | lightning*.cpp | O |
-| 00471B10, 00446C10 | SceneInfo::Load (ours reads through a recording proxy, the original on empty arrays against a replaying proxy; heap pointers and the unwritten tail +0x24..+0x33 of mesh faces skipped), LoadFakeUnitScene (O) | scene_loader.cpp | C |
-| 0044B980, 0044CFF0, 004492F0, 0044C4A0, 0044DCF0, 0044E3B0, 0044E8A0, 0044EB60, 00448A40, 00449030, 004491C0, 00449240, 0044A2A0 | LoadFigureRegistry (.reg texture mappings, material types), IndexMeshCorners, BuildBone (recursive), vertex welding, normals, PlaceMeshes, mesh bounds, relative frames, skeleton, node hierarchy / rest pose, root bone, material name parser | scene_*.cpp | C / O |
-| 004466D0, 00446910, 004468F0, 00446B20, 00446BA0, 004468E0 | CFakeUnit ctor, dtor, deleting dtor, Destroy (slot 3), scene load (slot 62: 00446C10, then a class 0x45 object per figure from the world's slot 21, 0059F390), class id | fake_unit.cpp | O |
-| 00507E80, 005081C0, 00508990 | CAnimationNode ResetPose (pose of the first rotation key: parent rotation * key, Hamilton; position = parent pose + position_ turned by the parent; root alone; pointsB_ = pointsA_; key cursors 0), Rewind (clock +0x38 0, ResetPose, mesh +0x30 placed, children), SceneSkin::Rewind (root, clock +0x18 0; A-U9; 00508A30 inside 00508990's Ghidra body is unreferenced) | skin_rewind.cpp | ResetPose original vs ours (4 ULPs, points exact); the rest ours |
-| 0044C480-00454800 (11), 0044F1B0-00454A30, 00474C80, 00475F40, 00476DD0 | CFigure / CFakeFigure names, ids, destructors; the engine's plain-element arrays in 32-byte aligned blocks | figure_slots.cpp, aligned_arrays.cpp | one instantiation per template |
-| 0045B210, 0045C560, 00458DA0, 00458730 | GameOptions LoadFromRegistry (C on the 0x26C bytes), SaveToRegistry (registry import slots point at recorders), defaults, destructor | options*.cpp | C |
-| 0045EA20 | CMapDatabase::Load (map.txt / map-LMP.txt through the text manager 007AF788; directives in `map_database.h`) | map_database.cpp | a shadow database loaded by the original, compared in depth |
-| 00477B00, 00461CB0 | UnitRecord::ApplyTo (controller +0x270, +0x8A8 blocks), a dead unit's loot | unit_record.cpp, hoover_loot.cpp | O |
-| 00457D40, 00457970, 00458220, 00456140 | app WindowProc, DispatchInput, PumpMessages, StartFirstMap (WM_ACTIVATE flags 0079BC5C / 0079BC5D) | app.cpp | O |
-| 00469CA0-0046E490, 0046A4B0, 0046E5E0, 0045D5B0..0045DFB0 | the zone file's records (base, object, flame, magic trap, lever, unit with behaviours / patrols / waypoints, particle source, light, sound), chunk readers / writers, editor rotation, zone diplomacy table constructor | map_spec*.cpp | `verify_map_spec` |
+Every rewritten function carries its address in its source comment (grep the address); the per-function table that used to be
+here is gone. Files: `object.cpp` (CEngineObject ManagerContext / SetOwner / DestructBase, CTransformObject::ConstructBase
+0x54, CHoover Construct / Destruct, CMemoryStream::Reset, the unit and figure getters), `object_diplomacy.cpp` (CDiplomacy
+Reset, GetRelation, GetHostileMask, ReadFrom, WriteTo, SetRelation, OnAttack), `object_maths.cpp`, `object_tables.cpp`
+(TextKeyFromName, IsTextKey, CMapDatabase FindMap / FindAllod, NamedFloatTable Get / Set / Remove / CopyPrefixed / Load /
+Save (`core.md`), FindCommandByKey), `lightning*.cpp` (noise key, segments, bounds, animation, registration, draw, glow; the
+textures "SmtgLight" / "Lightning" or "DemonLight" / "DemonLightning" go through 00500A00), `scene_loader.cpp` / `scene_*.cpp`
+(SceneInfo::Load 00471B10: the figure registry's .reg texture mappings and material types, mesh corners, bones, welding,
+normals, bounds, relative frames, skeleton, node hierarchy; LoadFakeUnitScene 00446C10), `fake_unit.cpp` (scene load is slot
+62: 00446C10, then a class 0x45 object per figure from the world's slot 21, 0059F390), `skin_rewind.cpp` (A-U9:
+CAnimationNode ResetPose / Rewind, SceneSkin::Rewind; ResetPose: the pose of the first rotation key is parent rotation * key
+(Hamilton), position = parent pose + position_ turned by the parent, root alone, pointsB_ = pointsA_, key cursors 0; 00508A30
+inside 00508990's Ghidra body is unreferenced), `figure_slots.cpp` / `aligned_arrays.cpp`, `options*.cpp` (GameOptions
+LoadFromRegistry over 0x26C bytes, SaveToRegistry, defaults, destructor), `map_database.cpp` (CMapDatabase::Load 0045EA20:
+map.txt / map-LMP.txt through the text manager 007AF788; directives in `map_database.h`), `unit_record.cpp` /
+`hoover_loot.cpp` (UnitRecord::ApplyTo: controller +0x270, +0x8A8 blocks; a dead unit's loot), `app.cpp` (WindowProc, DispatchInput,
+PumpMessages, StartFirstMap; WM_ACTIVATE flags 0079BC5C / 0079BC5D), `map_spec*.cpp` (the zone file's records: base, object,
+flame, magic trap, lever, unit with behaviours / patrols / waypoints, particle source, light, sound; chunk readers / writers,
+editor rotation, the zone diplomacy table constructor; covered by `verify_map_spec`). `SceneInfo::Load`'s comparison skips heap
+pointers and the unwritten tail +0x24..+0x33 of mesh faces.
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the
 whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are installed, and runs that copy as the
@@ -130,37 +127,55 @@ they get: its "Kept" array gets the removals, "Removed" the changes. Receive err
 and current type. `CUnitServer::IsFighting` (0054B580) is Rebirth-patched: called through its address.
 `CWorldServer::CollectSharedObjects` (00594A30) takes the player id first (multiplayer only).
 
-Rewritten (O unless marked; S = ours into the stream, the stream (and the fields named) restored, the original, compared):
-
-| Address | Name |
-|---|---|
-| 00664BF0, 00664E20, 00664E00, 00664DE0 (S), 00664DF0 (S) | CPlayer::Construct (newgame), DestructBody, DeletingDestruct (RET 4), class name "CPlayer" (00794CA4), id 0xF |
-| 00665010, 006650E0, 00665380, 00665200, 00665950, 00665A60, 00665990, 00665A10, 006651D0 | CreatePlayer (returns 1), DestroyPlayer (slot 3 and the destructor's copy), Clear, SetConnection, SetPlayerId, Connect, Disconnect, ForgetKnownObjects |
-| 00665440 (S), 00665640 (S), 00665470, 00665550, 00665780, 00665870 | IsLeader (BOOL), HasLoot (BOOL), GiveItems (RET 8), TakeAllItems, TakeLoot / TakeItem (BOOL) |
-| 00665A70, 00665B50, 00665BE0, 00665CC0, 00665D20, 00665DE0, 00664B70 | AddUnit / RemoveUnit (from CUnit::SetPlayer), ItemUsed, AssignParty (CParty::Assign's result), ReleaseTamedUnits (CUnitController slot 39 is TamingStage), CPlayer::Tick, PlayerMessageError (`__fastcall`: format, previous type in DL, type; FatalError through 00480080) |
-| 00667230, 0066C9A0 | CPlayerClient::CreateClient, CPlayerServer::CreateServer (256 handlers; client state 0; server timer 900..1800) |
-| 0066C540, 0066C770 / 0066C750, 0066C730 (S) / 0066C740 (S), 0066CC50 = 0066CF20, 0066CE50, 0066D090, 0066D020 | CPlayerServer Construct, DestructBody / DeletingDestruct, class name / id 0x3B, ClearState (slots 3 / 15), ForgetSentObjects (13), ClearGroup50F8 (21), Leave (16: CollectParty when deployed, SendParty in multiplayer, 0x01 and state 3, Flush) |
-| 0066EE10 (S), 0066EF30 (S), 0066F180 (S), 0066EBD0, 0066EC10, 0066EC70, 0066ECD0, 0066ED30, 0066EDA0, 0066EA10, 0066EA30, 0066EA70, 0066EAC0, 0066EB40, 0066EB90, 0066F1F0, 0066F280, 0066F2C0, 0066D6A0, 0066D6E0, 0066D770, 0066D7B0, 0066D250, 0066D260 | CPlayerServer SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72, SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18, SendObject43 / 0B, SendText13, SendText, SetDisconnect, SetFlag70 (`player_messages.cpp`; all S, skipped when ours grew the buffer) |
-| 0066EE80, 0066F240, 0066D230, 006621B0 (P) | SetVariableMax, SendState73, WriteTo, PartyRecords::Find |
-| 0066DBA0 (S), 0066E020 (S), 0066F080 (S), 0066D7F0, 0066DDE0, 0066DAD0, 0066DF40, 0066D100 | SendObjectsChanged (0x41) / SendTimedChanged (0x51), SendItems (calls SendObject14 directly), SendObjectsAdded (0x40) / SendTimedAdded (0x50), SendObjectsRemoved (0x42) / SendTimedRemoved (0x52), Flush (`player_sync.cpp`) |
-| 0066E430 (S), 0066DC90, 0066E110 (P), 0066EF80, 0066D270, 0066E130 | SendPartyState (0x60), ForgetObject, IsPartyUnit, SendParty (0x80, refresh timer), ReceiveMessages (slot 23: packets decompressed into 007C83D0, handlers by type from the table at +0x28 / +0x2C), UpdatePartyUnits (party units from group +0x50F8, the player's units and what their brains see; each brain's +0x12C list becomes the gathered group via 004B3200) |
-| 0066E7D0 (S) | SendItemsGiven (slot 17, RET 8): 0x05 (items' and spells' states, 0069FB60 / 0055E8A0 forwarded), 0x06 (money, flag byte, ids, -1; each value stored in its first argument's stack slot before writing) |
-| 0066F0C0, 0066F450, 0066F840 | SendPartyUpdate (0x83), ResendParty (log line, 00590C70, SendParty, 00591070 = `CWorldServer::ClearPlayerItems`), SendPair19 (RET 8) |
-| 0066F310, 0066FD70 (S, CheckNear) | LeaveToZone (RET 8; the `zone` harness step: state 3, party zone / entrance), FormationOffsets (`__fastcall`) |
-| 0066D490 (S) | SendPathMessage (0x0E; path through a stack DeltaField, 005C7DB0 forwarded; EI_MESSAGE_VERIFY) |
-| 0066F4C0 | OnLeaderDied (slot 20, from CUnitServer::UpdateServer when the dead unit IsLeader): single player 0x09 + 0x0B (hero id, 0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54 `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into the new one's; flag70_ 1, lastPosition_.z -1313 (hero_death)) |
-| 00670310, 00670670, 006706A0 (S), 00670730 (S), 00670760 (S), 006707D0 (S) | OnUseOrder (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path end; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint (ui_battle_commands' dead-wolf clicks) |
-| 0066FAA0, 00670C20, 00670DA0, 00670E00, 00670EB0, 00670F50, 00671060, 0066FFF0, 0066FBD0, 00670190, 00670B60 | server handlers 0x02 refresh party, 0x03 take exit, 0x05 joined, 0x06 leave to zone, 0x07 briefing done, 0x08 new party, 0x09 resume, 0x30 walk, 0x3A go to, 0x31 attack, 0x50 party update |
-| 0066C0F0, 0066C110, 0066C1D0, 0066C1E0, 0066C340 / 0066C3C0 | CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message 0x00), SendValueToAll / SendTextToAll (0x12 via SendValue12 0066D730, through its address / SendText13) |
-| 00666D10, 00666FD0 / 00666FB0, 00666F90 / 00666FA0, 00666EC0 / 00666F70 | CPlayerClient Construct, DestructBody / DeletingDestruct, class name / id; CPlayerConnection's destructors (A-H21, `player_client.cpp`) |
-| 00667510 (3) / 00667600 (15), 006671A0, 00667680, 00667810, 00667970, 00667A30 | CPlayerClient::Clear, CoderState::Reset (out.End, then Construct), Pump (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the camera anchor as 0x40), SendToServer, DispatchMessages, ReceiveMessages (slot 21, one packet per call) |
-| 00667D80 (S), 00669850, 00669960, 00669EB0, 00669F40, 00669010, 006690F0, 006691C0, 00669290 | client handlers: ReadText, 0x81 set variable, 0x82 delete variable, 0x08 zone change (`GameFlow::RequestZoneChange`), 0x0D jingle (`CMusicSystem::PlayJingle`), 0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, by address), 0x03 / 0x05 world blocks (00567A60 / 00567950), 0x0A item removed (00665870, then quest log 005F7F30 with an empty CPtrList, vtable 0073BE80) |
-| 00669490, 00669A30, 00669C90 | 0x06 items received (money, items gathered in reverse with AddHead, 00665470 and the quest log with the money gained), 0x80 party (sized block into LoadParty(1); recharge list +0x114 gets items with charge < max; a multiplayer client restores its variables from a copy 004A8A50 / 00461540 / 004AA950; 005652E0, `GameFlow::ReturnLocalParty`), 0x83 party update (LoadParty(0)) |
-| 00669FA0, 00667E60, 00669710, 00669750, 00669350, 0066A480, 0066A5A0 | 0x0E path markers (scratch unit class 0x32 reads the path through a delta field; sources 0x2039 / 0x203A-B when 0079BE70 is set, handed to 00535240 unreleased), 0x13 string event (005F8070 by address, Rebirth-patched), start / stop the link's recording, 0x17 (00665550 quest log refresh), 0x15 / 0x18 experience numbers (amount * 0073E128 ^ (unit +0x33E - 25) through a float, FISTP; std::pow for _CIpow, so a .5 edge may round apart) |
-| 00668C50 | OnPartyState (0x60): old party ids lose unit flag 0x400000 and go into the hash_set 007C8370 (forwarded 0066B400 / 0066B490 / 0066BA70); pause byte to CWorldClient +0x6C; new ids (+0x50D8, SetSizeDiscard) flagged, new ones fade in (slot 43) under the 007AFCA4 gate; +0x6E4; other players' ids (+0x50E8); every scenario |
-| 00667EC0 | OnNewObject (0x40; multiplayer only, no scenario) |
-| 0066A7D0 (S), 0066A720, 0066A880, 0066AC70, 0066ACD0, 0066AD40, 0066ADD0, 0066AE70, 0066AED0, 0066AF30, 0066AFE0, 0066B040 | local view orders (`player_client_orders.cpp`, all S): 0x30 walk, 0x3A go to, 0x31 attack, 0x33 / 0x32 spell or quick item (slot \| 0x80000000; a potion is counted off at once) on a unit / at a point, 0x34 weapon (+0x270), 0x35 move mode, 0x3B (SetUnknown438), 0x39 follow, 0x10 flag |
-| 0066AA20, 0066AB80, 0066B280, 0066B300, 0066B080, 0066B140, 0066B1B0, 0066B2C0 | SendUseOrder (0x36, one unit; the original's heap CArray not built), SendUseDead (0x36, kind 0x18A95, value -1), SendLeave04 (state 3), SendResume (0x09), SendPartyUpdate (0x50, SaveParty draws an ISAAC key), TakeExit (0x03), RequestZone (0x06), Rejoin (state 3 only: ReturnLocalParty, 0x50, 0x05, state 2); the zone requests return the stream position (004A53F0's EAX); S outside state 3 |
+Rewritten (grep the address; the per-function table is gone). Facts a worker needs:
+- `player.cpp` and friends: CPlayer Construct 00664BF0 (newgame), class name "CPlayer" (00794CA4), id 0xF; CreatePlayer returns 1;
+  `AddUnit` / `RemoveUnit` come from `CUnit::SetPlayer`; AssignParty returns CParty::Assign's result; ReleaseTamedUnits (CUnitController
+  slot 39 is TamingStage); `PlayerMessageError` 00664B70 is `__fastcall` (format, previous type in DL, type; FatalError through
+  00480080). `CreateClient` 00667230 / `CreateServer` 0066C9A0 fill the handler tables (256 handlers; client state 0; server
+  timer 900..1800). CPlayerServer class id 0x3B; Leave (slot 16) does CollectParty when deployed, SendParty in multiplayer, sends
+  0x01 and state 3, and flushes; Construct 0066C540.
+- `player_messages.cpp`: the server's senders (SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72 / 73,
+  SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18,
+  SendObject43 / 0B, SendText13, SetDisconnect, SetFlag70). `player_sync.cpp`: SendObjectsChanged (0x41) / SendTimedChanged
+  (0x51), SendItems (calls SendObject14 directly), SendObjectsAdded (0x40) / SendTimedAdded (0x50), SendObjectsRemoved (0x42) /
+  SendTimedRemoved (0x52), Flush. SendPartyState (0x60), SendParty 0066EF80 (0x80, refresh timer), ReceiveMessages 0066D270
+  (slot 23: packets decompressed into 007C83D0, handlers by type from the table at +0x28 / +0x2C), UpdatePartyUnits 0066E130
+  (party units from group +0x50F8, the player's units and what their brains see; each brain's +0x12C list becomes the gathered
+  group via 004B3200). SendItemsGiven 0066E7D0 (slot 17, RET 8): 0x05 (items' and spells' states, 0069FB60 / 0055E8A0 forwarded),
+  0x06 (money, flag byte, ids, -1; each value stored in its first argument's stack slot before writing). SendPartyUpdate (0x83),
+  ResendParty (log line, 00590C70, SendParty, 00591070 = `CWorldServer::ClearPlayerItems`), SendPathMessage 0066D490 (0x0E; path
+  through a stack DeltaField, 005C7DB0 forwarded), LeaveToZone 0066F310 (RET 8; the `zone` harness step: state 3, party zone /
+  entrance), FormationOffsets 0066FD70 (`__fastcall`).
+- OnLeaderDied 0066F4C0 (slot 20, from CUnitServer::UpdateServer when the dead unit IsLeader): single player 0x09 + 0x0B (hero id,
+  0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54
+  `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into
+  the new one's; flag70_ 1, lastPosition_.z -1313 (hero_death)).
+- OnUseOrder 00670310 (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path
+  end; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint
+  (ui_battle_commands' dead-wolf clicks). Server handlers 0x02 refresh party 0066FAA0, 0x03 take exit, 0x05 joined, 0x06 leave to
+  zone, 0x07 briefing done, 0x08 new party, 0x09 resume, 0x30 walk, 0x3A go to, 0x31 attack, 0x50 party update.
+- CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message
+  0x00), SendValueToAll / SendTextToAll (0x12 via SendValue12 0066D730, through its address / SendText13).
+- CPlayerClient (`player_client.cpp`): Construct 00666D10, Clear (slot 3 00667510 / slot 15 00667600), CoderState::Reset, Pump
+  00667680 (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the camera
+  anchor as 0x40), SendToServer, DispatchMessages, ReceiveMessages (slot 21, one packet per call). Client handlers: ReadText, 0x81
+  set variable, 0x82 delete variable, 0x08 zone change (`GameFlow::RequestZoneChange`), 0x0D jingle (`CMusicSystem::PlayJingle`),
+  0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, by address), 0x03 / 0x05 world blocks (00567A60 / 00567950),
+  0x0A item removed (00665870, then quest log 005F7F30 with an empty CPtrList, vtable 0073BE80), 0x06 items received (money, items
+  gathered in reverse with AddHead, 00665470 and the quest log with the money gained), 0x80 party (sized block into LoadParty(1);
+  recharge list +0x114 gets items with charge < max; a multiplayer client restores its variables from a copy 004A8A50 / 00461540 /
+  004AA950; 005652E0, `GameFlow::ReturnLocalParty`), 0x83 party update (LoadParty(0)), 0x0E path markers (a scratch unit of class
+  0x32 reads the path through a delta field; sources 0x2039 / 0x203A-B when 0079BE70 is set, handed to 00535240 unreleased), 0x13
+  string event (005F8070 by address, Rebirth-patched), 0x17 (00665550 quest log refresh), 0x15 / 0x18 experience numbers (amount *
+  0073E128 ^ (unit +0x33E - 25) through a float, FISTP; std::pow for _CIpow, so a .5 edge may round apart), OnPartyState 00668C50
+  (0x60: old party ids lose unit flag 0x400000 and go into the hash_set 007C8370 (forwarded 0066B400 / 0066B490 / 0066BA70); pause
+  byte to CWorldClient +0x6C; new ids (+0x50D8, SetSizeDiscard) flagged, new ones fade in (slot 43) under the 007AFCA4 gate;
+  +0x6E4; other players' ids (+0x50E8)), OnNewObject 00667EC0 (0x40; multiplayer only, no scenario).
+- Local view orders (`player_client_orders.cpp`): 0x30 walk, 0x3A go to, 0x31 attack, 0x33 / 0x32 spell or quick item (slot |
+  0x80000000; a potion is counted off at once) on a unit / at a point, 0x34 weapon (+0x270), 0x35 move mode, 0x3B (SetUnknown438),
+  0x39 follow, 0x10 flag. SendUseOrder (0x36, one unit; the original's heap CArray not built), SendUseDead (0x36, kind 0x18A95, value
+  -1), SendLeave04 (state 3), SendResume (0x09), SendPartyUpdate (0x50, SaveParty draws an ISAAC key), TakeExit (0x03), RequestZone
+  (0x06), Rejoin (state 3 only: ReturnLocalParty, 0x50, 0x05, state 2); the zone requests return the stream position (004A53F0's EAX).
 
 Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags_ bit 1 set, so the original's second run would
 pack the effects again against snapshots ours just updated. The wrapper runs ours, restores the stream, runs the original with
@@ -178,7 +193,7 @@ class; ReleaseTamedUnits (like Clear's sibling walks) goes on from the node of a
 freed node; Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test; 0066D730 (message 0x12)
 writes one uninitialised stack byte (ours sends 0: A-Z1, items_spells.md).
 
-### Message handlers not yet ported (research from DR-H16 / DR-C4)
+### Message handlers (client table +0x24, server table; research from DR-H16 / DR-C4)
 
 Reached only through the handler tables, so Ghidra made no functions for them; they are rows in config/functions.csv (gap to
 the next function), config/extra_function_sizes.csv (code sizes, capstone) and src/hook/function_sizes.inc.
