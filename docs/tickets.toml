@@ -1545,6 +1545,15 @@ size = 0.5
 model = "opus"
 note = "In harness runs every socket the game (and harness_net's free-port probe) binds on INADDR_ANY binds on 127.0.0.1, so no Windows Firewall prompts; firewall rules never changed."
 
+[[ticket]]
+id = "WB15"
+title = "A tools unit test fails now and then under load"
+group = "harness"
+size = 0.25
+model = "sonnet"
+files = ["tools/test_*.py"]
+note = "Twice on 2026-10-16, 'python -m unittest discover -s tools -p test_*.py' gave FAILED (failures=1) when it ran right after build.cmd on main with workers' games running; 5 reruns when idle all passed (95 tests). Find the timing-dependent test (likely test_run_all_timeout or test_work_sched): run the suite repeatedly under CPU load, then make it independent of load."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
