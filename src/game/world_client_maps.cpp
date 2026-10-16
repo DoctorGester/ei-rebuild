@@ -1594,7 +1594,7 @@ EI_REPLACE_METHOD(0x00562EA0, ClientListManager::DeletingDestruct);
 
 void ClientArrayManager::DestructBody() {
     ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
-    ClientArrayManagerClearOriginal(this);
+    VisFogManagerDestroy(this);
     list.vtable = reinterpret_cast<void*>(worlddata::kClientArrayListVtable);
     list.RemoveAll();
     if (current) current->Release();

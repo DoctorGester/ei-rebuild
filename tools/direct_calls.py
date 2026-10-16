@@ -276,7 +276,7 @@ class Forwarder:
         self.target_name = ''
         self.kind = ''
         self.sites = []                       # Site
-        self.redeclare = False                # the target is defined later in this file: declare it where the forwarder was
+        self.redeclare = None                 # (place, namespaces): declare the target where the forwarder was
         self.reason = ''
 
 
@@ -981,8 +981,7 @@ def plan(fwds, classes):
                     hdr = free_header(f.target, f.target_src_path)
                     if hdr is not None and hdr.path.endswith('.h') and includes_header(site.src, hdr.path):
                         continue        # the file's own header declares the target
-                    place = redeclare_place(f) if f.kind == 'rename' and f.src is site.src and \
-                        f.src.path.endswith('.cpp') and f.start < site.start and f.sig.ret == f.target.ret else None
+                    place = redeclare_place(f, site)
                     if place is not None:
                         f.redeclare = place
                         continue
@@ -997,9 +996,17 @@ def plan(fwds, classes):
             if hdr is None and not t.member:
                 hdr = free_header(t, f.target_src_path)
             if hdr is None:
+                place = redeclare_place(f, site)
+                if place is not None:
+                    f.redeclare = place
+                    continue
                 why = f'no header declares the target ({t.qname}; {site.src.path})'
                 break
             if hdr.path.endswith('.cpp') and hdr.path != site.src.path:
+                place = redeclare_place(f, site)
+                if place is not None:
+                    f.redeclare = place
+                    continue
                 why = f'target declared in its .cpp only ({t.qname} in {hdr.path}; {site.src.path})'
                 break
             if hdr.path != site.src.path and site.src.path.endswith('.cpp'):
@@ -1019,11 +1026,11 @@ def plan(fwds, classes):
         for src, inc in incs:
             includes[src].add(inc)
             INCLUDED_BY[(src.path, inc.strip())].add(f.address)
-        if f.redeclare == 'here':
-            edits[f.src].append(('redeclare', f.start, f.end, f.address, forward_declaration(f)))
+        if f.redeclare and f.redeclare[0] == 'here':
+            edits[f.src].append(('redeclare', f.start, f.end, f.address, forward_declaration(f, f.redeclare[1])))
         elif f.redeclare:
             # The target is in an enclosing namespace of the forwarder's: declared before the inner one opens.
-            edits[f.src].append((f.redeclare, f.redeclare, [forward_declaration(f, hoisted=True)]))
+            edits[f.src].append((f.redeclare[0], f.redeclare[0], [forward_declaration(f, f.redeclare[1], True)]))
             edits[f.src].append(('delete', f.start, f.end, f.address))
         else:
             edits[f.src].append(('delete', f.start, f.end, f.address))
@@ -1068,31 +1075,48 @@ def free_header(t, defining):
     return _HEADERS[key]
 
 
-def redeclare_place(f):
-    """Where the target, defined later in the forwarder's file, is declared: 'here' (the forwarder's place, same
-    namespaces), or the offset of the line opening the namespace of the forwarder that the target is not in."""
-    inner = f.src.namespaces_at(f.start)
-    outer = split_qualified(f.target.raw_name)[:-1]
-    if inner == outer:
-        return 'here'
-    if inner[:len(outer)] != outer or f.in_class:
+def redeclare_place(f, site):
+    """Where the forwarder's declaration becomes a plain declaration of the target (a free function the callers
+    cannot see: defined later in the file, or in a .cpp with no header): ('here', namespaces to open) at the
+    forwarder's place, or (offset of the line opening the namespace of the forwarder that the target is not in,
+    namespaces to open there). None when the callers could not see it, or the forwarder says less than the target."""
+    t = f.target
+    if f.kind != 'rename' or t.member or t.static or f.in_class or f.sig.ret != t.ret or '<' in t.raw_name:
         return None
-    opens = sorted(o for (o, c, k, n) in f.src.scopes if o < f.start < c and k == 'ns')
-    return f.src.raw.rfind('\n', 0, opens[len(outer)]) + 1
+    if site.src is f.src:
+        if f.start > site.start:
+            return None
+    elif not f.src.path.endswith('.h'):
+        return None
+    inner = f.src.namespaces_at(f.start)
+    outer = split_qualified(t.raw_name)[:-1]
+    k = 0
+    while k < len(inner) and k < len(outer) and inner[k] == outer[k]:
+        k += 1
+    if k == len(inner):
+        return 'here', outer[k:]
+    opens = sorted(o for (o, c, kind, n) in f.src.scopes if o < f.start < c and kind == 'ns')
+    return f.src.raw.rfind('\n', 0, opens[k]) + 1, outer[k:]
 
 
-def forward_declaration(f, hoisted=False):
-    """The forwarder's declaration as a plain declaration of the target (the target is defined later in the file)."""
+def forward_declaration(f, namespaces=(), hoisted=False):
+    """The forwarder's declaration as a plain declaration of the target, in `namespaces` when it is in them."""
     raw = f.src.raw
     old = raw[f.start:f.end]
     text = re.sub(r'__declspec\s*\(\s*naked\s*\)\s*', '', old)
-    text = ORIGINAL.sub('', text).rstrip()
+    text = re.sub(r'^(?:(?:inline|static)\s+)+', '', ORIGINAL.sub('', text).rstrip())
     text = re.sub(r'\b' + re.escape(f.simple) + r'(?=\s*\()', f.target.simple, text, count=1)
     indent = raw[raw.rfind('\n', 0, f.start) + 1:f.start]
     indent = indent if not indent.strip() and not hoisted else ''
     # Continuation lines aligned to the parameter list follow it.
-    old_col = column(raw, f.start) + old.index('(') + 1
-    text = reindent(text, old_col, len(indent) + text.index('(') - old.index('(') - column(raw, f.start))
+    old_paren = re.search(re.escape(f.simple) + r'\s*\(', old).end() - 1
+    new_paren = re.search(re.escape(f.target.simple) + r'\s*\(', text).end() - 1
+    text = reindent(text, column(raw, f.start) + old_paren + 1,
+                    len(indent) + new_paren - old_paren - column(raw, f.start))
+    if namespaces:
+        names = '::'.join(n for n in namespaces if n != "`anonymous namespace'")
+        head = 'namespace ' + names + ' {' if names and len(names) == len('::'.join(namespaces)) else 'namespace {'
+        return f'{indent}{head}\n{indent}{text};\n{indent}}}\n'
     return indent + text + ';\n'
 
 
@@ -1123,7 +1147,7 @@ _ABOUT_FORWARDER = re.compile(r"through (?:its|the original'?s?|their|the game'?
                               r"forwarder|verify wrapper", re.I)
 
 
-def deletion_span(raw, a, b, deleted):
+def deletion_span(raw, a, b, deleted, redeclared=False):
     """The text to delete for a declaration at [a, b): whole lines, the comment directly above when it is
     about deleted forwarders only, and one of two blank lines that would meet."""
     a, b = line_span(raw, a, b)
@@ -1131,7 +1155,9 @@ def deletion_span(raw, a, b, deleted):
     if c < a:
         text = raw[c:a]
         addrs = {int(x, 16) for x in re.findall(r'\b([0-9A-Fa-f]{8})\b', text)}
-        if (addrs and addrs <= deleted) or (not addrs and _ABOUT_FORWARDER.search(text)):
+        if redeclared and not _ABOUT_FORWARDER.search(text):
+            pass                # the declaration of the target keeps what the comment says about it
+        elif (addrs and addrs <= deleted) or (not addrs and _ABOUT_FORWARDER.search(text)):
             a = c
         else:
             KEPT_COMMENTS.append(text.strip().splitlines()[-1].strip())
@@ -1206,7 +1232,7 @@ def rewritten(edits, includes, deleted_by_file):
             if e[0] == 'delete':
                 dels.append(deletion_span(raw, e[1], e[2], deleted) + ([],))
             elif e[0] == 'redeclare':
-                dels.append(deletion_span(raw, e[1], e[2], deleted) + ([e[4]],))
+                dels.append(deletion_span(raw, e[1], e[2], deleted, True) + ([e[4]],))
             else:
                 ops.append((e[0], e[1], e[2]))
         dels.sort()

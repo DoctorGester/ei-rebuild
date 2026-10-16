@@ -18,7 +18,7 @@ __declspec(naked) void __fastcall CursorInit(void*, void*, std::uint32_t, int, i
 void __fastcall CursorShutdown(void* cursor) { static_cast<CCursor*>(cursor)->Shutdown(); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
 void __fastcall SetUpCursorsAt(bool modeTwo, int context, int smallCursors, int flags) {
-    SetUpCursorsOriginal(modeTwo, context, smallCursors, flags);
+    SetUpCursors(modeTwo, context, smallCursors, flags);
 }
 
 struct CursorShape {

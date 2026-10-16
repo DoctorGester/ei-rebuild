@@ -40,6 +40,7 @@
 #include <cstdint>
 #include <cstring>
 
+void __fastcall UpdateMotion(CUnitServer*);
 namespace {
 
 // The controller's state (+0x164). combat_tick.cpp names 6 "chasing" (the state an order leaves
@@ -98,7 +99,6 @@ __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINA
 // PropagateHostility, 00549EC0 FinishAction, 00552C60 UseItemCharge (combat_actions.cpp),
 // 00550A80 BuildDeathAnimation (combat_steps.cpp), 0054B880 SpellOfSource (combat.cpp), and the
 // ones not rewritten: 00548700 plan a path to a point.
-__declspec(naked) void __fastcall CtlMovementTick(CUnitServer*) EI_ORIGINAL(0x00547890)
 __declspec(naked) void __fastcall CtlFinishAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x00549EC0)
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
@@ -332,12 +332,12 @@ void CUnitServer::UpdateState() {
         SwitchWeaponIfWanted(unit);
         if (motionChanged == 0 ||
             TickPathTo(this, nullptr, &motion.goal.x, std::bit_cast<std::uint32_t>(motion.goal.z))) {
-            CtlMovementTick(this);
+            UpdateMotion(this);
         }
         break;
     case kStateMoving:
         SwitchWeaponIfWanted(unit);
-        CtlMovementTick(this);
+        UpdateMotion(this);
         break;
     case kStateTurning:
     case kStateWaiting:

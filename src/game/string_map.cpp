@@ -201,7 +201,7 @@ void __fastcall PanelInit(void* self, void*, CInterface3D* ui) {
         panel->font_ = nullptr;
     }
     RECT rect = {10, 10, 0x122, 0x122};
-    DebugPanelSetRectOriginal(self, nullptr, &rect);
+    PanelSetRect(self, nullptr, &rect);
 }
 EI_REPLACE(0x00444A70, PanelInit);
 

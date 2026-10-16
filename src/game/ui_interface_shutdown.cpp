@@ -74,7 +74,7 @@ void CInterface3D::Shutdown() {
     secondBackdrop_ = nullptr;
     if (block5C_) gamecrt::operator_delete(block5C_);
     block5C_ = nullptr;
-    DebugPanelReleaseOriginal(DebugInfoPanel());
+    strmap::PanelRelease(DebugInfoPanel());
     if (root_) {
         root_->DeleteWindow();
         root_ = nullptr;
@@ -84,7 +84,7 @@ void CInterface3D::Shutdown() {
         gamecrt::operator_delete(console_);
         console_ = nullptr;
     }
-    SaveKeyBindingsOriginal();
+    keybind::SaveKeyBindings();
     for (ui_gdi::GameFont*& font : fonts_) {
         if (font) font->Delete();
         font = nullptr;

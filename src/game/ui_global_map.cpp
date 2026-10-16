@@ -43,6 +43,9 @@
 
 using console::CStringArray;
 
+namespace mapspec {
+Vector3* __fastcall QuaternionRotate(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/);
+}
 namespace {
 
 inline double D(float f) { return f; }
@@ -106,11 +109,6 @@ __declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, voi
     EI_ORIGINAL(0x00631E70)
 __declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631FF0)
-
-// 0046A4B0 (QuaternionRotate, map_spec.cpp; thiscall on the quaternion, RET 8): `out` = the vector
-// `v` turned by the quaternion.
-__declspec(naked) Vector3* __fastcall Rotate(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/)
-    EI_ORIGINAL(0x0046A4B0)
 
 // Sprites (CUiMesh) beyond ui.h.
 struct SpriteOps : SpritePositionOriginal {
@@ -211,7 +209,7 @@ public:
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
-        Rotate(&map_->turn_, nullptr, &turned, &local);
+        mapspec::QuaternionRotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 out;
         AddVectors(&out, centre, turned);
         return out;
@@ -238,7 +236,7 @@ public:
         Vector3 centre = Centre();
         Vector3 local = {0.0f, 0.0f, height};
         Vector3 turned;
-        Rotate(&map_->turn_, nullptr, &turned, &local);
+        mapspec::QuaternionRotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 p;
         p.Construct(static_cast<float>(D(centre.x) + D(turned.x)), static_cast<float>(D(centre.y) + D(turned.y)),
                     static_cast<float>(D(centre.z) + D(turned.z)));

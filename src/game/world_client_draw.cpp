@@ -382,7 +382,7 @@ constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
 // The debug info panel (0079B930, what 004447D0 returns) loses the line `key` (its slot 1).
-void RemoveDebugLine(const char* key) { DebugPanelRemoveOriginal(DebugInfoPanel(), nullptr, key); }
+void RemoveDebugLine(const char* key) { strmap::StringTableRemove(DebugInfoPanel(), nullptr, key); }
 } // namespace
 
 void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
