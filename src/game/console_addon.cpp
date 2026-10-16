@@ -17,6 +17,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_ui.h"
+#include "ui.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -34,9 +35,8 @@ namespace console {
 
 namespace {
 
-// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded, ScriptsRun).
+// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
-// 005DC620 through its address.
 
 // The saved / console script (the world's command script).
 CScript* const kScripts = reinterpret_cast<CScript*>(0x007C27D4);
@@ -133,8 +133,8 @@ void __fastcall Addon(CStringArray* args) {
 
 // execs file: loads a script file into the script loader and runs it.
 void __fastcall Execs(CStringArray* args) {
-    if (LoadScriptFile(kScripts, nullptr, (*args)[0])) {
-        ScriptsRun(kScripts);
+    if (kScripts->LoadFile((*args)[0])) {
+        ScriptTick(kScripts);
         return;
     }
     SayFormat("Script error: line %d: %s", kScripts->errorLine_, static_cast<const char*>(kScripts->errorText_));
@@ -244,7 +244,7 @@ void ApplyAddonGuiVisibility(void* screen) {
     if (!g_applyGui) return;
     auto* bytes = static_cast<std::uint8_t*>(screen);
     for (int i = 0; i < *reinterpret_cast<int*>(bytes + 0x14C); ++i)
-        WindowSetEnabled((*reinterpret_cast<void***>(bytes + 0x148))[i], nullptr, g_guiShown ? 1 : 0, 0);
+        static_cast<CUiWindow*>((*reinterpret_cast<void***>(bytes + 0x148))[i])->SetEnabled(g_guiShown ? 1 : 0, 0);
     g_applyGui = !g_guiShown;
 }
 

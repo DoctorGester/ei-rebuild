@@ -15,10 +15,6 @@
 
 namespace {
 
-// Rewritten here, called through their game addresses so the verify wrappers see each node.
-__declspec(naked) void __fastcall CallResetPose(CAnimationNode*) EI_ORIGINAL(0x00507E80)
-__declspec(naked) void __fastcall CallRewind(CAnimationNode*) EI_ORIGINAL(0x005081C0)
-
 // The parent's rotation `p` times the key's `k` (Hamilton order) with the original's sums.
 Quaternion ParentTimesKey(const Quaternion& p, const Quaternion& k) {
     Vector3 kv = {k.x, k.y, k.z};
@@ -55,14 +51,14 @@ EI_REPLACE_METHOD(0x00507E80, CAnimationNode::ResetPose);
 void CAnimationNode::Rewind() {
     clock_[0] = 0;
     clock_[1] = 0;
-    CallResetPose(this);
+    ResetPose();
     if (mesh_) {
         mesh_->localPosition_ = posePosition_;
         mesh_->localRotation_ = poseRotation_;
         CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
         mesh_->SetOffsets(&points);
     }
-    for (int i = 0; i < children_.size; ++i) CallRewind(children_.data[i]);
+    for (int i = 0; i < children_.size; ++i) children_.data[i]->Rewind();
 }
 EI_REPLACE_METHOD(0x005081C0, CAnimationNode::Rewind);
 
@@ -91,7 +87,7 @@ EI_REPLACE_METHOD(0x00507C50, CAnimationNode::AttachMeshes);
 namespace scene {
 
 void SceneSkin::Rewind() {
-    if (root) CallRewind(root);   // the original inlines the root's Rewind
+    if (root) root->Rewind();   // the original inlines the root's Rewind
     clock[0] = 0;
     clock[1] = 0;
 }

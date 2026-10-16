@@ -46,11 +46,6 @@ const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
 // 0078FF38: the hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
 using worlddata::LastLitHour;
 
-// 00500800 (RET 0x10; not rewritten, units range): the display's sun becomes `sun` (counted, the old
-// one released, handed to the transform object's slot 2) and the ambient colour (r, g, b in 0..1,
-// packed like the fog colour) goes to its slot 7.
-__declspec(naked) void __fastcall DisplaySetSun(CSceneRenderer*, void*, CLight* /*sun*/, float, float, float)
-    EI_ORIGINAL(0x00500800)
 // 006C8ED0 (RET 8; not rewritten, terrain range): the terrain's sun and ambient colour; spreads its
 // sectors' relighting over the next frames.
 __declspec(naked) void __fastcall TerrainSetSun(Terrain*, void*, CLight* /*sun*/, const LightColour* /*ambient*/)
@@ -152,7 +147,7 @@ int CWorldClient::UpdateLighting() {
         light->color_[1] = sun.g;
         light->color_[2] = sun.b;
         light->direction_ = kCaveSun;
-        DisplaySetSun(display, nullptr, light, frameAmbient_.r, frameAmbient_.g, frameAmbient_.b);
+        display->SetSunAndAmbient(light, frameAmbient_.r, frameAmbient_.g, frameAmbient_.b);
         const LightColour& sky = sky_[0];
         display->SetFogColour(sky.r, sky.g, sky.b);
         if (skyDome_) {
@@ -208,7 +203,7 @@ int CWorldClient::UpdateLighting() {
     light->color_[1] = sun.g;
     light->color_[2] = sun.b;
     light->direction_ = direction;
-    DisplaySetSun(display, nullptr, light, frameAmbient_.r, frameAmbient_.g, frameAmbient_.b);
+    display->SetSunAndAmbient(light, frameAmbient_.r, frameAmbient_.g, frameAmbient_.b);
     const LightColour sky = Lerp(sky_[index], sky_[next], fraction);
     display->SetFogColour(sky.r, sky.g, sky.b);
     if (skyDome_) {

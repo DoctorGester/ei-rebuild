@@ -285,6 +285,6 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
     const int result = reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr,
                                                               g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
-    ExitGame(result);
+    libcrt::Exit(result);
     return result;
 }

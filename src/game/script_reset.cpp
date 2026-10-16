@@ -1,6 +1,7 @@
 // CScript reset (004BE6E0): empties a script before a zone's mission script is loaded (world
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
 // See script.h and docs/notes/script.md.
+#include "game_arrays.h"
 #include "script.h"
 #include "game_strings.h"
 
@@ -29,8 +30,6 @@ __declspec(naked) void __fastcall DeclDestruct(void*) EI_ORIGINAL(0x004C54A0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // Node element destructors (__thiscall (flags), 0 = in place): WorldScript block (0x18), FX
 // source (0x34), particle source (0x24); lightning DestructElements (__stdcall (first, count)).
-__declspec(naked) void __fastcall WorldBlockDestroy(void*, void*, int) EI_ORIGINAL(0x004CE2D0)
-__declspec(naked) void __fastcall FxSourceDestroy(void*, void*, int) EI_ORIGINAL(0x004CE2B0)
 __declspec(naked) void __fastcall ParticleDestroy(void*, void*, int) EI_ORIGINAL(0x004CE270)
 __declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
@@ -72,14 +71,14 @@ void __fastcall ScriptReset(CScript* script) {
     static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
     while (script->instances_.count != 0) {
         ScriptInstancesRemoveHeadOriginal(&script->instances_, nullptr, element);
-        DefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
+        ScriptDefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
     while (script->runs_.count != 0) {
         ScriptRunsRemoveHeadOriginal(&script->runs_, nullptr, element);
-        VarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
+        ScriptVarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
-    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { WorldBlockDestroy(block, nullptr, 0); });
+    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { ScriptWorldBlockDestroy(block, nullptr, 0); });
 
     ScriptVars* globals = script->Globals();
     FloatsClear(&globals->floats);
@@ -98,9 +97,9 @@ void __fastcall ScriptReset(CScript* script) {
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
         TempObjectsRemoveTailOriginal(&objects, nullptr, element);
-        RefReset(reinterpret_cast<ScriptObjectRef*>(element));
+        reinterpret_cast<ScriptObjectRef*>(element)->Reset();
     }
-    RefAssign(&objects.tail->data, nullptr, nullptr);
+    objects.tail->data.Assign(nullptr);
 
     // Point lights: objects released, slots zeroed.
     auto& lights = script->pointLights_;
@@ -112,7 +111,7 @@ void __fastcall ScriptReset(CScript* script) {
     }
     std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 
-    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { FxSourceDestroy(source, nullptr, 0); });
+    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { ScriptFxSourceDestroy(source, nullptr, 0); });
     RemoveAll(script->particles_, [](ScriptParticleSource* source) { ParticleDestroy(source, nullptr, 0); });
     RemoveAll(script->lightning_, [](ScriptLightning* bolt) { LightningElementsDestruct(bolt, 1); });
 

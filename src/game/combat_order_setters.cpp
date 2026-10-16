@@ -167,7 +167,7 @@ void CUnitServer::StopAction() {
         effectObject = nullptr;
         if (old) old->Release();
     }
-    PlanReset(&currentPlan);   // inlined in the original (SetSize(0, -1) instead of the free)
+    OrderPlanReset(&currentPlan);   // inlined in the original (SetSize(0, -1) instead of the free)
     StandStill();              // inlined in the original
     action.Reset();
     action2.Reset();
@@ -202,7 +202,7 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, c
         return nullptr;
     }
     for (int i = 0; i < static_cast<int>(database->count); ++i)
-        if (gamecrt::stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
+        if (libcrt::Stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
     return nullptr;
 }
 EI_REPLACE_METHOD(0x00512F60, CBaseManager::FindFigureAnimation);

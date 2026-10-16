@@ -1,5 +1,6 @@
 // The unit AI brain's mode list and state resets (005CB0F0, 005D4DF0-005D6140), and its save-game
 // Load / Save (005D8310 / 005D8860).
+#include "map_spec.h"
 #include "unit_ai.h"
 
 #include "combat.h"
@@ -466,7 +467,7 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
                 changed = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 10.0f;
             }
             float copy[2];
-            const float* point = CopyPoint2Original(copy, &call.point.x);
+            const float* point = CopyPoint2(copy, &call.point.x);
             brain->noticedX = point[0];
             brain->noticedLevel = 900;
             brain->noticedY = point[1];
@@ -659,7 +660,7 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&alarm, 1);
     stream->Read(&count, 4);
     AlarmRecordsSetSizeOriginal(&alarmRecords, nullptr, count, -1);
-    for (int i = 0; i < alarmRecords.size; ++i) AlarmRecordReadOriginal(&alarmRecords.data[i], nullptr, stream);
+    for (int i = 0; i < alarmRecords.size; ++i) static_cast<mapspec::Behaviour*>(&alarmRecords.data[i])->Read(stream);
     stream->Read(&alarmCountdown, 4);
     // A radius saved as the default one becomes the configured one (equal, or NaN: FCOMP's C3).
     LogicSettings& settings = GameLogicSettings();

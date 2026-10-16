@@ -70,7 +70,7 @@ void ChooseKeyboardLayout() {
         char name[12];
         if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
         unsigned id = 0;
-        gamecrt::sscanf(name, game::Text(0x00793004), &id);   // "%x"
+        libcrt::Sscanf(name, game::Text(0x00793004), &id);   // "%x"
         id &= 0xFFFF;
         if (id == wanted) {
             found = i;

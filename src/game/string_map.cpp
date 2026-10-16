@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
+#include "lib/stlp_string.h"
 #include "ui.h"        // CInterface3D, CUiSurface
 #include "ui_gdi.h"    // GameDC, GameFont
 
@@ -48,7 +49,6 @@ static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, u
 // STLport (library).
 __declspec(naked) Node** __fastcall LowerBound(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x004456E0)
 __declspec(naked) Node** __fastcall Find(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x00445620)
-__declspec(naked) bool __fastcall Less(const stlp::string* /*a*/, const stlp::string* /*b*/) EI_ORIGINAL(0x00445780)
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const stlp::string*, const stlp::string*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
@@ -86,7 +86,7 @@ void __fastcall StringTableSet(void* self, void*, const char* key, const char* v
     StringMap& map = Panel(self)->entries_;
     Node* it;
     LowerBound(&map, nullptr, &it, k);
-    if (it == map.end() || Less(k, &it->first)) {
+    if (it == map.end() || stlp::StringAbi::Less(k, &it->first)) {
         KeyString emptyStorage;
         auto* empty = reinterpret_cast<stlp::string*>(emptyStorage.storage);
         char alloc;

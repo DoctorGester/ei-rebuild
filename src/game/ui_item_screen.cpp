@@ -155,14 +155,14 @@ void CItemScreen::CreateBase() {
     // The caches keep 30 entries (20 with 00784754 set).
     if (*reinterpret_cast<const volatile char*>(0x00784754) != 0) {
         textures_.limit = 20;
-        TrimTexturesAt(&textures_);
+        TrimItemTextures(&textures_);
         models_.limit = 20;
-        TrimModelsAt(&models_);
+        TrimItemModels(&models_);
     } else {
         textures_.limit = 30;
-        TrimTexturesAt(&textures_);
+        TrimItemTextures(&textures_);
         models_.limit = 30;
-        TrimModelsAt(&models_);
+        TrimItemModels(&models_);
     }
 }
 EI_REPLACE_METHOD(0x005EDD80, CItemScreen::CreateBase);

@@ -32,24 +32,14 @@ namespace {
 // 004BB590 one if-then pair of an instance: rewritten below, called through their addresses.
 __declspec(naked) void __fastcall PointLightLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B18B0)
 __declspec(naked) void __fastcall FxSourceLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1B40)
-__declspec(naked) void __fastcall VarsLoad(ScriptVars*, void*, ScriptStream*) EI_ORIGINAL(0x004B3AD0)
-__declspec(naked) void __fastcall CmdLoad(SSCCmd*, void*, ScriptStream*) EI_ORIGINAL(0x004B5FE0)
-__declspec(naked) void __fastcall IfThenPairLoad(ScriptIfThen*, void*, ScriptStream*) EI_ORIGINAL(0x004BB590)
 // 004B3D10 (__fastcall): reads a string (00461190: bytes up to a zero) and assigns it.
 __declspec(naked) void __fastcall StringLoad(mfc::CString*, ScriptStream*) EI_ORIGINAL(0x004B3D10)
 // 00461190 (__thiscall on the stream, RET 4; rewritten in core_streams.cpp, called through its
 // address): bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
-// 004BFA50 CScript::FindBlock (rewritten below; SSCCmd::Load calls it out of line).
-__declspec(naked) ScriptDecl* __fastcall FindBlockOrig(const CScript*, void*, int) EI_ORIGINAL(0x004BFA50)
-// ScriptObjectRef::Load (rewritten in script_group.cpp) and the group values' SetSize.
-__declspec(naked) void __fastcall RefLoad(ScriptObjectRef*, void*, ScriptStream*) EI_ORIGINAL(0x004B2590)
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
 CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
-
-// Rewritten script helpers, called through their addresses (their verify wrappers run).
-__declspec(naked) void __fastcall GroupSort(ScriptGroup*) EI_ORIGINAL(0x004B2D60)
 
 // CArray template members (out of line), __thiscall (size, growBy).
 __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots
@@ -78,8 +68,6 @@ __declspec(naked) void __stdcall ZeroPointers(void*, int) EI_ORIGINAL(0x004CCA10
 // SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
 // bindings (both arrays), nested calls (a new SSCCmd per element).
 void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
-// 004B6330 (__thiscall on the element): type, argument index, then SSCCmd::Load into its command.
-__declspec(naked) void __fastcall SubCallLoad(ScriptSubCall*, void*, ScriptStream*) EI_ORIGINAL(0x004B6330)
 
 } // namespace
 
@@ -268,11 +256,11 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
         int id = 0;
         stream->Read(&id, 4);
         if (id == -1) {
-            RefReset(ref);
+            ref->Reset();
             ref->object = nullptr;
         } else {
             CEngineObject* object = WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
-            RefReset(ref);
+            ref->Reset();
             if (object) ++object->refCount_;
             ref->object = object;
         }
@@ -297,9 +285,9 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
             stream->Read(&id, 4);
             CEngineObject* object =
                 id == -1 ? nullptr : WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
-            RefAssign(&group->data[k], nullptr, object);
+            group->data[k].Assign(object);
         }
-        GroupSort(group);
+        group->Sort();
         StringLoad(&names.data[i], stream);
     }
 }
@@ -334,9 +322,9 @@ void SSCCmd::Load(ScriptStream* stream) {
     for (int i = 0; i < globalBindings.size; ++i) stream->Read(&globalBindings.data[i], 12);
 
     SubCallsSetSize(&subCalls, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < subCalls.size; ++i) SubCallLoad(&subCalls.data[i], nullptr, stream);
+    for (int i = 0; i < subCalls.size; ++i) subCalls.data[i].Load(stream);
 
-    calledScript = FindBlockOrig(SavedScript(), nullptr, ReadInt(stream));
+    calledScript = SavedScript()->FindBlock(ReadInt(stream));
 }
 EI_REPLACE_METHOD(0x004B5FE0, SSCCmd::Load);
 
@@ -345,7 +333,7 @@ EI_REPLACE_METHOD(0x004B5FE0, SSCCmd::Load);
 void ScriptSubCall::Load(ScriptStream* stream) {
     stream->Read(&type, 4);
     stream->Read(&argIndex, 4);
-    CmdLoad(cmd, nullptr, stream);
+    cmd->Load(stream);
 }
 EI_REPLACE_METHOD(0x004B6330, ScriptSubCall::Load);
 
@@ -363,7 +351,7 @@ EI_REPLACE(0x004B3D10, ScriptStringLoad);
 void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(&block->commands), count, kCmds);
-    for (int i = 0; i < block->commands.size; ++i) CmdLoad(&block->commands.data[i], nullptr, stream);
+    for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
 }
 EI_REPLACE(0x004C57C0, ScriptDeclCommandsLoad);
 
@@ -438,10 +426,10 @@ void ScriptVars::Load(ScriptStream* stream) {
         ScriptObjectRef* ref = &objects.data[i];
         stream->Read(&slot, 4);
         if (slot == -1) {
-            RefReset(ref);
+            ref->Reset();
             ref->object = nullptr;
         } else {
-            RefAssign(ref, nullptr, WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
+            ref->Assign(WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
         }
         StringLoad(&objectNames.data[i], stream);
     }
@@ -454,8 +442,8 @@ void ScriptVars::Load(ScriptStream* stream) {
         ScriptGroup* group = &groups.data[i];
         stream->Read(&slot, 4);
         PtrArraySetSize(group, nullptr, slot, -1);
-        for (int k = 0; k < slot; ++k) RefLoad(&group->data[k], nullptr, stream);
-        GroupSort(group);
+        for (int k = 0; k < slot; ++k) group->data[k].Load(stream);
+        group->Sort();
         StringLoad(&groupNames.data[i], stream);
     }
 }
@@ -550,7 +538,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         stream->Read(&block->id, 4);
         int size = ReadInt(stream);
         CmdsSetSize(&block->commands, nullptr, size, -1);
-        for (int i = 0; i < block->commands.size; ++i) CmdLoad(&block->commands.data[i], nullptr, stream);
+        for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
     }
 }
 EI_REPLACE(0x004CA810, ScriptWorldBlocksLoad);
@@ -569,16 +557,16 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             ScriptVars vars;
         } temp{};
         temp.ifThen.vtable = reinterpret_cast<void*>(0x0073D430);
-        VarsConstruct(&temp.vars);
+        temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewInstanceNode, [&](char* data) {
             auto* instance = reinterpret_cast<ScriptDefinition*>(data);
             instance->index = temp.index;
             instance->name = temp.name;
             instance->params = temp.params;
             IfThenCopy(&instance->ifThen, nullptr, &temp.ifThen);
-            VarsAssign(&instance->vars, nullptr, &temp.vars);
+            instance->vars.ScriptVarsAssign(&temp.vars);
         });
-        VarsDestruct(&temp.vars);
+        ScriptVarsDestruct(&temp.vars);
     }
     for (ListNode* node = list->head; node;) {
         auto* instance = reinterpret_cast<ScriptDefinition*>(node->data.bytes);
@@ -589,7 +577,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         StringLoad(&instance->params, stream);
         int pairs = ReadInt(stream);
         IfThenSetSize(&instance->ifThen, nullptr, pairs, -1);
-        for (int k = 0; k < instance->ifThen.size; ++k) IfThenPairLoad(&instance->ifThen.data[k], nullptr, stream);
+        for (int k = 0; k < instance->ifThen.size; ++k) instance->ifThen.data[k].Load(stream);
         LoadVariables(&instance->vars, stream);
     }
 }
@@ -602,7 +590,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
     for (int i = 0; i < count; ++i) {
         // A temporary run (sleep start unset) is copied into the node, then destroyed.
         ScriptRun temp{};
-        VarsConstruct(&temp.vars);
+        temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewRunNode, [&](char* data) {
             auto* run = reinterpret_cast<ScriptRun*>(data);
             run->block = temp.block;
@@ -610,9 +598,9 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
             run->ticks = temp.ticks;
             run->sleepStart = temp.sleepStart;
             run->killFlag = temp.killFlag;
-            VarsAssign(&run->vars, nullptr, &temp.vars);
+            run->vars.ScriptVarsAssign(&temp.vars);
         });
-        VarsDestruct(&temp.vars);
+        ScriptVarsDestruct(&temp.vars);
     }
     for (ListNode* node = list->head; node;) {
         auto* run = reinterpret_cast<ScriptRun*>(node->data.bytes);
@@ -636,7 +624,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
             }
         }
         run->killFlag = killFlag;
-        VarsLoad(&run->vars, nullptr, stream);
+        run->vars.Load(stream);
     }
 }
 EI_REPLACE(0x004CAC00, ScriptRunsLoad);
@@ -679,7 +667,7 @@ void CScript::LoadState(ScriptStream* stream) {
         StringLoad(&definition->name, stream);
         StringLoad(&definition->params, stream);
         IfThenLoadOrig(&definition->ifThen, stream);
-        VarsLoad(&definition->vars, nullptr, stream);
+        definition->vars.Load(stream);
     }
 
     LoadVariables(Globals(), stream);

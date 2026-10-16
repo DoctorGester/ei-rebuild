@@ -150,7 +150,7 @@ void CUiEditField::OnChar(int key, int, int) {
     std::uint32_t kind;
     if (gamecrt::isdigit(key) != 0)
         kind = kClassDigit;
-    else if (gamecrt::isalpha(key) != 0 || c == ' ')
+    else if (libcrt::Isalpha(key) != 0 || c == ' ')
         kind = kClassLetter;
     else if (c == '.' || c == ':')
         kind = kClassSeparator;

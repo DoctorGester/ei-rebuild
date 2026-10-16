@@ -60,9 +60,6 @@ EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord
     return frame;
 }
 
-// 00533980 (rewritten below; through its game address so its wrapper sees the calls).
-__declspec(naked) void __fastcall CallBlitMipChain(CTexture*, const int*, CTexture*, const RECT*) EI_ORIGINAL(0x00533980)
-
 } // namespace
 
 // 00533980 (__fastcall, RET 8). Blits `from` of `source` to `at` of `target`, then the same halved
@@ -98,7 +95,7 @@ void CUnitClientSpecific::BlinkClose(bool force) {
     int eyeHeight = static_cast<int>(model->eyeHeight);
     RECT closed = {0, Truncate(frame.offset), Truncate(static_cast<int>(model->eyeWidth) * scale),
                    Truncate((eyeHeight + frame.offset) * scale)};
-    CallBlitMipChain(skin, frame.at, face, &closed);
+    BlitMipChain(skin, frame.at, face, &closed);
     eyesClosed = 1;
 }
 EI_REPLACE_METHOD(0x00538ED0, CUnitClientSpecific::BlinkClose);
@@ -115,7 +112,7 @@ void CUnitClientSpecific::BlinkOpen(bool force) {
     int eyeHeight = static_cast<int>(model->eyeHeight);
     RECT open = {0, Truncate((eyeHeight + frame.offset) * scale), Truncate(static_cast<int>(model->eyeWidth) * scale),
                  Truncate((eyeHeight + eyeHeight + frame.offset) * scale)};
-    CallBlitMipChain(skin, frame.at, face, &open);
+    BlitMipChain(skin, frame.at, face, &open);
     eyesClosed = 0;
 }
 EI_REPLACE_METHOD(0x00539010, CUnitClientSpecific::BlinkOpen);

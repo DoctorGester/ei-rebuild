@@ -6,6 +6,7 @@
 // LightVertex adds the point lights registered with the vertex (006CAC10), packing the colour and
 // specular words the terrain draw sends to the device. On the ground layer both dim light under
 // water by 1 - absorption * depth^2 * falloff (times the light's vertical component squared).
+#include "terrain.h"
 #include "terrain_sector.h"
 #include "spell.h"
 
@@ -74,7 +75,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         colour.y = Max(water.materialColour.y, record->materialColour.y);
         colour.z = Max(water.materialColour.z, record->materialColour.z);
     }
-    if (shadows && terrain->SunReachesAtOriginal(position) == 0) {
+    if (shadows && terrain->SunReaches(position) == 0) {
         record->lit.x = AtMostOne(static_cast<float>(ambient.x + colour.x));
         record->lit.y = AtMostOne(static_cast<float>(ambient.y + colour.y));
         record->lit.z = AtMostOne(static_cast<float>(ambient.z + colour.z));
@@ -130,7 +131,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
     std::uint32_t g = Channel(AtMostOne(Max(colour.y, specular.y)));
     std::uint32_t b = Channel(AtMostOne(Max(colour.z, specular.z)));
     record->colour = ((((static_cast<std::uint32_t>(record->materialByte) << 8) | r) << 8 | g) << 8) | b;
-    std::uint32_t edge = IsLit(terrain, nullptr, position);
+    std::uint32_t edge = terrain->EdgeFade(position);
     if (hasSpecular) {
         std::uint32_t word = (edge & 0xFF) << 8 | gamecrt::Ftol(specular.x * 255.0f);
         word = word << 8 | gamecrt::Ftol(specular.y * 255.0f);
@@ -143,8 +144,8 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
 
 void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
-    unsigned control = gamecrt::controlfp(0, 0);
-    gamecrt::controlfp(0x300, 0x300);
+    unsigned control = libcrt::Controlfp(0, 0);
+    libcrt::Controlfp(0x300, 0x300);
     terrain->lightingSector = this;
     if (hasWater) {
         for (int y = y0; y <= y1; ++y) {
@@ -168,7 +169,7 @@ void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y
         }
     }
     built |= 4;
-    gamecrt::controlfp(control, 0xFFFFFFFF);
+    libcrt::Controlfp(control, 0xFFFFFFFF);
     if (!skipSun) relightCountdown = -1;
 }
 
@@ -178,4 +179,3 @@ EI_REPLACE_METHOD(0x006C31C0, SectorData::LightVertex);
 
 } // namespace terrain
 
-__declspec(naked) int Terrain::SunReachesAtOriginal(const terrain::SectorPosition*) EI_ORIGINAL(0x006C92C0)

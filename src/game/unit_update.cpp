@@ -29,12 +29,6 @@ CWorld* WorldOf(CUnit* unit) { return static_cast<CWorld*>(unit->World()); }
 // 00552F40, CUnitServer::SetStats: copies `stats` into its own copy. unit_create.cpp.
 __declspec(naked) std::uintptr_t __fastcall CallServerSetStats(CEngineObject*, void*, const UnitStats*)
     EI_ORIGINAL(0x00552F40)
-// 00522CE0 / 00523E80 / 00523E00 (unit_vitals.cpp, unit_stats_pack.cpp).
-__declspec(naked) void __fastcall CallPackStats(UnitStats*, void*, CUnit*, UnitParams*) EI_ORIGINAL(0x00522CE0)
-__declspec(naked) float __stdcall CallScaleHitPoints(CUnit*, float) EI_ORIGINAL(0x00523E00)
-
-namespace {
-} // namespace
 
 int CUnit::Tick() {
     controller->RunTick();
@@ -144,9 +138,9 @@ void CUnit::PlaceOnGroundImpl(float offset) {
 EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceOnGroundImpl);
 
 void CUnit::SetFromStats(UnitStats* stats) {
-    CallPackStats(stats, nullptr, this, Params());
-    float curve = static_cast<float>(UnitStatsHitPointCurve(stats));
-    float limit = CallScaleHitPoints(this, curve);
+    stats->Pack(this, Params());
+    float curve = static_cast<float>(stats->HitPointCurve());
+    float limit = ScaleHitPointsByEffects(this, curve);
     packedVitals.maxHitPoints = static_cast<std::int16_t>(gamecrt::Ftol(limit));
     packedVitals.hitPoints = static_cast<std::int16_t>(gamecrt::Ftol(stats->Reduce(limit)));
 }

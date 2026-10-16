@@ -4,6 +4,7 @@
 // patrol array's copy. See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
 #include "core_streams.h"
+#include "record_arrays.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -61,14 +62,11 @@ __declspec(naked) void __fastcall PatrolsSetSize(Array<Patrol>*, void*, int, int
 __declspec(naked) void __stdcall ConstructPatrols(Patrol*, int) EI_ORIGINAL(0x0045E180)
 __declspec(naked) void __stdcall DestructPatrols(Patrol*, int) EI_ORIGINAL(0x0046F0B0)
 __declspec(naked) Patrol* __fastcall PatrolDelete(Patrol*, void*, unsigned) EI_ORIGINAL(0x0046F160)
-__declspec(naked) Patrol* __fastcall PatrolAt(const Array<Patrol>*, void*, Patrol* /*out*/, int) EI_ORIGINAL(0x0046EAB0)
 __declspec(naked) Waypoint* __fastcall WaypointAt(const Array<Waypoint>*, void*, Waypoint* /*out*/, int) EI_ORIGINAL(0x0046EFA0)
 // The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
 // object; the world object's updates.
 __declspec(naked) void __fastcall SelectionTurnObject(void*, void*, void* /*object*/, const Quaternion*) EI_ORIGINAL(0x005BC180)
 void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
-// The behaviour writer, through its address (rewritten below).
-__declspec(naked) void __fastcall BehaviourWriteAt(TargetChunk*) EI_ORIGINAL(0x0046C900)
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -177,7 +175,7 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
     for (int i = 0; i < from->size; ++i) {
         alignas(4) std::uint8_t raw[sizeof(Patrol)];
         auto* copy = reinterpret_cast<Patrol*>(raw);
-        PatrolAt(from, nullptr, copy, i);
+        recordarrays::PatrolGetAt(from, nullptr, copy, i);
         Patrol& to = self->data[i];
         to.position = copy->position;
         WaypointsSetSize(&to.waypoints, nullptr, copy->waypoints.size, -1);
@@ -410,7 +408,7 @@ void __fastcall UnitSpecSave(UnitSpec* self) {
     for (Behaviour& behaviour : self->behaviour) {
         behaviour.guard = self->object.base.position;
         writer.target = &behaviour;
-        BehaviourWriteAt(&writer);
+        BehaviourWrite(&writer);
     }
     c.EndWrite();
     writer.chunk.Destruct();
@@ -458,8 +456,6 @@ namespace {
 void StreamRead(void* stream, void* data, unsigned size) { static_cast<CStream*>(stream)->Read(data, size); }
 void StreamWrite(void* stream, const void* data, unsigned size) { static_cast<CStream*>(stream)->Write(data, size); }
 __declspec(naked) void __stdcall ConstructWaypoints(Waypoint*, int) EI_ORIGINAL(0x0045E130)
-__declspec(naked) void __fastcall WaypointsReadAt(Array<Waypoint>*, void* /*stream*/) EI_ORIGINAL(0x0045DE30)
-__declspec(naked) void __fastcall WaypointsWriteAt(const Array<Waypoint>*, void* /*stream*/) EI_ORIGINAL(0x0045DFB0)
 } // namespace
 
 // 0045DE30 (ECX array, EDX stream): the count, the array sized to it (MFC SetSize inlined, new
@@ -520,7 +516,7 @@ void Behaviour::Read(void* stream) {
     for (int i = 0; i < patrols.size; ++i) {
         Patrol* p = &patrols.data[i];
         StreamRead(stream, &p->position, 12);
-        WaypointsReadAt(&p->waypoints, stream);
+        WaypointsRead(&p->waypoints, stream);
     }
     StreamRead(stream, &guard, 12);
     StreamRead(stream, &loop, 4);
@@ -552,7 +548,7 @@ void Behaviour::Write(void* stream) {
     for (int i = 0; i < patrols.size; ++i) {
         Patrol* p = &patrols.data[i];
         StreamWrite(stream, &p->position, 12);
-        WaypointsWriteAt(&p->waypoints, stream);
+        WaypointsWrite(&p->waypoints, stream);
     }
     StreamWrite(stream, &guard, 12);
     std::uint32_t value;

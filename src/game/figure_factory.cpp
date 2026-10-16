@@ -16,7 +16,6 @@
 
 namespace {
 
-__declspec(naked) CFigureMesh* __fastcall ConstructPartBase(void*) EI_ORIGINAL(0x005AABC0)
 // The member constructors (every field zero, returns the member): 0056FD00 for the vertex and
 // normal arrays, 005AD870 (figure_slots.cpp ClearArray) for the corners, 004D9E90 / 004D9E80 /
 // 004D9EA0 (sky_object.cpp, AlignedArray::Construct) for the words, indices and texture coordinates.
@@ -41,7 +40,7 @@ void ZeroArray(lib::AlignedArray<T>& array) {
 
 CFigureMesh* NewPart(std::size_t size) {
     void* object = gamecrt::operator_new(size);
-    if (object) ConstructPartBase(object);
+    if (object) static_cast<CFigureMesh*>(object)->ConstructBase();
     return static_cast<CFigureMesh*>(object);
 }
 

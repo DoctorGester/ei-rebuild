@@ -51,9 +51,6 @@ void(__cdecl* const kDestroyClipped)() = reinterpret_cast<void(__cdecl*)()>(0x00
 void(__cdecl* const kDestroyIndices)() = reinterpret_cast<void(__cdecl*)()>(0x006C1360);
 void(__cdecl* const kFreeVertices)() = reinterpret_cast<void(__cdecl*)()>(0x006C1370);
 
-// 006C30E0 SectorData::ApplyWaterLevels (terrain_sector.cpp).
-__declspec(naked) void __fastcall ApplyWaterLevels(SectorData*) EI_ORIGINAL(0x006C30E0)
-
 // SetSize of the vertex array keeps the contents when it grows (lib::AlignedArray::SetSize). The
 // size is four times the vertex count (the original's unit is 8 bytes) while the elements are 32
 // bytes: the buffer is four times larger than needed, as in the original. The clipping work arrays
@@ -229,7 +226,7 @@ int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int
     void* clipper = *reinterpret_cast<void**>(*reinterpret_cast<char**>(static_cast<char*>(context) + 8) + 0xC);
     if (clipMode == 2) return 1;
     EnsureStatics();
-    if (hasWater) ::ApplyWaterLevels(this);
+    if (hasWater) ApplyWaterLevels();
     // The new renderer (src/render) takes the page; with "noterrain" the old path stops here. The
     // water levels above stay: they move the water surface that height queries read.
     if (render::Active()) render::TerrainPage(this, context, page);

@@ -7,6 +7,7 @@
 // aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
 // (CBattleScreen) and
 // docs/notes/ui.md, section 6.
+#include "ui.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -36,9 +37,6 @@ const char* OnOffSound() { return game::Text(0x007935BC); }     // "buttons\\bat
 const char* QuickSaveName() { return game::Text(0x007933AC); }  // "saveq"
 const char* FollowName() { return game::Text(0x00787928); }     // "follow"
 const char* ScienceName() { return game::Text(0x0078B8FC); }    // "science"
-
-// 006481D0 (plain RET): the unit panel shows which body part is selected (its four buttons' tints).
-__declspec(naked) void __fastcall UnitPanelShowPartOriginal(CHudUnitPanel*) EI_ORIGINAL(0x006481D0)
 
 // The world's update period in milliseconds: the game's speed.
 int& UpdatePeriod() { return *reinterpret_cast<int*>(0x0078FF34); }
@@ -121,13 +119,13 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     if (key == VK_RETURN) {
         if (IsNetworkClientOriginal()) {
-            ChatKeyEnterOriginal(interface_);
+            interface_->ChatKeyEnter();
             inputHandled_ = true;
             return;
         }
     } else if (key == VK_BACK) {
         if (IsNetworkClientOriginal()) {
-            ChatKeyBackspaceOriginal(interface_);
+            interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
@@ -144,10 +142,10 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             hud->pendingSlot_ = -1;
             hud->pendingAction_ = 0;
             hud->pendingItem_ = -1;
-            for (int i = 0; i < kQuickSlots; ++i) QuickPanelSetOriginal(quick, nullptr, i, 0);
+            for (int i = 0; i < kQuickSlots; ++i) static_cast<CHudQuickItems*>(quick)->Highlight(i, 0);
             quick->selected_ = -1;
             hud->spellColumn_->ClearHighlights();
-            ActionPanelClearOriginal(hud->actionColumn_);
+            static_cast<CHudActionColumn*>(hud->actionColumn_)->ClearHighlights();
             return;
         }
         void* memory = gamecrt::operator_new(kEscMenuSize);
@@ -196,7 +194,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         {
             alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
             mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
-            ObjectivesSetupOriginal(window, nullptr, static_cast<const char*>(*zone), nullptr, 0, 0);
+            static_cast<CObjectivesWindow*>(window)->Setup(static_cast<const char*>(*zone), nullptr, 0, 0);
             zone->~CString();
         }
         InterfacePushWindowOriginal(clock->interface_, nullptr, window, 1, 1);
@@ -246,14 +244,14 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kActionMoveFlag:
-        static_cast<CHudMovePanel*>(movePanel_)->CallToggleFlag();
+        static_cast<CHudMovePanel*>(movePanel_)->ToggleFlag();
         inputHandled_ = true;
         return;
     case kActionFollow:
-        hud->actionColumn_->SelectAt(ActionButton(FollowName()));
+        hud->actionColumn_->Select(ActionButton(FollowName()));
         return;
     case kActionScience:
-        hud->actionColumn_->SelectAt(ActionButton(ScienceName()));
+        hud->actionColumn_->Select(ActionButton(ScienceName()));
         return;
     case kActionSpell:
     case kActionSpell + 1:
@@ -265,9 +263,9 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionSpell + 7:
         // With Ctrl or Alt the spell is cast at once.
         if (!interface_->ctrlDown_ && !interface_->altDown_)
-            hud->spellColumn_->ClickAt(action - kActionSpell);
+            hud->spellColumn_->Click(action - kActionSpell);
         else
-            hud->spellColumn_->ClickAlternateAt(action - kActionSpell);
+            hud->spellColumn_->ClickAlternate(action - kActionSpell);
         return;
     case kActionWeapon:
     case kActionWeapon + 1:
@@ -296,7 +294,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         if (!interface_->ctrlDown_ && !interface_->altDown_)
             hud->quickItems_->Pick(action - kActionQuickItem);
         else
-            hud->quickItems_->UseNowAt(action - kActionQuickItem);
+            hud->quickItems_->UseNow(action - kActionQuickItem);
         return;
     case kActionBodyPart:
     case kActionBodyPart + 1:
@@ -304,13 +302,13 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionBodyPart + 3: {
         auto* panel = static_cast<CHudUnitPanel*>(unitPanel_);
         SlideKey(panel, panel->bodyPart_, action - kActionBodyPart,
-                 [](CHudUnitPanel* shown) { UnitPanelShowPartOriginal(shown); });
+                 [](CHudUnitPanel* shown) { shown->ShowBodyPart(); });
         return;
     }
     case kActionPage:
     case kActionPage + 1: {
         auto* panel = static_cast<CHudTopPanel*>(topPanel_);
-        SlideKey(panel, panel->page_, action - kActionPage, [](CHudTopPanel* shown) { shown->CallShowPage(); });
+        SlideKey(panel, panel->page_, action - kActionPage, [](CHudTopPanel* shown) { shown->ShowPage(); });
         return;
     }
     case kActionMapSlide: {
@@ -345,7 +343,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
             if (CUnit* unit = hud->party_[i]) ClientWorldControlUnitOriginal(WorldClient(), nullptr, unit);
         }
         if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
-        BattleRefreshSelectionOriginal(this);
+        RefreshSelection();
         return;
     case kActionMessage:
         interface_->ShowMessage(1);

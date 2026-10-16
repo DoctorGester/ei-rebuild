@@ -5,6 +5,7 @@
 #include "map_object_shadow.h"
 #include "object.h"
 #include "spell.h"                // CLight, TheLightFactory
+#include "terrain.h"
 #include "texture.h"              // RenderDeviceObject
 #include "world.h"                // CWorldClient
 
@@ -141,7 +142,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & kObjectUnlit)) {
         Terrain* terrain = static_cast<CWorldClient*>(ManagerContext())->terrain_;
-        lit = IsLit(terrain, nullptr, &at);   // AL as it is
+        lit = terrain->EdgeFade(&at);   // AL as it is
     }
 
     // The parts of both sets.

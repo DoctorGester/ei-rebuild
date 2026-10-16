@@ -184,7 +184,7 @@ int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     if (!texture) {
         if (!bound) return 1;
         bound = nullptr;
-        DeviceFlushBatchAOriginal(device);
+        static_cast<CTextureDevice*>(device)->FlushBatch();
         device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);
         ++device->textureChanges_;
         return 1;
@@ -192,7 +192,7 @@ int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     CDXSurface* surface = static_cast<CTexture*>(texture)->surface_;
     if (bound == surface) return 1;
     bound = surface;
-    DeviceFlushBatchAOriginal(device);
+    static_cast<CTextureDevice*>(device)->FlushBatch();
     device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), surface ? Surface(surface) : nullptr);
     ++device->textureChanges_;
     return 1;
@@ -248,7 +248,7 @@ bool CSceneRenderer::RestoreSurfaces() {
             height = device->renderTarget_->height;
             bits = device->renderTarget_->bitsPerPixel;
         }
-        DeviceSetDisplayModeOriginal(device, nullptr, width, height, bits, 0);
+        static_cast<CTextureDevice*>(device)->SetDisplayMode(width, height, bits, 0);
     }
     CTextureDevice* device = device_;
     gameapi::EnterCriticalSection(GameDeviceLock());
@@ -257,7 +257,7 @@ bool CSceneRenderer::RestoreSurfaces() {
     Surface(device_->primary_)->Restore();
     Surface(device_->renderTarget_)->Restore();
     Surface(device_->depth_)->Restore();
-    return TextureManagerRestoreOriginal(UiTextureManager());
+    return static_cast<CTextureManager*>(UiTextureManager())->ReloadAll();
 }
 EI_REPLACE_METHOD(0x00504780, CSceneRenderer::RestoreSurfaces);
 

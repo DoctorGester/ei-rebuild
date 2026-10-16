@@ -1,4 +1,6 @@
 // The multiplayer hero screen's figure choice (00616AC0, slot 52). See docs/notes/ui.md, section 5.
+#include "ui.h"
+#include "ui_camp.h"
 #include "ui_screens.h"
 
 #include "party.h"
@@ -32,7 +34,7 @@ constexpr int kVoiceRows = 11;
 int IndexOf(const char* const* begin, const char* const* end, const char* name) {
     int index = 0;
     for (const char* const* entry = begin; entry != end; ++entry, ++index) {
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(*entry), reinterpret_cast<const unsigned char*>(name)) == 0)
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(*entry), reinterpret_cast<const unsigned char*>(name)) == 0)
             return index;
     }
     return -1;
@@ -95,10 +97,10 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     ShowArmour(weaponPanel_, nullptr, armor_);
     spellContainer_ = reinterpret_cast<char*>(FirstOf(hero->spells, static_cast<int>(hero->spellCount)));
     ShowContainer(spellPanel_, nullptr, spellContainer_);
-    HeroScreenMakePreviewOriginal(this, nullptr, 0);
-    StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, nullptr);
+    MakePreview(0);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->SetHero(0, nullptr);
     TradePanelResetRecordsOriginal(tradePanel_);
-    TradePanelSelectHeroOriginal(tradePanel_, nullptr, 0);
+    static_cast<CTradePanel*>(tradePanel_)->SelectHero(0);
     reinterpret_cast<mfc::CString&>(text_) = prototype;
     voiceIndex_ = 0;
     voiceTop_ = 0;
@@ -109,7 +111,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     // The entry count compared unsigned (the subtraction shifted arithmetically).
     std::uint32_t count = static_cast<std::uint32_t>(
         (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);
-    ScrollbarSetRangeOriginal(voiceScroll_, nullptr, count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
+    static_cast<CUiScrollbar*>(voiceScroll_)->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
     static_cast<CUiScrollbar*>(voiceScroll_)->CallSetPosition(0);
     if (mode_ == kModeNewHero) CallDrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);

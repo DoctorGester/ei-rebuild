@@ -26,9 +26,6 @@ bool SameName(const TextSourceNode* node, const char* path) {
 __declspec(naked) void __fastcall TextSourcesListKeysOriginal(TextSourceList*, void*, mfc::CStringArray*, const char*)
     EI_ORIGINAL(0x004DEC40)
 
-// The game's C runtime: setlocale [006EA234] and _setmbcp [006E9E30] (cdecl).
-__declspec(naked) char* __cdecl GameSetLocale(int /*category*/, const char* /*locale*/) EI_ORIGINAL(0x006EA234)
-__declspec(naked) int __cdecl GameSetMbcp(int /*codePage*/) EI_ORIGINAL(0x006E9E30)
 constexpr int kLocaleCtype = 2;     // LC_CTYPE
 constexpr int kMbcpLocale = -4;     // _MB_CP_LOCALE
 
@@ -135,8 +132,8 @@ EI_REPLACE_METHOD(0x004DEFA0, CTextManager::ListKeys);
 int CTextManager::Create() {
     // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
     // multibyte code page from it: the game's only locale set-up (docs/notes/standalone.md, S4c).
-    GameSetLocale(kLocaleCtype, options::TheOptions()->fontCharSet_);
-    GameSetMbcp(kMbcpLocale);
+    libcrt::Setlocale(kLocaleCtype, options::TheOptions()->fontCharSet_);
+    libcrt::Setmbcp(kMbcpLocale);
     return 1;
 }
 EI_REPLACE_METHOD(0x004DED20, CTextManager::Create);

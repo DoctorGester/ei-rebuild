@@ -1,6 +1,7 @@
 // The party manager's save and load (004A8560 / 004A8310) and the archive chunks they write: the
 // parties by key (004ACEC0), the entries (004AD0C0), the class templates (004ACDC0) and the named
 // records (004A64B0). See party_manager.h and docs/notes/script.md ("Leftovers").
+#include "item_stock.h"
 #include "party_manager.h"
 
 #include "chunk_archive.h"
@@ -52,10 +53,6 @@ CRefObject* AsRefObject(void* object) { return static_cast<CRefObject*>(object);
 
 } // namespace
 
-__declspec(naked) void CParty::ArchivePartyThroughHook(ChunkArchive*) EI_ORIGINAL(0x006617F0)
-// 0069BAC0 (rewritten as ItemStock::SaveLists) through its address so its wrapper runs.
-__declspec(naked) void __fastcall SaveStockLists(ItemStock*, void*, void* /*stream*/) EI_ORIGINAL(0x0069BAC0)
-
 void PartyManagerEntry::Destruct() {
     ids.FreeStorage();
     text.~CString();
@@ -81,7 +78,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
             }
             auto* party = static_cast<CParty*>(PartyMapAtOriginal(parties, nullptr, &key));
             if (EnterChunk(2)) {
-                party->ArchivePartyThroughHook(this);
+                party->ArchiveParty(this);
                 LeaveChunk();
             }
         }
@@ -93,7 +90,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 LeaveChunk();
             }
             if (EnterChunk(2)) {
-                node->value.Get()->ArchivePartyThroughHook(this);
+                node->value.Get()->ArchiveParty(this);
                 LeaveChunk();
             }
         }
@@ -220,8 +217,8 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     if (!ar->loading_) {
         itemsParty->SaveParty(&local.stream, 0);
         spellsParty->SaveParty(&local.stream, 0);
-        SaveStockLists(&allowed, nullptr, &local.stream);
-        SaveStockLists(&magic, nullptr, &local.stream);
+        allowed.SaveLists(&local.stream);
+        magic.SaveLists(&local.stream);
         ar->StreamField(5, &local.stream);
     } else {
         ar->StreamField(5, &local.stream);

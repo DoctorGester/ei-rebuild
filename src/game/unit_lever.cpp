@@ -3,6 +3,7 @@
 #include "lever.h"
 
 #include "ai_map.h"
+#include "map_object_figures.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -78,7 +79,7 @@ void Lever::SetState(int wanted, float duration) {
     }
     CAIMap* map = world->AIMap();
     std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
-    AIMapBeginRefreshOriginal(map);
+    static_cast<CAIMap*>(map)->BeginRefresh();
     SectorMapRemove(sectors, nullptr, AsEngineObject(this));
 
     states = stateCount;
@@ -96,10 +97,10 @@ void Lever::SetState(int wanted, float duration) {
         rate = 0.0f;
     }
     scale.y = travel;   // the shown position
-    ObjectSetupFigureOriginal(this, nullptr, name);
+    SetUpAnimatedFigure(name);
     UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
-    AIMapEndRefreshOriginal(map);
+    static_cast<CAIMap*>(map)->EndRefresh();
     map->refreshUnits = true;
 
     for (auto* node = around.head; node;) {

@@ -1,5 +1,6 @@
 // The briefing / base screen's dialogue (CBriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
+#include "ui.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
@@ -62,7 +63,7 @@ constexpr int kThirdPlace = 2;
 void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) sound::Manager()->StopSound(voice_);
     voice_ = -1;
-    MusicFadeOutOriginal(MusicSystem());
+    static_cast<CMusicSystem*>(MusicSystem())->FadeOut();
     // (The original also constructs and destroys an unused CStringArray here.)
     mfc::CString key(BriefingSection());
     key += topic_;
@@ -88,7 +89,7 @@ void CBriefingScreen::StartPhrases() {
     lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
 
     dialogueText_.Empty();
-    LogSetTextOriginal(text_, nullptr, EmptyText());
+    static_cast<CUiScrollText*>(text_)->SetText(EmptyText());
     state_ = kStatePhrases;
     firstPhrase_ = true;
     BriefingNextPhraseOriginal(this, nullptr, 0);
@@ -293,7 +294,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, TextKeyFromName(name)));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(node->name)),
+            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(node->name)),
                                 reinterpret_cast<const unsigned char*>(name)) != 0)
                 continue;
             if (node->item) {

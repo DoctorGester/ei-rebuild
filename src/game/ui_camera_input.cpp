@@ -74,7 +74,7 @@ constexpr int kScanCodeMask = 0x1FF;
 void LetCursorGo() {
     MouseDragY() = 0;
     MouseDragX() = 0;
-    CursorSetHeldOriginal(GameCursor(), nullptr, 0);
+    GameCursor()->SetHeld(0);
 }
 
 } // namespace
@@ -136,7 +136,7 @@ void CCameraInput::OnRightDown(int, int x, int y) {
     interface_->CallScalePointFromScreen(&pressLayout_);
     MouseDragY() = 0;
     MouseDragX() = 0;
-    CursorSetHeldOriginal(GameCursor(), nullptr, 1);
+    GameCursor()->SetHeld(1);
     handled_ = true;
 }
 
@@ -225,7 +225,7 @@ void CCameraInput::OnDeactivate() {
     x_ = 0.0f;
     y_ = 0.0f;
     z_ = 0.0f;
-    CursorSetHeldOriginal(GameCursor(), nullptr, 0);
+    GameCursor()->SetHeld(0);
     MouseDragY() = 0;
     MouseDragX() = 0;
     camera::TheCamera()->StopMotion();

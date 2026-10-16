@@ -2,6 +2,7 @@
 #include "ei/x87.h"
 #include "net_session.h"
 #include "originals_world.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -34,7 +35,7 @@ void __cdecl Pump() {
     LastPumpTime() = now;
     TickSession(GameServer(), elapsed);
     TickSession(GameClient(), elapsed);
-    FlowUpdateMultiplayerVariableOriginal(reinterpret_cast<void*>(0x007AFE20));   // 0057F190 with the game flow 007AFE20: the per-frame network step
+    static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->UpdateMultiplayerVariable();   // 0057F190 with the game flow 007AFE20: the per-frame network step
 }
 EI_REPLACE(0x004122D0, Pump);
 

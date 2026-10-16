@@ -35,11 +35,6 @@ constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 
-// Rewritten below, called through their game addresses so their verify wrappers stay in the path
-// (00534B60 is their only caller).
-__declspec(naked) int __fastcall CallFootstepSound(CUnitClientSpecific*, void*, int, mfc::CString*) EI_ORIGINAL(0x00534590)
-__declspec(naked) int __fastcall CallActionSound(CUnitClientSpecific*, void*, const FigureAnimation*, float, float,
-                                                 mfc::CString*, std::uint8_t) EI_ORIGINAL(0x00534760)
 
 // rand() scaled into 0..n-1 the original's way.
 int RandomBelow(int n) { return gamecrt::rand() * n / 0x7FFF % n; }
@@ -224,7 +219,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->type_ == kUnitTypeHero && unit->actionSound &&
-            CallActionSound(this, nullptr, current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
+            ActionSound(current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
             sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
         priority = kPriorityAction;
         action = true;
@@ -251,7 +246,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     default:
         break;
     }
-    if (action && !CallActionSound(this, nullptr, current, lastAnimationTime, now, &sound, 0)) sound.Empty();
+    if (action && !ActionSound(current, lastAnimationTime, now, &sound, 0)) sound.Empty();
 
     for (int step = 0; steps && step < kStepFrames; ++step) {
         int frame = static_cast<int>(current->stepFrames[step]) - 1;
@@ -260,7 +255,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (!unit->HasEffect(kEffectSilence)) {
             auto* world = static_cast<CWorldClient*>(ManagerContext());
             int ground = world->terrain_->SurfaceClass(position.x, position.y);
-            CallFootstepSound(this, nullptr, ground, &sound);
+            FootstepSound(ground, &sound);
         }
         if (unit->moveMode == 0) break;
         const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());

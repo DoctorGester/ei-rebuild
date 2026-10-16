@@ -94,7 +94,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     int exit = region - kRegionFirstExit;
     if (twoButtons_ != 0 && exits_[exit].flag_) {
         interface_->PlaySound(EnterSound(), 0);
-        CallSelectExit(exit);
+        SelectExit(exit);
         return;
     }
     interface_->PlaySound(CancelSound(), 0);
@@ -135,7 +135,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     if (step != 0) {
         interface_->PlaySound(SelectSound(), 0);
         selectedQuest_ += step;
-        CallRefreshQuests();
+        RefreshQuests();
         inputHandled_ = true;
     }
     if (!inputHandled_ && KeyActions()[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {

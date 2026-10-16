@@ -172,9 +172,6 @@ __declspec(naked) void __fastcall SpellListsResize(void*, void*, unsigned) EI_OR
 __declspec(naked) void __fastcall SpellSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683B80)
 __declspec(naked) void __fastcall SpellModifierSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683AF0)
 __declspec(naked) void __fastcall SpellListSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683D40)
-// 00683EB0 (RET 0xC), through its address for the same reason.
-__declspec(naked) void __fastcall IntVectorFieldAt(ChunkArchive*, void*, int /*id*/, stlp::vector<int>*, void* /*unused*/)
-    EI_ORIGINAL(0x00683EB0)
 // STLport instantiations: vector<int>::_M_fill_insert(position, count, value) (RET 0xC),
 // vector<string>::erase(first, last) (RET 8) and resize(count) (RET 4).
 __declspec(naked) void __fastcall IntsFillInsert(stlp::vector<int>*, void*, int* /*position*/, unsigned /*count*/,
@@ -213,8 +210,8 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(5, &mana, 4);
     for (int i = 0; i < 9; ++i) ar->Field(6 + i, &effectValues[i], 4);
     ar->Field(15, &needsSight, 4);
-    IntVectorFieldAt(ar, nullptr, 16, &list48, ar);
-    IntVectorFieldAt(ar, nullptr, 17, &list54, ar);
+    ar->IntVectorField(16, &list48, ar);
+    ar->IntVectorField(17, &list54, ar);
     ar->Field(18, &icon, 4);
     ar->Field(19, &school, 4);
     ar->Field(20, bytes78, 5);

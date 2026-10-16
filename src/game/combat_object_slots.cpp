@@ -51,7 +51,7 @@ BOOL CUnitServer::TakeUpWeapon(int slot) {
     unit->MarkChanged(kPartWeapons);
     unit->activeWeapon = static_cast<std::uint32_t>(taken);
     unit->pendingWeapon = taken;
-    if (unit->player) AttentionRebuild(&BrainOf(this)->attention, nullptr, unit);
+    if (unit->player) BrainOf(this)->attention.Build(unit);
     RefreshItemSpells();
     return Usable(weapon) ? 1 : 0;
 }

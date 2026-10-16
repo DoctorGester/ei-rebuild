@@ -66,10 +66,6 @@ struct PrototypeNamePair {
 // elements before `pos`, `n` counted copies of `x`, the rest; the old elements released.
 __declspec(naked) void __fastcall PlayersInsertOverflow(stlp::vector<CRefObject*>* /*vector*/, void*, CRefObject** /*pos*/,
                                                         CRefObject* const* /*x*/, unsigned /*n*/) EI_ORIGINAL(0x0060A120)
-// 0041E270 (rewritten as ClientStartParty, net_client_handlers.cpp; through its address so the wrapper runs;
-// RET 4): starts our trade offer to `partner`.
-__declspec(naked) void __fastcall ClientStartPartyAt(net::ClientSession* /*client*/, void*, CRefObject* /*partner*/)
-    EI_ORIGINAL(0x0041E270)
 
 // The counted pointers' inlined helpers (16-bit count; released through CRefObject::Release).
 void AddRef(CRefObject* object) {
@@ -313,7 +309,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
         ClientDropPartyOriginal(client);
         return;
     }
-    ClientStartPartyAt(client, nullptr, player);
+    client->StartParty(player);
 }
 
 void CChatWindow::OnMouseMove(int, int x, int y) {

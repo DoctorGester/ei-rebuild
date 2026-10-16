@@ -63,11 +63,9 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-void CHudQuickItems::HighlightAt(int slot, int on) { QuickPanelSetOriginal(this, nullptr, slot, on); }
-void CHudSpellColumn::HighlightAt(int index, int on) { SpellPanelSetOriginal(this, nullptr, index, on); }
-void CHudActionColumn::HighlightAt(int index, int on) { ActionPanelSetOriginal(this, nullptr, index, on); }
-__declspec(naked) void CHudSpellColumn::ClickAt(int) EI_ORIGINAL(0x0063EC90)
-__declspec(naked) void CHudActionColumn::SelectAt(int) EI_ORIGINAL(0x0063FB50)
+void CHudQuickItems::HighlightAt(int slot, int on) { Highlight(slot, on); }
+void CHudSpellColumn::HighlightAt(int index, int on) { Highlight(index, on); }
+void CHudActionColumn::HighlightAt(int index, int on) { Highlight(index, on); }
 
 // --- The pending action ------------------------------------------------------------------------
 
@@ -165,8 +163,6 @@ void CHudQuickItems::Pick(int slot) {
 EI_REPLACE_METHOD(0x0063DD70, CHudQuickItems::Pick);
 
 // --- 0063E020 / 0063EF60: a quick item or spell used at once ------------------------------------
-
-__declspec(naked) void CHudQuickItems::UseNowAt(int) EI_ORIGINAL(0x0063E020)
 
 void CHudQuickItems::UseNow(int slot) {
     if (!unit_) return;

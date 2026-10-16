@@ -8,6 +8,7 @@
 // texture: its holder has only the new renderer's memory (NewMemoryTextureHolder), the pixels are
 // written there and the new renderer reads them. Outside the switch-over (or without memory) as
 // the original. See docs/notes/renderer.md (section 7).
+#include "app.h"
 #include "texture.h"
 #include "game_strings.h"
 
@@ -178,7 +179,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     long hr = device::Surface(staging)->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), kLockWriteWait,
                                               nullptr);
     staging->result = hr;
-    if (hr != 0 && !FatalDirectX(hr, CantLockText())) {
+    if (hr != 0 && !app::FatalErrorCode(hr, CantLockText())) {
         game::DebugLog(CantLockStagingText());
         staging->Release();
         return 0;
@@ -188,7 +189,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     gameapi::LeaveCriticalSection(DeviceLock());
     hr = device::Surface(staging)->Unlock(nullptr);
     staging->result = hr;
-    if (hr != 0 && !FatalDirectX(hr, CantUnlockText())) {
+    if (hr != 0 && !app::FatalErrorCode(hr, CantUnlockText())) {
         game::DebugLog(CantUnlockStagingText());
         staging->Release();
         return 0;

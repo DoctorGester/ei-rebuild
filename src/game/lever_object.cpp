@@ -93,13 +93,13 @@ int Lever::UpdateLever() {
     if (t > 0.0) {
         shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
-        ClientRefreshObjectOriginal(ClientWorldObject(), nullptr, this);
+        static_cast<CWorldClient*>(ClientWorldObject())->RefreshPlatforms(this);
         return 1;
     }
     if (Differ(shown.y, to)) {
         shown.y = to;
         Object3D()->SetFigureScale(&shown.x);
-        ClientRefreshObjectOriginal(ClientWorldObject(), nullptr, this);
+        static_cast<CWorldClient*>(ClientWorldObject())->RefreshPlatforms(this);
     }
     return 0;
 }
@@ -179,7 +179,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->EndField();
     if (disabled) flags_ |= kDisabled;
     else flags_ &= ~kDisabled;
-    ClientQueueObjectOriginal(ClientWorldObject(), nullptr, this);
+    static_cast<CWorldClient*>(ClientWorldObject())->QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = LeverRecordOriginal(LeverTable(), nullptr, name);
         if (record && Differ(from, to))

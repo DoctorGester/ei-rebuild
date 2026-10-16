@@ -262,8 +262,6 @@ struct SectorData {
 
     // Forwarders.
     void Destruct();                    // 006BF8A0 the destructor body (terrain_landscape.cpp)
-    void BuildAtOriginal();             // 006C1C00 through its address (lands on the installed hook)
-    void LightAtOriginal(CLight* sun, Terrain* owner, int skipSun, int x0, int y0, int x1, int y1); // 006C3A00
 };
 static_assert(sizeof(SectorData) == 0x394);
 static_assert(offsetof(SectorData, minZ) == 0x154);

@@ -1,6 +1,7 @@
 // The zone file's object records: the base record, objects, flames, magic traps and levers
 // (map_spec.h), and the quaternion rotation the editor uses (0046A4B0). Plain float maths
 // (rule 7). See docs/notes/objects.md ("Rewritten").
+#include "ai_map.h"
 #include "map_spec.h"
 #include "game_strings.h"
 #include "map_object.h"
@@ -302,7 +303,7 @@ void ObjectSpec::ObjectSpecApply() {
         WorldMakeObjectOriginal(World(), nullptr, &base);
         return;
     }
-    AIMapBeginRefreshOriginal(Selection());
+    static_cast<CAIMap*>(Selection())->BeginRefresh();
     SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(base.object));
     auto* object = static_cast<CMapObject*>(base.object);
     std::memcpy(&object->position, &base.position, 12);
@@ -316,7 +317,7 @@ void ObjectSpec::ObjectSpecApply() {
     UnitMarkChanged(base.object, nullptr, 2);
     UnitMarkChanged(base.object, nullptr, 1);
     SectorMapAdd(AsSectorMap(Lists()), nullptr, AsEngineObject(base.object));
-    AIMapEndRefreshOriginal(Selection());
+    static_cast<CAIMap*>(Selection())->EndRefresh();
 }
 EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);
 

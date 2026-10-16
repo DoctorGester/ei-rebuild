@@ -48,7 +48,7 @@ int CMapObjectClientSpecific::CreateClientCompanion() {
 EI_REPLACE_METHOD(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
 
 CUnitClientSpecific* CUnitClientSpecific::DeleteClient(std::uint32_t flags) {
-    ClientDestructBodyOriginal(this);
+    DestructClientBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

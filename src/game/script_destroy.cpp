@@ -34,7 +34,6 @@ void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1
 void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
 // Element destructors (__thiscall (flags), 0 = in place): a group (004CE210, through 004B5EF0)
 // and a nested call (004CE230: its command destroyed with 004BF640 and deleted).
-__declspec(naked) void __fastcall SubCallDestroy(void*, void*, int) EI_ORIGINAL(0x004CE230)
 // Out-of-line CArray destructors (__thiscall): CString arrays (004C26A0), object references
 // (004C2290), the ScriptVars floats (004C29C0).
 void __fastcall NamesDestruct(void* a0) { CStringArrayDestructOriginal(a0); }
@@ -43,7 +42,7 @@ __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29
 
 // Callees of the element destructors: a group's destructor body (004B5EF0), the FX source's (004BD540)
 // and the world block's (004BF7E0) bodies; SSCCmd's destructor (004BF640, rewritten below).
-void __fastcall GroupBody(void* a0) { ScriptGroupBodyDestructOriginal(a0); }
+void __fastcall GroupBody(void* a0) { static_cast<ScriptGroup*>(a0)->DestructBody(); }
 __declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
 __declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
 
@@ -113,7 +112,7 @@ EI_REPLACE(0x004BE9D0, ScriptDefinitionDestruct);
 void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
     SetBaseVtable(&cmd->subCalls, recordarrays::SubCallBaseClass::Vtable());
     if (ScriptSubCall* calls = cmd->subCalls.data) {
-        for (int i = 0; i < cmd->subCalls.size; ++i) SubCallDestroy(&calls[i], nullptr, 0);
+        for (int i = 0; i < cmd->subCalls.size; ++i) static_cast<ScriptSubCall*>(&calls[i])->DestroyElement(0);
         gamecrt::operator_delete(cmd->subCalls.data);
     }
     FreePlain(&cmd->globalBindings, mfc::impl::BindingsBaseClass::Vtable());

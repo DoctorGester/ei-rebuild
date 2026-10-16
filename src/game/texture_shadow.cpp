@@ -9,6 +9,7 @@
 // texture's memory when a draw binds it (004EA4A0 through 0051CE60). Outside the switch-over they
 // are the original's DirectDraw textures and the copy is the device's Load. See
 // docs/notes/renderer.md (section 7).
+#include "app.h"
 #include "texture.h"
 
 #include "device.h"
@@ -141,7 +142,7 @@ int CTexture::LockPixels(std::uint32_t* desc) {
     long hr = device::Surface(holder)->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), kLockWriteWait,
                                             nullptr);
     holder->result = hr;
-    if (hr != 0) return FatalDirectX(hr, CantLockText());
+    if (hr != 0) return app::FatalErrorCode(hr, CantLockText());
     return 1;
 }
 EI_REPLACE_METHOD(0x00690FC0, CTexture::LockPixels);
@@ -156,7 +157,7 @@ void CTexture::UnlockPixels() {
     }
     long hr = device::Surface(holder)->Unlock(nullptr);
     holder->result = hr;
-    if (hr != 0) FatalDirectX(hr, CantUnlockText());
+    if (hr != 0) app::FatalErrorCode(hr, CantUnlockText());
 }
 EI_REPLACE_METHOD(0x00691030, CTexture::UnlockPixels);
 

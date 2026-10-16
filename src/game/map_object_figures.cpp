@@ -49,8 +49,6 @@ void AnimationAddPart(void* state, void*, CFigureMesh* part) { AnimationStateAdd
 void AnimationSetScale(void* state, void*, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
     AnimationStateSetScaleOriginal(state, nullptr, x, y, z);
 }
-// Rewritten here, called through their game addresses so their verify wrappers stay in the path.
-__declspec(naked) std::uint32_t __fastcall ComputeBoundsAt(CObject3D*) EI_ORIGINAL(0x00518310)
 __declspec(naked) void __fastcall SetAtGrowAt(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x00519E80)
 __declspec(naked) void __fastcall SetSizeAt(AlignedPtrArray*, void*, int, int) EI_ORIGINAL(0x00519D70)
 
@@ -181,7 +179,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
         }
     }
     if (animation) AnimationSetScale(animation, nullptr, Bits(scale.x), Bits(scale.y), Bits(scale.z));
-    return ComputeBoundsAt(this);
+    return ComputeBounds();
 }
 EI_REPLACE_METHOD(0x00517700, CObject3D::SetFigureScale);
 

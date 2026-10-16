@@ -1,4 +1,5 @@
 // The unit record applied to a new unit (00477B00). See unit_record.h.
+#include "unit.h"
 #include "unit_record.h"
 
 #include "ei/hook.h"
@@ -106,7 +107,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
         return;
     }
 
-    UnitReleaseAllItems(target);
+    target->ReleaseAllItems();
     char* u = reinterpret_cast<char*>(target);
     char* stats = *reinterpret_cast<char**>(u + kUnitStats);
     char* controller = *reinterpret_cast<char**>(u + kUnitController);
@@ -129,7 +130,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
 
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
-        char* model = UnitPrototypeModel(target);
+        char* model = target->GetPrototypeModel();
         StoreScaledTwice(stats + 0x40 + k * 8, stats + 0x44 + k * 8, static_cast<std::uint8_t>(r[field::kModelScale]),
                          model + 0x6C + k * 4);
     }

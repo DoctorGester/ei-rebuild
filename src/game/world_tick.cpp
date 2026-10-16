@@ -1,5 +1,7 @@
 // CWorldServer: the per-tick update (timed objects, missiles, countdowns), waking units near a
 // point, alarms and the game result. See world.h.
+#include "script.h"
+#include "spell.h"
 #include "world.h"
 #include "at_exit_functions.h"
 
@@ -26,8 +28,6 @@ namespace {
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ------------
 
-// 0058CCD0. Every 64 ticks: weather (rain, lightning strikes), day time.
-__declspec(naked) void __fastcall ServerUpdateWeather(CWorldServer*, void*) EI_ORIGINAL(0x0058CCD0)
 // 0058D670. Runs the units in the update map (rewritten below; called through its address so a
 // Rebirth launch without the flag still runs addon's patched original).
 __declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORIGINAL(0x0058D670)
@@ -112,7 +112,7 @@ private:
 
 } // namespace
 
-int Projectile::Update() { return SpellEffectUpdateOriginal(reinterpret_cast<CSpellEffect*>(this), nullptr); }
+int Projectile::Update() { return reinterpret_cast<CSpellEffect*>(this)->Update(); }
 // 0059C810. Releases the node's missile and returns the node to the free list (the last one frees
 // every block).
 __declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x0059C810)
@@ -121,7 +121,7 @@ __declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, Pro
 
 void CWorldServer::Tick(char force) {
     ++tick_;
-    if ((tick_ & 0x3F) == 3) ServerUpdateWeather(this, nullptr);
+    if ((tick_ & 0x3F) == 3) UpdateWeather();
 
     // Timed objects: each one's slot 6 runs it; those that return 0 are released now and taken
     // out of the map after the walk (the walk reads the node again after the release).
@@ -162,8 +162,8 @@ void CWorldServer::Tick(char force) {
         ProjectileFreeNode(&projectiles_, nullptr, current);
     }
 
-    if (scriptsActive_ != 0 || force) ScriptsRun(MainScript());
-    ScriptsRun(reinterpret_cast<CScript*>(commandsB_));
+    if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
+    ScriptTick(reinterpret_cast<CScript*>(commandsB_));
     ServerUpdateUnits(this, nullptr);
 }
 

@@ -183,7 +183,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     mfc::CString name(cmd->stringArgs.data[0]);
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
-        if (gamecrt::stricmp(ScriptParticleTypes()[i].name, name) == 0) {
+        if (libcrt::Stricmp(ScriptParticleTypes()[i].name, name) == 0) {
             type = &ScriptParticleTypes()[i];
             break;
         }

@@ -28,8 +28,6 @@ __declspec(naked) inline void __fastcall PlayerListRelease(CEngineObject*, void*
 __declspec(naked) inline void __fastcall PlayerSendPair(void*, void*, int, float) EI_ORIGINAL(0x0066F2C0)
 __declspec(naked) inline void __fastcall MissileSetTarget(CEngineObject*, void*, int) EI_ORIGINAL(0x0067AC70)
 __declspec(naked) inline Projectile* __fastcall ProjectileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
-__declspec(naked) inline void __fastcall ArmourTexture(mfc::CString*, std::uint32_t, std::uint32_t)
-    EI_ORIGINAL(0x006A3480)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
 // null).
 __declspec(naked) inline CEngineObject* __fastcall ItemManagerCreateItemOriginal(void* /*manager*/, void*, const char* /*name*/)
@@ -37,19 +35,6 @@ __declspec(naked) inline CEngineObject* __fastcall ItemManagerCreateItemOriginal
 // 00665470: Player::GiveItems(list, flag) (RET 8, EAX not a result).
 __declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*/, void*, void* /*items*/, int /*flag*/)
     EI_ORIGINAL(0x00665470)
-
-// The item database (007AF60C) lists the names of each kind into a CStringArray: 006AD2F0 weapons, 006AD380 armors,
-// 006AD410 quick items, 006AD260 the fourth kind (materials). The spell database (007AF604): 00689570 spells, 00689610
-// modifiers. All __thiscall, RET 4, no result.
-__declspec(naked) inline void __fastcall ItemDbListWeaponsOriginal(void* /*db*/, void*, mfc::CStringArray*) EI_ORIGINAL(0x006AD2F0)
-__declspec(naked) inline void __fastcall ItemDbListArmorsOriginal(void* /*db*/, void*, mfc::CStringArray*) EI_ORIGINAL(0x006AD380)
-__declspec(naked) inline void __fastcall ItemDbListQuickItemsOriginal(void* /*db*/, void*, mfc::CStringArray*)
-    EI_ORIGINAL(0x006AD410)
-__declspec(naked) inline void __fastcall ItemDbListFourthKindOriginal(void* /*db*/, void*, mfc::CStringArray*)
-    EI_ORIGINAL(0x006AD260)
-__declspec(naked) inline void __fastcall SpellDbListSpellsOriginal(void* /*db*/, void*, mfc::CStringArray*) EI_ORIGINAL(0x00689570)
-__declspec(naked) inline void __fastcall SpellDbListModifiersOriginal(void* /*db*/, void*, mfc::CStringArray*)
-    EI_ORIGINAL(0x00689610)
 
 // C3h. 00661700: party Reset(a, b) (RET 8, EAX not a result); 00661DB0: party AddItem(item, flag1, flag2) (RET 0xC; the
 // two flags are read as bytes; EAX is the item, or null).
@@ -83,8 +68,7 @@ __declspec(naked) inline int __fastcall PartyEquipFromPrototypeOriginal(void* /*
 
 // C3i part 2. 00613820: the quick item record by name (RET 4). 006AD000: item factory MakeItem (RET 0x10, returns the item);
 // 006AD1E0: CreateSpell(name, owner) (RET 8, returns the spell). 006611D0: party record builder destructor, 00665200: player
-// clear, 00665A10: player disconnect, 0066EF80: player state refresh, 0066F450: resend the party (all plain RET, EAX not a
-// result). 0066C180: creates a player object for a session (plain RET, EAX is the player or null).
+// clear, 00665A10: player disconnect (all plain RET, EAX not a result). 0066C180: creates a player object for a session (plain RET, EAX is the player or null).
 __declspec(naked) inline void* __fastcall FindQuickItemOriginal(void* /*map*/, void*, const char* /*name*/) EI_ORIGINAL(0x00613820)
 __declspec(naked) inline void* __fastcall FactoryMakeItemOriginal(void* /*factory*/, void*, int, int, int, int)
     EI_ORIGINAL(0x006AD000)
@@ -102,16 +86,12 @@ __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/
 // address, so that its verify wrapper runs (CPlayerManager::SendValueToAll is its only caller).
 __declspec(naked) inline void __fastcall PlayerServerSend12Original(void* /*server*/, void*, int /*unused*/, int /*value*/)
     EI_ORIGINAL(0x0066D730)
-__declspec(naked) inline void __fastcall PlayerStateRefreshOriginal(void* /*state*/) EI_ORIGINAL(0x0066EF80)
 // 0059C3D0 (RET 8, no result): SetSize(count, growBy) of the unit placements (an MFC CArray of 0x28-byte records whose
 // new elements 004CEE20 builds), the player state's +0x74 and the zone entry's list.
 __declspec(naked) inline void __fastcall PlacementsSetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x0059C3D0)
-__declspec(naked) inline void __fastcall PlayerResendPartyOriginal(void* /*state*/) EI_ORIGINAL(0x0066F450)
 // 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
 // type (bytes) and raises the fatal error 00480080; returns its result.
-// 00665870 (RET 4): the player drops the item with this id from its item list.
-__declspec(naked) inline void __fastcall PlayerRemoveItemOriginal(void* /*player*/, void*, int /*id*/) EI_ORIGINAL(0x00665870)
 __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)
     EI_ORIGINAL(0x00664B70)
 
@@ -176,11 +156,6 @@ __declspec(naked) inline void __fastcall StockAddModifierOriginal(void* /*list*/
 // 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
 __declspec(naked) inline char* __fastcall SpellPrototypeByNameOriginal(void* /*table*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x00613920)
-// C3m. The spell and modifier records by code (thiscall on their tables; null when missing): 0068C820 on 007C8510
-// (0x84-byte records, the code a CString at +4), 0068C920 on 007C8530 (0x24-byte records, the code inline at +4).
-// Both rewritten as itemdb::CodeIndexedTable::FindByCode; through their addresses.
-__declspec(naked) inline char* __fastcall FindSpellByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C820)
-__declspec(naked) inline char* __fastcall FindModifierByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C920)
 // C3m. 0069D290: a record of the material table by name; 0069D380: the class-0x15 prototype table's record by name
 // (thiscall on 007C8778, item_db.h's QuestItems() table). RET 4; null when missing.
 __declspec(naked) inline char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
@@ -210,22 +185,3 @@ __declspec(naked) inline void __fastcall PlayerStateSetVariableOriginal(void* /*
 __declspec(naked) inline void __fastcall PlayerStateSetVariableMaxOriginal(void* /*state*/, void*, const char* /*name*/,
                                                                            float /*value*/) EI_ORIGINAL(0x0066EE80)
 
-// C3n batch 5. Items at their addresses (thiscall; the verify wrappers run). 006A0110 (rewritten as CItem::GetPrototype) the item's
-// prototype record; 006A04D0 (CItem::AttachSpell; RET 4) puts a spell into the item; 006A39E0 (CItemArmor::GetType) the armor
-// type; 006A4230 (CItem::GetCategory) the item's category.
-__declspec(naked) inline char* __fastcall ItemGetPrototypeOriginal(CItem* /*item*/) EI_ORIGINAL(0x006A0110)
-__declspec(naked) inline void __fastcall ItemAttachSpellOriginal(CItem* /*item*/, void*, CSpell* /*spell*/) EI_ORIGINAL(0x006A04D0)
-__declspec(naked) inline int __fastcall ArmorGetTypeOriginal(CItemArmor* /*armor*/) EI_ORIGINAL(0x006A39E0)
-__declspec(naked) inline int __fastcall ItemGetCategoryOriginal(CItem* /*item*/) EI_ORIGINAL(0x006A4230)
-// The item constructor (CItemConstructor; thiscall): 006A5C50 BeginCreateItem(kind, key) (RET 8), 006A5CC0 SetMaterial (RET 4),
-// 006A5CD0 SetPrototype (RET 4), 006A5CE0 SetSpellObject (RET 4), 006A5CF0 EndCreateItem (the finished item, or null).
-__declspec(naked) inline int __fastcall ItemConstructorBeginCreateItemOriginal(CItemConstructor* /*constructor*/, void*, int /*kind*/,
-                                                                              int /*key*/) EI_ORIGINAL(0x006A5C50)
-__declspec(naked) inline int __fastcall ItemConstructorSetMaterialOriginal(CItemConstructor* /*constructor*/, void*,
-                                                                          char* /*material*/) EI_ORIGINAL(0x006A5CC0)
-__declspec(naked) inline int __fastcall ItemConstructorSetPrototypeOriginal(CItemConstructor* /*constructor*/, void*,
-                                                                           char* /*prototype*/) EI_ORIGINAL(0x006A5CD0)
-__declspec(naked) inline int __fastcall ItemConstructorSetSpellObjectOriginal(CItemConstructor* /*constructor*/, void*,
-                                                                             CSpell* /*spell*/) EI_ORIGINAL(0x006A5CE0)
-__declspec(naked) inline CItem* __fastcall ItemConstructorEndCreateItemOriginal(CItemConstructor* /*constructor*/)
-    EI_ORIGINAL(0x006A5CF0)

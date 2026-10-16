@@ -49,7 +49,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
         found = TextsOpenSection(texts, nullptr, key);
     }
     if (found)
-        TextsReadLineOriginal(texts, nullptr, &name, 1);
+        static_cast<CTextManager*>(texts)->ReadLine(&name, 1);
     else
         name = label;
     if (maximum >= 0)

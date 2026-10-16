@@ -94,9 +94,6 @@ bool IsAnimated(const Terrain* owner, int texture) {
 
 } // namespace
 
-__declspec(naked) void SectorData::BuildAtOriginal() EI_ORIGINAL(0x006C1C00)
-__declspec(naked) void SectorData::LightAtOriginal(CLight*, Terrain*, int, int, int, int, int) EI_ORIGINAL(0x006C3A00)
-
 // ---------------------------------------------------------------------------------------------
 // Loading
 
@@ -526,9 +523,9 @@ namespace terrain {
 
 std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
     if (wanted & built) return 1;
-    if (wanted >= 2 && !(built & 2)) BuildAtOriginal();
+    if (wanted >= 2 && !(built & 2)) Build();
     if (wanted >= 4 && !(built & 4))
-        LightAtOriginal(terrain->sun, terrain, 0, 0, 0, 0x20, 0x20);
+        Light(terrain->sun, terrain, 0, 0, 0, 0x20, 0x20);
     return wanted & built;
 }
 

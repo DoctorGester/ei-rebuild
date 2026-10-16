@@ -1,6 +1,8 @@
 // The effect base (CEffect) and the sound effects: CEffectSound, CEffectSoundSeq,
 // CEffectAmbientSound. See world_effect.h for the class map and docs/notes/effects.md.
 
+#include "net_delta.h"
+#include "sound.h"
 #include "world_effect_internal.h"
 
 #include "lib/mfc.h"
@@ -12,7 +14,7 @@ using namespace effect;
 
 namespace {
 
-// The sound system (*007AF784), thiscall (006B8600 plays a sound: SoundManagerPlay3DOriginal). The
+// The sound system (*007AF784), thiscall (006B8600 plays a sound: CSoundManager::Play3D). The
 // mover takes the volume and radius as the floats' bits.
 // 006B92F0: moves a playing sound.
 __declspec(naked) void __fastcall MoveSound(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/) EI_ORIGINAL(0x006B92F0)
@@ -24,7 +26,6 @@ __declspec(naked) void __fastcall StopSequence(void*, void*, int /*sound*/) EI_O
 // returns the handle to keep (-1).
 __declspec(naked) int __fastcall PlayAmbient(void*, void*, mfc::CStringArray* /*names*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9950)
 __declspec(naked) void __fastcall MoveAmbient(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9A30)
-__declspec(naked) int __fastcall StopAmbient(void*, void*, int /*sound*/) EI_ORIGINAL(0x006B9AA0)
 
 // What every Reset (slot 18) does to the base part first: position, field streams, start tick,
 // velocity, moving flag and stamp.
@@ -113,7 +114,7 @@ double CEffect::DefaultRadius() { return ConstAt(worlddata::DefaultRadius()); }
 
 void CEffectSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1 && looping_ != 0) SoundStop(SoundSystem(), nullptr, sound_);
+    if (sound_ != -1 && looping_ != 0) static_cast<CSoundManager*>(SoundSystem())->StopSound(sound_);
     sound_ = -1;
     looping_ = 1;
     std::memset(name_, 0, sizeof(name_));   // SV7b2a: the original clears name_[0] (the harness all of it)
@@ -136,7 +137,7 @@ int CEffectSound::Tick() {
 
 void CEffectSound::Start(int update) {
     if (update == 0) {
-        sound_ = SoundManagerPlay3DOriginal(SoundSystem(), nullptr, name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
+        sound_ = static_cast<CSoundManager*>(SoundSystem())->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
                                             volume_, radius_, looping_, 0);
         return;
     }
@@ -264,7 +265,7 @@ double CEffectSoundSeq::Radius() { return radius_; }
 
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1) sound_ = StopAmbient(SoundSystem(), nullptr, sound_);
+    if (sound_ != -1) sound_ = static_cast<CSoundManager*>(SoundSystem())->RemoveEmitter(sound_);
     StringArraySetSize(&names_, nullptr, 0, -1);
     volume_ = 0.0f;
     radius_ = 0.0f;
@@ -291,7 +292,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     StringArraySetSize(&names_, nullptr, static_cast<int>(countSlot & 0xFF), -1);
     for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
         alignas(4) unsigned char raw[sizeof(mfc::CString)];
-        auto* text = static_cast<mfc::CString*>(FieldReadString(field, nullptr, raw));
+        auto* text = static_cast<mfc::CString*>(field->ReadString(raw));
         names_[i] = *text;
         text->~CString();
     }

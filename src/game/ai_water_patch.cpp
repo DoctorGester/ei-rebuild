@@ -72,7 +72,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     CUnitLayer* layer = &unitLayerSmall;
     auto* owner = reinterpret_cast<CUnit*>(static_cast<std::intptr_t>(key));
     if (add) UnitLayerAddOriginal(layer, nullptr, owner, Patch(), x0, y0);
-    else UnitLayerRemoveOriginal(layer, nullptr, owner, x0, y0);
+    else layer->Remove(owner, x0, y0);
 }
 
 EI_REPLACE_METHOD(0x005B7EF0, CAIMap::StampWaterPatch);

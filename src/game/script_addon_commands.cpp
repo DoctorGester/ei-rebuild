@@ -35,8 +35,6 @@ namespace scriptaddon {
 
 namespace {
 
-// 00566330 on the client world: the pause request through the client's session.
-__declspec(naked) void __fastcall ClientPause(CWorldClient*, void*, int) EI_ORIGINAL(0x00566330)
 // The camera script player (the client glue object, not read): start (005787F0) and stop
 // (005787D0) saving a camera path.
 __declspec(naked) void __fastcall CameraStartSave(void*, void*, const char*) EI_ORIGINAL(0x005787F0)
@@ -140,7 +138,7 @@ bool GiveExp(Call* call) {
 bool GiveUnitExp(Call* call) {
     auto* data = static_cast<CUnitServer*>(UnitData(call->cmd->objectArgs.data[0]));
     if (!data) return InvalidArguments("GiveUnitExp");
-    DataGainExperience(data, nullptr, Floats(call)[0]);
+    static_cast<CUnitServer*>(data)->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;
     if (auto* party = reinterpret_cast<WorldPlayer*>(unit->player))
         if (CPlayerServer* state = party->server)
@@ -175,7 +173,7 @@ bool SendCurrentParty(Call* call) {
     int number = Ftol(Floats(call)[0]);
     WorldPlayer* player = GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
-    PlayerResendPartyOriginal(player->server);
+    static_cast<CPlayerServer*>(player->server)->ResendParty();
     return true;
 }
 
@@ -333,7 +331,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsNetworkClientOriginal()) ClientPause(WorldClient(), nullptr, Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsNetworkClientOriginal()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 
@@ -362,7 +360,7 @@ bool AddMobEx(Call* call) {
     file = Text(call, 0);
     bool keepIds = call->cmd->floatArgs.size != 0 && Equals(1.0f, Floats(call)[0]);
     LoadingMovieOff() = 1;
-    int loaded = WorldLoadMapObjects(WorldServer(), nullptr, file, keepIds ? 1 : 0);
+    int loaded = WorldServer()->LoadMapObjects(file, keepIds ? 1 : 0);
     LoadingMovieOff() = 0;
     if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", static_cast<const char*>(file));
     return true;

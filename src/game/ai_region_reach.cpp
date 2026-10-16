@@ -1,4 +1,4 @@
-// CRegionMap::Reaches (005B07C0): whether cell (x, y) can reach a region, for a size class. The
+// CRegionMap::ReachesRegion (005B07C0): whether cell (x, y) can reach a region, for a size class. The
 // region map keeps per size class a u16 region per 8x8 block (+0x220 + 16 * class, rows) and the
 // block's representative cell (+0x1A0 + 16 * class, rows of bytes: low nibble x, high nibble y in
 // the block). When none of the 3x3 blocks around the cell's block is in the region, the cell's
@@ -33,12 +33,9 @@ std::uint8_t& BlocksGuard() { return ei::GameData<std::uint8_t>(0x007C2EF4); }
 using ExitFn = void(__cdecl*)();
 ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
 
-// The local search at +0x98: set up over a window (size class, x0, y0, x1, y1 exclusive, start
-// x, y), flood (RET 4), finish, settle, the cost of a cell (0x7FFFFFFF unreached), reset.
-__declspec(naked) void __fastcall SearchSetup(LocalSearch*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
+// The local search at +0x98: flood (RET 4) and reset.
 __declspec(naked) void __fastcall SearchFlood(LocalSearch*, void*, int) EI_ORIGINAL(0x005C33F0)
-__declspec(naked) void __fastcall SearchSettle(LocalSearch*, void*) EI_ORIGINAL(0x005C3530)
-void __fastcall SearchReset(LocalSearch* a0, void*) { LocalSearchResetOriginal(a0); }
+void __fastcall SearchReset(LocalSearch* a0, void*) { static_cast<LocalSearch*>(a0)->Reset(); }
 
 // LabelRegions' function-local statics: the flood queue at 007C2F10 (guard bit 0 of 007C2F24,
 // destroyed by 005B0360) and its second list at 007C2EF8 (bit 1, 005B0350).
@@ -96,11 +93,6 @@ void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)
     grid.height = height;
     allocate(&grid);
 }
-// 005AF7B0 (RET 0x14, AL): whether cell (x, y) of block (bx, by) suits the block for a size class
-// (CRegionMap::CellSuitsBlock, called through its original address).
-__declspec(naked) bool __fastcall CellSuitsBlock(CRegionMap*, void*, int, int, int, int, int) EI_ORIGINAL(0x005AF7B0)
-// 005C2CF0 with its AL result: false when the search could not be set up.
-__declspec(naked) bool __fastcall SearchSetupOk(LocalSearch*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
 // The region map's two block searches: BlockSearch (ai_map.h).
 
 // 005B0AF0 (RET 0x14, AL): seeds a search (size class, which side, the search, cell x, y).
@@ -108,8 +100,7 @@ __declspec(naked) bool __fastcall SearchSetupOk(LocalSearch*, void*, int, int, i
 __declspec(naked) bool __fastcall SeedBlockSearch(CRegionMap*, void*, int, int, BlockSearch*, int, int) EI_ORIGINAL(0x005B0AF0)
 __declspec(naked) bool __fastcall JoinBlockSearchesAt(CRegionMap*, void*, void*) EI_ORIGINAL(0x005AF5F0)
 
-// The block search (thiscall): expand one round; the path to block (x, y) into a list (RET 0xC).
-__declspec(naked) void __fastcall ExpandBlockSearch(BlockSearch*) EI_ORIGINAL(0x005AF0C0)
+// The block search (thiscall): the path to block (x, y) into a list (RET 0xC).
 __declspec(naked) void __fastcall BlockPathTo(BlockSearch*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005AF1C0)
 // The path list: a reversed copy into `out` (RET 4, returns out), append (RET 4), fix-up.
 void __fastcall ChainFixUp(PathCellList* a0) { PathCellListFixUpOriginal((void*)a0); }
@@ -206,17 +197,17 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     int x0 = bx * 8 - 8, y0 = by * 8 - 8, x1 = bx * 8 + 16, y1 = by * 8 + 16;
     local.backward = true;
     LocalSearch* search = &local;
-    SearchSetup(search, nullptr, sizeClass, x0, y0, x1, y1, x, y);
+    search->BeginInRectForClass(sizeClass, x0, y0, x1, y1, x, y);
     SearchFlood(search, nullptr, 1);
-    SearchFinish(search, nullptr);
-    SearchSettle(search, nullptr);
+    search->ExpandAll();
+    search->RestoreLevels();
 
     std::uint8_t** cellRows = cells[sizeClass].rows;
     bool found = false;
     for (int k = 0; k < blocks.size; ++k) {
         int xx = blocks.data[k].x, yy = blocks.data[k].y;
         std::uint8_t cell = cellRows[yy][xx];
-        if (SearchCost(search, nullptr, (cell & 0xF) + xx * 8, (cell >> 4) + yy * 8) < kUnreached && inRegion(xx, yy)) {
+        if (search->CostAt((cell & 0xF) + xx * 8, (cell >> 4) + yy * 8) < kUnreached && inRegion(xx, yy)) {
             found = true;
             break;
         }
@@ -224,7 +215,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     std::uint8_t mark = found ? 1 : 2;
     for (int row = y0; row < y1; ++row)
         for (int col = x0; col < x1; ++col)
-            if (SearchCost(search, nullptr, col, row) < kUnreached) marks->rows[row][col] = static_cast<std::int8_t>(mark);
+            if (search->CostAt(col, row) < kUnreached) marks->rows[row][col] = static_cast<std::int8_t>(mark);
     SearchReset(search, nullptr);
     return found;
 }
@@ -277,17 +268,17 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
 
     local.backward = flag;
     LocalSearch* search = &local;
-    SearchSetup(search, nullptr, sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, x, y);
+    search->BeginInRectForClass(sizeClass, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, x, y);
     SearchFlood(search, nullptr, 1);
-    SearchFinish(search, nullptr);
-    SearchSettle(search, nullptr);
+    search->ExpandAll();
+    search->RestoreLevels();
     std::uint8_t** cellRows = cells[sizeClass].rows;
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
             std::uint8_t cell = cellRows[yy][xx];
-            int cost = SearchCost(search, nullptr, (cell & 0xF) + xx * 8, (cell >> 4) + yy * 8);
+            int cost = search->CostAt((cell & 0xF) + xx * 8, (cell >> 4) + yy * 8);
             if (cost >= kUnreached) continue;
             BlockCostList::Node* node = out->NewNode(out->tail, nullptr);
             node->data.x = xx;
@@ -398,7 +389,7 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
                     int nibble = static_cast<int>((map->cells[y][x].passable >> (c * 4)) & 0xF);
                     if (nibble == 0) continue;
                     if (!(nibble > best) && found) continue;
-                    bool suits = CellSuitsBlock(this, nullptr, c, bx, by, xx, yy);
+                    bool suits = CellSuitsBlockAt(c, bx, by, xx, yy);
                     if (!suits && found) continue;
                     found = suits;
                     best = nibble;
@@ -469,8 +460,8 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
     bool ok = true;
     int x = 0, y = 0;
     for (;;) {
-        ExpandBlockSearch(&forward);
-        ExpandBlockSearch(&backward);
+        forward.Expand();
+        backward.Expand();
         BlockRecord* best = forward.best;
         if (!best || best->cost == kUnreached) {
             ok = false;
@@ -569,9 +560,9 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
         std::int16_t** edgeRows = edges[c].rows;
         std::uint8_t own = cellRows[by][bx];
         local.backward = false;
-        SearchSetup(search, nullptr, c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, (own & 0xF) + bx * 8,
+        search->BeginInRectForClass(c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, (own & 0xF) + bx * 8,
                     (own >> 4) + by * 8);
-        SearchFinish(search, nullptr);
+        search->ExpandAll();
         // Each direction: the search cost from the block's representative cell to the
         // neighbour's, in units of 128 (at most 0x7FFF); -1 off the map or unreached.
         for (int dir = 0; dir < 8; ++dir) {
@@ -579,7 +570,7 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
             std::int16_t value = -1;
             if (nx >= 0 && ny >= 0 && nx < BlocksWide(this) && ny < BlocksHigh(this)) {
                 std::uint8_t other = cellRows[ny][nx];
-                int cost = SearchCost(search, nullptr, (other & 0xF) + nx * 8, (other >> 4) + ny * 8);
+                int cost = search->CostAt((other & 0xF) + nx * 8, (other >> 4) + ny * 8);
                 if (cost < kUnreached) {
                     cost /= 128;
                     if (cost > 0x7FFF) cost = 0x7FFF;
@@ -657,14 +648,14 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     int left = bx * 8, top = by * 8, right = bx * 8 + 8, bottom = by * 8 + 8;
     // A search confined to the block and its far edges (9x9 cells) from the candidate cell; when
     // it cannot be set up the cell is taken.
-    if (!SearchSetupOk(search, nullptr, sizeClass, left, top, right, bottom, xx + left, yy + top)) return true;
-    SearchFinish(search, nullptr);
+    if (!search->BeginInRectForClass(sizeClass, left, top, right, bottom, xx + left, yy + top)) return true;
+    search->ExpandAll();
     // Suitable when it reaches both the left and the right edge, or else both the top and the
     // bottom edge.
     bool first = false, second = false;
     for (int y = top; y < top + 9; ++y) {
-        if (SearchCost(search, nullptr, left, y) < kUnreached) first = true;
-        if (SearchCost(search, nullptr, right, y) < kUnreached) second = true;
+        if (search->CostAt(left, y) < kUnreached) first = true;
+        if (search->CostAt(right, y) < kUnreached) second = true;
     }
     if (first && second) {
         SearchReset(search, nullptr);
@@ -673,8 +664,8 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     first = false;
     second = false;
     for (int x = left; x < left + 9; ++x) {
-        if (SearchCost(search, nullptr, x, top) < kUnreached) first = true;
-        if (SearchCost(search, nullptr, x, bottom) < kUnreached) second = true;
+        if (search->CostAt(x, top) < kUnreached) first = true;
+        if (search->CostAt(x, bottom) < kUnreached) second = true;
     }
     SearchReset(search, nullptr);
     return first && second;

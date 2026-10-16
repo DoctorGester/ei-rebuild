@@ -34,10 +34,6 @@ namespace {
 constexpr int kMapObjectNetFields = 4;
 constexpr int kInitialCountdown = 5;      // CMapObject::updateCountdown
 
-// 00515F70 (object3d_lifetime.cpp), called through its game address so its verify wrapper stays in
-// the path (this is its only caller besides the 3D object's vtable).
-__declspec(naked) int __fastcall CallCreate3D(CObject3D*) EI_ORIGINAL(0x00515F70)
-
 void DetachCompanion(CMapObject* object) {
     if (CEngineObject* companion = object->companion) {
         CompanionOwner(companion) = nullptr;
@@ -48,7 +44,7 @@ void DetachCompanion(CMapObject* object) {
 } // namespace
 
 int CMapObject::CreateMapObject() {
-    CallCreate3D(this);
+    Create3D();
     DetachCompanion(this);
     PackedVitals()->Reset();
     animationSpeed = 1.0f;
@@ -79,7 +75,7 @@ EI_REPLACE_METHOD(0x0050E840, CMapObject::DestroyMapObject);
 // --- Units and torches -----------------------------------------------------------------------------
 
 int CUnit::CreateUnit() {
-    MapObjectCreate(this);
+    static_cast<CMapObject*>(this)->CreateMapObject();
     Reset();
     NetFieldsSetSize(MapObject()->NetState(), nullptr, kUnitNetFields, -1);
     return 1;
@@ -87,7 +83,7 @@ int CUnit::CreateUnit() {
 EI_REPLACE_METHOD(0x0052E400, CUnit::CreateUnit);
 
 int CTorchObject::CreateTorch() {
-    MapObjectCreate(this);
+    static_cast<CMapObject*>(this)->CreateMapObject();
     CTorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();

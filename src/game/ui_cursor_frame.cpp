@@ -48,13 +48,6 @@ LONG CursorHeight() { return *reinterpret_cast<LONG*>(0x007C7C94); }
 
 // 00500960: the renderer object (007AF060); its +4 bit 0 is the software cursor display option.
 bool SoftwareCursor() { return (*(static_cast<std::uint8_t*>(DisplayObject()) + 4) & 1) != 0; }
-// 005E52E0 (thiscall): moves the cursor's rectangles to the mouse position; nonzero when shown.
-__declspec(naked) char __fastcall UpdatePosition(CCursor*) EI_ORIGINAL(0x005E52E0)
-// 005E5C40 (thiscall): the composition (ui_cursor.cpp, through its address).
-__declspec(naked) void __fastcall CursorBlit(CCursor*, void*, CursorImage*, RECT*, RECT*) EI_ORIGINAL(0x005E5C40)
-// 005E5640 (rewritten below) through its address, so its wrapper sees the calls.
-__declspec(naked) long __fastcall HolderBltAt(CDXSurface*, void*, RECT*, CDXSurface*, RECT*, unsigned long, void*)
-    EI_ORIGINAL(0x005E5640)
 
 CDXSurface* RenderTarget(const CDXSurface* holder) { return holder->device->renderTarget_; }
 CDXSurface* Primary(const CDXSurface* holder) { return holder->device->primary_; }
@@ -93,7 +86,7 @@ bool OldPathDraws(const CCursor* self) {
 // rectangle follows as the original's blits made it.
 void MoveBetweenFrames(CCursor* self) {
     gameapi::EnterCriticalSection(&self->lock_);
-    char moved = UpdatePosition(self);
+    char moved = self->UpdatePosition();
     if (self->imageShown_ != 0 && moved != 0) {
         CursorImage* image = self->image_;
         render::CursorBetweenFrames(image->holder, image->saved, ToRender(self->from_), ToRender(self->rect_));
@@ -118,7 +111,7 @@ EI_REPLACE_METHOD(0x005E5640, CDXSurface::Blt);
 void __fastcall CursorDrawFrame(CCursor* self) {
     if (!SoftwareCursor()) return;
     if (!self->enabled_) return;
-    UpdatePosition(self);
+    self->UpdatePosition();
     RECT* rect = &self->rect_;
     if (gameapi::IsRectEmpty(rect)) return;
     bool oldPath = OldPathDraws(self);
@@ -127,16 +120,16 @@ void __fastcall CursorDrawFrame(CCursor* self) {
         CDXSurface* under = self->under_;
         CDXSurface* screen = RenderTarget(under);
         if (oldPath && screen->surface != under->surface)
-            HolderBltAt(under, nullptr, &local, screen, rect, kBltWaitAsync, nullptr);
+            under->Blt(&local, screen, rect, kBltWaitAsync, nullptr);
         local = Local(*rect);
         CursorImage* image = self->image_;
-        if (oldPath && image->holder->surface) CursorBlit(self, nullptr, image, &local, &self->from_);
+        if (oldPath && image->holder->surface) self->Blit(image, &local, &self->from_);
         if (render::Active()) render::Cursor(image->holder, image->saved, ToRender(self->from_), ToRender(*rect));
         local = Local(*rect);
         CDXSurface* composed = self->target_;
         CDXSurface* target = RenderTarget(composed);
         if (oldPath && target->surface != composed->surface)
-            HolderBltAt(target, nullptr, rect, composed, &local, kBltWaitAsync, nullptr);
+            target->Blt(rect, composed, &local, kBltWaitAsync, nullptr);
         self->drawn_ = *rect;
         return;
     }
@@ -163,12 +156,12 @@ void __fastcall CursorThread(CCursor* self) {
     RECT* drawn = &self->drawn_;
     RECT* rect = &self->rect_;
     gameapi::EnterCriticalSection(&self->lock_);
-    UpdatePosition(self);
+    self->UpdatePosition();
     *drawn = *rect;
     RECT whole{0, 0, CursorWidth(), CursorHeight()};
     CDXSurface* primary = Primary(self->under_);
     if (OldPathDraws(self) && primary->surface != self->under_->surface)
-        HolderBltAt(self->under_, nullptr, &whole, primary, drawn, kBltWaitAsync, nullptr);
+        self->under_->Blt(&whole, primary, drawn, kBltWaitAsync, nullptr);
     gameapi::LeaveCriticalSection(&self->lock_);
     DWORD last = gameapi::timeGetTime();
     while (!self->stop_) {
@@ -186,7 +179,7 @@ void __fastcall CursorThread(CCursor* self) {
             continue;
         }
         gameapi::EnterCriticalSection(&self->lock_);
-        char moved = UpdatePosition(self);
+        char moved = self->UpdatePosition();
         if (self->imageShown_ == 0 || moved == 0 || !self->image_->holder->surface) {
             gameapi::LeaveCriticalSection(&self->lock_);
             continue;
@@ -202,18 +195,18 @@ void __fastcall CursorThread(CCursor* self) {
                 // The old place gets its background back.
                 RECT saved = Local(*drawn);
                 CDXSurface* screen = Primary(under);
-                if (screen->surface != under->surface) HolderBltAt(screen, nullptr, drawn, under, &saved, kBltWaitAsync, nullptr);
+                if (screen->surface != under->surface) screen->Blt(drawn, under, &saved, kBltWaitAsync, nullptr);
             }
             if (!gameapi::IsRectEmpty(rect)) {
                 RECT saved = Local(*rect);
                 CDXSurface* screen = Primary(under);
-                if (screen->surface != under->surface) HolderBltAt(under, nullptr, &saved, screen, rect, kBltWaitAsync, nullptr);
+                if (screen->surface != under->surface) under->Blt(&saved, screen, rect, kBltWaitAsync, nullptr);
                 RECT to = Local(*rect);
-                CursorBlit(self, nullptr, image, &to, from);
+                self->Blit(image, &to, from);
                 RECT composedPart = Local(*rect);
                 screen = Primary(composed);
                 if (screen->surface != composed->surface)
-                    HolderBltAt(screen, nullptr, rect, composed, &composedPart, kBltWaitAsync, nullptr);
+                    screen->Blt(rect, composed, &composedPart, kBltWaitAsync, nullptr);
             }
         } else {
             RECT both;
@@ -221,7 +214,7 @@ void __fastcall CursorThread(CCursor* self) {
             RECT bothLocal = Local(both);
             CDXSurface* screen = Primary(composed);
             if (screen->surface != composed->surface)
-                HolderBltAt(composed, nullptr, &bothLocal, screen, &both, kBltWaitAsync, nullptr);
+                composed->Blt(&bothLocal, screen, &both, kBltWaitAsync, nullptr);
             // The old background (the image's size) back into the composition.
             LONG dx = drawn->left - both.left, dy = drawn->top - both.top;
             RECT imagePart{0, 0, image->width, image->height};
@@ -235,7 +228,7 @@ void __fastcall CursorThread(CCursor* self) {
             RECT to{rect->left - both.left, rect->top - both.top, 0, 0};
             to.right = Width(*rect) + to.left;
             to.bottom = Height(*rect) + to.top;
-            CursorBlit(self, nullptr, image, &to, from);
+            self->Blit(image, &to, from);
             WaitForVerticalBlank(self);
             RECT composedPart = Local(both);
             screen = Primary(composed);

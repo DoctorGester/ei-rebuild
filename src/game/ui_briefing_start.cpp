@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue start and end (CBriefingScreen::StartDialogue /
 // FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
 // See docs/notes/ui.md, "Briefing / base screen".
+#include "player_messages.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
@@ -53,7 +54,7 @@ constexpr int kStateStarting = 2;
 constexpr float kSpacing = 2.5f;         // 0073CE18, added to the prototype's viewDistance
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 Vector3 Position(const CUnit* unit) { return Vector3{unit->position.x, unit->position.y, unit->position.z}; }
@@ -210,7 +211,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
                                    leaderPlace.z - personPlace.z, 1, immediate_, 0);
     }
     if (immediate_)
-        BriefingStartPhrasesOriginal(this);
+        StartPhrases();
     else
         state_ = kStateStarting;
 }
@@ -241,7 +242,7 @@ void CBriefingScreen::ClearShownItems() {
 void CBriefingScreen::FinishDialogue() {
     if (voice_ != -1) sound::Manager()->StopSound(voice_);
     voice_ = -1;
-    MusicFadeInOriginal(MusicSystem());
+    static_cast<CMusicSystem*>(MusicSystem())->FadeIn();
     ClearShownItems();
 
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
@@ -292,7 +293,7 @@ void CBriefingScreen::FinishDialogue() {
     if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventEnds, leader_->id_);
     Vector3 at = Position(leader_);
     if (briefingStarted_) {
-        PlayerSendPosition04Original(LocalServerPlayer()->server, nullptr, &at, 0, 1);
+        static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition04(&at, 0, 1);
         camera::TheCamera()->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {

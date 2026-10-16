@@ -1,5 +1,6 @@
 // The global map's input side (right-button drag, keys), its close and message-result slots
 // (CGlobalMap, ui_camp.h). See docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_camp.h"
 
 #include "console.h"
@@ -65,7 +66,7 @@ void ReleaseDragCursor() {
     int y = MouseScreenY();
     MouseDragY() = 0;
     MouseDragX() = 0;
-    CursorSetHeldOriginal(GameCursor(), nullptr, 0);
+    GameCursor()->SetHeld(0);
     gameapi::SetCursorPos(x, y);
 }
 
@@ -85,7 +86,7 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     dragAngle_ = angle_;
     MouseDragY() = 0;
     MouseDragX() = 0;
-    CursorSetHeldOriginal(GameCursor(), nullptr, 1);
+    GameCursor()->SetHeld(1);
 }
 
 void CGlobalMap::OnRightUp(int, int, int) {
@@ -102,7 +103,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float turned = static_cast<float>(static_cast<float>(drag.x) * GameFloat(0x00740204) + angle_);   // 1 / 300
         angle_ = turned;
-        angle_ = static_cast<float>(gamecrt::fmod(turned, GameFloat(0x007C8020)));
+        angle_ = static_cast<float>(libcrt::StackFmod(turned, GameFloat(0x007C8020)));
         Quaternion spin, tilt;
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, GameFloat(0x00742098) * GameFloat(0x0073CCA8));   // pi * 0.8
@@ -124,7 +125,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         if (region < 0) {
             // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
             // WideScreen takes the margin off its x (0063023C: addon's code at 005FD237).
-            std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2 - widescreen::PickShift(), y / 2);
+            std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
             if (index >= zoneCount_) index = -1;
             if (gipat_ && index >= 0 && zones_.data[index].link >= 0) {
@@ -214,7 +215,7 @@ void CGlobalMap::Close() {
         gamecrt::operator_delete(backdrop);
     }
     backdrop_ = nullptr;
-    InterfaceStopSoundOriginal(interface_, nullptr, windSound_);
+    interface_->StopSound(windSound_);
 }
 EI_REPLACE_METHOD(0x0062EDD0, CGlobalMap::Close);
 EI_REPLACE_METHOD(0x0062EE30, CGlobalMap::OnMessageResult);

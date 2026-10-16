@@ -5,6 +5,7 @@
 // vanilla game. Every callee is reached through its original address (forwarders below): several
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
+#include "object_tables.h"
 #include "script.h"
 #include "game_strings.h"
 #include "script_addon.h"
@@ -20,6 +21,7 @@
 #include "party_records.h"
 #include "player_messages.h"
 #include "quest_records.h"
+#include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -78,11 +80,8 @@ float ColourScale() { return *reinterpret_cast<const float*>(0x0073C36C); }
 int ConfiguredTimeSpeed() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 
 // Script helpers (script.h types, original addresses).
-__declspec(naked) void __fastcall SetParametersOrig(SSCCmd*, void*, const mfc::CArray<ScriptBinding>*, ScriptVars*)
-    EI_ORIGINAL(0x004B3F60)
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
     EI_ORIGINAL(0x004B4030)
-__declspec(naked) void __fastcall BindCallOrig(ScriptDefinition*, void*, const SSCCmd*) EI_ORIGINAL(0x004BB6A0)
 // CArray<ScriptObjectRef> (groups): Copy 004C1290, RemoveAt 004C2200.
 inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 __declspec(naked) void __fastcall GroupRemoveAt(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2200)
@@ -97,23 +96,9 @@ using LightningList = mfc::CList<ScriptLightning>;
 __declspec(naked) void __fastcall ParticleRemoveAt(ParticleList*, void*, ParticleList::Node*) EI_ORIGINAL(0x004C6040)
 __declspec(naked) void __fastcall FxSourceRemoveAt(FxSourceList*, void*, FxSourceList::Node*) EI_ORIGINAL(0x004C6370)
 __declspec(naked) void __fastcall LightningRemoveAt(LightningList*, void*, LightningList::Node*) EI_ORIGINAL(0x004C6680)
-// CScript helpers taking the command (point lights, particles, FX, lightning).
-__declspec(naked) void __fastcall CreatePointLight(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BD6A0)
-__declspec(naked) void __fastcall MovePointLight(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BD820)
-__declspec(naked) void __fastcall DeletePointLight(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BD920)
-__declspec(naked) void __fastcall CreateParticleSource(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BD9A0)
-__declspec(naked) void __fastcall CreateLightning(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BCFF0)
-__declspec(naked) void __fastcall MoveParticleSource(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BDBB0)
-__declspec(naked) void __fastcall CreateFX(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BD260)
-__declspec(naked) void __fastcall CreateFXSource(CScript*, void*, SSCCmd*) EI_ORIGINAL(0x004BD310)
-__declspec(naked) void __fastcall DeleteArea(CScript*, void*, int) EI_ORIGINAL(0x004BCF30)
 // Areas (FindArea's result): add a rectangle / a circle.
 __declspec(naked) void __fastcall AreaAddRect(void*, void*, float, float, float, float) EI_ORIGINAL(0x004B1ED0)
 __declspec(naked) void __fastcall AreaAddRound(void*, void*, float, float, float) EI_ORIGINAL(0x004B2070)
-// Quest builder (globals at 007AA60C): QStart(name), QFinish(script), objective(id, text, value).
-__declspec(naked) void __fastcall QuestStart(const char*) EI_ORIGINAL(0x004BAA40)
-__declspec(naked) void __fastcall QuestFinish(CScript*) EI_ORIGINAL(0x004BAAB0)
-__declspec(naked) void __fastcall QuestObjective(int, const mfc::CString*, float) EI_ORIGINAL(0x004BAE10)
 // The party records of `player` for a "party name" string (ECX player, EDX string).
 __declspec(naked) void* __fastcall PartyRecordsFor(WorldPlayer*, mfc::CString*) EI_ORIGINAL(0x004BAEC0)
 // Object id of a name (ECX = name).
@@ -197,13 +182,13 @@ __declspec(naked) void BrainCalls::Follow(CEngineObject*) EI_ORIGINAL(0x005D7E40
 __declspec(naked) void BrainCalls::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
 __declspec(naked) void BrainCalls::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x005D7DA0)
 __declspec(naked) void BrainCalls::ResetTarget() EI_ORIGINAL(0x005D7C30)
-void BrainCalls::ClearModes() { BrainClearModesOriginal((void*)this); }
+void BrainCalls::ClearModes() { static_cast<AIBrain*>((void*)this)->ClearModes(); }
 void BrainCalls::StopAction() { BrainStopActionOriginal(this); }
 __declspec(naked) void BrainCalls::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
 __declspec(naked) void BrainCalls::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
 void BrainCalls::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void* BrainCalls::FindPatrolMode() EI_ORIGINAL(0x005D5E30)
-void BrainCalls::RemoveMode(int a0) { BrainRemoveModeOriginal((void*)this, nullptr, a0); }
+void BrainCalls::RemoveMode(int a0) { static_cast<AIBrain*>((void*)this)->RemoveModesOfType(a0); }
 
 // Unit modes (the brain's behaviour list): allocated by the command (NewMode) and constructed by
 // these.
@@ -282,7 +267,7 @@ struct UnitCalls {
     void AddSpell(CEngineObject* spell);                 // 00531820
     void MarkChanged(int what);                          // 0050E9F0
 };
-void UnitCalls::SetHostileMask(std::uint32_t a0) { UnitSetHostileMaskOriginal((void*)this, nullptr, a0); }
+void UnitCalls::SetHostileMask(std::uint32_t a0) { static_cast<CUnit*>((void*)this)->SetHostileMask(a0); }
 void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
 void UnitCalls::GiveQuestItem(CEngineObject* item) { UnitAddCarriedOriginal(this, nullptr, item); }
 void UnitCalls::AddSpell(CEngineObject* spell) { UnitAddSpellOriginal(this, nullptr, spell); }
@@ -333,7 +318,7 @@ struct PlayerStateCalls {
 __declspec(naked) void PlayerStateCalls::DelVar(const char*) EI_ORIGINAL(0x0066EF30)
 __declspec(naked) void PlayerStateCalls::PlayMusic(const char*) EI_ORIGINAL(0x0066EB90)
 __declspec(naked) void PlayerStateCalls::LeaveToZone(const char*, int) EI_ORIGINAL(0x0066F310)
-void PlayerStateCalls::PrepareRedeploy() { PlayerStateRefreshOriginal((void*)this); }
+void PlayerStateCalls::PrepareRedeploy() { static_cast<CPlayerServer*>((void*)this)->SendParty(); }
 
 // Party records of a player (PartyRecordsFor) and one record.
 struct PartyRecordsCalls {
@@ -355,8 +340,6 @@ PartyManagerCalls* ThePartyManager() { return reinterpret_cast<PartyManagerCalls
 // The named party records (party_records.h), through the originals: find 004A5E10 (a party),
 // add 004A5E90, remove 004A5FA0.
 __declspec(naked) CParty* __fastcall PartiesFind(NamedPartyRecords*, void*, const char*) EI_ORIGINAL(0x004A5E10)
-__declspec(naked) void __fastcall PartiesCreate(NamedPartyRecords*, void*, const char*) EI_ORIGINAL(0x004A5E90)
-__declspec(naked) void __fastcall PartiesRemove(NamedPartyRecords*, void*, const char*) EI_ORIGINAL(0x004A5FA0)
 NamedPartyRecords* Parties() { return &GamePartyManager()->records; }
 
 // A party's items (00661DB0 add, 00661F30 remove).
@@ -428,7 +411,7 @@ EventCalls* TheEvents() { return reinterpret_cast<EventCalls*>(WorldServer()->pl
 struct SpellManagerCalls {
     CEngineObject* CreateSpellFromText(const char* text) {   // 00689030
         return reinterpret_cast<CEngineObject*>(
-            SpellManagerCreateSpellFromTextOriginal(reinterpret_cast<CSpellManager*>(this), nullptr, text));
+            reinterpret_cast<CSpellManager*>(this)->CreateSpellFromText(text));
     }
 };
 SpellManagerCalls* TheSpellManager() { return reinterpret_cast<SpellManagerCalls*>(WorldServer()->manager4C_); }
@@ -514,7 +497,7 @@ ScriptParticleSource* FindParticle(CScript* script, int id) {
 // The quest objective commands' text argument when they take none: an empty CString.
 void QuestObjectiveNoText(int id, float value) {
     mfc::CString text(game::EmptyText());
-    QuestObjective(id, &text, value);
+    ScriptQuestAddObjective(id, &text, value);
 }
 
 // Runs a For body in the same ScriptRun: the first four fields are saved, the body block run from
@@ -606,7 +589,7 @@ void GiveSkill(const SSCCmd* cmd) {
     static const int kIndex[] = {0, 0, 1, 2, 3, 4, 5, 6, 7};
     for (int i = 0; i < 9; ++i) {
         const auto* name = reinterpret_cast<const unsigned char*>(kNames[i]);
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(Text(cmd, 0)), name) != 0) continue;
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(Text(cmd, 0)), name) != 0) continue;
         CUnit* owner = Controller(state)->unit;
         int value = Ftol(cmd->floatArgs.data[0]);
         StatsCalls* stats = StatsOf(state);
@@ -735,13 +718,13 @@ void UnitModes(const SSCCmd* cmd) {
 BOOL ScriptRun::Execute(CScript* script) {
     ++ticks;
     if (index >= block->commands.size) return 0;
-    RemoveDeletedOrig(&vars);
+    vars.RemoveDeletedObjects();
     int cont = 1;
     while (index < block->commands.size) {
         if (!cont) return 1;
         SSCCmd* cmd = &block->commands.data[index];
-        SetParametersOrig(cmd, nullptr, &cmd->localBindings, &vars);
-        SetParametersOrig(cmd, nullptr, &cmd->globalBindings, script->Globals());
+        cmd->SetParameters(&cmd->localBindings, &vars);
+        cmd->SetParameters(&cmd->globalBindings, script->Globals());
         for (int i = 0; i < cmd->subCalls.size; ++i)
             CalcParametersOrig(cmd, nullptr, script, &vars, &cmd->subCalls.data[i]);
         cont = 1;
@@ -777,7 +760,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             auto* definition = &script->Scripts().data[which];
             InstanceList::Node* node = InstanceAddHead(&script->instances_, nullptr, definition);
             ScriptDefinition* instance = &node->data;
-            BindCallOrig(instance, nullptr, cmd);
+            instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
             break;
         }
@@ -850,16 +833,16 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
 
         // ---- Lights, particles, effects (CScript helpers) ---------------------------------------
-        case 0x0B: CreatePointLight(script, nullptr, cmd); break;
-        case 0x0C: MovePointLight(script, nullptr, cmd); break;
-        case 0x0D: DeletePointLight(script, nullptr, cmd); break;
-        case 0x0E: CreateParticleSource(script, nullptr, cmd); break;
-        case 0x10: MoveParticleSource(script, nullptr, cmd); break;
-        case 0x0F: CreateLightning(script, nullptr, cmd); break;
-        case 0x17: CreateFX(script, nullptr, cmd); break;
+        case 0x0B: script->CreatePointLight(cmd); break;
+        case 0x0C: script->MovePointLight(cmd); break;
+        case 0x0D: script->DeletePointLight(cmd); break;
+        case 0x0E: script->ScriptCreateParticleSource(cmd); break;
+        case 0x10: script->ScriptMoveParticleSource(cmd); break;
+        case 0x0F: script->ScriptCreateLightning(cmd); break;
+        case 0x17: script->ScriptCreateFx(cmd); break;
         case 0x16:     // CreateFXSource
         case 0x18:     // CreateRandomizedFXSource
-            CreateFXSource(script, nullptr, cmd);
+            script->ScriptCreateFxSource(cmd);
             break;
         case 0x11: {   // DeleteParticleSource(id)
             int id = Round(f[0]);
@@ -935,7 +918,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x88: {   // AddUnitToServer(name, prototype, ..., x, y, z)
             Vector3 point = {f[0], f[1], f[2]};
-            TheWorld()->AddUnit(TextKeyOf(Text(cmd, 0)), Text(cmd, 1), Text(cmd, 2), &point);
+            TheWorld()->AddUnit(TextKeyFromName(Text(cmd, 0)), Text(cmd, 1), Text(cmd, 2), &point);
             break;
         }
         case 0x89:     // RemoveUnitFromServer(object)
@@ -972,7 +955,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            WorldLoadMobFileOriginal(WorldServer(), nullptr, Text(cmd, 0));
+            static_cast<CWorldServer*>(WorldServer())->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             static_cast<CameraCalls*>(ClientGlueObject())->Play(Text(cmd, 0), 0);
@@ -997,7 +980,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xC6:   // DeleteArea(area)
-            DeleteArea(script, nullptr, Round(f[0]));
+            script->DeleteArea(Round(f[0]));
             break;
         case 0xC2: {   // HideObject(object, hide): flags_ bit 0x10000
             CEngineObject* object = Arg(cmd, 0);
@@ -1067,8 +1050,8 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x36: {   // SetPlayer(unit, player)
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
-            UnitOf(unit)->SetHostileMask(DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy()), nullptr, Ftol(f[0])));
-            UnitSetSide(static_cast<CUnit*>(unit), nullptr, Ftol(f[0]));
+            UnitOf(unit)->SetHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy())->GetHostileMask(Ftol(f[0])));
+            static_cast<CUnit*>(unit)->SetSide(Ftol(f[0]));
             break;
         }
         case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask (+0x244)
@@ -1076,7 +1059,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!unit || unit->GetClassId() != kClassUnit) break;
             int player = Ftol(f[0]);
             std::uint32_t mask = (1u << (player & 31)) | static_cast<CUnit*>(unit)->relationsA;
-            UnitAddHostileMask(static_cast<CUnit*>(unit), nullptr, mask);
+            static_cast<CUnit*>(unit)->AddHostileMask(mask);
             break;
         }
         case 0x35: {   // KillUnit(object)
@@ -1121,7 +1104,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (int i = 0; i < count; ++i) {
                 auto* item = static_cast<CItemQuest*>(static_cast<CUnit*>(unit)->carried[i]);
                 if (static_cast<int>(item->questItemId_) == id) {
-                    UnitRemoveCarried(static_cast<CUnit*>(unit), nullptr, i);
+                    static_cast<CUnit*>(unit)->RemoveCarried(i);
                     break;
                 }
             }
@@ -1439,7 +1422,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 if (cmd->id == 0x86)
                     records->AddUnit(name, Text(cmd, 1), game::EmptyText());
                 else
-                    records->RemoveUnit(TextKeyOf(name));
+                    records->RemoveUnit(TextKeyFromName(name));
             }
             break;
         }
@@ -1451,8 +1434,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::CString to(cmd->stringArgs.data[1]);
             auto* fromRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &from));
             auto* toRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &to));
-            PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyOf(from));
-            PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyOf(to));
+            PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
+            PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
             if (source && target) {
                 if (cmd->id == 0xD4) {
                     RecordCopyItemsFrom(target, nullptr, source, toRecords);
@@ -1464,11 +1447,11 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x9A: {   // CreateParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0]))) PartiesCreate(Parties(), nullptr, Text(cmd, 0));
+            if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Add(Text(cmd, 0));
             break;
         }
         case 0x9B: {   // RemoveParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0]))) PartiesRemove(Parties(), nullptr, Text(cmd, 0));
+            if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Remove(Text(cmd, 0));
             break;
         }
         case 0x9C: {   // SetCurrentParty(player, name): the party list's +0x0C
@@ -1541,10 +1524,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xD5:   // QStart(name)
-            QuestStart(Text(cmd, 0));
+            ScriptQuestStart(Text(cmd, 0));
             break;
         case 0xD6:   // QFinish
-            QuestFinish(script);
+            ScriptQuestFinish(script);
             break;
         case 0xD7:   // QObjArea(area)
         case 0xDD:   // QObjGetItem(item)
@@ -1554,10 +1537,10 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xD9:   // QObjSeeUnit
         case 0xDA:   // QObjKillUnit
         case 0xDB:   // QObjKillGroup
-            QuestObjective(cmd->id, &cmd->stringArgs.data[0], 0.0f);
+            ScriptQuestAddObjective(cmd->id, &cmd->stringArgs.data[0], 0.0f);
             break;
         case 0xDC:   // QObjUse(name, value)
-            QuestObjective(cmd->id, &cmd->stringArgs.data[0], f[0]);
+            ScriptQuestAddObjective(cmd->id, &cmd->stringArgs.data[0], f[0]);
             break;
 
         default:   // functions, sections and commands without effect here

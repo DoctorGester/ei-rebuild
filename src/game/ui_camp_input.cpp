@@ -1,5 +1,6 @@
 // The camp's input side (buttons, keys), its message-result and help-topic slots (CCampPages,
 // ui_camp.h). See docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -47,12 +48,12 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionAction:
-        CampUpdateActionOriginal(this);
-        if (actionEnabled_) CampDoActionOriginal(this);
+        static_cast<CCampPages*>(this)->UpdateAction();
+        if (actionEnabled_) DoAction();
         break;
     case kRegionSecondAction:
-        CampUpdateActionOriginal(this);
-        if (actionShown_) CampDoSecondActionOriginal(this);
+        static_cast<CCampPages*>(this)->UpdateAction();
+        if (actionShown_) UndoAction();
         break;
     case kRegionTurnLeft:
     case kRegionTurnRight:
@@ -64,7 +65,7 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
         break;
     default:
         if (region >= kRegionFirstPage && region <= kRegionLastPage && page_ != region - kRegionFirstPage)
-            CampShowPageOriginal(this, nullptr, region - kRegionFirstPage);
+            static_cast<CCampPages*>(this)->ShowPage(region - kRegionFirstPage);
         break;
     }
 }
@@ -77,15 +78,15 @@ void CCampPages::OnLButtonUp(int buttons, int x, int y) {
 
 void CCampPages::OnKeyDown(int key, int repeat, int flags) {
     if (key == VK_ESCAPE) {
-        CampShowPageOriginal(this, nullptr, kLeavePage);
+        static_cast<CCampPages*>(this)->ShowPage(kLeavePage);
         inputHandled_ = true;
         return;
     }
     if ((key == VK_BACK || key == VK_RETURN) && IsNetworkClientOriginal()) {
         if (key == VK_BACK)
-            ChatKeyBackspaceOriginal(interface_);
+            interface_->ChatKeyBackspace();
         else
-            ChatKeyEnterOriginal(interface_);
+            interface_->ChatKeyEnter();
         inputHandled_ = true;
         return;
     }

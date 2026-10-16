@@ -1,5 +1,7 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
+#include "item.h"
+#include "texture.h"
 #include "ui.h"
 
 #include "random.h"
@@ -40,12 +42,6 @@ namespace {
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 00794460
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";     // 00794428
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";   // 00794444
-
-// The local view of the world client (CWorldClient::LocalView, a CPlayerClient): sends the
-// player's orders. 0066AE70 / 0066AED0 (CPlayerClient::SetWeapon / SetMoveMode) are called
-// through their addresses, as before the cleanup, so their verify wrappers see the calls.
-__declspec(naked) BOOL __fastcall ViewSetWeapon(CPlayerClient*, void*, CUnit*, int) EI_ORIGINAL(0x0066AE70)
-__declspec(naked) BOOL __fastcall ViewSetMoveMode(CPlayerClient*, void*, CUnit*, int) EI_ORIGINAL(0x0066AED0)
 
 CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
 
@@ -100,15 +96,10 @@ constexpr std::uint32_t kCameraFollows = 8;
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-void UiRenderer::FlushBatchA() { DeviceFlushBatchAOriginal((void*)this); }
-void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
+void UiRenderer::FlushBatchA() { static_cast<CTextureDevice*>((void*)this)->FlushBatch(); }
+void UiRenderer::FlushBatchB() { static_cast<CTextureDevice*>((void*)this)->FlushBatch2(); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
-__declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
-__declspec(naked) void CHudSpellColumn::ClickAlternateAt(int) EI_ORIGINAL(0x0063EF60)
-__declspec(naked) void CHudMovePanel::CallToggleFlag() EI_ORIGINAL(0x00649810)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
-__declspec(naked) void CHudClock::CallOpenObjectives() EI_ORIGINAL(0x00648F10)
-__declspec(naked) void CHudTopPanel::CallShowPage() EI_ORIGINAL(0x0064A320)
 
 // --- Weapon bar --------------------------------------------------------------------------------
 
@@ -132,7 +123,7 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     selected_ = region;
     interface_->PlaySound(kSoundWeapon, 0);
     // The original does not check for a missing local view here.
-    if (CUnit* unit = unit_) ViewSetWeapon(LocalView(), nullptr, unit, region);
+    if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
 }
 UI_INPUT_HANDLER(0x0063C710, CHudWeaponBar, OnMouseUp);
 
@@ -216,7 +207,7 @@ void CHudQuickItems::Update() {
     for (unsigned i = 0; i < 4; ++i) {
         if (!unit_->GetQuickItem(i)) continue;
         if (!regions_.data[i]->HasActiveTip()) continue;
-        ItemTipAt(i, &text);
+        ItemTip(i, &text);
         regions_.data[i]->SetTipText(text);
     }
 }
@@ -241,9 +232,9 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (region < 0 || region >= count_) return;
     inputHandled_ = true;
     if (interface_->doubleClick_)
-        ClickAlternateAt(region);
+        ClickAlternate(region);
     else
-        ClickAt(region);
+        Click(region);
 }
 UI_INPUT_HANDLER(0x0063F260, CHudSpellColumn, OnMouseUp);
 
@@ -268,7 +259,7 @@ void CHudActionColumn::OnMouseUp(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= count_) return;
     inputHandled_ = true;
-    SelectAt(region);
+    Select(region);
 }
 UI_INPUT_HANDLER(0x0063FDE0, CHudActionColumn, OnMouseUp);
 
@@ -500,7 +491,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         return;
     case 3:     // the objectives
         inputHandled_ = true;
-        CallOpenObjectives();
+        OpenObjectives();
         return;
     default:
         return;
@@ -520,7 +511,7 @@ void CHudClock::OpenObjectives() {
     void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
     {
         BriefingPlayerName zone;
-        ObjectivesSetupOriginal(window, nullptr, zone, nullptr, 0, 0);
+        static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
     }
     InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
 }
@@ -541,7 +532,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (region == -1) return;
     inputHandled_ = true;
     if (region == 0) {
-        CallToggleFlag();
+        ToggleFlag();
         return;
     }
     int mode = region - 1;
@@ -550,7 +541,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundClick, 0);
         for (int i = 0; i < owner_->party_.size; ++i) {
             CUnit* unit = owner_->party_[i];
-            if (unit->flags_ & 0x10) ViewSetMoveMode(LocalView(), nullptr, unit, mode);
+            if (unit->flags_ & 0x10) LocalView()->SetMoveMode(unit, mode);
         }
     }
     ShowMode(mode);
@@ -637,7 +628,7 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
     case 1:
     case 2:
         page_ = region - 1;
-        CallShowPage();
+        ShowPage();
         interface_->PlaySound(kSoundClick, 0);
         inputHandled_ = true;
         return;
@@ -688,13 +679,12 @@ void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int c
 void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
     BattleUseAtPointOriginal(screen, nullptr, at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
-__declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
-void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { QuickPanelSetOriginal(a0, nullptr, a2, a3); }
-void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { SpellPanelSetOriginal(a0, nullptr, a2, a3); }
-void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { ActionPanelSetOriginal(a0, nullptr, a2, a3); }
-void __fastcall ActionPanelReset(void* a0) { ActionPanelClearOriginal(a0); }
+void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>(a0)->Highlight(a2, a3); }
+void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>(a0)->Highlight(a2, a3); }
+void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>(a0)->Highlight(a2, a3); }
+void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)->ClearHighlights(); }
 // The client world (WorldClient(), 007AF5B8): the object under a screen point (x, y pair), the
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
@@ -737,7 +727,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = HoverPickSurface(WorldClient(), nullptr, &out, x, y);
+        Vector3* p = static_cast<CWorldClient*>(WorldClient())->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
@@ -796,7 +786,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             if (interface_->doubleClick_) {
                 if (i < party_.size) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
             } else {
-                ScreenToggleMember(this, nullptr, i);
+                ToggleMember(i);
             }
         }
         return;
@@ -839,7 +829,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (interface_->doubleClick_) {
                     if (i < party_.size) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
                 } else {
-                    ScreenToggleMember(this, nullptr, i);
+                    ToggleMember(i);
                 }
                 return;
             }
@@ -884,8 +874,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
-        void* item = UnitQuickItem(first, nullptr, pendingSlot_);
-        if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) return;
+        void* item = first->GetQuickItem(pendingSlot_);
+        if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) return;
         ScreenCastOn(this, nullptr, unit, 1, 0);
         return;
     }
@@ -967,9 +957,6 @@ EI_REPLACE_METHOD(0x00638EF0, CBattleScreen::SelectUnit);
 // --- 0063DB20: the quick item panel's button release -------------------------------------------
 
 namespace {
-// The quick item panel (thiscall, RET 4, slot): 0063DD70 picks the unit's quick item `slot` (a wand
-// or scroll with a spell starts target mode 3 / 4), 0063E020 uses it at once (key +0x7F).
-__declspec(naked) void __fastcall QuickPanelPick(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063DD70)
 // Slot 21 (+0x54) of a player's loot item (CItemLoot, type 0x3009): its key (the one map object
 // slot 42 AcceptsKey tests) into `buffer`, returns it. CItem declares only slots 13-15 (item.h),
 // so the slot is reached through the vtable here until the item classes declare 16-21 (16, 19
@@ -990,9 +977,9 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     inputHandled_ = true;
     if (region < 4 && entries_[entry].own) {
         if (interface_->doubleClick_)
-            UseNowAt(region);
+            UseNow(region);
         else
-            QuickPanelPick(this, nullptr, region);
+            Pick(region);
         return;
     }
     CBattleScreen* screen = owner_;
@@ -1065,8 +1052,8 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     void* glue = ClientGlueObject();
     if (GlueExitAt(glue, nullptr, &point, &exit) && selected > 0) {
         mfc::CString name(GameExitZoneOriginal(glue, nullptr, exit));
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                             reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
+                            reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
             double value = HoverPlayerVariable(glue, nullptr, name);
             const float one = GameOne();

@@ -1,7 +1,9 @@
 // The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
+#include "library_net_lists.h"
 #include "net_classes.h"
 #include "game_strings.h"
+#include "net_coder.h"
 #include "net_connection.h"
 
 #include "core_streams.h"
@@ -65,7 +67,7 @@ void SessionBase::TickImpl(double dt) {
             continue;
         }
         char kind;
-        if (buffer->cur + 1 > buffer->high) BufferReadPastEnd(buffer, nullptr, &kind, 1);
+        if (buffer->cur + 1 > buffer->high) buffer->ReadPastEnd(&kind, 1);
         else if (buffer->cur + 1 > buffer->end) buffer->ReadMore(&kind, 1u);
         else buffer->CopyOut(&kind, 1);
         BufferUpdateHigh(buffer);
@@ -121,7 +123,7 @@ __declspec(naked) ClientNode** __fastcall ClientFind(ClientNode** /*out*/, void*
                                                      const NetAddress* /*address*/) EI_ORIGINAL(0x0043D780)
 __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
 // 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
-void __fastcall NodeFree(char* a0, std::size_t a1) { NodeDeallocateOriginal((void*)a0, a1); }
+void __fastcall NodeFree(char* a0, std::size_t a1) { libcrt::NodeDeallocateChecked((void*)a0, a1); }
 
 
 // "<text>\n" and a flush, when there is a network log.
@@ -346,9 +348,7 @@ EI_REPLACE_METHOD(0x004368D0, SessionBase::DeletingDestruct);
 namespace net {
 
 namespace {
-// 0043D7D0: a counted connection pointer from a raw one (pointer in ECX, connection in EDX);
 // 00439E30: the clients list's insert(pos, value); 00425040: another STLport string destructor.
-__declspec(naked) Connection** __fastcall ClientRefInit(Connection** /*ref*/, Connection* /*connection*/) EI_ORIGINAL(0x0043D7D0)
 __declspec(naked) ClientNode** __fastcall ClientsInsert(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/,
                                                         Connection* const* /*value*/) EI_ORIGINAL(0x00439E30)
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -366,7 +366,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     auto* memory = NewMessageMemory<Connection>();
     Connection* connection = memory ? memory->Construct(id) : nullptr;
     Connection* ref;
-    ClientRefInit(&ref, connection);
+    netlists::InitClientRef(&ref, connection);
     ClientNode* end;
     ClientsEnd(&clients_, nullptr, &end);
     ClientNode* inserted;

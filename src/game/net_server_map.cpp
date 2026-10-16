@@ -103,7 +103,7 @@ void ServerSession::SetMap(const StringRep* name) {
     if (name != &mapName_) StringAssignTaggedOriginal(&mapName_, nullptr, name->start, name->finish, mapMessage);
 
     void* world = TheGameFlow();
-    FlowRegisterQuestsOriginal(world, nullptr, name->start);
+    static_cast<GameFlow*>(world)->RegisterQuests(name->start);
     WorldPrepareMap(world, nullptr, name->start);
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = WorldMapTitle(world, nullptr, &title);

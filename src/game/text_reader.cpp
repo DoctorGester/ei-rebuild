@@ -3,11 +3,13 @@
 // The original inlines the same few loops many times with small differences (the end test inline
 // or through IsPastEnd 004E0000, the character code inline or through 004DF4E0); `Advance` below
 // reproduces each variant by its call pattern.
+#include "item_db_text.h"
 #include "text_reader.h"
 
 #include "resource.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -28,12 +30,8 @@ const TextString& Ops(const mfc::CString& s) { return static_cast<const TextStri
 
 // 004DBE40 (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
-// The functions of this file and 004E0000 / 004DF4E0, called through their addresses where the
-// original calls them (their verify wrappers run).
-__declspec(naked) BOOL __fastcall IsPastEndCall(CTextManager*, void*, const char*) EI_ORIGINAL(0x004E0000)
+// 004DF4E0, called through its address.
 __declspec(naked) int __fastcall CharCodeCall(const char*) EI_ORIGINAL(0x004DF4E0)
-__declspec(naked) BOOL __fastcall PeekWordCall(CTextManager*, void*, mfc::CString*) EI_ORIGINAL(0x004DF770)
-__declspec(naked) BOOL __fastcall SkipLineCall(CTextManager*) EI_ORIGINAL(0x004DF6E0)
 
 const char* const kComment = reinterpret_cast<const char*>(0x0078DCF8);   // "##"
 const char* const kHeader = reinterpret_cast<const char*>(0x0078DCFC);    // "#"
@@ -46,7 +44,7 @@ bool Inside(const CTextManager* t, const char* p) {
 // 004DF4E0 as inlined: the lead test on the unsigned byte, the code from the signed bytes.
 int CharCode(const char* p) {
     int high = 0;
-    if (IsMbbLead(static_cast<unsigned char>(*p))) {
+    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
         high = static_cast<signed char>(*p) << 8;
         ++p;
     }
@@ -75,7 +73,7 @@ struct AdvanceKind {
 };
 
 bool InsideBy(CTextManager* t, const char* p, Test test) {
-    return test == Test::Inline ? Inside(t, p) : !IsPastEndCall(t, nullptr, p);
+    return test == Test::Inline ? Inside(t, p) : !t->IsPastEnd(p);
 }
 
 void Advance(CTextManager* t, const AdvanceKind& kind) {
@@ -102,7 +100,7 @@ bool IsComment(const mfc::CString& word) {
 void SkipToNextLine(CTextManager* t, const AdvanceKind& first, const AdvanceKind& comment) {
     mfc::CString word;
     Advance(t, first);
-    while (PeekWordCall(t, nullptr, &word)) {
+    while (t->PeekWord(&word)) {
         if (!IsComment(word)) break;
         Advance(t, comment);
     }
@@ -174,7 +172,7 @@ EI_REPLACE(0x004DF6E0, TextSkipLine);
 BOOL __fastcall TextNextLine(CTextManager* self) {
     mfc::CString word;
     Advance(self, kInline);
-    while (PeekWordCall(self, nullptr, &word)) {
+    while (self->PeekWord(&word)) {
         if (!IsComment(word)) return 1;
         Advance(self, kInline);
     }
@@ -255,7 +253,7 @@ BOOL CTextManager::FindLine(const char* key) {
     mfc::CString word;
     if (!key) {
         // The next "#" header line (not a "##" comment).
-        while (PeekWordCall(this, nullptr, &word)) {
+        while (PeekWord(&word)) {
             bool header;
             {
                 mfc::CString first = word.Left(1);
@@ -269,11 +267,11 @@ BOOL CTextManager::FindLine(const char* key) {
     StringSplit(key, &keyWords, ' ');
     if (keyWords.size <= 1) {
         // One word: the line whose first word is the key.
-        while (PeekWordCall(this, nullptr, &word)) {
+        while (PeekWord(&word)) {
             if (MbsCmp(word, key) == 0) return 1;
             mfc::CString next;
             Advance(this, kFindFirst);
-            while (PeekWordCall(this, nullptr, &next)) {
+            while (PeekWord(&next)) {
                 if (!IsComment(next)) break;
                 Advance(this, kFindComment);
             }
@@ -281,7 +279,7 @@ BOOL CTextManager::FindLine(const char* key) {
         return 0;
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
-    while (ReaderSplit(this, nullptr, &lineWords, 0)) {
+    while (Split(&lineWords, 0)) {
         if (lineWords.size >= keyWords.size) {
             int i = 0;
             if (keyWords.size <= 0) return 1;
@@ -294,9 +292,9 @@ BOOL CTextManager::FindLine(const char* key) {
         }
         mfc::CString next;
         Advance(this, kFindMulti);
-        while (PeekWordCall(this, nullptr, &next)) {
+        while (PeekWord(&next)) {
             if (!IsComment(next)) break;
-            SkipLineCall(this);
+            TextSkipLine(this);
         }
     }
     return 0;

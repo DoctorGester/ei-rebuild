@@ -83,6 +83,9 @@ PATTERNS = {
                                 r'[\s*&]+unknown\w*\s*(?:\[[^\]\n]*\]\s*)*(?:\{[^}\n]*\}|=[^;\n]*)?;', re.M),
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
+    # A forwarder through an original address (C13): the image's jump there leads to our function
+    # registered for it, which callers call directly instead (tools/direct_calls.py converts them).
+    'EI_ORIGINAL forwarder': re.compile(r'\bEI_ORIGINAL\s*\('),
 }
 # Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its unrounded
 # 2D / Vector3 sums with precise semantics off on purpose: they must stay in ST0 like the original's

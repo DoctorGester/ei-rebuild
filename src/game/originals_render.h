@@ -12,7 +12,6 @@
 class CAnimationNode;   // figure.h
 namespace scene { struct SceneNode; struct SceneSkin; }
 
-__declspec(naked) inline char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004E5710)
 __declspec(naked) inline int __fastcall DrawMesh(char*, void*, const void*, int, std::uint32_t, int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, int, int)
     EI_ORIGINAL(0x004E9010)
 // 004E9A50: the same with two textures' surfaces before the positions (RET 0x50).
@@ -28,7 +27,6 @@ __declspec(naked) inline int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSur
 __declspec(naked) inline void __cdecl ReportError(long, const char*) EI_ORIGINAL(0x004F0B00)
 __declspec(naked) inline void __fastcall LoadTextureOriginal(void** /*holder*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00500A00)
-__declspec(naked) inline CAnimationNode* __fastcall ConstructBone(void*) EI_ORIGINAL(0x00506710)
 // 004EA4A0 (device_shadow.cpp, thiscall on the device object at the renderer's +0x20, RET 0x24): the
 // flat geometry draw [positions (blocks of four), uvs, blocks, indices, index count, colour, specular,
 // bounds (null: crossing), z scale]; 2 when nothing is visible, else 0. Called through its address so
@@ -45,7 +43,6 @@ __declspec(naked) inline int __fastcall DeviceDrawFlatOriginal(void* /*device*/,
 __declspec(naked) inline void* __cdecl DisplayObject() EI_ORIGINAL(0x00500960)
 // The same object without the call: the scene context the draw slots take (007AF060).
 inline void* SceneContext() { return reinterpret_cast<void*>(0x007AF060); }
-__declspec(naked) inline char* __fastcall AllocAligned16(int /*count*/) EI_ORIGINAL(0x00468F70)
 // 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
 __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
                                                                 const float* /*b*/) EI_ORIGINAL(0x004D9880)
@@ -79,21 +76,13 @@ __declspec(naked) inline int __fastcall RendererClearOriginal(void* /*renderer*/
 // 007AF080, plain RET, the DirectDraw result).
 __declspec(naked) inline int __fastcall DevicePresentOriginal(void* /*device*/) EI_ORIGINAL(0x004EF610)
 
-// C3j. 004E7840 / 004E7A40: flush a device's batch A / B (plain RET, no result).
-__declspec(naked) inline void __fastcall DeviceFlushBatchAOriginal(void* /*device*/) EI_ORIGINAL(0x004E7840)
-__declspec(naked) inline void __fastcall DeviceFlushBatchBOriginal(void* /*device*/) EI_ORIGINAL(0x004E7A40)
 // 004D9B80: pushes a scene matrix into slot `index` of the cache (RET 8: matrix, index; no result).
 __declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/, void*, const float* /*matrix*/, int /*index*/)
     EI_ORIGINAL(0x004D9B80)
-// 004F65B0: allocates `count` 8-byte elements, 32-byte aligned (ECX = count, plain RET, EAX = memory).
-__declspec(naked) inline void* __fastcall AllocAligned32Of8Original(int /*count*/) EI_ORIGINAL(0x004F65B0)
 
 // C3k. 00500970: makes sure the texture behind a holder is loaded (plain RET; the manager loads it unless its flag 8 is
-// set; a null texture is a fatal error; EAX is not a result). 00501AF0: binds a texture to a stage (RET 8: stage, texture
-// object or null; EAX is always 1, no caller reads it).
+// set; a null texture is a fatal error; EAX is not a result).
 __declspec(naked) inline void __fastcall TextureEnsureLoadedOriginal(void* /*holder*/) EI_ORIGINAL(0x00500970)
-__declspec(naked) inline int __fastcall DeviceSetTextureOriginal(void* /*device*/, void*, int /*stage*/, void* /*texture*/)
-    EI_ORIGINAL(0x00501AF0)
 
 // C3l. 0068EAF0: the material manager enters a key in its hash map at +0xBC (when absent) and copies the stored 0x44-byte value
 // to record +0x20 (RET 8: record, key; EAX 1, or 0 for a null record; no caller reads it).
@@ -105,23 +94,16 @@ __declspec(naked) inline std::uint8_t* __fastcall MaterialCreateOriginal(void* /
     EI_ORIGINAL(0x0068E970)
 
 // A-U11 (renderer_lifetime.cpp). 0049B780: draws a line list (thiscall on the list, RET 8: pipeline, device object).
-// 004EECF0: the device object's cooperative level (RET 8: full screen flag, screen rectangle). 004EEBC0: its display mode
-// (RET 0x10: width, height, bits per pixel, 0). 00693F60: the texture manager [007AF744] restores its textures' surfaces
-// (plain RET, AL: all restored).
+// 004EECF0: the device object's cooperative level (RET 8: full screen flag, screen rectangle).
 __declspec(naked) inline void __fastcall LineListDrawOriginal(void* /*lines*/, void*, void* /*pipeline*/, void* /*device*/)
     EI_ORIGINAL(0x0049B780)
 __declspec(naked) inline void __fastcall DeviceSetCooperativeLevelOriginal(void* /*device*/, void*, int /*fullScreen*/,
                                                                            const void* /*rect*/) EI_ORIGINAL(0x004EECF0)
-__declspec(naked) inline void __fastcall DeviceSetDisplayModeOriginal(void* /*device*/, void*, int /*width*/, int /*height*/,
-                                                                      int /*bits*/, int) EI_ORIGINAL(0x004EEBC0)
-__declspec(naked) inline bool __fastcall TextureManagerRestoreOriginal(void* /*manager*/) EI_ORIGINAL(0x00693F60)
 
 // A-S13 (directdraw_holder.cpp, device_object.cpp, dx_surface.cpp): the parts of the device object's start-up, called
 // through their addresses so each one's verify wrapper stays in the path. 004EDD70: the DirectDraw base's constructor
 // (RET 0x24: window, driver GUID, full screen, width, height, bits per pixel, refresh rate, back buffers, for 3D; returns
-// the object). 004EEA90: the DirectDraw object of a driver and its display modes (RET 4). 004EEE30: the primary and
-// render target surfaces (RET 8: back buffers, for 3D). 004E6EE0: the texture format table (plain RET). 004E6C30: the
-// depth buffer (RET 8: depth bits, stencil bits). 004EFEA0: a surface holder's size from its surface (plain RET; 1, or 0
+// the object). 004EEA90: the DirectDraw object of a driver and its display modes (RET 4). 004EFEA0: a surface holder's size from its surface (plain RET; 1, or 0
 // when the report of a failure said stop).
 __declspec(naked) inline void* __fastcall DirectDrawBaseConstructOriginal(void* /*device*/, void*, void* /*window*/,
                                                                          void* /*driver*/, int /*fullScreen*/,
@@ -130,16 +112,7 @@ __declspec(naked) inline void* __fastcall DirectDrawBaseConstructOriginal(void* 
                                                                          int /*for3D*/) EI_ORIGINAL(0x004EDD70)
 __declspec(naked) inline void __fastcall DeviceCreateDirectDrawOriginal(void* /*device*/, void*, void* /*driver*/)
     EI_ORIGINAL(0x004EEA90)
-__declspec(naked) inline void __fastcall DeviceCreateSurfacesOriginal(void* /*device*/, void*, unsigned /*backBuffers*/,
-                                                                      int /*for3D*/) EI_ORIGINAL(0x004EEE30)
-__declspec(naked) inline void __fastcall DeviceBuildFormatTableOriginal(void* /*device*/) EI_ORIGINAL(0x004E6EE0)
-__declspec(naked) inline void __fastcall DeviceCreateDepthBufferOriginal(void* /*device*/, void*, int /*depthBits*/,
-                                                                         int /*stencilBits*/) EI_ORIGINAL(0x004E6C30)
 __declspec(naked) inline int __fastcall DXSurfaceDescribeOriginal(void* /*holder*/) EI_ORIGINAL(0x004EFEA0)
-// C3m. 004492F0 (rewritten as BuildBone; through its own address, so the verify wrapper sees the children too):
-// a scene node's bone and, recursively, its children.
-__declspec(naked) inline void __fastcall BuildBoneAt(scene::SceneSkin*, CAnimationNode*, const scene::SceneNode*, int)
-    EI_ORIGINAL(0x004492F0)
 
 // C3n. 004EB550 (rewritten as DeviceDrawIndexed; thiscall on the device, RET 0x1C): draws indexed primitives with the
 // current material (primitive type, FVF, vertices, vertex count, 16-bit indices, index count, flags); returns 1.

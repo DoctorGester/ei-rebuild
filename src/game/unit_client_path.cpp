@@ -28,7 +28,7 @@ namespace {
 // [00530280 (x, y)], its turn toward a direction [00401F00 (direction, flag)], its heading from a
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
-inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
+inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return static_cast<CUnit*>((void*)a0)->GroundHeight(a2, a3); }
 Vector3* __fastcall FacingAxis(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
 
 constexpr float kCellScale = 1.0f;            // 0073EBF0

@@ -2,6 +2,7 @@
 // and received awards (+0x2608) are applied to the local player. See net_classes.h and
 // docs/notes/network.md.
 
+#include "game_lists.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "item.h"
@@ -33,7 +34,7 @@ __declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*
 
 // The world (0x7AFF60) and its players (outside this range).
 void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal(a0, nullptr, (void*)a2, a3); }
-void __fastcall PlayerRemoveItem(void* player, void*, int index) { PlayerRemoveItemOriginal(player, nullptr, index); }
+void __fastcall PlayerRemoveItem(void* player, void*, int index) { static_cast<CPlayer*>(player)->TakeItem(index); }
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
 ObjectList::Node* __fastcall CountedNewNode(ObjectList* a0, void*, ObjectList::Node* a2, ObjectList::Node* a3) { return (ObjectList::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
@@ -95,7 +96,7 @@ void ClientSession::ApplyAwards() {
             InitList(items, gameslots::ItemObjectListClass::Vtable());
             CEngineObject* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             ObjectList::Node* added = CountedNewNode(&items, nullptr, items.tail, nullptr);
-            ReferenceAssign(&added->data, nullptr, item);
+            ObjectHolderAssign(&added->data, nullptr, item);
             if (items.tail) items.tail->next = added;
             else items.head = added;
             items.tail = added;

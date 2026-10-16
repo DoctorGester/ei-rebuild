@@ -101,7 +101,7 @@ void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
     state->SetWriteMode(0);
     ObjectSlots(this)->WriteNetState();
-    DeltaStateFinishOriginal(state);
+    state->Finish();
     flags_ &= ~kStateUnsent;
 }
 EI_REPLACE_METHOD(0x0050EA40, CMapObject::WriteFullState);
@@ -111,7 +111,7 @@ void CMapObject::WriteChangedState() {
     DeltaState* state = NetState();
     state->SetWriteMode(1);
     ObjectSlots(this)->WriteNetState();
-    DeltaStateFinishOriginal(state);
+    state->Finish();
     flags_ &= ~kStateUnsent;
 }
 EI_REPLACE_METHOD(0x0050EA70, CMapObject::WriteChangedState);
@@ -120,7 +120,7 @@ std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
     DeltaState* state = NetState();
     state->BeginRead(first, reader);
     std::uint32_t result = ObjectSlots(this)->ReadNetState(first);
-    DeltaStateFinishOriginal(state);
+    state->Finish();
     return result;
 }
 EI_REPLACE_METHOD(0x0050EAB0, CMapObject::ReadState);

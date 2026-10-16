@@ -59,7 +59,7 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
 }
 } // namespace
 
-BOOL CSpellEffect::CallGetDamage(DamageInfo* out) { return SpellEffectGetDamageOriginal(this, nullptr, out); }
+BOOL CSpellEffect::CallGetDamage(DamageInfo* out) { return GetDamage(out); }
 
 int __fastcall IsSpellTarget(CEngineObject* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
 EI_REPLACE(0x00681B80, IsSpellTarget);

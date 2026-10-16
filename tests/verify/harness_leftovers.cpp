@@ -9,6 +9,8 @@
 #include "../../src/game/unit_ai.h"
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
+#include "game/unit.h"
+#include "game/unit_create.h"
 #include "lib/crt.h"
 
 #include <windows.h>
@@ -33,12 +35,12 @@ constexpr std::uintptr_t kObject3DConstruct = 0x00515BD0;     // CObject3D::Cons
 
 void* __fastcall ZeroedVitalsReset(UnitVitals* vitals) {
     std::memset(vitals, 0, sizeof(UnitVitals));
-    return UnitVitalsReset(vitals);
+    return vitals->Reset();
 }
 
 int __fastcall ZeroedStatsReset(UnitStats* stats) {
     std::memset(stats, 0, sizeof(UnitStats));
-    return UnitStatsResetOriginal(stats);
+    return static_cast<UnitStats*>(stats)->Reset();
 }
 
 // CMapObject::TakePrototype's copy: the builder gets no statistics, so with a prototype it returns
@@ -46,13 +48,13 @@ int __fastcall ZeroedStatsReset(UnitStats* stats) {
 int __fastcall ZeroedVitalsBuild(UnitStatsBuilder* builder, void*, UnitVitals* vitals, UnitStats* stats,
                                  const char* name) {
     if (vitals) std::memset(vitals, 0, sizeof(UnitVitals));
-    return UnitStatsBuildFromPrototype(builder, nullptr, vitals, stats, name);
+    return builder->BuildFromPrototype(vitals, stats, name);
 }
 
 // CParty::AddMember's stack record, whose statistics BuildNpcStats fills (its reset leaves some).
 PartyUnitRecord* __fastcall ZeroedRecordConstruct(PartyUnitRecord* record) {
     std::memset(record, 0, sizeof(PartyUnitRecord));
-    return PartyUnitRecordConstructOriginal(record);
+    return record->Construct();
 }
 
 // A server or map object, or an AI mode the original constructs inline: the block zeroed when allocated.

@@ -42,9 +42,6 @@ constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 // call; RET 8). Places the unit on its path at `time`, turning by `rate`.
 __declspec(naked) void __fastcall CallPlaceOnPath(CUnitClientSpecific*, void*, float /*time*/, float /*rate*/)
     EI_ORIGINAL(0x00535850)
-// 0051CC20 / 0051CCD0 (rewritten below; through their game addresses).
-__declspec(naked) void __fastcall CallInvisiblePulse(CObject3DClientSpecific*, void*, float) EI_ORIGINAL(0x0051CC20)
-__declspec(naked) void __fastcall CallStunnedPulse(CObject3DClientSpecific*, void*, float) EI_ORIGINAL(0x0051CCD0)
 
 CObject3DClientSpecific* ClientHalf(CUnit* unit) {
     return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
@@ -84,15 +81,15 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     float step = stored;
     if (!(step >= 0.0f)) {   // back in time (or NaN): only put back on the ground
         Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
-        position.z = static_cast<float>(UnitGroundHeightOriginal(unit, nullptr, position.x, position.y) +
+        position.z = static_cast<float>(static_cast<CUnit*>(unit)->GroundHeight(position.x, position.y) +
                                         unit->heightOffset);
         static_cast<CWorld*>(ObjectWorld(this))->MoveObject(unit, &position.x);
         return;
     }
     if (step > kLongStep) step = static_cast<float>(IsaacRandom::Global().Next() % kLongStepSpread + 500u);
     lastTime = time;
-    if (ObjectSlots(unit)->InvisibleSlot()) CallInvisiblePulse(ClientHalf(unit), nullptr, step);
-    if (unit->MapObject()->IsStunned()) CallStunnedPulse(ClientHalf(unit), nullptr, step);
+    if (ObjectSlots(unit)->InvisibleSlot()) ClientHalf(unit)->InvisiblePulse(step);
+    if (unit->MapObject()->IsStunned()) ClientHalf(unit)->StunnedPulse(step);
     if (unit->pathTimeShift == 0) CallPlaceOnPath(this, nullptr, time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {
@@ -100,7 +97,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
         step = scaled;
     }
     CFigureAnimationState* state = unit->Object3D()->animation;
-    if (state && unit->motionMode != kMotionPaused) FigureAdvanceOriginal(state, nullptr, step);
+    if (state && unit->motionMode != kMotionPaused) state->Advance(step);
 }
 EI_REPLACE_METHOD(0x00535B30, CUnitClientSpecific::AdvanceTime);
 
@@ -114,9 +111,9 @@ void CUnitClientSpecific::RestartAnimation(float time) {
         char* first = nullptr;
         char* second = nullptr;
         if (unit->animationEntry != kNoEntry)
-            first = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->animationEntry));
+            first = unit->AnimationEntry(static_cast<std::uint8_t>(unit->animationEntry));
         if (unit->secondEntry != kNoEntry)
-            second = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->secondEntry));
+            second = unit->AnimationEntry(static_cast<std::uint8_t>(unit->secondEntry));
         if (first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, first);
         if (second) {
             if (!first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, second);
@@ -129,7 +126,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     state = unit->Object3D()->animation;
     if (step > 0.0f && state) {
         lastTime = static_cast<float>(start + step);
-        FigureAdvanceOriginal(state, nullptr, step);
+        state->Advance(step);
         state = unit->Object3D()->animation;
         lastAnimationTime = state->time;
         lastAnimation = state->current;

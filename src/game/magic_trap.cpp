@@ -6,6 +6,7 @@
 #include "magic_trap.h"
 
 #include "engine_object.h"
+#include "map_object.h"
 #include "spell.h"
 #include "unit.h"
 #include "world.h"
@@ -48,13 +49,12 @@ PtrList NewPtrList() { return PtrList{mfc::PtrListVtable(), nullptr, nullptr, 0,
 // `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
 // with the context in ECX, RET 8; FindTrapVictims below, called through its address so its verify
 // wrapper sees the call]; casting the spell at the newcomers `units` [0052A4B0, MagicTrap::CastAtUnits
-// below, called through its address for the same reason].
+// below].
 __declspec(naked) void __fastcall FindVictims(void* /*context*/, void* /*area*/, std::uint32_t /*sides*/, PtrList* /*out*/)
     EI_ORIGINAL(0x0052A920)
 // The sector map's units within `radius` of `point` into `list` (emptied first) [005C0BD0, rewritten
 // in sector_map.cpp].
 constexpr int kPtrListBlockSize = 10;
-__declspec(naked) void __fastcall CastAtNewcomers(MagicTrap*, void*, PtrList* /*units*/) EI_ORIGINAL(0x0052A4B0)
 // The lists' MFC template code: the victims' NewNode(prev, next) (element constructed as a null
 // reference) and FreeNode (releases it) [0052CDB0 / 0052CE20]; a counted reference's assignment
 // [0052A8F0]; the pointer list's NewNode(prev, next) and RemoveAll [0052CEF0 / 0052CA10].
@@ -124,7 +124,7 @@ void MagicTrap::UpdateVictims() {
         }
         node = next;
     }
-    if (newcomers.count) CastAtNewcomers(this, nullptr, &newcomers);
+    if (newcomers.count) CastAtUnits(&newcomers);
     PtrRemoveAll(&newcomers);
     PtrRemoveAll(&found);
 }
@@ -230,7 +230,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     const char* text = record->spell;
     void* manager = SpellManagerOf(ManagerContextOf(this));
-    auto* made = static_cast<CEngineObject*>(SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(manager), nullptr, text));
+    auto* made = static_cast<CEngineObject*>(static_cast<CSpellManager*>(manager)->CreateSpellFromText(text));
     CEngineObject* old = spell;
     spell = made;
     if (made) ++made->refCount_;
@@ -256,10 +256,9 @@ EI_REPLACE_METHOD(0x0052A2C0, MagicTrap::SetUp);
 // --- Construction, destruction, Save / Load (ticket U8) ------------------------------------------
 
 namespace {
-// The map object's constructor and destructor body [0050E2D0 / 0050E660, rewritten in
-// map_object_lifetime.cpp], its Create and Destroy (slots 2 and 3, called directly) [0050E770 /
-// 0050E840, not rewritten], the map object part of Load / Save [0050F7A0 / 0050F900, not
-// rewritten]: all through their game addresses.
+// The map object's constructor and destructor body [0050E2D0 / 0050E660, map_object_lifetime.cpp], its
+// Create and Destroy (slots 2 and 3) [0050E770 / 0050E840], the map object part of Load / Save [0050F7A0 /
+// 0050F900].
 // A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
@@ -317,7 +316,7 @@ MagicTrap* MagicTrap::Construct() {
     inside.blockSize = kVictimBlockSize;
     ei::SetVtable(this, kVtableAddress);
 
-    MapObjectCreate(this);
+    static_cast<CMapObject*>(this)->CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -333,7 +332,7 @@ EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
 
 void MagicTrap::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
-    MapObjectDestroy(this);
+    DestroyMapObject();
     SetSpell(this, nullptr);   // 0052C690(0)
     Array12SetSizeOriginal(&area, nullptr, 0, -1);
     PointsSetSize(&points, nullptr, 0, -1);
@@ -397,11 +396,6 @@ EI_REPLACE_METHOD(0x0052ADC0, MagicTrap::LoadTrap);
 // --- Create, Destroy, the update, firing, forgetting a removed object (ticket U10) ---------------
 
 namespace {
-// The trap's own code, called through its addresses so the verify wrappers see the calls: the units
-// inside updated [0052A680, MagicTrap::UpdateVictims]; firing at what is in it [0052AB30,
-// MagicTrap::FireAtOccupants].
-__declspec(naked) void __fastcall UpdateVictimsAt(MagicTrap*) EI_ORIGINAL(0x0052A680)
-__declspec(naked) void __fastcall FireAtOccupantsAt(MagicTrap*) EI_ORIGINAL(0x0052AB30)
 
 // The circles' SetSize(0, -1), inlined by Create and Destroy: the storage freed, count and
 // capacity 0 (in the original's order).
@@ -426,7 +420,7 @@ void DestroyPtrList(PtrList& list) {
 } // namespace
 
 int MagicTrap::CreateTrap() {
-    int result = MapObjectCreate(this);
+    int result = static_cast<CMapObject*>(this)->CreateMapObject();
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
@@ -441,7 +435,7 @@ int MagicTrap::CreateTrap() {
 EI_REPLACE_METHOD(0x0052A100, MagicTrap::CreateTrap);
 
 void MagicTrap::DestroyTrap() {
-    MapObjectDestroy(this);
+    DestroyMapObject();
     SetSpell(this, nullptr);
     FreeCircles(area);
     PointsSetSize(&points, nullptr, 0, -1);
@@ -454,11 +448,11 @@ int MagicTrap::UpdateTrap() {
     auto* world = static_cast<CWorld*>(ManagerContextOf(this));
     if (!world->IsServer() || !spell) return result;
     if (period <= 0) {
-        UpdateVictimsAt(this);
+        UpdateVictims();
         return result;
     }
     if (countdown > 0) --countdown;
-    if (countdown <= 0) FireAtOccupantsAt(this);
+    if (countdown <= 0) FireAtOccupants();
     return result;
 }
 EI_REPLACE_METHOD(0x0052AC20, MagicTrap::UpdateTrap);
@@ -468,7 +462,7 @@ void MagicTrap::FireAtOccupants() {
     PtrList found = NewPtrList();
     if (flags_ & kArmed) {
         FindVictims(context, &area, sides, &found);
-        if (found.count) CastAtNewcomers(this, nullptr, &found);
+        if (found.count) CastAtUnits(&found);
     }
     DestroyPtrList(found);
 }

@@ -100,12 +100,6 @@ void InsertionSort(ParticleDepth* first, ParticleDepth* last) {
     }
 }
 
-// Calls through the original addresses, so that the verify wrappers of the hooked sort functions
-// see the draw pass's calls (the same code in the release build).
-__declspec(naked) void __fastcall IntroSortAt(ParticleDepth*, ParticleDepth*, void*, int, int) EI_ORIGINAL(0x00499380)
-__declspec(naked) void __fastcall FinalSortAt(ParticleDepth*, ParticleDepth*, int) EI_ORIGINAL(0x004994E0)
-__declspec(naked) int __fastcall DrawSourceAt(CParticleSource*, void*, void* /*renderer*/) EI_ORIGINAL(0x004976B0)
-
 // The renderer's blend-factor setter (vtable slot 10, 00501C60): SRCBLEND, DESTBLEND (5 source
 // alpha; 2 one: additive, 6 inverse source alpha: the default).
 void SetRenderState(void* renderer, int source, int dest) {
@@ -232,8 +226,8 @@ int CParticleManager::DrawAll(void* renderer) {
         int log2 = 0;
         for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++log2;
         int compare = 0;    // the empty comparator (its stack slot carries garbage in the original)
-        IntroSortAt(first, last, nullptr, log2 * 2, compare);
-        FinalSortAt(first, last, compare);
+        IntroSortByDepth(first, last, nullptr, log2 * 2, compare);
+        FinalSortByDepth(first, last, compare);
     }
 
     bool additive = false;
@@ -252,7 +246,7 @@ int CParticleManager::DrawAll(void* renderer) {
             SetRenderState(renderer, 5, 6);
             additive = false;
         }
-        if (!DrawSourceAt(s, nullptr, renderer)) {
+        if (!s->Draw(renderer)) {
             --refCount_;
             return 0;
         }

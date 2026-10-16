@@ -85,6 +85,3 @@ struct CDXSurface;   // texture.h
 CDib* __fastcall CaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
 // 006D6FC0 (thiscall): the same of the whole surface.
 CDib* __fastcall CaptureSurface(CDXSurface* surface);
-// The two through their addresses, so that their verify wrappers see the calls.
-CDib* __fastcall CallCaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
-CDib* __fastcall CallCaptureSurface(CDXSurface* surface);

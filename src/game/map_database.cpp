@@ -1,4 +1,5 @@
 // The map database loader (0045EA20). See map_database.h for the file format.
+#include "item_db_text.h"
 #include "map_database.h"
 #include "game_strings.h"
 
@@ -7,9 +8,11 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "text_reader.h"
 
 #include <cstring>
 
@@ -28,9 +31,9 @@ struct TextReader {
 mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 mfc::BOOL TextReader::NextHeader() { return ::TextFindLineOriginal(this, nullptr, nullptr); }
 int TextReader::Split(console::CStringArray* words, int flag) {
-    return ReaderSplit(reinterpret_cast<CTextManager*>(this), nullptr, words, flag);
+    return reinterpret_cast<CTextManager*>(this)->Split(words, flag);
 }
-mfc::BOOL TextReader::Close() { return ReaderClose(reinterpret_cast<CTextManager*>(this)); }
+mfc::BOOL TextReader::Close() { return TextClose(reinterpret_cast<CTextManager*>(this)); }
 TextReader* TheTextReader() { return *reinterpret_cast<TextReader**>(0x007AF788); }
 
 // Element constructors / destructors of the record arrays (not rewritten).
@@ -154,7 +157,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
         char* a = reinterpret_cast<char*>(db_->allods.data) + i * allod::kSize;
-        if (gamecrt::mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
+        if (libcrt::Mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
             continue;
         void* mapList = a + allod::kMaps;
         DwordArraySetAtGrowOriginal(mapList, nullptr, Body(mapList).size, static_cast<std::uint32_t>(map_));

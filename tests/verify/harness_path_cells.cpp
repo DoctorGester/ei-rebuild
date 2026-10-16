@@ -28,7 +28,7 @@ void __fastcall PlainSearchPathTo(void* search, void*, int x, int y, PathCellLis
     SetPlainCellWords(path);
 }
 
-// BuildCells clears `path` first too.
+// BuildCellsTo clears `path` first too.
 void __fastcall PlainBuildCells(CAIMap* map, void*, int x, int y, PathCellList* path) {
     reinterpret_cast<BuildCellsFn>(kBuildCells)(map, nullptr, x, y, path);
     SetPlainCellWords(path);

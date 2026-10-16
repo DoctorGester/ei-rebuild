@@ -266,8 +266,6 @@ constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the compani
 
 // 00516D50. The 3D object's slot 19, which attaches type 0x46 objects at +0x94. Not rewritten.
 __declspec(naked) std::uintptr_t __fastcall Object3DAttach(CMapObject*, void*, CEngineObject*) EI_ORIGINAL(0x00516D50)
-// 00522C50. UnitVitals::Pack of unit_stats_pack.cpp, through its game address.
-__declspec(naked) void* __fastcall PackVitalsAt(UnitVitals*, void*, UnitVitalsPacked*) EI_ORIGINAL(0x00522C50)
 } // namespace
 
 std::uintptr_t CMapObject::AttachObjectImpl(CEngineObject* object) {
@@ -284,7 +282,7 @@ EI_REPLACE_METHOD(0x0050E890, CMapObject::AttachObjectImpl);
 
 int CMapObject::PackVitals() {
     if (companion->GetClassId() != kClassMapObjectServer) return 0;
-    PackVitalsAt(&static_cast<CMapObjectServer*>(companion)->vitals, nullptr, PackedVitals());
+    static_cast<CMapObjectServer*>(companion)->vitals.Pack(PackedVitals());
     return 1;
 }
 EI_REPLACE_METHOD(0x0050E970, CMapObject::PackVitals);

@@ -3,6 +3,7 @@
 // original followed by the curtains' visibility (widescreen::ShowHeroCurtains), which this
 // reproduces, so it is hooked in both launches; the screen's other members call it through their
 // forwarder. See ui_screens.h and docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -37,7 +38,7 @@ constexpr float kQuarterDepth = 7.0f;
 constexpr float kFrameDepth = 3.0f;
 constexpr float kScale = 100.0f;
 
-void Enable(void* window, int enabled) { WindowSetEnabled(window, nullptr, enabled, 1); }
+void Enable(void* window, int enabled) { static_cast<CUiWindow*>(window)->SetEnabled(enabled, 1); }
 
 CUiMesh* Sprite(CMpHeroScreen* screen, int index) {
     return reinterpret_cast<CUiMesh*>(screen->window.sceneObjects_.data[index]);
@@ -152,7 +153,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         window.surfaces_.data[2]->Freeze(1, 1);
         Enable(nameEdit_, 0);
         EditFieldActivateOriginal(nameEdit_, nullptr, 0);
-        TradePanelSelectHeroOriginal(tradePanel_, nullptr, 0);
+        static_cast<CTradePanel*>(tradePanel_)->SelectHero(0);
     }
     InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
     static_cast<CHeroStatsPanel*>(statsPanel_)->ShowStats(mode);

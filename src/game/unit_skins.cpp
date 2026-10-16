@@ -7,8 +7,10 @@
 // docs/notes/world.md.
 #include "console.h"
 #include "game_strings.h"
+#include "item.h"
 #include "item_db.h"
 #include "model.h"
+#include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -32,8 +34,6 @@
 // 005683D0 (__fastcall: CL `body`, EDX the dressed unit record; RET 4 the record list). Defined below;
 // DressUnit calls it through its address so that its verify wrapper sees the calls.
 void __fastcall UnitTextureRecords(char body, const void* record, void* list);
-__declspec(naked) void __fastcall UnitTextureRecordsAt(char /*body*/, const void* /*record*/, void* /*list*/)
-    EI_ORIGINAL(0x005683D0)
 
 namespace {
 
@@ -80,7 +80,6 @@ __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
 // The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
-__declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) EI_ORIGINAL(0x00693F10)
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
 // EDX; record +0x10, names, more names]; vector<string> members: constructor [0053BB80], copy into
 // new storage [0053D7F0: count, first, last], element destructors [004DDC90 with 0, 0040C720],
@@ -148,7 +147,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
     char buffer[0x100];
     {
         mfc::CString name;
-        ArmourTexture(&name, id >> 16, id & 0xFFFF);
+        ArmorModelName(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
     StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
@@ -196,7 +195,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
 void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
     set.size = size;
     TextureManagerComposeOriginal(self->textureManager_, nullptr, &out, &set, &name, &name, 3, 0, 0x5551);
-    CacheRegister(self->textureManager_, nullptr, kind, name);
+    self->textureManager_->FindOrLoad(kind, name);
 }
 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
@@ -213,7 +212,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const std::uint32_t* items = record->items.Start();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
         mfc::CString built;
-        UnitTextureRecordsAt(1, record, &list);
+        UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         mfc::CString skin;
         StringArraySetSize(&set.names, nullptr, 0, -1);
@@ -236,7 +235,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         }
         Compose(self, built, set, name, 0x100, 1);
 
-        UnitTextureRecordsAt(0, record, &list);
+        UnitTextureRecords(0, record, &list);
         CopyRecords(set, list);
         StringArraySetSize(&set.names, nullptr, 0, -1);
         if (items[0] != kNone) AddItem(set, model, items[0]);

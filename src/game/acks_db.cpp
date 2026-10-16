@@ -5,6 +5,7 @@
 
 #include "chunk_archive.h"
 #include "map_object_figures.h"
+#include "object_tables.h"
 #include "originals_engine.h"
 #include "sound.h"
 #include "unit.h"
@@ -41,7 +42,6 @@ std::uint32_t PartyKind(std::uint32_t kind) {
 __declspec(naked) UnitAcks* __fastcall FindUnitAcks(AckTable<UnitAcks>*, void*, const char*) EI_ORIGINAL(0x006D9A30)
 __declspec(naked) ModelAcks* __fastcall FindModelAcks(AckTable<ModelAcks>*, void*, const char*) EI_ORIGINAL(0x006D9CE0)
 __declspec(naked) ExtraAcks* __fastcall FindExtraAcks(AckTable<ExtraAcks>*, void*, const char*) EI_ORIGINAL(0x006D9F80)
-__declspec(naked) const SpeechRecord* __fastcall PickSpeechAt(const SpeechList*, void*, int) EI_ORIGINAL(0x006D8780)
 __declspec(naked) const SpeechRecord* __fastcall PickEnvironmentSpeechAt(const stlp::vector<EnvironmentSpeech>*, void*,
                                                                          std::uint32_t, int) EI_ORIGINAL(0x006D88E0)
 
@@ -110,7 +110,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         unit->Controller()->StopSpeech();
         return nullptr;
     }
-    if ((IsTextKeyOriginal(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
+    if ((IsTextKey(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
     auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
     if (!prototype) return nullptr;
 
@@ -160,7 +160,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         std::uint32_t environment = ClientWorld().EnvironmentFlags(unit);
         speech = PickEnvironmentSpeechAt(environmentList, nullptr, environment, Roll());
     } else {
-        speech = PickSpeechAt(list, nullptr, Roll());
+        speech = PickSpeech(list, nullptr, Roll());
     }
     if (speech) unit->Controller()->Say(speech, static_cast<int>(kind));
     return speech;

@@ -28,8 +28,6 @@ int BmpFormatFor(int type) {
 }
 } // namespace
 
-__declspec(naked) int CTexture::CallCreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
-
 int CTextureManager::LoadTexture(CTexture* texture) {
     if (!texture) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't load texture to NULL pointer.\n");
@@ -52,7 +50,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
                 "CTextureManager::LoadTexture.\n Can't find desired texture format %d for texture \"%s\".\n", 0,
                 texture->GetName());
         texture->format_ = format;
-        return texture->CallLoadBmp(device_, path);
+        return texture->LoadBmp(device_, path);
     }
 
     path = mfc::CString(texture->GetName()) + ".mmp";
@@ -65,7 +63,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         texture->format_ = format;
         unsigned mip = mipLevel_;
         if (mip >= header->mipCount) mip = header->mipCount - 1;
-        result = texture->CallCreateFromMmp(device_, data, mip);
+        result = texture->CreateFromMmp(device_, data, mip);
         CloseFile(data);
         return result;
     }
@@ -84,7 +82,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
     texture->format_ = format;
-    texture->CallCreateFromMmp(device_, buffer, mipLevel_);
+    texture->CreateFromMmp(device_, buffer, mipLevel_);
     gamecrt::operator_delete(buffer);
     return 1;
 }
@@ -115,7 +113,7 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
     texture->format_ = format;
-    texture->CallCreateFromMmp(device_, buffer, mipLevel_);
+    texture->CreateFromMmp(device_, buffer, mipLevel_);
     gamecrt::operator_delete(buffer);
     return 1;
 }

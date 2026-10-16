@@ -69,14 +69,12 @@ std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fi
 // 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
 void* FindSkill(void* database, void*, const void* name) { return SkillFindOriginal(database, nullptr, name); }
-// 00526450. Statistics: learns `skill` of the skill database. Not rewritten.
+// 00526450. Statistics: learns `skill` of the skill database (UnitStats::LearnSkill).
 void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
-    StatsLearnSkillOriginal(stats, nullptr, database, record);
+    stats->LearnSkill(database, record);
 }
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
 // This file's functions through their addresses, so their verify wrappers stay in the path.
-__declspec(naked) char* __fastcall FindNpcAt(NpcPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005145D0)
-__declspec(naked) int __fastcall SetDefaultsAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*) EI_ORIGINAL(0x005134F0)
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
 // CUnit::SetPrototype23C, rewritten elsewhere.
 __declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
@@ -84,9 +82,9 @@ __declspec(naked) std::uint32_t __fastcall SetPrototype23CAt(CEngineObject*, voi
 
 // The records by name (null when there is none).
 const Prototype* FindPrototype(const char* name) {
-    return reinterpret_cast<const Prototype*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
+    return reinterpret_cast<const Prototype*>(unitdb::PrototypeTable().FindByName(name));
 }
-const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(FindNpcAt(&unitdb::NpcTable(), nullptr, name)); }
+const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(unitdb::NpcTable().FindByName(name)); }
 
 // The prototype's model; its index is read even from a null prototype (the original faults there).
 const Model* ModelOf(const Prototype* prototype) {
@@ -163,7 +161,7 @@ void SetCombat(UnitStats* stats, const Prototype* prototype, const Model* model)
 void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     stats->spentExperience = 0.0f;
     if (!npc) return;
-    UnitStatsAddExperience(stats, nullptr, npc->experience);
+    stats->AddScaledExperience(npc->experience);
     for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
         void* skill = FindSkill(SkillDb(), nullptr, static_cast<const char*>(*name));
         if (skill) LearnSkillAt(stats, nullptr, SkillDb(), skill);
@@ -238,7 +236,7 @@ EI_REPLACE_METHOD(0x005134F0, UnitStatsBuilder::SetDefaults);
 int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
-        SetDefaultsAt(this, nullptr, vitals, stats);
+        SetDefaults(vitals, stats);
         return 1;
     }
     const Model* model = ModelOf(prototype);
@@ -249,8 +247,8 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     // (a determinism fix, SV7b3; the harness zeroes them in the original too, harness_leftovers.h).
     std::memset(vitals, 0, sizeof(UnitVitals));
     std::memset(stats, 0, sizeof(UnitStats));
-    UnitVitalsReset(vitals);
-    UnitStatsResetOriginal(stats);
+    vitals->Reset();
+    static_cast<UnitStats*>(stats)->Reset();
 
     // Vitals: hit points and mana at their maxima, the model's regeneration.
     FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, &prototype->hitPoints);
@@ -315,7 +313,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Npc* npc = FindNpc(name);
     if (!prototype) return game::FatalError(reinterpret_cast<const char*>(0x0078F288), name);
     if (!npc) game::DebugLog(reinterpret_cast<const char*>(0x0078F258), name);
-    UnitStatsResetOriginal(stats);
+    static_cast<UnitStats*>(stats)->Reset();
 
     const float* speed = &prototype->speed;
     if (npc) {
@@ -450,10 +448,10 @@ void UnitStats::ResetToBase(float newLoad) {
     std::memcpy(&load, &newLoad, 4);   // a dword copy
     float strengthCapacity = static_cast<float>(static_cast<double>(stat10) * kTwelve);
     capacity = static_cast<float>((LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity);
-    float legs = LegsFactorAt(this, nullptr, 1);
+    float legs = LegsFactor(1);
     loadFactor = legs;
     speed = static_cast<float>(static_cast<double>(legs) * speedBase);
-    armsFactor = ArmsFactorAt(this, nullptr, 1);
+    armsFactor = ArmsFactor(1);
     rateBase = static_cast<float>(static_cast<double>(stat18) * kPointTwo + kTenF);
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
@@ -487,7 +485,7 @@ void UnitStats::LearnSkill(const void* database, const void* record) {
     if (!(newMaximum > kOneF)) return;
     double newHitPoints = ReduceAt(this, nullptr, newMaximum);
     float heal = static_cast<float>(static_cast<double>(oldHitPoints) / oldMaximum * newMaximum - newHitPoints);
-    HealSlotsAt(this, nullptr, newMaximum, heal);
+    HealSlots(newMaximum, heal);
 }
 EI_REPLACE_METHOD(0x00526450, UnitStats::LearnSkill);
 
@@ -595,13 +593,13 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     auto* mapObject = static_cast<CMapObject*>(object);
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
-        UnitVitalsReset(&vitals);
+        vitals.Reset();
         if (object->GetClassId() != kClassUnit) {
-            SetDefaultsAt(this, nullptr, &vitals, nullptr);
+            SetDefaults(&vitals, nullptr);
             mapObject->SetServerData(&vitals);
         } else {
-            UnitStatsResetOriginal(&stats);
-            SetDefaultsAt(this, nullptr, &vitals, &stats);
+            static_cast<UnitStats*>(&stats)->Reset();
+            SetDefaults(&vitals, &stats);
             mapObject->SetStats(&stats);
         }
         mapObject->ScaleEffectChanged(0);
@@ -611,7 +609,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     }
     const Model* model = ModelOf(prototype);
     if (object->GetClassId() == kClassUnit) {
-        UnitStatsBuildFromPrototype(this, nullptr, &vitals, &stats, name);
+        BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
         SetServerDataAt(object, nullptr, &vitals);
@@ -630,7 +628,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         mapObject->ApplyBaseScale();
         SetPrototype23CAt(object, nullptr, reinterpret_cast<const char*>(prototype));
     }
-    char* record = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
+    char* record = unitdb::PrototypeTable().FindByName(name);
     object->prototypeId_ = record
         ? static_cast<std::uint32_t>(static_cast<int>(record - unitdb::PrototypeTable().begin) / unitdb::kPrototypeSize)
         : 0xFFFFFFFFu;

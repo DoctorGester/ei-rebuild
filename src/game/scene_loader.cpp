@@ -21,6 +21,8 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
+#include "lib/mfc_window.h"
 
 #include <cstring>
 #include <new>
@@ -105,7 +107,6 @@ __declspec(naked) void __fastcall IndexSetAtGrow(IndexArray*, void*, int, const 
 __declspec(naked) int __fastcall IndexAdd(IndexArray*, void*, const std::uint32_t&) EI_ORIGINAL(0x00476640)
 __declspec(naked) void __fastcall IndexDestruct(IndexArray*) EI_ORIGINAL(0x00476780)
 __declspec(naked) void __fastcall GroupsSetSize(mfc::CArray<FaceGroup>*, void*, int, int) EI_ORIGINAL(0x00474DB0)   // the mesh's groups (+0x148)
-__declspec(naked) void __fastcall AssignGroup(FaceGroup*, void*, const FaceGroup*) EI_ORIGINAL(0x00474C50)
 
 } // namespace
 
@@ -402,7 +403,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     mfc::CArray<FaceGroup>* groups = &mesh->groups;
     GroupsSetSize(groups, nullptr, r.groups.size, -1);
     for (int g = 0; g < r.groups.size; ++g) {
-        AssignGroup(&groups->data[g], nullptr, r.Group(g));
+        groups->data[g].Assign(r.Group(g));
     }
 
     // Every morph key's points, reordered to the merged vertices.
@@ -719,7 +720,6 @@ using FigureRecordArray = mfc::CArray<CFigureMesh, OriginalElements<CFigureMesh,
 using BoneLinkArray = mfc::CArray<VtArray, OriginalElements<VtArray, ConstructBoneLinks, DestructBoneLinks>>;
 __declspec(naked) void __fastcall SetSizeBoneLinks(VtArray*, void*, int, int) EI_ORIGINAL(0x00450370)       // unit +0x558
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
-__declspec(naked) void __fastcall DestructNode(void*) EI_ORIGINAL(0x004543E0)
 // Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
 __declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*, VtArray*, VtArray*) EI_ORIGINAL(0x0044B980)
 __declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C4A0)
@@ -731,10 +731,8 @@ __declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
 __declspec(naked) SceneTexture* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
 __declspec(naked) SceneTexture* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return MaterialRegisterOriginal(a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall FinishFigure(void*) EI_ORIGINAL(0x005A6D40)
 __declspec(naked) void __fastcall AddFigure(void*, void*, void*) EI_ORIGINAL(0x005164B0)
 __declspec(naked) int __fastcall BindSkin(void*, void*, void*) EI_ORIGINAL(0x00508BF0)
-__declspec(naked) void __fastcall ResetSkin(void*) EI_ORIGINAL(0x00508990)
 // SceneInfo::Load through its original address, so the verify build's wrapper sees the call.
 __declspec(naked) mfc::BOOL __fastcall LoadScene(SceneInfo*, void*, void*, VtArray*, VtArray*, VtArray*) EI_ORIGINAL(0x00471B10)
 
@@ -744,7 +742,7 @@ struct SceneNodes : VtArray {
     SceneNodes() : VtArray{scenedata::NodeArrayVtable(), nullptr, 0, 0, 0} {}
     ~SceneNodes() {
         if (!data) return;
-        for (int i = 0; i < size; ++i) DestructNode(&Typed<NodeArray>(*this).data[i]);
+        for (int i = 0; i < size; ++i) static_cast<SceneNode*>(&Typed<NodeArray>(*this).data[i])->Destruct();
         gamecrt::operator_delete(data);
     }
 };
@@ -814,7 +812,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
         mfc::CString message;
         message.Format(scenedata::CantOpenText(), fileName);
-        AfxMessageBox(message, 0x10, 0);
+        mfc::impl::MessageBoxText(message, 0x10, 0);
         return 0;
     }
     LoadScene(&s.info, nullptr, &s.file, meshes, helpers, &s.nodes);
@@ -912,8 +910,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int t = 0; t < s.textureNames.size; ++t) {
         void* owner = u->Object3D()->attached;
         SceneTexture* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
-        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s.textureNames.Name(t).Right(4))),
-                                    reinterpret_cast<const unsigned char*>(scenedata::BmpExtText())) == 0;
+        bool bmp = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s.textureNames.Name(t).Right(4))),
+                                   reinterpret_cast<const unsigned char*>(scenedata::BmpExtText())) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
             texture->name = static_cast<const char*>(name.Left(Length(name) - 4));
@@ -932,11 +930,11 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     }
 
     for (int f = 0; f < figures->size; ++f) {
-        FinishFigure(&figureArray.data[f]);
+        figureArray.data[f].RefreshBuffers();
         AddFigure(fakeUnit, nullptr, &figureArray.data[f]);
     }
     BindSkin(&u->skin, nullptr, &u->Object3D()->parts);
-    ResetSkin(&u->skin);
+    static_cast<SceneSkin*>(&u->skin)->Rewind();
     const std::uint32_t offset[3] = {0, 0, 0x44FA0000};   // (0, 0, 500)
     std::memcpy(&u->Object3D()->position, offset, sizeof(offset));
     return 1;

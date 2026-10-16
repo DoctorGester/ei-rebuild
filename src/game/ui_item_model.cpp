@@ -1,6 +1,8 @@
 // An item's model for the item screens' model view (005EBFB0; ui_item_view.cpp caches it). See
 // docs/notes/ui.md, section 9.
 #include "engine_object.h"
+#include "figure_manager.h"
+#include "figure_mesh.h"
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -19,11 +21,11 @@ constexpr int kTexels = 0x80;
 // for it; one reference taken for the caller. A failed sprite is not checked (as in the original).
 CEngineObject* __fastcall ItemModel(const char* name) {
     void* manager = UiModelManager();
-    CEngineObject* model = ModelManagerNewObjectOriginal(manager, nullptr, name);
+    CEngineObject* model = static_cast<CFigureManager*>(manager)->NewFigure(name);
     if (!model) {
-        model = ModelManagerNewObjectOriginal(manager, nullptr, nullptr);
+        model = static_cast<CFigureManager*>(manager)->NewFigure(nullptr);
         reinterpret_cast<CUiMesh*>(model)->SetRectangle(kDepth, kScale, 0.0f, kSize, kSize, 0.0f, 0, 0, kTexels, kTexels);
-        FigureUploadQuadsOriginal(model);
+        static_cast<CFigureMesh*>(model)->FitVertexBounds();
     }
     ++model->refCount_;
     return model;

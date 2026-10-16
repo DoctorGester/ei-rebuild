@@ -24,11 +24,6 @@ constexpr std::uintptr_t kNoLibraryText = std::uintptr_t(0x0078ED40);     // "CV
 constexpr std::uintptr_t kNoFunctionText = std::uintptr_t(0x0078ED7C);    // "... have no function \"GetGraphicsProcessor\".\n"
 
 
-// 004F0B90 (RET 4): the transform pipeline's constructor (loads 3DfpFPU.dll from `folder`;
-// render_helper.cpp), through its address: the verify build's wrapper runs there.
-__declspec(naked) CTransformPipeline* __fastcall PipelineConstruct(void* /*memory*/, void*, const char* /*folder*/)
-    EI_ORIGINAL(0x004F0B90)
-
 } // namespace
 
 void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* settings) {
@@ -36,7 +31,7 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
         reinterpret_cast<const std::uint8_t*>(settings) + options::field::kWorkPath);
 
     void* memory = gamecrt::operator_new(kPipelineSize);
-    CTransformPipeline* pipeline = memory ? PipelineConstruct(memory, nullptr, workPath) : nullptr;
+    CTransformPipeline* pipeline = memory ? static_cast<CTransformPipeline*>(memory)->TransformPipelineConstruct(workPath) : nullptr;
     CTransformPipeline* old = pipeline_;
     pipeline_ = pipeline;
     if (pipeline) ++pipeline->refs_;
@@ -45,21 +40,21 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
     ReadProcessorInfo();
     if (!(TheProcessorInfo()->features & kProcessorMmx)) {
         game::FatalError(game::Text(kNoMmxText));
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
 
     graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");   // the exe's 0078E46C
     game::DebugLog(game::Text(kLibraryLoadedText));
     if (!graphicsLibrary_) {
         game::FatalError(game::Text(kNoLibraryText));
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
     using GetGraphicsProcessor = void*(__cdecl*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));   // the exe's 0078E42C
     if (!getProcessor) {
         game::FatalError(game::Text(kNoFunctionText));
-        ExitGame(-1);
+        libcrt::Exit(-1);
     }
     game::DebugLog(game::Text(kAcquiringText));
     graphicsProcessor_ = getProcessor();

@@ -16,6 +16,7 @@
 // no caller in game.exe or the mods: config/dead_code.csv.)
 // The original's unwinding when 004EF7B0 throws (freeing the holder's memory) is not reproduced:
 // that throw ends the game.
+#include "app.h"
 #include "ui.h"
 
 #include "base_manager.h"
@@ -50,7 +51,7 @@ void Describe(CDXSurface* holder, DDSURFACEDESC2* desc) {
     if (DirectPixels(holder, reinterpret_cast<std::uint32_t*>(desc))) return;
     long hr = DirectDrawSurfaceOf(holder)->GetSurfaceDesc(desc);
     holder->result = hr;
-    if (hr != 0) FatalDirectX(hr, game::CantGetSurfaceDescriptionText());
+    if (hr != 0) app::FatalErrorCode(hr, game::CantGetSurfaceDescriptionText());
 }
 
 // height * pitch of the surface's description.

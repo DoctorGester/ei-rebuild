@@ -11,13 +11,13 @@
 #include <cstdint>
 #include "originals_library.h"
 #include "originals_ai.h"
+#include "unit_ai.h"
 
 namespace {
 
 // Constructors of the members (thiscall).
 __declspec(naked) void __fastcall ConstructBridgeMap(void*, void*) EI_ORIGINAL(0x005BCCD0)
 __declspec(naked) void __fastcall ConstructSectorArray(void*, void*) EI_ORIGINAL(0x005BD1C0)
-__declspec(naked) void __fastcall ConstructUnitLayer(CUnitLayer*, void*) EI_ORIGINAL(0x005B4110)
 __declspec(naked) void __fastcall ConstructRegionMap(CRegionMap*, void*) EI_ORIGINAL(0x005AF3D0)
 __declspec(naked) void __fastcall NodeGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCC50)
 __declspec(naked) void __fastcall ByteGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCBD0)
@@ -25,13 +25,11 @@ __declspec(naked) void __fastcall ConstructCellRowArray(void*, void*) EI_ORIGINA
 __declspec(naked) void __fastcall ConstructLocalSearch(LocalSearch*, void*, int) EI_ORIGINAL(0x005B3FF0)
 __declspec(naked) void __fastcall CellGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCEE0)
 __declspec(naked) void __fastcall OccluderGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCF00)
-__declspec(naked) void __fastcall ConstructEvents(AIEventTable*, void*) EI_ORIGINAL(0x005B3F40)
 // 005B40F0: resets the dirty rectangle (+4). 005B4150: fills the area lists (ai_area_lists.cpp).
 __declspec(naked) void __fastcall ResetDirty(void*, void*) EI_ORIGINAL(0x005B40F0)
 __declspec(naked) void __fastcall Initialise(void*, void*) EI_ORIGINAL(0x005B4150)
 
 // Destructors of the members (thiscall).
-__declspec(naked) void __fastcall DestroyEvents(AIEventTable*, void*) EI_ORIGINAL(0x005C91F0)
 __declspec(naked) void __fastcall DestroyByteGrid(void*, void*) EI_ORIGINAL(0x00598A80)
 __declspec(naked) void __fastcall DestroyOccluderGrid(void*, void*) EI_ORIGINAL(0x00598B00)
 __declspec(naked) void __fastcall DestroyCellGrid(void*, void*) EI_ORIGINAL(0x005BD010)
@@ -53,7 +51,7 @@ constexpr std::uint32_t kArrayVtable = 0x0073C3D0;      // climbLarge, climbSmal
 constexpr std::uint32_t kAreaListVtable = 0x0073F9E0;   // areaLists
 
 void ConstructUnitLayerOf(CAIMap* self, CUnitLayer* layer, std::uintptr_t vtable) {
-    ConstructUnitLayer(layer, nullptr);
+    layer->Construct();
     layer->map = self;
     ei::SetVtable(layer, vtable);
 }
@@ -96,7 +94,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     CellGridConstruct(&self->cellBlock, nullptr, 1, 1);
     OccluderGridConstruct(&self->occluderBlock, nullptr, 1, 1);
     ByteGridConstruct(&self->marks, nullptr, 1, 1);
-    ConstructEvents(self->Events(), nullptr);
+    self->Events()->Construct();
     self->loaded = false;
     self->batching = false;
     ResetDirty(&self->dirtyMinX, nullptr);
@@ -109,7 +107,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
 // 0058A450 (thiscall). The destructor inlines some member destructors the reset calls (same
 // effects).
 void __fastcall DestructAIMap(CAIMap* self) {
-    DestroyEvents(self->Events(), nullptr);
+    self->Events()->Destroy();
     DestroyByteGrid(&self->marks, nullptr);
     DestroyOccluderGrid(&self->occluderBlock, nullptr);
     DestroyCellGrid(&self->cellBlock, nullptr);

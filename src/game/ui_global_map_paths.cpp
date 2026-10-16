@@ -56,9 +56,6 @@ bool SameName(const char* a, const char* b) {
 
 // --- The click (0062F950) ---
 
-// 006312C0 through its address, as the original click calls it (the check's wrapper runs).
-__declspec(naked) void __fastcall FindPathsOriginal(CGlobalMap*, void*, MapRecord* /*from*/) EI_ORIGINAL(0x006312C0)
-
 const char* MoveSound() { return game::Text(0x00794180); }      // "buttons\globalmap\move.wav"
 const char* TransitSound() { return game::Text(0x0079372C); }   // "buttons\globalmap\transit.wav"
 const char* OkSound() { return game::Text(0x0079419C); }        // "buttons\globalmap\ok.wav"
@@ -91,7 +88,7 @@ void SearchWays(CGlobalMap* map, const mfc::CString& target) {
     map->arrivals_.Clear();
     map->found_ = false;
     map->beyondTarget_ = false;
-    FindPathsOriginal(map, nullptr, PlayerZone());
+    map->FindPaths(PlayerZone());
 }
 
 bool MayTravelTo(CGlobalMap* map) {
@@ -171,7 +168,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     } else {
         // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
         // WideScreen takes the margin off its x (0062FB20: addon's code at 005FD237).
-        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2 - widescreen::PickShift(), y / 2);
+        const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;
         interface_->PlaySound(OkSound(), 0);
@@ -183,7 +180,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             if (!MayTravelTo(this)) return;
             void* memory = gamecrt::operator_new(kObjectivesSize);
             void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
-            ObjectivesSetupOriginal(window, nullptr, target_, &arrivals_, 1, 0);
+            static_cast<CObjectivesWindow*>(window)->Setup(target_, &arrivals_, 1, 0);
             InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
             return;
         }

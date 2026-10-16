@@ -10,6 +10,8 @@
 #include "object_diplomacy.h"
 #include "player_messages.h"
 #include "random.h"
+#include "unit.h"
+#include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
 
@@ -125,10 +127,6 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->
 // the unused EDX.
 // 00523D30. Scales a damage value by two of the unit's effect values (types 0x1D / 0x1E).
 __declspec(naked) float __fastcall StatsScaleDamage(UnitStats*, void*, CUnit*, float) EI_ORIGINAL(0x00523D30)
-// 00526C70. The skill bonus for weapon type `type`. Returned in ST0 unrounded: declared double.
-__declspec(naked) double __fastcall StatsWeaponSkillBonus(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00526C70)
-// 005304A0 / 00530560. The unit's load and size (2 * +0x14C), in ST0: declared double.
-__declspec(naked) double __fastcall UnitLoad(CUnit*) EI_ORIGINAL(0x005304A0)
 // 0052E0D0. Scales AttackParams::attack and ::defence by the difficulty unless `keyed`.
 // 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
 // 005254B0. Applies `hit` (with the attacker's `weapon`, may be null) to the unit's server stats;
@@ -137,7 +135,7 @@ __declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*,
     EI_ORIGINAL(0x005254B0)
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
 // 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
-// 005D7E90 (BrainSetSeenOriginal). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
+// 005D7E90 (AIBrain::SetSeen). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 
 GameOstream* GameOstream::Put(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
 GameOstream* GameOstream::Put(long v) { return static_cast<GameOstream*>(OstreamPutLongOriginal(this, nullptr, v)); }
@@ -455,10 +453,10 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->damageType = WeaponDamageType(weapon->prototypeId_);
         x87::CopyFloat(&out->speed, &weapon->weight_);
         float base = WeaponStat84(weapon->prototypeId_);
-        double bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
+        double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(gamecrt::Ftol(bonus + base));
         base = WeaponStat88(weapon->prototypeId_);
-        bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
+        bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->defence = static_cast<int>(gamecrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
@@ -487,7 +485,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     out->damageMax = StatsScaleDamage(&stats, nullptr, self, out->damageMax);
     out->damageMin = StatsScaleDamage(&stats, nullptr, self, out->damageMin);
     std::memcpy(&out->attackSpread, &Combat().attackSpread, sizeof(float));
-    DifficultyScaleParams(out, nullptr, keyed);
+    out->ScaleForDifficulty(keyed);
 }
 EI_REPLACE_METHOD(0x00555A00, CUnitServer::GetAttackParams);
 
@@ -588,7 +586,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
 EI_REPLACE_METHOD(0x0054F630, CUnitServer::BuildAttackHit);
 
 BOOL CUnitServer::PrepareAttack(CEngineObject* target, int location, char calledShot) {
-    int backstab = UnitIsBehind(unit, nullptr, target) & 0xFF;
+    int backstab = unit->IsBehind(target) & 0xFF;
     if (target->GetClassId() == kClassUnit &&
         reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller)->NoBackstab())
         backstab = 0;
@@ -644,7 +642,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (!(static_cast<double>(mine.defence) > std::bit_cast<float>(hit->attackRoll))) {
         stats.flags |= 0x10;
         unit->MarkChanged(4);
-        CallTriggerItemSpells(1);
+        TriggerItemSpells(1);
         CEngineObject* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (StatsApplyHit(&stats, nullptr, unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
@@ -659,11 +657,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             } else {
                 LastDamageSource(unit) = 7;
             }
-            UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+            stats.Recompute(ServerStatsOf(unit), unit);
             unit->MarkChanged(0);
             unit->MarkChanged(4);
             if (!dead) {
-                CallOnDamaged(attacker, hit->hitKind);
+                OnDamaged(attacker, hit->hitKind);
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
@@ -682,7 +680,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         auto* diplomacy = &static_cast<CWorldServer*>(ManagerContext())->diplomacy_;
         diplomacy->OnAttack(attacker, unit, 10);
     }
-    BrainSetSeenOriginal(&brain, nullptr, attacker);
+    brain.SetSeen(attacker);
     return 0;
 }
 EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);
@@ -705,9 +703,9 @@ void CUnitServer::UpdateSizeClasses() {
         combat.sizeClass = 0;
         return;
     }
-    float load = static_cast<float>(UnitLoad(unit));
+    float load = static_cast<float>(unit->BodyExtent());
     const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    double size = UnitSize(unit) * std::bit_cast<float>(model->sizeScale);
+    double size = unit->DoubleHeight() * std::bit_cast<float>(model->sizeScale);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
         size = LessOrUnordered(kHeroSizeCap, uncapped) ? kHeroSizeCap : uncapped;

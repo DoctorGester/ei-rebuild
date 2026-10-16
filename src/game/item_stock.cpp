@@ -17,6 +17,7 @@
 #include "../lib/stlp_pair.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -35,19 +36,19 @@ namespace {
 // and the power limit (prototype +0x40 + material +0x18). Sets only AL.
 struct Constructor : ItemConstructorManagerOriginal {
     int BeginCreateItem(int kind, int key) {        // 006A5C50
-        return ItemConstructorBeginCreateItemOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, kind, key);
+        return reinterpret_cast<CItemConstructor*>(this)->BeginCreateItem(kind, key);
     }
     int SetMaterial(char* material) {               // 006A5CC0
-        return ItemConstructorSetMaterialOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, material);
+        return reinterpret_cast<CItemConstructor*>(this)->SetMaterial(material);
     }
     int SetPrototype(char* prototype) {             // 006A5CD0
-        return ItemConstructorSetPrototypeOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, prototype);
+        return reinterpret_cast<CItemConstructor*>(this)->SetPrototype(prototype);
     }
     int SetSpellObject(void* spell) {               // 006A5CE0
-        return ItemConstructorSetSpellObjectOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, static_cast<CSpell*>(spell));
+        return reinterpret_cast<CItemConstructor*>(this)->SetSpellObject(static_cast<CSpell*>(spell));
     }
     CItem* EndCreateItem() {                        // 006A5CF0
-        return ItemConstructorEndCreateItemOriginal(reinterpret_cast<CItemConstructor*>(this));
+        return reinterpret_cast<CItemConstructor*>(this)->EndCreateItem();
     }
     int Cancel();                                   // 006A5D30
     bool MagicCapacity(float* level, float* power); // 006A6480
@@ -63,8 +64,6 @@ static_assert(offsetof(Constructor, count) == offsetof(CItemConstructor, count_)
 // weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
 // pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
 __declspec(naked) void __fastcall CallFillSpellMaps(ItemStock*, void*, void* /*table*/) EI_ORIGINAL(0x0069A480)
-__declspec(naked) void __fastcall CallGenerateSpells(ItemStock*, void*, StockList* /*out*/, const float* /*levels*/, unsigned /*threshold*/)
-    EI_ORIGINAL(0x0069A780)
 
 // vector<char*> members (thiscall): 0069E3F0 insert(position, first, last; a fourth unused
 // argument), 0069D9A0 allocate a block of n and copy [first, last) into it, 0069D470
@@ -108,7 +107,7 @@ int Compare(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 int CompareNoCase(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range
@@ -253,7 +252,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     if (!ctor->MagicCapacity(&level, &power)) return;
     float levels[8];
     for (float& l : levels) l = level;
-    CallGenerateSpells(stock, nullptr, &spells, levels, 0);
+    stock->GenerateSpells(&spells, levels, 0);
     unsigned count = 0;
     for (StockListNode* n = spells.head->next; n != spells.head; n = n->next) ++count;
     if (count == 0) return;
@@ -335,7 +334,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
-        if (item->type_ == 0x3006 && ItemGetCategoryOriginal(item) == 8)
+        if (item->type_ == 0x3006 && item->GetCategory() == 8)
             item->count_ = static_cast<std::uint32_t>(gamecrt::rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
         DestroySpellList(spellList);
@@ -869,11 +868,11 @@ int TableIndex(const char* record, const RecordTable& table, int recordSize) {
 // the spell's code a CString at +4, the modifier's inline at +4.
 int SpellIndex(char* record) {
     const char* code = reinterpret_cast<const itemdb::SpellRecord*>(record)->code;
-    return TableIndex(FindSpellByCode(TableObject(itemdb::Spells()), nullptr, code), itemdb::Spells(), itemdb::kSpellSize);
+    return TableIndex(static_cast<itemdb::CodeIndexedTable*>(TableObject(itemdb::Spells()))->FindByCode(code), itemdb::Spells(), itemdb::kSpellSize);
 }
 int ModifierIndex(char* record) {
     const char* code = Modifier(record)->code;
-    return TableIndex(FindModifierByCode(TableObject(itemdb::SpellModifiers()), nullptr, code), itemdb::SpellModifiers(),
+    return TableIndex(static_cast<itemdb::CodeIndexedTable*>(TableObject(itemdb::SpellModifiers()))->FindByCode(code), itemdb::SpellModifiers(),
                       itemdb::kSpellModifierSize);
 }
 
@@ -935,7 +934,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     SpellListConstruct(&list, nullptr, &allocator);
     for (int tries = 0;;) {
         ClearSpellList(list);
-        CallGenerateSpells(this, nullptr, &list, scrollLevels, 0x32);
+        GenerateSpells(&list, scrollLevels, 0x32);
         unsigned count = 0;
         for (StockListNode* n = list.head->next; n != list.head; n = n->next) ++count;
         if (count >= static_cast<unsigned>(spells.size())) break;

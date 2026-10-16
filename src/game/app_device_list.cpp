@@ -22,11 +22,8 @@ static_assert(sizeof(LeverRecordVector) == 12);
 
 namespace {
 // The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
-// STLport (library): copy (first, last, dest), resize.
-__declspec(naked) LeverRecord* __fastcall RecordsCopy(LeverRecord*, LeverRecord*, LeverRecord*, const void*, int) EI_ORIGINAL(0x00465B20)
+// STLport (library): resize.
 __declspec(naked) void __fastcall RecordsResize(LeverRecordVector*, void*, unsigned) EI_ORIGINAL(0x00465180)
-// The record's own functions through their addresses (rewritten below).
-__declspec(naked) void __fastcall RecordDestructAt(LeverRecord*) EI_ORIGINAL(0x004652A0)
 __declspec(naked) void __fastcall RecordArchiveAt(LeverRecord*, void*, void*) EI_ORIGINAL(0x00463030)
 
 void CopyPlain(LeverRecord* to, const LeverRecord* from) {
@@ -49,14 +46,14 @@ EI_REPLACE(0x004652A0, RecordDestruct);
 
 // 00463030: the record's fields 0 .. 7 (strings 0, 5, 6, 7).
 void LeverRecord::Archive(ChunkArchive* archive) {
-    ArchiveString(archive, nullptr, 0, &name);
-    ArchiveField(archive, nullptr, 1, spots, 0x10);
-    ArchiveField(archive, nullptr, 2, &spotCount, 4);
-    ArchiveField(archive, nullptr, 3, &farScale, 4);
-    ArchiveField(archive, nullptr, 4, &duration, 4);
-    ArchiveString(archive, nullptr, 5, &text20);
-    ArchiveString(archive, nullptr, 6, &sound);
-    ArchiveString(archive, nullptr, 7, &text28);
+    archive->CStringField(0, &name);
+    archive->Field(1, spots, 0x10);
+    archive->Field(2, &spotCount, 4);
+    archive->Field(3, &farScale, 4);
+    archive->Field(4, &duration, 4);
+    archive->CStringField(5, &text20);
+    archive->CStringField(6, &sound);
+    archive->CStringField(7, &text28);
 }
 EI_REPLACE_METHOD(0x00463030, LeverRecord::Archive);
 
@@ -103,14 +100,14 @@ EI_REPLACE(0x00465B20, RecordsCopyForward);
 // to the number of chunks when loading).
 void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVector* list, int /*unused*/) {
     ChunkArchive* ar = static_cast<ChunkArchive*>(archive);
-    if (!ArchiveEnter(ar, nullptr, id)) return;
+    if (!ar->EnterChunk(id)) return;
     int n;
     if (ar->loading_) {
         LeverRecord* end = list->end();
-        LeverRecord* kept = RecordsCopy(end, end, list->begin(), list, 0);
-        for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestructAt(r);
+        LeverRecord* kept = RecordsCopyForward(end, end, list->begin(), list, 0);
+        for (LeverRecord* r = kept; r != list->end(); ++r) RecordDestruct(r);
         list->Finish() = kept;
-        n = ArchiveCount(ar, nullptr, 1);
+        n = ar->CountChunks(1);
         RecordsResize(list, nullptr, static_cast<unsigned>(n));
     } else {
         n = static_cast<int>(list->size());
@@ -118,11 +115,11 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVecto
     for (int i = 0; i < n; ++i) {
         ar->Current()->occurrence = i + 1;
         LeverRecord* record = list->begin() + i;
-        if (!ArchiveEnter(ar, nullptr, 1)) continue;
+        if (!ar->EnterChunk(1)) continue;
         RecordArchiveAt(record, nullptr, archive);
-        ArchiveLeave(ar);
+        ar->LeaveChunk();
     }
-    ArchiveLeave(ar);
+    ar->LeaveChunk();
 }
 EI_REPLACE(0x00465090, DeviceListArchive);
 

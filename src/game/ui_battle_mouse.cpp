@@ -1,5 +1,6 @@
 // The battle screen's mouse move (00639D60), left button down (00638A40) and a unit's name line
 // (0063B920). See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
+#include "ui.h"
 #include "ui_camp.h"
 
 #include "item_db_text.h"
@@ -18,10 +19,6 @@ namespace {
 constexpr int kCursorArrow = 0;
 constexpr int kCursorPickPlayer = 0xD;   // a portrait click picks a player
 constexpr const char* kUnitTextPrefix = "unit ";   // 00794498
-
-// 00639EF0 (CBattleScreen::HoverUnit, rewritten in ui_battle_hover.cpp; thiscall on the window,
-// RET 0xC), through its address so its verify wrapper sees the battle screen's calls.
-__declspec(naked) void __fastcall HoverUnitAt(CBattleScreen*, void*, CUnit*, int, int) EI_ORIGINAL(0x00639EF0)
 
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
 } // namespace
@@ -54,7 +51,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     // The original passes the address of its own (x, y) arguments and reads them back.
     int point[2] = {x, y};
     CUnit* unit = WorldUnitAtPointOriginal(WorldClient(), nullptr, point);
-    HoverUnitAt(this, nullptr, unit, point[0], point[1]);
+    HoverUnit(unit, point[0], point[1]);
 }
 namespace {
 } // namespace

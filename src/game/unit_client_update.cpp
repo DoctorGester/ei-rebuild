@@ -40,14 +40,6 @@ constexpr float kIntRange = 2147483648.0f;            // 2^31: FISTP's int range
 // 00538ED0 / 00539010. The blink: the face texture with closed / open eyes (RET 4).
 __declspec(naked) void __fastcall CloseEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00538ED0)
 __declspec(naked) void __fastcall OpenEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00539010)
-// Rewritten (unit_client_sounds.cpp, unit_client_models.cpp, below), called through their game
-// addresses so their verify wrappers stay in the path: 00534B60 the step sounds, 00537CB0 the weapon
-// parts, 00538C20 the bow's arrow, 0051B6D0 / 0051B6F0 the drawn parts.
-__declspec(naked) void __fastcall CallPlayStepSounds(CUnitClientSpecific*) EI_ORIGINAL(0x00534B60)
-__declspec(naked) void __fastcall CallShowWeaponParts(CUnitClientSpecific*, void*, bool) EI_ORIGINAL(0x00537CB0)
-__declspec(naked) void __fastcall CallUpdateArrow(CUnitClientSpecific*) EI_ORIGINAL(0x00538C20)
-__declspec(naked) CMaterial* __fastcall CallFirstMaterial(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6D0)
-__declspec(naked) CMaterial* __fastcall CallNextMaterial(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6F0)
 
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
@@ -84,7 +76,7 @@ int CUnitClientSpecific::UpdateClient() {
     if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);
     if (unit->motionMode == 1) ++unit->animationStart;
     const FigureAnimation* current = unit->Object3D()->animation->current;
-    if (current) CallShowWeaponParts(this, nullptr, (current->key & kKeyLowBits) == 0);
+    if (current) ShowWeaponParts((current->key & kKeyLowBits) == 0);
 
     bool drawn;
     if (unit->dead && static_cast<CWorld*>(ObjectWorld(this))->tick_ >
@@ -99,13 +91,13 @@ int CUnitClientSpecific::UpdateClient() {
 
     if (!(fadeIn >= 1.0f)) {   // below 1, or NaN
         auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-        for (CMaterial* part = CallFirstMaterial(half); part; part = CallNextMaterial(half)) part->colors.diffuse.w = fadeIn;
+        for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = fadeIn;
         float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        ClientPartColoursOriginal(static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached), nullptr, 0);
+        static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->SetLit(0);
 
     if (blinks) {
         if (blinkTimer > 0) {
@@ -116,8 +108,8 @@ int CUnitClientSpecific::UpdateClient() {
             else OpenEyes(this, nullptr, 0);
         }
     }
-    CallUpdateArrow(this);
-    CallPlayStepSounds(this);
+    UpdateArrow();
+    PlayStepSounds();
 
     ClientSpeechNode* queue = speech;
     if (queue->next != queue) {
@@ -126,9 +118,9 @@ int CUnitClientSpecific::UpdateClient() {
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
             if (first->kind == kSpeechAfterSpeech || first->kind == kSpeechAfterSpeech2) {
-                if (!SoundBusy(speechSound) && ClientSpeakOriginal(this, nullptr, first)) speechSound = first->sound;
+                if (!SoundBusy(speechSound) && Speak(first)) speechSound = first->sound;
             } else {
-                ClientSpeakOriginal(this, nullptr, first);
+                Speak(first);
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
@@ -149,19 +141,13 @@ namespace {
 float LevelBase() { return *reinterpret_cast<const float*>(0x007C5488); }
 float LevelFactor() { return *reinterpret_cast<const float*>(0x007C548C); }
 
-// Not rewritten (forwarders): 005370F0 (whether the unit's wounds need a texture, composing it;
-// plain RET), the client half's 0051C3D0 (shows wounds texture `name`, RET 4) and 0051C920 (none).
-__declspec(naked) int __fastcall NeedsWoundsTexture(CUnitClientSpecific*) EI_ORIGINAL(0x005370F0)
-__declspec(naked) void __fastcall ShowWounds(CObject3DClientSpecific*, void*, const char*) EI_ORIGINAL(0x0051C3D0)
-__declspec(naked) void __fastcall HideWounds(CObject3DClientSpecific*) EI_ORIGINAL(0x0051C920)
-
 CObject3DClientSpecific* ClientHalf(CUnit* unit) {
     return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
 }
 
 // The drawn parts take `alpha`.
 void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
-    for (CMaterial* part = CallFirstMaterial(half); part; part = CallNextMaterial(half)) part->colors.diffuse.w = alpha;
+    for (CMaterial* part = half->FirstMaterial(); part; part = half->NextMaterial()) part->colors.diffuse.w = alpha;
 }
 } // namespace
 
@@ -191,12 +177,12 @@ int CUnitClientSpecific::Level() {
 EI_REPLACE_METHOD(0x00539160, CUnitClientSpecific::Level);
 
 int CUnitClientSpecific::RefreshWounds() {
-    if (NeedsWoundsTexture(this)) {
+    if (ComposeWoundsTexture()) {
         char name[0x80];
         gamecrt::sprintf(name, "mo%dw", unit->id_);
-        ShowWounds(ClientHalf(unit), nullptr, name);
+        ClientHalf(unit)->ShowWounds(name);
     } else {
-        HideWounds(ClientHalf(unit));
+        ClientHalf(unit)->HideWounds();
     }
     return 1;
 }

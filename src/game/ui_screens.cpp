@@ -1,10 +1,13 @@
 // Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
 // escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
+#include "spell.h"
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
 #include "core_maths.h"
 #include "item.h"
+#include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -36,10 +39,8 @@ constexpr int kTypeSpellContainer = 0x3008;
 // Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
 __declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
-// 005FC730: a region's tooltip (text "tip_<id>").
-__declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int) EI_ORIGINAL(0x005FC730)
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
-BOOL TakeScrollPos(void* bar, void*, int* position) { return ScrollbarTakePositionOriginal(bar, nullptr, position); }
+BOOL TakeScrollPos(void* bar, void*, int* position) { return static_cast<CUiScrollbar*>(bar)->TakePosition(position); }
 // The hero screen's equipment panels.
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
@@ -123,14 +124,14 @@ bool UiItemKinds::IsBuildable(const char* item) {
     if (type != kTypeArmor) return false;
     prototype = reinterpret_cast<const ItemPrototypeRecord*>(object->GetPrototype());
     return prototype &&
-           gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
+           libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(prototype->materialClass_), NoMaterial()) != 0;
 }
 EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
 
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { PlaySoundAt(ui, nullptr, name, flags); }
-void LeaveGame() { FlowCloseSessionsOriginal(kGame); }
+void LeaveGame() { static_cast<GameFlow*>(kGame)->CloseSessions(); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------
@@ -156,7 +157,6 @@ void CUiItemStrip::SetTab(int tab) {
     scrollDirection_ = 0;
 }
 EI_REPLACE_METHOD(0x00620960, CUiItemStrip::SetTab);
-__declspec(naked) void CUiItemStrip::CallSetTab(int) EI_ORIGINAL(0x00620960)
 
 void CUiItemStrip::SetFilter(int filter) {
     for (float& position : position_) position = 0.0f;
@@ -174,7 +174,7 @@ void CUiItemStrip::SetFilter(int filter) {
     }
     for (int i = 2; i < 8; ++i) {
         std::memcpy(&window.SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
-        SetRegionTip(window.regions_.data[i], nullptr, tipBase + i, 1, 0);
+        window.regions_.data[i]->SetTip(tipBase + i, 1, 0);
     }
 }
 EI_REPLACE_METHOD(0x00621420, CUiItemStrip::SetFilter);
@@ -295,7 +295,7 @@ void CUiItemStrip::ScrollToItem(char* item) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
     } else {
         int tab = TabOf(item);
-        if (TabKeysEnabled()) CallSetTab(tab);
+        if (TabKeysEnabled()) SetTab(tab);
         for (int i = 0; i < source_->size; ++i)
             if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
     }
@@ -416,19 +416,19 @@ EI_REPLACE_METHOD(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>:
 // --- Heroes' skills ---------------------------------------------------------------------------
 
 int HeroSchoolSkill(void* stats, int school) {
-    return x87::fistp(static_cast<float>(UnitStatsSpellSchoolSkill(static_cast<UnitStats*>(stats), nullptr, school)));
+    return x87::fistp(static_cast<float>(static_cast<UnitStats*>(stats)->SpellSchoolSkill(school)));
 }
 
 int HeroManaUnits(void* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
-    float maximum = static_cast<float>(UnitStatsManaCurve(static_cast<UnitStats*>(stats)));
+    float maximum = static_cast<float>(static_cast<UnitStats*>(stats)->ManaCurve());
     return static_cast<int>(gamecrt::Ftol(maximum / StatsPeriod(stats)));
 }
 
 bool HeroCanUseSpell(void* stats, char* spell) {
     bool ok = true;
     int required = *reinterpret_cast<int*>(spell + 0x50);
-    const char* prototype = SpellGetPrototypeOriginal(reinterpret_cast<CSpell*>(spell));
+    const char* prototype = reinterpret_cast<CSpell*>(spell)->GetPrototype();
     if (HeroSchoolSkill(stats, *reinterpret_cast<const int*>(prototype + 0x14)) < required) ok = false;
     float cost = *reinterpret_cast<float*>(spell + 0x40);
     int units = HeroManaUnits(stats);
@@ -489,7 +489,7 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
-void CMpHeroScreen::CallShowHero(int index) { HeroScreenShowHeroOriginal(this, nullptr, index); }
+void CMpHeroScreen::CallShowHero(int index) { ShowHero(index); }
 void CMpHeroScreen::CallDrawVoices() { HeroScreenDrawVoicesOriginal(this); }
 void CMpHeroScreen::CallDrawHeroList() { HeroScreenDrawListOriginal(this); }
 
@@ -681,11 +681,11 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     if (UiHandled(this)) return;
     switch (key) {
     case VK_BACK:
-        ChatKeyBackspaceOriginal(interface_);
+        interface_->ChatKeyBackspace();
         UiHandled(this) = true;
         break;
     case VK_RETURN:
-        ChatKeyEnterOriginal(interface_);
+        interface_->ChatKeyEnter();
         UiHandled(this) = true;
         break;
     case VK_ESCAPE:

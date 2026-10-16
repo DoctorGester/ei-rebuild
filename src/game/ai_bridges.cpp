@@ -33,8 +33,6 @@ std::uint32_t BridgeKey(int x, int y) {
 
 // 005BCDE0 (RET 4). hash_map::operator[]: the node's value slot for the key (inserted when new).
 __declspec(naked) std::uint32_t* __fastcall BridgeSlot(void*, void*, const std::uint32_t*) EI_ORIGINAL(0x005BCDE0)
-// 005B30B0 (RestoreBridgeCell below), through its address so its wrapper sees the calls.
-__declspec(naked) void __fastcall RestoreFromBridge(void*, void*, int, int, AIMapCell*, std::uint32_t*) EI_ORIGINAL(0x005B30B0)
 // 005BCE60 (RET 8). hashtable::erase(iterator): the iterator {node, table} by value.
 __declspec(naked) void __fastcall EraseBridge(void*, void*, BridgeNode*, void*) EI_ORIGINAL(0x005BCE60)
 
@@ -62,12 +60,12 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
             int x = c.x, y = c.y;
             if (x < 0 || y < 0 || x >= width || y >= height || c.low >= c.high) continue;
             c.kind = 4;
-            if (!ClearOccluder(&c)) continue;
+            if (!ClearOccluderRecord(&c)) continue;
             AIMapCell* cell = &cells[y][x];
             int deck;
             if (!BridgeDeckAt(x, y, &deck)) {
                 if (cell->flags & kCellBridge)
-                    RestoreFromBridge(bridgeHeights, nullptr, x, y, &cells[y][x], &occluders[y][x]);
+                    RestoreBridgeCell(bridgeHeights, nullptr, x, y, &cells[y][x], &occluders[y][x]);
                 std::uint16_t w = FlagsWord(cell) & 0xFFBF;
                 FlagsWord(cell) = static_cast<std::uint16_t>(((w & 0x3F) ? 0x80 : 0) | (w & 0xFF7F));
             } else {
@@ -93,7 +91,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
                 *BridgeSlot(bridgeHeights, nullptr, &key) = value;
             }
         }
-        if (!AddOccluder(&c)) return false;
+        if (!AddOccluderRecord(&c)) return false;
         FlagsWord(cell) = static_cast<std::uint16_t>((FlagsWord(cell) & 0xFF40) | 0x40);
         std::uint16_t deck = static_cast<std::uint16_t>(c.high);
         if (cell->groundLevel <= deck) cell->groundLevel = deck;

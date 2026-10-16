@@ -4,6 +4,7 @@
 //
 // Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).
+#include "ai_alarm.h"
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
@@ -15,6 +16,8 @@
 #include "map_object_figures.h"
 #include "player_messages.h"
 #include "random.h"
+#include "script.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -67,8 +70,6 @@ constexpr int kMessagePartial = 0x01;
 __declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_ORIGINAL(0x005241C0)
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005BA6E0
 // IsUnitCellPassable, 005BA830 CanLeaveCell, 005BA5A0 StandsOnCheapCell, 005BB350 FindPath.
-__declspec(naked) bool __fastcall MapCellPassable(void*, void*, CUnit*) EI_ORIGINAL(0x005BA6E0)
-__declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA5A0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
 // 004B3330 ScriptGroup::Contains (script_group.cpp).
@@ -83,19 +84,13 @@ __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, co
 void* __fastcall CellListConstruct(void* a0, void*, int a2) { return CellListConstructOriginal(a0, nullptr, a2); }
 void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 // The world server's timed objects (world_server.cpp).
-// The AI: 005D5E90 the brain's leader (BrainLeaderOrFollowedOriginal), 005D4F70 the brain's reset, 005AEA40 the
+// The AI: 005D5E90 the brain's leader (AIBrain::LeaderOrFollowed), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
 void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, std::uint32_t a7) {
     PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7);
 }
-// The controller's functions rewritten elsewhere, through their game addresses (combat_update.cpp,
-// combat_steps.cpp, combat_tick.cpp).
-__declspec(naked) std::uint32_t __fastcall CtlWeaponTypeMask(CUnitServer*) EI_ORIGINAL(0x00550050)
-__declspec(naked) std::uint32_t __fastcall CtlMoveModeMask(CUnitServer*, void*, const MoveModeState*) EI_ORIGINAL(0x005500A0)
-// And the functions of this file.
-__declspec(naked) void __fastcall CtlBuildIdle(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00550D90)
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
@@ -103,8 +98,7 @@ __declspec(naked) void __fastcall CtlBuildIdle(CUnitServer*, void*, AnimationSte
 AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
-__declspec(naked) AnimationStep* __fastcall StepBlank(AnimationStep*) EI_ORIGINAL(0x00550A60)
+void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
@@ -163,9 +157,9 @@ void FaceAndStop(CUnitServer* self) {
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, direction, now)) UnitPathSpeeds(self->unit);
-    CtlSetStanding(self, nullptr, 0);
-    CtlSetState(self, nullptr, kStateChasing);
+    if (Motion(self)->Start(&self->unit->position, direction, now)) self->unit->RefreshMotion();
+    self->SetStanding(0);
+    self->SetState(kStateChasing);
 }
 
 // The unit's movement mode from a record: 3 while it was mode 3 (`wasMode3`), else its mode.
@@ -256,7 +250,7 @@ namespace {
 // 00548DE0 / 00548FA0: the two differ only in the state they set.
 void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     self->state = newState;
-    UnitUpdateSizeClass(self->unit);
+    self->unit->UpdateSizeClass();
     DropEffectObject(self);
     AnimationSteps& queue = Queue(self);
     StepsAppend(&queue, nullptr, &steps);
@@ -264,14 +258,14 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     StepsAppend(&queue, nullptr, &steps);
     QueueTime(self) = steps.extra;
     StartQueueIfUnset(self);
-    CtlPopFinishedSteps(self);
+    self->PopFinishedSteps();
     ShowHead(self);
     PathClear(Motion(self));
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back = -axis;
-    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, &back, now)) UnitPathSpeeds(self->unit);
+    if (Motion(self)->Start(&self->unit->position, &back, now)) self->unit->RefreshMotion();
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
@@ -325,7 +319,7 @@ void CUnitServer::PlayIdle() {
     StepsAppend(&Queue(this), nullptr, &IdleSteps(this));
     QueueTime(this) = IdleTime(this);
     StartQueueIfUnset(this);
-    CtlPopFinishedSteps(this);
+    PopFinishedSteps();
     ShowHead(this);
 }
 EI_REPLACE_METHOD(0x005474B0, CUnitServer::PlayIdle);
@@ -366,7 +360,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         if (!once) {
             AddEmote(steps, index);
         } else {
-            int duration = CtlAnimationDuration(this, nullptr, index);
+            int duration = AnimationDuration(index);
             AnimationStep blank{};
             blank.animation = 0xFF;
             blank.variant = 0xFF;
@@ -418,7 +412,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             StepsEmote(&steps, nullptr, value);
         } else if (step.variant == 0xFF) {
             AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
-            StepsAdd(&steps, nullptr, StepBlank(&blank));
+            StepsAdd(&steps, nullptr, blank.Construct());
             AnimationStep& last = steps.steps[steps.count - 1];
             last.animation = step.animation;
             last.duration = step.duration;
@@ -438,14 +432,14 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = Plan(this);
     for (int i = 0; i < plan.animation.count; ++i) plan.animation.steps[i].flags = static_cast<std::uint8_t>(stepFlags);
     if (state < 0 || (state > 1 && state != kStateTurning)) {
-        std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
+        std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
         if (IdleKey(this) == key) {
             IdleTime(this) = -1;
         } else {
             IdleKey(this) = key;
-            CtlBuildIdle(this, nullptr, &IdleSteps(this));
+            BuildIdle(&IdleSteps(this));
         }
-        CtlPlaySteps(this, nullptr, &IdleSteps(this));
+        PlaySteps(&IdleSteps(this));
     }
     state = kStateActing;
     actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
@@ -457,7 +451,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         int now = TickOf(ObjectWorld(this));
         PathFollow(Motion(this), nullptr, now, unit, plan.targetId, until, plan.startTime);
     }
-    UnitPathSpeeds(unit);
+    unit->RefreshMotion();
     CWorldServer* world = ContextOf(this);
     if (unit->obstacle == 0) return;
     CSectorMap* sectors = world->Sectors();
@@ -487,7 +481,7 @@ void CUnitServer::UpdateSneak() {
         }
     }
     if (moveMode.wasMode3 != 0) {
-        if (moveMode2.wasMode3 != 0 && MapCheapCell(world->AIMap(), nullptr, unit) && running == 0) {
+        if (moveMode2.wasMode3 != 0 && world->AIMap()->StandsOnCheapCell(unit) && running == 0) {
             sneakWait = 0;
             return;
         }
@@ -500,14 +494,14 @@ void CUnitServer::UpdateSneak() {
             unit->moveMode = mode;
             UnitMarkChanged(unit, nullptr, 6);
         }
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         motionChanged = 1;
         return;
     }
     int allowed = unit->player ? PlayerOf(unit)->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     if (allowed == 0 && !(ServerVitals(unit).mana > 0.0f)) return;   // the breath (vitals +0x14)
-    if (!MapCheapCell(world->AIMap(), nullptr, unit)) return;
+    if (!world->AIMap()->StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;
     moveMode.wasMode3 = 1;
@@ -516,7 +510,7 @@ void CUnitServer::UpdateSneak() {
         unit->moveMode = mode;
         UnitMarkChanged(unit, nullptr, 6);
     }
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     motionChanged = 1;
 }
 EI_REPLACE_METHOD(0x00548520, CUnitServer::UpdateSneak);
@@ -526,14 +520,14 @@ bool CUnitServer::ChangeMoveMode() {
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
     SectorMapRemove(ServerSectors(), nullptr, unit);
-    bool passableBefore = MapCellPassable(ServerAIMap(), nullptr, unit);
+    bool passableBefore = ServerAIMap()->IsUnitCellPassable(unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
     unit->moveMode = UnitModeOf(moveMode);
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     bool placed;
     if (!sameMode &&
-        !(passableBefore ? MapCellPassable(ServerAIMap(), nullptr, unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
+        !(passableBefore ? ServerAIMap()->IsUnitCellPassable(unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
         placed = false;
     else
         placed = SectorMapAdd(ServerSectors(), nullptr, unit);
@@ -545,7 +539,7 @@ bool CUnitServer::ChangeMoveMode() {
         moveMode2.mode = moveMode.mode;
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
-        UnitUpdateSizeClass(unit);
+        unit->UpdateSizeClass();
         SectorMapAdd(ServerSectors(), nullptr, unit);
         CUnit* self = unit;
         if (self->player) PlayerMessage(PlayerOf(self)->connection_, nullptr, self, kMessageModeBlocked);
@@ -554,8 +548,8 @@ bool CUnitServer::ChangeMoveMode() {
     if (state == kStateIdle) {
         if (modeChanged) FaceAndStop(this);
         if (state == kStateIdle && !modeChanged) {
-            UnitUpdateSizeClass(unit);
-            if (action2.kind == kOrderNone) action2.CallAssign(&action);
+            unit->UpdateSizeClass();
+            if (action2.kind == kOrderNone) action2.Assign(&action);
             return true;
         }
     }
@@ -563,7 +557,7 @@ bool CUnitServer::ChangeMoveMode() {
         AnimationSteps transition;
         std::memset(&transition, 0, sizeof(transition));
         transition.vtable = kAnimationStepsVtable;
-        if (CtlBuildTransition(this, nullptr, &transition, &saved, &moveMode)) {
+        if (BuildTransition(&transition, &saved, &moveMode)) {
             FaceAndStop(this);
             // The transition is played as an animation order (a by-value copy, built as the
             // original does: SetSize, then the steps one by one).
@@ -573,13 +567,13 @@ bool CUnitServer::ChangeMoveMode() {
             StepsSetSize(&copy, nullptr, transition.count, -1);
             for (int i = 0; i < transition.count; ++i) copy.steps[i] = transition.steps[i];
             copy.extra = transition.extra;
-            CtlPlayAnimationOrder(this, nullptr, copy);
+            PlayAnimationOrder(copy);
         }
         transition.vtable = kAnimationStepsBaseVtable;
         if (transition.steps) gamecrt::operator_delete(transition.steps);
     }
-    UnitUpdateSizeClass(unit);
-    if (action2.kind == kOrderNone) action2.CallAssign(&action);
+    unit->UpdateSizeClass();
+    if (action2.kind == kOrderNone) action2.Assign(&action);
     return true;
 }
 EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
@@ -588,7 +582,7 @@ EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
 
 bool CUnitServer::PathTo(const float* point, float range) {
     ManagerContextOf(this);
-    CtlUpdateSneak(this);
+    UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
     PathClear(Motion(this));
@@ -603,21 +597,21 @@ bool CUnitServer::PathTo(const float* point, float range) {
         // +0xA9, read as a byte: the original compares it with 1.
         std::uint8_t blocked = reinterpret_cast<const std::uint8_t&>(Motion(this)->failed);
         movingAnimation = 0;
-        CtlStandStill(this);
-        CtlSetState(this, nullptr, kStateChasing);
+        StandStill();
+        SetState(kStateChasing);
         stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
     Motion(this)->goal.z = range;   // +0xA4: the range (Replan reads it back)
     sneakWait = 0;
-    UnitPathSpeeds(unit);
-    if (state < 0 || (state > 1 && state != kStateTurning)) CtlPlaySteps(this, nullptr, CtlIdleAnimation(this));
+    unit->RefreshMotion();
+    if (state < 0 || (state > 1 && state != kStateTurning)) PlaySteps(IdleAnimation());
     state = kStateIdle;
-    UnitUpdateSizeClass(unit);
+    unit->UpdateSizeClass();
     DropEffectObject(this);
     if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
-        AnimationSteps* next = CtlNextAnimation(this);
+        AnimationSteps* next = NextAnimation();
         AnimationSteps moving;
         StepsCopyConstruct(&moving, nullptr, next);
         moving.extra = next->extra;
@@ -631,8 +625,8 @@ bool CUnitServer::PathTo(const float* point, float range) {
             QueueTime(this) = moving.extra;
             StepsCopyB(&Queue(this), nullptr, &moving);
             StartQueueIfUnset(this);
-            CtlPopFinishedSteps(this);
-            CtlShowCurrentStep(this);
+            PopFinishedSteps();
+            ShowCurrentStep();
         }
         current.vtable = kAnimationStepsBaseVtable;
         if (current.steps) gamecrt::operator_delete(current.steps);
@@ -670,7 +664,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
             UnitList::Node* current = node;
             node = node->next;
             CEngineObject* other = current->data;
-            if (GroupContains(reinterpret_cast<const ScriptGroup*>(group), nullptr, other) == 0) {
+            if (reinterpret_cast<const ScriptGroup*>(group)->Contains(other) == 0) {
                 SectorMapRemove(sectors, nullptr, other);
                 continue;
             }
@@ -689,7 +683,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         if (member == unit) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
-        if (!lift) lift = BrainLeaderOrFollowedOriginal(&controller->brain) == unit;
+        if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
         auto* added = static_cast<UnitList::Node*>(PtrListNewNode52CEF0Original(list, nullptr, list->tail, nullptr));
         added->data = member;
@@ -712,7 +706,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     int message;
     if (!partial) {
         if (self->player) PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 3, 1, kFarBits);
-        if (BrainLeaderOrFollowedOriginal(&brain)) return;
+        if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
         message = kMessageCannotDo;
@@ -728,7 +722,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);
-        if (BrainLeaderOrFollowedOriginal(&brain)) return;
+        if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
         message = far ? kMessagePartial : kMessageCannotDo;
@@ -782,20 +776,20 @@ void CUnitServer::ResyncWithUnit() {
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (AIPathStartOriginal(Motion(this), nullptr, &unit->position, direction, now)) UnitPathSpeeds(unit);
-    CtlSetStanding(this, nullptr, 0);
-    CtlSetState(this, nullptr, kStateChasing);
-    UnitUpdateSizeClass(unit);
+    if (Motion(this)->Start(&unit->position, direction, now)) unit->RefreshMotion();
+    SetStanding(0);
+    SetState(kStateChasing);
+    unit->UpdateSizeClass();
     unit->pendingWeapon = 0;
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));   // slot 25
     if (state == kStateTurning) return;
-    std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
+    std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
     if (IdleKey(this) == key) {
         IdleTime(this) = -1;
     } else {
         IdleKey(this) = key;
-        CtlBuildIdle(this, nullptr, &IdleSteps(this));
+        BuildIdle(&IdleSteps(this));
     }
     if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
@@ -804,11 +798,11 @@ void CUnitServer::ResyncWithUnit() {
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StartQueueIfUnset(this);
-        CtlPopFinishedSteps(this);
-        CtlShowCurrentStep(this);
+        PopFinishedSteps();
+        ShowCurrentStep();
     }
-    CtlStandStill(this);
-    CtlSetState(this, nullptr, kStateTurning);
+    StandStill();
+    SetState(kStateTurning);
 }
 EI_REPLACE_METHOD(0x00554450, CUnitServer::ResyncWithUnit);
 
@@ -876,14 +870,14 @@ void CUnitServer::ResetController() {
     followedLeader = nullptr;
     if (waited) waited->Release();
     searchingTarget = 0;
-    BrainResetAll(&brain);
-    AlarmReset(&voice);
+    static_cast<AIBrain*>(&brain)->Init();
+    static_cast<AIAlarm*>(&voice)->Reset();
     aiPresence = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[3] = 1.0f;
     moveFactors[1] = 1.0f;
-    UnitStatsResetOriginal(&stats);
+    static_cast<UnitStats*>(&stats)->Reset();
     tameStage = 0;
     ownSide = -1;
     tamerSide = -1;

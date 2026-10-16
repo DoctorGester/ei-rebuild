@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue people and items (CBriefingScreen, ui_briefing.h): a
 // person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "library_containers.h"
 #include "ui_briefing.h"
 
 #include "core_maths.h"
@@ -41,10 +42,7 @@ ActionDoneFn SpeakerActionDone() { return reinterpret_cast<ActionDoneFn>(0x00602
 // 0060AC20: the name index's find-or-insert (thiscall, RET 4; the value's address).
 __declspec(naked) const itemdb::ItemRecordHead** __fastcall LootNameAt(void* /*names*/, void*, const stlp::string* /*key*/)
     EI_ORIGINAL(0x0060AC20)
-// 0060AB00 (dest in ECX, source in EDX, plain RET): a speaker entry copy-constructed in place.
 // 0060A660 (thiscall on the speakers' vector, RET 0xC): insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall SpeakerCopyConstruct(BriefingSpeaker* /*dest*/, const BriefingSpeaker* /*source*/)
-    EI_ORIGINAL(0x0060AB00)
 __declspec(naked) void __fastcall SpeakersInsertOverflow(void* /*vector*/, void*, BriefingSpeaker* /*pos*/,
                                                          const BriefingSpeaker* /*value*/, int /*count*/) EI_ORIGINAL(0x0060A660)
 
@@ -60,7 +58,7 @@ constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
@@ -139,7 +137,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         }
         BriefingSpeaker added{unit, mfc::CString(), false};
         if (speakersEnd_ != speakersCapacity_) {
-            SpeakerCopyConstruct(speakersEnd_, &added);
+            libcontainers::ConstructSpeaker(speakersEnd_, &added);
             ++speakersEnd_;
         } else {
             SpeakersInsertOverflow(&speakers_, nullptr, speakersEnd_, &added, 1);
@@ -159,7 +157,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     // An item: one shown under this name goes first.
     for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
         if (Compare(node->name, name) != 0) continue;
-        BriefingHideSpeakerOriginal(this, nullptr, name, 0, 0);
+        HideSpeaker(name, 0, 0);
         break;
     }
     mfc::CString key(name);

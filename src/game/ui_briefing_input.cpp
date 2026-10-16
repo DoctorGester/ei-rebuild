@@ -1,6 +1,7 @@
 // The briefing / base screen's mouse input and its topic list (CBriefingScreen, ui_briefing.h):
 // the click and double click (input slots 2 and 7), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "ui.h"
 #include "ui_briefing.h"
 
 #include "item_db_text.h"
@@ -64,10 +65,6 @@ constexpr std::uint32_t kLabelColour = 0xA7D7E4;
 const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }         // "none"
 const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
 
-// 006078C0: a topic's title (thiscall on the screen, RET 8: out, the topic's name; returns out).
-__declspec(naked) mfc::CString* __fastcall TopicTitleAt(CBriefingScreen*, void*, mfc::CString* /*out*/,
-                                                        const char* /*topic*/) EI_ORIGINAL(0x006078C0)
-
 // The server's unit with the id of a client object, or null.
 CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
 UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
@@ -91,7 +88,7 @@ bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVi
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     Vector3 picked;
-    Vector3* p = HoverPickSurface(ClientWorld(), nullptr, &picked, x, y);
+    Vector3* p = static_cast<CWorldClient*>(ClientWorld())->PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
@@ -137,7 +134,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         return;
     case 4:
         interface_->PlaySound(ClickSound(), 0);
-        BriefingTakeRewardsOriginal(this);
+        FinishDialogue();
         return;
     default:
         return;
@@ -160,7 +157,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (region >= 0 && region < kTopicRows && region + topicTop_ < topics_.size) hovered = region + topicTop_;
         if (hovered != hoveredTopic_) {
             hoveredTopic_ = hovered;
-            BriefingDrawTopicsOriginal(this);
+            DrawTopics();
         }
     } else if (state_ == 3) {
         GameCursor()->SetShape(kCursorTalk);
@@ -175,7 +172,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         int id = object->id_;
         if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
-        BriefingFindTopicsOriginal(this, nullptr, id);
+        FindTopics(id);
         if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);
         const PersonTextNode* node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
@@ -192,13 +189,13 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     Vector3 picked;
-    Vector3* p = HoverPickSurface(ClientWorld(), nullptr, &picked, x, y);
+    Vector3* p = static_cast<CWorldClient*>(ClientWorld())->PickSurface(&picked, x, y);
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
     mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
-    if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
-                         reinterpret_cast<const unsigned char*>(NoZone())) == 0)
+    if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
+                        reinterpret_cast<const unsigned char*>(NoZone())) == 0)
         return;
     mfc::CString variable(ZoneVariablePrefix());
     variable += zone;
@@ -210,7 +207,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
 
 void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     if (chatActive_) return;
-    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
     if (inputHandled_) return;
     if (state_ != 0) {
         Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
@@ -230,7 +227,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
 // --- 00608B60 -----------------------------------------------------------------------------------
 
 void CBriefingScreen::OpenTopics(CEngineObject* person) {
-    BriefingFindTopicsOriginal(this, nullptr, person->id_);
+    FindTopics(person->id_);
     if (topics_.size <= 0) {
         state_ = 0;
         return;
@@ -242,11 +239,11 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->CallSetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
     topics_.SetAtGrow(topics_.size, GoodbyeTopic());
-    ScrollbarSetRangeOriginal(topicBar_, nullptr, topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
+    topicBar_->SetMaximum(topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
     topicBar_->CallSetPosition(0);
     topicTop_ = 0;
     hoveredTopic_ = -1;
-    BriefingDrawTopicsOriginal(this);
+    DrawTopics();
     state_ = 1;
 }
 
@@ -264,7 +261,7 @@ void CBriefingScreen::DrawTopics() {
         RECT rect{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
         mfc::CString title;
-        TopicTitleAt(this, nullptr, &title, topics_[row]);
+        TopicTitle(&title, topics_[row]);
         mfc::CString text = prefix;
         text += TopicSeparator();
         text += title;

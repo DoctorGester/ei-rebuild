@@ -5,6 +5,7 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "random.h"
+#include "sound.h"
 #include "spell.h"    // CLight
 #include "unit.h"
 
@@ -35,12 +36,9 @@ const char* const kStenchSoundFormat = reinterpret_cast<const char*>(0x0078EFB8)
 
 CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
-// 00688530 (thiscall). --ticksLeft; is it still positive?
-__declspec(naked) BOOL __fastcall TickEffect(MapEffect*) EI_ORIGINAL(0x00688530)
 // 00524FE0 (thiscall, units range). Applies a hit to the server's statistics block (+0x20);
 // returns 1.
 __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /*hit*/) EI_ORIGINAL(0x00524FE0)
-// 0050F5B0 (map_object.cpp), through its game address.
 
 // The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
@@ -69,7 +67,7 @@ int CMapObjectServer::Update() {
     if (owner->effectCount <= 0) return 0;
     int i = 0;
     do {
-        if (!TickEffect(&owner->effects[i])) {
+        if (!owner->effects[i].Tick()) {
             int type = owner->effects[i].type;
             int tail = owner->effectCount - i - 1;
             if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));
@@ -99,7 +97,7 @@ BOOL CMapObjectServer::TakeHit(const void* hit) {
     if (!ApplyHit(&vitals, nullptr, hit)) return 0;
     owner->MarkChanged(0);
     if (CompanionSlots(this)->IsDead()) {
-        MapObjectClearEffectsOriginal(owner);
+        owner->ClearEffects();
         owner->flags_ |= kFlagDestroyed;
     }
     return 1;
@@ -123,7 +121,7 @@ int CMapObjectClientSpecific::Update() {
             if (handle != -1 &&
                 (SoundIsPlaying(soundSystem, nullptr, handle) || SoundIsQueued(soundSystem, nullptr, handle)))
                 continue;
-            endSound = SoundManagerPlay3DOriginal(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->position.x,
+            endSound = static_cast<CSoundManager*>(SoundSystem())->Play3D(kEndSoundName, 0, &OwnerOf(this)->position.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -142,7 +140,7 @@ int CMapObjectClientSpecific::Update() {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            SoundManagerPlay3DOriginal(SoundSystem(), nullptr, name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
+            static_cast<CSoundManager*>(SoundSystem())->Play3D(name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
             MoveSound(SoundSystem(), nullptr, sound->handle, &OwnerOf(this)->position.x);
         }

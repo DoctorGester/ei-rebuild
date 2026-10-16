@@ -601,8 +601,6 @@ public:
     // (all parts, 00516DA0), its textures (0051C970 on +0x94), animations (00518840 / 00518860)
     // and texture `from` swapped for `to` (0051C250; e.g. "escMenu00" / "escMenu00labels").
     void Load(const char* name, const char* from, const char* to);
-    // The same through its address (ui_layouts.cpp), so the wrapper runs.
-    void CallLoad(const char* name, const char* from, const char* to);
     // 005FC4F0 (RET 4) shows or hides all its parts (part flag 0x80), 005FC4C0 (RET 8) one part by
     // name.
     void ShowAllParts(int show);
@@ -1215,8 +1213,6 @@ public:
     // CString): the item's name and, for a wand (category 5) or a scroll (8) with a spell, its
     // numbers after labels_.
     void ItemTip(unsigned index, void* text);
-    // The same through the original's address (so the verify wrapper sees the call).
-    void ItemTipAt(unsigned index, void* text);
     // 0063DD70 (RET 4; ui_hud_pick.cpp). Picks the unit's quick item `slot` (a click on it or its
     // key): without a unit nothing; without an item there the pending action is dropped (no
     // sound); otherwise the click sound, then a click on the highlighted slot drops the pending
@@ -1229,7 +1225,6 @@ public:
     // and quick 1, for a wand (category 5) or scroll (8) with a spell; nothing without a unit or
     // an item there.
     void UseNow(int slot);
-    void UseNowAt(int slot);   // through the original's address
     // 0063CD20 (RET 8; ui_hud_highlight.cpp). Highlights the sprite shown in region `slot` when
     // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
     // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
@@ -1309,8 +1304,6 @@ public:
     // spell there has its data (+0x44) the spell becomes the pending action on `index`: 1 with
     // flag 0x10000000 (on a unit), else 2 (at a point). An index out of range does nothing.
     void Click(int index);
-    // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
-    void ClickAt(int index);
     // 0063EF60 (RET 4; ui_hud_pick.cpp). Click with key flag +0x7F (or the key handler's Ctrl /
     // Alt): the spell is cast at once. Without a unit or with `index` out of range nothing;
     // otherwise the pending action becomes 1 on `index`, and when the spell there has its data
@@ -1318,7 +1311,6 @@ public:
     // spell (CSpell::IsOffensive) on the nearest unit the unit sees (none: the "nomagic" sound,
     // the pending action dropped, done). Then the click sound and the pending action dropped.
     void ClickAlternate(int index);
-    void ClickAlternateAt(int index);   // through the original's address
     // 0063E750 (RET 8; ui_hud_highlight.cpp). Button `index` highlighted (scale 1.15, colour
     // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);
@@ -1375,8 +1367,6 @@ public:
     // one on `index`: 8 (an order on an object) for action 0 (science), else 7 (follow), the
     // action in +0x184. An index out of range does nothing.
     void Select(int index);
-    // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
-    void SelectAt(int index);
     // 0063F730 (RET 8; ui_hud_highlight.cpp). As CHudSpellColumn::Highlight.
     void Highlight(int index, int on);
     void HighlightAt(int index, int on);   // through the original's address
@@ -1473,7 +1463,6 @@ public:
     // (the slot's face name plus "a" 1, "c" 2, "b" 3; the plain name when there is no such image)
     // into quarter index % 4 of texture objects_[index / 4 + 1].
     void ShowFace(int index, int state);
-    void ShowFaceAt(int index, int state);   // through the original's address
     // 006407E0 (RET 4; ui_hud_portrait_setup.cpp). Rebuilds the portraits: sprites, regions and
     // textures but the first dropped, the selection marker, then one portrait per party unit (face
     // names from its prototype and build, tip the unit's name) and, in a multiplayer client, one per
@@ -1852,7 +1841,6 @@ public:
     // pulsing, the click sound, and a new objectives window of the current zone (one button, no
     // exits, no zone list) opened on top.
     void OpenObjectives();
-    void CallOpenObjectives();                     // through 00648F10 (its verify wrapper)
     // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the clock at the
     // screen's right edge; the battle screen calls it through its address). The clock's rectangle
     // (720, 520)-(800, 600); scene objects: 0 the face (a disc of radius 65 about the layout's
@@ -1885,7 +1873,6 @@ public:
     // selected party units to 0 when all of them have 1, else to 1 (through the local view), and
     // shows the button's state (scene object 5).
     void ToggleFlag();
-    void CallToggleFlag();                         // through 00649810 (its verify wrapper)
     // 00649910 (Rebirth-patched: through its address). Highlights mode `mode` (-1/-2: none).
     void ShowMode(int mode);
     // 00649910 (RET 4; ui_hud.cpp, A-H26; WideScreen reproduced behind its flag, W3: with the left panels' offset).
@@ -1919,7 +1906,6 @@ public:
     // 0064A320 (ui_hud_panels.cpp). Shows page `page_`: highlights its button (scene objects 3 /
     // 4) and puts its text into the battle screen's message log (page 0 scrolled to the end).
     void ShowPage();
-    void CallShowPage();                           // through 0064A320 (its verify wrapper)
     // 00649FF0 (slot 24, every frame): slides the panel in or out (ui_hud_frame.cpp).
     void Update();
     // 00649E20 (ui_hud_panels.cpp). Places the panel's parts, the message log and the regions at
@@ -2365,7 +2351,6 @@ struct UiContainerInput : UiInputSide {
 
 // The default handlers of a container's input side (`input` = window + 0x94).
 void __fastcall UiContainerMouseDown(void* input, void* unused, int buttons, int x, int y);    // 00601110
-void __fastcall UiContainerDoubleClick(void* input, void* unused, int buttons, int x, int y);  // 00601570
 
 // A scroll bar (vtables 00742C18 / 00742BE4, constructor 0065AEA0; the battle screen's message
 // log 0065CC00 derives from it). Regions: 0 the up arrow, 1 the down arrow, 2 the track.
@@ -2708,11 +2693,7 @@ public:
     // 00655A10. A selected save that is not broken: "notify_loading" shown, 00578920(1), "ok"
     // played, the game flow asked to load its folder (flag 0).
     void LoadSelected();
-    // Through the original addresses (the verify build's wrappers run there).
-    void CallConfirm();
-    void CallAskDelete();
     void CallDeleteSave();
-    void CallLoadSelected();
 
     // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
     // RefreshListVanilla in ui_saveload_list.cpp, A-H26, WideScreen reproduced behind its flag, W2). Draws the list into surface 0: the caret
@@ -2765,7 +2746,6 @@ public:
     // 00655430. Clamps the selection to the list, scrolls it into view (16 rows), takes its
     // title as the name, redraws the list and shows its picture.
     void ShowSelection();
-    void CallShowSelection();        // through 00655430
     // 00657820 (RET 4). Entry `index` is the quick save or an automatic save ("saveq", "savea",
     // "saveb"; no bound check).
     bool IsReservedSave(int index);
@@ -2884,7 +2864,7 @@ public:
     // mark the key used. A key not used that is bound to the objectives action (key table 4) closes a
     // window with one button.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0064EA80 (RET 4; ShowQuest calls it through its address). The places of quest `name` into
+    // 0064EA80 (RET 4; ShowQuest calls it). The places of quest `name` into
     // +0x1CC (emptied first): a multiplayer client takes them from the quest database's record
     // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
     // it, its words as x y pairs).
@@ -2904,9 +2884,6 @@ public:
     // are red with the second, the nearest exit's marker white with the second, the other exits'
     // grey (C8C8C8) with the first; all drawn in their plain colour (flag 0x100).
     void Update();
-    // Through their addresses (ui_objectives.cpp), so the wrappers run.
-    void CallSelectExit(int index);
-    void CallRefreshQuests();
     // A-H25 (ui_objectives.cpp). 0064BE40 (RET 0x10): what the window is opened for, before it
     // opens: the zone, the exits' distances (or null), the two buttons and the zone list.
     // 0064D990 (slot 41): the help topic, "quest_global_map" with two buttons, else
@@ -3019,20 +2996,13 @@ public:
     // ("action_" + name), and the first key name (table 007857B0) of a scan code bound to the
     // action, as the keys' text.
     void BuildBindings();
-    // The same through the original addresses (the verify build's wrappers run there).
-    void CallRefreshRows();
-    void CallShowGroup(int group);
     void CallApply();
-    void CallBuildSettings();
-    void CallLoadSettings();
-    void CallBuildBindings();
 
     // 00652000 (ui_options.cpp, A-H21). Binds pressedKey_ to the selected row's action: the row's
     // keys unbound and replaced by the pressed one (keys text rebuilt), the key taken from the first
     // binding row of the action it was bound to (that row's text rebuilt), then the key table entry
     // set. Nothing without a pressed key or a binding row.
     void CommitBinding();
-    void CallCommitBinding();
     // Cancel: puts back the volumes and the display settings the window started with.
     static void RestoreSettings();
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).

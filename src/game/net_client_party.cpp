@@ -1,6 +1,7 @@
 // The client's trade offer (0041DA50, called by the party screens after a change): one member
 // message per party member, kept in our PartyMessage at +0x260C. See net_messages.h and
 // docs/notes/network.md.
+#include "library_containers.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "item.h"
@@ -23,7 +24,6 @@ namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
 __declspec(naked) RefPtr* __fastcall VectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421ED0)
-__declspec(naked) void __fastcall RefPtrConstructCopy(RefPtr* /*at*/, const RefPtr* /*from*/) EI_ORIGINAL(0x00429060)
 __declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
 __declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
@@ -32,7 +32,6 @@ __declspec(naked) void* __fastcall MemoryStreamConstructAt(CMemoryStream* /*stre
 // vector<CEngineObject*> with counted elements (library), the +0x2614 list erase, the party's
 // reset and add (00661050 class, outside this range).
 __declspec(naked) void __fastcall ObjectVectorConstruct(void* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00424B40)
-__declspec(naked) void __fastcall ObjectPtrConstructCopy(CEngineObject** /*at*/, void*, CEngineObject* const* /*from*/) EI_ORIGINAL(0x004298F0)
 __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, CEngineObject** /*pos*/, CEngineObject* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
 __declspec(naked) void __fastcall ObjectVectorDeallocate(CEngineObject** /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004268A0)
 __declspec(naked) void** __fastcall List2614Erase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00429770)
@@ -50,7 +49,7 @@ CStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>
 
 void PushBack(RefVector* v, const RefPtr* value) {
     if (v->end() != v->EndOfStorage()) {
-        RefPtrConstructCopy(v->end(), value);
+        libcontainers::ConstructRefPtr(v->end(), value);
         ++v->Finish();
     } else {
         VectorInsertOverflow(v, nullptr, v->end(), value, 1);
@@ -105,7 +104,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
             ei::SetVtable(message, PartyMemberMessage::kVtableAddress);
         }
         RefPtr ref;
-        RefPtrFromRawOriginal(&ref, nullptr, message);
+        ref.FromRawCounted(message);
         CStream* stream = StreamOf(ref.ptr);
         auto* item = static_cast<CItem*>(party->items_[i]);
         stream->Clear();
@@ -211,7 +210,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         CEngineObject* held = item;
         if (item) ++item->refCount_;
         if (items.Finish() != items.EndOfStorage()) {
-            if (items.Finish()) ObjectPtrConstructCopy(items.Finish(), nullptr, &held);
+            if (items.Finish()) libcontainers::ConstructHeldObject(items.Finish(), nullptr, &held);
             ++items.Finish();
         } else {
             ObjectVectorInsertOverflow(&items, nullptr, items.Finish(), &held, 1);

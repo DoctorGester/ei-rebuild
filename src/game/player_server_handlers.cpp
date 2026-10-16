@@ -256,7 +256,7 @@ int CPlayerServer::OnUseOrder() {
         if (!accepted) chosen = first;
         if (order.object) order.object->Release();   // the counted reference's reset (0052B030)
         order.object = nullptr;
-        AIPathDestructOriginal(&path);
+        path.Destruct();
     } else if (units.size == 1) {
         chosen = units[0];
     }
@@ -562,7 +562,7 @@ BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) 
     for (int i = 0; i < maxLength; ++i) {
         char c = text[i];
         if (c == 0) return i >= minLength;
-        if (gamecrt::isprint(c) == 0) return 0;
+        if (libcrt::Isprint(c) == 0) return 0;
     }
     return 1;
 }

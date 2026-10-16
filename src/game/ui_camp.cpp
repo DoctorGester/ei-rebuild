@@ -2,6 +2,7 @@
 // global map, hero screens").
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
+#include "item.h"
 #include "ui_camp.h"
 
 #include "item_db.h"
@@ -9,6 +10,7 @@
 #include "party.h"
 #include "spell.h"
 #include "texture.h"
+#include "ui_item_info.h"
 #include "unit.h"
 #include "world.h"
 
@@ -25,6 +27,7 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <d3d.h>
 
@@ -36,10 +39,6 @@ namespace {
 
 
 // --- Helpers ---------------------------------------------------------------------------------
-
-// 006233C0 (thiscall on the stats panel, RET 4; rewritten as CHeroStatsPanel::ShowStats): the
-// statistics for camp page `page`, through its address.
-__declspec(naked) void __fastcall StatsPanelShowStats(CHeroStatsPanel*, void*, int) EI_ORIGINAL(0x006233C0)
 
 // The local player's items (the party the client glue's 00578BA0 returns).
 CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
@@ -128,7 +127,7 @@ void CCampPages::ShowPage(int page) {
     case 2:
         if (!spellConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, 0x65);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x65);
         spellConstructor1_->SetEnabled(1, 1);
         spellStrip_->window.SetEnabled(1, 1);
         itemStrip_->slots_ = 1;
@@ -142,7 +141,7 @@ void CCampPages::ShowPage(int page) {
     case 4:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, 0x64);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x64);
         itemConstructor1_->SetEnabled(1, 1);
         partStrip_->window.SetEnabled(1, 1);
         itemStrip_->slots_ = 5;
@@ -156,14 +155,14 @@ void CCampPages::ShowPage(int page) {
     case 6:
         if (!itemConstructor_) { offered = false; break; }
         helpPanel_->SetEnabled(1, 1);
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, 0x68);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(0x68);
         itemConstructor3_->SetEnabled(1, 1);
         partStrip_->window.SetEnabled(1, 1);
         break;
     case 7: {
         // Leave: the trade is settled, the constructors' unused parts go back to their owners and
         // what they made goes into the strips.
-        TradePanelSettleOriginal(trade_, nullptr, 0, 1);
+        trade_->Settle(0, 1);
         ItemScreenReturnAllOriginal(this, nullptr, spellParts_[0], spellParts_[1]);
         ItemScreenReturnAllOriginal(this, nullptr, LocalPlayerData(), spellParts_[2]);
         ItemScreenReturnAllOriginal(this, nullptr, itemParts_[0], itemParts_[1]);
@@ -188,8 +187,8 @@ void CCampPages::ShowPage(int page) {
     } else {
         if (page_ != page) interface_->PlaySound(game::Text(0x0079374C), 0);   // buttons\camp\slot.wav
         page_ = page;
-        StatsPanelShowStats(statsPanel_, nullptr, page);
-        TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
+        statsPanel_->ShowStats(page);
+        trade_->SelectHero(hero_);
         CUiSurface* title = surfaces_.data[1];
         SurfaceGetDC(title);
         SurfaceClearOriginal(title);
@@ -409,7 +408,7 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
             if (!part) return false;
             const std::uint8_t* own = BlueprintRecord(item);
             if (firstKindOne) return own == firstKindOne && kindOnes < Read<std::uint32_t>(part, 0x4C);
-            return gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(own, 0x04)) == 0;
+            return libcrt::Mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(own, 0x04)) == 0;
         }
         if (!IsSpellContainer(item)) return false;
         if (!itemMade_) return false;
@@ -510,7 +509,7 @@ void CCampPages::UpdateAction() {
             if (!actionEnabled_) cost_ = 0;
             if (described) return;
         }
-        InfoPanelShowHelpOriginal(helpPanel_, nullptr, topic);
+        static_cast<CItemInfoPanel*>(helpPanel_)->ShowHelp(topic);
     };
 
     switch (page_) {
@@ -528,7 +527,7 @@ void CCampPages::UpdateAction() {
         bool up = trade_->CallBought() != 0;
         actionShown_ = up;
         actionEnabled_ = up;
-        cost_ = TradePanelPurchaseCostOriginal(trade_);
+        cost_ = trade_->PurchaseCost();
         if (actionEnabled_) action = game::Text(0x0079386C);   // "camp_level_up"
         label = game::Text(0x00793858);                       // "camp_current_exp"
         break;
@@ -565,7 +564,7 @@ void CCampPages::UpdateAction() {
 
     int amount;
     if (page_ == 1) {
-        amount = TradePanelExperienceOriginal(trade_);
+        amount = trade_->Experience();
     } else {
         amount = PlayerParty()->Money();
         if (PlayerParty()->Money() < cost_) actionEnabled_ = false;
@@ -641,7 +640,7 @@ BOOL CCampPages::Draw(int pass) {
     if (hoveredItem_) {
         if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
     } else if (topic != 0) {
-        if (descPanel_) InfoPanelShowHelpOriginal(descPanel_, nullptr, topic);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else {
         // The statistics under the mouse: the trade panel's, else the stats panel's.
         ItemHoverInfo info;
@@ -713,17 +712,17 @@ bool CCampPages::CanMakeSpell() {
             return false;
         }
     }
-    if (!constructor->CallEndConstruct()) {
+    if (!constructor->EndConstruct()) {
         constructor->CallSetManager(nullptr);
         return false;
     }
-    CSpell* made = SpellCloneOriginal(reinterpret_cast<CSpell*>(constructor->container_->spell_), nullptr, manager);
+    CSpell* made = reinterpret_cast<CSpell*>(constructor->container_->spell_)->Clone(manager);
     constructor->CallSetManager(nullptr);
     void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
     auto* record = static_cast<char*>(FindQuickItemOriginal(quickItems, nullptr, game::Text(0x007938A0)));   // "spell container"
     int index = static_cast<int>(record - itemdb::QuickItems().begin) / 0x8C;
     auto* container = static_cast<std::uint8_t*>(FactoryMakeItemOriginal(factory, nullptr, 0x3008, index, 0, -1));
-    if (container) ItemAttachSpellOriginal(AsItem(container), nullptr, made);
+    if (container) AsItem(container)->AttachSpell(made);
     spellMade_ = container;
     if (!container) return false;
     ++AsObject(container)->refCount_;
@@ -754,7 +753,7 @@ bool CCampPages::CanMakeItem() {
     for (int i = 0; i < CountOf(itemResults_); ++i) {
         std::uint8_t* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
-            CSpell* copy = SpellCloneOriginal(static_cast<CSpell*>(AsItem(item)->spell_), nullptr, manager);
+            CSpell* copy = static_cast<CSpell*>(AsItem(item)->spell_)->Clone(manager);
             CountedSlotAssign(&spell, nullptr, copy);
         } else if (IsPart(item)) {
             switch (Read<int>(item, 0x50)) {
@@ -777,20 +776,20 @@ bool CCampPages::CanMakeItem() {
     }
     if (!blueprint || !part) return fail();
     if (Read<int>(part, 0x4C) != blueprintCount) return fail();
-    if (gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
+    if (libcrt::Mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
         return fail();
     withManager->SetManager(factory);
-    if (!ItemConstructorBeginCreateItemOriginal(constructor, nullptr, type, -1)) {
+    if (!constructor->BeginCreateItem(type, -1)) {
         withManager->SetManager(nullptr);
         return fail();
     }
-    if (!ItemConstructorSetPrototypeOriginal(constructor, nullptr, RecordText(part)) ||
-        !ItemConstructorSetMaterialOriginal(constructor, nullptr, RecordText(blueprint)) ||
-        !ItemConstructorSetSpellObjectOriginal(constructor, nullptr, static_cast<CSpell*>(spell))) {
+    if (!constructor->SetPrototype(RecordText(part)) ||
+        !constructor->SetMaterial(RecordText(blueprint)) ||
+        !constructor->SetSpellObject(static_cast<CSpell*>(spell))) {
         withManager->SetManager(nullptr);
         return fail();
     }
-    itemMade_ = reinterpret_cast<std::uint8_t*>(ItemConstructorEndCreateItemOriginal(constructor));
+    itemMade_ = reinterpret_cast<std::uint8_t*>(constructor->EndCreateItem());
     withManager->SetManager(nullptr);
     if (!itemMade_) return fail();
     ++AsObject(itemMade_)->refCount_;
@@ -806,7 +805,7 @@ constexpr std::uint32_t kRecordBias = 100000000;
 } // namespace
 
 void CCampPages::Close() {
-    SetServerFlagOriginal(0);   // 00578D10 (on the game glue 007AFEA4)
+    GameSetServerPaused(0);   // 00578D10 (on the game glue 007AFEA4)
     device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, as the record array the client glue takes (005789E0; a
@@ -857,12 +856,10 @@ namespace {
 // allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
 __declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
 __declspec(naked) void __stdcall FreeBlock18(void*, int) EI_ORIGINAL(0x006135F0)
-// 00613CF0 (rewritten as TradeRow::Destroy; thiscall): a row's destructor, through its address.
-__declspec(naked) void __fastcall DestroyRow(TradeRow*) EI_ORIGINAL(0x00613CF0)
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
-    for (TradeRow* at = rows.begin; at != rows.end; ++at) DestroyRow(at);
+    for (TradeRow* at = rows.begin; at != rows.end; ++at) at->Destroy();
     FreeBlock18(rows.begin, static_cast<int>(rows.capacity - rows.begin));
 }
 
@@ -891,16 +888,11 @@ void* GluePlayerData() { return GameLocalPlayerDataOriginal(UiClientGlue()); }
 // The hero's statistics (UnitStats at the record's +0x20).
 UnitStats* StatsOf(PartyUnitRecord* hero) { return reinterpret_cast<UnitStats*>(hero->stats); }
 
-// 005232B0 / 005230C0 (rewritten as UnitStats::ClearOuterLayers / AddArmourLayer; thiscall on the
-// statistics): clears the outer layers / adds one (RET 4), through their addresses.
-__declspec(naked) void __fastcall StatsClearOuterLayers(UnitStats*) EI_ORIGINAL(0x005232B0)
-__declspec(naked) void __fastcall StatsAddLayer(UnitStats*, void*, CEngineObject*) EI_ORIGINAL(0x005230C0)
-
 // The hero's statistics with the armour it wears as their outer layers again.
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = StatsOf(hero);
-    StatsClearOuterLayers(stats);
-    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) StatsAddLayer(stats, nullptr, hero->armor[i]);
+    stats->ClearOuterLayers();
+    for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) stats->AddArmourLayer(hero->armor[i]);
 }
 
 } // namespace
@@ -929,8 +921,8 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     }
     case 0x3005: {
         if (heroes_[hero_]) {
-            int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
-            UnitUnequipArmour(heroes_[hero_], nullptr, type);
+            int type = reinterpret_cast<CItemArmor*>(item)->GetType();
+            heroes_[hero_]->UnequipArmour(type);
             heroes_[hero_]->Controller()->ShowWeapon(hero->weaponIndex);
             heroes_[hero_]->Controller()->RefreshModel();
             heroes_[hero_]->Controller()->RefreshEquipment();
@@ -948,17 +940,13 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     default:
         break;
     }
-    StatsPanelDrawStatsOriginal(statsPanel_);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
     return result;
 }
 EI_REPLACE_METHOD(0x0060FE40, CCampPages::TakeOff);
 
 // --- 0060FCA0: putting an item on the hero ----------------------------------------------------
 
-// The members the camp calls through their addresses (their hooks and wrappers see the calls).
-__declspec(naked) int CCampPages::CallTakeOff(std::uint8_t*) EI_ORIGINAL(0x0060FE40)
-__declspec(naked) void CCampPages::CallPutOn(std::uint8_t*) EI_ORIGINAL(0x0060FCA0)
-__declspec(naked) void CCampPages::CallPutOnFromStrip(std::uint8_t*) EI_ORIGINAL(0x00610920)
 __declspec(naked) void CCampPages::CallShowHero() EI_ORIGINAL(0x0060F830)
 
 void CCampPages::PutOn(std::uint8_t* item) {
@@ -973,10 +961,10 @@ void CCampPages::PutOn(std::uint8_t* item) {
         break;
     case 0x3005: {
         // Each piece on the same body part comes off first.
-        int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
+        int type = reinterpret_cast<CItemArmor*>(item)->GetType();
         for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
-            if (ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(hero->armor[i])) == type)
-                CallTakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
+            if (reinterpret_cast<CItemArmor*>(hero->armor[i])->GetType() == type)
+                TakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
         }
         if (heroes_[hero_]) {
             void* worn = RecordAddWornEntryOriginal(hero, nullptr, item);   // 00660C90
@@ -998,7 +986,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
         return;
     }
     PartyRemoveItemOriginal(GluePlayerData(), nullptr, item, 0);   // 00661F30
-    StatsPanelDrawStatsOriginal(statsPanel_);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
 }
 EI_REPLACE_METHOD(0x0060FCA0, CCampPages::PutOn);
 
@@ -1020,7 +1008,7 @@ void CCampPages::PutOnFromStrip(std::uint8_t* item) {
     switch (page_) {
     case 0:
     case 1:
-        CallPutOn(item);
+        PutOn(item);
         return;
     case 2:
         MoveBetween(this, item, spellParts_[2], LocalPlayerData(), 8, 1, 0);
@@ -1070,10 +1058,10 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     };
     switch (mode) {
     case 0:
-        ScrollTo(itemStrip_, reinterpret_cast<void*>(static_cast<std::intptr_t>(CallTakeOff(item))));
+        ScrollTo(itemStrip_, reinterpret_cast<void*>(static_cast<std::intptr_t>(TakeOff(item))));
         return;
     case 1:
-        CallPutOnFromStrip(item);
+        PutOnFromStrip(item);
         return;
     case 2:
         if (page_ == 2)
@@ -1158,12 +1146,6 @@ EI_REPLACE_METHOD(0x00610AD0, CCampPages::MoveItem);
 
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
-namespace {
-// 00532A20 (rewritten as CUnit::SetFromStats; thiscall, RET 4): the unit takes statistics, through
-// its address.
-__declspec(naked) void __fastcall UnitTakeStats(CUnit*, void*, UnitStats*) EI_ORIGINAL(0x00532A20)
-} // namespace
-
 void CCampPages::RefreshWeapons() {
     PartyUnitRecord* hero = VirtualHeroRecord();
     CUnit* unit = heroes_[hero_];
@@ -1171,7 +1153,7 @@ void CCampPages::RefreshWeapons() {
     for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(unit, nullptr, slot);   // 005310D0
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i)
         UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);                           // 00531070
-    UnitSendEquipmentOriginal(unit);                                                      // 00531110
+    unit->SendEquipment();                                                      // 00531110
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
     VirtualRefreshStats();
@@ -1181,10 +1163,10 @@ EI_REPLACE_METHOD(0x0060F9E0, CCampPages::RefreshWeapons);
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
         PartyUnitRecord* hero = VirtualHeroRecord();
-        UnitTakeStats(heroes_[hero_], nullptr, StatsOf(hero));
+        heroes_[hero_]->SetFromStats(StatsOf(hero));
         heroes_[hero_]->Controller()->RefreshWounds();
     }
-    StatsPanelDrawStatsOriginal(statsPanel_);
+    static_cast<CHeroStatsPanel*>(statsPanel_)->DrawStats();
 }
 EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
 
@@ -1275,12 +1257,12 @@ void CCampPages::ShowHero() {
             mfc::CString key = prefix + own;
             found = TextsOpenSection(table, nullptr, key);
         }
-        if (found) TextsReadLineOriginal(table, nullptr, &name, 1);
+        if (found) static_cast<CTextManager*>(table)->ReadLine(&name, 1);
     } else {
         name = own;
     }
-    StatsPanelSetHeroOriginal(statsPanel_, nullptr, hero_, name);
-    TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
+    statsPanel_->SetHero(hero_, name);
+    trade_->SelectHero(hero_);
 }
 EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 

@@ -2,6 +2,7 @@
 // listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
+#include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
 
@@ -17,7 +18,7 @@
 namespace {
 
 // CRT and MFC routines of the game.
-void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
+void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { libcrt::Splitpath(path, drive, dir, name, ext); }
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
@@ -130,9 +131,9 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     // A readable loose file comes first.
-    if (gamecrt::access(name, 4) == 0) {
+    if (libcrt::Access(name, 4) == 0) {
         gamecrt::FindData data;
-        gamecrt::findfirst(name, &data);   // the handle is never closed
+        libcrt::Findfirst(name, &data);   // the handle is never closed
         file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
         if (file_ != nullptr) {
             if (size != nullptr) *size = data.size;
@@ -141,7 +142,7 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     if (entries_ == nullptr || names_ == nullptr) return 0;
-    int index = MappedResourceFindEntryOriginal(reinterpret_cast<const CMappedResource*>(this), nullptr, name);
+    int index = reinterpret_cast<const CMappedResource*>(this)->FindEntry(name);
     if (index == -1) return 0;
     offset_ = static_cast<std::int32_t>(entries_[index].offset);
     if (gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset_, SEEK_SET) == -1) {
@@ -185,7 +186,7 @@ int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPat
     if (*pattern == '\0') return *name == '\0' ? 1 : emptyPatternResult;
     while (*name != '\0' && *pattern != '\0') {
         if (*pattern == '*') return 1;
-        if (*pattern != '?' && gamecrt::toupper(*pattern) != gamecrt::toupper(*name)) return 0;
+        if (*pattern != '?' && libcrt::Toupper(*pattern) != libcrt::Toupper(*name)) return 0;
         ++name;
         ++pattern;
     }

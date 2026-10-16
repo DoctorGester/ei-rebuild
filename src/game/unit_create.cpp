@@ -1,6 +1,7 @@
 // Unit setup and upkeep around creation: the prototype name index, the server controller's
 // statistics hand-over and remarks, and dropping broken equipment after a hit. See
 // docs/notes/units.md ("Creation, databases, save").
+#include "player_messages.h"
 #include "unit_create.h"
 
 #include "combat.h"
@@ -30,10 +31,8 @@ constexpr std::uint32_t kExtraRemark = 0x30;
 // The vtable of the CTypedPtrList<CPtrList, CItem*> the broken pieces are collected in.
 constexpr int kPtrListBlockSize = 10;
 
-// Called through their game addresses, being rewritten elsewhere, so their verify wrappers stay in the
-// path: 00525AF0 UnitStats::RefillSlots in unit_vitals.cpp, 0066EA70 / 0066D6E0 the player's
-// message writers in player_messages.cpp.
-__declspec(naked) void __fastcall SendPair16At(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066EA70)
+// Called through their game addresses (rewritten elsewhere; config/direct_calls_skip.csv): 00525AF0
+// UnitStats::RefillSlots in unit_vitals.cpp, 0066D6E0 a player's message writer in player_messages.cpp.
 // 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
 void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, a2, a3); }
 
@@ -113,7 +112,7 @@ void CUnit::DropBrokenEquipment() {
     for (int i = 3; i >= 0; --i) {
         CEngineObject*& slot = weapons[i];
         if (!slot || !IsBroken(slot)) continue;
-        SendPair16At(messages, nullptr, static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
+        static_cast<CPlayerServer*>(messages)->SendPair16(static_cast<std::uint32_t>(id_), static_cast<std::uint32_t>(i));
         ++slot->refCount_;
         broken.AddTail(slot);
         CEngineObject* weapon = slot;

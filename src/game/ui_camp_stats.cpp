@@ -180,7 +180,7 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     heroIndex_ = heroIndex;
     if (title) *reinterpret_cast<mfc::CString*>(&title_) = title;
     points_ = static_cast<int>(ShownHero(owner_)->height * 100.0f);
-    StatsPanelDrawStatsOriginal(this);
+    static_cast<CHeroStatsPanel*>(this)->DrawStats();
 }
 EI_REPLACE_METHOD(0x006232D0, CHeroStatsPanel::SetHero);
 

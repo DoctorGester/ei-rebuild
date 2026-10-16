@@ -1,6 +1,7 @@
 // The game server's shared files (00419A00, called by the world for the saved zone data): a file
 // message split into 64-byte chunk messages, queued on +0x2598. See net_classes.h and
 // docs/notes/network.md.
+#include "net_coder.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 
@@ -87,7 +88,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);
         std::uint8_t* to = static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->data_;
         if (data->cur + n > data->high) {
-            BufferReadPastEnd(data, nullptr, to, n);
+            data->ReadPastEnd(to, n);
         } else if (data->cur + n > data->end) {
             data->ReadMore(to, n);
         } else {

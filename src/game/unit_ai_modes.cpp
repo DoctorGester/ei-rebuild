@@ -1,6 +1,7 @@
 // Unit AI modes (005D0000-005DC000): the simple virtual slots of Guard, Patrol, Sentry, Follow,
 // Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
 // targets, so every mode object of the game runs these.
+#include "combat.h"
 #include "unit_ai.h"
 #include "at_exit_functions.h"
 
@@ -80,7 +81,7 @@ void MaybeRemark(AIBrain* brain, int what) {
 
 // An order on the stack: the looks array is constructed and given its derived vtable.
 void ConstructOrder(AIMoveOrder* order) {
-    LooksConstructAt(&order->looks);
+    LooksInit(&order->looks);
     order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
 }
 
@@ -245,7 +246,7 @@ void PatrolMode::Execute(AIBrain* brain) {
     LooksSetSizeAt(&order.looks, nullptr, next->looks.size, -1);
     for (int i = 0; i < next->looks.size; ++i) {
         AILook look;
-        LooksGetAt(&next->looks, nullptr, &look, i);
+        LooksElementAt(&next->looks, nullptr, &look, i);
         std::memcpy(&order.looks.data[i], &look, sizeof(AILook));
     }
     if (order.looks.size <= 0) {
@@ -635,7 +636,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     // The player controls this unit directly.
     bool direct = false;
     if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
-    if (brain->seen && unit->fightAtWill != 1) ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x20);
+    if (brain->seen && unit->fightAtWill != 1) reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x20);
 
     switch (state) {
     case kStateFollow: {
@@ -692,13 +693,13 @@ void PlayerMode::Execute(AIBrain* brain) {
                 state = kStateFollow;
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
-            } else if (!direct && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
-                ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x21);
+            } else if (!direct && !StaysWithParty(brain, true)) {
+                reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x21);
                 std::memset(&point.z, 0, 4);
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
             }
-        } else if (direct || PlayerStaysWithPartyOriginal(this, nullptr, brain, false)) {
+        } else if (direct || StaysWithParty(brain, false)) {
             std::memcpy(&point.z, &kOneBits, 4);
             Vector3 to;
             std::memcpy(&to.x, &point.x, 4);
@@ -756,7 +757,7 @@ EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
-    if (!DirectControl(brain) && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
+    if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
         std::memset(&point.z, 0, 4);
         ControllerPlanMoveOriginal(brain->owner, nullptr, &point.x, unknown, 0, kMoveTime);
         return;

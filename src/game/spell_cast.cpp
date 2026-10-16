@@ -3,6 +3,7 @@
 // (00689030, not rewritten) and then drive CSpellConstructor: SetManager, BeginConstruct (a new
 // CSpellContainer for the prototype), AddModifier per modifier (each rebuilds the container's
 // spell), EndConstruct, CSpell::Clone into a new spell object, SetManager(null).
+#include "item_db.h"
 #include "spell.h"
 
 #include "item.h"
@@ -39,13 +40,6 @@ void* const kModifierTableHolder = reinterpret_cast<void*>(0x007C8530);
 
 // 0068C680 (not rewritten). STLport string reserve(n) on the container's code string.
 __declspec(naked) void __fastcall CodesReserve(char**, void*, unsigned) EI_ORIGINAL(0x0068C680)
-
-// The rewritten functions are called through their game addresses, so the verify wrappers see
-// every call (most have no other caller).
-__declspec(naked) BOOL __fastcall ContainerBuild(CSpellContainer*) EI_ORIGINAL(0x0068BF60)
-__declspec(naked) int __fastcall ContainerAllows(CSpellContainer*, void*, const char*) EI_ORIGINAL(0x0068BEC0)
-__declspec(naked) BOOL __fastcall ContainerAddModifier(CSpellContainer*, void*, char*) EI_ORIGINAL(0x0068BE30)
-__declspec(naked) CSpellContainer* __fastcall ManagerNewContainer(CSpellManager*) EI_ORIGINAL(0x00688EB0)
 
 // _ftol (006E853C) of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
 // FMUL dword, CALL _ftol).
@@ -132,7 +126,7 @@ EI_REPLACE_METHOD(0x0068B370, CSpell::CopyTo);
 __declspec(naked) void CSpell::CallCopyTo(CSpell*) EI_ORIGINAL(0x0068B370)
 
 CSpell* CSpell::Clone(CSpellManager* manager) {
-    CSpell* spell = manager->CallCreateSpellObject(-1);
+    CSpell* spell = manager->CreateSpellObject(-1);
     CallCopyTo(spell);
     return spell;
 }
@@ -198,7 +192,7 @@ BOOL CSpellContainer::Build() {
     spell->prototypeField14_ = DwordAt(proto, 0x3C);
     spell->effectPower_ = 0x10;
 
-    char* found = FindSpellByCode(kSpellTableHolder, nullptr, *reinterpret_cast<char* const*>(proto + 4));
+    char* found = static_cast<itemdb::CodeIndexedTable*>(kSpellTableHolder)->FindByCode(*reinterpret_cast<char* const*>(proto + 4));
     int index = found ? static_cast<int>(found - itemdb::Spells().begin) / itemdb::kSpellSize : -1;
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
@@ -262,7 +256,7 @@ BOOL CSpellContainer::Build() {
         SetFloat(spell->manaCost_, FloatAt(modifier, 0x10) + GetFloat(spell->manaCost_));
         SetFloat(spell->price_, FloatAt(modifier, 0x08) + GetFloat(spell->price_));
 
-        char* record = FindModifierByCode(kModifierTableHolder, nullptr, modifier + 4);
+        char* record = static_cast<itemdb::CodeIndexedTable*>(kModifierTableHolder)->FindByCode(modifier + 4);
         int modifierIndex =
             record ? static_cast<int>(record - itemdb::SpellModifiers().begin) / itemdb::kSpellModifierSize : -1;
         char code = static_cast<char>(modifierIndex + 1);
@@ -320,8 +314,6 @@ CSpellContainer* CSpellManager::NewContainer() {
 }
 EI_REPLACE_METHOD(0x00688EB0, CSpellManager::NewContainer);
 
-__declspec(naked) CSpell* CSpellManager::CallCreateSpellObject(int) EI_ORIGINAL(0x00688EC0)
-
 CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifiers) {
     CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
     if (!constructor) return reinterpret_cast<CSpell*>(game::FatalError(kNoSpellConstructor));
@@ -334,8 +326,8 @@ CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifier
         constructor->CallAddModifier(node->modifier);
         ++added;
     }
-    if (!constructor->CallEndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
-    CSpell* spell = SpellCloneOriginal(constructor->container_->Spell(), nullptr, this);
+    if (!constructor->EndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
+    CSpell* spell = constructor->container_->Spell()->Clone(this);
     constructor->CallSetManager(nullptr);
     return spell;
 }
@@ -399,7 +391,7 @@ EI_REPLACE_METHOD(0x006841A0, CSpellConstructor::SetManager);
 BOOL CSpellConstructor::BeginConstruct(char* prototype) {
     if (!manager_) return game::FatalError(kNoSpellManager);
     if (!prototype) return game::FatalError(kNoSpellPrototype);
-    CSpellContainer* container = ManagerNewContainer(manager_);
+    CSpellContainer* container = manager_->NewContainer();
     CSpellContainer* previous = container_;
     container_ = container;
     if (container) ++container->refCount_;
@@ -411,7 +403,7 @@ EI_REPLACE_METHOD(0x006841E0, CSpellConstructor::BeginConstruct);
 
 BOOL CSpellConstructor::EndConstruct() {
     if (manager_ && container_) {
-        ContainerBuild(container_);
+        container_->Build();
         return 1;
     }
     return game::FatalError(kNoManagerOrContainer);
@@ -420,14 +412,13 @@ EI_REPLACE_METHOD(0x00684250, CSpellConstructor::EndConstruct);
 
 BOOL CSpellConstructor::AddModifier(char* modifier) {
     if (!container_) return 0;
-    if (!ContainerAllows(container_, nullptr, modifier)) return 0;
-    ContainerAddModifier(container_, nullptr, modifier);
-    ContainerBuild(container_);
+    if (!container_->AllowsModifier(modifier)) return 0;
+    container_->AddModifier(modifier);
+    container_->Build();
     return 1;
 }
 EI_REPLACE_METHOD(0x006842A0, CSpellConstructor::AddModifier);
 
-void CSpellConstructor::CallSetManager(CSpellManager* manager) { SpellConstructorSetManagerOriginal(this, nullptr, manager); }
-BOOL CSpellConstructor::CallBeginConstruct(char* prototype) { return SpellConstructorBeginOriginal(this, nullptr, prototype); }
-__declspec(naked) BOOL CSpellConstructor::CallEndConstruct() EI_ORIGINAL(0x00684250)
-BOOL CSpellConstructor::CallAddModifier(char* modifier) { return SpellConstructorAddModifierOriginal(this, nullptr, modifier); }
+void CSpellConstructor::CallSetManager(CSpellManager* manager) { SetManager(manager); }
+BOOL CSpellConstructor::CallBeginConstruct(char* prototype) { return BeginConstruct(prototype); }
+BOOL CSpellConstructor::CallAddModifier(char* modifier) { return AddModifier(modifier); }

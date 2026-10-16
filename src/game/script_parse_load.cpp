@@ -6,6 +6,7 @@
 // patches LoadFunction, LoadCommands and the keyword lookups (they install only in the vanilla
 // game), and in verify builds each callee then runs through its own wrapper. LoadFunction calls
 // itself directly (its verify wrapper would otherwise run the subtree twice at every level).
+#include "game_arrays.h"
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
@@ -72,40 +73,17 @@ __declspec(naked) BOOL Original::LoadCommandsAt(mfc::CArray<SSCCmd>*, ScriptPos*
 BOOL Original::LoadAt(mfc::CString* a0, BOOL a1) { return (BOOL)ScriptLoadLine((void*)this, nullptr, (const mfc::CString*)a0, (int)a1); }
 Original* Orig(CScript* script) { return static_cast<Original*>(script); }
 
-// ScriptVars members through their original addresses (__thiscall): FindVariable (RET 0xC),
-// HasVariable (RET 4), AppendFrom (RET 4: adds the other set's variables), ResetValues and
-// Clear (removes every variable).
-__declspec(naked) BOOL __fastcall VarsFindVariable(ScriptVars*, void*, const char*, int*, int*) EI_ORIGINAL(0x004B37D0)
-__declspec(naked) BOOL __fastcall VarsHasVariable(ScriptVars*, void*, const char*) EI_ORIGINAL(0x004B36D0)
-__declspec(naked) void __fastcall VarsAppendFrom(ScriptVars*, void*, const ScriptVars*) EI_ORIGINAL(0x004B3900)
-__declspec(naked) void __fastcall VarsResetValues(ScriptVars*) EI_ORIGINAL(0x004B35E0)
-__declspec(naked) void __fastcall VarsClear(ScriptVars*) EI_ORIGINAL(0x004C0020)
-
 // CArray template members of the loader's arrays (MFC code, not rewritten; thiscall on the array).
 // 004D5B50 bindings' Add; 004D5CB0 sub-calls' Add (deep-copies the nested SSCCmd) and 004C4FD0
 // their SetSize (deletes the nested SSCCmds it drops); 004CD2B0 commands' SetSize, 004D65E0
 // SetAtGrow and 004D5ED0 Add (both copy the SSCCmd); 004C59C0 if-then pairs' SetSize.
-__declspec(naked) int __fastcall BindingsAdd(mfc::CArray<ScriptBinding>*, void*, const ScriptBinding*) EI_ORIGINAL(0x004D5B50)
-__declspec(naked) int __fastcall SubCallsAdd(mfc::CArray<ScriptSubCall>*, void*, const ScriptSubCall*) EI_ORIGINAL(0x004D5CB0)
 void SubCallsSetSize(mfc::CArray<ScriptSubCall>* calls, int size, int growBy) {
     SubCallArraySetSizeOriginal(calls, nullptr, size, growBy);
 }
 void CmdsSetSize(mfc::CArray<SSCCmd>* cmds, int size, int growBy) { CmdArraySetSizeOriginal(cmds, nullptr, size, growBy); }
-__declspec(naked) void __fastcall CmdsSetAtGrow(mfc::CArray<SSCCmd>*, void*, int, const SSCCmd*) EI_ORIGINAL(0x004D65E0)
-__declspec(naked) int __fastcall CmdsAdd(mfc::CArray<SSCCmd>*, void*, const SSCCmd*) EI_ORIGINAL(0x004D5ED0)
 void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) {
     IfThenArraySetSizeOriginal(pairs, nullptr, size, growBy);
 }
-
-// 004D3320 (__thiscall): empties a definition (name and parameters too).
-__declspec(naked) void __fastcall DefinitionReset(ScriptDefinition*) EI_ORIGINAL(0x004D3320)
-
-// 004D6100: the definitions' Add (copies the definition).
-__declspec(naked) int __fastcall DefinitionsAdd(mfc::CArray<ScriptDefinition>*, void*, const ScriptDefinition*)
-    EI_ORIGINAL(0x004D6100)
-
-// 004D6340: the define list's destructor, through its address.
-__declspec(naked) void __fastcall DefinesDestructAt(ScriptDefineList*) EI_ORIGINAL(0x004D6340)
 
 // 004CA260 (__thiscall): the token list's destructor.
 __declspec(naked) void __fastcall TokensDestruct(ScriptTokenList*) EI_ORIGINAL(0x004CA260)
@@ -114,8 +92,6 @@ __declspec(naked) void __fastcall TokensDestruct(ScriptTokenList*) EI_ORIGINAL(0
 void __stdcall ConstructStrings(mfc::CString* a0, int a1) { CStringElementsConstruct((void*)a0, a1); }
 void __stdcall DestructStrings(mfc::CString* a0, int a1) { CStringElementsDestruct((void*)a0, a1); }
 
-// The #define helpers through their original addresses (script_parse.cpp).
-__declspec(naked) void __fastcall AddDefineAt(ScriptDefineList*, const ScriptDefine*) EI_ORIGINAL(0x004D34F0)
 __declspec(naked) void __fastcall ApplyDefinesAt(mfc::CString*, const ScriptDefineList*) EI_ORIGINAL(0x004D33E0)
 
 // ---- Small helpers ------------------------------------------------------------------------------
@@ -237,8 +213,8 @@ struct LocalCmd {
 // A ScriptVars on the stack.
 struct LocalVars {
     alignas(4) unsigned char storage[sizeof(ScriptVars)];
-    LocalVars() { VarsConstruct(Get()); }
-    ~LocalVars() { VarsDestruct(Get()); }
+    LocalVars() { Get()->ScriptVarsConstruct(); }
+    ~LocalVars() { ScriptVarsDestruct(Get()); }
     ScriptVars* Get() { return reinterpret_cast<ScriptVars*>(storage); }
 };
 
@@ -254,17 +230,17 @@ struct LocalDefinition {
         d->ifThen.size = 0;
         d->ifThen.maxSize = 0;
         d->ifThen.growBy = 0;
-        VarsConstruct(&d->vars);
+        d->vars.ScriptVarsConstruct();
         d->index = 0;
     }
-    ~LocalDefinition() { DefinitionDestruct(Get()); }
+    ~LocalDefinition() { ScriptDefinitionDestruct(Get()); }
     ScriptDefinition* Get() { return reinterpret_cast<ScriptDefinition*>(storage); }
 };
 
 // What DeclareScript and GlobalVars do to Load's definition before parsing (inline in the game).
 void ClearDefinition(ScriptDefinition* decl) {
     IfThensSetSize(&decl->ifThen, 0, -1);
-    VarsClear(&decl->vars);
+    ScriptVarsClear(&decl->vars);
     decl->index = 0;
     decl->params = game::EmptyText();
     decl->name = game::EmptyText();
@@ -467,9 +443,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
         if (bind) {
             if (local.varIndex >= 0) {
-                BindingsAdd(&cmd->localBindings, nullptr, &local);
+                ScriptBindingsAdd(&cmd->localBindings, nullptr, &local);
             } else if (global.varIndex >= 0) {
-                BindingsAdd(&cmd->globalBindings, nullptr, &global);
+                ScriptBindingsAdd(&cmd->globalBindings, nullptr, &global);
             } else {
                 sub.type = 0;
                 sub.argIndex = 0;
@@ -486,7 +462,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                     DeleteCmd(sub.cmd);
                     return 0;
                 }
-                SubCallsAdd(&cmd->subCalls, nullptr, &sub);
+                ScriptSubCallsAdd(&cmd->subCalls, nullptr, &sub);
             }
         }
 
@@ -523,7 +499,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
         const char* signature = SignatureAt(id, kScriptFloat);
         if (!signature) return Error(this, token.line, 9, game::Text(0x0078D858));   // "Function returning float expected"
         if (!Orig(this)->LoadFunctionAt(cmd.Get(), pos, tokens, id, locals, signature, 0, 0)) return 0;
-        CmdsSetAtGrow(conditions, nullptr, conditions->size, cmd.Get());
+        ScriptCmdsSetAtGrow(conditions, nullptr, conditions->size, cmd.Get());
     }
 }
 EI_REPLACE_METHOD(0x004D0BF0, CScript::LoadConditions);
@@ -598,7 +574,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
     if (!ok) return 0;
 
     int index, type;
-    VarsFindVariable(Globals(), nullptr, *name, &index, &type);
+    Globals()->FindVariable(*name, &index, &type);
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
@@ -730,19 +706,19 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
                     return 0;
                 cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name, text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs.data[0], index);
-                CmdsAdd(commands, nullptr, cmd);
+                ScriptCmdsAdd(commands, nullptr, cmd);
                 continue;
             }
-            if (VarsHasVariable(Globals(), nullptr, text)) {
+            if (Globals()->HasVariable(text)) {
                 ok = Orig(this)->LoadAssignOperatorAt(cmd, pos, tokens, locals, &text);
-            } else if (VarsHasVariable(Globals(), nullptr, qualified)) {
+            } else if (Globals()->HasVariable(qualified)) {
                 ok = Orig(this)->LoadAssignOperatorAt(cmd, pos, tokens, locals, &qualified);
             } else {
                 return Error(this, token.line, 3, game::Text(0x0078D908), static_cast<const char*>(text));   // "Unexpected token '%s'"
             }
         }
         if (!ok) return 0;
-        CmdsAdd(commands, nullptr, cmd);
+        ScriptCmdsAdd(commands, nullptr, cmd);
     }
 }
 EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
@@ -786,7 +762,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 define.name = name;
                 while (*q && IsSpace(*q)) ++q;
                 define.value = q;
-                AddDefineAt(&defines, &define);
+                AddDefine(&defines, &define);
                 line = game::EmptyText();
             } else {
                 ApplyDefinesAt(&line, &defines);
@@ -795,7 +771,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         }
         Ops(*text).UnlockBuffer();
         *text = result;
-        DefinesDestructAt(&defines);
+        ScriptDefinesDestruct(&defines);
     }
 
     auto fail = [&tokens](BOOL value) {
@@ -830,7 +806,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             break;
         }
         case kLexScript: {
-            DefinitionReset(decl);
+            ScriptDefinitionReset(decl);
             token.Assign(NextToken(&pos));
             word = token.text;
             {
@@ -845,7 +821,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 0)) return fail(0);
                 if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
                 if (!Orig(this)->LoadScriptBodyAt(decl, &pos, &tokens)) return fail(0);
-                DefinitionsAdd(&Scripts(), nullptr, decl);
+                ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
@@ -867,7 +843,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 return fail(Error(this, token.line, 15, game::Text(0x0078BC18), static_cast<const char*>(word)));
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
             if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 0)) return fail(0);
-            DefinitionsAdd(&Scripts(), nullptr, decl);
+            ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
             break;
         }
         case kLexGlobalVars: {
@@ -886,8 +862,8 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             if (!ok) return fail(0);
             // Declared with qualified names, then added to the global variables.
             if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 1)) return fail(0);
-            VarsResetValues(&decl->vars);
-            VarsAppendFrom(Globals(), nullptr, &decl->vars);
+            decl->vars.ResetValues();
+            Globals()->AppendFrom(&decl->vars);
             break;
         }
         default:   // "Unexpected '%s'"

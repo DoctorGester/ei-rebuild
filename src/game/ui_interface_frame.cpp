@@ -1,4 +1,6 @@
 // CInterface3D's per-frame update (game.exe 005F57C0). See docs/notes/ui.md ("Interface base").
+#include "app.h"
+#include "object_tables.h"
 #include "ui.h"
 
 #include "console.h"
@@ -16,6 +18,9 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_core.h"
+#include "ui_cursor.h"
+#include "world.h"
+#include "world_glue.h"
 #include "../hook/log.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
@@ -29,7 +34,7 @@ constexpr std::uint32_t kLeaveGame = 0x990001;
 // (007AFE20) Disconnect (0057ECA0) and LeaveGame (00581660), the client's server flag (00578D10),
 // a surface's contents saved (005FD7A0) and the message box constructor (00634650: interface,
 // caption and text keys, the value it leaves pending, two flags).
-void SetCursorShape(int shape) { CursorSetShapeOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, shape); }
+void SetCursorShape(int shape) { static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(shape); }
 void* Session() { return reinterpret_cast<void*>(0x007AFE20); }
 
 // 00458220: dispatches the window messages waiting in the queue.
@@ -60,14 +65,14 @@ void CInterface3D::Update() {
             if (CUiWindow* top = stackEnd_[-1]) top->DeleteWindow();
             --stackEnd_;
         }
-        PumpMessagesOriginal();
+        app::PumpMessages();
         if (backdropMode_ == 4) {
             ReleaseBackdrop(backdrop_);
             CUiSurface* next = secondBackdrop_;
             secondBackdrop_ = nullptr;
             backdrop_ = next;
             backdropMode_ = next ? 2 : 0;
-            if (next) SurfaceSwapContentsOriginal(next, nullptr, 1);
+            if (next) next->SwapContents(1);
         }
         if (stackEnd_ - stackBegin_ == 1) {
             ReleaseBackdrop(backdrop_);
@@ -75,7 +80,7 @@ void CInterface3D::Update() {
             if (block5C_) gamecrt::operator_delete(block5C_);
             block5C_ = nullptr;
             backdropMode_ = 0;
-            if (!IsNetworkClientOriginal()) SetServerFlagOriginal(serverFlag_);
+            if (!IsNetworkClientOriginal()) GameSetServerPaused(serverFlag_);
             serverFlag_ = 0;
         }
         if (stackBegin_ != stackEnd_) {
@@ -84,8 +89,8 @@ void CInterface3D::Update() {
         }
         if (pendingValue_ == kLeaveGame) {
             closeAll_ = true;
-            GameDisconnectOriginal(Session());
-            FlowCloseSessionsOriginal(Session());
+            static_cast<GameFlow*>(Session())->DropSessions();
+            static_cast<GameFlow*>(Session())->CloseSessions();
         }
         mouseCapture_ = nullptr;
         SetCursorShape(0);
@@ -101,7 +106,7 @@ void CInterface3D::Update() {
             --stackEnd_;
         }
         reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
-        PumpMessagesOriginal();
+        app::PumpMessages();
         *reinterpret_cast<bool*>(0x00784750) = false;
     }
     if (queuedWindow_) {
@@ -137,8 +142,8 @@ __declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, vo
 // Rebirth's game over message: the menu object at 007AFEA5 (00578920 with 1, then 00578940), the
 // message window (0x180 bytes, constructor 00634650: interface, title, text, 0x20000, 3, 1) and
 // the interface's ShowWindow (005F7350: window, 1, 1).
-void __fastcall MenuSet578920(void*, void*, int a2) { MenuSetOriginal(a2); }
-void __fastcall MenuCall578940(void*, void*) { MenuCallOriginal(); }
+void __fastcall MenuSet578920(void*, void*, int a2) { GameStopSounds(a2); }
+void __fastcall MenuCall578940(void*, void*) { GameStopAmbience(); }
 void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 
 int Compare(const mfc::CString& word, std::uintptr_t text) {
@@ -174,7 +179,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     if (Compare(words.data[0], 0x007930E8) == 0 || Compare(words.data[0], 0x007930DC) == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size < 2) return;
-        int number = words.size > 2 ? TextKeyOf(words.data[2]) : 0;
+        int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
         int kind = Compare(words.data[0], 0x007930DC) != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
             top()->VirtualSpeech(number, static_cast<unsigned>(kind), const_cast<char*>(static_cast<const char*>(words.data[1])));

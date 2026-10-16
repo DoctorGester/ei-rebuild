@@ -40,8 +40,6 @@ constexpr std::size_t kValue328 = 0x328;      // slot 60, float
 
 // 0052E970. Sets the unit's hostile mask, tells its controller and marks it dirty. Not rewritten.
 void __fastcall UnitSetHostileMask(CUnit* unit, void* edx, std::uint32_t mask);
-// 0052E940. Ors bits into the hostile mask (marks the unit dirty when it changes). Not rewritten.
-void __fastcall UnitAddHostileMask(CUnit* unit, void* edx, std::uint32_t bits);
 
 // Virtual getters shared by CUnit (vtable 0073EA8C) and CFakeUnit (0073BFE8). Written as __fastcall
 // shims (this in ECX, no stack arguments) because the classes' virtual interfaces are not declared.

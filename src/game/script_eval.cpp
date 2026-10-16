@@ -109,10 +109,7 @@ CMapObjectServer* ServerHalf(CEngineObject* object) {
 
 // 00530280: the ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
 // as the original left it.
-double UnitGroundHeight(CEngineObject* unit, float x, float y) { return UnitGroundHeightOriginal(unit, nullptr, x, y); }
-
-// 00665640 (RET 4): CPlayer::HasLoot, called through its address.
-__declspec(naked) BOOL __fastcall PlayerHasLoot(CPlayer*, void*, int) EI_ORIGINAL(0x00665640)
+double UnitGroundHeight(CEngineObject* unit, float x, float y) { return static_cast<CUnit*>(unit)->GroundHeight(x, y); }
 
 // The game server session when one runs and is not shut down.
 net::ServerSession* ActiveServer() {
@@ -452,7 +449,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x7C: { // HaveItem(player, item)
         StoreBits(result, kZero);
         auto* player = reinterpret_cast<CPlayer*>(WorldServer()->GetPlayer(Ftol(f[0])));
-        if (player && PlayerHasLoot(player, nullptr, Ftol(f[1]))) StoreBits(result, kOne);
+        if (player && player->HasLoot(Ftol(f[1]))) StoreBits(result, kOne);
         return;
     }
     case 0xB1:   // IsPlayerInDanger

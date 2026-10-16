@@ -31,14 +31,8 @@ bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(s
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058B750)
-// 0058DAF0 (RET 4). Accepts the players a pending connection object holds.
-__declspec(naked) void __fastcall AcceptPlayers(CWorldServer*, void*, void* /*source*/) EI_ORIGINAL(0x0058DAF0)
-// 00479E30 (RET 4). The pending object at +0x60 polls the game server.
 // 00665A10. Disconnects a player (its connection and units).
 void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
-// 0066C1D0 (RET 4). The player list releases the player.
-// 0066E130. A player's state's update after the tick.
-__declspec(naked) void __fastcall StateUpdate(void*, void*) EI_ORIGINAL(0x0066E130)
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
 // 004C21E0); 004CC7D0 (__stdcall) releases an element range; 004CE1E0 (RET 4) one element's
@@ -96,12 +90,12 @@ int CWorldServer::Update() {
 
     if (CRefObject* handle = shared5C_.ptr) {
         static_cast<CWorldHandle*>(handle)->Pump();
-        AcceptPlayers(this, nullptr, shared5C_.ptr);
+        AcceptNewPlayers(shared5C_.ptr);
     }
     if (void* pending = netSession_) {
         net::ServerSession* server = net::GameServer();
         if (server && !(server->flags7_ & CRefCounted::kDetached)) SessionPump(pending, nullptr, server);
-        AcceptPlayers(this, nullptr, netSession_);
+        AcceptNewPlayers(netSession_);
     }
 
     if (!paused_) {
@@ -110,7 +104,7 @@ int CWorldServer::Update() {
         TickAt(this, nullptr, 0);
     }
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-        StateUpdate(player->server, nullptr);
+        player->server->UpdatePartyUnits();
 
     // The local players' heroes: the global "Heroes" group plus each one's own heroes, then given
     // back to every local player.
@@ -157,9 +151,9 @@ int CWorldServer::Update() {
             ScriptObjectRef copy;
             ScriptObjectRef* ref = GroupGetAt(&heroes, nullptr, &copy, i);
             ScriptObjectRef* slot = &state->partyUnits_.data[i];
-            RefReset(slot);
+            slot->Reset();
             RefConstruct(slot, nullptr, ref);
-            RefReset(&copy);
+            copy.Reset();
         }
     }
     heroes.vtable = scriptvtable::kRefsBase;

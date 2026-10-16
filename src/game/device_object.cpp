@@ -6,6 +6,7 @@
 //
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way, and every such throw ends the game in WinMain.
+#include "app.h"
 #include "device.h"
 #include "game_strings.h"
 #include "device_material.h"
@@ -13,7 +14,7 @@
 #include "dx_errors.h"
 #include "engine_object.h"
 #include "model.h"               // CTransformPipeline
-#include "originals_engine.h"    // FatalDirectX
+#include "originals_engine.h"
 #include "originals_render.h"
 
 #include "ei/hook.h"
@@ -80,7 +81,7 @@ void RecordStageBlocks(CTextureDevice* device) {
     for (const StageBlock& block : kStageBlocks) {
         IDirect3DDevice7* d3d = device::D3D(device);
         device->lastLoadResult_ = device::BeginStateBlock(d3d);
-        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, game::Text(0x0078E034)))   // "Can't begin state block.\n"
+        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, game::Text(0x0078E034)))   // "Can't begin state block.\n"
             ThrowGameError(game::Text(0x0078E034));
         device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
         device::SetTextureStageState(d3d, 0, D3DTSS_COLOROP, D3DTOP_MODULATE);
@@ -89,7 +90,7 @@ void RecordStageBlocks(CTextureDevice* device) {
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAOP, block.alphaOp);
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG2, block.alphaArg2);
         device->lastLoadResult_ = device::EndStateBlock(d3d, block.handle);
-        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, game::Text(0x0078E01C)))   // "Can't end state block.\n"
+        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, game::Text(0x0078E01C)))   // "Can't end state block.\n"
             ThrowGameError(game::Text(0x0078E01C));
     }
 }
@@ -107,7 +108,7 @@ void ConstructWithoutDirect3D(CTextureDevice* device) {
     // DDSCL_FPUSETUP), and the game's arithmetic runs with it from then on.
     unsigned int x87 = 0;
     __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
-    DeviceBuildFormatTableOriginal(device);
+    static_cast<CTextureDevice*>(device)->BuildFormatTable();
     const RECT& screen = device->screen_;
     D3DVIEWPORT7 viewport;
     viewport.dwX = static_cast<DWORD>(screen.left);
@@ -253,7 +254,7 @@ void CTextureDevice::Destruct() {
     for (const StageBlock& block : kStageBlocks) {
         const DWORD handle = *block.handle;
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
-        if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, game::Text(0x0078E18C), handle);   // "Can't delete state block %d.\n"
+        if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, game::Text(0x0078E18C), handle);   // "Can't delete state block %d.\n"
     }
     ReleaseBuffers(batch_.used);
     ReleaseBuffers(batch2_.used);
@@ -351,11 +352,11 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     deviceGuid_ = chosen->desc.deviceGUID;
     zEnable_ = D3DZB_TRUE;
 
-    DeviceBuildFormatTableOriginal(this);
+    BuildFormatTable();
     depthFormats_.ClearWith([](PixelFormat*) {});
     lastLoadResult_ = device::Direct3D(this)->EnumZBufferFormats(deviceGuid_, &PixelFormatCallback, &depthFormats_);
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E0A0));   // "Can't enumerate z-buffer formats.\n"
-    DeviceCreateDepthBufferOriginal(this, nullptr, depthBits, stencilBits);
+    CreateDepthBuffer(depthBits, stencilBits);
 
     lastLoadResult_ = device::SetRenderTarget(device::D3D(this), device::Surface(renderTarget_), 0);
     // "Can't set render surface as render target for device.\n"
@@ -368,7 +369,7 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     viewport.dvMinZ = 0.0f;
     viewport.dvMaxZ = 1.0f;
     lastLoadResult_ = device::SetViewport(device::D3D(this), &viewport);
-    if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, game::Text(0x0078E050));   // "Can't set viewport.\n"
+    if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, game::Text(0x0078E050));   // "Can't set viewport.\n"
     for (CDXSurface*& holder : stageSurfaces_) holder = nullptr;
     RecordStageBlocks(this);
     colour_ = 0xFF000000;

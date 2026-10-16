@@ -1,5 +1,6 @@
 // The battle screen's slot 1 (00638A10), double click (00638AD0), key release (0063B6D0) and wheel (0063B770): its
 // input side slots 1, 7, 11 and 12. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
+#include "ui.h"
 #include "ui_camp.h"
 
 #include "ei/hook.h"
@@ -30,7 +31,7 @@ EI_REPLACE(0x00638A10, BattleScreenDeactivate);
 void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+        static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
         if (inputHandled_) return;
     }
     viewPressed_ = true;
@@ -64,9 +65,9 @@ BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
         panel->Input()->Wheel(flags, delta, x, y);
         if (panel->inputHandled_) return 1;
     }
-    for (CUiWindow* panel : panels) WindowSetEnabled(panel, nullptr, 0, 0);
+    for (CUiWindow* panel : panels) panel->SetEnabled(0, 0);
     InputOf(this)->BaseWheel(flags, delta, x, y);
-    for (CUiWindow* panel : panels) WindowSetEnabled(panel, nullptr, 1, 0);
+    for (CUiWindow* panel : panels) panel->SetEnabled(1, 0);
     return 1;
 }
 namespace {

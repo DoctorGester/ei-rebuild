@@ -89,7 +89,7 @@ struct NotOlder {
 using SaveSort = stlp::Sort<SaveEntry, NotOlder, SaveEntryOps>;
 
 struct ByTextIgnoringCase {
-    bool operator()(const stlp::string& a, const stlp::string& b) const { return gamecrt::stricmp(a.data(), b.data()) < 0; }
+    bool operator()(const stlp::string& a, const stlp::string& b) const { return libcrt::Stricmp(a.data(), b.data()) < 0; }
 };
 using TopicSort = stlp::Sort<stlp::string, ByTextIgnoringCase, stlp::StringElement>;
 

@@ -16,6 +16,7 @@
 // texture (AttachTextureMemory, ui_saveload.cpp); in the switch-over every texture the texture
 // manager makes for the CPU (00691D80, texture_blank.cpp) gets a holder with only such memory
 // (NewMemoryTextureHolder, ticket R8). See docs/notes/renderer.md (sections 5, 6, 7, 10).
+#include "app.h"
 #include "dx_surface.h"
 #include "game_strings.h"
 #include "device.h"
@@ -126,7 +127,7 @@ bool ReadSize(CDXSurface* holder) {
     d[0] = 0x7C;
     long hr = ComCall(holder->surface, kGetSurfaceDesc, static_cast<void*>(d));
     holder->result = hr;
-    if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E6C4))) return false;   // "Can't get surface description"
+    if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E6C4))) return false;   // "Can't get surface description"
     holder->width = static_cast<int>(d[kWidth]);
     holder->height = static_cast<int>(d[kHeight]);
     holder->bitsPerPixel = static_cast<int>(d[kBits]);
@@ -156,7 +157,7 @@ void ReadScreenFormat(CTextureDevice* device, std::uint32_t* format) {
     format[0] = 0x20;
     long hr = ComCall(primary->surface, kGetPixelFormat, static_cast<void*>(format));
     primary->result = hr;
-    if (hr != 0) FatalDirectX(hr, game::Text(0x0078E714));   // "Can't get pixel format from surface"
+    if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E714));   // "Can't get pixel format from surface"
 }
 
 } // namespace
@@ -502,14 +503,14 @@ int CDXSurface::LoadPictureData(const void* data, int flag) {
         format[0] = 0x20;
         long hr = ComCall(this->surface, kGetPixelFormat, static_cast<void*>(format));
         result = hr;
-        if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E714)))   // "Can't get pixel format from newSurface."
+        if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E714)))   // "Can't get pixel format from newSurface."
             return game::FatalError(game::Text(0x0078EA80));               // "Can't get newSurface pixel format to load picture."
         gameapi::EnterCriticalSection(DeviceLock());
         // DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK
         hr = ComCall(this->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), 0x821ul,
                      static_cast<void*>(nullptr));
         result = hr;
-        if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E30C)))   // "Can't lock newSurface."
+        if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E30C)))   // "Can't lock newSurface."
             return game::FatalError(game::Text(0x0078EA58));               // "Can't lock newSurface to load picture." (lock held)
     }
     FillPicture(this, picture, desc, format);
@@ -517,7 +518,7 @@ int CDXSurface::LoadPictureData(const void* data, int flag) {
     if (!direct) {
         long hr = ComCall(this->surface, kUnlock, static_cast<void*>(nullptr));
         result = hr;
-        if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E2F4)))   // "Can't unlock newSurface."
+        if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E2F4)))   // "Can't unlock newSurface."
             return game::FatalError(game::Text(0x0078E9E4));               // "Can't unlock newSurface after load picture."
     }
     return 1;
@@ -525,8 +526,6 @@ int CDXSurface::LoadPictureData(const void* data, int flag) {
 EI_REPLACE_METHOD(0x004F0060, CDXSurface::LoadPictureData);
 
 namespace {
-// 004F0060 through its address (the verify build's wrapper runs there).
-__declspec(naked) int __fastcall LoadPicture(CDXSurface*, void*, const void*, int) EI_ORIGINAL(0x004F0060)
 __declspec(naked) void* __cdecl ErrorObjectText(void*, const char*) EI_ORIGINAL(0x00480250)
 } // namespace
 
@@ -544,7 +543,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     height = 0;
     bitsPerPixel = 0;
     SetHolderVtable(this);
-    if (!LoadPicture(this, nullptr, picture, flag)) {
+    if (!LoadPictureData(picture, flag)) {
         void* object = gamecrt::operator_new(0xC);
         if (object) object = ErrorObjectText(object, game::Text(0x0078E918));   // "Can't load picture to surface"
         CxxThrowException(&object, GameErrorThrowInfo());

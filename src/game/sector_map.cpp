@@ -1,3 +1,4 @@
+#include "ai_map.h"
 #include "sector_map.h"
 
 #include "ei/hook.h"
@@ -10,8 +11,6 @@
 __declspec(naked) void CUnit::OnLeftSectorMap() EI_ORIGINAL(0x0050E930)
 
 namespace {
-// MarkFootprint through its original address, so the verify build's wrapper sees these calls.
-__declspec(naked) bool __fastcall MarkFootprint(CAIMap*, void*, CEngineObject*, bool) EI_ORIGINAL(0x005B6A80)
 
 // The world position of an object (+0x1C, +0x20; common to all objects in the sector map).
 float PosX(const CEngineObject* o) { return static_cast<const CMapObject*>(o)->position.x; }
@@ -124,7 +123,7 @@ bool CSectorMap::Add(CEngineObject* object) {
     bool isUnit = object->GetClassId() == kClassUnit;
     (isUnit ? sector.units : sector.objects).AddTail(object);
 
-    bool fits = MarkFootprint(aiMap, nullptr, object, false);
+    bool fits = aiMap->MarkFootprint(object, false);
     if (fits) {
         ++added;
         object->flags_ |= kInSectorMap;
@@ -161,7 +160,7 @@ bool CSectorMap::Remove(CEngineObject* object) {
     if (!node) return false;
     list.RemoveAt(node);
 
-    bool cleared = MarkFootprint(aiMap, nullptr, object, true);
+    bool cleared = aiMap->MarkFootprint(object, true);
     if (cleared) {
         unit->OnLeftSectorMap();
         unit->sectorCellX = -1;
@@ -173,9 +172,8 @@ EI_REPLACE_METHOD(0x005C1010, CSectorMap::Remove);
 
 namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table. Globals at
-// 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 (RadiusTree::Find, called through its
-// address so its wrapper sees the calls) maps a radius to a table index.
-__declspec(naked) int __fastcall SpiralIndex(const RadiusTree*, void*, float) EI_ORIGINAL(0x005BF7D0)
+// 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 (RadiusTree::Find) maps a radius to
+// a table index.
 const RadiusTree* Spiral() { return reinterpret_cast<const RadiusTree*>(0x007C2FD8); }
 const int* SpiralLengths() { return *reinterpret_cast<const int* const*>(0x007C2FC4); }
 const std::int16_t* SpiralOffsets() { return *reinterpret_cast<const std::int16_t* const*>(0x007C2FFC); }
@@ -300,7 +298,7 @@ void* __fastcall BuildSectorSpiral(void* self) {
 EI_REPLACE(0x005BF8F0, BuildSectorSpiral);
 
 void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius) {
-    int length = SpiralLengths()[SpiralIndex(Spiral(), nullptr, radius * 0.03125f)];
+    int length = SpiralLengths()[Spiral()->Find(radius * 0.03125f)];
     const std::int16_t* offset = SpiralOffsets();
     result->RemoveAll();
 
@@ -346,12 +344,12 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
 
     // Lift the footprint, move, and stamp it again; put it back where it was if it does not fit.
     bool moved = false;
-    if (MarkFootprint(aiMap, nullptr, object, true)) {
+    if (aiMap->MarkFootprint(object, true)) {
         std::memcpy(&current, position, sizeof(current));
-        moved = MarkFootprint(aiMap, nullptr, object, false);
+        moved = aiMap->MarkFootprint(object, false);
         if (!moved) {
             std::memcpy(&current, &saved, sizeof(current));
-            MarkFootprint(aiMap, nullptr, object, false);
+            aiMap->MarkFootprint(object, false);
         }
     }
     if (!moved) return false;

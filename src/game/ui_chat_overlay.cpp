@@ -97,7 +97,7 @@ const char* const kDefaultColour = "7";
 int CharAt(const char* p) {
     int value = 0;
     const char* q = p;
-    if (IsMbbLead(static_cast<unsigned char>(*p))) {
+    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
         value = static_cast<signed char>(*p) << 8;
         q = p + 1;
     }

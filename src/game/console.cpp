@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
@@ -241,7 +242,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
     for (;;) {
         int c = 0;
         const char* low = p;
-        if (IsMbbLead(static_cast<unsigned char>(*p))) {
+        if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
             c = static_cast<signed char>(*p) * 256;
             low = p + 1;
         }

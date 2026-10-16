@@ -2,6 +2,7 @@
 
 #include "core_streams.h"
 #include "object.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 
@@ -86,18 +87,16 @@ EI_REPLACE_METHOD(0x004557F0, CDiplomacy::WriteTo);
 void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim, int) {
     if (!attacker || !victim) return;
     if (allied_[FieldAt<int>(victim, unitfield::kPlayer)] & Bit(FieldAt<int>(attacker, unitfield::kPlayer))) return;
-    UnitAddHostileMask(victim, nullptr,
-                       FieldAt<std::uint32_t>(victim, unitfield::kHostileMask) |
-                           Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
+    victim->AddHostileMask(FieldAt<std::uint32_t>(victim, unitfield::kHostileMask) |
+                               Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
     victim->flags_ |= 0x80000;
     char* party = FieldAt<char*>(victim, unitfield::kParty);
     if (!party) return;
     auto* members = reinterpret_cast<const PartyMembers*>(party + 0x40);
     for (const PartyMembers::Node* node = members->First(); node && node->value; node = members->After(node)) {
         CUnit* unit = node->value;
-        UnitAddHostileMask(unit, nullptr,
-                           FieldAt<std::uint32_t>(unit, unitfield::kHostileMask) |
-                               Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
+        unit->AddHostileMask(FieldAt<std::uint32_t>(unit, unitfield::kHostileMask) |
+                                 Bit(FieldAt<int>(attacker, unitfield::kPlayer)));
     }
 }
 EI_REPLACE_METHOD(0x00455680, CDiplomacy::OnAttack);

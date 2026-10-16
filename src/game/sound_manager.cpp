@@ -1,8 +1,8 @@
 // The sound manager (CSoundManager, *007AF784): voice volumes and pans from the listener,
 // the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
 // stream requests (006B5CD0-006BB240), and Play2D / Play3D (006B8250 / 006B8600). The Miles calls
-// go through game.exe's import table; the wave loader with its cache (006B89F0) too. The voice
-// allocation (006B7D10, A-H17 below) and the stream / MIDI threads stay original.
+// go through game.exe's import table; the wave loader with its cache (006B89F0) too. The stream /
+// MIDI threads stay original.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
@@ -1103,8 +1103,6 @@ EI_REPLACE_METHOD(0x006B7D10, CSoundManager::AllocateVoice);
 // --- 006B8250 / 006B8600: Play2D, Play3D ---------------------------------------------------------
 
 namespace {
-// 006B7D10 (rewritten as CSoundManager::AllocateVoice) through its address so its wrapper runs.
-__declspec(naked) int __fastcall AllocateVoiceAt(CSoundManager*, void*, int /*priority*/) EI_ORIGINAL(0x006B7D10)
 using SampleUintFn = void(__stdcall*)(void*, std::uint32_t);
 SampleUintFn AilSetSampleMsPosition() { return *reinterpret_cast<SampleUintFn*>(0x0073B768); }
 
@@ -1167,7 +1165,7 @@ int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
 int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                           int compressed) {
     if (enabled == 0) return -1;
-    int index = AllocateVoiceAt(this, nullptr, priority);
+    int index = AllocateVoice(priority);
     if (index == -1) {
         if (loop == 0) return -1;
         return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
@@ -1195,7 +1193,7 @@ EI_REPLACE_METHOD(0x006B8250, CSoundManager::Play2D);
 int CSoundManager::Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
                           int speech) {
     if (enabled == 0) return -1;
-    int index = AllocateVoiceAt(this, nullptr, priority);
+    int index = AllocateVoice(priority);
     if (index == -1) {
         if (loop == 0) return -1;
         auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
@@ -1249,7 +1247,6 @@ __declspec(naked) void __fastcall CacheErase(void*, void*, const void*) EI_ORIGI
 __declspec(naked) void* __fastcall PairConstruct(void*, void*, const void*, WaveNode* const*) EI_ORIGINAL(0x006BC140)
 // The cache list: a new node [prev, next], the record's copy into it, a node freed.
 __declspec(naked) WaveNode* __fastcall ListNewNode(WaveList*, void*, WaveNode*, WaveNode*) EI_ORIGINAL(0x006BD4F0)
-__declspec(naked) void __fastcall RecordCopy(WaveRecord*, void*, const WaveRecord*) EI_ORIGINAL(0x006BD1B0)   // S13 below
 __declspec(naked) void __fastcall ListFreeNode(WaveList*, void*, WaveNode*) EI_ORIGINAL(0x006BD560)
 
 // Miles.
@@ -1276,14 +1273,14 @@ void Unlink(WaveList& list, WaveNode* node) {
 }
 void PushFront(WaveList& list, const WaveRecord* record) {
     WaveNode* node = ListNewNode(&list, nullptr, nullptr, list.head);
-    RecordCopy(&node->data, nullptr, record);
+    node->data.Assign(record);
     if (list.head) list.head->prev = node;
     else list.tail = node;
     list.head = node;
 }
 void PushBack(WaveList& list, const WaveRecord* record) {
     WaveNode* node = ListNewNode(&list, nullptr, list.tail, nullptr);
-    RecordCopy(&node->data, nullptr, record);
+    node->data.Assign(record);
     if (list.tail) list.tail->next = node;
     else list.head = node;
     list.tail = node;

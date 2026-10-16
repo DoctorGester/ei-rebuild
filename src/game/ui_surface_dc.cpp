@@ -4,6 +4,7 @@
 // (dx_surface.cpp, a DIB section) is drawn through a memory DC on it instead of DirectDraw's GetDC:
 // the GDI drawing lands in the same memory without DirectDraw (in the switch-over the holder has no
 // DirectDraw surface at all). See docs/notes/renderer.md ("Interface windows", section 6).
+#include "app.h"
 #include "dx_surface.h"
 #include "game_strings.h"
 
@@ -49,7 +50,7 @@ void* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
         dc = CreateCompatibleDC(nullptr);
         if (dc) g_memoryDcs[dc] = gameapi::SelectObject(dc, bitmap);
         holder->result = dc ? 0 : -1;
-        if (!dc && !FatalDirectX(-1, game::Text(0x00793290))) return nullptr;   // "Can't get surface's DC"
+        if (!dc && !app::FatalErrorCode(-1, game::Text(0x00793290))) return nullptr;   // "Can't get surface's DC"
         return CdcFromHandle(dc);
     }
     long hr;
@@ -57,7 +58,7 @@ void* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
         hr = device::Surface(holder)->GetDC(&dc);
         holder->result = hr;
     } while (hr == kWasStillDrawing);
-    if (hr != 0 && !FatalDirectX(hr, game::Text(0x00793290))) return nullptr;
+    if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x00793290))) return nullptr;
     return CdcFromHandle(dc);
 }
 EI_REPLACE(0x005FDC00, UiSurfaceGetDC);
@@ -89,7 +90,7 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
         } else {
             long hr = device::Surface(holder)->ReleaseDC(dc);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, game::Text(0x007932AC));   // "Can't release surface's DC"
+            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x007932AC));   // "Can't release surface's DC"
         }
     }
     surface->dc_ = nullptr;

@@ -17,8 +17,8 @@ namespace {
 // ones destroyed).
 __declspec(naked) void __fastcall FloatsFillInsert(stlp::vector<float>*, void*, float* /*position*/, unsigned /*count*/,
                                                    const float* /*value*/) EI_ORIGINAL(0x006ADC10)
-void __fastcall QuestDestroy(QuestRecord* record) { QuestRecordDestroyOriginal(record); }
-void __fastcall BriefingDestroy(QuestBriefingRecord* record) { BriefingRecordDestroyOriginal(record); }
+void __fastcall QuestDestroy(QuestRecord* record) { static_cast<QuestRecord*>(record)->Destruct(); }
+void __fastcall BriefingDestroy(QuestBriefingRecord* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
 __declspec(naked) void __fastcall QuestsResize(stlp::vector<QuestRecord>*, void*, unsigned /*count*/) EI_ORIGINAL(0x006B2100)
 __declspec(naked) void __fastcall BriefingsResize(stlp::vector<QuestBriefingRecord>*, void*, unsigned /*count*/)
     EI_ORIGINAL(0x006B2240)

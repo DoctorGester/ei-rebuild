@@ -59,7 +59,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
         int y = (i / 4) * 100;
         ItemCell cell{items[i], static_cast<float>(x) + GameFloat(0x0073BF48), static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
-        ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(grid->owner_), nullptr, pass, &cell);
+        reinterpret_cast<CItemScreen*>(grid->owner_)->DrawItem(pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
             text.Format(game::Text(0x0078EEEC), pieces);

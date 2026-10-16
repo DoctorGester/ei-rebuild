@@ -40,7 +40,6 @@ constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
-__declspec(naked) void __fastcall GameBufferAssign(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DAA80)
 
 // STLport containers (library): the servers list (004436C0 end, 004437A0 insert of a counted
 // pointer, 004436D0 erase), the waiting addresses (0041FCD0 end, 00421AF0 insert, 004437D0
@@ -61,20 +60,10 @@ __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*
 __declspec(naked) QueryList* __fastcall QueriesAssign(QueryList*, void*, const QueryList* /*from*/) EI_ORIGINAL(0x00443BF0)
 __declspec(naked) Query* __fastcall QueriesErase(QueryList*, void*, Query* /*first*/, Query* /*last*/) EI_ORIGINAL(0x004442B0)
 __declspec(naked) void __fastcall QueriesResize(QueryList*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
-// The query's own functions, through their addresses (rewritten below).
-__declspec(naked) Query* __fastcall QueryConstructDefaultAt(Query*) EI_ORIGINAL(0x00443770)
-__declspec(naked) Query* __fastcall QueryDeleteAt(Query*, void*, unsigned /*flags*/) EI_ORIGINAL(0x00443E90)
 __declspec(naked) RefPtr* __fastcall HolderInitAt(RefPtr*, CRefObject*) EI_ORIGINAL(0x00443E20)
 __declspec(naked) std::int32_t __fastcall BufferLengthAt(GameBuffer*) EI_ORIGINAL(0x00441640)
-__declspec(naked) Query* __fastcall QueriesFindAt(ClientQueries*, void*, const NetAddress*) EI_ORIGINAL(0x00441410)
-__declspec(naked) void __fastcall ClientSendPingAt(ClientBase*, void*, const NetAddress*) EI_ORIGINAL(0x00441660)
 __declspec(naked) void __fastcall ClientSendJoinAt(ClientBase*, void*, const NetAddress*, const GameBuffer*) EI_ORIGINAL(0x00441740)
-__declspec(naked) void __fastcall ServerSendInfoAt(ServerBase*, void*, const NetAddress*, std::uint32_t) EI_ORIGINAL(0x00442C60)
-__declspec(naked) void __fastcall FlushBitsAt(BufferCursor*) EI_ORIGINAL(0x00442570)
-// The socket driver's IsLocal and Broadcast and the session's receive step, through their
-// addresses (rewritten in net_socket_driver.cpp / net_session_tick.cpp).
-__declspec(naked) bool __fastcall DriverIsLocalAt(SocketDriver*, void*, const NetAddress*) EI_ORIGINAL(0x00440AF0)
-__declspec(naked) bool __fastcall DriverBroadcastAt(SocketDriver*, void*, NetAddress* /*out*/, unsigned /*index*/, int /*port*/) EI_ORIGINAL(0x00440A90)
+// The session's receive step, through its address (rewritten in net_session_tick.cpp).
 __declspec(naked) void __fastcall SessionTickAt(SessionBase*, void*, double) EI_ORIGINAL(0x00437370)
 
 
@@ -204,7 +193,7 @@ Query* Query::QueryDelete(unsigned flags) {
 EI_REPLACE_METHOD(0x00443E90, Query::QueryDelete);
 Query* Query::QueryCopy(const Query* from) {
     address = from->address;
-    GameBufferCopy(&reply, nullptr, &from->reply);
+    reply.ConstructCopy(&from->reply);
     return this;
 }
 EI_REPLACE_METHOD(0x00444270, Query::QueryCopy);
@@ -334,10 +323,10 @@ void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     ServerEntry* e = EntryIn(entry);
     e->address_ = *from;
     e->foreign_ = echo != magic_;
-    bool local = DriverIsLocalAt(&socket_, nullptr, from);
+    bool local = socket_.IsLocal(from);
     ClientQueries& v = queries_;
     Query* end = v.list.end();
-    Query* query = QueriesFindAt(&v, nullptr, from);
+    Query* query = v.QueriesFind(from);
     if (local) {
         e->state_ = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
         e->timeout_ = GameFloat(0x0073BF98);
@@ -402,22 +391,22 @@ EI_REPLACE_METHOD(0x004420E0, ClientBase::RemoveClientImpl);
 // Pings go to the game port (00783E30).
 void ClientBase::Refresh() {
     NetAddress address{};
-    for (unsigned i = 0; DriverBroadcastAt(&socket_, nullptr, &address, i, *reinterpret_cast<const int*>(0x00783E30)); ++i)
-        ClientSendPingAt(this, nullptr, &address);
+    for (unsigned i = 0; socket_.Broadcast(&address, i, *reinterpret_cast<const int*>(0x00783E30)); ++i)
+        SendPing(&address);
     Node* sentinel = Sentinel(waiting_);
     if (sentinel->next != sentinel) {
         Node* first = sentinel->next;
         NetAddress next = ValueOf<NetAddress>(first);
         Node* out;
         WaitingErase(&waiting_, nullptr, &out, first);
-        ClientSendPingAt(this, nullptr, &next);
+        SendPing(&next);
         return;
     }
     std::uint32_t& index = nextQuery_;
     ++index;
     QueryList& v = queries_.list;
     if (index >= static_cast<std::uint32_t>(v.size())) index = 0;
-    if (index < static_cast<std::uint32_t>(v.size())) ClientSendPingAt(this, nullptr, &v[index].address);
+    if (index < static_cast<std::uint32_t>(v.size())) SendPing(&v[index].address);
     if (alwaysAsk_.ip != 0) {
         Node* pos;
         ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
@@ -454,7 +443,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
                                 static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(r.high)));
             CreateEntry(&entry);
             EntryIn(entry)->Read(&c);
-            FlushBitsAt(&c);
+            c.FlushBits();
             if (c.sink) {
                 c.sink->cur = c.p;
                 c.sink->Commit();
@@ -485,7 +474,7 @@ void ClientBase::Ask(const NetAddress* address) {
             ++v.Finish();
         } else {
             Query temporary;
-            QueryConstructDefaultAt(&temporary);
+            QueryConstruct(&temporary);
             QueriesInsertOverflow(&v, nullptr, v.end(), &temporary, 1);
             GrowingBufferDestruct(&temporary.reply);
         }
@@ -529,7 +518,7 @@ void ClientBase::Forget(const NetAddress* address) {
         // erase(q), inlined: the tail copied down, the last query destroyed.
         if (q + 1 != v.end()) QueriesCopy(q + 1, v.end(), q, address, 0);
         --v.Finish();
-        QueryDeleteAt(v.end(), nullptr, 0);
+        v.end()->QueryDelete(0);
     }
     Node* node = Sentinel(servers_)->next;
     while (node != Sentinel(servers_)) {
@@ -576,7 +565,7 @@ void ClientBase::Join(const NetAddress* address, const GameBuffer* data) {
     SetBits(retryTimer_, 0);
     SetBits(retryInterval_, kFirstRetry);
     refusal_ = 0;
-    GameBufferAssign(&joinData_, nullptr, data);
+    joinData_.AssignFrom(data);
 }
 EI_REPLACE_METHOD(0x00442980, ClientBase::Join);
 
@@ -676,7 +665,7 @@ void ServerBase::OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
     std::memcpy(&echo, cursor->p, 4);
     cursor->p += 4;
-    ServerSendInfoAt(this, nullptr, from, echo);
+    SendInfo(from, echo);
 }
 
 // 00443050 (slot 16): admits everybody.
@@ -829,7 +818,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
                 GameBuffer& r = q->reply;
                 r.cur = r.begin;
                 r.high = r.begin + length;
-                if (r.high > r.end) GameBufferGrowOriginal(&r, nullptr, length);
+                if (r.high > r.end) static_cast<GameBuffer*>(&r)->Grow(length);
             } else {
                 length = static_cast<std::uint32_t>(BufferLengthAt(&q->reply));
                 archive->Field(2, &length, 4);

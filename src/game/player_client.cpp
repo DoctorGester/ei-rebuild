@@ -1,6 +1,8 @@
 // CPlayerClient: the client's per-tick link traffic (sending the queued requests, receiving and
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
+#include "ai_map.h"
+#include "map_object_shadow.h"
 #include "player_client.h"
 
 #include "camera.h"
@@ -10,7 +12,9 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "party.h"
+#include "player_messages.h"
 #include "sound.h"
+#include "ui.h"
 #include "unit.h"
 #include "world.h"
 #include "base_manager.h"
@@ -99,14 +103,13 @@ __declspec(naked) int __fastcall ClientLoadZone(void* /*world*/, void*, CMemoryS
 __declspec(naked) int __fastcall ClientWorldBlock3(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567A60)
 __declspec(naked) int __fastcall ClientWorldBlock5(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567950)
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
-__declspec(naked) void __fastcall QuestLogRefresh(void* /*log*/, void*, void* /*list*/, int, int) EI_ORIGINAL(0x005F7F30)
 void* EmptyListVtable() { return reinterpret_cast<void*>(0x0073BE80); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
 
 // The quest log refreshed with an empty CPtrList built and destroyed on the stack.
 void RefreshQuestLog() {
     mfc::CTypedPtrList<void> none{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
-    QuestLogRefresh(QuestLog(), nullptr, &none, 0, 0);
+    static_cast<CInterface3D*>(QuestLog())->OnItemsPicked(&none, 0, 0);
     // The list's inlined destructor (RemoveAll; nothing was added).
     none.head = none.tail = nullptr;
     none.count = 0;
@@ -114,9 +117,7 @@ void RefreshQuestLog() {
     mfc::PlexFreeDataChain(none.blocks);
 }
 
-// 00665550 (plain RET): the player runs its connection's slot 18 and empties its list at +0xE0.
 // 0056CE40 (RET 0xC): the client world shows a number over a unit (id, value, kind).
-__declspec(naked) void __fastcall PlayerQuestItemsOriginal(void* /*player*/) EI_ORIGINAL(0x00665550)
 constexpr int kNumberExperience = 8;
 
 // The experience shown for `amount`: amount * 0073E128 ^ (+0x33E - 0073E124), stored to a float,
@@ -297,13 +298,13 @@ int CPlayerClient::OnWorldBlock5() {
 int CPlayerClient::OnItemRemoved() {
     int id;
     in_.Read(&id, 4);
-    PlayerRemoveItemOriginal(Owner(), nullptr, id);
+    static_cast<CPlayer*>(Owner())->TakeItem(id);
     RefreshQuestLog();
     return 1;
 }
 
 int CPlayerClient::OnQuestItemsChanged() {
-    PlayerQuestItemsOriginal(Owner());
+    Owner()->TakeAllItems();
     RefreshQuestLog();
     return 1;
 }
@@ -362,8 +363,6 @@ constexpr std::uint8_t kRequestRecording = 2;
 bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
 const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF8); }   // "party received on client"
 
-// 005652E0 (plain RET): the client world gives its objects the party's variables.
-__declspec(naked) void __fastcall ClientApplyVariables(void* /*world*/) EI_ORIGINAL(0x005652E0)
 // 0052EA40 (RET 8): a unit's motion speeds (float bits; only this handler calls it).
 __declspec(naked) void __fastcall UnitSetMotionSpeeds(void* /*unit*/, void*, std::uint32_t, std::uint32_t)
     EI_ORIGINAL(0x0052EA40)
@@ -402,7 +401,7 @@ int CPlayerClient::OnItemsReceived() {
     }
     if (result != 0) {
         PlayerGiveItemsOriginal(Owner(), nullptr, &items, flag);
-        QuestLogRefresh(QuestLog(), nullptr, &items, money - before, flag);
+        static_cast<CInterface3D*>(QuestLog())->OnItemsPicked(&items, money - before, flag);
     }
     items.RemoveAll();   // the list's inlined destructor
     return result;
@@ -435,7 +434,7 @@ int CPlayerClient::OnParty() {
             std::memcpy(variables->Functors(), saved.Functors(), 3);
             FloatTableCopyFromOriginal(variables, nullptr, &saved);
         }
-        ClientApplyVariables(WorldClient());
+        WorldClient()->ApplyObjectVariables();
         void* log = OstreamPutString(GameCout(), nullptr, TextPartyReceived());
         log = OstreamPutChar(log, nullptr, '\n');
         OstreamManipulate(log, nullptr, FlushManipulator());
@@ -478,7 +477,7 @@ int CPlayerClient::OnPathMarker() {
         PathWriteOriginal(path, nullptr, writing);
         writing->EndField();
         DeltaField* reading = field->BeginReadB(0, &in_);
-        PathReadOriginal(path, nullptr, reading);
+        static_cast<AIPath*>(path)->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
             UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);
@@ -583,8 +582,6 @@ __declspec(naked) void __fastcall NewObjectCheckOriginal(void* /*client*/) EI_OR
 // constructed at `out`; returns `out`.
 __declspec(naked) mfc::CString* __fastcall ClientVariableNameOriginal(void* /*world*/, void*, void* /*out*/,
                                                                      const char* /*name*/) EI_ORIGINAL(0x005654F0)
-// 00538DB0 (plain RET): a unit's client controller, for client sessions of kind 3.
-__declspec(naked) void __fastcall ControllerClientSessionOriginal(void* /*controller*/) EI_ORIGINAL(0x00538DB0)
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
     return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
@@ -689,10 +686,10 @@ int CPlayerClient::OnNewObject() {
         created->flags_ |= kFlagNoParts;
     }
     CEngineObject* attached = figure->attached;
-    FigureLoadTexturesOriginal(attached);
+    static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     // (The client world's 00566310 and 00566320 around the texture swap are empty.)
     Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
-    Object3DRestartAnimationOriginal(figure);
+    figure->RestartPose();
     const char* to = textureTo;
     if (created->type_ == kTypeHumanoid) {
         gamecrt::sprintf(textureFrom, TextSkinFrom(), created->id_);
@@ -700,7 +697,7 @@ int CPlayerClient::OnNewObject() {
     } else if (Same(textureTo, TextNone())) {
         to = nullptr;
     }
-    FigureSwapTextureOriginal(attached, nullptr, textureFrom, to);
+    static_cast<CObject3DClientSpecific*>(attached)->SetSkins(textureFrom, to);
     if (isUnit) ObjectSlots(created)->SetScriptName(scriptName);
 
     // The player keeps it, counted.
@@ -712,7 +709,7 @@ int CPlayerClient::OnNewObject() {
         ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(created)->GetPrototype())->name);
     else
         ObjectSlots(created)->TakePrototype(model);
-    ObjectPrepareOriginal(created);
+    static_cast<CMapObject*>(created)->WriteFullState();
     if (MapObjectReadStateOriginal(created, nullptr, 0, &in_) == 0) return 0;
     WorldClient()->AddObject(created);
     if (object->name2[0] != 0) {
@@ -721,7 +718,7 @@ int CPlayerClient::OnNewObject() {
         object->SetVisibilityLevel(NamedTableGet(&player->Party()->variables_, nullptr, *variable.Get()));
     }
     if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)
-        ControllerClientSessionOriginal(static_cast<CUnit*>(created)->controller);
+        static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(created)->controller)->LoadFaceTexture();
     return 1;
 }
 

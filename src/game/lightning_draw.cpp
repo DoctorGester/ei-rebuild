@@ -26,8 +26,6 @@ namespace {
 void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
 // 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
-// 00467590 (below), through its address.
-__declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*/, const Vector3*, int, float) EI_ORIGINAL(0x00467590)
 // The glow's static arrays: CArray constructor 00468D60, its exit-time destructor 00467A10, the
 // points' exit-time free 004679F0; sprite record constructor 00468F90 [pointer, count]; aligned
 // allocation of 16-byte points 00468F70; atexit 006E727B.
@@ -162,8 +160,8 @@ int CLightning::DrawImpl(void* device) {
         size = !(low >= size) ? size : low;
         size = !(size >= high) ? size : high;
     }
-    if (power_ >= zero) DrawGlowAt(this, nullptr, device, &end, phase, size);
-    if (!(power_ < zero) && !(power_ > zero)) DrawGlowAt(this, nullptr, device, &start, phase, size);   // zero (or NaN)
+    if (power_ >= zero) DrawGlow(device, &end, phase, size);
+    if (!(power_ < zero) && !(power_ > zero)) DrawGlow(device, &start, phase, size);   // zero (or NaN)
     return 1;
 }
 EI_REPLACE_METHOD(0x00467AD0, CLightning::DrawImpl);

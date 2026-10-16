@@ -11,6 +11,7 @@
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
+#include "unit_ai.h"
 #include "world_data.h"
 #include "unit.h"
 #include "world.h"
@@ -39,17 +40,15 @@ namespace {
 // 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
 // played now, 00546C40 play steps, 005511A0 the current animation as steps, 00550F30 the idle
 // animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
-__declspec(naked) bool __fastcall CanPlayFor(CUnitServer*, void*, int /*ticks*/) EI_ORIGINAL(0x00549D00)
 // 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
 // Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
 // the copy +0x148), 00556950 append, 00544E40 total duration (-1 if a step is open-ended), 00558920
 // GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00556850)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) int __fastcall StepsDuration(const AnimationSteps*) EI_ORIGINAL(0x00544E40)
 __declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
-void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
-void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, (int)a2, a3); }
+void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { static_cast<AnimationSteps*>((void*)a0)->AddEmote((int)a2); }
+void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { static_cast<AnimationSteps*>((void*)a0)->AddStep((int)a2, a3); }
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
@@ -57,7 +56,6 @@ void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3
 // CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
 // 005BB900 ContinuePath, 005B7EF0 lifts (1) / restores (0) the units around a point (not
 // rewritten).
-__declspec(naked) bool __fastcall MapCanStand(void*, void*, CUnit*, int, int, int*) EI_ORIGINAL(0x005B81B0)
 __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*path*/) EI_ORIGINAL(0x005BB900)
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
@@ -162,13 +160,13 @@ void SetObstacle(CUnitServer* c, int obstacle) {
 
 // The motion order's next animation once the current motion is over.
 void QueueNextAnimation(CUnitServer* c) {
-    AnimationSteps* next = CtlNextAnimation(c);
+    AnimationSteps* next = c->NextAnimation();
     StepsAppend(Queue(c), nullptr, next);
     QueueStart(c) = next->extra;
     StepsCopyB(Queue(c), nullptr, next);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
-    CtlPopFinishedSteps(c);
-    CtlShowCurrentStep(c);
+    c->PopFinishedSteps();
+    c->ShowCurrentStep();
     c->movingAnimation = 1;
 }
 
@@ -178,11 +176,11 @@ void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
     StepsConstruct(&steps);
     if (c->moveMode.mode != 0 || c->state != 0) {
-        CtlBuildDeathAnimation(c, nullptr, &steps, c->hitDirection, 0, 0);
-        if (CanPlayFor(c, nullptr, StepsDuration(&steps))) {
+        c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
+        if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
             StepsCopyB(&c->savedQueue, nullptr, Queue(c));
-            CtlPlaySteps(c, nullptr, &steps);
+            c->PlaySteps(&steps);
             c->animationHeld = 1;
         }
     }
@@ -196,7 +194,7 @@ void HitWhileMoving(CUnitServer* c) {
     if (Queue(c)->count > 0) {
         std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->count) & 0xFFFFFF00u) |
                             Queue(c)->steps[0].animation;
-        const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitAnimationEntry(UnitOf(c), nullptr, key));
+        const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitOf(c)->AnimationEntry(key));
         if (entry && (entry->key & 0x3C0000) == 0x200000) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
             if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;
@@ -207,7 +205,7 @@ void HitWhileMoving(CUnitServer* c) {
     AnimationSteps fall;
     StepsConstruct(&fall);
     CtlBuildMoveSteps(c, nullptr, &current, 0);
-    CtlBuildDeathAnimation(c, nullptr, &fall, c->hitDirection, 0, 1);
+    c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
         StepsGetAt(&current, nullptr, &step, i);
@@ -226,8 +224,8 @@ void HitWhileMoving(CUnitServer* c) {
     StepsCopyB(Queue(c), nullptr, &fall);
     StepsCopyB(Queue(c), nullptr, &fall);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
-    CtlPopFinishedSteps(c);
-    CtlShowCurrentStep(c);
+    c->PopFinishedSteps();
+    c->ShowCurrentStep();
     StepsDestroy(&fall);
     StepsDestroy(&current);
 }
@@ -239,7 +237,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     char* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        BrainLeaderOrFollowedOriginal(&ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
+        ServerControllerOf(blocker)->brain.LeaderOrFollowed() == self && CurrentFrame() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
@@ -291,9 +289,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitPathSpeeds(UnitOf(c));
-        CtlSetStanding(c, nullptr, 0);
-        CtlSetState(c, nullptr, 6);
+        if (MotionPathOf(c)->Start(&UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        c->SetStanding(0);
+        c->SetState(6);
         c->stoodBlocked = wasFlag;
         return;
     }
@@ -303,16 +301,16 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitPathSpeeds(UnitOf(c));
-        CtlSetStanding(c, nullptr, 0);
-        CtlSetState(c, nullptr, 6);
+        if (MotionPathOf(c)->Start(&UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        c->SetStanding(0);
+        c->SetState(6);
         c->stoodBlocked = 0;
         return;
     }
-    UnitPathSpeeds(UnitOf(c));
+    UnitOf(c)->RefreshMotion();
     int state = c->state;
     if (state >= 0 && (state <= 1 || state == 2)) return;
-    CtlPlaySteps(c, nullptr, CtlIdleAnimation(c));
+    c->PlaySteps(c->IdleAnimation());
 }
 
 // Replans the path to the order's goal (+0x9C; its z, +0xA4, holds the range PathTo asked for), with
@@ -340,15 +338,15 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     if (found) {
-        UnitPathSpeeds(UnitOf(c));
+        UnitOf(c)->RefreshMotion();
         int state = c->state;
         if (state >= 0 && (state <= 1 || state == 2)) return;
-        CtlPlaySteps(c, nullptr, CtlIdleAnimation(c));
+        c->PlaySteps(c->IdleAnimation());
         return;
     }
     std::uint8_t wasFlag = FailedByte(c) == 1;
-    CtlStandStill(c);
-    CtlSetState(c, nullptr, 6);
+    c->StandStill();
+    c->SetState(6);
     c->stoodBlocked = wasFlag;
 }
 
@@ -388,7 +386,7 @@ void Exhaustion(CUnitServer* c) {
             UnitMarkChanged(UnitOf(c), nullptr, 0);
         }
     }
-    CtlUpdateSneak(c);
+    c->UpdateSneak();
 }
 
 } // namespace
@@ -432,9 +430,9 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     } else {
         CSectorMap* sectors = world->Sectors();
         SectorMapRemove(sectors, nullptr, UnitOf(c));
-        canStand = MapCanStand(world->AIMap(), nullptr, UnitOf(c), cellX, cellY, &blocked);
+        canStand = world->AIMap()->CanStandAtFromHere(UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = BlockingUnitAtOriginal(world->AIMap(), nullptr, UnitOf(c), &position);
+            CUnit* blocker = world->AIMap()->BlockingUnitAt(UnitOf(c), &position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -448,7 +446,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && HasKind3OccluderAtOriginal(world->AIMap(), nullptr, &position) &&
+    if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
         OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;

@@ -17,6 +17,8 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "stl_sorts.h"
+#include "ui.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -63,8 +65,6 @@ __declspec(naked) void** __fastcall ChunksInsert(void*, void*, void**, void*, co
 // sort (RET 4: the comparator).
 __declspec(naked) void __fastcall ChunksIntrosort(FileChunkMessage** /*first*/, FileChunkMessage** /*last*/, FileChunkMessage** /*tag*/,
                                                   int /*depthLimit*/, int /*compare*/) EI_ORIGINAL(0x0042A020)
-__declspec(naked) void __fastcall ChunksInsertionSort(FileChunkMessage** /*first*/, FileChunkMessage** /*last*/, int /*compare*/)
-    EI_ORIGINAL(0x0042A150)
 // The game flow's map file writer (patched by Rebirth: through its address).
 __declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const char* /*name*/, GameBuffer* /*buffer*/)
     EI_ORIGINAL(0x005813A0)
@@ -77,10 +77,6 @@ __declspec(naked) void __fastcall TradeRecordDestroy(void* /*record*/) EI_ORIGIN
 // Parties (00661050 class, outside this range).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 // The interface's text table (0x7C7D50) and the game flow (0x7AFE20), outside this range.
-__declspec(naked) void __fastcall UiPlayersChanged(void* /*table*/, void*, int /*added*/) EI_ORIGINAL(0x005F82D0)
-__declspec(naked) void __fastcall UiChatLine(void* /*table*/, void*, const char* /*text*/, std::uint32_t /*number*/) EI_ORIGINAL(0x005F82F0)
-__declspec(naked) void __fastcall UiTradeDone(void* /*table*/, void*, void* /*partyB*/, void* /*partyA*/, void* /*partyC*/) EI_ORIGINAL(0x005F8310)
-__declspec(naked) void __fastcall FlowZoneWithdrawn(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x00580040)
 inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
@@ -291,17 +287,17 @@ void __fastcall ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&s
 // The players on +0x25D8, with the interface's player list refreshed.
 void __fastcall ClientOnPlayer(ClientSession* self, Message* message) {   // 0041E490
     AppendRaw(&self->players_, PlayersEnd, PlayersInsert, message);
-    UiPlayersChanged(TextTable(), nullptr, 1);
+    static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(1);
 }
-void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { UiPlayersChanged(TextTable(), nullptr, 0); }   // 0041E510
+void __fastcall ClientOnPlayerChanged(ClientSession*, Message*) { static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(0); }   // 0041E510
 void __fastcall ClientOnPlayerGone(ClientSession* self, Message* message) {   // 0041E520
     RemoveCounted(&self->players_, PlayersErase, message);
-    UiPlayersChanged(TextTable(), nullptr, 1);
+    static_cast<CInterface3D*>(TextTable())->OnPlayersChanged(1);
 }
 // The chat lines on +0x25DC, each shown with its number.
 void __fastcall ClientOnLine(ClientSession* self, LineMessage* message) {   // 0041E5D0
     AppendCounted(&self->lines_, LinesEnd, LinesInsert, message);
-    UiChatLine(TextTable(), nullptr, message->text_.start, message->number_);
+    static_cast<CInterface3D*>(TextTable())->OnChatLine(message->text_.start, message->number_);
 }
 void __fastcall ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(&self->lines_, LinesErase, message); }   // 0041E690
 // The host message kept at +0x25EC.
@@ -310,11 +306,11 @@ void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
     AppendCounted(&self->zones_, ZonesEnd, ZonesInsert, message);
-    FlowMarkBriefingOriginal(Flow(), nullptr, message->text_.start);
+    static_cast<GameFlow*>(Flow())->MarkBriefing(message->text_.start);
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
     RemoveCounted(&self->zones_, ZonesErase, message);
-    FlowZoneWithdrawn(Flow(), nullptr, message->text_.start);
+    static_cast<GameFlow*>(Flow())->ForgetBriefing(message->text_.start);
 }
 // The current map at +0x25F4; without a server of our own the flow loads it.
 void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 0041E900
@@ -322,7 +318,7 @@ void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 004
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(Flow(), nullptr, message->text_.start);
-    FlowRegisterQuestsOriginal(Flow(), nullptr, message->text_.start);
+    static_cast<GameFlow*>(Flow())->RegisterQuests(message->text_.start);
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.
@@ -389,7 +385,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
             int depth = 0;
             for (int n = static_cast<int>(chunks.size()); n != 1; n >>= 1) ++depth;
             ChunksIntrosort(chunks.begin(), chunks.end(), nullptr, depth * 2, 0);
-            ChunksInsertionSort(chunks.begin(), chunks.end(), 0);
+            stl_sorts::ChunkFinalSort(chunks.begin(), chunks.end(), 0);
         }
         for (FileChunkMessage** chunk = chunks.begin(); chunk != chunks.end(); ++chunk) {
             const std::uint8_t* data = (*chunk)->data_;
@@ -456,7 +452,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
     TradeRecordNode* sentinel = self->tradeRecords_;
     for (TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next) {
         if (node->revision == b && node->acceptedRevision == a) {
-            UiTradeDone(TextTable(), nullptr, &node->parties[1], &node->parties[0], &node->parties[2]);
+            static_cast<CInterface3D*>(TextTable())->OnExchangeDone(&node->parties[1], &node->parties[0], &node->parties[2]);
             break;
         }
     }

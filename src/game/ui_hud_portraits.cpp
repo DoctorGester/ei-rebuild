@@ -142,7 +142,6 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 } // namespace
 
-__declspec(naked) void CHudPortraits::ShowFaceAt(int, int) EI_ORIGINAL(0x00640670)
 __declspec(naked) CEngineObject* CHudPortraits::ReplaceSceneObject(CEngineObject*, const char*) EI_ORIGINAL(0x005FF460)
 
 void CHudPortraits::Update() {
@@ -211,7 +210,7 @@ void CHudPortraits::Update() {
         }
         if (state != slot.faceState_) {
             slot.faceState_ = state;
-            ShowFaceAt(i, state);
+            ShowFace(i, state);
         }
 
         // The face model follows the unit's build (its scale's y): thin, medium or fat.

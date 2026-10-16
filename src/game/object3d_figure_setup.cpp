@@ -99,9 +99,9 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
     if (animation) {
         AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale.x),
                                        std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z));
-        AnimationStateSetModelOriginal(animation, nullptr, model);
+        animation->SetModel(model);
         animation->Play(nullptr);
-        FigureApplyPendingOriginal(animation);
+        animation->UpdatePose();
         int count = animation->bones.count;
         SetBoxCount(this, count);
         StringArraySetSize(&partNameArrayVtable, nullptr, animation->bones.count, -1);
@@ -139,7 +139,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) box->flags |= kBoxCrown;
             if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) box->flags |= kBoxEmpty;
         }
-        AnimationStateReleasePartsOriginal(animation);
+        animation->ReleaseBones();
     }
     if (type_ == kTypeHero) {
         high.y = kHeroHalfWidth;
@@ -334,10 +334,6 @@ void FreePieceNames(stlp::vector<stlp::string>& pieces) {
     pieces.FreeStorage();
 }
 
-// 00517110 (LoadParts, above), through its address so its wrapper runs.
-__declspec(naked) int __fastcall LoadPartsAt(CObject3D*, void*, const char*, const void*, std::uint32_t)
-    EI_ORIGINAL(0x00517110)
-
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
     return static_cast<CWorld*>(object->ManagerContext())->FigureLoader();
 }
@@ -348,7 +344,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
     if (animation) {
         AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale.x),
                                        std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z));
-        AnimationStateSetModelOriginal(animation, nullptr, model);
+        animation->SetModel(model);
     }
     auto* names = static_cast<const PartNameArray*>(partList);
     if (names->size == 0 && animation) {
@@ -370,11 +366,11 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         }
         FreePieceNames(pieces);
     }
-    LoadPartsAt(this, nullptr, model, partList, arg);
+    LoadParts(model, partList, arg);
     int classId = GetClassId();
     if ((classId == kClassUnit54 || GetClassId() == kClassUnit50) && animation) {
         animation->Play(nullptr);
-        FigureApplyPendingOriginal(animation);
+        animation->UpdatePose();
     }
     ComputeBounds();
     if (arg == 0 && !figure) flags_ &= ~kFlagFigureLoaded;

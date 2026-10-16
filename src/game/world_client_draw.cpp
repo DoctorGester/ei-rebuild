@@ -7,6 +7,7 @@
 // stacks (ScenePipeline(), 007AF068), exactly as the original: the same calls in the same order.
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
+#include "ground_print.h"
 #include "world.h"
 
 #include "camera.h"
@@ -38,6 +39,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "ui.h"
+#include "world_effect.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -64,8 +66,8 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
 
 // 004E7840 / 004E7A40: the renderer flushes its two batched vertex buffers.
 void Flush(CTextureDevice* renderer) {
-    DeviceFlushBatchAOriginal(renderer);
-    DeviceFlushBatchBOriginal(renderer);
+    static_cast<CTextureDevice*>(renderer)->FlushBatch();
+    static_cast<CTextureDevice*>(renderer)->FlushBatch2();
 }
 
 // The pipeline's matrix stacks: 1 and 2 pushed by 004D9B80 (PushSceneMatrixOriginal), 5 the world
@@ -95,18 +97,14 @@ void PopMatrix(MatrixStack& stack) {
 }
 
 // Render's callees.
-__declspec(naked) int __fastcall UpdateLightingAt(CWorldClient*) EI_ORIGINAL(0x00566360)
 __declspec(naked) void __fastcall SkyDraw(void*, void*, void*, const void*) EI_ORIGINAL(0x004D96E0)
 __declspec(naked) void __fastcall CameraFrame(CCamera*, void*, void*) EI_ORIGINAL(0x0040E810)
-__declspec(naked) void __fastcall TerrainSetView(Terrain*, void*, float, float, float) EI_ORIGINAL(0x006CA260)
 __declspec(naked) void __fastcall TerrainDrawFirst(Terrain*, void*, void*) EI_ORIGINAL(0x006C6230)
 __declspec(naked) void __fastcall TerrainDrawSecond(Terrain*, void*, void*) EI_ORIGINAL(0x006C6330)
 __declspec(naked) int __fastcall DrawPassAt(CWorldClient*) EI_ORIGINAL(0x0056AFE0)
 __declspec(naked) void __fastcall EffectsDraw(void*, void*, void*) EI_ORIGINAL(0x004E2700)
-__declspec(naked) void __fastcall ParticlesDraw(void*, void*, void*) EI_ORIGINAL(0x00498940)
 __declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL(0x00468940)
 __declspec(naked) void __fastcall RibbonsDraw(void*, void*, void*) EI_ORIGINAL(0x004E5680)
-__declspec(naked) void __fastcall ClientDrawOverlays(CWorldClient*) EI_ORIGINAL(0x00569D60)
 __declspec(naked) void __fastcall HitPointsDraw(void*, void*, void*) EI_ORIGINAL(0x005E18E0)
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
@@ -134,7 +132,6 @@ float LandscapeDrawRadius() {
 // DrawPass's callees.
 __declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
 __declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
-__declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
 __declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const Matrix4*, float, std::uint32_t, int, int)
     EI_ORIGINAL(0x0056A990)
 __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
@@ -146,9 +143,6 @@ __declspec(naked) void __fastcall IntroSortByModelUseAt(CEngineObject**, CEngine
     EI_ORIGINAL(0x00573D50)
 __declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngineObject**, void*) EI_ORIGINAL(0x00573F10)
 __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGINAL(0x0056A370)
-__declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
-__declspec(naked) void __fastcall MarkerDraw(void*, void*, const Vector3*, float, const Vector3*, const Vector3*)
-    EI_ORIGINAL(0x00503A40)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
 __declspec(naked) void __fastcall VectorErase(stlp::vector<CEngineObject*>*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
@@ -247,7 +241,7 @@ void EmptyDeferred(bool fastFree) {
 template <typename T>
 void DrawLightEffects(stlp::list<T>& list) {
     typename stlp::list<T>::Node* head = list.head;
-    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) LightEffectDraw(&node->data);
+    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) static_cast<GroundPrint*>(&node->data)->Draw();
 }
 template <typename T>
 bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
@@ -273,7 +267,7 @@ int CWorldClient::Render() {
     render::BeginWorld();
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
-    UpdateLightingAt(this);
+    UpdateLighting();
     Flush(renderer);
     Matrix4 view;
     DeviceViewMatrix(device, nullptr, view.m, camera::TheCamera());
@@ -305,7 +299,7 @@ int CWorldClient::Render() {
         char frame[12];
         CameraFrame(camera_, nullptr, frame);
         CCamera* camera = camera_;
-        TerrainSetView(terrain_, nullptr, camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
+        terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         ApplyStateBlock(renderer, StateBlockTerrain());
         TerrainDrawFirst(terrain_, nullptr, SceneContext());
         Flush(renderer);
@@ -316,7 +310,7 @@ int CWorldClient::Render() {
         char frame[12];
         CameraFrame(camera_, nullptr, frame);
         CCamera* camera = camera_;
-        TerrainSetView(terrain_, nullptr, camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
+        terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         Flush(renderer);
         SetRenderState(renderer, 15, 0);
         ApplyStateBlock(renderer, StateBlockScene());
@@ -338,7 +332,7 @@ int CWorldClient::Render() {
         SetRenderState(RenderDeviceObject(), 20, 6);
         SetRenderState(renderer, 14, 0);
         CParticleManager* particles = ClientParticleManager();
-        ParticlesDraw(particles, nullptr, SceneContext());
+        static_cast<CParticleManager*>(particles)->DrawAll(SceneContext());
         Flush(renderer);
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
@@ -352,7 +346,7 @@ int CWorldClient::Render() {
     }
     ApplyStateBlock(renderer, StateBlockScene());
     NetworkTimers();
-    ClientDrawOverlays(this);
+    DrawLineLists();
     PopMatrix(device->stacks_[kStackWorld]);
     PopMatrix(device->stacks_[kStackScene2]);
     PopMatrix(device->stacks_[kStackScene1]);
@@ -450,7 +444,7 @@ int CWorldClient::DrawPass() {
     for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
     const float* position = CameraPosition(camera_);
-    if (void* listener = owned1B0_) SoundListener(listener, nullptr, animTime);
+    if (void* listener = owned1B0_) static_cast<CEffectMoshka*>(listener)->Update(animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
     // (size - 0073B84C) and to 0, in 16-unit sectors.
@@ -601,7 +595,7 @@ int CWorldClient::DrawPass() {
     stlp::list<void*>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
-        DeviceSetTextureOriginal(SceneContext(), nullptr, 0, nullptr);
+        static_cast<CSceneRenderer*>(SceneContext())->SetTextureImpl(0, nullptr);
         CEngineObject* manager = manager40_;
         using Node = stlp::list<void*>::Node;
         Node* head = selected.head;
@@ -623,7 +617,7 @@ int CWorldClient::DrawPass() {
                     Vector3 axisY, axisX;
                     QuaternionAxisY(orientation, nullptr, &axisY);
                     QuaternionAxisX(orientation, nullptr, &axisX);
-                    MarkerDraw(SceneContext(), nullptr, &point, 0.5f, &axisX, &axisY);
+                    static_cast<CSceneRenderer*>(SceneContext())->DrawSelectionMarker(&point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;

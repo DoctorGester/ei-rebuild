@@ -1,5 +1,6 @@
 // The briefing / base screen's key handler (CBriefingScreen::OnKeyDown, input slot 9). See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "ui.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
@@ -41,7 +42,7 @@ std::uint32_t Bits(float value) {
 }
 
 int CompareNames(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
@@ -65,7 +66,7 @@ void OpenObjectives(CInterface3D* ui) {
         void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, ui) : nullptr;
         {
             BriefingPlayerName player;
-            ObjectivesSetupOriginal(window, nullptr, player, nullptr, 0, 1);
+            static_cast<CObjectivesWindow*>(window)->Setup(player, nullptr, 0, 1);
         }
         InterfacePushWindowOriginal(ui, nullptr, window, 1, 1);
         break;
@@ -85,20 +86,20 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
     switch (key) {
     case VK_BACK:
         if (IsNetworkClientOriginal()) {
-            ChatKeyBackspaceOriginal(interface_);
+            interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
         break;
     case VK_RETURN:
         if (IsNetworkClientOriginal()) {
-            ChatKeyEnterOriginal(interface_);
+            interface_->ChatKeyEnter();
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
             while (state_ == 3) BriefingNextPhraseOriginal(this, nullptr, 1);
         } else if (state_ == 4) {
             interface_->PlaySound(ClickSound(), 0);
-            BriefingTakeRewardsOriginal(this);
+            FinishDialogue();
         }
         inputHandled_ = true;
         return;
@@ -118,7 +119,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             while (state_ == 3) BriefingNextPhraseOriginal(this, nullptr, 1);
         } else if (state_ == 4) {
             interface_->PlaySound(ClickSound(), 0);
-            BriefingTakeRewardsOriginal(this);
+            FinishDialogue();
         } else if (state_ == 2) {
             BriefingStartDialogueOriginal(this, nullptr, 1, 0);
         } else if (state_ == 1) {
@@ -132,7 +133,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             BriefingNextPhraseOriginal(this, nullptr, 0);
         } else if (state_ == 4) {
             interface_->PlaySound(ClickSound(), 0);
-            BriefingTakeRewardsOriginal(this);
+            FinishDialogue();
         } else if (state_ == 2) {
             BriefingStartDialogueOriginal(this, nullptr, 1, 0);
         }

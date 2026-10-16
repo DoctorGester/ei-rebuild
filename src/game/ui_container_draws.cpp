@@ -14,6 +14,7 @@
 // switch-over (`present`) the old device's clears are left out: nothing the old path still draws
 // there reads its depth buffer (its interface and world meshes are off). The item models go through
 // 005ECA10 and the mesh draws, which hand over already.
+#include "item.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -135,12 +136,12 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
         ItemCell cell{static_cast<CItem*>(hero->weapons[i]), static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
-        ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
+        owner->DrawItem(pass, &cell);
     }
     for (int i = 0; i < static_cast<int>(hero->quickItemCount); ++i) {
         ItemCell cell{static_cast<CItem*>(hero->quickItems[i]), static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
                       mode_};
-        ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
+        owner->DrawItem(pass, &cell);
     }
     if (!body_) return 1;
 
@@ -158,10 +159,10 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
         CItem* item = static_cast<CItem*>(hero->armor[i]);
-        int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
+        int type = reinterpret_cast<CItemArmor*>(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
                       mode_};
-        ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
+        owner->DrawItem(pass, &cell);
     }
     Flush(DeviceOf(this));
     ClearDepth(DeviceOf(this), 0, nullptr, 1.0f);

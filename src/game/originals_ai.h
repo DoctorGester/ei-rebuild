@@ -21,7 +21,6 @@ struct Vector3;
 
 __declspec(naked) inline void __fastcall AnimateOriginal(char*, void*, std::uint32_t) EI_ORIGINAL(0x005A7160)
 __declspec(naked) inline void __fastcall FinishDraw(char*, void*, void* /*renderer*/) EI_ORIGINAL(0x005A7290)
-__declspec(naked) inline void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
 // 005B0370 (RET 0x14): CRegionMap::NearbyBlocks through its original address (the list is a
 // BlockCostList, ai_map.h).
 __declspec(naked) inline void __fastcall NearbyBlocksOriginal(CRegionMap*, void*, int /*sizeClass*/, bool /*flag*/,
@@ -35,11 +34,6 @@ __declspec(naked) inline void __fastcall CallsDropClaims(void* /*calls*/) EI_ORI
 // carrying the hostility `mask` and `text` (its point left as the stack had it).
 __declspec(naked) inline void __fastcall MemoryAddCall(void* /*memory*/, void*, std::uint32_t /*mask*/, int /*kind*/,
                                                      const char* /*text*/) EI_ORIGINAL(0x005CBBC0)
-// 005CEED0 (thiscall on the brain's attention, RET 4): rebuilds the unit's attack options (its weapon or natural
-// attack, its spells) and the attention's longest range (+0x28).
-__declspec(naked) inline void __fastcall AttentionRebuild(AIAttention*, void*, CUnit*) EI_ORIGINAL(0x005CEED0)
-// 00546100: AIPath's destructor body (the points freed, both cell lists emptied; plain RET).
-__declspec(naked) inline void __fastcall AIPathDestructOriginal(AIPath*) EI_ORIGINAL(0x00546100)
 __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
     EI_ORIGINAL(0x005B9C90)
 __declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/, float /*minDistance*/)
@@ -59,49 +53,29 @@ __declspec(naked) inline bool __fastcall SectorMapAdd(CSectorMap*, void*, CEngin
 __declspec(naked) inline bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)
     EI_ORIGINAL(0x005C11D0)
 __declspec(naked) inline bool __fastcall SectorMapRemove(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C1010)
-__declspec(naked) inline int __fastcall SearchCost(void*, void*, int, int) EI_ORIGINAL(0x005C3090)
-__declspec(naked) inline void __fastcall SearchFinish(void*, void*) EI_ORIGINAL(0x005C30E0)
 __declspec(naked) inline void __fastcall ListAppend(void* /*cells*/, void*, const void* /*other*/) EI_ORIGINAL(0x005C5DA0)
 __declspec(naked) inline void* __fastcall ListReversed(const void* /*cells*/, void*, void* /*out*/)
     EI_ORIGINAL(0x005C5E60)
 __declspec(naked) inline void __fastcall MotionBuild(void*, void*, void* /*order*/) EI_ORIGINAL(0x005C67D0)
 __declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, Vector3* /*position*/, Vector3* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
     EI_ORIGINAL(0x005C7430)
-// 005C7B00 (rewritten as AIPath::Start, ai_motion.cpp; RET 0xC, AL): the path started at `position`
-// facing `direction` at `time`.
-__declspec(naked) inline bool __fastcall AIPathStartOriginal(AIPath*, void*, const Vector3* /*position*/,
-                                                             const Vector3* /*direction*/, int /*time*/)
-    EI_ORIGINAL(0x005C7B00)
-__declspec(naked) inline void __fastcall PathShiftTime(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
-
-// C3i. 005C35F0: CLocalSearch reset (plain RET, EAX not a result; the old `(void*, void*)` forms passed a dummy EDX).
-__declspec(naked) inline void __fastcall LocalSearchResetOriginal(void* /*search*/) EI_ORIGINAL(0x005C35F0)
 
 // C3j. 005D3760: player mode constructor (plain RET, returns this).
 __declspec(naked) inline void* __fastcall ModePlayerConstructOriginal(void* /*mode*/) EI_ORIGINAL(0x005D3760)
-// 005D5F60 / 005D4DF0 / 005D6140: brain AddMode(mode) (RET 4) / ClearModes() (plain RET) / RemoveMode(index) (RET 4); no result.
+// 005D5F60: brain AddMode(mode) (RET 4; no result).
 __declspec(naked) inline void __fastcall BrainAddModeOriginal(void* /*brain*/, void*, void* /*mode*/) EI_ORIGINAL(0x005D5F60)
-__declspec(naked) inline void __fastcall BrainClearModesOriginal(void* /*brain*/) EI_ORIGINAL(0x005D4DF0)
-__declspec(naked) inline void __fastcall BrainRemoveModeOriginal(void* /*brain*/, void*, int /*index*/) EI_ORIGINAL(0x005D6140)
 // 00522AE0 (thiscall on 8 damage words, RET 4): the sum over words 1..7 of what exceeds the
 // matching protection word (negative differences count 0). Only the low 16 bits are meaningful.
 __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std::uint16_t* /*damage*/, void*,
                                                                       const std::uint16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
 // CAIMap lookups at a world position, through their addresses (rewritten in ai_map.cpp / ai_movement.cpp /
 // ai_water_patch.cpp; `map` is the CAIMap). 005BA790 IsPassableForClass (RET 8, AL), 005BA9D0 FindFreeCellNear
-// (RET 0xC, AL), 005BBC70 CellFlag80At (RET 4, AL), 005BBDB0 HasKind3OccluderAt (RET 4, AL), 005B7BB0
-// BlockingUnitAt (RET 8), 005B7EF0 StampWaterPatch (RET 8).
+// (RET 0xC, AL), 005B7EF0 StampWaterPatch (RET 8).
 __declspec(naked) inline bool __fastcall IsPassableForClassOriginal(void* /*map*/, void*, int /*sizeClass*/,
                                                                     const Vector3* /*position*/) EI_ORIGINAL(0x005BA790)
 __declspec(naked) inline bool __fastcall FindFreeCellNearOriginal(void* /*map*/, void*, CEngineObject* /*unit*/,
                                                                   const Vector3* /*from*/, Vector3* /*target*/)
     EI_ORIGINAL(0x005BA9D0)
-__declspec(naked) inline bool __fastcall CellFlag80AtOriginal(void* /*map*/, void*, const Vector3* /*position*/)
-    EI_ORIGINAL(0x005BBC70)
-__declspec(naked) inline bool __fastcall HasKind3OccluderAtOriginal(void* /*map*/, void*, const Vector3* /*position*/)
-    EI_ORIGINAL(0x005BBDB0)
-__declspec(naked) inline CUnit* __fastcall BlockingUnitAtOriginal(void* /*map*/, void*, CUnit* /*unit*/,
-                                                                  const Vector3* /*position*/) EI_ORIGINAL(0x005B7BB0)
 __declspec(naked) inline void __fastcall StampWaterPatchOriginal(void* /*map*/, void*, const Vector3* /*position*/,
                                                                  int /*add*/) EI_ORIGINAL(0x005B7EF0)
 // 005BC3E0 (CAIMap::LineOfSight, ai_map.cpp) through its address, its ST0 taken unrounded (RET 8).
@@ -112,8 +86,6 @@ __declspec(naked) inline void __fastcall PatrolPointArraySetSizeOriginal(void* /
     EI_ORIGINAL(0x004C9970)
 // 005D12B0: patrol mode adds a point (RET 4, no result).
 __declspec(naked) inline void __fastcall PatrolAddPointOriginal(void* /*mode*/, void*, const void* /*point*/) EI_ORIGINAL(0x005D12B0)
-// 005AEA60: AI voice raises its level to at least `level` (RET 4, no result).
-__declspec(naked) inline void __fastcall VoiceSayOriginal(void* /*voice*/, void*, int /*level*/) EI_ORIGINAL(0x005AEA60)
 // 005B14C0: constructs the second part of the search state (plain RET, no result).
 __declspec(naked) inline void __fastcall SearchPartConstructOriginal(void* /*search*/) EI_ORIGINAL(0x005B14C0)
 // 005C2420: CLocalSearch begin(unit, a, b, c, d) (RET 0x14, AL).
@@ -136,26 +108,20 @@ __declspec(naked) inline void __fastcall AiMemoryNoticeOriginal(void* /*memory*/
 
 // C3k. 004CB770: destructor of the AI look array (vtable 0073D460; frees the buffer; plain RET, EAX not a result).
 __declspec(naked) inline void __fastcall AiLookArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004CB770)
-// 005CA050 (rewritten as CopyPoint2): called through its address where the UpdateMemory check counts
-// the inline notices (verify_unit_ai_brain.cpp until S21d).
-__declspec(naked) inline float* __fastcall CopyPoint2Original(float* /*out*/, const float* /*point*/) EI_ORIGINAL(0x005CA050)
 // 00552CF0 (rewritten as UnitController::AddHostileMask), through its address so its wrapper sees the calls.
 __declspec(naked) inline std::uintptr_t __fastcall ControllerAddHostileMaskOriginal(void* /*controller*/, void*, std::uint32_t /*mask*/)
     EI_ORIGINAL(0x00552CF0)
 // 005CC9D0 (rewritten as AICallArray::Update), through its address so its wrapper sees UpdateMemory's calls (RET 8).
 __declspec(naked) inline void __fastcall AiCallsUpdateOriginal(void* /*calls*/, void*, CUnit* /*unit*/, void* /*memory*/)
     EI_ORIGINAL(0x005CC9D0)
-// An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field, 005C7FC0 reads it (both RET 4,
-// EAX not a result).
+// An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)
-__declspec(naked) inline void __fastcall PathReadOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7FC0)
 
 // The brain's save-game helpers, called through their addresses so the verify wrappers see the calls
 // (unit_ai_brain.cpp, unit_ai_save.cpp). 005D9010 / 005D91B0: looks load / save (fastcall: ECX the
 // looks, EDX the stream; plain RET). 005CC1E0 / 005CC350: the perception memory's load / save
 // (thiscall on brain + 0xD0, RET 4). 005CE920: an attack option's Save; 005D9B80: an attack option
-// array's load (fastcall, plain RET). 0045D610 / 0045D760: an alarm record's read / write (map
-// spec behaviour record; thiscall, RET 4). 005D9840: the alarm records' SetSize (RET 8). None
+// array's load (fastcall, plain RET). 005D9840: the alarm records' SetSize (RET 8). None
 // returns a result.
 __declspec(naked) inline void __fastcall LooksLoadOriginal(void* /*looks*/, void* /*stream*/) EI_ORIGINAL(0x005D9010)
 __declspec(naked) inline void __fastcall LooksSaveOriginal(const void* /*looks*/, void* /*stream*/) EI_ORIGINAL(0x005D91B0)
@@ -164,19 +130,14 @@ __declspec(naked) inline void __fastcall MemorySaveOriginal(void* /*memory*/, vo
 __declspec(naked) inline void __fastcall AttackOptionSaveOriginal(const void* /*option*/, void*, void* /*stream*/)
     EI_ORIGINAL(0x005CE920)
 __declspec(naked) inline void __fastcall AttackOptionsLoadOriginal(void* /*options*/, void* /*stream*/) EI_ORIGINAL(0x005D9B80)
-__declspec(naked) inline void __fastcall AlarmRecordReadOriginal(void* /*record*/, void*, void* /*stream*/)
-    EI_ORIGINAL(0x0045D610)
 __declspec(naked) inline void __fastcall AlarmRecordWriteOriginal(const void* /*record*/, void*, void* /*stream*/)
     EI_ORIGINAL(0x0045D760)
 __declspec(naked) inline void __fastcall AlarmRecordsSetSizeOriginal(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
 
 // The Player mode's fighting and party code (rewritten in unit_ai_player.cpp), called through their
 // addresses so the verify wrappers see the calls (all thiscall on the mode; RET 4 / 8 / 8 / 8).
-// 005D4860 sets only AL.
 struct AIBrain;
 __declspec(naked) inline void __fastcall PlayerUpdateCombatOriginal(void* /*mode*/, void*, AIBrain*) EI_ORIGINAL(0x005D4170)
-__declspec(naked) inline bool __fastcall PlayerStaysWithPartyOriginal(void* /*mode*/, void*, AIBrain*, bool /*moving*/)
-    EI_ORIGINAL(0x005D4860)
 __declspec(naked) inline void __fastcall PlayerCollectPartyOriginal(void* /*mode*/, void*, AIBrain*, void* /*list*/)
     EI_ORIGINAL(0x005D4600)
 __declspec(naked) inline void __fastcall PlayerAddPartyTargetsOriginal(void* /*mode*/, void*, AIBrain*, void* /*list*/)
@@ -185,32 +146,19 @@ __declspec(naked) inline void __fastcall PlayerAddPartyTargetsOriginal(void* /*m
 // width x height (not cleared) unless it already has that size.
 __declspec(naked) inline void __fastcall GridCellsResizeOriginal(void* /*cells*/, void*, int /*width*/, int /*height*/)
     EI_ORIGINAL(0x005CD3A0)
-// C3n. The AI map (CAIMap, the global 007B00D0 = world + 0x170; thiscall, through its addresses so the wrappers run): 005B8B30
-// BeginRefresh / 005B8B80 EndRefresh (plain RET: units moved meanwhile are collected / put back); 005BA830 CanLeaveCell
-// (RET 4: the unit's cell; AL). 005BA9D0 FindFreeCellNearOriginal is above.
-__declspec(naked) inline void __fastcall AIMapBeginRefreshOriginal(void* /*map*/) EI_ORIGINAL(0x005B8B30)
-__declspec(naked) inline void __fastcall AIMapEndRefreshOriginal(void* /*map*/) EI_ORIGINAL(0x005B8B80)
+// C3n. The AI map (CAIMap, the global 007B00D0 = world + 0x170; thiscall): 005BA830 CanLeaveCell (RET 4: the unit's
+// cell; AL). 005BA9D0 FindFreeCellNearOriginal is above.
 __declspec(naked) inline bool __fastcall AIMapCanLeaveCellOriginal(void* /*map*/, void*, CUnit* /*unit*/) EI_ORIGINAL(0x005BA830)
-// C3n. The AI brain (AIBrain, the unit controller + 0x980; thiscall, through its addresses so the wrappers run): 005D5E90
-// LeaderOrFollowed (plain RET: the unit it follows or null); 005D7790 StopAction (plain RET); 005D7E90 SetSeen (RET 4:
-// remembers `object` as seen / the attacker).
-__declspec(naked) inline CEngineObject* __fastcall BrainLeaderOrFollowedOriginal(void* /*brain*/) EI_ORIGINAL(0x005D5E90)
+// C3n. The AI brain (AIBrain, the unit controller + 0x980; thiscall): 005D7790 StopAction (plain RET).
 __declspec(naked) inline void __fastcall BrainStopActionOriginal(void* /*brain*/) EI_ORIGINAL(0x005D7790)
-__declspec(naked) inline void __fastcall BrainSetSeenOriginal(void* /*brain*/, void*, CEngineObject* /*object*/)
-    EI_ORIGINAL(0x005D7E90)
-// 005B36B0 / 005B3890 (rewritten as CUnitLayer::Add / Remove; RET 0x10 / 0xC): stamps `owner`'s shape into the unit
-// occupancy layer at cell (x, y) / lifts it off. `owner` is only a key: a unit, or the water patch's packed cell key
+// 005B36B0 (rewritten as CUnitLayer::Add; RET 0x10): stamps `owner`'s shape into the unit occupancy layer at cell
+// (x, y). `owner` is only a key: a unit, or the water patch's packed cell key
 // (ai_water_patch.cpp). No result.
 __declspec(naked) inline void __fastcall UnitLayerAddOriginal(CUnitLayer* /*layer*/, void*, CUnit* /*owner*/,
                                                               const void* /*shape*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x005B36B0)
-__declspec(naked) inline void __fastcall UnitLayerRemoveOriginal(CUnitLayer* /*layer*/, void*, CUnit* /*owner*/, int /*x*/,
-                                                                 int /*y*/) EI_ORIGINAL(0x005B3890)
 // 005B8BA0 (rewritten as CAIMap::CellMark; RET 0x14): the passability mark of cell (x, y) at `level` (scratch state
 // carried from level to level); EAX the mark.
 __declspec(naked) inline std::uint32_t __fastcall AIMapCellMarkOriginal(CAIMap*, void*, void* /*scratch*/, int /*level*/,
                                                                         int /*levelHeight*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x005B8BA0)
-// 005C6270 (rewritten as UnitMotion::Clear; ECX, plain RET): empties the motion (segment -1, the three arrays' sizes 0).
-// EAX is the zero it stored, not a result.
-__declspec(naked) inline void __fastcall UnitMotionClearOriginal(void* /*motion*/) EI_ORIGINAL(0x005C6270)

@@ -3,6 +3,7 @@
 // body slot (or all of them) absorb the rest through its armour layers (DamageSlot), wearing the
 // armour pieces; UnitVitals::TakeHit is the plain version for other map objects. See unit.h and
 // docs/notes/units.md.
+#include "combat.h"
 #include "unit.h"
 
 #include "object_tables.h"
@@ -85,18 +86,11 @@ void* const kEndLine = reinterpret_cast<void*>(0x00435000);
 } // namespace
 
 // CUnitServer 00552780: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
-// 00532AC0, CUnit::DropBrokenEquipment: after a hit on the statistics. unit_create.cpp.
-__declspec(naked) void __fastcall UnitAfterHit(CUnit*) EI_ORIGINAL(0x00532AC0)
-// Called through their game addresses (rewritten here) so their verify wrappers see the calls.
-__declspec(naked) void __fastcall CallWearItem(CEngineObject*, CUnit*, float, int, int) EI_ORIGINAL(0x005253E0)
-__declspec(naked) void __stdcall CallWearArmour(CUnit*, int, int, float) EI_ORIGINAL(0x00525720)
-__declspec(naked) int __fastcall CallDamageSlot(UnitStats*, void*, CUnit*, UnitVitals*, const DamageInfo*,
-                                                CEngineObject*) EI_ORIGINAL(0x00525070)
 
 namespace {
 void Remark(CUnit* unit, int code) {
     CEngineObject* controller = unit->controller;
-    if (controller->GetClassId() == kClassUnitServer) ControllerShout(reinterpret_cast<CUnitServer*>(controller), nullptr, code);
+    if (controller->GetClassId() == kClassUnitServer) reinterpret_cast<CUnitServer*>(controller)->Shout(code);
 }
 } // namespace
 
@@ -129,17 +123,17 @@ void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
     if (location <= 1) {
         int slot = ArmourTable(0x0073E09C + (outer + location * 2) * 8);
         if (slot == 7) return;
-        CallWearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+        WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
         return;
     }
     if (outer == 1) {
         int slot = ArmourTable(0x0073E0A4 + location * 0x10);
-        CallWearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+        WearItem(unit->armor[slot], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
         return;
     }
     std::uintptr_t row = static_cast<std::uintptr_t>((outer + location * 2) * 8);
-    CallWearItem(unit->armor[ArmourTable(0x0073E09C + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
-    CallWearItem(unit->armor[ArmourTable(0x0073E0A0 + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    WearItem(unit->armor[ArmourTable(0x0073E09C + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
+    WearItem(unit->armor[ArmourTable(0x0073E0A0 + row)], unit, amount, kRemarkArmourBroken, kRemarkArmourWorn);
 }
 EI_REPLACE(0x00525720, WearArmour);
 
@@ -154,13 +148,13 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
             typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
-            CallWearArmour(unit, hit->location, layer, Max0(typeDamage));
+            WearArmour(unit, hit->location, layer, Max0(typeDamage));
             if (!(typeDamage > kZero)) break;
         }
         if (weapon) {
             float passed = Max0(typeDamage);
-            CallWearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, kRemarkWeaponBroken,
-                         kRemarkWeaponWorn);
+            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, kRemarkWeaponBroken,
+                     kRemarkWeaponWorn);
         }
         if (!(typeDamage > kZero)) continue;
         damaged = 1;
@@ -213,14 +207,14 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
         total = passed + total;
         copy.typeWeights[type] = passed / copy.amount;
         if (weapon) {
-            CallWearItem(weapon, unit, hit->typeWeights[type] * hit->amount - Max0(passed), kRemarkWeaponBroken,
-                         kRemarkWeaponWorn);
+            WearItem(weapon, unit, hit->typeWeights[type] * hit->amount - Max0(passed), kRemarkWeaponBroken,
+                     kRemarkWeaponWorn);
         }
     }
     if (!(total > kZero)) return 0;
     if (copy.location != kAllLocations) {
-        int result = CallDamageSlot(this, nullptr, unit, vitals, &copy, weapon);
-        UnitAfterHit(unit);
+        int result = DamageSlot(unit, vitals, &copy, weapon);
+        unit->DropBrokenEquipment();
         return result;
     }
     // A hit on the whole body: every working slot takes its share.
@@ -234,10 +228,10 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
         copy.multiplier = slots[i].maximum * hit->multiplier * share / hit->amount;
         copy.location = i;
         copy.amount = share * slots[i].maximum;
-        int result = CallDamageSlot(this, nullptr, unit, vitals, &copy, weapon);
+        int result = DamageSlot(unit, vitals, &copy, weapon);
         damaged = (result != 0 || damaged != 0) ? 1 : 0;
     }
-    UnitAfterHit(unit);
+    unit->DropBrokenEquipment();
     return damaged;
 }
 EI_REPLACE_METHOD(0x005254B0, UnitStats::ApplyHit);

@@ -61,8 +61,8 @@ void Suffix(Ostream* stream) {
     ios.width = 0;
     if ((ios.flags & Ios::kUnitBuf) && ios.bp->Sync() == kEof) ios.state = Ios::kFail | Ios::kBad;
     if (ios.flags & Ios::kStdio) {
-        if (gamecrt::fflush(GameStdout()) == kEof) ios.state |= Ios::kFail;
-        if (gamecrt::fflush(GameStderr()) == kEof) ios.state |= Ios::kFail;
+        if (Fflush(GameStdout()) == kEof) ios.state |= Ios::kFail;
+        if (Fflush(GameStderr()) == kEof) ios.state |= Ios::kFail;
     }
     ios.bp->Unlock();
     ios.Unlock();
@@ -433,7 +433,7 @@ Ostream* Ostream::PutDouble(double value) {
         format[last] = 'f';
     } else {
         if (field == Ios::kScientific) format[last] = 'e';
-        if (ios.flags & Ios::kUppercase) format[last] = static_cast<char>(gamecrt::toupper(format[last]));
+        if (ios.flags & Ios::kUppercase) format[last] = static_cast<char>(Toupper(format[last]));
     }
     // 24 bytes in VC6 (a fixed value past 10^22 overruns its stack); room here.
     char text[512];

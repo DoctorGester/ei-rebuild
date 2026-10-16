@@ -21,16 +21,9 @@ struct ScriptVars;
 
 __declspec(naked) inline CEngineObject* __fastcall RefConstruct(ScriptObjectRef*, void*, const ScriptObjectRef*)
     EI_ORIGINAL(0x004B2500)
-__declspec(naked) inline void __fastcall RemoveDeletedOrig(ScriptVars*) EI_ORIGINAL(0x004B3940)
 __declspec(naked) inline int __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
 __declspec(naked) inline void __fastcall QueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
 __declspec(naked) inline void __fastcall FreeTemporariesOrig(CScript*) EI_ORIGINAL(0x004BEC80)
-__declspec(naked) inline int __fastcall LoadScriptFile(void*, void*, const char*) EI_ORIGINAL(0x004D36F0)
-__declspec(naked) inline unsigned __fastcall BufferReadPastEnd(GameBuffer* /*buffer*/, void*, void* /*to*/, unsigned /*size*/)
-    EI_ORIGINAL(0x004DA170)
-__declspec(naked) inline void __fastcall GameBufferCopy(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/)
-    EI_ORIGINAL(0x004DA9E0)
-__declspec(naked) inline void __fastcall TextsUnload(void*, void*, const char*) EI_ORIGINAL(0x004DEDD0)
 
 // 004D23A0 (RET 8, EAX 0/1): adds / loads a script line (CScript::Load, rewritten; called through its address).
 __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, const mfc::CString* /*line*/,
@@ -59,9 +52,6 @@ __declspec(naked) inline void* __fastcall ScriptGroupAtOriginal(const void* /*ar
 __declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x004C4FD0)
 
-// C3j. 004B5EF0: ScriptGroup destructor body (plain RET, no result).
-__declspec(naked) inline void __fastcall ScriptGroupBodyDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004B5EF0)
-
 // C3k. 004C2030: script group (CArray with vtable 0073D11C) constructor (plain RET, returns `this`). 004C59C0 / 004CD2B0:
 // CArray<ScriptIfThen> / CArray<SSCCmd>::SetSize(size, growBy) (both RET 8, no result).
 __declspec(naked) inline void* __fastcall ScriptGroupConstructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2030)
@@ -75,9 +65,6 @@ __declspec(naked) inline void* __fastcall TempGroupsRemoveTailOriginal(void* /*l
     EI_ORIGINAL(0x004C8AF0)
 __declspec(naked) inline void* __fastcall TempObjectsRemoveTailOriginal(void* /*list*/, void*, void* /*out*/)
     EI_ORIGINAL(0x004C9100)
-// 004BE490 (rewritten as ScriptDropInstancesAndRuns, script_cleanup.cpp; plain RET): the zone reset calls it
-// through its address so the verify wrapper sees the call.
-__declspec(naked) inline void __fastcall ScriptDropInstancesAndRunsOriginal(CScript* /*script*/) EI_ORIGINAL(0x004BE490)
 
 // The link figures' STLport map<string, ...> members (link_figure.h; library instantiations):
 // 004F4B90 the part headers' operator[] (RET 4, EAX = the value, a zeroed 0x50-byte header when new),
@@ -116,23 +103,6 @@ __declspec(naked) inline void __fastcall GroupValuesSetSize(void*, void*, int, i
 __declspec(naked) inline void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770)
 __declspec(naked) inline void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
 __declspec(naked) inline void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
-
-// C3n. Script objects, called through their addresses (all thiscall). 004B24B0 / 004B24D0 (rewritten as
-// ScriptObjectRef::Reset / Assign): a reference slot drops its object / takes another (null allowed); 004B3330
-// (ScriptGroup::Contains): whether the group holds the object; 004C00D0 / 004BE090 / 004CBAE0 (ScriptVarsConstruct /
-// ScriptVarsDestruct / ScriptVarsAssign): a variable set's constructor, destructor and assignment; 004BE9D0
-// (ScriptDefinitionDestruct); 004BF000 (ScriptTick): the script queue runs the commands that were loaded.
-__declspec(naked) inline void __fastcall RefReset(ScriptObjectRef* /*slot*/) EI_ORIGINAL(0x004B24B0)
-__declspec(naked) inline void __fastcall RefAssign(ScriptObjectRef* /*slot*/, void*, CEngineObject* /*object*/)
-    EI_ORIGINAL(0x004B24D0)
-__declspec(naked) inline int __fastcall GroupContains(const ScriptGroup* /*group*/, void*, CEngineObject* /*object*/)
-    EI_ORIGINAL(0x004B3330)
-__declspec(naked) inline void __fastcall VarsConstruct(ScriptVars*) EI_ORIGINAL(0x004C00D0)
-__declspec(naked) inline void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE090)
-__declspec(naked) inline void __fastcall VarsAssign(ScriptVars* /*to*/, void*, const ScriptVars* /*from*/)
-    EI_ORIGINAL(0x004CBAE0)
-__declspec(naked) inline void __fastcall DefinitionDestruct(ScriptDefinition*) EI_ORIGINAL(0x004BE9D0)
-__declspec(naked) inline void __fastcall ScriptsRun(CScript*) EI_ORIGINAL(0x004BF000)
 
 // C3o. 004CE1E0 (rewritten as ScriptRefDestroy; thiscall, RET 4): a script object reference's scalar deleting destructor
 // (the object released through its slot 4; the reference freed when flags & 1); returns the reference.

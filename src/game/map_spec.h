@@ -153,7 +153,7 @@ struct ObjectSpec {
     Vector3 scale;               // +0x60 (0.5 each; read and written y, x, z)
     std::uint8_t shadow;         // +0x6C
     std::uint8_t visible;        // +0x6D (1)
-    std::uint8_t side;           // +0x6E the owner's player number (chunk B011; UnitSetSide, the traps' hostile players)
+    std::uint8_t side;           // +0x6E the owner's player number (chunk B011; CUnit::SetSide, the traps' hostile players)
     std::uint8_t unused_6F;
     mfc::CString parentIname;    // +0x70
     mfc::CString skinTexture;    // +0x74 (chunk B008) the texture swapped onto the figure ("none": none)

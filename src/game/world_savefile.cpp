@@ -22,7 +22,7 @@ constexpr int kVersionFlag = 0x71;        // above: a byte saying whether the da
 int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
 
 // The growing buffer's Seek when it has to grow (004DA5C0).
-inline void BufferSeek(GameBuffer* buffer, int at) { GameBufferGrowOriginal(buffer, nullptr, static_cast<std::uint32_t>(at)); }
+inline void BufferSeek(GameBuffer* buffer, int at) { static_cast<GameBuffer*>(buffer)->Grow(static_cast<std::uint32_t>(at)); }
 
 // The buffer's high-water mark brought up to its cursor (inlined everywhere).
 void UpdateHigh(GameBuffer& b) {

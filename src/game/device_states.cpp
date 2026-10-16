@@ -2,6 +2,7 @@
 // (src/render/render_state.h) gets their values: the renderer's fog colour (00501AB0, virtual slot 0
 // of the renderer 007AF060), its blend factors (00501C60, slot 10: the particles' additive / normal
 // switch) and the device object's material (004EB170). See docs/notes/renderer.md ("Pass state").
+#include "app.h"
 #include "device.h"
 #include "device_material.h"
 #include "model.h"   // CSceneRenderer
@@ -30,10 +31,10 @@ EI_REPLACE_METHOD(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
 int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
     long hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_SRCBLEND, source);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, source);
-    if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
+    if (hr != 0) return app::FatalErrorCode(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
     hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_DESTBLEND, dest);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, dest);
-    if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
+    if (hr != 0) return app::FatalErrorCode(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
     return 1;
 }
 EI_REPLACE_METHOD(0x00501C60, CSceneRenderer::SetBlendImpl);

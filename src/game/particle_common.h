@@ -60,8 +60,6 @@ inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }
 // 0044C470: the game's debug message (cdecl, one argument; compiled out, other mods may hook it).
 inline void __cdecl DebugMessage(const char* a0) { game::DebugLog(a0); }
 
-// 00497EB0 AllocateElements through its address (the original calls it there).
-
 // The element array's inlined SetSize(n) (MFC CArray: data +0x154, size +0x158, max +0x15C,
 // grow by +0x160; 32-byte aligned blocks from 00497EB0).
 inline void SetElementCount(CParticleSource* s, int n) {
@@ -73,7 +71,7 @@ inline void SetElementCount(CParticleSource* s, int n) {
         s->elementCapacity = 0;
         s->elementCount = 0;
     } else if (!s->elements) {
-        s->elements = AllocateElementsAt(n);
+        s->elements = AllocateElements(n);
         s->elementCapacity = n;
         s->elementCount = n;
     } else if (n <= s->elementCapacity) {
@@ -87,7 +85,7 @@ inline void SetElementCount(CParticleSource* s, int n) {
         }
         int capacity = s->elementCapacity + grow;
         if (!(capacity > n)) capacity = n;
-        ParticleElement* data = AllocateElementsAt(capacity);
+        ParticleElement* data = AllocateElements(capacity);
         std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
         gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
         s->elements = data;

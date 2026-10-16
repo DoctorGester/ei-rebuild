@@ -370,8 +370,6 @@ public:
     // of range); otherwise the sequence of the high half gives the container of the low half to
     // copy the spell from (FatalError without a sequence; a new entry has no container and faults).
     CSpell* CreateSpellObject(int id);
-    // Forwarder to the game's entry (so its verify wrapper sees the call).
-    CSpell* CallCreateSpellObject(int id);
     // 2: 00688B30. CBaseManager::Create, as 0/1.
     int Create() override;
     // 3: 00688B40. Releases the containers of every sequence (each walk stops at the first entry
@@ -453,7 +451,6 @@ public:
     // Forwarders to the game's entries (so the verify wrappers see the calls).
     void CallSetManager(CSpellManager* manager);
     BOOL CallBeginConstruct(char* prototype);
-    BOOL CallEndConstruct();
     BOOL CallAddModifier(char* modifier);
 
     CSpellManager* manager_;        // +0x1C counted (+4) but never released

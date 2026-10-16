@@ -209,19 +209,12 @@ float WaveDirectionScale() { return *reinterpret_cast<const float*>(0x007C896C);
 // empty string's there); assignments go through MFC's operator=.
 mfc::CString& AsString(const char*& text) { return reinterpret_cast<mfc::CString&>(text); }
 
-// Reset (LandscapeResetOriginal) and the wave phases are called through their addresses, so that
-// their verify wrappers run.
-__declspec(naked) void __fastcall BuildWavePhasesAt(Terrain*) EI_ORIGINAL(0x006C57E0)
-// The same for the vertex tile table and the map's freeing.
-__declspec(naked) void __fastcall BuildVertexTilesAt(Terrain*) EI_ORIGINAL(0x006C7A80)
-__declspec(naked) void __fastcall ClearMapAt(Terrain*) EI_ORIGINAL(0x006C7750)
-
 } // namespace
 
 int Terrain::CreateImpl() {
-    LandscapeResetOriginal(this);
-    BuildVertexTilesAt(this);
-    BuildWavePhasesAt(this);
+    Reset();
+    BuildVertexTiles();
+    BuildWavePhases();
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
     localPosition_ = ZeroPosition();
     localRotation_ = IdentityRotation();
@@ -229,12 +222,12 @@ int Terrain::CreateImpl() {
 }
 
 void Terrain::DestroyImpl() {
-    ClearMapAt(this);
+    ClearMap();
     for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) node->value.light->Release();
     maxLightId = 0;
     lights.Clear();
     sectorCache.RemoveAll();
-    LandscapeResetOriginal(this);
+    Reset();
 }
 
 void Terrain::Reset() {
@@ -451,7 +444,7 @@ void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count
 // Float notes (rule 7): the original works on the FPU stack at the main thread's 24-bit precision,
 // so every quotient and product below is rounded to float where it is made.
 int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
-    ClearMapAt(this);
+    ClearMap();
     mfc::CString name(path);
     if (!archive.OpenResource(name, 0)) return 0;
     console::CStringArray files;
@@ -467,11 +460,11 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     std::uint32_t size = 0;
     const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(AsString(textF8) + MapExtension(), &size));
     if (!file) {
-        ClearMapAt(this);
+        ClearMap();
         return game::FatalError("Unable to open file \"" + name + "\"");
     }
     if (size < sizeof(MapHeader)) {
-        ClearMapAt(this);
+        ClearMap();
         return game::FatalError("Wrong file format: " + name);
     }
     MapHeader header;
@@ -479,7 +472,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     const std::uint32_t dwords =
         header.animated + header.materials * kMaterialDwords + static_cast<std::uint32_t>(header.textures);
     if (header.magic != kMapMagic || size != dwords * 4 + sizeof(MapHeader)) {
-        ClearMapAt(this);
+        ClearMap();
         return game::FatalError("Wrong file format: " + name);
     }
 
@@ -540,7 +533,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
 
     if (!SetupPages(pages)) {
-        ClearMapAt(this);
+        ClearMap();
         return 0;
     }
 
@@ -564,8 +557,8 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     const char* set = "Gipat";
     if (dungeon) set = "Dungeon";
-    else if (gamecrt::stricmp(zone, "Ingos") == 0) set = "Ingos";
-    else if (gamecrt::stricmp(zone, "Suslanger") == 0) set = "Suslanger";
+    else if (libcrt::Stricmp(zone, "Ingos") == 0) set = "Ingos";
+    else if (libcrt::Stricmp(zone, "Suslanger") == 0) set = "Suslanger";
     AsString(textAE0) = set;
     terrain::CountAmbientVariants(textAE0);
 

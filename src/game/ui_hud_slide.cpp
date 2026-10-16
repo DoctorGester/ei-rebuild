@@ -39,11 +39,6 @@ __declspec(naked) void CHudUnitPanel::CallLayout() EI_ORIGINAL(0x00645F80)
 
 namespace {
 
-// The map's two per-frame rebuilds (rewritten in ui_hud_map.cpp), through their addresses so that
-// their verify wrappers run.
-__declspec(naked) void __fastcall MapUpdateViewAt(CHudMap*) EI_ORIGINAL(0x00642E80)
-__declspec(naked) void __fastcall MapBuildMarkersAt(CHudMap*) EI_ORIGINAL(0x00643DC0)
-
 // The layouts' x coordinates and the slide's time are read where the original reads them.
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 float MapCentreX() { return GameFloat(0x00742AAC); }      // 700
@@ -167,8 +162,8 @@ void CHudMap::UpdateVanilla() {
         zoom_ = static_cast<float>(zoom);
         if (zoom < 1.0) zoom_ = 1.0f;
     }
-    MapUpdateViewAt(this);
-    MapBuildMarkersAt(this);
+    UpdateView();
+    BuildMarkers();
 
     if (sliding_) {
         AdvanceSlide(this);
@@ -528,8 +523,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
         for (int corner = 0; corner < 4; ++corner)
             viewPolygon_.Add(UiPointF{disc->Quads()[block].x[corner], disc->Quads()[block].y[corner]});
     }
-    MapUpdateViewAt(this);
-    MapBuildMarkersAt(this);
+    UpdateView();
+    BuildMarkers();
 
     view_ = 0;
     for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? 1.0f : 0.5f);

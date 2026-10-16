@@ -1,5 +1,6 @@
 // CWorldServer: the party arriving in a zone (Redeploy 00590700) and the quest items it brings
 // back (00590460, 005901E0). See world.h and docs/notes/world.md.
+#include "script.h"
 #include "world.h"
 
 #include "chunk_stream.h"
@@ -71,7 +72,6 @@ const MapRecord* FindZone(const char* name) {
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
-__declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
 
 void InitList(ObjectList& list) {
     list.vtable = PtrListVtable();
@@ -102,8 +102,8 @@ bool Contains(const IdArray& ids, int id) {
 bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     bool found = false;
     for (unsigned i = 0; i < static_cast<unsigned>(info->zonesEnd - info->zonesBegin); ++i)
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(info->zonesBegin[i])),
-                             reinterpret_cast<const unsigned char*>(zone)) == 0)
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(info->zonesBegin[i])),
+                            reinterpret_cast<const unsigned char*>(zone)) == 0)
             found = true;
     return found;
 }
@@ -129,7 +129,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
     for (int i = 0; i < items->size; ++i) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
         CEngineObject* item = ItemAt(items, i);
-        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(item)));
+        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(reinterpret_cast<CItem*>(item)->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
             if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_))) continue;
@@ -186,7 +186,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
 
 void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScripts) {
     if (!player) return;
-    RestorePlayerItemsAt(this, nullptr, player);
+    RestorePlayerItems(player);
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     CParty* party = player->Party();
@@ -234,13 +234,13 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
     if (lastZ != kNoStart) {
         std::memcpy(&state->lastPosition_, &start, sizeof(start));
-        PlayerSendPosition04Original(state, nullptr, &start, startValue, sessionKind_);
+        state->SendPosition04(&start, startValue, sessionKind_);
     }
     player->lastTick = tick_;
     if (sessionKind_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);
     if (runScripts) {
         scriptsActive_ = 1;
-        for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
+        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
     }
     records.vtable = RecordArrayVtable();
     if (records.data) gamecrt::operator_delete(records.data);

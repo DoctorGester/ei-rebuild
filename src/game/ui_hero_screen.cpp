@@ -1,6 +1,7 @@
 // The multiplayer hero screen's per-frame draw (006159E0) and update (00617820), its close
 // (00615850), and the trade panel's experience figures it shows (00625530 / 00625560).
 // See docs/notes/ui.md, section 5.
+#include "ui.h"
 #include "ui_screens.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
@@ -88,11 +89,11 @@ void CMpHeroScreen::DrawExperience() {
     TextsGetString(GameTexts(), nullptr, kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     SurfaceDrawText(surface, nullptr, text, &title, kTextFormat, kWhite, 1, 1);
-    text.Format(kSignedFormat, -TradePanelPurchaseCostOriginal(tradePanel_));
+    text.Format(kSignedFormat, -static_cast<CTradePanel*>(tradePanel_)->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     SurfaceDrawText(surface, nullptr, text, &cost, kTextFormat, kWhite, 1, 1);
     TextsGetString(GameTexts(), nullptr, kCurrentExpKey, &text);
-    line.Format(kLabelFormat, static_cast<const char*>(text), TradePanelExperienceOriginal(tradePanel_));
+    line.Format(kLabelFormat, static_cast<const char*>(text), static_cast<CTradePanel*>(tradePanel_)->Experience());
     RECT current = {0, 110, 200, 130};
     SurfaceDrawText(surface, nullptr, line, &current, kTextFormat, kWhite, 1, 1);
     SurfaceReleaseDC(surface);
@@ -110,7 +111,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
     if (hoveredItem_) {
         if (descPanel_) InfoPanelDescribeOriginal(descPanel_, nullptr, hoveredItem_);
     } else if (topic != 0) {
-        if (descPanel_) InfoPanelShowHelpOriginal(descPanel_, nullptr, topic);
+        if (descPanel_) static_cast<CItemInfoPanel*>(descPanel_)->ShowHelp(topic);
     } else {
         // The original sets only the kind; the other fields stay as the stack had them (ours 0).
         ItemHoverInfo info = {};
@@ -150,11 +151,11 @@ void CMpHeroScreen::Update() {
         turn_ = static_cast<float>(std::fmod(angle, static_cast<double>(FullTurn())));
     }
     int position;
-    if (ScrollbarTakePositionOriginal(heroScroll_, nullptr, &position)) {
+    if (static_cast<CUiScrollbar*>(heroScroll_)->TakePosition(&position)) {
         heroTop_ = position;
         CallDrawHeroList();
     }
-    if (ScrollbarTakePositionOriginal(voiceScroll_, nullptr, &position)) {
+    if (static_cast<CUiScrollbar*>(voiceScroll_)->TakePosition(&position)) {
         voiceTop_ = position;
         if (mode_ != kModeNewHero) return;
         CallDrawVoices();
@@ -179,7 +180,7 @@ EI_REPLACE_METHOD(0x00617820, CMpHeroScreen::Update);
 // --- 00615850: Close (slot 26) -----------------------------------------------------------------
 
 void CMpHeroScreen::Close() {
-    MpHeroesSaveOriginal(MpHeroesObject());
+    static_cast<SavedParties*>(MpHeroesObject())->SaveAll();
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* party = reinterpret_cast<PartyRecords*>(LocalPlayerData());
     for (int i = 0; i < party->count; ++i) {
@@ -240,9 +241,6 @@ void DestroyVoices(MpVoiceVector& voices) {
 void DestroyStrings(const char** begin, const char** end) {
     for (const char** at = begin; at != end; ++at) CStringDestroy(at);
 }
-// 00634500 / 00634560 through their address (their wrappers run).
-__declspec(naked) void __fastcall ReleaseModelsAt(ItemObjectCache*) EI_ORIGINAL(0x00634500)
-__declspec(naked) void __fastcall ReleaseTexturesAt(ItemObjectCache*) EI_ORIGINAL(0x00634560)
 } // namespace
 
 void CMpHeroScreen::Destroy() {
@@ -254,9 +252,9 @@ void CMpHeroScreen::Destroy() {
     FreeBlock4Original(names_.begin(), static_cast<int>(names_.EndOfStorage() - names_.begin()));
     for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
     FreeBlock4ProxyOriginal(&defaultsCapacity_, nullptr, defaults_, static_cast<int>(defaultsCapacity_ - defaults_));
-    ReleaseTexturesAt(&screen->textures_);
+    ReleaseCachedObjects(&screen->textures_);
     DestroyTextureMapOriginal(&screen->textures_);
-    ReleaseModelsAt(&screen->models_);
+    ReleaseCachedObjects(&screen->models_);
     DestroyModelMapOriginal(&screen->models_);
     DestroyContainerBody(this);
 }
@@ -402,12 +400,12 @@ void CMpHeroScreen::ShowHero(int index) {
         PartyCopyFrom(player, nullptr, MpHero(index));
         MpHeroesSelectOriginal(MpHeroesObject(), nullptr, MpHero(index));
     }
-    HeroScreenMakePreviewOriginal(this, nullptr, 1);
+    MakePreview(1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
     auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, hero->unitId));
     for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(unit, nullptr, slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);
-    UnitSendEquipmentOriginal(unit);
+    unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();
     turn_ = 0.0f;

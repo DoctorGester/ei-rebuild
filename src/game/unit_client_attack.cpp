@@ -85,7 +85,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
     out->damageMax = ScaleDamageAt(params, nullptr, owner, out->damageMax);
     out->damageMin = ScaleDamageAt(params, nullptr, owner, out->damageMin);
     out->attackSpread = params->combat[2];
-    DifficultyScaleParams(out, nullptr, keyed);
+    out->ScaleForDifficulty(keyed);
 }
 EI_REPLACE_METHOD(0x00538960, CUnitClientSpecific::GetAttackParams);
 

@@ -2,7 +2,9 @@
 // bow missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing,
 // death and the AI's reactions to it (witnesses, hostility claims). See combat.h and
 // docs/notes/combat.md.
+#include "ai_alarm.h"
 #include "combat.h"
+#include "map_object.h"
 #include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
@@ -13,6 +15,8 @@
 #include "object_diplomacy.h"
 #include "party.h"
 #include "resource_manager.h"
+#include "unit.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "lib/crt.h"
@@ -112,11 +116,10 @@ __declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x005
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
-void __fastcall VoiceSay(void* a0, void*, int a2) { VoiceSayOriginal(a0, nullptr, a2); }
+void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->Raise(a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
-__declspec(naked) void __fastcall AIEventsDied(void*, void*, CUnitServer*) EI_ORIGINAL(0x005C97B0)
 // 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)
@@ -127,20 +130,9 @@ UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, 
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
 AnimationSteps* __fastcall AnimationListConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-// 00548DE0 (CtlPlayAnimationOrder, originals_combat.h). CUnitServer: plays `animation` (taken by value and destroyed).
+// 00548DE0 (CUnitServer::PlayAnimationOrder): plays `animation` (taken by value and destroyed).
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
-
-// Calls between the rewritten functions go through the game's addresses (which jump to the
-// rewrites) so that the verify build's wrappers see them: most of these have no other callers.
-__declspec(naked) void CUnitServer::CallDeliverAttack(CEngineObject*, DamageInfo*) EI_ORIGINAL(0x0054F450)
-__declspec(naked) void CUnitServer::CallTriggerWeaponSpell(CEngineObject*) EI_ORIGINAL(0x0054F850)
-__declspec(naked) void CUnitServer::CallTriggerItemSpells(char) EI_ORIGINAL(0x0054F8E0)
-__declspec(naked) void CUnitServer::CallOnDamaged(CUnit*, int) EI_ORIGINAL(0x00553AC0)
-__declspec(naked) void CUnitServer::CallWitnessMurder(void*, CUnit*, CUnit*) EI_ORIGINAL(0x005538D0)
-__declspec(naked) std::uint32_t CUnitServer::CallHitDirection(CUnit*, int) EI_ORIGINAL(0x005518F0)
-__declspec(naked) void CUnitServer::CallUseSkill(CEngineObject*) EI_ORIGINAL(0x0054F000)
-__declspec(naked) void CUnitServer::CallSetDead(int) EI_ORIGINAL(0x00546720)
 
 void CUnitServer::DropQueuedOrder() {
     action2.kind = 9;
@@ -160,7 +152,7 @@ void CUnitServer::DropQueuedOrder() {
 void CUnitServer::FinishAction(int location, char) {
     switch (action.kind) {
     case 3: {
-        CallDeliverAttack(action.target, &pendingHit);
+        DeliverAttack(action.target, &pendingHit);
         CEngineObject* target = action.target;
         if (!target || target->GetClassId() != kClassUnit) return;
         if (location >= 6) return;
@@ -174,10 +166,10 @@ void CUnitServer::FinishAction(int location, char) {
     }
     case 4:
     case 5:
-        CallFinishCast();
+        FinishCast();
         break;
     case 6:
-        CallUseSkill(action.target);
+        UseSkill(action.target);
         break;
     case 10: {
         std::uint32_t slot = action.source;
@@ -226,7 +218,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
     } else {
         ObjectSlots(target)->ReceiveHit(hit, unit, unit);
     }
-    CallTriggerWeaponSpell(target);
+    TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -242,7 +234,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
     float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > weapon->charge_) return;
-    CtlUseItemCharge(this, nullptr, weapon, cost);
+    UseItemCharge(weapon, cost);
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = ObjectSlots(target)->AimPoint(&point);
@@ -261,7 +253,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (cost > item->charge_) continue;
         bool fires = (spell->prototypeId_ & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;
-        CtlUseItemCharge(this, nullptr, item, cost);
+        UseItemCharge(item, cost);
         CUnit* self = unit;
         WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, self, &self->position, 0);
     }
@@ -286,7 +278,7 @@ EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
 
 BOOL CUnitServer::Heal(float amount) {
     if (!StatsHeal(&stats, nullptr, ServerStatsOf(unit), amount)) return 0;
-    UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+    stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was healed")->PutChar(10)->Apply(kLogEndLine);
@@ -398,12 +390,12 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         return;
     }
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
-        CallTriggerItemSpells(0);
+        TriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
-        BrainSetSeenOriginal(&brain, nullptr, attacker);
+        brain.SetSeen(attacker);
         unit->flags_ |= 0x80000;
-        CtlPropagateHostility(this);
-        std::uint32_t direction = CallHitDirection(attacker, hitKind);
+        PropagateHostility();
+        std::uint32_t direction = HitDirection(attacker, hitKind);
         if (!keepHitDirection) hitDirection = direction;
         return;
     }
@@ -420,26 +412,26 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
             CUnitServer* theirs = ControllerOf(attacker);
-            CallWitnessMurder(&brain.nearby, unit, attacker);
-            CallWitnessMurder(&theirs->brain.nearby, attacker, attacker);
+            WitnessMurder(&brain.nearby, unit, attacker);
+            WitnessMurder(&theirs->brain.nearby, attacker, attacker);
         }
     }
-    MapObjectClearEffectsOriginal(unit);
-    CallSetDead(1);
+    unit->ClearEffects();
+    SetDead(1);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
 
     AnimationSteps animation;
     AnimationListConstruct(&animation);
     animation.vtable = kAnimationStepsVtable;
-    std::uint32_t direction = CallHitDirection(attacker, hitKind);
-    CtlBuildDeathAnimation(this, nullptr, &animation, direction, 1, 0);
+    std::uint32_t direction = HitDirection(attacker, hitKind);
+    BuildDeathAnimation(&animation, direction, 1, 0);
     animationHeld = 0;
     frozen = 0;
     AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
-    CtlPlayAnimationOrder(this, nullptr, copy);
-    AIEventsDied(AIEventsOf(world), nullptr, this);
+    PlayAnimationOrder(copy);
+    AIEventsOf(world)->ForgetUnit(this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
             MemoryPartyMemberDied(ControllerOf(member)->brain.memory, nullptr, member, unit);
@@ -454,7 +446,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
-        if (char* player = unit->player) WorldLootOriginal(WorldServer(), nullptr, target, reinterpret_cast<WorldPlayer*>(player));
+        if (char* player = unit->player) static_cast<CWorldServer*>(WorldServer())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(WorldServer(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -463,9 +455,9 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     std::uint32_t skill = action.source;
     if (skill != 1 && skill != 0) return;
     CUnit* other = target->GetClassId() == kClassUnit ? static_cast<CUnit*>(target) : nullptr;
-    float mine = static_cast<float>(StatsSkillValue(&stats, nullptr, 0, unit));
+    float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
     float theirs = 0;
-    if (other) theirs = static_cast<float>(StatsSkillValue(&ControllerOf(other)->stats, nullptr, 0, other));
+    if (other) theirs = static_cast<float>(ControllerOf(other)->stats.AttributeWithItems(0, other));
 
     GameLog()->Put("Unit")->Put(static_cast<long>(unit->id_))->Put(" is using skill ");
     const char* name;
@@ -533,7 +525,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
             return;
         }
         char* player = unit->player;
-        if (player && WorldLootOriginal(world, nullptr, other, reinterpret_cast<WorldPlayer*>(player))) return;
+        if (player && static_cast<CWorldServer*>(world)->Loot(other, reinterpret_cast<WorldPlayer*>(player))) return;
         if (!unit->player) return;
         message = kMessageStealFailed;
         break;
@@ -541,7 +533,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 2: {
         // Not reached: skill 2 returned above (sic).
         if (!other) return;
-        if (ControllerTame(static_cast<CUnitServer*>(other->controller), nullptr, unit, mine) != 0) return;
+        if (static_cast<CUnitServer*>(other->controller)->TryTame(unit, mine) != 0) return;
         if (!unit->player) return;
         message = kMessageTameFailed;
         break;

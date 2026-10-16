@@ -16,6 +16,8 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world.h"
+#include "world_glue.h"
 
 #include <cstring>
 #include <new>
@@ -104,8 +106,8 @@ NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) cons
 
 void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
-    MenuSetOriginal(1);
-    MenuCallOriginal();
+    GameStopSounds(1);
+    GameStopAmbience();
     std::uint32_t& flags = camera::TheCamera()->flags_;
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
@@ -141,7 +143,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        GameDisconnectOriginal(TheGame());
+        static_cast<GameFlow*>(TheGame())->DropSessions();
         uiorig::LeaveGame();
         break;
     default:

@@ -1,5 +1,6 @@
 // The battle screen's main-vtable slots for closing, the first poll, picked-up items, a unit leaving
 // the party and the saved state (CBattleScreen, ui.h). See docs/notes/ui.md, section 6.
+#include "ui.h"
 #include "ui_camp.h"
 
 #include "camera.h"
@@ -15,6 +16,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstring>
 
@@ -69,9 +71,9 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 void CBattleScreen::Close() {
     camera::TheCamera()->flags_ |= CCamera::kFree;
     WorldUpdatePeriod() = kDefaultUpdatePeriod;
-    CursorSetHeldOriginal(GameCursor(), nullptr, 0);
-    MenuSetOriginal(1);
-    MenuCallOriginal();
+    GameCursor()->SetHeld(0);
+    GameStopSounds(1);
+    GameStopAmbience();
     PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
 }
 EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
@@ -98,9 +100,9 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
         TopPanelPickedUpOriginal(topPanel_, nullptr, node->data, static_cast<char>(crippled));
         node = next;
     }
-    TopPanelMoneyOriginal(topPanel_, nullptr, money);
+    topPanel_->AddMoney(money);
     TopPanelShowPageOriginal(topPanel_);
-    BattleRefreshSelectionOriginal(this);
+    RefreshSelection();
 }
 EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
 
@@ -111,7 +113,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
-            LogSetTextOriginal(panel->owner_->children_.data[kMessageLogChild], nullptr, game::EmptyText());
+            static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
         return;
     }
     auto& party = party_;
@@ -122,7 +124,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
     --party.size;
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
-    BattleRefreshSelectionOriginal(this);
+    RefreshSelection();
 }
 EI_REPLACE_METHOD(0x006364E0, CBattleScreen::OnUnitLeft);
 
@@ -165,7 +167,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
-            LogSetTextOriginal(panel->owner_->children_.data[kMessageLogChild], nullptr, game::EmptyText());
+            static_cast<CUiScrollText*>(panel->owner_->children_.data[kMessageLogChild])->SetText(game::EmptyText());
         return;
     }
     LocalPlayerBlock* player = LocalPlayer();
@@ -213,7 +215,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         MarkPortrait(place);
         break;
     }
-    BattleRefreshSelectionOriginal(this);
+    RefreshSelection();
 }
 EI_REPLACE_METHOD(0x006361B0, CBattleScreen::OnUnitJoined);
 
@@ -247,7 +249,7 @@ void CBattleScreen::OnMessageResult(int result) {
     case kLeaveAnswer:
     case kLoadWindowClosed:
         interface_->closeAll_ = true;
-        GameDisconnectOriginal(TheGame());
+        static_cast<GameFlow*>(TheGame())->DropSessions();
         uiorig::LeaveGame();
         break;
     default:
@@ -259,8 +261,8 @@ EI_REPLACE_METHOD(0x00635EB0, CBattleScreen::OnMessageResult);
 // --- 006365E0: slot 31 --------------------------------------------------------------------------
 
 void CBattleScreen::OnGameOver(char won) {
-    MenuSetOriginal(1);
-    MenuCallOriginal();
+    GameStopSounds(1);
+    GameStopAmbience();
     void* box;
     if (!won) {
         interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"

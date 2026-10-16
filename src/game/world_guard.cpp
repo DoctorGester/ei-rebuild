@@ -37,9 +37,6 @@ void XorRange(std::uint8_t* first, std::uint32_t key) {
     for (; p < end; ++p) *p ^= key;
 }
 
-// 005791C0, through its address.
-__declspec(naked) void __fastcall GuardPlayersAt(CEngineObject*, char, std::uint32_t) EI_ORIGINAL(0x005791C0)
-
 } // namespace
 
 void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t key) {
@@ -62,8 +59,8 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
 void __fastcall GuardPlayerData(void* /*glue*/, void*, char plain) {
     if (plain == GuardPlain()) return;
     if (!plain) GuardKey() = Random().Next();   // a new key each time the data is hidden
-    GuardPlayersAt(ClientPlayers(), 0, GuardKey());
-    GuardPlayersAt(ServerPlayers(), 1, GuardKey());
+    GuardPlayers(ClientPlayers(), 0, GuardKey());
+    GuardPlayers(ServerPlayers(), 1, GuardKey());
     std::uint32_t key = GuardKey();
     GlobalGold() ^= key;
     for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(GlobalRecords() + i * kRecordSize + kRecordGuarded, key);

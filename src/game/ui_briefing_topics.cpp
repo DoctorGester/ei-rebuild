@@ -1,5 +1,6 @@
 // The briefing / base screen's topics: a person's topics from the "b." variables and a topic's
 // title (CBriefingScreen, ui_briefing.h). See docs/notes/ui.md, "Briefing / base screen".
+#include "stl_sorts.h"
 #include "ui_briefing.h"
 
 #include "item_db_text.h"
@@ -29,15 +30,6 @@ std::uint32_t Bits(float value) {
     std::memcpy(&bits, &value, 4);
     return bits;
 }
-
-// The STLport sort<string*> pieces a network client's topics go through, at their addresses
-// (stl_sorts.cpp, TopicIntroSort / TopicFinalSort, so their checks run): the introsort loop (RET
-// 0xC: an unused word, the depth limit, the comparator) and the final insertion sort (RET 4: the
-// comparator). The comparator is an empty object; the original passes the person's id in its slot.
-__declspec(naked) void __fastcall TopicIntroSortAt(stlp::string* /*first*/, stlp::string* /*last*/, int, int /*depth*/,
-                                                   int /*comparator*/) EI_ORIGINAL(0x0060B330)
-__declspec(naked) void __fastcall TopicFinalSortAt(stlp::string* /*first*/, stlp::string* /*last*/, int /*comparator*/)
-    EI_ORIGINAL(0x0060B440)
 
 // A vector<string> of the topics, freed as the original's inlined destructor does.
 class TopicList {
@@ -73,8 +65,8 @@ void CBriefingScreen::FindTopics(int personId) {
         bool isConstructor;
         {
             mfc::CString start = name.Left(kConstructorPrefixLength);
-            isConstructor = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(start)),
-                                             reinterpret_cast<const unsigned char*>(ConstructorTopic())) == 0;
+            isConstructor = libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(start)),
+                                            reinterpret_cast<const unsigned char*>(ConstructorTopic())) == 0;
         }
         if (isConstructor) {
             constructor = name;
@@ -87,8 +79,8 @@ void CBriefingScreen::FindTopics(int personId) {
     if (IsNetworkClientOriginal() && list.begin() != list.end()) {
         int depth = 0;
         for (int n = static_cast<int>(list.end() - list.begin()); n != 1; n >>= 1) ++depth;
-        TopicIntroSortAt(list.begin(), list.end(), 0, depth * 2, personId);
-        TopicFinalSortAt(list.begin(), list.end(), personId);
+        stl_sorts::TopicIntroSort(list.begin(), list.end(), 0, depth * 2, personId);
+        stl_sorts::TopicFinalSort(list.begin(), list.end(), personId);
     }
     topics_.SetSize(0, -1);
     for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.SetAtGrow(topics_.size, topic->data());

@@ -14,6 +14,7 @@
 #include "lib/vecmath.h"
 #include "originals_engine.h"
 #include "originals_world.h"
+#include "world.h"
 
 #include <bit>
 #include <cstring>
@@ -472,8 +473,6 @@ const float* GlowAlpha() { return reinterpret_cast<const float*>(0x0078AA78); }
 const std::int32_t* DustAlpha() { return reinterpret_cast<const std::int32_t*>(0x0078AAD8); }
 
 // 00561150 on the map object at 007AF78C: the ground plane at (x, y), as a normal and a distance.
-__declspec(naked) void __fastcall GroundPlane(void* /*map*/, void*, float /*x*/, float /*y*/, Vector3* /*normal*/,
-                                              float* /*distance*/) EI_ORIGINAL(0x00561150)
 void* PlaneMap() { return reinterpret_cast<void*>(0x007AF78C); }
 
 // x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
@@ -556,7 +555,7 @@ EI_REPLACE_METHOD(0x004933F0, CParticleSource::UpdateGroundDust);
 void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         float* plane = reinterpret_cast<float*>(e);
-        GroundPlane(PlaneMap(), nullptr, origin.x, origin.y, reinterpret_cast<Vector3*>(plane + 6), plane + 3);
+        static_cast<PlatformSet*>(PlaneMap())->SurfacePlane(origin.x, origin.y, reinterpret_cast<Vector3*>(plane + 6), plane + 3);
         if (NonZero(plane[8])) plane[8] = static_cast<float>(D(EI_ONE) / D(plane[8]));
     }
     if (++e->ticks > 1) flags_ &= ~1u;

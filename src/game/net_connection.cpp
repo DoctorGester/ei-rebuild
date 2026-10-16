@@ -1,4 +1,5 @@
 // Connections of the network sessions: object replication. See net_connection.h.
+#include "net_coder.h"
 #include "net_connection.h"
 #include "at_exit_functions.h"
 #include "game_strings.h"
@@ -13,6 +14,7 @@
 #include <cstring>
 #include "originals_core.h"
 #include "originals_library.h"
+#include "stl_sorts.h"
 
 namespace net {
 
@@ -77,7 +79,6 @@ __declspec(naked) void* __fastcall MakeRecordPair(void* /*pair*/, void*, const s
 // RefPtr<T>: default constructor, assignment of a raw pointer (00438110: the old object is released
 // as RefPtr::Destroy does, the new one shared as RefPtr::Share does; returns the holder).
 __declspec(naked) RefPtr* __fastcall RefPtrDefault(RefPtr* /*p*/) EI_ORIGINAL(0x00438A90)
-__declspec(naked) RefPtr* __fastcall RefPtrReset(RefPtr* /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x00438110)
 
 __declspec(naked) TypeRegistry::ByVtable::Node** __fastcall TypeFind(TypeRegistry::ByVtable* /*table*/, void*,
                                                                     TypeRegistry::ByVtable::Node** /*out*/,
@@ -102,9 +103,6 @@ __declspec(naked) RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/) EI_ORIGINAL(0x004
 // sort by object, atexit.
 __declspec(naked) void* __fastcall ReplicatedConstruct(ReplicatedVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439E10)
 __declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void*, Replicated* /*first*/, Replicated* /*last*/) EI_ORIGINAL(0x00439DD0)
-__declspec(naked) void __fastcall ReplicatedSortLoop(Replicated* /*first*/, Replicated* /*last*/, void* /*tag*/, int /*depth*/,
-                                                     void* /*compare*/) EI_ORIGINAL(0x0043F870)
-__declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Replicated* /*last*/, void* /*compare*/) EI_ORIGINAL(0x0043F9B0)
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
 std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
@@ -237,7 +235,7 @@ void Connection::QueueHeader(int budget) {
         std::memmove(reliableOut_.begin, reliableOut_.begin + size, static_cast<std::size_t>(remaining));
         reliableOut_.cur = reliableOut_.begin;
         reliableOut_.high = reliableOut_.begin + remaining;
-        if (reliableOut_.high > reliableOut_.end) GameBufferGrowOriginal(&reliableOut_, nullptr, static_cast<std::uint32_t>(remaining));
+        if (reliableOut_.high > reliableOut_.end) static_cast<GameBuffer*>(&reliableOut_)->Grow(static_cast<std::uint32_t>(remaining));
         headerSequence_ = static_cast<std::uint16_t>(headerSequence_ + size);
         return;
     }
@@ -470,7 +468,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         RecordMap::Node* node = RecordAt(records_, key);
         CRefObject* object = session->types_.Create(type & 0xFF);
         if (!object) return false;
-        RefPtrReset(&node->second.object, nullptr, object);
+        node->second.object.AssignObject(object);
         node->second.version = 0;
         AttachRecord(object, type, key);
         ReadObject(object, cursor);
@@ -493,7 +491,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     if (!slot->ptr) {
         CRefObject* object = CurrentSession()->types_.Create(type & 0xFF);
         if (object) {
-            RefPtrReset(slot, nullptr, object);
+            slot->AssignObject(object);
             found->second.version = 0;
             AttachRecord(object, type, key);
         }
@@ -524,7 +522,7 @@ void Connection::Track(Replicated* item) {
     auto* entry = NewMessageMemory<ReplicaEntry>();
     if (entry) {
         ei::SetVtable(entry, CRefObject::kVtableAddress);
-        RefPtrFromRawOriginal(&entry->object_, nullptr, nullptr);
+        entry->object_.FromRawCounted(nullptr);
         ei::SetVtable(entry, ReplicaEntry::kVtableAddress);
         entry->version_ = 0;
         entry->id_ = 0;
@@ -599,8 +597,8 @@ void Connection::CollectChanges() {
     if (items.begin() != items.end()) {
         int depth = 0;
         for (std::int32_t n = static_cast<std::int32_t>(items.size()); n != 1; n >>= 1) ++depth;
-        ReplicatedSortLoop(items.begin(), items.end(), nullptr, depth * 2, target);
-        ReplicatedSortFinish(items.begin(), items.end(), target);
+        stl_sorts::ReplicatedIntroSort(items.begin(), items.end(), nullptr, depth * 2, target);
+        stl_sorts::ReplicatedFinalSort(items.begin(), items.end(), target);
     }
 
     // Merge the sorted list with byObject_ (both ordered by object pointer).

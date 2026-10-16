@@ -40,9 +40,6 @@ MatrixDevice* Device() { return TheMatrixDevice(); }
 // 004D9880. out = a * b (4x4 float matrices; RET 8).
 void MatrixMultiply(float* out, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 
-// 0051E300. Whether the model's shadow volume is in view (shadow settings 0079BD0C..).
-__declspec(naked) bool __fastcall ShadowInView(CObject3DClientSpecific*) EI_ORIGINAL(0x0051E300)
-
 // Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
 
 // The frame's draw lists: STLport vector<CEngineObject*> globals 0x10 apart (0056AFE0 clears them).
@@ -200,8 +197,8 @@ int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime
                 } else {
                     object->flags_ &= ~kFlagVisible;
                     // Out of view: still listed for shadows when its shadow volume is in view.
-                    if (ShadowInView(ModelOf(object))) {
-                        if (o3d->animation) FigureApplyPendingOriginal(o3d->animation);
+                    if (ModelOf(object)->ShadowInView()) {
+                        if (o3d->animation) o3d->animation->UpdatePose();
                         switch (object->GetClassId()) {
                         case 0x50: PushBack(frame.shadowUnits, entry); break;
                         case 0x52: PushBack(frame.shadow52, entry); break;

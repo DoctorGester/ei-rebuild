@@ -4,6 +4,9 @@
 // reaches the screen but ui_mp_host. Its Create (0061B2C0) reproduces addon's ExtendedServerName
 // sites and EI_Plugin's NPlayers (W2b), as the list draw 0061D780 (ui_connect_list.cpp) does its
 // patches.
+#include "net_classes.h"
+#include "stl_sorts.h"
+#include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
 
@@ -87,47 +90,13 @@ constexpr std::uint32_t kPlainSprite = 0x100;
 
 // The connection screen's helpers through their addresses (rewritten here; the wrappers run).
 __declspec(naked) void __fastcall DrawListAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D780)   // Rebirth-patched
-__declspec(naked) void __fastcall SelectAndScrollAt(CMpConnectScreen*) EI_ORIGINAL(0x0061CC00)
-__declspec(naked) void __fastcall ConnectAt(CMpConnectScreen*) EI_ORIGINAL(0x0061CCE0)
-__declspec(naked) void __fastcall EditAddressAt(CMpConnectScreen*) EI_ORIGINAL(0x0061CF50)
 __declspec(naked) void __fastcall MasterRequestAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D0D0)
-__declspec(naked) void __fastcall SaveAddressBookAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D1C0)
-__declspec(naked) void __fastcall RebuildListAt(CMpConnectScreen*) EI_ORIGINAL(0x0061D470)
-__declspec(naked) CMasterRequestBox* __fastcall MasterBoxConstructAt(void* /*memory*/, void*, CInterface3D*, const char*,
-                                                                     const char*, std::uint32_t,
-                                                                     const net::NetAddress*, std::uint32_t)
-    EI_ORIGINAL(0x0061E2F0)
-// The list's vector members (rewritten below) and the library's sort (std::sort with the column
-// key as its comparator: the introsort loop (first, last, (T*)0, depth limit, key; RET 0xC), the
-// insertion sort (first, last, key; RET 4) and the unguarded one (first, last, (T*)0, key; RET 8))
-// and _M_insert_overflow(pos, x, n) (RET 0xC).
-__declspec(naked) void __fastcall PushDefaultAt(MpAddressList*) EI_ORIGINAL(0x0061E5A0)
-__declspec(naked) MpAddressEntry* __fastcall InsertDefaultAt(MpAddressList*, void*, MpAddressEntry*) EI_ORIGINAL(0x0061E660)
-__declspec(naked) MpAddressEntry* __fastcall EraseAt(MpAddressList*, void*, MpAddressEntry*, MpAddressEntry*)
-    EI_ORIGINAL(0x0061EA90)
-__declspec(naked) MpAddressEntry* __fastcall CopyConstructAt(MpAddressEntry*, void*, const MpAddressEntry*)
-    EI_ORIGINAL(0x0061EE80)
+// The list's vector members (rewritten below): assignment and _M_insert_overflow(pos, x, n) (RET 0xC).
 __declspec(naked) MpAddressEntry* __fastcall AssignAt(MpAddressEntry*, void*, const MpAddressEntry*) EI_ORIGINAL(0x0061E8F0)
-__declspec(naked) void __fastcall DestroyAt(MpAddressEntry*) EI_ORIGINAL(0x0061E8A0)
-__declspec(naked) void __fastcall IntroSortLoop(MpAddressEntry* /*first*/, MpAddressEntry* /*last*/, MpAddressEntry*,
-                                                int /*depth*/, int /*key*/) EI_ORIGINAL(0x0061EF60)
-__declspec(naked) void __fastcall InsertionSort(MpAddressEntry* /*first*/, MpAddressEntry* /*last*/, int /*key*/)
-    EI_ORIGINAL(0x0061F6F0)
-__declspec(naked) void __fastcall UnguardedInsertionSort(MpAddressEntry* /*first*/, MpAddressEntry* /*last*/,
-                                                         MpAddressEntry*, int /*key*/) EI_ORIGINAL(0x0061FB00)
 __declspec(naked) void __fastcall InsertOverflow(MpAddressList*, void*, MpAddressEntry* /*pos*/,
                                                  const MpAddressEntry* /*x*/, unsigned /*n*/) EI_ORIGINAL(0x0061EC40)
-// 0057E970 (thiscall on the game flow, RET 8; not rewritten): joins the server at `address` with
-// `password` (20 bytes) as the join data.
-__declspec(naked) void __fastcall GameFlowJoin(GameFlow*, void*, const net::NetAddress* /*address*/,
-                                               const char* /*password*/) EI_ORIGINAL(0x0057E970)
-// The master server link (net_socket_driver.cpp) and the client's reply readers
-// (net_client_commands.cpp, net_server_list.cpp), through their addresses.
-__declspec(naked) net::MasterLink* __fastcall MasterLinkConstructAt(net::MasterLink*, void*, const void* /*address*/)
-    EI_ORIGINAL(0x00440C60)
 __declspec(naked) int __fastcall MasterLinkTickAt(net::MasterLink*) EI_ORIGINAL(0x00440DE0)
 __declspec(naked) double __fastcall ClientBufferRatioAt(net::ClientSession*, void*, GameBuffer*) EI_ORIGINAL(0x0041D9A0)
-__declspec(naked) void __fastcall ServerListReadAt(net::ClientSession*, void*, GameBuffer*) EI_ORIGINAL(0x0041D600)
 
 // The original's inlined strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
@@ -285,7 +254,7 @@ MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, 
         ++finish;
     } else {
         // The last entry copied one up, the rest moved up by assignment, then the default assigned.
-        if (finish) CopyConstructAt(finish, nullptr, finish - 1);
+        if (finish) finish->CopyConstruct(finish - 1);
         ++finish;
         MpAddressEntry* to = finish - 1;
         for (int n = static_cast<int>((finish - 2) - pos); n > 0; --n) {
@@ -302,7 +271,7 @@ EI_REPLACE(0x0061E660, MpAddressesInsertDefault);
 MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddressEntry* first, MpAddressEntry* last) {
     MpAddressEntry* to = first;
     for (int n = static_cast<int>(list->end() - last); n > 0; --n, ++to, ++last) to->AssignFrom(*last);
-    for (MpAddressEntry* entry = to; entry != list->end(); ++entry) DestroyAt(entry);
+    for (MpAddressEntry* entry = to; entry != list->end(); ++entry) entry->Destroy();
     list->Finish() = to;
     return first;
 }
@@ -348,16 +317,16 @@ void CMpConnectScreen::Update() {
         if (selected_ >= 1 && static_cast<unsigned>(selected_) < entries_.size()) ask = &entries_[selected_].address;
         net::GameClient()->SetAlwaysAsk(ask);
         net::GameClient()->Refresh();
-        RebuildListAt(this);
+        RebuildList();
         DrawListAt(this);
     }
 
     int position;
-    if (ScrollbarTakePositionOriginal(scroll_, nullptr, &position)) {
+    if (scroll_->TakePosition(&position)) {
         scrollTop_ = position;
         DrawListAt(this);
     }
-    if (ScrollbarTakePositionOriginal(playersSlider_, nullptr, &position)) {
+    if (playersSlider_->TakePosition(&position)) {
         maxPlayers_ = position + 1;
         DrawListAt(this);
     }
@@ -375,14 +344,14 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
     } else if (result == (kBoxAddress | kAnswerOk)) {
         net::NetAddress address{};
         if (address.Parse(boxText_, DefaultPort())) net::GameClient()->Ask(&address);
-        SaveAddressBookAt(this);
+        SaveAddressBook();
         DrawListAt(this);
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
         hostPassword_ = boxText_;
         auto* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpritePassword]);
         sprite->textureOffsetU_ = hostPassword_.GetLength() == 0 ? FrameOff() : FrameOn();
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
-        GameFlowJoin(TheGameFlow(), nullptr, &entries_[selected_].address, boxText_);
+        TheGameFlow()->JoinServer(&entries_[selected_].address, boxText_);
         net::GameClient()->gameType_ = entries_[selected_].gameType;
     }
 }
@@ -394,19 +363,19 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionConnect:
-        ConnectAt(this);
+        Connect();
         break;
     case kRegionBack:
         interface_->PlaySound(CancelSound(), 0);
-        SaveAddressBookAt(this);
-        GameDisconnectOriginal(TheGameFlow());
+        SaveAddressBook();
+        TheGameFlow()->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         break;
     case kRegionMaster:
         MasterRequestAt(this);
         break;
     case kRegionAddress:
-        EditAddressAt(this);
+        EditAddress();
         break;
     case kRegionUnlisted: {
         unlisted_ = !unlisted_;
@@ -430,7 +399,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
         // Column c sorts by key 2c + 1, a second click by 2c + 2.
         int ascending = 2 * (region - kRegionSortFirst) + 1;
         sortKey_ = sortKey_ == ascending ? ascending + 1 : ascending;
-        RebuildListAt(this);
+        RebuildList();
         DrawListAt(this);
         break;
     }
@@ -463,10 +432,10 @@ void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
         if (row < entries_.size()) {
             selected_ = static_cast<int>(row);
             selectedAddress_ = entries_[row].address;
-            ConnectAt(this);
+            Connect();
         }
     }
-    UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(InputSide())->OnLeftDouble(buttons, x, y);
 }
 
 void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
@@ -474,12 +443,12 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     int step;
     switch (key) {
     case VK_RETURN:
-        ConnectAt(this);
+        Connect();
         inputHandled_ = true;
         return;
     case VK_ESCAPE:
         interface_->PlaySound(CancelSound(), 0);
-        GameDisconnectOriginal(TheGameFlow());
+        TheGameFlow()->DropSessions();
         interface_->SetPendingValue(kLeaveScreen);
         inputHandled_ = true;
         return;
@@ -491,7 +460,7 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     interface_->PlaySound(SelectSound(), 0);
     selected_ += step;
-    SelectAndScrollAt(this);
+    SelectAndScroll();
     inputHandled_ = true;
 }
 
@@ -511,7 +480,7 @@ void CMpConnectScreen::SelectAndScroll() {
     if (!(scrollTop_ + kRows > row)) scrollTop_ = row - (kRows - 1);
     if (scrollTop_ > row) scrollTop_ = row;
     scroll_->CallSetPosition(scrollTop_);
-    ScrollbarTakePositionOriginal(scroll_, nullptr, &scrollTop_);
+    scroll_->TakePosition(&scrollTop_);
     DrawListAt(this);
 }
 EI_REPLACE_METHOD(0x0061CC00, CMpConnectScreen::SelectAndScroll);
@@ -523,11 +492,11 @@ void CMpConnectScreen::Connect() {
     int row = selected_;
     if (row == 0) {
         int players;
-        ScrollbarTakePositionOriginal(playersSlider_, nullptr, &players);
+        playersSlider_->TakePosition(&players);
         ++players;
         mfc::CString name(nameEdit_->text_);
         if (name.GetLength() == 0) name = DefaultGameName();
-        SaveAddressBookAt(this);
+        SaveAddressBook();
         TheGameFlow()->StartServer(name, players, gameType_, hostPassword_, static_cast<char>(unlisted_),
                                    static_cast<int>(net::GameClient()->queries_.extra));
         return;
@@ -537,12 +506,12 @@ void CMpConnectScreen::Connect() {
         OpenBox(interface_, WrongProtocolKey(), WrongProtocolTextKey(), kBoxNotice, kBoxFlagsOk);
         return;
     }
-    SaveAddressBookAt(this);
+    SaveAddressBook();
     if (entries_[selected_].password) {
         boxText_[0] = '\0';
         OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
-    GameFlowJoin(TheGameFlow(), nullptr, &entries_[selected_].address, EmptyText());
+    TheGameFlow()->JoinServer(&entries_[selected_].address, EmptyText());
     net::GameClient()->gameType_ = entries_[selected_].gameType;
 }
 EI_REPLACE_METHOD(0x0061CCE0, CMpConnectScreen::Connect);
@@ -555,14 +524,14 @@ void CMpConnectScreen::EditAddress() {
     MpAddressEntry& entry = entries_[row];
     if (entry.state == kStateAsked) {
         net::GameClient()->Forget(&entry.address);
-        SaveAddressBookAt(this);
+        SaveAddressBook();
         return;
     }
     boxText_[0] = '\0';
     if (row > 0 && static_cast<unsigned>(row) < entries_.size()) {
         net::StringRep text;
         CopyText(boxText_, entry.address.ToString(&text)->start);
-        NodeDeallocateOriginal(text.start, static_cast<std::size_t>(text.eos - text.start));
+        libcrt::NodeDeallocateChecked(text.start, static_cast<std::size_t>(text.eos - text.start));
     }
     OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
 }
@@ -582,7 +551,7 @@ void CMpConnectScreen::MasterRequest() {
     std::uint32_t extra = client ? client->queries_.extra : 0;
     void* memory = gamecrt::operator_new(sizeof(CMasterRequestBox));
     CMasterRequestBox* box =
-        memory ? MasterBoxConstructAt(memory, nullptr, interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
+        memory ? static_cast<CMasterRequestBox*>(memory)->Construct(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra)
                : nullptr;
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
@@ -609,11 +578,11 @@ EI_REPLACE_METHOD(0x0061D1C0, CMpConnectScreen::SaveAddressBook);
 // --- 0061D470: the list from the client's servers -------------------------------------------------
 
 void CMpConnectScreen::RebuildList() {
-    EraseAt(&entries_, nullptr, entries_.begin(), entries_.end());
+    MpAddressesErase(&entries_, nullptr, entries_.begin(), entries_.end());
     unsigned index = 0;
     for (net::ServerEntry* server = net::GameClient()->ServerAt(0); server;
          server = net::GameClient()->ServerAt(static_cast<int>(++index))) {
-        PushDefaultAt(&entries_);
+        MpAddressesPushDefault(&entries_);
         MpAddressEntry& entry = entries_.back();
         entry.address = server->address_;
         entry.gameType = static_cast<int>(server->kind_);
@@ -636,17 +605,17 @@ void CMpConnectScreen::RebuildList() {
         int count = static_cast<int>(last - first);
         int depth = 0;
         for (int n = count; n != 1; n >>= 1) ++depth;
-        IntroSortLoop(first, last, nullptr, depth * 2, key);
+        stl_sorts::ServerIntroSort(first, last, nullptr, depth * 2, key);
         constexpr int kThreshold = 16;
         if (count > kThreshold) {
-            InsertionSort(first, first + kThreshold, key);
-            UnguardedInsertionSort(first + kThreshold, last, nullptr, key);
+            stl_sorts::ServerInsertionSort(first, first + kThreshold, key);
+            stl_sorts::ServerUnguardedInsertionSort(first + kThreshold, last, nullptr, key);
         } else {
-            InsertionSort(first, last, key);
+            stl_sorts::ServerInsertionSort(first, last, key);
         }
     }
 
-    InsertDefaultAt(&entries_, nullptr, entries_.begin());
+    MpAddressesInsertDefault(&entries_, nullptr, entries_.begin());
     MpAddressEntry& newGame = entries_[0];
     newGame.address = net::NetAddress{};
     newGame.gameType = kNewGameType;
@@ -666,11 +635,11 @@ void CMpConnectScreen::RebuildList() {
     unsigned rows = static_cast<unsigned>(entries_.size());
     if (rows > static_cast<unsigned>(kRows)) {
         int position;
-        ScrollbarTakePositionOriginal(scroll_, nullptr, &position);
-        ScrollbarSetRangeOriginal(scroll_, nullptr, static_cast<int>(entries_.size()) - kRows);
+        scroll_->TakePosition(&position);
+        scroll_->SetMaximum(static_cast<int>(entries_.size()) - kRows);
         scroll_->CallSetPosition(position);
     } else {
-        ScrollbarSetRangeOriginal(scroll_, nullptr, 0);
+        scroll_->SetMaximum(0);
     }
     scrollTop_ = 0;
 }
@@ -683,7 +652,7 @@ void CMpConnectScreen::Create() {
     LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
     LoadTexture(ScrollbarTexture(), kTextureKind, nullptr);
     CUiModel* model = AddModel();
-    model->CallLoad(MenuModel(), MenuTexture(), MenuLabels());
+    model->Load(MenuModel(), MenuTexture(), MenuLabels());
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
@@ -844,7 +813,7 @@ void CMpConnectScreen::Create() {
     selected_ = 0;
     newGameTips_ = false;
     selectedAddress_ = net::NetAddress{};
-    RebuildListAt(this);
+    RebuildList();
     DrawListAt(this);
     interface_->ShowHelp(0);
     refreshTimer_ = 0.0f;
@@ -866,7 +835,7 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
                                                 std::uint32_t result, const net::NetAddress* address,
                                                 std::uint32_t extra) {
     MessageBoxConstructOriginal(this, nullptr, ui, titleKey, textKey, static_cast<int>(result), kBoxFlagsCancel, kBoxFormat);
-    MasterLinkConstructAt(&link_, nullptr, address);
+    link_.Construct(address);
     vtable_ = Vtable();
     inputVtable_ = InputVtable();
     bar_ = AddSprite(nullptr);
@@ -882,7 +851,7 @@ void CMasterRequestBox::Update() {
     double share = ClientBufferRatioAt(net::GameClient(), nullptr, &link_.in);
     float right = static_cast<float>(share * BarWidth() + BarLeft());
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
-    if (MasterLinkTickAt(&link_) == net::MasterLink::kDone) ServerListReadAt(net::GameClient(), nullptr, &link_.in);
+    if (MasterLinkTickAt(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);
     if (MasterLinkTickAt(&link_) == net::MasterLink::kDone || MasterLinkTickAt(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }

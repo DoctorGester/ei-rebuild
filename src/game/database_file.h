@@ -9,7 +9,7 @@
 #include "chunk_archive.h"
 #include "core_streams.h"
 #include "lib/crt.h"
-#include "originals_engine.h"   // MappedResourceOpenOriginal / DestroyOriginal, ChunkArchiveDestroyOriginal
+#include "originals_engine.h"   // MappedResourceOpenOriginal / DestroyOriginal
 #include "resource.h"
 
 #include "lib/mfc.h"
@@ -69,7 +69,7 @@ void LoadTable(CMemoryStream* stream, int id, SerializeFn serialize, void* table
     serialize(&archive, nullptr, id, table, unused);
     archive.Close(stream);
     index();
-    ChunkArchiveDestroyOriginal(&archive);
+    archive.Destruct();
 }
 
 } // namespace dbfile

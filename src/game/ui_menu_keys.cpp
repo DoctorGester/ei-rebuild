@@ -50,15 +50,13 @@ CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, con
 
 // --- Save/load window ----------------------------------------------------------------------------
 
-__declspec(naked) void CSaveLoadWindow::CallShowSelection() EI_ORIGINAL(0x00655430)
-
 // --- 00657820 ------------------------------------------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const unsigned char* folder = reinterpret_cast<const unsigned char*>(entriesBegin_[index].folder_);
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::QuickSave())) == 0) return true;
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveA())) == 0) return true;
-    return gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveB())) == 0;
+    if (libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::QuickSave())) == 0) return true;
+    if (libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveA())) == 0) return true;
+    return libcrt::Mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveB())) == 0;
 }
 
 // --- 00655430 ------------------------------------------------------------------------------------
@@ -85,7 +83,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     int step = 0;
     switch (key) {
     case kKeyEnter:
-        CallConfirm();
+        Confirm();
         inputHandled_ = true;
         break;
     case kKeyEsc:
@@ -102,7 +100,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     if (step != 0) {
         interface_->PlaySound(game::SelectSoundText(), 0);
         selected_ += step;
-        CallShowSelection();
+        ShowSelection();
         inputHandled_ = true;
     }
     if (inputHandled_ || !isSave_) return;
@@ -222,7 +220,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         if (scan == kScanEsc) {
             waitingForKey_ = false;
-            CallRefreshRows();
+            RefreshRows();
             return;
         }
         const UiKeyName* pressed = nullptr;
@@ -241,7 +239,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         waitingForKey_ = false;
         OptionBinding* binding = rows_[selectedRow_].binding_;
         if (!binding) {
-            CallRefreshRows();
+            RefreshRows();
             return;
         }
         interface_->PlaySound(game::OkSoundText(), 0);
@@ -263,8 +261,8 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
             return;
         }
-        CallCommitBinding();
-        CallRefreshRows();
+        CommitBinding();
+        RefreshRows();
         return;
     }
 
@@ -283,7 +281,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
         }
         interface_->PlaySound(game::OkSoundText(), 0);
-        CallRefreshRows();
+        RefreshRows();
         inputHandled_ = true;
         return;
     }
@@ -295,7 +293,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     case kKeyPageUp:
     case kKeyPageDown:
         interface_->PlaySound(game::SelectSoundText(), 0);
-        CallShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
+        ShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
         break;
     case kKeyLeft:
     case kKeyRight: {
@@ -312,7 +310,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         for (int i = selectedRow_ - 1; i >= 0; --i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
-                CallRefreshRows();
+                RefreshRows();
                 break;
             }
         }
@@ -322,7 +320,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         for (int i = selectedRow_ + 1; i < kOptionRows; ++i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
-                CallRefreshRows();
+                RefreshRows();
                 break;
             }
         }

@@ -15,17 +15,14 @@
 namespace {
 
 // The savers of the other parts (004B / 004BB range), __thiscall with the stream.
-// 004B1940 point light (0x20 slot), 004B1A80 particle source, 004B1C50 FX source, 004B1DB0
-// lightning (list node data): not rewritten. 004BBFE0 definition / instance (0xC0), 004BB320 run
+// 004B1A80 particle source, 004B1C50 FX source, 004B1DB0 lightning (list node data): not
+// rewritten. 004BBFE0 definition / instance (0xC0), 004BB320 run
 // (0xB4): rewritten below, called through their addresses (verify wrappers run).
-__declspec(naked) void __fastcall PointLightSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1940)
 __declspec(naked) void __fastcall ParticleSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1A80)
 __declspec(naked) void __fastcall FxSourceSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1C50)
 __declspec(naked) void __fastcall LightningSave(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1DB0)
 __declspec(naked) void __fastcall DefinitionSave(const ScriptDefinition*, void*, ScriptStream*) EI_ORIGINAL(0x004BBFE0)
 __declspec(naked) void __fastcall RunSave(const ScriptRun*, void*, ScriptStream*) EI_ORIGINAL(0x004BB320)
-// SSCCmd::Save (rewritten in script_vars.cpp; called through its address so its wrapper runs).
-__declspec(naked) void __fastcall CmdSave(const SSCCmd*, void*, ScriptStream*) EI_ORIGINAL(0x004B6360)
 // The savers of this file, called from CScript::Save through their addresses as well.
 __declspec(naked) void __fastcall DeclSaveOrig(const ScriptDecl*, void*, ScriptStream*) EI_ORIGINAL(0x004C1230)
 __declspec(naked) void __fastcall FloatsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C2EF0)
@@ -33,8 +30,6 @@ __declspec(naked) void __fastcall StringsSaveOrig(const void*, void*, ScriptStre
 __declspec(naked) void __fastcall ObjectsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C38C0)
 __declspec(naked) void __fastcall GroupsSaveOrig(const void*, void*, ScriptStream*) EI_ORIGINAL(0x004C4330)
 __declspec(naked) void __fastcall AreasSaveOrig(const void*, ScriptStream*) EI_ORIGINAL(0x004CAEC0)
-// ScriptObjectRef::Save (rewritten in script_group.cpp; the definition and run savers call it).
-__declspec(naked) void __fastcall RefSave(const ScriptObjectRef*, void*, ScriptStream*) EI_ORIGINAL(0x004B25F0)
 
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
 CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
@@ -65,7 +60,7 @@ void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
     (reinterpret_cast<const ScriptNamedValues<mfc::CString>*>(&vars->strings))->Save(stream);
     WriteInt(stream, vars->objects.size);
     for (int i = 0; i < vars->objects.size; ++i) {
-        RefSave(&vars->objects.data[i], nullptr, stream);
+        vars->objects.data[i].Save(stream);
         WriteName(stream, vars->objectNames, i);
     }
     GroupsSaveOrig(&vars->groups, nullptr, stream);
@@ -87,7 +82,7 @@ void WriteList(ScriptStream* stream, const List& list, Save save) {
 void ScriptDecl::Save(ScriptStream* stream) const {
     stream->Write(&id, 4);
     WriteInt(stream, commands.size);
-    for (int i = 0; i < commands.size; ++i) CmdSave(&commands.data[i], nullptr, stream);
+    for (int i = 0; i < commands.size; ++i) commands.data[i].Save(stream);
 }
 EI_REPLACE_METHOD(0x004C1230, ScriptDecl::Save);
 
@@ -178,7 +173,7 @@ void CScript::SaveState(ScriptStream* stream) {
 
     const auto& lights = pointLights_;
     WriteInt(stream, lights.size);
-    for (int i = 0; i < lights.size; ++i) PointLightSave(&lights.data[i], nullptr, stream);
+    for (int i = 0; i < lights.size; ++i) lights.data[i].ScriptPointLightSave(stream);
 
     WriteList(stream, particles_, ParticleSourceSave);
     WriteList(stream, fxSources_, FxSourceSave);

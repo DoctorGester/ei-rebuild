@@ -24,11 +24,6 @@ constexpr std::uint32_t kRepeatAfter = 5000;          // ms before the same spee
 constexpr int kSpeechPriority = 1;
 constexpr int kSpeechVolume = 100;
 
-// Rewritten below; called through their game addresses so their wrappers see the calls.
-__declspec(naked) int __fastcall CallSpeechReplaced(const SpeechFilter*, void*, const ClientSpeech*)
-    EI_ORIGINAL(0x00537F60)
-__declspec(naked) bool __fastcall CallSpeechFinished(const SpeechFilter*, void*, const ClientSpeech*)
-    EI_ORIGINAL(0x00537FD0)
 // 005392C0 (library: STLport list::insert): a copy of `value` before `position`; the node to *out
 // (RET 0xC).
 __declspec(naked) ClientSpeechNode** __fastcall SpeechInsert(ClientSpeechNode** /*queue*/, void*, ClientSpeechNode** /*out*/,
@@ -100,9 +95,9 @@ EI_REPLACE_METHOD(0x00537FD0, SpeechFilter::Finished);
 void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     if (!record) return;
     SpeechFilter replacing{0, kind};
-    EraseWhere(speech, [&](const ClientSpeech* queued) { return CallSpeechReplaced(&replacing, nullptr, queued) & 0xFF; });
+    EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued) & 0xFF; });
     SpeechFilter finishing{unit->id_, 0};
-    EraseWhere(speech, [&](const ClientSpeech* queued) { return CallSpeechFinished(&finishing, nullptr, queued); });
+    EraseWhere(speech, [&](const ClientSpeech* queued) { return finishing.Finished(queued); });
     bool empty = speech->next == speech;
     if (!empty && !Important(kind)) return;
     ClientSpeech said{};
@@ -115,8 +110,8 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
         if (said.talking) SetTalking(unit->id_, true);
         said.delay = 0;
         if (kind != kSpeechAfterSpeech && kind != kSpeechAfterSpeech2) {
-            ClientSpeakOriginal(this, nullptr, &said);
-        } else if (!SoundBusy(speechSound) && ClientSpeakOriginal(this, nullptr, &said)) {
+            Speak(&said);
+        } else if (!SoundBusy(speechSound) && Speak(&said)) {
             speechSound = said.sound;
         }
     }
@@ -128,7 +123,7 @@ EI_REPLACE_METHOD(0x00537D80, CUnitClientSpecific::Say);
 void CUnitClientSpecific::StopSpeech() {
     for (ClientSpeechNode* node = speech->next; node != speech; node = node->next) {
         if (node->value.talking) SetTalking(unit->id_, false);
-        SoundStop(sound::Manager(), nullptr, node->value.sound);
+        static_cast<CSoundManager*>(sound::Manager())->StopSound(node->value.sound);
     }
     for (ClientSpeechNode* node = speech->next; node != speech;) {
         ClientSpeechNode* next = node->next;

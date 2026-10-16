@@ -6,6 +6,9 @@
 // instantiations behind those maps (config/library.csv). Rewritten here: the grids' Move (two
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
+#include "ground_print.h"
+#include "item.h"
+#include "map_object_shadow.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -39,6 +42,7 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/stlp_list_refs.h"
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_world.h"
@@ -710,11 +714,11 @@ int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringA
     return Object3DMakeFigureOriginal(a0, nullptr, a2, a3, a4);
 }
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
-void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
-void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
+void __fastcall Unit518860(void* a0) { static_cast<CObject3D*>(a0)->RestartPose(); }
+void __fastcall Unit50EA40(void* a0) { static_cast<CMapObject*>(a0)->WriteFullState(); }
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
-void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
+void __fastcall Figure51C970(void* a0) { static_cast<CObject3DClientSpecific*>(a0)->RegisterPartMaterials(); }
 
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
@@ -753,12 +757,12 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* manager = static_cast<CBaseManager*>(MapObjectManager());
         auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
-        auto* prototype = reinterpret_cast<std::uint8_t*>(UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, record->texts[5]));
+        auto* prototype = reinterpret_cast<std::uint8_t*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
         unit->prototypeId_ = static_cast<std::uint32_t>(
             prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
                             unitdb::kPrototypeSize
                       : -1);
-        UnitSetPrototype23CByName(unit, nullptr, record->texts[6]);
+        unit->SetPrototype23CByName(record->texts[6]);
         unit->flags_ |= 0x4000000;
         if (!UnitMakeFigure(unit, nullptr, record->texts[2], &parts, 1)) return;
         CEngineObject* figure = unit->Object3D()->attached;
@@ -766,21 +770,21 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit518840(unit, nullptr, record->texts[2], 0);
         Unit518860(unit);
         const char* skin = record->texts[4];
-        FigureSwapTextureOriginal(figure, nullptr, game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
+        static_cast<CObject3DClientSpecific*>(figure)->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
-        UnitReleaseAllItems(unit);
+        unit->ReleaseAllItems();
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
             UnitAddWeaponOriginal(unit, nullptr, record->weapons[j]);
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
+            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
@@ -948,16 +952,13 @@ namespace {
 __declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
 // The counted array +0xA0's SetSize (its own instantiation: dropped elements released).
 __declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*>*, void*, int, int) EI_ORIGINAL(0x00570000)
-// The lists' element destructors [0056D080 (node + 8); 00575560 / 00575580 (node + 8, flags)] and
+// The lists' element destructors [00575560 / 00575580 (node + 8, flags)] and
 // node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
-__declspec(naked) void __fastcall Element1B8Destroy(void*) EI_ORIGINAL(0x0056D080)
 __declspec(naked) void __fastcall Node1B8Free(void*, int) EI_ORIGINAL(0x0056FB80)
 __declspec(naked) void __fastcall Element1BCDestroy(void*, void*, int) EI_ORIGINAL(0x00575560)
 __declspec(naked) void __fastcall Element1C0Destroy(void*, void*, int) EI_ORIGINAL(0x00575580)
 __declspec(naked) void __fastcall Node7BCFree(void*, int) EI_ORIGINAL(0x00498C40)
 __declspec(naked) void __fastcall NodeB8Free(void*, int) EI_ORIGINAL(0x0056FB00)
-// for_each(first, last, functor) releasing every value [00571780, RET 0xC].
-__declspec(naked) char __stdcall ForEachRelease(SectorListNode*, SectorListNode*, char) EI_ORIGINAL(0x00571780)
 // The platform list's RemoveAll [0056FDA0]; the base world's teardown [0055F8E0].
 __declspec(naked) void __fastcall PlatformRemoveAll(PlatformList*) EI_ORIGINAL(0x0056FDA0)
 __declspec(naked) void __fastcall WorldTeardown(CWorldClient*) EI_ORIGINAL(0x0055F8E0)
@@ -980,7 +981,7 @@ void EmptyList(stlp::list<T>& list, F free) {
 // destroyed, its node returned to the pool.
 void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
     EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
-        Element1B8Destroy(&node->data);
+        static_cast<GroundPrint*>(&node->data)->Destruct();
         Node1B8Free(node, 1);
     });
     EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
@@ -1043,7 +1044,7 @@ void CWorldClient::Teardown() {
         NodeFree12Fast(node, 1);
     });
     PlainList& objects = objects_;
-    ForEachRelease(objects.head->next, objects.head, 0);
+    stlp::ListForEachRelease(objects.head->next, objects.head, 0);
     EmptyList(objects, [](SectorListNode* node) { NodeB8Free(node, 1); });
     if (WorldSession* session = Session()) {
         session->Release();
@@ -1178,7 +1179,6 @@ __declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 __declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
-__declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
 // vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
 __declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
     EI_ORIGINAL(0x00573520)
@@ -1323,7 +1323,7 @@ int CWorldClient::Setup() {
         terrain->textAE0 = camera::EmptyStringData();
         Construct5711C0(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
-        LandscapeResetOriginal(terrain);
+        static_cast<Terrain*>(terrain)->Reset();
     }
     terrain_ = terrain;
     ++terrain->refCount_;
@@ -1359,7 +1359,7 @@ int CWorldClient::Setup() {
     handle->flags7_ = 0;
     CRefObject* created = nullptr;
     if (handle) {
-        RefValueConstructOriginal(handle);
+        RefValueConstructBase(handle);
         ei::SetVtable(handle, worlddata::kClientHandleVtable);
         created = handle;
     }
@@ -1412,7 +1412,7 @@ int CWorldClient::Setup() {
     music_ = owned;
     owned->Create();
 
-    Construct4E3C20(RainSnow());
+    RainSnow()->PrepareBuffers();
     RainSnow()->world = this;
     platforms_.Engine()->Create();
     if (worlddata::ShadowSetting() > 0)
@@ -1496,7 +1496,7 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
         itemManager_->Load(block);
         static_cast<CBaseManager*>(manager4C_)->LoadObjects(block);
         static_cast<CBaseManager*>(itemManager_)->LoadObjects(block);
-        ClientReferenceItemsAndSpellsOriginal(this);
+        ReferenceItemsAndSpells();
     }
     return 1;
 }
@@ -1529,8 +1529,8 @@ EI_REPLACE(0x005679A0, LoadManagerObjects);
 int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     block->Seek(0);
     block->ok_ = 1;
-    if (!ClientLoadManagerObjectsOriginal(SpellManager(), block)) return 0;
-    return ClientLoadManagerObjectsOriginal(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
+    if (!LoadManagerObjects(SpellManager(), block)) return 0;
+    return LoadManagerObjects(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
 }
 EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
@@ -1548,7 +1548,7 @@ void PlatformSet::DestructBody() {
 EI_REPLACE_METHOD(0x00561A60, PlatformSet::DestructBody);
 
 PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
-    PlatformSetDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -1586,7 +1586,7 @@ void ClientListManager::DestructBody() {
 EI_REPLACE_METHOD(0x00562EC0, ClientListManager::DestructBody);
 
 ClientListManager* ClientListManager::DeletingDestruct(unsigned flags) {
-    ClientListManagerDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -1603,7 +1603,7 @@ void ClientArrayManager::DestructBody() {
 EI_REPLACE_METHOD(0x00562DF0, ClientArrayManager::DestructBody);
 
 ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
-    ClientArrayManagerDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -1618,17 +1618,10 @@ namespace {
 __declspec(naked) void __fastcall FlowUpdateAndAcknowledgeAt(GameFlow*) EI_ORIGINAL(0x0057F150)
 __declspec(naked) void __fastcall ExitReadAt(ZoneExit*, void*, CStream*) EI_ORIGINAL(0x004E5750)
 __declspec(naked) void __fastcall ReadUnitLooksAt(CStream*, void* /*figured*/, void* /*dressed*/) EI_ORIGINAL(0x0055A190)
-__declspec(naked) void __stdcall GameEnsureZoneAt(const char* /*map*/, const char* /*mob*/) EI_ORIGINAL(0x00578730)
-__declspec(naked) void __fastcall ParticlesReleaseUnheldAt(CParticleManager*) EI_ORIGINAL(0x00498630)
-__declspec(naked) void __fastcall TexturesFreeCacheAt(CTextureManager*) EI_ORIGINAL(0x00692F00)
-__declspec(naked) void __fastcall TerrainSetLightIntervalAt(Terrain*, void*, int /*frames*/) EI_ORIGINAL(0x006C9290)
 __declspec(naked) void __fastcall CreateExitMarkersAt(CWorldClient*) EI_ORIGINAL(0x00567500)
-__declspec(naked) void __fastcall MusicSetZoneModeAt(CMusicSystem*, void*, const char* /*allod*/, int /*dungeon*/)
-    EI_ORIGINAL(0x006B4E30)
 __declspec(naked) void __fastcall ViewAppendReceivedAt(CPlayerClient*, void*, void* /*source*/) EI_ORIGINAL(0x00667B40)
 __declspec(naked) void __fastcall BuildUnitSkinsAt(CWorldClient*, void*, const void* /*figured*/, const void* /*dressed*/)
     EI_ORIGINAL(0x00568800)
-__declspec(naked) int __fastcall ViewSendResumeAt(CPlayerClient*) EI_ORIGINAL(0x0066B300)
 
 constexpr int kSkyTextureKind = 0x3D;
 // The loading movie's progress steps of the zone load.
@@ -1700,7 +1693,7 @@ int CWorldClient::LoadZone(CStream* block) {
     UnitLooks looks;
     ReadUnitLooksAt(block, &looks.figured, &looks.dressed);
     cave_ = cave;
-    GameEnsureZoneAt(map, mob);
+    GameEnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);
 
     // The old zone goes.
@@ -1708,7 +1701,7 @@ int CWorldClient::LoadZone(CStream* block) {
     ResetZoneObjects();
     ClearMaps();
     ReleaseItemsAndSpells();
-    ParticlesReleaseUnheldAt(ClientParticleManager());
+    ClientParticleManager()->ReleaseUnheld();
     Session()->gameKind = 0;
     ShowLoadingMovie(kProgressZoneCleared);
     Terrain* terrain = terrain_;
@@ -1721,7 +1714,7 @@ int CWorldClient::LoadZone(CStream* block) {
     terrain->ClearMap();
     // The original fetches the texture manager (slot 34) for both calls; the first does not use it.
     DeleteComposedTextures();
-    TexturesFreeCacheAt(TextureManager());
+    TextureManager()->FreeCache();
     ShowLoadingMovie(kProgressMapFreed);
 
     // The allod of the local player's zone names the texture pages, the lights and the music.
@@ -1738,7 +1731,7 @@ int CWorldClient::LoadZone(CStream* block) {
     if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~kLandscapeWaves;
     if (cave == kCave) terrain->landscapeFlags |= kLandscapeWaves;
     if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSelfShadowing;
-    TerrainSetLightIntervalAt(terrain, nullptr, worlddata::LightingFrequencyOption() / kFrameMilliseconds);
+    terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
         auto* holder = reinterpret_cast<CTexture**>(&skyDome_->texture);
         if (cave == kCave) {
@@ -1766,8 +1759,8 @@ int CWorldClient::LoadZone(CStream* block) {
     worlddata::LastLitHour() = -1.0f;
     UpdateLighting();
     if (worlddata::AudioOption() && worlddata::MovieVolumeSetting()) {
-        if (InFinalZone()) MusicSetZoneModeAt(music_, nullptr, worlddata::FinalMusicText(), cave_ == kCave);
-        else MusicSetZoneModeAt(music_, nullptr, allod, cave_ == kCave);
+        if (InFinalZone()) music_->SetZoneMode(worlddata::FinalMusicText(), cave_ == kCave);
+        else music_->SetZoneMode(allod, cave_ == kCave);
     }
 
     // The local server's pending messages follow this block in the view's stream.
@@ -1778,7 +1771,7 @@ int CWorldClient::LoadZone(CStream* block) {
     const float wind = worlddata::DefaultWindForceOption();
     if (wind < 0.0f || wind > 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
-    ViewSendResumeAt(Session() ? Session()->LocalClient() : nullptr);
+    (Session() ? Session()->LocalClient() : nullptr)->SendResume();
     CloseLoadingMovie();
     return 1;
 }

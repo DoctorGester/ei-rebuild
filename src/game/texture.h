@@ -482,17 +482,14 @@ public:
     // surface filled from the file (0068FA10) and loaded into a managed texture surface; copies
     // the file's extra block. Returns 1.
     int CreateFromMmp(CTextureDevice* device, const void* data, unsigned mip);
-    int CallCreateFromMmp(CTextureDevice* device, const void* data, unsigned mip);   // through 00690430
     // 00690260 (texture_fill.cpp). Loads the .bmp `path` with its alpha from "a_<file>" beside it
     // (LoadBmpFiles), the path's pieces trimmed. 1 without loading when this texture is loaded and
     // named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
-    int CallLoadBmp(CTextureDevice* device, const char* path);   // through 00690260
     // 0068FA10 (texture_fill.cpp). Fills `surface`'s levels with the .mmp `data` from level `mip`
     // on: copied (00690970) when the formats match, 8888 converted to 16 bits (00690B30), DXT
     // decoded to 16 bits (00690D30). Returns the bytes written (MmpHeader::FilledBytes).
     int FillSurface(CDXSurface* surface, const void* data, int mip);
-    int CallFillSurface(CDXSurface* surface, const void* data, int mip);   // through 0068FA10
     // 00690970, 00690B30, 00690D30 (thiscall, the texture unused by the first and last): each locks
     // a level, writes it, unlocks it and moves to the attached level (not released, as in the
     // original) until the file's last level or the chain's end. Bytes written, or the DirectX

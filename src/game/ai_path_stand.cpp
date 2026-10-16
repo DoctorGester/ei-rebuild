@@ -63,7 +63,7 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     path->targetY = static_cast<float>(scale * object->position.y);
     Vector3 facing;
     FacingFromQuaternion(&object->orientation.w, &facing.x);
-    AIPathStartOriginal(path, nullptr, &object->position, &facing, *time);
+    path->Start(&object->position, &facing, *time);
 }
 
 } // namespace

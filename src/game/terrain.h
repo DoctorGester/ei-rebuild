@@ -174,8 +174,6 @@ public:
     // column / row), loading the sectors it crosses; 0 when a vertex is above the ray, 1 at the
     // ray's end or the map's edge. A sun at or below the horizon: its direction's z sign bit.
     int SunReaches(const terrain::SectorPosition* position);
-    // SunReaches through its address (006C92C0), so that its verify wrapper runs (terrain_lighting.cpp).
-    int SunReachesAtOriginal(const terrain::SectorPosition* position);
 
     // terrain_sector.cpp:
     // 006C53C0. The 18 floats (9 u, then 9 v) of texture `index` of `page` under `rotation`.
@@ -248,7 +246,7 @@ public:
     // quad (`corners` as DecalBuilder::Begin takes them) along the builder's slope until its lowest
     // point meets the lowest ground vertex of the cells under it (one cell of margin, clamped to
     // the map), then hands those cells' ground triangles to the builder (Reserve, then two
-    // AddTerrainTriangle per cell, through the original 004D8490).
+    // AddTerrainTriangle per cell).
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
     // 00562B80 (S13a, world_destructors.cpp). The destructor's body: the vtable, Destroy, the

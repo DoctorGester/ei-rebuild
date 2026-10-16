@@ -32,9 +32,6 @@ void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint3
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
-// The texture manager finds or loads a texture by name [00693C60, CTextureManager::FindTexture,
-// through its address].
-__declspec(naked) CTexture* __fastcall FindTexture(CTextureManager*, void*, const char*) EI_ORIGINAL(0x00693C60)
 // *slot = texture with counted references, the old one released through its slot 4 [004EBE60].
 void AssignTexture(CEngineObject** slot, CEngineObject* value) {
     CEngineObject* previous = *slot;
@@ -42,12 +39,8 @@ void AssignTexture(CEngineObject** slot, CEngineObject* value) {
     if (value) ++value->refCount_;
     if (previous) previous->Release();
 }
-// The device [thiscall]: binds a surface to a stage [004EB300: stage, surface], binds a texture to
-// a stage [004EBAF0: stage, texture], flushes the batched vertices [004E7840]; through their
-// addresses (CTextureDevice::BindSurface, BindTexture, FlushBatch).
-__declspec(naked) void __fastcall BindSurface(CTextureDevice*, void*, int, CDXSurface*) EI_ORIGINAL(0x004EB300)
-__declspec(naked) void __fastcall BindTexture(CTextureDevice*, void*, int, CTexture*) EI_ORIGINAL(0x004EBAF0)
-void FlushBatch(CTextureDevice* device) { DeviceFlushBatchAOriginal(device); }
+// The device's batched vertices flushed [004E7840, CTextureDevice::FlushBatch].
+void FlushBatch(CTextureDevice* device) { device->FlushBatch(); }
 
 struct DrawArgs {
     int primitive;
@@ -92,16 +85,16 @@ void SetTexCoordIndex(CTextureDevice* device, int stage, std::uint32_t index, bo
 // a stage without one unbinds the device's texture of that stage (stageSurfaces_) once.
 void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
-        BindSurface(device, nullptr, stage, TextureSurface(s.texture));
+        device->BindSurface(stage, TextureSurface(s.texture));
         return;
     }
     if (!s.name.empty()) {
-        CTexture* texture = FindTexture(device::TextureManager(), nullptr, s.name.data());
+        CTexture* texture = device::TextureManager()->FindTexture(s.name.data());
         CEngineObject* old = s.texture;
         s.texture = texture;
         if (texture) ++texture->refCount_;
         if (old) old->Release();
-        BindSurface(device, nullptr, stage, s.texture ? TextureSurface(s.texture) : nullptr);
+        device->BindSurface(stage, s.texture ? TextureSurface(s.texture) : nullptr);
         return;
     }
     CDXSurface*& bound = device->stageSurfaces_[stage];
@@ -116,12 +109,12 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
 // First of several passes: every stage of the first pass.
 void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
-        BindSurface(device, nullptr, stage, TextureSurface(s.texture));
+        device->BindSurface(stage, TextureSurface(s.texture));
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, FindTexture(device::TextureManager(), nullptr, s.name.data()));
-        BindTexture(device, nullptr, stage, static_cast<CTexture*>(s.texture));
+        AssignTexture(&s.texture, device::TextureManager()->FindTexture(s.name.data()));
+        device->BindTexture(stage, static_cast<CTexture*>(s.texture));
     } else {
-        BindSurface(device, nullptr, stage, nullptr);
+        device->BindSurface(stage, nullptr);
     }
 }
 
@@ -131,10 +124,10 @@ void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
     if (s.texture) {
         surface = TextureSurface(s.texture);
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, FindTexture(device::TextureManager(), nullptr, s.name.data()));
+        AssignTexture(&s.texture, device::TextureManager()->FindTexture(s.name.data()));
         if (s.texture) surface = TextureSurface(s.texture);
     }
-    BindSurface(device, nullptr, 0, surface);
+    device->BindSurface(0, surface);
 }
 
 void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& args) {

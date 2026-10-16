@@ -1,5 +1,7 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
+#include "core_streams.h"
+#include "ui.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
@@ -82,7 +84,7 @@ constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 int Compare(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
 MapRecord* FindLocalMap() {
@@ -182,11 +184,11 @@ void CBriefingScreen::Create() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        StreamResizeOriginal(GameSaveStream(), nullptr, 0);
+        static_cast<CMemoryStream*>(GameSaveStream())->Resize(0);
     else if (LocalViewPlayer()->lastScreen != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();
-    BriefingLoadPersonTextsOriginal(this);
+    LoadPersonTexts();
     LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
@@ -224,7 +226,7 @@ void CBriefingScreen::Create() {
 
     SetMeshesVisible(this, 0);
     for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
-    for (int i = 0; i < children_.size; ++i) WindowSetEnabled(children_.data[i], nullptr, 0, 1);
+    for (int i = 0; i < children_.size; ++i) children_.data[i]->SetEnabled(0, 1);
     state_ = kWalking;
     exitPending_ = true;
     exit_ = 0;
@@ -280,7 +282,7 @@ void CBriefingScreen::Create() {
     const auto& objects = LocalViewPlayer()->objects.map;
     for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
         int id = node->value->id_;
-        if (IsTextKeyOriginal(id)) people_.push_back(id);
+        if (IsTextKey(id)) people_.push_back(id);
     }
     markPhase_ = 0.0f;
 }
@@ -295,8 +297,8 @@ void CBriefingScreen::Update() {
     UiUpdateChildrenOriginal(this);
     SetMeshesVisible(this, 0);
     for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
-    WindowSetEnabled(children_.data[kTopicBarChild], nullptr, 0, 1);
-    WindowSetEnabled(children_.data[kTextChild], nullptr, 0, 1);
+    children_.data[kTopicBarChild]->SetEnabled(0, 1);
+    children_.data[kTextChild]->SetEnabled(0, 1);
 
     for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
         node->time = static_cast<float>(WindowFrameTimeOriginal(this) + node->time);
@@ -320,11 +322,11 @@ void CBriefingScreen::Update() {
         surfaces_.data[kTopicsSurface]->Freeze(1, 0);
         reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicBackdrop])->visible_ = 1;
         reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicFrame])->visible_ = 1;
-        WindowSetEnabled(topicBar_, nullptr, 1, 1);
+        topicBar_->SetEnabled(1, 1);
         int position;
-        if (ScrollbarTakePositionOriginal(topicBar_, nullptr, &position)) {
+        if (topicBar_->TakePosition(&position)) {
             topicTop_ = position;
-            BriefingDrawTopicsOriginal(this);
+            DrawTopics();
         }
         MarkPeople();
         LeaveIfExitOpen();
@@ -342,11 +344,11 @@ void CBriefingScreen::Update() {
                 break;
             }
         }
-        if (state_ == kPhrases) BriefingStartPhrasesOriginal(this);
+        if (state_ == kPhrases) StartPhrases();
         break;
     case kPhrases:
         SetMeshesVisible(this, 1);
-        WindowSetEnabled(text_, nullptr, 1, 1);
+        text_->SetEnabled(1, 1);
         if (voice_ != -1) {
             if (VoiceEnded(voice_)) BriefingNextPhraseOriginal(this, nullptr, 0);
         } else {
@@ -356,7 +358,7 @@ void CBriefingScreen::Update() {
         break;
     case kRewards:
         SetMeshesVisible(this, 1);
-        WindowSetEnabled(text_, nullptr, 1, 1);
+        text_->SetEnabled(1, 1);
         if (voice_ != -1) {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
         } else {

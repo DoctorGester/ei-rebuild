@@ -5,6 +5,8 @@
 // a text key also the armour and weapons, all taken off the unit and put on the drop list. A unit
 // is looted once (flag 0x100000). Plain float maths for the amounts (rule 7). See
 // docs/notes/objects.md ("Rewritten").
+#include "item.h"
+#include "object_tables.h"
 #include "random.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -33,7 +35,7 @@ using PtrListNode = PtrList::Node;
 inline PtrListNode* __fastcall NewNode(PtrList* l, void*, PtrListNode* prev, PtrListNode* next) { return static_cast<PtrListNode*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) void __fastcall UnitRemoveQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x005311E0)
-void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)UnitWornItemOriginal((const void*)a0, nullptr, a2); }
+void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)static_cast<const CUnit*>((const void*)a0)->WornItem(a2); }
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
@@ -79,7 +81,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     auto* drops = static_cast<PtrList*>(dropList);
     auto* items = static_cast<PtrList*>(itemList);
     auto* cunit = reinterpret_cast<CUnit*>(unit);
-    bool keyed = IsTextKeyOriginal(cunit->id_) & 0xFF;
+    bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     void* manager = static_cast<CWorld*>(world)->ItemFactory();
     char* prototype = UnitPrototype(unit);
@@ -103,22 +105,22 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
         if (*gold < 0) *gold = 0;
     }
     for (int slot = 0; slot < 4; ++slot) {
-        if (void* item = UnitQuickItem(cunit, nullptr, slot)) Append(drops, item);
+        if (void* item = cunit->GetQuickItem(slot)) Append(drops, item);
         UnitRemoveQuickItem(unit, nullptr, slot);
     }
     for (int i = 0; i < cunit->carriedCount; ++i) {
         if (void* item = cunit->carried[i]) Append(drops, item);
     }
-    while (cunit->carriedCount != 0) UnitRemoveCarried(cunit, nullptr, 0);
+    while (cunit->carriedCount != 0) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
             void* armour = UnitArmour(unit, nullptr, slot);
             if (!armour) continue;
             Append(drops, armour);
-            UnitUnequipArmour(cunit, nullptr, ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)));
+            cunit->UnequipArmour(reinterpret_cast<CItemArmor*>(armour)->GetType());
         }
         for (int slot = 0; slot < 4; ++slot) {
-            void* weapon = UnitWeapon(cunit, nullptr, slot);
+            void* weapon = cunit->GetWeapon(slot);
             if (!weapon) continue;
             Append(drops, weapon);
             UnitRemoveWeaponOriginal(cunit, nullptr, slot);

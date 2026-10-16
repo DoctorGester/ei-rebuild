@@ -1,8 +1,10 @@
 // The battle screen's mouse-over (00639EF0): the unit under the mouse in the unit panel and the
 // cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
+#include "item.h"
 #include "ui.h"
 
+#include "ui_cursor.h"
 #include "unit.h"
 #include "unit_db.h"
 
@@ -17,6 +19,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "world.h"
 
 namespace {
 
@@ -38,7 +41,7 @@ constexpr int kCursorOrder = 0x18;
 struct HoverCursor {
     int SetShape(int shape);
 };
-int HoverCursor::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
+int HoverCursor::SetShape(int a2) { return static_cast<CCursor*>((void*)this)->ChangeShape(a2); }
 void SetCursor(int shape) { reinterpret_cast<HoverCursor*>(0x007C7BD8)->SetShape(shape); }
 
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
@@ -70,7 +73,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = HoverPickSurface(kClientWorld, nullptr, &out, x, y);
+        Vector3* p = static_cast<CWorldClient*>(kClientWorld)->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
@@ -155,8 +158,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             int exit;
             if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
             mfc::CString name(GameExitZoneOriginal(kPlayerGlue, nullptr, exit));
-            if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                                 reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
+            if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
+                                reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
                 name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."
                 double value = HoverPlayerVariable(kPlayerGlue, nullptr, name);
                 const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
@@ -195,8 +198,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         if (!unit || unitDead(unit)) break;
         Vector3 at = unitPosition(unit);
         if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x) != 0) break;
-        void* item = UnitQuickItem(first, nullptr, pendingSlot_);
-        if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) break;
+        void* item = first->GetQuickItem(pendingSlot_);
+        if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;
     }

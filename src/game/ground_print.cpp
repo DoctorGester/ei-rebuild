@@ -14,7 +14,7 @@
 #include "figure_mesh.h"         // VertexPacket
 #include "ground_decal.h"        // DecalTexCoord
 #include "model.h"               // ThePrintsDatabase
-#include "originals_effects.h"   // IsLit
+#include "originals_effects.h"
 #include "originals_render.h"    // DeviceDrawFlatOriginal
 #include "originals_ui.h"        // TextureNamedOriginal, TextureLoadOriginal
 #include "originals_world.h"     // ClientProjectDecalOriginal
@@ -59,9 +59,6 @@ bool BloodPrintsOn() { return *reinterpret_cast<const int*>(0x0079BD50) != 0; }
 bool FootprintsOn() { return *reinterpret_cast<const int*>(0x0079BD4C) != 0; }
 bool ScorchMarksOn() { return *reinterpret_cast<const int*>(0x0079BD54) != 0; }
 
-// 004EB1D0 (the device, thiscall, RET 8): binds `texture` to `stage` (looked up again by its name).
-__declspec(naked) int __fastcall DeviceBindNamedTexture(CTextureDevice*, void*, int /*stage*/, NamedTexture*)
-    EI_ORIGINAL(0x004EB1D0)
 // The lists' insert(position, value) (thiscall, RET 0xC; `out` receives the new node).
 __declspec(naked) void __fastcall BloodPrintsInsert(stlp::list<BloodPrint>*, void*, stlp::list<BloodPrint>::Node** /*out*/,
                                                     stlp::list<BloodPrint>::Node* /*position*/, const BloodPrint*)
@@ -169,7 +166,7 @@ GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, flo
     halfLength_ = halfLength;
     ei::SetVtable(this, kVtableAddress);
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
+    lit_ = camera::TheTerrain()->EdgeFade(&point);
     int quarter = RandomQuarter();
     uvScale_ = {kHalf, kHalf};
     uvOffset_.x = static_cast<float>(quarter & 1) * kHalf;
@@ -287,7 +284,7 @@ int GroundPrint::Draw() {
     std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
     CTextureDevice* device = RenderDeviceObject();
-    DeviceBindNamedTexture(device, nullptr, 0, &texture_);
+    device->BindNamedTexture(0, &texture_);
     return DeviceDrawFlatOriginal(device, nullptr, positions_.data, texCoords_.data, positions_.size, indices_.data,
                                   indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }
@@ -318,7 +315,7 @@ Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLen
     ei::SetVtable(this, kVtableAddress);
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
+    lit_ = camera::TheTerrain()->EdgeFade(&point);
     // The tile's parts are below 2^16: converted as ints.
     int index = static_cast<int>(tile & 0xFFFF);
     uvOffset_.x = static_cast<float>(index & 7) * kEighth + static_cast<float>(static_cast<int>(tile >> 16)) * kSixteenth;
@@ -359,7 +356,7 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     halfWidth_ = halfSize;
     halfLength_ = halfSize;
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
+    lit_ = camera::TheTerrain()->EdgeFade(&point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
     uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * kHalf;

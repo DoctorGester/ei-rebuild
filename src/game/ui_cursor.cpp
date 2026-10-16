@@ -3,6 +3,7 @@
 // cursor bit is set. Also the cursor images' constructor (005E4EB0), which builds each image's mask
 // from its picture: in the switch-over with "cpuwindows" the picture's holder has no DirectDraw
 // surface (ticket R7), and the mask is built from the new renderer's memory (DirectPixels).
+#include "app.h"
 #include "ui_cursor.h"
 #include "game_strings.h"
 #include "dx_surface.h"
@@ -35,7 +36,7 @@ int Lock(CDXSurface* holder, RECT* rect, std::uint32_t* desc) {
     using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
     long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, rect, desc, 1, nullptr);
     holder->result = hr;
-    if (hr != 0) return FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
+    if (hr != 0) return app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
     return 1;
 }
 
@@ -45,7 +46,7 @@ void Unlock(CDXSurface* holder) {
     using UnlockFn = long(__stdcall*)(void**, RECT*);
     long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
     holder->result = hr;
-    if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
+    if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
 // The blend for pixels of type T (16 or 32 bits): to = (under & saved) | image, row by row over
@@ -168,7 +169,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     if (!direct) {
         long hr = SurfaceCall(holder->surface, kGetSurfaceDesc, static_cast<void*>(desc));
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E6C4));   // "Can't get surface description"
+        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E6C4));   // "Can't get surface description"
     }
     std::uint32_t pictureWidth = desc[kDescWidth], pictureHeight = desc[kDescHeight];
     std::uint32_t count = pictureWidth / pictureHeight;
@@ -189,7 +190,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
         long hr = SurfaceCall(holder->surface, kLockSlot, static_cast<RECT*>(nullptr), static_cast<void*>(desc), kLockWait,
                               static_cast<void*>(nullptr));
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
+        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
     }
     const auto* pixels = reinterpret_cast<const std::uint8_t*>(static_cast<std::uintptr_t>(desc[kDescSurface]));
     std::uint32_t rows = desc[kDescHeight], columns = desc[kDescWidth], pitch = desc[kDescPitch];
@@ -206,7 +207,7 @@ CursorImage* CursorImage::Construct(const char* name, int hotSpotX, int hotSpotY
     if (!direct) {
         long hr = SurfaceCall(holder->surface, kUnlockSlot, static_cast<RECT*>(nullptr));
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
+        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     }
     return this;
 }

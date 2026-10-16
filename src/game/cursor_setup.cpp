@@ -3,6 +3,7 @@
 // object itself (005E5xxx-005E6xxx) is not rewritten yet.
 #include "ei/hook.h"
 #include "originals_ui.h"
+#include "ui_cursor.h"
 
 #include <cstdint>
 
@@ -13,12 +14,8 @@ void* CursorObject() { return reinterpret_cast<void*>(0x007C7BD8); }
 std::uint32_t CursorWindow() { return *reinterpret_cast<const std::uint32_t*>(0x007AF080); }
 // 005E60B0 (RET 0x10): Init(window, mode 1 or 2, context, small); the small flag is the low byte.
 __declspec(naked) void __fastcall CursorInit(void*, void*, std::uint32_t, int, int, int) EI_ORIGINAL(0x005E60B0)
-// 005E63F0 (RET 0x10): adds the shape `name` with its hot spot (x, y).
-__declspec(naked) void __fastcall CursorAddShape(void*, void*, const char*, int, int, int) EI_ORIGINAL(0x005E63F0)
-// 005E6260: shows shape 0 and (unless mode 1) starts the drawing thread. 005E62E0: stops the
-// thread and releases the shapes.
-__declspec(naked) void __fastcall CursorStart(void*) EI_ORIGINAL(0x005E6260)
-void __fastcall CursorShutdown(void* cursor) { CursorShutdownOriginal(cursor); }
+// 005E62E0: stops the drawing thread and releases the shapes.
+void __fastcall CursorShutdown(void* cursor) { static_cast<CCursor*>(cursor)->Shutdown(); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
 void __fastcall SetUpCursorsAt(bool modeTwo, int context, int smallCursors, int flags) {
     SetUpCursorsOriginal(modeTwo, context, smallCursors, flags);
@@ -65,8 +62,8 @@ void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int fl
     CursorInit(CursorObject(), nullptr, CursorWindow(), modeTwo ? 2 : 1, context, smallCursors);
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     for (const CursorShape& shape : kShapes)
-        CursorAddShape(CursorObject(), nullptr, useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
-    CursorStart(CursorObject());
+        static_cast<CCursor*>(CursorObject())->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);
+    static_cast<CCursor*>(CursorObject())->Start();
 }
 
 // 005DAE70 (fastcall, RET 8). Shuts the cursor down and sets it up again.

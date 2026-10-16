@@ -261,9 +261,7 @@ __declspec(naked) ShapeCacheIterator* __fastcall ShapeMapFind(ShapeMap*, void*, 
     EI_ORIGINAL(0x005BE320)
 __declspec(naked) ShapeCacheIterator* __fastcall ShapeIteratorInit(ShapeCacheIterator*, void*, ShapeMap::Node*,
                                                                     const ShapeMap*) EI_ORIGINAL(0x005BE450)
-// The pair: construct from a handle and a RefPtr, destroy.
-__declspec(naked) ShapePair* __fastcall ShapePairInit(ShapePair*, void*, const ShapeHandle*, const RefPtr*)
-    EI_ORIGINAL(0x005BE370)
+// The pair's destructor.
 __declspec(naked) void __fastcall ShapePairDestroy(ShapePair*, void*) EI_ORIGINAL(0x005BE280)
 // hash_map insert_unique_noresize-style lookup or insert; returns the node's pair.
 __declspec(naked) ShapePair* __fastcall ShapeMapInsert(ShapeMap*, void*, const ShapePair*) EI_ORIGINAL(0x005BE730)
@@ -317,7 +315,7 @@ void* CAIMap::UnitShape(float standingHeight) {
         shape = UnitShapes()->CreateShape(&handle);
         RefPtr none = {nullptr};
         ShapePair pair;
-        ShapePairInit(&pair, nullptr, &handle, &none);
+        ConstructShapePair(&pair, nullptr, &handle, &none);
         RefPtr* slot = &ShapeMapInsert(map, nullptr, &pair)->value;
         ShapePairDestroy(&pair, nullptr);
         none.Destroy();

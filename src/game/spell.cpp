@@ -219,8 +219,8 @@ int __stdcall SpellCodeByName(const char* name) {
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>((spells.end - spells.begin) / kSpellSize); ++i) {
         auto* spell = reinterpret_cast<const SpellRecord*>(spells.RecordAt(i, kSpellSize));
         const char* spellName = spell->name;
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(spellName),
-                             reinterpret_cast<const unsigned char*>(name)) == 0) {
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(spellName),
+                            reinterpret_cast<const unsigned char*>(name)) == 0) {
             // The code string's pointer, as the original returns it.
             const char* code = reinterpret_cast<const SpellRecord*>(spells.RecordAt(i, kSpellSize))->code;
             return static_cast<int>(reinterpret_cast<std::uintptr_t>(code));
@@ -236,8 +236,8 @@ char* __stdcall SpellModifierCodeByName(const char* name) {
          static_cast<int>(i) < static_cast<int>((modifiers.end - modifiers.begin) / kSpellModifierSize); ++i) {
         auto* modifier = reinterpret_cast<const SpellModifierRecord*>(modifiers.RecordAt(i, kSpellModifierSize));
         const char* modifierName = modifier->name;
-        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(modifierName),
-                             reinterpret_cast<const unsigned char*>(name)) == 0) {
+        if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(modifierName),
+                            reinterpret_cast<const unsigned char*>(name)) == 0) {
             // Out of range gives address 4 (null record + 4), as in the original.
             return reinterpret_cast<SpellModifierRecord*>(modifiers.RecordAt(i, kSpellModifierSize))->code;
         }

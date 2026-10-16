@@ -4,6 +4,7 @@
 // vanilla functions and install in the vanilla launch only (rule 9); callers go through
 // SpellTablesLoadOriginal / ItemDatabaseLoadOriginal. As unit_db_load.cpp; see
 // docs/notes/items_spells.md ("A-H26").
+#include "chunk_archive.h"
 #include "item_db.h"
 
 #include "database_file.h"
@@ -37,13 +38,9 @@ constexpr int kLootChunk = 6;
 // verify wrappers run (LoadLootAt loads the quest items and LoadQuestItemsAt the loot: first names).
 __declspec(naked) void __fastcall SerializeSpellsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x00684EF0)
 __declspec(naked) void __fastcall SerializeModifiersAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x00684FE0)
-__declspec(naked) void __fastcall SerializeSpellListsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x00684C50)
 __declspec(naked) void __fastcall SerializeMaterialsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7940)
 __declspec(naked) void __fastcall SerializeWeaponsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7A30)
 __declspec(naked) void __fastcall SerializeArmorsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7B30)
-__declspec(naked) void __fastcall LoadQuickItemsAt(itemdb::IndexedRecordTable*, void*, CStream*, int) EI_ORIGINAL(0x006A6E50)
-__declspec(naked) void __fastcall LoadLootAt(itemdb::IndexedRecordTable*, void*, CStream*, int) EI_ORIGINAL(0x006A7110)
-__declspec(naked) void __fastcall LoadQuestItemsAt(itemdb::IndexedRecordTable*, void*, CStream*, int) EI_ORIGINAL(0x006A73B0)
 
 // Every record of `records` (`stride` bytes each) filed in `index` under the text `key` gives for
 // it (the index's operator[]: a record of a text seen before replaces the earlier one).
@@ -92,7 +89,7 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     ChunkArchive ar;
     ar.ConstructLocal();
     ar.Open(stream, 1, 1);
-    for (int i = 0; i < 3; ++i) SerializeSpellListsAt(&ar, nullptr, kFirstListChunk + i, &lists[i], unused);
+    for (int i = 0; i < 3; ++i) ar.SerializeSpellLists(kFirstListChunk + i, &lists[i], unused);
     ar.Close(stream);
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();
@@ -123,9 +120,9 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
               [this] { FileRecords(weapons.records, kWeaponSize, weapons.ByName(), ItemName); });
     LoadTable(stream, kArmorsChunk, SerializeArmorsAt, &armors, data,
               [this] { FileRecords(armors.records, kArmorSize, armors.ByName(), ItemName); });
-    LoadQuickItemsAt(&quickItems, nullptr, stream, kQuickItemsChunk);
-    LoadLootAt(&questItems, nullptr, stream, kQuestItemsChunk);
-    LoadQuestItemsAt(&loot, nullptr, stream, kLootChunk);
+    quickItems.LoadQuickItems(stream, kQuickItemsChunk);
+    questItems.LoadQuestItems(stream, kQuestItemsChunk);
+    loot.LoadLoot(stream, kLootChunk);
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();

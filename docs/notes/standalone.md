@@ -10,13 +10,15 @@ left. How changes are checked: docs/notes/standalone-verification.md. Per-ticket
 | Tie | Count |
 |---|---|
 | Unported game functions | 0 (S2 did the last 200, all under 5 bytes; 00656D69 is not a function) |
-| Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), the rest library; forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
+| Forwarders (`EI_ORIGINAL`) | 2,820 addresses (3,817 before C13): 2,795 to rewritten code (C13a), 25 library; forwarders to library code without a registration are 0 since S12g / S6e (operator new / delete 007005AF / 007005D8 are the image's allocator) |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
 | Static initialisers | 748 in the .data list 00783004-00783BB0, all generated (S3); 190 exit functions generated (S3a, S16a) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 
-`tools/dashboard_data.py` measures the current numbers (the dashboard's standalone panel). S18 (after C13) removes
+`tools/dashboard_data.py` measures the current numbers (the dashboard's standalone panel). C13 made 1,001 forwarders
+direct calls with `tools/direct_calls.py` (`--report -v --cast --library` lists the rest and why each stays; the
+skip list config/direct_calls_skip.csv; check_cleanup ratchets the count per file). S18 (after C13a) removes
 the rest: generated definitions for the data addresses, vtables as real virtual classes, imports linked directly,
 plain new / delete; then the image and the read of game.exe go.
 
@@ -120,8 +122,8 @@ plain new / delete; then the image and the read of game.exe go.
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib, layout- and allocator-compatible with the exe; game-element instantiations in
-  src/game (game_arrays, game_lists, game_slots, game_hashes, record_*, library_*). Call sites still go through the
-  forwarders (C13 makes them direct).
+  src/game (game_arrays, game_lists, game_slots, game_hashes, record_*, library_*). C13 made the matching CRT / MFC
+  call sites direct (libcrt::Fopen ...); the rest still go through forwarders (C13a).
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
@@ -337,8 +339,8 @@ User 2026-10-15: the standalone image is the only product, checked by the golden
 - S21g: `harness_heap.cpp`'s order observer and heap::Aside are gone. S21h: the EI_REBIRTH_IMPLEMENTS declarations are gone
   (they disagreed with config/rebirth_patches.csv: 23 declarations named patches the csv does not have, the Eip* plugin features and three WideScreen
   functions, and 37 "implemented" csv rows had none; the csv's status column is the record).
-- Left: 173 src/ comments that call through an address "so the verify
-  wrapper sees it" (C13 makes those calls direct), tests/coverage/reach.txt (the last hook build's reach, kept).
+- Left: 121 src/ comments about calls through an address "so the verify wrapper sees it" (C13 made most such
+  calls direct; the rest are C13a's), tests/coverage/reach.txt (the last hook build's reach, kept).
 
 **S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
 `--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each

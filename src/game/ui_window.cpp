@@ -1,4 +1,5 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
+#include "figure_manager.h"
 #include "ui.h"
 
 #include "material.h"
@@ -339,7 +340,7 @@ void CUiWindow::ShowSurfaces(int show) {
 }
 EI_REPLACE_METHOD(0x006002C0, CUiWindow::ShowSurfaces);
 
-void CUiSurface::CallSwapContents(int restore) { SurfaceSwapContentsOriginal(this, nullptr, restore); }
+void CUiSurface::CallSwapContents(int restore) { SwapContents(restore); }
 
 void CUiSurface::Freeze(int frozen, int restore) {
     if (frozen) {
@@ -414,7 +415,7 @@ EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
 namespace {
 // 005AC1A0: a new object of the model manager by name, or null.
 CEngineObject* NewModelObject(const char* name) {
-    return reinterpret_cast<CEngineObject*>(ModelManagerNewObjectOriginal(UiModelManager(), nullptr, name));
+    return reinterpret_cast<CEngineObject*>(static_cast<CFigureManager*>(UiModelManager())->NewFigure(name));
 }
 // 0059F3D0 (thiscall on the object): attaches it to the window.
 void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }

@@ -330,7 +330,6 @@ namespace mfc {
 namespace {
 // MFC's thread state lookup: the address of the thread's top link (the original's in the hook
 // build, ExceptionLinkTop below in the image).
-__declspec(naked) ExceptionLink** __cdecl LinkTopAt() EI_ORIGINAL(0x00702107)
 } // namespace
 
 ExceptionLink** __cdecl ExceptionLinkTop() {
@@ -340,14 +339,14 @@ ExceptionLink** __cdecl ExceptionLinkTop() {
 
 ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link) {
     link->exception = nullptr;
-    ExceptionLink** top = LinkTopAt();
+    ExceptionLink** top = ExceptionLinkTop();
     link->previous = *top;
     *top = link;
     return link;
 }
 
 void __cdecl TryCleanup() {
-    ExceptionLink** top = LinkTopAt();
+    ExceptionLink** top = ExceptionLinkTop();
     ExceptionLink* link = *top;
     if (link->exception) impl::DeleteException(static_cast<impl::CException*>(link->exception));
     *top = link->previous;

@@ -637,9 +637,6 @@ public:
     // calls the original makes (ui_camp.cpp).
     bool CallCanMakeSpell();         // 00612290
     bool CallCanMakeItem();          // 00612600
-    int CallTakeOff(std::uint8_t* item);           // 0060FE40
-    void CallPutOn(std::uint8_t* item);            // 0060FCA0
-    void CallPutOnFromStrip(std::uint8_t* item);   // 00610920
     void CallShowHero();             // 0060F830
     // The camp's virtual slots the pages call (the main vtable 0074091C): 43 CanEquip (AL), 45 the
     // party's best skill and mana in a school (00610020), 46 / 47 RefreshWeapons / RefreshStats, 51

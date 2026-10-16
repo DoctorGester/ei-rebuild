@@ -1,6 +1,7 @@
 // The units database records' serialisers: unit prototypes (0052D740), unit models (0052DC70) and NPCs
 // (0052DA60); the skill (perk) database's records, vectors and lookups (A-U10).
 // See unit_db.h and docs/notes/units.md ("Database records").
+#include "chunk_archive.h"
 #include "unit_db.h"
 
 #include "model.h"   // ChunkArchive
@@ -19,43 +20,42 @@ namespace {
 // Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
 // as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
 __declspec(naked) void __fastcall FourDwords(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
-__declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6F0)
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
 void __fastcall StringsClear(CStringVector* a0) { CStringVectorClearOriginal((void*)a0); }
 
-void Dword(ChunkArchive* ar, int id, void* data) { ArchiveField(ar, nullptr, id, data, 4); }
+void Dword(ChunkArchive* ar, int id, void* data) { ar->Field(id, data, 4); }
 
 } // namespace
 
 void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
-    if (!ArchiveEnter(ar, nullptr, id)) return;
+    if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
         StringsClear(strings);
-        count = ArchiveCount(ar, nullptr, 1);
+        count = ar->CountChunks(1);
         CStringVectorResizeOriginal(strings, nullptr, static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ArchiveString(ar, nullptr, 1, &strings->begin()[i]);
+        ar->CStringField(1, &strings->begin()[i]);
     }
-    ArchiveLeave(ar);
+    ar->LeaveChunk();
 }
 
 void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &name);
-    ArchiveString(ar, nullptr, 1, &modelName);
+    ar->CStringField(0, &name);
+    ar->CStringField(1, &modelName);
     Dword(ar, 2, &modelIndex);
     Dword(ar, 3, &skin);
     Dword(ar, 4, &hair);
     Dword(ar, 5, &scale.x);
     Dword(ar, 6, &scale.y);
     Dword(ar, 7, &scale.z);
-    ArchiveString(ar, nullptr, 8, &soundFolder);
+    ar->CStringField(8, &soundFolder);
     Dword(ar, 9, &hitPoints);
     Dword(ar, 10, &mana);
     Dword(ar, 11, &protectionScale);
@@ -72,24 +72,24 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x16, &attributes01);
     Dword(ar, 0x17, &attribute2);
     Dword(ar, 0x18, &peripheralRange);
-    ArchiveField(ar, nullptr, 0x19, valuesB0, sizeof(valuesB0));
-    ArchiveField(ar, nullptr, 0x1A, valuesE0, sizeof(valuesE0));
-    if (ArchiveEnter(ar, nullptr, 0x1B)) {
+    ar->Field(0x19, valuesB0, sizeof(valuesB0));
+    ar->Field(0x1A, valuesE0, sizeof(valuesE0));
+    if (ar->EnterChunk(0x1B)) {
         Dword(ar, 0, &gold.chance);
         Dword(ar, 1, &gold.field1);
         Dword(ar, 2, &gold.minimum);
         Dword(ar, 3, &gold.maximum);
-        ArchiveLeave(ar);
+        ar->LeaveChunk();
     }
-    if (ArchiveEnter(ar, nullptr, 0x1C)) {
+    if (ar->EnterChunk(0x1C)) {
         FourDwords(&secondGold, nullptr, ar);
-        ArchiveLeave(ar);
+        ar->LeaveChunk();
     }
     ArchiveCStringsOriginal(ar, nullptr, 0x1D, &lootItems, ar);
-    ArchiveField(ar, nullptr, 0x1E, skills3to5, sizeof(skills3to5));
+    ar->Field(0x1E, skills3to5, sizeof(skills3to5));
     ArchiveCStringsOriginal(ar, nullptr, 0x1F, &spellNames, ar);
     ArchiveCStringsOriginal(ar, nullptr, 0x20, &armourNames, ar);
-    ArchiveString(ar, nullptr, 0x21, &weaponName);
+    ar->CStringField(0x21, &weaponName);
     Dword(ar, 0x22, &panelViewSize);
     Dword(ar, 0x23, &height);
     Dword(ar, 0x24, &combat[2]);
@@ -98,46 +98,46 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x27, &hitSoundKind);
     Dword(ar, 0x28, &shake);
     Dword(ar, 0x29, &level);
-    ArchiveString(ar, nullptr, 0x2A, &secondWeaponName);
+    ar->CStringField(0x2A, &secondWeaponName);
     Dword(ar, 0x2B, &experienceValue);
 }
 EI_REPLACE_METHOD(0x0052D740, UnitPrototypeRecord::Serialize);
 
 void UnitModelRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &name);
+    ar->CStringField(0, &name);
     Dword(ar, 1, &objectClass);
     Dword(ar, 2, &hitPointRegen);
     Dword(ar, 3, &manaRegen);
     Dword(ar, 4, &field4);
     Dword(ar, 5, &movementKind);
     Dword(ar, 6, &angle);
-    ArchiveField(ar, nullptr, 7, modeSpeeds, sizeof(modeSpeeds));
+    ar->Field(7, modeSpeeds, sizeof(modeSpeeds));
     Dword(ar, 8, &field8);
     Dword(ar, 9, &sizeClass);
     Dword(ar, 10, &sizeClassSmall);
-    ArchiveField(ar, nullptr, 11, damageWeights, sizeof(damageWeights));
+    ar->Field(11, damageWeights, sizeof(damageWeights));
     for (int i = 0; i < 6; ++i) {
-        if (ArchiveEnter(ar, nullptr, 0x0C + i)) {
-            ModelSlot(&slots[i], nullptr, ar);
-            ArchiveLeave(ar);
+        if (ar->EnterChunk(0x0C + i)) {
+            slots[i].Serialize(ar);
+            ar->LeaveChunk();
         }
     }
-    ArchiveString(ar, nullptr, 0x1E, &figureName);
+    ar->CStringField(0x1E, &figureName);
     ArchiveCStringsOriginal(ar, nullptr, 0x1F, &field1F, ar);
     ArchiveCStringsOriginal(ar, nullptr, 0x20, &field20, ar);
     Dword(ar, 0x21, &height);
-    ArchiveString(ar, nullptr, 0x22, &soundFolder);
+    ar->CStringField(0x22, &soundFolder);
     ArchiveCStringsOriginal(ar, nullptr, 0x23, &soundNames, ar);
-    ArchiveField(ar, nullptr, 0x24, actionSpeeds, sizeof(actionSpeeds));
+    ar->Field(0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
-    ArchiveField(ar, nullptr, 0x27, protection, sizeof(protection));
+    ar->Field(0x27, protection, sizeof(protection));
     Dword(ar, 0x28, &bloodKind);
     Dword(ar, 0x29, &castEffect);
     Dword(ar, 0x2A, &footprintKind);
     Dword(ar, 0x2B, &footPart);
-    ArchiveString(ar, nullptr, 0x2C, &hitMaterial);
-    ArchiveField(ar, nullptr, 0x2D, &swapFeet, 1);
+    ar->CStringField(0x2C, &hitMaterial);
+    ar->Field(0x2D, &swapFeet, 1);
     Dword(ar, 0x2E, &sizeScale);
     Dword(ar, 0x2F, &eyeLeft);
     Dword(ar, 0x30, &eyeBottom);
@@ -147,21 +147,21 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
 EI_REPLACE_METHOD(0x0052DC70, UnitModelRecord::Serialize);
 
 void UnitNpcRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &name);
+    ar->CStringField(0, &name);
     Dword(ar, 1, &field1);
     Dword(ar, 2, &experience);
     Dword(ar, 3, &stats[0]);
     Dword(ar, 4, &stats[1]);
     Dword(ar, 5, &stats[2]);
-    ArchiveField(ar, nullptr, 6, attributes, sizeof(attributes));
-    ArchiveField(ar, nullptr, 7, skills, sizeof(skills));
+    ar->Field(6, attributes, sizeof(attributes));
+    ar->Field(7, skills, sizeof(skills));
     ArchiveCStringsOriginal(ar, nullptr, 8, &skillNames, ar);
     InlineStrings(ar, 9, &startWeapons);
     InlineStrings(ar, 10, &startQuickItems);
     InlineStrings(ar, 11, &startSpells);
     Dword(ar, 12, &experienceFloor);
     Dword(ar, 13, &startMoney);
-    ArchiveField(ar, nullptr, 14, &voiced, 1);
+    ar->Field(14, &voiced, 1);
 }
 EI_REPLACE_METHOD(0x0052DA60, UnitNpcRecord::Serialize);
 
@@ -173,7 +173,7 @@ void __fastcall SerializeFourDwords(std::uint32_t* values, void*, ChunkArchive* 
 EI_REPLACE(0x0052D6A0, SerializeFourDwords);
 
 void UnitModelSlot::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &levelName);
+    ar->CStringField(0, &levelName);
     Dword(ar, 1, &levelIndex);
     Dword(ar, 2, &share);
     Dword(ar, 3, &factor);
@@ -181,9 +181,9 @@ void UnitModelSlot::Serialize(ChunkArchive* ar) {
 EI_REPLACE_METHOD(0x0052D6F0, UnitModelSlot::Serialize);
 
 void UnitLevelRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &name);
-    ArchiveField(ar, nullptr, 1, valuesA, sizeof(valuesA));
-    ArchiveField(ar, nullptr, 2, valuesB, sizeof(valuesB));
+    ar->CStringField(0, &name);
+    ar->Field(1, valuesA, sizeof(valuesA));
+    ar->Field(2, valuesB, sizeof(valuesB));
     Dword(ar, 3, &vitalMask);
     Dword(ar, 4, &slotType);
 }
@@ -208,12 +208,12 @@ __declspec(naked) void __fastcall LevelSerializeAt(UnitLevelRecord*, void*, Chun
 template <typename Record, typename Destroy, typename Resize, typename Serialize>
 void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, Destroy destroy, Resize resize,
                       Serialize serialize) {
-    if (!ArchiveEnter(ar, nullptr, id)) return;
+    if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
         for (Record* record = records->begin(); record != records->end(); ++record) destroy(record);
         records->Finish() = records->Start();
-        count = ArchiveCount(ar, nullptr, 1);
+        count = ar->CountChunks(1);
         resize(records, nullptr, static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(records->size());
@@ -221,12 +221,12 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, D
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
         Record* first = records->begin();
-        if (ArchiveEnter(ar, nullptr, 1)) {
+        if (ar->EnterChunk(1)) {
             serialize(first + i, nullptr, ar);
-            ArchiveLeave(ar);
+            ar->LeaveChunk();
         }
     }
-    ArchiveLeave(ar);
+    ar->LeaveChunk();
 }
 
 void DestroyLevelName(UnitLevelRecord* record) { record->name.~CString(); }
@@ -261,32 +261,29 @@ EI_REPLACE_METHOD(0x0053E1B0, ChunkArchive::SerializeUnitLevels);
 namespace {
 constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
-// Rewritten below, called through their game addresses so their verify wrappers stay in the path.
-__declspec(naked) void __fastcall SkillSerializeAt(SkillRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0051F3A0)
-__declspec(naked) void __fastcall SkillLevelSerializeAt(SkillLevelRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0051F480)
 
 bool SameName(const mfc::CString& name, const char* other) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                            reinterpret_cast<const unsigned char*>(other)) == 0;
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
+                           reinterpret_cast<const unsigned char*>(other)) == 0;
 }
 } // namespace
 
 void SkillRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &name);
-    ArchiveString(ar, nullptr, 1, &field1);
+    ar->CStringField(0, &name);
+    ar->CStringField(1, &field1);
     Dword(ar, 2, &field2);
     InlineStrings(ar, 10, &statNames);
 }
 EI_REPLACE_METHOD(0x0051F3A0, SkillRecord::Serialize);
 
 void SkillLevelRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &field0);
-    ArchiveString(ar, nullptr, 1, &name);
+    ar->CStringField(0, &field0);
+    ar->CStringField(1, &name);
     Dword(ar, 2, &field2);
-    ArchiveString(ar, nullptr, 10, &requiredLevelName);
-    ArchiveString(ar, nullptr, 11, &requiredSkillName);
+    ar->CStringField(10, &requiredLevelName);
+    ar->CStringField(11, &requiredSkillName);
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);
-    ArchiveField(ar, nullptr, 0x16, &learnable, 1);
+    ar->Field(0x16, &learnable, 1);
     Dword(ar, 0x17, &exclusionGroup);
 }
 EI_REPLACE_METHOD(0x0051F480, SkillLevelRecord::Serialize);
@@ -317,12 +314,12 @@ void SkillDatabase::Reset() {
 EI_REPLACE_METHOD(0x0057CD60, SkillDatabase::Reset);
 
 void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void*) {
-    if (!ArchiveEnter(this, nullptr, id)) return;
+    if (!EnterChunk(id)) return;
     int count;
     if (loading_) {
-        for (SkillRecord* record = skills->begin(); record != skills->end(); ++record) SkillRecordDestroyOriginal(record);
+        for (SkillRecord* record = skills->begin(); record != skills->end(); ++record) static_cast<SkillRecord*>(record)->Destruct();
         skills->Finish() = skills->Start();
-        count = ArchiveCount(this, nullptr, 1);
+        count = CountChunks(1);
         SkillVectorResizeOriginal(skills, nullptr, static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(skills->size());
@@ -330,22 +327,22 @@ void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, vo
     for (int i = 0; i < count; ++i) {
         Current()->occurrence = i + 1;
         SkillRecord* first = skills->begin();
-        if (ArchiveEnter(this, nullptr, 1)) {
-            SkillSerializeAt(first + i, nullptr, this);
-            ArchiveLeave(this);
+        if (EnterChunk(1)) {
+            (first + i)->Serialize(this);
+            LeaveChunk();
         }
     }
-    ArchiveLeave(this);
+    LeaveChunk();
 }
 EI_REPLACE_METHOD(0x005207D0, ChunkArchive::SerializeSkills);
 
 void ChunkArchive::SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void*) {
-    if (!ArchiveEnter(this, nullptr, id)) return;
+    if (!EnterChunk(id)) return;
     int count;
     if (loading_) {
-        for (SkillLevelRecord* record = levels->begin(); record != levels->end(); ++record) SkillLevelDestroyOriginal(record);
+        for (SkillLevelRecord* record = levels->begin(); record != levels->end(); ++record) static_cast<SkillLevelRecord*>(record)->Destruct();
         levels->Finish() = levels->Start();
-        count = ArchiveCount(this, nullptr, 1);
+        count = CountChunks(1);
         SkillLevelVectorResizeOriginal(levels, nullptr, static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(levels->size());
@@ -353,19 +350,19 @@ void ChunkArchive::SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* 
     for (int i = 0; i < count; ++i) {
         Current()->occurrence = i + 1;
         SkillLevelRecord* first = levels->begin();
-        if (ArchiveEnter(this, nullptr, 1)) {
-            SkillLevelSerializeAt(first + i, nullptr, this);
-            ArchiveLeave(this);
+        if (EnterChunk(1)) {
+            (first + i)->Serialize(this);
+            LeaveChunk();
         }
     }
-    ArchiveLeave(this);
+    LeaveChunk();
 }
 EI_REPLACE_METHOD(0x005208C0, ChunkArchive::SerializeSkillLevels);
 
 void ChunkArchive::SkillLevelChunk(int id, SkillLevelRecord* record) {
-    if (!ArchiveEnter(this, nullptr, id)) return;
-    SkillLevelSerializeAt(record, nullptr, this);
-    ArchiveLeave(this);
+    if (!EnterChunk(id)) return;
+    record->Serialize(this);
+    LeaveChunk();
 }
 EI_REPLACE_METHOD(0x00521480, ChunkArchive::SkillLevelChunk);
 

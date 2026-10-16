@@ -3,6 +3,7 @@
 //
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.
+#include "ui.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -26,6 +27,7 @@
 #include <new>
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "world_glue.h"
 
 using console::CStringArray;
 
@@ -67,7 +69,7 @@ __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x006
 __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
 void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
-void RawPanel::AddLogText(const char* a0) { LogAddTextOriginal((void*)this, nullptr, a0); }
+void RawPanel::AddLogText(const char* a0) { static_cast<CUiScrollText*>((void*)this)->AddText(a0); }
 void* RawPanel::ConstructViewInput(CInterface3D* ui) { return ViewInputConstructOriginal(this, nullptr, ui); }
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
@@ -88,7 +90,7 @@ struct GameObjects {
     void SetServerFlag(std::uint8_t flag);      // 00578D10 (on 007AFEA4)
     void MarkInterfaceChanged();                // 00578950 (on 007AFEA5)
 };
-void GameObjects::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
+void GameObjects::SetServerFlag(std::uint8_t f) { GameSetServerPaused(f); }
 void GameObjects::MarkInterfaceChanged() { GameMarkInterfaceChangedOriginal(this); }
 GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }
 

@@ -2,7 +2,8 @@
 // link_figure.h and CLinkFigureLoader in model.h.
 #include "link_figure.h"
 
-#include "originals_world.h"   // FigureModelConstructOriginal, FigureModelLoadOriginal, FigureModelDestructOriginal
+#include "model.h"
+#include "originals_world.h"   // FigureModelConstructOriginal, FigureModelDestructOriginal
 #include "resource.h"          // CMappedResource
 #include "texture.h"           // CTextureDevice
 
@@ -42,38 +43,9 @@ struct CacheValue {
     CLinkMesh* mesh;
 };
 
-// 004FAB00 (RET 4; CLinkFigureLoader::FindFigureSet), called through its address so its check sees these calls.
-__declspec(naked) FigureModel* __fastcall FindFigureSetAt(CLinkFigureLoader*, void*, const stlp::string* /*name*/)
-    EI_ORIGINAL(0x004FAB00)
-// 004F2C00 (RET 0x14, returns this): the mesh constructor (loader, name, coefficients; no reference);
-// rewritten (CLinkMesh::Construct), called through its address so its check sees these calls.
-__declspec(naked) CLinkMesh* __fastcall MeshConstruct(void* /*memory*/, void*, CLinkFigureLoader*, const stlp::string*,
-                                                      float, float, float) EI_ORIGINAL(0x004F2C00)
-// 004F9E50 (RET 0x18, AL; CLinkFigureLoader::RemorphPart) and the record morphs 004F9FD0 / 004FA670
-// (RET 0x18), called through their addresses so their checks see these calls.
-__declspec(naked) bool __fastcall RemorphPartAt(CLinkFigureLoader*, void*, CLinkMesh*, FigureModel*,
-                                                const stlp::string* /*name*/, float, float, float) EI_ORIGINAL(0x004F9E50)
-__declspec(naked) void __fastcall RemorphFigPartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*,
-                                                   const char**, float, float, float) EI_ORIGINAL(0x004F9FD0)
-__declspec(naked) void __fastcall RemorphOldPartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*,
-                                                   const char**, float, float, float) EI_ORIGINAL(0x004FA670)
 // 004FBD80 (RET 8): multimap insert_equal; the node copies the value (one more reference).
 __declspec(naked) void __fastcall CacheInsertEqual(Cache*, void*, Cache::Node** /*result*/, const CacheValue*)
     EI_ORIGINAL(0x004FBD80)
-
-// Rewritten loader members called through their addresses so their checks see these calls too.
-__declspec(naked) void __fastcall LoadFigPartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*, const char**,
-                                                float, float, float) EI_ORIGINAL(0x004F7F00)
-__declspec(naked) void __fastcall LoadOldPartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*, const char**,
-                                                float, float, float) EI_ORIGINAL(0x004F87D0)
-__declspec(naked) void __fastcall ReadLinkStringAt(stlp::string*, const char**) EI_ORIGINAL(0x004DB9C0)
-__declspec(naked) int __fastcall LoadArchivePartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*, float,
-                                                   float, float) EI_ORIGINAL(0x004F7D20)
-__declspec(naked) CLinkMesh* __fastcall LoadLinkFileAt(CLinkFigureLoader*, void*, const stlp::string*, float, float,
-                                                       float) EI_ORIGINAL(0x004F77C0)
-__declspec(naked) CLinkMesh* __fastcall MakeFigureAt(CLinkFigureLoader*, void*, const stlp::string*,
-                                                     const stlp::vector<stlp::string>*, float, float, float)
-    EI_ORIGINAL(0x004F7B10)
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
 void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::string* name, const char* data, float s,
@@ -82,9 +54,9 @@ void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::stri
     std::memcpy(&tag, data, 4);
     const char* cursor = data;
     if ((tag & 0xFFFFFF) == kFigTag)
-        LoadFigPartAt(loader, nullptr, mesh, name, &cursor, s, t, u);
+        loader->LoadFigPart(mesh, name, &cursor, s, t, u);
     else
-        LoadOldPartAt(loader, nullptr, mesh, name, &cursor, s, t, u);
+        loader->LoadOldPart(mesh, name, &cursor, s, t, u);
 }
 
 // The data of `name` in the first open archive that has it, or null.
@@ -150,18 +122,18 @@ int CLinkFigureLoader::CacheBytes() {
 CLinkMesh* CLinkFigureLoader::LoadFigureImpl(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
                                          float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
-    if (!mesh) return MakeFigureAt(this, nullptr, name, parts, s, t, u);
+    if (!mesh) return MakeFigure(name, parts, s, t, u);
     FigureModel* set;
     {
         stlp::string meshName;
         mesh->CopyName(&meshName);
-        set = FindFigureSetAt(this, nullptr, &meshName);
+        set = FindFigureSet(&meshName);
     }
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (mesh->HasPart(part)) continue;
         const float ms = mesh->morphWeights_[0], mt = mesh->morphWeights_[1], mu = mesh->morphWeights_[2];
         if (!set) {
-            LoadArchivePartAt(this, nullptr, mesh, part, ms, mt, mu);
+            LoadArchivePart(mesh, part, ms, mt, mu);
         } else if (const char* data = static_cast<const char*>(set->mesh->GetFile(part->data(), nullptr))) {
             LoadPartRecord(this, mesh, part, data, ms, mt, mu);
         }
@@ -171,7 +143,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigureImpl(const stlp::string* name, const stl
 
 CLinkMesh* CLinkFigureLoader::LoadLinkImpl(const stlp::string* name, float s, float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
-    return mesh ? mesh : LoadLinkFileAt(this, nullptr, name, s, t, u);
+    return mesh ? mesh : LoadLinkFile(name, s, t, u);
 }
 
 void CLinkFigureLoader::ClearCache() {
@@ -186,10 +158,10 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) 
     {
         stlp::string meshName;
         mesh->CopyName(&meshName);
-        set = FindFigureSetAt(this, nullptr, &meshName);
+        set = FindFigureSet(&meshName);
     }
     const float s = mesh->morphWeights_[0], t = mesh->morphWeights_[1], u = mesh->morphWeights_[2];
-    if (!set) return LoadArchivePartAt(this, nullptr, mesh, name, s, t, u) != 0;
+    if (!set) return LoadArchivePart(mesh, name, s, t, u) != 0;
     const char* data = static_cast<const char*>(set->mesh->GetFile(name->data(), nullptr));
     if (!data) return false;
     LoadPartRecord(this, mesh, name, data, s, t, u);
@@ -210,10 +182,10 @@ CLinkMesh* CLinkFigureLoader::RemorphImpl(CLinkMesh* mesh, float s, float t, flo
     {
         stlp::string meshName;
         mesh->CopyName(&meshName);
-        set = FindFigureSetAt(this, nullptr, &meshName);
+        set = FindFigureSet(&meshName);
     }
     for (stlp::string* part = names.begin(); part != names.end(); ++part)
-        RemorphPartAt(this, nullptr, mesh, set, part, s, t, u);
+        RemorphPart(mesh, set, part, s, t, u);
     names.clear();
     names.FreeStorage();
     return mesh;
@@ -221,8 +193,8 @@ CLinkMesh* CLinkFigureLoader::RemorphImpl(CLinkMesh* mesh, float s, float t, flo
 
 CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, float t, float u) {
     void* memory = gamecrt::operator_new(sizeof(CLinkMesh));
-    CLinkMesh* mesh = memory ? MeshConstruct(memory, nullptr, this, name, s, t, u) : nullptr;
-    FigureModel* set = FindFigureSetAt(this, nullptr, name);
+    CLinkMesh* mesh = memory ? static_cast<CLinkMesh*>(memory)->Construct(this, name, s, t, u) : nullptr;
+    FigureModel* set = FindFigureSet(name);
     const char* data;
     if (set) {
         data = static_cast<const char*>(set->mesh->GetFile(name->data(), nullptr));
@@ -243,10 +215,10 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
     stlp::string unused;
     stlp::string::Reserve(unused, 8);
     for (; count != 0; --count) {
-        ReadLinkStringAt(&part, &cursor);
-        ReadLinkStringAt(&unused, &cursor);
+        ReadLinkString(&part, &cursor);
+        ReadLinkString(&unused, &cursor);
         if (!set) {
-            LoadArchivePartAt(this, nullptr, mesh, &part, s, t, u);
+            LoadArchivePart(mesh, &part, s, t, u);
         } else if (const char* record = static_cast<const char*>(set->mesh->GetFile(part.data(), nullptr))) {
             LoadPartRecord(this, mesh, &part, record, s, t, u);
         }
@@ -258,11 +230,11 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
 CLinkMesh* CLinkFigureLoader::MakeFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
                                          float t, float u) {
     void* memory = gamecrt::operator_new(sizeof(CLinkMesh));
-    CLinkMesh* mesh = memory ? MeshConstruct(memory, nullptr, this, name, s, t, u) : nullptr;
-    FigureModel* set = FindFigureSetAt(this, nullptr, name);
+    CLinkMesh* mesh = memory ? static_cast<CLinkMesh*>(memory)->Construct(this, name, s, t, u) : nullptr;
+    FigureModel* set = FindFigureSet(name);
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (!set) {
-            LoadArchivePartAt(this, nullptr, mesh, part, s, t, u);
+            LoadArchivePart(mesh, part, s, t, u);
         } else if (const char* data = static_cast<const char*>(set->mesh->GetFile(part->data(), nullptr))) {
             LoadPartRecord(this, mesh, part, data, s, t, u);
         }
@@ -303,7 +275,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     auto* set = static_cast<FigureModel*>(memory ? FigureModelConstructOriginal(memory) : nullptr);
     figureSets_[*name] = set;
     // The original indexes the map a second time (resize for one more element included).
-    FigureModelLoadOriginal(figureSets_[*name], nullptr, files[0], files[1], files[2]);
+    static_cast<FigureModel*>(figureSets_[*name])->Open(files[0], files[1], files[2]);
     auto* found = figureSets_.Find(*name);
     return found ? found->value : nullptr;
 }
@@ -373,9 +345,9 @@ bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const stl
     std::memcpy(&tag, data, 4);
     const char* cursor = data;
     if ((tag & 0xFFFFFF) == kFigTag)
-        RemorphFigPartAt(this, nullptr, mesh, name, &cursor, s, t, u);
+        RemorphFigPart(mesh, name, &cursor, s, t, u);
     else
-        RemorphOldPartAt(this, nullptr, mesh, name, &cursor, s, t, u);
+        RemorphOldPart(mesh, name, &cursor, s, t, u);
     return true;
 }
 

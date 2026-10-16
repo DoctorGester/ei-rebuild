@@ -38,12 +38,6 @@ const char* const kWrongLayerSize = game::Text(0x00795F4C);   // "Texture \"%s\"
 // 00693010 (CTextureManager::DrawLayers), called through its address so its wrapper runs.
 __declspec(naked) int __fastcall DrawLayers(void*, void*, std::uint32_t*, const console::CStringArray*, int)
     EI_ORIGINAL(0x00693010)
-// The header's pixel format fields [thiscall on the header]: none (00693820), 1-5-5-5 (00693850),
-// 4-4-4-4 (006938B0), 8-8-8-8 (00693910).
-__declspec(naked) void __fastcall FormatNone(MmpHeader*) EI_ORIGINAL(0x00693820)
-__declspec(naked) void __fastcall Format5551(MmpHeader*) EI_ORIGINAL(0x00693850)
-__declspec(naked) void __fastcall Format4444(MmpHeader*) EI_ORIGINAL(0x006938B0)
-__declspec(naked) void __fastcall Format8888(MmpHeader*) EI_ORIGINAL(0x00693910)
 
 // A block from the game heap aligned to 32 bytes; the raw pointer is kept just before it.
 template <typename T>
@@ -85,9 +79,9 @@ bool CacheMatches(mfc::CFile& file, MmpHeader& header, ReadBuffer& buffer, const
 void SetPixelFormat(MmpHeader& header, std::uint32_t format) {
     std::uint32_t* words = reinterpret_cast<std::uint32_t*>(&header);
     switch (format) {
-    case 0x8888: Format8888(&header); return;
-    case 0x4444: Format4444(&header); return;
-    case 0x5551: Format5551(&header); return;
+    case 0x8888: header.SetFormat8888(); return;
+    case 0x4444: header.SetFormat4444(); return;
+    case 0x5551: header.SetFormat5551(); return;
     case 0x5650:
         // Alpha, red, green, blue: mask, shift, bits each (+0x18..+0x44).
         words[0x18 / 4] = 0;
@@ -107,12 +101,12 @@ void SetPixelFormat(MmpHeader& header, std::uint32_t format) {
         return;
     case 0x32544E50:   // "PNT2"
     case 0x33544E50:   // "PNT3"
-        FormatNone(&header);
+        header.SetNoFormat();
         header.bitsPerPixel = 0x20;
         header.format = format;
         return;
     default:
-        FormatNone(&header);
+        header.SetNoFormat();
         return;
     }
 }

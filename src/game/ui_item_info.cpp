@@ -8,6 +8,7 @@
 // with the game's _ftol are converted the same way; values computed by original functions are
 // truncated straight from the FPU stack (StatFtol), as the original does, so no rounding happens
 // in between. Compiled with precise floating point so that products keep the original's order.
+#include "text_reader.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
 
@@ -61,7 +62,7 @@ const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast
 int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
 
 int MbsICmp(const char* a, const char* b) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+    return libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 int MbsCmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -127,8 +128,8 @@ struct Texts {
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-BOOL Texts::NextLine() { return ReaderNextContentLine(reinterpret_cast<CTextManager*>(this)); }
-BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
+BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(this)); }
+BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)static_cast<CTextManager*>((void*)this)->ReadLine(a0, (int)a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return TextManagerItemTexts(reinterpret_cast<CTextManager*>(this), nullptr, item, name, description, kind);
@@ -142,15 +143,14 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 // (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
 // count (0068BA60, CSpell::GetModifierCount).
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
-    return reinterpret_cast<const itemdb::ItemRecordHead*>(ItemGetPrototypeOriginal(item));
+    return reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype());
 }
-int CategoryOf(CItem* item) { return ItemGetCategoryOriginal(item); }
+int CategoryOf(CItem* item) { return item->GetCategory(); }
 __declspec(naked) int __fastcall WeaponTypeOf(CItem*) EI_ORIGINAL(0x006A07F0)
 __declspec(naked) void __fastcall DamageTypesOf(CItem*, void*, float*) EI_ORIGINAL(0x006A0770)
 const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
-    return reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)));
+    return reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
-__declspec(naked) int __fastcall ModifierCountOf(void*) EI_ORIGINAL(0x0068BA60)
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
 // (PartyResetOriginal), filled by 00661DB0 (PartyAddItemOriginal).
@@ -746,11 +746,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Down();
     w.Down();
     w.Down();
-    if (ModifierCountOf(spell) > 0) {
+    if (static_cast<CSpell*>(spell)->GetModifierCount() > 0) {
         // "<infoitem_19> name, name, ...": each modifier's third text line ("modifier <code>"),
         // "?" without one.
         w.line = w.T(19);
-        for (int i = 0; i < ModifierCountOf(spell); ++i) {
+        for (int i = 0; i < static_cast<CSpell*>(spell)->GetModifierCount(); ++i) {
             w.line += game::Text(0x0078DA40);   // " "
             text = game::Text(0x00783D6C);      // "?"
             std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);

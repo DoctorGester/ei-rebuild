@@ -27,10 +27,8 @@ __declspec(naked) inline Vector3* __fastcall Negate(Vector3* /*out*/, const Vect
 // 00403F40 (rewritten as CBaseManager::FindObject): the manager's object with this id, or null.
 __declspec(naked) inline CEngineObject* __fastcall ManagerFindObject(void* /*manager*/, void*, int /*id*/)
     EI_ORIGINAL(0x00403F40)
-__declspec(naked) inline char* __fastcall AllocWords(int) EI_ORIGINAL(0x00406B30)
 __declspec(naked) inline void __fastcall ConstructEngineObject(void* /*object*/) EI_ORIGINAL(0x0040CB20)
 __declspec(naked) inline void __cdecl NetworkTimers() EI_ORIGINAL(0x004122D0)
-__declspec(naked) inline void __fastcall RefShare(void*, void*, void*) EI_ORIGINAL(0x00418BE0)
 __declspec(naked) inline void __fastcall RefNullBOriginal(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF70)
 __declspec(naked) inline void __fastcall RefNullA(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FF80)
 __declspec(naked) inline void* __fastcall RefPtrDestroyAt(RefPtr* /*p*/, void*, unsigned /*flags*/)
@@ -78,14 +76,8 @@ __declspec(naked) inline CEngineObject* ObjectIteratorOriginals::Next() EI_ORIGI
 // C3n. 00419CD0 (rewritten as RefPtr::Assign; thiscall on the pointer slot, RET 4): the counted pointer in `slot` takes
 // `object` (its count raised, the previous object released).
 __declspec(naked) inline void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
-// C3n. 00429B50 (rewritten as ObjectHolderAssign; thiscall on the slot, RET 4): a counted object pointer takes `object`
-// (reference added, the old one released through its slot 4).
-__declspec(naked) inline void __fastcall ReferenceAssign(CEngineObject** /*slot*/, void*, CEngineObject* /*object*/)
-    EI_ORIGINAL(0x00429B50)
 // C3n. 00455930 (rewritten as CEngineObject::DestructBase; thiscall, plain RET): the engine object's destructor body.
 __declspec(naked) inline void __fastcall EngineObjectDestructBase(CEngineObject* /*object*/) EI_ORIGINAL(0x00455930)
-// C3n. 00461360 (rewritten as TextKeyFromName; fastcall on the text): the numeric key of a name in the game's texts.
-__declspec(naked) inline int __fastcall TextKeyOf(const char* /*name*/) EI_ORIGINAL(0x00461360)
 // C3o. 00402B20 (rewritten as CBaseManager::ConstructBase; thiscall, plain RET): the manager base constructor; returns
 // this (EAX = ECX at the end).
 __declspec(naked) inline void* __fastcall ManagerConstructBaseOriginal(void* /*manager*/) EI_ORIGINAL(0x00402B20)
@@ -93,13 +85,6 @@ __declspec(naked) inline void* __fastcall ManagerConstructBaseOriginal(void* /*m
 // hash_map<int, T*>) removes `*key`; EAX the removed value, or null when the key was not there.
 __declspec(naked) inline void* __fastcall IdMapRemoveKeyOriginal(void* /*map*/, void*, const int* /*key*/)
     EI_ORIGINAL(0x00405350)
-// C3o. 00419720 (rewritten as RefValueConstructBase; thiscall, plain RET, no argument besides ECX): sets the counted
-// value base vtable; returns this.
-__declspec(naked) inline void* __fastcall RefValueConstructOriginal(void* /*object*/) EI_ORIGINAL(0x00419720)
-// C3o. 0041DD50 (rewritten as RefPtrFromRawCounted; thiscall, RET 4): a counted pointer constructed from a raw object
-// (its count raised when not null); returns the pointer.
-__declspec(naked) inline RefPtr* __fastcall RefPtrFromRawOriginal(RefPtr* /*p*/, void*, CRefObject* /*object*/)
-    EI_ORIGINAL(0x0041DD50)
 // C3o. 00448A10 (rewritten as ScaleVector; fastcall: ECX out, EDX v, RET 4 the float): out = v * s; returns out.
 __declspec(naked) inline Vector3* __fastcall VectorScaleCopyOriginal(Vector3* /*out*/, const Vector3* /*v*/, float /*s*/)
     EI_ORIGINAL(0x00448A10)
