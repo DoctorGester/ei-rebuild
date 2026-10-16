@@ -6,6 +6,8 @@
 # rebuilds the cursor (005DAE70, full screen only) and draws and presents again. A window resized
 # by someone else (a display change) covers the monitor again at the next present. run_all runs a
 # "resolution" scenario alone.
+# no original: vanilla (full screen at 800x600 without our renderer would switch the display mode, which the user forbids; S20b)
+# Its golden is the image's own (golden.py record --image, S20b): the world it plays does not follow the renderer.
 render new,present
 resolution 800x600
 fullscreen 1

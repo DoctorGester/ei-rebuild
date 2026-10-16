@@ -1,4 +1,4 @@
-// Record mode for the "random" family (random_vectors.h). Stolen bytes as in verify_maths.cpp. The
+// Record mode for the "random" family (random_vectors.h). Stolen bytes as in verify_maths.cpp (S21d deleted it). The
 // generator is drawn from by AI, combat and loot (units, sandbox_actions); Refill runs every 256 draws.
 #include "random_vectors.h"
 #include "vectors.h"

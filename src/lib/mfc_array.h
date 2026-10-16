@@ -7,7 +7,7 @@
 // DestructElements destroys them. Those are the element policies below. ArrayAbi turns the members
 // into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused; the element
 // helpers __stdcall), and mfc_array.cpp registers each instantiation our code forwards to at its
-// library address. Checked by tests/verify/verify_mfc_array.cpp.
+// library address. Checked in game by verify_mfc_array.cpp until S21d.
 
 #include "containers.h"
 #include "mfc.h"

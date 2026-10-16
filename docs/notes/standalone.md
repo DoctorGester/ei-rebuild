@@ -1742,6 +1742,42 @@ original-game harness (`--no-hooks`, `--widescreen --record`, EI_VECTORS) and th
   log the same as before S21c) and main's run_all in the scheduler, so S21c did not change them: the original's runs no
   longer repeat. S21a's run (before WB14's loopback binds, 04:18) had 0 differ; ticket S21c1.
 
+**S21d (2026-10-16): the verify wrappers out.** User 2026-10-16: deleted outright, no frozen copy (git history keeps them:
+the last commit with them is S21d's parent), and the rule that every rewrite gets a wrapper is gone (worker brief, rewrite
+guide "Verification": a rewrite is checked by a golden scenario that reaches it, or by function vectors).
+- Deleted: the 640 tests/verify/verify_*.cpp, the 21 headers only they included (stlp_*_verify.h, net_verify.h,
+  particle_verify.h, fake_stream.h, gdi_pixels.h, memory_texture.h, ...), verify.h / verify.cpp (Report, Check, CheckNear,
+  NearlyEqual, the per-function totals, the x87 precision trace), harness_heap_order.cpp (EI_HEAPORDER: thunks in front of
+  the wrappers), tests/verify/verified.txt. 670 files, 6.06 MB (130k lines).
+- include/ei/hook.h: EI_VERIFY, kRegVerify (RegKind renumbered; check_registrations.py follows), HookEntry::verify,
+  SetVerifyInstall, StartupCheck / EI_STARTUP_CHECK. The registrar with stolen bytes is the recorders' (EI_RECORD).
+  src/hook/hook.cpp: the wrapper choice (verified.txt, EI_PLAIN, the UNVERIFIED line, "verifying" log lines) and the start-up
+  checks; rebirth_hook::FlagWithoutOriginal (used only for that choice). The rest of InstallHooks' game.exe mode (trampolines,
+  Rebirth detection, disabled.txt) is S21e's.
+- The harness: harness_report.txt has no per-function "calls / mismatches" lines or x87 precision list; RESULT fails on
+  FAILED lines only. harness_heap.h lost StartOrderCheck / WriteOrderReport; harness_heap.cpp (S21c1's file) is untouched,
+  so its order observer (SetOrderObserver) and heap::Aside stay, unused, for a later cleanup.
+- Build checks: check_returns (void replacements whose game callers read EAX: only game.exe callers) and check_patched_calls
+  (direct calls to rewrites of Rebirth-patched functions: only matters where addon.dll patches the code, never in the image,
+  whose host loads the system dinput.dll) deleted with their allow lists and build.cmd steps; check_fp_fold.py took the
+  harness-object list it imported from check_patched_calls. check_stolen.py stays for the 64 recorders (tests/vectors, run
+  in the original by EI_VECTORS recording): their trampolines need the same whole-instruction rule. check_signatures.py
+  checks EI_RECORD declarations as 'record'.
+- Tools: run_all's report parsing, summary ("verify mismatches") and never-retry-a-mismatch rule gone; the run tuple keeps
+  its counts slot, always empty, because the shared reference cache and the work database's run rows have that shape
+  (other worktrees read them). work_sched's summary call follows. coverage.py: no wrapper column or 1.5x weighting
+  (coverage.csv regenerated, which also drops render_movie / render_terrain). dashboard_data.py / index.html: the
+  "Verify wrappers" counter and chart line replaced by the scenario count; progress.py: no verified line.
+- Comments naming a deleted wrapper file now say "until S21d"; 173 comments in src/ still explain a call through an
+  address "so the verify wrapper sees it" (these calls are C13's to make direct). disabled.txt stays until S21e (game.exe
+  mode only). ui_census_report.py still filters wrapper rows (harmless on the image's census).
+- Runs (`work.py test S21d ... --jobs 4`): both builds no errors or warnings, every build.cmd check 0, check_stolen /
+  check_x87 / check_signatures 0. `--golden`: 186 runs ALL PASS, 175 goldens the same, 0 differ. `--no-hooks --golden units
+  movement script_exec ui_saveload spells`: 10 runs PASS, 8 the same, script_exec on vanilla differed (isaac count 145 vs
+  216 from world update 600); two `--fresh` repeats of it were the same: S21c1's non-repeating original. `EI_VECTORS=1 units
+  --no-hooks --vanilla-only`: PASS, 66 recorders the only hooks, 47 .vec files, merged into a scratch folder and replayed by
+  ei_vectors with 0 problems. Tools' unit tests: 84 OK (test_work_sched's stand-in runs return empty counts).
+
 **S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh
 `--clock virtual,randtrace` passes of the six scenarios: 1 and 2 goldens differed (zone_gz15h_tornado V / R), each
 time first in two client units' flag 0x400 (CWorldClient's "model kept loaded" mark, CollectVisible: which models were

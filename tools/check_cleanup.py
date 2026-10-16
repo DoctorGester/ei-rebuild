@@ -86,7 +86,7 @@ PATTERNS = {
 }
 # Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its inline
 # helpers with precise semantics on purpose: /fp:fast regrouped their sums with the caller's
-# expression (docs/notes/vector-math.md, tests/verify/verify_vecmath.cpp).
+# expression (docs/notes/vector-math.md).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
 # over lib::AlignedArray (its SetSize forwards to the array's); ObjectIdMap and UnitSet
@@ -97,9 +97,9 @@ NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'UnitSet', 'CRegionMap', 'P
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h',
           '__asm block': 'src/lib/crt_x87.cpp'}
-# A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
+# A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
-REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
+REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):

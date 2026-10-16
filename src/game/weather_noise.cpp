@@ -1,7 +1,7 @@
 // The weather's noise curves (004E3980 and the static initialisers 004E3AD0 / 004E3B20; A-E2). See
 // weather_noise.h. Only the initialiser calls the builder, before the hooks install; a start-up
-// check rebuilds the five curves from the same random numbers and compares them with the original's
-// (tests/verify/verify_static_initialisers.cpp).
+// check rebuilt the five curves from the same random numbers and compared them with the original's
+// (verify_static_initialisers.cpp until S21d).
 //
 // The arithmetic is the original's x87 sequence: sums and products stay at the FPU's precision (53
 // bits at start-up) and are rounded to a float only where the original stores one.

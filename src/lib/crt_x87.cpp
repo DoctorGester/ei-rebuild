@@ -5,8 +5,8 @@
 // src/lib that tools/check_cleanup.py lets hold __asm, for these entries only.
 //
 // Registered for the standalone image only (EI_REPLACE_STANDALONE): the hook build keeps the exe's own, so
-// its x87 results (and the goldens recorded with them) stay the original's. tests/verify/verify_crt_x87.cpp
-// compares every entry with the original at start-up.
+// its x87 results (and the goldens recorded with them) stay the original's. verify_crt_x87.cpp
+// compared every entry with the original at start-up (until S21d).
 #include "crt.h"
 
 #include "ei/hook.h"

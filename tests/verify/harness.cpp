@@ -191,7 +191,7 @@
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
-// (no verify mismatches, failed checks or rejected output) or "RESULT: FAIL"; ei_launch --wait turns
+// (no failed checks or rejected output) or "RESULT: FAIL"; ei_launch --wait turns
 // that into its exit code.
 //
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
@@ -201,7 +201,7 @@
 // sessions instead of 8888, every socket on 127.0.0.1 only (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
-#include "verify.h"
+#include "ei/hook.h"
 #include "harness_capture.h"
 #include "harness_address_order.h"
 #include "harness_clock.h"
@@ -929,20 +929,8 @@ void WriteReport() {
     digest::Flush();
     ei::vectors::Flush();
     if (census::Enabled()) census::Write();
-    heap::WriteOrderReport();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
-    unsigned long mismatches = 0;
-    ForEachCount([&](const char* name, unsigned long calls, unsigned long bad) {
-        std::fprintf(f, "%-48s %10lu calls %8lu mismatches\n", name, calls, bad);
-        mismatches += bad;
-    });
-    bool raised = false;
-    ForEachRaisedPrecision([&](const char* name, unsigned cw, bool mainThread) {
-        if (!raised) std::fprintf(f, "\nx87 precision above 24 bits (control word) in:\n");
-        raised = true;
-        std::fprintf(f, "  %-46s %04X %s\n", name, cw, mainThread ? "main thread" : "other thread");
-    });
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
     for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
@@ -956,9 +944,9 @@ void WriteReport() {
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
-    std::fprintf(f, "RESULT: %s\n", mismatches || !failures.empty() ? "FAIL" : "PASS");
+    std::fprintf(f, "RESULT: %s\n", !failures.empty() ? "FAIL" : "PASS");
     std::fclose(f);
-    Log("harness: report written (%lu mismatches, %u failures)", mismatches, unsigned(failures.size()));
+    Log("harness: report written (%u failures)", unsigned(failures.size()));
 }
 
 // Deterministic mode, the default (a "realtime" line anywhere in the scenario turns it off,
@@ -2799,7 +2787,6 @@ bool HoldMessagesForCloseAll(const void* returnAddress) {
 }
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
-    SetMainThread();
     heap::SettleCrt();
     script_order::PatchOriginal();
     address_order::PatchOriginal();
@@ -2995,7 +2982,6 @@ struct Harness {
             if (!g_keepHeap) address_order::Install();   // object sets by id, SetSun by sector (harness_address_order.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
-            if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);

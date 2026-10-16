@@ -7,8 +7,8 @@ Add an entry whenever a new shim, stub or workaround lands.
 ## Hook framework (remove entirely)
 
 - `src/hook/` (DLL entry, hook installer, WinMain deferral, `function_sizes.inc`) and `tools/launcher/`.
-- `EI_REPLACE`, `EI_REPLACE_METHOD`, `EI_VERIFY` registrations at the bottom of each source file.
-- `tests/verify/` wrappers and `verified.txt`. Keep the comparisons that make sense as unit tests.
+- `EI_REPLACE`, `EI_REPLACE_METHOD` registrations at the bottom of each source file.
+- ~~`tests/verify/` wrappers and `verified.txt`~~: deleted in S21d (the goldens and tests/vectors check the image).
 - Virtual-method hook shims (`OpenFromMemoryHook`, `MmioGetFileHook`, ... in `src/game/resource.cpp`).
   They only exist because a pointer to a virtual member is a dispatch thunk. Delete them; the virtual
   methods keep their definitions.

@@ -1,5 +1,5 @@
 // Record mode for the "maths" family (maths_vectors.h): each recorder runs the original and offers
-// the call to its sampler. Stolen bytes as in verify_maths.cpp / verify_core_maths.cpp. Every
+// the call to its sampler. Stolen bytes as in verify_maths.cpp / verify_core_maths.cpp (S21d deleted them). Every
 // scenario reaches them (vectors, the camera, units' motion).
 #include "maths_vectors.h"
 #include "vectors.h"

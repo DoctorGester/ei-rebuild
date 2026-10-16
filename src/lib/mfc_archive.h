@@ -4,7 +4,7 @@
 // FillBuffer, the count and string-length encodings, the BYTE / WORD / DWORD operators and the
 // CString operators, with CString's assignment from a wide string the loader uses (ticket S8,
 // docs/notes/standalone.md section 2). Same layout as the exe's; every body is registered at its
-// library address (mfc_archive.cpp) and checked by tests/verify/verify_mfc_archive.cpp. The callers
+// library address (mfc_archive.cpp) and checked in game by verify_mfc_archive.cpp until S21d. The callers
 // keep going through the forwarders (mfc.h's CArchive, mfc_coll.cpp) until C13.
 
 #include "mfc_exception.h"

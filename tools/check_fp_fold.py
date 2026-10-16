@@ -24,7 +24,7 @@ A value listed in tools/check_fp_fold_allow.txt ("<value> <function or *>  # rea
 usage: python tools/check_fp_fold.py [--dll build/release/ei_hook.dll] [-v]
 exit code 1 on a problem
 """
-import argparse, bisect, os, re, struct, sys, time
+import argparse, bisect, glob, os, re, struct, sys, time
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_32
 from capstone.x86 import X86_OP_IMM, X86_OP_MEM
@@ -32,7 +32,6 @@ from capstone.x86 import X86_OP_IMM, X86_OP_MEM
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_signatures import ROOT, EXE, candidates_for, load_sizes, registrations, undecorate
 from check_registrations import Image
-from check_patched_calls import verify_objects
 
 ALLOW = os.path.join(ROOT, 'tools', 'check_fp_fold_allow.txt')
 MAP_LINE = re.compile(r'^\s*000\d:[0-9a-f]{8}\s+(\S+)\s+([0-9a-f]{8})\s+(f\s+)?(?:i\s+)?(\S+)\s*$', re.M)
@@ -40,6 +39,15 @@ FPU_MEM = re.compile(rb'[\xd8-\xdf][\x05\x0d\x15\x1d\x25\x2d\x35\x3d]', re.S)
 IMM_FLOAT = re.compile(rb'(?:\x68|\xc7\x44\x24.|\xc7\x45.|\xc7\x05....)(....)', re.S)
 QUALIFIED = re.compile(r'([\w:~<>]+)\(')
 SKIP_OBJ = re.compile(r'^(?:libucrt|libcmt|libvcruntime|libcpmt|msvcprt|ei_render)|third_party')
+
+
+def harness_objects():
+    """Object names of the harness-only sources (tests/verify, tests/vectors)."""
+    names = set()
+    for pattern in ('tests/verify/*.cpp', 'tests/vectors/*.cpp'):
+        for path in glob.glob(os.path.join(ROOT, pattern)):
+            names.add(os.path.basename(path).lower() + '.obj')
+    return names
 
 
 def f32(v):
@@ -163,8 +171,8 @@ def main(argv):
     starts = [f[0] for f in funcs]
 
     # Our x87 loads of each constant, on instruction boundaries, per function (not the libraries, the
-    # renderer or the verify-only sources: their wrappers and test batteries are not game code).
-    tests = verify_objects()
+    # renderer or the harness-only sources: the harness and the recorders are not game code).
+    tests = harness_objects()
 
     def skip(obj):
         return bool(SKIP_OBJ.search(obj)) or obj in tests

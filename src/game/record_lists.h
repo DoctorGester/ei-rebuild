@@ -4,8 +4,8 @@
 // holder ones are in src/lib/stlp_list.cpp): an element policy per record (how _M_create_node
 // copies one, how erase / clear destroy one, what insert(pos)'s T() is), each over the record's
 // ported constructors and destructors, and the ListAbi shims they are registered with
-// (record_lists.cpp). Node sizes read from each instantiation's node creation. Checked by
-// tests/verify/verify_record_lists.cpp.
+// (record_lists.cpp). Node sizes read from each instantiation's node creation. Checked in game by
+// verify_record_lists.cpp until S21d.
 
 #include "chunk_archive.h"
 #include "core_streams.h"

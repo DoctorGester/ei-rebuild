@@ -32,19 +32,19 @@ Rules:
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
   `--no-hooks` runs the original (golden recording; with `EI_VECTORS=1`, vector recording). Since S21c no tool
-  runs our code inside game.exe, so the verify wrappers no longer run in any suite. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
+  runs our code inside game.exe; the verify wrappers were deleted in S21d. Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
-- Plain C++ float maths (rule 7); verify floats with ei::verify::CheckNear.
-- Every rewrite gets a verify wrapper; say whether it compares against the original or checks
-  ours only, and which scenario reaches it.
+- Plain C++ float maths (rule 7).
+- Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
+  reaches it, or which function vectors replay it.
 - Forwarders: use the shared declarations in src/game/originals_<area>.h (rewrite guide rule 5);
   build.cmd's check_forwarders fails on new duplicates.
 - Write clean code (rewrite guide, "Clean code"): members not offsets, virtual calls not VCall,
   named globals; build.cmd's check_cleanup fails when a file's counts go up.
 - Shared headers: small additive changes only (adding members a port needs is fine).
 - Build `build.cmd verify` and `build.cmd release` (your worktree's, by full path) with no errors
-  or warnings; `python tools/check_stolen.py`, `python tools/check_x87.py`, `tools\check_signatures.cmd`
-  and check_thunks (run by build.cmd) at 0 problems.
+  or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
+  (vector recorders) and the checks build.cmd runs at 0 problems.
 - Notes: append what you did to the ticket's notes file.
 - Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is
   running, what blocks), e.g. after a green build, before a suite, when stuck. The coordinator ends

@@ -3,7 +3,7 @@
 // lines (shadowed, 15 pixels apart) into a panel surface of the interface at most twice a second.
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
 // constructor (00444740) runs from a static initialiser before the hooks are installed; a start-up
-// check compares what it built (tests/verify/verify_static_initialisers.cpp). See docs/notes/app.md.
+// check compared what it built (verify_static_initialisers.cpp until S21d). See docs/notes/app.md.
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"

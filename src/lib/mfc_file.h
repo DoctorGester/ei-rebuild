@@ -3,7 +3,7 @@
 // MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path
 // helpers they use, written out for the standalone exe (ticket S8, docs/notes/standalone.md
 // section 2). Same layout as the copy linked into game.exe, with its vtables; every body is
-// registered at its library address (mfc_file.cpp) and checked by tests/verify/verify_mfc_file.cpp.
+// registered at its library address (mfc_file.cpp) and checked in game by verify_mfc_file.cpp until S21d.
 // The callers keep going through the forwarders (mfc.h, src/game) until C13.
 //
 // CFile works on Win32 handles through the game's import table. CStdioFile's stream is the game

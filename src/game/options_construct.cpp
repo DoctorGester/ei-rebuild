@@ -1,7 +1,7 @@
 // The options object's constructor (00458870; A-E2). The static initialiser 00458700 runs it on
 // the global at 0079BC70 before WinMain (and registers the destructor 00458730 with atexit), so the
-// original has already run when the hooks install; tests/verify/verify_static_initialisers.cpp
-// builds a second object with this one at that point and compares the two.
+// original has already run when the hooks install; verify_static_initialisers.cpp built a second
+// object with this one at that point and compared the two (until S21d).
 //
 // These are not the defaults the game plays with: 00455BA0 calls OptionsResetDefaults (00458DA0)
 // before the registry is read, and that sets most of them again (640 x 480 and so on). What stays

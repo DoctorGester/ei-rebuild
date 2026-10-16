@@ -245,7 +245,7 @@ function render(data) {
     stat('Game code ported', pct(c.ported_bytes, c.bytes).toFixed(1) + '%', `${fmt(Math.round(c.ported_bytes / 1024))} of ${fmt(Math.round(c.bytes / 1024))} KB`, true) +
     stat('Functions ported', fmt(c.ported_functions), `of ${fmt(c.functions)} game functions`) +
     stat('Source lines', fmt(src), `src/, plus ${fmt(tests)} in tests/`) +
-    stat('Verify wrappers', fmt(c.cleanup.verify_wrappers || 0), `${c.cleanup.scenarios || 0} in-game scenarios`) +
+    stat('Scenarios', fmt(c.cleanup.scenarios || 0), 'in-game scenarios') +
     stat('Forwarders left', fmt(c.cleanup.forwarder_sites), `${fmt(c.cleanup.forwarded_from_several_files)} duplicated across files`);
   const tb = document.querySelector('#areas tbody');
   tb.innerHTML = c.areas.map(a => {
@@ -330,9 +330,8 @@ function render(data) {
                   { name: 'STLport', color: '#4a6fa5', get: p => p.standalone && p.standalone.stlp_uses },
                   { name: "The exe's CRT and allocator", color: muted, get: p => p.standalone && (p.standalone.crt_allocations + p.standalone.crt_other) }],
       { title: 'Standalone: runtime uses', note: 'Uses of the shared MFC, STLport and CRT types. They rise with the port and move to our own classes, then standard types.' }),
-    lineChart(h, [{ name: 'Verify wrappers', color: good, get: p => p.cleanup.verify_wrappers },
-                  { name: 'Scenarios × 10', color: accent, get: p => (p.cleanup.scenarios || 0) * 10 }],
-      { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' })
+    lineChart(h, [{ name: 'Scenarios', color: accent, get: p => p.cleanup.scenarios || 0 }],
+      { title: 'Test coverage', note: 'In-game scenarios (the goldens and the image suite play them).' })
   ].forEach(el => box.appendChild(el));
   setZoom(null, null);
 }

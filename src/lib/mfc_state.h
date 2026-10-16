@@ -14,8 +14,8 @@
 //
 // Every body is registered at its library address in both builds (mfc_state.cpp). The hook build
 // runs them over the original's state; in the image nothing fills the locals (S8a's handle maps are
-// thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object. Checked by
-// tests/verify/verify_mfc_state.cpp.
+// thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object. Checked in game by
+// verify_mfc_state.cpp until S21d.
 
 #include <cstddef>
 #include <cstdint>

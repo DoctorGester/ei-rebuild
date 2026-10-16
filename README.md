@@ -12,7 +12,7 @@ Requires the VS 2022 Build Tools (MSVC 14.43, x86) at `E:\bin\vs\buildtools` (ed
 
 ```
 build.cmd release    # rewritten functions replace the originals
-build.cmd verify     # each rewritten function runs next to the original; differences are logged
+build.cmd verify     # adds the harness (tests/verify) and the vector recorders (tests/vectors)
 ```
 
 ## Run
@@ -33,7 +33,7 @@ to the DLL: `build\<config>\ei_hook.log`. Since S21c no tool starts `game.exe` w
 - `src/hook/` the replacement framework (`include/ei/hook.h`).
 - `src/render/` the new renderer (sokol_gfx on Direct3D 11, `third_party/sokol`), switched on with
   `EI_RENDER=new` (`docs/notes/renderer.md`).
-- `tests/verify/` differential wrappers compiled into the `verify` build.
+- `tests/verify/` the harness (scenario runs of the image and of the original game), compiled into the `verify` build.
 - `tools/` launcher, Ghidra export (`export_functions.py`), PE inspection (`pe.py`).
 - `config/functions.csv` every function in game.exe with kind (game/lib/eh/thunk) and status.
 - `docs/` cleanup plan, rewrite guide, ticket queue and per-area notes (`docs/notes/`).

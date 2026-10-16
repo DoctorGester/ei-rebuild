@@ -6,7 +6,7 @@ commit's own files:
     against config/functions.csv minus library and dead code, overall and per address range;
   - lines of code under src/ (game, lib, render, hook) and tests/;
   - cleanup artefacts: EI_ORIGINAL sites, functions forwarded from several files, At<>/Field<> uses,
-    VCall uses, __asm blocks, float_control pragmas, verify wrappers, scenarios;
+    VCall uses, __asm blocks, float_control pragmas, scenarios;
   - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
     (forwarders by target, game data addresses, uses of the exe's MFC / STLport / CRT / imports)
     and the single-byte text sites a UTF-8 switch has to visit.
@@ -190,8 +190,6 @@ def file_stats(path, text):
                 if not path.startswith('src/lib/'):
                     for k, rx in STANDALONE.items():
                         standalone[k] += len(rx.findall(code))
-        else:
-            cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
     return part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data, standalone_only
 
 

@@ -5,12 +5,12 @@
 // window, so the module state's application is always null: AfxMessageBox runs
 // CWinApp::DoMessageBox with no object, EnableModeless and CWnd::GetSafeOwner_ find no window, and
 // the box has no owner, no help context and the module's file name as its title. That is the body
-// here (registered in mfc_window.cpp; tests/verify/verify_mfc_window.cpp checks the assumption
-// against the original's state whenever a box is shown).
+// here (registered in mfc_window.cpp; verify_mfc_window.cpp checked the assumption
+// against the original's state whenever a box was shown, until S21d).
 //
 // CWnd's constructor (S3f) and destructor (S3d): the exit functions run it on MFC's four static windows (wndTop,
 // wndBottom, wndTopMost, wndNoTopMost: placement constants, never destroyed as windows); MFC's other
-// classes reach it from their own destructors. Checked by tests/verify/verify_mfc_state.cpp.
+// classes reach it from their own destructors. Checked in game by verify_mfc_state.cpp until S21d.
 
 #include <windows.h>
 

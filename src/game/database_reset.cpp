@@ -4,7 +4,7 @@
 // Each table's members go last to first: the name index (hash_map::Destroy: every chain from its
 // head, each node's key string then the node, then the buckets), then the records through their
 // vector's element policy (record_vectors.h: each record in order, then the storage). The
-// constructors are database_construct.cpp's. Checked by tests/verify/verify_record_lifetime.cpp.
+// constructors are database_construct.cpp's. Checked in game by verify_record_lifetime.cpp until S21d.
 #include "item_db.h"
 #include "record_vectors.h"
 #include "unit_db.h"

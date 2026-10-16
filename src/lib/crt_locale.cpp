@@ -10,8 +10,8 @@
 // and __setlc_active are left out (one thread sets the locale), and so is setlocale(LC_ALL, ...), which
 // the game never calls.
 //
-// _ismbcdigit / _ismbcspace keep no state: both builds. tests/verify/verify_crt_locale.cpp compares all of
-// it with the originals.
+// _ismbcdigit / _ismbcspace keep no state: both builds. verify_crt_locale.cpp compared all of
+// it with the originals (until S21d).
 #include "crt.h"
 
 #include "ei/hook.h"

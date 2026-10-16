@@ -47,7 +47,7 @@ class Fake:
                 self.spans.append((batch['id'], name, t0, t1))
                 seq = self.results.get(name, ['PASS'])
                 result = seq.pop(0) if len(seq) > 1 else seq[0]
-            return result, t1 - t0, [] if result == 'PASS' else [f'{name} failed'], {'Fn': (3, 0)}, []
+            return result, t1 - t0, [] if result == 'PASS' else [f'{name} failed'], {}, []
         return run_all.run_with_retries(run['scenario'], run['install'], retries, os.path.basename(run['folder']),
                                         runner=one)
 
@@ -652,7 +652,7 @@ class SchedTest(unittest.TestCase):
             os.makedirs(os.path.join(out, 'harness_saves'), exist_ok=True)
             write(os.path.join(out, 'frames', 'menu.bmp'), str(len(played)))
             write(os.path.join(out, 'harness_saves', 'big.sav'), 'x')
-            write(os.path.join(out, 'harness_report.txt'), 'RESULT: PASS\nconsole output:\n  hello\nFn 3 calls 0 mismatches\n')
+            write(os.path.join(out, 'harness_report.txt'), 'RESULT: PASS\nconsole output:\n  hello\n')
             return subprocess.CompletedProcess(cmd, 0, '', '')
 
         def failing(cmd, **kw):
@@ -678,7 +678,7 @@ class SchedTest(unittest.TestCase):
             self.assertFalse(cached(install='standalone-rebirth'))             # runs of our code: never
             second = go()
             self.assertEqual(len(played), 1, 'a cached reference run was played again')
-            self.assertEqual((second[0], second[3]), ('PASS', {'Fn': (3, 0)}))
+            self.assertEqual((second[0], second[3]), ('PASS', {}))
             self.assertTrue(run_all.is_cached(second[4]))
             self.assertFalse(run_all.is_cached(first[4]))
             self.assertEqual(frame(), '1')
