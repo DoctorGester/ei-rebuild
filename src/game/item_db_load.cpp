@@ -19,21 +19,14 @@ struct NamedRecord {
     char* record;
 };
 using FindOrInsertFn = void*(__fastcall*)(void* index, void*, const void* pair);
-using SerializeFn = void(__fastcall*)(ChunkArchive*, void*, int, void*, void*);
-
-// The vector serialisers (rewritten below, A-H18) through their addresses, so that their verify
-// wrappers run. The forwarders here keep their first names, in which "Loot" is the quest item
-// table (0x7C records) and "QuestItem" the loot table (0x78).
-__declspec(naked) void __fastcall SerializeQuickItemsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7C20)
-__declspec(naked) void __fastcall SerializeLootAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7D20)
-__declspec(naked) void __fastcall SerializeQuestItemsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7E10)
+using SerializeFn = void (ChunkArchive::*)(int, void*, void*);
 
 void LoadIndexed(itemdb::IndexedRecordTable* table, CStream* source, int field, int recordSize, SerializeFn serialize,
                  FindOrInsertFn insert) {
     ChunkArchive archive;
     archive.ConstructLocal();
     archive.Open(source, 1, 1);
-    serialize(&archive, nullptr, field, table, nullptr);
+    (archive.*serialize)(field, table, nullptr);
     archive.Close(source);
     for (char* record = table->records.begin; record != table->records.end; record += recordSize) {
         NamedRecord pair{stlp::string(reinterpret_cast<const itemdb::ItemRecordHead*>(record)->text04), nullptr};
@@ -47,13 +40,13 @@ void LoadIndexed(itemdb::IndexedRecordTable* table, CStream* source, int field, 
 namespace itemdb {
 
 void IndexedRecordTable::LoadQuickItems(CStream* source, int field) {
-    LoadIndexed(this, source, field, kQuickItemSize, SerializeQuickItemsAt, &QuickItemIndexInsertOriginal);
+    LoadIndexed(this, source, field, kQuickItemSize, &ChunkArchive::SerializeQuickItems, &QuickItemIndexInsertOriginal);
 }
 void IndexedRecordTable::LoadQuestItems(CStream* source, int field) {
-    LoadIndexed(this, source, field, kQuestItemSize, SerializeLootAt, &LootIndexInsertOriginal);
+    LoadIndexed(this, source, field, kQuestItemSize, &ChunkArchive::SerializeLoot, &LootIndexInsertOriginal);
 }
 void IndexedRecordTable::LoadLoot(CStream* source, int field) {
-    LoadIndexed(this, source, field, kLootSize, SerializeQuestItemsAt, &QuestItemIndexInsertOriginal);
+    LoadIndexed(this, source, field, kLootSize, &ChunkArchive::SerializeQuestItems, &QuestItemIndexInsertOriginal);
 }
 
 } // namespace itemdb
@@ -62,44 +55,31 @@ void IndexedRecordTable::LoadLoot(CStream* source, int field) {
 
 namespace {
 
-using RecordFn = void(__fastcall*)(void* record);
 using ResizeFn = void(__fastcall*)(void* records, void*, unsigned count);
-using RecordSerializeFn = void(__fastcall*)(void* record, void*, ChunkArchive* ar);
 
 // Per record type (STLport and record instantiations, not rewritten): the record's destructor
 // (plain RET), the vector's resize (RET 4: new records default-constructed) and the record's
 // Serialize (RET 4).
-__declspec(naked) void __fastcall QuickItemDestroy(void*) EI_ORIGINAL(0x006A8A50)
-__declspec(naked) void __fastcall LootDestroy(void*) EI_ORIGINAL(0x006A8AE0)
-__declspec(naked) void __fastcall QuestItemDestroy(void*) EI_ORIGINAL(0x006A8BD0)
 __declspec(naked) void __fastcall QuickItemsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A83F0)
 __declspec(naked) void __fastcall LootResize(void*, void*, unsigned) EI_ORIGINAL(0x006A85A0)
 __declspec(naked) void __fastcall QuestItemsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A8790)
-__declspec(naked) void __fastcall QuickItemSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F940)
-__declspec(naked) void __fastcall LootSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F9C0)
-__declspec(naked) void __fastcall QuestItemSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069FA90)
 // A-H20: materials, weapons and armor (the destructors are compiler-generated, library.csv).
-__declspec(naked) void __fastcall MaterialDestroy(void*) EI_ORIGINAL(0x006A88F0)
-__declspec(naked) void __fastcall WeaponDestroy(void*) EI_ORIGINAL(0x006A8950)
-__declspec(naked) void __fastcall ArmorDestroy(void*) EI_ORIGINAL(0x006A89D0)
 __declspec(naked) void __fastcall MaterialsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A7F00)
 __declspec(naked) void __fastcall WeaponsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A8110)
 __declspec(naked) void __fastcall ArmorsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A8290)
-__declspec(naked) void __fastcall MaterialSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F620)
-__declspec(naked) void __fastcall WeaponSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F800)
-__declspec(naked) void __fastcall ArmorSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F8C0)
 
 // The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading
 // destroys the old records (erase(begin, end): the tail copy is empty) and resizes to the number
 // of record chunks first.
-void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int size, RecordFn destroy,
-                          ResizeFn resize, RecordSerializeFn serialize) {
+template <typename Record, typename Destroy, typename Serialize>
+void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int size, Destroy destroy,
+                          ResizeFn resize, Serialize serialize) {
     if (!ar->EnterChunk(id)) return;
     auto& records = *vector;
     int count;
     if (ar->loading_) {
         char* end = records.end;
-        for (char* p = records.begin; p != end; p += size) destroy(p);
+        for (char* p = records.begin; p != end; p += size) (reinterpret_cast<Record*>(p)->*destroy)();
         records.end = records.begin;
         count = ar->CountChunks(1);
         resize(vector, nullptr, static_cast<unsigned>(count));
@@ -110,7 +90,7 @@ void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int siz
         ar->Current()->occurrence = i + 1;
         char* record = records.begin + i * size;
         if (ar->EnterChunk(1)) {
-            serialize(record, nullptr, ar);
+            (reinterpret_cast<Record*>(record)->*serialize)(ar);
             ar->LeaveChunk();
         }
     }
@@ -120,32 +100,32 @@ void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int siz
 } // namespace
 
 void ChunkArchive::SerializeQuickItems(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kQuickItemSize,
-                         QuickItemDestroy, QuickItemsResize, QuickItemSerialize);
+    SerializeItemRecords<itemdb::QuickItemRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kQuickItemSize,
+                                    &itemdb::QuickItemRecord::Destruct, QuickItemsResize, &itemdb::QuickItemRecord::Serialize);
 }
 void ChunkArchive::SerializeLoot(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kQuestItemSize, LootDestroy,
-                         LootResize, LootSerialize);
+    SerializeItemRecords<itemdb::QuestItemRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kQuestItemSize,
+                                    &itemdb::QuestItemRecord::Destruct, LootResize, &itemdb::QuestItemRecord::Serialize);
 }
 void ChunkArchive::SerializeQuestItems(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kLootSize,
-                         QuestItemDestroy, QuestItemsResize, QuestItemSerialize);
+    SerializeItemRecords<itemdb::LootItemRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kLootSize,
+                                    &itemdb::ItemRecordHead::DestructHead, QuestItemsResize, &itemdb::LootItemRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x006A7C20, ChunkArchive::SerializeQuickItems);
 EI_REPLACE_METHOD(0x006A7D20, ChunkArchive::SerializeLoot);
 EI_REPLACE_METHOD(0x006A7E10, ChunkArchive::SerializeQuestItems);
 
 void ChunkArchive::SerializeMaterials(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kMaterialSize,
-                         MaterialDestroy, MaterialsResize, MaterialSerialize);
+    SerializeItemRecords<itemdb::MaterialRecordHead>(this, id, static_cast<RecordTable*>(records), itemdb::kMaterialSize,
+                                    &itemdb::MaterialRecordHead::Destruct, MaterialsResize, &itemdb::MaterialRecordHead::Serialize);
 }
 void ChunkArchive::SerializeWeapons(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kWeaponSize,
-                         WeaponDestroy, WeaponsResize, WeaponSerialize);
+    SerializeItemRecords<itemdb::WeaponRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kWeaponSize,
+                                    &itemdb::ItemRecordHead::DestructHead, WeaponsResize, &itemdb::WeaponRecord::Serialize);
 }
 void ChunkArchive::SerializeArmors(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kArmorSize,
-                         ArmorDestroy, ArmorsResize, ArmorSerialize);
+    SerializeItemRecords<itemdb::ArmorRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kArmorSize,
+                                    &itemdb::ItemRecordHead::DestructHead, ArmorsResize, &itemdb::ArmorRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x006A7940, ChunkArchive::SerializeMaterials);
 EI_REPLACE_METHOD(0x006A7A30, ChunkArchive::SerializeWeapons);
@@ -161,17 +141,11 @@ namespace {
 
 // Per record type (compiler-generated destructors, plain RET; the vectors' resize, RET 4; both in
 // library.csv except 00589860).
-__declspec(naked) void __fastcall SpellDestroy(void*) EI_ORIGINAL(0x00685AA0)
-__declspec(naked) void __fastcall SpellModifierDestroy(void*) EI_ORIGINAL(0x00685B70)
-__declspec(naked) void __fastcall SpellListDestroy(void*) EI_ORIGINAL(0x00589860)
 __declspec(naked) void __fastcall SpellsResize(void*, void*, unsigned) EI_ORIGINAL(0x00685730)
 __declspec(naked) void __fastcall SpellModifiersResize(void*, void*, unsigned) EI_ORIGINAL(0x006858D0)
 __declspec(naked) void __fastcall SpellListsResize(void*, void*, unsigned) EI_ORIGINAL(0x00684D60)
 // The records' Serialize (rewritten below), called through their addresses so that their verify
 // wrappers run for every record.
-__declspec(naked) void __fastcall SpellSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683B80)
-__declspec(naked) void __fastcall SpellModifierSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683AF0)
-__declspec(naked) void __fastcall SpellListSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683D40)
 // STLport instantiations: vector<int>::_M_fill_insert(position, count, value) (RET 0xC),
 // vector<string>::erase(first, last) (RET 8) and resize(count) (RET 4).
 __declspec(naked) void __fastcall IntsFillInsert(stlp::vector<int>*, void*, int* /*position*/, unsigned /*count*/,
@@ -265,16 +239,16 @@ void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
 EI_REPLACE_METHOD(0x00683EB0, ChunkArchive::IntVectorField);
 
 void ChunkArchive::SerializeSpells(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kSpellSize, SpellDestroy,
-                         SpellsResize, SpellSerializeAt);
+    SerializeItemRecords<itemdb::SpellRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kSpellSize,
+                                    &itemdb::SpellRecord::Destruct, SpellsResize, &itemdb::SpellRecord::Serialize);
 }
 void ChunkArchive::SerializeSpellModifiers(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kSpellModifierSize,
-                         SpellModifierDestroy, SpellModifiersResize, SpellModifierSerializeAt);
+    SerializeItemRecords<itemdb::SpellModifierRecord>(this, id, static_cast<RecordTable*>(records), itemdb::kSpellModifierSize,
+                                    &itemdb::SpellModifierRecord::Destruct, SpellModifiersResize, &itemdb::SpellModifierRecord::Serialize);
 }
 void ChunkArchive::SerializeSpellLists(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), sizeof(itemdb::SpellListRecord),
-                         SpellListDestroy, SpellListsResize, SpellListSerializeAt);
+    SerializeItemRecords<itemdb::SpellListRecord>(this, id, static_cast<RecordTable*>(records), sizeof(itemdb::SpellListRecord),
+                                    &itemdb::SpellListRecord::Destruct, SpellListsResize, &itemdb::SpellListRecord::Serialize);
 }
 EI_REPLACE_METHOD(0x00684EF0, ChunkArchive::SerializeSpells);
 EI_REPLACE_METHOD(0x00684FE0, ChunkArchive::SerializeSpellModifiers);
@@ -306,11 +280,13 @@ constexpr int kBucketsOffset = 4;   // the index's bucket vector
 
 // One table: the index (clear, then its buckets; or one destructor), the records in order, the
 // vector's storage (STLport's deallocate of the capacity in whole records).
-void DestroyTable(itemdb::IndexedRecordTable& table, int size, IndexFn clear, IndexFn buckets, RecordFn destroy) {
+template <typename Record, typename Destroy>
+void DestroyTable(itemdb::IndexedRecordTable& table, int size, IndexFn clear, IndexFn buckets, Destroy destroy) {
     clear(table.index);
     if (buckets != nullptr) buckets(table.index + kBucketsOffset);
     char* end = table.records.end;
-    for (char* record = table.records.begin; record != end; record += size) destroy(record);
+    for (char* record = table.records.begin; record != end; record += size)
+        (reinterpret_cast<Record*>(record)->*destroy)();
     if (table.records.begin != nullptr)
         stlp::deallocate(table.records.begin,
                          static_cast<std::size_t>((table.capacityEnd - table.records.begin) / size * size));
@@ -319,11 +295,11 @@ void DestroyTable(itemdb::IndexedRecordTable& table, int size, IndexFn clear, In
 } // namespace
 
 void itemdb::ItemDatabase::DestructBody() {
-    DestroyTable(loot, kLootSize, QuestItemIndexClear, QuestItemBucketsDestroy, QuestItemDestroy);
-    DestroyTable(questItems, kQuestItemSize, LootIndexClear, LootBucketsDestroy, LootDestroy);
-    DestroyTable(quickItems, kQuickItemSize, QuickItemIndexClear, QuickItemBucketsDestroy, QuickItemDestroy);
-    DestroyTable(armors, kArmorSize, ArmorIndexClear, ArmorBucketsDestroy, ArmorDestroy);
-    DestroyTable(weapons, kWeaponSize, WeaponIndexClear, WeaponBucketsDestroy, WeaponDestroy);
-    DestroyTable(materials, kMaterialSize, MaterialIndexDestroy, nullptr, MaterialDestroy);
+    DestroyTable<LootItemRecord>(loot, kLootSize, QuestItemIndexClear, QuestItemBucketsDestroy, &ItemRecordHead::DestructHead);
+    DestroyTable<QuestItemRecord>(questItems, kQuestItemSize, LootIndexClear, LootBucketsDestroy, &QuestItemRecord::Destruct);
+    DestroyTable<QuickItemRecord>(quickItems, kQuickItemSize, QuickItemIndexClear, QuickItemBucketsDestroy, &QuickItemRecord::Destruct);
+    DestroyTable<ArmorRecord>(armors, kArmorSize, ArmorIndexClear, ArmorBucketsDestroy, &ItemRecordHead::DestructHead);
+    DestroyTable<WeaponRecord>(weapons, kWeaponSize, WeaponIndexClear, WeaponBucketsDestroy, &ItemRecordHead::DestructHead);
+    DestroyTable<MaterialRecordHead>(materials, kMaterialSize, MaterialIndexDestroy, nullptr, &MaterialRecordHead::Destruct);
 }
 EI_REPLACE_METHOD(0x006A6570, itemdb::ItemDatabase::DestructBody);

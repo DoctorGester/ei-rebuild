@@ -61,7 +61,7 @@ src/game/hash_tables_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/hoover_loot.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/item_constructor.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
-src/game/item_db_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,44
+src/game/item_db_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,23
 src/game/item_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/item_db_text.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0,0
