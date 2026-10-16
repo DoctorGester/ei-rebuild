@@ -1,5 +1,6 @@
 // CWorldClient per-frame view code: filing visible objects into the frame's draw lists, sorting
 // those lists, and picking the ground point under the cursor. See world.h and docs/notes/world.md.
+#include "model.h"
 #include "world.h"
 
 #include "core_maths.h"
@@ -30,7 +31,7 @@ constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
 
 // The render device (MatrixDevice, world.h).
 int MatrixDevice::Classify(const void* bounds) {
-    return ClipTest(reinterpret_cast<CTransformPipeline*>(this), nullptr, static_cast<const ClipBounds*>(bounds));
+    return reinterpret_cast<CTransformPipeline*>(this)->ClipTest(static_cast<const ClipBounds*>(bounds));
 }
 
 namespace {

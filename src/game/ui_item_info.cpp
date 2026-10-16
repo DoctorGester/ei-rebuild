@@ -9,6 +9,7 @@
 // truncated straight from the FPU stack (StatFtol), as the original does, so no rounding happens
 // in between. Compiled with precise floating point so that products keep the original's order.
 #include "text_reader.h"
+#include "text_split.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
 
@@ -367,7 +368,7 @@ void CItemInfoPanel::DescribeItem() {
     // The material's name ("matshort <NAME>"): the record's name with '_' for ' ', lower case.
     mfc::CString material;
     material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().RecordAt(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
-    ReplaceChar(&material, ' ', '_');
+    text::ReplaceChar(&material, ' ', '_');
     material.MakeLower();
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);

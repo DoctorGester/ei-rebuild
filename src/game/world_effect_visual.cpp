@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "lightning.h"
+#include "net_delta.h"
 #include "script.h"
 #include "world.h"
 #include "world_effect_internal.h"
@@ -203,11 +204,11 @@ void CEffectPointLight::Start(int update) {
 
 int CEffectPointLight::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    ReadPosition(field, nullptr, &position);
+    field->ReadPosition(&position);
     ReadFloat16x3(field, nullptr, &color_);
     ReadFloat16(field, nullptr, &range_);
     ReadFloat16x3(field, nullptr, &velocity_);
-    ReadDelta(field, nullptr, &lightFlags_, 4);
+    field->ReadDelta(&lightFlags_, 4);
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
@@ -217,11 +218,11 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
 
 void CEffectPointLight::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
+    field->WritePosition(&position);
     WriteFloat16x3(field, nullptr, &color_);
-    WriteFloat16(field, nullptr, Bits(range_));
+    field->WriteFloat16(Bits(range_));
     WriteFloat16x3(field, nullptr, &velocity_);
-    WriteDelta(field, nullptr, &lightFlags_, 4);
+    field->WriteDelta(&lightFlags_, 4);
 }
 
 void CEffectPointLight::LoadState(void* stream) {
@@ -296,14 +297,14 @@ void CEffectParticle::Start(int update) {
 
 int CEffectParticle::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    ReadPosition(field, nullptr, &position);
-    ReadDelta(field, nullptr, &startTick_, 4);
-    ReadDelta(field, nullptr, &type_, 4);
+    field->ReadPosition(&position);
+    field->ReadDelta(&startTick_, 4);
+    field->ReadDelta(&type_, 4);
     ReadFloat16(field, nullptr, &size_);
-    ReadDelta(field, nullptr, &attachedTo_, 4);
+    field->ReadDelta(&attachedTo_, 4);
     ReadFloat16x3(field, nullptr, &velocity_);
-    ReadPosition(field, nullptr, &target_);
-    ReadDelta(field, nullptr, &unitId_, 4);
+    field->ReadPosition(&target_);
+    field->ReadDelta(&unitId_, 4);
     ReadFloat16(field, nullptr, &alpha_);
     ReadFloat16(field, nullptr, &param164_);
     moving_ = IsMoving(velocity_);
@@ -369,19 +370,19 @@ void CEffectParticle::Spawn() {
 
 void CEffectParticle::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
+    field->WritePosition(&position);
     int value = startTick_;
-    WriteDelta(field, nullptr, &value, 4);
-    WriteDelta(field, nullptr, &type_, 4);
-    WriteFloat16(field, nullptr, Bits(size_));
+    field->WriteDelta(&value, 4);
+    field->WriteDelta(&type_, 4);
+    field->WriteFloat16(Bits(size_));
     value = attachedTo_;
-    WriteDelta(field, nullptr, &value, 4);
+    field->WriteDelta(&value, 4);
     WriteFloat16x3(field, nullptr, &velocity_);
-    WritePosition(field, nullptr, &target_);
+    field->WritePosition(&target_);
     value = unitId_;
-    WriteDelta(field, nullptr, &value, 4);
-    WriteFloat16(field, nullptr, Bits(alpha_));
-    WriteFloat16(field, nullptr, Bits(param164_));
+    field->WriteDelta(&value, 4);
+    field->WriteFloat16(Bits(alpha_));
+    field->WriteFloat16(Bits(param164_));
 }
 
 void CEffectParticle::SetAttachedTo(int objectId) {
@@ -531,19 +532,19 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
 
 void CEffectWall::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
+    field->WritePosition(&position);
     int value = startTick_;
-    WriteDelta(field, nullptr, &value, 4);
-    WriteDelta(field, nullptr, &type_, 4);
-    WriteFloat16(field, nullptr, Bits(size_));
+    field->WriteDelta(&value, 4);
+    field->WriteDelta(&type_, 4);
+    field->WriteFloat16(Bits(size_));
     value = attachedTo_;
-    WriteDelta(field, nullptr, &value, 4);
+    field->WriteDelta(&value, 4);
     WriteFloat16x3(field, nullptr, &velocity_);
-    WritePosition(field, nullptr, &target_);
+    field->WritePosition(&target_);
     value = unitId_;
-    WriteDelta(field, nullptr, &value, 4);
-    WriteFloat16(field, nullptr, Bits(alpha_));
-    WriteFloat16(field, nullptr, Bits(param164_));
+    field->WriteDelta(&value, 4);
+    field->WriteFloat16(Bits(alpha_));
+    field->WriteFloat16(Bits(param164_));
     WriteFloat16x3(field, nullptr, &direction_);
 }
 
@@ -598,13 +599,13 @@ void CEffectLightning::Start(int update) {
 
 int CEffectLightning::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    ReadPosition(field, nullptr, &position);
-    ReadPosition(field, nullptr, &from_);
-    ReadPosition(field, nullptr, &to_);
+    field->ReadPosition(&position);
+    field->ReadPosition(&from_);
+    field->ReadPosition(&to_);
     ReadFloat16(field, nullptr, &width_);
-    ReadDelta(field, nullptr, &flag_, 1);
-    ReadDelta(field, nullptr, &toObject_, 4);
-    ReadDelta(field, nullptr, &fromObject_, 4);
+    field->ReadDelta(&flag_, 1);
+    field->ReadDelta(&toObject_, 4);
+    field->ReadDelta(&fromObject_, 4);
     if (!SnapshotReadToEnd()) return 0;
     UpdateEnds();
     localPosition_ = position;
@@ -614,15 +615,15 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
 
 void CEffectLightning::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
-    WritePosition(field, nullptr, &from_);
-    WritePosition(field, nullptr, &to_);
-    WriteFloat16(field, nullptr, Bits(width_));
-    WriteDelta(field, nullptr, &flag_, 1);
+    field->WritePosition(&position);
+    field->WritePosition(&from_);
+    field->WritePosition(&to_);
+    field->WriteFloat16(Bits(width_));
+    field->WriteDelta(&flag_, 1);
     int value = toObject_;
-    WriteDelta(field, nullptr, &value, 4);
+    field->WriteDelta(&value, 4);
     value = fromObject_;
-    WriteDelta(field, nullptr, &value, 4);
+    field->WriteDelta(&value, 4);
 }
 
 void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float width) {

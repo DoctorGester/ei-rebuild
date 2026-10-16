@@ -73,9 +73,6 @@ lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::Al
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
 // The aligned array SetSize for 4-byte elements (00505270; thiscall: size, growth or -1).
 __declspec(naked) void __fastcall SetSize4(lib::AlignedArray<SpriteSortRecord*>*, void*, int, int) EI_ORIGINAL(0x00505270)
-// Through the hooked addresses (ours in the release build, the verify wrappers in the verify build).
-__declspec(naked) int __fastcall ClipTriangle(TLVertex*, const std::uint8_t*, std::uint16_t*, int*, int*, float,
-                                              float) EI_ORIGINAL(0x0042D910)
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
 
@@ -284,11 +281,11 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
     for (int i = 0; i < sprites * 4; i += 4) {
         int added;
         SetTriangle(tri, i, i + 2, i + 1);
-        ClipTriangle(vertices, outcodes, tri, &vertexCount, &added, xMax, yMax);
+        clip::ClipTriangle(vertices, outcodes, tri, &vertexCount, &added, xMax, yMax);
         indexCount += added;
         tri += added;
         SetTriangle(tri, i, i + 3, i + 2);
-        ClipTriangle(vertices, outcodes, tri, &vertexCount, &added, xMax, yMax);
+        clip::ClipTriangle(vertices, outcodes, tri, &vertexCount, &added, xMax, yMax);
         indexCount += added;
         tri += added;
     }

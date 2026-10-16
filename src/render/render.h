@@ -1,39 +1,21 @@
 #pragma once
 
 // The new renderer: a sidecar module that draws the game's frame with sokol_gfx (Direct3D 11) from
-// data pulled out of the game (docs/notes/renderer.md). The game code that used to talk to the old
-// Direct3D 7 path hands its data here instead; while the port is under way the old path keeps
-// drawing everything that is not ported yet.
+// data pulled out of the game (docs/notes/renderer.md) and presents it on the game window. The game
+// code that used to talk to the old Direct3D 7 path hands its data here instead; the Direct3D 7 calls
+// left in game code go to stand-ins that draw nothing (device.h).
 //
-// Switch: the environment variable EI_RENDER (or the harness step "render <spec>"), a comma-separated
-// list:
-//   new        the sidecar renders every frame into its own off-screen target (game resolution);
-//              captures write it next to the old frame (frames\<name>.new.bmp)
-//   show       ...and a child window over the game's client area shows it (input passes through)
-//   split      ...the child window covers only the right half (old frame left, new frame right)
-//   noterrain  the old path no longer draws the terrain (the new one does)
-//   noobjects  the old path no longer draws the world's meshes (figures, objects, the sky) and
-//              its flat geometry (shadows)
-//   nointerface  ...nor the interface (window surfaces, sprites, 3D previews)
-//   cpuwindows the off-screen surfaces of 004EF7B0 (interface windows, cursor, movies) and the
-//              system-memory picture surfaces of 004F0060 (cursor images, picture windows) keep
-//              their pixels in memory the new renderer owns (SurfaceMemory) and reads directly, as
-//              do the save / load screen's picture textures (off by default, on with "present");
-//              "nocpuwindows" turns it off
-//   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
-//              noobjects, nointerface, cpuwindows; movies too); captures write the new frame as
-//              frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 and the
-//              texture manager's textures then have no DirectDraw surface at all: the CPU-written,
-//              shadow and .bmp ones only that memory, the .mmp ones only the new renderer's
-//              decoded copy (TextureFromMmp). When "present" is on as the device object is built
-//              (StartPresenting) the game has no DirectDraw or Direct3D 7 device at all
-//              (device.h, ticket R9a) and the new renderer presents through its own swap chain on
-//              the game window; turned on later (a DirectDraw device exists) the new frame is
-//              copied into the game's render target before the old present shows it
-// Without "new" nothing here runs and the game draws exactly as before. The standalone image
-// (ei::Standalone) without EI_RENDER runs "new,present". The harness's "render"
-// step adds the words of EI_RENDER to its own (a run of the install without dgVoodoo sets
-// "new,present" for every scenario).
+// Switch: the environment variable EI_RENDER (or the harness step "render <spec>" in a run of the
+// image), a comma-separated list. "new" turns the new renderer on: when the device object is built
+// (StartPresenting) the game gets no DirectDraw or Direct3D 7 device at all (ticket R9a), the new
+// renderer presents through its own swap chain on the game window, the holders of 004EF7B0 /
+// 004F0060 and the texture manager's textures have no DirectDraw surface (the CPU-written, shadow
+// and .bmp ones only memory the new renderer owns, SurfaceMemory; the .mmp ones only its decoded
+// copy, TextureFromMmp), and captures write the new frame. "present" and "cpuwindows" are what "new"
+// means (accepted: the launchers and scenarios name them). Without "new" (or when the Direct3D 11
+// device cannot be made) nothing here runs and the game builds its DirectDraw device as the original
+// does. The standalone image (ei::Standalone) without EI_RENDER runs "new,present"; the harness's
+// "render" step adds the words of EI_RENDER to its own.
 
 #include <cstdint>
 #include <vector>
@@ -53,15 +35,13 @@ void Configure(const char* spec);
 // The sidecar renders frames.
 bool Active();
 
-// "cpuwindows": the off-screen surfaces the game makes through 004EF7B0 (interface windows, the
-// software cursor, movies) and 004F0060 (system-memory pictures) keep their pixels in memory the
-// new renderer owns (NewSurfaceMemory). Outside the switch-over that memory is given to DirectDraw
-// as the surface's memory; in the switch-over ("present") such a holder has no DirectDraw surface at
-// all. The new renderer reads a holder's (CDXSurface) pixels there wherever it draws it, instead of
-// locking a surface. Texture holders can have such memory too (the save / load screen's pictures
-// beside their DirectDraw texture; in the switch-over the textures of 00691D80, the shadow and the
-// .bmp textures instead of one): a mesh pass that binds one reads the memory, again whenever it
-// changed.
+// The off-screen surfaces the game makes through 004EF7B0 (interface windows, the software cursor,
+// movies) and 004F0060 (system-memory pictures) keep their pixels in memory the new renderer owns
+// (NewSurfaceMemory) and have no DirectDraw surface. The new renderer reads a holder's (CDXSurface)
+// pixels there wherever it draws it. Texture holders have such memory too (the save / load screen's
+// pictures, the textures of 00691D80, the shadow and the .bmp textures): a mesh pass that binds one
+// reads the memory, again whenever it changed. On with "new" (also when the Direct3D 11 device
+// could not be made).
 bool CpuWindows();
 // A surface holder's pixels: a zeroed top-down DIB section (GDI can draw into it through a memory
 // DC) of `width` x `height` pixels, 16 or 32 bits each, the channels at the given masks (`alphaMask`
@@ -85,15 +65,15 @@ void HolderGone(const void* holder);
 // images): the new renderer keeps the picture's pixels from the file data.
 void PictureFromMmp(const void* holder, const void* data);
 
-// The switch-over mode ("present"): the new frame is what the old present (004EF610) shows; the
-// old path draws nothing that is handed over.
+// The new renderer is on and has not failed (the same as Active): the new frame is what the present
+// (004EF610) shows; the old path draws nothing that is handed over.
 bool Presenting();
 
-// The device object is being built (004EDD70): with "present" the new renderer starts now and from
-// here on presents through its own swap chain on the game window; the game then builds its device
-// without DirectDraw (device.h). "present", "new" and "cpuwindows" stay on whatever is configured
-// later. False (and nothing changes) without "present" or when the new renderer cannot start: the
-// game builds its DirectDraw device as before.
+// The device object is being built (004EDD70): the new renderer starts now and from here on
+// presents through its own swap chain on the game window; the game then builds its device without
+// DirectDraw (device.h). "new" stays on whatever is configured later. False (and nothing changes)
+// without "new" or when the new renderer cannot start: the game builds its DirectDraw device as the
+// original does.
 bool StartPresenting();
 // StartPresenting succeeded: the new renderer shows the frames itself.
 bool PresentsItself();
@@ -101,28 +81,12 @@ bool PresentsItself();
 // turns it off under its virtual clock.
 void SetWaitForVsync(bool on);
 
-// The old Direct3D path still draws the terrain ("noterrain" off). The harness can change it.
-bool DrawOldTerrain();
-void SetDrawOldTerrain(bool on);
-
-// The old path still draws the world's meshes and flat geometry ("noobjects" off) and the interface
-// (meshes outside the world view, window surfaces, rectangles; "nointerface" off). The harness can
-// change them.
-bool DrawOldMeshes();         // the mesh draw being handed over now (in or outside the world view)
-bool DrawOldInterface();      // the window surfaces' blits, the rectangle fills
-void SetDrawOldObjects(bool on);
-void SetDrawOldInterface(bool on);
-
-// The world view's draw (CWorldClient::Render, 00569E40) begins and ends.
-void BeginWorld();
-void EndWorld();
-
 // A mesh draw of the old path (004E9010 / 004E9A50 on the device object), after the game has
 // decided it is visible and set its colours: the mesh in model space and the matrix the old path
 // projects it with. Handed over between BeginMesh and EndMesh; every pass the old path draws in
 // between (004EB550 / 004EB370) calls MeshPass, which takes the old device's state for that pass
 // (blend, alpha test, depth, culling, fog, texture stages, the bound textures) and returns whether
-// the old path still draws it.
+// the old path still draws it (only when the new renderer did not take it).
 struct MeshDraw {
     const float* positions;            // blocks of four vertices: x[4], y[4], z[4], 4 unused
     int positionCount;
@@ -242,14 +206,14 @@ void ClearDepth(float z, const Rect* rects, int count);
 void TerrainPage(const terrain::SectorData* sector, void* renderer, int page);
 
 // Copies the new frame's `source` rectangle (screen pixels, as drawn so far this frame) into the
-// DirectDraw surface of `holder` (a CDXSurface), stretched to its size: the screen copies of
-// 005FD3D0 (the escape menu's background, the save game's picture). In the switch-over, and for a
-// holder with no DirectDraw surface, into its SurfaceMemory. False when the sidecar is off or the
-// copy failed.
+// SurfaceMemory of `holder` (a CDXSurface), stretched to its size: the screen copies of 005FD3D0
+// (the escape menu's background, the save game's picture). False when the sidecar is off, the holder
+// has no such memory or the copy failed.
 bool CopyFrameTo(const void* holder, const Rect& source);
 
 // The end of the game's frame: draws what was handed over since the last present into the
-// off-screen target (and the child window). Once per frame; captures call it before reading.
+// off-screen target and presents it on the game window. Once per frame; captures call it before
+// reading.
 void EndFrame();
 
 // The game presents (004EF610): EndFrame if not done yet, then a new frame begins.

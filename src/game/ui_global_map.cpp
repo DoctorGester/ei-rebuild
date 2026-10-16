@@ -43,6 +43,9 @@
 
 using console::CStringArray;
 
+namespace mapspec {
+Vector3* __fastcall QuaternionRotate(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/);
+}
 namespace {
 
 inline double D(float f) { return f; }
@@ -100,20 +103,12 @@ __declspec(naked) mfc::CString* MapScreen::QuestTitle(mfc::CString*, const char*
 __declspec(naked) Vector3* MapScreen::QuestPosition(Vector3*, const char*) EI_ORIGINAL(0x00630CC0)
 __declspec(naked) void MapScreen::SetWeather() EI_ORIGINAL(0x0062EE90)
 
-// The marker arrays (MFC CArray instantiations) and their elements' assignment. The zones'
-// SetAtGrow (00631CC0) is rewritten below; called through its address so its wrapper runs.
-__declspec(naked) void __fastcall ZonesSetAtGrowAt(GlobalMapZoneArray*, void*, int, const GlobalMapZone*) EI_ORIGINAL(0x00631CC0)
 // The links' and the quests' SetSize (00631E70 / 00631FF0, thiscall, RET 8) and their elements'
 // assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
 __declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631E70)
 __declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631FF0)
-
-// 0046A4B0 (QuaternionRotate, map_spec.cpp; thiscall on the quaternion, RET 8): `out` = the vector
-// `v` turned by the quaternion.
-__declspec(naked) Vector3* __fastcall Rotate(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/)
-    EI_ORIGINAL(0x0046A4B0)
 
 // Sprites (CUiMesh) beyond ui.h.
 struct SpriteOps : SpritePositionOriginal {
@@ -214,7 +209,7 @@ public:
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
-        Rotate(&map_->turn_, nullptr, &turned, &local);
+        mapspec::QuaternionRotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 out;
         AddVectors(&out, centre, turned);
         return out;
@@ -241,7 +236,7 @@ public:
         Vector3 centre = Centre();
         Vector3 local = {0.0f, 0.0f, height};
         Vector3 turned;
-        Rotate(&map_->turn_, nullptr, &turned, &local);
+        mapspec::QuaternionRotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 p;
         p.Construct(static_cast<float>(D(centre.x) + D(turned.x)), static_cast<float>(D(centre.y) + D(turned.y)),
                     static_cast<float>(D(centre.z) + D(turned.z)));
@@ -371,7 +366,7 @@ void CGlobalMap::Create() {
     for (int i = 0; i < allod->zoneCount; ++i) {
         MapRecord* zone = ZoneAt(allod->zones[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
-        ZonesSetAtGrowAt(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
+        GlobalMapZonesSetAtGrow(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
         variable.Format(game::Text(0x00794148), zone->name);   // "z.%s"
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));

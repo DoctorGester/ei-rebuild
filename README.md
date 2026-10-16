@@ -36,8 +36,8 @@ with `ei_hook.dll` (the harness) and `EI_NO_HOOKS=1`: none of our code replaces 
 - `src/game/` rewritten game code. Each function notes its original address.
 - `src/hook/` the replacement framework (`include/ei/hook.h`): the jumps into the image, the image's
   start (`standalone.cpp`), and in game.exe the vector recorders, coverage and profiler.
-- `src/render/` the new renderer (sokol_gfx on Direct3D 11, `third_party/sokol`), switched on with
-  `EI_RENDER=new` (`docs/notes/renderer.md`).
+- `src/render/` the new renderer (sokol_gfx on Direct3D 11, `third_party/sokol`): the image always draws and
+  presents with it (`EI_RENDER=new,present`, the default; `docs/notes/renderer.md`).
 - `tests/verify/` the harness (scenario runs of the image and of the original game), compiled into the `verify` build.
 - `tools/` launcher, Ghidra export (`export_functions.py`), PE inspection (`pe.py`).
 - `config/functions.csv` every function in game.exe with kind (game/lib/eh/thunk) and status.
@@ -98,8 +98,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   runs' frames with a tolerance (`--mask` restricts it to where two other frames differ).
   A finished run's frames are stored packed (`<name>.bmp.z`, tools/frame_store.py; compare_frames and
   frame_preview read both forms).
-  `render <spec>` sets the renderer spec for the run and `oldterrain`, `oldobjects`, `oldinterface`
-  (`off|on`) switch parts of the old draw where it still exists (`docs/notes/renderer.md`).
+  `render <spec>` sets the renderer spec for a run of the image (ignored in a run of the original code;
+  `docs/notes/renderer.md`).
 - Harness runs use a virtual clock (`tests/verify/harness_clock.h`): each main-loop frame is five
   world updates, the main thread's sleeps and timed waits take no real time, sample ends come on
   virtual time, the date and the random seeds are fixed, and frames present without waiting for

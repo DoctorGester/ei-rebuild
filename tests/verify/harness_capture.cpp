@@ -266,15 +266,6 @@ void Capture() {
     std::snprintf(text, sizeof(text), "%s (%dx%d, %s, frame %u)", path, image.width, image.height, how.c_str(), g_frames);
     g_detail = text;
     g_state = State::Done;
-    // With the new renderer on (src/render), its frame of the same moment goes next to it.
-    if (render::Active()) {
-        render::EndFrame();
-        Image next;
-        std::snprintf(path + used, MAX_PATH - used, "\\%s.new.bmp", g_name.c_str());
-        if (!render::ReadFrame(&next.width, &next.height, &next.bgr)) g_detail += "; the new renderer has no frame";
-        else if (!WriteBmp(path, next)) g_detail += std::string("; cannot write ") + path;
-        else g_detail += "; new renderer: " + std::string(path);
-    }
 }
 
 // Replaces the call of 005E65F0 at 004580D7 (ECX = the cursor object, preserved for it).

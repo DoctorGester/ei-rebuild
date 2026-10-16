@@ -71,12 +71,6 @@ bool NetworkGame() { return IsNetworkClientOriginal(); }
 // address, so its verify wrapper runs.
 __declspec(naked) int __stdcall RunScriptTextAt(mfc::CString*, int /*run*/, ScriptLoadError*) EI_ORIGINAL(0x005785D0)
 
-// Calls between the console functions go through the original addresses, so that each runs
-// through its own verify wrapper in verify builds (and through any other mod's patch).
-__declspec(naked) int __fastcall TokenizeAt(const char*, CStringArray*) EI_ORIGINAL(0x004DC200)
-__declspec(naked) void __fastcall RunScriptLineAt(const mfc::CString*, const CStringArray*, const char*,
-                                                  const char*) EI_ORIGINAL(0x005DD800)
-
 void* const kFlush = reinterpret_cast<void*>(0x00435000);   // ostream& flush(ostream&)
 
 } // namespace
@@ -182,7 +176,7 @@ void __fastcall Execute(const char* text) {
 
     mfc::CString command;
     CStringArray args;
-    TokenizeAt(text, &args);
+    Tokenize(text, &args);
     if (args.GetSize() == 0) return;
     command = args[0];
     args.RemoveAt(0, 1);
@@ -195,11 +189,11 @@ void __fastcall Execute(const char* text) {
         if (CheatEnabled() && local) {
             mfc::CString script = Ops(command).Mid(1);
             if (first == '@')
-                RunScriptLineAt(&script, &args, game::Text(0x00790940), game::Text(0x0078D71C));   // "WorldScript(" ")"
+                RunScriptLine(&script, &args, game::Text(0x00790940), game::Text(0x0078D71C));   // "WorldScript(" ")"
             else if (first == '#')   // "WorldScript( ConsoleFloat( " " ))"
-                RunScriptLineAt(&script, &args, game::Text(0x007923C4), game::Text(0x007923E0));
+                RunScriptLine(&script, &args, game::Text(0x007923C4), game::Text(0x007923E0));
             else                     // "WorldScript( ConsoleString( " " ))"
-                RunScriptLineAt(&script, &args, game::Text(0x007923A4), game::Text(0x007923E0));
+                RunScriptLine(&script, &args, game::Text(0x007923A4), game::Text(0x007923E0));
         }
         return;
     }
@@ -267,7 +261,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         } else if (state == 0) {
             state = 1;
         }
-        if (IsLeadByte(static_cast<signed char>(*p))) {
+        if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
             Ops(character).AssignChar(p[0]);
             Ops(character).AppendChar(p[1]);
         } else {

@@ -30,8 +30,6 @@ __declspec(naked) DriverNode** __fastcall HoldersInsert(DriverNode** /*list*/, v
 __declspec(naked) DriverNode** __fastcall DriversErase(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/) EI_ORIGINAL(0x0047A380)
 __declspec(naked) void __fastcall NodeDeallocate(DriverNode*, int /*count*/) EI_ORIGINAL(0x0047A650)
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
-// 00419CC0: raises a reliable stream's high-water mark.
-__declspec(naked) void __fastcall BufferUpdateHigh(GameBuffer*) EI_ORIGINAL(0x00419CC0)
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
@@ -64,7 +62,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         }
         if (known) continue;
         GameBuffer* in = &node->connection->reliableIn_;
-        BufferUpdateHigh(in);
+        net::BufferUpdateHigh(in);
         if (in->base - Addr(in->begin) + Addr(in->high) <= 0) continue;
         net::ServerSession* server = net::GameServer();
         if (!IsLive(server)) continue;

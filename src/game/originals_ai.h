@@ -27,7 +27,6 @@ __declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, v
 // 005C98C0: AI events noise(source, loudness, kind, at) (RET 0x10; a null `at` means the source's position; no result).
 __declspec(naked) inline void __fastcall AiEventsNoiseOriginal(void* /*events*/, void*, void* /*source*/, float /*loudness*/,
                                                                int /*kind*/, const void* /*at*/) EI_ORIGINAL(0x005C98C0)
-__declspec(naked) inline void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 // 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility
 // mask (+0x10), destroying each (00558D00). Plain RET.
 // 005CBBC0 (thiscall on the brain's memory, brain + 0xD0; RET 0xC): the memory's calls (+0xA8) hear a call of `kind`

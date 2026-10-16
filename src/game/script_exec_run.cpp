@@ -232,7 +232,7 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
     for (int i = 0; i < conditions->commands.size; ++i) {
         float result;
         CalcFloatOrig(&conditions->commands.data[i], nullptr, script, &instance->vars, &result);
-        FreeTemporariesOrig(script);
+        ScriptFreeTemporaries(script);
         if (ZeroOrNaN(result)) return;
     }
     script->RunCommands(commands, instance);
@@ -373,6 +373,6 @@ void __fastcall ScriptTick(CScript* script) {
     RespawnFxSources(script);
     UpdatePointLights(script);
     UpdateParticleSources(script);
-    FreeTemporariesOrig(script);
+    ScriptFreeTemporaries(script);
 }
 EI_REPLACE(0x004BF000, ScriptTick);

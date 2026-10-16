@@ -30,8 +30,11 @@ def is_game(cmd):
 class Fake:
     """A runner that sleeps durations[scenario] and returns results[scenario] (a list: one per attempt)."""
 
-    def __init__(self, durations=None, results=None, default=0.2):
+    def __init__(self, durations=None, results=None, default=0.2, gates=None):
         self.durations, self.results, self.default = durations or {}, results or {}, default
+        self.gates = gates or {}       # scenario -> Event the run waits for (instead of sleeping): the test decides when it ends
+        self.gate_timed_out = False    # a gate nobody opened in time: the scheduler held up what should have opened it
+        self.launches = []   # (batch, scenario) in the order the scheduler started them (its thread, so no thread jitter)
         self.spans = []      # (batch, scenario, start, end)
         self.lock = threading.Lock()
 
@@ -41,7 +44,11 @@ class Fake:
         def one(name, install, folder):
             on_attempt(next(attempts))
             t0 = time.time()
-            time.sleep(self.durations.get(name, self.default))
+            if name in self.gates:
+                if not self.gates[name].wait(30):
+                    self.gate_timed_out = True
+            else:
+                time.sleep(self.durations.get(name, self.default))
             t1 = time.time()
             with self.lock:
                 self.spans.append((batch['id'], name, t0, t1))
@@ -80,6 +87,16 @@ class SchedTest(unittest.TestCase):
     def sched(self, fake, count=4, code=None):
         s = work_sched.Scheduler(self.db, runner=fake, slots=work_sched.SlotPool(count, self.slots), code=code or [])
         s.last_check = time.time() + 3600     # no submitter checks unless a test asks
+        launches = getattr(fake, 'launches', None)
+        if launches is not None:
+            start = s.start
+
+            def recording_start(batch, run, *args):
+                started = start(batch, run, *args)
+                if started:
+                    launches.append((batch['id'], run['scenario']))
+                return started
+            s.start = recording_start
         return s
 
     def submit(self, names, argv=(), expected=None, alone=(), build='b', submitter=None):
@@ -95,6 +112,19 @@ class SchedTest(unittest.TestCase):
             self.assertLess(time.time(), end, 'scheduler did not finish')
             time.sleep(0.02)
 
+    def drive_opening(self, s, fake, gate, when, timeout=60):
+        """Drive the scheduler; the first time when() holds, open the gate (games waiting on it end)."""
+        end = time.time() + timeout
+        opened = False
+        while s.tick():
+            self.assertLess(time.time(), end, 'scheduler did not finish')
+            if not opened and when():
+                gate.set()
+                opened = True
+            time.sleep(0.02)
+        self.assertTrue(opened, 'the condition for opening the gate never came')
+        self.assertFalse(fake.gate_timed_out, 'the scheduler did not start what should have started while the gate was shut')
+
     def batch(self, b):
         return self.db.execute('SELECT * FROM batch WHERE id = ?', (b,)).fetchone()
 
@@ -102,14 +132,20 @@ class SchedTest(unittest.TestCase):
         return {r['scenario']: r for r in self.db.execute('SELECT * FROM run WHERE batch = ?', (b,))}
 
     def test_fifo_and_backfill(self):
-        fake = Fake({'a1': .5, 'a2': .5, 'a3': .5, 'a4': .5, 'a5': .2, 'a6': .2})
+        # a5 and a6 (the shortest, so last) stay running until a batch-b run has started: that is the backfill
+        gate = threading.Event()
+        fake = Fake({'a1': .5, 'a2': .5, 'a3': .5, 'a4': .5}, gates={'a5': gate, 'a6': gate})
         a = self.submit(['a5', 'a6', 'a1', 'a2', 'a3', 'a4'], expected={'a1': 50, 'a2': 50, 'a3': 50, 'a4': 50, 'a5': 9, 'a6': 9})
         b = self.submit(['b1', 'b2', 'b3', 'b4'], build='b2')
-        self.drive(self.sched(fake))
-        self.assertLessEqual(max(fake.starts(a)), min(fake.starts(b)) + 0.05, 'the later batch started before the earlier had all started')
-        self.assertLess(min(fake.starts(b)), max(fake.ends(a)) - 0.1, 'no backfill while the earlier batch ran')
-        self.assertLessEqual(max(fake.starts(a, ['a1', 'a2', 'a3', 'a4'])), min(fake.starts(a, ['a5', 'a6'])) + 0.05, 'not longest first')
-        self.assertEqual(fake.most_at_once(), 4)
+        self.drive_opening(self.sched(fake), fake, gate, lambda: any(x[0] == b for x in fake.launches))
+        order = [(x[0], x[1]) for x in fake.launches]
+        a_at = [i for i, x in enumerate(order) if x[0] == a]
+        b_at = [i for i, x in enumerate(order) if x[0] == b]
+        self.assertLess(max(a_at), min(b_at), 'the later batch started before the earlier had all started')
+        long_ones = [order.index((a, n)) for n in ('a1', 'a2', 'a3', 'a4')]
+        short_ones = [order.index((a, n)) for n in ('a5', 'a6')]
+        self.assertLess(max(long_ones), min(short_ones), 'not longest first')
+        self.assertLessEqual(fake.most_at_once(), 4)
         for x in (a, b):
             self.assertEqual((self.batch(x)['state'], self.batch(x)['exit_code']), ('finished', 0))
             self.assertIn('ALL PASS', self.batch(x)['summary'])
@@ -156,29 +192,39 @@ class SchedTest(unittest.TestCase):
 
     def test_slow_summary_does_not_hold_the_loop(self):
         # a batch's post-game checks (--widescreen frame comparisons) take minutes: the next batch's
-        # games start meanwhile and the scheduler keeps ticking
+        # games start meanwhile and the scheduler keeps ticking.  The summary here waits for the test to
+        # release it (not for a time), so the test depends on what the loop did, never on how fast it ran.
         fake = Fake(default=0.2)
         slow = self.submit(['a1'])
         later = self.submit([f'b{i}' for i in range(1, 10)], build='b2')   # three waves on 4 slots
         summary = run_all.summary
+        entered, release, released_by_test = threading.Event(), threading.Event(), []
+
         def slow_summary(jobs, *a, **k):
             if jobs == [('a1', 'vanilla')]:
-                time.sleep(1.5)
+                entered.set()
+                released_by_test.append(release.wait(60))      # False: nothing released it, the loop was held
             return summary(jobs, *a, **k)
         run_all.summary = slow_summary
         try:
             s = self.sched(fake)
-            ticks, end = 0, time.time() + 30
+            ticks, end = 0, time.time() + 60
             while s.tick():
-                ticks += 1
                 self.assertLess(time.time(), end, 'scheduler did not finish')
+                if entered.is_set() and not release.is_set():
+                    ticks += 1
+                    # the whole next batch has played while the summary is still being written, and the loop
+                    # ticked 30 more times meanwhile
+                    if ticks > 30 and len(fake.starts(later)) == 9 and len(fake.ends(later)) == 9:
+                        release.set()
                 time.sleep(0.02)
         finally:
+            release.set()
             run_all.summary = summary
-        self.assertLess(max(fake.starts(later)), min(fake.starts(slow)) + 1.2, 'the next batch waited for a summary')
-        self.assertGreater(ticks, 30, 'the main loop stood still during the summary')
+        self.assertEqual(released_by_test, [True], 'the main loop stood still during the summary')
         self.assertEqual((self.batch(slow)['state'], self.batch(slow)['exit_code']), ('finished', 0))
         self.assertIn('ALL PASS', self.batch(slow)['summary'])
+        self.assertEqual((self.batch(later)['state'], self.batch(later)['exit_code']), ('finished', 0))
 
     def test_jobs_ignored(self):
         fake = Fake(default=0.3)
@@ -187,13 +233,14 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(fake.most_at_once(), 4, "a batch's --jobs held it under the machine's slots")
 
     def test_later_alone_run_does_not_stop_backfill(self):
-        fake = Fake(default=0.3)
+        gate = threading.Event()
+        fake = Fake(default=0.3, gates={'a5': gate, 'a6': gate})     # a5, a6 run until c1 has started
         a = self.submit(['a1', 'a2', 'a3', 'a4', 'a5', 'a6'])
         b = self.submit(['w'], alone=['w'], build='b2')
         c = self.submit(['c1'], build='c2')
-        self.drive(self.sched(fake))
-        self.assertLess(min(fake.starts(c)), min(fake.starts(b)), "a later batch's display-mode run held up the backfill")
-        self.assertLess(min(fake.starts(c)), max(fake.ends(a)) - 0.05, 'no backfill while the earlier batch ran')
+        self.drive_opening(self.sched(fake), fake, gate, lambda: any(x[0] == c for x in fake.launches))
+        order = [x[1] for x in fake.launches]
+        self.assertLess(order.index('c1'), order.index('w'), "a later batch's display-mode run held up the backfill")
 
     def test_display_mode_runs_alone(self):
         fake = Fake({'a1': .4, 'a2': .4, 'a3': .4, 'a4': .4, 'w': .3, 'b1': .2, 'b2': .2})
@@ -206,29 +253,50 @@ class SchedTest(unittest.TestCase):
         self.assertLessEqual(max(e for _, n, s, e in fake.spans if n in ('b1', 'b2')), w0 + 0.01)   # its other runs first
         self.assertEqual(self.runs(b)['w']['state'], 'finished')
 
+    def hold(self, *names):
+        """A process holding the named slot files (or the alone gate) until the test kills it."""
+        ready = os.path.join(self.slots, 'ready')
+        if os.path.exists(ready):
+            os.remove(ready)
+        holder = subprocess.Popen([sys.executable, '-c', HOLD, self.slots, '600', *names])
+        end = time.time() + 60
+        while not os.path.exists(ready):
+            self.assertLess(time.time(), end, 'the holder did not start')
+            time.sleep(0.02)
+        return holder
+
     def test_plain_run_all_slots_and_gate(self):
-        # another process (a plain run_all) holds two slots: at most two of ours run meanwhile
+        # another process (a plain run_all) holds two slots: at most two of ours run meanwhile.  It holds them
+        # until the test is done with it, not for a time, so a slow machine cannot outlast the hold.
         os.makedirs(self.slots, exist_ok=True)
-        holder = subprocess.Popen([sys.executable, '-c', HOLD, self.slots, '1.5', 'slot00', 'slot01'])
-        while not os.path.exists(os.path.join(self.slots, 'ready')):
-            time.sleep(0.02)
-        t0 = time.time()
-        fake = Fake(default=0.3)
-        self.submit(['a1', 'a2', 'a3', 'a4', 'a5', 'a6'])
-        self.drive(self.sched(fake))
-        holder.wait()
-        self.assertLessEqual(fake.most_at_once(t0, t0 + 1.3), 2)
-        # it holds the alone gate (gathering for a display-mode game): none of ours starts
-        os.remove(os.path.join(self.slots, 'ready'))
-        holder = subprocess.Popen([sys.executable, '-c', HOLD, self.slots, '1.0', 'alone'])
-        while not os.path.exists(os.path.join(self.slots, 'ready')):
-            time.sleep(0.02)
-        t0 = time.time()
-        fake = Fake(default=0.1)
-        self.submit(['c1', 'c2'], build='b2')
-        self.drive(self.sched(fake))
-        holder.wait()
-        self.assertGreaterEqual(min(fake.starts()), t0 + 0.7)
+        holder = self.hold('slot00', 'slot01')
+        try:
+            fake = Fake(default=0.3)
+            self.submit(['a1', 'a2', 'a3', 'a4', 'a5', 'a6'])
+            self.drive(self.sched(fake), timeout=120)
+            self.assertEqual(len(fake.spans), 6)
+            self.assertLessEqual(fake.most_at_once(), 2)
+        finally:
+            holder.kill()
+            holder.wait()
+        # it holds the alone gate (gathering for a display-mode game): none of ours starts until it lets go
+        holder = self.hold('alone')
+        try:
+            fake = Fake(default=0.1)
+            self.submit(['c1', 'c2'], build='b2')
+            s = self.sched(fake)
+            end = time.time() + 1.0
+            while time.time() < end:
+                s.tick()
+                time.sleep(0.02)
+            self.assertEqual(fake.spans, [], 'a game started while the alone gate was held')
+        finally:
+            released = time.time()
+            holder.kill()
+            holder.wait()
+        self.drive(s, timeout=120)
+        self.assertEqual(len(fake.spans), 2)
+        self.assertGreaterEqual(min(fake.starts()), released)
 
     def test_retries_and_summary(self):
         fake = Fake(results={'flaky': ['FAIL', 'PASS'], 'bad': ['FAIL']}, default=0.05)
@@ -465,7 +533,7 @@ class SchedTest(unittest.TestCase):
         env = dict(os.environ, WORK_DB=os.path.join(self.tmp, 'work.db'), WORK_SCHED_CODE=code)
         cmd = [sys.executable, os.path.join(work.ROOT, 'tools', 'work.py'), 'scheduler']
         proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, text=True)
-        end = time.time() + 10
+        end = time.time() + 60
         while not self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone():
             self.assertLess(time.time(), end)
             time.sleep(0.05)
@@ -475,17 +543,31 @@ class SchedTest(unittest.TestCase):
         proc.stdout.close()
         self.assertIsNone(self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone())
 
-    def test_one_scheduler_and_idle_exit(self):
-        env = dict(os.environ, WORK_DB=os.path.join(self.tmp, 'work.db'), WORK_SCHED_IDLE='1.5')
+    def start_scheduler(self, idle):
+        env = dict(os.environ, WORK_DB=os.path.join(self.tmp, 'work.db'), WORK_SCHED_IDLE=str(idle))
         cmd = [sys.executable, os.path.join(work.ROOT, 'tools', 'work.py'), 'scheduler']
-        first = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, text=True)
-        end = time.time() + 10
+        proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, text=True)
+        end = time.time() + 60
         while not self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone():
             self.assertLess(time.time(), end)
             time.sleep(0.05)
-        second = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=20)
-        self.assertIn('already running', second.stdout)
-        self.assertEqual(first.wait(timeout=20), 0)
+        return cmd, env, proc
+
+    def test_one_scheduler(self):
+        # its idle exit is far away: a loaded machine starting the second process late must not end the first
+        cmd, env, first = self.start_scheduler(600)
+        try:
+            second = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=120)
+            self.assertIn('already running', second.stdout)
+            self.assertIsNone(first.poll(), 'the first scheduler left')
+        finally:
+            first.kill()
+            first.wait()
+            first.stdout.close()
+
+    def test_idle_exit(self):
+        _, _, first = self.start_scheduler(1.5)
+        self.assertEqual(first.wait(timeout=120), 0)
         self.assertIn('idle; exiting', first.stdout.read())
         first.stdout.close()
         self.assertIsNone(self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone())

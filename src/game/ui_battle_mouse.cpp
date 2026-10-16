@@ -1,5 +1,6 @@
 // The battle screen's mouse move (00639D60), left button down (00638A40) and a unit's name line
 // (0063B920). See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
+#include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -97,7 +98,7 @@ void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
     }
     out->Empty();
     name = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->name;
-    ReplaceChar(&name, ' ', '_');
+    text::ReplaceChar(&name, ' ', '_');
     if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }
 EI_REPLACE_METHOD(0x0063B920, CBattleScreen::UnitName);

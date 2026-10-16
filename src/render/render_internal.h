@@ -155,8 +155,8 @@ std::uint32_t CommitNumber();
 int AddMatrix(const Matrix4& m);
 // The frame's fog (FOGENABLE / FOGCOLOR of the old device), read once per frame.
 void ReadFog(Frame& f);
-// Render states / stage 0..1 texture stage states of the old device (GetRenderState /
-// GetTextureStageState), several under one hold of the device lock.
+// Render states / stage 0..1 texture stage states of the old device: the stand-in's, which keeps
+// every state the game sets (device_switchover.h).
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count);
 void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
 // The values of render states / of a stage's states for a pass, from the state the game code fed
@@ -165,8 +165,6 @@ void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* value
 void RenderValues(const std::uint32_t* states, std::uint32_t* values, int count);
 void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
 void PassDone();
-// Inside the world view's draw (render::BeginWorld .. EndWorld).
-bool InWorld();
 // The device object (007AF080) and its render target's size.
 CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
@@ -289,25 +287,23 @@ void CountImageRequest(ImageUse use);
 void LogImageCounts(const char* when);
 
 // The game texture `texture` (a CTexture) or a surface holder (CDXSurface, what CTexture +0x5C
-// points at) as a texture view for sampling, with its mip levels; re-read when the surface's
-// contents changed (IDirectDrawSurface7 uniqueness value; for a holder with SurfaceMemory, when that
-// memory changed). A white texture when it cannot be read (render_textures.cpp). Valid until the
-// next Present.
+// points at) as a texture view for sampling, with its mip levels: for a holder with SurfaceMemory
+// read from it (again when that memory changed), else what was decoded for the holder
+// (TextureFromPixels, TextureFromMmpData). A white texture when there is none (render_textures.cpp).
+// Valid until the next Present.
 sg_view TextureView(const void* texture);
 sg_view SurfaceView(const void* holder);
-// The texture of `holder` made from CPU pixels (render::TexturePixels); it is not read from its
-// surface again until that changes. Nothing for a holder with SurfaceMemory (read from there).
+// The texture of `holder` made from CPU pixels (render::TexturePixels), kept until the holder goes.
+// Nothing for a holder with SurfaceMemory (read from there).
 bool TextureFromPixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
                        std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask);
-// The texture of `holder` decoded from .mmp file data (render::TextureFromMmp), keyed by the holder:
-// for a holder with a DirectDraw surface until that surface changes, for one without (the
-// switch-over) until the holder goes.
+// The texture of `holder` decoded from .mmp file data (render::TextureFromMmp), keyed by the holder,
+// kept until the holder goes.
 bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsigned levels);
 // The holder is gone (render::HolderGone): its textures and window texture are retired.
 void ForgetHolder(const void* holder);
-// A window surface (CUiSurface's holder) as one level, read now when its contents changed (from its
-// SurfaceMemory when it has some: a holder made in the switch-over has nothing else); texels equal
-// to `key` (the surface's pixel format) transparent when `keyed`.
+// A window surface (CUiSurface's holder) as one level, read from its SurfaceMemory when that changed
+// (none without memory); texels equal to `key` (the surface's pixel format) transparent when `keyed`.
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height);
 // A picture loaded into a surface holder (render::PictureFromMmp): level 0 as RGBA8, kept until
 // the holder goes (render::HolderGone).
@@ -337,14 +333,9 @@ sg_sampler StageSampler(const StageState& stage);
 void RetireTextures();
 void DestroyTextures();
 // The device is lost: every texture image destroyed (before sg_shutdown). Textures decoded for a
-// holder with nothing to read again (the switch-over's .mmp textures) keep what they were decoded
-// from and are made again at their next use; `kept` of them, with `keptBytes` of sources. The rest
-// is read again from its surface or memory.
+// holder (.mmp files, TexturePixels) keep what they were decoded from and are made again at their
+// next use; `kept` of them, with `keptBytes` of sources. The rest is read again from its memory.
 void DropTextures(std::size_t* kept, std::size_t* keptBytes);
-
-// The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
-void LockGameDevice();
-void UnlockGameDevice();
 
 // Puts the x87 control word back after calls into the driver (the game's main thread runs at 24-bit
 // precision, docs/notes/rebirth.md).

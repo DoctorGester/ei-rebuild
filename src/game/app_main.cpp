@@ -26,6 +26,7 @@
 #include "console.h"
 #include "logic_settings.h"
 #include "model.h"
+#include "net_session.h"
 #include "object_tables.h"
 #include "options.h"
 #include "sound.h"
@@ -61,6 +62,7 @@
 using options::GameOptions;
 
 namespace app {
+std::uint32_t __cdecl GetDxVersion();
 namespace {
 
 template <typename T>
@@ -161,8 +163,6 @@ console::GameOStream& SpeedLog() { return Global<console::GameOStream>(0x007C56B
 
 // ---- The callees -----------------------------------------------------------------------------------
 
-// 0045E310: the DirectX version (0x700 for DirectX 7).
-__declspec(naked) std::uint32_t __cdecl DirectXVersionAt() EI_ORIGINAL(0x0045E310)
 // 00458570 (RET 8): a class the chunk archives can hold, by id and factory. The two factories:
 // 00457850 (class 1) and 00457740 (class 2, the party record).
 __declspec(naked) void __fastcall RegisterClassAt(void* /*registry*/, void*, std::uint32_t /*id*/, void* /*factory*/) EI_ORIGINAL(0x00458570)
@@ -566,14 +566,14 @@ bool RunWorlds() {
             settled = false;
             if (!ServerUpdate()(Server(), nullptr)) return false;
             ServerBacklog() -= TickLength();
-            NetworkTimers();
+            net::Pump();
         }
         if (ClientBacklog() >= TickLength() && (Client()->PumpHasIncoming() || !Client()->IsLocalViewMode2())) {
             if (!ClientSegment()(Client(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             ClientBacklog() -= tick;
             CameraUpdateAt(Camera(), nullptr, CameraSeconds(tick));
-            NetworkTimers();
+            net::Pump();
             continue;
         }
         if (settled) return true;
@@ -624,7 +624,7 @@ bool RunPass() {
         else TheGameFlow()->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
-    NetworkTimers();
+    net::Pump();
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (RecordingFrames()) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
@@ -712,7 +712,7 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
 int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     console::CStringArray messages;
     LoadSystemMessages(messages);
-    if (DirectXVersionAt() < 0x700) {
+    if (GetDxVersion() < 0x700) {
         gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7], game::Text(0x00784930), kCriticalBox);   // "CRITICAL ERROR"
         return kExitDeclined;
     }
@@ -770,8 +770,8 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     Client()->SetUpGraphics(RenderDeviceObject());
     // The last argument's upper three bytes are whatever the call before left in ECX in the
     // original; only the low byte is a value (the shapes' flag: no device named).
-    SetUpCursorsOriginal(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
-                         DeviceNamed() == 0);
+    SetUpCursors(options->fpsIndependentCursor_ != 0, static_cast<int>(reinterpret_cast<std::intptr_t>(Mouse())), 0,
+                 DeviceNamed() == 0);
     InterfaceCreateAt(Interface(), nullptr, RenderDeviceObject());
     static_cast<CMapDatabase*>(MapDatabaseObject())->LoadAll();
     StartFirstMap();

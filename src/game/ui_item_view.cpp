@@ -94,7 +94,6 @@ __declspec(naked) void** __fastcall CacheTextureSlot(ItemObjectCache*, void*, co
     EI_ORIGINAL(0x005F3170)
 
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
-__declspec(naked) void* __fastcall CreateTexture(const char*) EI_ORIGINAL(0x005EC020)
 
 // The item's names (virtual slots 19 and 20; return a CString through the hidden pointer).
 void ItemName(CItem* item, int slot, mfc::CString* out) {
@@ -118,7 +117,7 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
         node->lastUse = gameapi::timeGetTime();
         return node->object;
     }
-    void* object = textures ? CreateTexture(name) : ItemModel(name);
+    void* object = textures ? ItemFigureTexture(name) : ItemModel(name);
     if (!object) return nullptr;
     std::uint32_t time = gameapi::timeGetTime();
     {
@@ -423,15 +422,12 @@ EI_REPLACE_METHOD(0x005EE5C0, CItemInfoPanel::Draw);
 
 // --- 005ED7B0: a hero's face ------------------------------------------------------------------------
 
+Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 namespace {
 
 // hash_map<string, record*>::operator[] of the unit prototypes (007AF364, 005335E0) and of the
 // figure prototypes (007AF3A4, 0053C780); both insert a null entry for an unknown name.
 char** FigurePrototypeAt(void* map, void*, const stlp::string* key) { return FigureMapAtOriginal(map, nullptr, key); }
-
-// 00506C70 (__fastcall, RET 4): out = a * b.
-__declspec(naked) Quaternion* __fastcall QuaternionProduct(Quaternion*, const Quaternion*, const Quaternion*)
-    EI_ORIGINAL(0x00506C70)
 
 
 // The inlined strcmp(a, b) == 0.
@@ -486,7 +482,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion tilt;
     QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
     Quaternion orientation;
-    SetOrientation(model, *QuaternionProduct(&orientation, &tilt, &turn));
+    SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 
     // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.
     float frameDepth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073FF20)));

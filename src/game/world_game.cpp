@@ -6,6 +6,7 @@
 #include "net_coder.h"
 #include "record_arrays.h"
 #include "sound.h"
+#include "net_session.h"
 #include "ui.h"
 #include "world.h"
 #include "game_flow_data.h"
@@ -92,8 +93,6 @@ using netlink::FileStream;
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // The mouse cursor's busy shape (3 while saving, 0 after): GameCursor()->SetShape (005E5200).
-// 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
-__declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
 // The party (007AA5A0) takes the records from / gives them to a record builder (00661050 constructs one, 006611D0
 // destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
@@ -201,7 +200,7 @@ int GameFlow::SaveGame(const char* slot) {
     GameCursor()->SetShape(3);
     slotFolder.Format(game::Text(kSlotFolder), GameFolder(), slot);
     currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(slotFolder);
+    ClearSaveFolder(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0)))
             PartyManagerBeginRedeploy(kParty, nullptr, player->Party());
@@ -481,7 +480,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
     char host[100];
-    if (WsGetHostName(host, sizeof(host)) != 0) return;
+    if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
     std::uint32_t address[4] = {0, 0, 0, 0};
     AddressInit(address, nullptr, host, kHostPort);
     alignas(4) std::uint8_t text[12];
@@ -604,8 +603,6 @@ namespace {
 
 
 // 00410860 (RET 4). The globals (0079B2A8) note the campaign's progress.
-// 0057AA80 (RET 4). CWorldServer::ZoneNameInto (rewritten below), through its address.
-__declspec(naked) mfc::CString* __fastcall ZoneNameAt(CWorldServer*, void*, mfc::CString*) EI_ORIGINAL(0x0057AA80)
 // 00460BC0 (RET 8). Named float table Set.
 
 } // namespace
@@ -624,7 +621,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     LocalFileStream file;
     mfc::CString path;   // [0x04]
     alignas(4) unsigned char zoneStorage[sizeof(mfc::CString)];
-    mfc::CString& zone = *ZoneNameAt(World(), nullptr, reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
+    mfc::CString& zone = *World()->ZoneNameInto(reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
     struct ZoneOwner {
         mfc::CString* s;
         ~ZoneOwner() { s->~CString(); }
@@ -1497,7 +1494,7 @@ void GameFlow::StartNewGame() {
     PartyNewGameAt(kParty);
     mfc::CString folder;
     folder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(folder);
+    ClearSaveFolder(folder);
     LocalRecords records;
     PartyManagerEndRedeploy(kParty, nullptr, &records.party);
     StartZoneAt(this, nullptr, records.party.zone, 0);
@@ -1657,7 +1654,7 @@ void GameFlow::ProcessRequest() {
         break;
     }
     state = 0;
-    NetworkTimers();
+    net::Pump();
 }
 
 // ---- LoadGame (0057ABA0) ------------------------------------------------------------------------
@@ -1689,7 +1686,7 @@ int GameFlow::LoadGame(const char* slot) {
     mfc::CString currentFolder; // [0x18]
     slotFolder.Format(game::Text(kSlotFolder), GameFolder(), slot);
     currentFolder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(currentFolder);
+    ClearSaveFolder(currentFolder);
     bool opened;
     {
         mfc::CString path = slotFolder + game::Text(kScenarioFile);
@@ -1815,7 +1812,7 @@ EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(game::Text(kCurrentFolder), GameFolder());
-    ClearSaveFolderAt(folder);
+    ClearSaveFolder(folder);
     AsCString(zone7C_) = zone;
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZoneAt(zone);
 }

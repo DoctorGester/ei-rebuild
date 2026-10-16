@@ -6,6 +6,7 @@
 
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "text_split.h"
 
 #include <cstdint>
 
@@ -13,7 +14,6 @@ using namespace itemdb;
 
 #pragma warning(disable : 4740) // naked forwarders
 
-__declspec(naked) BOOL __fastcall ReplaceChar(mfc::CString*, char, char) EI_ORIGINAL(0x004DC400)
 __declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x004DEAB0)
 
 namespace {
@@ -66,7 +66,7 @@ const mfc::CString& StringAt(const char* record, int offset) {
 // The record's name as used in keys: spaces become '_', lower case.
 void KeyName(mfc::CString& out, const char* record, int offset) {
     out = StringAt(record, offset);
-    ReplaceChar(&out, ' ', '_');
+    text::ReplaceChar(&out, ' ', '_');
     out.MakeLower();
 }
 

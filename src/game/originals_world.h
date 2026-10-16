@@ -170,7 +170,7 @@ class CWorldClient;
 // and every listed one released, the list emptied).
 struct ClientArrayManager;
 struct ClientListManager;
-__declspec(naked) inline void __fastcall ClientArrayManagerClearOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x004E2850)
+void __fastcall VisFogManagerDestroy(ClientArrayManager* /*manager*/);
 struct PlatformSet;
 // A-E2: called by WinMain's main loop (app_main.cpp) and by the zone change (world_game.cpp) through their
 // addresses so that their wrappers run. 005641F0: the client world's tick (CWorldClient::Segment; EAX 0 when the

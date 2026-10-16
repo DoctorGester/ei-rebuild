@@ -48,21 +48,21 @@ void MoveByVelocity(CEffect* e) {
 // --- CEffect -------------------------------------------------------------------------------------
 
 void CEffect::SendFull() {
-    DeltaField* field = BeginWrite(&state_, nullptr, 0);
+    DeltaField* field = state_.BeginWriteB(0);
     EffectSlots(this)->Pack(field);
-    EndField(&state_);
+    state_.EndField();
 }
 
 void CEffect::SendDelta() {
-    DeltaField* field = BeginWrite(&state_, nullptr, 1);
+    DeltaField* field = state_.BeginWriteB(1);
     EffectSlots(this)->Pack(field);
-    EndField(&state_);
+    state_.EndField();
 }
 
 int CEffect::Receive(int update, BitStream* reader) {
-    DeltaField* field = BeginRead(&state_, nullptr, update, reader);
+    DeltaField* field = state_.BeginReadB(update, reader);
     int result = EffectSlots(this)->Unpack(update, field);
-    EndField(&state_);
+    state_.EndField();
     return result;
 }
 
@@ -141,13 +141,13 @@ void CEffectSound::Start(int update) {
 
 int CEffectSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    ReadPosition(field, nullptr, &position);
-    ReadDelta(field, nullptr, &looping_, 4);
-    ReadText(field, nullptr, name_, 0xFF);
+    field->ReadPosition(&position);
+    field->ReadDelta(&looping_, 4);
+    field->ReadText(name_, 0xFF);
     ReadFloat16(field, nullptr, &volume_);
     ReadFloat16(field, nullptr, &radius_);
     ReadFloat16x3(field, nullptr, &velocity_);
-    ReadDelta(field, nullptr, &noFade_, 1);
+    field->ReadDelta(&noFade_, 1);
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
@@ -157,14 +157,14 @@ int CEffectSound::Unpack(int update, DeltaField* field) {
 
 void CEffectSound::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
+    field->WritePosition(&position);
     int looping = looping_;
-    WriteDelta(field, nullptr, &looping, 4);
-    WriteString(field, nullptr, name_);
-    WriteFloat16(field, nullptr, Bits(volume_));
-    WriteFloat16(field, nullptr, Bits(radius_));
+    field->WriteDelta(&looping, 4);
+    field->WriteStringBoth(name_);
+    field->WriteFloat16(Bits(volume_));
+    field->WriteFloat16(Bits(radius_));
     WriteFloat16x3(field, nullptr, &velocity_);
-    WriteDelta(field, nullptr, &noFade_, 1);
+    field->WriteDelta(&noFade_, 1);
 }
 
 void CEffectSound::LoadState(void* stream) {
@@ -216,15 +216,15 @@ int CEffectSoundSeq::Tick() {
 
 void CEffectSoundSeq::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
-    WriteString(field, nullptr, name_);
+    field->WritePosition(&position);
+    field->WriteStringBoth(name_);
     int count = names_.size;
-    WriteDelta(field, nullptr, &count, 4);
-    for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_[i]);
-    WriteFloat16(field, nullptr, Bits(volume_));
-    WriteFloat16(field, nullptr, Bits(radius_));
+    field->WriteDelta(&count, 4);
+    for (int i = 0; i < names_.size; ++i) field->WriteStringBoth(names_[i]);
+    field->WriteFloat16(Bits(volume_));
+    field->WriteFloat16(Bits(radius_));
     WriteFloat16x3(field, nullptr, &velocity_);
-    WriteDelta(field, nullptr, &noFade_, 1);
+    field->WriteDelta(&noFade_, 1);
 }
 
 void CEffectSoundSeq::LoadState(void* stream) {
@@ -280,10 +280,10 @@ void CEffectAmbientSound::Start(int update) {
 
 int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     Vector3 position;
-    ReadPosition(field, nullptr, &position);
+    field->ReadPosition(&position);
     // The count is read into the low byte of the argument slot that held `field`.
     std::uint32_t countSlot = reinterpret_cast<std::uintptr_t>(field);
-    ReadDelta(field, nullptr, &countSlot, 1);
+    field->ReadDelta(&countSlot, 1);
     StringArraySetSize(&names_, nullptr, static_cast<int>(countSlot & 0xFF), -1);
     for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
         alignas(4) unsigned char raw[sizeof(mfc::CString)];
@@ -293,8 +293,8 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     }
     ReadFloat16(field, nullptr, &volume_);
     ReadFloat16(field, nullptr, &radius_);
-    ReadDelta(field, nullptr, &minInterval_, 4);
-    ReadDelta(field, nullptr, &maxInterval_, 4);
+    field->ReadDelta(&minInterval_, 4);
+    field->ReadDelta(&maxInterval_, 4);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
     EffectSlots(this)->Start(update);
@@ -303,16 +303,16 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
 
 void CEffectAmbientSound::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
-    WritePosition(field, nullptr, &position);
+    field->WritePosition(&position);
     std::uint8_t count = static_cast<std::uint8_t>(names_.size);
-    WriteDelta(field, nullptr, &count, 1);
-    for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_[i]);
-    WriteFloat16(field, nullptr, Bits(volume_));
-    WriteFloat16(field, nullptr, Bits(radius_));
+    field->WriteDelta(&count, 1);
+    for (int i = 0; i < names_.size; ++i) field->WriteStringBoth(names_[i]);
+    field->WriteFloat16(Bits(volume_));
+    field->WriteFloat16(Bits(radius_));
     int value = minInterval_;
-    WriteDelta(field, nullptr, &value, 4);
+    field->WriteDelta(&value, 4);
     value = maxInterval_;
-    WriteDelta(field, nullptr, &value, 4);
+    field->WriteDelta(&value, 4);
 }
 
 void CEffectAmbientSound::LoadState(void* stream) {

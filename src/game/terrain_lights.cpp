@@ -59,9 +59,6 @@ VertexRange RangeIn(const LightArea* area, int sx, int sy) {
             sx == area->lastSectorX ? area->lastX : kLastVertex, sy == area->lastSectorY ? area->lastY : kLastVertex};
 }
 
-__declspec(naked) void __stdcall UpdateVertexLightsAt(SectorData*, CLight*, const Vector3*, const LightArea*, int)
-    EI_ORIGINAL(0x006CAC10)
-
 SectorData* BuiltSector(Terrain* terrain, int sx, int sy, std::uint32_t wanted) {
     return terrain->SectorAt(sx, sy, wanted, 0);
 }
@@ -71,7 +68,7 @@ void UpdateArea(Terrain* terrain, CLight* light, const Vector3* position, const 
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy)
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx)
             if (SectorData* sector = BuiltSector(terrain, sx, sy, 2))
-                UpdateVertexLightsAt(sector, light, position, area, remove);
+                terrain::UpdateVertexLights(sector, light, position, area, remove);
 }
 
 } // namespace
@@ -291,7 +288,7 @@ void Terrain::LightSector(SectorData* sector) {
         const LightArea& area = node->value.area;
         if (area.firstSectorX <= sector->sx && sector->sx <= area.lastSectorX && area.firstSectorY <= sector->sy &&
             sector->sy <= area.lastSectorY)
-            UpdateVertexLightsAt(sector, node->value.light, &node->value.light->position_, &area, 0);
+            terrain::UpdateVertexLights(sector, node->value.light, &node->value.light->position_, &area, 0);
     }
 }
 EI_REPLACE_METHOD(0x006CA9C0, Terrain::LightSector);

@@ -21,6 +21,7 @@
 #include <new>
 
 namespace scene {
+int __fastcall ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/);
 namespace {
 
 // The unit's arrays: meshes (SceneMesh) and helpers (CMaterial); FakeUnitScene, scene_loader.h.
@@ -53,8 +54,6 @@ __declspec(naked) CMaterial* __fastcall HelperAt(VtArray*, void*, int /*index*/)
 // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name` (consumed).
 __declspec(naked) mfc::CString* __fastcall FindSection(mfc::CString* /*out*/, const console::CStringArray*, StringArg)
     EI_ORIGINAL(0x00447F50)
-// 0044A2A0: the material type and value encoded in a group name; 1 when recognised.
-__declspec(naked) int __fastcall ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/) EI_ORIGINAL(0x0044A2A0)
 // 00453A30: SetSize of the caller's (type, value) array (thiscall: size, growth or -1).
 __declspec(naked) void __fastcall LinksSetSize(VtArray*, void*, int, int) EI_ORIGINAL(0x00453A30)
 // The (type, name) array's elements: construct `count` at `p` (004553F0), destroy one (00454360,

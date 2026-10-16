@@ -149,5 +149,3 @@ struct TextSourceIterator {
 // 004DEAB0 (thiscall on an stlp::string, not rewritten): frees the string's storage.
 void __fastcall FreeStringStorage(void* string);
 
-// 004DC400 (__fastcall, not rewritten): replaces every `from` in `s` by `to`. Returns 1.
-BOOL __fastcall ReplaceChar(mfc::CString* s, char from, char to);

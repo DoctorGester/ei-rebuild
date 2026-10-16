@@ -166,7 +166,7 @@ float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::
         RadiusMarker& marker = node->data;
         double dx = marker.x - x;
         double dy = marker.y - y;
-        double distance = Hypot(dx, dy);
+        double distance = libcrt::Hypot(dx, dy);
         float limit = marker.radius * scale;
         // FCOMPP + TEST AH,0x41: marked unless the distance is greater (a NaN marks too).
         bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(limit);
@@ -836,7 +836,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
             float pz = point[2];
             float ox = object->position.x + object->center.x;
             float oy = object->position.y + object->center.y;
-            double reach = Hypot(object->above.x, object->above.y) + radius;
+            double reach = libcrt::Hypot(object->above.x, object->above.y) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];
             float dz = pz - point[2];
@@ -1592,7 +1592,7 @@ EI_REPLACE_METHOD(0x00562EA0, ClientListManager::DeletingDestruct);
 
 void ClientArrayManager::DestructBody() {
     ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
-    ClientArrayManagerClearOriginal(this);
+    VisFogManagerDestroy(this);
     list.vtable = reinterpret_cast<void*>(worlddata::kClientArrayListVtable);
     list.RemoveAll();
     if (current) current->Release();

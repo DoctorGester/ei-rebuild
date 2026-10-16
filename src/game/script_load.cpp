@@ -32,8 +32,6 @@ namespace {
 // 004BB590 one if-then pair of an instance: rewritten below, called through their addresses.
 __declspec(naked) void __fastcall PointLightLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B18B0)
 __declspec(naked) void __fastcall FxSourceLoad(void*, void*, ScriptStream*) EI_ORIGINAL(0x004B1B40)
-// 004B3D10 (__fastcall): reads a string (00461190: bytes up to a zero) and assigns it.
-__declspec(naked) void __fastcall StringLoad(mfc::CString*, ScriptStream*) EI_ORIGINAL(0x004B3D10)
 // 00461190 (__thiscall on the stream, RET 4; rewritten in core_streams.cpp, called through its
 // address): bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
 
@@ -221,7 +219,7 @@ template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
     NamesSetSizeOriginal(&names, nullptr, count, -1);
     for (int i = 0; i < values.size; ++i) {
         stream->Read(&values.data[i], 4);
-        StringLoad(&names.data[i], stream);
+        ScriptStringLoad(&names.data[i], stream);
     }
 }
 EI_REPLACE_METHOD(0x004C2D40, ScriptNamedValues<float>::Load);
@@ -231,8 +229,8 @@ template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream) {
     InlineSetSize(Raw(&values), count, kStrings);
     NamesSetSizeOriginal(&names, nullptr, count, -1);
     for (int i = 0; i < values.size; ++i) {
-        StringLoad(&values.data[i], stream);
-        StringLoad(&names.data[i], stream);
+        ScriptStringLoad(&values.data[i], stream);
+        ScriptStringLoad(&names.data[i], stream);
     }
 }
 EI_REPLACE_METHOD(0x004C3200, ScriptNamedValues<mfc::CString>::Load);
@@ -256,7 +254,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
             if (object) ++object->refCount_;
             ref->object = object;
         }
-        StringLoad(&names.data[i], stream);
+        ScriptStringLoad(&names.data[i], stream);
     }
 }
 EI_REPLACE_METHOD(0x004C36B0, ScriptNamedValues<ScriptObjectRef>::Load);
@@ -280,7 +278,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
             group->data[k].Assign(object);
         }
         group->Sort();
-        StringLoad(&names.data[i], stream);
+        ScriptStringLoad(&names.data[i], stream);
     }
 }
 EI_REPLACE_METHOD(0x004C40D0, ScriptNamedValues<ScriptGroup>::Load);
@@ -298,7 +296,7 @@ void SSCCmd::Load(ScriptStream* stream) {
     for (int i = 0; i < floatArgs.size; ++i) stream->Read(&floatArgs.data[i], 4);
 
     NamesSetSizeOriginal(&stringArgs, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < stringArgs.size; ++i) StringLoad(&stringArgs.data[i], stream);
+    for (int i = 0; i < stringArgs.size; ++i) ScriptStringLoad(&stringArgs.data[i], stream);
 
     int objects = ReadInt(stream);
     InlineSetSize(Raw(&objectArgs), objects, kPointers);
@@ -398,7 +396,7 @@ void ScriptVars::Load(ScriptStream* stream) {
     NamesSetSizeOriginal(&floatNames, nullptr, slot, -1);
     for (slot = 0; slot < floats.size; ++slot) {
         stream->Read(&floats.data[slot], 4);
-        StringLoad(&floatNames.data[slot], stream);
+        ScriptStringLoad(&floatNames.data[slot], stream);
     }
 
     int count = 0;
@@ -406,8 +404,8 @@ void ScriptVars::Load(ScriptStream* stream) {
     NamesSetSizeOriginal(&strings, nullptr, count, -1);
     NamesSetSizeOriginal(&stringNames, nullptr, count, -1);
     for (int i = 0; i < strings.size; ++i) {
-        StringLoad(&strings.data[i], stream);
-        StringLoad(&stringNames.data[i], stream);
+        ScriptStringLoad(&strings.data[i], stream);
+        ScriptStringLoad(&stringNames.data[i], stream);
     }
 
     count = 0;
@@ -423,7 +421,7 @@ void ScriptVars::Load(ScriptStream* stream) {
         } else {
             ref->Assign(WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
         }
-        StringLoad(&objectNames.data[i], stream);
+        ScriptStringLoad(&objectNames.data[i], stream);
     }
 
     count = 0;
@@ -436,7 +434,7 @@ void ScriptVars::Load(ScriptStream* stream) {
         PtrArraySetSize(group, nullptr, slot, -1);
         for (int k = 0; k < slot; ++k) group->data[k].Load(stream);
         group->Sort();
-        StringLoad(&groupNames.data[i], stream);
+        ScriptStringLoad(&groupNames.data[i], stream);
     }
 }
 EI_REPLACE_METHOD(0x004B3AD0, ScriptVars::Load);
@@ -565,8 +563,8 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         node = node->next;
         stream->Read(&instance->index, 4);
         // The original reads each string (00461190) into a temporary and assigns it: 004B3D10.
-        StringLoad(&instance->name, stream);
-        StringLoad(&instance->params, stream);
+        ScriptStringLoad(&instance->name, stream);
+        ScriptStringLoad(&instance->params, stream);
         int pairs = ReadInt(stream);
         IfThenSetSize(&instance->ifThen, nullptr, pairs, -1);
         for (int k = 0; k < instance->ifThen.size; ++k) instance->ifThen.data[k].Load(stream);
@@ -656,8 +654,8 @@ void CScript::LoadState(ScriptStream* stream) {
     for (int i = 0; i < scripts.size; ++i) {
         ScriptDefinition* definition = &scripts.data[i];
         stream->Read(&definition->index, 4);
-        StringLoad(&definition->name, stream);
-        StringLoad(&definition->params, stream);
+        ScriptStringLoad(&definition->name, stream);
+        ScriptStringLoad(&definition->params, stream);
         ScriptIfThenLoad(&definition->ifThen, stream);
         definition->vars.Load(stream);
     }

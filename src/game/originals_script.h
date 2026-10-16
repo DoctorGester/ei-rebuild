@@ -23,7 +23,6 @@ __declspec(naked) inline CEngineObject* __fastcall RefConstruct(ScriptObjectRef*
     EI_ORIGINAL(0x004B2500)
 __declspec(naked) inline int __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
 __declspec(naked) inline void __fastcall QueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
-__declspec(naked) inline void __fastcall FreeTemporariesOrig(CScript*) EI_ORIGINAL(0x004BEC80)
 
 // 004D23A0 (RET 8, EAX 0/1): adds / loads a script line (CScript::Load, rewritten; called through its address).
 __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, const mfc::CString* /*line*/,

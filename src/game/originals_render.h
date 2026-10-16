@@ -92,5 +92,3 @@ __declspec(naked) inline int __fastcall DrawPrimitive(CTextureDevice* /*device*/
                                                       void* /*vertices*/, int /*vertexCount*/,
                                                       const std::uint16_t* /*indices*/, int /*indexCount*/, int /*flags*/)
     EI_ORIGINAL(0x004EB550)
-__declspec(naked) inline int __fastcall ClipTest(CTransformPipeline* /*pipeline*/, void*, const ClipBounds* /*bounds*/)
-    EI_ORIGINAL(0x004F16A0)

@@ -143,7 +143,6 @@ void DestroyNames(NameTable& names, NameValueDestroyFn destroyValue, NameNodeDea
     if (names.buckets)
         stlp::deallocate(names.buckets, static_cast<std::size_t>(names.bucketsEos - names.buckets) * sizeof(HashNode*));
 }
-__declspec(naked) void __fastcall DestroyStrings(mfc::CString* /*first*/, mfc::CString* /*last*/) EI_ORIGINAL(0x005214B0)
 __declspec(naked) void __fastcall StringVectorFree(CStringVector*) EI_ORIGINAL(0x00520EB0)
 __declspec(naked) void __fastcall StringVectorDestroy(CStringVector*) EI_ORIGINAL(0x0053F020)
 
@@ -159,7 +158,7 @@ void FreeStorage(RawVector* v, int size) {
 
 // The inline ~vector<CString> of the records: _Destroy, then the storage.
 void DestroyStringVector(CStringVector* v) {
-    DestroyStrings(v->begin(), v->end());
+    DestroyStringRange(v->begin(), v->end());
     StringVectorFree(v);
 }
 

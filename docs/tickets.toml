@@ -167,7 +167,7 @@ note = "R9c covers a window resized from outside (the window covers the monitor 
 id = "PF3a"
 title = "render_scene / render_terrain fail samecapture in native runs"
 group = "renderer"
-note = "Seen by PF3 on its base and branch (2026-10-14): run_all --native, samecapture world world_again differs on ~2.9% of the pixels (largest 60-74) in both scenarios, every run; vanilla/rebirth pass. Probably something that moves by itself in the new frame (water phase, weather) between the two captures; decide whether the scenario's tolerance or the renderer is wrong."
+note = "No longer applies (2026-10-16): run_all --native went with S21c; the image's runs are the native ones now (EI_RENDER=new,present, no dgVoodoo). The 2026-10-14 failure (build/verify/runs/render_scene-native, compare_frames + frame_preview) was the whole view shifted between world and world_again (camera moved under freeze in the hooked game.exe), not water or weather. On the image every samecapture in render_scene, frames_basic, render_cpuwindows, render_device_lost, render_present, render_present_cpuwindows, render_present_shot is 0 px over 8 (largest 0) on standalone and standalone-rebirth, goldens the same."
 
 [[ticket]]
 id = "R9c5"
@@ -221,6 +221,22 @@ model = "opus"
 depends = ["R10c"]
 files = ["src/render/render_terrain.cpp"]
 note = "From R10c: the ground and water pipelines in render_terrain.cpp are hard-coded, which hid water's depth write (R10c's strip). The state mirror showed ground and water drawn with CULL 2 and blend on, where ours use no culling and no blend for ground. Build them from the old device's state (ReadPassState), as the meshes already are; check with the standalone goldens and run_all --widescreen."
+
+[[ticket]]
+id = "R11"
+title = "Dead old-path and side-by-side code in src/render"
+group = "renderer"
+size = 0.5
+model = "opus"
+files = ["src/render"]
+note = "From D5: since S21e the image always runs EI_RENDER new,present; the side-by-side old-path code, the show/split/noterrain/noobjects/nointerface/nocpuwindows options (parsed, used by no run) and README's oldterrain steps (lines ~40, ~102) are dead. Remove what no run reaches (check with the profiler or a coverage run, not by reading alone), keep EI_RENDER_VALIDATION checks; update renderer.md sections 1 and 9 and README. Standalone goldens and run_all --widescreen as the check."
+
+[[ticket]]
+id = "R11a"
+title = "Game code's DirectDraw fallback behind !render::Presenting()"
+group = "renderer"
+depends = ["R11"]
+note = "Waiting on the user (asked 2026-10-16): keep the DirectDraw fallback for players without Direct3D 11, or remove it. Recommended: remove."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -1545,6 +1561,15 @@ size = 0.5
 model = "opus"
 note = "In harness runs every socket the game (and harness_net's free-port probe) binds on INADDR_ANY binds on 127.0.0.1, so no Windows Firewall prompts; firewall rules never changed."
 
+[[ticket]]
+id = "WB15"
+title = "A tools unit test fails now and then under load"
+group = "harness"
+size = 0.25
+model = "sonnet"
+files = ["tools/test_*.py"]
+note = "Twice on 2026-10-16, 'python -m unittest discover -s tools -p test_*.py' gave FAILED (failures=1) when it ran right after build.cmd on main with workers' games running; 5 reruns when idle all passed (95 tests). Find the timing-dependent test (likely test_run_all_timeout or test_work_sched): run the suite repeatedly under CPU load, then make it independent of load."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
@@ -1745,6 +1770,15 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C13"]
 note = "About 500 forwarders tools/direct_calls.py lists with other reasons (--report -v --cast --library): config/direct_calls_skip.csv 111 (unrelated types at static_cast, header clashes: sky_object.h / windows.h order, two LightManager / PartyManager / PartyRecords definitions), used other than in a call 56, forwarder name declared twice 50, target name ambiguous 41, another declaration of the name 34, target declared in its .cpp only 33 (move the declaration to a header), no registration 26, declared after the call 24, ei_vectors links the caller without the target 23, derived class declares the name 17, overloaded 12, using-directive 10, class-template void* 10. Fix the cause per row (declarations to headers, includes untangled, the skip rows' types), then rerun the tool; one area per commit, goldens after each couple."
+
+[[ticket]]
+id = "C13d"
+title = "C13c leftovers: forwarders needing hand refactors"
+group = "cleanup"
+size = 2
+model = "sonnet"
+depends = ["C13c"]
+note = "What C13c left (2,720 in scope after it; 2,832 before): used other than in a call 29 (function-pointer tables; the item / spell record tables now use pointers to members, the same pattern fits the rest), forwarder name declared twice 50 and another declaration of the name 19 (same-named members of other classes; rename or qualify by hand), object passed as void* 29 and the skip-list rows' static_cast pairs (C13a, type recovery), ei_vectors links the caller without the target 19 (link the target into the vector files), target overloaded 9, derived class declares the target name 8, declared in its .cpp only 6, anonymous namespace of another file 3. Replay, Rebirth, vector recorder and harness-entry forwarders stay."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
@@ -2544,3 +2578,12 @@ id = "D3a"
 title = "Hooked-run and verify-wrapper comments in tests/verify and tools"
 group = "docs"
 note = "29 comment lines in tests/verify (harness.cpp, harness_address_order.h, harness_clock.cpp, harness_digest.cpp, harness_heap.h, harness_script_order.h, ui_census.cpp) and tools (coverage.py, gen_short_functions.py, gen_static_init.py, golden.py, randtrace.py, run_all.py, standalone_gaps.py, work_sched.py) still describe hooked runs, the hook build or verify_*.cpp wrappers (grep -niE 'hooked run|hook build|verify wrapper|verify_[a-z]+\\.cpp'); say what holds since S21e (game.exe only runs the original, our code only in the image). src's ~165 files with 'so the verify wrapper sees it' calls are C13's. Comment edits; both builds, no game runs."
+
+[[ticket]]
+id = "D5"
+title = "renderer.md: hooked-mode text and section 9's backlog"
+group = "docs"
+size = 0.5
+model = "sonnet"
+files = ["docs/notes/renderer.md"]
+note = "renderer.md still describes retired modes: verify wrappers whose originals need DirectDraw, run_all --dgvoodoo and --native (around lines 352-358, 505-515), hooked runs. Rewrite to what holds since S21e (our renderer only in the standalone image; game.exe runs only the original on dgVoodoo), and cut section 9 'What is left' (~260 lines, D3's count) to the open items with ticket ids. Current facts only, no log; keep section numbers so citations hold."

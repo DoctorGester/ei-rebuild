@@ -48,6 +48,8 @@ MAP = {
 
 def run(sources, decls=MAP, tiers=None):
     dc._FREE_DECLS['all'] = sources
+    dc._HEADERS.clear()
+    dc._SEES.clear()
     fwds, classes = dc.analyse(sources, decls, tiers=tiers)
     edits, includes, done = dc.plan(fwds, classes)
     deleted = {}
@@ -152,6 +154,19 @@ class DirectCallsTest(unittest.TestCase):
                    dc.Source('src/game/lib.cpp', '#include "lib.h"\n' + lib), dc.Source('src/game/user.cpp', user)]
         _, out = run(sources, decls)
         self.assertIn('return Len(p) + LenAt(p);', out['src/game/user.cpp'])
+
+    def test_defined_later(self):
+        # A free target defined after the call in the same file: its declaration takes the forwarder's place.
+        src = ('#include "ei/hook.h"\nnamespace {\n'
+               '__declspec(naked) int __cdecl LenAt(const char*) EI_ORIGINAL(0x00401040)\n}\n'
+               'int Run(const char* p) {\n    return LenAt(p);\n}\n'
+               'namespace {\nint __cdecl Len(const char* s) { return 0; }\n}\nEI_REPLACE(0x00401040, Len);\n')
+        decls = {'Len': [dc.Sig("int __cdecl `anonymous namespace'::Len(char const *)", 'lib.cpp.obj')],
+                 'LenAt': [dc.Sig("int __cdecl `anonymous namespace'::LenAt(char const *)",
+                                                         'lib.cpp.obj')]}
+        _, out = run([dc.Source('src/game/lib.cpp', src)], decls)
+        self.assertIn('namespace {\nint __cdecl Len(const char*);\n}\n', out['src/game/lib.cpp'])
+        self.assertIn('return Len(p);', out['src/game/lib.cpp'])
 
     def test_reindent(self):
         self.assertEqual(dc.reindent('a,\n       b,\n   c)', 7, -3), 'a,\n    b,\n   c)')

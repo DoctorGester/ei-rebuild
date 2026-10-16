@@ -96,7 +96,6 @@ __declspec(naked) MpAddressEntry* __fastcall AssignAt(MpAddressEntry*, void*, co
 __declspec(naked) void __fastcall InsertOverflow(MpAddressList*, void*, MpAddressEntry* /*pos*/,
                                                  const MpAddressEntry* /*x*/, unsigned /*n*/) EI_ORIGINAL(0x0061EC40)
 __declspec(naked) int __fastcall MasterLinkTickAt(net::MasterLink*) EI_ORIGINAL(0x00440DE0)
-__declspec(naked) double __fastcall ClientBufferRatioAt(net::ClientSession*, void*, GameBuffer*) EI_ORIGINAL(0x0041D9A0)
 
 // The original's inlined strcpy into a box's text buffer.
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
@@ -848,7 +847,7 @@ CMasterRequestBox* CMasterRequestBox::Construct(CInterface3D* ui, const char* ti
 EI_REPLACE_METHOD(0x0061E2F0, CMasterRequestBox::Construct);
 
 void CMasterRequestBox::Update() {
-    double share = ClientBufferRatioAt(net::GameClient(), nullptr, &link_.in);
+    double share = net::GameClient()->BufferRatioImpl(&link_.in);
     float right = static_cast<float>(share * BarWidth() + BarLeft());
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
     if (MasterLinkTickAt(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerListImpl(&link_.in);

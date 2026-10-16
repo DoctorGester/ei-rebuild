@@ -90,7 +90,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
             for (; index < coords.size; ++index) {
                 const float* known = reinterpret_cast<float*>(coords.data) + index * 2;
                 float du = known[0] - uv[0], dv = known[1] - uv[1];
-                if (!(Hypot(du, dv) >= weld)) break;
+                if (!(libcrt::Hypot(du, dv) >= weld)) break;
             }
             if (index == coords.size) {
                 CoordsAdd(&coords, nullptr, uv[0], uv[1]);

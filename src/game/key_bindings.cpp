@@ -11,6 +11,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "text_split.h"
 #include "world_glue.h"
 
 #include <cstdint>
@@ -68,7 +69,7 @@ void __cdecl LoadKeyBindings() {
     std::memset(Bindings(), 0, 0x200);
     if (!OpenFile(file, console::CStdioFile::typeText)) return;
     while (file.ReadString(line)) {
-        SplitWords(line, &words, ' ');
+        text::SplitWords(line, &words, ' ');
         if (words.GetSize() <= 1) continue;
         bool known = false;
         int command = 0;

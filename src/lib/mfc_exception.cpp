@@ -253,7 +253,7 @@ void __stdcall ThrowFileException(int cause, long osError, const char* fileName)
         exception->fileName = fileName;
     }
     CFileException* thrown = exception;
-    CxxThrowException(&thrown, FileExceptionThrowInfo());
+    libcrt::CxxThrowException(&thrown, FileExceptionThrowInfo());
 }
 
 void __stdcall ThrowOsError(long osError, const char* fileName) {
@@ -270,23 +270,23 @@ void __stdcall ThrowArchiveException(int cause, const char* fileName) {
         exception->fileName = fileName;
     }
     CArchiveException* thrown = exception;
-    CxxThrowException(&thrown, ArchiveExceptionThrowInfo());
+    libcrt::CxxThrowException(&thrown, ArchiveExceptionThrowInfo());
 }
 
 void __stdcall ThrowNotSupported() {
     void* thrown = SimpleNotSupportedException();
-    CxxThrowException(&thrown, NotSupportedThrowInfo());
+    libcrt::CxxThrowException(&thrown, NotSupportedThrowInfo());
 }
 
 void __stdcall ThrowMemoryException() {
     void* thrown = SimpleMemoryException();
-    CxxThrowException(&thrown, MemoryThrowInfo());
+    libcrt::CxxThrowException(&thrown, MemoryThrowInfo());
     __assume(false);
 }
 
 void __stdcall ThrowResourceException() {
     void* thrown = SimpleResourceException();
-    CxxThrowException(&thrown, ResourceThrowInfo());
+    libcrt::CxxThrowException(&thrown, ResourceThrowInfo());
     __assume(false);
 }
 

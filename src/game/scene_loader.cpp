@@ -702,6 +702,8 @@ EI_REPLACE_METHOD(0x00454810, SceneMesh::DeletingDestruct);
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 
+void __fastcall ComputeMeshNormals(VtArray*);
+void __fastcall IndexMeshCorners(VtArray*);
 namespace {
 
 int Length(const mfc::CString& s) { return s.GetLength(); }
@@ -725,8 +727,6 @@ __declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*,
 __declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C4A0)
 __declspec(naked) mfc::BOOL __fastcall BuildSkeleton(VtArray*, VtArray*, int, void*) EI_ORIGINAL(0x00448A40)
 __declspec(naked) void __fastcall PlaceMeshes(void*) EI_ORIGINAL(0x0044E3B0)
-__declspec(naked) void __fastcall PrepareMeshes(VtArray*) EI_ORIGINAL(0x0044DCF0)
-__declspec(naked) void __fastcall PrepareMeshes2(VtArray*) EI_ORIGINAL(0x0044CFF0)
 __declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
 __declspec(naked) SceneTexture* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
 __declspec(naked) SceneTexture* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
@@ -882,8 +882,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         }
     }
 
-    PrepareMeshes(meshes);
-    PrepareMeshes2(meshes);
+    ComputeMeshNormals(meshes);
+    IndexMeshCorners(meshes);
     for (int i = 0; i < meshes->size; ++i) PrepareMesh(&meshArray.data[i]);
 
     // The figures take the meshes' matrices (64-byte blocks: the figure's vertex and normal

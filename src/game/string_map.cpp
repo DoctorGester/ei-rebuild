@@ -163,6 +163,8 @@ EI_REPLACE(0x00444740, StringTableConstruct);
 
 // ---- The panel ---------------------------------------------------------------------------------
 
+void __fastcall PanelRedraw(void*);
+void __fastcall PanelShow(void*, void*, std::uint8_t);
 namespace {
 
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
@@ -171,8 +173,6 @@ namespace {
 void __fastcall DcFillSolidRect(ui_gdi::GameDC* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { a0->FillSolidRect(a2, a3, a4, a5, a6); }
 int __fastcall DcSetBkMode(ui_gdi::GameDC* a0, void*, int a2) { return a0->SetBkMode(a2); }
 void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal(a0); }
-__declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
-__declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)
 
 // MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
 constexpr std::uintptr_t kFontVtable = std::uintptr_t(0x0073BFB4);
@@ -201,7 +201,7 @@ void __fastcall PanelInit(void* self, void*, CInterface3D* ui) {
         panel->font_ = nullptr;
     }
     RECT rect = {10, 10, 0x122, 0x122};
-    DebugPanelSetRectOriginal(self, nullptr, &rect);
+    PanelSetRect(self, nullptr, &rect);
 }
 EI_REPLACE(0x00444A70, PanelInit);
 
@@ -240,8 +240,8 @@ void __fastcall PanelSetRect(void* self, void*, const RECT* rect) {
     shown = asked;
     InterfaceScaleRectFromScreenOriginal(panel->ui_, nullptr, &shown);
     if (panel->visible_) {
-        PanelShowAt(self, nullptr, 0);
-        PanelShowAt(self, nullptr, 1);
+        PanelShow(self, nullptr, 0);
+        PanelShow(self, nullptr, 1);
     }
 }
 EI_REPLACE(0x00444C10, PanelSetRect);
@@ -252,7 +252,7 @@ void __fastcall PanelTick(void* self) {
     DWORD now = gameapi::timeGetTime();
     if (now - panel->lastDraw_ > 500) {
         panel->lastDraw_ = now;
-        PanelRedrawAt(self);
+        PanelRedraw(self);
     }
     if (CUiSurface* surface = panel->surface_) surface->Blit();
 }
@@ -307,7 +307,7 @@ void __fastcall PanelShow(void* self, void*, std::uint8_t show) {
             panel->surface_ = memory ? SurfaceConstructOnRectOriginal(memory, nullptr, panel->ui_, &panel->shown_, 5) : nullptr;
         }
         panel->lastDraw_ = gameapi::timeGetTime();
-        PanelRedrawAt(self);
+        PanelRedraw(self);
         return;
     }
     if (CUiSurface* surface = panel->surface_) {

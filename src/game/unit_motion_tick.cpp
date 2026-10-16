@@ -283,7 +283,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
     CUnit* unit = UnitOf(c);
     if (MotionPathOf(c)->reached) {
         std::uint8_t wasFlag = FailedByte(c) == 1;
-        PathClear(MotionPathOf(c));
+        static_cast<AIPath*>(MotionPathOf(c))->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
@@ -295,7 +295,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         return;
     }
     if (!world->AIMap()->ContinuePath(unit, MotionPathOf(c))) {
-        PathClear(MotionPathOf(c));
+        static_cast<AIPath*>(MotionPathOf(c))->Clear();
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);

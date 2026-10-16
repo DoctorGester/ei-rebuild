@@ -258,7 +258,7 @@ void CCamera::ApplyView() {
     if (before >= localPosition_.z) return;
     // Lifted over an object: aim back down at the focus.
     double dz = D(localPosition_.z) - focus_.z;
-    double across = Hypot(D(localPosition_.x) - focus_.x, D(localPosition_.y) - focus_.y);
+    double across = libcrt::Hypot(D(localPosition_.x) - focus_.x, D(localPosition_.y) - focus_.y);
     double angle = x87::fpatan(dz, across);
     std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
     const Quaternion s = localRotation_;
@@ -568,7 +568,7 @@ EI_REPLACE_METHOD(0x00411360, CCamera::SetBounds);
 
 void CCamera::Shake(const Vector3* source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags_ & kPlaced) ? localPosition_ : focus_;
-    double distance = Hypot(D(at.x) - source->x, D(at.y) - source->y);
+    double distance = libcrt::Hypot(D(at.x) - source->x, D(at.y) - source->y);
     float distanceF = static_cast<float>(distance);
     if (distance >= kShakeRange) return;
     double strength = amplitude;

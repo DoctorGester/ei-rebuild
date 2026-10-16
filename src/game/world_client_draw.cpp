@@ -9,6 +9,7 @@
 // build's wrappers see the calls).
 #include "ground_print.h"
 #include "renderer_lines.h"
+#include "net_session.h"
 #include "world.h"
 
 #include "camera.h"
@@ -262,8 +263,6 @@ EI_REPLACE(0x0056A370, QueueScreenEntry);
 // ---- Render (00569E40) --------------------------------------------------------------------------
 
 int CWorldClient::Render() {
-    // The new renderer (src/render) tells the world's meshes from the interface's by this.
-    render::BeginWorld();
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     UpdateLighting();
@@ -293,7 +292,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 29, 0);
         SetRenderState(renderer, 14, 1);
     }
-    NetworkTimers();
+    net::Pump();
     if ((flags_ & 0x100) && terrain_) {
         char frame[12];
         CameraFrame(camera_, nullptr, frame);
@@ -304,7 +303,7 @@ int CWorldClient::Render() {
         Flush(renderer);
     }
     DrawPassAt(this);
-    NetworkTimers();
+    net::Pump();
     if ((flags_ & 0x100) && terrain_) {
         char frame[12];
         CameraFrame(camera_, nullptr, frame);
@@ -316,7 +315,7 @@ int CWorldClient::Render() {
         TerrainDrawSecond(terrain_, nullptr, SceneContext());
         Flush(renderer);
     }
-    NetworkTimers();
+    net::Pump();
     if (flags_ & 0x400) {
         Flush(renderer);
         ApplyStateBlock(renderer, StateBlockAlpha());
@@ -344,7 +343,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, StateBlockScene());
-    NetworkTimers();
+    net::Pump();
     DrawLineLists();
     PopMatrix(device->stacks_[kStackWorld]);
     PopMatrix(device->stacks_[kStackScene2]);
@@ -358,7 +357,6 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);
     }
-    render::EndWorld();
     return 1;
 }
 EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
@@ -380,7 +378,7 @@ constexpr std::uint32_t kShowManagers = 4;
 constexpr std::uint32_t kShowWorldData = 8;
 
 // The debug info panel (0079B930, what 004447D0 returns) loses the line `key` (its slot 1).
-void RemoveDebugLine(const char* key) { DebugPanelRemoveOriginal(DebugInfoPanel(), nullptr, key); }
+void RemoveDebugLine(const char* key) { strmap::StringTableRemove(DebugInfoPanel(), nullptr, key); }
 } // namespace
 
 void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
