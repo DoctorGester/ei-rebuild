@@ -2006,5 +2006,8 @@ filed as SV7c1.
 CRT (EI_REPLACE_STANDALONE), so its runs above are plain runs on that other heap (no "heap jitter" log line). The goldens
 hold there anyway (S20: every golden the same); SV7c2 gives the image's heap the jitter for after S21.
 
+After merging main with SV7b6 (draw lists by name; no golden changed): `--no-hooks --golden` with `3,fill` over all 168
+goldens (91 V, 77 R) the same; `work.py test SV7c --golden --jobs 4`: 146 runs ALL PASS, 124 goldens the same.
+
 Scratch driver: build\SV7c\passes.py (`<nohooks|hooked|standalone> <label>=<J..|F..>`, SV7C_ONLY / SV7C_NAMES /
 SV7C_ARGS).
