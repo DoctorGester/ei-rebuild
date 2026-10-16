@@ -41,6 +41,10 @@
 // And (SV7b7) NewParticleSource 004981B0's source is allocated zeroed (its operator new CALL at 004981CD,
 // family bit 7, without hooks only): nothing sets the emission point (+0x98) before Attach, and the first
 // Tick takes the motion, so the number of emission tries and GlobalRandom draws, from it.
+//
+// And (SV7b6a) CLightFactory::NewObjectImpl 0068DA40's light is allocated zeroed (its operator new CALL at
+// 0068DA7C, family bit 8, without hooks only): the constructor leaves the transform's positions and nothing
+// sets a directional light's, but the terrain's sun lighting (ShadeSun 006C36B0) reads the sun's z under water.
 
 namespace ei::verify::leftovers {
 
