@@ -36,11 +36,6 @@ constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
 constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::queue.count
 constexpr float kIntRange = 2147483648.0f;            // 2^31: FISTP's int range is below it
 
-// Not rewritten (forwarders):
-// 00538ED0 / 00539010. The blink: the face texture with closed / open eyes (RET 4).
-__declspec(naked) void __fastcall CloseEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00538ED0)
-__declspec(naked) void __fastcall OpenEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00539010)
-
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
@@ -104,8 +99,8 @@ int CUnitClientSpecific::UpdateClient() {
             --blinkTimer;
         } else {
             blinkTimer = gamecrt::rand() * 8 / 0x7FFF % 8 + 2;
-            if (eyesClosed == 0) CloseEyes(this, nullptr, 0);
-            else OpenEyes(this, nullptr, 0);
+            if (eyesClosed == 0) BlinkClose(0);
+            else BlinkOpen(0);
         }
     }
     UpdateArrow();
@@ -129,7 +124,7 @@ int CUnitClientSpecific::UpdateClient() {
         }
     }
     if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)
-        ClientStartIdleAnimationOriginal(this, nullptr, 0);
+        StartIdleAnimation(0);
     return 1;
 }
 EI_REPLACE_METHOD(0x005341A0, CUnitClientSpecific::UpdateClient);

@@ -65,11 +65,11 @@ void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 00516A80. 3D object: its figure part named `name`, or null.
-CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return ObjectFindPartOriginal((void*)a0, nullptr, a2); }
+CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return static_cast<CObject3D*>((void*)a0)->FindPartByPrefix(a2); }
 // 00517240. 3D object: adds the figure part `name` of `model`; returns it (null when the model has
 // no such part).
 CEngineObject* __fastcall AddPart(CUnit* unit, void*, const char* name, void* model, std::uint32_t arg) {
-    return static_cast<CEngineObject*>(Object3DLoadPartOriginal(unit, nullptr, name, model, arg));
+    return static_cast<CEngineObject*>(static_cast<CObject3D*>(unit)->LoadPart(name, model, arg));
 }
 // 005167E0. 3D object: removes figure part `part`.
 __declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x005167E0)

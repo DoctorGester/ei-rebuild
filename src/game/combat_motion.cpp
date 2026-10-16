@@ -8,6 +8,7 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
+#include "map_object.h"
 #include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
@@ -137,7 +138,7 @@ void ShowHead(CUnitServer* self) {
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
-        UnitSetAnimation(self->unit, nullptr, head.animation, head.variant, QueueTime(self), head.flags);
+        self->unit->SetAnimationEntries(head.animation, head.variant, QueueTime(self), head.flags);
 }
 
 void DropEffectObject(CUnitServer* self) {
@@ -199,7 +200,7 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
         return;
     }
     const auto* entry = reinterpret_cast<const FigureAnimation*>(
-        UnitFindAnimation(self->unit, nullptr, WeaponAndModeBits(self) | kKeyIdle, 1));
+        self->unit->FindAnimation(WeaponAndModeBits(self) | kKeyIdle, 1));
     if (entry) AddEmote(steps, entry->index);
 }
 
@@ -273,7 +274,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
         SectorMapRemove(sectors, nullptr, self->unit);
         self->unit->obstacle = 0;
         SectorMapAdd(sectors, nullptr, self->unit);
-        UnitMarkChanged(self->unit, nullptr, 7);
+        static_cast<CMapObject*>(self->unit)->MarkChanged(7);
     }
     // The list was taken by value: it is destroyed here.
     steps.vtable = kAnimationStepsBaseVtable;
@@ -355,7 +356,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             else if (!(stamina > HeroRunLimit())) key |= 0x400000;
         }
     }
-    if (const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitFindAnimation(self, nullptr, key, 1))) {
+    if (const auto* entry = reinterpret_cast<const FigureAnimation*>(self->FindAnimation(key, 1))) {
         std::uint8_t index = entry->index;
         if (!once) {
             AddEmote(steps, index);
@@ -393,16 +394,16 @@ AnimationSteps* CUnitServer::NextAnimation() {
     if (MoveKey(this) == key) return &MoveSteps(this);
     MoveKey(this) = key;
     if (self->type_ != kUnitTypeHero) {
-        CtlBuildMoveSteps(this, nullptr, &MoveSteps(this), 0);
+        BuildMoveSteps(&MoveSteps(this), 0);
         return &MoveSteps(this);
     }
     // A hero: the start of the movement once, then the loop appended step by step.
     AnimationSteps loop;
     std::memset(&loop, 0, sizeof(loop));
     loop.vtable = kAnimationStepsVtable;
-    CtlBuildMoveSteps(this, nullptr, &loop, 0);
+    BuildMoveSteps(&loop, 0);
     AnimationSteps& steps = MoveSteps(this);
-    CtlBuildMoveSteps(this, nullptr, &steps, 1);
+    BuildMoveSteps(&steps, 1);
     for (int i = 0; i < loop.count; ++i) {
         AnimationStep step = loop.steps[i];
         if (step.animation == 0xFF) {
@@ -458,7 +459,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     SectorMapRemove(sectors, nullptr, unit);
     unit->obstacle = 0;
     SectorMapAdd(sectors, nullptr, unit);
-    UnitMarkChanged(unit, nullptr, 7);
+    static_cast<CMapObject*>(unit)->MarkChanged(7);
 }
 EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
 
@@ -477,7 +478,7 @@ void CUnitServer::UpdateSneak() {
         int mode = moveMode2.mode;
         if (mode != unit->moveMode2) {
             unit->moveMode2 = mode;
-            UnitMarkChanged(unit, nullptr, 6);
+            static_cast<CMapObject*>(unit)->MarkChanged(6);
         }
     }
     if (moveMode.wasMode3 != 0) {
@@ -492,7 +493,7 @@ void CUnitServer::UpdateSneak() {
         int mode = moveMode.mode;
         if (mode != unit->moveMode) {
             unit->moveMode = mode;
-            UnitMarkChanged(unit, nullptr, 6);
+            static_cast<CMapObject*>(unit)->MarkChanged(6);
         }
         unit->UpdateSizeClass();
         motionChanged = 1;
@@ -508,7 +509,7 @@ void CUnitServer::UpdateSneak() {
     int mode = UnitModeOf(moveMode);
     if (mode != unit->moveMode) {
         unit->moveMode = mode;
-        UnitMarkChanged(unit, nullptr, 6);
+        static_cast<CMapObject*>(unit)->MarkChanged(6);
     }
     unit->UpdateSizeClass();
     motionChanged = 1;
@@ -531,7 +532,7 @@ bool CUnitServer::ChangeMoveMode() {
         placed = false;
     else
         placed = SectorMapAdd(ServerSectors(), nullptr, unit);
-    UnitMarkChanged(unit, nullptr, 6);
+    static_cast<CMapObject*>(unit)->MarkChanged(6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
         moveMode = saved;

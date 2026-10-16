@@ -502,8 +502,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         torch->SetFlameSlot(&flame->offset.x, radius, reinterpret_cast<const float*>(colour));
         torch->SetNameSlot(flame->sound);
         place(object);
-        UnitMarkChanged(object, nullptr, 2);
-        UnitMarkChanged(object, nullptr, 4);
+        static_cast<CMapObject*>(object)->MarkChanged(2);
+        static_cast<CMapObject*>(object)->MarkChanged(4);
         if (spec->visible == 0) object->flags_ |= 8;
         ManagerRegister(MapObjectManager(), nullptr, object);
         if (object->GetClassId() == world::kClassUnit) ControllerRepositionOriginal(AsUnit(object)->controller);
@@ -528,7 +528,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         base.object = object;
         ++object->refCount_;
         ObjectMarkNew(object, nullptr);
-        UnitMarkChanged(object, nullptr, 2);
+        static_cast<CMapObject*>(object)->MarkChanged(2);
         object->flags_ |= 8;
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -599,20 +599,20 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             }
             auto* model = reinterpret_cast<const UnitModelRecord*>(unitdb::Models().RecordAt(index, unitdb::kModelSize));
             std::memcpy(AsUnit(object)->actionSpeeds, model->actionSpeeds, 24);
-            UnitMarkChanged(object, nullptr, 5);
-            UnitMarkChanged(object, nullptr, 6);
-            UnitMarkChanged(object, nullptr, 0xB);
+            static_cast<CMapObject*>(object)->MarkChanged(5);
+            static_cast<CMapObject*>(object)->MarkChanged(6);
+            static_cast<CMapObject*>(object)->MarkChanged(0xB);
         } else if (type == 8) {
             ObjectSetup8(object, nullptr, reinterpret_cast<mapspec::LeverSpec*>(message)->stats);
-            UnitMarkChanged(object, nullptr, 5);
+            static_cast<CMapObject*>(object)->MarkChanged(5);
         } else {
             ManagerRegister(MapObjectManager(), nullptr, object);
         }
         place(object);
-        UnitMarkChanged(object, nullptr, 2);
-        UnitMarkChanged(object, nullptr, 6);
-        UnitMarkChanged(object, nullptr, 7);
-        UnitMarkChanged(object, nullptr, 8);
+        static_cast<CMapObject*>(object)->MarkChanged(2);
+        static_cast<CMapObject*>(object)->MarkChanged(6);
+        static_cast<CMapObject*>(object)->MarkChanged(7);
+        static_cast<CMapObject*>(object)->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
         ObjectSetName(object, nullptr, spec->texture);
         ObjectSlots(object)->UpdateSizeClasses();

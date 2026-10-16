@@ -338,10 +338,10 @@ bool CUnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    CtlLiftNearby(this, nullptr, &lifted, &action.point.x, action.source != 0);
+    LiftNearby(&lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
     unit->altPassCosts = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);
-    bool found = TickPathTo(this, nullptr, &action.point.x, std::bit_cast<std::uint32_t>(action.point.z));
+    bool found = PathTo(&action.point.x, action.point.z);
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
@@ -357,7 +357,7 @@ bool CUnitServer::StartMove() {
             close = LessOrUnordered(LengthSquared2DUnrounded(dx, dy), kLong);
         }
         if (close) arrived = true;
-        else CtlReportPath(this, nullptr, &motion, found);
+        else ReportPath(&motion, found);
     }
     if (!arrived && found) {
         DestroyPtrList(&lifted);
@@ -566,7 +566,7 @@ void CUnitServer::ContinueAction() {
     action.param = 0;
     action.modifier = 0;
     if (action2.kind == kOrderEmpty && action.kind != kOrderNone) DropQueuedOrder();
-    TickOrderDone(this, nullptr, 0);
+    EndOrder(0);
 }
 EI_REPLACE_METHOD(0x0054DD70, CUnitServer::ContinueAction);
 
@@ -739,7 +739,7 @@ void CUnitServer::ApproachTarget() {
         if (state == kStateIdle) {
             if (!(DistanceSquaredXYUnrounded<double>(goal, motion.goal) > kNearPoint)) return;
         }
-        if (TickPathTo(this, nullptr, &goal.x, kFarBits)) {
+        if (PathTo(&goal.x, std::bit_cast<float>(kFarBits))) {
             double h = HalfScale();
             Vector3 heading;
             heading.x = static_cast<float>(h * motion.targetX);
@@ -764,7 +764,7 @@ void CUnitServer::ApproachTarget() {
         return;
     }
 
-    float reach = static_cast<float>(CtlActionDistance(this, nullptr, &action));
+    float reach = static_cast<float>(ActionDistance(&action));
     Vector3 aim;
     Slots(target)->AimPoint(&aim);
     if (!IsMoving(target)) {
@@ -881,7 +881,7 @@ void CUnitServer::ApproachTarget() {
     point.x = static_cast<float>(static_cast<double>(unit->position.x) * kLong + nearX);
     point.y = static_cast<float>(static_cast<double>(unitY) + far);
     point.z = goal.z;
-    if (!TickPathTo(this, nullptr, &point.x, std::bit_cast<std::uint32_t>(static_cast<float>(patience))))
+    if (!PathTo(&point.x, static_cast<float>(patience)))
         stoodBlocked = 1;
     SectorMapAdd(WorldServer()->Sectors(), nullptr, chased);
 

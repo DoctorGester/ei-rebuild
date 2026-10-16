@@ -56,7 +56,6 @@ void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3
 // CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
 // 005BB900 ContinuePath, 005B7EF0 lifts (1) / restores (0) the units around a point (not
 // rewritten).
-__declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*path*/) EI_ORIGINAL(0x005BB900)
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
@@ -155,7 +154,7 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     SectorMapRemove(world->Sectors(), nullptr, unit);
     UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
     SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
-    UnitMarkChanged(UnitOf(c), nullptr, 7);
+    static_cast<CMapObject*>(UnitOf(c))->MarkChanged(7);
 }
 
 // The motion order's next animation once the current motion is over.
@@ -204,7 +203,7 @@ void HitWhileMoving(CUnitServer* c) {
     StepsConstruct(&current);
     AnimationSteps fall;
     StepsConstruct(&fall);
-    CtlBuildMoveSteps(c, nullptr, &current, 0);
+    c->BuildMoveSteps(&current, 0);
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
@@ -295,7 +294,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         c->stoodBlocked = wasFlag;
         return;
     }
-    if (!MapContinuePath(world->AIMap(), nullptr, unit, MotionPathOf(c))) {
+    if (!world->AIMap()->ContinuePath(unit, MotionPathOf(c))) {
         PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
@@ -369,7 +368,7 @@ void Exhaustion(CUnitServer* c) {
             int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
             if (mode != unit->moveMode2) {
                 unit->moveMode2 = mode;
-                UnitMarkChanged(UnitOf(c), nullptr, 6);
+                static_cast<CMapObject*>(UnitOf(c))->MarkChanged(6);
             }
         } else {
             if (Drain(stamina, rate)) {
@@ -380,10 +379,10 @@ void Exhaustion(CUnitServer* c) {
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
                 if (mode != UnitOf(c)->moveMode2) {
                     UnitOf(c)->moveMode2 = mode;
-                    UnitMarkChanged(UnitOf(c), nullptr, 6);
+                    static_cast<CMapObject*>(UnitOf(c))->MarkChanged(6);
                 }
             }
-            UnitMarkChanged(UnitOf(c), nullptr, 0);
+            static_cast<CMapObject*>(UnitOf(c))->MarkChanged(0);
         }
     }
     c->UpdateSneak();

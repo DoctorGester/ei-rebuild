@@ -227,7 +227,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     bool canSee = FindSightTarget(order, &sight);
     Vector3 previous = {0.0f, 0.0f, -1000.0f};
     Vector3 aim = {0.0f, 0.0f, -1000.0f};
-    double distance = CtlActionDistance(this, nullptr, order);
+    double distance = ActionDistance(order);
     float reachSq = static_cast<float>(distance * distance);
     if (!order->target) std::memcpy(&aim, &order->point, sizeof(aim));
     else AimPointInto(order->target, &aim);
@@ -369,7 +369,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     void* world = ManagerContextOf(this);
     LocalPath path;
     UnitPtrList lifted{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    CtlLiftNearby(this, nullptr, &lifted, point, moving);
+    LiftNearby(&lifted, point, static_cast<char>(moving));
     int mode = unit->moveMode;
     CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
     CAIMap* map = MapOf(world);
@@ -400,7 +400,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         node = node->next;
         SectorMapAdd(sectors, nullptr, current->data);
     }
-    CtlReportPath(this, nullptr, path.bytes, found ? 1 : 0);
+    ReportPath(path.bytes, found ? 1 : 0);
     // The list's RemoveAll (inlined).
     lifted.count = 0;
     lifted.free = nullptr;

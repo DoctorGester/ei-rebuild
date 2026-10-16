@@ -1,6 +1,7 @@
 // Unit queries on the figure (U11): animation entries for a key, the body's extent, the height of
 // the ground under a point and the point effects start from. See unit.h and docs/notes/units.md
 // ("Creation, databases, save").
+#include "map_object_figures.h"
 #include "unit.h"
 
 #include "ai_map.h"
@@ -119,7 +120,7 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     auto* world = static_cast<CWorld*>(ManagerContext());
     if (!world->IsServer()) {
         if (type_ == kUnitTypeHero) {
-            if (CEngineObject* hand = ObjectFindPartOriginal(this, nullptr, kRightHand)) {
+            if (CEngineObject* hand = static_cast<CObject3D*>(this)->FindPartByPrefix(kRightHand)) {
                 Vector3 at;
                 ObjectPartPositionOriginal(this, nullptr, &at.x, hand);
                 out->x = at.x;

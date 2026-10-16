@@ -156,7 +156,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
 
     if (location < 0 || location > 5) return;
     const HitPart& hit = kHitParts[location];
-    auto* part = static_cast<CFigureMesh*>(ObjectFindPartOriginal(unit, nullptr, hit.name));
+    auto* part = static_cast<CFigureMesh*>(static_cast<CObject3D*>(unit)->FindPartByPrefix(hit.name));
     if (!part || !(unit->flags_ & kFiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
@@ -209,7 +209,7 @@ void CUnitClientSpecific::DeathEffect() {
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
     float size;
-    if (auto* body = static_cast<CFigureMesh*>(ObjectFindPartOriginal(unit, nullptr, "bd"))) {
+    if (auto* body = static_cast<CFigureMesh*>(static_cast<CObject3D*>(unit)->FindPartByPrefix("bd"))) {
         float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
         size = stored;
         ObjectPartPositionOriginal(unit, nullptr, &at.x, body);

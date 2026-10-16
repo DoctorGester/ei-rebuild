@@ -275,7 +275,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         if (player->dirty & kDirtyTime) {
             float time;
             float speed;
-            WorldTimeSettings(this, nullptr, &time, &speed);
+            GetTime(&time, &speed);
             if (!StateSendTime(state, nullptr, time, speed)) return 0;
         }
         if (player->dirty & kDirtyWind) {

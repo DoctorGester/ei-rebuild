@@ -711,7 +711,7 @@ struct NamePair {
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
 int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringArray* a3, int a4) {
-    return Object3DMakeFigureOriginal(a0, nullptr, a2, a3, a4);
+    return static_cast<CObject3D*>(a0)->MakeFigure(a2, a3, a4);
 }
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
 void __fastcall Unit518860(void* a0) { static_cast<CObject3D*>(a0)->RestartPose(); }

@@ -97,8 +97,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
     if (animation) {
-        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale.x),
-                                       std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z));
+        static_cast<CFigureAnimationState*>(animation)->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
         animation->Play(nullptr);
         animation->UpdatePose();
@@ -278,7 +277,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
         AddAt(&parts, nullptr, part);
         ++part->refCount_;
         FigurePartSetOwnerOriginal(part, nullptr, this);
-        if (animation) AnimationStateAddPartOriginal(animation, nullptr, part);
+        if (animation) static_cast<CFigureAnimationState*>(animation)->AttachMesh(part);
         if (attached) Specific()->OnPartAdded(part);
     }
     part->boxPivot_.x = part->localPosition_.x;
@@ -300,7 +299,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     if (!manager) return game::FatalError(kNoFigureManager);
     const auto* names = static_cast<const PartNameArray*>(partList);
     for (int i = 0; i < names->size; ++i) {
-        if (!Object3DLoadPartOriginal(this, nullptr, static_cast<const char*>((*names)[i]), cached, arg)) game::DebugLog(kCantCreatePart, model, static_cast<const char*>((*names)[i]));
+        if (!LoadPart(static_cast<const char*>((*names)[i]), cached, arg)) game::DebugLog(kCantCreatePart, model, static_cast<const char*>((*names)[i]));
     }
     return 1;
 }
@@ -342,8 +341,7 @@ CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
 int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) {
     *reinterpret_cast<mfc::CString*>(&name) = model;
     if (animation) {
-        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale.x),
-                                       std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z));
+        static_cast<CFigureAnimationState*>(animation)->Rescale(scale.x, scale.y, scale.z);
         animation->SetModel(model);
     }
     auto* names = static_cast<const PartNameArray*>(partList);

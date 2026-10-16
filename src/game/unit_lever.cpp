@@ -3,6 +3,7 @@
 #include "lever.h"
 
 #include "ai_map.h"
+#include "map_object.h"
 #include "map_object_figures.h"
 #include "world.h"
 
@@ -98,7 +99,7 @@ void Lever::SetState(int wanted, float duration) {
     }
     scale.y = travel;   // the shown position
     SetUpAnimatedFigure(name);
-    UnitMarkChanged(this, nullptr, 5);
+    static_cast<CMapObject*>(this)->MarkChanged(5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
     static_cast<CAIMap*>(map)->EndRefresh();
     map->refreshUnits = true;

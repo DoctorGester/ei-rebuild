@@ -38,7 +38,6 @@ __declspec(naked) void __fastcall SerializeLevelsAt(ChunkArchive*, void*, int, v
 __declspec(naked) void __fastcall SerializeModelsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DF50)
 __declspec(naked) void __fastcall SerializePrototypesAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DC10)
 __declspec(naked) void __fastcall SerializeNpcsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DD00)
-__declspec(naked) void __fastcall SerializeSkillsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x005207D0)
 // STLport instantiations: hash_map<string, record*>::operator[] of the NPC and the level tables
 // (RET 4: the key; EAX the value's address; those of the prototypes and the models are shared
 // forwarders), and vector<SkillLevelRecord>::clear.
@@ -161,7 +160,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
         CMemoryStream* stream = &local.stream;
         FillStream(*stream, data, size);
         ar.Open(stream, 1, 1);
-        SerializeSkillsAt(&ar, nullptr, kSkillsChunk, &skills, nullptr);
+        ar.SerializeSkills(kSkillsChunk, &skills, nullptr);
         // The level records, inlined: as ChunkArchive::SerializeSkillLevels, with the vector's
         // clear and the record's chunk out of line.
         if (ar.EnterChunk(kSkillLevelsChunk)) {

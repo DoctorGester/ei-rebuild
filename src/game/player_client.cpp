@@ -667,7 +667,7 @@ int CPlayerClient::OnNewObject() {
             break;
         }
     }
-    if (Object3DMakeFigureOriginal(figure, nullptr, model, &parts, 1) == 0) return 0;   // the object is left made
+    if (static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1) == 0) return 0;   // the object is left made
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());
@@ -710,7 +710,7 @@ int CPlayerClient::OnNewObject() {
     else
         ObjectSlots(created)->TakePrototype(model);
     static_cast<CMapObject*>(created)->WriteFullState();
-    if (MapObjectReadStateOriginal(created, nullptr, 0, &in_) == 0) return 0;
+    if (static_cast<CMapObject*>(created)->ReadState(0, &in_) == 0) return 0;
     WorldClient()->AddObject(created);
     if (object->name2[0] != 0) {
         TextBuffer variable;

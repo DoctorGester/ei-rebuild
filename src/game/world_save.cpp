@@ -270,7 +270,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         if (!object) continue;   // (the object was already used above)
 
         ++object->refCount_;
-        UnitMarkChanged(object, nullptr, -1);
+        static_cast<CMapObject*>(object)->MarkChanged(-1);
         if (object->type_ != 0x3B) {
             MapObjectSetupFigure(object, nullptr, mapObject->name);
             SectorMapAdd(Sectors(), nullptr, object);
@@ -296,7 +296,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         // bit 1 << i itself, never `changed & bit`).
         int parts = mapObject->NetState()->fieldCount_;
         for (int i = 0; i < parts; ++i)
-            if (changed != 0 && (1u << (i & 31)) != 0) UnitMarkChanged(object, nullptr, i);
+            if (changed != 0 && (1u << (i & 31)) != 0) static_cast<CMapObject*>(object)->MarkChanged(i);
 
         if (object->GetClassId() == world::kClassUnit &&
             reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->alwaysUpdated == 0)
@@ -688,7 +688,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     // Stored by the callee with FSTP; copied on as dwords.
     std::uint32_t time;
     std::uint32_t speed;
-    WorldTimeSettings(this, nullptr, reinterpret_cast<float*>(&time), reinterpret_cast<float*>(&speed));
+    GetTime(reinterpret_cast<float*>(&time), reinterpret_cast<float*>(&speed));
     WriteCopy(stream, time);
     WriteCopy(stream, speed);
     WriteCopy(stream, lastRainBoltTick_);

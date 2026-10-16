@@ -62,7 +62,7 @@ void PlaceRoot(CFigureAnimationState* state) {
     origin.z = static_cast<float>(factor * owner->defaultScale.z);
     origin.y = stored * owner->defaultScale.y;
     origin.x = stored * owner->defaultScale.x;
-    FigureBonePlaceOriginal(state->root, nullptr, &origin);
+    static_cast<FigureBone*>(state->root)->Place(&origin);
 }
 
 // 0050D950 / 0050DA10 inline DestroyTrack's reset without the bone (the key frames' array emptied

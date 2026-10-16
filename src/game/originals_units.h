@@ -28,10 +28,6 @@ struct UnitStatsBuilder;
 struct UnitStats;
 struct UnitVitals;
 
-// 0050EAB0 (RET 8): the map object reads its network state (its slot 49 between the state's begin
-// / end; `delta` 0 the full state, 1 a delta) from a memory stream. Nonzero when it was read.
-__declspec(naked) inline int __fastcall MapObjectReadStateOriginal(void* /*object*/, void*, int /*delta*/,
-                                                                   void* /*from*/) EI_ORIGINAL(0x0050EAB0)
 // 005287A0 / 00528800: UnitStats Load / Save (RET 4: the stream; no result).
 __declspec(naked) inline void __fastcall UnitStatsLoadOriginal(void* /*stats*/, void*, void* /*stream*/) EI_ORIGINAL(0x005287A0)
 __declspec(naked) inline void __fastcall UnitStatsSaveOriginal(void* /*stats*/, void*, void* /*stream*/) EI_ORIGINAL(0x00528800)
@@ -39,14 +35,6 @@ __declspec(naked) inline int __fastcall PrototypeClass(void*, void*, const char*
 __declspec(naked) inline int __fastcall SkillRecordIndex(const void*, void*, const void*) EI_ORIGINAL(0x0051FF00)
 __declspec(naked) inline void __fastcall UnitParameterBlock(void*, void*, void*, void*, int) EI_ORIGINAL(0x005270E0)
 __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
-__declspec(naked) inline void __fastcall UnitSetAnimation(CUnit*, void*, int /*animation*/, int /*variant*/, int /*time*/, int /*flags*/)
-    EI_ORIGINAL(0x0052EA90)
-// 0050E9F0 (rewritten as CUnit::MarkChanged; RET 4): sets the changed bit of a part (-1: none) and the
-// object's dirty flag. EAX on return is the object's world (null when there is none), which tail-calling
-// rewrites hand on.
-__declspec(naked) inline void* __fastcall UnitMarkChanged(void* /*unit*/, void*, int /*part*/) EI_ORIGINAL(0x0050E9F0)
-__declspec(naked) inline int __fastcall HoverHostileTo(CUnit*, void*, CUnit*) EI_ORIGINAL(0x00530150)
-__declspec(naked) inline char* __fastcall UnitFindAnimation(CUnit*, void*, std::uint32_t, int) EI_ORIGINAL(0x005301B0)
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
 // 00555840 (the unit's server controller, CUnit + 0x240; plain RET): the controller drops its action and orders (state 6,
@@ -57,25 +45,13 @@ __declspec(naked) inline void __fastcall ControllerPlayAnimationOriginal(void* /
     EI_ORIGINAL(0x00555700)
 __declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
 __declspec(naked) inline void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
-__declspec(naked) inline void __fastcall CtlLiftNearby(CUnitServer*, void*, void*, const float*, int)
-    EI_ORIGINAL(0x005468D0)
 __declspec(naked) inline void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x005483C0)
-__declspec(naked) inline bool __fastcall TickPathTo(CUnitServer*, void*, const float*, std::uint32_t)
-    EI_ORIGINAL(0x00548700)
-__declspec(naked) inline void __fastcall TickOrderDone(CUnitServer*, void*, int) EI_ORIGINAL(0x00549690)
-__declspec(naked) inline double __fastcall CtlActionDistance(CUnitServer*, void*, const UnitAction*)
-    EI_ORIGINAL(0x0054C070)
-__declspec(naked) inline void __fastcall CtlReportPath(CUnitServer*, void*, void*, int) EI_ORIGINAL(0x0054EB30)
-__declspec(naked) inline void __fastcall CtlBuildMoveSteps(CUnitServer*, void*, AnimationSteps*, int)
-    EI_ORIGINAL(0x005511A0)
 __declspec(naked) inline void __fastcall StepsAppend(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x00556950)
 __declspec(naked) inline int __fastcall StepsAdd(AnimationSteps*, void*, const AnimationStep*) EI_ORIGINAL(0x00557CC0)
 __declspec(naked) inline void __fastcall StepsSetAtGrow(AnimationSteps*, void*, int, const AnimationStep*)
     EI_ORIGINAL(0x00558950)
-__declspec(naked) inline void __fastcall WorldTimeSettings(CWorldServer*, void*, float* /*time*/, float* /*speed*/)
-    EI_ORIGINAL(0x0055FBD0)
 
 // 00530730 / 00531070: equip armour (RET 4, returns the item it replaced or null) / add weapon (RET 4, slot index,
 // 1 when already there, -1 when full). 00554450: the unit controller resyncs with its unit (plain RET, no result).
@@ -132,19 +108,8 @@ __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*co
 // A 3D object's figure (thiscall on the object): 00516DA0 builds it from model `model` and the part names `parts` (a
 // CStringArray; RET 0xC, nonzero on success); 00518840 gives its animation state (+0x98) the model's animations (RET 8,
 // returns 1).
-__declspec(naked) inline int __fastcall Object3DMakeFigureOriginal(void* /*object*/, void*, const char* /*model*/,
-                                                                   void* /*parts*/, int /*flag*/) EI_ORIGINAL(0x00516DA0)
 __declspec(naked) inline void __fastcall Object3DSetAnimationsOriginal(void* /*object*/, void*, const char* /*model*/,
                                                                        int /*flag*/) EI_ORIGINAL(0x00518840)
-// 0050F7A0 / 0050F900: the map object part of Load(stream) / Save(stream) (both RET 4, EAX not a result).
-__declspec(naked) inline void __fastcall MapObjectLoadOriginal(void* /*object*/, void*, void* /*stream*/)
-    EI_ORIGINAL(0x0050F7A0)
-__declspec(naked) inline void __fastcall MapObjectSaveOriginal(void* /*object*/, void*, void* /*stream*/)
-    EI_ORIGINAL(0x0050F900)
-// 00516A80: the part of the object whose name matches (case-insensitive; searches the two arrays at +0xD0 / +0xE0)
-// (RET 4: the name; EAX the part or null).
-__declspec(naked) inline CEngineObject* __fastcall ObjectFindPartOriginal(void* /*object*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00516A80)
 // 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10). 00557B60: AnimationSteps
 // constructor (plain RET, returns `this`).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
@@ -177,8 +142,6 @@ __declspec(naked) inline void __fastcall FigurePlayOriginal(CFigureAnimationStat
                                                             const void* /*animation*/) EI_ORIGINAL(0x0050CA50)
 __declspec(naked) inline void* __fastcall FigureQueueOriginal(CFigureAnimationState* /*state*/, void*,
                                                               const void* /*animation*/) EI_ORIGINAL(0x0050CBA0)
-__declspec(naked) inline void __fastcall ClientStartIdleAnimationOriginal(CUnitClientSpecific* /*controller*/, void*,
-                                                                          int /*play*/) EI_ORIGINAL(0x00535480)
 class CObject3DClientSpecific;
 // 005392F0 (library: STLport list::erase of the speech
 // queue): removes `at`, the next node to *out (RET 8).
@@ -200,21 +163,10 @@ __declspec(naked) inline void __fastcall CompanionSoundsSetSizeOriginal(void* /*
 __declspec(naked) inline void __fastcall CompanionCreateLightOriginal(void* /*companion*/, void*, const float* /*colour*/,
                                                                       float /*radius*/, int /*flag*/) EI_ORIGINAL(0x00511830)
 
-// A-I7. 005310D0 (rewritten as CUnit::RemoveWeapon): clears weapon slot `slot` (RET 4; EAX not read by these callers).
-__declspec(naked) inline void __fastcall UnitRemoveWeaponOriginal(CUnit* /*unit*/, void*, int /*slot*/) EI_ORIGINAL(0x005310D0)
 // 0051FE00: the skill database (007AF268) finds the skill level named `name` by _mbsicmp (thiscall, RET 4), or null.
 __declspec(naked) inline void* __fastcall SkillFindOriginal(void* /*database*/, void*, const void* /*name*/)
     EI_ORIGINAL(0x0051FE00)
 
-// A-U4 (object3d_figure_setup.cpp). The figure's animation state (CObject3D + 0x98, thiscall): 0050D7C0 rescales it to
-// x, y, z given as float bits (RET 0xC; no result).
-__declspec(naked) inline void __fastcall AnimationStateSetScaleOriginal(void* /*state*/, void*, std::uint32_t, std::uint32_t,
-                                                                        std::uint32_t) EI_ORIGINAL(0x0050D7C0)
-// 00517240 (rewritten as CObject3D::LoadPart; through its address so the wrapper runs): the 3D object's part
-// `name` of the cached `model` (RET 0xC; returns the part, or null).
-__declspec(naked) inline void* __fastcall Object3DLoadPartOriginal(void* /*object*/, void*, const char* /*name*/,
-                                                                   void* /*model*/, std::uint32_t /*arg*/)
-    EI_ORIGINAL(0x00517240)
 // 0050CC20: the animation state's node (bone) named `name`, or null (thiscall, RET 4); its +0x74 is the node's position.
 __declspec(naked) inline void* __fastcall AnimationStateFindNodeOriginal(void* /*state*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0050CC20)
@@ -222,9 +174,6 @@ __declspec(naked) inline void* __fastcall AnimationStateFindNodeOriginal(void* /
 // RET 4; no result).
 __declspec(naked) inline void __fastcall AnimationStatePartNamesOriginal(void* /*state*/, void*, void* /*out*/)
     EI_ORIGINAL(0x0050D920)
-// 0050D0E0: the animation state animates `part` too (thiscall, RET 4; no result).
-__declspec(naked) inline void __fastcall AnimationStateAddPartOriginal(void* /*state*/, void*, void* /*part*/)
-    EI_ORIGINAL(0x0050D0E0)
 // 005AA5F0 (rewritten as FindFigureModel, figure_models.cpp): the figure manager's model named `name` (an STLport
 // string; thiscall, RET 4). 005AC010 (rewritten as LoadFigureBounds): a figure part's bounding volume into `out`
 // (thiscall on the manager, RET 0x1C; returns 1, 0 without data). Through their addresses so the wrappers run.
@@ -244,8 +193,6 @@ __declspec(naked) inline void* __fastcall FigureManagerLoadPartOriginal(void* /*
 // A-U11 (unit_db.cpp, unit_db_destroy.cpp). The unit database's records: 0053EBC0 / 0053ED30 / 0053EE70 destroy a
 // prototype / NPC / model record (rewritten in unit_db_destroy.cpp; thiscall, plain RET); 0053E2A0 / 0053E520 / 0053E730 /
 // 0053E9B0 resize the vectors of prototypes / NPCs / models / level records (STLport, RET 4: count). No results.
-__declspec(naked) inline void __fastcall UnitPrototypeDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x0053EBC0)
-__declspec(naked) inline void __fastcall UnitNpcDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x0053ED30)
 __declspec(naked) inline void __fastcall UnitModelDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x0053EE70)
 __declspec(naked) inline void __fastcall UnitPrototypesResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x0053E2A0)
@@ -268,8 +215,6 @@ __declspec(naked) inline void __fastcall AnimationTrackLoadOriginal(void* /*trac
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).
-__declspec(naked) inline void __fastcall FigureBonePlaceOriginal(void* /*bone*/, void*, const void* /*origin*/)
-    EI_ORIGINAL(0x0050C230)
 __declspec(naked) inline int __fastcall FigureManagerLoadBonesOriginal(void* /*manager*/, void*, void* /*model*/,
                                                                        void* /*bone*/) EI_ORIGINAL(0x005ACB80)
 __declspec(naked) inline int __fastcall FigureManagerLinkSkeletonOriginal(void* /*manager*/, void*, void* /*state*/,

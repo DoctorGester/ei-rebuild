@@ -44,10 +44,10 @@ __declspec(naked) void __fastcall BuildPart(void*, void*, CFigureMesh*, void*, s
 // 0059F3D0. Part: remembers its owner.
 void __fastcall SetPartOwner(CFigureMesh* a0, void*, CObject3D* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0050D0E0. Animation state: a part was added.
-void AnimationAddPart(void* state, void*, CFigureMesh* part) { AnimationStateAddPartOriginal(state, nullptr, part); }
-// 0050D7C0. Animation state: rescale to x, y, z given as float bits.
-void AnimationSetScale(void* state, void*, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
-    AnimationStateSetScaleOriginal(state, nullptr, x, y, z);
+void AnimationAddPart(void* state, void*, CFigureMesh* part) { static_cast<CFigureAnimationState*>(state)->AttachMesh(part); }
+// 0050D7C0. Animation state: rescale to x, y, z.
+void AnimationSetScale(void* state, void*, float x, float y, float z) {
+    static_cast<CFigureAnimationState*>(state)->Rescale(x, y, z);
 }
 __declspec(naked) void __fastcall SetAtGrowAt(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x00519E80)
 __declspec(naked) void __fastcall SetSizeAt(AlignedPtrArray*, void*, int, int) EI_ORIGINAL(0x00519D70)
@@ -178,7 +178,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
             std::memcpy(&part->bounds_.radius, &bounds.radius, sizeof(float));
         }
     }
-    if (animation) AnimationSetScale(animation, nullptr, Bits(scale.x), Bits(scale.y), Bits(scale.z));
+    if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);
     return ComputeBounds();
 }
 EI_REPLACE_METHOD(0x00517700, CObject3D::SetFigureScale);

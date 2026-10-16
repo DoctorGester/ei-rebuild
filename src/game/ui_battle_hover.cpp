@@ -141,7 +141,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 break;
             }
             if (party_.size == 0 || !party_[0]) return;
-            if (!HoverHostileTo(party_[0], nullptr, unit)) return;
+            if (!party_[0]->IsHostileTo(unit)) return;
             shape = kCursorAttack;
             break;
         }

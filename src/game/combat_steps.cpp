@@ -211,7 +211,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
 
     std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
     key |= EnterBits(to, unit);
-    char* animation = UnitFindAnimation(unit, nullptr, key, 1);
+    char* animation = unit->FindAnimation(key, 1);
     if (!animation) return false;
     std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
     int duration = EntryTicks(unit, index, 0x20);
@@ -278,9 +278,9 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
     bool frame;
     std::uint32_t key = OrderKey(this, kind, source, steps, &weaponBit, &frame);
 
-    char* animation = UnitFindAnimation(unit, nullptr, key, 0);
+    char* animation = unit->FindAnimation(key, 0);
     if ((!animation || (Get<std::uint32_t>(animation, 0x14) & weaponBit) != weaponBit) && kind == kOrderAttack) {
-        animation = UnitFindAnimation(unit, nullptr, weaponBit | kKeyFallback, 1);
+        animation = unit->FindAnimation(weaponBit | kKeyFallback, 1);
         if (!animation) {
             gameapi::OutputDebugStringA(kNoAnimationMessage);
             animation = unit->AnimationEntry(0);
@@ -335,7 +335,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     } else {
         key = kKeyNoUnitCast;
     }
-    char* animation = UnitFindAnimation(unit, nullptr, key, 1);
+    char* animation = unit->FindAnimation(key, 1);
     *duration = 0;
     if (!animation) return;
     std::uint8_t index = Get<std::uint8_t>(animation, 0x10);
@@ -454,7 +454,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     double dy = static_cast<double>(y) - aim.y;
     double dx = static_cast<double>(x) - aim.x;
     float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
-    float orderDistance = static_cast<float>(CtlActionDistance(this, nullptr, &order));
+    float orderDistance = static_cast<float>(ActionDistance(&order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 
     void* victimStats = &reinterpret_cast<CUnitServer*>(victim->controller)->stats;
@@ -612,11 +612,11 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     }
     key |= isDying ? kKeyDying : kKeyNotDying;
 
-    char* animation = UnitFindAnimation(unit, nullptr, key, 1);
+    char* animation = unit->FindAnimation(key, 1);
     bool add;
     if (isDying) {
         // (The original reads the dying argument here: after its PUSH ESI, [ESP+0x28] is it.)
-        if (!animation) animation = UnitFindAnimation(unit, nullptr, key & kKeyNoSide, 1);
+        if (!animation) animation = unit->FindAnimation(key & kKeyNoSide, 1);
         add = animation != nullptr;
     } else {
         add = moveMode.mode != 0 && animation;

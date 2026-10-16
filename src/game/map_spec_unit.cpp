@@ -2,6 +2,7 @@
 // records (0x4C bytes: patrols of waypoints and the guard settings), the small chunk classes that
 // read and write those (vtables 0073C710 waypoint, 0073C718 patrol, 0073C720 behaviour) and the
 // patrol array's copy. See docs/notes/objects.md ("Rewritten").
+#include "map_object.h"
 #include "map_spec.h"
 #include "core_streams.h"
 #include "record_arrays.h"
@@ -387,7 +388,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     if (!self->object.visible) flags |= 8;
     else flags &= ~8u;
     UnitResetMotion(unit->controller);
-    UnitMarkChanged(b.object, nullptr, 1);
+    static_cast<CMapObject*>(b.object)->MarkChanged(1);
 }
 EI_REPLACE(0x0046C4D0, UnitSpecApply);
 

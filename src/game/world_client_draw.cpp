@@ -607,7 +607,7 @@ int CWorldClient::DrawPass() {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     Vector3 point;
                     std::memcpy(&point, &object->position, sizeof(point));
-                    if (void* part = ObjectFindPartOriginal(object, nullptr, MarkerPartName())) {
+                    if (void* part = static_cast<CObject3D*>(object)->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = ObjectPartPositionOriginal(object, nullptr, &scratch.x, part);
                         std::memcpy(&point, at, sizeof(point));

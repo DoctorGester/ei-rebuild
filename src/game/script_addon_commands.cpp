@@ -264,7 +264,7 @@ bool GiveUnitWeapon(Call* call) {
         stats.attackCategory = static_cast<float>(x87::FromUnsigned(weapon->category));
         stats.naturalWeapon = item->GetType();
         for (int i = 0; i < 7; ++i) Store(&stats.damageWeights[i], weapon->damageTypes[i]);
-        UnitMarkChanged(unit, nullptr, 0);
+        static_cast<CMapObject*>(unit)->MarkChanged(0);
     }
     ServerSlots(ServerOf(unit))->RefreshModel();
     ServerSlots(ServerOf(unit))->RefreshEquipment();
@@ -317,7 +317,7 @@ bool GiveUnitArmor(Call* call) {
             value = prototype->protectionScale + sum;
             Store(&protection[c].current, value);
         }
-        UnitMarkChanged(unit, nullptr, 0);
+        static_cast<CMapObject*>(unit)->MarkChanged(0);
     }
     ServerSlots(ServerOf(unit))->RefreshEquipment();
     return true;

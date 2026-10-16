@@ -403,7 +403,7 @@ void CMpHeroScreen::ShowHero(int index) {
     MakePreview(1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
     auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, hero->unitId));
-    for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(unit, nullptr, slot);
+    for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);

@@ -168,13 +168,6 @@ struct LocalView {
 // 0079BE6C: footprints show for every unit (else only for units with flags_ 0x400000).
 bool AllFootprintsShown() { return *reinterpret_cast<const int*>(0x0079BE6C) == 0; }
 
-// Not rewritten, forwarder: 0056D150, the client world adds a footprint (RET 0x24): its corner,
-// size, angle, kind (left foot << 16 | texture), scale, whether it shows, the unit's previous
-// footprint. Returns its id, negative when none was made.
-__declspec(naked) int __fastcall AddFootprint(CWorldClient*, void*, float /*x*/, float /*y*/, float /*sizeX*/,
-                                              float /*sizeY*/, float /*angle*/, int /*kind*/, float /*scale*/,
-                                              int /*shown*/, int /*previous*/) EI_ORIGINAL(0x0056D150)
-
 // The frame `frame` (int) was passed between `last` and `now` (not for an unordered `last`; a NaN
 // `now` counts as passed).
 bool PassedFrame(double frame, float last, float now) { return frame > last && !(frame > now); }
@@ -298,7 +291,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         float scale = prototype->valuesE0[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = AddFootprint(WorldClient(), nullptr, footAt.x - sizeX * facing.x * kHalf,
+        int id = WorldClient()->AddFootprint(footAt.x - sizeX * facing.x * kHalf,
                               footAt.y - sizeY * facing.y * kHalf, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;

@@ -351,7 +351,7 @@ void MagicTrap::DestructBody() {
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
 
 void MagicTrap::SaveTrap(CStream* stream) {
-    MapObjectSaveOriginal(this, nullptr, (void*)stream);
+    SaveMapObject(stream);
     std::int32_t value = spell ? spell->id_ : -1;
     stream->Write(&value, 4);
     value = area.count;
@@ -375,7 +375,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
 EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(CStream* stream) {
-    MapObjectLoadOriginal(this, nullptr, (void*)stream);
+    LoadMapObject(stream);
     void* manager = SpellManagerOf(ManagerContextOf(this));
     // The original reads the id and the two counts into its argument's stack slot: a read that
     // fails leaves the previous value there (at first the stream pointer itself).

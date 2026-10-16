@@ -272,7 +272,7 @@ void UnitCalls::SetHostileMask(std::uint32_t a0) { static_cast<CUnit*>((void*)th
 void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
 void UnitCalls::GiveQuestItem(CEngineObject* item) { UnitAddCarriedOriginal(this, nullptr, item); }
 void UnitCalls::AddSpell(CEngineObject* spell) { UnitAddSpellOriginal(this, nullptr, spell); }
-void UnitCalls::MarkChanged(int what) { UnitMarkChanged(this, nullptr, what); }
+void UnitCalls::MarkChanged(int what) { reinterpret_cast<CMapObject*>(this)->MarkChanged(what); }
 UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
 
 struct LeverCalls {

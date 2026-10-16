@@ -833,7 +833,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 }
                 return;
             }
-            if (members != 0 && party_[0] && HoverHostileTo(party_[0], nullptr, unit)) {
+            if (members != 0 && party_[0] && party_[0]->IsHostileTo(unit)) {
                 ScreenOrderUnit(this, nullptr, unit, ctrl());
                 return;
             }

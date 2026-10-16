@@ -106,7 +106,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     CFigureAnimationState* state = unit->Object3D()->animation;
     state->queue.RemoveAll();
     if (unit->secondEntry == kModeSpecialIdle) {
-        ClientStartIdleAnimationOriginal(this, nullptr, 1);
+        StartIdleAnimation(1);
     } else {
         char* first = nullptr;
         char* second = nullptr;
@@ -153,7 +153,7 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     }
     if (unit->type_ != kUnitTypeHero) key |= kKeyNotHero;
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
-    char* animation = UnitFindAnimation(unit, nullptr, key, 1);
+    char* animation = unit->FindAnimation(key, 1);
     if (!animation) return;
     if (play) FigurePlayOriginal(unit->Object3D()->animation, nullptr, animation);
     else FigureQueueOriginal(unit->Object3D()->animation, nullptr, animation);

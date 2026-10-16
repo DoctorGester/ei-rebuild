@@ -292,7 +292,7 @@ EI_REPLACE_METHOD(0x0046AF70, ObjectSpec::ObjectSpecRemove);
 
 // 0046AFA0 (slot 8).
 void ObjectSpec::ObjectSpecRefresh() {
-    if (base.object) UnitMarkChanged(base.object, nullptr, 2);
+    if (base.object) static_cast<CMapObject*>(base.object)->MarkChanged(2);
 }
 EI_REPLACE_METHOD(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 
@@ -314,8 +314,8 @@ void ObjectSpec::ObjectSpecApply() {
     std::uint32_t& flags = object->flags_;
     if (!visible) flags |= 8;
     else flags &= ~8u;
-    UnitMarkChanged(base.object, nullptr, 2);
-    UnitMarkChanged(base.object, nullptr, 1);
+    static_cast<CMapObject*>(base.object)->MarkChanged(2);
+    static_cast<CMapObject*>(base.object)->MarkChanged(1);
     SectorMapAdd(AsSectorMap(Lists()), nullptr, AsEngineObject(base.object));
     static_cast<CAIMap*>(Selection())->EndRefresh();
 }

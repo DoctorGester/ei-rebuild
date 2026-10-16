@@ -343,7 +343,7 @@ void CEffectArrowFigure::Start(int update) {
     CEngineObject* attached = figure->attached;
     std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
     console::CStringArray parts;
-    Object3DMakeFigureOriginal(figure, nullptr, model, &parts, 1);
+    static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1);
     static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
     figure->RestartPose();

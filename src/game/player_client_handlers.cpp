@@ -228,7 +228,7 @@ int CPlayerClient::OnObjectChanged() {
     CPlayer::ObjectMap::Node* node = Owner()->knownObjects_.Find(id);
     if (!node) return 0;
     CEngineObject* object = node->value;
-    if (MapObjectReadStateOriginal(object, nullptr, 1, &in_) == 0) return 0;
+    if (static_cast<CMapObject*>(object)->ReadState(1, &in_) == 0) return 0;
     const int classId = object->GetClassId();
     if (classId == kPlatformClassA || classId == kPlatformClassB)
         static_cast<CWorldClient*>(AsConnection(this)->ManagerContext())->RefreshPlatforms(object);   // the client's own

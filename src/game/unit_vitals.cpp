@@ -2,6 +2,7 @@
 // item changes (UnitStats::Recompute), regeneration every world update (UnitVitals::Regenerate),
 // the body slots' healing, the experience curves and experience gain. See unit.h and
 // docs/notes/units.md ("Statistics in play").
+#include "map_object.h"
 #include "unit.h"
 
 #include "object_tables.h"
@@ -103,15 +104,11 @@ UnitVitals* VitalsOf(CEngineObject* server) { return &static_cast<CMapObjectServ
 double EffectScale(CUnit* unit, float k);
 } // namespace
 
-// Called through their game addresses so their verify wrappers see the calls (rewritten here).
-// 0050F690. CMapObject::EffectValue (map_object.cpp): the largest value of the effects of a type.
-__declspec(naked) double __fastcall CallEffectValue(const CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x0050F690)
-
 namespace {
 double EffectScale(CUnit* unit, float k) {
     if (!unit) return kOne;
-    float strengthen = static_cast<float>(CallEffectValue(unit, nullptr, kEffectStrengthen) * k + kOne);
-    return strengthen / (CallEffectValue(unit, nullptr, kEffectWeaken) * k + kOne);
+    float strengthen = static_cast<float>(unit->EffectValue(kEffectStrengthen) * k + kOne);
+    return strengthen / (unit->EffectValue(kEffectWeaken) * k + kOne);
 }
 
 // value scaled by EffectScale, at least 1 (NaN kept).
@@ -163,7 +160,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
         double regen = hitPointRegen;
         float rate = static_cast<float>((LevelValueOf(stats, kSkillHitPointRegen) * kPercent + kOne) * regen);
         if (unit) {
-            double boost = CallEffectValue(unit, nullptr, kEffectRegeneration);
+            double boost = unit->EffectValue(kEffectRegeneration);
             if (boost > kZero) rate = static_cast<float>(boost * rate);
         }
         float scale = maxHitPoints;

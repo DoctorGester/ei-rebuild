@@ -234,13 +234,13 @@ void DestroyLevelName(UnitLevelRecord* record) { record->name.~CString(); }
 } // namespace
 
 void ChunkArchive::SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitPrototypeRecord* r) { UnitPrototypeDestroyOriginal(r); },
+    SerializeRecords(this, id, records, [](UnitPrototypeRecord* r) { unitdb::DestroyPrototypeRecord(r); },
                      UnitPrototypesResizeOriginal, PrototypeSerializeAt);
 }
 EI_REPLACE_METHOD(0x0053DC10, ChunkArchive::SerializePrototypes);
 
 void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitNpcRecord* r) { UnitNpcDestroyOriginal(r); }, UnitNpcsResizeOriginal,
+    SerializeRecords(this, id, records, [](UnitNpcRecord* r) { unitdb::DestroyNpcRecord(r); }, UnitNpcsResizeOriginal,
                      NpcSerializeAt);
 }
 EI_REPLACE_METHOD(0x0053DD00, ChunkArchive::SerializeNpcs);

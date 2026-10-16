@@ -151,7 +151,7 @@ void SetStandingFlag(CUnitServer* self, int standing) {
     SectorMapRemove(sectors, nullptr, unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
     SectorMapAdd(sectors, nullptr, self->unit);
-    UnitMarkChanged(self->unit, nullptr, 7);
+    static_cast<CMapObject*>(self->unit)->MarkChanged(7);
 }
 
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
@@ -223,8 +223,8 @@ int CUnitServer::UpdateServer() {
     if (self->dead == 0) {
         if (VitalsRegenerate(ServerStatsOf(self), nullptr, &stats, self, action.kind != 0 ? 1 : 0)) {
             stats.Recompute(ServerStatsOf(unit), unit);
-            UnitMarkChanged(unit, nullptr, 0);
-            UnitMarkChanged(unit, nullptr, 4);
+            static_cast<CMapObject*>(unit)->MarkChanged(0);
+            static_cast<CMapObject*>(unit)->MarkChanged(4);
         }
         // Every (speedClass + 1) updates the unit's step noise (005C9770 returns 0: no record).
         if ((static_cast<std::uint32_t>(WorldServer()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
@@ -239,7 +239,7 @@ int CUnitServer::UpdateServer() {
         if (unit->player != nullptr) {   // 005301A0
             // A party unit: its perception memory, and now and then a bored remark.
             MemoryUpdate(Brain()->memory, nullptr, this, unit->levels4C8);
-            UnitMarkChanged(unit, nullptr, 0xC);
+            static_cast<CMapObject*>(unit)->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
             if (bored > kBoredTicks && IsaacRandom::Global().Next() % kBoredChance == 0) {
@@ -263,7 +263,7 @@ int CUnitServer::UpdateServer() {
             AdvanceAnimation();
             return 1;
         }
-        if (state == kStateActing && action2.kind == kOrderMove) TickOrderDone(this, nullptr, 1);
+        if (state == kStateActing && action2.kind == kOrderMove) EndOrder(1);
         UpdateState();
         AdvanceAnimation();
         return 1;
@@ -278,7 +278,7 @@ int CUnitServer::UpdateServer() {
         self->position.z = self->position.z - sinking;
         float z = unit->position.z;
         unit->position.z = !(z <= 0.0f) ? z : 0.0f;   // FCOMP 0, z: z kept above 0 and when NaN
-        UnitMarkChanged(unit, nullptr, 2);
+        static_cast<CMapObject*>(unit)->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
     if (reported == 0 && Queue(this).count == 0) {
@@ -305,7 +305,7 @@ EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
 void CUnitServer::UpdateState() {
     animationHeld = 0;
     frozen = 0;
-    if (state == kStateActing && !ActionInReach()) TickOrderDone(this, nullptr, 0);
+    if (state == kStateActing && !ActionInReach()) EndOrder(0);
     if (unit->flags_ & kFlagFrozen) {
         frozen = 1;
         hitDirection = 0xFFFFFFFFu;
@@ -331,7 +331,7 @@ void CUnitServer::UpdateState() {
     case kStateIdle:
         SwitchWeaponIfWanted(unit);
         if (motionChanged == 0 ||
-            TickPathTo(this, nullptr, &motion.goal.x, std::bit_cast<std::uint32_t>(motion.goal.z))) {
+            PathTo(&motion.goal.x, motion.goal.z)) {
             CtlMovementTick(this);
         }
         break;
@@ -396,7 +396,7 @@ void CUnitServer::AdvanceAnimation() {
         }
         const AnimationStep& head = queue.steps[0];
         if (head.animation != 0xFF || head.variant != 0xFF)
-            UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
+            unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
     }
     if (queue.count == 0) {
         unit->SetMotionMode(0);
@@ -446,7 +446,7 @@ void CUnitServer::ShowCurrentStep() {
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
-        UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
+        unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
 EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
 
@@ -462,7 +462,7 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
-        UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
+        unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
 EI_REPLACE_METHOD(0x00546C40, CUnitServer::PlaySteps);
 

@@ -126,7 +126,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object->position.z = 3.0f;
     CEngineObject* specific = object->attached;
     console::CStringArray parts;
-    Object3DMakeFigureOriginal(object, nullptr, name, &parts, 1);
+    static_cast<CObject3D*>(object)->MakeFigure(name, &parts, 1);
     static_cast<CObject3DClientSpecific*>(specific)->RegisterPartMaterials();
     Object3DSetAnimationsOriginal(object, nullptr, name, 0);
     object->RestartPose();

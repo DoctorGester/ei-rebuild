@@ -123,7 +123,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
             void* weapon = cunit->GetWeapon(slot);
             if (!weapon) continue;
             Append(drops, weapon);
-            UnitRemoveWeaponOriginal(cunit, nullptr, slot);
+            cunit->RemoveWeapon(slot);
         }
     }
     cunit->flags_ |= 0x100000;

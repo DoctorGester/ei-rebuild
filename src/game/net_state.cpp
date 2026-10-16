@@ -349,7 +349,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         motion->speedScale = walk;
         motion->baseTurnRate = run;
         MotionBuild(motion, nullptr, path2);
-        UnitMarkChanged(unit, nullptr, 10);
+        static_cast<CMapObject*>(unit)->MarkChanged(10);
         unit->Controller()->MotionChanged();
         complete &= SnapshotConsumed();
         field->EndField();
@@ -366,7 +366,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 unit->player = nullptr;
                 PlayerRemoveUnitOriginal(current, nullptr, unit);
                 if (char* now = unit->player) PlayerAddUnitOriginal(now, nullptr, unit);
-                UnitMarkChanged(unit, nullptr, 11);
+                static_cast<CMapObject*>(unit)->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || AsPlayer(current)->id_ != id) {
@@ -377,7 +377,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 unit->player = local;
                 if (old) PlayerRemoveUnitOriginal(old, nullptr, unit);
                 if (char* now = unit->player) PlayerAddUnitOriginal(now, nullptr, unit);
-                UnitMarkChanged(unit, nullptr, 11);
+                static_cast<CMapObject*>(unit)->MarkChanged(11);
                 if (unit->controller) unit->Controller()->PlayerChanged(local);
             }
         }

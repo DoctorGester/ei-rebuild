@@ -301,7 +301,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     void* spell = nullptr;
 
     if (order->flag18) {
-        double distance = CtlActionDistance(this, nullptr, order);
+        double distance = ActionDistance(order);
         if (LessOrUnordered(distance * distance, DistanceSquaredXYUnrounded<double>(order->point, unit->position))) {
             DestroySteps(&steps);
             return false;
@@ -335,7 +335,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     }
     if (duration <= 0) duration = 1;
 
-    float range = static_cast<float>(CtlActionDistance(this, nullptr, order));
+    float range = static_cast<float>(ActionDistance(order));
     if (order->flag18) range = std::bit_cast<float>(kNoRangeBits);
 
     // The unit's heading and how many ticks a half turn takes.
