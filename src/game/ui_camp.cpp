@@ -1195,29 +1195,9 @@ namespace {
 // fmod(turn + sign * 2 * seconds, *[007C7EE8]) through the game's _CIfmod, as the original
 // computes it on the FPU.
 float TurnedBy(double seconds, float turn, bool backwards) {
-    float result;
-    if (!backwards) {
-        __asm {
-            fld seconds
-            fadd st(0), st(0)
-            fadd turn
-            fld dword ptr ds:[0x007C7EE8]
-            mov eax, 0x006E95AA
-            call eax
-            fstp result
-        }
-    } else {
-        __asm {
-            fld seconds
-            fadd st(0), st(0)
-            fsubr turn
-            fld dword ptr ds:[0x007C7EE8]
-            mov eax, 0x006E95AA
-            call eax
-            fstp result
-        }
-    }
-    return result;
+    const double twice = seconds + seconds;
+    const double turned = backwards ? turn - twice : twice + turn;
+    return static_cast<float>(libcrt::CiFmod(turned, *reinterpret_cast<const float*>(0x007C7EE8)));
 }
 
 constexpr int kHeroClass = 0x32;

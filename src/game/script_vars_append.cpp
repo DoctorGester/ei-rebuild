@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "ei/x87.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -28,18 +29,6 @@ mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { ret
 ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal(a0, nullptr, a2, a3); }
 ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
-
-// The float is copied through the FPU (FLD / FSTP), as the original does: a signalling NaN
-// becomes quiet.
-__declspec(naked) void __cdecl CopyFloat(float* /*to*/, const float* /*from*/) {
-    __asm {
-        mov eax, [esp + 8]
-        fld dword ptr [eax]
-        mov eax, [esp + 4]
-        fstp dword ptr [eax]
-        ret
-    }
-}
 
 void Release(CEngineObject* object) {
     if (object) object->Release();
@@ -60,7 +49,7 @@ template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>
     NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
-        CopyFloat(&values.data[old + i], &other->values.data[i]);
+        x87::CopyFloat(&values.data[old + i], &other->values.data[i]);
     }
 }
 EI_REPLACE_METHOD(0x004C2B70, ScriptNamedValues<float>::Append);

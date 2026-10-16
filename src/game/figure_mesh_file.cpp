@@ -6,6 +6,7 @@
 #include "core_maths.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "originals_core.h"
 
 #include <cstring>
@@ -92,12 +93,6 @@ __declspec(naked) void __fastcall TransformCopy(void*, void*, const void*) EI_OR
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
 __declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
-// A float copied through the FPU (FLD / FSTP), as the original copies +0x28 to +0x110.
-__declspec(naked) void __fastcall FpuCopy(const float* /*from*/, float* /*to*/) {
-    __asm fld dword ptr [ecx]
-    __asm fstp dword ptr [edx]
-    __asm ret
-}
 
 float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
@@ -188,9 +183,9 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     m[2] = static_cast<float>(static_cast<double>(xz) - wy);
     m[6] = static_cast<float>(static_cast<double>(yz) + wx);
     m[10] = static_cast<float>(One() - (static_cast<double>(yy) + xx));
-    FpuCopy(&moved[0], &m[12]);
-    FpuCopy(&moved[1], &m[13]);
-    FpuCopy(&moved[2], &m[14]);
+    x87::CopyFloat(&m[12], &moved[0]);
+    x87::CopyFloat(&m[13], &moved[1]);
+    x87::CopyFloat(&m[14], &moved[2]);
 }
 
 EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigure);

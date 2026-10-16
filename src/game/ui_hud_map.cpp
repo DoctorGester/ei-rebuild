@@ -572,16 +572,7 @@ namespace {
 // 2.5^(delta / 1200): _CIpow (006E81A0) of the double at 00742AD0 and delta * 0.00083333335f,
 // left unrounded.
 double WheelZoomFactor(int delta) {
-    double result;
-    __asm {
-        fld qword ptr ds:[0x00742AD0]
-        fild delta
-        fmul dword ptr ds:[0x00742AC8]
-        mov eax, 0x006E81A0
-        call eax
-        fstp result
-    }
-    return result;
+    return libcrt::CiPow(*reinterpret_cast<const double*>(0x00742AD0), static_cast<double>(delta) * *reinterpret_cast<const float*>(0x00742AC8));
 }
 } // namespace
 

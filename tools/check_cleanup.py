@@ -84,9 +84,9 @@ PATTERNS = {
     # An unused_XXX member that some code does touch after all: it needs a real name.
     'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
 }
-# Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its inline
-# helpers with precise semantics on purpose: /fp:fast regrouped their sums with the caller's
-# expression (docs/notes/vector-math.md).
+# Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its unrounded
+# 2D / Vector3 sums with precise semantics off on purpose: they must stay in ST0 like the original's
+# written-out sums (C12 checked: without the pragma 39 objects compile differently).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
 # over lib::AlignedArray (its SetSize forwards to the array's); ObjectIdMap and UnitSet

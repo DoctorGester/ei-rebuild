@@ -13,6 +13,7 @@
 #include "originals_script.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
+#include "ei/x87.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -21,22 +22,11 @@ namespace {
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
 
-// Floats are copied through the FPU (FLD / FSTP): a signalling NaN becomes quiet.
-__declspec(naked) void __cdecl CopyFloat(float* /*to*/, const float* /*from*/) {
-    __asm {
-        mov eax, [esp + 8]
-        fld dword ptr [eax]
-        mov eax, [esp + 4]
-        fstp dword ptr [eax]
-        ret
-    }
-}
-
 // The float array resized with `setSize`, then each value copied (the source's size re-read).
 void CopyFloats(mfc::CArray<float>* to, const mfc::CArray<float>* from,
                 void(__fastcall* setSize)(void*, void*, int, int)) {
     setSize(to, nullptr, from->size, -1);
-    for (int i = 0; i < from->size; ++i) CopyFloat(&to->data[i], &from->data[i]);
+    for (int i = 0; i < from->size; ++i) x87::CopyFloat(&to->data[i], &from->data[i]);
 }
 
 // A plain array resized with `setSize`, then each element copied as raw words.

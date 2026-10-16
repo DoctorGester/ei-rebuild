@@ -128,29 +128,10 @@ int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
 }
 
 // *dst = (float)atof(text): the CRT's result in ST0 stored with FSTP.
-void StoreAtof(float* dst, const char* text) {
-#ifdef EI_VECTORS_REPLAY   // no game CRT: its port, through the address
-    *dst = static_cast<float>(GameAtof(text));
-#else
-    __asm {
-        push text
-        mov eax, 0x006E911A
-        call eax
-        add esp, 4
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-#endif
-}
+void StoreAtof(float* dst, const char* text) { *dst = static_cast<float>(GameAtof(text)); }
 
 // FILD / FSTP of an int.
-void StoreIntAsFloat(float* dst, int value) {
-    __asm {
-        fild value
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
+void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }
 
 void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
 

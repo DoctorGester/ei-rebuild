@@ -11,6 +11,7 @@
 #include "originals_units.h"
 #include "logic_settings.h"
 #include "lib/crt.h"
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -60,43 +61,14 @@ constexpr int kSkillStat20 = 25;
 
 // base ^ (ln(experience / divisor) / ln(logBase)) exactly as the original computes it: FYL2X with
 // FLDLN2 for both logarithms and the CRT's _CIpow (006E81A0, ST1 ^ ST0). Returned unrounded.
-__declspec(naked) double __cdecl ExperienceCurve(const float* /*base*/, const float* /*experience*/,
-                                                 const float* /*divisor*/, const float* /*logBase*/) {
-    __asm {
-        mov eax, [esp + 4]
-        fld dword ptr [eax]
-        mov eax, [esp + 8]
-        fld dword ptr [eax]
-        mov eax, [esp + 12]
-        fdiv dword ptr [eax]
-        fldln2
-        fxch st(1)
-        fyl2x
-        mov eax, [esp + 16]
-        fld dword ptr [eax]
-        fldln2
-        fxch st(1)
-        fyl2x
-        fdivp st(1), st
-        mov eax, 0x006E81A0
-        call eax
-        ret
-    }
+double ExperienceCurve(const float* base, const float* experience, const float* divisor, const float* logBase) {
+    return libcrt::CiPow(*base, x87::flog(static_cast<double>(*experience) / *divisor) / x87::flog(*logBase));
 }
 
 // 1.04 (the double at 0073E128) ^ (intelligence - 25) through _CIpow, unrounded.
-__declspec(naked) double __cdecl IntelligenceFactor(const float* /*intelligence*/) {
-    __asm {
-        mov eax, 0x0073E128
-        fld qword ptr [eax]
-        mov eax, [esp + 4]
-        fld dword ptr [eax]
-        mov eax, 0x0073E124
-        fsub dword ptr [eax]
-        mov eax, 0x006E81A0
-        call eax
-        ret
-    }
+double IntelligenceFactor(const float* intelligence) {
+    return libcrt::CiPow(*reinterpret_cast<const double*>(0x0073E128),
+                         static_cast<double>(*intelligence) - *reinterpret_cast<const float*>(0x0073E124));
 }
 
 // The level value of skill `skill` (0 without a level or a record): the record's +0x34, loaded
@@ -511,19 +483,9 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
 
 // 1.61 (the double at 0073E140) ^ (level / 007C5480) * 007C547C through _CIpow, unrounded: the
 // experience a skill or attribute level is worth.
-__declspec(naked) double __cdecl LevelWorth(int /*level*/) {
-    __asm {
-        mov eax, 0x0073E140
-        fld qword ptr [eax]
-        fild dword ptr [esp + 4]
-        mov eax, 0x007C5480
-        fdiv dword ptr [eax]
-        mov eax, 0x006E81A0
-        call eax
-        mov eax, 0x007C547C
-        fmul dword ptr [eax]
-        ret
-    }
+double LevelWorth(int level) {
+    return libcrt::CiPow(*reinterpret_cast<const double*>(0x0073E140), static_cast<double>(level) / *reinterpret_cast<const float*>(0x007C5480)) *
+           *reinterpret_cast<const float*>(0x007C547C);
 }
 
 // Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old

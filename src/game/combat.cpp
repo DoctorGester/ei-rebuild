@@ -112,16 +112,6 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// FLD/FSTP copy of a float (the original copies these through the FPU).
-void FpuCopy(void* dst, const void* src) {
-    __asm {
-        mov eax, src
-        fld dword ptr [eax]
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
-
 // A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
 // the range) and +0x40 (+0x18, the mana cost).
 float SpellDamage(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->damage_); }
@@ -443,20 +433,8 @@ int CUnitServer::Level() {
     float experience = Combat().experience;
     float base = Global7C5488();
     float step = Global7C548C();
-    float ratio;
     // ln(experience / base) / ln(step), as FYL2X with FLDLN2, rounded to float, then FISTP.
-    __asm {
-        fld experience
-        fdiv base
-        fldln2
-        fxch st(1)
-        fyl2x
-        fldln2
-        fld step
-        fyl2x
-        fdivp st(1), st
-        fstp ratio
-    }
+    const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);
 }
 EI_REPLACE_METHOD(0x00556760, CUnitServer::Level);
@@ -472,11 +450,11 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     int keyed = IsTextKey(self->id_) & 0xFF;
     CItemWeapon* weapon = ActiveWeapon(self);
     if (keyed && weapon) {
-        FpuCopy(&out->damageMin, &weapon->damage_);
+        x87::CopyFloat(&out->damageMin, &weapon->damage_);
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
-        FpuCopy(&out->speed, &weapon->weight_);
+        x87::CopyFloat(&out->speed, &weapon->weight_);
         float base = WeaponStat84(weapon->prototypeId_);
         double bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
         out->attack = static_cast<int>(gamecrt::Ftol(bonus + base));

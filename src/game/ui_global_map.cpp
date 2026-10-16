@@ -637,18 +637,7 @@ __declspec(naked) void __fastcall WeatherDrawOriginal(GlobalMapWeather*, void*, 
     EI_ORIGINAL(0x00499F10)
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
-float FmodStored(float a, const float* divisor) {
-    float result;
-    __asm {
-        fld a
-        mov eax, divisor
-        fld dword ptr [eax]
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
-}
+float FmodStored(float a, const float* divisor) { return static_cast<float>(libcrt::CiFmod(a, *divisor)); }
 
 // The product the original inlines (r = b * a in its operand order), each component stored.
 Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {

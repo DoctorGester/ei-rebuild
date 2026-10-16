@@ -15,6 +15,7 @@
 #include "originals_ai.h"
 #include "originals_script.h"
 #include "../lib/crt.h"
+#include "ei/x87.h"
 
 #include <cstring>
 
@@ -39,14 +40,7 @@ std::uint32_t ObjectId(const void* object) { return static_cast<std::uint32_t>(s
 // An item's charge (the float at +0x28; the client's 0x0C / 0x14 handlers store it there), copied
 // through FLD / FSTP as the original does.
 std::uint32_t ItemCharge(const void* object) {
-    std::uint32_t bits;
-    const void* from = &static_cast<const CItem*>(static_cast<const CEngineObject*>(object))->charge_;
-    __asm {
-        mov eax, from
-        fld dword ptr [eax]
-        fstp dword ptr [bits]
-    }
-    return bits;
+    return x87::LoadStoreBits(&static_cast<const CItem*>(static_cast<const CEngineObject*>(object))->charge_);
 }
 
 // The world player's party variables (a NamedFloatTable, object_tables.h).

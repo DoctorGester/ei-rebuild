@@ -13,6 +13,7 @@
 #include "originals_effects.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "ei/x87.h"
 
 #include <cstring>
 
@@ -46,27 +47,12 @@ __declspec(naked) int __fastcall ContainerAllows(CSpellContainer*, void*, const 
 __declspec(naked) BOOL __fastcall ContainerAddModifier(CSpellContainer*, void*, char*) EI_ORIGINAL(0x0068BE30)
 __declspec(naked) CSpellContainer* __fastcall ManagerNewContainer(CSpellManager*) EI_ORIGINAL(0x00688EB0)
 
-// _ftol (006E853C) of (unsigned 64-bit value) * factor, as FILD qword; FMUL dword; CALL _ftol.
-__declspec(naked) int __cdecl ScaleTruncate(std::uint64_t, float) {
-    __asm {
-        fild qword ptr [esp + 4]
-        fmul dword ptr [esp + 0xC]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
+// _ftol (006E853C) of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
+// FMUL dword, CALL _ftol).
+int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(gamecrt::Ftol(x87::FromUnsigned(value) * factor)); }
 
-// sqrt(area / pi) on the FPU stack, as FLD; FDIV [0x00743A7C]; FSQRT (returned unrounded in ST0).
-__declspec(naked) double __cdecl AreaToRadius(float) {
-    __asm {
-        fld dword ptr [esp + 4]
-        mov eax, 0x00743A7C
-        fdiv dword ptr [eax]
-        fsqrt
-        ret
-    }
-}
+// sqrt(area / pi) on the FPU stack, as FLD, FDIV [0x00743A7C], FSQRT (returned unrounded in ST0).
+double AreaToRadius(float area) { return x87::fsqrt(area / *reinterpret_cast<const float*>(0x00743A7C)); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t u;

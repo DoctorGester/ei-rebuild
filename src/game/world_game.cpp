@@ -1433,18 +1433,7 @@ inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_ca
 __declspec(naked) int __stdcall EnterZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A060)
 
 // `value` mod 24 through the game's _CIfmod (006E95AA), stored as float.
-float HoursOfDay(double value) {
-    float result;
-    __asm {
-        fld value
-        mov eax, 0x0073D108   ; 24.0 (double)
-        fld qword ptr [eax]
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
-}
+float HoursOfDay(double value) { return static_cast<float>(libcrt::CiFmod(value, 24.0)); }
 
 } // namespace
 

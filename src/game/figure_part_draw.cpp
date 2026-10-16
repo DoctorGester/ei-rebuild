@@ -23,6 +23,7 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "world.h"
 
 #include <bit>
 #include <cstdint>
@@ -425,25 +426,13 @@ __declspec(naked) void __fastcall CrownBlend(std::uint32_t* /*colours*/, int /*c
     }
 }
 
-// *target = *offset + *target (FLD offset, FADD, FSTP). __fastcall.
-__declspec(naked) void __fastcall AddOffset(const float* /*offset*/, float* /*target*/) {
-    __asm {
-        fld dword ptr [ecx]
-        fadd dword ptr [edx]
-        fstp dword ptr [edx]
-        ret
-    }
-}
+// *target = *offset + *target (FLD offset, FADD, FSTP).
+void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
 
-// The world time: whole ticks (007AF61C, FILD) plus the fraction of the current one (007AFCA8),
-// rounded to a float. __fastcall: out in ECX.
-__declspec(naked) void __fastcall TickTime(float* /*out*/) {
-    __asm {
-        fild dword ptr ds:[007AF61Ch]
-        fadd dword ptr ds:[007AFCA8h]
-        fstp dword ptr [ecx]
-        ret
-    }
+// The world time: whole ticks (FILD) plus the fraction of the current one, rounded to a float.
+void TickTime(float* out) {
+    const CWorldClient* world = GameClientWorld();
+    *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
 // --- Arrays --------------------------------------------------------------------------------------

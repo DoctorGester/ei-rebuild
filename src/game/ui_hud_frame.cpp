@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_ui.h"
 #include "lib/crt.h"
+#include "world.h"
 
 namespace {
 
@@ -57,17 +58,8 @@ constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, t
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod 006E95AA), stored.
 float TimeOfDay() {
-    float result;
-    __asm {
-        fild dword ptr ds:[0x007AF61C]
-        fmul dword ptr ds:[0x007AF5D8]
-        fadd dword ptr ds:[0x007AF5D4]
-        fld qword ptr ds:[0x0073D108]
-        mov eax, 0x006E95AA
-        call eax
-        fstp result
-    }
-    return result;
+    const CWorldClient* world = GameClientWorld();
+    return static_cast<float>(libcrt::CiFmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
