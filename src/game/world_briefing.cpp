@@ -1,6 +1,7 @@
 // The briefing variables of the client (0057FC90, 0057FDE0, 0057FF40): which mercenary speaks a
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
+#include "object_tables.h"
 #include "world.h"
 #include "game_strings.h"
 
@@ -271,8 +272,6 @@ namespace {
 inline bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char* a2) { return FlowLoadQuestsOriginal(a2); }
 // 006AE8E0 (RET 4). The quest table (007C87A8) reads the texts' current file (+0x20).
 __declspec(naked) void __fastcall QuestTableLoad(void*, void*, void*) EI_ORIGINAL(0x006AE8E0)
-// 0045EA20 (RET 4). CMapDatabase::Load (0079BF00).
-__declspec(naked) void __fastcall MapDatabaseLoad(void*, void*, const char*) EI_ORIGINAL(0x0045EA20)
 // 004DF8D0 (RET 8). The texts read the current line into a CString.
 void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
@@ -309,7 +308,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();
-        MapDatabaseLoad(reinterpret_cast<void*>(0x0079BF00), nullptr, path);
+        static_cast<CMapDatabase*>(reinterpret_cast<void*>(0x0079BF00))->Load(path);
     }
     // push_back(folder)
     stlp::string name(folder);

@@ -42,8 +42,6 @@ __declspec(naked) void __fastcall MoveBolt(CEngineObject* /*bolt*/, void*, const
 __declspec(naked) int __fastcall ParticleUnpackAt(CEffectParticle*, void*, int /*update*/, DeltaField* /*field*/)
     EI_ORIGINAL(0x00678D30)
 __declspec(naked) void __fastcall ParticleLoadAt(CEffectParticle*, void*, void* /*stream*/) EI_ORIGINAL(0x006793E0)
-__declspec(naked) void __fastcall ParticleSpawnAt(CEffectParticle*) EI_ORIGINAL(0x00678EC0)
-__declspec(naked) void __fastcall ParticleAttachAt(CEffectParticle*) EI_ORIGINAL(0x00679350)
 
 void ClearBase(CEffect* e) {
     e->localPosition_ = Vector3{0.0f, 0.0f, 0.0f};
@@ -297,7 +295,7 @@ void CEffectParticle::Start(int update) {
         source_ = nullptr;
         if (old != nullptr) old->AsObject()->Release();
     }
-    ParticleSpawnAt(this);
+    Spawn();
 }
 
 int CEffectParticle::Unpack(int update, DeltaField* field) {
@@ -336,7 +334,7 @@ void CEffectParticle::Spawn() {
         ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
         x87::CopyFloat(&source_->alpha, &alpha_);
         x87::CopyFloat(&source_->typeParam, &param164_);
-        ParticleAttachAt(this);
+        Attach();
         return;
     }
 
@@ -348,7 +346,7 @@ void CEffectParticle::Spawn() {
     ParticleSourceAttachOriginal(source_, nullptr, nullptr);
     x87::CopyFloat(&source_->alpha, &alpha_);
     x87::CopyFloat(&source_->typeParam, &param164_);
-    ParticleAttachAt(this);
+    Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
     int age = GameTick() - startTick_;

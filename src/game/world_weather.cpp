@@ -54,19 +54,10 @@ constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
 // 0055FC50. CWorld's day-time value (ST0).
 double __fastcall WorldDayTime(CWorldServer* a0, void*) { return static_cast<CWorld*>((void*)a0)->NightLevel(); }
-// CAIMap (+0x170): the cell kind at a point (005BBE40), whether the point is blocked (005BBC70, AL),
-// the free fraction of the line between two points (005BC750, ST0).
-__declspec(naked) int __fastcall AIMapCellKind(void*, void*, const Vector3*) EI_ORIGINAL(0x005BBE40)
-__declspec(naked) double __fastcall AIMapLineFree(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC750)
-// 0067DA50 (RET 8). A lightning object's path.
-__declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x0067DA50)
-// 00675CA0. Marks an object new.
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
 void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
     ShowBoltOriginal(glue, nullptr, from.x, from.y, from.z, to.x, to.y, to.z);
 }
-// 0058B6D0. MarkPlayersDirty, through its address.
-__declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(Random().Next()) * scale); }
 
@@ -78,7 +69,7 @@ void TryLightningStrike(CWorldServer* world) {
     ground.y = Uniform(MapScale());
     ground.z = 0.0f;
     void* aiMap = world->aiMap_;
-    int kind = AIMapCellKind(aiMap, nullptr, &ground);
+    int kind = static_cast<CAIMap*>(aiMap)->MaterialAt(&ground);
     if (kind != 3 && kind != 1) return;
     if (static_cast<CAIMap*>(aiMap)->CellFlag80At(&ground)) return;
 
@@ -91,14 +82,14 @@ void TryLightningStrike(CWorldServer* world) {
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    if (AIMapLineFree(aiMap, nullptr, &ground, &sky) >= One()) return;   // NaN goes on (C0 set)
+    if (static_cast<CAIMap*>(aiMap)->LargestStepAlong(&ground, &sky) >= One()) return;   // NaN goes on (C0 set)
 
     CBaseManager* manager = world->TimedObjectManager();
     CEngineObject* lightning = manager->CreateObject(kTypeLightning, -1);
     sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
     sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
-    LightningSetPath(lightning, nullptr, &ground, &sky);
+    static_cast<CEffectTornado*>(lightning)->Launch(&ground, &sky);
     static_cast<CEffect*>(lightning)->startTick_ = world->tick_;
     ++lightning->refCount_;
     static_cast<CEffect*>(lightning)->MarkChanged();
@@ -127,7 +118,7 @@ void UpdateRain(CWorldServer* world) {
         if (previous == 1) std::memcpy(&world->weatherStrength_, &kRainLight, 4);
         else std::memcpy(&world->weatherStrength_, &kRainHeavy, 4);
     }
-    MarkPlayersDirtyAt(world, nullptr, kDirtyWeather);
+    world->MarkPlayersDirty(kDirtyWeather);
 }
 
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.

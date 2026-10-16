@@ -28,8 +28,6 @@ namespace {
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ------------
 
-// 0058CCD0. Every 64 ticks: weather (rain, lightning strikes), day time.
-__declspec(naked) void __fastcall ServerUpdateWeather(CWorldServer*, void*) EI_ORIGINAL(0x0058CCD0)
 // 0058D670. Runs the units in the update map (rewritten below; called through its address so a
 // Rebirth launch without the flag still runs addon's patched original).
 __declspec(naked) void __fastcall ServerUpdateUnits(CWorldServer*, void*) EI_ORIGINAL(0x0058D670)
@@ -123,7 +121,7 @@ __declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, Pro
 
 void CWorldServer::Tick(char force) {
     ++tick_;
-    if ((tick_ & 0x3F) == 3) ServerUpdateWeather(this, nullptr);
+    if ((tick_ & 0x3F) == 3) UpdateWeather();
 
     // Timed objects: each one's slot 6 runs it; those that return 0 are released now and taken
     // out of the map after the walk (the walk reads the node again after the release).

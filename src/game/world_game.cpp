@@ -101,11 +101,10 @@ void VariableSet(NamedFloatTable* table, const char* name, float value) {
 }
 // 0057C460 (RET 8). Starts zone `zone` (mode 2: the main menu). Patched by Rebirth: original address.
 __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int) EI_ORIGINAL(0x0057C460)
-// The scenario.sav parts: the party (004A8560), the input state (005F85C0 save, 005F86D0), the
+// The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
 __declspec(naked) void __fastcall InputSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F85C0)
-__declspec(naked) void __fastcall InputAfterSave(void*, void*) EI_ORIGINAL(0x005F86D0)
 void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
 void __fastcall StreamSaveScripts(CMemoryStream* a0, void*, void* a2) { StreamWriteSizedOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall GlobalsSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410C10)
@@ -252,7 +251,7 @@ int GameFlow::SaveGame(const char* slot) {
     PartySave(kParty, nullptr, &scenario);
     InputSave(kInput, nullptr, &scenario);
     ScriptsReset(kScripts);
-    InputAfterSave(kInput, nullptr);
+    static_cast<CInterface3D*>(kInput)->SaveWindowState();
     StreamSaveScripts(&scenario, nullptr, kScripts);
     ScriptsReset(kScripts);
     GlobalsSave(kGlobals, nullptr, &scenario);
@@ -317,8 +316,6 @@ __declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const voi
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 0058EEA0 (RET 4). CWorldServer::SetTime.
 void __fastcall WorldSetTime(CWorldServer* a0, void*, std::uint32_t a2) { WorldSetTimeOriginal((void*)a0, nullptr, a2); }
-// 00596350 (RET 4). Loads the zone's scripts from a folder.
-__declspec(naked) void __fastcall WorldLoadZoneScripts(CWorldServer*, void*, const char*) EI_ORIGINAL(0x00596350)
 // 004BEB00. Resets the scripts (007C27D4) for a zone without its own.
 __declspec(naked) void __fastcall ScriptsResetZone(void*, void*) EI_ORIGINAL(0x004BEB00)
 
@@ -452,7 +449,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
         }
         if (zoneRecord->kind == 2) {
             mfc::CString scripts = RecordMob(zoneRecord) + game::Text(kMobExtension);
-            WorldLoadZoneScripts(World(), nullptr, scripts);
+            World()->LoadZoneScripts(scripts);
         } else {
             ScriptsResetZone(reinterpret_cast<void*>(0x007C27D4), nullptr);
         }
@@ -472,18 +469,10 @@ constexpr int kServerMessageZone = 8;
 int& CampaignMode() { return *reinterpret_cast<int*>(0x007C2CC4); }
 int& SpectatorFlag() { return *reinterpret_cast<int*>(0x0079BE6C); }
 
-// 005957E0. CWorldServer's zone teardown.
-__declspec(naked) void __fastcall WorldTeardownZone(CWorldServer*, void*) EI_ORIGINAL(0x005957E0)
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
 __declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0x0056FFE0)
 // 00584EA0 (RET 8). CArray<ZoneExit>::GetAt by value into `out`; returns out.
 __declspec(naked) ZoneExit* __fastcall ExitArrayGetAt(const void*, void*, ZoneExit* /*out*/, int) EI_ORIGINAL(0x00584EA0)
-// 00583B50 (RET 4). ZoneExit::operator=.
-__declspec(naked) void __fastcall ZoneExitAssign(ZoneExit*, void*, const ZoneExit*) EI_ORIGINAL(0x00583B50)
-// Rewritten elsewhere, through their addresses: SetClimate / SetCave / SetGameResult
-// (world_server / world_tick); LoadMobFile (world_zone) is in originals_world.h.
-__declspec(naked) void __fastcall WorldSetClimate(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC80)
-__declspec(naked) void __fastcall WorldSetCave(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC70)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
@@ -492,7 +481,6 @@ __declspec(naked) void __fastcall WorldSetCave(CWorldServer*, void*, int) EI_ORI
 __declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
 __declspec(naked) void __fastcall HostRecordConstruct(net::HostMessage*, void*) EI_ORIGINAL(0x004186E0)
-__declspec(naked) void __fastcall ServerSendText(void*, void*, int /*message*/, const char*) EI_ORIGINAL(0x0041A500)
 
 // A session or a replicated record is usable: there, and not detached by its owner.
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
@@ -526,7 +514,7 @@ void AnnounceHost(const char* zone) {
     StringAssignRangeOriginal(&shared->address_, nullptr, text1, text1 + std::strlen(text1));
     shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
     StringAssignRangeOriginal(&shared->zone_, nullptr, zone, zone + std::strlen(zone));
-    ServerSendText(net::GameServer(), nullptr, kServerMessageZone, zone);
+    net::GameServer()->AnnounceToGuests(kServerMessageZone, zone);
 }
 
 } // namespace
@@ -540,7 +528,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     ToMainMenu() = 1;
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord || zoneRecord->kind != 0) return 0;
-    WorldTeardownZone(World(), nullptr);
+    World()->TeardownZone();
 
     mfc::CString folder;   // [0x14]
     LocalFileStream file;  // [0x20]
@@ -589,14 +577,14 @@ int __stdcall StartNetworkZone(const char* zone) {
     for (int i = 0; i < source->size; ++i) {
         alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
         ZoneExit* exit = ExitArrayGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
-        ZoneExitAssign(&exits.data[i], nullptr, exit);
+        exits.data[i].Assign(exit);
         reinterpret_cast<mfc::CString*>(&reinterpret_cast<ZoneExit*>(copy)->target)->~CString();
     }
     for (int i = 0; i < exits.size; ++i)
         *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = game::Text(kNetworkExitTarget);
     SetZoneExitsAt(World(), nullptr, &exits);
-    WorldSetClimate(World(), nullptr, zoneRecord->setting2C);
-    WorldSetCave(World(), nullptr, zoneRecord->setting30);
+    World()->SetClimate(zoneRecord->setting2C);
+    World()->SetCave(zoneRecord->setting30);
     CampaignMode() = 1;
     World()->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
@@ -624,8 +612,6 @@ namespace {
 
 // 00410860 (RET 4). The globals (0079B2A8) note the campaign's progress.
 __declspec(naked) void __fastcall GlobalsSetStage(void*, void*, int) EI_ORIGINAL(0x00410860)
-// 005956E0. CWorldServer: prepares the zone for saving.
-__declspec(naked) void __fastcall WorldBeforeSave(CWorldServer*, void*) EI_ORIGINAL(0x005956E0)
 // 0057AA80 (RET 4). CWorldServer::ZoneNameInto (rewritten below), through its address.
 __declspec(naked) mfc::CString* __fastcall ZoneNameAt(CWorldServer*, void*, mfc::CString*) EI_ORIGINAL(0x0057AA80)
 // 00460BC0 (RET 8). Named float table Set.
@@ -664,7 +650,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
         game::FatalError(game::Text(kCantWrite), static_cast<const char*>(path));
         return 0;
     }
-    WorldBeforeSave(World(), nullptr);
+    World()->PrepareSave();
     CMemoryStream data;
     std::memset(&data, 0, sizeof(data));
     data.version_ = kStreamLimit;
@@ -811,9 +797,6 @@ void GameFlow::RequestBriefing(const char* briefing) {
 
 namespace {
 
-// 0041BC40. The game client session's constructor (0x2700 bytes).
-__declspec(naked) net::ClientSession* __fastcall ClientSessionConstruct(void*, void*) EI_ORIGINAL(0x0041BC40)
-
 // The last reference deletes the session (slot 0, the deleting destructor, with 1).
 void ReleaseSession(CRefCounted* session) {
     if (session && --session->refs_ == 0) delete session;
@@ -827,7 +810,7 @@ void GameFlow::RecreateClientSession() {
     global = nullptr;
     ReleaseSession(old);
     void* memory = net::NewRefObject(sizeof(net::ClientSession));
-    net::ClientSession* session = memory ? ClientSessionConstruct(memory, nullptr) : nullptr;
+    net::ClientSession* session = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;
     net::ClientSession* previous = global;
     global = session;
     if (session) ++session->refs_;
@@ -1040,10 +1023,6 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
 
 namespace {
 
-// 0041A500 (RET 8). A server command with an argument (9: drop a client).
-__declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041A500)
-// 00590C70 (RET 4). CWorldServer: sync a player's party records.
-__declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
 __declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
 constexpr int kServerDropClient = 9;
@@ -1071,7 +1050,7 @@ void GameFlow::SwitchMultiplayerZone() {
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
             auto* announced = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
-            if (Active(announced)) ServerCommand(net::GameServer(), nullptr, kServerDropClient, announced->zone_.start);
+            if (Active(announced)) net::GameServer()->AnnounceToGuests(kServerDropClient, announced->zone_.start);
             RefPtr& handle = net::GameServer()->hostInfo_;
             if (handle.ptr) {
                 handle.Destroy();
@@ -1098,7 +1077,7 @@ void GameFlow::SwitchMultiplayerZone() {
     LocalRecords records;
     WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(World(), nullptr, 0));
     if (player && player->server->flag70_) {
-        SyncPartyRecordsAt(World(), nullptr, player);
+        World()->SyncPartyRecords(player);
         PartyCopyFrom(&records.party, nullptr, player->Party());
         World()->ClearPlayerItems(player);
     } else {
@@ -1141,11 +1120,8 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 __declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int) EI_ORIGINAL(0x00436C60)
 // 00442980 (RET 8). The client connects to an address with a hello buffer.
 __declspec(naked) void __fastcall ClientConnect(void*, void*, void*, GameBuffer*) EI_ORIGINAL(0x00442980)
-// 0041A140 (RET 4) / 00417E10 (RET 4). The server's password / whether it is listed.
-__declspec(naked) void __fastcall ServerSetPassword(void*, void*, const char*) EI_ORIGINAL(0x0041A140)
+// 00417E10 (RET 4). Whether the server is listed.
 __declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
-__declspec(naked) net::ClientSession* __fastcall ClientSessionNew(void*, void*) EI_ORIGINAL(0x0041BC40)
-// 006E7E80. The CRT's strncpy.
 
 } // namespace
 
@@ -1160,7 +1136,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     {
         void* memory = net::NewRefObject(sizeof(net::ClientSession));
-        net::ClientSession* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
+        net::ClientSession* client = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;
         RefPtrAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
@@ -1179,7 +1155,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     const char* shown = name && *name ? name : game::Text(kServerName);
     StringAssignRangeOriginal(&net::GameServer()->name_, nullptr, shown, shown + std::strlen(shown));
     net::GameServer()->maxPlayers_ = value25E0;
-    if (password && *password) ServerSetPassword(net::GameServer(), nullptr, password);
+    if (password && *password) net::GameServer()->SetPassword(password);
     ServerSetPublic(net::GameServer(), nullptr, unlisted == 0);
     net::GameClient()->gameType_ = gameType;
     net::GameServer()->masterKey_ = value25FC;
@@ -1190,7 +1166,7 @@ void GameFlow::StartClient() {
     net::NetLog() = reinterpret_cast<net::LogStream*>(kNetLogStream);
     RefPtrAssign(&net::GameServer(), nullptr, nullptr);
     void* memory = net::NewRefObject(sizeof(net::ClientSession));
-    net::ClientSession* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
+    net::ClientSession* client = memory ? static_cast<net::ClientSession*>(memory)->Construct() : nullptr;
     RefPtrAssign(&net::GameClient(), nullptr, client);
     FlowAfterServer(this, nullptr);
 }
@@ -1344,8 +1320,6 @@ constexpr unsigned kMagicMissionFile = 0x102;
 constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals (0079B2A8) come from mission.sav
 constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C7D50) too
 
-// 00579830 (RET 0xC). SaveFileRead through its address.
-__declspec(naked) bool __fastcall SaveFileReadAt(void*, unsigned, int, int, void*) EI_ORIGINAL(0x00579830)
 // 00410AB0 (RET 4) / 005F8420 (RET 4). The globals / the input state read from a stream.
 __declspec(naked) void __fastcall GlobalsLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410AB0)
 __declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F8420)
@@ -1359,8 +1333,8 @@ __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const 
 int __stdcall LoadMission(void* file) {
     LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
     LocalMemoryStream mission;
-    if (!SaveFileReadAt(&mission.s, kMagicMissionFile, *reinterpret_cast<const int*>(0x00790260),
-                        *reinterpret_cast<const int*>(0x00790268), file))
+    if (!SaveFileRead(&mission.s, kMagicMissionFile, *reinterpret_cast<const int*>(0x00790260),
+                      *reinterpret_cast<const int*>(0x00790268), file))
         return 0;
     int version = static_cast<int>(mission.s.version_);
     if (version < kVersionGlobalsInMission) GlobalsLoad(reinterpret_cast<void*>(0x0079B2A8), nullptr, &mission.s);
@@ -1449,7 +1423,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         zoneRecord = FindZone(zone);
     }
-    WorldTeardownZone(World(), nullptr);
+    World()->TeardownZone();
 
     bool found;
     if (mode == kModeFromRecord) {
@@ -1507,8 +1481,8 @@ void GameFlow::StartZone(const char* zone, int mode) {
         WorldSetTimeF(World(), nullptr,
                       HoursOfDay(VariableGet(&records.party.variables, game::Text(kGTime))));
         if (zoneRecord) {
-            WorldSetClimate(World(), nullptr, zoneRecord->setting2C);
-            WorldSetCave(World(), nullptr, zoneRecord->setting30);
+            World()->SetClimate(zoneRecord->setting2C);
+            World()->SetCave(zoneRecord->setting30);
         }
         result = kResultPlaying;
     }
@@ -1556,12 +1530,9 @@ __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
 // 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
 void __fastcall InterfaceCloseAll(void* a0) { static_cast<CInterface3D*>(a0)->CloseAll(); }
-// 0057CB50 (ECX name): switches the resource database.
-__declspec(naked) void __fastcall SwitchResources(const char*) EI_ORIGINAL(0x0057CB50)
 // The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's
 // update (0058DFF0); the network pump (004122D0).
 int __fastcall ClientSegmentAt(void* client) { return ClientSegmentOriginal(client); }
-__declspec(naked) bool __fastcall ClientHasZone(void*, void*, const char*) EI_ORIGINAL(0x00566D80)
 int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOriginal(server); }
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
@@ -1609,7 +1580,7 @@ void GameFlow::UseResources(bool network) {
                         reinterpret_cast<const unsigned char*>(static_cast<const char*>(LastResources()))) == 0)
         return;
     LastResources() = wanted;
-    SwitchResources(wanted);
+    SwitchResourceDatabases(wanted);
     if (network) {
         int value = Spectator0();
         Spectator0() = 0;
@@ -1635,7 +1606,7 @@ void GameFlow::ProcessRequest() {
         LeaveZoneAt(&records.party);
     }
     InterfaceCloseAll(reinterpret_cast<void*>(0x007C7D50));
-    WorldTeardownZone(World(), nullptr);
+    World()->TeardownZone();
     // (0057DEE0's body is inlined here in the original, with the databases' switch 0057CB50 out of line.)
     UseResources(Active(net::GameClient()));
 
@@ -1677,8 +1648,8 @@ void GameFlow::ProcessRequest() {
         const char* zone = requestTarget_;
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
         PlayerTakeParty(player, nullptr, RequestParty());
-        WorldTeardownZone(World(), nullptr);
-        if (!ClientHasZone(clientWorld, nullptr, zone)) {
+        World()->TeardownZone();
+        if (!static_cast<CWorldClient*>(clientWorld)->JoinGameClient(zone)) {
             if (Active(net::GameClient())) {
                 BeginMultiplayerGame();
             } else {
@@ -1942,9 +1913,6 @@ __declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const 
 __declspec(naked) void __fastcall NodeVectorInsertOverflow(NodeVector*, void*, void**, void* const*, unsigned)
     EI_ORIGINAL(0x00587700)
 __declspec(naked) void __fastcall NodeVectorFree(void**, unsigned) EI_ORIGINAL(0x00584A90)
-// The stamp sort (world_stamp_sort.cpp) through its addresses, so its verify wrappers see the calls.
-__declspec(naked) void __fastcall StampIntroSortAt(void**, void**, int, int, const void*) EI_ORIGINAL(0x00589160)
-__declspec(naked) void __fastcall StampInsertionSortAt(void**, void**, const void*) EI_ORIGINAL(0x00589240)
 
 // A local NamedFloatTable released the way the original's inlined destructor does.
 struct LocalVariables {
@@ -2084,8 +2052,8 @@ void GameFlow::UpdateFromServer() {
         if (changed.begin() != changed.end()) {
             int depth = 0;
             for (int n = static_cast<int>(changed.size()); n != 1; n >>= 1) ++depth;
-            StampIntroSortAt(changed.begin(), changed.end(), 0, depth * 2, variables);
-            StampInsertionSortAt(changed.begin(), changed.end(), variables);
+            StampIntroSort(changed.begin(), changed.end(), 0, depth * 2, variables);
+            StampInsertionSort(changed.begin(), changed.end(), variables);
         }
         for (void** it = changed.begin(); it != changed.end(); ++it) FlowVariableChanged(*it, nullptr, *it);
         bool settled;

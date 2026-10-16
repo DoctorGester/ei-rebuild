@@ -42,9 +42,6 @@ UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* 
 __declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
                                                const Vector3* /*from*/, CEngineObject* /*target*/,
                                                const Vector3* /*at*/) EI_ORIGINAL(0x0054BBC0)
-// 0058E670, CreateMissile, through its address (rewritten here).
-__declspec(naked) void __fastcall CreateMissileAt(CWorldServer*, void*, const void*, CEngineObject*, Vector3,
-                                                  CEngineObject*, const Vector3*, int) EI_ORIGINAL(0x0058E670)
 // The missile: constructor 0067E510 (returns this), Init 0067ECB0 (RET 0x1C), Update 0067E6D0.
 __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*, const void* /*spell*/,
                                               CEngineObject* /*caster*/, const Vector3* /*from*/,
@@ -128,7 +125,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     std::uint32_t flags = static_cast<const CSpell*>(spell)->targetFlags_;
     int targets = static_cast<int>(AsSpell(spell)->targetCount_);
     if (!(flags & 0xFFFF) && targets <= 1) {
-        CreateMissileAt(this, nullptr, spell, caster, *from, target, to, extra);
+        CreateMissile(spell, caster, *from, target, to, extra);
         return;
     }
 
@@ -147,7 +144,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     }
     if ((flags & kSpellAreaFlag) && !(flags & kSpellNoTargetFlag)) {
         --targets;
-        CreateMissileAt(this, nullptr, spell, caster, *from, target, to, extra);
+        CreateMissile(spell, caster, *from, target, to, extra);
     }
     Vector3 center;
     std::memcpy(&center, caster ? &static_cast<CUnit*>(caster)->position : from, sizeof(center));
@@ -224,7 +221,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         Vector3* at = &static_cast<CUnit*>(best)->position;
         if (!SpellReaches(this, spell, caster, from, best, at)) continue;
         if (!SpellCanAffectOriginal(static_cast<const CSpell*>(spell), nullptr, caster, best)) continue;
-        CreateMissileAt(this, nullptr, spell, caster, *from, best, at, extra);
+        CreateMissile(spell, caster, *from, best, at, extra);
         --targets;
     }
 

@@ -72,7 +72,6 @@ const MapRecord* FindZone(const char* name) {
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
-__declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
 
 void InitList(ObjectList& list) {
     list.vtable = PtrListVtable();
@@ -187,7 +186,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
 
 void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScripts) {
     if (!player) return;
-    RestorePlayerItemsAt(this, nullptr, player);
+    RestorePlayerItems(player);
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     CParty* party = player->Party();

@@ -159,11 +159,6 @@ struct RawString {
     std::uint8_t bytes[12];
 };
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-// 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
-// 0057FB60 (RET 4). The client asks the server to complete briefing `name` (GameFlow::RequestBriefing).
-__declspec(naked) void __fastcall RequestBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FB60)
-// 00591DE0 (RET 8). CWorldServer: the player's part of completing a briefing.
-__declspec(naked) void __fastcall BriefingNotify(CWorldServer*, void*, WorldPlayer*, const char*) EI_ORIGINAL(0x00591DE0)
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
@@ -248,7 +243,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     if (IsMultiplayerClient()) {
         console::CStringArray parts;
         StringSplit(name, &parts, '.');
-        if (parts.GetSize() == 3) RequestBriefing(TheGameFlow(), nullptr, parts[2]);
+        if (parts.GetSize() == 3) TheGameFlow()->RequestBriefing(parts[2]);
         // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
         // 005924D1): the client queues the completion script as well. The plugin formats it with the
         // caller's EBX as the name; the client's only caller (00608851) holds the name there.
@@ -276,7 +271,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         }
     }
     if (player) {
-        BriefingNotify(this, nullptr, player, name);
+        ApplyMercBriefing(player, name);
         if (record) GiveBriefingRewards(this, player, record);
     }
 
@@ -619,12 +614,6 @@ __declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, in
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, CParty*, void*) EI_ORIGINAL(0x0058FD90)
-// 00590160 (RET 8). The player's items into its party records before leaving.
-__declspec(naked) void __fastcall StorePlayerItemsOriginal(CWorldServer*, void*, WorldPlayer*, CParty* /*records*/) EI_ORIGINAL(0x00590160)
-// 0066F0C0. The player state before a zone change.
-__declspec(naked) void __fastcall StateBeforeZoneChange(CPlayerServer*, void*) EI_ORIGINAL(0x0066F0C0)
-// 0065F740. The unit record's destructor body.
-__declspec(naked) void __fastcall UnitRecordDestruct(PartyUnitRecord*, void*) EI_ORIGINAL(0x0065F740)
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
@@ -699,8 +688,8 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (!player) return;
     if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
     if (sessionKind_ != kKindNetwork) {
-        StorePlayerItemsOriginal(this, nullptr, player, PartyOf(player));
-        StateBeforeZoneChange(player->server, nullptr);
+        StorePlayerItems(player, PartyOf(player));
+        player->server->SendPartyUpdate();
     }
     if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
@@ -711,7 +700,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
         CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(MercRecord(player, i).unitId));
         if (unit && (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient())) continue;
         int following = player->mercCount - i - 1;
-        UnitRecordDestruct(&MercRecord(player, i), nullptr);
+        MercRecord(player, i).Destruct();
         if (following)
             GameMemmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
         --player->mercCount;

@@ -29,18 +29,6 @@ std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007AF504); }
 void(__cdecl* const kDestroyBuilder)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE30);
 void(__cdecl* const kFreePartPoints)() = reinterpret_cast<void(__cdecl*)()>(0x0056CE10);
 
-__declspec(naked) DecalBuilder* __fastcall BuilderConstruct(DecalBuilder*) EI_ORIGINAL(0x004D7F50)
-__declspec(naked) void __fastcall BuilderBegin(DecalBuilder*, void*, lib::AlignedArray<VertexPacket>*,
-                                               lib::AlignedArray<DecalTexCoord>*, lib::AlignedArray<std::uint16_t>*,
-                                               float* const*, const Vector3*, const Vector3*, float)
-    EI_ORIGINAL(0x004D8000)
-__declspec(naked) bool __fastcall BuilderTouches(const DecalBuilder*, void*, const Vector3*, float) EI_ORIGINAL(0x004D7F60)
-__declspec(naked) void __fastcall BuilderReserve(DecalBuilder*, void*, int) EI_ORIGINAL(0x004D8780)
-__declspec(naked) void __fastcall BuilderAddTriangle(DecalBuilder*, void*, const Vector3*, const Vector3*, const Vector3*)
-    EI_ORIGINAL(0x004D85F0)
-__declspec(naked) void __fastcall BuilderFinish(DecalBuilder*) EI_ORIGINAL(0x004D89A0)
-__declspec(naked) void __fastcall TerrainAddDecal(Terrain*, void*, DecalBuilder*, float* const*) EI_ORIGINAL(0x006CCF20)
-
 // A scene node's matrix from its orientation and position (the bottom row 0, 0, 0, 1).
 void BuildNodeMatrix(CObject3D* node) {
     node->orientation.ToMatrix(node->worldMatrix.m);
@@ -96,12 +84,12 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CObject3D
     Matrix4 transposed = Transposed(*top);
     pipeline->transform_->TransformPoints(&transposed, data.vertices, points.data, data.blocks);
     DecalBuilder& builder = Builder();
-    BuilderReserve(&builder, nullptr, data.indexCount * 6);
+    builder.Reserve(data.indexCount * 6);
     for (unsigned i = 0; i < static_cast<unsigned>(data.indexCount); i += 3) {
         const Vector4* a = &points[data.corners[data.indices[i]].index[0]];
         const Vector4* b = &points[data.corners[data.indices[i + 1]].index[0]];
         const Vector4* c = &points[data.corners[data.indices[i + 2]].index[0]];
-        BuilderAddTriangle(&builder, nullptr, reinterpret_cast<const Vector3*>(a), reinterpret_cast<const Vector3*>(b),
+        builder.AddTriangle(reinterpret_cast<const Vector3*>(a), reinterpret_cast<const Vector3*>(b),
                            reinterpret_cast<const Vector3*>(c));
     }
 }
@@ -115,7 +103,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     DecalBuilder& builder = Builder();
     if (!(Guards() & 1)) {
         Guards() |= 1;
-        BuilderConstruct(&builder);
+        builder.Construct();
         GameAtExit(kDestroyBuilder);
     }
     if (!(Guards() & 2)) {
@@ -124,8 +112,8 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
         GameAtExit(kFreePartPoints);
     }
     auto* quad = reinterpret_cast<float* const*>(corners);
-    BuilderBegin(&builder, nullptr, points, texCoords, indices, quad, direction, point, depth);
-    if (!skipOnPlatform || !platforms_.Contains(point->x, point->y)) TerrainAddDecal(terrain_, nullptr, &builder, quad);
+    builder.Begin(points, texCoords, indices, quad, direction, point, depth);
+    if (!skipOnPlatform || !platforms_.Contains(point->x, point->y)) terrain_->AddDecalTriangles(&builder, quad);
 
     CTransformPipeline* pipeline = ScenePipeline();
     if (objects) {
@@ -136,12 +124,12 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             face = next;
             if (!object) continue;
             // The object's bounding sphere about its origin, then about its centre.
-            if (!BuilderTouches(&builder, nullptr, &object->position, Length<Sum3::XYZ>(object->center) + object->radius))
+            if (!builder.Touches(&object->position, Length<Sum3::XYZ>(object->center) + object->radius))
                 continue;
             BuildNodeMatrix(object);
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->center) +
                              object->position;
-            if (!BuilderTouches(&builder, nullptr, &centre, object->radius)) continue;
+            if (!builder.Touches(&centre, object->radius)) continue;
             PushDecalMatrix(pipeline, object->worldMatrix.m);
             auto* figure = reinterpret_cast<CLinkMesh*>(object->figure);
             if (figure) {
@@ -158,6 +146,6 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             pipeline->PopMatrix(CTransformPipeline::kDecalStack);
         }
     }
-    BuilderFinish(&builder);
+    builder.Finish();
 }
 EI_REPLACE_METHOD(0x0056C750, CWorldClient::ProjectDecal);

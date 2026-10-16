@@ -1,5 +1,6 @@
 // CWorldServer: object and player lookups, the coarse height grid, shared objects, dirty flags and
 // the id maps. See world.h.
+#include "player_messages.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -63,8 +64,6 @@ __declspec(naked) void __fastcall CommandQueuePurge(void*, void*) EI_ORIGINAL(0x
 __declspec(naked) int __fastcall ProjectileForget(Projectile*, void*, CEngineObject*) EI_ORIGINAL(0x0067EF00)
 // 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
 __declspec(naked) void __fastcall ProjectileRemoveAt(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x00599CC0)
-// 0066DC90 (RET 4). A player's state (WorldPlayer +0x20) forgets `object`.
-__declspec(naked) void __fastcall PlayerStateForget(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066DC90)
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
 
@@ -255,7 +254,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     {
         PlayerIterator players;
         for (WorldPlayer* player = players.First(PlayerList()); player; player = players.Next())
-            PlayerStateForget(player->server, nullptr, object);
+            player->server->ForgetObject(object);
         object->Release();
         object->Release();
     }

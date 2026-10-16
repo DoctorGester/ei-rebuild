@@ -967,6 +967,7 @@ def plan(fwds, classes):
                 MARKERS[site.src].append((site.start, f.address, getattr(site, 'uncast', False)))
         for src, inc in incs:
             includes[src].add(inc)
+            INCLUDED_BY[(src.path, inc.strip())].add(f.address)
         edits[f.src].append(('delete', f.start, f.end, f.address))
         for src, a, b in f.extra:
             edits[src].append(('delete', a, b, f.address))
@@ -1078,6 +1079,7 @@ def apply(edits, includes, deleted_by_file):
     return sorted(out)
 
 
+INCLUDED_BY = defaultdict(set)   # (file, #include line) -> addresses of the forwarders whose calls need it
 MARKERS = defaultdict(list)   # src -> (offset, forwarder address, written without a cast) of void* calls
 LINE_MAP = {}                 # (path, line after --apply) -> ('path:line' before, address, uncast)
 
@@ -1204,6 +1206,11 @@ def main(argv):
                 deleted[src.path].add(f.address)
         changed = apply(edits, includes, deleted)
         print(f'{len(changed)} files changed')
+        out = os.path.join(ROOT, 'build', 'C13', 'includes.txt')
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        with open(out, 'w', encoding='utf-8') as fh:
+            fh.writelines(f'{p} {inc} ' + ' '.join(f'{a:08X}' for a in sorted(addrs)) + '\n'
+                          for (p, inc), addrs in sorted(INCLUDED_BY.items()))
         if LINE_MAP:
             out = os.path.join(ROOT, 'build', 'C13', 'uncast_calls.txt')
             os.makedirs(os.path.dirname(out), exist_ok=True)

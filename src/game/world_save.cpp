@@ -4,6 +4,7 @@
 #include "bink_video.h"
 #include "game_lists.h"
 #include "map_object_figures.h"
+#include "object_diplomacy.h"
 #include "player_messages.h"
 #include "world.h"
 
@@ -158,8 +159,6 @@ __declspec(naked) void __fastcall AILayerSave(void*, void*, CMemoryStream*) EI_O
 // graph state in `graph`); 0 on failure.
 __declspec(naked) int __fastcall LoadMapAt(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
                                          CMemoryStream* /*graph*/, char /*fromSave*/) EI_ORIGINAL(0x00595C70)
-// 00596900. LoadSavedMapObjects, through its address (rewritten here) so its verify sees the call.
-__declspec(naked) void __fastcall LoadSavedMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596900)
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 __declspec(naked) void __fastcall SaveMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596730)
 // 004047E0 / 00404860 (RET 4). A manager's changed objects, read / written by id.
@@ -185,16 +184,12 @@ __declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_O
 __declspec(naked) void __fastcall TimeWheelSave(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAFA0)
 __declspec(naked) void __fastcall CommandQueueLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0D00)
 __declspec(naked) void __fastcall CommandQueueSave(void*, void*, WorldStream*) EI_ORIGINAL(0x004C0F90)
-__declspec(naked) void __fastcall DiplomacyRead(void*, void*, WorldStream*) EI_ORIGINAL(0x004557C0)
-__declspec(naked) void __fastcall DiplomacyWrite(void*, void*, WorldStream*) EI_ORIGINAL(0x004557F0)
 __declspec(naked) void __fastcall CountdownsLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x006D4660)
 __declspec(naked) void __fastcall CountdownsSave(void*, void*, WorldStream*) EI_ORIGINAL(0x006D47E0)
 // 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
-// 004C2030 / 004B3360 (RET 4) / 004C2290. A script group's constructor, Load and destructor.
-__declspec(naked) void __fastcall ScriptGroupLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004B3360)
-// 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
+// 0066D260 (RET 4). The player state's SetFlag70.
 __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)
 // 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
@@ -389,7 +384,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             ScriptGroup group;
             ScriptGroupConstructOriginal(&group);
             group.vtable = scriptvtable::kRefs;
-            ScriptGroupLoad(&group, nullptr, stream);
+            group.Load(stream);
             ScriptGroupDestructOriginal((void*)&group);
         }
         state->SendParty();
@@ -479,7 +474,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             manager4C_->Load(stream);
             itemManager_->Load(stream);
             ShowLoadProgress(kProgressManagers);
-            LoadSavedMapObjectsAt(this, nullptr, stream);
+            LoadSavedMapObjects(stream);
             ManagerLoadObjects(manager48_, nullptr, stream);
             ManagerLoadObjects(manager4C_, nullptr, stream);
             ManagerLoadObjects(itemManager_, nullptr, stream);
@@ -515,7 +510,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
             TimeWheelLoad(timeWheel_, nullptr, stream);
             CommandQueueLoad(commandsA_, nullptr, stream);
-            DiplomacyRead(&diplomacy_, nullptr, stream);
+            diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
             stream->Read(&cave_, 4);
             if (stream->version_ >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
@@ -734,7 +729,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
     TimeWheelSave(timeWheel_, nullptr, stream);
     CommandQueueSave(commandsA_, nullptr, stream);
-    DiplomacyWrite(&diplomacy_, nullptr, stream);
+    diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
     stream->Write(&cave_, 4);
     CountdownsSave(countdowns_, nullptr, stream);

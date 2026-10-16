@@ -32,8 +32,7 @@ __declspec(naked) void* __fastcall Manager683FF0(void*) EI_ORIGINAL(0x00683FF0)
 __declspec(naked) void* __fastcall Manager688840(void*) EI_ORIGINAL(0x00688840)
 __declspec(naked) void* __fastcall Manager6A5AB0(void*) EI_ORIGINAL(0x006A5AB0)
 __declspec(naked) void* __fastcall ResourceManagerConstruct(void*) EI_ORIGINAL(0x00674D90)
-// 0049F150 IsaacRandom::Init (random.cpp); 006D43E0 the world's +0x70 set up.
-__declspec(naked) void __fastcall RandomInit(IsaacRandom*) EI_ORIGINAL(0x0049F150)
+// 006D43E0 the world's +0x70 set up.
 
 using Construct = void* (__fastcall*)(void*);
 
@@ -96,7 +95,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
         ei::SetVtable(helper, CWorldHandle::kVtableAddress);
     }
     world->shared5C_.ShareAssign(helper);
-    RandomInit(&IsaacRandom::Global());
+    IsaacRandom::Global().Init();
     TweenArrayRemoveAllOriginal(world->countdowns_);
     return 1;
 }

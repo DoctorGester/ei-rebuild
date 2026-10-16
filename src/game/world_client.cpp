@@ -1,4 +1,5 @@
 // CWorldClient: terrain and platform height queries, unit and exit lookups. See world.h.
+#include "texture.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -340,15 +341,12 @@ namespace {
 
 // Callees, through their addresses (thiscall as fastcall).
 // 005F8070: InterfaceStringEventOriginal (originals_ui.h).
-__declspec(naked) void __fastcall SoundTick(CSoundManager*) EI_ORIGINAL(0x006B9B10)
 // 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
 __declspec(naked) int __fastcall PendingLookup(PendingMap*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
-__declspec(naked) int __fastcall ParticlesTickAt(CParticleManager*, void*, char) EI_ORIGINAL(0x00498480)
 // 0068D730 CLight::GetIntensityAt (spell.h), unrounded in ST0.
 __declspec(naked) double __fastcall LightIntensityAt(CLight*, void*, const void*) EI_ORIGINAL(0x0068D730)
-__declspec(naked) void __fastcall MapTick(CTextureManager*) EI_ORIGINAL(0x00694020)
 
 bool NaN(double v) {
     std::uint64_t bits;
@@ -425,7 +423,7 @@ int CWorldClient::Segment() {
     }
     if (terrain_) terrain_->RunTick();
     if (music_) music_->RunTick();
-    if (sounds_) SoundTick(sounds_);
+    if (sounds_) sounds_->Tick();
     if (!paused_) {
         if (arrayManager_) arrayManager_->RunTick();
     }
@@ -476,7 +474,7 @@ int CWorldClient::Segment() {
             }
         }
     }
-    if (particleManager_) ParticlesTickAt(particleManager_, nullptr, static_cast<char>(paused_));
+    if (particleManager_) particleManager_->TickSources(static_cast<char>(paused_));
     if (!paused_) {
         // The three print lists (std::list, sentinel head): finished ones (slot 0 returns 0) go.
         RunEffects(bloodPrints_, &EraseBloodPrint);
@@ -518,7 +516,7 @@ int CWorldClient::Segment() {
             }
         }
     }
-    if (tick_ % 32 == 0) MapTick(TextureManager());
+    if (tick_ % 32 == 0) TextureManager()->TrimCache();
     EndWalk(objectsIt);
     return 1;
 }

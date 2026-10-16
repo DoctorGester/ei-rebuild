@@ -76,18 +76,12 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // The game's atexit (006E727B).
-// 0058C890 (RET 4). SendZone, through its address (rewritten here).
-__declspec(naked) int __fastcall SendZoneAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058C890)
 // 0055FBD0 (RET 8). The time of day and the time speed.
 // The player state's (CPlayerServer) messages and updates.
-__declspec(naked) void __fastcall StateZoneSent(CPlayerServer*, void*) EI_ORIGINAL(0x0066D250)
-__declspec(naked) void __fastcall StateClearUnits(CPlayerServer*, void*) EI_ORIGINAL(0x0066F080)
-__declspec(naked) int __fastcall StateFlush(CPlayerServer*, void*) EI_ORIGINAL(0x0066D100)
 __declspec(naked) int __fastcall StateSendWeather(CPlayerServer*, void*, int /*byte*/, int /*strength*/) EI_ORIGINAL(0x0066EC10)
 __declspec(naked) int __fastcall StateSendTime(CPlayerServer*, void*, float /*time*/, float /*speed*/) EI_ORIGINAL(0x0066EC70)
 __declspec(naked) int __fastcall StateSendWind(CPlayerServer*, void*, Vector3 /*direction*/, std::uint32_t /*strength*/)
     EI_ORIGINAL(0x0066ECD0)
-__declspec(naked) void __fastcall StateSendCountdowns(CPlayerServer*, void*, void* /*countdowns*/) EI_ORIGINAL(0x0066F240)
 __declspec(naked) void __fastcall StateObjectsKept(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DAD0)
 void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateObjectsRemoved(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DBA0)
@@ -95,8 +89,6 @@ __declspec(naked) void __fastcall StateTimedKept(CPlayerServer*, void*, StaticPt
 __declspec(naked) void __fastcall StateTimedAdded(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DDE0)
 __declspec(naked) void __fastcall StateTimedRemoved(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066E020)
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
-__declspec(naked) void __fastcall StateUpdateUnits(CPlayerServer*, void*) EI_ORIGINAL(0x0066E430)
-__declspec(naked) void __fastcall StateLeave(CPlayerServer*, void*) EI_ORIGINAL(0x0066F180)
 __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
 // 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,
 // `kept` and `removed` (ECX known, EDX current).
@@ -268,11 +260,11 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
     if (state->state_ == kModePlaying && zoneLoaded_ != 0) {
         std::uint32_t dirty = player->dirty;
         if (dirty & kDirtyZone) {
-            int sent = SendZoneAt(this, nullptr, player);
+            int sent = SendZone(player);
             if (!sent) return sent;
-            StateZoneSent(state, nullptr);
-            StateClearUnits(state, nullptr);
-            return StateFlush(state, nullptr);
+            state->SetDisconnect();
+            state->SendItems();
+            return state->Flush();
         }
         if (dirty & kDirtyWeather) {
             int strength = x87::fistp(weatherStrength_);
@@ -291,7 +283,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
             std::memcpy(&direction, windDirection_, sizeof(direction));
             if (!StateSendWind(state, nullptr, direction, windStrength_)) return 0;
         }
-        if (player->dirty & kDirtyCountdowns) StateSendCountdowns(state, nullptr, countdowns_);
+        if (player->dirty & kDirtyCountdowns) state->SendState73(countdowns_);
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
@@ -319,11 +311,11 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
     }
 
     int mode = state->state_;
-    if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded_ != 0) StateUpdateUnits(state, nullptr);
+    if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded_ != 0) state->SendPartyState();
     mode = state->state_;
     if (mode == kModeLeaving) return 1;
-    if (mode != 0 && (player->dirty & kDirtyLeave) && mode != kModeGone) StateLeave(state, nullptr);
-    return StateFlush(state, nullptr);
+    if (mode != 0 && (player->dirty & kDirtyLeave) && mode != kModeGone) state->SendGameTime();
+    return state->Flush();
 }
 
 // ---- SendZone ---------------------------------------------------------------------------------

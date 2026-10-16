@@ -60,3 +60,40 @@ address,reason
 0066ADD0,src/game/ui_battle_commands.cpp passes a uint8_t * as void* (the target is CPlayerClient's method)
 005F5F90,src/game/ui_create_screen.cpp passes a uint8_t * as void* (the target is LockKey's method)
 0066ACD0,src/game/ui_battle_commands.cpp passes a uint8_t * as void* (the target is CPlayerClient's method)
+00440440,src/game/world_game.cpp passes a uint8_t [16] as void* (the target is net::NetAddress's method)
+00468940,src/game/world_client_draw.cpp passes a ClientListManager * as void* (the target is CLightningManager's method)
+004C0D00,src/game/world_save.cpp passes a uint8_t [504] as void* (the target is CScript's method)
+004C0F90,src/game/world_save.cpp passes a uint8_t [504] as void* (the target is CScript's method)
+004DED20,src/game/world_client_maps.cpp passes a ClientTexts * as void* (the target is CTextManager's method)
+00523C80,src/game/world_quests.cpp passes a uint8_t [1796] as void* (the target is UnitStats's method)
+00558FA0,src/game/world_unit_set.cpp passes a FiguredUnitRecord * as void* (the target is DressedUnitRecord's method)
+005B1180,src/game/world_map.cpp passes a uint8_t [924] as void* (the target is CRegionMap's method)
+005C9530,src/game/world_tick.cpp passes a uint8_t [65596] as void* (the target is AIEventTable's method)
+005CAE30,src/game/world_save.cpp passes a uint8_t [65596] as void* (the target is AIEventTable's method)
+005CAFA0,src/game/world_save.cpp passes a uint8_t [65596] as void* (the target is AIEventTable's method)
+00661640,src/game/world_game.cpp passes a PartyRecords * as void* (the target is CParty's method)
+006618C0,src/game/world_save.cpp passes a uint8_t [48] as void* (the target is CParty's method)
+00661C10,src/game/world_save.cpp passes a uint8_t [48] as void* (the target is CParty's method)
+00662DD0,src/game/world_game.cpp passes a PartyRecords * as void* (the target is MpHeroRecord's method)
+0066B1B0,src/game/world_game.cpp passes a uint8_t * as void* (the target is CPlayerClient's method)
+0046AEB0,src/game/world_units.cpp passes a mapspec::UnitSpec * as void* (the target is mapspec::ObjectSpec's method)
+004DEDB0,src/game/world_client_maps.cpp passes a ClientTexts * as void* (the target is CTextManager's method)
+00513630,src/game/world_units.cpp passes a CEngineObject * as void* (the target is CMapObjectManager's method)
+00513B60,src/game/world_units.cpp passes a CEngineObject * as void* (the target is UnitStatsBuilder's method)
+00580840,src/game/world_game.cpp passes a VariableNode * as void* (the target is GameFlow's method)
+00669710,src/game/world_game.cpp passes a LocalViewData * as void* (the target is CPlayerClient's method)
+00669750,src/game/world_game.cpp passes a LocalViewData * as void* (the target is CPlayerClient's method)
+005636A0,world_client_maps.cpp: the target's header (sky_object.h) clashes with <windows.h>'s GetClassName macro there
+00485360,world_effect_visual.cpp: the target's header brings a second LightManager()
+00485480,world_effect_visual.cpp: the target's header brings a second LightManager()
+00532860,world_effect_visual.cpp: the target's header brings a second LightManager()
+004A8310,world_game.cpp: the target's header declares a PartyManager that clashes with the file's own
+004A8560,world_game.cpp: the target's header declares a PartyManager that clashes with the file's own
+004A88A0,world_game.cpp: the target's header declares a PartyManager that clashes with the file's own
+004E5750,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
+00567500,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
+00568800,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
+0057F150,world_client_maps.cpp: the target's header (world.h) brings sky_object.h after <windows.h>'s GetClassName macro
+00573740,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
+00575BC0,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h
+00576D40,world_client_maps.cpp: the target's header (stl_sorts.h) brings <windows.h> before the file's sky_object.h

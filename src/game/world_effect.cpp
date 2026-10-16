@@ -26,7 +26,6 @@ __declspec(naked) void __fastcall StopSequence(void*, void*, int /*sound*/) EI_O
 // returns the handle to keep (-1).
 __declspec(naked) int __fastcall PlayAmbient(void*, void*, mfc::CStringArray* /*names*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9950)
 __declspec(naked) void __fastcall MoveAmbient(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9A30)
-__declspec(naked) int __fastcall StopAmbient(void*, void*, int /*sound*/) EI_ORIGINAL(0x006B9AA0)
 
 // What every Reset (slot 18) does to the base part first: position, field streams, start tick,
 // velocity, moving flag and stamp.
@@ -266,7 +265,7 @@ double CEffectSoundSeq::Radius() { return radius_; }
 
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1) sound_ = StopAmbient(SoundSystem(), nullptr, sound_);
+    if (sound_ != -1) sound_ = static_cast<CSoundManager*>(SoundSystem())->RemoveEmitter(sound_);
     StringArraySetSize(&names_, nullptr, 0, -1);
     volume_ = 0.0f;
     radius_ = 0.0f;
