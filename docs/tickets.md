@@ -359,6 +359,6 @@ Finished 2026-10-14: every hookable game function is rewritten (99.97% of game c
 
 ## Docs
 
-- **D4** Trim the area notes to current facts (running since 2026-10-16; sonnet, 1 session). Coordinator 2026-10-16: runs before D3 (D3's standalone docs wait for S21c-e); D4 leaves standalone.md, standalone-verification.md and work-board.md to D3. After: D3.
 - **D3** Trim the standalone and workflow docs to current facts (ready; opus, 1 session). Coordinator 2026-10-16: wait for S21e (the hook retirement rewrites the standalone docs); D4 went first. After: S21.
 - **D2** Retarget code comments that cite removed sections (done 2026-10-14; sonnet). About 150 comments citing "Nth round", "pass", old renderer section numbers, items_spells.md "(A-H17)"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
+- **D4** Trim the area notes to current facts (done 2026-10-16; sonnet, 1 session). Coordinator 2026-10-16: runs before D3 (D3's standalone docs wait for S21c-e); D4 leaves standalone.md, standalone-verification.md and work-board.md to D3. After: D3.
