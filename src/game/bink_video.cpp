@@ -23,6 +23,7 @@
 #include "game_strings.h"
 #include "mod_folders.h"
 #include "device.h"   // device::SameSurface, device::WithoutDirectDraw
+#include "net_session.h"
 #include "sound.h"
 #include "texture.h"
 
@@ -401,7 +402,7 @@ EI_REPLACE(0x005DB3F0, PlayMovie);
 // surface type 007C5554 and the screen rectangle 007C5520) is decoded up to that frame and its
 // frame stretched over the screen of the primary surface. Nothing when 007C554C is set.
 void __fastcall ShowLoadingMovie(int progress) {
-    NetworkTimers();   // 004122D0
+    net::Pump();   // 004122D0
     LoadingMovie& movie = Loading();
     if (movie.off) return;
     CursorShowOriginal(Cursor(), nullptr, 0);

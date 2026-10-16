@@ -1,6 +1,7 @@
 // CInterface3D's per-frame update (game.exe 005F57C0). See docs/notes/ui.md ("Interface base").
 #include "app.h"
 #include "object_tables.h"
+#include "text_split.h"
 #include "ui.h"
 
 #include "console.h"
@@ -158,7 +159,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     console::CStringArray words;
     mfc::CString unused;
     mfc::CString text(event);
-    SplitWords(text, &words, ' ');
+    text::SplitWords(text, &words, ' ');
     words.data[0].MakeLower();
     // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and

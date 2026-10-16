@@ -893,7 +893,7 @@ void CUnitServer::ApproachTarget() {
     if (LessOrUnordered(static_cast<double>(reach) * reach, LengthSquared2DUnrounded(fx, fy))) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
-        PathClear(path);
+        static_cast<AIPath*>(path)->Clear();
         int time = WorldTick(this);
         Vector3 axis;
         unit->orientation.AxisY(&axis);

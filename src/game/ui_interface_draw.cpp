@@ -167,7 +167,7 @@ void CInterface3D::DrawOverlays() {
         backdropMode_ = 4;
     }
     if (IsNetworkClientOriginal() && stackEnd_ - stackBegin_ == 1) CallSlot(root_, kRedrawSlot);
-    DebugPanelTickOriginal(panel);
+    strmap::PanelTick(panel);
 
     ++fpsFrames_;
     const DWORD now = gameapi::timeGetTime();

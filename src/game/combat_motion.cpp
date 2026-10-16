@@ -151,7 +151,7 @@ void DropEffectObject(CUnitServer* self) {
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y
 // axis of its rotation), then stands (0) and takes state 6: the sequence 0054A150 inlines twice.
 void FaceAndStop(CUnitServer* self) {
-    PathClear(Motion(self));
+    static_cast<AIPath*>(Motion(self))->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
@@ -260,7 +260,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     ShowHead(self);
-    PathClear(Motion(self));
+    static_cast<AIPath*>(Motion(self))->Clear();
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
@@ -585,7 +585,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;
-    PathClear(Motion(this));
+    static_cast<AIPath*>(Motion(this))->Clear();
     std::uint32_t keep = unit->altPassCosts;
     CWorldServer* world = ContextOf(this);
     Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
@@ -770,7 +770,7 @@ void CUnitServer::ResyncWithUnit() {
     }
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
-    PathClear(Motion(this));
+    static_cast<AIPath*>(Motion(this))->Clear();
     int now = TickOf(ObjectWorld(this));
     Vector3 axis;
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
@@ -827,7 +827,7 @@ void CUnitServer::ResetController() {
     animationHeld = 0;
     StepsSetSize(&Queue(this), nullptr, 0, -1);
     QueueTime(this) = -1;
-    PathClear(Motion(this));
+    static_cast<AIPath*>(Motion(this))->Clear();
     OrderPlan& plan = Plan(this);
     StepsSetSize(&plan.animation, nullptr, 0, -1);
     plan.animation.extra = -1;

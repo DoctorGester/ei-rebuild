@@ -197,10 +197,6 @@ namespace {
 __declspec(naked) CEngineObject* __fastcall RemovePartNamed(CUnit*, void*, const char*) EI_ORIGINAL(0x005168F0)
 __declspec(naked) CEngineObject* __fastcall FindAnyPart(CUnit*, void*, const char*) EI_ORIGINAL(0x005169A0)
 __declspec(naked) void* __fastcall AnimateNewPart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00518820)
-// Rewritten in item_parts.cpp / item.cpp, called through their addresses: 006A0FF0 the figure part
-// names of a weapon prototype (replacing the array's contents), 006A2B80 a weapon's type by
-// packed id.
-__declspec(naked) int __fastcall WeaponTypeOf(std::uint32_t) EI_ORIGINAL(0x006A2B80)
 
 constexpr int kWeaponBow = 5;
 constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
@@ -234,7 +230,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
         }
         arrowHidden = 0;
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
-        if (hand != kNone && WeaponTypeOf(hand) == kWeaponBow) {
+        if (hand != kNone && ::WeaponType(hand) == kWeaponBow) {
             if (CEngineObject* arrow = FindAnyPart(unit, nullptr, kBowArrow)) {
                 arrow->flags_ |= kArrowPartFlag;
                 arrowHidden = 1;
@@ -269,7 +265,7 @@ namespace {
 // The bow's arrow part of a hero holding a bow, or null.
 CEngineObject* BowArrow(CUnitClientSpecific* self) {
     std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
-    if (hand == kNone || WeaponTypeOf(hand) != kWeaponBow) return nullptr;
+    if (hand == kNone || ::WeaponType(hand) != kWeaponBow) return nullptr;
     return FindAnyPart(self->unit, nullptr, kBowArrow);
 }
 

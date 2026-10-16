@@ -127,7 +127,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     bool mark = false;
     for (const char* p = source; CharAt(p) != 0; p = MbsInc(p)) {
         console::Ops(ch).AssignChar(p[0]);
-        if (IsLeadByte(static_cast<signed char>(*p))) console::Ops(ch).AppendChar(p[1]);
+        if (libcrt::Isleadbyte(static_cast<signed char>(*p))) console::Ops(ch).AppendChar(p[1]);
         int c = CharAt(p);
         if (mark) {
             if (static_cast<unsigned>(c) >= '0' && static_cast<unsigned>(c) < '8')

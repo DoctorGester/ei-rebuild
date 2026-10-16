@@ -112,7 +112,7 @@ bool MemoryOnly(bool client) {
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
     void* object = gamecrt::operator_new(0xC);
     if (object) object = ErrorObject(object, game::Text(0x0078E89C), width, height);   // "Can't create DDSurface %d %d ..."
-    CxxThrowException(&object, GameErrorThrowInfo());
+    libcrt::CxxThrowException(&object, GameErrorThrowInfo());
     for (;;) {
     }
 }
@@ -546,7 +546,7 @@ CDXSurface* CDXSurface::ConstructFromPicture(CTextureDevice* deviceIn, const voi
     if (!LoadPictureData(picture, flag)) {
         void* object = gamecrt::operator_new(0xC);
         if (object) object = ErrorObjectText(object, game::Text(0x0078E918));   // "Can't load picture to surface"
-        CxxThrowException(&object, GameErrorThrowInfo());
+        libcrt::CxxThrowException(&object, GameErrorThrowInfo());
     }
     if (render::Active()) render::PictureFromMmp(this, picture);
     ++HolderCount();

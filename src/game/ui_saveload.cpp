@@ -340,7 +340,7 @@ void CSaveLoadWindow::SaveGame() {
     folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
-    ShowStatusText(kInterface, nullptr, notice);
+    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
     static_cast<GameFlow*>(kFlow)->SaveGameThunk(entry->folder_);
     CursorSetShape(kCursor, nullptr, 3);
 
@@ -567,7 +567,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     Interface()->serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
-    ShowStatusText(kInterface, nullptr, notice);
+    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
     static_cast<GameFlow*>(kFlow)->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
@@ -617,7 +617,7 @@ void __fastcall QuickLoad(const char* slot) {
     if (libcrt::Access(folder, 0) == -1) return;
     mfc::CString notice;
     Texts()->GetString(game::Text(kNotifyLoading), &notice);
-    ShowStatusText(kInterface, nullptr, notice);
+    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
@@ -730,7 +730,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (entriesBegin_[selected].broken_) return;
     mfc::CString notice;
     Texts()->GetString(game::Text(kNotifyLoading), &notice);
-    ShowStatusText(kInterface, nullptr, notice);
+    static_cast<CInterface3D*>(kInterface)->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entriesBegin_[selected_].folder_, 0);

@@ -37,7 +37,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float nx = static_cast<float>(inv * dx);
     float ny = static_cast<float>(D(invRounded) * dy);
     float elevation = static_cast<float>(CIasin(-(D(invRounded) * dz)));
-    float heading = static_cast<float>(CIacos(D(ny) / Hypot(nx, ny)));
+    float heading = static_cast<float>(CIacos(D(ny) / libcrt::Hypot(nx, ny)));
     if (EqualOrUnordered(nx, CAM_ZERO) || EqualOrUnordered(heading, CAM_ZERO)) {
         std::memcpy(&viewRotation_, &camera::IdentityRotation(), sizeof(Quaternion));
     } else {
@@ -149,7 +149,7 @@ void CCamera::ClampAboveObjects() {
         float cx = static_cast<float>(D(object->position.x) + object->center.x);
         float cy = static_cast<float>(D(object->position.y) + object->center.y);
         float cz = p->z;
-        double radius = Hypot(object->above.x, object->above.y);
+        double radius = libcrt::Hypot(object->above.x, object->above.y);
         double dx = D(cx) - p->x;
         double dy = D(cy) - p->y;
         double dz = D(cz) - p->z;

@@ -18,6 +18,7 @@
 #include <cstring>
 
 namespace scene {
+void __fastcall MakeFrameRelative(CAnimationNode*, CAnimationNode*, int);
 namespace {
 
 // CArray<node*>::SetSize (00453790, library): the node's children (+0x10C).
@@ -29,8 +30,6 @@ void CopyRest(SceneNode* node) {
     std::memcpy(&node->restRotation, &node->rotation, sizeof(Quaternion));
     std::memcpy(&node->restPivot, &node->pivot, sizeof(Vector3));
 }
-// MakeFrameRelative 0044EB60 (scene_bone_frames.cpp), through its address.
-__declspec(naked) void __fastcall MakeFrameRelativeAt(CAnimationNode*, CAnimationNode*, int) EI_ORIGINAL(0x0044EB60)
 // 00453730: constructs n 40-byte frame records [pointer, count].
 __declspec(naked) void __stdcall ConstructFrameRecords(void*, int) EI_ORIGINAL(0x00453730)
 
@@ -63,7 +62,7 @@ void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames
     skin->root = bone;
     BuildBone(skin, bone, node, frames);
     int count = static_cast<std::int16_t>(frames) + 1;
-    for (int f = 0; f < count; ++f) MakeFrameRelativeAt(nullptr, skin->root, f);
+    for (int f = 0; f < count; ++f) MakeFrameRelative(nullptr, skin->root, f);
 }
 EI_REPLACE(0x00449240, BuildRootBone);
 

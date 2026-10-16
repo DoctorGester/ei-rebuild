@@ -99,11 +99,11 @@ int CSceneRenderer::EndScene() {
     mfc::CString text;
     void* panel = DebugInfoPanel();
     text.Format("%g", 1000.0 / x87::FromUnsigned(frameTime_));
-    DebugPanelSetOriginal(panel, nullptr, "FPS", text);
+    strmap::StringTableSet(panel, nullptr, "FPS", text);
     text.Format("%d", device_->vertexCount_);
-    DebugPanelSetOriginal(panel, nullptr, "num verts", text);
+    strmap::StringTableSet(panel, nullptr, "num verts", text);
     text.Format("%d", device_->primitiveCount_);
-    DebugPanelSetOriginal(panel, nullptr, "num trias", text);
+    strmap::StringTableSet(panel, nullptr, "num trias", text);
     lastFrameStart_ = frameStart_;
     return 1;
 }

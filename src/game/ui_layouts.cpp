@@ -477,7 +477,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
-        ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
+        static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
         Glue(0x007AFEA4)->SetServer(1);
         ui->PlaySound(okSound, 0);
         auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));

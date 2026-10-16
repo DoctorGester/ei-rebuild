@@ -60,19 +60,13 @@ __declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const 
 __declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 __declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
-__declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
 __declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 __declspec(naked) inline const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
-__declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
-__declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
-// The CRT's _CxxThrowException (stdcall: the address of the thrown object, its throw info). Does not return.
-__declspec(naked) inline void __stdcall CxxThrowException(void* /*object*/, const void* /*throwInfo*/)
-    EI_ORIGINAL(0x006E7819)
 // MFC CStringArray constructor (006FE925, mfc::CStringArray::Construct). Returns `this`.
 inline void* __fastcall StringArrayConstruct(void* array) {
     static_cast<mfc::CStringArray*>(array)->Construct();
@@ -496,17 +490,10 @@ __declspec(naked) inline void __fastcall FloatTableDeleteNodeOriginal(void* /*ta
 __declspec(naked) inline void __fastcall FloatTableBeginOriginal(void* /*table*/, void*, void* /*iterator*/)
     EI_ORIGINAL(0x004614C0)
 __declspec(naked) inline void __fastcall BucketVectorDestroyOriginal(void* /*vector*/) EI_ORIGINAL(0x00609F50)
-// dinput.lib's DirectInputCreateEx (import thunk 006E61F0; __stdcall): instance, version, interface id, the
-// interface out, outer unknown.
-__declspec(naked) inline long __stdcall DirectInputCreateExOriginal(void* /*instance*/, unsigned long /*version*/,
-                                                                    const void* /*iid*/, void** /*out*/, void* /*outer*/)
-    EI_ORIGINAL(0x006E61F0)
 // MFC CFont::CreatePointFont(tenths of a point, face, CDC* or null) (0070BBE5, thiscall, RET 0xC): nonzero on success.
 __declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, void*, int /*size*/, const char* /*face*/,
                                                                 void* /*dc*/) EI_ORIGINAL(0x0070BBE5)
 
-// C3m. 004DBF50 (rewritten as SplitWords; ECX text, EDX array, separator on the stack): splits at the separator.
-__declspec(naked) inline void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
 // C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
 inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }
 // C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).

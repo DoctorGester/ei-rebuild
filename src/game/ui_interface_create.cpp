@@ -141,10 +141,10 @@ void CInterface3D::Create(CTextureDevice* device) {
     }
 
     ChooseKeyboardLayout();
-    LoadKeyBindingsOriginal();
+    keybind::LoadKeyBindings();
     auto* window = static_cast<console::ConsoleWindow*>(gamecrt::operator_new(sizeof(console::ConsoleWindow)));
     console_ = window ? window->Construct(&width_) : nullptr;
-    DebugPanelInitOriginal(DebugInfoPanel(), nullptr, this);
+    strmap::PanelInit(DebugInfoPanel(), nullptr, this);
     auto* chat = static_cast<CChatOverlay*>(gamecrt::operator_new(sizeof(CChatOverlay)));
     root_ = chat ? chat->Construct(this) : nullptr;
     mouseX_ = 0;

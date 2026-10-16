@@ -12,6 +12,7 @@
 #include "link_figure.h"          // FigureMeshDrawer
 #include "lib/containers.h"
 #include "lib/gameapi.h"
+#include "model.h"
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_render.h"
@@ -84,7 +85,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;
-    int visibility = ClipTest(device->pipeline_, nullptr, &mesh_->bounds_);
+    int visibility = device->pipeline_->ClipTest(&mesh_->bounds_);
     if (visibility == 2) return 1;
     int type = static_cast<int>(mesh_->meshType_);
     if (type >= 13 && type <= 16) {

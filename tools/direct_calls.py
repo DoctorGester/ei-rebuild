@@ -276,6 +276,8 @@ class Forwarder:
         self.target_name = ''
         self.kind = ''
         self.sites = []                       # Site
+        self.global_qualify = False           # the call is spelled ::Name (other functions have the name)
+        self.redeclare = None                # (place, namespaces): declare the target where the forwarder was
         self.reason = ''
 
 
@@ -316,7 +318,10 @@ def registrations(sources, library):
             kind = m.group(1) or ''
             if kind == '_STANDALONE' and not library:
                 continue
-            regs[int(m.group(2), 16)].append((m.group(3).replace(' ', ''), s))
+            name = m.group(3).replace(' ', '')
+            # A registration inside a namespace names a function of it: tried first (then the name as written).
+            chain = [n for n in s.namespaces_at(m.start()) if n != "`anonymous namespace'"]
+            regs[int(m.group(2), 16)].append(('::'.join(chain + [name]) if chain else name, s, name))
     return regs
 
 
@@ -529,6 +534,30 @@ def parse_args(bare, open_paren):
     return None, None
 
 
+_INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
+_SEES = {}
+
+
+def sees(a, b):
+    """Whether file `a` (a Source) includes file `b`, directly or through other src / tests files."""
+    if not _SEES:
+        srcs = _FREE_DECLS.get('all', ())
+        by_base = defaultdict(list)
+        for x in srcs:
+            by_base[os.path.basename(x.path)].append(x.path)
+        graph = {x.path: {p for inc in _INCLUDE.findall(x.raw) for p in by_base.get(os.path.basename(inc), ())}
+                 for x in srcs}
+        for x in srcs:
+            seen, todo = set(), list(graph[x.path])
+            while todo:
+                p = todo.pop()
+                if p not in seen:
+                    seen.add(p)
+                    todo += graph.get(p, ())
+            _SEES[x.path] = seen
+    return b.path in _SEES.get(a.path, ())
+
+
 def find_sites(f, sources, decl_spans):
     """Every use of the forwarder's name, or a reason it cannot be rewritten. A declaration of the
     forwarder elsewhere (the class body's for an out-of-class definition, a header's prototype of a
@@ -541,6 +570,8 @@ def find_sites(f, sources, decl_spans):
     for s, a, b in _WORDS.get(f.simple, ()):
         if local and s is not f.src:
             continue
+        if f.src.path.endswith('.h') and s is not f.src and not sees(s, f.src) and not sees(f.src, s):
+            continue        # a file that cannot see the forwarder's header: the name is another function's there
         if any(sa <= a < sb for sa, sb in decl_spans.get(s.path, ())):
             continue
         j = b
@@ -557,6 +588,15 @@ def find_sites(f, sources, decl_spans):
             if owner and owner not in [n for _, n in chain] + f.name.split('::')[:-1]:
                 continue
         obj = tok if tok in ('.', '->') else ''
+        if obj and not f.in_class and '::' not in f.name:
+            continue        # a member of that name, not the free forwarder
+        # A word in the target's own namespace is the target's (or hides the forwarder there).
+        if f.target is not None and not qual and not obj and not f.target.member:
+            tchain = [n for n in split_qualified(f.target.raw_name)[:-1] if n != "`anonymous namespace'"]
+            site_named = [n for k, n in s.scope_at(a) if k == 'ns' and n != "`anonymous namespace'"]
+            fchain = [n for n in namespaces if n != "`anonymous namespace'"]
+            if tchain and tchain != fchain and site_named[:len(tchain)] == tchain:
+                continue
         # An unqualified call outside the forwarder's namespace is another function (hook.cpp's
         # fseek is the host CRT's, not gamecrt::fseek), unless a using-directive brings it in.
         named = [n for n in namespaces if n != "`anonymous namespace'"]
@@ -564,11 +604,16 @@ def find_sites(f, sources, decl_spans):
             site_ns = [n for k, n in s.scope_at(a) if k == 'ns' and n != "`anonymous namespace'"]
             prefix = enclosing_prefix(s, a)
             if site_ns[:len(named)] != named and not (site_ns + prefix)[:len(named)] == named:
-                if re.search(r'\busing\s+(?:namespace\s+)?' + re.escape(namespaces[-1]) + r'\b', s.code):
-                    return None, f'called unqualified through a using-directive ({s.path}:{s.line_of(a)})'
-                continue
+                if not re.search(r'\busing\s+(?:namespace\s+)?' + re.escape(namespaces[-1]) + r'\b', s.code):
+                    continue    # another function; with a using-directive the call is the forwarder's
         declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
                                    or tok in ('*', '&', '>', '~'))
+        if declaration and tok in ('*', '&'):
+            # `*Name(...)` / `&Name` after an operator, an opening bracket or a keyword is an expression: a
+            # declarator has a type before its * or &.
+            before, _ = prev_token(s.bare, at)
+            if not before or not (before[0].isalnum() or before[0] == '_' or before in ('>', '*', '&', '::', ')'))                     or before in KEYWORDS_BEFORE_EXPR:
+                declaration = False
         if declaration and is_call and not qual and not f.in_class and not s.in_body(a):
             close, _ = parse_args(s.bare, j)
             mm = re.match(r'\s*(?:const\s*)?;', s.bare[close + 1:close + 40]) if close else None
@@ -581,6 +626,14 @@ def find_sites(f, sources, decl_spans):
             if mm and same:
                 f.extra.append((s, statement_start(s, at), close + 1 + mm.end()))
                 continue
+        if declaration and not obj and not qual:
+            here = s.scope_at(a)
+            classes = [n for k, n in here if k == 'class']
+            site_named = [n for k, n in here if k == 'ns' and n != "`anonymous namespace'"]
+            # (A member forwarder stays: a call through an object of another class with that member name cannot be
+            # told from its own, and renaming it breaks the other class's code.)
+            if not f.in_class and '::' not in f.name and site_named and site_named != named:
+                continue        # a function of that name in another namespace
         if declaration:
             return None, f'another declaration of the name ({f.simple}; {s.path}:{s.line_of(a)})'
         if not is_call:
@@ -749,7 +802,8 @@ def rewrite_site(f, site):
             return None, 'target in an anonymous namespace of another file'
         if site.obj:
             return None, 'free forwarder called as a member'
-        return renamed(s, site.start, site.name_end, spelled_target(t, s, site.start), close), ''
+        name = spelled_target(t, s, site.start)
+        return renamed(s, site.start, site.name_end, '::' + name if f.global_qualify else name, close), ''
     # 'this': F(self, edx, rest...) -> self->M(rest...)
     if site.obj or site.qualifier not in ('', '::'):
         return None, 'qualified call'
@@ -869,7 +923,7 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
         if len(regs[f.address]) != 1:
             f.reason = 'several registrations'
             continue
-        f.target_name, tsrc = regs[f.address][0]
+        f.target_name, tsrc, plain = regs[f.address][0]
         if f.template or not f.name:
             f.reason = 'template forwarder'
             continue
@@ -885,6 +939,10 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
                 f.reason = why or 'not in the map (overloaded or not compiled) but called'
             continue
         t, why = resolve_target(f.target_name, decls, simple_index)
+        if t is None and plain != f.target_name and why == 'target not found in the map':
+            t, why = resolve_target(plain, decls, simple_index)
+            if t is not None:
+                f.target_name = plain
         if t is None:
             f.reason = why
             continue
@@ -915,8 +973,7 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
                 f.reason = f'a derived class declares the target name ({hiding[0]}::{t.simple})'
                 continue
         elif others and not t.scope:
-            f.reason = f'other functions have the target name ({t.simple})'
-            continue
+            f.global_qualify = True     # `::Name`: the other functions of that name are not what the call finds
         sites, why = find_sites(f, sources, spans)
         if sites is None:
             f.reason = why
@@ -953,6 +1010,7 @@ def plan(fwds, classes):
     edits = defaultdict(list)
     includes = defaultdict(set)
     done = []
+    HOISTED.clear()
     for f in fwds:
         if not f.in_scope or f.reason or not f.kind:
             continue
@@ -970,6 +1028,13 @@ def plan(fwds, classes):
                 break
             if site.src.path == f.target_src_path:
                 if not f.target.member and not declared_before(site.src, f.target.simple, site.start):
+                    hdr = free_header(f.target, f.target_src_path)
+                    if hdr is not None and hdr.path.endswith('.h') and includes_header(site.src, hdr.path):
+                        continue        # the file's own header declares the target
+                    place = redeclare_place(f, site)
+                    if place is not None:
+                        f.redeclare = place
+                        continue
                     why = f'target declared after the call ({site.src.path}:{site.src.line_of(site.start)})'
                     break
                 continue
@@ -981,9 +1046,17 @@ def plan(fwds, classes):
             if hdr is None and not t.member:
                 hdr = free_header(t, f.target_src_path)
             if hdr is None:
+                place = redeclare_place(f, site)
+                if place is not None:
+                    f.redeclare = place
+                    continue
                 why = f'no header declares the target ({t.qname}; {site.src.path})'
                 break
             if hdr.path.endswith('.cpp') and hdr.path != site.src.path:
+                place = redeclare_place(f, site)
+                if place is not None:
+                    f.redeclare = place
+                    continue
                 why = f'target declared in its .cpp only ({t.qname} in {hdr.path}; {site.src.path})'
                 break
             if hdr.path != site.src.path and site.src.path.endswith('.cpp'):
@@ -1003,7 +1076,17 @@ def plan(fwds, classes):
         for src, inc in incs:
             includes[src].add(inc)
             INCLUDED_BY[(src.path, inc.strip())].add(f.address)
-        edits[f.src].append(('delete', f.start, f.end, f.address))
+        if f.redeclare and f.redeclare[0] == 'here':
+            edits[f.src].append(('redeclare', f.start, f.end, f.address, forward_declaration(f, f.redeclare[1])))
+        elif f.redeclare:
+            # The target is in an enclosing namespace of the forwarder's: declared before the inner one opens.
+            text = forward_declaration(f, f.redeclare[1], True)
+            if (f.src.path, f.redeclare[0], text) not in HOISTED:      # two forwarders of one function: once
+                HOISTED.add((f.src.path, f.redeclare[0], text))
+                edits[f.src].append((f.redeclare[0], f.redeclare[0], [text]))
+            edits[f.src].append(('delete', f.start, f.end, f.address))
+        else:
+            edits[f.src].append(('delete', f.start, f.end, f.address))
         for src, a, b in f.extra:
             edits[src].append(('delete', a, b, f.address))
         done.append(f)
@@ -1011,6 +1094,7 @@ def plan(fwds, classes):
 
 
 _FREE_DECLS = {}
+HOISTED = set()      # (path, offset, text) of the declarations written before a namespace
 
 
 def declared_before(src, name, offset):
@@ -1026,6 +1110,12 @@ _WORDS = {}
 _HEADERS = {}
 
 
+def includes_header(src, header_path):
+    """Whether `src` has an #include of a file with the header's name."""
+    base = os.path.basename(header_path)
+    return any(os.path.basename(m) == base for m in re.findall(r'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', src.raw, re.M))
+
+
 def free_header(t, defining):
     """The header declaring free function `t` (the one next to its defining .cpp first), as a Source."""
     key = (t.qname, defining)
@@ -1037,6 +1127,51 @@ def free_header(t, defining):
         hits.sort(key=lambda s: s.path != first)
         _HEADERS[key] = hits[0] if hits else srcs.get(defining)
     return _HEADERS[key]
+
+
+def redeclare_place(f, site):
+    """Where the forwarder's declaration becomes a plain declaration of the target (a free function the callers
+    cannot see: defined later in the file, or in a .cpp with no header): ('here', namespaces to open) at the
+    forwarder's place, or (offset of the line opening the namespace of the forwarder that the target is not in,
+    namespaces to open there). None when the callers could not see it, or the forwarder says less than the target."""
+    t = f.target
+    if f.kind != 'rename' or t.member or t.static or f.in_class or f.sig.ret != t.ret or '<' in t.raw_name:
+        return None
+    if site.src is f.src:
+        if f.start > site.start:
+            return None
+    elif not f.src.path.endswith('.h'):
+        return None
+    inner = f.src.namespaces_at(f.start)
+    outer = split_qualified(t.raw_name)[:-1]
+    k = 0
+    while k < len(inner) and k < len(outer) and inner[k] == outer[k]:
+        k += 1
+    if k == len(inner):
+        return 'here', outer[k:]
+    opens = sorted(o for (o, c, kind, n) in f.src.scopes if o < f.start < c and kind == 'ns')
+    return f.src.raw.rfind('\n', 0, opens[k]) + 1, outer[k:]
+
+
+def forward_declaration(f, namespaces=(), hoisted=False):
+    """The forwarder's declaration as a plain declaration of the target, in `namespaces` when it is in them."""
+    raw = f.src.raw
+    old = raw[f.start:f.end]
+    text = re.sub(r'__declspec\s*\(\s*naked\s*\)\s*', '', old)
+    text = re.sub(r'^(?:(?:inline|static)\s+)+', '', ORIGINAL.sub('', text).rstrip())
+    text = re.sub(r'\b' + re.escape(f.simple) + r'(?=\s*\()', f.target.simple, text, count=1)
+    indent = raw[raw.rfind('\n', 0, f.start) + 1:f.start]
+    indent = indent if not indent.strip() and not hoisted else ''
+    # Continuation lines aligned to the parameter list follow it.
+    old_paren = re.search(re.escape(f.simple) + r'\s*\(', old).end() - 1
+    new_paren = re.search(re.escape(f.target.simple) + r'\s*\(', text).end() - 1
+    text = reindent(text, column(raw, f.start) + old_paren + 1,
+                    len(indent) + new_paren - old_paren - column(raw, f.start))
+    if namespaces:
+        names = '::'.join(n for n in namespaces if n != "`anonymous namespace'")
+        head = 'namespace ' + names + ' {' if names and len(names) == len('::'.join(namespaces)) else 'namespace {'
+        return f'{indent}{head}\n{indent}{text};\n{indent}}}\n'
+    return indent + text + ';\n'
 
 
 def line_span(raw, a, b):
@@ -1066,7 +1201,7 @@ _ABOUT_FORWARDER = re.compile(r"through (?:its|the original'?s?|their|the game'?
                               r"forwarder|verify wrapper", re.I)
 
 
-def deletion_span(raw, a, b, deleted):
+def deletion_span(raw, a, b, deleted, redeclared=False):
     """The text to delete for a declaration at [a, b): whole lines, the comment directly above when it is
     about deleted forwarders only, and one of two blank lines that would meet."""
     a, b = line_span(raw, a, b)
@@ -1074,7 +1209,9 @@ def deletion_span(raw, a, b, deleted):
     if c < a:
         text = raw[c:a]
         addrs = {int(x, 16) for x in re.findall(r'\b([0-9A-Fa-f]{8})\b', text)}
-        if (addrs and addrs <= deleted) or (not addrs and _ABOUT_FORWARDER.search(text)):
+        if redeclared and not _ABOUT_FORWARDER.search(text):
+            pass                # the declaration of the target keeps what the comment says about it
+        elif (addrs and addrs <= deleted) or (not addrs and _ABOUT_FORWARDER.search(text)):
             a = c
         else:
             KEPT_COMMENTS.append(text.strip().splitlines()[-1].strip())
@@ -1147,20 +1284,23 @@ def rewritten(edits, includes, deleted_by_file):
         dels, ops = [], []
         for e in edits.get(src, ()):
             if e[0] == 'delete':
-                dels.append(deletion_span(raw, e[1], e[2], deleted))
+                dels.append(deletion_span(raw, e[1], e[2], deleted) + ([],))
+            elif e[0] == 'redeclare':
+                dels.append(deletion_span(raw, e[1], e[2], deleted, True) + ([e[4]],))
             else:
                 ops.append((e[0], e[1], e[2]))
         dels.sort()
         merged = []
-        for a, b in dels:
+        for a, b, pieces in dels:
             if merged and a <= merged[-1][1]:
                 merged[-1][1] = max(merged[-1][1], b)
+                merged[-1][2] += pieces
             else:
-                merged.append([a, b])
+                merged.append([a, b, list(pieces)])
         for span in merged:
-            if span[0] >= 2 and raw[span[0] - 2:span[0]] == '\n\n' and raw[span[1]:span[1] + 1] == '\n':
+            if not span[2] and span[0] >= 2 and raw[span[0] - 2:span[0]] == '\n\n' and raw[span[1]:span[1] + 1] == '\n':
                 span[1] += 1
-        ops += [(a, b, []) for a, b in merged]
+        ops += [(a, b, pieces) for a, b, pieces in merged]
         for inc in sorted(includes.get(src, ())):
             e = add_include(src, inc)
             if e:

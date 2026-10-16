@@ -26,7 +26,6 @@ __declspec(naked) inline void __fastcall FinishDraw(char*, void*, void* /*render
 __declspec(naked) inline void __fastcall NearbyBlocksOriginal(CRegionMap*, void*, int /*sizeClass*/, bool /*flag*/,
                                                             int /*x*/, int /*y*/, void* /*out*/) EI_ORIGINAL(0x005B0370)
 __declspec(naked) inline void __fastcall PathToMotionOrder(void*, void*, void* /*out*/) EI_ORIGINAL(0x005B22C0)
-__declspec(naked) inline void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 // 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility
 // mask (+0x10), destroying each (00558D00). Plain RET.
 __declspec(naked) inline void __fastcall CallsDropClaims(void* /*calls*/) EI_ORIGINAL(0x005CCBF0)

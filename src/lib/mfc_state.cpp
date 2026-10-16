@@ -20,10 +20,6 @@ GetVersionFn& GetVersionImport() { return *reinterpret_cast<GetVersionFn*>(0x007
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
 
-// The module state lookup at its address (the original's in the hook build, ImageModuleState in the
-// image).
-__declspec(naked) ModuleState* __cdecl ModuleStateAt() EI_ORIGINAL(0x0070CE8C)
-
 // AfxWingdixTerm as the exe's atexit list holds it: its address (ours, through the registration).
 using ExitFunction = void(__cdecl*)();
 ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0); }
@@ -155,7 +151,7 @@ void CSimpleList::AddHead(void* element) {
     head = element;
 }
 
-ModuleState* __cdecl AfxGetModuleState() { return ModuleStateAt(); }
+ModuleState* __cdecl AfxGetModuleState() { return mfc::impl::ImageModuleState(); }
 
 ModuleState* __cdecl ImageModuleState() {
     static ModuleState state = {nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, {0, 0}, 0, {nullptr, kNextClassOffset}};

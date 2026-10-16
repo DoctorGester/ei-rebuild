@@ -34,7 +34,6 @@ __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x0
 __declspec(naked) inline void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int)
     EI_ORIGINAL(0x005DB3F0)
 __declspec(naked) inline void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
-__declspec(naked) inline void __fastcall ShowStatusText(void*, void*, const char*) EI_ORIGINAL(0x005F75B0)
 __declspec(naked) inline void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/)
     EI_ORIGINAL(0x005F8C90)
 __declspec(naked) inline void __fastcall EmptyModelMap(void*) EI_ORIGINAL(0x005FA400)
@@ -419,27 +418,40 @@ __declspec(naked) inline int __fastcall LocalViewSendAttackOriginal(void* /*view
 // The interface's shutdown (005F4F90) calls: 00444BD0 (thiscall) the debug information panel
 // (0079B930, string_map.cpp) frees its surface and font; 00462DF0 writes config\keyboard.ini
 // (key_bindings.cpp).
-__declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel*/) EI_ORIGINAL(0x00444BD0)
+namespace strmap {
+void __fastcall PanelRelease(void* /*panel*/);
+}
 // 00444C10 (thiscall, RET 4): the debug information panel's rectangle (string_map.cpp).
-__declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel*/, void*, const tagRECT* /*rect*/)
-    EI_ORIGINAL(0x00444C10)
+namespace strmap {
+void __fastcall PanelSetRect(void* /*panel*/, void*, const tagRECT* /*rect*/);
+}
 // 004447E0 (the panel's slot 0, thiscall, RET 8; string_map.cpp's StringTableSet): panel[key] = value.
-__declspec(naked) inline void __fastcall DebugPanelSetOriginal(void* /*panel*/, void*, const char* /*key*/,
-                                                               const char* /*value*/) EI_ORIGINAL(0x004447E0)
+namespace strmap {
+void __fastcall StringTableSet(void* /*panel*/, void*, const char* /*key*/,
+                               const char* /*value*/);
+}
 // 00444CD0 (thiscall on the panel, plain RET; string_map.cpp's PanelTick): the panel redrawn every 500 ms and
 // blitted.
-__declspec(naked) inline void __fastcall DebugPanelTickOriginal(void* /*panel*/) EI_ORIGINAL(0x00444CD0)
+namespace strmap {
+void __fastcall PanelTick(void* /*panel*/);
+}
 // 004449A0 (the panel's slot 1, thiscall, RET 4; string_map.cpp's StringTableRemove): the line `key` removed.
-__declspec(naked) inline void __fastcall DebugPanelRemoveOriginal(void* /*panel*/, void*, const char* /*key*/)
-    EI_ORIGINAL(0x004449A0)
-__declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
+namespace strmap {
+void __fastcall StringTableRemove(void* /*panel*/, void*, const char* /*key*/);
+}
+namespace keybind {
+void __cdecl SaveKeyBindings();
+}
 // The interface's Create (005F4990) calls: 00462C10 reads config\keyboard.ini (key_bindings.cpp); 00444A70
 // (thiscall, RET 4; string_map.cpp's PanelInit) binds the debug information panel to the interface; 005F9810
 // (thiscall on the help topics' map, RET 0xC; library) inserts a {CString, int} pair before `hint` and gives the
 // new node in `out`, which it returns.
-__declspec(naked) inline void __cdecl LoadKeyBindingsOriginal() EI_ORIGINAL(0x00462C10)
-__declspec(naked) inline void __fastcall DebugPanelInitOriginal(void* /*panel*/, void*, CInterface3D* /*ui*/)
-    EI_ORIGINAL(0x00444A70)
+namespace keybind {
+void __cdecl LoadKeyBindings();
+}
+namespace strmap {
+void __fastcall PanelInit(void* /*panel*/, void*, CInterface3D* /*ui*/);
+}
 __declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*/, void*, void** /*out*/, void* /*hint*/,
                                                                     const void* /*pair*/) EI_ORIGINAL(0x005F9810)
 // 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
@@ -456,8 +468,7 @@ __declspec(naked) inline void __fastcall ClientDropPartyOriginal(void* /*client*
 __declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041DA50)
 
 // A-E2. 005DAEA0 (fastcall, RET 8; rewritten as SetUpCursors): the cursor (007C7BD8) initialised and given its shapes.
-__declspec(naked) inline void __fastcall SetUpCursorsOriginal(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/)
-    EI_ORIGINAL(0x005DAEA0)
+void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 // C3m. 0063D2B0 (rewritten as CHudQuickItems::SetUnit; through its address so the wrapper runs): the quick item bar
 // shows a unit's items (thiscall on the window, RET 4).
 __declspec(naked) inline void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)

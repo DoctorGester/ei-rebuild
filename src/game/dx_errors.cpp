@@ -251,7 +251,7 @@ EI_REPLACE(0x00480300, GameErrorConstructResult);
 
 namespace {
 [[noreturn]] void Throw(GameError* error) {
-    CxxThrowException(&error, reinterpret_cast<const void*>(0x00759908));
+    libcrt::CxxThrowException(&error, reinterpret_cast<const void*>(0x00759908));
     for (;;) {
     }
 }

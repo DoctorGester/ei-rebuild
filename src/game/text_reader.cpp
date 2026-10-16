@@ -30,9 +30,6 @@ const TextString& Ops(const mfc::CString& s) { return static_cast<const TextStri
 
 // 004DBE40 (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
-// 004DF4E0, called through its address.
-__declspec(naked) int __fastcall CharCodeCall(const char*) EI_ORIGINAL(0x004DF4E0)
-
 const char* const kComment = reinterpret_cast<const char*>(0x0078DCF8);   // "##"
 const char* const kHeader = reinterpret_cast<const char*>(0x0078DCFC);    // "#"
 
@@ -54,7 +51,7 @@ int CharCode(const char* p) {
 // Appends the character at `p` (one or two bytes, by isleadbyte on the signed byte) to `out`
 // through the temporary `tmp`.
 void AppendCharAt(mfc::CString* out, mfc::CString& tmp, const char* p) {
-    if (IsLeadByte(static_cast<signed char>(*p))) {
+    if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
         Ops(tmp).AssignChar(p[0]);
         Ops(tmp).AppendChar(p[1]);
     } else {
@@ -79,7 +76,7 @@ bool InsideBy(CTextManager* t, const char* p, Test test) {
 void Advance(CTextManager* t, const AdvanceKind& kind) {
     const char* p = t->cursor_;
     if (!InsideBy(t, p, kind.entry)) return;
-    while (InsideBy(t, p, kind.loopEnd) && (kind.code == Test::Inline ? CharCode(p) : CharCodeCall(p)) != 10)
+    while (InsideBy(t, p, kind.loopEnd) && (kind.code == Test::Inline ? CharCode(p) : TextCharCode(p)) != 10)
         p = MbsInc(p);
     t->cursor_ = InsideBy(t, p, kind.exit) ? MbsInc(p) : p;
 }
