@@ -5,6 +5,7 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "random.h"
+#include "sound.h"
 #include "spell.h"    // CLight
 #include "unit.h"
 
@@ -122,7 +123,7 @@ int CMapObjectClientSpecific::Update() {
             if (handle != -1 &&
                 (SoundIsPlaying(soundSystem, nullptr, handle) || SoundIsQueued(soundSystem, nullptr, handle)))
                 continue;
-            endSound = SoundManagerPlay3DOriginal(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->position.x,
+            endSound = static_cast<CSoundManager*>(SoundSystem())->Play3D(kEndSoundName, 0, &OwnerOf(this)->position.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -141,7 +142,7 @@ int CMapObjectClientSpecific::Update() {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            SoundManagerPlay3DOriginal(SoundSystem(), nullptr, name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
+            static_cast<CSoundManager*>(SoundSystem())->Play3D(name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
             MoveSound(SoundSystem(), nullptr, sound->handle, &OwnerOf(this)->position.x);
         }

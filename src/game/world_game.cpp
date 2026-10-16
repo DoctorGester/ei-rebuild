@@ -1,5 +1,7 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
+#include "item_db.h"
+#include "item_db_text.h"
 #include "ui.h"
 #include "world.h"
 #include "game_flow_data.h"
@@ -596,14 +598,14 @@ int __stdcall StartNetworkZone(const char* zone) {
     WorldSetClimate(World(), nullptr, zoneRecord->setting2C);
     WorldSetCave(World(), nullptr, zoneRecord->setting30);
     CampaignMode() = 1;
-    WorldSetGameResultOriginal(World(), nullptr, kGameResultNetwork);
+    World()->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
 
     if (Active(net::GameServer())) {
         AnnounceHost(zone);
         mfc::CString name(zone);
         mfc::CString mob = name + game::Text(kMobExtension);
-        WorldLoadMobFileOriginal(World(), nullptr, mob);
+        static_cast<CWorldServer*>(World())->LoadMobFile(mob);
     }
 
     exits.vtable = reinterpret_cast<void*>(kExitArrayBaseVtable);
@@ -804,7 +806,7 @@ void GameFlow::UpdateAndAcknowledge() {
 
 void GameFlow::RequestBriefing(const char* briefing) {
     net::ClientSession* client = net::GameClient();
-    if (Active(client)) SessionCommand(client, nullptr, kCommandBriefing, briefing);
+    if (Active(client)) client->SendCommand(kCommandBriefing, briefing);
 }
 
 namespace {
@@ -1429,7 +1431,7 @@ void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { WorldSetTimeSpeedOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { WorldSetTimeOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
-inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(client)); }
+inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(client)->LocalView()); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
 __declspec(naked) int __stdcall EnterZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A060)
 
@@ -1513,7 +1515,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
 
     CampaignMode() = mode;
     if (mode == 1) SpectatorFlag() = mode;
-    WorldSetGameResultOriginal(World(), nullptr, result);
+    World()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
     ClientSetPlayer(kClientWorld, nullptr, reinterpret_cast<int>(World()->shared5C_.ptr));
     ClientWorldLocalView(kClientWorld)->sendParty = 0;
@@ -1584,14 +1586,14 @@ void* ItemDatabaseObject() { return reinterpret_cast<void*>(std::uintptr_t(0x007
 
 void __fastcall SwitchResourceDatabases(const char* name) {
     UnitDatabase* units = UnitDatabaseObject();
-    UnitDatabaseResetOriginal(units);
+    units->Reset();
     UnitDatabaseLoadOriginal(units, nullptr, ResourcesPath(), name);
     units->CountSoundFiles(SoundSystemObject());
-    SkillDatabaseResetOriginal(SkillDb());
+    SkillDb()->Reset();
     SkillDatabaseLoadOriginal(SkillDb(), nullptr, ResourcesPath(), name);
-    SpellTablesResetOriginal(SpellTablesObject());
+    static_cast<itemdb::SpellDatabase*>(SpellTablesObject())->Reset();
     SpellTablesLoadOriginal(SpellTablesObject(), nullptr, ResourcesPath(), name);
-    ItemDatabaseResetOriginal(ItemDatabaseObject());
+    static_cast<itemdb::ItemDatabase*>(ItemDatabaseObject())->Reset();
     ItemDatabaseLoadOriginal(ItemDatabaseObject(), nullptr, ResourcesPath(), name);
 }
 EI_REPLACE(0x0057CB50, SwitchResourceDatabases);
@@ -1646,7 +1648,7 @@ void GameFlow::ProcessRequest() {
     case kStateLoad:
         ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 0;
-        WorldSetGameResultOriginal(World(), nullptr, 1);
+        World()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
         ServerUpdateAt(World());
         ClientSegmentAt(clientWorld);
@@ -1678,7 +1680,7 @@ void GameFlow::ProcessRequest() {
         WorldTeardownZone(World(), nullptr);
         if (!ClientHasZone(clientWorld, nullptr, zone)) {
             if (Active(net::GameClient())) {
-                FlowBeginMultiplayerGameOriginal(this);
+                BeginMultiplayerGame();
             } else {
                 ToMainMenu() = 1;
                 StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
@@ -1993,7 +1995,7 @@ void GameFlow::UpdateFromServer() {
     if (void* texts = *reinterpret_cast<void**>(0x007AF788)) {
         auto* files = reinterpret_cast<std::uint8_t**>(0x007AFDD0);
         for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
-            TextsUnload(texts, nullptr, *reinterpret_cast<const char**>(file));
+            static_cast<CTextManager*>(texts)->RemoveSource(*reinterpret_cast<const char**>(file));
         QuestFilesClear(files);
     }
     auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);
@@ -2024,8 +2026,8 @@ void GameFlow::UpdateFromServer() {
     }
     alignas(mfc::CString) std::uint8_t questSlot[sizeof(mfc::CString)];
     alignas(mfc::CString) std::uint8_t kSlot[sizeof(mfc::CString)];
-    BriefingVariableIntoOriginal(reinterpret_cast<mfc::CString*>(questSlot), briefing + game::Text(kBriefingSuffixQuest));
-    BriefingVariableIntoOriginal(reinterpret_cast<mfc::CString*>(kSlot), briefing + game::Text(kBriefingSuffixK));
+    BriefingVariableInto(reinterpret_cast<mfc::CString*>(questSlot), briefing + game::Text(kBriefingSuffixQuest));
+    BriefingVariableInto(reinterpret_cast<mfc::CString*>(kSlot), briefing + game::Text(kBriefingSuffixK));
     mfc::CString& questVariable = *reinterpret_cast<mfc::CString*>(questSlot);
     mfc::CString& kVariable = *reinterpret_cast<mfc::CString*>(kSlot);
     mfc::CString* const names[2] = {&questVariable, &kVariable};
@@ -2041,7 +2043,7 @@ void GameFlow::UpdateFromServer() {
     // The briefings the server says were seen.
     for (ZoneNode* node = static_cast<ZoneNode*>(net::GameClient()->zones_)->next;
          node != static_cast<ZoneNode*>(net::GameClient()->zones_); node = node->next)
-        FlowMarkBriefingOriginal(this, nullptr, node->message->text_.start);
+        MarkBriefing(node->message->text_.start);
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
         mfc::CString name(NodeRecord(node)->name_.start);
@@ -2056,7 +2058,7 @@ void GameFlow::UpdateFromServer() {
         int dot = rest.Find(game::Text(kDot));
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);
-            FlowRegisterQuestsOriginal(this, nullptr, folder);
+            RegisterQuests(folder);
         }
     }
 
@@ -2110,7 +2112,7 @@ void GameFlow::UpdateFromServer() {
         }
         AppliedStamp() = 0;
     }
-    FlowUpdateMultiplayerVariableOriginal(this);
+    UpdateMultiplayerVariable();
     kVariable.~CString();
     questVariable.~CString();
 }
@@ -2277,7 +2279,7 @@ void GameFlow::BuildZoneTable() {
         mfc::CString name;
         CFileFindTitle(&find, nullptr, &name);
         name.MakeLower();
-        FlowRegisterQuestsOriginal(this, nullptr, name);
+        RegisterQuests(name);
         UnloadQuestTexts();
         mfc::CString map;
         if (MapRecord* record = FindZone(name)) {

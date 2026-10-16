@@ -49,7 +49,7 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     std::memset(&bounds_, 0, sizeof(bounds_));
     std::memset(&boxPivot_, 0, sizeof(boxPivot_));
     ei::SetVtable(this, kBaseVtableAddress);
-    FigureMeshCreateOriginal(this);
+    CreateMesh();
     return this;
 }
 EI_REPLACE_METHOD(0x005AABC0, CFigureMesh::ConstructBase);
@@ -74,7 +74,7 @@ EI_REPLACE_METHOD(0x0059F210, CFigureMesh::CreateMesh);
 
 // 005A6C70 / 005A6E00: the jumps of the figure classes' slot 2 to CreateMesh (through its address,
 // so its check runs).
-int __fastcall CreateMeshJump(CFigureMesh* self) { return FigureMeshCreateOriginal(self); }
+int __fastcall CreateMeshJump(CFigureMesh* self) { return self->CreateMesh(); }
 EI_REPLACE(0x005A6C70, CreateMeshJump);
 EI_REPLACE(0x005A6E00, CreateMeshJump);
 
@@ -105,14 +105,14 @@ void CFigureMesh::ClearMesh() {
     words_.SetSize(0);
     indices_.SetSize(0);
     texCoords_.SetSize(0);
-    FigureMeshClearOriginal(this);
+    Clear();
 }
 EI_REPLACE_METHOD(0x005A6C80, CFigureMesh::ClearMesh);
 
 void CFigureMesh::ClearSharedMesh() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
-    FigureMeshClearOriginal(this);
+    Clear();
 }
 EI_REPLACE_METHOD(0x005A6E10, CFigureMesh::ClearSharedMesh);
 
@@ -120,7 +120,7 @@ EI_REPLACE_METHOD(0x005A6E10, CFigureMesh::ClearSharedMesh);
 
 void CFigureMesh::DestructBase() {
     ei::SetVtable(this, kBaseVtableAddress);
-    FigureMeshClearOriginal(this);
+    Clear();
     colorsB_.FreeData();
     colorsA_.FreeData();
     offsets_.FreeData();

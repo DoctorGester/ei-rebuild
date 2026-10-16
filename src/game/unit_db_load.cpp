@@ -68,7 +68,7 @@ void LoadTable(CMemoryStream* stream, int id, SerializeFn serialize, void* table
     serialize(&archive, nullptr, id, table, levels);
     archive.Close(stream);
     IndexNames(begin, end, index, at);
-    ChunkArchiveDestroyOriginal(&archive);
+    archive.Destruct();
 }
 
 // A prototype table's records, typed (unit_create.h keeps them as bytes).

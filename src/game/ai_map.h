@@ -265,7 +265,7 @@ struct AIPath {
     // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
     // cell lists empty (blocks of 0x80), no excluded blocks (vtable kExcludedBlocksVtable), then
     // Clear. Returns this.
-    // The destructor body is 00546100 (AIPathDestructOriginal).
+    // The destructor body is 00546100 (Destruct).
     AIPath* Construct();
     // 0054EAC0 (ai_path_cells.cpp, A-W14). The constructor of a motion order (the first 0x3C bytes
     // of a path): the step list empty, blocks of 0x80; the order itself is left as it is. Returns

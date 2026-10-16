@@ -54,14 +54,14 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
             ok = false;
             break;
         }
-        other = SearchCost(backward, nullptr, x, y);
+        other = backward->CostAt(x, y);
         if (other < kUnreached) break;
         SearchBest(backward, nullptr, &x, &y, &open);
         if (open == kUnreached) {
             ok = false;
             break;
         }
-        other = SearchCost(forward, nullptr, x, y);
+        other = forward->CostAt(x, y);
         if (other < kUnreached) break;
     }
     PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
@@ -77,8 +77,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         // saved ESI, the forward search's address); ours get the plain words.
         SetPlainCellWords(path);
     }
-    LocalSearchResetOriginal(backward);
-    LocalSearchResetOriginal(forward);
+    static_cast<LocalSearch*>(backward)->Reset();
+    static_cast<LocalSearch*>(forward)->Reset();
     DestroyList(scratch);
     return ok;
 }

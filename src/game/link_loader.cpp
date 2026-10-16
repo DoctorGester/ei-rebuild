@@ -2,7 +2,8 @@
 // link_figure.h and CLinkFigureLoader in model.h.
 #include "link_figure.h"
 
-#include "originals_world.h"   // FigureModelConstructOriginal, FigureModelLoadOriginal, FigureModelDestructOriginal
+#include "model.h"
+#include "originals_world.h"   // FigureModelConstructOriginal, FigureModelDestructOriginal
 #include "resource.h"          // CMappedResource
 #include "texture.h"           // CTextureDevice
 
@@ -303,7 +304,7 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
     auto* set = static_cast<FigureModel*>(memory ? FigureModelConstructOriginal(memory) : nullptr);
     figureSets_[*name] = set;
     // The original indexes the map a second time (resize for one more element included).
-    FigureModelLoadOriginal(figureSets_[*name], nullptr, files[0], files[1], files[2]);
+    static_cast<FigureModel*>(figureSets_[*name])->Open(files[0], files[1], files[2]);
     auto* found = figureSets_.Find(*name);
     return found ? found->value : nullptr;
 }

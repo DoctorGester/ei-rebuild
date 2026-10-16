@@ -2,11 +2,12 @@
 // texture kept by name) and its two vertex-buffer batch flushes (004E7840, 004E7A40). A-S13: the
 // Direct3D 7 calls (SetTexture, IDirect3DVertexBuffer7::Unlock, DrawIndexedPrimitiveVB) are made as
 // the original makes them. See docs/notes/renderer.md (section 12).
+#include "app.h"
 #include "device.h"
 #include "game_strings.h"
 
 #include "ground_print.h"       // NamedTexture
-#include "originals_engine.h"   // FatalDirectX
+#include "originals_engine.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -19,7 +20,7 @@ void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
     if (!buffer) return;
     buffer->result = static_cast<IDirect3DVertexBuffer7*>(buffer->buffer)->Unlock();
     gameapi::LeaveCriticalSection(device::Lock());
-    if (buffer->result != 0) FatalDirectX(buffer->result, game::Text(0x0078E2D4));   // "Can't unlock vertex buffer.\n"
+    if (buffer->result != 0) app::FatalErrorCode(buffer->result, game::Text(0x0078E2D4));   // "Can't unlock vertex buffer.\n"
     const int vertexCount = batch.vertexCount;
     if (vertexCount != 0) {
         const int indexCount = batch.indices.size;

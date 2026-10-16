@@ -155,7 +155,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 for (int k = 0; k < count; ++k) {
                     int x = offsets[k * 2] + w->data.x;
                     int y = offsets[k * 2 + 1] + w->data.y;
-                    if (SearchCost(search, nullptr, x, y) < kUnreachable) {
+                    if (search->CostAt(x, y) < kUnreachable) {
                         bestX = x;
                         bestY = y;
                         result = true;
@@ -169,7 +169,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                     break;
                 }
             }
-            if (!next && SearchCost(search, nullptr, toX, toY) == kUnreachable) {
+            if (!next && search->CostAt(toX, toY) == kUnreachable) {
                 // The last leg did not reach the target: one more leg from the best cell.
                 SearchCommit(search, nullptr);
                 if (!SearchContinue(search, nullptr, bestX, bestY, toX, toY, 1)) {
@@ -177,8 +177,8 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                     failedAt = w;
                     break;
                 }
-                SearchFinish(search, nullptr);
-                result = SearchCost(search, nullptr, toX, toY) != kUnreachable;
+                search->ExpandAll();
+                result = search->CostAt(toX, toY) != kUnreachable;
             }
             if (!result) {
                 failed = true;
@@ -214,7 +214,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             float ty = static_cast<float>(static_cast<double>(bestY) + Half());
             path->targetY = ty;
         } else {
-            LocalSearchResetOriginal(search);
+            static_cast<LocalSearch*>(search)->Reset();
             bool retried = false;
             if (static_cast<char>(retry)) {
                 // Exclude the failing waypoint's region and plan again.
@@ -241,7 +241,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         PathCellList::Node* first = path->cells.head;
         if (first->data.x != fromX || first->data.y != fromY) result = false;
     }
-    LocalSearchResetOriginal(search);
+    static_cast<LocalSearch*>(search)->Reset();
     DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
     DestroyList(chain, PathCellListVtable());
     return result;

@@ -5,6 +5,7 @@
 
 #include "chunk_archive.h"
 #include "map_object_figures.h"
+#include "object_tables.h"
 #include "originals_engine.h"
 #include "sound.h"
 #include "unit.h"
@@ -110,7 +111,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
         unit->Controller()->StopSpeech();
         return nullptr;
     }
-    if ((IsTextKeyOriginal(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
+    if ((IsTextKey(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
     auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype23C());
     if (!prototype) return nullptr;
 

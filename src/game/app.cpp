@@ -1,8 +1,8 @@
 // Application helpers around WinMain: window procedure (00457D40), input dispatcher (00457970),
 // message pump (00458220) and the start of the first map (00456140). See app.h.
 //
-// Every callee is reached through its original address (several are patched by Rebirth:
-// 0057C700, 00595480, FatalError 00480080; 004D36F0 is rewritten and has a verify wrapper).
+// Callees patched by Rebirth (0057C700, 00595480, FatalError 00480080) are reached through their
+// original addresses.
 #include "device.h"   // the old device's calls
 #include "app.h"
 #include "dx_errors.h"
@@ -18,7 +18,9 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "originals_ui.h"
+#include "script.h"
 #include "texture.h"            // the renderer's device object
+#include "world.h"
 
 #include <ddraw.h>
 
@@ -312,17 +314,17 @@ int __cdecl StartFirstMap() {
     map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
-        FlowCloseSessionsOriginal(reinterpret_cast<void*>(0x007AFE20));
+        static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->CloseSessions();
         MenuOpen(reinterpret_cast<void*>(0x007AFE20));
         return 1;
     }
     void* world = reinterpret_cast<void*>(0x007AFF60);
     if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
         return game::FatalError(reinterpret_cast<const char*>(0x007847E4), static_cast<const char*>(map));   // "Can't load map '%s'"
-    WorldSetGameResultOriginal(world, nullptr, 1);
+    static_cast<CWorldServer*>(world)->SetGameResult(1);
     void* client = reinterpret_cast<void*>(0x007AF5B8);
     ClientSetPlayer(client, nullptr, Global<int>(0x007AFFBC));
-    ClientWorldLocalViewOriginal(client)[0x85] = 0;
+    static_cast<CWorldClient*>(client)->LocalView()[0x85] = 0;
     Global<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
     void* script = reinterpret_cast<void*>(0x007C27D4);
@@ -331,7 +333,7 @@ int __cdecl StartFirstMap() {
         mfc::CString root(Global<mfc::CString>(0x007AF460));
         mfc::CString dir = root + reinterpret_cast<const char*>(0x007847D8);   // "Scripts\"
         mfc::CString path = dir + cmdScript;
-        loaded = LoadScriptFile(script, nullptr, path);
+        loaded = static_cast<CScript*>(script)->LoadFile(path);
     }
     if (loaded) return 1;
     ScriptError error;

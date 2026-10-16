@@ -35,9 +35,8 @@ namespace console {
 
 namespace {
 
-// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded, ScriptsRun).
+// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
-// 005DC620 through its address.
 
 // The saved / console script (the world's command script).
 CScript* const kScripts = reinterpret_cast<CScript*>(0x007C27D4);
@@ -134,8 +133,8 @@ void __fastcall Addon(CStringArray* args) {
 
 // execs file: loads a script file into the script loader and runs it.
 void __fastcall Execs(CStringArray* args) {
-    if (LoadScriptFile(kScripts, nullptr, (*args)[0])) {
-        ScriptsRun(kScripts);
+    if (kScripts->LoadFile((*args)[0])) {
+        ScriptTick(kScripts);
         return;
     }
     SayFormat("Script error: line %d: %s", kScripts->errorLine_, static_cast<const char*>(kScripts->errorText_));

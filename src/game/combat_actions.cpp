@@ -2,6 +2,7 @@
 // bow missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing,
 // death and the AI's reactions to it (witnesses, hostility claims). See combat.h and
 // docs/notes/combat.md.
+#include "ai_alarm.h"
 #include "combat.h"
 #include "map_object.h"
 #include "originals_combat.h"
@@ -15,6 +16,7 @@
 #include "party.h"
 #include "resource_manager.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "lib/crt.h"
@@ -114,7 +116,7 @@ __declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x005
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
-void __fastcall VoiceSay(void* a0, void*, int a2) { VoiceSayOriginal(a0, nullptr, a2); }
+void __fastcall VoiceSay(void* a0, void*, int a2) { static_cast<AIAlarm*>(a0)->Raise(a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
@@ -129,7 +131,7 @@ UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, 
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
 AnimationSteps* __fastcall AnimationListConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-// 00548DE0 (CtlPlayAnimationOrder, originals_combat.h). CUnitServer: plays `animation` (taken by value and destroyed).
+// 00548DE0 (CUnitServer::PlayAnimationOrder): plays `animation` (taken by value and destroyed).
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
 
@@ -391,7 +393,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
         TriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
-        BrainSetSeenOriginal(&brain, nullptr, attacker);
+        brain.SetSeen(attacker);
         unit->flags_ |= 0x80000;
         PropagateHostility();
         std::uint32_t direction = HitDirection(attacker, hitKind);
@@ -429,7 +431,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
-    CtlPlayAnimationOrder(this, nullptr, copy);
+    PlayAnimationOrder(copy);
     AIEventsDied(AIEventsOf(world), nullptr, this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
@@ -445,7 +447,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
-        if (char* player = unit->player) WorldLootOriginal(WorldServer(), nullptr, target, reinterpret_cast<WorldPlayer*>(player));
+        if (char* player = unit->player) static_cast<CWorldServer*>(WorldServer())->Loot(target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(WorldServer(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -524,7 +526,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
             return;
         }
         char* player = unit->player;
-        if (player && WorldLootOriginal(world, nullptr, other, reinterpret_cast<WorldPlayer*>(player))) return;
+        if (player && static_cast<CWorldServer*>(world)->Loot(other, reinterpret_cast<WorldPlayer*>(player))) return;
         if (!unit->player) return;
         message = kMessageStealFailed;
         break;

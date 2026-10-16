@@ -417,9 +417,9 @@ int CWorldClient::Segment() {
     int frames = ++ticksRun_;
     if (frames == 10) {
         InterfaceStringEventOriginal(worlddata::InterfaceManager(), nullptr, worlddata::AutosaveEventText());
-        SoundManagerSetEffectsVolumeOriginal(sounds_, nullptr, worlddata::VolumeSettingA());
-        SoundManagerSetSpeechVolumeOriginal(sounds_, nullptr, worlddata::VolumeSettingB());
-        SoundManagerSetMusicVolumeOriginal(sounds_, nullptr, worlddata::MovieVolumeSetting());
+        sounds_->SetEffectsVolume(worlddata::VolumeSettingA());
+        sounds_->SetSpeechVolume(worlddata::VolumeSettingB());
+        sounds_->SetMusicVolume(worlddata::MovieVolumeSetting());
     } else if (frames == 90 || (frames < 90 && worlddata::FightState() == 2)) {
         music_->holding = 0;
     }

@@ -209,8 +209,7 @@ float WaveDirectionScale() { return *reinterpret_cast<const float*>(0x007C896C);
 // empty string's there); assignments go through MFC's operator=.
 mfc::CString& AsString(const char*& text) { return reinterpret_cast<mfc::CString&>(text); }
 
-// Reset (LandscapeResetOriginal) and the wave phases are called through their addresses, so that
-// their verify wrappers run.
+// The wave phases (rewritten) are called through their address.
 __declspec(naked) void __fastcall BuildWavePhasesAt(Terrain*) EI_ORIGINAL(0x006C57E0)
 // The same for the vertex tile table and the map's freeing.
 __declspec(naked) void __fastcall BuildVertexTilesAt(Terrain*) EI_ORIGINAL(0x006C7A80)
@@ -219,7 +218,7 @@ __declspec(naked) void __fastcall ClearMapAt(Terrain*) EI_ORIGINAL(0x006C7750)
 } // namespace
 
 int Terrain::CreateImpl() {
-    LandscapeResetOriginal(this);
+    Reset();
     BuildVertexTilesAt(this);
     BuildWavePhasesAt(this);
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
@@ -234,7 +233,7 @@ void Terrain::DestroyImpl() {
     maxLightId = 0;
     lights.Clear();
     sectorCache.RemoveAll();
-    LandscapeResetOriginal(this);
+    Reset();
 }
 
 void Terrain::Reset() {

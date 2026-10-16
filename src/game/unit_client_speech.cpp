@@ -123,7 +123,7 @@ EI_REPLACE_METHOD(0x00537D80, CUnitClientSpecific::Say);
 void CUnitClientSpecific::StopSpeech() {
     for (ClientSpeechNode* node = speech->next; node != speech; node = node->next) {
         if (node->value.talking) SetTalking(unit->id_, false);
-        SoundStop(sound::Manager(), nullptr, node->value.sound);
+        static_cast<CSoundManager*>(sound::Manager())->StopSound(node->value.sound);
     }
     for (ClientSpeechNode* node = speech->next; node != speech;) {
         ClientSpeechNode* next = node->next;

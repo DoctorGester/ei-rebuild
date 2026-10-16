@@ -563,7 +563,7 @@ void CMpConnectScreen::EditAddress() {
     if (row > 0 && static_cast<unsigned>(row) < entries_.size()) {
         net::StringRep text;
         CopyText(boxText_, entry.address.ToString(&text)->start);
-        NodeDeallocateOriginal(text.start, static_cast<std::size_t>(text.eos - text.start));
+        libcrt::NodeDeallocateChecked(text.start, static_cast<std::size_t>(text.eos - text.start));
     }
     OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
 }

@@ -59,7 +59,7 @@ console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* othe
 // address so its verify wrapper counts it (UpdateMemory's check relies on that).
 void NoticeAt(AIBrain* brain, CUnit* at, int level, int kind) {
     float copy[2];
-    const float* point = CopyPoint2Original(copy, &at->position.x);
+    const float* point = CopyPoint2(copy, &at->position.x);
     brain->noticedX = point[0];
     brain->noticedLevel = level;
     brain->noticedY = point[1];

@@ -2,6 +2,7 @@
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "game_strings.h"
+#include "net_coder.h"
 #include "net_connection.h"
 
 #include "core_streams.h"
@@ -65,7 +66,7 @@ void SessionBase::TickImpl(double dt) {
             continue;
         }
         char kind;
-        if (buffer->cur + 1 > buffer->high) BufferReadPastEnd(buffer, nullptr, &kind, 1);
+        if (buffer->cur + 1 > buffer->high) buffer->ReadPastEnd(&kind, 1);
         else if (buffer->cur + 1 > buffer->end) buffer->ReadMore(&kind, 1u);
         else buffer->CopyOut(&kind, 1);
         BufferUpdateHigh(buffer);
@@ -121,7 +122,7 @@ __declspec(naked) ClientNode** __fastcall ClientFind(ClientNode** /*out*/, void*
                                                      const NetAddress* /*address*/) EI_ORIGINAL(0x0043D780)
 __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
 // 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
-void __fastcall NodeFree(char* a0, std::size_t a1) { NodeDeallocateOriginal((void*)a0, a1); }
+void __fastcall NodeFree(char* a0, std::size_t a1) { libcrt::NodeDeallocateChecked((void*)a0, a1); }
 
 
 // "<text>\n" and a flush, when there is a network log.

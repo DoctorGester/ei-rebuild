@@ -6,6 +6,8 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float. Constants are read from the exe's memory,
 // as the original does.
+#include "app.h"
+#include "sound.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -168,7 +170,7 @@ private:
 
 // The rest (not rewritten).
 struct SoundMixer {
-    void ResetMusic() { MusicSystemStopOriginal(reinterpret_cast<CMusicSystem*>(this)); }   // 006B4F70 (the object at *007AF760)
+    void ResetMusic() { reinterpret_cast<CMusicSystem*>(this)->Stop(); }   // 006B4F70 (the object at *007AF760)
 };
 struct WeatherObject {
     void Construct(int size);                           // 00499DC0
@@ -751,7 +753,7 @@ void CGlobalMap::Update() {
             long hr = static_cast<IDirectDrawSurface7*>(holder->surface)
                           ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), DDLOCK_WAIT, nullptr);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
+            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
         }
         float seconds = static_cast<float>(FrameTime(this));
         WeatherDrawOriginal(weather_, nullptr, reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
@@ -759,7 +761,7 @@ void CGlobalMap::Update() {
         if (!direct) {
             long hr = static_cast<IDirectDrawSurface7*>(holder->surface)->Unlock(nullptr);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
+            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
         }
     }
     static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(dragging_ ? 0x16 : 0);

@@ -204,7 +204,7 @@ Query* Query::QueryDelete(unsigned flags) {
 EI_REPLACE_METHOD(0x00443E90, Query::QueryDelete);
 Query* Query::QueryCopy(const Query* from) {
     address = from->address;
-    GameBufferCopy(&reply, nullptr, &from->reply);
+    reply.ConstructCopy(&from->reply);
     return this;
 }
 EI_REPLACE_METHOD(0x00444270, Query::QueryCopy);
@@ -830,7 +830,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
                 GameBuffer& r = q->reply;
                 r.cur = r.begin;
                 r.high = r.begin + length;
-                if (r.high > r.end) GameBufferGrowOriginal(&r, nullptr, length);
+                if (r.high > r.end) static_cast<GameBuffer*>(&r)->Grow(length);
             } else {
                 length = static_cast<std::uint32_t>(BufferLengthAt(&q->reply));
                 archive->Field(2, &length, 4);

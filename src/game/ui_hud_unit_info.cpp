@@ -4,6 +4,7 @@
 // down 15 pixels. See docs/notes/ui.md ("Battle HUD panels").
 #include "console.h"
 #include "game_strings.h"
+#include "object_tables.h"
 #include "ui.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -16,6 +17,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "world.h"
 
 #include <cstdint>
 
@@ -46,7 +48,7 @@ constexpr int kLevelDifferenceLimit = 25;
 __declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(0x0052FAF0)
 __declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
 // The world (007AF5B8): the time of day [0055FC50, ST0].
-double __fastcall WorldDayTime(void* a0) { return WorldDayTimeOriginal(a0); }
+double __fastcall WorldDayTime(void* a0) { return static_cast<CWorld*>(a0)->NightLevel(); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
 // the description texts [005270E0: unit +0x17C, out, name is a text key].
 // 004613A0: whether an id is a text key [__fastcall].
@@ -165,7 +167,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.DrawLine();
 
     std::uint8_t description[0x1C];
-    UnitParameterBlock(params, nullptr, &unitIn->packedVitals, description, IsTextKeyOriginal(unitIn->id_));
+    UnitParameterBlock(params, nullptr, &unitIn->packedVitals, description, IsTextKey(unitIn->id_));
     console::CStringArray lines;
     DescriptionLines(description, &lines, 1);
     panel.DrawLabelled(10, lines[0]);

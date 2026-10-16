@@ -33,4 +33,4 @@ void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code);
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source`.
 void __fastcall AIEventsNoise(void* events, void*, CUnitServer* source, float loudness, int kind, int);
 
-// 005D7E90: the AI's memory of attackers (CUnitServer + 0x980) remembers `attacker`: BrainSetSeenOriginal (originals_ai.h).
+// 005D7E90: the AI's memory of attackers (CUnitServer + 0x980) remembers `attacker`: AIBrain::SetSeen.

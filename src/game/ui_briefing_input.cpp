@@ -92,7 +92,7 @@ bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVi
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     Vector3 picked;
-    Vector3* p = HoverPickSurface(ClientWorld(), nullptr, &picked, x, y);
+    Vector3* p = static_cast<CWorldClient*>(ClientWorld())->PickSurface(&picked, x, y);
     Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
@@ -193,7 +193,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     Vector3 picked;
-    Vector3* p = HoverPickSurface(ClientWorld(), nullptr, &picked, x, y);
+    Vector3* p = static_cast<CWorldClient*>(ClientWorld())->PickSurface(&picked, x, y);
     Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
     if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;

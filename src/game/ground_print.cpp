@@ -14,7 +14,7 @@
 #include "figure_mesh.h"         // VertexPacket
 #include "ground_decal.h"        // DecalTexCoord
 #include "model.h"               // ThePrintsDatabase
-#include "originals_effects.h"   // IsLit
+#include "originals_effects.h"
 #include "originals_render.h"    // DeviceDrawFlatOriginal
 #include "originals_ui.h"        // TextureNamedOriginal, TextureLoadOriginal
 #include "originals_world.h"     // ClientProjectDecalOriginal
@@ -169,7 +169,7 @@ GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, flo
     halfLength_ = halfLength;
     ei::SetVtable(this, kVtableAddress);
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
+    lit_ = camera::TheTerrain()->EdgeFade(&point);
     int quarter = RandomQuarter();
     uvScale_ = {kHalf, kHalf};
     uvOffset_.x = static_cast<float>(quarter & 1) * kHalf;
@@ -318,7 +318,7 @@ Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLen
     ei::SetVtable(this, kVtableAddress);
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
+    lit_ = camera::TheTerrain()->EdgeFade(&point);
     // The tile's parts are below 2^16: converted as ints.
     int index = static_cast<int>(tile & 0xFFFF);
     uvOffset_.x = static_cast<float>(index & 7) * kEighth + static_cast<float>(static_cast<int>(tile >> 16)) * kSixteenth;
@@ -359,7 +359,7 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     halfWidth_ = halfSize;
     halfLength_ = halfSize;
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
+    lit_ = camera::TheTerrain()->EdgeFade(&point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
     uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * kHalf;

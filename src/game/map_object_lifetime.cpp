@@ -289,7 +289,7 @@ CUnit* CUnit::Construct() {
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;
-    UnitMotionClearOriginal(m);
+    static_cast<UnitMotion*>(m)->Clear();
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
     carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);

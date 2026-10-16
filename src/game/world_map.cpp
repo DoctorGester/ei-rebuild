@@ -1,5 +1,6 @@
 // CWorldServer::LoadMap (00595C70): loads a zone's map and objects (from NewZone, LoadSave,
 // EnterZone). See world.h and docs/notes/world.md.
+#include "ai_map.h"
 #include "world.h"
 #include "game_strings.h"
 
@@ -20,7 +21,7 @@
 namespace {
 
 
-// 005B5E10. CAIMap: forget the map (005B8B30, AIMapBeginRefreshOriginal: start collecting refreshes).
+// 005B5E10. CAIMap: forget the map (005B8B30, CAIMap::BeginRefresh: start collecting refreshes).
 __declspec(naked) void __fastcall AIMapReset(void*, void*) EI_ORIGINAL(0x005B5E10)
 // 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
@@ -67,7 +68,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     void* aiMap = aiMap_;
     if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(mapName_), reinterpret_cast<const unsigned char*>(map)) != 0) {
         AIMapReset(aiMap, nullptr);
-        AIMapBeginRefreshOriginal(aiMap);
+        static_cast<CAIMap*>(aiMap)->BeginRefresh();
         bool failed;
         {
             char* path = nullptr;
@@ -115,7 +116,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
     if (keepsState_ || loadedFresh_) {
         *reinterpret_cast<mfc::CString*>(&mobName_) = mob;
-        int loaded = WorldLoadMapObjects(this, nullptr, mob, loadedFresh_ == 0);
+        int loaded = LoadMapObjects(mob, loadedFresh_ == 0);
         if (!loaded) return loaded;
         if (!loadedFresh_) {
             QueueReset(commandsA_, nullptr);

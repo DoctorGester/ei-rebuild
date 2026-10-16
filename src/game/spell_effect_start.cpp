@@ -3,6 +3,7 @@
 // get a CEffectArrow or a particle source and go to state 1, the lasting spells get particles,
 // lights and sound sequences and go to state 2, the instant ones (lightning, the light strike,
 // buffs, charm) deal or apply their effect here. See docs/notes/items_spells.md.
+#include "spell.h"
 #include "spell_effect_internal.h"
 #include "combat.h"
 #include "game_strings.h"
@@ -40,7 +41,7 @@ Next StartLightning(CSpellEffect* e, int type, const Vector3& from) {
     Vector3 scratch;
     e->CreatePointLight(PositionOf(e->target, &scratch), &color, range, &kZeroVector);   // no null check
     DamageInfo hit;
-    SpellEffectGetDamageOriginal(e, nullptr, &hit);
+    e->GetDamage(&hit);
     if (IsUnit(e->target)) EffectHitUnit(e, nullptr, &hit, e->target);
     e->timer = 7;
     e->state = 2;

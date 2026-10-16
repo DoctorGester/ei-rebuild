@@ -1,6 +1,7 @@
 // CWorldServer::UpdateWeather (0058CCD0, every 64 ticks from Tick): the day-time value, rain
 // starting and stopping, lightning strikes and the lightning bolts during a storm. See world.h and
 // docs/notes/world.md.
+#include "ai_map.h"
 #include "world.h"
 
 #include "base_manager.h"
@@ -52,7 +53,7 @@ constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
 // 0055FC50. CWorld's day-time value (ST0).
-double __fastcall WorldDayTime(CWorldServer* a0, void*) { return WorldDayTimeOriginal((void*)a0); }
+double __fastcall WorldDayTime(CWorldServer* a0, void*) { return static_cast<CWorld*>((void*)a0)->NightLevel(); }
 // CAIMap (+0x170): the cell kind at a point (005BBE40), whether the point is blocked (005BBC70, AL),
 // the free fraction of the line between two points (005BC750, ST0).
 __declspec(naked) int __fastcall AIMapCellKind(void*, void*, const Vector3*) EI_ORIGINAL(0x005BBE40)
@@ -64,7 +65,7 @@ __declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*,
 void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
     ShowBoltOriginal(glue, nullptr, from.x, from.y, from.z, to.x, to.y, to.z);
 }
-// 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
+// 0058B6D0. MarkPlayersDirty, through its address.
 __declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(Random().Next()) * scale); }
@@ -79,7 +80,7 @@ void TryLightningStrike(CWorldServer* world) {
     void* aiMap = world->aiMap_;
     int kind = AIMapCellKind(aiMap, nullptr, &ground);
     if (kind != 3 && kind != 1) return;
-    if (CellFlag80AtOriginal(aiMap, nullptr, &ground)) return;
+    if (static_cast<CAIMap*>(aiMap)->CellFlag80At(&ground)) return;
 
     float dx = static_cast<float>(x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre());
     double dyRaw = x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre();
@@ -100,7 +101,7 @@ void TryLightningStrike(CWorldServer* world) {
     LightningSetPath(lightning, nullptr, &ground, &sky);
     static_cast<CEffect*>(lightning)->startTick_ = world->tick_;
     ++lightning->refCount_;
-    ObjectMarkNewOriginal(lightning);
+    static_cast<CEffect*>(lightning)->MarkChanged();
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
 }
 
@@ -160,7 +161,7 @@ void CWorldServer::UpdateWeather() {
 
     for (auto* node = objects_.map.First(); node; node = objects_.map.After(node))
         ObjectSlots(node->value)->UpdateMoveFactors();   // slot 57: the weather changed
-    if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
 }
 
 // ---- ShowBolt ---------------------------------------------------------------------------------

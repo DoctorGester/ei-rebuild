@@ -47,7 +47,7 @@ void AssignTexture(CEngineObject** slot, CEngineObject* value) {
 // addresses (CTextureDevice::BindSurface, BindTexture, FlushBatch).
 __declspec(naked) void __fastcall BindSurface(CTextureDevice*, void*, int, CDXSurface*) EI_ORIGINAL(0x004EB300)
 __declspec(naked) void __fastcall BindTexture(CTextureDevice*, void*, int, CTexture*) EI_ORIGINAL(0x004EBAF0)
-void FlushBatch(CTextureDevice* device) { DeviceFlushBatchAOriginal(device); }
+void FlushBatch(CTextureDevice* device) { static_cast<CTextureDevice*>(device)->FlushBatch(); }
 
 struct DrawArgs {
     int primitive;

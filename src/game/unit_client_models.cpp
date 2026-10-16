@@ -1,6 +1,7 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
 #include "item.h"
+#include "resource.h"
 #include "unit_client_models.h"
 #include "game_strings.h"
 
@@ -114,7 +115,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         }
         CEngineObject* current = FindPart(unit, nullptr, part);
         armourPart.Format(game::Text(0x0078FB14), static_cast<const char*>(part), ItemHead(armour)->number);
-        if (MappedResourceFindEntryOriginal(static_cast<const CMappedResource*>(*static_cast<void**>(model)), nullptr, armourPart) != -1) {
+        if (static_cast<const CMappedResource*>(*static_cast<void**>(model))->FindEntry(armourPart) != -1) {
             AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) RemovePart(unit, nullptr, current);
         } else if (current) {
@@ -449,7 +450,7 @@ void AddTexture(SkinRequest& request, const mfc::CString& texture) {
 }
 
 void AddArmourTexture(SkinRequest& request, const CUnit* unit, mfc::CString& texture, std::uint32_t id) {
-    ArmourTexture(&texture, id >> 16, id & 0xFFFF);
+    ArmorModelName(&texture, id >> 16, id & 0xFFFF);
     AddPrototypePrefix(unit, texture);
     AddTexture(request, texture);
 }

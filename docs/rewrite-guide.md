@@ -68,7 +68,10 @@ comes from a bug we already hit.
    the function has one; when it has none and a second file needs it, move it there instead of
    declaring another forwarder. Decide its signature from the disassembly (RET n, what callers read
    in EAX/AL/ST0). `build.cmd` runs `tools/check_forwarders.py`, which fails on any function newly
-   forwarded from more than one file. A rewritten function is called directly (rule 9).
+   forwarded from more than one file. A rewritten function is called directly (rule 9), never
+   through a forwarder: `python tools/direct_calls.py --report` lists the forwarders to rewritten
+   code and `--apply --scope <files>` rewrites their call sites (C13; `check_cleanup` ratchets the
+   `EI_ORIGINAL` count per file).
    Naked functions cannot have members with constructors/destructors in the class layout path; use raw
    pointers in layouts where needed (see `mfc::CFile`).
 6. **Memory and CRT:** allocate and free with `gamecrt::operator_new/operator_delete` (the game's heap),
@@ -102,8 +105,9 @@ comes from a bug we already hit.
 9. **Rebirth's patches are flags.** The standalone image never loads Rebirth's addon.dll or
    EI_Plugin.asi; what they change in game.exe is our code's to reproduce. (Until S21e rewrites also
    ran inside game.exe, where the installer skipped functions addon.dll had patched and rewritten
-   callers had to reach them through their original addresses; those `EI_ORIGINAL` calls are C13's
-   to make direct.) The image keeps Rebirth's data constants in memory as addon writes them (00742B08,
+   callers had to reach them through their original addresses; C13 makes those calls direct;
+   tools/direct_calls.py still leaves Rebirth-patched callees and shims as forwarders and lists
+   them.) The image keeps Rebirth's data constants in memory as addon writes them (00742B08,
    the interface's 800-pixel layout width, becomes its widescreen width in WideScreen's startup
    action): read such constants from memory, as the original does, instead of compiling their values
    in. A rewrite may reproduce a Rebirth patch behind its flag (`ei::rebirth::Enabled(Patch::<name>)`,

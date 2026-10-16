@@ -43,7 +43,7 @@ int SharedListPlayer(int playerId) {
 struct NewObjectMark {
     void Apply();
 };
-void NewObjectMark::Apply() { ObjectMarkNewOriginal((void*)this); }
+void NewObjectMark::Apply() { static_cast<CEffect*>((void*)this)->MarkChanged(); }
 
 // 0055FB00 (world base): FindObject (slot 40) restricted to units.
 struct WorldBase {

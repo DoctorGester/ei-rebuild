@@ -1,6 +1,7 @@
 // Combat, fifth part: the per-tick order machine of CUnitServer: taking over the queued order,
 // carrying out the current one (closing in on the target, planning the moment of the action) and
 // what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
+#include "ai_map.h"
 #include "combat.h"
 #include "originals_combat.h"
 #include "combat_plan.h"
@@ -339,7 +340,7 @@ bool CUnitServer::StartMove() {
     // Plan the way with the units near the goal lifted off the sector map.
     CtlLiftNearby(this, nullptr, &lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
-    unit->altPassCosts = CellFlag80AtOriginal(map, nullptr, &unit->position);
+    unit->altPassCosts = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);
     bool found = TickPathTo(this, nullptr, &action.point.x, std::bit_cast<std::uint32_t>(action.point.z));
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
@@ -424,7 +425,7 @@ bool CUnitServer::StartQueuedOrder() {
         StepsAddStepTick(&steps, nullptr, animation, duration);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
-        CtlPlayAnimationOrder(this, nullptr, copy);
+        PlayAnimationOrder(copy);
         StepsDestroy(&steps);
         return true;
     }
@@ -496,7 +497,7 @@ void CUnitServer::UpdateOrders() {
         if (state != kStateChasing) return;
         if (stoodBlocked) {
             orderStopped = 1;
-            if (!BrainLeaderOrFollowedOriginal(&brain) && unit->player) TellParty(unit, kMessageCannotDo);
+            if (!brain.LeaderOrFollowed() && unit->player) TellParty(unit, kMessageCannotDo);
         }
         if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
             DropQueuedOrder();
@@ -900,7 +901,7 @@ void CUnitServer::ApproachTarget() {
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (AIPathStartOriginal(path, nullptr, &unit->position, &back, time)) unit->RefreshMotion();
+        if (path->Start(&unit->position, &back, time)) unit->RefreshMotion();
         SetStanding(0);
         state = kStateChasing;
         unit->UpdateSizeClass();

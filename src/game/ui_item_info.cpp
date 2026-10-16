@@ -129,7 +129,7 @@ struct Texts {
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 BOOL Texts::NextLine() { return TextNextLine(reinterpret_cast<CTextManager*>(this)); }
-BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
+BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)static_cast<CTextManager*>((void*)this)->ReadLine(a0, (int)a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
     return TextManagerItemTexts(reinterpret_cast<CTextManager*>(this), nullptr, item, name, description, kind);
@@ -143,13 +143,13 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 // (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
 // count (0068BA60, CSpell::GetModifierCount).
 const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
-    return reinterpret_cast<const itemdb::ItemRecordHead*>(ItemGetPrototypeOriginal(item));
+    return reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype());
 }
-int CategoryOf(CItem* item) { return ItemGetCategoryOriginal(item); }
+int CategoryOf(CItem* item) { return item->GetCategory(); }
 __declspec(naked) int __fastcall WeaponTypeOf(CItem*) EI_ORIGINAL(0x006A07F0)
 __declspec(naked) void __fastcall DamageTypesOf(CItem*, void*, float*) EI_ORIGINAL(0x006A0770)
 const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
-    return reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)));
+    return reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
 __declspec(naked) int __fastcall ModifierCountOf(void*) EI_ORIGINAL(0x0068BA60)
 

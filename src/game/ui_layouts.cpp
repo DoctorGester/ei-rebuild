@@ -3,6 +3,7 @@
 //
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
+#include "sound.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -390,8 +391,8 @@ struct MenuGlue {
 const mfc::CString* MenuGlue::Directory() { return GameDirectoryOriginal(this); }
 void* MenuGlue::TextTable() { return GameFlowOriginal(); }
 void MenuGlue::SetServer(int f) { GameSetServerPaused(f); }
-void MenuGlue::BeforeTitles(int a0) { MenuSetOriginal(a0); }
-void MenuGlue::BeforeTitles2() { MenuCallOriginal(); }
+void MenuGlue::BeforeTitles(int a0) { GameStopSounds(a0); }
+void MenuGlue::BeforeTitles2() { GameStopAmbience(); }
 MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(address); }
 
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
@@ -700,7 +701,7 @@ void CCreditsScreen::Build() {
     const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
     if (!fromGame_) {
         LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
-        MusicSystemStopOriginal(*reinterpret_cast<CMusicSystem**>(0x007AF760));
+        (*reinterpret_cast<CMusicSystem**>(0x007AF760))->Stop();
     }
     CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
     PlayMoviesOriginal(mfc::operator+(name, game::Text(0x00794040)), 1, 0, 0, 0);   // "<name>fin"

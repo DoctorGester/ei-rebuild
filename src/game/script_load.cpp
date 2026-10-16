@@ -256,11 +256,11 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
         int id = 0;
         stream->Read(&id, 4);
         if (id == -1) {
-            RefReset(ref);
+            ref->Reset();
             ref->object = nullptr;
         } else {
             CEngineObject* object = WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
-            RefReset(ref);
+            ref->Reset();
             if (object) ++object->refCount_;
             ref->object = object;
         }
@@ -285,7 +285,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
             stream->Read(&id, 4);
             CEngineObject* object =
                 id == -1 ? nullptr : WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
-            RefAssign(&group->data[k], nullptr, object);
+            group->data[k].Assign(object);
         }
         group->Sort();
         StringLoad(&names.data[i], stream);
@@ -426,10 +426,10 @@ void ScriptVars::Load(ScriptStream* stream) {
         ScriptObjectRef* ref = &objects.data[i];
         stream->Read(&slot, 4);
         if (slot == -1) {
-            RefReset(ref);
+            ref->Reset();
             ref->object = nullptr;
         } else {
-            RefAssign(ref, nullptr, WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
+            ref->Assign(WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
         }
         StringLoad(&objectNames.data[i], stream);
     }
@@ -557,16 +557,16 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             ScriptVars vars;
         } temp{};
         temp.ifThen.vtable = reinterpret_cast<void*>(0x0073D430);
-        VarsConstruct(&temp.vars);
+        temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewInstanceNode, [&](char* data) {
             auto* instance = reinterpret_cast<ScriptDefinition*>(data);
             instance->index = temp.index;
             instance->name = temp.name;
             instance->params = temp.params;
             IfThenCopy(&instance->ifThen, nullptr, &temp.ifThen);
-            VarsAssign(&instance->vars, nullptr, &temp.vars);
+            instance->vars.ScriptVarsAssign(&temp.vars);
         });
-        VarsDestruct(&temp.vars);
+        ScriptVarsDestruct(&temp.vars);
     }
     for (ListNode* node = list->head; node;) {
         auto* instance = reinterpret_cast<ScriptDefinition*>(node->data.bytes);
@@ -590,7 +590,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
     for (int i = 0; i < count; ++i) {
         // A temporary run (sleep start unset) is copied into the node, then destroyed.
         ScriptRun temp{};
-        VarsConstruct(&temp.vars);
+        temp.vars.ScriptVarsConstruct();
         AppendNode(list, NewRunNode, [&](char* data) {
             auto* run = reinterpret_cast<ScriptRun*>(data);
             run->block = temp.block;
@@ -598,9 +598,9 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
             run->ticks = temp.ticks;
             run->sleepStart = temp.sleepStart;
             run->killFlag = temp.killFlag;
-            VarsAssign(&run->vars, nullptr, &temp.vars);
+            run->vars.ScriptVarsAssign(&temp.vars);
         });
-        VarsDestruct(&temp.vars);
+        ScriptVarsDestruct(&temp.vars);
     }
     for (ListNode* node = list->head; node;) {
         auto* run = reinterpret_cast<ScriptRun*>(node->data.bytes);

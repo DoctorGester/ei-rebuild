@@ -2,6 +2,7 @@
 // 004334C0), the id pools' copy and the replica entries' slots.
 // The containers are STLport instantiations (library), called through their original addresses.
 // See net_connection.h and docs/notes/network.md.
+#include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
 
@@ -273,8 +274,8 @@ Connection* Connection::Clone() {
     HeaderListCopy(&copy->incoming_, nullptr, &incoming_);
     copy->ackMask_ = ackMask_;
     copy->ackBase_ = ackBase_;
-    GameBufferCopy(&copy->reliableOut_, nullptr, &reliableOut_);
-    GameBufferCopy(&copy->reliableIn_, nullptr, &reliableIn_);
+    copy->reliableOut_.ConstructCopy(&reliableOut_);
+    copy->reliableIn_.ConstructCopy(&reliableIn_);
     ei::SetVtable(copy, kVtableAddress);
     return copy;
 }

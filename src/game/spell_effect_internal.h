@@ -287,7 +287,7 @@ inline void SetPosition(CEngineObject* object, const Vector3* position) {
 }
 
 // The fields of the spell prototype the casts read.
-inline const char* Prototype(CSpellEffect* e) { return SpellGetPrototypeOriginal(e->Spell()); }
+inline const char* Prototype(CSpellEffect* e) { return e->Spell()->GetPrototype(); }
 inline Vector3 PrototypeColor(CSpellEffect* e) {
     Vector3 color;
     std::memcpy(&color, Prototype(e) + 0x64, 12);
@@ -336,7 +336,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     mfc::CTypedPtrList<CEngineObject> units;
     PtrListConstruct(&units, nullptr, kPtrListBlockSize);
     DamageInfo hit;
-    SpellEffectGetDamageOriginal(e, nullptr, &hit);
+    e->GetDamage(&hit);
     SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
     for (auto* node = units.head; node;) {
         CEngineObject* unit = node->data;

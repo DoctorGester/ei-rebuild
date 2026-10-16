@@ -58,9 +58,6 @@ IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40)
 // 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
-// 00497EB0 AllocateElements, called through its address (the original calls it there for some
-// types and inlines it for others; the same code either way).
-
 // 00500A00. Releases the texture in `holder`, then finds (or creates) the texture resource `name`
 // of `kind` in the resource manager (007AF744) and keeps a reference in `holder`. __thiscall.
 
@@ -97,7 +94,7 @@ void SetElementCount(CParticleSource* s, int n) {
         s->elementCapacity = 0;
         s->elementCount = 0;
     } else if (!s->elements) {
-        s->elements = AllocateElementsAt(n);
+        s->elements = AllocateElements(n);
         s->elementCapacity = n;
         s->elementCount = n;
     } else if (n <= s->elementCapacity) {
@@ -111,7 +108,7 @@ void SetElementCount(CParticleSource* s, int n) {
         }
         int capacity = s->elementCapacity + grow;
         if (!(capacity > n)) capacity = n;
-        ParticleElement* data = AllocateElementsAt(capacity);
+        ParticleElement* data = AllocateElements(capacity);
         std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
         gamecrt::operator_delete(reinterpret_cast<void**>(s->elements)[-1]);
         s->elements = data;

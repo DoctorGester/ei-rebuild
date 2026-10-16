@@ -1,5 +1,9 @@
 // CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md.
+#include "core_streams.h"
+#include "object_tables.h"
+#include "script.h"
+#include "unit_ai.h"
 #include "world.h"
 #include "world_data.h"
 #include "game_strings.h"
@@ -63,7 +67,7 @@ void CWorldServer::UpdateMercBriefings() {
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             mfc::CString merc;
             merc.Format(worlddata::MercNameFormat(), slot);
-            unsigned key = TextKeyOf(merc);
+            unsigned key = TextKeyFromName(merc);
             bool briefedHere = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(zoneName_),
                                                 reinterpret_cast<const unsigned char*>(worlddata::MercZoneName(slot - 1))) == 0;
             Briefing b;
@@ -168,7 +172,7 @@ __declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, vo
 inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
-// 004D23A0 (RET 8). The first command queue: add a line (ScriptsRun runs it once).
+// 004D23A0 (RET 8). The first command queue: add a line (the scripts' run runs it once).
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
@@ -284,7 +288,7 @@ void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
     if (sessionKind_ == kKindNoRangeTest)
-        for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
+        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }
 
 // ---- ApplyMercBriefing ------------------------------------------------------------------------
@@ -318,7 +322,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
         v.merc.Format(worlddata::MercNameFormat(), slot);
-        unsigned key = TextKeyOf(v.merc);
+        unsigned key = TextKeyFromName(v.merc);
         v.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(v.merc), slot);
         v.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(v.merc), slot);
         v.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(v.merc), slot);
@@ -524,7 +528,7 @@ ItemSourceRef* NewItemRecord(bool refValueBase) {
     memory->refs = 0;   // before the null test
     if (!memory) return nullptr;
     if (!refValueBase) return static_cast<ItemSourceRef*>(ItemRecordConstruct(memory, nullptr));
-    RefValueConstructOriginal(memory);
+    RefValueConstructBase(memory);
     memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
     return memory;
 }
@@ -667,7 +671,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
             CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
-            CEngineObject* leader = BrainLeaderOrFollowedOriginal(&ControllerOf(unit)->brain);
+            CEngineObject* leader = ControllerOf(unit)->brain.LeaderOrFollowed();
             record->leaderId = leader ? leader->id_ : -1;
         }
     }
@@ -693,7 +697,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
 
 void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (!player) return;
-    if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
     if (sessionKind_ != kKindNetwork) {
         StorePlayerItemsOriginal(this, nullptr, player, PartyOf(player));
         StateBeforeZoneChange(player->server, nullptr);

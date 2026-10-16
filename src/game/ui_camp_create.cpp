@@ -2,6 +2,7 @@
 // the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
 // which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
+#include "app.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "ui_camp.h"
@@ -476,7 +477,7 @@ void CCampPages::BuildPages() {
     D3DDEVICEDESC7 description = {};
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(display->d3dDevice_), &description);
     display->lastLoadResult_ = result;
-    if (result != 0) FatalDirectX(result, game::Text(0x0078EE20));   // "Can't get device description."
+    if (result != 0) app::FatalErrorCode(result, game::Text(0x0078EE20));   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
         device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);

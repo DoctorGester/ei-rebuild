@@ -4,6 +4,7 @@
 //
 // Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).
+#include "ai_alarm.h"
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
@@ -15,6 +16,7 @@
 #include "map_object_figures.h"
 #include "player_messages.h"
 #include "random.h"
+#include "script.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -84,7 +86,7 @@ __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, co
 void* __fastcall CellListConstruct(void* a0, void*, int a2) { return CellListConstructOriginal(a0, nullptr, a2); }
 void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 // The world server's timed objects (world_server.cpp).
-// The AI: 005D5E90 the brain's leader (BrainLeaderOrFollowedOriginal), 005D4F70 the brain's reset, 005AEA40 the
+// The AI: 005D5E90 the brain's leader (AIBrain::LeaderOrFollowed), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
@@ -157,7 +159,7 @@ void FaceAndStop(CUnitServer* self) {
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, direction, now)) self->unit->RefreshMotion();
+    if (Motion(self)->Start(&self->unit->position, direction, now)) self->unit->RefreshMotion();
     self->SetStanding(0);
     self->SetState(kStateChasing);
 }
@@ -265,7 +267,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back = -axis;
-    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, &back, now)) self->unit->RefreshMotion();
+    if (Motion(self)->Start(&self->unit->position, &back, now)) self->unit->RefreshMotion();
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
@@ -567,7 +569,7 @@ bool CUnitServer::ChangeMoveMode() {
             StepsSetSize(&copy, nullptr, transition.count, -1);
             for (int i = 0; i < transition.count; ++i) copy.steps[i] = transition.steps[i];
             copy.extra = transition.extra;
-            CtlPlayAnimationOrder(this, nullptr, copy);
+            PlayAnimationOrder(copy);
         }
         transition.vtable = kAnimationStepsBaseVtable;
         if (transition.steps) gamecrt::operator_delete(transition.steps);
@@ -664,7 +666,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
             UnitList::Node* current = node;
             node = node->next;
             CEngineObject* other = current->data;
-            if (GroupContains(reinterpret_cast<const ScriptGroup*>(group), nullptr, other) == 0) {
+            if (reinterpret_cast<const ScriptGroup*>(group)->Contains(other) == 0) {
                 SectorMapRemove(sectors, nullptr, other);
                 continue;
             }
@@ -683,7 +685,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         if (member == unit) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
-        if (!lift) lift = BrainLeaderOrFollowedOriginal(&controller->brain) == unit;
+        if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
         auto* added = static_cast<UnitList::Node*>(PtrListNewNode52CEF0Original(list, nullptr, list->tail, nullptr));
         added->data = member;
@@ -706,7 +708,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     int message;
     if (!partial) {
         if (self->player) PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 3, 1, kFarBits);
-        if (BrainLeaderOrFollowedOriginal(&brain)) return;
+        if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
         message = kMessageCannotDo;
@@ -722,7 +724,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);
-        if (BrainLeaderOrFollowedOriginal(&brain)) return;
+        if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
         message = far ? kMessagePartial : kMessageCannotDo;
@@ -776,7 +778,7 @@ void CUnitServer::ResyncWithUnit() {
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (AIPathStartOriginal(Motion(this), nullptr, &unit->position, direction, now)) unit->RefreshMotion();
+    if (Motion(this)->Start(&unit->position, direction, now)) unit->RefreshMotion();
     SetStanding(0);
     SetState(kStateChasing);
     unit->UpdateSizeClass();
@@ -871,7 +873,7 @@ void CUnitServer::ResetController() {
     if (waited) waited->Release();
     searchingTarget = 0;
     static_cast<AIBrain*>(&brain)->Init();
-    AlarmReset(&voice);
+    static_cast<AIAlarm*>(&voice)->Reset();
     aiPresence = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;

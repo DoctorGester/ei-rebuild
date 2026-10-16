@@ -16,6 +16,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "world_glue.h"
 
 #include <cstring>
 
@@ -71,8 +72,8 @@ void CBattleScreen::Close() {
     camera::TheCamera()->flags_ |= CCamera::kFree;
     WorldUpdatePeriod() = kDefaultUpdatePeriod;
     GameCursor()->SetHeld(0);
-    MenuSetOriginal(1);
-    MenuCallOriginal();
+    GameStopSounds(1);
+    GameStopAmbience();
     PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
 }
 EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
@@ -101,7 +102,7 @@ void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, i
     }
     topPanel_->AddMoney(money);
     TopPanelShowPageOriginal(topPanel_);
-    static_cast<CBattleScreen*>(this)->RefreshSelection();
+    RefreshSelection();
 }
 EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
 
@@ -123,7 +124,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
     --party.size;
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
-    static_cast<CBattleScreen*>(this)->RefreshSelection();
+    RefreshSelection();
 }
 EI_REPLACE_METHOD(0x006364E0, CBattleScreen::OnUnitLeft);
 
@@ -214,7 +215,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         MarkPortrait(place);
         break;
     }
-    static_cast<CBattleScreen*>(this)->RefreshSelection();
+    RefreshSelection();
 }
 EI_REPLACE_METHOD(0x006361B0, CBattleScreen::OnUnitJoined);
 
@@ -260,8 +261,8 @@ EI_REPLACE_METHOD(0x00635EB0, CBattleScreen::OnMessageResult);
 // --- 006365E0: slot 31 --------------------------------------------------------------------------
 
 void CBattleScreen::OnGameOver(char won) {
-    MenuSetOriginal(1);
-    MenuCallOriginal();
+    GameStopSounds(1);
+    GameStopAmbience();
     void* box;
     if (!won) {
         interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"

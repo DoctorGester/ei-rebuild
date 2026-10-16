@@ -1,6 +1,7 @@
 // The camp's trade panel (the level-up page, vtable 007417A8): its layout (00624F10), its lists of
 // schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Camp, global map,
 // hero screens").
+#include "item_db_text.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 #include "party.h"
@@ -41,7 +42,7 @@ struct TextGlue {
     void* Table();   // 00578E20
 };
 void* TextGlue::Table() { return GameFlowOriginal(); }
-int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return TextsReadLineOriginal(a0, nullptr, a2, a3); }
+int __fastcall TextReadLine(void* a0, void*, mfc::CString* a2, int a3) { return static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
 // vector<TradeRow> pieces (library): 0062A310 copy-constructs a row (TradeRow::CopyConstruct below),
 // 0062A7C0 destroys one (and frees it with flag 1; RET 4), 00629E60 the insert that reallocates (RET 0xC).

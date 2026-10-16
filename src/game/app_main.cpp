@@ -495,9 +495,9 @@ std::uintptr_t OpenSound() {
         mfc::CString speech = discFolder + game::Text(0x0078483C);
         SoundAddWaveSourceAt(Sound(), nullptr, speech);
     }
-    SoundManagerSetEffectsVolumeOriginal(Sound(), nullptr, options->audioSfx_);
-    SoundManagerSetSpeechVolumeOriginal(Sound(), nullptr, options->audioSpeech_);
-    SoundManagerSetMusicVolumeOriginal(Sound(), nullptr, options->audioStreaming_);
+    Sound()->SetEffectsVolume(options->audioSfx_);
+    Sound()->SetSpeechVolume(options->audioSpeech_);
+    Sound()->SetMusicVolume(options->audioStreaming_);
     Sound()->panDirect = options->reverseStereo_ != 0;
     return reinterpret_cast<std::uintptr_t>(static_cast<const char*>(discFolder));
 }
@@ -662,7 +662,7 @@ bool RunPass() {
     CWorldClient* client = Client();
     if (ClientLocalPlayerIdleAt(client)) {
         if (IsNetworkClientOriginal()) FlowRecreateClientSessionAt(TheGameFlow());
-        else FlowCloseSessionsOriginal(TheGameFlow());
+        else TheGameFlow()->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
     NetworkTimers();

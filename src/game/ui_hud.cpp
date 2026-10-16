@@ -1,5 +1,7 @@
 // The battle screen's HUD panels: mouse handlers, per-frame updates and the small drawing
 // wrappers. See ui.h ("Battle screen and its HUD panels") and docs/notes/ui.md.
+#include "item.h"
+#include "texture.h"
 #include "ui.h"
 
 #include "random.h"
@@ -100,8 +102,8 @@ constexpr std::uint32_t kCameraFollows = 8;
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-void UiRenderer::FlushBatchA() { DeviceFlushBatchAOriginal((void*)this); }
-void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
+void UiRenderer::FlushBatchA() { static_cast<CTextureDevice*>((void*)this)->FlushBatch(); }
+void UiRenderer::FlushBatchB() { static_cast<CTextureDevice*>((void*)this)->FlushBatch2(); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
 __declspec(naked) void CHudSpellColumn::ClickAlternateAt(int) EI_ORIGINAL(0x0063EF60)
@@ -740,7 +742,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = HoverPickSurface(WorldClient(), nullptr, &out, x, y);
+        Vector3* p = static_cast<CWorldClient*>(WorldClient())->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
@@ -888,7 +890,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
         void* item = first->GetQuickItem(pendingSlot_);
-        if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) return;
+        if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) return;
         ScreenCastOn(this, nullptr, unit, 1, 0);
         return;
     }

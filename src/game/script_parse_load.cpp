@@ -6,6 +6,7 @@
 // patches LoadFunction, LoadCommands and the keyword lookups (they install only in the vanilla
 // game), and in verify builds each callee then runs through its own wrapper. LoadFunction calls
 // itself directly (its verify wrapper would otherwise run the subtree twice at every level).
+#include "game_arrays.h"
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
@@ -212,8 +213,8 @@ struct LocalCmd {
 // A ScriptVars on the stack.
 struct LocalVars {
     alignas(4) unsigned char storage[sizeof(ScriptVars)];
-    LocalVars() { VarsConstruct(Get()); }
-    ~LocalVars() { VarsDestruct(Get()); }
+    LocalVars() { Get()->ScriptVarsConstruct(); }
+    ~LocalVars() { ScriptVarsDestruct(Get()); }
     ScriptVars* Get() { return reinterpret_cast<ScriptVars*>(storage); }
 };
 
@@ -229,10 +230,10 @@ struct LocalDefinition {
         d->ifThen.size = 0;
         d->ifThen.maxSize = 0;
         d->ifThen.growBy = 0;
-        VarsConstruct(&d->vars);
+        d->vars.ScriptVarsConstruct();
         d->index = 0;
     }
-    ~LocalDefinition() { DefinitionDestruct(Get()); }
+    ~LocalDefinition() { ScriptDefinitionDestruct(Get()); }
     ScriptDefinition* Get() { return reinterpret_cast<ScriptDefinition*>(storage); }
 };
 

@@ -64,8 +64,8 @@ void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
 
 // 004E7840 / 004E7A40: the renderer flushes its two batched vertex buffers.
 void Flush(CTextureDevice* renderer) {
-    DeviceFlushBatchAOriginal(renderer);
-    DeviceFlushBatchBOriginal(renderer);
+    static_cast<CTextureDevice*>(renderer)->FlushBatch();
+    static_cast<CTextureDevice*>(renderer)->FlushBatch2();
 }
 
 // The pipeline's matrix stacks: 1 and 2 pushed by 004D9B80 (PushSceneMatrixOriginal), 5 the world
@@ -602,7 +602,7 @@ int CWorldClient::DrawPass() {
     stlp::list<void*>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
-        DeviceSetTextureOriginal(SceneContext(), nullptr, 0, nullptr);
+        static_cast<CSceneRenderer*>(SceneContext())->SetTextureImpl(0, nullptr);
         CEngineObject* manager = manager40_;
         using Node = stlp::list<void*>::Node;
         Node* head = selected.head;

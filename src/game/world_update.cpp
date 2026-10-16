@@ -157,9 +157,9 @@ int CWorldServer::Update() {
             ScriptObjectRef copy;
             ScriptObjectRef* ref = GroupGetAt(&heroes, nullptr, &copy, i);
             ScriptObjectRef* slot = &state->partyUnits_.data[i];
-            RefReset(slot);
+            slot->Reset();
             RefConstruct(slot, nullptr, ref);
-            RefReset(&copy);
+            copy.Reset();
         }
     }
     heroes.vtable = scriptvtable::kRefsBase;

@@ -256,7 +256,7 @@ int CPlayerServer::OnUseOrder() {
         if (!accepted) chosen = first;
         if (order.object) order.object->Release();   // the counted reference's reset (0052B030)
         order.object = nullptr;
-        AIPathDestructOriginal(&path);
+        path.Destruct();
     } else if (units.size == 1) {
         chosen = units[0];
     }

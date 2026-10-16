@@ -1,6 +1,7 @@
 // CScript reset (004BE6E0): empties a script before a zone's mission script is loaded (world
 // creation and zone changes call it for both world scripts, the constructor 004BDE40 at the end).
 // See script.h and docs/notes/script.md.
+#include "game_arrays.h"
 #include "script.h"
 #include "game_strings.h"
 
@@ -70,11 +71,11 @@ void __fastcall ScriptReset(CScript* script) {
     static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
     while (script->instances_.count != 0) {
         ScriptInstancesRemoveHeadOriginal(&script->instances_, nullptr, element);
-        DefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
+        ScriptDefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
     while (script->runs_.count != 0) {
         ScriptRunsRemoveHeadOriginal(&script->runs_, nullptr, element);
-        VarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
+        ScriptVarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
     RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { ScriptWorldBlockDestroy(block, nullptr, 0); });
@@ -96,9 +97,9 @@ void __fastcall ScriptReset(CScript* script) {
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
         TempObjectsRemoveTailOriginal(&objects, nullptr, element);
-        RefReset(reinterpret_cast<ScriptObjectRef*>(element));
+        reinterpret_cast<ScriptObjectRef*>(element)->Reset();
     }
-    RefAssign(&objects.tail->data, nullptr, nullptr);
+    objects.tail->data.Assign(nullptr);
 
     // Point lights: objects released, slots zeroed.
     auto& lights = script->pointLights_;

@@ -3,6 +3,7 @@
 #include "game_strings.h"
 #include "console.h"
 
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
@@ -42,7 +43,7 @@ int DrawLine(CUiSurface* surface, const char* text, RECT* rect, int font, COLORR
 int CharAt(const char* p) {
     int value = 0;
     const char* q = p;
-    if (IsMbbLead(static_cast<unsigned char>(*p))) {
+    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
         value = static_cast<signed char>(*p) << 8;
         q = p + 1;
     }

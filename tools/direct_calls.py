@@ -686,6 +686,18 @@ def looks_void(expr, src):
     return last.group(1) in _VOID_NAMES[src.path] or last.group(1) in _VOID_NAMES['headers']
 
 
+_MEMBER_DEF = re.compile(r'^[A-Za-z_][^;(\n]*?\b([A-Za-z_]\w*)::~?[A-Za-z_]\w*\s*\(', re.M)
+
+
+def enclosing_class(src, offset):
+    # The class of the out-of-class member definition the offset is in (its first line at column 0), or None.
+    start = src.raw.rfind('\n}', 0, offset)
+    last = None
+    for m in _MEMBER_DEF.finditer(src.raw, start + 1 if start >= 0 else 0, offset):
+        last = m.group(1)
+    return last
+
+
 def rewrite_site(f, site):
     """(start, end, pieces) for one call site, or a reason. Pieces are strings and (start, end) ranges of
     the raw text, which are written with the edits inside them (a forwarder call in the arguments)."""
@@ -718,9 +730,10 @@ def rewrite_site(f, site):
             return None, f'EDX argument with an effect ({dummy})'
     rest = [_trimmed(s.code, args[2][0], close)[0], close] if nparams > 2 else None
     m = f.target.simple
-    needs_cast = f.kind == 'cast' and (not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES
-                                       or looks_void(self_code, s))
-    site.uncast = f.kind == 'cast' and not needs_cast
+    own_member = self_code == 'this' and enclosing_class(s, site.start) == f.target.scope.split('::')[-1]
+    needs_cast = f.kind == 'cast' and not own_member and (
+        not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES or looks_void(self_code, s))
+    site.uncast = f.kind == 'cast' and not needs_cast and not own_member
     if needs_cast:
         cls = spelled_type(f.target.scope, s, site.start)
         if '<' in cls:
@@ -878,6 +891,22 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
     return fwds, classes
 
 
+_VECTORS = {}
+
+
+def vector_sources():
+    """src/ files the ei_vectors executable links (CMakeLists.txt) -> True, or False when parts of the file are left
+    out of it (EI_VECTORS_REPLAY). A call there must keep reaching a target that ei_vectors has."""
+    if not _VECTORS:
+        text = open(os.path.join(ROOT, 'CMakeLists.txt'), encoding='utf-8').read()
+        m = re.search(r'add_executable\(ei_vectors(.*?)\)', text, re.S)
+        for path in re.findall(r'\bsrc/\S+\.cpp', m.group(1) if m else ''):
+            full = os.path.join(ROOT, path)
+            _VECTORS[path] = os.path.exists(full) and 'EI_VECTORS_REPLAY' not in open(full, encoding='utf-8').read()
+        _VECTORS.setdefault('', False)
+    return _VECTORS
+
+
 def plan(fwds, classes):
     """Edits per file for every convertible forwarder in scope; sets f.reason for the ones that fail."""
     edits = defaultdict(list)
@@ -894,6 +923,10 @@ def plan(fwds, classes):
                 why = why[:-1] + f'; {where})' if why.endswith(')') else f'{why} ({where})'
                 break
             mine.append((site.src, e))
+            vectors = vector_sources()
+            if site.src.path in vectors and site.src.path != f.target_src_path and vectors.get(f.target_src_path) is not True:
+                why = f'ei_vectors links the caller without the target ({site.src.path})'
+                break
             if site.src.path == f.target_src_path:
                 if not f.target.member and not declared_before(site.src, f.target.simple, site.start):
                     why = f'target declared after the call ({site.src.path}:{site.src.line_of(site.start)})'

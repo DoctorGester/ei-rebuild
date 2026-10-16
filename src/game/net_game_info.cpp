@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "net_coder.h"
 #include "originals_script.h"
 
 #include <cstring>
@@ -57,7 +58,7 @@ EI_REPLACE_METHOD(0x00401310, GameBuffer::CopyOut);
 // when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
 unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
     std::uint8_t* next = cur + size;
-    if (next > high) return BufferReadPastEnd(this, nullptr, to, size);
+    if (next > high) return ReadPastEnd(to, size);
     if (next > end) return static_cast<unsigned>(ReadMore(to, size));
     std::memcpy(to, cur, size);
     cur += size;

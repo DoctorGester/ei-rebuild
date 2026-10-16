@@ -238,7 +238,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     TextureParts* set;
     if (!partSets[k]) {
         set = NewZeroed<TextureParts>();
-        set->texture = WorldNewTextureOriginal(ManagerContext(), nullptr, kind);
+        set->texture = static_cast<CWorldClient*>(ManagerContext())->NewTexture(kind);
         partSets[k] = set;
         int count = textures.size;
         textures.SetSize(count + 1, -1);
@@ -278,7 +278,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
         if (material && material->type_ == materialKind) return set->groups[g]->material;
     }
     PartGroup* group = NewZeroed<PartGroup>();
-    CMaterial* material = WorldNewMaterialOriginal(ManagerContext(), nullptr, materialKind);
+    CMaterial* material = static_cast<CWorldClient*>(ManagerContext())->NewMaterial(materialKind);
     group->material = material;
     ++material->refCount_;
     set = partSets[k];

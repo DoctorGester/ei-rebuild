@@ -3,6 +3,7 @@
 // The original inlines the constructors of screens 1, 2, 3 and 7 (the container base 00600B20,
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
+#include "app.h"
 #include "ui_create_screen.h"
 
 #include "ui.h"
@@ -163,7 +164,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 1;
     using CreateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<CreateFn>(window->vtable_[25])(window);
-    PumpMessagesOriginal();
+    app::PumpMessages();
     ui->mouseCapture_ = nullptr;
     Cursor()->SetShape(0);
 }
@@ -217,7 +218,7 @@ void DeleteBackdrop(CUiSurface* surface) {
 void CInterface3D::Activate(CUiWindow* window) {
     if (closeAll_) {
         closeAll_ = false;
-        static_cast<CInterface3D*>(this)->CloseAll();
+        CloseAll();
     }
     Cursor()->SetShape(3);
     CUiSurface* backdrop = backdrop_;
@@ -243,7 +244,7 @@ void CInterface3D::Activate(CUiWindow* window) {
         --stackEnd_;
     }
     reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
-    PumpMessagesOriginal();
+    app::PumpMessages();
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
     if (!window) {
         game::FatalError(reinterpret_cast<const char*>(0x0079308C));

@@ -1,6 +1,8 @@
 // The visible effects: CEffectPointLight, CEffectParticle, CEffectWall, CEffectLightning. See
 // world_effect.h and docs/notes/effects.md.
 
+#include "camera.h"
+#include "script.h"
 #include "world_effect_internal.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
@@ -271,7 +273,7 @@ Vector3* CEffectParticle::Position(void* group) {
     if (attachedTo_ == -1) return &localPosition_;
     CEngineObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
     if (object == nullptr) return &localPosition_;
-    if (GroupContains(static_cast<const ScriptGroup*>(group), nullptr, object) == 0) {
+    if (static_cast<const ScriptGroup*>(group)->Contains(object) == 0) {
         // Not in the group: far away.
         worldPosition_.x = FromBits(0xC9742400u);   // -1e6
         worldPosition_.y = FromBits(0xC9742400u);
@@ -367,7 +369,7 @@ void CEffectParticle::Spawn() {
         std::uint32_t radius = Bits(size_);
         float angle = RandomAngle(random);
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
-        CameraShakeOriginal(CameraObject(), nullptr, &localPosition_, size_, 2.0f, 0.25f);
+        static_cast<CCamera*>(CameraObject())->Shake(&localPosition_, size_, 2.0f, 0.25f);
     }
 }
 

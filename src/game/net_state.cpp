@@ -226,7 +226,6 @@ namespace {
 // (unit)]; the object's manager context [00455940] and the client's local view [005699F0]; the
 // field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
-// (005C7FC0: PathReadOriginal, originals_ai.h.)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
@@ -334,7 +333,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     }
     if (DeltaField* field = state->BeginField(9)) {
         void* text;
-        void* read = FieldReadString(field, nullptr, &text);
+        void* read = field->ReadString(&text);
         CStringAssignOriginal(&unit->scriptName, nullptr, read);
         CStringDestroy(&text);
         complete &= SnapshotConsumed();
@@ -342,8 +341,8 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     }
     if (DeltaField* field = state->BeginField(10)) {
         AIPath* path = unit->Controller()->Path();
-        PathReadOriginal(path, nullptr, field);
-        if (unit->pathTimeShift == 1) PathShiftTime(path, nullptr, -1);
+        static_cast<AIPath*>(path)->ReadState(field);
+        if (unit->pathTimeShift == 1) static_cast<AIPath*>(path)->ShiftTime(-1);
         AIPath* path2 = unit->Controller()->Path();
         PathSetOwner(path2, nullptr, unit->id_);
         float walk, run;
@@ -374,7 +373,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || AsPlayer(current)->id_ != id) {
-            auto* view = reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(ManagerContextOf(unit)));
+            auto* view = reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(ManagerContextOf(unit))->LocalView());
             char* local = reinterpret_cast<char*>(view->player);
             if ((AsPlayer(local)->id_ == id || view->localSession) && unit->player != local) {
                 char* old = unit->player;

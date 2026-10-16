@@ -1,5 +1,6 @@
 // CWorldServer: the party arriving in a zone (Redeploy 00590700) and the quest items it brings
 // back (00590460, 005901E0). See world.h and docs/notes/world.md.
+#include "script.h"
 #include "world.h"
 
 #include "chunk_stream.h"
@@ -129,7 +130,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
     for (int i = 0; i < items->size; ++i) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
         CEngineObject* item = ItemAt(items, i);
-        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(item)));
+        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(reinterpret_cast<CItem*>(item)->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
             if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_))) continue;
@@ -234,13 +235,13 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
     if (lastZ != kNoStart) {
         std::memcpy(&state->lastPosition_, &start, sizeof(start));
-        PlayerSendPosition04Original(state, nullptr, &start, startValue, sessionKind_);
+        state->SendPosition04(&start, startValue, sessionKind_);
     }
     player->lastTick = tick_;
     if (sessionKind_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);
     if (runScripts) {
         scriptsActive_ = 1;
-        for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
+        for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
     }
     records.vtable = RecordArrayVtable();
     if (records.data) gamecrt::operator_delete(records.data);

@@ -105,7 +105,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
             ei::SetVtable(message, PartyMemberMessage::kVtableAddress);
         }
         RefPtr ref;
-        RefPtrFromRawOriginal(&ref, nullptr, message);
+        ref.FromRawCounted(message);
         CStream* stream = StreamOf(ref.ptr);
         auto* item = static_cast<CItem*>(party->items_[i]);
         stream->Clear();

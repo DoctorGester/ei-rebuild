@@ -2,6 +2,7 @@
 // global map, hero screens").
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
+#include "item.h"
 #include "ui_camp.h"
 
 #include "item_db.h"
@@ -720,13 +721,13 @@ bool CCampPages::CanMakeSpell() {
         constructor->CallSetManager(nullptr);
         return false;
     }
-    CSpell* made = SpellCloneOriginal(reinterpret_cast<CSpell*>(constructor->container_->spell_), nullptr, manager);
+    CSpell* made = reinterpret_cast<CSpell*>(constructor->container_->spell_)->Clone(manager);
     constructor->CallSetManager(nullptr);
     void* quickItems = const_cast<RecordTable*>(&itemdb::QuickItems());
     auto* record = static_cast<char*>(FindQuickItemOriginal(quickItems, nullptr, game::Text(0x007938A0)));   // "spell container"
     int index = static_cast<int>(record - itemdb::QuickItems().begin) / 0x8C;
     auto* container = static_cast<std::uint8_t*>(FactoryMakeItemOriginal(factory, nullptr, 0x3008, index, 0, -1));
-    if (container) ItemAttachSpellOriginal(AsItem(container), nullptr, made);
+    if (container) AsItem(container)->AttachSpell(made);
     spellMade_ = container;
     if (!container) return false;
     ++AsObject(container)->refCount_;
@@ -757,7 +758,7 @@ bool CCampPages::CanMakeItem() {
     for (int i = 0; i < CountOf(itemResults_); ++i) {
         std::uint8_t* item = ItemOf(itemResults_, i);
         if (IsSpellContainer(item)) {
-            CSpell* copy = SpellCloneOriginal(static_cast<CSpell*>(AsItem(item)->spell_), nullptr, manager);
+            CSpell* copy = static_cast<CSpell*>(AsItem(item)->spell_)->Clone(manager);
             CountedSlotAssign(&spell, nullptr, copy);
         } else if (IsPart(item)) {
             switch (Read<int>(item, 0x50)) {
@@ -783,17 +784,17 @@ bool CCampPages::CanMakeItem() {
     if (gamecrt::mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
         return fail();
     withManager->SetManager(factory);
-    if (!ItemConstructorBeginCreateItemOriginal(constructor, nullptr, type, -1)) {
+    if (!constructor->BeginCreateItem(type, -1)) {
         withManager->SetManager(nullptr);
         return fail();
     }
-    if (!ItemConstructorSetPrototypeOriginal(constructor, nullptr, RecordText(part)) ||
-        !ItemConstructorSetMaterialOriginal(constructor, nullptr, RecordText(blueprint)) ||
-        !ItemConstructorSetSpellObjectOriginal(constructor, nullptr, static_cast<CSpell*>(spell))) {
+    if (!constructor->SetPrototype(RecordText(part)) ||
+        !constructor->SetMaterial(RecordText(blueprint)) ||
+        !constructor->SetSpellObject(static_cast<CSpell*>(spell))) {
         withManager->SetManager(nullptr);
         return fail();
     }
-    itemMade_ = reinterpret_cast<std::uint8_t*>(ItemConstructorEndCreateItemOriginal(constructor));
+    itemMade_ = reinterpret_cast<std::uint8_t*>(constructor->EndCreateItem());
     withManager->SetManager(nullptr);
     if (!itemMade_) return fail();
     ++AsObject(itemMade_)->refCount_;
@@ -932,7 +933,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     }
     case 0x3005: {
         if (heroes_[hero_]) {
-            int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
+            int type = reinterpret_cast<CItemArmor*>(item)->GetType();
             heroes_[hero_]->UnequipArmour(type);
             heroes_[hero_]->Controller()->ShowWeapon(hero->weaponIndex);
             heroes_[hero_]->Controller()->RefreshModel();
@@ -976,9 +977,9 @@ void CCampPages::PutOn(std::uint8_t* item) {
         break;
     case 0x3005: {
         // Each piece on the same body part comes off first.
-        int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
+        int type = reinterpret_cast<CItemArmor*>(item)->GetType();
         for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
-            if (ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(hero->armor[i])) == type)
+            if (reinterpret_cast<CItemArmor*>(hero->armor[i])->GetType() == type)
                 CallTakeOff(reinterpret_cast<std::uint8_t*>(hero->armor[i]));
         }
         if (heroes_[hero_]) {
@@ -1278,7 +1279,7 @@ void CCampPages::ShowHero() {
             mfc::CString key = prefix + own;
             found = TextsOpenSection(table, nullptr, key);
         }
-        if (found) TextsReadLineOriginal(table, nullptr, &name, 1);
+        if (found) static_cast<CTextManager*>(table)->ReadLine(&name, 1);
     } else {
         name = own;
     }

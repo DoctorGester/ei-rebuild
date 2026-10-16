@@ -50,7 +50,6 @@ __declspec(naked) inline void __fastcall List2598Clear(void* /*list*/) EI_ORIGIN
 __declspec(naked) inline void** __fastcall PartiesErase(void*, void*, void**, void*) EI_ORIGINAL(0x004294D0)
 __declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
     EI_ORIGINAL(0x0042AF80)
-__declspec(naked) inline void __stdcall ZeroPoints(void*, int) EI_ORIGINAL(0x00452DC0)
 __declspec(naked) inline void __fastcall StringsCopyOriginal(void*, void*, const void*) EI_ORIGINAL(0x004C14A0)
 __declspec(naked) inline void __fastcall GroupsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1BE0)
 __declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
@@ -69,7 +68,6 @@ __declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
 __declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 __declspec(naked) inline const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
-__declspec(naked) inline int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)
 __declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
 __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
@@ -105,7 +103,6 @@ __declspec(naked) inline void* __cdecl GameMemmove(void* /*to*/, const void* /*f
     EI_ORIGINAL(0x006E79A0)
 // mfc::CString::~CString (00700970) on a string given as raw memory.
 inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString(); }
-__declspec(naked) inline int __stdcall AfxMessageBox(const char*, unsigned, unsigned) EI_ORIGINAL(0x0070AC94)
 // MFC CWnd::DestroyWindow 007051A1 (plain RET; nonzero when the window was destroyed): CWnd's destructor
 // (mfc::impl::CWnd, src/lib/mfc_window.cpp) on a window still attached; no game window is a CWnd.
 __declspec(naked) inline int __fastcall CWndDestroyWindow(void* /*wnd*/) EI_ORIGINAL(0x007051A1)
@@ -228,9 +225,6 @@ __declspec(naked) inline void* __fastcall MapRegistryFindOriginal(void* /*map*/,
 __declspec(naked) inline char* __fastcall StringInitRangeOriginal(void* /*string*/, void*, const char* /*first*/,
                                                                   const char* /*last*/, const void* /*tag*/)
     EI_ORIGINAL(0x0042A3D0)
-// 004DA5C0: the game buffer moves to a block of size * 2 + 0x40 bytes (RET 4, EAX not a result).
-__declspec(naked) inline void __fastcall GameBufferGrowOriginal(void* /*buffer*/, void*, std::uint32_t /*size*/)
-    EI_ORIGINAL(0x004DA5C0)
 
 // C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 0043DBE0: red-black tree
 // iterator increment (ECX = the iterator, plain RET, EAX not a result). 0040C280: string append(first, last, tag)
@@ -250,7 +244,7 @@ __declspec(naked) inline void* __fastcall CStringAppendCharOriginal(void* /*stri
 __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
 __declspec(naked) inline void __stdcall CStringElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE296)
-// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
+// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; the group's destructor body 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
 // (vtable 0073D2F8; plain RET, EAX not a result).
 __declspec(naked) inline void __stdcall ScriptGroupElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC980)
 __declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
@@ -355,12 +349,10 @@ __declspec(naked) inline void** __fastcall ListInsert421AF0Original(void* /*list
 __declspec(naked) inline void** __fastcall ListInsert423190Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x00423190)
 // 00421EB0: vector<RefPtr>::get_allocator (RET 4: out; copies the allocator tag byte at +8 to *out, EAX = out).
-// 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET); 0043B310: the same for a
-// byte count (ECX p, EDX bytes, plain RET).
+// 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).
 __declspec(naked) inline void* __fastcall VectorGetAllocatorOriginal(const void* /*vector*/, void*, void* /*out*/)
     EI_ORIGINAL(0x00421EB0)
 __declspec(naked) inline void __fastcall NodeFree12Original(void* /*p*/, std::size_t /*count*/) EI_ORIGINAL(0x00426860)
-__declspec(naked) inline void __fastcall NodeDeallocateOriginal(void* /*p*/, std::size_t /*bytes*/) EI_ORIGINAL(0x0043B310)
 // The type registry's by-vtable hash_map: 0042B8A0 _M_new_node(pair) (RET 4, EAX the node; ECX is not read), 0042B9C0
 // resize(hint) (RET 4, no result).
 __declspec(naked) inline void* __fastcall ByVtableNewNodeOriginal(void* /*table*/, void*, const void* /*pair*/)
@@ -398,10 +390,6 @@ __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, 
 __declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x0051F5B0)
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
-// The quest database records' compiler-generated destructors (plain RET): 006AF4D0 a quest (0x38 bytes), 006AF5A0 a
-// briefing (0x6C bytes).
-__declspec(naked) inline void __fastcall QuestRecordDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x006AF4D0)
-__declspec(naked) inline void __fastcall BriefingRecordDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x006AF5A0)
 // 0052DF40 (thiscall on a ChunkArchive, RET 0xC, no result): a vector<CString> as chunk `id` (loading: the vector is
 // emptied and resized to the chunk's count of fields 1); the third argument, the archive again, is unused.
 __declspec(naked) inline void __fastcall ArchiveCStringsOriginal(void* /*archive*/, void*, int /*id*/, void* /*strings*/,

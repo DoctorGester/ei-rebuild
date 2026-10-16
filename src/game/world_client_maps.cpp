@@ -6,6 +6,7 @@
 // instantiations behind those maps (config/library.csv). Rewritten here: the grids' Move (two
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
+#include "item.h"
 #include "map_object_shadow.h"
 #include "world.h"
 #include "world_data.h"
@@ -781,7 +782,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
+            if (allArmour || reinterpret_cast<CItemArmor*>(armour)->GetType() != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
@@ -1324,7 +1325,7 @@ int CWorldClient::Setup() {
         terrain->textAE0 = camera::EmptyStringData();
         Construct5711C0(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
-        LandscapeResetOriginal(terrain);
+        static_cast<Terrain*>(terrain)->Reset();
     }
     terrain_ = terrain;
     ++terrain->refCount_;
@@ -1360,7 +1361,7 @@ int CWorldClient::Setup() {
     handle->flags7_ = 0;
     CRefObject* created = nullptr;
     if (handle) {
-        RefValueConstructOriginal(handle);
+        RefValueConstructBase(handle);
         ei::SetVtable(handle, worlddata::kClientHandleVtable);
         created = handle;
     }
@@ -1497,7 +1498,7 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
         itemManager_->Load(block);
         static_cast<CBaseManager*>(manager4C_)->LoadObjects(block);
         static_cast<CBaseManager*>(itemManager_)->LoadObjects(block);
-        ClientReferenceItemsAndSpellsOriginal(this);
+        ReferenceItemsAndSpells();
     }
     return 1;
 }
@@ -1530,8 +1531,8 @@ EI_REPLACE(0x005679A0, LoadManagerObjects);
 int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     block->Seek(0);
     block->ok_ = 1;
-    if (!ClientLoadManagerObjectsOriginal(SpellManager(), block)) return 0;
-    return ClientLoadManagerObjectsOriginal(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
+    if (!LoadManagerObjects(SpellManager(), block)) return 0;
+    return LoadManagerObjects(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
 }
 EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
@@ -1549,7 +1550,7 @@ void PlatformSet::DestructBody() {
 EI_REPLACE_METHOD(0x00561A60, PlatformSet::DestructBody);
 
 PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
-    PlatformSetDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -1587,7 +1588,7 @@ void ClientListManager::DestructBody() {
 EI_REPLACE_METHOD(0x00562EC0, ClientListManager::DestructBody);
 
 ClientListManager* ClientListManager::DeletingDestruct(unsigned flags) {
-    ClientListManagerDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -1604,7 +1605,7 @@ void ClientArrayManager::DestructBody() {
 EI_REPLACE_METHOD(0x00562DF0, ClientArrayManager::DestructBody);
 
 ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
-    ClientArrayManagerDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

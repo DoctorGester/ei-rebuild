@@ -11,6 +11,7 @@
 #include "player_messages.h"
 #include "random.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
 
@@ -134,7 +135,7 @@ __declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*,
     EI_ORIGINAL(0x005254B0)
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
 // 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
-// 005D7E90 (BrainSetSeenOriginal). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
+// 005D7E90 (AIBrain::SetSeen). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 
 GameOstream* GameOstream::Put(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
 GameOstream* GameOstream::Put(long v) { return static_cast<GameOstream*>(OstreamPutLongOriginal(this, nullptr, v)); }
@@ -680,7 +681,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         auto* diplomacy = &static_cast<CWorldServer*>(ManagerContext())->diplomacy_;
         diplomacy->OnAttack(attacker, unit, 10);
     }
-    BrainSetSeenOriginal(&brain, nullptr, attacker);
+    brain.SetSeen(attacker);
     return 0;
 }
 EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);

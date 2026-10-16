@@ -1,3 +1,4 @@
+#include "camera.h"
 #include "effects.h"
 
 #include "core_maths.h"
@@ -340,7 +341,7 @@ EI_REPLACE_METHOD(0x0048EE20, CParticleSource::TickTendril);
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
     if (type_ == kTypeMushroom && e->ticks == 0 && e == elements)
-        CameraShakeOriginal(TheCamera(), nullptr, &origin, 5.0f, size, 0.25f);
+        static_cast<CCamera*>(TheCamera())->Shake(&origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;

@@ -5,6 +5,7 @@
 // These build paths on the stack: an AIPath (0x88 bytes: the motion order, the step and cell lists
 // at +0x20 / +0x3C, a point array at +0x70) and the motion order a path turns into (0x3C bytes:
 // the order and a step list) for the player's path messages and the simulation of a unit's motion.
+#include "ai_map.h"
 #include "combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
@@ -14,6 +15,7 @@
 #include "item_db.h"
 #include "map_object.h"
 #include "player_messages.h"
+#include "spell.h"
 #include "unit.h"
 #include "world.h"
 
@@ -139,7 +141,7 @@ struct LocalUnitMotion {
         MotionWaypointsConstruct(&motion.waypoints);
         MotionSpeedsConstruct(&motion.stepSpeeds);
         MotionCurvesConstruct(&motion.fromX);
-        UnitMotionClearOriginal(&motion);
+        static_cast<UnitMotion*>(&motion)->Clear();
         motion.speedScale = *reinterpret_cast<const float*>(0x0073EF20);
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
@@ -308,7 +310,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             } else {
                 spell = unit->GetSpellObject(source);
             }
-            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)))->castType == 0) kind = 2;
+            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->castType == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
@@ -381,7 +383,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         if (!AIMapCanLeaveCellOriginal(map, nullptr, unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
-    std::uint32_t flag = CellFlag80AtOriginal(map, nullptr, &unit->position);
+    std::uint32_t flag = static_cast<CAIMap*>(map)->CellFlag80At(&unit->position);
     void* world2 = ManagerContextOf(this);
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;

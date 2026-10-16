@@ -1,6 +1,7 @@
 // A spell effect's later states: the per-tick dispatch (0067E6D0), the missiles' flight and impact
 // (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
+#include "spell.h"
 #include "spell_effect_internal.h"
 #include "game_strings.h"
 #include "combat.h"
@@ -35,7 +36,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     if (static_cast<CEffectMissile*>(missile)->arrived_ == 0) return;
 
     DamageInfo hit;
-    SpellEffectGetDamageOriginal(e, nullptr, &hit);
+    e->GetDamage(&hit);
     if (IsUnit(e->target)) EffectHitUnit(e, nullptr, &hit, e->target);
     e->ReleaseVisual();
     e->ReleaseSound();

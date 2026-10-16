@@ -22,17 +22,9 @@ __declspec(naked) inline char __fastcall QuitGame(int) EI_ORIGINAL(0x00455F20)
 // 00455940 (rewritten as CEngineObject::ManagerContext): the object's manager context (+0x14 -> +0xAC, the world).
 __declspec(naked) inline void* __fastcall ManagerContextOf(const void* /*object*/) EI_ORIGINAL(0x00455940)
 __declspec(naked) inline void* __fastcall ObjectWorld(const void* /*object*/) EI_ORIGINAL(0x00455950)
-__declspec(naked) inline void __cdecl PumpMessagesOriginal() EI_ORIGINAL(0x00458220)
 __declspec(naked) inline std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const char*) EI_ORIGINAL(0x0045E850)
 __declspec(naked) inline void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
-__declspec(naked) inline int __fastcall IsTextKeyOriginal(int) EI_ORIGINAL(0x004613A0)
 __declspec(naked) inline void __fastcall SessionPump(void*, void*, void*) EI_ORIGINAL(0x00479E30)
-__declspec(naked) inline void* __fastcall FieldReadString(DeltaField*, void*, void*) EI_ORIGINAL(0x0047E310)
-// 0047FE90: ends a write or read of an object's network state (a delta write puts the changed fields into the
-// two headers); the state goes idle.
-__declspec(naked) inline void __fastcall DeltaStateFinishOriginal(DeltaState* /*state*/) EI_ORIGINAL(0x0047FE90)
-// 004800E0 (cdecl, printf style): reports a DirectX error (HRESULT, format, arguments) and exits; returns 0 if it comes back.
-__declspec(naked) inline int __cdecl FatalDirectX(long /*result*/, const char* /*format*/, ...) EI_ORIGINAL(0x004800E0)
 // Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
 // 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
 __declspec(naked) inline int __fastcall TextsOpenSection(void* /*texts*/, void*, const char* /*key*/)
@@ -41,7 +33,6 @@ __declspec(naked) inline int __fastcall TextsGetString(void* /*texts*/, void*, c
     EI_ORIGINAL(0x004E0020)
 __declspec(naked) inline double __fastcall RandomRange(IsaacRandom*, void*, float /*min*/, float /*max*/)
     EI_ORIGINAL(0x00488970)
-__declspec(naked) inline ParticleElement* __fastcall AllocateElementsAt(int /*count*/) EI_ORIGINAL(0x00497EB0)
 
 // Named float table (RET 4 / RET 8): 00460AF0 Get (result in ST0), 00460BC0 Set (the value is the raw dword the
 // original pushes, so no FPU load changes it on the way). 004DF8D0: the texts read the current line into a CString
@@ -50,11 +41,6 @@ __declspec(naked) inline float __fastcall NamedTableGet(void* /*table*/, void*, 
     EI_ORIGINAL(0x00460AF0)
 __declspec(naked) inline void __fastcall NamedTableSet(void* /*table*/, void*, const char* /*name*/,
                                                        std::uint32_t /*valueBits*/) EI_ORIGINAL(0x00460BC0)
-__declspec(naked) inline int __fastcall TextsReadLineOriginal(void* /*texts*/, void*, mfc::CString* /*out*/,
-                                                              int /*advance*/) EI_ORIGINAL(0x004DF8D0)
-// 004A54D0: CMemoryStream::Resize(size), makes room for `size` bytes (RET 4, EAX not a result).
-__declspec(naked) inline void __fastcall StreamResizeOriginal(void* /*stream*/, void*, std::uint32_t /*size*/)
-    EI_ORIGINAL(0x004A54D0)
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
@@ -78,13 +64,6 @@ __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*so
     EI_ORIGINAL(0x004849F0)
 // 004A5250: writes a stream with a size prefix into this stream (RET 4, no result).
 __declspec(naked) inline void __fastcall StreamWriteSizedOriginal(void* /*to*/, void*, void* /*from*/) EI_ORIGINAL(0x004A5250)
-// 004A52D0 / 004A5340: stream header read (magic, a, b; RET 0xC, AL) / write (magic, version; RET 8).
-__declspec(naked) inline bool __fastcall StreamReadHeaderOriginal(void* /*stream*/, void*, unsigned /*magic*/, int /*a*/, int /*b*/)
-    EI_ORIGINAL(0x004A52D0)
-__declspec(naked) inline void __fastcall StreamWriteHeaderOriginal(void* /*stream*/, void*, unsigned /*magic*/, unsigned /*version*/)
-    EI_ORIGINAL(0x004A5340)
-// 004A5490: memory stream Seek(position) (RET 4, no result).
-__declspec(naked) inline void __fastcall StreamSeekOriginal(void* /*stream*/, void*, std::uint32_t /*position*/) EI_ORIGINAL(0x004A5490)
 // 004A5D50: copies a counted pointer (RET 4, returns this).
 __declspec(naked) inline void* __fastcall CountedPtrCopyOriginal(void* /*to*/, void*, void* const* /*from*/) EI_ORIGINAL(0x004A5D50)
 // 004D8E10: decodes the chunk text into `out` (RET 4, no result).
@@ -103,10 +82,7 @@ __declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedRe
 // 00671730: CMappedResource::OpenResourceImpl (RET 8) at its address: Rebirth patches it (rule 9).
 __declspec(naked) inline int __fastcall MappedResourceOpenOriginal(CMappedResource*, void*, const char* /*path*/, int /*writable*/)
     EI_ORIGINAL(0x00671730)
-// 004645A0 (ChunkArchive::Destruct, chunk_archive.cpp), through its address: the chunk archive's out-of-line destructor
-// (the database loaders' archives).
 class ChunkArchive;
-__declspec(naked) inline void __fastcall ChunkArchiveDestroyOriginal(ChunkArchive*) EI_ORIGINAL(0x004645A0)
 // A-W13. 0040ECD0 (RET 8; Rebirth-patched, so always through this forwarder; rewritten as CCamera::LoadPath,
 // camera_path_load.cpp, A-E1): the camera loads the recorded path file `name` into its keys (+0x2F0, count +0x2F4);
 // 0 when it fails. The glue passes `flag` on (0 from 00578880).
@@ -124,26 +100,13 @@ class ChunkArchive;
 __declspec(naked) inline void __fastcall LeverRecordsArchiveOriginal(ChunkArchive* /*archive*/, void*, int /*id*/,
                                                                     void* /*records*/, std::uint32_t /*unused*/)
     EI_ORIGINAL(0x00465090)
-// C3n. The chunk archive's field primitives (rewritten in chunk_archive.cpp; thiscall on the archive): 004092B0 a field of
-// `size` bytes (missing ones read as zero), 004093A0 a CString field, 004098D0 enter chunk `id` (false when missing),
-// 00409980 leave the chunk, 00409A60 count the fields `id` of the current chunk.
-__declspec(naked) inline void __fastcall ArchiveField(ChunkArchive* /*archive*/, void*, int /*id*/, void* /*data*/,
-                                                      unsigned /*size*/) EI_ORIGINAL(0x004092B0)
-__declspec(naked) inline void __fastcall ArchiveString(ChunkArchive* /*archive*/, void*, int /*id*/, mfc::CString*)
-    EI_ORIGINAL(0x004093A0)
-__declspec(naked) inline bool __fastcall ArchiveEnter(ChunkArchive* /*archive*/, void*, int /*id*/) EI_ORIGINAL(0x004098D0)
-__declspec(naked) inline void __fastcall ArchiveLeave(ChunkArchive* /*archive*/) EI_ORIGINAL(0x00409980)
-__declspec(naked) inline int __fastcall ArchiveCount(ChunkArchive* /*archive*/, void*, int /*id*/) EI_ORIGINAL(0x00409A60)
 // C3n. 004667F0 (rewritten as IsaacRandom::Next; thiscall on the generator, plain RET): the next 32-bit word. The game's
 // generator is at 007A9D40.
 __declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*random*/) EI_ORIGINAL(0x004667F0)
 
 // C3n batch 4. CMappedResource at its addresses (the wrappers run; Rebirth patches some): 00671280 (rewritten as
-// CMappedResource::Construct; plain RET) constructs it in `memory` and returns it; 00674850 (CMappedResource::FindEntry; RET 4)
-// the index of the entry named `name`, -1 when there is none.
+// CMappedResource::Construct; plain RET) constructs it in `memory` and returns it.
 __declspec(naked) inline CMappedResource* __fastcall MappedResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x00671280)
-__declspec(naked) inline int __fastcall MappedResourceFindEntryOriginal(const CMappedResource*, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00674850)
 // 006721D0 (rewritten as CMMIOResource::Construct; plain RET): constructs a CMMIOResource (0x6C bytes; the archives, the
 // figure models' .mod / .bon / .anm parts, the terrain's archive) in `memory` and returns it.
 __declspec(naked) inline CMappedResource* __fastcall MmioResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x006721D0)

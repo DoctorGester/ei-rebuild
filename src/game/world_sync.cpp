@@ -94,7 +94,7 @@ __declspec(naked) void __fastcall StateObjectsRemoved(CPlayerServer*, void*, Sta
 __declspec(naked) void __fastcall StateTimedKept(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DF40)
 __declspec(naked) void __fastcall StateTimedAdded(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DDE0)
 __declspec(naked) void __fastcall StateTimedRemoved(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066E020)
-void __fastcall StateRefresh(CPlayerServer* a0, void*) { PlayerResendPartyOriginal(a0); }
+void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
 __declspec(naked) void __fastcall StateUpdateUnits(CPlayerServer*, void*) EI_ORIGINAL(0x0066E430)
 __declspec(naked) void __fastcall StateLeave(CPlayerServer*, void*) EI_ORIGINAL(0x0066F180)
 __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
@@ -373,7 +373,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
                 Vector3 start;
                 std::memcpy(&start, at, sizeof(start));
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
-                result = PlayerSendPosition04Original(state, nullptr, &start, 0, sessionKind_);
+                result = state->SendPosition04(&start, 0, sessionKind_);
             }
         }
         if (result != 0) reinterpret_cast<CPlayer*>(player)->connection_->ItemsGiven(&player->items, 0);

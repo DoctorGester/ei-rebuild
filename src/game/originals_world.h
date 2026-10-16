@@ -35,7 +35,6 @@ __declspec(naked) inline CUnit* __fastcall HoverObjectAt(void*, void*, const int
 __declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*world*/, void*, int* /*point*/)
     EI_ORIGINAL(0x00565E40)
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
-__declspec(naked) inline Vector3* __fastcall HoverPickSurface(void*, void*, Vector3*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
 // 00512030 (library: STLport list<id>::erase(iterator), the client's selection list +0x7BC; thiscall, RET 8: the result
 // slot, the node).
@@ -45,42 +44,20 @@ __declspec(naked) inline void __fastcall IdListEraseOriginal(void* /*list*/, voi
 // object's kind (0079BD0C above 0 and the kind's switch; AL), 0051E280 drops its shadow (geometry, texture, bounds).
 __declspec(naked) inline bool __fastcall ShadowsShownOriginal(void* /*half*/) EI_ORIGINAL(0x0051E200)
 __declspec(naked) inline void __fastcall ShadowClearOriginal(void* /*half*/) EI_ORIGINAL(0x0051E280)
-// 005655D0 / 005655F0 (thiscall on the client world, RET 4): a new texture of `kind` from its texture manager (+0x18C,
-// 00691D40) / a new material from its material manager (+0x188, 0068E970); null without the manager.
 class CTexture;
 class CMaterial;
-__declspec(naked) inline CTexture* __fastcall WorldNewTextureOriginal(void* /*world*/, void*, int /*kind*/)
-    EI_ORIGINAL(0x005655D0)
-__declspec(naked) inline CMaterial* __fastcall WorldNewMaterialOriginal(void* /*world*/, void*, int /*kind*/)
-    EI_ORIGINAL(0x005655F0)
 // 0056F360 (library: STLport vector<12-byte texture record>::resize(count, value); thiscall, RET 8, no result).
 __declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*vector*/, void*, unsigned /*count*/,
                                                                       const void* /*value*/) EI_ORIGINAL(0x0056F360)
-// The figure models (FigureModel, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor,
-// 005A9EB0 (RET 0xC) loads the .mod / .bon / .anm parts (+0 / +4 / +8, slot 2) from the files' data that are not null.
+// The figure models (FigureModel, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor.
 __declspec(naked) inline void* __fastcall FigureModelConstructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9A50)
 __declspec(naked) inline void __fastcall FigureModelDestructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9C90)
-__declspec(naked) inline void __fastcall FigureModelLoadOriginal(void* /*model*/, void*, const void* /*mod*/,
-                                                                 const void* /*bon*/, const void* /*anm*/)
-    EI_ORIGINAL(0x005A9EB0)
 __declspec(naked) inline void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 __declspec(naked) inline double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
 // 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
 // record; EAX the object's id. Patched by Rebirth.
 __declspec(naked) inline int __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)
     EI_ORIGINAL(0x005927C0)
-// 005942D0 (rewritten as CWorldServer::Loot; RET 8, patched by Rebirth): `player` takes what the dead body or
-// container `object` holds; AL whether there was anything to take. Called on the global server (007AFF60).
-__declspec(naked) inline bool __fastcall WorldLootOriginal(void* /*world*/, void*, CEngineObject* /*object*/,
-                                                           WorldPlayer* /*player*/) EI_ORIGINAL(0x005942D0)
-// 00595AB0 (rewritten as CWorldServer::LoadMobFile; RET 4): loads a .mob file's objects once; EAX 1 when loaded (or
-// already loaded), else the fatal error's result.
-__declspec(naked) inline int __fastcall WorldLoadMobFileOriginal(void* /*world*/, void*, const char* /*file*/)
-    EI_ORIGINAL(0x00595AB0)
-// 0066ED30 (rewritten as CPlayerServer::SendPosition04; RET 0xC): the player's server sends message 0x04 (a position
-// and two dwords: the start view's bits or 0, then the start kind); EAX the send's result.
-__declspec(naked) inline int __fastcall PlayerSendPosition04Original(void* /*server*/, void*, const Vector3* /*at*/,
-                                                                     std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066ED30)
 __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0057ED60)
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game
@@ -91,7 +68,6 @@ __declspec(naked) inline void __fastcall FlowUpdateFromServerOriginal(void* /*fl
 __declspec(naked) inline bool __cdecl IsNetworkClientOriginal() EI_ORIGINAL(0x0057F440)
 __declspec(naked) inline void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/)
     EI_ORIGINAL(0x005814C0)
-__declspec(naked) inline void __fastcall UpdatePlayerTimesAt(CWorldServer*, void*, float) EI_ORIGINAL(0x0058D280)
 __declspec(naked) inline void __fastcall TickAt(CWorldServer*, void*, int /*force*/) EI_ORIGINAL(0x0058DCD0)
 __declspec(naked) inline void* __fastcall ItemRecordConstruct(void*, void*) EI_ORIGINAL(0x0058FBB0)
 // 005935C0 (rewritten as CWorldServer::RemoveObject; RET 4): removes the object with this id from the world
@@ -120,12 +96,6 @@ __declspec(naked) inline void* __fastcall ServerMapPathOriginal(void* /*world*/,
 
 // C3j. 00578E20: the game flow object (global 007AF788; plain RET, ECX unused, EAX = flow, callers use it).
 __declspec(naked) inline void* __cdecl GameFlowOriginal() EI_ORIGINAL(0x00578E20)
-// 00578920: menu call through the global at 007AF784 (ECX is loaded from it; RET 4, one stack argument, EAX not a result).
-__declspec(naked) inline void __stdcall MenuSetOriginal(int) EI_ORIGINAL(0x00578920)
-// 00578940: tail-jumps to a menu call through the global at 007AF738 (no arguments, ECX loaded from it, EAX not a result).
-__declspec(naked) inline void __cdecl MenuCallOriginal() EI_ORIGINAL(0x00578940)
-// 0055FC50: the world's time of day in ST0 (ECX = world, plain RET).
-__declspec(naked) inline double __fastcall WorldDayTimeOriginal(void* /*world*/) EI_ORIGINAL(0x0055FC50)
 // 0058EEE0: sets the time speed (RET 4; the float is only copied, so it is passed as raw dword bits; EAX not a result).
 __declspec(naked) inline void __fastcall WorldSetTimeSpeedOriginal(void* /*world*/, void*, std::uint32_t /*speedBits*/)
     EI_ORIGINAL(0x0058EEE0)
@@ -159,17 +129,6 @@ __declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glu
 __declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00573080)
 
-// The client world (007AF5B8; thiscall, RET 4, results not used by the callers so far):
-// 005651A0 (CWorldClient::RefreshPlatforms, called through its address for its wrapper) puts a filed object's platform
-// faces where it now stands (dropped, then re-added for classes 0x54 / 0x5D through 00560820); 0056D7E0 queues an object by id (a list and a hash
-// map; nothing when it is queued already).
-__declspec(naked) inline void __fastcall ClientRefreshObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
-    EI_ORIGINAL(0x005651A0)
-__declspec(naked) inline void __fastcall ClientQueueObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
-    EI_ORIGINAL(0x0056D7E0)
-// A-X4. 006C5620: the landscape's Reset (Terrain::Reset, rewritten), called through its address by the
-// client world's Setup and by the landscape's Create / Destroy so that its verify wrapper runs.
-__declspec(naked) inline void __fastcall LandscapeResetOriginal(void* /*terrain*/) EI_ORIGINAL(0x006C5620)
 // A-W15. 006C68B0 (RET 0xC; not rewritten): the landscape loads the map file `path` (the old map freed first) with
 // the texture pages of `allod`; `cave` is read as a byte. All of EAX: 0 when the file or a page does not load.
 __declspec(naked) inline int __fastcall LandscapeLoadMapOriginal(void* /*terrain*/, void*, const char* /*path*/,
@@ -200,21 +159,13 @@ __declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*worl
 // 0056CE40 (RET 0xC): the client world shows a number over the unit with id `id` (the value, the kind bits).
 __declspec(naked) inline void __fastcall ClientShowNumberOriginal(void* /*world*/, void*, int /*id*/, int /*value*/,
                                                                 int /*kind*/) EI_ORIGINAL(0x0056CE40)
-// A-W13. CFigureMesh::CreateMesh 0059F210 (returns 1) and Clear 0059F2B0 (figure_mesh_life.cpp), called through
-// their addresses by the rewritten constructor, clear and destructor bodies so that their wrappers run.
 class CFigureMesh;
-__declspec(naked) inline int __fastcall FigureMeshCreateOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F210)
-__declspec(naked) inline void __fastcall FigureMeshClearOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F2B0)
 // A-W13. The resource databases' switch (0057CB50, world_game.cpp): each database's compiler-generated
 // reset (destroyed and constructed again in place: units 0057CBE0, skills 0057CD60, spell tables 0057CE80,
 // items 0057D340) and its load from "<resources><name>" (RET 8: 0053A200, 00520220, and the Rebirth-patched
 // 00684550 and 006A67A0).
 struct UnitDatabase;
 struct SkillDatabase;
-__declspec(naked) inline void __fastcall UnitDatabaseResetOriginal(UnitDatabase* /*database*/) EI_ORIGINAL(0x0057CBE0)
-__declspec(naked) inline void __fastcall SkillDatabaseResetOriginal(SkillDatabase* /*database*/) EI_ORIGINAL(0x0057CD60)
-__declspec(naked) inline void __fastcall SpellTablesResetOriginal(void* /*tables*/) EI_ORIGINAL(0x0057CE80)
-__declspec(naked) inline void __fastcall ItemDatabaseResetOriginal(void* /*database*/) EI_ORIGINAL(0x0057D340)
 __declspec(naked) inline void __fastcall UnitDatabaseLoadOriginal(UnitDatabase* /*database*/, void*, const char* /*resources*/,
                                                                  const char* /*name*/) EI_ORIGINAL(0x0053A200)
 __declspec(naked) inline void __fastcall SkillDatabaseLoadOriginal(SkillDatabase* /*database*/, void*, const char* /*resources*/,
@@ -223,27 +174,15 @@ __declspec(naked) inline void __fastcall SpellTablesLoadOriginal(void* /*tables*
                                                                 const char* /*name*/) EI_ORIGINAL(0x00684550)
 __declspec(naked) inline void __fastcall ItemDatabaseLoadOriginal(void* /*database*/, void*, const char* /*resources*/,
                                                                  const char* /*name*/) EI_ORIGINAL(0x006A67A0)
-// A-W13. Called through their addresses by the client world's item and spell block loaders (world_client_maps.cpp)
-// so that their wrappers run: 005630B0 CWorldClient::ReferenceItemsAndSpells; 005679A0 LoadManagerObjects (ECX the
-// manager, EDX the stream; 1 at the end mark, 0 when the stream fails).
 class CBaseManager;
 class CStream;
 class CWorldClient;
-__declspec(naked) inline void __fastcall ClientReferenceItemsAndSpellsOriginal(CWorldClient* /*world*/) EI_ORIGINAL(0x005630B0)
-__declspec(naked) inline int __fastcall ClientLoadManagerObjectsOriginal(CBaseManager* /*manager*/, CStream* /*stream*/)
-    EI_ORIGINAL(0x005679A0)
 // A-W13. The client world's two small managers (world.h): 004E2850 the array manager's Clear (plain RET: its object
-// and every listed one released, the list emptied); 00562EC0 / 00562DF0 their destructor bodies, called through their
-// addresses by the deleting destructors.
+// and every listed one released, the list emptied).
 struct ClientArrayManager;
 struct ClientListManager;
 __declspec(naked) inline void __fastcall ClientArrayManagerClearOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x004E2850)
-__declspec(naked) inline void __fastcall ClientListManagerDestructOriginal(ClientListManager* /*manager*/) EI_ORIGINAL(0x00562EC0)
-__declspec(naked) inline void __fastcall ClientArrayManagerDestructOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x00562DF0)
-// 00561A60: the platform set's destructor body (PlatformSet::DestructBody), called through its address by the
-// deleting destructor.
 struct PlatformSet;
-__declspec(naked) inline void __fastcall PlatformSetDestructOriginal(PlatformSet* /*set*/) EI_ORIGINAL(0x00561A60)
 // A-E2: called by WinMain's main loop (app_main.cpp) and by the zone change (world_game.cpp) through their
 // addresses so that their wrappers run. 005641F0: the client world's tick (CWorldClient::Segment; EAX 0 when the
 // connection is lost). 0058DFF0: the server world's update (CWorldServer::Update; EAX 0 when it stops).
@@ -253,9 +192,6 @@ __declspec(naked) inline int __fastcall ClientSegmentOriginal(void* /*client*/) 
 __declspec(naked) inline int __fastcall ClientRenderOriginal(void* /*client*/) EI_ORIGINAL(0x00569E40)
 __declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*server*/) EI_ORIGINAL(0x0058DFF0)
 __declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow*/) EI_ORIGINAL(0x0057C700)
-// C3m. 00596030 (rewritten as CWorldServer::LoadMapObjects; RET 8): loads a .mob file's objects (second argument:
-// keep their ids).
-__declspec(naked) inline int __fastcall WorldLoadMapObjects(CWorldServer*, void*, const char*, int) EI_ORIGINAL(0x00596030)
 
 // C3m. 00593FC0 (rewritten as CWorldServer::InvokeAlarm; the world, thiscall): raises an alarm of `type` at `point`.
 // Base of the views of the world.
@@ -263,42 +199,17 @@ struct WorldAlarmOriginal {
     void InvokeAlarm(int type, const Vector3* point, int raise);
 };
 __declspec(naked) inline void WorldAlarmOriginal::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
-// C3n. 0041D260 (rewritten as ClientSession::SendCommand; thiscall, RET 8): the client session sends a command to the
-// server (0 zone, 1 briefing, 2 kick, 3 ban).
-__declspec(naked) inline void __fastcall SessionCommand(net::ClientSession* /*session*/, void*, int /*kind*/,
-                                                       const char* /*argument*/) EI_ORIGINAL(0x0041D260)
-// C3n. 00455660 (rewritten as CDiplomacy::GetHostileMask; thiscall, RET 4): the bit mask of the players hostile to `player`.
-__declspec(naked) inline int __fastcall DiplomacyHostileMask(CDiplomacy* /*diplomacy*/, void*, int /*player*/)
-    EI_ORIGINAL(0x00455660)
 
-// C3n batch 3. The client world (007AF5B8) and the game: 005699F0 (rewritten as CWorldClient::LocalView; plain RET) the
-// client world's local view (a LocalViewData, world.h); 00578BA0 (rewritten as LocalPlayerData, world_rules.cpp; plain RET)
-// the game glue (007AFEA5) gives the local player's data (the unit records at +0x30 / +0x34). Through their addresses so
-// the wrappers run.
-__declspec(naked) inline std::uint8_t* __fastcall ClientWorldLocalViewOriginal(void* /*client*/) EI_ORIGINAL(0x005699F0)
+// C3n batch 3. 00578BA0 (rewritten as LocalPlayerData, world_rules.cpp; plain RET): the game glue (007AFEA5) gives the
+// local player's data (the unit records at +0x30 / +0x34).
 __declspec(naked) inline std::uint8_t* __fastcall GameLocalPlayerDataOriginal(void* /*glue*/) EI_ORIGINAL(0x00578BA0)
-// The game flow (007AFE20; GameFlow, world_game.cpp / world_briefing.cpp), through its addresses so the wrappers run:
-// 0057F190 UpdateMultiplayerVariable, 0057F280 BeginMultiplayerGame, 00581660 CloseSessions (plain RET, no result);
-// 0057FF40 MarkBriefing and 005810A0 RegisterQuests (thiscall, RET 4: a zone folder / name); 0057FDE0 BriefingVariableInto
-// (stdcall, RET 8: the CString it constructs into `out` from the briefing's name; returns `out`).
-__declspec(naked) inline void __fastcall FlowUpdateMultiplayerVariableOriginal(void* /*flow*/) EI_ORIGINAL(0x0057F190)
-__declspec(naked) inline void __fastcall FlowBeginMultiplayerGameOriginal(void* /*flow*/) EI_ORIGINAL(0x0057F280)
-__declspec(naked) inline void __fastcall FlowCloseSessionsOriginal(void* /*flow*/) EI_ORIGINAL(0x00581660)
-__declspec(naked) inline void __fastcall FlowMarkBriefingOriginal(void* /*flow*/, void*, const char* /*zone*/)
-    EI_ORIGINAL(0x0057FF40)
-__declspec(naked) inline void __fastcall FlowRegisterQuestsOriginal(void* /*flow*/, void*, const char* /*zone*/)
-    EI_ORIGINAL(0x005810A0)
-__declspec(naked) inline mfc::CString* __stdcall BriefingVariableIntoOriginal(mfc::CString* /*out*/, const char* /*briefing*/)
-    EI_ORIGINAL(0x0057FDE0)
 // The server world (007AFF60; CWorldServer, world_*.cpp), thiscall, through its addresses so the wrappers run:
-// 0058D3D0 WakeUnitsAround (RET 8: position, radius); 0058DC90 SetGameResult (RET 4); 0058E520 AddTimedObject (RET 4);
+// 0058D3D0 WakeUnitsAround (RET 8: position, radius); 0058E520 AddTimedObject (RET 4);
 // 0058E850 CastSpell (RET 0x18: spell, caster, from, target, to, extra); 0058EF20 CreateUnits (RET 0x20: player, records,
 // position, rotation by value, placements); 005911C0 AwardExperience (RET 8: player, the amount as float bits);
 // 00591800 UpdateMercBriefings (plain RET); 00593AA0 FindObject (RET 4: an id; the object or null).
 __declspec(naked) inline void __fastcall WorldWakeUnits(void* /*world*/, void*, const Vector3* /*position*/, float /*radius*/)
     EI_ORIGINAL(0x0058D3D0)
-__declspec(naked) inline void __fastcall WorldSetGameResultOriginal(void* /*world*/, void*, int /*result*/)
-    EI_ORIGINAL(0x0058DC90)
 __declspec(naked) inline void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x0058E520)
 __declspec(naked) inline void __fastcall WorldCastSpellOriginal(void* /*world*/, void*, const void* /*spell*/,
                                                                 CEngineObject* /*caster*/, const Vector3* /*from*/,

@@ -1,6 +1,7 @@
 // The battle screen's mouse-over (00639EF0): the unit under the mouse in the unit panel and the
 // cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
 // ("Battle screen").
+#include "item.h"
 #include "ui.h"
 
 #include "ui_cursor.h"
@@ -18,6 +19,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "world.h"
 
 namespace {
 
@@ -71,7 +73,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = HoverPickSurface(kClientWorld, nullptr, &out, x, y);
+        Vector3* p = static_cast<CWorldClient*>(kClientWorld)->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
@@ -197,7 +199,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         Vector3 at = unitPosition(unit);
         if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x) != 0) break;
         void* item = first->GetQuickItem(pendingSlot_);
-        if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) break;
+        if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;
     }

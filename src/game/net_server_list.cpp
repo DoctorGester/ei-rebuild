@@ -1,5 +1,6 @@
 // The server list reply (0041D600): a compressed run of {address, GameInfoRecord} turned into the
 // client base's server entries. See net_classes.h and docs/notes/network.md.
+#include "net_coder.h"
 #include "net_messages.h"
 
 #include "ei/hook.h"
@@ -26,7 +27,7 @@ constexpr std::size_t kCoderSize = 0x2828;
 // A read the way the buffer helpers inline it: past the end through 004DA170, beyond `end`
 // through slot 3, else from memory (00401310).
 void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
-    if (buffer->cur + size > buffer->high) BufferReadPastEnd(buffer, nullptr, to, size);
+    if (buffer->cur + size > buffer->high) buffer->ReadPastEnd(to, size);
     else if (buffer->cur + size > buffer->end) buffer->ReadMore(to, size);
     else buffer->CopyOut(to, size);
 }
@@ -62,7 +63,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
         BufferUpdateHigh(&buffer);
         std::uint8_t* begin = buffer.begin;
         buffer.cur = begin;
-        if (begin > buffer.end) GameBufferGrowOriginal(&buffer, nullptr, 0);
+        if (begin > buffer.end) static_cast<GameBuffer*>(&buffer)->Grow(0);
         for (;;) {
             if (buffer.cur > buffer.high) buffer.high = buffer.cur;
             if (Offset(buffer, buffer.cur) >= Offset(buffer, buffer.high) || (buffer.flags & 8)) {

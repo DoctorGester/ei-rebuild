@@ -173,7 +173,7 @@ bool SendCurrentParty(Call* call) {
     int number = Ftol(Floats(call)[0]);
     WorldPlayer* player = GetPlayer(number);
     if (!player) return Report("SendCurrentParty", "There is no player with number %d", number);
-    PlayerResendPartyOriginal(player->server);
+    static_cast<CPlayerServer*>(player->server)->ResendParty();
     return true;
 }
 
@@ -360,7 +360,7 @@ bool AddMobEx(Call* call) {
     file = Text(call, 0);
     bool keepIds = call->cmd->floatArgs.size != 0 && Equals(1.0f, Floats(call)[0]);
     LoadingMovieOff() = 1;
-    int loaded = WorldLoadMapObjects(WorldServer(), nullptr, file, keepIds ? 1 : 0);
+    int loaded = WorldServer()->LoadMapObjects(file, keepIds ? 1 : 0);
     LoadingMovieOff() = 0;
     if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", static_cast<const char*>(file));
     return true;

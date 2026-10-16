@@ -84,7 +84,7 @@ EI_REPLACE_METHOD(0x005535E0, CUnitServer::ClearOuterArmourLayers);
 
 BOOL CUnitServer::RefreshEquipment() {
     RefreshItemSpells();
-    AttentionRebuild(&BrainOf(this)->attention, nullptr, unit);
+    BrainOf(this)->attention.Build(unit);
     return 1;
 }
 EI_REPLACE_METHOD(0x005535F0, CUnitServer::RefreshEquipment);

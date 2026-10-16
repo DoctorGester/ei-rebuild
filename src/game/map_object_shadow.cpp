@@ -6,7 +6,9 @@
 #include "map_object.h"         // ObjectSlots
 #include "ground_decal.h"        // DecalTexCoord
 #include "map_object_figures.h"
+#include "model.h"
 #include "spell.h"              // CLight
+#include "terrain.h"
 #include "unit.h"               // CUnit
 #include "unit_client_models.h" // CUnitClientSpecific
 #include "maths.h"
@@ -107,7 +109,7 @@ __declspec(naked) void __fastcall UnlockSurface(void*) EI_ORIGINAL(0x00691030)
 // 0056C750 (ClientProjectDecalOriginal, originals_world.h). The shadow projector: lays the texture's quad on
 // the ground.
 // 00501AF0. Texture stages: binds a texture.
-void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
+void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { static_cast<CSceneRenderer*>(a0)->SetTextureImpl(a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.
 // 004EA4A0 (DeviceDrawFlatOriginal, originals_render.h). Device: draws the shadow geometry.
 // 004018A0 (PreMultiplyAt, originals_core.h). Rewritten elsewhere, through its game address: 005A0CD0
@@ -494,7 +496,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
-    std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position);
+    std::uint8_t lit = static_cast<Terrain*>(LightManager())->EdgeFade(&object->position);
     DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices.data, texCoords.data, vertices.size, indices.data, indices.size,
                            colour,
                            static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,

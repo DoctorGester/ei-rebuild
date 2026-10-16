@@ -2,6 +2,7 @@
 // listing, and the CMMIOResource constructors and destructors (CResourceManager's are in
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
+#include "resource.h"
 #include "resource_stream.h"
 #include "mod_folders.h"
 
@@ -141,7 +142,7 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     if (entries_ == nullptr || names_ == nullptr) return 0;
-    int index = MappedResourceFindEntryOriginal(reinterpret_cast<const CMappedResource*>(this), nullptr, name);
+    int index = reinterpret_cast<const CMappedResource*>(this)->FindEntry(name);
     if (index == -1) return 0;
     offset_ = static_cast<std::int32_t>(entries_[index].offset);
     if (gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset_, SEEK_SET) == -1) {

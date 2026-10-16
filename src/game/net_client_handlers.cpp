@@ -310,7 +310,7 @@ void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
     AppendCounted(&self->zones_, ZonesEnd, ZonesInsert, message);
-    FlowMarkBriefingOriginal(Flow(), nullptr, message->text_.start);
+    static_cast<GameFlow*>(Flow())->MarkBriefing(message->text_.start);
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
     RemoveCounted(&self->zones_, ZonesErase, message);
@@ -322,7 +322,7 @@ void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 004
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(Flow(), nullptr, message->text_.start);
-    FlowRegisterQuestsOriginal(Flow(), nullptr, message->text_.start);
+    static_cast<GameFlow*>(Flow())->RegisterQuests(message->text_.start);
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.

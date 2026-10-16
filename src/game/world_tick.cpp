@@ -1,5 +1,7 @@
 // CWorldServer: the per-tick update (timed objects, missiles, countdowns), waking units near a
 // point, alarms and the game result. See world.h.
+#include "script.h"
+#include "spell.h"
 #include "world.h"
 #include "at_exit_functions.h"
 
@@ -112,7 +114,7 @@ private:
 
 } // namespace
 
-int Projectile::Update() { return SpellEffectUpdateOriginal(reinterpret_cast<CSpellEffect*>(this), nullptr); }
+int Projectile::Update() { return reinterpret_cast<CSpellEffect*>(this)->Update(); }
 // 0059C810. Releases the node's missile and returns the node to the free list (the last one frees
 // every block).
 __declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x0059C810)
@@ -162,8 +164,8 @@ void CWorldServer::Tick(char force) {
         ProjectileFreeNode(&projectiles_, nullptr, current);
     }
 
-    if (scriptsActive_ != 0 || force) ScriptsRun(MainScript());
-    ScriptsRun(reinterpret_cast<CScript*>(commandsB_));
+    if (scriptsActive_ != 0 || force) ScriptTick(MainScript());
+    ScriptTick(reinterpret_cast<CScript*>(commandsB_));
     ServerUpdateUnits(this, nullptr);
 }
 

@@ -46,7 +46,7 @@ EI_REPLACE_METHOD(0x005271E0, UnitParams::VisionRange);
 void CUnit::AdvanceTimeImpl(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!(IsTextKey(id_) & 0xFF)) return;
-    float daylight = static_cast<float>(WorldDayTimeOriginal(ClientWorldObject()));
+    float daylight = static_cast<float>(static_cast<CWorld*>(ClientWorldObject())->NightLevel());
     float range = static_cast<float>(Params()->VisionRange(daylight));
     if (moveMode == 0) range = range * kOne;
     static_cast<CWorldClient*>(ClientWorldObject())->MarkFootprintsInSight(&position.x, range);

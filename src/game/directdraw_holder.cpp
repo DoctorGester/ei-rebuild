@@ -7,11 +7,12 @@
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way (the original's handlers free what the constructor had built), and every such
 // throw ends the game in WinMain.
+#include "app.h"
 #include "device.h"
 #include "game_strings.h"
 
 #include "dx_errors.h"
-#include "originals_engine.h"    // FatalDirectX, game::FatalError
+#include "originals_engine.h"    // game::FatalError
 #include "originals_library.h"   // ExitGame
 #include "originals_render.h"
 #include "sys_info.h"   // ProcessorInfo
@@ -176,12 +177,12 @@ DirectDrawDriver* __cdecl FirstHardwareDirectDrawDriver() {
         HRESULT result = device::DirectDrawCreateEx(node->data.guid, reinterpret_cast<void**>(&ddraw),
                                                     device::IidDirectDraw7(), nullptr);
         // "Can't create IDirectDraw# object for driver \"%s\".\n"
-        if (result != 0) FatalDirectX(result, game::Text(0x0078E500), node->data.description.data());
+        if (result != 0) app::FatalErrorCode(result, game::Text(0x0078E500), node->data.description.data());
         DDCAPS caps = {};
         caps.dwSize = sizeof(caps);
         result = ddraw->GetCaps(&caps, nullptr);
         // "Can't get caps from IDirectDraw# object for driver \"%s\".\n"
-        if (result != 0) FatalDirectX(result, game::Text(0x0078E4C4), node->data.description.data());
+        if (result != 0) app::FatalErrorCode(result, game::Text(0x0078E4C4), node->data.description.data());
         if (ddraw) ddraw->Release();
         if ((caps.dwCaps & DDCAPS_3D) && (caps.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) {
             if (caps.dwCaps2 & DDCAPS2_NONLOCALVIDMEM) return &node->data;
@@ -284,7 +285,7 @@ void CTextureDevice::CreateSurfaces(unsigned backBuffers, int for3D) {
     CDXSurface* primary = primary_;
     desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
     primary->result = device::Surface(primary)->GetPixelFormat(&desc.ddpfPixelFormat);
-    if (primary->result != 0 && !FatalDirectX(primary->result, game::Text(0x0078E714)))   // "Can't get pixel format from surface.\n"
+    if (primary->result != 0 && !app::FatalErrorCode(primary->result, game::Text(0x0078E714)))   // "Can't get pixel format from surface.\n"
         ThrowGameError(game::Text(0x0078E6E4));   // "Can't get pixel format from primary surface.\n"
     device::AssignHolder(renderTarget_, NewHolder(this, &desc));
 
@@ -292,7 +293,7 @@ void CTextureDevice::CreateSurfaces(unsigned backBuffers, int for3D) {
     desc = {};
     desc.dwSize = sizeof(desc);
     target->result = device::Surface(target)->GetSurfaceDesc(&desc);
-    if (target->result != 0 && !FatalDirectX(target->result, game::Text(0x0078E6C4)))   // "Can't get surface description.\n"
+    if (target->result != 0 && !app::FatalErrorCode(target->result, game::Text(0x0078E6C4)))   // "Can't get surface description.\n"
         ThrowGameError(game::Text(0x0078E6A0));   // "pDXSRender->GetSurfaceDesc (back).\n"
     if (!(desc.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)) ThrowGameError(game::Text(0x0078E678));   // "Back buffer is not in video memory.\n"
 }
@@ -385,7 +386,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
             static_cast<DWORD>(refreshRate), 0);
         if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E3D8));   // "Can't set display mode.\n"
     }
-    DeviceCreateSurfacesOriginal(this, nullptr, backBuffers, for3D);
+    CreateSurfaces(backBuffers, for3D);
 
     // The YUV formats for video: one a video-memory surface can have (when the driver blits
     // four-character-code formats) and one an overlay can have (when it has such overlays).

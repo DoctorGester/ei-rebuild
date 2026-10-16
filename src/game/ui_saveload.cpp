@@ -15,6 +15,8 @@
 // the DirectDraw texture, which the old path draws, and the filled block is copied into the
 // memory; in the switch-over ("present") they are written into and read from the memory only,
 // with no Lock (DirectPixels). Without the option everything is as the original.
+#include "app.h"
+#include "core_streams.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -39,6 +41,7 @@
 #include "originals_world.h"
 #include "record_lifetime.h"
 #include "game_flow_data.h"
+#include "world_glue.h"
 
 #include <ddraw.h>
 
@@ -96,8 +99,8 @@ __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_
 // The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
 // the magic and version fit, the version kept in +8; 00461190 / 004E5840, RET 4: a string up to
 // a zero into a new CString at `out` / into the CString `out`).
-void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { StreamWriteHeaderOriginal(a0, nullptr, a2, a3); }
-bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return StreamReadHeaderOriginal(a0, nullptr, a2, (int)a3, a4); }
+void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { static_cast<CStream*>(a0)->WriteHeader(a2, a3); }
+bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return static_cast<CStream*>(a0)->ReadHeader(a2, (int)a3, a4); }
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 __declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)
@@ -193,7 +196,7 @@ public:
         long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)
                       ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc_), 0, nullptr);
         holder_->result = hr;
-        return hr == 0 || FatalDirectX(hr, game::savewords::CantLockSurface()) != 0;
+        return hr == 0 || app::FatalErrorCode(hr, game::savewords::CantLockSurface()) != 0;
     }
     std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
     void Mirror() const {
@@ -207,7 +210,7 @@ public:
         if (direct_) return;
         long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)->Unlock(nullptr);
         holder_->result = hr;
-        if (hr != 0) FatalDirectX(hr, game::savewords::CantUnlockSurface());
+        if (hr != 0) app::FatalErrorCode(hr, game::savewords::CantUnlockSurface());
     }
 
 private:
@@ -634,7 +637,7 @@ void __fastcall QuickLoad(const char* slot) {
     mfc::CString notice;
     Texts()->GetString(game::Text(kNotifyLoading), &notice);
     ShowStatusText(kInterface, nullptr, notice);
-    MenuSetOriginal(1);
+    GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
 EI_REPLACE(0x006575B0, QuickLoad);
@@ -747,7 +750,7 @@ void CSaveLoadWindow::LoadSelected() {
     mfc::CString notice;
     Texts()->GetString(game::Text(kNotifyLoading), &notice);
     ShowStatusText(kInterface, nullptr, notice);
-    MenuSetOriginal(1);
+    GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entriesBegin_[selected_].folder_, 0);
 }

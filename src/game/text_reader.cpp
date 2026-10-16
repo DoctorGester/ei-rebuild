@@ -8,6 +8,7 @@
 #include "resource.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -46,7 +47,7 @@ bool Inside(const CTextManager* t, const char* p) {
 // 004DF4E0 as inlined: the lead test on the unsigned byte, the code from the signed bytes.
 int CharCode(const char* p) {
     int high = 0;
-    if (IsMbbLead(static_cast<unsigned char>(*p))) {
+    if (libcrt::Ismbblead(static_cast<unsigned char>(*p))) {
         high = static_cast<signed char>(*p) << 8;
         ++p;
     }

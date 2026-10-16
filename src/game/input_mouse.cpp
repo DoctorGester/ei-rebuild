@@ -1,6 +1,7 @@
 // The DirectInput mouse (CDirectInputMouse, 0065EAD0-0065ECD6): set up at the application's start,
 // acquired with the window's activation and polled by the cursor (A-H25). See ui_cursor.h.
 #define DIRECTINPUT_VERSION 0x0700
+#include "app.h"
 #include "ui_cursor.h"
 #include "game_strings.h"
 
@@ -47,7 +48,7 @@ void Drop(T*& slot) {
     if (held) held->Release();
 }
 
-int Reported(HRESULT result, const char* text) { return FatalDirectX(result, text) != 0 ? 1 : 0; }
+int Reported(HRESULT result, const char* text) { return app::FatalErrorCode(result, text) != 0 ? 1 : 0; }
 
 } // namespace
 
@@ -84,7 +85,7 @@ int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     if (result < 0) return Reported(result, kNoCooperation);
     if (device_) {
         result = device_->Acquire();
-        if (result < 0) FatalDirectX(result, kNoAcquire);
+        if (result < 0) app::FatalErrorCode(result, kNoAcquire);
     }
     return 1;
 }

@@ -1,5 +1,6 @@
 // Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
 // escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
+#include "spell.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
@@ -132,7 +133,7 @@ EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { PlaySoundAt(ui, nullptr, name, flags); }
-void LeaveGame() { FlowCloseSessionsOriginal(kGame); }
+void LeaveGame() { static_cast<GameFlow*>(kGame)->CloseSessions(); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------
@@ -430,7 +431,7 @@ int HeroManaUnits(void* stats) {
 bool HeroCanUseSpell(void* stats, char* spell) {
     bool ok = true;
     int required = *reinterpret_cast<int*>(spell + 0x50);
-    const char* prototype = SpellGetPrototypeOriginal(reinterpret_cast<CSpell*>(spell));
+    const char* prototype = reinterpret_cast<CSpell*>(spell)->GetPrototype();
     if (HeroSchoolSkill(stats, *reinterpret_cast<const int*>(prototype + 0x14)) < required) ok = false;
     float cost = *reinterpret_cast<float*>(spell + 0x40);
     int units = HeroManaUnits(stats);
@@ -491,7 +492,7 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
-void CMpHeroScreen::CallShowHero(int index) { static_cast<CMpHeroScreen*>(this)->ShowHero(index); }
+void CMpHeroScreen::CallShowHero(int index) { ShowHero(index); }
 void CMpHeroScreen::CallDrawVoices() { HeroScreenDrawVoicesOriginal(this); }
 void CMpHeroScreen::CallDrawHeroList() { HeroScreenDrawListOriginal(this); }
 

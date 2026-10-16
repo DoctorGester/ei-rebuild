@@ -4,6 +4,7 @@
 // pipeline's viewport and depth range, the render and texture stage states, a default light and the
 // ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
 // docs/notes/models.md ("Renderer creation").
+#include "app.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "ei/hook.h"
@@ -302,7 +303,7 @@ void CSceneRenderer::CreateRendererImpl(void* window, GameOptions* settings) {
     CTextureDevice* holder = device_;
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(holder->d3dDevice_), &deviceDesc);
     holder->lastLoadResult_ = result;
-    if (result != 0) FatalDirectX(result, game::Text(0x0078EE20));   // "Can't get device description"
+    if (result != 0) app::FatalErrorCode(result, game::Text(0x0078EE20));   // "Can't get device description"
     DDCAPS driverCaps = {};
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);

@@ -14,6 +14,7 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -245,7 +246,7 @@ void CMpConnectScreen::DrawListVanilla() {
             net::StringRep address;
             text.Format(game::Text(0x00792F34), label(5), entry.address.ToString(&address)->start);
             if (address.start) {
-                NodeDeallocateOriginal(address.start, static_cast<std::size_t>(address.eos - address.start));
+                libcrt::NodeDeallocateChecked(address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             Draw(surface, text, &row, 0);
             Down(&row);

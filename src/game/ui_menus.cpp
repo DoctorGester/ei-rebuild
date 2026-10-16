@@ -47,13 +47,13 @@ double Ease(float slide) {
 // the options window's cancel puts their settings back.
 struct UiSoundSystem {
     void SetVolumeA(int value) {   // 006B7740
-        SoundManagerSetEffectsVolumeOriginal(reinterpret_cast<CSoundManager*>(this), nullptr, value);
+        reinterpret_cast<CSoundManager*>(this)->SetEffectsVolume(value);
     }
     void SetVolumeB(int value) {   // 006B7A00
-        SoundManagerSetMusicVolumeOriginal(reinterpret_cast<CSoundManager*>(this), nullptr, value);
+        reinterpret_cast<CSoundManager*>(this)->SetMusicVolume(value);
     }
     void SetVolumeC(int value) {   // 006B78A0
-        SoundManagerSetSpeechVolumeOriginal(reinterpret_cast<CSoundManager*>(this), nullptr, value);
+        reinterpret_cast<CSoundManager*>(this)->SetSpeechVolume(value);
     }
 };
 

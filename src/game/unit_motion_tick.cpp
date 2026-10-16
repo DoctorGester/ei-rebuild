@@ -11,6 +11,7 @@
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
+#include "unit_ai.h"
 #include "world_data.h"
 #include "unit.h"
 #include "world.h"
@@ -237,7 +238,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     char* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        BrainLeaderOrFollowedOriginal(&ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
+        ServerControllerOf(blocker)->brain.LeaderOrFollowed() == self && CurrentFrame() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
@@ -289,7 +290,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        if (MotionPathOf(c)->Start(&UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
         c->stoodBlocked = wasFlag;
@@ -301,7 +302,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
+        if (MotionPathOf(c)->Start(&UnitOf(c)->position, facing, time)) UnitOf(c)->RefreshMotion();
         c->SetStanding(0);
         c->SetState(6);
         c->stoodBlocked = 0;
@@ -432,7 +433,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
         SectorMapRemove(sectors, nullptr, UnitOf(c));
         canStand = MapCanStand(world->AIMap(), nullptr, UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = BlockingUnitAtOriginal(world->AIMap(), nullptr, UnitOf(c), &position);
+            CUnit* blocker = world->AIMap()->BlockingUnitAt(UnitOf(c), &position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -446,7 +447,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && HasKind3OccluderAtOriginal(world->AIMap(), nullptr, &position) &&
+    if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
         OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;

@@ -693,13 +693,13 @@ void PlayerMode::Execute(AIBrain* brain) {
                 state = kStateFollow;
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
-            } else if (!direct && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
+            } else if (!direct && !StaysWithParty(brain, true)) {
                 reinterpret_cast<CUnitServer*>(brain->owner)->Shout(0x21);
                 std::memset(&point.z, 0, 4);
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
             }
-        } else if (direct || PlayerStaysWithPartyOriginal(this, nullptr, brain, false)) {
+        } else if (direct || StaysWithParty(brain, false)) {
             std::memcpy(&point.z, &kOneBits, 4);
             Vector3 to;
             std::memcpy(&to.x, &point.x, 4);
@@ -757,7 +757,7 @@ EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
-    if (!DirectControl(brain) && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
+    if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
         std::memset(&point.z, 0, 4);
         ControllerPlanMoveOriginal(brain->owner, nullptr, &point.x, unknown, 0, kMoveTime);
         return;

@@ -251,9 +251,9 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
-            RefReset(&group->data[k]);
+            group->data[k].Reset();
             RefConstruct(&group->data[k], nullptr, &member);
-            RefReset(&member);
+            member.Reset();
         }
         copy.vtable = scriptvtable::kRefsBase;
         if (copy.data) {
@@ -281,9 +281,9 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
         ScriptObjectRef value;
         RefAt(&other->objects, nullptr, &value, i);
         ScriptObjectRef* slot = &objects.data[i];
-        RefReset(slot);
+        slot->Reset();
         RefConstruct(slot, nullptr, &value);
-        RefReset(&value);
+        value.Reset();
     }
     NamesCopyConstructAt(&objectNames, nullptr, &other->objectNames);
 

@@ -1,5 +1,6 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
+#include "core_streams.h"
 #include "ui.h"
 #include "ui_briefing.h"
 
@@ -183,11 +184,11 @@ void CBriefingScreen::Create() {
     chatActive_ = 0;
     autosave_ = false;
     if (LoadingGame())
-        StreamResizeOriginal(GameSaveStream(), nullptr, 0);
+        static_cast<CMemoryStream*>(GameSaveStream())->Resize(0);
     else if (LocalViewPlayer()->lastScreen != kFromCamp)
         autosave_ = true;
     MapRecord* map = FindLocalMap();
-    static_cast<CBriefingScreen*>(this)->LoadPersonTexts();
+    LoadPersonTexts();
     LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
@@ -281,7 +282,7 @@ void CBriefingScreen::Create() {
     const auto& objects = LocalViewPlayer()->objects.map;
     for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
         int id = node->value->id_;
-        if (IsTextKeyOriginal(id)) people_.push_back(id);
+        if (IsTextKey(id)) people_.push_back(id);
     }
     markPhase_ = 0.0f;
 }

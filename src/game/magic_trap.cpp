@@ -231,7 +231,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     const char* text = record->spell;
     void* manager = SpellManagerOf(ManagerContextOf(this));
-    auto* made = static_cast<CEngineObject*>(SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(manager), nullptr, text));
+    auto* made = static_cast<CEngineObject*>(static_cast<CSpellManager*>(manager)->CreateSpellFromText(text));
     CEngineObject* old = spell;
     spell = made;
     if (made) ++made->refCount_;

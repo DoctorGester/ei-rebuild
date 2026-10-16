@@ -7,6 +7,7 @@
 #include "../lib/crt.h"
 
 #include "ei/hook.h"
+#include "net_classes.h"
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_render.h"
@@ -50,7 +51,7 @@ CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); 
 WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, id)); }
 // The client world's local player (its local view's player).
 WorldPlayer* LocalPlayer() {
-    return reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(WorldClient()))->player;
+    return reinterpret_cast<LocalViewData*>(static_cast<CWorldClient*>(WorldClient())->LocalView())->player;
 }
 
 // The global variables' hash table: a node is {next, name, value}.
@@ -299,7 +300,7 @@ void __fastcall Give(CStringArray* args) {
     if (ArgIs(args, 1, 0x00792760) && args->GetSize() > 2) {   // money
         int amount = GameAtoi((*args)[2]);
         player->Party()->Money() += amount;
-        return PlayerStateRefreshOriginal(state);
+        return state->SendParty();
     }
     if (ArgIs(args, 1, 0x0079275C) && args->GetSize() > 2) {   // exp
         int count = player->mercCount;
@@ -307,7 +308,7 @@ void __fastcall Give(CStringArray* args) {
         float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(player->mercs)[i].stats)->AddScaledExperience(share);
-        return PlayerStateRefreshOriginal(state);
+        return state->SendParty();
     }
     if (ArgIs(args, 1, 0x00792750)) {   // assortment
         InterfaceActiveWindowOriginal(Interface())->VirtualDebugFill();
@@ -393,7 +394,7 @@ void __fastcall Net(CStringArray* args) {
         *reinterpret_cast<int*>(0x0079BC60) = GameAtoi((*args)[1]);
     if (Mbsicmp((*args)[0], game::Text(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
         mfc::CString zone((*args)[1]);
-        SessionCommand(Server(), nullptr, 0, zone);
+        Server()->SendCommand(0, zone);
     }
 }
 EI_REPLACE(0x005DF9B0, Net);
@@ -492,7 +493,7 @@ EI_REPLACE(0x005E00D0, Days);
 
 // 005E0570: partyresend.
 void __fastcall PartyResend(CStringArray*) {
-    if (WorldPlayer* player = GetPlayer(0)) PlayerResendPartyOriginal(player->server);
+    if (WorldPlayer* player = GetPlayer(0)) static_cast<CPlayerServer*>(player->server)->ResendParty();
 }
 EI_REPLACE(0x005E0570, PartyResend);
 
@@ -515,7 +516,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
     mfc::CString name((*args)[0]);
     const char* text = name;
     if (text[0] == '"' && text[Length(name) - 1] == '"') name = Ops(name).Mid(1, Length(name) - 2);
-    if (ServerActive(Server())) SessionCommand(Server(), nullptr, command, name);
+    if (ServerActive(Server())) Server()->SendCommand(command, name);
 }
 } // namespace
 

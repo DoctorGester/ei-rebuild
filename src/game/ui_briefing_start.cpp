@@ -1,6 +1,7 @@
 // The briefing / base screen's dialogue start and end (CBriefingScreen::StartDialogue /
 // FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
 // See docs/notes/ui.md, "Briefing / base screen".
+#include "player_messages.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
@@ -292,7 +293,7 @@ void CBriefingScreen::FinishDialogue() {
     if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventEnds, leader_->id_);
     Vector3 at = Position(leader_);
     if (briefingStarted_) {
-        PlayerSendPosition04Original(LocalServerPlayer()->server, nullptr, &at, 0, 1);
+        static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition04(&at, 0, 1);
         camera::TheCamera()->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {

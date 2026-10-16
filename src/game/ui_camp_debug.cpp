@@ -1,5 +1,6 @@
 // The camp's debug fill of the constructors' lists (00612CF0, slot 39). See ui_camp.h and
 // docs/notes/ui.md, section 5.
+#include "spell.h"
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -87,12 +88,12 @@ itemdb::ItemRecordHead* Record(const RecordTable& table, int index, int stride) 
 void CCampPages::DebugFill() {
     console::CStringArray names;
     console::CStringArray materials;
-    ItemDbListFourthKindOriginal(ItemDatabase(), nullptr, &materials);
+    static_cast<CItemManager*>(ItemDatabase())->ListMaterialNames(&materials);
 
     if (auto* items = static_cast<CParty*>(itemParts_[0])) {
         PartyResetOriginal(items, nullptr, 1, 0);
 
-        ItemDbListWeaponsOriginal(ItemDatabase(), nullptr, &names);
+        static_cast<CItemManager*>(ItemDatabase())->ListWeaponNames(&names);
         for (int i = 0; i < names.size; ++i) {
             AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemManager();
@@ -101,7 +102,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, weapon, kWeaponClass, materials.size);
         }
 
-        ItemDbListArmorsOriginal(ItemDatabase(), nullptr, &names);
+        static_cast<CItemManager*>(ItemDatabase())->ListArmorNames(&names);
         for (int i = 0; i < names.size; ++i) {
             CResourceManager* manager = items->ItemManager();
             itemdb::ItemRecordHead* armor = Record(itemdb::Armors(), i, itemdb::kArmorSize);
@@ -111,7 +112,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, armor, kArmorClass, materials.size);
         }
 
-        ItemDbListQuickItemsOriginal(ItemDatabase(), nullptr, &names);
+        static_cast<CItemManager*>(ItemDatabase())->ListQuickItemNames(&names);
         for (int i = 0; i < names.size; ++i) {
             itemdb::ItemRecordHead* quick = Record(itemdb::QuickItems(), i, itemdb::kQuickItemSize);
             if (NameHas(quick, WandWord()))
@@ -120,7 +121,7 @@ void CCampPages::DebugFill() {
 
         // "Material.<name>" (CString + "." + name, as the original's two operator+), twenty each,
         // the record index left as made.
-        ItemDbListFourthKindOriginal(ItemDatabase(), nullptr, &names);
+        static_cast<CItemManager*>(ItemDatabase())->ListMaterialNames(&names);
         for (int i = 0; i < names.size; ++i) {
             mfc::CString name(MaterialWord());
             name += Dot();
@@ -133,10 +134,10 @@ void CCampPages::DebugFill() {
 
     if (auto* spells = static_cast<CParty*>(spellParts_[0])) {
         PartyResetOriginal(spells, nullptr, 1, 0);
-        SpellDbListModifiersOriginal(SpellDatabase(), nullptr, &names);
+        static_cast<CSpellManager*>(SpellDatabase())->ListModifierNames(&names);
         for (int i = 0; i < names.size; ++i)
             AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);
-        SpellDbListSpellsOriginal(SpellDatabase(), nullptr, &names);
+        static_cast<CSpellManager*>(SpellDatabase())->ListSpellNames(&names);
         for (int i = 0; i < names.size; ++i)
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }

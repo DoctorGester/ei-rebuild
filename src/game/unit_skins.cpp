@@ -7,6 +7,7 @@
 // docs/notes/world.md.
 #include "console.h"
 #include "game_strings.h"
+#include "item.h"
 #include "item_db.h"
 #include "model.h"
 #include "unit.h"
@@ -146,7 +147,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
     char buffer[0x100];
     {
         mfc::CString name;
-        ArmourTexture(&name, id >> 16, id & 0xFFFF);
+        ArmorModelName(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
     StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);

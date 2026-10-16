@@ -5,6 +5,7 @@
 // there (inline assembly where a value is stored and still used unrounded, or truncated with the
 // game's _ftol), values it stores as float are rounded with static_cast<float>, products keep their
 // operand order (precise floating point), constants are read from the exe's memory.
+#include "app.h"
 #include "ui_item_info.h"
 #include "game_strings.h"
 #include "plugin_fixes.h"
@@ -593,7 +594,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     desc[0] = 0x7C;
     bool direct;
     long hr = LockTexture(holder, desc, &direct);
-    if (hr != 0 && FatalDirectX(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         VirtualCall(texture, 4);
@@ -621,7 +622,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     hr = UnlockTexture(holder, direct);
-    if (hr != 0 && FatalDirectX(hr, game::Text(0x0078E2F4)) == 0) {   // "Can't unlock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E2F4)) == 0) {   // "Can't unlock surface"
         VirtualCall(texture, 4);
         return nullptr;
     }
@@ -656,7 +657,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     desc[0] = 0x7C;
     bool direct;
     long hr = LockTexture(holder, desc, &direct);
-    if (hr != 0 && FatalDirectX(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         return 0;
@@ -683,7 +684,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     hr = UnlockTexture(holder, direct);
-    if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
+    if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     VirtualCall(TextureManager(), 22);
     return image != nullptr;
 }

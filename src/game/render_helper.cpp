@@ -6,6 +6,7 @@
 // operator delete" shells of five classes, and the transform pipeline's constructor and destructor
 // with its matrix stacks' constructor. The device object's and the DirectDraw holder's destructor bodies are not
 // here. See docs/notes/renderer.md (section 12).
+#include "app.h"
 #include "device.h"   // the old device's calls
 #include "dx_errors.h"
 #include "model.h"
@@ -245,7 +246,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
 
     HRESULT result = device::BeginStateBlock(device_);
     if (result < 0) {
-        const int error = FatalDirectX(result, CantBeginBlockText());
+        const int error = app::FatalErrorCode(result, CantBeginBlockText());
         blocks.FreeStorage();
         return Failed(error);
     }
@@ -270,7 +271,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
     DWORD block = 0;
     result = device::EndStateBlock(device_, &block);
     if (result < 0) {
-        const int error = FatalDirectX(result, CantEndBlockText());
+        const int error = app::FatalErrorCode(result, CantEndBlockText());
         blocks.FreeStorage();
         return Failed(error);
     }
@@ -279,7 +280,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
     for (std::size_t i = static_cast<std::size_t>(stages); i < states->size(); ++i) {
         result = device::BeginStateBlock(device_);
         if (result < 0) {
-            const int error = FatalDirectX(result, CantBeginBlockText());
+            const int error = app::FatalErrorCode(result, CantBeginBlockText());
             blocks.FreeStorage();
             return Failed(error);
         }
@@ -290,7 +291,7 @@ CRenderPreset* CRenderHelper::RecordImpl(const StateVector* states, int index, b
         }
         result = device::EndStateBlock(device_, &block);
         if (result < 0) {
-            const int error = FatalDirectX(result, CantEndBlockText());
+            const int error = app::FatalErrorCode(result, CantEndBlockText());
             blocks.FreeStorage();
             return Failed(error);
         }
@@ -333,7 +334,7 @@ void CRenderHelper::ReleaseBlockImpl(CRenderPreset* preset) {
     for (int i = 0; i < static_cast<int>(preset->blocks_.size()); ++i) {
         const std::uint32_t block = preset->blocks_[i];
         const HRESULT result = device::DeleteStateBlock(device_, block);
-        if (result < 0) FatalDirectX(result, CantDeleteBlockText(), block);
+        if (result < 0) app::FatalErrorCode(result, CantDeleteBlockText(), block);
     }
     if (preset->Index() < kPresetCount) presets_[preset->Index()] = nullptr;
 
@@ -373,7 +374,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     std::memset(caps_, 0, sizeof(caps_));
     const HRESULT result = device::GetCaps(device_, &Caps(this));
     if (result < 0) {
-        FatalDirectX(result, CantGetCapsText());
+        app::FatalErrorCode(result, CantGetCapsText());
         std::memset(caps_, 0, sizeof(caps_));
     }
 

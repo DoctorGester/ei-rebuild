@@ -21,6 +21,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "ei/x87.h"
+#include "lib/mfc_window.h"
 
 #include <cstring>
 #include <new>
@@ -814,7 +815,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
         mfc::CString message;
         message.Format(scenedata::CantOpenText(), fileName);
-        AfxMessageBox(message, 0x10, 0);
+        mfc::impl::MessageBoxText(message, 0x10, 0);
         return 0;
     }
     LoadScene(&s.info, nullptr, &s.file, meshes, helpers, &s.nodes);

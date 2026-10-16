@@ -1,7 +1,11 @@
 // CWorldServer::CreateUnits (0058EF20): creates units from unit records (script AddUnitToServer,
 // the party entering a zone, mercenaries), places them, gives them their equipment and AI, and
 // adds the heroes to the "Heroes" script group. See world.h and docs/notes/world.md.
+#include "core_streams.h"
 #include "map_object_figures.h"
+#include "object_diplomacy.h"
+#include "spell.h"
+#include "unit_ai.h"
 #include "world.h"
 #include "world_data.h"
 #include "game_strings.h"
@@ -26,6 +30,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "lib/mfc_window.h"
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -181,7 +186,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
     ItemSourceRef* record = nullptr;
     if (memory) {
         if (refValueBase) {
-            RefValueConstructOriginal(memory);
+            RefValueConstructBase(memory);
             memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
             record = memory;
         } else {
@@ -270,7 +275,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         // A player-controlled AI, standing on a free cell near the requested position.
         CEngineObject* controller = AsUnit(unit)->controller;
         void* brain = &static_cast<CUnitServer*>(controller)->brain;
-        BrainClearModesOriginal(brain);
+        static_cast<AIBrain*>(brain)->ClearModes();
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
         BrainAddModeOriginal(brain, nullptr, (memory ? ModePlayerConstructOriginal(memory) : nullptr));
@@ -391,7 +396,7 @@ __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) 
 UnitPrototypeRecord** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (UnitPrototypeRecord**)PrototypeMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
 __declspec(naked) void __fastcall ObjectSetup7(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052A2C0)
-void __fastcall MarkNewObject(CEngineObject* a0, void*) { ObjectMarkNewOriginal((void*)a0); }
+void __fastcall MarkNewObject(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
 
 // The timed objects' types (world_effect.h).
 constexpr int kTimedAmbientSound = 0x49, kTimedSound = 0x48, kTimedLight = 0x4B, kTimedParticle = 0x4A;
@@ -478,8 +483,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;
-            CEngineObject* spell = reinterpret_cast<CEngineObject*>(SpellManagerCreateSpellFromTextOriginal(
-                reinterpret_cast<CSpellManager*>(SpellManager()), nullptr, worlddata::CampfireText()));
+            CEngineObject* spell = reinterpret_cast<CEngineObject*>(reinterpret_cast<CSpellManager*>(SpellManager())->CreateSpellFromText(worlddata::CampfireText()));
             if (spell) ++spell->refCount_;
             WorldCastSpellOriginal(this, nullptr, spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
                                    const_cast<const Vector3*>(&at), 0);
@@ -560,7 +564,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
             UnitSetController(object, nullptr, nullptr);
             reinterpret_cast<CUnit*>(object)->SetSide(spec->side);
-            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->side));
+            UnitSetDiplomacy(object, nullptr, diplomacy_.GetHostileMask(spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];
@@ -640,7 +644,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         }
         auto* plain = static_cast<CEffectSound*>(timedManager->CreateObject(kTimedSound, base.id));
         if (sound->sounds.size < 1) {
-            AfxMessageBox(worlddata::NoWaveNameText(), 0, 0);
+            mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
         } else {
             // strcpy, inlined in the original (REP MOVS of the length with its terminator).
             const char* wave = sound->sounds.data[0];

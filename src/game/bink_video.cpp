@@ -18,6 +18,7 @@
 // And the frame player's open (005DBA50, ticket R7). In the switch-over with "cpuwindows" the
 // movies' holders (004EF7B0) have no DirectDraw surface at all: nothing decodes into them and
 // BinkDDSurfaceType is not asked (OldPathDraws, SurfaceType).
+#include "app.h"
 #include "bink_video.h"
 #include "game_strings.h"
 #include "mod_folders.h"
@@ -176,7 +177,7 @@ unsigned CBinkVideo::Frame(char toPrimary) {
             long hr = ComCall(surfaceHolder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                               static_cast<void*>(nullptr));
             surfaceHolder->result = hr;
-            if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E30C))) {   // "Can't lock surface"
+            if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E30C))) {   // "Can't lock surface"
                 // The original leaves the device lock held here.
                 return ErrorMessage(game::Text(0x0079234C)) & 0xFFFFFF00u;
             }
@@ -187,7 +188,7 @@ unsigned CBinkVideo::Frame(char toPrimary) {
             gameapi::LeaveCriticalSection(DeviceLock());
             hr = ComCall(surfaceHolder->surface, kUnlock, static_cast<void*>(nullptr));
             surfaceHolder->result = hr;
-            if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E2F4)))   // "Can't unlock surface"
+            if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E2F4)))   // "Can't unlock surface"
                 return ErrorMessage(game::Text(0x00792324)) & 0xFFFFFF00u;
             BinkNextFrame()(binkHandle);
         }
@@ -258,7 +259,7 @@ bool CopyFrameToSurface(CDXSurface* const* holderAt, BinkHeader* bink, unsigned 
     long hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                       static_cast<void*>(nullptr));
     holder->result = hr;
-    if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E30C))) return true;   // "Can't lock surface"
+    if (hr != 0 && !app::FatalErrorCode(hr, game::Text(0x0078E30C))) return true;   // "Can't lock surface"
     // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
     BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
                        surfaceType);
@@ -266,7 +267,7 @@ bool CopyFrameToSurface(CDXSurface* const* holderAt, BinkHeader* bink, unsigned 
     gameapi::LeaveCriticalSection(DeviceLock());
     hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
     holder->result = hr;
-    return hr == 0 || FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
+    return hr == 0 || app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
 } // namespace

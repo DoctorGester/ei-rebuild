@@ -5,6 +5,7 @@
 // vanilla game. Every callee is reached through its original address (forwarders below): several
 // are patched by Rebirth (CalcParameters, FatalError, 005935C0, Execute itself for For bodies), and
 // the rest still run original code or their own replacement's verify wrapper.
+#include "object_tables.h"
 #include "script.h"
 #include "game_strings.h"
 #include "script_addon.h"
@@ -20,6 +21,7 @@
 #include "party_records.h"
 #include "player_messages.h"
 #include "quest_records.h"
+#include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
@@ -180,13 +182,13 @@ __declspec(naked) void BrainCalls::Follow(CEngineObject*) EI_ORIGINAL(0x005D7E40
 __declspec(naked) void BrainCalls::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
 __declspec(naked) void BrainCalls::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x005D7DA0)
 __declspec(naked) void BrainCalls::ResetTarget() EI_ORIGINAL(0x005D7C30)
-void BrainCalls::ClearModes() { BrainClearModesOriginal((void*)this); }
+void BrainCalls::ClearModes() { static_cast<AIBrain*>((void*)this)->ClearModes(); }
 void BrainCalls::StopAction() { BrainStopActionOriginal(this); }
 __declspec(naked) void BrainCalls::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
 __declspec(naked) void BrainCalls::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
 void BrainCalls::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void* BrainCalls::FindPatrolMode() EI_ORIGINAL(0x005D5E30)
-void BrainCalls::RemoveMode(int a0) { BrainRemoveModeOriginal((void*)this, nullptr, a0); }
+void BrainCalls::RemoveMode(int a0) { static_cast<AIBrain*>((void*)this)->RemoveModesOfType(a0); }
 
 // Unit modes (the brain's behaviour list): allocated by the command (NewMode) and constructed by
 // these.
@@ -316,7 +318,7 @@ struct PlayerStateCalls {
 __declspec(naked) void PlayerStateCalls::DelVar(const char*) EI_ORIGINAL(0x0066EF30)
 __declspec(naked) void PlayerStateCalls::PlayMusic(const char*) EI_ORIGINAL(0x0066EB90)
 __declspec(naked) void PlayerStateCalls::LeaveToZone(const char*, int) EI_ORIGINAL(0x0066F310)
-void PlayerStateCalls::PrepareRedeploy() { PlayerStateRefreshOriginal((void*)this); }
+void PlayerStateCalls::PrepareRedeploy() { static_cast<CPlayerServer*>((void*)this)->SendParty(); }
 
 // Party records of a player (PartyRecordsFor) and one record.
 struct PartyRecordsCalls {
@@ -409,7 +411,7 @@ EventCalls* TheEvents() { return reinterpret_cast<EventCalls*>(WorldServer()->pl
 struct SpellManagerCalls {
     CEngineObject* CreateSpellFromText(const char* text) {   // 00689030
         return reinterpret_cast<CEngineObject*>(
-            SpellManagerCreateSpellFromTextOriginal(reinterpret_cast<CSpellManager*>(this), nullptr, text));
+            reinterpret_cast<CSpellManager*>(this)->CreateSpellFromText(text));
     }
 };
 SpellManagerCalls* TheSpellManager() { return reinterpret_cast<SpellManagerCalls*>(WorldServer()->manager4C_); }
@@ -716,7 +718,7 @@ void UnitModes(const SSCCmd* cmd) {
 BOOL ScriptRun::Execute(CScript* script) {
     ++ticks;
     if (index >= block->commands.size) return 0;
-    RemoveDeletedOrig(&vars);
+    vars.RemoveDeletedObjects();
     int cont = 1;
     while (index < block->commands.size) {
         if (!cont) return 1;
@@ -916,7 +918,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x88: {   // AddUnitToServer(name, prototype, ..., x, y, z)
             Vector3 point = {f[0], f[1], f[2]};
-            TheWorld()->AddUnit(TextKeyOf(Text(cmd, 0)), Text(cmd, 1), Text(cmd, 2), &point);
+            TheWorld()->AddUnit(TextKeyFromName(Text(cmd, 0)), Text(cmd, 1), Text(cmd, 2), &point);
             break;
         }
         case 0x89:     // RemoveUnitFromServer(object)
@@ -953,7 +955,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            WorldLoadMobFileOriginal(WorldServer(), nullptr, Text(cmd, 0));
+            static_cast<CWorldServer*>(WorldServer())->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             static_cast<CameraCalls*>(ClientGlueObject())->Play(Text(cmd, 0), 0);
@@ -1048,7 +1050,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x36: {   // SetPlayer(unit, player)
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
-            UnitOf(unit)->SetHostileMask(DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy()), nullptr, Ftol(f[0])));
+            UnitOf(unit)->SetHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy())->GetHostileMask(Ftol(f[0])));
             static_cast<CUnit*>(unit)->SetSide(Ftol(f[0]));
             break;
         }
@@ -1420,7 +1422,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 if (cmd->id == 0x86)
                     records->AddUnit(name, Text(cmd, 1), game::EmptyText());
                 else
-                    records->RemoveUnit(TextKeyOf(name));
+                    records->RemoveUnit(TextKeyFromName(name));
             }
             break;
         }
@@ -1432,8 +1434,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::CString to(cmd->stringArgs.data[1]);
             auto* fromRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &from));
             auto* toRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &to));
-            PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyOf(from));
-            PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyOf(to));
+            PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyFromName(from));
+            PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyFromName(to));
             if (source && target) {
                 if (cmd->id == 0xD4) {
                     RecordCopyItemsFrom(target, nullptr, source, toRecords);

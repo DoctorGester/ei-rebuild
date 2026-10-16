@@ -38,7 +38,6 @@ const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spe
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-// 004B3330 (RET 4). ScriptGroup::Contains (script_group.cpp), through its address.
 // 0054BBC0 (RET 0x10). Whether the spell (EDX) may hit `target` (ECX = the world).
 __declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
                                                const Vector3* /*from*/, CEngineObject* /*target*/,
@@ -51,7 +50,7 @@ __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*,
                                               CEngineObject* /*caster*/, const Vector3* /*from*/,
                                               CEngineObject* /*target*/, const Vector3* /*to*/, int)
     EI_ORIGINAL(0x0067ECB0)
-// 005D7E90 (BrainSetSeenOriginal, RET 4). The target's AI brain is attacked by `caster`.
+// 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
 
 int SpellType(const void* spell) { return static_cast<int>(static_cast<const CSpell*>(spell)->prototypeId_ >> 16); }
@@ -98,7 +97,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
     Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
     MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
-    if (SpellEffectUpdateOriginal(reinterpret_cast<CSpellEffect*>(missile), nullptr)) {
+    if (reinterpret_cast<CSpellEffect*>(missile)->Update()) {
         auto& list = projectiles_;
         ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
         Projectile* old = node->data;
@@ -112,7 +111,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     if (target && target->GetClassId() == world::kClassUnit && caster) {
         CEngineObject* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
-            BrainSetSeenOriginal(reinterpret_cast<UnitController*>(controller)->Brain(), nullptr, caster);
+            reinterpret_cast<UnitController*>(controller)->Brain()->SetSeen(caster);
             DiplomacyOnAttack(&diplomacy_, nullptr, caster, target, 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
@@ -207,7 +206,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         if (!caster) {
             hit = true;
         } else if (heroes) {
-            hit = GroupContains(&heroes->partyUnits_, nullptr, best) != 0;
+            hit = heroes->partyUnits_.Contains(best) != 0;
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
             UnitList::Node* friends =

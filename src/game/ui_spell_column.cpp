@@ -1,5 +1,6 @@
 // The spell column's unit (0063E820): a sprite and a tooltip per spell of the unit. See ui.h
 // (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
+#include "spell.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -33,7 +34,7 @@ __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const 
 // a key.
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
 std::uint8_t* SpellPrototypeOf(void* spell) {
-    return reinterpret_cast<std::uint8_t*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)));
+    return reinterpret_cast<std::uint8_t*>(static_cast<CSpell*>(spell)->GetPrototype());
 }
 
 void* TextManager() { return *reinterpret_cast<void* const*>(0x007AF788); }

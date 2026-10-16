@@ -2,7 +2,9 @@
 // back, LoadSavedMapObjects restores the map objects SaveMapObjects wrote, and UpdatePlayerTimes
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "bink_video.h"
+#include "game_lists.h"
 #include "map_object_figures.h"
+#include "player_messages.h"
 #include "world.h"
 
 #include "ai_map.h"
@@ -20,6 +22,7 @@
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "mod_folders.h"
+#include "world_effect.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -139,8 +142,7 @@ void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 // 00665200. Empties a player before it is loaded.
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
-// FindFreeCellNear (ai_map.cpp): AIMapBeginRefreshOriginal, AIMapEndRefreshOriginal, AIMapCanLeaveCellOriginal,
-// FindFreeCellNearOriginal (originals_ai.h).
+// FindFreeCellNear (ai_map.cpp; the last two through AIMapCanLeaveCellOriginal, FindFreeCellNearOriginal).
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 __declspec(naked) int __fastcall LoadAIGraph(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
                                              CMemoryStream* /*out*/) EI_ORIGINAL(0x00596140)
@@ -160,7 +162,6 @@ __declspec(naked) int __fastcall LoadMapAt(CWorldServer*, void*, const char* /*m
 __declspec(naked) void __fastcall LoadSavedMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596900)
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 __declspec(naked) void __fastcall SaveMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596730)
-// 0058D280. UpdatePlayerTimes, through its address.
 // 004047E0 / 00404860 (RET 4). A manager's changed objects, read / written by id.
 __declspec(naked) void __fastcall ManagerLoadObjects(CEngineObject*, void*, WorldStream*) EI_ORIGINAL(0x004047E0)
 __declspec(naked) void __fastcall ManagerSaveObjects(CEngineObject*, void*, WorldStream*) EI_ORIGINAL(0x00404860)
@@ -168,7 +169,7 @@ __declspec(naked) void __fastcall ManagerSaveObjects(CEngineObject*, void*, Worl
 __declspec(naked) void __fastcall ManagerReleaseUnused(CEngineObject*, void*) EI_ORIGINAL(0x004048F0)
 // 00403F40 (RET 4). CBaseManager::FindObject (base_manager.cpp).
 // 00675CA0. Marks an object new (flags_ |= 2, stamp).
-void __fastcall MarkNew(CEngineObject* a0, void*) { ObjectMarkNewOriginal((void*)a0); }
+void __fastcall MarkNew(CEngineObject* a0, void*) { static_cast<CEffect*>((void*)a0)->MarkChanged(); }
 // 0067E510 / 0067E7D0 / 0067E960. Missile constructor (returns this), Load and Save.
 __declspec(naked) void __fastcall ProjectileLoad(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E7D0)
 __declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E960)
@@ -391,7 +392,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             ScriptGroupLoad(&group, nullptr, stream);
             ScriptGroupDestructOriginal((void*)&group);
         }
-        PlayerStateRefreshOriginal(state);
+        state->SendParty();
         PlayerStateSetFlag70(state, nullptr, 1);
     }
     if (it) {
@@ -422,7 +423,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             PlayerClear(player, nullptr);
         }
     }
-    AIMapBeginRefreshOriginal(AIMap());
+    AIMap()->BeginRefresh();
     loaded_ = 0;
     AIMap()->refreshUnits = false;   // +0x172
 
@@ -526,7 +527,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 CEngineObject* item = ManagerFindObject(itemManager_, nullptr, id);
                 if (!item) continue;
                 auto* node = CountedNewNode(&counted_, nullptr, nullptr, counted_.head);
-                ReferenceAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
+                ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
                 if (counted_.head) counted_.head->prev = node;
                 else counted_.tail = node;
                 counted_.head = node;
@@ -562,7 +563,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             SetTimeSpeed(speed);   // slot 32 (virtual)
             SetTime(time);   // slot 31 (virtual)
             loaded_ = 1;
-            AIMapEndRefreshOriginal(AIMap());
+            AIMap()->EndRefresh();
             AIMap()->refreshUnits = true;
 
             RelocateStrandedUnits(this);
@@ -671,7 +672,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     CMemoryStream current;
     ConstructSaveStream(&current);
 
-    if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimes(0.0f);
     ManagerReleaseUnused(manager40_, nullptr);
     ManagerReleaseUnused(manager48_, nullptr);
     ManagerReleaseUnused(manager4C_, nullptr);
@@ -920,7 +921,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadGraph));
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
-    AIMapBeginRefreshOriginal(AIMap());
+    AIMap()->BeginRefresh();
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));
     AIMap()->refreshUnits = false;
@@ -928,7 +929,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadMap));
     ShowLoadProgress(kProgressObjects);
     loaded_ = 1;
-    AIMapEndRefreshOriginal(AIMap());
+    AIMap()->EndRefresh();
     AIMap()->refreshUnits = true;
     ShowLoadProgress(kProgressDone);
     if (zone) *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;

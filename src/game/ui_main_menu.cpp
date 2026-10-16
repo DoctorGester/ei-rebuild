@@ -179,8 +179,8 @@ EI_REPLACE_METHOD(0x00632B10, CMainMenu::Update);
 
 void CMainMenu::Close() {
     MapEdgeFade() = savedEdgeFade_;
-    MenuSetOriginal(1);
-    MenuCallOriginal();
+    GameStopSounds(1);
+    GameStopAmbience();
 }
 EI_REPLACE_METHOD(0x00632910, CMainMenu::Close);
 

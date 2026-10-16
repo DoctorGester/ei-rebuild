@@ -91,7 +91,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
 // temporaries reset, every effect removed (point light slots zeroed; FX source, particle source and
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
 void __fastcall ScriptResetZone(CScript* script) {
-    ScriptDropInstancesAndRunsOriginal(script);
+    ScriptDropInstancesAndRuns(script);
     script->forDepth_ = 0;
     ScriptFreeTemporaries(script);
 

@@ -6,6 +6,7 @@
 // LightVertex adds the point lights registered with the vertex (006CAC10), packing the colour and
 // specular words the terrain draw sends to the device. On the ground layer both dim light under
 // water by 1 - absorption * depth^2 * falloff (times the light's vertical component squared).
+#include "terrain.h"
 #include "terrain_sector.h"
 #include "spell.h"
 
@@ -130,7 +131,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
     std::uint32_t g = Channel(AtMostOne(Max(colour.y, specular.y)));
     std::uint32_t b = Channel(AtMostOne(Max(colour.z, specular.z)));
     record->colour = ((((static_cast<std::uint32_t>(record->materialByte) << 8) | r) << 8 | g) << 8) | b;
-    std::uint32_t edge = IsLit(terrain, nullptr, position);
+    std::uint32_t edge = terrain->EdgeFade(position);
     if (hasSpecular) {
         std::uint32_t word = (edge & 0xFF) << 8 | gamecrt::Ftol(specular.x * 255.0f);
         word = word << 8 | gamecrt::Ftol(specular.y * 255.0f);

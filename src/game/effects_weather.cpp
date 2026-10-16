@@ -99,7 +99,7 @@ void CRainSnow::UpdateFade(float now) {
         if (targetMode == 1 && sound) SoundSetVolume(SoundManager(), nullptr, sound, 100, 0);
     }
     if (mode == 0 && sound) {
-        SoundStop(SoundManager(), nullptr, sound);
+        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
         sound = 0;
     }
     density = 64;
@@ -112,7 +112,7 @@ void CRainSnow::FinishFade() {
     mode = targetMode;
     if (targetMode == 1 && sound) SoundSetVolume(SoundManager(), nullptr, sound, 100, 0);
     if (mode == 0 && sound) {
-        SoundStop(SoundManager(), nullptr, sound);
+        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
         sound = 0;
     }
     fadeDuration = 0.0f;
@@ -142,7 +142,7 @@ const char* RainSoundName() { return reinterpret_cast<const char*>(0x0078DFA4); 
 
 void CRainSnow::Clear() {
     if (sound) {
-        SoundStop(SoundManager(), nullptr, sound);
+        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
         sound = 0;
     }
     CEngineObject* old = texture;
@@ -165,7 +165,7 @@ EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
 void CRainSnow::Start(int newMode, float duration) {
     LoadTextureOriginal(reinterpret_cast<void**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
-        SoundStop(SoundManager(), nullptr, sound);
+        static_cast<CSoundManager*>(SoundManager())->StopSound(sound);
         sound = 0;
     }
     if (newMode == 1) sound = sound::Manager()->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
@@ -192,7 +192,7 @@ void CRainSnow::DestructBody() {
 EI_REPLACE_METHOD(0x005616C0, CRainSnow::DestructBody);
 
 CRainSnow* CRainSnow::DeletingDestruct(unsigned flags) {
-    RainSnowDestructOriginal(this);
+    DestructBody();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

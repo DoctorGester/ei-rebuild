@@ -14,6 +14,7 @@
 // switch-over (`present`) the old device's clears are left out: nothing the old path still draws
 // there reads its depth buffer (its interface and world meshes are off). The item models go through
 // 005ECA10 and the mesh draws, which hand over already.
+#include "item.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -158,7 +159,7 @@ int CHeroEquipPanel::DrawImpl(int pass) {
     ClearDepth(DeviceOf(this), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
         CItem* item = static_cast<CItem*>(hero->armor[i]);
-        int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
+        int type = reinterpret_cast<CItemArmor*>(item)->GetType();
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
                       mode_};
         owner->DrawItem(pass, &cell);

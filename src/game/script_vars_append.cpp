@@ -100,7 +100,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
-            RefReset(&group->data[k]);
+            group->data[k].Reset();
             RefConstruct(&group->data[k], nullptr, &member);
             Release(member.object);
         }
@@ -120,7 +120,7 @@ namespace {
 
 void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 // 004B5EF0: a group's destructor body (references released, array freed).
-void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupBodyDestructOriginal((void*)a0); }
+void __fastcall GroupDestruct(ScriptGroup* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // The value array's storage freed after `destroy` ran on its elements (CArray::SetSize(0) as the
 // game inlines it), then the names emptied.
@@ -154,7 +154,7 @@ EI_REPLACE(0x004C16B0, ScriptStringsClear);
 
 void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars) {
     FreeValues(vars, [](ScriptObjectRef* refs, int count) {
-        for (int i = 0; i < count; ++i) RefReset(&refs[i]);
+        for (int i = 0; i < count; ++i) refs[i].Reset();
     });
 }
 EI_REPLACE(0x004C1700, ScriptObjectsClear);

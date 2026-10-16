@@ -67,7 +67,7 @@ RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node*
 CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
 
 // 00675CA0: an effect object took a new position.
-void EffectMoved(CEngineObject* object) { ObjectMarkNewOriginal(object); }
+void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }
 
 // 0073C468: 1 / (2^32 - 1).
 constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
@@ -246,7 +246,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->index = 0;
     run->ticks = 0;
     run->killFlag = nullptr;
-    VarsConstruct(&run->vars);
+    run->vars.ScriptVarsConstruct();
     run->block = block;
     if (instance) {
         ScriptVars& from = instance->vars;
@@ -272,7 +272,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
         else runs.tail = node;
         runs.head = node;
     }
-    VarsDestruct(&run->vars);
+    ScriptVarsDestruct(&run->vars);
 }
 EI_REPLACE_METHOD(0x004BC420, CScript::RunCommands);
 
@@ -283,7 +283,7 @@ void __fastcall ScriptRunWorldScript(CScript* script, void*, ScriptDecl* block) 
     run->index = 0;
     run->ticks = 0;
     run->killFlag = nullptr;
-    VarsConstruct(&run->vars);
+    run->vars.ScriptVarsConstruct();
     run->block = block;
     run->index = 0;
     run->ticks = 0;
@@ -297,11 +297,11 @@ void __fastcall ScriptRunWorldScript(CScript* script, void*, ScriptDecl* block) 
     copy->ticks = run->ticks;
     copy->sleepStart = run->sleepStart;
     copy->killFlag = run->killFlag;
-    VarsAssign(&copy->vars, nullptr, &run->vars);
+    copy->vars.ScriptVarsAssign(&run->vars);
     if (runs.head) runs.head->prev = node;
     else runs.tail = node;
     runs.head = node;
-    VarsDestruct(&run->vars);
+    ScriptVarsDestruct(&run->vars);
 }
 EI_REPLACE(0x004BCC60, ScriptRunWorldScript);
 
@@ -355,7 +355,7 @@ void __fastcall ScriptTick(CScript* script) {
         InstanceList::Node* node = nextInstance;
         nextInstance = nextInstance->next;
         ScriptDefinition* instance = &node->data;
-        RemoveDeletedOrig(&instance->vars);
+        instance->vars.RemoveDeletedObjects();
         for (int i = 0; i < instance->ifThen.size; ++i) {
             instance->ifThen.data[i].Run(script, instance);
             if (instance->index != 0) break;

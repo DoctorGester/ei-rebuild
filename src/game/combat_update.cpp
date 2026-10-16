@@ -6,11 +6,14 @@
 // the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to
 // +0x15C) and sets +0x144 until it is restored. The plan of the order being carried out is the
 // OrderPlan at +0xC4; the motion (an AIPath) is at +0x3C.
+#include "ai_alarm.h"
+#include "ai_map.h"
 #include "combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
 #include "base_manager.h"
+#include "game_lists.h"
 #include "item.h"
 #include "map_object.h"
 #include "player_messages.h"
@@ -289,7 +292,7 @@ int CUnitServer::UpdateServer() {
             ConnectionOf(player)->LeaderDied();
         } else {
             BrainReset(&brain);
-            AlarmReset(&voice);
+            static_cast<AIAlarm*>(&voice)->Reset();
         }
         EmptyAction(&action);
         EmptyAction(&action2);
@@ -372,7 +375,7 @@ void CUnitServer::AdvanceAnimation() {
         // Frozen: everything waits one more update.
         unit->SetPathTimeShift(1);
         unit->SetMotionMode(1);
-        PathShiftTime(Motion(this), nullptr, 1);
+        static_cast<AIPath*>(Motion(this))->ShiftTime(1);
         ++QueueTime(this);
         ++SavedQueueTime(this);
         ++Plan(this).startTime;
@@ -382,7 +385,7 @@ void CUnitServer::AdvanceAnimation() {
     }
     bool held = animationHeld != 0;
     if (held) {
-        PathShiftTime(Motion(this), nullptr, 1);
+        static_cast<AIPath*>(Motion(this))->ShiftTime(1);
         ++SavedQueueTime(this);
         ++Plan(this).startTime;
         ++Plan(this).endTime;
@@ -486,7 +489,7 @@ void CUnitServer::StandStill() {
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->orientation);
-    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &direction, now)) unit->RefreshMotion();
+    if (MotionPath()->Start(&unit->position, &direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
 EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
@@ -625,7 +628,7 @@ void CUnitServer::TickAction() {
     Vector3 axis;
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 backwards = -axis;
-    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &backwards, time)) unit->RefreshMotion();
+    if (MotionPath()->Start(&unit->position, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);
 }
 EI_REPLACE_METHOD(0x00549160, CUnitServer::TickAction);
@@ -756,7 +759,7 @@ void CUnitServer::RefreshItemSpells() {
         if (tail) tail->next = added;
         else head = added;
         tail = added;
-        ReferenceAssign(&added->data.item, nullptr, item);
+        ObjectHolderAssign(&added->data.item, nullptr, item);
         added->data.worn = 1;
     }
     // Entries of items no longer worn go.

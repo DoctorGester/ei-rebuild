@@ -24,7 +24,7 @@ namespace mapspec {
 
 namespace {
 
-void __fastcall EffectRestart(void* a0) { ObjectMarkNewOriginal(a0); }
+void __fastcall EffectRestart(void* a0) { static_cast<CEffect*>(a0)->MarkChanged(); }
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
 __declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x0046D4D0)
 

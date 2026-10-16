@@ -1,6 +1,7 @@
 // CPlayerClient: the client's per-tick link traffic (sending the queued requests, receiving and
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
+#include "ai_map.h"
 #include "map_object_shadow.h"
 #include "player_client.h"
 
@@ -11,6 +12,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "party.h"
+#include "player_messages.h"
 #include "sound.h"
 #include "unit.h"
 #include "world.h"
@@ -298,7 +300,7 @@ int CPlayerClient::OnWorldBlock5() {
 int CPlayerClient::OnItemRemoved() {
     int id;
     in_.Read(&id, 4);
-    PlayerRemoveItemOriginal(Owner(), nullptr, id);
+    static_cast<CPlayer*>(Owner())->TakeItem(id);
     RefreshQuestLog();
     return 1;
 }
@@ -479,7 +481,7 @@ int CPlayerClient::OnPathMarker() {
         PathWriteOriginal(path, nullptr, writing);
         writing->EndField();
         DeltaField* reading = field->BeginReadB(0, &in_);
-        PathReadOriginal(path, nullptr, reading);
+        static_cast<AIPath*>(path)->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
             UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);

@@ -1,4 +1,5 @@
 // Connections of the network sessions: object replication. See net_connection.h.
+#include "net_coder.h"
 #include "net_connection.h"
 #include "at_exit_functions.h"
 #include "game_strings.h"
@@ -237,7 +238,7 @@ void Connection::QueueHeader(int budget) {
         std::memmove(reliableOut_.begin, reliableOut_.begin + size, static_cast<std::size_t>(remaining));
         reliableOut_.cur = reliableOut_.begin;
         reliableOut_.high = reliableOut_.begin + remaining;
-        if (reliableOut_.high > reliableOut_.end) GameBufferGrowOriginal(&reliableOut_, nullptr, static_cast<std::uint32_t>(remaining));
+        if (reliableOut_.high > reliableOut_.end) static_cast<GameBuffer*>(&reliableOut_)->Grow(static_cast<std::uint32_t>(remaining));
         headerSequence_ = static_cast<std::uint16_t>(headerSequence_ + size);
         return;
     }
@@ -524,7 +525,7 @@ void Connection::Track(Replicated* item) {
     auto* entry = NewMessageMemory<ReplicaEntry>();
     if (entry) {
         ei::SetVtable(entry, CRefObject::kVtableAddress);
-        RefPtrFromRawOriginal(&entry->object_, nullptr, nullptr);
+        entry->object_.FromRawCounted(nullptr);
         ei::SetVtable(entry, ReplicaEntry::kVtableAddress);
         entry->version_ = 0;
         entry->id_ = 0;

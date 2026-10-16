@@ -5,6 +5,8 @@
 // a text key also the armour and weapons, all taken off the unit and put on the drop list. A unit
 // is looted once (flag 0x100000). Plain float maths for the amounts (rule 7). See
 // docs/notes/objects.md ("Rewritten").
+#include "item.h"
+#include "object_tables.h"
 #include "random.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -79,7 +81,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     auto* drops = static_cast<PtrList*>(dropList);
     auto* items = static_cast<PtrList*>(itemList);
     auto* cunit = reinterpret_cast<CUnit*>(unit);
-    bool keyed = IsTextKeyOriginal(cunit->id_) & 0xFF;
+    bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     void* manager = static_cast<CWorld*>(world)->ItemFactory();
     char* prototype = UnitPrototype(unit);
@@ -115,7 +117,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
             void* armour = UnitArmour(unit, nullptr, slot);
             if (!armour) continue;
             Append(drops, armour);
-            cunit->UnequipArmour(ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)));
+            cunit->UnequipArmour(reinterpret_cast<CItemArmor*>(armour)->GetType());
         }
         for (int slot = 0; slot < 4; ++slot) {
             void* weapon = cunit->GetWeapon(slot);
