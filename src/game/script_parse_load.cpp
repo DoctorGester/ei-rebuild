@@ -31,10 +31,9 @@ using namespace scriptparse;
 #ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
 __declspec(naked) int __cdecl CScript::Error(CScript*, int, int, const char*, ...) EI_ORIGINAL(0x004CF470)
 #endif
-__declspec(naked) mfc::CArray<SSCCmd>* CScript::NewWorldScript() EI_ORIGINAL(0x004BF900)
-__declspec(naked) void CScript::RunWorldScript(mfc::CArray<SSCCmd>*) EI_ORIGINAL(0x004BCC60)
-__declspec(naked) void SSCCmd::Clear() EI_ORIGINAL(0x004B5F70)
-__declspec(naked) void SSCCmd::Destruct() EI_ORIGINAL(0x004BF640)
+__declspec(naked) void CScript::RunWorldScript(ScriptDecl*) EI_ORIGINAL(0x004BCC60)
+void SSCCmd::Clear() { ScriptCmdClear(this); }
+void SSCCmd::Destruct() { ScriptCmdDestruct(this); }
 
 namespace {
 
@@ -42,31 +41,15 @@ namespace {
 struct Original : CScript {
     BOOL TokenizeAt(const mfc::CString& text, ScriptTokenList* tokens);
     BOOL ExpectLexemeAt(const ScriptTokenList* tokens, ScriptPos* pos, int id);
-    mfc::CString* QualifyNameAt(mfc::CString* out, const mfc::CString& name);
-    int FindScriptAt(const char* name);
     BOOL LoadFunctionAt(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id, ScriptVars* locals,
                         const char* signature, BOOL assignment, BOOL scriptCall);
-    BOOL LoadConditionsAt(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
-    BOOL LoadScriptBodyAt(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
-    BOOL LoadAssignOperatorAt(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals,
-                              const mfc::CString* name);
-    BOOL LoadVariableDeclarationsAt(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens, BOOL qualify);
     BOOL LoadCommandsAt(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
     BOOL LoadAt(mfc::CString* text, BOOL runWorldScript);
 };
 __declspec(naked) BOOL Original::TokenizeAt(const mfc::CString&, ScriptTokenList*) EI_ORIGINAL(0x004CF7A0)
 __declspec(naked) BOOL Original::ExpectLexemeAt(const ScriptTokenList*, ScriptPos*, int) EI_ORIGINAL(0x004CF4D0)
-__declspec(naked) mfc::CString* Original::QualifyNameAt(mfc::CString*, const mfc::CString&) EI_ORIGINAL(0x004D37F0)
-__declspec(naked) int Original::FindScriptAt(const char*) EI_ORIGINAL(0x004D3780)
 __declspec(naked) BOOL Original::LoadFunctionAt(SSCCmd*, ScriptPos*, const ScriptTokenList*, int, ScriptVars*, const char*,
                                                 BOOL, BOOL) EI_ORIGINAL(0x004CFBC0)
-__declspec(naked) BOOL Original::LoadConditionsAt(mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
-    EI_ORIGINAL(0x004D0BF0)
-__declspec(naked) BOOL Original::LoadScriptBodyAt(ScriptDefinition*, ScriptPos*, const ScriptTokenList*) EI_ORIGINAL(0x004D1030)
-__declspec(naked) BOOL Original::LoadAssignOperatorAt(SSCCmd*, ScriptPos*, const ScriptTokenList*, ScriptVars*,
-                                                      const mfc::CString*) EI_ORIGINAL(0x004D1D50)
-__declspec(naked) BOOL Original::LoadVariableDeclarationsAt(ScriptDefinition*, ScriptPos*, const ScriptTokenList*, BOOL)
-    EI_ORIGINAL(0x004D1FE0)
 __declspec(naked) BOOL Original::LoadCommandsAt(mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
     EI_ORIGINAL(0x004D1330)
 BOOL Original::LoadAt(mfc::CString* a0, BOOL a1) { return (BOOL)ScriptLoadLine((void*)this, nullptr, (const mfc::CString*)a0, (int)a1); }
@@ -354,7 +337,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
         {
             mfc::CString name;
-            Orig(this)->QualifyNameAt(reinterpret_cast<mfc::CString*>(&name), text);
+            QualifyName(reinterpret_cast<mfc::CString*>(&name), text);
             qualified = name;
         }
 
@@ -530,7 +513,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
             return 0;
         }
         pair.conditions = NewCommandList();
-        if (!Orig(this)->LoadConditionsAt(&pair.conditions->commands, pos, tokens, &script->vars)) return 0;
+        if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return 0;
         token.Set(NextToken(pos));
         text = token.text;
         ClassifyAt(text, &id, nullptr);
@@ -620,7 +603,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
         if (!ok) return 0;
         if (qualify) {
             mfc::CString qualified;
-            Orig(this)->QualifyNameAt(reinterpret_cast<mfc::CString*>(&qualified), name);
+            QualifyName(reinterpret_cast<mfc::CString*>(&qualified), name);
             name = qualified;
         }
         token.Set(NextToken(pos));
@@ -692,7 +675,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
         } else {
             {
                 mfc::CString name;
-                Orig(this)->QualifyNameAt(reinterpret_cast<mfc::CString*>(&name), text);
+                QualifyName(reinterpret_cast<mfc::CString*>(&name), text);
                 qualified = name;
             }
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
@@ -709,9 +692,9 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
                 continue;
             }
             if (Globals()->HasVariable(text)) {
-                ok = Orig(this)->LoadAssignOperatorAt(cmd, pos, tokens, locals, &text);
+                ok = LoadAssignOperator(cmd, pos, tokens, locals, &text);
             } else if (Globals()->HasVariable(qualified)) {
-                ok = Orig(this)->LoadAssignOperatorAt(cmd, pos, tokens, locals, &qualified);
+                ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
                 return Error(this, token.line, 3, game::Text(0x0078D908), static_cast<const char*>(text));   // "Unexpected token '%s'"
             }
@@ -731,7 +714,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     ScriptTokenList tokens{reinterpret_cast<void*>(0x0073D424), nullptr, nullptr, 0, nullptr, nullptr, 10};
     LocalDefinition definition;
     ScriptDefinition* decl = definition.Get();
-    mfc::CArray<SSCCmd>* worldScript = nullptr;
+    ScriptDecl* worldScript = nullptr;
 
     ErrorLine() = 0;
     ErrorCode() = 0;
@@ -800,8 +783,8 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             }
             if (!ok) return fail(0);
             if (worldScript) return fail(Error(this, token.line, 14, game::Text(0x0078D9DC)));   // "Only one WorldScript() per file allowed"
-            worldScript = NewWorldScript();
-            if (!Orig(this)->LoadCommandsAt(worldScript, &pos, &tokens, nullptr)) return fail(0);
+            worldScript = ScriptNewWorldScript(this, nullptr);
+            if (!Orig(this)->LoadCommandsAt(&worldScript->commands, &pos, &tokens, nullptr)) return fail(0);
             break;
         }
         case kLexScript: {
@@ -810,22 +793,22 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             word = token.text;
             {
                 mfc::CString name;
-                Orig(this)->QualifyNameAt(reinterpret_cast<mfc::CString*>(&name), word);
+                QualifyName(reinterpret_cast<mfc::CString*>(&name), word);
                 decl->name = name;
             }
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
-            const int index = Orig(this)->FindScriptAt(decl->name);
+            const int index = FindScript(decl->name);
             if (index < 0) {
                 // Not declared before: parameters, then the body.
-                if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 0)) return fail(0);
+                if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
                 if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
-                if (!Orig(this)->LoadScriptBodyAt(decl, &pos, &tokens)) return fail(0);
+                if (!LoadScriptBody(decl, &pos, &tokens)) return fail(0);
                 ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
                     return fail(Error(this, token.line, 16, game::Text(0x0078D9B8), static_cast<const char*>(declared->name)));
-                if (!Orig(this)->LoadScriptBodyAt(declared, &pos, &tokens)) return fail(0);
+                if (!LoadScriptBody(declared, &pos, &tokens)) return fail(0);
             }
             break;
         }
@@ -835,13 +818,13 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             word = token.text;
             {
                 mfc::CString name;
-                Orig(this)->QualifyNameAt(reinterpret_cast<mfc::CString*>(&name), word);
+                QualifyName(reinterpret_cast<mfc::CString*>(&name), word);
                 decl->name = name;
             }
-            if (Orig(this)->FindScriptAt(decl->name) != -1)   // "Duplicate script %s"
+            if (FindScript(decl->name) != -1)   // "Duplicate script %s"
                 return fail(Error(this, token.line, 15, game::Text(0x0078BC18), static_cast<const char*>(word)));
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
-            if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 0)) return fail(0);
+            if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return fail(0);
             ScriptDefinitionsAdd(&Scripts(), nullptr, decl);
             break;
         }
@@ -860,7 +843,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
             }
             if (!ok) return fail(0);
             // Declared with qualified names, then added to the global variables.
-            if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 1)) return fail(0);
+            if (!LoadVariableDeclarations(decl, &pos, &tokens, 1)) return fail(0);
             decl->vars.ResetValues();
             Globals()->AppendFrom(&decl->vars);
             break;

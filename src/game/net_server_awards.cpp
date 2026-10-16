@@ -181,7 +181,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
-        void* titleOut = WorldMapTitle(TheGameFlow(), nullptr, &title);
+        void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
         void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 7, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
@@ -255,7 +255,7 @@ void ServerSession::LeaveZone() {
     auto* holder = &map_;
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
-        void* titleOut = WorldMapTitle(TheGameFlow(), nullptr, &title);
+        void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
         void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 6, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);

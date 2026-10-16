@@ -1,6 +1,7 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
 // game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
 #include "console.h"
+#include "world.h"
 #include "world_glue.h"
 #include "game_strings.h"
 #include "ui.h"
@@ -62,7 +63,7 @@ inline CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C
 
 // 0057F440 (called with the game at 007AFE20 in ECX): a network game is running (server object
 // 0079B5D8 present and active).
-bool NetworkGame() { return IsNetworkClientOriginal(); }
+bool NetworkGame() { return IsMultiplayerClient(); }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
 

@@ -43,7 +43,7 @@ void CMessageBox::CopyEditText() {
 }
 
 void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     if (region == 0) {
         if (result_ == kExitResult) {
@@ -61,7 +61,7 @@ void CMessageBox::OnLButtonDown(int buttons, int x, int y) {
 }
 
 void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (inputHandled_) return;
     if (key == VK_RETURN) {
         if (result_ == kExitResult) {
@@ -114,7 +114,7 @@ void CDifficultyBox::OnLButtonDown(int, int x, int y) {
 }
 
 void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (inputHandled_) return;
     if (key == VK_RETURN) {
         GameDifficulty() = easy_;

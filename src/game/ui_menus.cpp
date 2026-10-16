@@ -75,7 +75,7 @@ T Global(std::uintptr_t address) {
 __declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
 BOOL CUiContainer::DrawContainer(int pass) { return DrawContainerImpl(pass); }
 void __fastcall UiContainerMouseDown(void* input, void*, int buttons, int x, int y) {
-    ContainerLeftDownOriginal(input, nullptr, buttons, x, y);
+    static_cast<UiContainerInput*>(input)->OnLeftDown(buttons, x, y);
 }
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
 

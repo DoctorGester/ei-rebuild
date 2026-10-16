@@ -463,7 +463,7 @@ int CWorldClient::Segment() {
             object->RunTick();
         if (owned1B0_) owned1B0_->RunTick();
     }
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         if (static_cast<int>(worlddata::PeerList().size()) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;

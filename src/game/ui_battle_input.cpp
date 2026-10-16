@@ -47,7 +47,7 @@ EI_REPLACE_METHOD(0x00638AD0, InputForward<&CBattleScreen::OnLeftDouble>::Call);
 
 void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
-    InputOf(this)->BaseKeyUp(key, repeat, flags);
+    InputOf(this)->OnKeyUp(key, repeat, flags);
     int action = KeyActions()[flags & 0x1FF] - kFirstOrderKeyAction;
     if (action >= 0 && action < 6) orderKeys_[kOrderKeyOfAction[action]] = 0;
 }
@@ -66,7 +66,7 @@ BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
         if (panel->inputHandled_) return 1;
     }
     for (CUiWindow* panel : panels) panel->SetEnabled(0, 0);
-    InputOf(this)->BaseWheel(flags, delta, x, y);
+    InputOf(this)->OnWheel(flags, delta, x, y);
     for (CUiWindow* panel : panels) panel->SetEnabled(1, 0);
     return 1;
 }

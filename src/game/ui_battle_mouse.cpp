@@ -46,7 +46,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
             return;
         }
     } else {
-        InputOf(this)->BaseMouseMove(buttons, x, y);
+        InputOf(this)->OnMouseMove(buttons, x, y);
         if (inputHandled_) return;
     }
     // The original passes the address of its own (x, y) arguments and reads them back.
@@ -66,7 +66,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
         return;
     }
     if (!viewPressed_) {
-        InputOf(this)->BaseLButtonDown(buttons, x, y);
+        InputOf(this)->OnLeftDown(buttons, x, y);
         if (inputHandled_) return;
     }
     viewPressed_ = true;

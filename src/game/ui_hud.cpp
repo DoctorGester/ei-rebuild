@@ -484,7 +484,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 2:     // the fast speed
         inputHandled_ = true;
         // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
-        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
+        if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (GameClientPaused()) GameSendFlag10(0);
         fast_ = region - 1;
         UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;

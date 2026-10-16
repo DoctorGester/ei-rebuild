@@ -176,7 +176,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
 }
 
 void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key == VK_ESCAPE) {
         void* memory = gamecrt::operator_new(kEscMenuSize);
         CUiWindow* menu = nullptr;

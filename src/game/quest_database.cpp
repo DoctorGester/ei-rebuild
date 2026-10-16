@@ -27,21 +27,8 @@ constexpr std::size_t kQuestSize = sizeof(QuestRecord);
 constexpr std::size_t kBriefingSize = sizeof(QuestBriefingRecord);
 
 // The section and key names, by their original addresses.
-StringArg Copy(const char* text) {
-    StringArg arg;
-    new (&arg) mfc::CString(text);
-    return arg;
-}
-
-// The registry, through its game addresses (registry.cpp).
-struct Registry : RegistryOriginals {
-    double GetFloat(const char* section, const char* key, std::uint32_t defaultBits); // 00694C80
-    int GetInt(const char* section, const char* key, int defaultValue);              // 00694B90
-
-    std::uint8_t storage[sizeof(CFileRegistry)];
-};
-__declspec(naked) double Registry::GetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00694C80)
-__declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694B90)
+// The quest registry (registry.cpp).
+using Registry = CFileRegistry;
 
 // The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
 // position, value, count].
@@ -57,7 +44,6 @@ void __fastcall ListClear(void* a0) { CStringVectorClearOriginal(a0); }
 __declspec(naked) void __fastcall ListReserve(void*, void*, int) EI_ORIGINAL(0x006B02B0)
 __declspec(naked) void __fastcall ListPushBack(void*, void*, const mfc::CString*) EI_ORIGINAL(0x006AF790)
 // Called through its address so the wrapper of the rewrite below (ReadStringList) runs.
-__declspec(naked) void __fastcall ReadList(Registry*, const char*, const char*, void*) EI_ORIGINAL(0x006AE740)
 // The record destructors [quest 006AF4D0, briefing 006AF5A0].
 void __fastcall QuestDestroy(void* record) { static_cast<QuestRecord*>(record)->Destruct(); }
 void __fastcall BriefingDestroy(void* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
@@ -98,7 +84,7 @@ void PushPlace(QuestRecord* quest, float value) {
 void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
     quest->field2 = 0;
     {
-        mfc::CString name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), Copy(game::EmptyText()));
+        mfc::CString name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), mfc::CString(game::EmptyText()));
         const char* text = name;
         StringAssignRangeOriginal(&quest->name, nullptr, text, text + std::strlen(text));
     }
@@ -157,7 +143,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 // briefing) instead of the range one.
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section, bool assignChars) {
     {
-        mfc::CString name = reg.GetString(section, game::questwords::Name(), Copy(game::EmptyText()));
+        mfc::CString name = reg.GetString(section, game::questwords::Name(), mfc::CString(game::EmptyText()));
         const char* text = name;
         if (assignChars) {
             StringAssignCStrOriginal(&briefing->name, nullptr, text);
@@ -208,14 +194,14 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject(), false);
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing, false);
     ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing, false);
-    for (int i = 2; i < 6; ++i) ReadList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
+    for (int i = 2; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
     static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by 006AE740.
 void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete(), true);
-    for (int i = 0; i < 6; ++i) ReadList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
+    for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
     static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
 }
 

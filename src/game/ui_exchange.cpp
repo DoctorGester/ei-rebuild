@@ -66,7 +66,7 @@ EI_REPLACE_METHOD(0x0062C930, CExchangeScreen::Update);
 // --- 0062CF70: the left button (input slot 2) --------------------------------------------------------
 
 void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();

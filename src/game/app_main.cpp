@@ -190,8 +190,6 @@ __declspec(naked) int __fastcall PrintsDatabaseLoadAt(void*, void*, const char* 
 __declspec(naked) void __fastcall InterfaceCreateAt(CInterface3D*, void*, CTextureDevice*) EI_ORIGINAL(0x005F4990)
 __declspec(naked) void __fastcall InterfaceShutdownAt(CInterface3D*) EI_ORIGINAL(0x005F4F90)
 // The game flow (007AFE20): 00581660 both sessions closed.
-// 006916F0 (ECX the texture manager; not read): the composed textures' files deleted.
-__declspec(naked) void __fastcall DeleteComposedTexturesAt(void* /*textureManager*/) EI_ORIGINAL(0x006916F0)
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -620,7 +618,7 @@ bool RunPass() {
     GuardPlayerData(glue, nullptr, 1);
     CWorldClient* client = Client();
     if (client->IsLocalPlayerIdle()) {
-        if (IsNetworkClientOriginal()) TheGameFlow()->RecreateClientSession();
+        if (IsMultiplayerClient()) TheGameFlow()->RecreateClientSession();
         else TheGameFlow()->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
@@ -692,7 +690,7 @@ int RunMainLoop(bool interfaceInput) {
 // ---- Shutdown --------------------------------------------------------------------------------------
 
 void ShutDown(gamecrt::NewHandler previousHandler) {
-    DeleteComposedTexturesAt(TextureManager());
+    DeleteComposedTextures();
     InterfaceShutdownAt(Interface());
     static_cast<CCursor*>(GameCursor())->Shutdown();
     CDirectInputMouse* mouse = Mouse();

@@ -511,28 +511,6 @@ __declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatc
                                                            net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 #include "string_arg.h"   // StringArg
-// The registry's thiscall members through their game addresses (rewritten in registry.cpp as CFileRegistry::Open /
-// GetSectionNames / GetString / GetStringArray; the verify wrappers stay in the path). Base of the views of the registry.
-struct RegistryOriginals {
-    mfc::BOOL Open(const char* path);                                                              // 006945A0
-    mfc::BOOL GetSectionNames(console::CStringArray* out);                                         // 00694880
-    mfc::CString GetString(const char* section, const char* key, StringArg defaultValue);          // 00694D20
-    mfc::BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);    // 006958E0
-    // C3n batch 4. 00694540 (CFileRegistry::Destroy; plain RET) the destructor body; 00694610 (CFileRegistry::Attach; RET 4)
-    // reads the registry from the loaded file image (1 when it is a registry, else 0).
-    void Destroy();                                                                                // 00694540
-    mfc::BOOL Attach(const void* image);                                                           // 00694610
-    // C3p. 00694520 (CFileRegistry::Construct; plain RET) the constructor (nothing open); returns this.
-    CFileRegistry* Construct();                                                                    // 00694520
-};
-__declspec(naked) inline mfc::BOOL RegistryOriginals::Open(const char*) EI_ORIGINAL(0x006945A0)
-__declspec(naked) inline mfc::BOOL RegistryOriginals::GetSectionNames(console::CStringArray*) EI_ORIGINAL(0x00694880)
-__declspec(naked) inline mfc::CString RegistryOriginals::GetString(const char*, const char*, StringArg) EI_ORIGINAL(0x00694D20)
-__declspec(naked) inline mfc::BOOL RegistryOriginals::GetStringArray(const char*, const char*, console::CStringArray*)
-    EI_ORIGINAL(0x006958E0)
-__declspec(naked) inline void RegistryOriginals::Destroy() EI_ORIGINAL(0x00694540)
-__declspec(naked) inline mfc::BOOL RegistryOriginals::Attach(const void*) EI_ORIGINAL(0x00694610)
-__declspec(naked) inline CFileRegistry* RegistryOriginals::Construct() EI_ORIGINAL(0x00694520)
 // C3p. 00696090 (rewritten as CIniFile::GetList; thiscall, RET 0x10): splits the .ini value at `separator` (a char) into
 // `out`; 0 when the value is empty.
 __declspec(naked) inline mfc::BOOL __fastcall IniGetListOriginal(void* /*ini*/, void*, const char* /*section*/,

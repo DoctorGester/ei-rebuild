@@ -6,6 +6,7 @@
 // The template functions the original calls out of line (SetAtGrow, the local arrays' destructors,
 // ...) are reached through their original addresses.
 #include "material.h"
+#include "registry.h"
 #include "scene_loader.h"
 
 #include "console.h"
@@ -745,8 +746,8 @@ struct SceneNodes : VtArray {
 };
 struct Registry {
     std::uint8_t bytes[0x18];   // CFileRegistry, never used
-    Registry() { reinterpret_cast<RegistryOriginals*>(bytes)->Construct(); }
-    ~Registry() { reinterpret_cast<RegistryOriginals*>(bytes)->Destroy(); }
+    Registry() { reinterpret_cast<CFileRegistry*>(bytes)->Construct(); }
+    ~Registry() { reinterpret_cast<CFileRegistry*>(bytes)->Destroy(); }
 };
 struct TextureLinks : VtArray {
     TextureLinks() : VtArray{scenedata::TextureLinkArrayVtable(), nullptr, 0, 0, 0} {}

@@ -269,7 +269,7 @@ void CBriefingScreen::Create() {
     voice_ = -1;
     speaking_ = nullptr;
 
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         memory = gamecrt::operator_new(0x170);
         chat_ = memory ? ChatWindowConstruct(memory, nullptr, interface_) : nullptr;
         AddChild(chat_);

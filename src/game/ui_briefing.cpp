@@ -147,7 +147,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     default:
         break;
     }
-    if (IsNetworkClientOriginal()) VirtualShowChat(1);
+    if (IsMultiplayerClient()) VirtualShowChat(1);
 }
 
 // --- 00602C90: slot 29 --------------------------------------------------------------------------
@@ -245,7 +245,7 @@ EI_REPLACE_METHOD(0x006030C0, CBriefingScreen::OnBriefing);
 // --- 00603090: slot 36 --------------------------------------------------------------------------
 
 void CBriefingScreen::ShowChat(char show) {
-    if (IsNetworkClientOriginal() && show && chat_) ChatWindowShowAt(chat_);
+    if (IsMultiplayerClient() && show && chat_) ChatWindowShowAt(chat_);
 }
 EI_REPLACE_METHOD(0x00603090, CBriefingScreen::ShowChat);
 

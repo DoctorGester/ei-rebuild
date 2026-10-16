@@ -184,7 +184,7 @@ void CMpHeroScreen::FinishRename() {
 }
 
 void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (UiHandled(this)) return;
     CInterface3D* ui = window.interface_;
     bool renaming = renameEdit_->focused_;
@@ -252,7 +252,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
 
 void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (renameEdit_->focused_) return;
-    InputOf(this)->BaseLButtonDown(flags, x, y);
+    InputOf(this)->OnLeftDown(flags, x, y);
     if (UiHandled(this)) return;
     CInterface3D* ui = window.interface_;
     int region = window.RegionAt(x, y);

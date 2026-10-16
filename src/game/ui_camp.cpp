@@ -2,6 +2,7 @@
 // global map, hero screens").
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
+#include "unit_create.h"
 #include "item.h"
 #include "ui_camp.h"
 
@@ -745,7 +746,6 @@ bool CCampPages::CanMakeItem() {
         ReleaseObject(spell);
         return false;
     };
-    auto* withManager = reinterpret_cast<ItemConstructorManagerOriginal*>(constructor);
     if (CountOf(itemResults_) <= 0) return fail();
     for (int i = 0; i < CountOf(itemResults_); ++i) {
         std::uint8_t* item = ItemOf(itemResults_, i);
@@ -775,19 +775,19 @@ bool CCampPages::CanMakeItem() {
     if (Read<int>(part, 0x4C) != blueprintCount) return fail();
     if (libcrt::Mbsicmp(Read<const unsigned char*>(part, 0x10), Read<const unsigned char*>(blueprint, 0x04)) != 0)
         return fail();
-    withManager->SetManager(factory);
+    constructor->SetManager(factory);
     if (!constructor->BeginCreateItem(type, -1)) {
-        withManager->SetManager(nullptr);
+        constructor->SetManager(nullptr);
         return fail();
     }
     if (!constructor->SetPrototype(RecordText(part)) ||
         !constructor->SetMaterial(RecordText(blueprint)) ||
         !constructor->SetSpellObject(static_cast<CSpell*>(spell))) {
-        withManager->SetManager(nullptr);
+        constructor->SetManager(nullptr);
         return fail();
     }
     itemMade_ = reinterpret_cast<std::uint8_t*>(constructor->EndCreateItem());
-    withManager->SetManager(nullptr);
+    constructor->SetManager(nullptr);
     if (!itemMade_) return fail();
     ++AsObject(itemMade_)->refCount_;
     ReleaseObject(spell);
@@ -1203,7 +1203,6 @@ namespace {
 // (007AF5F8): a prototype's object class.
 template <typename Step>
 int FindHero(int start, Step step) {
-    void* manager = *reinterpret_cast<void* const*>(0x007AF5F8);
     auto* party = static_cast<CParty*>(GluePlayerData());
     int i = start;
     for (int tries = 0;;) {
@@ -1215,7 +1214,7 @@ int FindHero(int start, Step step) {
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members_.data[i];
-        if (PrototypeClass(manager, nullptr, record->texts[5]) == kHeroClass) break;
+        if (PrototypeObjectClass(record->texts[5]) == kHeroClass) break;
     }
     return i;
 }

@@ -124,7 +124,7 @@ void NodPortrait(CBattleScreen* self, int i) {
 void CBattleScreen::ToggleMember(int index) {
     auto* party = &party_;
     auto unitAt = [party](int i) { return party->data[i]; };
-    if (IsNetworkClientOriginal()) return;
+    if (IsMultiplayerClient()) return;
     if (index >= party->size) return;
 
     UiDwordArray chosen{reinterpret_cast<void*>(0x0073C3D0), nullptr, 0, 0, 0};

@@ -12,7 +12,6 @@ address,reason
 00600270,src/game/ui_trade_panel_input.cpp passes a CTradePanel * as void* (the target is CUiContainer's method)
 00600BA0,src/game/ui_item_screen.cpp passes a CItemScreen * as void* (the target is CUiContainer's method)
 006010E0,src/game/ui_exchange.cpp passes a CExchangeScreen * as void* (the target is CUiContainer's method)
-00601110,src/game/ui_screens.cpp passes a UiInput * as void* (the target is UiContainerInput's method)
 0064A7A0,src/game/ui_battle_setup.cpp passes a RawPanel * as void* (the target is CHudTopPanel's method)
 00661FE0,src/game/ui_exchange.cpp passes a uint8_t * as void* (the target is CParty's method)
 00524CD0,src/game/ui_trade_panel.cpp passes a uint8_t * as void* (the target is UnitStats's method)

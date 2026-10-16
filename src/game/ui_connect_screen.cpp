@@ -438,7 +438,7 @@ void CMpConnectScreen::OnLButtonDouble(int buttons, int x, int y) {
 }
 
 void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     int step;
     switch (key) {
     case VK_RETURN:

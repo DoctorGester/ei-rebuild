@@ -1660,7 +1660,6 @@ constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the glob
 // mission.sav (00579E60, a flow method, from the file stream).
 __declspec(naked) void __fastcall PartyLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8310)
 void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, void* a2) { static_cast<CStream*>(a0)->ReadSized(static_cast<CStream*>(a2)); }
-__declspec(naked) void __fastcall FlowLoadMission(GameFlow*, void*, FileStream*) EI_ORIGINAL(0x00579E60)
 int& LoadedScriptsVersion() { return *reinterpret_cast<int*>(0x007AFE00); }
 
 } // namespace
@@ -1773,7 +1772,7 @@ int GameFlow::LoadGame(const char* slot) {
             opened = file.Open(path, kOpenRead, 1);
         }
         if (!opened) return 0;
-        FlowLoadMission(this, nullptr, &file.stream);
+        LoadMission(&file.stream);
         file.Close();
         SetZoneExitsAt(World(), nullptr, &zoneRecord->exits);
     }

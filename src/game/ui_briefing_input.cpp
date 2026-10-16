@@ -104,7 +104,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         if (chat_) chat_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
         return;
     }
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     if (inputHandled_) return;
     switch (state_) {
     case 0: {
@@ -151,7 +151,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     GameCursor()->SetShape(kCursorNormal);
-    InputOf(this)->BaseMouseMove(buttons, x, y);
+    InputOf(this)->OnMouseMove(buttons, x, y);
     if (state_ == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
@@ -171,7 +171,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     CEngineObject* object = TheClientWorld()->UnitAt2(reinterpret_cast<const long*>(point));
     if (IsPerson(object)) {
         int id = object->id_;
-        if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
+        if (IsMultiplayerClient() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         FindTopics(id);
         if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);

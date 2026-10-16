@@ -76,7 +76,7 @@ void CBriefingScreen::FindTopics(int personId) {
         found.Get().push_back(stlp::string(text, text + std::strlen(text)));
     }
     stlp::vector<stlp::string>& list = found.Get();
-    if (IsNetworkClientOriginal() && list.begin() != list.end()) {
+    if (IsMultiplayerClient() && list.begin() != list.end()) {
         int depth = 0;
         for (int n = static_cast<int>(list.end() - list.begin()); n != 1; n >>= 1) ++depth;
         stl_sorts::TopicIntroSort(list.begin(), list.end(), 0, depth * 2, personId);

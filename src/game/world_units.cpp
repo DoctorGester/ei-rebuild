@@ -244,7 +244,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         object.skinTexture = record->texts[4];
         StringArraySetSize(&object.parts, nullptr, 0, -1);
         const char* prototypeName = record->texts[5];
-        int type = PrototypeClass(MapObjectManager(), nullptr, prototypeName);
+        int type = PrototypeObjectClass(prototypeName);
         object.parentId = type;   // +0x50: the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 

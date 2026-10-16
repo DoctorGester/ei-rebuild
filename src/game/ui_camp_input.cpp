@@ -46,7 +46,7 @@ constexpr std::uint32_t kAnswerYes = 0x10001;
 } // namespace
 
 void CCampPages::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     switch (region) {
     case kRegionAction:
@@ -73,7 +73,7 @@ void CCampPages::OnLButtonDown(int buttons, int x, int y) {
 }
 
 void CCampPages::OnLButtonUp(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonUp(buttons, x, y);
+    InputOf(this)->OnLeftUp(buttons, x, y);
     ReleaseMouse();
     turning_ = 0;
 }
@@ -84,7 +84,7 @@ void CCampPages::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         return;
     }
-    if ((key == VK_BACK || key == VK_RETURN) && IsNetworkClientOriginal()) {
+    if ((key == VK_BACK || key == VK_RETURN) && IsMultiplayerClient()) {
         if (key == VK_BACK)
             interface_->ChatKeyBackspace();
         else
@@ -92,7 +92,7 @@ void CCampPages::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         return;
     }
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
 }
 
 void CCampPages::OnMessageResult(int result) {

@@ -16,6 +16,7 @@
 #include "originals_ai.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "world.h"
 #include "world_data.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -28,11 +29,10 @@ constexpr float kArrivedDistanceSq = 1.0f;                              // 0073F
 
 constexpr int kControllerStateInactive = 5;
 constexpr int kVoiceAlarm = 8;
-constexpr std::uintptr_t kWorld = 0x007AFF60;
 constexpr std::uintptr_t kGameTime = 0x007AFFC4;
 constexpr std::uintptr_t kConsole = 0x007C54E8;     // the console's ostream*
 
-int GameTime() { return *reinterpret_cast<const int*>(kGameTime); }
+int GameTicks() { return *reinterpret_cast<const int*>(kGameTime); }
 
 // CEngineObject::Release through the object's vtable, then clear the slot (inlined everywhere).
 void ReleaseRef(CEngineObject*& ref) {
@@ -169,7 +169,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            reinterpret_cast<WorldAlarmOriginal*>(kWorld)->InvokeAlarm(alarm, &owner->unit->position, 0);
+            WorldServer()->InvokeAlarm(alarm, &owner->unit->position.x, 0);
             owner->voice.Raise(kVoiceAlarm);
         }
     }
@@ -452,14 +452,14 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (looks.data->stopFirst) o->StopQueued();
-        float end = static_cast<float>(GameTime()) + looks.data->wait;     // FILD + FADD, FSTP float
+        float end = static_cast<float>(GameTicks()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = looks.size - 1;
         if (remaining != 0) GameMemmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);
         --looks.size;
         return;
     }
-    if (GameTime() > actionTime) actionTime = kNoTime;
+    if (GameTicks() > actionTime) actionTime = kNoTime;
 }
 EI_REPLACE_METHOD(0x005D7520, AIBrain::UpdateMove);
 

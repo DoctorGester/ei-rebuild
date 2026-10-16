@@ -461,7 +461,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(WorldServer()->CountLivingMercs(Ftol(f[0])));
         return;
     case 0x80: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
-        net::ServerSession* server = IsNetworkClientOriginal() ? ActiveServer() : nullptr;
+        net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
         if (server) {
             const char* name = stringArgs.data[0];
             stlp::string key(name);

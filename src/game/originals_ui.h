@@ -316,6 +316,8 @@ __declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*clie
 
 // A-E2. 005DAEA0 (fastcall, RET 8; rewritten as SetUpCursors): the cursor (007C7BD8) initialised and given its shapes.
 void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
+// 005DAE70 (fastcall, RET 8; cursor_setup.cpp): the cursor shut down and set up again.
+void __fastcall ResetCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 
 // C3m. Thiscall members of game objects, called through these views (cast the object's pointer).
 // 005E7010 (rewritten as CUiMesh::GetPlacement): a sprite's layout position (x, y) and depth. Base of the views.
@@ -342,10 +344,6 @@ __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(con
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
 // 005FD120 (rewritten as UiSurfaceRelease; plain RET): the CUiSurface's destructor body (releases its DC and surface).
 __declspec(naked) inline void __fastcall SurfaceReleaseContentsOriginal(CUiSurface* /*surface*/) EI_ORIGINAL(0x005FD120)
-// 00601110 (rewritten as UiContainerInput::OnLeftDown; RET 0xC): the container's input side (window + 0x94) handles the
-// left button going down.
-__declspec(naked) inline void __fastcall ContainerLeftDownOriginal(void* /*input*/, void*, int /*buttons*/, int /*x*/, int /*y*/)
-    EI_ORIGINAL(0x00601110)
 // 005F8F10: the constructor of CBattleScreen's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
 __declspec(naked) inline void __fastcall IdVectorConstructOriginal(void* /*vector*/, void*, const void* /*allocator*/)
     EI_ORIGINAL(0x005F8F10)

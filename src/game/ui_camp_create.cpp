@@ -3,6 +3,7 @@
 // which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
 // but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
+#include "unit_create.h"
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "ui_camp.h"
@@ -85,7 +86,6 @@ constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
 const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
-void* ObjectManagerNow() { return *reinterpret_cast<void* const*>(0x007AF5F8); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
 CParty* LocalParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 CParty* AsParty(void* list) { return static_cast<CParty*>(list); }
@@ -376,11 +376,10 @@ void CCampPages::BuildPages() {
     turning_ = 0;
     RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     CParty* player = LocalParty();
-    void* objects = ObjectManagerNow();
     const int count = player->members_.size;
     for (int i = 0; i < count; ++i) {
         player->members_.data[i].unitId += kRecordBias;
-        if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
+        if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
         PartyUnitRecord* record = &player->members_.data[i];
         int size = records.size;
         RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
@@ -391,7 +390,7 @@ void CCampPages::BuildPages() {
     heroes_.SetSize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
-        if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
+        if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
         auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data[i].unitId));
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).

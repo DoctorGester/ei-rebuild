@@ -61,7 +61,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (parts.size != kQuestNameParts || Bits(node->value) != kOneBits) continue;
         MapRecord* questZone = MapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
-        if (!IsNetworkClientOriginal() && CompareNames(questZone->allod, zone->allod) != 0) continue;
+        if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
         void* memory = gamecrt::operator_new(kObjectivesSize);
         void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(ui) : nullptr;
         {
@@ -82,17 +82,17 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         if (key == VK_ESCAPE) chatActive_ = 0;
         return;
     }
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     switch (key) {
     case VK_BACK:
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
         break;
     case VK_RETURN:
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);

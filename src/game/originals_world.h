@@ -58,11 +58,6 @@ __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*,
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game
 // flow (007AFE20) applies a multiplayer client's update from the server (thiscall, plain RET).
 __declspec(naked) inline void __fastcall FlowUpdateFromServerOriginal(void* /*flow*/) EI_ORIGINAL(0x005800C0)
-// 0057F440 (rewritten as IsMultiplayerClient): no arguments (a plain RET, ECX is not read); AL/EAX = 1 when
-// the network game exists and is not the host (flag 0x80000000 of its +4 clear), else 0.
-__declspec(naked) inline bool __cdecl IsNetworkClientOriginal() EI_ORIGINAL(0x0057F440)
-__declspec(naked) inline void* __fastcall WorldMapTitle(void* /*world*/, void*, void* /*out CString*/)
-    EI_ORIGINAL(0x005814C0)
 // 005935C0 (rewritten as CWorldServer::RemoveObject; RET 4): removes the object with this id from the world
 // (EAX on return is not a result).
 __declspec(naked) inline void __fastcall WorldRemoveObject(void* /*world*/, void*, int /*id*/) EI_ORIGINAL(0x005935C0)
@@ -152,13 +147,6 @@ __declspec(naked) inline int __fastcall ClientSegmentOriginal(void* /*client*/) 
 __declspec(naked) inline int __fastcall ClientRenderOriginal(void* /*client*/) EI_ORIGINAL(0x00569E40)
 __declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*server*/) EI_ORIGINAL(0x0058DFF0)
 __declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow*/) EI_ORIGINAL(0x0057C700)
-
-// C3m. 00593FC0 (rewritten as CWorldServer::InvokeAlarm; the world, thiscall): raises an alarm of `type` at `point`.
-// Base of the views of the world.
-struct WorldAlarmOriginal {
-    void InvokeAlarm(int type, const Vector3* point, int raise);
-};
-__declspec(naked) inline void WorldAlarmOriginal::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
 
 // The server world (007AFF60; CWorldServer, world_*.cpp), thiscall, through its addresses so the wrappers run:
 // 0058D3D0 WakeUnitsAround (RET 8: position, radius); 0058E520 AddTimedObject (RET 4);

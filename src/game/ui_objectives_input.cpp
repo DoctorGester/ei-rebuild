@@ -43,7 +43,7 @@ void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 } // namespace
 
 void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
-    InputOf(this)->BaseLButtonDown(buttons, x, y);
+    InputOf(this)->OnLeftDown(buttons, x, y);
     int region = RegionAt(x, y);
     std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
     switch (region) {
@@ -104,7 +104,7 @@ constexpr int kActionObjectives = 4;   // "obj" in the key table
 } // namespace
 
 void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     int step = 0;
     switch (key) {
     case kKeyEnter:

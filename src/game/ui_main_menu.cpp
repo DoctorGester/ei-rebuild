@@ -226,14 +226,14 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
         }
         hovered_ = region;
     }
-    InputOf(this)->BaseMouseMove(buttons, x, y);
+    InputOf(this)->OnMouseMove(buttons, x, y);
 }
 namespace {
 } // namespace
 EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
     void* box = gamecrt::operator_new(0x180);
     if (box) box = MessageBoxConstructOriginal(box, nullptr, interface_, kQuitTitle, kQuitText, 0x10000, 3, 1);

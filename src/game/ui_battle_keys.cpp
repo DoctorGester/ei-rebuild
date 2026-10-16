@@ -119,19 +119,19 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     if (key == VK_RETURN) {
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyEnter();
             inputHandled_ = true;
             return;
         }
     } else if (key == VK_BACK) {
-        if (IsNetworkClientOriginal()) {
+        if (IsMultiplayerClient()) {
             interface_->ChatKeyBackspace();
             inputHandled_ = true;
             return;
         }
     }
-    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    InputOf(this)->OnKeyDown(key, repeat, flags);
     if (inputHandled_) return;
     if (flags & kKeyRepeated) return;
 
@@ -177,7 +177,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionFastSpeed: {
         auto* clock = static_cast<CHudClock*>(clock_);
         if (GameClientPaused()) return;
-        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
+        if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool fast = action == kActionFastSpeed;
         clock->fast_ = fast ? 1 : 0;
@@ -337,7 +337,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kActionSelectAll:
-        if (IsNetworkClientOriginal()) return;
+        if (IsMultiplayerClient()) return;
         interface_->PlaySound(OnOffSound(), 0);
         for (int i = 0; i < hud->party_.size; ++i) {
             MarkPortrait(i);

@@ -194,7 +194,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         panel.DrawLabelled(12, lines[2]);
     }
 
-    if (IsNetworkClientOriginal() && !outside) {
+    if (IsMultiplayerClient() && !outside) {
         TextsGetString(texts, nullptr, kCampExp, &suffix);
         panel.text.Format(kValue, static_cast<const char*>(suffix), params->unspentExperience);
         panel.DrawLine();

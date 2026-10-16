@@ -4,6 +4,7 @@
 // their members' constructors and vtables) and calls the others' constructors; ours does the same
 // through the original addresses.
 #include "app.h"
+#include "world.h"
 #include "ui_camp.h"
 #include "ui_create_screen.h"
 
@@ -180,7 +181,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
                                                      reinterpret_cast<std::uintptr_t>(stackBegin_));
     if ((bytes & ~3u) == 4) {
         serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
-        if (!IsNetworkClientOriginal()) GameSetServerPaused(1);
+        if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (first && second) {
             backdropMode_ = 1;
             FrameStepOriginal(0, 1);

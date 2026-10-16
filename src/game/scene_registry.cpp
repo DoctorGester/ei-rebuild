@@ -32,22 +32,9 @@ StringArg Copy(const mfc::CString& s) {
     new (&arg) mfc::CString(s);
     return arg;
 }
-StringArg Copy(const char* text) {
-    StringArg arg;
-    new (&arg) mfc::CString(text);
-    return arg;
-}
 
-// The registry, called through its game addresses (registry.cpp; the verify wrappers stay in the
-// path). The string getter returns a CString by value, so it is a member function here.
-struct Registry : RegistryOriginals {
-    int GetInt(const char* section, const char* key, int defaultValue);              // 00694BE0
-    void Close();                                                                     // 006946B0
-
-    std::uint8_t storage[sizeof(CFileRegistry)];
-};
-__declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694BE0)
-__declspec(naked) void Registry::Close() EI_ORIGINAL(0x006946B0)
+// The figure's registry (registry.cpp); its integers are read with GetInt2 (00694BE0).
+using Registry = CFileRegistry;
 
 // 00450750: the helper `index` of the unit's helper array (thiscall).
 __declspec(naked) CMaterial* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
@@ -179,21 +166,21 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
     FindSection(foundString, &sections, Copy(helperRecord->name2));
     s.section = *foundString;
     foundString->~CString();
-    s.mapping = reg.GetString(s.section, game::Text(0x007846DC), Copy(game::Text(0x007846F0)));   // "Main Texture Name", "none"
+    s.mapping = reg.GetString(s.section, game::Text(0x007846DC), mfc::CString(game::Text(0x007846F0)));   // "Main Texture Name", "none"
 
     Mapping m;
-    m.width = static_cast<float>(reg.GetInt(game::Text(0x007846C8), game::Text(0x007846D4), 0x100));      // "Dimentions", "Width"
-    m.height = static_cast<float>(reg.GetInt(game::Text(0x007846C8), game::Text(0x007846C0), 0x100));     // "Height"
+    m.width = static_cast<float>(reg.GetInt2(game::Text(0x007846C8), game::Text(0x007846D4), 0x100));      // "Dimentions", "Width"
+    m.height = static_cast<float>(reg.GetInt2(game::Text(0x007846C8), game::Text(0x007846C0), 0x100));     // "Height"
     if (s.mapping.GetLength() == 0) {
         m.h = 0.0f;
         m.w = 0.0f;
         m.y = 0.0f;
         m.x = 0.0f;
     } else {
-        m.x = static_cast<float>(reg.GetInt(s.mapping, game::Text(0x007846BC), -1));   // "X"
-        m.y = static_cast<float>(reg.GetInt(s.mapping, game::Text(0x007846B8), -1));   // "Y"
-        m.w = static_cast<float>(reg.GetInt(s.mapping, game::Text(0x007846D4), -1));   // "Width"
-        m.h = static_cast<float>(reg.GetInt(s.mapping, game::Text(0x007846C0), -1));   // "Height"
+        m.x = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846BC), -1));   // "X"
+        m.y = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846B8), -1));   // "Y"
+        m.w = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846D4), -1));   // "Width"
+        m.h = static_cast<float>(reg.GetInt2(s.mapping, game::Text(0x007846C0), -1));   // "Height"
         if (IsMinusOne(m.x) || IsMinusOne(m.y) || IsMinusOne(m.w) || IsMinusOne(m.h)) {
             mfc::CString message;
             message.Format(game::Text(0x0078466C), static_cast<const char*>(s.groupName), static_cast<const char*>(s.section));

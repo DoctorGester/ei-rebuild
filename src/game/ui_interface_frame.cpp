@@ -81,7 +81,7 @@ void CInterface3D::Update() {
             if (block5C_) gamecrt::operator_delete(block5C_);
             block5C_ = nullptr;
             backdropMode_ = 0;
-            if (!IsNetworkClientOriginal()) GameSetServerPaused(serverFlag_);
+            if (!IsMultiplayerClient()) GameSetServerPaused(serverFlag_);
             serverFlag_ = 0;
         }
         if (stackBegin_ != stackEnd_) {
@@ -116,7 +116,7 @@ void CInterface3D::Update() {
     }
     mouseX_ = *reinterpret_cast<int*>(0x007C7C50);
     mouseY_ = *reinterpret_cast<int*>(0x007C7C54);
-    if (disconnected_ && IsNetworkClientOriginal() && net::GameClient()->joinState_ != 2) {
+    if (disconnected_ && IsMultiplayerClient() && net::GameClient()->joinState_ != 2) {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
                 static_cast<unsigned>(net::GameClient()->joinState_));

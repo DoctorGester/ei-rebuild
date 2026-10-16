@@ -57,17 +57,9 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 // ---- Theme loading (006B4710) ----
 
-StringArg Copy(const char* text) {
-    StringArg arg;
-    new (&arg) mfc::CString(text);
-    return arg;
-}
 
-// The registry, through its game addresses (registry.cpp; the verify wrappers stay in the path).
-struct Registry : RegistryOriginals {
-
-    std::uint8_t storage[sizeof(CFileRegistry)];
-};
+// The themes' registry (registry.cpp).
+using Registry = CFileRegistry;
 
 // The theme array (CArray<MusicTheme> at +0x1C): SetSize [006B59A0: size, grow by (-1 keeps it)]
 // and the element assignment [006B4D40] (MFC template instantiations; the original inlines the
@@ -121,8 +113,8 @@ int CMusicSystem::LoadThemes() {
         return result;
     }
     const char* const common = game::Text(0x00796844);   // "Common"
-    credits = reg.GetString(common, game::Text(0x00790EF4), Copy(game::EmptyText()));    // "Credits"
-    mainMenu = reg.GetString(common, game::Text(0x007904EC), Copy(game::EmptyText()));   // "MainMenu"
+    credits = reg.GetString(common, game::Text(0x00790EF4), mfc::CString(game::EmptyText()));    // "Credits"
+    mainMenu = reg.GetString(common, game::Text(0x007904EC), mfc::CString(game::EmptyText()));   // "MainMenu"
     {
         console::CStringArray sections;
         reg.GetSectionNames(&sections);
@@ -132,8 +124,8 @@ int CMusicSystem::LoadThemes() {
             LocalTheme read;
             read.name = sections.data[i];
             read.dungeon = 0;
-            read.briefing = reg.GetString(section, game::Text(0x00796830), Copy(game::EmptyText()));      // "Briefing"
-            read.constructor = reg.GetString(section, game::Text(0x00796824), Copy(game::EmptyText()));   // "Constructor"
+            read.briefing = reg.GetString(section, game::Text(0x00796830), mfc::CString(game::EmptyText()));      // "Briefing"
+            read.constructor = reg.GetString(section, game::Text(0x00796824), mfc::CString(game::EmptyText()));   // "Constructor"
             reg.GetStringArray(section, game::Text(0x00796818), &read.calm);     // "CalmOpen"
             reg.GetStringArray(section, game::Text(0x00796810), &read.combat);   // "Combat"
             AppendTheme(this, read);

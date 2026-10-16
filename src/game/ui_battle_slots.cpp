@@ -108,7 +108,7 @@ EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
 // --- 006364E0: slot 30 --------------------------------------------------------------------------
 
 void CBattleScreen::OnUnitLeft(CUnit* unit) {
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
@@ -162,7 +162,7 @@ void CBattleScreen::MarkPortrait(int index) {
 }
 
 void CBattleScreen::OnUnitJoined(CUnit* unit) {
-    if (IsNetworkClientOriginal()) {
+    if (IsMultiplayerClient()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)

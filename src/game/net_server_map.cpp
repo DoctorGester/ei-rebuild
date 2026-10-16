@@ -36,10 +36,7 @@ __declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
-// The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): unloading the quest texts,
-// picking the zones that follow, loading a zone's quests.
-__declspec(naked) void __fastcall FlowUnloadQuestTexts(void* /*flow*/) EI_ORIGINAL(0x00580F10)
-__declspec(naked) void __fastcall FlowPickZones(void* /*flow*/, void*, void* /*out vector<string>*/, std::uint32_t /*kind*/, const char* /*current*/) EI_ORIGINAL(0x0057F850)
+// The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): loading a zone's quests.
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 // vector<string> (library): the allocator proxy constructor and the block free; the string
 // buffer free the string destructor inlines.
@@ -106,7 +103,7 @@ void ServerSession::SetMap(const StringRep* name) {
     static_cast<GameFlow*>(world)->RegisterQuests(name->start);
     WorldPrepareMap(world, nullptr, name->start);
     std::uint32_t title = 0, text = 0;   // CStrings
-    void* titleOut = WorldMapTitle(world, nullptr, &title);
+    void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
     void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 5, *static_cast<const char**>(titleOut));
     Announce(*static_cast<const char**>(textOut), nullptr);
     CStringDestroy(&text);
@@ -167,7 +164,7 @@ void ServerSession::SetMap(const StringRep* name) {
 // current map (+0x25D4), loading each zone's quests.
 void ServerSession::QueueMapList() {
     void* flow = TheGameFlow();
-    FlowUnloadQuestTexts(flow);
+    UnloadQuestTexts();
     struct {
         StringRep* start;
         StringRep* finish;
@@ -178,7 +175,7 @@ void ServerSession::QueueMapList() {
     StringRep* none = nullptr;
     std::uint8_t allocator = 0;
     NamesProxyConstruct(&zones.eos, nullptr, &allocator, &none);
-    FlowPickZones(flow, nullptr, &zones, kind_, mapName_.start);
+    PickZones(&zones, kind_, mapName_.start);
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
         StringRep key;
         StringPlusText(&key, zone, game::ZoneSuffix2Text());

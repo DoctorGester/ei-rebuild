@@ -199,7 +199,7 @@ EI_REPLACE(0x005DE460, Show);
 void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine(game::Text(0x007926A4));   // usage
     WorldPlayer* player;
-    if (IsNetworkClientOriginal())
+    if (IsMultiplayerClient())
         player = LocalPlayer();
     else
         player = GetPlayer(GameAtoi((*args)[0]));

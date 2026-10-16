@@ -328,7 +328,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsNetworkClientOriginal()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsMultiplayerClient()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 

@@ -342,7 +342,7 @@ void CBattleScreen::Update() {
         }
     }
 
-    if (IsNetworkClientOriginal()) RebuildClientParty(this);
+    if (IsMultiplayerClient()) RebuildClientParty(this);
 
     UpdateChildren(this);
     interface_->ShowMessage(0);
@@ -465,12 +465,12 @@ CUnit* UnitAtPoint(void* world, void*, int* point) { return static_cast<CUnit*>(
 void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
-        InputOf(this)->BaseLButtonUp(buttons, x, y);
+        InputOf(this)->OnLeftUp(buttons, x, y);
         return;
     }
     viewPressed_ = false;
     void* world = UiClientWorld();
-    if (!boxSelecting_ || IsNetworkClientOriginal()) {
+    if (!boxSelecting_ || IsMultiplayerClient()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};
         CUnit* unit = UnitAtPoint(world, nullptr, point);
@@ -596,7 +596,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         mfc::CString colour(game::Text(0x00794370));   // colour code 0x31E3EE43 and a space
         text = colour + title + game::Text(0x0078DA40) + text;
     } else if (parts.size == 4) {
-        if (!IsNetworkClientOriginal()) {
+        if (!IsMultiplayerClient()) {
             const char* dot = game::Text(0x00783D78);
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = HoverPlayerVariable(reinterpret_cast<void*>(0x007AFEA5), nullptr, variable);

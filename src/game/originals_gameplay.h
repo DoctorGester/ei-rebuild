@@ -101,12 +101,6 @@ __declspec(naked) inline mfc::CTypedPtrList<Projectile>::Node* __fastcall Projec
     mfc::CTypedPtrList<Projectile>*, void*, mfc::CTypedPtrList<Projectile>::Node* /*prev*/,
     mfc::CTypedPtrList<Projectile>::Node* /*next*/) EI_ORIGINAL(0x0059C7A0)
 
-// C3m. 006A5C00 (rewritten as CItemConstructor::SetManager; thiscall): the item constructor takes its manager. Base of
-// the views of the constructor.
-struct ItemConstructorManagerOriginal {
-    void SetManager(void* manager);
-};
-__declspec(naked) inline void ItemConstructorManagerOriginal::SetManager(void*) EI_ORIGINAL(0x006A5C00)
 
 // C3n batch 4. The player and its server half (thiscall), through their addresses so the wrappers run: 00665DE0
 // (rewritten as CPlayer::Tick; plain RET) the player's update before the tick; 0066D6E0 (CPlayerServer::SendObject0B; RET 8)
