@@ -76,3 +76,8 @@ struct RefPtr {
     RefPtr* ShareAssign(CRefObject* object);
 };
 static_assert(sizeof(RefPtr) == 4);
+
+// refptr_copies.cpp (ECX the holder, EDX the object). 00427D50 and its 15 identical copies: `self`
+// holds `object` without a reference; returns self. 00421360 and its identical copies: clears it.
+RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);
+void __fastcall RefPtrClear(RefPtr* self);

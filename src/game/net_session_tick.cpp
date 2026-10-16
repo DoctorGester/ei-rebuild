@@ -116,12 +116,11 @@ namespace net {
 
 namespace {
 
-// The clients list (STLport list<RefPtr<Connection>>, +0x28): end, begin, find by peer address (an
-// instantiation of find_if over the nodes), erase.
+// The clients list (STLport list<RefPtr<Connection>>, +0x28): end, begin, erase; the find by peer
+// address (0043D780, an instantiation of find_if over the nodes) is FindClientByAddress
+// (library_net_lists.h, over its ClientsNode of the same layout).
 __declspec(naked) ClientNode** __fastcall ClientsEnd(ClientNode** /*list*/, void*, ClientNode** /*out*/) EI_ORIGINAL(0x00438830)
 __declspec(naked) ClientNode** __fastcall ClientsBegin(ClientNode** /*list*/, void*, ClientNode** /*out*/) EI_ORIGINAL(0x00438820)
-__declspec(naked) ClientNode** __fastcall ClientFind(ClientNode** /*out*/, void*, ClientNode* /*first*/, ClientNode* /*last*/,
-                                                     const NetAddress* /*address*/) EI_ORIGINAL(0x0043D780)
 __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
 // 0043B310: the node allocator's deallocate (p in ECX, size in EDX), used for the address strings.
 void __fastcall NodeFree(char* a0, std::size_t a1) { libcrt::NodeDeallocateChecked((void*)a0, a1); }
@@ -149,7 +148,9 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
     ClientsEnd(&clients_, nullptr, &last);
     ClientNode* first;
     ClientsBegin(&clients_, nullptr, &first);
-    ClientFind(out, nullptr, first, last, address);
+    using netlists::ClientsNode;
+    netlists::FindClientByAddress(reinterpret_cast<ClientsNode**>(out), nullptr, reinterpret_cast<ClientsNode*>(first),
+                                  reinterpret_cast<ClientsNode*>(last), address);   // 0043D780
     return out;
 }
 EI_REPLACE_METHOD(0x00436CC0, SessionBase::FindClient);

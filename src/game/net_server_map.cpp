@@ -30,10 +30,8 @@ __declspec(naked) StringRep* __fastcall StringPlusString(StringRep* /*out*/, con
 static StringRep* StringFromText(StringRep* s, void*, const char* text, const void* alloc) { return static_cast<StringRep*>(::StringInitFromChars(s, nullptr, text, alloc)); }
 
 // The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
-// counted pointer helpers, the list push_back.
+// list push_back (the counted pointer helpers are RefPtrFromRaw / RefPtrClear, core_refcount.h).
 __declspec(naked) void __fastcall MessageStringAssign(StringRep* /*string*/, void*, const StringRep* /*from*/) EI_ORIGINAL(0x0041F4E0)
-__declspec(naked) void* __fastcall RefFromRaw(void* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427D50)
-__declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360)
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
@@ -80,9 +78,9 @@ void ServerSession::SetMap(const StringRep* name) {
     auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
     ZoneMessage* message = memory ? memory->Construct() : nullptr;
     MessageStringAssign(&message->text_, nullptr, &messageName);
-    void* ref;
-    List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
-    RefClear(&ref);
+    RefPtr ref;
+    List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+    RefPtrClear(&ref);   // 00421360
     StringRepDestroy(&messageName);
 
     auto* mapMessage = NewMessageMemory<MapMessage>();
@@ -187,9 +185,9 @@ void ServerSession::QueueMapList() {
             ei::SetVtable(message, ZoneMessage::kVtableAddress);
         }
         MessageStringAssign(&message->text_, nullptr, &key);
-        void* ref;
-        List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
-        RefClear(&ref);
+        RefPtr ref;
+        List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+        RefPtrClear(&ref);   // 00421360
         libcrt::NodeDeallocateCheckedStd(key.start, static_cast<std::size_t>(key.eos - key.start));
         FlowLoadZoneQuests(flow, nullptr, zone->start);
     }
@@ -234,9 +232,9 @@ bool ServerSession::FinishMap(const StringRep* name) {
         ei::SetVtable(message, ZoneMessage::kVtableAddress);
     }
     MessageStringAssign(&message->text_, nullptr, &messageName);
-    void* ref;
-    List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
-    RefClear(&ref);
+    RefPtr ref;
+    List25ACPushBack(&queuedMaps_, nullptr, RefPtrFromRaw(&ref, message));   // 00427D50
+    RefPtrClear(&ref);   // 00421360
     StringBufferFree(&messageName);
     return true;
 }

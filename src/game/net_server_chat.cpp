@@ -17,9 +17,8 @@
 namespace net {
 
 namespace {
-// The lines list (+0x2594): a counted pointer from a raw one without a reference, end, insert,
-// node count, erase (library).
-__declspec(naked) RefPtr* __fastcall LineRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428030)
+// The lines list (+0x2594): end, insert, node count, erase (library; the counted pointer from a raw
+// one without a reference is RefPtrFromRaw, core_refcount.h).
 __declspec(naked) void** __fastcall LinesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420450)
 __declspec(naked) void** __fastcall LinesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004225B0)
 __declspec(naked) void __fastcall CountLines(std::uint32_t* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x004290F0)
@@ -43,7 +42,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     }
     void* lines = &lines_;
     RefPtr ref;
-    const RefPtr* value = LineRefFromRaw(&ref, line);
+    const RefPtr* value = RefPtrFromRaw(&ref, line);   // 00428030
     void* end;
     LinesEnd(lines, nullptr, &end);
     void* inserted;

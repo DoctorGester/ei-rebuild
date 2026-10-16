@@ -22,8 +22,7 @@ __declspec(naked) void __fastcall ChunkVectorConstruct(RefVector* /*vector*/, vo
 __declspec(naked) void __fastcall ChunkVectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421D90)
 __declspec(naked) void __fastcall ChunkVectorInsert(RefVector* /*vector*/, void*, RefPtr* /*pos*/, std::size_t /*n*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00426CB0)
 __declspec(naked) void __fastcall RefNull(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFC0)
-// The files list (+0x2598): a counted pointer from a raw one, end, insert.
-__declspec(naked) RefPtr* __fastcall FileRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427FE0)
+// The files list (+0x2598): end, insert (the counted pointer is RefPtrFromRaw, core_refcount.h).
 __declspec(naked) void** __fastcall FilesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420550)
 __declspec(naked) void** __fastcall FilesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004227D0)
 
@@ -99,7 +98,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     }
 
     RefPtr ref;
-    const RefPtr* value = FileRefFromRaw(&ref, file);
+    const RefPtr* value = RefPtrFromRaw(&ref, file);   // 00427FE0
     void* end;
     FilesEnd(files, nullptr, &end);
     void* inserted;

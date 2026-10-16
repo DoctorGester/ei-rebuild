@@ -19,10 +19,8 @@
 namespace net {
 
 namespace {
-// Counted pointers from a raw pointer without a reference (the list insert adds one).
-__declspec(naked) RefPtr* __fastcall PlayerRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428040)
-__declspec(naked) RefPtr* __fastcall BindingRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428050)
-// The players list (+0x2590) and the bindings list (+0x25A4): end, insert(pos, value), begin.
+// The players list (+0x2590) and the bindings list (+0x25A4): end, insert(pos, value), begin (the
+// counted pointers come from RefPtrFromRaw, without a reference; the list insert adds one).
 __declspec(naked) void** __fastcall PlayersEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420390)
 __declspec(naked) void** __fastcall PlayersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004223D0)
 __declspec(naked) void** __fastcall PlayersBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420380)
@@ -65,7 +63,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     }
     void* players = &self->players_;
     RefPtr ref;
-    const RefPtr* value = PlayerRefFromRaw(&ref, player);
+    const RefPtr* value = RefPtrFromRaw(&ref, player);   // 00428040
     void* end;
     PlayersEnd(players, nullptr, &end);
     void* inserted;
@@ -82,7 +80,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
         ei::SetVtable(binding, BindingMessage::kVtableAddress);
     }
     void* bindings = &self->bindings_;
-    value = BindingRefFromRaw(&ref, binding);
+    value = RefPtrFromRaw(&ref, binding);   // 00428050
     BindingsEnd(bindings, nullptr, &end);
     BindingsInsert(bindings, nullptr, &inserted, end, value);
     ref.ptr = nullptr;

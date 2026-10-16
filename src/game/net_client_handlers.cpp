@@ -26,7 +26,6 @@
 
 #include <cstring>
 
-RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);   // refptr_copies.cpp
 
 namespace net {
 

@@ -17,11 +17,10 @@ namespace net {
 namespace {
 
 // STLport (library): string equality, erase(first, last), append(first, last, tag); the list's
-// begin, insert and erase; a counted pointer from a raw one without a reference.
+// begin, insert and erase (the counted pointer from a raw one is RefPtrFromRaw, core_refcount.h).
 __declspec(naked) void** __fastcall VariablesBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420280)
 __declspec(naked) void** __fastcall VariablesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004221B0)
 __declspec(naked) void** __fastcall VariablesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420290)
-__declspec(naked) RefPtr* __fastcall VariableRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00427FD0)
 
 std::uint32_t& VariableCounter() { return *reinterpret_cast<std::uint32_t*>(0x0079B608); }
 float GameFloat(std::uintptr_t a) { return *reinterpret_cast<const volatile float*>(a); }
@@ -78,7 +77,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
         ei::SetVtable(variable, VariableMessage::kVtableAddress);
     }
     RefPtr ref;
-    const RefPtr* value = VariableRefFromRaw(&ref, variable);
+    const RefPtr* value = RefPtrFromRaw(&ref, variable);   // 00427FD0
     void* begin;
     VariablesBegin(variables, nullptr, &begin);
     void* inserted;

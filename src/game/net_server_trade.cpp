@@ -21,11 +21,8 @@ namespace net {
 namespace {
 
 __declspec(naked) void __fastcall RefNullB(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFD0)
-// Counted pointers from raw ones without a reference, and the STLport lists (library): the
-// objects (+0x259C), the offers (+0x25B8), the trades (+0x25BC), the finished trades (+0x25C0).
-__declspec(naked) RefPtr* __fastcall ObjectRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428060)
-__declspec(naked) RefPtr* __fastcall OfferRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428070)
-__declspec(naked) RefPtr* __fastcall TradeRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428080)
+// The STLport lists (library; their counted pointers come from RefPtrFromRaw): the objects
+// (+0x259C), the offers (+0x25B8), the trades (+0x25BC), the finished trades (+0x25C0).
 __declspec(naked) void** __fastcall ObjectsErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004293F0)
 __declspec(naked) void** __fastcall TradesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420960)
 __declspec(naked) void** __fastcall TradesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x00423410)
@@ -112,7 +109,7 @@ void* ServerSession::FindTrade(void* offer, void* other) {
 // 0041B720 (removed file request): drops `message` from +0x259C.
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
-    const RefPtr* value = ObjectRefFromRaw(&ref, message);
+    const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428060
     void* objects = &self->fileRequests_;
     void** sentinel = static_cast<void**>(self->fileRequests_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
@@ -130,7 +127,7 @@ void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
 void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     void* offers = &self->offers_;
     RefPtr ref;
-    const RefPtr* value = OfferRefFromRaw(&ref, message);
+    const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428070
     void* end;
     PartiesEnd(offers, nullptr, &end);
     void* inserted;
@@ -159,7 +156,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     trade->partner_.Assign(message->partner_.ptr);
     void* trades = &self->trades_;
     RefPtr tradeRef;
-    value = TradeRefFromRaw(&tradeRef, trade);
+    value = RefPtrFromRaw(&tradeRef, trade);   // 00428080
     TradesEnd(trades, nullptr, &end);
     TradesInsert(trades, nullptr, &inserted, end, value);
     message->trading_ = 1;
@@ -190,7 +187,7 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
 // Its trade, when live, is dropped, a done one first kept on +0x25C0 for 60 seconds.
 void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
-    const RefPtr* value = OfferRefFromRaw(&ref, message);
+    const RefPtr* value = RefPtrFromRaw(&ref, message);   // 00428070
     void* offers = &self->offers_;
     void** sentinel = static_cast<void**>(self->offers_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
