@@ -56,7 +56,7 @@ public:
     void SetVariableMax(const char* name, float value);             // 0066EE80: raises a variable, 0x81
     void DeleteVariable(const char* name);                          // 0066EF30: message 0x82
     void SendGameTime();                                            // 0066F180: message 0x07
-    int SendState02(int value);                                     // 0066EBD0: message 0x02 (0047DA80 payload)
+    int SendState02(CMemoryStream* zone);                           // 0066EBD0: message 0x02, `zone` (0047DA80)
     int SendState70(std::uint8_t a, std::uint16_t b);               // 0066EC10: message 0x70
     int SendState71(std::uint32_t a, std::uint32_t b);              // 0066EC70: message 0x71
     int SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w);   // 0066ECD0: 0x72

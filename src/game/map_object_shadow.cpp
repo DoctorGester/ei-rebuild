@@ -96,9 +96,6 @@ volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
 
 
-// --- Not rewritten, forwarders ----------------------------------------------------------------
-// 005A0E80. Figure mesh: rasterises its projected points into the texture.
-__declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
 // 0056C750 (CWorldClient::ProjectDecal). The shadow projector: lays the texture's quad on
 // the ground.
@@ -354,7 +351,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
             stlp::string key(name);
             count += figure->RasterisePart(&key, &Pixels()[count].x, &target);
         } else {
-            count += RasterisePart(part, nullptr, device, &Pixels()[count].x, &target);
+            count += RasteriseFigureMesh(part, nullptr, static_cast<CPixelConverter*>(device), &Pixels()[count],
+                                         &target);   // 005A0E80
         }
     }
     if (ShadowMode() == 2) {

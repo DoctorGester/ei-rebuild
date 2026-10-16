@@ -8,6 +8,7 @@
 #include "party.h"
 
 #include "lib/crt.h"
+#include "effects.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
@@ -27,17 +28,17 @@ using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 __declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectList::Node*) EI_ORIGINAL(0x0059A680)
-__declspec(naked) CEngineObject** __fastcall PtrListGetNext(ObjectList*, void*, ObjectList::Node** /*position*/)
-    EI_ORIGINAL(0x0059A670)
+// 0059A670 (a byte-identical copy of NextParticle, effects.h): the item at `position`, which moves on.
+CEngineObject* NextItem(ObjectList* list, ObjectList::Node** position) {
+    return *reinterpret_cast<CEngineObject**>(
+        NextParticle(list, nullptr, reinterpret_cast<mfc::CTypedPtrList<Particle>::Node**>(position)));
+}
 // 0059CAD0 (RET 4). Frees a node of the shared-object list (+0x12E60).
 __declspec(naked) void __fastcall SharedListFreeNode(void*, void*, void* /*node*/) EI_ORIGINAL(0x0059CAD0)
 // 00665470 (RET 8). The player receives the objects of a list.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's hoover); 0 when there is nothing to take.
-__declspec(naked) int __fastcall CollectLoot(void*, void*, CWorldServer*, CEngineObject*, ObjectList* /*items*/,
-                                             ObjectList* /*second*/, ObjectList* /*third*/, int* /*gold*/)
-    EI_ORIGINAL(0x00461CB0)
 
 void InitList(ObjectList& list, void* vtable) {
     list.vtable = vtable;
@@ -112,7 +113,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         return true;
     }
 
-    if (!CollectLoot(hoover_, nullptr, this, object, &items, &second, &third, &gold)) {
+    if (!HooverCollectLoot(hoover_, nullptr, this, reinterpret_cast<char*>(object), &items, &second, &third, &gold)) {   // 00461CB0
         destroy();
         return false;
     }
@@ -142,14 +143,14 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             }
             if (quest.count > 0) PlayerGiveItems(first, nullptr, &quest, 0);
             for (ObjectList::Node* position = quest.head; position;)
-                (*PtrListGetNext(&quest, nullptr, &position))->Release();
+                NextItem(&quest, &position)->Release();
             PtrListDestructOriginal(&quest);
         }
     }
     player->Party()->Money() += gold;
     PlayerGiveItems(player, nullptr, &items, 0);
     for (ObjectList::Node* position = items.head; position;)
-        (*PtrListGetNext(&items, nullptr, &position))->Release();
+        NextItem(&items, &position)->Release();
     bool found = items.count > 0 || gold > 0;
     destroy();
     return found;

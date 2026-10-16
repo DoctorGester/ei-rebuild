@@ -24,7 +24,7 @@ src/game/camera.h,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/chunk_archive.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,25
 src/game/chunk_stream.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/class_template_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/class_templates.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/class_templates.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/combat_planning.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -33,7 +33,6 @@ src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0,0,0,1
 src/game/console.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/console_commands.cpp,0,0,0,0,34,0,0,0,0,0,0,0,0,0
-src/game/cursor_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
 src/game/effects_weather.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/fake_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -63,7 +62,6 @@ src/game/map_object.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/map_object_draw.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/map_object_figures.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/map_object_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
-src/game/map_object_shadow.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/map_spec_effect.cpp,0,0,0,0,3,0,0,0,0,0,0,0,0,0
 src/game/map_spec_unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/menu_rects.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0,0
@@ -107,7 +105,7 @@ src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,13
 src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
-src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,16
+src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,15
 src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,150
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
@@ -120,7 +118,6 @@ src/game/party_items.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/party_manager.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/party_records.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/player_messages.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/quest_database.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,15
 src/game/quest_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/quest_records.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
@@ -230,8 +227,8 @@ src/game/world_client_view.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_deleting_destructors.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
-src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,28
-src/game/world_loot.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
+src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,26
+src/game/world_loot.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
 src/game/world_map_files.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_party.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
@@ -239,7 +236,7 @@ src/game/world_quests.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/world_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/world_server.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_sessions.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
-src/game/world_sync.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/game/world_sync.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/world_unit_set.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/world_units.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4

@@ -18,9 +18,6 @@ struct Projectile;
 struct WorldPlayer;
 
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
-// 004A91B0 (library, RET 4): the party manager's hash_map<int, CParty>::operator[] (a new key gets a
-// default party).
-__declspec(naked) inline void* __fastcall PartyMapAtOriginal(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x004A91B0)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
 // null).
 __declspec(naked) inline CEngineObject* __fastcall ItemManagerCreateItemOriginal(void* /*manager*/, void*, const char* /*name*/)

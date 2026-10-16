@@ -572,8 +572,8 @@ const char* __fastcall LightManagerClassName(CLightFactory*);
 int __fastcall LightManagerClassId(CLightFactory*);
 inline CLightFactory* TheLightFactory() { return *reinterpret_cast<CLightFactory* const*>(0x007AF748); }
 
-// 006893F0. The code (+0x04) of the spell prototype whose name matches (_mbsicmp); 0 if none.
-int __stdcall SpellCodeByName(const char* name);
+// 006893F0. The code (+0x04) of the spell prototype whose name matches (_mbsicmp); null if none.
+char* __stdcall SpellCodeByName(const char* name);
 
 // 006894B0. Address of the code (+0x04) of the spell modifier whose name matches; null if none.
 char* __stdcall SpellModifierCodeByName(const char* name);

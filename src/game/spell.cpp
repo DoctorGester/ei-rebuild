@@ -214,7 +214,7 @@ void CLight::SetLitColors(const float* source, float scale) {
 }
 EI_REPLACE_METHOD(0x0068D280, CLight::SetLitColors);
 
-int __stdcall SpellCodeByName(const char* name) {
+char* __stdcall SpellCodeByName(const char* name) {
     const RecordTable& spells = Spells();
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>((spells.end - spells.begin) / kSpellSize); ++i) {
         auto* spell = reinterpret_cast<const SpellRecord*>(spells.RecordAt(i, kSpellSize));
@@ -223,10 +223,10 @@ int __stdcall SpellCodeByName(const char* name) {
                             reinterpret_cast<const unsigned char*>(name)) == 0) {
             // The code string's pointer, as the original returns it.
             const char* code = reinterpret_cast<const SpellRecord*>(spells.RecordAt(i, kSpellSize))->code;
-            return static_cast<int>(reinterpret_cast<std::uintptr_t>(code));
+            return const_cast<char*>(code);
         }
     }
-    return 0;
+    return nullptr;
 }
 EI_REPLACE(0x006893F0, SpellCodeByName);
 

@@ -80,7 +80,6 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The player state's (CPlayerServer) messages and updates.
 void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { static_cast<CPlayerServer*>(a0)->SendObjectsAdded(a2); }
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
-__declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
 // 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,
 // `kept` and `removed` (ECX known, EDX current).
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
@@ -344,7 +343,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         DressedMapDestruct(&units.dressed, nullptr);
         FiguredGroupsDestruct(&units.figured, nullptr);
 
-        result = StateSendZone(state, nullptr, &message);
+        result = state->SendState02(&message);   // 0066EBD0
         if (result != 0 && sendsStartPosition_ != 0) {
             result = 1;
             if (player->units.map.Size() != 0) {

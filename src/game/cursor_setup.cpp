@@ -10,10 +10,8 @@
 namespace {
 // The cursor object (007C7BD8) and its methods (thiscall).
 void* CursorObject() { return reinterpret_cast<void*>(0x007C7BD8); }
-// The window the cursor is drawn in (007AF080).
-std::uint32_t CursorWindow() { return *reinterpret_cast<const std::uint32_t*>(0x007AF080); }
-// 005E60B0 (RET 0x10): Init(window, mode 1 or 2, context, small); the small flag is the low byte.
-__declspec(naked) void __fastcall CursorInit(void*, void*, std::uint32_t, int, int, int) EI_ORIGINAL(0x005E60B0)
+// The device the cursor is drawn on (007AF080).
+CTextureDevice* CursorDevice() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
 // 005E62E0: stops the drawing thread and releases the shapes.
 void __fastcall CursorShutdown(void* cursor) { static_cast<CCursor*>(cursor)->Shutdown(); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
@@ -59,7 +57,8 @@ const CursorShape kShapes[] = {
 // 005DAEA0 (fastcall, RET 8). `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
 void __fastcall SetUpCursors(bool modeTwo, int context, int smallCursors, int flags) {
-    CursorInit(CursorObject(), nullptr, CursorWindow(), modeTwo ? 2 : 1, context, smallCursors);
+    static_cast<CCursor*>(CursorObject())->Init(CursorDevice(), modeTwo ? 2 : 1,
+                                                reinterpret_cast<CDirectInputMouse*>(context), smallCursors);   // 005E60B0
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
     for (const CursorShape& shape : kShapes)
         static_cast<CCursor*>(CursorObject())->AddShape(useSmall ? shape.smallName : shape.name, shape.hotX, shape.hotY, flags);

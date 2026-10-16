@@ -372,6 +372,13 @@ struct RasterTriangle {
 };
 static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);
 
+class CFigureMesh;   // figure_mesh.h
+class CPixelConverter;
+// figure_rasterise.cpp. 005A0E80 (RET 0xC): the figure mesh's projected `points` rasterised into
+// `triangle`'s target through `rasteriser`; returns the number of points it used.
+int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser,
+                                   const RasterTriangle::Point* points, RasterTriangle* triangle);
+
 // 2DintMMX's graphics processor, the pixel converter (*007AF06C, also CTextureDevice::converter_).
 // Its code is in the DLL; only the slots the rewritten code calls are named. Never constructed here.
 class CPixelConverter {

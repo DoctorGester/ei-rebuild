@@ -2063,11 +2063,11 @@ static_assert(sizeof(SavedPartyEntry) == 0x74);
 
 namespace {
 
-// The vector's element copy loop (ECX first, EDX last, destination on the stack; returns the end),
-// element destructor (00664AE0, flag 0); the records' copy constructor (006613C0) and the
-// insert overflow (00619920) are in originals_gameplay.h.
-__declspec(naked) SavedPartyEntry* __fastcall PartyEntriesCopy(SavedPartyEntry*, SavedPartyEntry*, SavedPartyEntry*) EI_ORIGINAL(0x00664410)
-__declspec(naked) void __fastcall PartyEntryDestroy(SavedPartyEntry*, void*, int) EI_ORIGINAL(0x00664AE0)
+// An entry is a multiplayer hero record (ui_screens.h): the vector's element copy loop is
+// MpHeroRecord::CopyRange (00664410), its element destructor DeletingDestruct (00664AE0, flag 0);
+// the records' copy constructor (006613C0) and the insert overflow (00619920) are in
+// originals_gameplay.h.
+MpHeroRecord* AsHero(SavedPartyEntry* entry) { return reinterpret_cast<MpHeroRecord*>(entry); }
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
@@ -2092,8 +2092,8 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
 void SavedParties::Reload() {
     // Empty the list.
     SavedPartyEntry*& finish = finish_;
-    SavedPartyEntry* end = PartyEntriesCopy(finish, finish, entries_);
-    for (SavedPartyEntry* entry = end; entry != finish; ++entry) PartyEntryDestroy(entry, nullptr, 0);
+    SavedPartyEntry* end = reinterpret_cast<SavedPartyEntry*>(MpHeroRecord::CopyRange(AsHero(finish), AsHero(finish), AsHero(entries_)));
+    for (SavedPartyEntry* entry = end; entry != finish; ++entry) AsHero(entry)->DeletingDestruct(0);
     finish = end;
 
     WIN32_FIND_DATAA found;

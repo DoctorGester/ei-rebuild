@@ -52,6 +52,10 @@ class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
+// hoover_loot.cpp. 00461CB0 (RET 0x18; ECX the world's hoover, not read): the loot of the dead
+// `unit` for its taker on `dropList` / `itemList` and `gold`; 0 when there is nothing to take.
+int __fastcall HooverCollectLoot(void* hoover, void*, void* world, char* unit, void* dropList, void* itemList,
+                                 void* unused, int* gold);
 class CWorldServer;
 
 namespace world {

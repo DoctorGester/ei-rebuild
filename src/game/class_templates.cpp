@@ -31,14 +31,14 @@ namespace {
 // ---- Original code --------------------------------------------------------------------------------
 
 // vector<counted pointer> members: 004A9A00 erase(first, last), 004AB520 _M_insert_overflow(pos,
-// x, n), and the counted pointer's copy constructor (two identical instantiations).
+// x, n), and the counted pointer's copy constructor (two identical instantiations, 004A5D50 and
+// 004ABE30, both RefPtr::CopyCounted).
 __declspec(naked) ClassTemplate** __fastcall VectorErase(ClassTemplateVector*, void*, ClassTemplate**, ClassTemplate**)
     EI_ORIGINAL(0x004A9A00)
 __declspec(naked) void __fastcall VectorInsertOverflow(ClassTemplateVector*, void*, ClassTemplate**,
                                                        ClassTemplate* const*, unsigned) EI_ORIGINAL(0x004AB520)
 using CopyConstructFn = void(__fastcall*)(ClassTemplate**, void*, ClassTemplate* const*);
-__declspec(naked) void __fastcall CopyConstructA(ClassTemplate**, void*, ClassTemplate* const*) EI_ORIGINAL(0x004ABE30)
-void __fastcall CopyConstructB(ClassTemplate** a0, void*, ClassTemplate* const* a2) {
+void __fastcall CopyConstruct(ClassTemplate** a0, void*, ClassTemplate* const* a2) {
     reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
 }
 
@@ -52,8 +52,8 @@ void ListQuickItems(void* db, void*, console::CStringArray* names) { static_cast
 void ListFourthKind(void* db, void*, console::CStringArray* names) { static_cast<CItemManager*>(db)->ListMaterialNames(names); }
 void ListSpells(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListSpellNames(names); }
 void ListModifiers(void* db, void*, console::CStringArray* names) { static_cast<CSpellManager*>(db)->ListModifierNames(names); }
-// 006893F0 / 006894B0 (rewritten in spell.cpp, __stdcall; the caller passes the database in ECX).
-__declspec(naked) char* __stdcall SpellCode(const char*) EI_ORIGINAL(0x006893F0)
+// 006893F0 / 006894B0 (SpellCodeByName / SpellModifierCodeByName, spell.cpp; __stdcall, the
+// caller passes the database in ECX).
 
 // Record lookups by name. 004AB720 / 004AB820: weapons / armors by char* (hash maps 007C86F8 /
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
@@ -144,7 +144,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
     ListSpells(spells, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        const char* code = SpellCode(names.data[i]);
+        const char* code = SpellCodeByName(names.data[i]);
         RawString key;
         StringInitWithAllocator(&key, nullptr, &alloc);
         StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
@@ -217,16 +217,16 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
 void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void*, unsigned fourClasses) {
     VectorErase(v, nullptr, v->begin(), v->end());
     if (static_cast<std::uint8_t>(fourClasses)) {
-        AddTemplate(v, 1, 1, 1, kDefaultWeights, CopyConstructA);
-        AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstructA);
-        AddTemplate(v, 4, 1, 1, kDefaultWeights, CopyConstructA);
-        AddTemplate(v, 5, 1, 1, kDefaultWeights, CopyConstructA);
+        AddTemplate(v, 1, 1, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 4, 1, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 5, 1, 1, kDefaultWeights, CopyConstruct);
     } else {
-        AddTemplate(v, 1, 1, 0, kDefaultWeights, CopyConstructA);
-        AddTemplate(v, 2, 0, 1, kDefaultWeights, CopyConstructA);
-        AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstructA);
-        AddTemplate(v, 4, 1, 1, kDefaultWeights, CopyConstructB);
-        AddTemplate(v, 5, 1, 1, kZeroWeights, CopyConstructB);
+        AddTemplate(v, 1, 1, 0, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 2, 0, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 4, 1, 1, kDefaultWeights, CopyConstruct);
+        AddTemplate(v, 5, 1, 1, kZeroWeights, CopyConstruct);
     }
 }
 EI_REPLACE(0x004A7630, ClassTemplatesBuild);

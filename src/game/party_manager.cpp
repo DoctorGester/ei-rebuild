@@ -13,6 +13,7 @@
 #include "resource_local.h"   // LocalStream
 
 #include "ei/hook.h"
+#include "game_hashes.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -76,7 +77,8 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
-            auto* party = static_cast<CParty*>(PartyMapAtOriginal(parties, nullptr, &key));
+            auto* party = reinterpret_cast<CParty*>(gamehash::PartyAt(reinterpret_cast<gamehash::PartyTable*>(parties), nullptr,
+                                                                      reinterpret_cast<const std::uint32_t*>(&key)));   // 004A91B0
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);
                 LeaveChunk();

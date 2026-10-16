@@ -25,8 +25,6 @@ namespace {
 // The variables table (object_tables.cpp / not rewritten), through the game addresses.
 void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { static_cast<NamedFloatTable*>(a0)->Set(a2, std::bit_cast<float>(a3)); }
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
-// 0047DA80: writes a state value into the stream.
-__declspec(naked) void __fastcall StreamWriteState(BitStream* /*stream*/, void*, int /*value*/) EI_ORIGINAL(0x0047DA80)
 
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
@@ -92,10 +90,10 @@ void CPlayerServer::SendGameTime() {
     Owner()->dirty_ &= ~0x10;
 }
 
-int CPlayerServer::SendState02(int value) {
+int CPlayerServer::SendState02(CMemoryStream* zone) {
     Owner()->dirty_ &= ~0x1;
     WriteByte(&out_, 0x02);
-    StreamWriteState(&out_, nullptr, value);
+    out_.WriteStream(zone);   // 0047DA80
     return 1;
 }
 

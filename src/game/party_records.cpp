@@ -10,6 +10,7 @@
 #include "party.h"
 
 #include "lib/crt.h"
+#include "game_hashes.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
@@ -214,7 +215,9 @@ EI_REPLACE(0x004A8790, PartyMapLoad);
 
 bool __fastcall PartyMapStore(void* map, void*, const int* key, const void* source) {
     MapNode* node = FindNode(map, *key);
-    void* value = node ? NodeValue(node) : PartyMapAtOriginal(map, nullptr, key);
+    void* value = node ? NodeValue(node)
+                       : static_cast<void*>(gamehash::PartyAt(static_cast<gamehash::PartyTable*>(map), nullptr,
+                                                              reinterpret_cast<const std::uint32_t*>(key)));   // 004A91B0
     static_cast<CParty*>(value)->Assign(static_cast<CParty*>(const_cast<void*>(source)));
     return true;
 }
