@@ -1,5 +1,6 @@
 #include "terrain.h"
 #include "terrain_sector.h"   // SectorData
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -86,13 +87,13 @@ float Terrain::HeightAt(float x, float y, int layer) {
     }
 }
 
-float TerrainOwner::SurfaceHeight(float x, float y) {
+double CWorldClient::ClientRawSurfaceHeight(float x, float y) {
     float ground, depth;
     terrain_->GroundAndWaterDepth(x, y, &ground, &depth);
-    return ground + depth;
+    return static_cast<float>(ground + depth);
 }
 
-EI_REPLACE_METHOD(0x00564070, TerrainOwner::SurfaceHeight);
+EI_REPLACE_METHOD(0x00564070, CWorldClient::ClientRawSurfaceHeight);
 EI_REPLACE_METHOD(0x006C8680, Terrain::HeightAt);
 EI_REPLACE_METHOD(0x006C85A0, Terrain::VertexAt);
 EI_REPLACE(0x006BE3A0, PlaneHeight);

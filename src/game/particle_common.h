@@ -9,6 +9,7 @@
 
 #include "effects.h"
 #include "random.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -51,8 +52,8 @@ inline std::uint32_t Next() { return GlobalRandom().Next(); }
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
 inline double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
-// 00564070 TerrainOwner::SurfaceHeightRaw(x, y) on the terrain owner 007AF5B8; leaves ST0 unrounded.
-inline double GroundHeight(float x, float y) { return SurfaceHeightRaw(reinterpret_cast<void*>(0x007AF5B8), nullptr, x, y); }
+// 00564070 CWorldClient::ClientRawSurfaceHeight(x, y) on the client world 007AF5B8 (ST0).
+inline double GroundHeight(float x, float y) { return WorldClient()->ClientRawSurfaceHeight(x, y); }
 
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
 inline float PickIfLess(float a, float b) { return !(a >= b) ? a : b; }

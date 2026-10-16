@@ -520,7 +520,7 @@ public:
     void TickSleepingEffects();
     // 0058D3D0. Puts every unit in the sectors within `radius` of `position` (x, y) in the
     // update map.
-    void WakeUnitsAround(const float* position, float radius);
+    void WakeUnitsAround(const Vector3* position, float radius);
     // 00593FC0. Raises alarm `index` (0..4) at `point` (x, y) unless it is already raised
     // (`force` raises it again; alarm 0 with `force` clears all five first), tells every AI unit
     // without a player, and puts those that react in the update map. Script InvokeAlarm.
@@ -1506,6 +1506,10 @@ public:
     // SurfaceHeight).
     double ClientGroundHeight(float x, float y);
     double ClientSurfaceHeight(float x, float y);
+    // 00564070 (slot 28, RawSurfaceHeightAt; RET 8; terrain.cpp). The height of whatever surface
+    // is on top at (x, y): the ground, or the water when the point is submerged (ST0; the sum
+    // rounded to float).
+    double ClientRawSurfaceHeight(float x, float y);
     // 0056CE40 (RET 0xC; the server's number messages, a living object's hit). A number over the
     // unit with id `id` (the flying hit points, +0x1B4); nothing for another object or without them.
     void ShowNumber(int id, int value, std::uint32_t kind);
@@ -2103,7 +2107,7 @@ void __fastcall LoadSharedObject(void* entry, void*, WorldStream* stream);
 // 00578E30 (thiscall on the client glue 007AFEA4, unused; RET 0x18; world_weather.cpp). A
 // lightning strike from `from` to `to`, as a script line on the queue at 007C29CC: one time in
 // four only a thunder sound, otherwise a point light at the middle, a sound and two bolts.
-void __fastcall ShowBolt(void* glue, void*, Vector3 from, Vector3 to);
+void __stdcall ShowBolt(Vector3 from, Vector3 to);
 
 // world_guard.cpp. 005790E0 (thiscall on the client glue 007AFEA4, unused; RET 4): with `plain`
 // 0 the players' gold, party records (0x704 bytes from +0x20) and, on the server, their units'

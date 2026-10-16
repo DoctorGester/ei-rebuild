@@ -55,9 +55,6 @@ constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 // 0055FC50. CWorld's day-time value (ST0).
 double __fastcall WorldDayTime(CWorldServer* a0, void*) { return static_cast<CWorld*>((void*)a0)->NightLevel(); }
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
-void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
-    ShowBoltOriginal(glue, nullptr, from.x, from.y, from.z, to.x, to.y, to.z);
-}
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(Random().Next()) * scale); }
 
@@ -132,7 +129,7 @@ void ShowRainBolt(CWorldServer* world) {
     float fromZ = static_cast<float>(static_cast<double>(z) + BoltHeight());
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
-    ShowBoltAt(reinterpret_cast<void*>(0x007AFEA4), nullptr, from, to);
+    ShowBolt(from, to);
 }
 
 } // namespace
@@ -171,7 +168,8 @@ float Half() { return GameFloat(0x0073B86C); }   // 0.5
 
 } // namespace
 
-void __fastcall ShowBolt(void* /*glue*/, void*, Vector3 from, Vector3 to) {
+// The client glue's (007AFEA4) thiscall member in the original; ECX is not read.
+void __stdcall ShowBolt(Vector3 from, Vector3 to) {
     mfc::CString prefix;   // stays empty
     mfc::CString text;
     // The middle: x and y are summed into floats first, z is not.

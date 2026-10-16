@@ -38,7 +38,6 @@ address,reason
 006E63E9,src/game/world_game.cpp passes a mfc::CFileFind * as void* (the target is mfc::impl::CFileFind's method)
 006E661A,src/game/ui_saveload.cpp passes a const mfc::CFileFind * as void* (the target is const mfc::impl::CFileFind's method)
 0049A010,src/game/ui_global_map_places.cpp passes a GlobalMapWeather * as void* (the target is CCloudNoise's method)
-0051E280,src/game/world_client_maps.cpp passes a CObject3DSpecific * as void* (the target is CObject3DClientSpecific's method)
 0055E940,src/game/ui_hud_panels.cpp passes a CWorldClient * as void* (the target is CParty's method)
 00661FB0,src/game/world_game.cpp passes a PartyRecords * as void* (the target is CParty's method)
 0066D6E0,src/game/unit_motion_tick.cpp passes a CPlayerConnection * as void* (the target is CPlayerServer's method)

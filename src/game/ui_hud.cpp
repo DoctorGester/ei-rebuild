@@ -1042,13 +1042,12 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     // the update to ask about leaving (+0x18C, +0x188 the exit).
     exitPending_ = 0;
     int exit;
-    void* glue = ClientGlueObject();
     if (GameFindExitAt(&point.x, &exit) && selected > 0) {
         mfc::CString name(GameExitTarget(exit));
         if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                             reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
             name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
-            double value = HoverPlayerVariable(glue, nullptr, name);
+            double value = LocalPlayerVariable(name);
             const float one = GameOne();
             // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
             if (!x87::IsNaN(static_cast<float>(value)) && value != one) {

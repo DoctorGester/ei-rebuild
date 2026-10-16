@@ -244,7 +244,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
     e->timer = ticks;
     if (ticks >= 0) {
         float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
-        WorldWakeUnits(e->world, nullptr, &e->position, wake);
+        e->world->WakeUnitsAround(&e->position, wake);
         SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
         for (auto* node = units.head; node;) {
             CEngineObject* unit = node->data;
@@ -279,7 +279,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
             }
         }
         float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
-        WorldWakeUnits(e->world, nullptr, &e->position, wake);
+        e->world->WakeUnitsAround(&e->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
@@ -312,7 +312,7 @@ void Possession(CSpellEffect* e) {
         float reach = !(sight >= floor) ? floor : sight;
         float wake;
         MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
-        WorldWakeUnits(e->world, nullptr, &static_cast<CUnit*>(target)->position, wake);
+        e->world->WakeUnitsAround(&static_cast<CUnit*>(target)->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;

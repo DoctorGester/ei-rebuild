@@ -35,9 +35,7 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-// 00488970 IsaacRandom::Range and 00564070 TerrainOwner::SurfaceHeightRaw leave their result
-// unrounded in ST0.
-void* TerrainOwner() { return reinterpret_cast<void*>(0x007AF5B8); }
+// 00488970 IsaacRandom::Range leaves its result unrounded in ST0.
 
 double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
@@ -122,7 +120,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float cx = static_cast<float>(D(bx) + D(s->origin.x));
     float cy = static_cast<float>(D(by) + D(s->origin.y));
     (void)static_cast<float>(D(bz) + D(s->origin.z));
-    float cz = static_cast<float>(SurfaceHeightRaw(TerrainOwner(), nullptr, cx, cy) + D(EI_POINT_THREE));
+    float cz = static_cast<float>(WorldClient()->ClientRawSurfaceHeight(cx, cy) + D(EI_POINT_THREE));
     BoltPoint* points = reinterpret_cast<BoltPoint*>(s->elements);
     points[i].pos = {cx, cy, cz};
     points[i].base = {cx, cy, cz};
@@ -502,7 +500,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     float falloff = static_cast<float>((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
     float x = static_cast<float>((D(a) * D(alpha) * D(turnCos) + D(origin.x)) - b * D(turnSin) * D(typeParam));
     float y = static_cast<float>((D(turnSin) * D(alpha) * D(a) + b * D(turnCos) * D(typeParam)) + D(origin.y));
-    double ground = SurfaceHeightRaw(TerrainOwner(), nullptr, x, y);
+    double ground = WorldClient()->ClientRawSurfaceHeight(x, y);
     p->pos.x = x;
     p->pos.y = y;
     std::memset(&p->size, 0, sizeof(float));
@@ -533,7 +531,7 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
     p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
     p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
-    double lifted = SurfaceHeightRaw(TerrainOwner(), nullptr, p->pos.x, p->pos.y) + D(EI_TENTH);
+    double lifted = WorldClient()->ClientRawSurfaceHeight(p->pos.x, p->pos.y) + D(EI_TENTH);
     p->pos.z = static_cast<float>(lifted);
     const float* plane = reinterpret_cast<const float*>(elements);
     double along = (D(p->pos.x) - D(origin.x)) * D(plane[6]) + (D(p->pos.y) - D(origin.y)) * D(plane[7]);

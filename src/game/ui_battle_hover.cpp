@@ -46,7 +46,6 @@ int HoverCursor::SetShape(int a2) { return static_cast<CCursor*>((void*)this)->C
 void SetCursor(int shape) { reinterpret_cast<HoverCursor*>(0x007C7BD8)->SetShape(shape); }
 
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
-void* const kPlayerGlue = reinterpret_cast<void*>(0x007AFEA5);
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
@@ -162,7 +161,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                 reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
                 name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."
-                double value = HoverPlayerVariable(kPlayerGlue, nullptr, name);
+                double value = LocalPlayerVariable(name);
                 const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
                 // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
                 if (!x87::IsNaN(static_cast<float>(value)) && value != one) SetCursor(kCursorExit);

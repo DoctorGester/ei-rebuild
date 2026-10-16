@@ -487,8 +487,10 @@ int CWorldClient::SendFlag10(int value) {
 void CWorldClient::DropShadows() {
     PlainList& objects = objects_;
     for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
-        CObject3DSpecific* half = MapObjectOf(node->data)->Object3D()->Specific();   // the client half
-        if (!ShadowsShownOriginal(half)) ShadowClearOriginal(half);
+        // The client half (CObject3DSpecific is its slot view).
+        auto* half = reinterpret_cast<CObject3DClientSpecific*>(MapObjectOf(node->data)->Object3D()->Specific());
+        // The original tests AL only (ShadowsShown's "off" leaves the setting's upper bytes).
+        if (!static_cast<std::uint8_t>(half->ShadowsShown())) half->ClearShadow();
     }
 }
 

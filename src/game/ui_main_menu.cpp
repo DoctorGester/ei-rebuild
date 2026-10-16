@@ -28,9 +28,7 @@
 
 namespace {
 
-// The game's glue object (a thiscall target the original passes in ECX; it is not read) and the
-// game flow.
-void* GlueA() { return reinterpret_cast<void*>(0x007AFEA4); }
+// The game flow.
 GameFlow* Flow() { return reinterpret_cast<GameFlow*>(0x007AFE20); }
 void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
@@ -167,7 +165,7 @@ void CMainMenu::Update() {
                 float fromY = static_cast<float>(RandomScaled(1.3969838622484784e-08));   // 00742110
                 float toX = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromX - 2.0);   // 0073FA20, 0073CDB8
                 float toY = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromY - 2.0);
-                ShowBoltOriginal(GlueA(), nullptr, fromX, fromY, 17.0f, toX, toY, 1.0f);
+                ShowBolt(Vector3{fromX, fromY, 17.0f}, Vector3{toX, toY, 1.0f});
             }
         }
     }

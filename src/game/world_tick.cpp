@@ -167,7 +167,7 @@ void CWorldServer::Tick(char force) {
     ServerUpdateUnits(this, nullptr);
 }
 
-void CWorldServer::WakeUnitsAround(const float* position, float radius) {
+void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
     if (!(WakeCacheGuard() & 1)) {
         WakeCache().radius = -1.0f;
         WakeCacheGuard() |= 1;
@@ -176,8 +176,8 @@ void CWorldServer::WakeUnitsAround(const float* position, float radius) {
     }
     int count;
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
-    int sx = SectorOf(position[0]);
-    int sy = SectorOf(position[1]);
+    int sx = SectorOf(position->x);
+    int sy = SectorOf(position->y);
     auto* sectors = reinterpret_cast<CSectorMap*>(sectorMap_);
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);

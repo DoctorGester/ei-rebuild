@@ -599,7 +599,7 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         if (!IsMultiplayerClient()) {
             const char* dot = game::Text(0x00783D78);
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
-            double current = HoverPlayerVariable(reinterpret_cast<void*>(0x007AFEA5), nullptr, variable);
+            double current = LocalPlayerVariable(variable);
             // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
             if (current == static_cast<double>(GameFloatAt(0x0073B858)) || x87::IsNaN(static_cast<float>(current))) return;
         }

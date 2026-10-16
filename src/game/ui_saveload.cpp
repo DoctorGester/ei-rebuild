@@ -61,7 +61,6 @@ const char* GameFolder() { return *reinterpret_cast<char* const*>(0x007AF460); }
 CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
 
 void* const kFlow = reinterpret_cast<void*>(0x007AFE20);         // the game flow (world_game.cpp)
-void* const kGlue = reinterpret_cast<void*>(0x007AFEA5);         // ECX of the player getters (unused by them)
 void* const kMapDatabase = reinterpret_cast<void*>(0x0079BF00);
 void* const kCursor = reinterpret_cast<void*>(0x007C7BD8);
 void* const kInterface = reinterpret_cast<void*>(0x007C7D50);
@@ -483,7 +482,7 @@ void CSaveLoadWindow::FillEntries() {
         }
         SaveEntry* entry = entriesBegin_;
         Str(entry->folder_).Format(game::savewords::NewFolder(), highest + 1);
-        entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::savewords::GameTime()));
+        entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         {
             alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
             mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
@@ -573,7 +572,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString zone;
     std::int32_t now;
     const std::int32_t savedAt = *CurrentTime(&now);
-    const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::savewords::GameTime()));
+    const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
         mfc::CString* current = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));

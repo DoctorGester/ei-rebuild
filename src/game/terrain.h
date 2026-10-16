@@ -352,15 +352,4 @@ static_assert(sizeof(Terrain) == 0xAFC);
 // of the three heights when the triangle is degenerate. A free __fastcall function.
 float __fastcall PlaneHeight(const float* v0, const float* v1, float x, float y, const float* v2);
 
-// Owner of the landscape (a world/map object). Only the fields used so far are declared.
-class TerrainOwner {
-public:
-    // 00564070, vtable slot at 0073F48C. Height of whatever surface is on top: ground, or water
-    // when the point is submerged. Used by the camera and object placement.
-    float SurfaceHeight(float x, float y);
-
-private:
-    char clientWorld_[0x180];   // the client world's members before terrain_ (CWorldClient, world.h)
-    Terrain* terrain_;        // +0x180
-};
 static_assert(sizeof(void*) == 4, "game.exe is 32-bit");

@@ -274,7 +274,7 @@ int __cdecl StartFirstMap() {
         return game::FatalError(reinterpret_cast<const char*>(0x007847E4), static_cast<const char*>(map));   // "Can't load map '%s'"
     static_cast<CWorldServer*>(world)->SetGameResult(1);
     void* client = reinterpret_cast<void*>(0x007AF5B8);
-    ClientSetPlayer(client, nullptr, Global<int>(0x007AFFBC));
+    static_cast<CWorldClient*>(client)->SetPlayer(Global<std::uint8_t*>(0x007AFFBC));
     static_cast<CWorldClient*>(client)->LocalView()[0x85] = 0;
     Global<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;

@@ -373,7 +373,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * GameFloat(kHalf));
         point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
-            WorldWakeUnits(World(), nullptr, &point, kCatchUpRadius);
+            World()->WakeUnitsAround(&point, kCatchUpRadius);
             World()->Tick(static_cast<char>(1));
         }
     }
@@ -1466,7 +1466,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     if (mode == 1) SpectatorFlag() = mode;
     World()->SetGameResult(result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
-    ClientSetPlayer(kClientWorld, nullptr, reinterpret_cast<int>(World()->shared5C_.ptr));
+    static_cast<CWorldClient*>(kClientWorld)->SetPlayer(reinterpret_cast<std::uint8_t*>(World()->shared5C_.ptr));
     ClientWorldLocalView(kClientWorld)->sendParty = 0;
 }
 
@@ -1591,7 +1591,7 @@ void GameFlow::ProcessRequest() {
         StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
         break;
     case kStateLoad:
-        ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
+        static_cast<CWorldClient*>(clientWorld)->SetPlayer(*reinterpret_cast<std::uint8_t**>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 0;
         World()->SetGameResult(1);
         ClientSegmentAt(clientWorld);
@@ -1638,7 +1638,7 @@ void GameFlow::ProcessRequest() {
         StartNetworkZoneAt(requestTarget_);
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
         reinterpret_cast<CPlayer*>(player)->AssignParty(reinterpret_cast<CParty*>(RequestParty()));
-        ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
+        static_cast<CWorldClient*>(clientWorld)->SetPlayer(*reinterpret_cast<std::uint8_t**>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->sendParty = 1;
         break;
     }
