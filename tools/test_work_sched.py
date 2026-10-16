@@ -516,7 +516,7 @@ class SchedTest(unittest.TestCase):
         alone = lambda *a, **k: run_all.runs_alone(*a, environ={}, **k)
         self.assertFalse(alone(wide, 'rebirth', True))                     # our renderer changes no display mode
         self.assertFalse(alone(present, 'vanilla', True))
-        self.assertTrue(alone(wide, 'rebirth', False))                     # --widescreen's rebirth-nohooks
+        self.assertTrue(alone(wide, 'rebirth', False))                     # --widescreen --record's rebirth-nohooks
         self.assertTrue(alone(wide, 'rebirth', True, dgvoodoo=True))
         self.assertFalse(alone(plain, 'vanilla', False))
 

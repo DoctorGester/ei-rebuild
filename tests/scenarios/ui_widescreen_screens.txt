@@ -1,8 +1,8 @@
 # Rebirth's WideScreen, part four (ticket W4; docs/notes/rebirth.md "WideScreen"): the other screens,
 # for comparison with Rebirth's own frames:
 #   python tools\run_all.py --widescreen
-# runs this with the other ui_widescreen scenarios under Rebirth with our hooks and with --no-hooks
-# (addon's code only) and compares the frames. Same settings as part one (the desktop's mode,
+# runs this with the other ui_widescreen scenarios on the image on the Rebirth install and compares
+# the frames with addon's recorded ones (as part one). Same settings as part one (the desktop's mode,
 # WideScreen on, the virtual clock); a frame with a "_later" twin is compared without what moved
 # between the two, one with "_moving" / "_moving_later" without what moved before its window opened.
 # On screen here: the multiplayer hero screen's list (its mode 00615D30 hides the curtains over the

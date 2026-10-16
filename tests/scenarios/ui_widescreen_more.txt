@@ -2,8 +2,8 @@
 # "WideScreen"): the places addon scales without the margin and the shapes, on screen for
 # comparison with Rebirth's own frames:
 #   python tools\run_all.py --widescreen
-# runs ui_widescreen and this under Rebirth with our hooks and with --no-hooks (addon's code only)
-# and compares the frames. Same settings as part one (the desktop's mode, WideScreen on, the
+# runs ui_widescreen and this on the image on the Rebirth install and compares the frames with
+# addon's recorded ones (as part one). Same settings as part one (the desktop's mode, WideScreen on, the
 # virtual clock); a frame with a "_later" twin is compared without what moved between the two.
 # On screen: every text (005FDE20, 005F8340) and sprite shape (005E70E0 / 005E7680 / 005E7D60 /
 # 005E99D0); the multiplayer hero screen's name field (the edit field 0065C2E0); a tooltip at the
@@ -11,8 +11,9 @@
 # save's caret (the list 006567A0). The battle screen's panels are built while addon's panel
 # builders set the panel offset (the shapes' x). The chat line (005E3700) is opened by the harness
 # for its verify wrapper, which compares its pixels with addon's: a single player game does not
-# show it. The Save window pauses the world: what moved in save_moving / save_moving_later, captured
-# before it opened, is left out of its frame (run_all).
+# show it (and the verify wrappers retire, S21d). The Save window pauses the world: what moved in
+# save_moving / save_moving_later, captured before it opened, is left out of its frame (run_all); so is
+# the window's picture, a copy of the screen each renderer scales down its own way (WIDESCREEN_AREAS).
 deterministic
 # Its 4K captures beside 15 other games (on our renderer it no longer runs alone, R10) took 50-60 s.
 timeout 90

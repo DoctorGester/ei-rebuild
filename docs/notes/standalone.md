@@ -1651,3 +1651,56 @@ tests/coverage/coverage.csv still names render_movie / render_terrain until it i
 Runs (with S20c's four goldens): `work.py test S20c --golden --jobs 4` (the image): 186 runs ALL PASS, 168 goldens the
 same, 0 differ, 18 runs without a golden; `--no-hooks --golden --jobs 4`: 7 runs left out by the new lines, 136 runs
 ALL PASS, 126 goldens the same, 0 differ.
+
+**S21b (2026-10-16): `--widescreen` compares the image with addon's recorded frames.** User 2026-10-16: addon's WideScreen
+frames are recorded once with the original game's harness and kept as references; no addon game is played for a comparison.
+- Recording: `run_all --widescreen --record [names]` (or `work.py test <ID> --widescreen --record`) plays each scenario as
+  `<scenario>-rebirth-nohooks` (game.exe with Rebirth's addon.dll, EI_NO_HOOKS, dgVoodoo at the desktop's mode, alone; the
+  reference cache may supply the run), then `record_widescreen` keeps its frames. Needed once, and again when a scenario's steps
+  change; a comment edit keeps the references.
+- Where: `<main checkout>\build\widescreen\<scenario>\<steps key>\` (`widescreen_dir`, `EI_WIDESCREEN_DIR` for tests), shared by
+  the worktrees like the reference cache. The key is a hash of the scenario's lines without comments and blank lines
+  (`steps_key`), so a worktree with other steps finds its own recording or none; 3 keys are kept per scenario. In it:
+  `frames\<frame>.bmp.z` (the primary frames, packed by tools/frame_store.py: 4-13 MB each at 3840x2160), `skip\<frame>.bmp.z`
+  (a mask of what moved in addon's run between the frame and its `_later` / `_moving` twins, grown by 8: compare_frames.py
+  `--write-skip`, 40-60 KB) and `recorded.json` (frames, size, time, run). The twins themselves are not kept: 19 frames of the
+  four scenarios take 167 MB (the runs they come from, 391 MB). Not in git: 4K frames do not pack below 4 MB, and the
+  recording only needs the Rebirth install. A missing recording, other steps or another frame size (the desktop's mode
+  changed) fail the comparison with the command that records them.
+- Comparing: `run_all --widescreen [names]` runs `<scenario>-standalone-rebirth` (the image, our renderer), then
+  `compare_widescreen`: each recorded frame with compare_frames.py `WIDESCREEN_COMPARE`, leaving out addon's skip mask, what
+  moved between the image's own twins and `WIDESCREEN_AREAS`; differences go to the run's `frames_diff`. Through `work.py
+  test` the comparison (or the recording) runs in the submitting process after the batch, as `--golden` does (the scheduler
+  gets the arguments without `--widescreen` / `--record`). `--widescreen --golden` also checks the scenarios' Rebirth goldens.
+- Only the Rebirth install: addon exists nowhere else. The vanilla data differ from Rebirth's in most textures (the image's
+  own frames of the two installs differ in 13-60% of the pixels: the scene, panel borders, the menu's version box), so the
+  image's vanilla-data runs of these scenarios (default suite) cannot be compared with addon's frames; `--widescreen
+  --vanilla-only` is refused.
+- Tolerance, from the 19 frames of the image against a fresh recording (both 3840x2160): plain per-pixel comparison
+  (tolerance 8) left 0.13-2.0% of the pixels different, all of it the renderers: the interface's magnified textures sampled a
+  fraction of a texel apart (a panel's edge: 75 against 57 in one row, the rows around agreeing), lines (the round map's ring,
+  the portrait's frame), the scene's model and alpha-tested edges (the menu's trees). compare_frames.py `--shift 1` (new: a
+  pixel differs only when a channel lies more than the tolerance outside the range the other frame's 3x3 pixels span, both
+  ways) takes these to 0.001-0.39%, scattered: the densest 64-pixel block 11% (450 pixels; the options window's slider thumbs,
+  a few pixels wider in ours as in the hooked comparisons, and the menu's trees). So: `--tolerance 8 --shift 1
+  --max-fraction 0.006 --block 64 --max-block 0.25` (`--max-block`, new: no 64-pixel block more than a quarter different, which a
+  moved element exceeds while the renderers' edges stay far below). Areas left out (`WIDESCREEN_AREAS`): the battle screen's
+  top 14 rows right of the top panel (x 2712-3770; our renderer shows a strip there that dgVoodoo does not, in hooked runs on
+  our renderer too: R10c), and the Save window's picture (ui_widescreen_more `save`: a copy of the screen each renderer scales
+  down its own way, 2% of the frame). Rectangles are given at 3840x2160 and scaled to the frame.
+- Earlier attempts, for the record: main's run folders of the image against the reference cache's older addon runs showed
+  the sea (ui_widescreen `world`, 20%) and the menu's lake differing; a fresh recording against this branch's image did not,
+  so nothing is left out for water.
+- Runs (`work.py test S21b --jobs 4 ...`): `--widescreen --record`: 4 addon runs PASS, 19 frames recorded. `--widescreen
+  --golden` (this branch's image): 4 runs PASS, every frame within the settings (0.001-0.389% differing, the densest block
+  11%), the four Rebirth goldens the same. Deliberate breaks of the right panels' offset (`EnterRightPanel` writing
+  `extra - 4`, then `extra - 1`: one layout unit, 2.7 pixels): the 13 frames with the right-hand panels FAIL (2.4-2.95% and
+  dense blocks of 70-93% for 4 units; 1.27-1.56% and 30-67% for one unit, the Save window's frame by the block rule alone),
+  the 6 without them (menu, options, load, camp, the hero screens) pass.
+- Addon repeats: fresh `--no-hooks --rebirth-only --fresh` runs of ui_widescreen and ui_widescreen_hud (same harness)
+  against the recording: all 10 frames identical to the pixel (largest difference 0).
+- To know: the image's frames are the same from run to run (the counts above repeat to the pixel); addon's recording is
+  only as good as its harness version. The reference cache's addon runs of 02:40 (another worktree's harness) had a
+  different sea in `world` (20% of the frame) from this recording: if a harness change moves what the frames show,
+  every frame of a scenario fails the same way and `--widescreen --record` (after `--fresh`, or the cache supplies the
+  old run) brings the references up to date.

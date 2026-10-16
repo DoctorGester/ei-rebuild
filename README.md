@@ -153,7 +153,9 @@ code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to
 permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
 and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
 Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; `python tools\run_all.py
---widescreen` compares Rebirth's WideScreen with ours, `docs/notes/rebirth.md`; `chat 1|0` opens and closes the
+--widescreen` compares the image's frames on the Rebirth install with addon's WideScreen, recorded once with
+`--widescreen --record` into `build\widescreen` of the main checkout by the scenario's steps, `docs/notes/rebirth.md`
+and docs/notes/standalone.md, S21b; `chat 1|0` opens and closes the
 chat line, which a single player game does not show). Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
@@ -184,8 +186,8 @@ For parallel runs the harness ignores other game windows (the game otherwise exi
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
 shared reading. Runs of our code draw with our renderer (`EI_RENDER=new,present`, no display mode
 change, so none needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
-`--widescreen`'s reference, compare.py's original side), scenarios whose `render` step leaves out
-`present`, and everything with `--dgvoodoo` or `--widescreen` (its frames are compared with the original's). Passed runs of the original code are cached in
+`--widescreen --record`'s addon runs, compare.py's original side), scenarios whose `render` step leaves out
+`present`, and everything with `--dgvoodoo`. Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
 The standalone runs (the default, or `--standalone`) start `ei_standalone.exe` instead of game.exe (install
 `standalone`: run\vanilla's game.exe laid out without its code, the vanilla data, our renderer; `ei_launch

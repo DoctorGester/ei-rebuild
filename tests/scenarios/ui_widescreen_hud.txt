@@ -1,8 +1,8 @@
 # Rebirth's WideScreen, part three (ticket W3; docs/notes/rebirth.md "WideScreen"): the battle
 # screen's panels used, for comparison with Rebirth's own frames:
 #   python tools\run_all.py --widescreen
-# runs this with ui_widescreen and ui_widescreen_more under Rebirth with our hooks and with
-# --no-hooks (addon's code only) and compares the frames. Same settings as part one (the desktop's
+# runs this with the other ui_widescreen scenarios on the image on the Rebirth install and compares
+# the frames with addon's recorded ones (as part one). Same settings as part one (the desktop's
 # mode, WideScreen on, the virtual clock); a frame with a "_later" twin is compared without what
 # moved between the two.
 # The panels' builders set the panel offset (the map, the quick items, the spell column and the
