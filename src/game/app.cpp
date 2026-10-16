@@ -156,7 +156,7 @@ UINT AutoPlayMessage() {
 }
 
 LRESULT Handled() {
-    TheInput()->Update();
+    TheInput()->CloseAllPending();
     return 1;
 }
 
