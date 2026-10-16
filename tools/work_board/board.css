@@ -42,6 +42,8 @@ a.tab { text-decoration: none }
 .card .top { display: flex; gap: 10px; align-items: baseline; min-width: 0 }
 .card .id { font-family: var(--mono); font-weight: 500; color: var(--c); flex: none }
 .card .title { font-weight: 500; font-size: 15px; line-height: 1.35; text-wrap: pretty; min-width: 0 }
+.card .top.also { margin-top: 4px }
+.card .top.also .title { font-size: 14px; color: var(--muted) }
 .card .tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
 .card .pill.st { --c2: var(--c); background: var(--s); color: var(--c) }
 .card .fresh { margin-left: auto; font-size: 12px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center }

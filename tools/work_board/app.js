@@ -82,7 +82,8 @@ function freshness(t) {
 function actLine(cls, key, what, when, title) {
   return `<div class="act ${cls}${open.has(key) ? ' expanded' : ''}" data-act="${esc(key)}" title="${esc(title)}"><span class="what">${what}</span><span class="when">${when}</span></div>`;
 }
-function ticketCard(t) {
+// `also`: other tickets the same worker holds (one worktree, several open assignments); they share this card.
+function ticketCard(t, also = []) {
   const a = t.assignment, c = t.commit, n = t.notes[0], b = t.batch;
   const f = freshness(t);
   const sub = [];
@@ -109,6 +110,7 @@ function ticketCard(t) {
   const fails = shown ? details(`f-${t.id}-${shown.id}`, `<span class="bad">what failed in #${shown.id}</span>`, failureList(shown)) : '';
   return `<article class="card s-${t.state} f-${f.cls}">
     <div class="top"><span class="id">${esc(t.id)}</span><span class="title">${esc(t.title)}</span></div>
+    ${also.map(o => `<div class="top also"><span class="id">${esc(o.id)}</span><span class="title">${esc(o.title)}</span></div>`).join('')}
     <div class="tags"><span class="pill st">${esc(t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${f.html}</span></div>
     ${sub.length ? `<div class="subline">${sub.join('<span class="dot">·</span>')}</div>` : ''}
     ${act.length ? `<div class="acts">${act.join('')}</div>` : ''}
@@ -125,7 +127,16 @@ function ticketsView() {
   const lane = (title, hint, list, cardFn) => `<section class="lane"><h2>${title}<span class="n">${list.length}</span></h2>` +
     (hint ? `<p class="hint">${hint}</p>` : '') + (list.length ? `<div class="cards">${list.map(cardFn).join('')}</div>` : '<p class="empty">Nothing here.</p>') + '</section>';
   working.sort((a, b) => (b.assignment.started || '').localeCompare(a.assignment.started || ''));
-  sections.push(lane('Active work', 'Tickets with an open assignment (work.py start), newest first.', working, ticketCard));
+  // One card per worker: tickets sharing a worktree go on the card of the one it started first (its notes and runs).
+  const byTree = new Map();
+  for (const t of [...working].reverse()) {
+    const k = t.assignment.worktree || t.id;
+    if (!byTree.has(k)) byTree.set(k, []);
+    byTree.get(k).push(t);
+  }
+  const cards = working.filter(t => byTree.get(t.assignment.worktree || t.id)[0] === t);
+  sections.push(lane('Active work', 'Tickets with an open assignment (work.py start), newest first; one card per worker.', cards,
+    t => ticketCard(t, byTree.get(t.assignment.worktree || t.id).slice(1))));
   if (lost.length) sections.push(lane('Running or in review, nobody assigned', 'The toml says a worker has it, work.py has no open assignment.', lost, ticketCard));
   const others = all.filter(t => !working.includes(t) && !lost.includes(t) && t.state !== 'done');
   const chip = t => `<button class="chip s-${t.state}" title="${esc(t.title)} (${t.state})">${esc(t.id)}</button>`;
