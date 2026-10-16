@@ -2042,13 +2042,56 @@ filed as SV7c1.
 
 **The standalone** takes no jitter: harness_heap patches game.exe's heap imports, and the image allocates from the host
 CRT (EI_REPLACE_STANDALONE), so its runs above are plain runs on that other heap (no "heap jitter" log line). The goldens
-hold there anyway (S20: every golden the same); SV7c2 gives the image's heap the jitter for after S21.
+hold there anyway (S20: every golden the same); SV7c2 (below) gives the image's heap the jitter.
 
 After merging main with SV7b6 (draw lists by name; no golden changed): `--no-hooks --golden` with `3,fill` over all 168
 goldens (91 V, 77 R) the same; `work.py test SV7c --golden --jobs 4`: 146 runs ALL PASS, 124 goldens the same.
 
 Scratch driver: build\SV7c\passes.py (`<nohooks|hooked|standalone> <label>=<J..|F..>`, SV7C_ONLY / SV7C_NAMES /
 SV7C_ARGS).
+
+## SV7c2: the heap jitter on the standalone image's heap (2026-10-16)
+
+**Change** (src/lib/crt.cpp, image only): the image's malloc 006EABD1, free 006EA8AD, realloc 006ED69A, calloc
+006F0317 and _msize 006EEC7B no longer use the host CRT's heap. As game.exe's VC6 CRT on NT 5+ (__heap_select picks
+the system heap: _heap_alloc 006EAC0F), they use a Win32 heap of their own, `_crtheap` 007CAF08, made with
+`HeapCreate(0, 0x1000, 0)` at the first allocation (the image's start-up has no _heap_init), with HeapAlloc /
+HeapFree / HeapReAlloc / HeapSize on it and every size rounded up to 16 (zero to 16); calloc asks HEAP_ZERO_MEMORY.
+The calls go through the image's import slots (gameapi.h, 0073B35C..0073B3C0), so the harness's heap::Install
+patches the same slots as in game.exe and everything of harness_heap acts on the image unchanged: the fixed
+reservation (repeatable addresses), EI_HEAP_JITTER with its "heap jitter" line, EI_HEAP_FILL, heaptrace / EI_HEAPSEQ
+and the order check. In a hooked run libcrt's heap functions (reached only by verify_crt_file's check) now use
+game.exe's heap; its _msize expectations are the rounded sizes (calloc(10, 7) 80, _strdup of 12 bytes 16).
+harness_heap's Install also notes our module's range, so EI_HEAP_FILL's per-block log names our callers (as
+0x10000000 + offset, as the trace) where every caller is ours (the image).
+Nothing frees across heaps: the image's code takes game memory only through libcrt (operator new / delete,
+malloc & co.); the host CRT's heap keeps the host's own (std containers, FILE buffers of crt_file).
+
+**Runs** (`work.py test SV7c2 --standalone --golden --jobs 4`, all 95 golden scenarios, both installs: 190 runs,
+168 goldens per pass):
+
+| Pass | Result |
+| --- | --- |
+| plain (no variable) | ALL PASS, 168 the same |
+| EI_HEAP_JITTER=1 | ALL PASS, 168 the same (190 "heap jitter, seed 1" lines) |
+| EI_HEAP_JITTER=2 | ALL PASS, 168 the same; map_objects-standalone passed on its retry (below) |
+| EI_HEAP_JITTER=3 | ALL PASS, 168 the same |
+| EI_HEAP_JITTER=2,fill | ALL PASS, 168 the same |
+| EI_HEAP_JITTER=3,fill | ALL PASS, 168 the same |
+| EI_HEAP_FILL=r7 (seeded bytes in every new block, no jitter) | ALL PASS, 168 the same |
+
+After merging main (WB12, light.cpp, harness_leftovers): `3,fill` again, ALL PASS, 168 the same.
+
+`EI_HEAP_FILL=0xCC,1000,1010` on combat: blocks 1000..1009 at 0x8001xxxx (the reservation), so the image's main
+thread's blocks are the ones jittered. Nothing was canonicalised and no golden re-recorded.
+
+The one retry: map_objects-standalone under seed 2, first attempt, exit code 4 (the image's unhandled exception) at
+C0000005 EIP 031D0ED8 on the main thread in AIL_waveOutOpen (harness MutedWaveOutOpen <- CSoundManager::Open <-
+app::OpenSound <- GameMain), before the menu: SV6c's crash (seen once before at EIP 00007EBC, hooked). Miles keeps its
+own memory (no AIL_mem_use_malloc), so the CRT heap is not in it; the retry and the five other passes of the
+scenario passed. A second sighting for SV6c's watch, now in the image.
+
+Scratch driver: build\SV7c2\passes.py (`<label>=<jitter value|plain>`, SV7C2_NAMES).
 
 ## WB12: standalone runs out of sight (2026-10-16)
 

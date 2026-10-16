@@ -267,8 +267,8 @@ void JitterFill(void* p, SIZE_T bytes, DWORD flags) {
 // thread's new blocks in the reservation (not HEAP_ZERO_MEMORY) numbered from..to-1 (counted from 0, every run the
 // same) get `byte` at offsets offFrom..offTo-1, with or without the jitter; `r<seed>` for the byte fills seeded
 // bytes instead, each block's from its number (so a block gets the same bytes whatever else is filled). A range of
-// up to 64 blocks logs each (number, size, place, callers). Finds which block's unwritten bytes a run reads, by
-// bisection.
+// up to 64 blocks logs each (number, size, place, callers: into game.exe, or ours as 0x10000000 + offset as the
+// trace writes them). Finds which block's unwritten bytes a run reads, by bisection.
 bool g_fixedFill;
 unsigned char g_fixedByte;
 bool g_fillRandom;
@@ -344,7 +344,7 @@ void FixedFill(void* p, SIZE_T bytes, DWORD flags, void* const* frame, SIZE_T st
     const auto* top = static_cast<void* const*>(reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase);
     for (int i = 0; i < 256 && found < 8 && frame + i < top; ++i) {
         const auto v = reinterpret_cast<std::uintptr_t>(frame[i]);
-        if (ReturnAddress(v)) callers[found++] = unsigned(v);
+        if (ReturnAddress(v)) callers[found++] = unsigned(v >= g_selfBase && v < g_selfEnd ? v - g_selfBase + 0x10000000 : v);
     }
     Log("harness: heap fill block %u: %u bytes at %08X, callers %08X %08X %08X %08X %08X %08X %08X %08X", n,
         unsigned(bytes), TracePlace(p), callers[0], callers[1], callers[2], callers[3], callers[4], callers[5],
@@ -613,6 +613,16 @@ void Install() {
         return;
     }
     InitializeCriticalSection(&g_lock);
+    // Our module's range, for the callers EI_HEAP_FILL logs (in the standalone image every caller is ours; the
+    // trace and the order check set it again with the same values).
+    HMODULE self = nullptr;
+    if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCSTR>(&Install), &self)) {
+        const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(self);
+        const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(reinterpret_cast<const char*>(self) + dos->e_lfanew);
+        g_selfBase = reinterpret_cast<std::uintptr_t>(self);
+        g_selfEnd = g_selfBase + nt->OptionalHeader.SizeOfImage;
+    }
     PatchSlot(kHeapCreateSlot, &RepeatableHeapCreate, g_heapCreate);
     PatchSlot(kHeapDestroySlot, &RepeatableHeapDestroy, g_heapDestroy);
     PatchSlot(kHeapAllocSlot, &RepeatableHeapAlloc, g_heapAlloc);

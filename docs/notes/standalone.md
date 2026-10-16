@@ -232,7 +232,8 @@ atof result, the decimal point) fail.
 
 **S4b (2026-10-15).** Image only (`EI_REPLACE_STANDALONE`; the hook build keeps the exe's FILE table,
 descriptors and heap, which MFC's CStdioFile shares). Heap (crt.cpp): realloc 006ED69A, calloc 006F0317
-(count * size unchecked, as VC6), _msize 006EEC7B, _strdup 006EEC50 on the host heap, retried through the
+(count * size unchecked, as VC6), _msize 006EEC7B, _strdup 006EEC50 on the host heap (since SV7c2 on a CRT heap
+of the image's own, as VC6's: docs/notes/standalone-verification.md, SV7c2), retried through the
 CRT's new handler under `_newmode` like malloc. Nothing else reaches the CRT heap from our side (other
 callers are CRT / MFC internals: _beginthread(ex) calloc, CMemFile 0070AEEA / 0070AEF7, the MFC thread
 state's _msize). Files (src/lib/crt_file.cpp): _open 006EB35C is VC6's _sopen (flags to CreateFileA's

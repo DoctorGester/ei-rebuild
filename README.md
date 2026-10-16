@@ -114,7 +114,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   game's own heap and countdowns, `heaptrace` writes every call on the CRT heap with its callers to
   `heaptrace.txt` until world update `EI_HEAPTRACE` (default 40), then every object's address.
   `EI_HEAP_JITTER=<seed>[,fill]` moves the game's blocks (seeded spacers; `fill`: new blocks hold seeded
-  bytes) without changing its calls, to find behaviour that follows addresses; `EI_SAVETRACE=1` writes
+  bytes) without changing its calls, to find behaviour that follows addresses (game.exe's heap and the
+  standalone image's alike: the image's malloc is a VC6-style CRT heap on the same import slots, SV7c2); `EI_SAVETRACE=1` writes
   every memory stream write up to each saved file to `savetrace.txt`, and `python tools\save_trace.py diff
   <run A> <run B>` names the writers of the save bytes that differ (SV7a).
 - The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the

@@ -1510,6 +1510,14 @@ group = "harness"
 depends = ["WB12"]
 note = "WB12 cloaks windows only in standalone runs (ei::Standalone()). Hooked/--no-hooks runs present through dgVoodoo into the game window; check that cloaking (noforeground::Conceal) leaves dgVoodoo's presents and captures alone, then drop the Standalone() condition. Low value once the hook builds retire (S21)."
 
+[[ticket]]
+id = "WB14"
+title = "No firewall prompts from harness games: bind to loopback only"
+group = "harness"
+size = 0.5
+model = "opus"
+note = "User 2026-10-16 (screenshot): Windows Firewall still asks about ei_standalone.exe at a worktree's build\\verify path. launch.cpp's shared copy (run\\standalone\\ei_standalone.exe) falls back to the build's own exe whenever a running game holds an older copy, which is common with several worktrees on different builds, and each new path prompts. Fix at the source instead: in harness runs only, every socket the game (and harness_net's free-port probe) binds on INADDR_ANY binds on 127.0.0.1 instead, so the firewall never asks (it only prompts for listeners on non-loopback addresses). Check the lobby/LAN discovery paths (broadcast) still work for the net scenarios (ui_mp_host, net_second_master, net_lobby); if broadcast needs more, pick the loopback-safe equivalent. Never change firewall rules (the user's security settings). Goldens unchanged; then the shared-copy fallback in launch.cpp can stay or go."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
