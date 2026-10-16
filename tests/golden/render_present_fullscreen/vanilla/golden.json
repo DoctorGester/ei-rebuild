@@ -1,0 +1,13 @@
+{
+  "scenario": "render_present_fullscreen",
+  "install": "vanilla",
+  "recorded": "2026-10-16",
+  "commit": "f771e1ab",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 6,
+  "reason": "S20b: image golden, 6 agreeing standalone runs (plain x3, EI_HEAP_JITTER=1, 2,fill, 3,fill)",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 6 runs"
+}
