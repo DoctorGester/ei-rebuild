@@ -167,7 +167,7 @@ note = "R9c covers a window resized from outside (the window covers the monitor 
 id = "PF3a"
 title = "render_scene / render_terrain fail samecapture in native runs"
 group = "renderer"
-note = "Seen by PF3 on its base and branch (2026-10-14): run_all --native, samecapture world world_again differs on ~2.9% of the pixels (largest 60-74) in both scenarios, every run; vanilla/rebirth pass. Probably something that moves by itself in the new frame (water phase, weather) between the two captures; decide whether the scenario's tolerance or the renderer is wrong."
+note = "No longer applies (2026-10-16): run_all --native went with S21c; the image's runs are the native ones now (EI_RENDER=new,present, no dgVoodoo). The 2026-10-14 failure (build/verify/runs/render_scene-native, compare_frames + frame_preview) was the whole view shifted between world and world_again (camera moved under freeze in the hooked game.exe), not water or weather. On the image every samecapture in render_scene, frames_basic, render_cpuwindows, render_device_lost, render_present, render_present_cpuwindows, render_present_shot is 0 px over 8 (largest 0) on standalone and standalone-rebirth, goldens the same."
 
 [[ticket]]
 id = "R9c5"

@@ -44,9 +44,8 @@ hence `present`'s copy into the render target there and the child window of `sho
 windowed only (under full screen the child's swap chain deactivates the game window, which then draws nothing
 and minimises).
 
-Runs without dgVoodoo: `tools\setup_native_run.cmd` makes `run\native` (run\vanilla's files without DDraw.dll,
-D3DImm.dll, D3D8.dll, D3D9.dll and dgVoodoo.conf; a worktree without `run\` gets a junction to the main checkout's);
-`python tools\run_all.py --native <scenarios>` runs on it with `EI_RENDER=new,present`.
+Runs without dgVoodoo: the standalone image's (run_all's default) always run with `EI_RENDER=new,present`; the
+former `run_all --native` (our code inside game.exe on run\native) went with S21c.
 
 ## 2. Frame structure of the game
 
@@ -585,8 +584,10 @@ a read-only Lock of the render target, GetDC as fallback: a GDI capture of the w
 with the new renderer on, its frame of the same moment goes to `frames\<name>.new.bmp`. `freeze` / `unfreeze` hold
 timeGetTime / GetTickCount and the camera (CCamera::Update at 00457595 runs once per frame even with dt 0 and moves a
 fixed fraction per call); the main loop then runs no world, client or camera update. `samecapture <a> <b> [tolerance]
-[fraction]` fails the run when two captures differ (frames_basic and render_terrain: two captures in one frozen moment
-must match). `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclude E1 E2 ...] [--exclude-grow N]
+[fraction]` fails the run when two captures differ (frames_basic, render_scene, render_present, render_device_lost, ...:
+two captures in one frozen moment must match; on the image they match to the pixel, PF3a). The old `--native` runs
+(hooked game.exe, 2026-10-14) failed render_scene's world / world_again by ~2.9%: the whole view had shifted slightly
+between the captures (the camera moved under `freeze` there), not water or weather. `tools/compare_frames.py A B [--mask M1 M2 [--mask-background]] [--exclude E1 E2 ...] [--exclude-grow N]
 [--diff OUT]`: per-pixel tolerance (default 8), differing fraction (default limit 0.1%), worst regions. Limits: what
 moves by itself between frames without the game's clocks (other threads) is not held; the harness's own waits use
 real time.
