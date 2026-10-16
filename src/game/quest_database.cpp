@@ -73,7 +73,6 @@ __declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*
 __declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
 __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
 __declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
-__declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIGINAL(0x006B0600)
 // The briefing index's find by a record's name [006B0930, RET 8: out iterator (node, table), key].
 __declspec(naked) void __fastcall BriefingFindNode(void*, void*, void**, const void*) EI_ORIGINAL(0x006B0930)
 
@@ -210,14 +209,14 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing, false);
     ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing, false);
     for (int i = 2; i < 6; ++i) ReadList(&reg, game::questwords::BriefingReject(), game::questwords::ListKey(i), List(briefing, i));
-    BriefingAdd(&db->briefings, nullptr, briefing);
+    static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by 006AE740.
 void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete(), true);
     for (int i = 0; i < 6; ++i) ReadList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
-    BriefingAdd(&db->briefings, nullptr, briefing);
+    static_cast<QuestBriefingTable*>(&db->briefings)->Add(briefing);
 }
 
 } // namespace

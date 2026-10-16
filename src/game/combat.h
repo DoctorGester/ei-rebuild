@@ -728,7 +728,6 @@ public:
 
     // The same through the game's address (combat_orders.cpp; 00554830 PlanMove is
     // ControllerPlanMoveOriginal in originals_units.h): 0054E600 (PlanOrderRoute).
-    bool PlanOrder(UnitAction* order, int arg);
 
     // combat_object_slots.cpp (A-U5).
     // 00552D00 (RET 8). `claimant` claims the players in `mask` are enemies of this unit: they join

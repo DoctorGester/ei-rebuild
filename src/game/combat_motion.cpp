@@ -68,7 +68,6 @@ constexpr int kMessagePartial = 0x01;
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // UnitStats (unit_vitals.cpp / unit_stats_pack.cpp): 005241C0 the stamina state for a movement
 // (1: running), 005233E0 Reset.
-__declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_ORIGINAL(0x005241C0)
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005BA6E0
 // IsUnitCellPassable, 005BA830 CanLeaveCell, 005BA5A0 StandsOnCheapCell, 005BB350 FindPath.
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
@@ -467,7 +466,7 @@ EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
 
 void CUnitServer::UpdateSneak() {
     CWorldServer* world = ContextOf(this);
-    int running = StatsMovementState(&stats, nullptr, 1);
+    int running = stats.MovementState(1);
     if (running != 0 && moveMode2.wasMode3 != 0) {
         // Out of breath: back from the second mode's mode 3, with a remark.
         std::uint32_t code = running == 1 ? 0x15 : 0x14;

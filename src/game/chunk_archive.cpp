@@ -60,8 +60,6 @@ __declspec(naked) void __fastcall ObjectsConstruct(ObjectMap* /*map*/) EI_ORIGIN
 __declspec(naked) void __fastcall ObjectsDestroy(ObjectMap* /*map*/) EI_ORIGINAL(0x004A8B70)
 __declspec(naked) void __fastcall SavedConstruct(SavedNode** /*list*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00463AA0)
 __declspec(naked) void __fastcall SavedDestroy(SavedNode** /*list*/) EI_ORIGINAL(0x004A96A0)
-// 0040A770: a counted pointer from a raw pointer (adds a reference).
-__declspec(naked) CRefObject** __fastcall CountedFromRaw(CRefObject** /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0040A770)
 
 
 // The record chunk the Open / Close loops push on the stack: child 1 of the current chunk.
@@ -489,7 +487,7 @@ void ChunkArchive::Close(CStream* stream) {
         MapIteratorConstruct(&end, nullptr, nullptr, &objects_);
         while (it.node != end.node) {
             CRefObject* counted;
-            CountedFromRaw(&counted, nullptr, it.node->value);
+            reinterpret_cast<RefPtr*>(&counted)->FromRawCounted(it.node->value);
             if (counted) counted->Release();
             ObjectIterator old;
             ObjectIteratorNext(&it, nullptr, &old, 0);

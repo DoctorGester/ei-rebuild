@@ -149,10 +149,6 @@ namespace {
 // Through their addresses (the rewritten ones run their verify wrappers).
 __declspec(naked) void __fastcall RecordsResetOrig(void*) EI_ORIGINAL(0x004A5BD0)
 __declspec(naked) void __fastcall TemplatesBuildOrig(void*, void*, unsigned) EI_ORIGINAL(0x004A7630)
-// 004A6050 / 004A6360 (not rewritten): copy the redeployed players' party into / out of the
-// current record through a memory stream.
-__declspec(naked) void __fastcall RecordsBeginRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6050)
-__declspec(naked) void __fastcall RecordsEndRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6360)
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 
@@ -189,12 +185,12 @@ void __fastcall PartyManagerNewGameFour(void* manager) {
 EI_REPLACE(0x004A88C0, PartyManagerNewGameFour);
 
 void __fastcall PartyManagerBeginRedeploy(void* manager, void*, void* players) {
-    RecordsBeginRedeploy(Field(manager, 0x24), nullptr, players);
+    reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24))->BeginRedeploy(static_cast<CParty*>(players));
 }
 EI_REPLACE(0x004A8890, PartyManagerBeginRedeploy);
 
 void __fastcall PartyManagerEndRedeploy(void* manager, void*, void* players) {
-    RecordsEndRedeploy(Field(manager, 0x24), nullptr, players);
+    reinterpret_cast<NamedPartyRecords*>(Field(manager, 0x24))->EndRedeploy(static_cast<CParty*>(players));
 }
 EI_REPLACE(0x004A8880, PartyManagerEndRedeploy);
 

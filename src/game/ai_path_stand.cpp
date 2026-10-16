@@ -62,9 +62,9 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
 } // namespace
 
 // 005B1DE0 (RET 0x10).
-void AIPath::StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, float rate) {
+void AIPath::StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, std::uint32_t rateBits) {
     StandAt(this, &time, unit);
-    SetTurn(direction, rate);
+    SetTurn(direction, rateBits);
 }
 
 // 005B1F10 (RET 0x14).

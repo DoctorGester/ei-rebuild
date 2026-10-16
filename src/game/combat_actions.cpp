@@ -93,14 +93,8 @@ void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
 
 } // namespace
 
-// Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall.
-// 00525900. UnitStats: heals the slots of `serverStats` by `amount`; returns 1.
-__declspec(naked) BOOL __fastcall StatsHeal(UnitStats*, void*, void*, float) EI_ORIGINAL(0x00525900)
 // 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
 // 0058ECE0. CWorldServer: applies the quick item `item` (a potion) to `unit`.
-__declspec(naked) void __fastcall WorldUseQuickItem(void*, void*, CItem*, CUnit*) EI_ORIGINAL(0x0058ECE0)
-// 00594F30. CWorldServer: an item's state changed.
-__declspec(naked) void __fastcall WorldItemChanged(void*, void*, CItem*) EI_ORIGINAL(0x00594F30)
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
 // 00665BE0. Player: an inventory item changed.
 __declspec(naked) void __fastcall PlayerItemChanged(WorldPlayer*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
@@ -177,7 +171,7 @@ void CUnitServer::FinishAction(int location, char) {
         if (item && item->GetCategory() == kQuickItemConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
-            WorldUseQuickItem(WorldServer(), nullptr, item, unit);
+            WorldServer()->UseQuickItem(item, unit);
             item->Release();
         }
         action.kind = 9;
@@ -264,7 +258,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     if (!item) return;
     void* world = ManagerContext();
     item->charge_ = item->charge_ - cost;
-    WorldItemChanged(world, nullptr, item);
+    static_cast<CWorldServer*>(world)->AddCounted(item);
     auto* player = reinterpret_cast<WorldPlayer*>(unit->player);
     const auto* link = reinterpret_cast<const CItemLink*>(static_cast<std::uintptr_t>(item->link_));
     if (!player || !link) return;
@@ -277,7 +271,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
 EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
 
 BOOL CUnitServer::Heal(float amount) {
-    if (!StatsHeal(&stats, nullptr, ServerStatsOf(unit), amount)) return 0;
+    if (!stats.Heal(ServerStatsOf(unit), amount)) return 0;
     stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);

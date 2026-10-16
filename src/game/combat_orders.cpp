@@ -81,8 +81,6 @@ void TellParty(CUnit* unit, int message) {
 // Not rewritten (forwarders).
 // 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
 
-__declspec(naked) bool CUnitServer::PlanOrder(UnitAction*, int) EI_ORIGINAL(0x0054E600)
-
 void CUnitServer::FinishCast() {
     void* world = ManagerContext();
     std::uint32_t source = action.source;
@@ -204,7 +202,7 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
             }
         }
     }
-    if (!PlanOrder(&action2, planArg)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, planArg)) ResetOrder(&action2);
 }
 EI_REPLACE_METHOD(0x00554B30, CUnitServer::OrderAttack);
 
@@ -264,7 +262,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
     action2.source = source;
     std::memcpy(&action2.point, &at, sizeof(at));
     action2.modifier = static_cast<std::uint8_t>(run);
-    if (!PlanOrder(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
 EI_REPLACE_METHOD(0x00554D00, CUnitServer::OrderCastAt);
 
@@ -295,7 +293,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
     action2.source = source;
     std::memset(&action2.point, 0, sizeof(action2.point));
     action2.modifier = static_cast<std::uint8_t>(run);
-    if (!PlanOrder(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
+    if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
 EI_REPLACE_METHOD(0x00554F50, CUnitServer::OrderCast);
 

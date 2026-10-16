@@ -73,10 +73,6 @@ using devicebuffers::Outcodes;
 // The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
 // clipped TL vertices (004E86B0, the array and their outcodes); the draws with one (004EB550) or
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
-__declspec(naked) void __fastcall BoundsOfProjected(CTextureDevice*, void*, lib::AlignedArray<ProjectedVertex>*, int)
-    EI_ORIGINAL(0x004E8900)
-__declspec(naked) void __fastcall BoundsOfVertices(CTextureDevice*, void*, lib::AlignedArray<TLVertex>*, std::uint8_t*)
-    EI_ORIGINAL(0x004E86B0)
 __declspec(naked) int __fastcall DrawPrimitive2(CTextureDevice*, void*, void*, void*, int, int, void*, int,
                                                 std::uint16_t*, int, int) EI_ORIGINAL(0x004EB370)
 
@@ -146,7 +142,7 @@ void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* ind
 }
 
 void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
-    if (a.flags & 1) BoundsOfProjected(device, nullptr, &Projected(), 0);
+    if (a.flags & 1) device->BoundsOfProjected(&Projected(), 0);
     Vertices().SetSizeDiscard(a.cornerCount);
     FillCorners(a);
     if (device->distanceFog_) transform->FogVertices(Vertices().data, a.cornerCount);
@@ -173,7 +169,7 @@ void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const Me
     ClipIndices().SetSize(indexCount);     // 0044FA90
     transform->ToScreenClipped(Vertices().data, Vertices().size);
     if (device->distanceFog_) transform->FogVertices(Vertices().data, Vertices().size);
-    if (a.flags & 1) BoundsOfVertices(device, nullptr, &Vertices(), CornerOutcodes().data);
+    if (a.flags & 1) device->BoundsOfVertices(&Vertices(), CornerOutcodes().data);
     Submit(device, textures, ClipIndices().data, ClipIndices().size);
 }
 

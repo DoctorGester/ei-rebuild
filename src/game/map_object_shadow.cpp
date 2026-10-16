@@ -103,7 +103,6 @@ __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quat
 // 005A0E80. Figure mesh: rasterises its projected points into the texture.
 __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*) EI_ORIGINAL(0x005A0E80)
 // 00692140 / 00690FC0 / 00691030. The render surface, locked and unlocked.
-__declspec(naked) void* __fastcall RenderSurface(void*) EI_ORIGINAL(0x00692140)
 __declspec(naked) int __fastcall LockSurface(void*, void*, void*) EI_ORIGINAL(0x00690FC0)
 // 0056C750 (ClientProjectDecalOriginal, originals_world.h). The shadow projector: lays the texture's quad on
 // the ground.
@@ -331,7 +330,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Pixels().SetSizeDiscard(count);
 
     // Rasterise into the render surface.
-    void* surface = RenderSurface(static_cast<CWorld*>(self->ManagerContext())->TextureManager());
+    void* surface = static_cast<CWorld*>(self->ManagerContext())->TextureManager()->ShadowRenderSurface();
     DDSURFACEDESC2 description;
     if (!LockSurface(surface, nullptr, &description)) {
         *failure = game::FatalError(reinterpret_cast<const char*>(0x0078F584), self->GetName());

@@ -118,7 +118,6 @@ namespace {
 // motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
 // into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
 // (taken by value), 00549690 the end of an order.
-__declspec(naked) void __fastcall TickStartAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x005494D0)
 bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { return UnitCheckOrderOriginal((void*)a0, nullptr, (const void*)a2); }
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
@@ -136,7 +135,6 @@ __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const fl
 // Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
-__declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
 } // namespace
 
 __declspec(naked) void CUnitServer::CallExecuteOrder() EI_ORIGINAL(0x0054D960)
@@ -456,7 +454,7 @@ bool CUnitServer::StartQueuedOrder() {
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
         currentPlan.TakeSteps(copy, now, duration);
-        TickStartAction(this, nullptr, 1, 0);
+        StartAction(1, 0);
         StepsDestroy(&steps);
         return true;
     }
@@ -524,7 +522,7 @@ void CUnitServer::ContinueAction() {
     bool seen = true;
     char* player = unit->player;
     if (player && IsUnit(target) && !AiMemoryIsEnemyOriginal(Brain()->memory, nullptr, (void*)unit, (void*)target))
-        seen = PartySees(PlayerMessages(player), nullptr, target);
+        seen = static_cast<CPlayerServer*>(PlayerMessages(player))->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);
     bool carryOn = false;
@@ -709,7 +707,7 @@ void CUnitServer::ExecuteOrder() {
                 BuildAttackHit(&pendingHit, backstab, location, calledShot);
                 if (!defender->ResolveHit(&pendingHit, unit)) missed = true;
             }
-            TickStartAction(this, nullptr, fresh, missed);
+            StartAction(fresh, missed);
             return;
         }
     }

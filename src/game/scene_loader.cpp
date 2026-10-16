@@ -732,7 +732,6 @@ __declspec(naked) SceneTexture* __fastcall FindTexture(void*, void*, std::uint32
 __declspec(naked) SceneTexture* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return MaterialRegisterOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall AddFigure(void*, void*, void*) EI_ORIGINAL(0x005164B0)
-__declspec(naked) int __fastcall BindSkin(void*, void*, void*) EI_ORIGINAL(0x00508BF0)
 // SceneInfo::Load through its original address, so the verify build's wrapper sees the call.
 __declspec(naked) mfc::BOOL __fastcall LoadScene(SceneInfo*, void*, void*, VtArray*, VtArray*, VtArray*) EI_ORIGINAL(0x00471B10)
 
@@ -933,7 +932,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         figureArray.data[f].RefreshBuffers();
         AddFigure(fakeUnit, nullptr, &figureArray.data[f]);
     }
-    BindSkin(&u->skin, nullptr, &u->Object3D()->parts);
+    u->skin.BindMeshes(&u->Object3D()->parts);
     static_cast<SceneSkin*>(&u->skin)->Rewind();
     const std::uint32_t offset[3] = {0, 0, 0x44FA0000};   // (0, 0, 500)
     std::memcpy(&u->Object3D()->position, offset, sizeof(offset));

@@ -131,8 +131,6 @@ __declspec(naked) float __fastcall StatsScaleDamage(UnitStats*, void*, CUnit*, f
 // 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
 // 005254B0. Applies `hit` (with the attacker's `weapon`, may be null) to the unit's server stats;
 // 0 when it did nothing.
-__declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*, DamageInfo*, CEngineObject*)
-    EI_ORIGINAL(0x005254B0)
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
 // 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
 // 005D7E90 (AIBrain::SetSeen). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
@@ -644,7 +642,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         unit->MarkChanged(4);
         TriggerItemSpells(1);
         CEngineObject* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
-        if (StatsApplyHit(&stats, nullptr, unit, ServerStatsOf(unit), hit, weapon)) {
+        if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
                 if (attacker->type_ != kUnitTypeHero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);

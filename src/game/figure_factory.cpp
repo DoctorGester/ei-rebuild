@@ -7,6 +7,9 @@
 // docs/notes/models.md.
 #include "engine_object.h"   // CEngineObject
 #include "figure_mesh.h"     // CFigureMesh
+#include "map_object_animation.h"
+#include "map_object_figures.h"
+#include "sky_object.h"
 
 #include "ei/hook.h"
 #include "lib/containers.h"
@@ -24,10 +27,6 @@ __declspec(naked) void* __fastcall ConstructCorners(lib::AlignedArray<MeshCorner
 __declspec(naked) void* __fastcall ConstructWords(lib::AlignedArray<std::uint32_t>*) EI_ORIGINAL(0x004D9E90)
 __declspec(naked) void* __fastcall ConstructIndices(lib::AlignedArray<std::uint16_t>*) EI_ORIGINAL(0x004D9E80)
 __declspec(naked) void* __fastcall ConstructTexCoords(lib::AlignedArray<TexCoord>*) EI_ORIGINAL(0x004D9EA0)
-__declspec(naked) void* __fastcall Construct44(void*) EI_ORIGINAL(0x004D9110)
-__declspec(naked) void* __fastcall Construct300B(void*) EI_ORIGINAL(0x0050A5D0)
-__declspec(naked) void* __fastcall Construct300C(void*) EI_ORIGINAL(0x0050AF40)
-__declspec(naked) void* __fastcall Construct300D(void*) EI_ORIGINAL(0x0050C5F0)
 
 // The inlined array constructor: the four fields zeroed in order.
 template <typename T>
@@ -82,19 +81,19 @@ void* Create(int classId) {
     }
     case 0x44: {
         void* o = gamecrt::operator_new(0x230);
-        return o ? Construct44(o) : nullptr;
+        return o ? static_cast<CSkyObject*>(o)->Construct() : nullptr;
     }
     case 0x300B: {
         void* o = gamecrt::operator_new(0x78);
-        return o ? Construct300B(o) : nullptr;
+        return o ? static_cast<AnimationTrack*>(o)->Construct() : nullptr;
     }
     case 0x300C: {
         void* o = gamecrt::operator_new(0xA0);
-        return o ? Construct300C(o) : nullptr;
+        return o ? static_cast<FigureBone*>(o)->Construct() : nullptr;
     }
     case 0x300D: {
         void* o = gamecrt::operator_new(0x78);
-        return o ? Construct300D(o) : nullptr;
+        return o ? static_cast<CFigureAnimationState*>(o)->Construct() : nullptr;
     }
     default:
         return nullptr;

@@ -50,11 +50,6 @@ const Quaternion& FixedViewRotation() { return *reinterpret_cast<const Quaternio
 // pi (00743148), 1/180 (0073BA30) and 30 (0073DF70): the fixed view's pitch, read from the exe.
 double ExeDouble(std::uintptr_t address) { return *reinterpret_cast<const double*>(address); }
 
-// 00564190 (RET 8): a point and a dword (message 0x72).
-__declspec(naked) void __fastcall ClientPointMessage(CWorldClient*, void*, const Vector3*, int) EI_ORIGINAL(0x00564190)
-// 005683B0 (RET 4): reads its part of the message stream (message 0x73).
-__declspec(naked) void __fastcall ClientReadStream(CWorldClient*, void*, BitStream*) EI_ORIGINAL(0x005683B0)
-
 CEngineObject* FindClientUnit(int id) { return WorldFindUnit(WorldClient(), nullptr, id); }
 
 // CPlayerClient is a CPlayerConnection (vtable 00743180), not declared as one.
@@ -317,12 +312,12 @@ int CPlayerClient::OnWorldPoint() {
     in_.Read(&point, 12);
     int value;
     in_.Read(&value, 4);
-    ClientPointMessage(WorldClient(), nullptr, &point, value);
+    WorldClient()->ApplyWind(&point, std::bit_cast<float>(value));
     return 1;
 }
 
 int CPlayerClient::OnWorldStream() {
-    ClientReadStream(WorldClient(), nullptr, &in_);
+    WorldClient()->ReadWaterLevels(&in_);
     return 1;
 }
 

@@ -137,11 +137,11 @@ bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) 
 }
 EI_REPLACE_METHOD(0x005C7B00, AIPath::Start);
 
-void AIPath::SetTurn(const Vector3* direction, float rate) {
+void AIPath::SetTurn(const Vector3* direction, std::uint32_t rateBits) {
     MotionOrder* order = OrderOf(this);
     order->kind = 1;
     float angle = static_cast<float>(x87::fpatan(direction->y, direction->x));
-    std::memcpy(&order->arg6, &rate, sizeof(rate));
+    order->arg6 = rateBits;
     std::memcpy(&order->arg5, &angle, sizeof(angle));
 }
 EI_REPLACE_METHOD(0x005C7C00, AIPath::SetTurn);

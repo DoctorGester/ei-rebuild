@@ -101,8 +101,6 @@ struct MemoryStream {
 // The client world's readers of the zone (00567AB0, Rebirth-patched) and two other state blocks
 // (00567A60, 00567950); all RET 4 with the block.
 __declspec(naked) int __fastcall ClientLoadZone(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567AB0)
-__declspec(naked) int __fastcall ClientWorldBlock3(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567A60)
-__declspec(naked) int __fastcall ClientWorldBlock5(void* /*world*/, void*, CMemoryStream* /*block*/) EI_ORIGINAL(0x00567950)
 // 005F7F30 (RET 0xC): the quest log (007C7D50) passes (list, a, b) to its top screen's slot 28.
 void* EmptyListVtable() { return reinterpret_cast<void*>(0x0073BE80); }   // the CPtrList passed to it
 constexpr int kListBlockSize = 10;
@@ -285,14 +283,14 @@ int CPlayerClient::OnZone() {
 int CPlayerClient::OnWorldBlock3() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
-    ClientWorldBlock3(WorldClient(), nullptr, block.Get());
+    WorldClient()->LoadItemsAndSpells(block.Get());
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock5() {
     MemoryStream block;
     if (in_.ReadStream(block.Get()) == 0) return 0;
-    ClientWorldBlock5(WorldClient(), nullptr, block.Get());
+    WorldClient()->LoadNewItemsAndSpells(block.Get());
     return 1;
 }
 

@@ -42,13 +42,6 @@ __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /
 
 // The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
-// 006B7C10 / 006B7CB0. Status tests of a sound handle (the end sound is not replayed while either
-// holds).
-__declspec(naked) BOOL __fastcall SoundIsPlaying(void* /*sounds*/, void*, int /*handle*/) EI_ORIGINAL(0x006B7C10)
-__declspec(naked) BOOL __fastcall SoundIsQueued(void* /*sounds*/, void*, int /*handle*/) EI_ORIGINAL(0x006B7CB0)
-// 006BA400. Moves a looping sound.
-__declspec(naked) void __fastcall MoveSound(void* /*sounds*/, void*, int /*handle*/, const float* /*position*/)
-    EI_ORIGINAL(0x006BA400)
 // 006CA830. Points a light along `direction`.
 void __fastcall AimLight(void* a0, void*, CEngineObject* a2, const float* a3) { LightMoveOriginal(a0, nullptr, a2, a3); }
 
@@ -119,7 +112,7 @@ int CMapObjectClientSpecific::Update() {
             int handle = endSound;
             void* soundSystem = SoundSystem();
             if (handle != -1 &&
-                (SoundIsPlaying(soundSystem, nullptr, handle) || SoundIsQueued(soundSystem, nullptr, handle)))
+                (static_cast<CSoundManager*>(soundSystem)->FindPlaying(handle) || static_cast<CSoundManager*>(soundSystem)->FindDeferred(handle)))
                 continue;
             endSound = static_cast<CSoundManager*>(SoundSystem())->Play3D(kEndSoundName, 0, &OwnerOf(this)->position.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
@@ -142,7 +135,7 @@ int CMapObjectClientSpecific::Update() {
             }
             static_cast<CSoundManager*>(SoundSystem())->Play3D(name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
-            MoveSound(SoundSystem(), nullptr, sound->handle, &OwnerOf(this)->position.x);
+            static_cast<CSoundManager*>(SoundSystem())->MoveSequence(sound->handle, &OwnerOf(this)->position.x);
         }
     }
 

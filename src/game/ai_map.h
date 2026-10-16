@@ -218,7 +218,7 @@ static_assert(sizeof(MotionOrder) == 0x20);
 struct AIPath {
     void LoadPath(CStream* stream);
     void SavePath(CStream* stream);
-    void StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, float rate);
+    void StandAndTurn(int time, std::uint8_t* unit, const Vector3* direction, std::uint32_t rateBits);
     void StandAndTrack(int time, std::uint8_t* unit, int id, int from, int to);
     void StandAndTurnUntil(int time, std::uint8_t* unit, const Vector3* direction, int a, int b);
     void StandStill(std::uint8_t* unit);
@@ -230,8 +230,9 @@ struct AIPath {
     bool Start(const Vector3* position, const Vector3* direction, int time);
     // 005C7C70. Follow the steps to (x, y) (half-cells).
     void SetTarget(float x, float y);
-    // 005C7C00 / 005C7C40. Turn to `direction` (kind 1 at `rate`, kind 4 until `until`).
-    void SetTurn(const Vector3* direction, float rate);
+    // 005C7C00 / 005C7C40. Turn to `direction` (kind 1 at `rateBits`, a float's bits kept as given;
+    // kind 4 until `until`).
+    void SetTurn(const Vector3* direction, std::uint32_t rateBits);
     void SetTurnUntil(const Vector3* direction, int arg6, int arg7);
     // 005C7C20. Track object `id` between `from` and `to`.
     void SetTrack(int id, int from, int to);

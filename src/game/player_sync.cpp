@@ -107,10 +107,6 @@ void* ItemListVtable() { return reinterpret_cast<void*>(0x0073B8D4); }   // the 
 // 0069FB60 (RET 4; ECX the items, EDX the spells): `item` joins the items and its spell the spells.
 __declspec(naked) void __fastcall GatherItemOriginal(GivenList* /*items*/, GivenList* /*spells*/, CEngineObject* /*item*/)
     EI_ORIGINAL(0x0069FB60)
-// 0055E8A0 (plain RET; ECX the list, EDX the stream): each object as byte 1, its id, +0x10, +0x18 and
-// its slot 10 (Save), then byte 0.
-__declspec(naked) void __fastcall WriteObjectListOriginal(GivenList* /*list*/, CMemoryStream* /*stream*/)
-    EI_ORIGINAL(0x0055E8A0)
 
 } // namespace
 
@@ -123,8 +119,8 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
     auto* states = reinterpret_cast<CMemoryStream*>(bytes);
     states->Construct();
-    WriteObjectListOriginal(&spells, states);
-    WriteObjectListOriginal(&gathered, states);
+    SaveListedObjects(&spells, states);
+    SaveListedObjects(&gathered, states);
     WriteByte(&out_, kMessageItemStates);
     out_.WriteStream(states);
     WriteByte(&out_, kMessageItemsGiven);

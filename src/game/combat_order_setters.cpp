@@ -61,7 +61,7 @@ void QueueUse(CUnitServer* self, CEngineObject* target, std::uint32_t source, in
     order.modifier = static_cast<std::uint8_t>(run);
     order.source = source;
     order.param = spot;
-    if (!self->PlanOrder(&order, shout)) order.Reset();
+    if (!self->PlanOrderRoute(&order, shout)) order.Reset();
 }
 } // namespace
 

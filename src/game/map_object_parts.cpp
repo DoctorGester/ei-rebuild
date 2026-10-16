@@ -19,10 +19,6 @@ constexpr std::uint32_t kKindSkill = 0x40000;
 constexpr std::uint32_t kNumberMask = 0x3FC00000;
 constexpr int kNumberShift = 22;
 
-// Not rewritten, forwarder: 0050D350, the animation state forgets `part` (RET 4).
-__declspec(naked) int __fastcall AnimationRemovePart(void* /*animation*/, void*, CFigureMesh* /*part*/)
-    EI_ORIGINAL(0x0050D350)
-
 // The first of `parts` that `matches`, or null.
 template <typename Match>
 CFigureMesh* FirstPart(const AlignedPtrArray& parts, Match matches) {
@@ -73,7 +69,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
         if (index < 0) return 0;
         RemoveAt(pendingParts, index);
     }
-    if (animation) AnimationRemovePart(animation, nullptr, part);
+    if (animation) static_cast<CFigureAnimationState*>(animation)->DetachMesh(part);
     part->Release();
     return 1;
 }
