@@ -25,32 +25,25 @@ How `check_returns.py` follows EAX, what it cannot see (vtable and other indirec
 
 ## `progress.py` cleanup artefacts
 
-Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`, shared with `gen_originals.py`). Definitions, so runs
-stay comparable: **EI_ORIGINAL forwarders** (sites and distinct addresses); **forwarded from several files**; **naked, not forwarders**
-(`__declspec(naked)` whose declaration reaches `{` before `EI_ORIGINAL`); **files with `#pragma float_control`** (real pragmas only);
-**unknown_XXX fields**; **At<> / Field<> uses** and **files defining their own `At()`** (any file with a function `At(...) {`);
-**ei::VCall uses**; **game data addresses** (distinct literals `0x0073xxxx`-`0x008Fxxxx`); **`__fastcall Fn(T* self, void*)` shims**
-(non-naked, first parameter a pointer, second `void*`, any further ones; the bracketed number is the strict two-parameter form);
-**struct names defined in several files** (`struct` / `class` with a body at column 0); also `reinterpret_cast`, `constexpr uintptr_t kX =
-0x00...`, `*At` view structs, anonymous namespaces, `mfc::` / `stlp::` / `gamecrt::` / `gameapi::` uses and `EI_REPLACE` registrations. The
-baseline numbers in the plan used narrower patterns for a few of these, so do not compare them with today's.
-`gen_originals.py` reads the same sources: every address with an `EI_ORIGINAL` forwarder in more than one file, with file, line and declared
-signature (comments and `__declspec(naked)` removed), tagged by how far the files agree and sorted into already rewritten (a direct call
-replaces the forwarders), library code, and not yet ported. "Rewritten" means an `EI_REPLACE(0x...)` / `EI_REPLACE_METHOD(0x...)` with a
-literal address, or a `UI_INPUT_HANDLER` / `UI_WHEEL_HANDLER` (`ui_hud.cpp`, which register through `EI_REPLACE` inside the macro); `progress.py` counts those too.
+Counted over `src/*.cpp` and `*.h` with comments blanked first (`tools/srcscan.py`, shared with `gen_originals.py`): EI_ORIGINAL forwarders
+(sites and distinct addresses), forwarded from several files, naked non-forwarders, files with `#pragma float_control`, unknown_XXX fields,
+`At<>` / `Field<>` uses, files defining their own `At()`, `ei::VCall` uses, game data addresses (distinct literals
+`0x0073xxxx`-`0x008Fxxxx`), `__fastcall Fn(T* self, void*)` shims, struct names defined in several files, and the rest listed in its output.
+`gen_originals.py` lists every address with an `EI_ORIGINAL` forwarder in more than one file (file, line, declared signature), tagged by how far
+the files agree and sorted into already rewritten (a direct call replaces the forwarders), library code, and not yet ported. "Rewritten" means
+an `EI_REPLACE(0x...)` / `EI_REPLACE_METHOD(0x...)` with a literal address, or a `UI_INPUT_HANDLER` / `UI_WHEEL_HANDLER` (`ui_hud.cpp`).
 
 ## Shared forwarder headers (cleanup ticket C3)
 
-Method: one declaration per forwarded address in `src/game/originals_<area>.h` (`core`, `engine`, `script`, `render`, `units`, `world`,
-`ai`, `ui`, `gameplay`, `effects` by address range; `library` for STLport / MFC / CRT code), each `__declspec(naked) inline ...
-EI_ORIGINAL(addr)` with a comment giving RET n and what EAX / ST0 holds, and forward declarations of the types it names (so including it
-pulls in no class headers or globals). The signature is decided from the game.exe disassembly (RET n, the code before each RET, callers' use
-of EAX / ST0 / AL through the `check_returns` logic over all call sites, including those inside replaced functions). Every other site keeps
-its local name and signature as a one-line inline wrapper (class members are plain definitions) over the shared forwarder, so call sites do
-not change. Rewritten targets stay forwarders (called through the original address) so the hook and its verify wrapper still see the call;
-the "already rewritten" group is handled by direct calls instead (a separate step).
+One declaration per forwarded address in `src/game/originals_<area>.h` (`core`, `engine`, `script`, `render`, `units`, `world`, `ai`, `ui`,
+`gameplay`, `effects` by address range; `library` for STLport / MFC / CRT code), each `__declspec(naked) inline ... EI_ORIGINAL(addr)` with a
+comment giving RET n and what EAX / ST0 holds, and forward declarations of the types it names. The signature is decided from the game.exe
+disassembly (RET n, the code before each RET, callers' use of EAX / ST0 / AL through the `check_returns` logic over all call sites, including
+those inside replaced functions). Other sites keep their local name and signature as a one-line inline wrapper over the shared forwarder.
+Rewritten targets stay forwarders (called through the original address) so the hook and its verify wrapper still see the call.
 
-Conventions that came out of it (keep following them):
+Conventions (keep following them):
+
 - A plain `RET` function declared `(T*, void*)` dropped its dummy EDX: declare `__fastcall` with only the real arguments; a function that
   never reads ECX takes no `this` (`IsNetworkClientOriginal()`, `GameFlowOriginal()`, `SetServerFlagOriginal(int)`: the old `this` arguments
   were dummies).
