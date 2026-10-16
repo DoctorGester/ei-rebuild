@@ -256,200 +256,135 @@ layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-e
 0 otherwise) in `CUiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
 the battle screen's panels at the screen's edges.
 
-**Done (W1)**, `src/game/ui_widescreen.{h,cpp}` behind `Patch::WideScreen`: the layout from the same settings (read through the game's
-own RegQueryValueExA import, so harness runs can answer them), the two widths written at hook time (an `EI_STARTUP_ACTION`, new in
-`include/ei/hook.h`: runs after the Rebirth flags are known and before the hooks are installed), the scaling 005F7CA0 / 005F7D20 /
-005F7DA0 / 005F7E00 / 005F7E30, SetRect / AddPoint (005FC9E0, 005FCA70) and `CUiMesh::PlaceBody` (005E6FA0). 005F7D60 is a dead copy
-of 005F7D20 (not rewritten). Details:
-- addon's scaling tests ECX and adds / takes off the margin only when it is nonzero; its entries 005F7D9E / 005F7DFE (in front of
-  005F7DA0 / 005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw)
-  calls 005F7CA0 with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no
-  interface": the wide scaling without the margin (with the flag off ECX 0 never comes).
-- In a Rebirth launch, the panel offset is addon's variable (set by its builders until W3 ported them): the startup finds addon's variable (the
-  operand of `ADD ECX,[m32]` / `ADD EAX,[m32]` in addon's SetRect, the JMP target at 005FC9E0, inside addon.dll) and our SetRect /
-  AddPoint / Place read that one.
+All of it is rewritten (W1-W4b, W2a/b) behind `Patch::WideScreen` (`src/game/ui_widescreen.{h,cpp}` and the files named below), each
+function declaring `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`; WideScreen has no leftovers.
+
+**Layout and scaling (W1).** The layout is computed from the same settings (read through the game's own RegQueryValueExA import, so
+harness runs can answer them); the two widths are written at hook time (an `EI_STARTUP_ACTION`, `include/ei/hook.h`: runs after the Rebirth
+flags are known and before the hooks are installed); the scaling 005F7CA0 / 005F7D20 / 005F7DA0 / 005F7E00 / 005F7E30, SetRect / AddPoint
+(005FC9E0, 005FCA70) and `CUiMesh::PlaceBody` (005E6FA0). 005F7D60 is a dead copy of 005F7D20.
+- addon's scaling tests ECX and adds / takes off the margin only when it is nonzero; its entries 005F7D9E / 005F7DFE (in front of 005F7DA0 /
+  005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw) calls 005F7CA0
+  with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no interface": the wide
+  scaling without the margin (with the flag off ECX 0 never comes). `CInterface3D::CallScale*NoMargin` (ui.h) are the callers that mean it.
+- In a Rebirth launch the panel offset is addon's variable (our builders write it): the startup finds addon's variable (the operand of
+  `ADD ECX,[m32]` / `ADD EAX,[m32]` in addon's SetRect, the JMP target at 005FC9E0, inside addon.dll) and our SetRect / AddPoint / Place
+  read that one, because the verify build's side-by-side wrappers run addon's builders, whose handlers write it.
 - 005F7DA0 / 005F7E00 / 005F7E30 lie inside addon's #93 site, so their verify wrappers steal whole instructions of addon's code written
   there (`EI_REBIRTH_LIVE_STOLEN`, `include/ei/rebirth.h`; the installer waives "stolen bytes end inside the site" for them, and a JMP at a
   function start inside a larger site is re-targeted).
-- Verified side by side with addon's code in a Rebirth launch (ui_widescreen): every scaling wrapper, SetRect / AddPoint, PlaceBody x / y /
-  z at 0 mismatches, and the widths addon wrote before WinMain equal ours (verify_ui_widescreen.cpp).
 
-**Harness**: scenario lines `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the game's
-and addon's registry reads of these settings for the run (addon reads them with RegQueryValueExW: the harness patches advapi32's stub
-slot, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`). Scenarios use `desktop` (3840x2160 here):
-another mode makes dgVoodoo switch the display. `python tools\run_all.py --widescreen` runs `ui_widescreen` under Rebirth with our hooks
-(`ui_widescreen-rebirth`) and with `--no-hooks` (`ui_widescreen-rebirth-nohooks`, addon's code alone) and compares the frames: menu,
-options, load, the world with the battle screen's panels, the camp; the scenario runs on the virtual clock, and frames with a `_later` twin
-are compared without what moved between the two (the hero, his portrait, the menu's creatures). 2026-10-14: every frame within the default
-tolerance (at most 0.065% of the pixels differ). Not compared: the global map (its scene is lit by the world's time, which differs between
-the two runs). The options window's slider thumbs are a few pixels wider in ours: the same with WideScreen off (not WideScreen; to look at).
+**Shapes, text, tooltips (W2).** The shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame,
+005E99D0+4A7 SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice to the left + right sum, as addon); the text
+extent 005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `widescreen::TextExtentToLayout`); the text surfaces'
+draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save / load list 006567A0, the chat line 005E3700 and the tooltip
+0065E580 (scaled with ECX 0; the tooltip's right edge at `800 + extra`, `widescreen::LayoutRight`). The chat line is not drawn in a single
+player game (the overlay's root is drawn only for network clients): the harness's `chat 1|0` step opens it for the wrapper.
+- W2a, the connect list 0061D780 (`ui_connect_list.cpp`) reproduces ExtendedServerName next to WideScreen and declares both. addon's changes
+  in it: row right edge 265 -> 278 (0061D9FC), the line under the titles ends at 283 instead of 270 (0061DB23), the selection frame at x
+  244.75 instead of 239 (0061DBEF), the ping column at 233 instead of 220 (0061DD40); the three `CUiSurface::DrawText` calls at 0061DC7F (the
+  new game row), 0061DC9E (a server's name) and 0061E009 (the details' "name: <server>") go through addon's wrappers: the text copied through
+  a 90-byte buffer (strcpy_s there; ours cuts a longer one instead of reaching the CRT's invalid parameter handler) and drawn with
+  DT_END_ELLIPSIS | DT_MODIFYSTRING added; the server's name in a copy of the rectangle whose right edge is 140; the details' name through
+  `DrawWrappedText` (up to 3 lines) with the rectangle's top and bottom moved down by `24 * (lines - 1)` before the screen's own row step.
+  The wrapper (ui_mp_host, where no server answers) appends three synthetic servers for a moment to compare each.
+- W2b, `CMpConnectScreen::Create` 0061B2C0 declares `ExtendedServerName` and `EiPluginNPlayers`. addon's operands: the selection sprite's
+  right edge 370 -> 381.5 (0061B5CE), the name field's rectangle and the players slider's rectangle right edge 650 -> 680 (0061BB51), and the
+  name field's `SetLook(3, 0, 1, 10, ...)` -> `SetLook(15, 0, 0, 50, ...)` (0061BC0E classes, 0061BC0B font, 0061BC09 length; the trimming of
+  the hero's name to 10 characters stays). EI_Plugin's NPlayers also lies in the function: the slider's maximum (0061BAF7+1, `push 5`)
+  becomes `max(n, 7) - 1` and its position (0061BB82) `max(n, 1) - 1`; `maxPlayers_` stays 6. `ei::rebirth::PluginNPlayers()` carries n from
+  the hook's ini reading (default 7, the plugin's).
 
-**Done (W2)**: the shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame, 005E99D0+4A7
-SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice to the left + right sum, as addon), the text extent
-005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `widescreen::TextExtentToLayout`), the text surfaces'
-draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save / load list 006567A0, the chat line 005E3700 and the
-tooltip 0065E580 (scaled with ECX 0: `CInterface3D::CallScale*NoMargin`, ui.h; the tooltip's right edge at `800 + extra`,
-`widescreen::LayoutRight`). Each declares `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`. 0061D780 (the connect list) was left to addon's code
-at first (it also holds ExtendedServerName); W2a below reproduced both.
-Verified against addon's code in a Rebirth launch (`ui_widescreen_more`, a second widescreen scenario: the multiplayer hero screen's name
-field, tooltips at both screen edges, the console, the Esc menu's Save window): the shapes, the text extent, the tooltip at 0 mismatches;
-the text draw, the edit field, the list and the chat line compare the surface's pixels side by side (`tests/verify/gdi_pixels.h`,
-`ui_surface_pixels.h`; the text draw reads only its rectangle's rows) at 0 mismatches. Every Rebirth launch of the suite is wide too
-(the starter's settings here: the desktop's mode, WideScreen on), so the Rebirth half of the suite compares these wrappers with addon's
-code as well (ui_camp: DrawTextIn 8301 calls). The chat line is not drawn in a single player game (the overlay's root is drawn only for
-network clients): the harness's `chat 1|0` step opens it for the wrapper. A pausing window's frame (the Save window) leaves out what moved
-in `<f>_moving` / `<f>_moving_later`, captured before it opened (run_all); the unit panel is slid out first, as the window's picture is a
-copy of the screen with the animated hero in it.
-2026-10-14: both scenarios' frames within the default tolerance (ui_widescreen at most 0.064%, options; ui_widescreen_more at most
-0.040%, the Save window; the menu's swaying trees once reached 0.135%), and the W2 wrappers at 0 mismatches (TextExtent 1354 calls, DrawTextIn 3238, SetRectangle 853, the tooltip
-19221, the edit field 8, the list 2, the chat line 3).
-**Done (W2a)**: the connect list 0061D780 (`ui_connect_list.cpp`) reproduces ExtendedServerName next to WideScreen and declares both, so a Rebirth
-launch hooks it. addon's changes in it (live bytes of the sites, addon's replacement functions disassembled from addon.dll): row right edge 265 -> 278
-(0061D9FC), the line under the titles ends at 283 instead of 270 (0061DB23), the selection frame at x 244.75 instead of 239 (0061DBEF), the ping
-column at 233 instead of 220 (0061DD40); the three `CUiSurface::DrawText` calls at 0061DC7F (the new game row), 0061DC9E (a server's name) and
-0061E009 (the details' "name: <server>") go through addon's wrappers: the text copied through a 90-byte buffer (strcpy_s there; ours cuts a longer
-one instead of reaching the CRT's invalid parameter handler) and drawn with DT_END_ELLIPSIS | DT_MODIFYSTRING added to the format; the server's name
-(0061DC9E) in a copy of the rectangle whose right edge is 140; the details' name through `DrawWrappedText` (up to 3 lines) with the rectangle's
-top and bottom moved down by `24 * (lines - 1)` before the screen's own row step. The other ExtendedServerName sites are in Create 0061B2C0
-(not rewritten for Rebirth yet). The verify wrapper compares side by side (the surface's pixels, the sprites 2-9, the tips flag, the text colour)
-with the original (vanilla launch) or addon's code (Rebirth launch) in ui_mp_host, where no server answers: the wrapper appends three synthetic
-servers (short, too long for the column and for the details, password, the states and game types) for a moment and compares each one selected
-(425 / 415 calls at 0 mismatches, vanilla / Rebirth).
-Font smoothing is a desktop setting: the titles / credits screen switches it off and "restores" a value it never read, so a harness
-game left it off for the whole machine and other runs turned it back; the two runs compared then drew text with and without GDI's
-grey edges (every text failed). The harness no longer passes the game's SPI_SETFONTSMOOTHING on, and creates the game's fonts
-NONANTIALIASED_QUALITY (as they look after the titles), so text no longer depends on the desktop's setting (harness.cpp); checkouts
-without that commit still flip the setting while they run games.
-Display: a scenario with a `resolution` step runs alone on the machine (run_all, X36): the desktop-mode game took the surfaces of games
-running beside it (DDERR_SURFACELOST; the widescreen game itself got it too when it ran beside others). While such a game gathers the
-slots, no other game takes one (else it waited for every other suite on the machine to end).
+**Battle screen panels (W3)**: the map 00641F20 (setup) / 00642930 (layout) / 00642B40 (update) / 00645210 (mouse up), the unit panel
+006456E0 / 00645F80 / 006462A0 (draw) / 00647FB0, the weapon bar 0063BAB0 / 0063BCC0 / 0063C050, the quick items 0063C800 / 0063CAE0, the
+spell column 0063E2A0 / 0063E4B0, the action column 0063F300 / 0063F500, the movement panel 00649190 / 00649910 and the clock 00648520
+(ui_hud_slide.cpp, ui_hud_build.cpp, ui_hud_setup.cpp, ui_hud_unit_draw.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its
+panel offset at a builder's entry (`-extra` for the left panels, `+extra` for the right ones) and 0 at every return; ours call
+`widescreen::EnterLeftPanel` / `EnterRightPanel` / `LeavePanel` at the same points, and its operands become `widescreen::EdgeShift()` (extra
+while Active, else 0) added to or taken off the layout constants. As with addon a builder called inside another one leaves 0 behind (the
+layouts inside the setups, ShowMode inside the movement panel's setup, Highlight inside AddWeapon); the mid-function handlers are kept where
+they are: the unit panel's setup sets it at +39 (after the SEH frame), the action column's constructor at +78 (after the vtables), the map's
+layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at +87D (before the window's base draw).
+- The unit panel's setup writes addon's own rectangle (-133, 0)-(52, 225) and `sliding_` 0 (the original: (0, 0)-(185, 225), 1), whatever
+  the margin.
+- The weapon bar's constructor starts its regions at 80 - extra but still loops while x < 240 (addon changed `MOV EDI,0x50` only): at 3840 x
+  2160 (extra 134) eight regions, tips on the first four. AddWeapon's two FADDs read addon's floats written over SetRect's dead code at
+  005FC9F4 / 005FC9F8 (80 - extra, 120 - extra).
+- The unit panel's draw scales its three depth-clear rectangles without the margin and puts the model at layout x 100 - extra - slide offset;
+  the map's click takes the centre at 700 + extra (two operands).
 
-**Done (W3)**: the battle screen's panel builders, each with `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`: the map 00641F20 (setup) /
-00642930 (layout) / 00642B40 (update) / 00645210 (mouse up), the unit panel 006456E0 / 00645F80 / 006462A0 (draw) / 00647FB0, the
-weapon bar 0063BAB0 / 0063BCC0 / 0063C050, the quick items 0063C800 / 0063CAE0, the spell column 0063E2A0 / 0063E4B0, the action
-column 0063F300 / 0063F500, the movement panel 00649190 / 00649910 and the clock 00648520 (ui_hud_slide.cpp, ui_hud_build.cpp,
-ui_hud_setup.cpp, ui_hud_unit_draw.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its panel offset at a builder's entry
-(`-extra` for the left panels, `+extra` for the right ones) and 0 at every return; ours call `widescreen::EnterLeftPanel` /
-`EnterRightPanel` / `LeavePanel` at the same points, and its operands become `widescreen::EdgeShift()` (extra while Active, else 0)
-added to or taken off the layout constants. As with addon a builder called inside another one leaves 0 behind (the layouts inside
-the setups, ShowMode inside the movement panel's setup, Highlight inside AddWeapon); the mid-function handlers are kept where they
-are: the unit panel's setup sets it at +39 (after the SEH frame), the action column's constructor at +78 (after the vtables), the map's
-layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at +87D (before the window's base draw). Details:
-- The unit panel's setup writes addon's own rectangle (-133, 0)-(52, 225) and `sliding_` 0 (the original: (0, 0)-(185, 225), 1),
-  whatever the margin.
-- The weapon bar's constructor starts its regions at 80 - extra but still loops while x < 240 (addon changed `MOV EDI,0x50` only):
-  at 3840 x 2160 (extra 134) eight regions, tips on the first four. AddWeapon's two FADDs read addon's floats written over SetRect's
-  dead code at 005FC9F4 / 005FC9F8 (80 - extra, 120 - extra; its SetRect site W1).
-- The unit panel's draw scales its three depth-clear rectangles without the margin (XOR ECX,ECX: `CallScaleRectToScreenNoMargin`)
-  and puts the model at layout x 100 - extra - slide offset; the map's click takes the centre at 700 + extra (two operands).
-- The panel offset's storage: in a Rebirth launch it stays addon's variable (found at hook time, W1). Our builders are its only
-  writers in a launch with our hooks (nothing else in addon writes it), but the verify build's side-by-side wrappers run addon's
-  builders, whose handlers write addon's variable, and our callees (SetRect, AddPoint, Place, the shapes) must read what they set.
-Verified: in a Rebirth launch (every one wide here) the side-by-side wrappers compare ours with addon's code (the four setups,
-the two layouts, the unit panel's update, Highlight, ShowMode); the ours-only wrappers check the wide rectangles and region count
-(the constructors) and the panel offset at 0 after the builders and the draw. Frames: `ui_widescreen_hud` (a third widescreen
-scenario: a weapon slot highlighted, the unit panel's info page, a movement mode, a click on the map, both side panels slid out and
-back) and the battle screen in the other two, compared by `run_all --widescreen`. 2026-10-14: every frame of the three scenarios
-within the default tolerance (ui_widescreen_hud at most 0.008%, the slid panels, about 95% of each frame compared), the W3 wrappers
-at 0 mismatches (e.g. ShowMode 3520 calls, Highlight, the setups and layouts). Note: the work board's scheduler runs summaries with
-the run_all it imported when it started, so `work.py test --widescreen` without names compares only the scenarios that copy knows;
-name them (or compare with `run_all.compare_widescreen`).
-
-**Done (W4)**: the remaining 18 sites, each function with `EI_REBIRTH_IMPLEMENTS(..., WideScreen)` (the layout's two new
-values, `axisScale` and `fontScale`, are computed with the others in `widescreen::Compute`, as addon computes the floats it writes
-into the code):
-- The axis swap 004F1330+2A (device_helpers.cpp): m[0] is `width43 / width` (addon's `MOV DWORD PTR [EAX],imm32`, its float at
-  004F135C), so the 3D view drawn at the full width keeps 4:3 proportions; `widescreen::AxisScale`.
-- The fonts 005F4990+BF (ui_interface_create.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in
-  place of 0.01 at 0073D09C; its constant is the float 0.0075 widened to a double, 0.0074999998: with the double 0.0075 the result
-  is one ulp off at 3840x2160); `widescreen::FontScale`.
+**The remaining 18 sites (W4)**; the layout's `axisScale` and `fontScale` are computed with the others in `widescreen::Compute`, as addon
+computes the floats it writes into the code:
+- The axis swap 004F1330+2A (device_helpers.cpp): m[0] is `width43 / width` (addon's float at 004F135C), so the 3D view drawn at the full
+  width keeps 4:3 proportions; `widescreen::AxisScale`.
+- The fonts 005F4990+BF (ui_interface_create.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in place of
+  0.01 at 0073D09C; its constant is the float 0.0075 widened to a double, 0.0074999998: with the double 0.0075 the result is one ulp off at
+  3840x2160); `widescreen::FontScale`.
 - The backdrop 005F5320 (+14A .. +251, ui_interface_draw.cpp): the full-size backdrop surface at the mode's size, flag 0 (addon's
-  Construct(..., 0, 0, width, height, 4, 0) in place of (..., 800, 600, 4, 1)). The CSV and the ticket called them "the cursor's
-  rectangles": they are the backdrop's.
+  Construct(..., 0, 0, width, height, 4, 0) in place of (..., 800, 600, 4, 1)); these are the backdrop's rectangles, not the cursor's.
 - The drags: the camera's mouse move 005EB210+39 and the global map's 00630010+7C call the no-margin entry
   (`CallScalePointFromScreenNoMargin`); the map's pick picture is read at `x / 2 - margin / 2` (addon's 9 bytes at 005FD237, which its
   redirected CALLs at 0063023C / 0062FB20 enter: `widescreen::PickShift`) in 00630010+22C and 0062F950+1D0.
-- The camp 0060C870 (ui_camp_create.cpp: `Create` is `BuildPages` and the curtains) and the multiplayer hero screen 00613EA0
-  (ui_hero_screen_create.cpp): addon's handlers (100234AB, 100235BA) run after the original and add two sprites, the curtains over
-  the margins: SetRectangle(2.0, 100.0, -margin, 0, 0, 600, ...) and (2.0, 100.0, 800, 0, 800 + margin, 600, ...) with the texture
-  coordinates (0xE3, 0x3E)-(0x100, 0xB0) and mirrored, tint 0.3, shown on the camp, hidden on the hero screen;
-  `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen_mode.cpp, addon's 100236C3 after it) shows them in every
-  mode but the hero list (9) when the screen has its 21 sprites: `widescreen::ShowHeroCurtains`.
-- The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message_` set) named `"<text>:<page>"` in addon's two
-  lists move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0,
-  zt4:1, zt7:0, zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals
-  before the first AddSprite); `TutorialFrameShift`.
-- 00613EA0 also holds EI_Plugin's fixes (+D15, +E7B); not reproduced by W4, done in W4a below.
-Verified: side by side in a Rebirth launch, against addon's code, the help page (with addon's handler), the axis swap, the
-camera's and the global map's mouse moves; ours only, the camp's and the hero screen's sprites (the curtains' rectangles, tint and
-visibility), the mode's curtains, the map's left button and the backdrop; the startup check compares addon's two floats (005F4F81,
-004F135C) with ours (the fonts' scale is the one at 005F4F81). Frames: `ui_widescreen_screens` (a fourth
-widescreen scenario: the hero list, two tutorial messages with frames on either side (zt4 pages 0 and 1, zt9), the global map's mouse
-moves and a right-button drag, for the wrappers: not captured, as in part one; the harness's new `rdown` / `rup`
-steps hold the right button) and the camp in `ui_widescreen`, compared by `run_all --widescreen`.
-2026-10-15: every frame of the four scenarios within the default tolerance (ui_widescreen_screens at most 0.004%, the camp
-0.017%, the multiplayer hero screen 0.000%), the W4 wrappers at 0 mismatches (the help page 3 calls, the camera's mouse move 334,
-the global map's drag 24 and its tip 5, DrawOverlays 304, the camp's Create, the hero screen's mode). The first run caught the
-font scale one ulp off (addon's 0.0075 is a float constant).
-The hero model in vertical strips (vanilla with the flag, the ticket's note): not seen after W4: the vanilla runs of the
-widescreen scenarios with the flag (`run_all --vanilla-only ui_widescreen ui_widescreen_more ui_widescreen_screens`) draw the new
-hero and the hero list whole, at the same places as addon's. Before W4 a vanilla launch with the flag widened the layout but kept
-the 800x600 backdrop (flagged as scaled) and the 3D view's x scale 1, the likely causes. The vanilla frames differ from Rebirth's in
-texture filtering (Rebirth's other settings), not in placement.
+- The camp 0060C870 (ui_camp_create.cpp) and the multiplayer hero screen 00613EA0 (ui_hero_screen_create.cpp): addon's handlers (100234AB,
+  100235BA) run after the original and add two sprites, the curtains over the margins: SetRectangle(2.0, 100.0, -margin, 0, 0, 600, ...) and
+  (2.0, 100.0, 800, 0, 800 + margin, 600, ...) with the texture coordinates (0xE3, 0x3E)-(0x100, 0xB0) and mirrored, tint 0.3, shown on the
+  camp, hidden on the hero screen; `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen_mode.cpp, addon's 100236C3
+  after it) shows them in every mode but the hero list (9) when the screen has its 21 sprites: `widescreen::ShowHeroCurtains`.
+- The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message_` set) named `"<text>:<page>"` in addon's two lists
+  move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0, zt4:1, zt7:0,
+  zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals before the first
+  AddSprite); `TutorialFrameShift`.
+- W4a, `CMpHeroScreen::Create` 00613EA0 also holds EI_Plugin's Fixes (+D15, +E7B) and declares `WideScreen` and `EiPluginFixes`. The plugin
+  patches the figure loop, where the original compares the figure prototype's model name with "unhuma" (strcmp at 00614BB5, 22 bytes) and
+  then "unhufe" (00614D1B, 26 bytes): 00614BB5 becomes `cmp word [ecx+4], 0x6566; jne +0E` (to the men's body 00614BCB) `; jmp 00614D35` (the
+  women's body) with 9 NOPs, and 00614D1B becomes `jmp 00614E84` with NOPs. So with the flag a model whose characters 4 and 5 are "fe" is a
+  woman's and every other model a man's (the original: exactly "unhuma" / "unhufe", compared without case); `ModelNameIsFemale` reads the 16
+  bits at +4 as the plugin does, past a short name's end included. With the shipped models nothing differs.
 
-**Done (W4a)**: `CMpHeroScreen::Create` 00613EA0 declares `WideScreen` and `EiPluginFixes`, so a Rebirth launch hooks it. The plugin
-writes (assembled on its stack, EI_Plugin.asi +0x2260) two patches in the figure loop, where the original compares the figure
-prototype's model name (a CString, `[esp+28]`) with "unhuma" (strcmp at 00614BB5, 22 bytes) and then with "unhufe" (00614D1B, 26 bytes):
-00614BB5 becomes `cmp word [ecx+4], 0x6566; jne +0E` (to the men's body 00614BCB) `; jmp 00614D35` (the women's body) with 9 NOPs, and
-00614D1B becomes `jmp 00614E84` (past the women's test, which the men's body would run) with NOPs. So with the flag a model whose
-characters 4 and 5 are "fe" is a woman's and every other model a man's (the original: exactly "unhuma" / "unhufe", compared without case;
-anything else was in neither list); `ModelNameIsFemale` reads the 16 bits at +4 as the plugin does, past a short name's end included. With
-the shipped models nothing differs (every figure is "unhuma" or "unhufe"); modded models change the lists. Verified: ours only
-(the screen cannot be built twice): the verify wrapper counts the lists a second time from the creature table with the same rule
-(`figure counts` check, flag on and off) next to the earlier layout / curtains / order checks; ui_widescreen_more and
-ui_widescreen_screens in a Rebirth launch (hooked: "Rebirth-patched ... implements WideScreen EiPluginFixes") at 0 mismatches and the
-frames of the four widescreen scenarios within the default tolerance.
-
-**Done (W2b)**: `CMpConnectScreen::Create` 0061B2C0 declares `ExtendedServerName` and `EiPluginNPlayers`. addon's operands (live bytes of
-the sites; the values are in addon.dll's installer at +0x18960, the float read from its constant at 100B1CA4): the selection sprite's right
-edge 370 -> 381.5 (0061B5CE), the name field's rectangle and the players slider's rectangle (set after its construction) right edge
-650 -> 680 (0061BB51: the register `mov edi, 0x28a` the two use), and the name field's `SetLook(3, 0, 1, 10, ...)` -> `SetLook(15, 0, 0, 50, ...)`
-(0061BC0E classes, 0061BC0B font, 0061BC09 length; the trimming of the hero's name to 10 characters stays). EI_Plugin's NPlayers (its
-installer at +0x2090, the setting `NPlayers` of EI_Plugin.ini, 7 here) also lies in the function, so the declaration is needed for the
-hook: the slider's maximum (0061BAF7+1, the construction's `push 5`) becomes `max(n, 7) - 1` and its position (0061BB82, `push 5` of
-SetPosition) `max(n, 1) - 1`; `maxPlayers_` stays 6. `ei::rebirth::PluginNPlayers()` (new, include/ei/rebirth.h) carries n from the hook's
-ini reading (default 7, the plugin's). Verified ours only (no server answers; the screen is built once by ui_mp_host): the verify
-wrapper re-derives the slider's rectangle, maximum and position and the field's rectangle, classes, font and length from the flags.
-
-**Done (W4b)**: the rest of EI_Plugin's Fixes (installer at EI_Plugin.asi +0x2E60 and +0x2FD0..: `100031F0`, `10003220`, `10003110`) and
-NPlayers (+0x2C80, and +0x2D20 for more than 7 players), each behind its flag and declared:
-- *Sex of a face* (`EiPluginFixes`, 005ED889 `CItemScreen::FaceNames` for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6 and
-  00640D2F `CHudPortraits::Rebuild` 006407E0): the two strcmp tests ("unhuma" -> "m", "unhufe" -> "f", else the string kept) become
-  `cmp byte [name+4], 0x66`: a model whose fifth character is 'f' gives "f", every other one "m" (always assigned: the original's `sex`
-  carried over from the last face when the model was neither). `pluginfixes::ModelIsFemale` (src/game/plugin_fixes.h).
+**EI_Plugin's other Fixes and NPlayers (W4b)** (installer at EI_Plugin.asi +0x2E60 and +0x2FD0..: `100031F0`, `10003220`, `10003110`;
+NPlayers +0x2C80, and +0x2D20 for more than 7 players), each behind its flag and declared:
+- *Sex of a face* (`EiPluginFixes`, 005ED889 `CItemScreen::FaceNames` for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6
+  and 00640D2F `CHudPortraits::Rebuild` 006407E0): the two strcmp tests become `cmp byte [name+4], 0x66`: a model whose fifth character is 'f'
+  gives "f", every other one "m" (always assigned: the original's `sex` carried over from the last face when the model was neither).
+  `pluginfixes::ModelIsFemale` (src/game/plugin_fixes.h).
 - *Unknown unit prototype* (006093B7 in ShowPlayers, 00640C97 in Rebuild; the plugin's stubs 100031F0 / 10003220 call 10003110 when the
   prototype map's `operator[]` inserted a null for a player's prototype name): the prototype becomes the value of the head of the first
-  bucket (bucket order, chains not walked) of the unit prototype map whose name has none of "NPC", "Human", "Orc", "Undead", "Male",
-  "Female" in it (case-insensitive substring; an empty name qualifies). `pluginfixes::FallbackPrototype`. Nothing in the shipped data
-  reaches it (every player's prototype exists), so it is ours only and unreached.
+  bucket (bucket order, chains not walked) of the unit prototype map whose name has none of "NPC", "Human", "Orc", "Undead", "Male", "Female"
+  in it (case-insensitive substring; an empty name qualifies). `pluginfixes::FallbackPrototype`. Nothing in the shipped data reaches it.
 - 005F13A0 `ItemDamageLists` (005F1401: `je` -> `jmp`): the integer form ("%d") is never taken, the threshold is always "%.1f".
 - 00536100 `CUnitClientSpecific::RefreshSkins` (00536132: the `jne` over the body is NOPed): every unit is refreshed, not only the hero (0x32).
 - *NPlayers* (n = `PluginNPlayers()`, 7 here): 00640069 `CHudPortraits::AddPortrait` `mov edi, 6` -> `max(n, 7)`: the portraits' column is
   `count % max(n, 7)`; 00608D9D / 00608DE4 `CChatWindow::Construct`: the window's left edge and its surface's x 0x1D0 -> 0; 006095FB
-  `CChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0: the surface is at 0 now). 006095A0 is not in the ticket's list
-  but holds a site of the feature, so it is declared too.
-- *More than 7 players* (`+0x2D20`: six more sites in AddPortrait 0064016B..00640240, inactive here): not reproduced. The installer
-  (`Check` in rebirth_hook.cpp) skips a function holding such a site while NPlayers > 7 ("EI_Plugin.asi patches ... for more than 7 players"),
-  so a Rebirth launch with a larger NPlayers keeps the original there; the standalone image treats NPlayers above 7 as 7 in the portraits.
-Verified: the wrappers compare with the patched original where they did before (DrawHeroFace compares the face's model state, so a wrong
-sex letter would show as another texture; ItemDamageLists compares the three lines) and check ours otherwise: Construct's rectangle,
-Rebuild's picture sex letter ("face<m|f>NN") against the unit's name. Reached (Rebirth runs, all 0 mismatches): ui_hero_screen / ui_hero_delete / ui_hero_stats
-(DrawHeroFace), ui_describe / ui_hud (ItemDamageLists), most scenarios (RefreshSkins, Rebuild's party half, AddPortrait), ui_mp_host
-(Construct 1 call, ShowPlayers 2, Update 43). Not reached by any scenario: the prototype fallbacks (006093B7, 00640C97), Rebuild's
-players half (00640D2F: a client player without a live unit), the sex rule for a model other than "unhuma" / "unhufe", and
-RefreshSkins for a non-hero is reached only if a scenario's non-hero client unit gets that far (no wrapper tells).
+  `CChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0); 006095A0 holds a site of the feature too, so it is declared.
+- *More than 7 players* (`+0x2D20`: six more sites in AddPortrait 0064016B..00640240): not reproduced. The installer (`Check` in
+  rebirth_hook.cpp) skips a function holding such a site while NPlayers > 7, so a Rebirth launch with a larger NPlayers keeps the original
+  there; the standalone image treats NPlayers above 7 as 7 in the portraits.
+- Not reached by any scenario: the prototype fallbacks (006093B7, 00640C97), Rebuild's players half (00640D2F: a client player without a
+  live unit), the sex rule for a model other than "unhuma" / "unhufe".
+
+**Harness and checking.** Scenario lines `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the
+game's and addon's registry reads of these settings for the run (addon reads them with RegQueryValueExW: the harness patches advapi32's
+stub slot, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`). Scenarios use `desktop` (3840x2160 here):
+another mode makes dgVoodoo switch the display. `python tools\run_all.py --widescreen` runs the widescreen scenarios (`ui_widescreen`,
+`ui_widescreen_more`, `ui_widescreen_hud`, `ui_widescreen_screens`) under Rebirth with our hooks
+(`<name>-rebirth`) and with `--no-hooks` (`-rebirth-nohooks`, addon's code alone) and compares the frames; the scenarios run on the virtual
+clock, and frames with a `_later` twin are compared without what moved between the two (the hero, his portrait, the menu's creatures); a
+pausing window's frame (the Save window) leaves out what moved in `<f>_moving` / `<f>_moving_later`, captured before it opened. The default
+tolerance is met by every frame (at most 0.065% of the pixels differ; the menu's swaying trees once reached 0.135%). Not compared: the
+global map (lit by the world's time, which differs between the two runs). The options window's slider thumbs are a few pixels wider in ours:
+the same with WideScreen off (not WideScreen; to look at). `run_all --vanilla-only` draws the new hero and the hero list whole with the
+flag, at addon's places; vanilla frames differ from Rebirth's in texture filtering only. The work board's scheduler runs summaries with the
+run_all it imported when it started, so `work.py test --widescreen` without names compares only the scenarios that copy knows; name them (or
+compare with `run_all.compare_widescreen`). Every Rebirth launch of the suite is wide too (the starter's settings here: the desktop's mode,
+WideScreen on), so the Rebirth half of the suite compares these wrappers with addon's code as well. Text surfaces are compared by pixels
+(`tests/verify/gdi_pixels.h`, `ui_surface_pixels.h`).
+- Font smoothing is a desktop setting: the titles / credits screen switches it off and "restores" a value it never read, so a harness game
+  left it off for the whole machine; the two runs compared then drew text with and without GDI's grey edges (every text failed). The
+  harness no longer passes the game's SPI_SETFONTSMOOTHING on and creates the game's fonts NONANTIALIASED_QUALITY (as they look after the
+  titles), so text no longer depends on the desktop's setting (harness.cpp).
+- A scenario with a `resolution` step runs alone on the machine (run_all, X36): the desktop-mode game took the surfaces of games running
+  beside it (DDERR_SURFACELOST, the widescreen game itself too). While such a game gathers the slots, no other game takes one.
 
 ### Remaining work
 
-WideScreen has no leftovers; NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the standalone image only
-(hooked Rebirth launches keep addon's; S19b).
+NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the standalone image only (hooked Rebirth launches keep addon's; S19b).
