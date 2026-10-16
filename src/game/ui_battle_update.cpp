@@ -30,6 +30,7 @@
 #include <cstring>
 #include <bit>
 #include "originals_ui.h"
+#include "world.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -153,9 +154,6 @@ namespace {
 
 // The panels' units (thiscall): weapon bar 0063C180, quick items 0063D2B0 (through its address),
 // spells 0063E820 (RET 4), actions 0063F800 (RET 8).
-__declspec(naked) void __fastcall WeaponBarSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063C180)
-__declspec(naked) void __fastcall SpellsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063E820)
-__declspec(naked) void __fastcall ActionsSetUnit(CUiWindow*, void*, CUnit*, int) EI_ORIGINAL(0x0063F800)
 // 00530930 (__fastcall on a unit): its prototype record.
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
@@ -282,7 +280,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             CUnit* unit = FindUnit(UiClientWorld(), nullptr, unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
-                ClientWorldControlUnitOriginal(UiClientWorld(), nullptr, unit);
+                static_cast<CWorldClient*>(UiClientWorld())->Select(unit);
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
@@ -340,10 +338,10 @@ void CBattleScreen::Update() {
     }
     if (first) {
         if (first->IsDead() && selected == 1) {
-            WeaponBarSetUnit(weaponBar_, nullptr, nullptr);
-            QuickItemsSetUnit(quickItems_, nullptr, nullptr);
-            SpellsSetUnit(spellColumn_, nullptr, nullptr);
-            ActionsSetUnit(actionColumn_, nullptr, nullptr, 0);
+            weaponBar_->SetUnit(nullptr);
+            quickItems_->SetUnit(nullptr);
+            spellColumn_->SetUnit(nullptr);
+            actionColumn_->SetUnit(nullptr, 0);
             CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
@@ -512,7 +510,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
             }
         }
         if (first >= 0) {
-            ClientWorldSelectOriginal(world, nullptr, nullptr);
+            static_cast<CWorldClient*>(world)->Deselect(nullptr);
             using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data[i * 5 + 4]); };
@@ -537,7 +535,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
-                ClientWorldControlUnitOriginal(world, nullptr, unitAt(static_cast<int>(node->data)));
+                static_cast<CWorldClient*>(world)->Select(unitAt(static_cast<int>(node->data)));
             }
             int id = unitAt(first)->id_;
             using EventFn = void(__thiscall*)(void*, int, int, int);
@@ -685,10 +683,10 @@ void CBattleScreen::RefreshSelection() {
     // column's extra button stays while anyone is selected (the original pushes SETG DL there with
     // EDX's upper bytes left over; the callee reads the low byte only).
     CUnit* shown = (first && first->IsDead() == 0 && selected == 1) ? first : nullptr;
-    WeaponBarSetUnit(weaponBar_, nullptr, shown);
-    QuickItemsSetUnit(quickItems_, nullptr, shown);
-    SpellsSetUnit(spellColumn_, nullptr, shown);
-    ActionsSetUnit(actionColumn_, nullptr, shown, selected > 0 ? 1 : 0);
+    weaponBar_->SetUnit(shown);
+    quickItems_->SetUnit(shown);
+    spellColumn_->SetUnit(shown);
+    actionColumn_->SetUnit(shown, selected > 0 ? 1 : 0);
 
     // The unit panel shows the first selected unit (also a dead one, or the first of several).
     CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);

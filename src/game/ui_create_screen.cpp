@@ -182,7 +182,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     std::uint32_t bytes = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stackEnd_) -
                                                      reinterpret_cast<std::uintptr_t>(stackBegin_));
     if ((bytes & ~3u) == 4) {
-        serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
+        serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
         if (!IsNetworkClientOriginal()) GameSetServerPaused(1);
         if (first && second) {
             backdropMode_ = 1;

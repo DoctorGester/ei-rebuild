@@ -275,10 +275,10 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 case kViewPerson: target = person_; break;
                 case kViewThird: target = third_; break;
                 default:
-                    BriefingViewSpeakerOriginal(this, nullptr, nullptr, angle, distance, height);
+                    ViewSpeaker(nullptr, angle, distance, height);
                     continue;
                 }
-                if (target) BriefingViewSpeakerOriginal(this, nullptr, target, angle, distance, height);
+                if (target) ViewSpeaker(target, angle, distance, height);
             } else {
                 int chosen = preset;
                 if (chosen < 1) {
@@ -302,7 +302,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
             CUnit* unit = speakers_[i].unit;
             if (Compare(speakers_[i].name, named()) != 0) {
-                BriefingSpeakerAnimationOriginal(this, nullptr, unit, 0, 0);
+                PlaySpeakerAnimation(unit, 0, 0);
                 SetBlink(unit, 0);
                 continue;
             }
@@ -315,7 +315,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                         ControllerPlayAnimationOriginal(controller, nullptr, played);
                 }
             } else {
-                BriefingSpeakerAnimationOriginal(this, nullptr, unit, 1, 0);
+                PlaySpeakerAnimation(unit, 1, 0);
             }
             SetBlink(unit, lips);
             speaking_ = unit;
@@ -330,7 +330,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         text_->moved_ = true;
         for (BriefingSpeaker* p = speakers_; p != speakersEnd_; ++p) {
             SetBlink(p->unit, 0);
-            BriefingSpeakerAnimationOriginal(this, nullptr, p->unit, 0, 0);
+            PlaySpeakerAnimation(p->unit, 0, 0);
         }
         speaking_ = nullptr;
         ClearShownItems();

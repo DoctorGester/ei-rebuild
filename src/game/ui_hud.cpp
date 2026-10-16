@@ -508,7 +508,7 @@ void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick, 0);
     void* memory = gamecrt::operator_new(sizeof(CObjectivesWindow));
-    void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
+    void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(interface_) : nullptr;
     {
         BriefingPlayerName zone;
         static_cast<CObjectivesWindow*>(window)->Setup(zone, nullptr, 0, 0);
@@ -672,12 +672,11 @@ Vector3 PositionOf(const CUnit* unit) {
 // The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
 __declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, Vector3, int, char) EI_ORIGINAL(0x00636F10)
 __declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
-__declspec(naked) void __fastcall ScreenOrderDead(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x006373A0)
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
-    BattleUseOnUnitOriginal(screen, nullptr, target, quick, ctrl);
+    static_cast<CBattleScreen*>(screen)->UseOnUnit(target, quick, ctrl);
 }
 void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
-    BattleUseAtPointOriginal(screen, nullptr, at.x, at.y, at.z, unit, static_cast<char>(quick));
+    static_cast<CBattleScreen*>(screen)->UseAtPoint(at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
@@ -689,8 +688,6 @@ void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)-
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
 // CPlayerClient::SendFollow, through its address).
-__declspec(naked) void __fastcall ViewOrderTarget(CPlayerClient*, void*, CUnit*, CUnit*, int, int, int) EI_ORIGINAL(0x0066AA20)
-__declspec(naked) void __fastcall ViewOrderFollow(CPlayerClient*, void*, CUnit*, CUnit*) EI_ORIGINAL(0x0066AFE0)
 // CUnit::GetQuickItem, CItem::GetCategory and the sprite's SetScale, through their addresses
 // (the camera's SetTarget too: CameraSetTargetOriginal).
 void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
@@ -759,7 +756,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
     auto order = [this](CUnit* first, CUnit* target, int a, int b) {
         int flag = static_cast<std::uint8_t>(interface_->doubleClick_);
-        ViewOrderTarget(LocalView(), nullptr, first, target, a, b, flag);
+        LocalView()->SendUseOrder(first, target, a, b, flag);
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
@@ -784,7 +781,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < party_.size) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
+                if (i < party_.size) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party_[i]);
             } else {
                 ToggleMember(i);
             }
@@ -819,7 +816,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 0:   // plain: select, attack or move
         if (unit) {
             if (unitDead(unit)) {
-                ScreenOrderDead(this, nullptr, unit, ctrl());
+                OrderDeadUnit(unit, ctrl());
                 return;
             }
             int members = party_.size;
@@ -827,7 +824,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < party_.size) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
+                    if (i < party_.size) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party_[i]);
                 } else {
                     ToggleMember(i);
                 }
@@ -903,7 +900,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < party_.size; ++i) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
-            ViewOrderFollow(LocalView(), nullptr, member, unit);
+            LocalView()->SendFollow(member, unit);
             VirtualUnitSpeech(party_[i]->id_, kOrderEventFollow, nullptr);
             NodPortrait(this, i);
         }
@@ -1030,7 +1027,6 @@ using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
 // (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
-__declspec(naked) void __fastcall ViewOrderMoveAlt(CPlayerClient*, void*, OrderUnits*, const Vector3*, int) EI_ORIGINAL(0x0066A720)
 // 0073B84C: the constant 1.0f the zone variable is compared with.
 float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
@@ -1078,7 +1074,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     if (units.size != 0) {
         CPlayerClient* view = LocalView();
         if (static_cast<std::uint8_t>(mode) != 0)
-            ViewOrderMoveAlt(view, nullptr, &units, &point, ctrl & 0xFF);
+            view->SendGoTo(&units, &point, ctrl & 0xFF);
         else
             LocalViewSendWalkOriginal(view, nullptr, &units, &point.x, ctrl & 0xFF);
     }

@@ -190,7 +190,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         clock->highlight_ = false;
         clock->interface_->PlaySound(ClickSound(), 0);
         void* memory = gamecrt::operator_new(kObjectivesSize);
-        void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, clock->interface_) : nullptr;
+        void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(clock->interface_) : nullptr;
         {
             alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
             mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
@@ -205,7 +205,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         // The camera follows the first selected member, or nobody.
         for (int i = 0; i < hud->party_.size; ++i) {
             if (hud->party_[i]->flags_ & kUnitSelected) {
-                CameraSetTargetOriginal(camera, nullptr, hud->party_[i]);
+                static_cast<CCamera*>(camera)->SetTarget(hud->party_[i]);
                 return;
             }
         }
@@ -332,7 +332,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
         if ((interface_->ctrlDown_ || interface_->altDown_) && hud->party_.size > member)
-            CameraSetTargetOriginal(camera, nullptr, hud->party_[member]);
+            static_cast<CCamera*>(camera)->SetTarget(hud->party_[member]);
         return;
     }
     case kActionSelectAll:
@@ -340,7 +340,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(OnOffSound(), 0);
         for (int i = 0; i < hud->party_.size; ++i) {
             MarkPortrait(i);
-            if (CUnit* unit = hud->party_[i]) ClientWorldControlUnitOriginal(WorldClient(), nullptr, unit);
+            if (CUnit* unit = hud->party_[i]) static_cast<CWorldClient*>(WorldClient())->Select(unit);
         }
         if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
         RefreshSelection();

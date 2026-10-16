@@ -112,7 +112,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(ClickSound(), 0);
-                BriefingOpenTopicsOriginal(this, nullptr, object);
+                OpenTopics(object);
             }
             return;
         }
@@ -125,12 +125,12 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
         interface_->PlaySound(ClickSound(), 0);
         topic_ = topics_[region + topicTop_];
         ClearRegions();
-        BriefingStartDialogueOriginal(this, nullptr, 0, 1);
+        StartDialogue(0, 1);
         return;
     }
     case 3:
         interface_->PlaySound(ClickSound(), 0);
-        BriefingNextPhraseOriginal(this, nullptr, 0);
+        NextPhrase(0);
         return;
     case 4:
         interface_->PlaySound(ClickSound(), 0);

@@ -293,7 +293,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
     if (!MoviesMode()) return 1;
     const char* file = name ? name : "";   // the original copies it into a CString
-    if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
+    if (loadingStep) Sound()->StopAll(1);
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
@@ -483,7 +483,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
     if (bink) BinkClose()(bink);
     if (!MoviesMode()) return 0;
-    if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
+    if (loadingStep) Sound()->StopAll(1);
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     bink = OpenBink(name, 0);
     if (!bink) {

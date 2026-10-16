@@ -2,6 +2,7 @@
 // person walking to a place (006089D0) and a dialogue's "#show" line (00605DE0). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "library_containers.h"
+#include "player_messages.h"
 #include "ui_briefing.h"
 
 #include "core_maths.h"
@@ -145,7 +146,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         speakersEnd_[-1].unit = unit;
         speakersEnd_[-1].name = name;
         auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(ServerWorld(), nullptr, 0));
-        if (player->server) PlayerSendDialogueEventOriginal(player->server, nullptr, kEventJoins, unit->id_);
+        if (player->server) static_cast<CPlayerServer*>(player->server)->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, unit->id_))) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             reinterpret_cast<UnitController*>(serverUnit->controller)->actionDone = SpeakerActionDone();

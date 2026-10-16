@@ -587,7 +587,7 @@ void CGlobalMap::Create() {
         gipat_ = true;
 
     selectPending_ = 1;
-    GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
+    SelectZone(-1, 0);
     dragging_ = false;
     GameSetWeatherOriginal(reinterpret_cast<void*>(0x007AFEA6), nullptr, 0, 0.0f);   // clear
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();

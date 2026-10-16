@@ -118,8 +118,8 @@ BOOL CMpHeroScreen::Draw(int pass) {
         info.kind = -1;
         auto* trade = static_cast<CUiWindow*>(tradePanel_);
         auto* stats = static_cast<CUiWindow*>(statsPanel_);
-        if (!trade->enabled_ || (TradePanelHoverInfoOriginal(trade, nullptr, x, y, &info), info.kind < 0)) {
-            if (stats->enabled_) StatsPanelHoverInfoOriginal(stats, nullptr, x, y, &info);
+        if (!trade->enabled_ || (static_cast<CTradePanel*>(trade)->HoverInfo(x, y, &info), info.kind < 0)) {
+            if (stats->enabled_) static_cast<CHeroStatsPanel*>(stats)->HoverInfo(x, y, &info);
             if (info.kind < 0 && mode_ == kModeNewHero) {
                 int region = window.RegionAt(x, y);
                 if (region >= kFirstVoiceRegion && region < kVoiceRegionEnd) {
@@ -128,7 +128,7 @@ BOOL CMpHeroScreen::Draw(int pass) {
                 }
             }
         }
-        if (descPanel_) InfoPanelDescribeStatsOriginal(descPanel_, nullptr, &info);
+        if (descPanel_) descPanel_->DescribeStats(&info);
     }
 
     reinterpret_cast<CUiContainer*>(&window)->DrawContainer(pass);

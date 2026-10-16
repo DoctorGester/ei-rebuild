@@ -1,5 +1,6 @@
 // The briefing / base screen's dialogue (CBriefingScreen, ui_briefing.h): the phrases' start, the
 // speakers' animations and the camera on a speaker. See docs/notes/ui.md, "Briefing / base screen".
+#include "player_messages.h"
 #include "ui.h"
 #include "ui_briefing.h"
 
@@ -72,7 +73,7 @@ void CBriefingScreen::StartPhrases() {
         return;
     }
     void* server = LocalServerPlayer()->server;
-    if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventPhrases, 0);
+    if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventPhrases, 0);
 
     // The camera's position, and that plus its rotation's z axis (third column of the matrix).
     const CCamera* camera = camera::TheCamera();
@@ -92,7 +93,7 @@ void CBriefingScreen::StartPhrases() {
     static_cast<CUiScrollText*>(text_)->SetText(EmptyText());
     state_ = kStatePhrases;
     firstPhrase_ = true;
-    BriefingNextPhraseOriginal(this, nullptr, 0);
+    NextPhrase(0);
 }
 EI_REPLACE_METHOD(0x00608210, CBriefingScreen::StartPhrases);
 
@@ -194,7 +195,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
     at.x = static_cast<float>(eye.x + alongX);
     at.y = static_cast<float>(eye.y + alongY);
     at.z = static_cast<float>(eye.z + height);
-    PlayerSendViewOriginal(LocalServerPlayer()->server, nullptr, &at, &eye, 1);
+    static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&at, &eye, 1);
 }
 EI_REPLACE_METHOD(0x00607BB0, CBriefingScreen::ViewSpeaker);
 
@@ -223,7 +224,7 @@ void CBriefingScreen::ViewPreset(int preset) {
     double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
     float apart = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
     auto view = [this](CUnit* unit, float angle, float distance, float height) {
-        BriefingViewSpeakerOriginal(this, nullptr, unit, static_cast<float>(angle), static_cast<float>(distance), height);
+        ViewSpeaker(unit, static_cast<float>(angle), static_cast<float>(distance), height);
     };
     switch (preset) {
     case 1:
@@ -312,7 +313,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     while (entry != speakersEnd_ && entry->unit != person) ++entry;
     if (entry != speakersEnd_) {
         void* server = LocalServerPlayer()->server;
-        if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventLeaves, person->id_);
+        if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventLeaves, person->id_);
         auto* model = reinterpret_cast<CUnitClientSpecific*>(person->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
@@ -335,7 +336,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         speakersEnd_->name.~CString();
     }
     if (person == third_) {
-        BriefingMovePersonOriginal(this, nullptr, person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
+        MovePerson(person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
                                    thirdDirection_.y, thirdDirection_.z, 0, immediate, time);
         third_ = nullptr;
     }

@@ -299,7 +299,7 @@ void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char
         old->Release();
     }
     auto* manager = static_cast<CTextureManager*>(UiTextureManager());
-    auto* texture = static_cast<CTexture*>(TextureFindOriginal(manager, nullptr, kind, name));
+    auto* texture = static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(kind, name));
     if (!texture) texture = static_cast<CTexture*>(manager->CreateObject(kind, -1));
     *reinterpret_cast<mfc::CString*>(&texture->name_) = name;
     CTexture* old = *holder;

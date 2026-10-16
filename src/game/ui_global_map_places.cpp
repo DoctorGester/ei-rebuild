@@ -178,7 +178,7 @@ void CGlobalMap::RefreshSelection() {
     SceneMesh(markerCount_ + 6)->visible_ = 0;
     SceneMesh(markerCount_ + 7)->visible_ = 0;
     backdrop_->CaptureScreen();
-    GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
+    SelectZone(-1, 0);
 }
 EI_REPLACE_METHOD(0x00630670, CGlobalMap::RefreshSelection);
 

@@ -4,6 +4,7 @@
 #include "item_db.h"
 #include "item_db_text.h"
 #include "record_arrays.h"
+#include "sound.h"
 #include "ui.h"
 #include "world.h"
 #include "game_flow_data.h"
@@ -1314,7 +1315,7 @@ __declspec(naked) int __fastcall LoadSaveAt(void*, void*, CMemoryStream*, const 
 } // namespace
 
 int __stdcall LoadMission(void* file) {
-    LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
+    static_cast<CSoundManager*>(*reinterpret_cast<void**>(0x007AF784))->StopAll(1);
     LocalMemoryStream mission;
     if (!SaveFileRead(&mission.s, kMagicMissionFile, *reinterpret_cast<const int*>(0x00790260),
                       *reinterpret_cast<const int*>(0x00790268), file))

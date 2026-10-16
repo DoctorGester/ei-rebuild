@@ -63,7 +63,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (!questZone) continue;
         if (!IsNetworkClientOriginal() && CompareNames(questZone->allod, zone->allod) != 0) continue;
         void* memory = gamecrt::operator_new(kObjectivesSize);
-        void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, ui) : nullptr;
+        void* window = memory ? static_cast<CObjectivesWindow*>(memory)->Construct(ui) : nullptr;
         {
             BriefingPlayerName player;
             static_cast<CObjectivesWindow*>(window)->Setup(player, nullptr, 0, 1);
@@ -96,7 +96,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             interface_->ChatKeyEnter();
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
-            while (state_ == 3) BriefingNextPhraseOriginal(this, nullptr, 1);
+            while (state_ == 3) NextPhrase(1);
         } else if (state_ == 4) {
             interface_->PlaySound(ClickSound(), 0);
             FinishDialogue();
@@ -116,12 +116,12 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
             InterfacePushWindowOriginal(interface_, nullptr, menu, 1, 1);
         } else if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
-            while (state_ == 3) BriefingNextPhraseOriginal(this, nullptr, 1);
+            while (state_ == 3) NextPhrase(1);
         } else if (state_ == 4) {
             interface_->PlaySound(ClickSound(), 0);
             FinishDialogue();
         } else if (state_ == 2) {
-            BriefingStartDialogueOriginal(this, nullptr, 1, 0);
+            StartDialogue(1, 0);
         } else if (state_ == 1) {
             state_ = 0;
         }
@@ -130,12 +130,12 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
     case VK_SPACE:
         if (state_ == 3) {
             interface_->PlaySound(ClickSound(), 0);
-            BriefingNextPhraseOriginal(this, nullptr, 0);
+            NextPhrase(0);
         } else if (state_ == 4) {
             interface_->PlaySound(ClickSound(), 0);
             FinishDialogue();
         } else if (state_ == 2) {
-            BriefingStartDialogueOriginal(this, nullptr, 1, 0);
+            StartDialogue(1, 0);
         }
         inputHandled_ = true;
         return;
@@ -148,7 +148,7 @@ void CBriefingScreen::OnKeyDown(int key, int repeat, int flags) {
         OpenObjectives(interface_);
         break;
     case kActionLeader:
-        if (leader_) CameraSetTargetOriginal(camera::TheCamera(), nullptr, leader_);
+        if (leader_) static_cast<CCamera*>(camera::TheCamera())->SetTarget(leader_);
         inputHandled_ = true;
         break;
     case kActionQuickSave:

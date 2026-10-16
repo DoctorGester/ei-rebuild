@@ -127,7 +127,7 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
             int n = picked_.size;
             DwordArraySetSizeOriginal(&picked_, nullptr, n + 1, -1);
             picked_.data[n] = static_cast<std::uint32_t>(unit->id_);
-            ClientWorldControlUnitOriginal(world, nullptr, unit);
+            static_cast<CWorldClient*>(world)->Select(unit);
             return;
         }
         Vector3 ground;
@@ -156,7 +156,7 @@ void UnitPickInput::OnRightDown(int, int, int) {
     }
     picked_.maxSize = 0;
     picked_.size = 0;
-    ClientWorldSelectOriginal(WorldClient(), nullptr, nullptr);
+    static_cast<CWorldClient*>(WorldClient())->Deselect(nullptr);
 }
 EI_REPLACE_METHOD(0x005EBB40, UnitPickInput::OnRightDown);
 
@@ -164,7 +164,7 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
     if (key == kVkControl) {
         GameCursor()->SetShape(kCursorCtrl);
     } else if (key == kVkSpace) {
-        GameSetServerPaused(ServerFlagOriginal() == 0);
+        GameSetServerPaused(GameServerPaused() == 0);
     }
 }
 EI_REPLACE_METHOD(0x005EBB80, UnitPickInput::OnKeyDown);

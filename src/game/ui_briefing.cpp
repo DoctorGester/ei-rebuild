@@ -185,8 +185,8 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     if (unit->id_ != RecordUnitId(player->records[0])) return;
 
     leader_ = unit;
-    ClientWorldControlUnitOriginal(ClientWorld(), nullptr, unit);
-    CameraSetTargetOriginal(camera::TheCamera(), nullptr, unit);
+    static_cast<CWorldClient*>(ClientWorld())->Select(unit);
+    static_cast<CCamera*>(camera::TheCamera())->SetTarget(unit);
     MapRecord* zone;
     {
         BriefingPlayerName name;
@@ -204,7 +204,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         if (parts.size != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;
-        BriefingStartDialogueOriginal(this, nullptr, 1, 1);
+        StartDialogue(1, 1);
         break;
     }
 }
@@ -240,7 +240,7 @@ EI_REPLACE_METHOD(0x00608C70, CBriefingScreen::OnGameOver);
 
 void CBriefingScreen::OnBriefing(const char* name) {
     topic_ = name;
-    BriefingStartDialogueOriginal(this, nullptr, 1, 1);
+    StartDialogue(1, 1);
 }
 EI_REPLACE_METHOD(0x006030C0, CBriefingScreen::OnBriefing);
 

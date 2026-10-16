@@ -181,7 +181,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
             personHomeDirection_ = Facing(person_);
         }
     } else {
-        BriefingMovePersonOriginal(this, nullptr, leader_, leaderPlace.x, leaderPlace.y, leaderPlace.z,
+        MovePerson(leader_, leaderPlace.x, leaderPlace.y, leaderPlace.z,
                                    personPlace.x - leaderPlace.x, personPlace.y - leaderPlace.y,
                                    personPlace.z - leaderPlace.z, 1, immediate_, 0);
     }
@@ -202,11 +202,11 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     if (noWalk_) DropMover(movers_, person_, &personHome_, &personHomeDirection_);
     if (third_) {
         Vector3 facing = Difference(Middle(personPlace, leaderPlace), thirdPlace);
-        BriefingMovePersonOriginal(this, nullptr, third_, thirdPlace.x, thirdPlace.y, thirdPlace.z, facing.x, facing.y,
+        MovePerson(third_, thirdPlace.x, thirdPlace.y, thirdPlace.z, facing.x, facing.y,
                                    facing.z, 1, immediate_, 0);
     }
     if (noWalk_) {
-        BriefingMovePersonOriginal(this, nullptr, person_, personPlace.x, personPlace.y, personPlace.z,
+        MovePerson(person_, personPlace.x, personPlace.y, personPlace.z,
                                    leaderPlace.x - personPlace.x, leaderPlace.y - personPlace.y,
                                    leaderPlace.z - personPlace.z, 1, immediate_, 0);
     }
@@ -248,7 +248,7 @@ void CBriefingScreen::FinishDialogue() {
     for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
         CUnit* unit = speaker->unit;
         void* server = LocalServerPlayer()->server;
-        if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventLeaves, unit->id_);
+        if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventLeaves, unit->id_);
         auto* model = reinterpret_cast<CUnitClientSpecific*>(unit->controller);
         model->blinks = 0;
         model->BlinkOpen(true);
@@ -270,12 +270,12 @@ void CBriefingScreen::FinishDialogue() {
     if (leader_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, leader_->id_, 0.0f);
     if (person_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, person_->id_, 0.0f);
     if (third_) {
-        BriefingMovePersonOriginal(this, nullptr, third_, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
+        MovePerson(third_, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
                                    thirdDirection_.y, thirdDirection_.z, 0, 0, 0);
         third_ = nullptr;
     }
     if (noWalk_ && person_) {
-        BriefingMovePersonOriginal(this, nullptr, person_, personHome_.x, personHome_.y, personHome_.z,
+        MovePerson(person_, personHome_.x, personHome_.y, personHome_.z,
                                    personHomeDirection_.x, personHomeDirection_.y, personHomeDirection_.z, 0, 0, 0);
     }
 
@@ -290,14 +290,14 @@ void CBriefingScreen::FinishDialogue() {
 
     state_ = kStateWalking;
     void* server = LocalServerPlayer()->server;
-    if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventEnds, leader_->id_);
+    if (server) static_cast<CPlayerServer*>(server)->SendPair19(kEventEnds, leader_->id_);
     Vector3 at = Position(leader_);
     if (briefingStarted_) {
         static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition04(&at, 0, 1);
         camera::TheCamera()->flags_ &= ~CCamera::kFree;
         briefingStarted_ = false;
     } else {
-        PlayerSendViewOriginal(LocalServerPlayer()->server, nullptr, &savedCamera_, &lookAt_, 0);
+        static_cast<CPlayerServer*>(LocalServerPlayer()->server)->SendPosition0F(&savedCamera_, &lookAt_, 0);
     }
 }
 EI_REPLACE_METHOD(0x00608450, CBriefingScreen::FinishDialogue);

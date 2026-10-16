@@ -1,6 +1,7 @@
 // The titles window's frame and close (0062BD80, 0062BD00) and its script lines' destructor
 // (0062BCB0). The window's Create is in ui_layouts.cpp, its input in ui_screens.cpp. See
 // ui_screens.h (CCreditsScreen) and docs/notes/ui.md ("Main menu, dialogs, escape menu, credits").
+#include "app_helpers.h"
 #include "bink_video.h"
 #include "ui_screens.h"
 
@@ -23,10 +24,8 @@ constexpr std::uint32_t kHeaderColour = 0xFEFEFE;
 constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
 // 00455E20: the movie flag (00784752; 1: movies shown at their own size). __cdecl, AL.
-__declspec(naked) char __cdecl MovieModeOriginal() EI_ORIGINAL(0x00455E20)
 // CBinkVideo's frame step (005DBD80, RET 4: AL whether the movie still plays; rewritten in
 // bink_video.cpp) and close (005DBF70, plain RET).
-__declspec(naked) char __fastcall MovieFrameOriginal(CBinkVideo*, void*, char /*stretch*/) EI_ORIGINAL(0x005DBD80)
 
 // The display object's (00500960) +0x14: the colour the titles keep cleared.
 struct DisplayColour {
@@ -82,7 +81,7 @@ BOOL CCreditsScreen::Draw(int pass) {
             currentLine_ = currentLine_->next;
         }
     }
-    if (!MovieFrameOriginal(&player_, nullptr, MovieModeOriginal() != 1) && finished_) {
+    if (!player_.Frame(app::MovieMode() != 1) && finished_) {
         player_.Close();
         PlayMoviesOriginal(mfc::operator+(*reinterpret_cast<const mfc::CString*>(&name_), kOutroSuffix), 0, 0, 0, 0);
         InterfaceHasScreen() = false;

@@ -564,7 +564,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
                               : nullptr;
     surface->CaptureScreen();
     CursorSetShape(kCursor, nullptr, 3);
-    Interface()->serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
+    Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
     mfc::CString notice;
     Texts()->GetString(game::savewords::NotifySaving(), &notice);
     ShowStatusText(kInterface, nullptr, notice);

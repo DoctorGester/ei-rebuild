@@ -432,8 +432,6 @@ public:
     // 00625510 (ui_small_members.cpp; the camp's action 00611930 reads it). Whether something was
     // bought for the hero shown (its record's bought byte, in AL).
     std::uint8_t Bought() const;
-    // Bought through 00625510, so its wrapper sees the call (the camp's action).
-    std::uint8_t CallBought();
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 

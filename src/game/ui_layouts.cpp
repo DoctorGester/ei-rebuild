@@ -3,6 +3,7 @@
 //
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
+#include "bink_video.h"
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
@@ -675,9 +676,7 @@ namespace {
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator.
-__declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
 CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(DisplayObject()); }
-__declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
 
 struct TitlesTokenizer {
     int position;                    // -1 at the end
@@ -698,7 +697,7 @@ void CCreditsScreen::Build() {
     CInterface3D* ui = window.interface_;
     const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
     if (!fromGame_) {
-        LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
+        static_cast<CSoundManager*>(*reinterpret_cast<void**>(0x007AF784))->StopAll(1);
         (*reinterpret_cast<CMusicSystem**>(0x007AF760))->Stop();
     }
     CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
@@ -759,7 +758,7 @@ void CCreditsScreen::Build() {
         void* memory = gamecrt::operator_new(0x58);
         RECT rect = {10, 0x96, 0x316, 0x1C2};
         textSurface_ = static_cast<CUiScrollingSurface*>(
-            window.AddSurface(memory ? TitlesScrollSurface(memory, nullptr, ui, &rect) : nullptr));
+            window.AddSurface(memory ? static_cast<CUiScrollingSurface*>(memory)->Construct(ui, &rect) : nullptr));
         textSurface_->Freeze(0, 0);
     }
     {
@@ -771,10 +770,9 @@ void CCreditsScreen::Build() {
     if (fromGame_) Glue(0x007AFEA4)->SetServer(0);
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
-    TitlesPlay(&player_, nullptr,
-               mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), game::Text(0x00784A4C)), name),
-                              game::Text(0x00794018)),   // "<folder>Movies\<name>.bik"
-               0);
+    static_cast<CBinkVideo*>(&player_)->Open(mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), game::Text(0x00784A4C)), name),
+                                                            game::Text(0x00794018)),   // "<folder>Movies\<name>.bik"
+                                             0);
     finished_ = false;
 }
 EI_REPLACE_METHOD(0x0062B7D0, CCreditsScreen::Build);

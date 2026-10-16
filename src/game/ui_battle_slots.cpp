@@ -83,7 +83,7 @@ EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
         auto& party = party_;
-        if (party.size > 0) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party.data[0]);
+        if (party.size > 0) static_cast<CCamera*>(camera::TheCamera())->SetTarget(party.data[0]);
         if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
         hasHero_ = false;
         interface_->ShowHelp(0);
@@ -97,7 +97,7 @@ EI_REPLACE_METHOD(0x006360F0, CBattleScreen::PollShown);
 void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
     for (auto* node = items->head; node != nullptr;) {
         auto* next = node->next;
-        TopPanelPickedUpOriginal(topPanel_, nullptr, node->data, static_cast<char>(crippled));
+        topPanel_->AddPickedUp(node->data, static_cast<char>(crippled));
         node = next;
     }
     topPanel_->AddMoney(money);
@@ -202,7 +202,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     }
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
     if (selected) {
-        ClientWorldControlUnitOriginal(ClientWorld(), nullptr, unit);
+        static_cast<CWorldClient*>(ClientWorld())->Select(unit);
         MarkPortrait(place);
     }
     // A hero the save had selected.
@@ -211,7 +211,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         int after = heroes_.size - i - 1;
         if (after != 0) std::memmove(&heroes_.data[i], &heroes_.data[i + 1], after * sizeof(heroes_.data[0]));
         --heroes_.size;
-        ClientWorldControlUnitOriginal(ClientWorld(), nullptr, unit);
+        static_cast<CWorldClient*>(ClientWorld())->Select(unit);
         MarkPortrait(place);
         break;
     }

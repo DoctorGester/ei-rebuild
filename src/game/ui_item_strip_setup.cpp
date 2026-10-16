@@ -59,7 +59,7 @@ CUiMesh* Sprite(CUiWindow& w, int index) { return reinterpret_cast<CUiMesh*>(w.s
 
 void CUiItemStrip::Setup(UiPtrArray<char>* source, char top) {
     window.LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind, nullptr);
-    ItemStripBuildOriginal(this, nullptr, top);
+    Build(top);
     window.regions_.data[0]->SetTip(0x4FB0, 1, 0);
     window.regions_.data[1]->SetTip(0x4FB1, 1, 0);
     window.AddSurface(NewSurface(window.interface_, 50, top_ + 15, 750, top_ + 35));
@@ -72,7 +72,7 @@ EI_REPLACE_METHOD(0x00621160, CUiItemStrip::Setup);
 void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTips) {
     figures_ = names;
     window.LoadTexture(kFigureTexture, kTextureKind, nullptr);
-    ItemStripBuildOriginal(this, nullptr, top);
+    Build(top);
     if (!noArrowTips) {
         window.regions_.data[0]->SetTip(0x9DD0, 1, 0);
         window.regions_.data[1]->SetTip(0x9DD1, 1, 0);

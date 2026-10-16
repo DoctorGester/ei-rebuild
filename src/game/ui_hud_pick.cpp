@@ -54,9 +54,9 @@ bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spe
         return true;
     }
     if (spell->targetFlags_ & kSpellOnUnit)
-        BattleUseOnUnitOriginal(screen, nullptr, target, quick, 0);
+        static_cast<CBattleScreen*>(screen)->UseOnUnit(target, quick, 0);
     else
-        BattleUseAtPointOriginal(screen, nullptr, target->position.x, target->position.y, target->position.z, unit, quick);
+        static_cast<CBattleScreen*>(screen)->UseAtPoint(target->position.x, target->position.y, target->position.z, unit, quick);
     return true;
 }
 } // namespace

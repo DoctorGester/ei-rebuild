@@ -1,6 +1,7 @@
 // The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
 // 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
 #include "core_streams.h"
+#include "player_messages.h"
 #include "ui.h"
 #include "ui_briefing.h"
 
@@ -350,10 +351,10 @@ void CBriefingScreen::Update() {
         SetMeshesVisible(this, 1);
         text_->SetEnabled(1, 1);
         if (voice_ != -1) {
-            if (VoiceEnded(voice_)) BriefingNextPhraseOriginal(this, nullptr, 0);
+            if (VoiceEnded(voice_)) NextPhrase(0);
         } else {
             phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
-            if (!(phraseTime_ >= 0.0f)) BriefingNextPhraseOriginal(this, nullptr, 0);
+            if (!(phraseTime_ >= 0.0f)) NextPhrase(0);
         }
         break;
     case kRewards:
@@ -393,7 +394,7 @@ void CBriefingScreen::MarkPeople() {
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
         auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(ServerWorld(), nullptr, 0));
         if (player && player->server)
-            PlayerSendDialogueEventOriginal(player->server, nullptr, hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
+            static_cast<CPlayerServer*>(player->server)->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }
     open.clear();
     open.FreeStorage();

@@ -28,7 +28,7 @@ void LoadPersonTexts(PersonTextMap* map) {
     CTextManager* texts = GameTexts();
     console::CStringArray keys;
     mfc::CString line;
-    TextsFindKeysOriginal(texts, nullptr, &keys, PersonPattern());
+    texts->ListKeys(&keys, PersonPattern());
     for (int i = 0; i < keys.size; ++i) {
         if (!TextsOpenSection(texts, nullptr, keys[i])) continue;
         static_cast<CTextManager*>(texts)->ReadLine(&line, 1);

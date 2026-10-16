@@ -180,7 +180,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
     void* manager = UiTextureManager();
     if (!woundsTexture) {
-        AssignTexture(&woundsTexture, static_cast<CTexture*>(TextureFindOriginal(manager, nullptr, kWoundsTextureKind, name)));
+        AssignTexture(&woundsTexture, static_cast<CTexture*>(static_cast<CTextureManager*>(manager)->FindTypedTexture(kWoundsTextureKind, name)));
         if (!woundsTexture) {
             AssignTexture(&woundsTexture, static_cast<CTexture*>(TextureNamedOriginal(manager, nullptr, kWoundsTextureKind, name)));
             if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);

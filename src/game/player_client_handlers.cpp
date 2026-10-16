@@ -203,7 +203,7 @@ int CPlayerClient::OnUnitControl() {
     auto* unit = static_cast<CUnit*>(FindClientUnit(unitId));
     switch (kind) {
     case 0:
-        if (unit) ClientWorldControlUnitOriginal(WorldClient(), nullptr, unit);
+        if (unit) static_cast<CWorldClient*>(WorldClient())->Select(unit);
         return 1;
     case 1:
     case 2: {

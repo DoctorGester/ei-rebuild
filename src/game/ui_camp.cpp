@@ -230,9 +230,6 @@ bool IsPart(const std::uint8_t* item) { return ItemKindIsPartOriginal(item); }
 bool IsKindOne(const std::uint8_t* item) { return ItemKindIsKindOneOriginal(item); }
 bool IsBlueprint(const std::uint8_t* item) { return ItemKindIsBuildableOriginal(item); }
 
-// 0068B7C0 (thiscall on the spell): the spell has a cast-flag modifier.
-__declspec(naked) bool __fastcall SpellHasCastFlag(const std::uint8_t*) EI_ORIGINAL(0x0068B7C0)
-
 // The database records of the camp's loot items (the record index at +0x54): spells, spell
 // modifiers and materials (null past the end; the original then reads through null).
 template <typename T>
@@ -414,7 +411,7 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
         if (!itemMade_) return false;
         std::uint8_t* spell = reinterpret_cast<std::uint8_t*>(AsItem(item)->spell_);
         if (!spell) return false;
-        if (ItemType(itemMade_) != 0x3006 && !SpellHasCastFlag(spell)) return false;
+        if (ItemType(itemMade_) != 0x3006 && !AsItem(item)->spell_->HasCastFlagModifier()) return false;
         if (Read<std::uint32_t>(spell, 0x50) > Read<std::uint32_t>(itemMade_, 0x40)) return false;
         // FCOMPP / TEST AH,1: the container's +0x2C below the spell's +0x40 (or unordered) fails.
         float need = Read<float>(spell, 0x40);
@@ -443,8 +440,6 @@ namespace {
 int Count(const std::uint8_t* item) { return Read<int>(item, 0x48); }
 } // namespace
 
-// CTradePanel::Bought (00625510) and the constructors' checks through their addresses.
-__declspec(naked) std::uint8_t CTradePanel::CallBought() EI_ORIGINAL(0x00625510)
 __declspec(naked) bool CCampPages::CallCanMakeSpell() EI_ORIGINAL(0x00612290)
 __declspec(naked) bool CCampPages::CallCanMakeItem() EI_ORIGINAL(0x00612600)
 
@@ -524,7 +519,7 @@ void CCampPages::UpdateAction() {
         }
         break;
     case 1: {
-        bool up = trade_->CallBought() != 0;
+        bool up = trade_->Bought() != 0;
         actionShown_ = up;
         actionEnabled_ = up;
         cost_ = trade_->PurchaseCost();
@@ -649,10 +644,10 @@ BOOL CCampPages::Draw(int pass) {
         info.part = 0;
         info.weapon = nullptr;
         info.stats = nullptr;
-        if (trade_->enabled_ == 0 || (TradePanelHoverInfoOriginal(trade_, nullptr, x, y, &info), info.kind < 0)) {
-            if (statsPanel_->enabled_ != 0) StatsPanelHoverInfoOriginal(statsPanel_, nullptr, x, y, &info);
+        if (trade_->enabled_ == 0 || (static_cast<CTradePanel*>(trade_)->HoverInfo(x, y, &info), info.kind < 0)) {
+            if (statsPanel_->enabled_ != 0) static_cast<CHeroStatsPanel*>(statsPanel_)->HoverInfo(x, y, &info);
         }
-        if (descPanel_) InfoPanelDescribeStatsOriginal(descPanel_, nullptr, &info);
+        if (descPanel_) descPanel_->DescribeStats(&info);
     }
     UpdateAction();
     reinterpret_cast<CUiContainer*>(this)->DrawContainer(pass);

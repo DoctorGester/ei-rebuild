@@ -69,19 +69,13 @@ __declspec(naked) inline void __fastcall EditFieldSetTextOriginal(void* /*edit*/
 __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                       const char*, const char*, int, int, int)
     EI_ORIGINAL(0x00634650)
-// 00620380: CUiItemStrip::Build(top) (RET 4; the flag is a byte; rewritten in ui_item_strip.cpp).
-__declspec(naked) inline void __fastcall ItemStripBuildOriginal(void* /*strip*/, void*, int /*top*/) EI_ORIGINAL(0x00620380)
 // 00458270 (__fastcall: ECX the section name, DL clears the screen first; then clear-after and two values on
 // the stack, RET 0xC): plays the movies listed under a section (the titles' "<name>fin" / "<name>fout").
 __declspec(naked) inline void __fastcall PlayMoviesOriginal(const char* /*section*/, int /*clearFirst*/, int, int, int)
     EI_ORIGINAL(0x00458270)
-// 00630860: CGlobalMap::SelectZone(index, isLink) (RET 8; the flag is a byte; rewritten in ui_global_map_places.cpp).
-__declspec(naked) inline void __fastcall GlobalMapSelectZoneOriginal(void* /*map*/, void*, int /*index*/, int /*isLink*/)
-    EI_ORIGINAL(0x00630860)
 // 00600270: CUiWindow's frame time in seconds, unrounded in ST0 (ECX = window, plain RET).
 __declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*window*/) EI_ORIGINAL(0x00600270)
 // 00578D00: the flag's byte (007AFFCC) in AL; plain RET, ECX not read.
-__declspec(naked) inline char __cdecl ServerFlagOriginal() EI_ORIGINAL(0x00578D00)
 // 00458010 (__fastcall, two byte arguments in CL and DL; rewritten as FrameStep, app_frame.cpp): a frame step.
 __declspec(naked) inline void __fastcall FrameStepOriginal(char, char) EI_ORIGINAL(0x00458010)
 
@@ -109,7 +103,6 @@ __declspec(naked) inline void __fastcall UiMeshFramedOriginal(void* /*mesh*/, vo
 __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/) EI_ORIGINAL(0x005E5270)
 // 006B71C0: CSoundManager::StopAll(stopStream) (thiscall on the sound manager [007AF784], RET 4;
 // rewritten in sound_manager.cpp; the name is historical).
-__declspec(naked) inline void __fastcall LoadingStepOriginal(void* /*loading*/, void*, int /*step*/) EI_ORIGINAL(0x006B71C0)
 
 // C3j. 005E7060: sprite SetScale (RET 4; the float is only copied to three fields, so it is raw dword bits; no result).
 __declspec(naked) inline void __fastcall SpriteSetScaleOriginal(void* /*sprite*/, void*, std::uint32_t /*scaleBits*/)
@@ -190,8 +183,6 @@ __declspec(naked) inline void* __fastcall TextureNamedOriginal(void* /*manager*/
 __declspec(naked) inline int __fastcall TextureLoadOriginal(void* /*manager*/, void*, void* /*texture*/) EI_ORIGINAL(0x006922A0)
 // 00692D30 (RET 8): the registered texture of `kind` named `name` (a byte compare), else the cached one (00691BF0);
 // null when neither has it.
-__declspec(naked) inline void* __fastcall TextureFindOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
-    EI_ORIGINAL(0x00692D30)
 __declspec(naked) inline int __fastcall TextureLoadFromOriginal(void* /*manager*/, void*, void* /*texture*/,
                                                                 const char* /*directory*/) EI_ORIGINAL(0x006926F0)
 __declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,
@@ -210,13 +201,6 @@ __declspec(naked) inline void* __stdcall CdcFromHandleOriginal(void* /*dc*/) EI_
 __declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedure*/, void* /*parameter*/, int /*priority*/,
                                                                 unsigned /*stack*/, unsigned long /*flags*/,
                                                                 void* /*security*/) EI_ORIGINAL(0x007022A0)
-// 00637500 / 00637750 (rewritten as CBattleScreen::UseOnUnit / UseAtPoint; through their addresses so the
-// wrappers run): the pending spell or quick item used on `target` (thiscall, RET 0xC: target, quick (low byte), ctrl)
-// or at the point (RET 0x14: x, y, z, unit, quick (low byte)); no result.
-__declspec(naked) inline void __fastcall BattleUseOnUnitOriginal(void* /*screen*/, void*, void* /*target*/, char /*quick*/,
-                                                                 int /*ctrl*/) EI_ORIGINAL(0x00637500)
-__declspec(naked) inline void __fastcall BattleUseAtPointOriginal(void* /*screen*/, void*, float /*x*/, float /*y*/, float /*z*/,
-                                                                  void* /*unit*/, char /*quick*/) EI_ORIGINAL(0x00637750)
 // 0068B770 (rewritten as CSpell::IsOffensive; Rebirth's FixSpellSelfCasting patches it): an attack spell (thiscall on
 // the spell, plain RET, AL).
 __declspec(naked) inline bool __fastcall SpellIsOffensiveOriginal(void* /*spell*/) EI_ORIGINAL(0x0068B770)
@@ -224,8 +208,6 @@ __declspec(naked) inline bool __fastcall SpellIsOffensiveOriginal(void* /*spell*
 __declspec(naked) inline void __fastcall AutoSaveOriginal(const char* /*name*/, int /*flag*/) EI_ORIGINAL(0x006570E0)
 // 0040D3B0 (rewritten as CCamera::SetTarget; through its address so the wrapper runs): the camera follows `target`
 // (thiscall on 0079B2A8, RET 4).
-__declspec(naked) inline void __fastcall CameraSetTargetOriginal(void* /*camera*/, void*, const void* /*target*/)
-    EI_ORIGINAL(0x0040D3B0)
 // 005EBDB0: the battle screen's party array (an MFC CArray of unit pointers) SetSize (RET 8; growBy -1 keeps the step).
 __declspec(naked) inline void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x005EBDB0)
@@ -234,8 +216,6 @@ __declspec(naked) inline void __fastcall PortraitsRebuildOriginal(void* /*portra
     EI_ORIGINAL(0x006407E0)
 // The top panel (thiscall): 0064A4E0 adds the "combat_picked_up" (or with `crippled` "combat_crippled") line of an item
 // (RET 8); 0064A7A0 shows its current page (plain RET).
-__declspec(naked) inline void __fastcall TopPanelPickedUpOriginal(void* /*panel*/, void*, CItem* /*item*/, char /*crippled*/)
-    EI_ORIGINAL(0x0064A4E0)
 __declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*/) EI_ORIGINAL(0x0064A7A0)
 // 006575B0: loads the saved game `name` (ECX; plain RET; not on a network client).
 __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*name*/) EI_ORIGINAL(0x006575B0)
@@ -243,8 +223,6 @@ __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*nam
 __declspec(naked) inline void __fastcall ItemStripScrollToItemOriginal(void* /*strip*/, void*, void* /*item*/)
     EI_ORIGINAL(0x00621570)
 // 00566030: the client world (007AF5B8) controls `unit` (thiscall, RET 4; no result).
-__declspec(naked) inline void __fastcall ClientWorldControlUnitOriginal(void* /*world*/, void*, void* /*unit*/)
-    EI_ORIGINAL(0x00566030)
 // 00578AC0: the client glue (007AFEA5, not read) leaves the zone through exit `exit` (a network client asks its
 // session; otherwise the local view, 0066B140; RET 4).
 __declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*glue*/, void*, int /*exit*/)
@@ -254,14 +232,6 @@ __declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*gl
 // Describe(item), 005F1590 DescribeStats(info) (each RET 4).
 __declspec(naked) inline void __fastcall InfoPanelDescribeOriginal(void* /*panel*/, void*, void* /*item*/)
     EI_ORIGINAL(0x005EE6C0)
-__declspec(naked) inline void __fastcall InfoPanelDescribeStatsOriginal(void* /*panel*/, void*, void* /*info*/)
-    EI_ORIGINAL(0x005F1590)
-// 00625690 / 00624CB0 (rewritten as CTradePanel::HoverInfo / CHeroStatsPanel::HoverInfo): what the statistics under
-// (x, y) are (RET 0xC).
-__declspec(naked) inline void __fastcall TradePanelHoverInfoOriginal(void* /*panel*/, void*, int, int, void* /*info*/)
-    EI_ORIGINAL(0x00625690)
-__declspec(naked) inline void __fastcall StatsPanelHoverInfoOriginal(void* /*panel*/, void*, int, int, void* /*info*/)
-    EI_ORIGINAL(0x00624CB0)
 // 005EC300 (rewritten as CUiWindow::DrawHeroPreview): the hero preview (RET 0x14: pass, model, turn, depth, wide).
 __declspec(naked) inline void __fastcall WindowDrawHeroPreviewOriginal(void* /*window*/, void*, int /*pass*/,
                                                                        void* /*model*/, float /*turn*/,
@@ -321,22 +291,9 @@ __declspec(naked) inline void __fastcall TradePanelClampScrollOriginal(void* /*p
 // address): a script string event on the interface (007C7D50; RET 4, no result).
 __declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*interface*/, void*, const char* /*event*/)
     EI_ORIGINAL(0x005F8070)
-// A-I10. The briefing / base screen (CBriefingScreen, ui_briefing.h; thiscall on the window): 006064E0 starts dialogue topic_
-// (RET 8: a flag, a second flag); 00604C50 the next phrase (RET 4: `skip`, the phrase's voice stopped); 00608B60
-// (rewritten as OpenTopics) a person's topics (RET 4).
-__declspec(naked) inline void __fastcall BriefingStartDialogueOriginal(void* /*screen*/, void*, int, int) EI_ORIGINAL(0x006064E0)
-__declspec(naked) inline void __fastcall BriefingNextPhraseOriginal(void* /*screen*/, void*, int /*skip*/) EI_ORIGINAL(0x00604C50)
-__declspec(naked) inline void __fastcall BriefingOpenTopicsOriginal(void* /*screen*/, void*, void* /*person*/)
-    EI_ORIGINAL(0x00608B60)
-// A-I11. 0066F840 (CPlayerServer, RET 8): message 0x19, a dialogue event (byte `what`: 3 the phrases start, 2 a
-// person leaves the dialogue) and a dword (a unit id, or 0).
-__declspec(naked) inline void __fastcall PlayerSendDialogueEventOriginal(void* /*server*/, void*, int /*what*/, int /*value*/)
-    EI_ORIGINAL(0x0066F840)
 // 004DEFA0 (the text manager; RET 8): the section names matching `pattern` ("pers *") into a CStringArray. 00609E70
 // (a PersonTextMap; RET 0xC): insert with a hint (an STLport map<int, CString> node, a {key, CString} pair); the
 // node's iterator is written to `result`, which is returned.
-__declspec(naked) inline void __fastcall TextsFindKeysOriginal(void* /*texts*/, void*, void* /*out CStringArray*/,
-                                                               const char* /*pattern*/) EI_ORIGINAL(0x004DEFA0)
 __declspec(naked) inline void** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, void** /*result*/,
                                                                        void* /*hint*/, const void* /*pair*/)
     EI_ORIGINAL(0x00609E70)
@@ -346,9 +303,6 @@ __declspec(naked) inline void** __fastcall PersonMapInsertHintOriginal(void* /*m
 // `immediate` (byte) places it at once instead, `time` the walk's time argument.
 __declspec(naked) inline void __fastcall GameSetUnitHeightOriginal(void* /*glue*/, void*, int /*id*/, float /*z*/)
     EI_ORIGINAL(0x00578760)
-__declspec(naked) inline void __fastcall BriefingMovePersonOriginal(void* /*screen*/, void*, void* /*unit*/, float, float, float,
-                                                                    float, float, float, int /*waited*/, int /*immediate*/,
-                                                                    int /*time*/) EI_ORIGINAL(0x006089D0)
 // A-I12. 00578560 (the client glue 007AFEA6, not read; RET 4): the local player's "constr.current" = `constructor` (the
 // constructor the camp opens with; message to the server). 00578B00 (the client glue, not read; RET 4): the client
 // asks the server for interface screen `id` (1 battle, 3 briefing, 4 global map, 5 camp).
@@ -368,27 +322,12 @@ __declspec(naked) inline void __fastcall HeroScreenSetModeOriginal(void* /*scree
 // 0066ED30 (rewritten as CPlayerServer::SendPosition04; RET 0xC): message 0x04, a position and two dwords. 00592090
 // (rewritten as CWorldServer::CompleteBriefing; RET 8): briefing variable `name` is complete for player `playerId`.
 // 00607A60 (rewritten as CBriefingScreen::PlaySpeakerAnimation; RET 0xC).
-__declspec(naked) inline void __fastcall BriefingSpeakerAnimationOriginal(void* /*screen*/, void*, void* /*unit*/, int /*talking*/,
-                                                                          int /*third*/) EI_ORIGINAL(0x00607A60)
 __declspec(naked) inline void __fastcall WorldCompleteBriefingOriginal(void* /*world*/, void*, int /*playerId*/,
                                                                       const char* /*name*/) EI_ORIGINAL(0x00592090)
-// 00607BB0 (rewritten as CBriefingScreen::ViewSpeaker; through its address so the wrapper runs; RET 0x10).
-__declspec(naked) inline void __fastcall BriefingViewSpeakerOriginal(void* /*screen*/, void*, void* /*unit*/, float /*angle*/,
-                                                                     float /*distance*/, float /*height*/) EI_ORIGINAL(0x00607BB0)
-// 0066EDA0 (rewritten as CPlayerServer::SendPosition0F; RET 0xC): message 0x0F, a camera position `at`, the point it
-// looks at and a flag byte.
-__declspec(naked) inline void __fastcall PlayerSendViewOriginal(void* /*server*/, void*, const Vector3* /*at*/,
-                                                                const Vector3* /*point*/, int /*flag*/) EI_ORIGINAL(0x0066EDA0)
 // 00578C40: the client glue (007AFEA4, not read) copies the local player's variables whose names start with `prefix`
 // into `out` (a NamedFloatTable; emptied when there is no player; RET 8).
 __declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*/, void*, const char* /*prefix*/,
                                                                    void* /*out*/) EI_ORIGINAL(0x00578C40)
-// 0063B5D0 (rewritten as CObjectivesWindow::Construct; through its address so the wrapper runs; RET 4, returns this).
-__declspec(naked) inline void* __fastcall ObjectivesConstructOriginal(void* /*memory*/, void*, CInterface3D*)
-    EI_ORIGINAL(0x0063B5D0)
-// A-H20. The scrolling text's tokeniser 0065D4B0 (RET 4: a CString*; rewritten in ui_scroll_text.cpp).
-__declspec(naked) inline void __fastcall ScrollTextTokenizeOriginal(void* /*text*/, void*, const void* /*CString*/)
-    EI_ORIGINAL(0x0065D4B0)
 // A-I13. 0065CC00: the scrolling text's constructor (CUiScrollText; RET 0x1C, returns this): the interface, a string
 // (the exe's empty text), the layout rectangle by value (left, top, right, bottom) and the sprites' depth (A-H20: the
 // scroll bar's depth, not a line height). 005EACB0: the
@@ -406,8 +345,6 @@ __declspec(naked) inline int __fastcall GameCanLeaveZoneOriginal(void* /*glue*/,
 // the object or null); 00566100 selects `unit` (null: clears the selection; no result).
 __declspec(naked) inline CEngineObject* __fastcall ClientUnitAtOriginal(void* /*world*/, void*, const int* /*point*/)
     EI_ORIGINAL(0x00565D00)
-__declspec(naked) inline void __fastcall ClientWorldSelectOriginal(void* /*world*/, void*, void* /*unit*/)
-    EI_ORIGINAL(0x00566100)
 // The local view's orders (rewritten as CPlayerClient::SendWalk / SendAttack; through their address so the wrappers
 // run): 0066A7D0 walk (units, point, run; RET 0xC), 0066A880 attack (units, target, how, ctrl; RET 0x10). `units` is an
 // mfc::CArray<CUnit*>. Both return 1.
@@ -458,9 +395,6 @@ __declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*clie
 // A-E2. 005DAEA0 (fastcall, RET 8; rewritten as SetUpCursors): the cursor (007C7BD8) initialised and given its shapes.
 __declspec(naked) inline void __fastcall SetUpCursorsOriginal(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/)
     EI_ORIGINAL(0x005DAEA0)
-// C3m. 0063D2B0 (rewritten as CHudQuickItems::SetUnit; through its address so the wrapper runs): the quick item bar
-// shows a unit's items (thiscall on the window, RET 4).
-__declspec(naked) inline void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)
 
 // C3m. Thiscall members of game objects, called through these views (cast the object's pointer).
 // 00578B70 (rewritten as GameLocalPlayerVariables; the object at 007AFEA5): copies the local player's variables whose
