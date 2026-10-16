@@ -236,8 +236,8 @@ int CPlayerClient::OnSetVariable() {
     NamedTableGet(variables, nullptr, name);
     NamedTableSet(variables, nullptr, name, value);
     if (IsQuestVariable(name)) {
-        QuestLogUpdateOriginal(QuestLog(), nullptr, name, value);
-        ClientQuestUpdateOriginal(WorldClient(), nullptr, name, value);
+        static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, std::bit_cast<float>(value));
+        static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
 }
@@ -251,8 +251,8 @@ int CPlayerClient::OnDeleteVariable() {
     }
     VariableRemove(&Owner()->Party()->variables_, nullptr, name);
     if (IsQuestVariable(name)) {
-        QuestLogUpdateOriginal(QuestLog(), nullptr, name, 0);
-        ClientQuestUpdateOriginal(WorldClient(), nullptr, name, 0);
+        static_cast<CInterface3D*>(QuestLog())->OnQuestVariable(name, 0.0f);
+        static_cast<CWorldClient*>(WorldClient())->OnQuestVariable(name, 0.0f);
     }
     return 1;
 }

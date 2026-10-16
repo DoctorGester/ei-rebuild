@@ -2,7 +2,9 @@
 // world_effect.h and docs/notes/effects.md.
 
 #include "camera.h"
+#include "lightning.h"
 #include "script.h"
+#include "world.h"
 #include "world_effect_internal.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
@@ -27,16 +29,10 @@ inline void* __fastcall CreateSource(void* manager, void*, int type) { return Pa
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
-__declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, std::uint32_t /*y*/, std::uint32_t /*outer*/, std::uint32_t /*inner*/, std::uint32_t /*angle*/, std::uint32_t /*alpha*/) EI_ORIGINAL(0x0056D4C0)
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
 // The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
 void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
-
-// The drawn lightning bolt: 004680D0 starts it, 00467E10 moves its ends.
-__declspec(naked) void __fastcall StartBolt(CEngineObject* /*bolt*/, void*, const Vector3* /*from*/, const Vector3* /*to*/, std::uint32_t /*width*/, std::uint32_t /*flag*/) EI_ORIGINAL(0x004680D0)
-__declspec(naked) void __fastcall MoveBolt(CEngineObject* /*bolt*/, void*, const Vector3* /*from*/, const Vector3* /*to*/)
-    EI_ORIGINAL(0x00467E10)
 
 // CEffectParticle methods the wall calls directly (through their game addresses).
 __declspec(naked) int __fastcall ParticleUnpackAt(CEffectParticle*, void*, int /*update*/, DeltaField* /*field*/)
@@ -356,17 +352,17 @@ void CEffectParticle::Spawn() {
     }
 
     if (type_ == 0x2002) {
-        std::uint32_t alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
-        std::uint32_t radius = Bits(param164_);
+        float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        float radius = param164_;
         float angle = RandomAngle(RandomNext(static_cast<IsaacRandom*>(TheRandom())));
-        AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
+        WorldClient()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
     if (type_ == 0x2030) {
-        std::uint32_t alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
-        std::uint32_t radius = Bits(size_);
+        float radius = size_;
         float angle = RandomAngle(random);
-        AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
+        WorldClient()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
         static_cast<CCamera*>(CameraObject())->Shake(&localPosition_, size_, 2.0f, 0.25f);
     }
 }
@@ -523,13 +519,12 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
     if (update == 0 && type_ == 0x2010) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        std::uint32_t alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float half = static_cast<float>(size_ * ConstAt(worlddata::HalfRef()));
         float shape[2];   // angle, outer
         WallScorchShape(&direction_, &half, shape);
         float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
-        AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), Bits(shape[1]), Bits(inner),
-                  Bits(shape[0]), alpha);
+        WorldClient()->AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
     }
     return 1;
 }
@@ -598,7 +593,7 @@ void CEffectLightning::Start(int update) {
     if (created != nullptr) ++created->refCount_;
     if (old != nullptr) old->Release();
     UpdateEnds();
-    StartBolt(bolt_, nullptr, &from_, &to_, Bits(width_), flag_);
+    bolt_->Start(&from_, &to_, width_, flag_);
 }
 
 int CEffectLightning::Unpack(int update, DeltaField* field) {
@@ -679,7 +674,7 @@ void CEffectLightning::SetFlag(std::uint8_t flag) {
 int CEffectLightning::Tick() {
     if (bolt_ == nullptr || (toObject_ == -1 && fromObject_ == -1)) return 1;
     UpdateEnds();
-    MoveBolt(bolt_, nullptr, &from_, &to_);
+    bolt_->SetEndpoints(&from_, &to_);
     return 1;
 }
 

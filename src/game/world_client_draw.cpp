@@ -39,6 +39,7 @@
 #include "originals_ui.h"
 #include "originals_units.h"
 #include "ui.h"
+#include "world_deleting_destructors.h"
 #include "world_effect.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
@@ -132,8 +133,6 @@ float LandscapeDrawRadius() {
 // DrawPass's callees.
 __declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
 __declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
-__declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const Matrix4*, float, std::uint32_t, int, int)
-    EI_ORIGINAL(0x0056A990)
 __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
 __declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
 __declspec(naked) void __fastcall IntroSortByModelAt(CEngineObject**, CEngineObject**, void*, int, void*)
@@ -142,7 +141,6 @@ __declspec(naked) void __fastcall FinalSortByModelAt(CEngineObject**, CEngineObj
 __declspec(naked) void __fastcall IntroSortByModelUseAt(CEngineObject**, CEngineObject**, void*, int, void*)
     EI_ORIGINAL(0x00573D50)
 __declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngineObject**, void*) EI_ORIGINAL(0x00573F10)
-__declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGINAL(0x0056A370)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
 __declspec(naked) void __fastcall VectorErase(stlp::vector<CEngineObject*>*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
@@ -228,7 +226,7 @@ void EmptyDeferred(bool fastFree) {
     while (node != head) {
         Node* current = node;
         node = node->next;
-        CountedRelease(&current->data, nullptr, 0);
+        ObjectHolderDelete(&current->data, nullptr, 0);
         if (fastFree) NodeFree12Fast(current, 1);
         else NodeFree12(deferred, nullptr, current, 1);
         head = deferred->head;
@@ -470,7 +468,7 @@ int CWorldClient::DrawPass() {
     int touched = 0;
     SectorList* sector = &objectGrid_.rows_[sy0][sx0];
     while (sector) {
-        touched += CollectVisibleAt(this, nullptr, sector, view, animTime, now, 0, 0);
+        touched += CollectVisible(sector, view, animTime, now, 0, 0);
         std::uint32_t x = ++rangeX_;
         if (x > rangeLastX_) {
             rangeX_ = rangeFirstX_;
@@ -479,9 +477,9 @@ int CWorldClient::DrawPass() {
         }
         sector = &objectGrid_.rows_[rangeY_][rangeX_];
     }
-    touched += CollectVisibleAt(this, nullptr, FrameDeferredUnits(), view, animTime, now, 1, 0);
+    touched += CollectVisible(FrameDeferredUnits(), view, animTime, now, 1, 0);
     EmptyDeferred(false);
-    touched += CollectVisibleAt(this, nullptr, &heroes_, view, animTime, now, 1, 1);
+    touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
     stlp::vector<CEngineObject*>& models = FrameObjects(FrameList::TouchedModels);
@@ -527,7 +525,7 @@ int CWorldClient::DrawPass() {
         DrawEach(FrameList::VisibleOther, kDraw);
         DrawEach(FrameList::Visible5D, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::Visible5D).end();
-        for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin(); p != end; ++p) QueueSelected(*p, &queued);
+        for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
         Flush(renderer);
         DrawEach(FrameList::Visible54, kDraw);
         DrawEach(FrameList::Visible52, kDraw);
@@ -539,7 +537,7 @@ int CWorldClient::DrawPass() {
         ApplyStateBlock(renderer, StateBlockAlpha());
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end();
-        for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueSelected(*p, &queued);
+        for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
         Flush(renderer);
     }
 

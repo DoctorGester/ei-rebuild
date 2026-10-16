@@ -5,6 +5,7 @@
 #include "map_spec.h"
 #include "game_strings.h"
 #include "core_transform.h"
+#include "terrain.h"
 #include "world_effect.h"
 
 #include "ei/hook.h"
@@ -120,7 +121,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = TerrainHeightAtOriginal(*reinterpret_cast<Terrain**>(0x007AF738), nullptr, p.x, p.y, 0);
+    double ground = (*reinterpret_cast<Terrain**>(0x007AF738))->HeightAt(p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
     base.Record()->ApplyObject();
 }

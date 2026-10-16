@@ -501,7 +501,7 @@ int CWorldClient::Segment() {
                         double radius = light->rangeSquared_;
                         if (!NaN(squared) && !NaN(radius) && squared > radius) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
-                        point.z = static_cast<float>(TerrainHeightAtOriginal(terrain_, nullptr, nodeX, nodeY, 0));
+                        point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, 0));
                         float intensity = static_cast<float>(LightIntensityAt(light, nullptr, &point));
                         level = SelectLess(level, intensity, intensity, level);
                     }

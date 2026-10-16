@@ -67,9 +67,9 @@ inline int IsMoving(const Vector3& v) {
 }
 
 // `min(value, 1.0)` the way the scorch code selects it: the value when it compares below 1.0 or
-// is NaN (FCOMP sets C0), else 1.0. Works on the bits.
-inline std::uint32_t BelowOneOrOne(const float& value) {
-    return !(value >= 1.0f) ? Bits(value) : 0x3F800000u;
+// is NaN (FCOMP sets C0), else 1.0.
+inline float BelowOneOrOne(const float& value) {
+    return !(value >= 1.0f) ? value : 1.0f;
 }
 
 // --- Engine objects ------------------------------------------------------------------------------

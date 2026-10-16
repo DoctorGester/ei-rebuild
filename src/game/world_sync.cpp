@@ -78,24 +78,15 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The game's atexit (006E727B).
 // 0055FBD0 (RET 8). The time of day and the time speed.
 // The player state's (CPlayerServer) messages and updates.
-__declspec(naked) int __fastcall StateSendWeather(CPlayerServer*, void*, int /*byte*/, int /*strength*/) EI_ORIGINAL(0x0066EC10)
-__declspec(naked) int __fastcall StateSendTime(CPlayerServer*, void*, float /*time*/, float /*speed*/) EI_ORIGINAL(0x0066EC70)
 __declspec(naked) int __fastcall StateSendWind(CPlayerServer*, void*, Vector3 /*direction*/, std::uint32_t /*strength*/)
     EI_ORIGINAL(0x0066ECD0)
-__declspec(naked) void __fastcall StateObjectsKept(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DAD0)
 void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall StateObjectsRemoved(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DBA0)
-__declspec(naked) void __fastcall StateTimedKept(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DF40)
-__declspec(naked) void __fastcall StateTimedAdded(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066DDE0)
-__declspec(naked) void __fastcall StateTimedRemoved(CPlayerServer*, void*, StaticPtrArray*) EI_ORIGINAL(0x0066E020)
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
 __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
 // 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,
 // `kept` and `removed` (ECX known, EDX current).
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
                                                  StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
-// 004E58A0 (RET 4). Writes a zone exit to a stream.
-__declspec(naked) void __fastcall ZoneExitWrite(ZoneExit*, void*, void* /*stream*/) EI_ORIGINAL(0x004E58A0)
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
 // groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860), the unit added with
 // 005593D0 and the set written with 00559E60.
@@ -270,13 +261,13 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
             int strength = x87::fistp(weatherStrength_);
             // The original pushes EAX with the byte in AL (the rest is left from the dirty flags);
             // the callee reads the byte.
-            if (!StateSendWeather(state, nullptr, static_cast<std::uint8_t>(weather_), strength)) return 0;
+            if (!state->SendState70(static_cast<std::uint8_t>(weather_), static_cast<std::uint16_t>(strength))) return 0;
         }
         if (player->dirty & kDirtyTime) {
             float time;
             float speed;
             GetTime(&time, &speed);
-            if (!StateSendTime(state, nullptr, time, speed)) return 0;
+            if (!state->SendState71(std::bit_cast<std::uint32_t>(time), std::bit_cast<std::uint32_t>(speed))) return 0;
         }
         if (player->dirty & kDirtyWind) {
             Vector3 direction;
@@ -291,18 +282,18 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
         SetSize(collected, static_cast<int>(end - Collected().data));
         DiffObjectSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
-        StateObjectsKept(state, nullptr, &Kept());
+        state->SendObjectsRemoved(&Kept());
         StateObjectsAdded(state, nullptr, &Added());
-        StateObjectsRemoved(state, nullptr, &Removed());
+        state->SendObjectsChanged(&Removed());
 
         // Timed objects.
         SetSize(collected, static_cast<int>(timedObjects_.map.Size()));
         end = CollectTimedObjects(this, state, collected.data);
         SetSize(collected, static_cast<int>(end - Collected().data));
         DiffObjectSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
-        StateTimedKept(state, nullptr, &Kept());
-        StateTimedAdded(state, nullptr, &Added());
-        StateTimedRemoved(state, nullptr, &Removed());
+        state->SendTimedRemoved(&Kept());
+        state->SendTimedAdded(&Added());
+        state->SendTimedChanged(&Removed());
 
         if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer_;
@@ -342,7 +333,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         write(mobName_, static_cast<unsigned>(std::strlen(mobName_) + 1));
         int exits = exitCount_;
         write(&exits, 4);
-        for (int i = 0; i < exitCount_; ++i) ZoneExitWrite(&exits_[i], nullptr, &message);
+        for (int i = 0; i < exitCount_; ++i) exits_[i].Write(&message);
         write(&cave_, 4);
 
         // The zone's units.

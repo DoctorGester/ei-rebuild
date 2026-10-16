@@ -4,6 +4,7 @@
 // Floating point: values the original keeps on the FPU stack are `double` here; every store the
 // original makes to a float is a static_cast<float>. Constants it multiplies at run time are read
 // from the exe (rule 9: Rebirth may patch data).
+#include "terrain.h"
 #include "terrain_sector.h"
 #include "model.h"
 
@@ -484,7 +485,7 @@ void SectorData::ApplyWaterLevels() {
 
 namespace {
 double RawHeight(void* terrain, float x, float y, int layer) {
-    return TerrainHeightAtOriginal(static_cast<Terrain*>(terrain), nullptr, x, y, layer);   // 006C8680, ST0 used unrounded
+    return static_cast<Terrain*>(terrain)->HeightAt(x, y, layer);   // 006C8680, ST0 used unrounded
 }
 } // namespace
 

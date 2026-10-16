@@ -145,20 +145,6 @@ void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*
 // 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
 // FindFreeCellNear (ai_map.cpp; the last two through AIMapCanLeaveCellOriginal, FindFreeCellNearOriginal).
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
-__declspec(naked) int __fastcall LoadAIGraph(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
-                                             CMemoryStream* /*out*/) EI_ORIGINAL(0x00596140)
-// 004A50D0 (RET 8). Rebuilds a memory stream from `base` and the differences stored in `stream`.
-__declspec(naked) void __fastcall MemoryStreamApplyDiff(CMemoryStream*, void*, CMemoryStream* /*base*/,
-                                                        WorldStream*) EI_ORIGINAL(0x004A50D0)
-// 004A4DA0 (RET 8). Writes the differences between `base` and `current` to the stream (ECX).
-__declspec(naked) void __fastcall StreamWriteDiff(WorldStream*, void*, CMemoryStream* /*base*/,
-                                                  CMemoryStream* /*current*/) EI_ORIGINAL(0x004A4DA0)
-// 005B1380 (RET 4). Saves the AI layer at +0x2468 into a memory stream.
-__declspec(naked) void __fastcall AILayerSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005B1380)
-// 00595C70 (RET 0x10). LoadMap: loads the terrain when the map changed, then the zone (the AI
-// graph state in `graph`); 0 on failure.
-__declspec(naked) int __fastcall LoadMapAt(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
-                                         CMemoryStream* /*graph*/, char /*fromSave*/) EI_ORIGINAL(0x00595C70)
 // 00596730. SaveMapObjects (world_zone.cpp), through its address.
 __declspec(naked) void __fastcall SaveMapObjectsAt(CWorldServer*, void*, WorldStream*) EI_ORIGINAL(0x00596730)
 // 004047E0 / 00404860 (RET 4). A manager's changed objects, read / written by id.
@@ -189,8 +175,6 @@ __declspec(naked) void __fastcall CountdownsSave(void*, void*, WorldStream*) EI_
 // 006618C0 / 00661C10 (RET 8). A player's party records, read / written.
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
-// 0066D260 (RET 4). The player state's SetFlag70.
-__declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)
 // 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0055FB00 (RET 4). CWorld::FindUnit.
@@ -388,7 +372,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             ScriptGroupDestructOriginal((void*)&group);
         }
         state->SendParty();
-        PlayerStateSetFlag70(state, nullptr, 1);
+        state->SetFlag70(1);
     }
     if (it) {
         if (it->list) {
@@ -453,12 +437,12 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     stream->Read(&sessionKind_, 4);
 
     int result;
-    if (!LoadAIGraph(this, nullptr, mapName, mobName, &savedGraph.stream)) {
+    if (!ReadAIGraph(mapName, mobName, &savedGraph.stream)) {
         result = 0;
     } else {
-        MemoryStreamApplyDiff(&graph.stream, nullptr, &savedGraph.stream, stream);
+        graph.stream.ApplyDiff(&savedGraph.stream, stream);
         ShowLoadProgress(kProgressZone);
-        if (!LoadMapAt(this, nullptr, mapName, mobName, &graph.stream, 1)) {
+        if (!LoadMap(mapName, mobName, &graph.stream, 1)) {
             result = game::FatalError(game::CantLoadSaveMapText());
         } else {
             // The map objects' identities: id, type and +0x18 (created by the manager at +0x40).
@@ -694,9 +678,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, lastRainBoltTick_);
     stream->Write(&sessionKind_, 4);
 
-    LoadAIGraph(this, nullptr, mapName_, mobName_, &base);
-    AILayerSave(aiLayer_, nullptr, &current);
-    StreamWriteDiff(stream, nullptr, &base, &current);
+    ReadAIGraph(mapName_, mobName_, &base);
+    reinterpret_cast<CRegionMap*>(aiLayer_)->SaveBlocks(&current);
+    stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
     for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
@@ -913,14 +897,14 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
     if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
     LocalMemoryStream graph;
-    if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
+    if (!ReadAIGraph(map, mob, &graph.stream))
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadGraph));
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     AIMap()->BeginRefresh();
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));
     AIMap()->refreshUnits = false;
-    if (!LoadMapAt(this, nullptr, map, mob, &graph.stream, 0))
+    if (!LoadMap(map, mob, &graph.stream, 0))
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadMap));
     ShowLoadProgress(kProgressObjects);
     loaded_ = 1;

@@ -70,8 +70,6 @@ const MapRecord* FindZone(const char* name) {
 }
 // 0049ECC0 (RET 8). Quaternion from an axis and an angle.
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
-// Rewritten here and elsewhere, reached through their addresses.
-__declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
 
 void InitList(ObjectList& list) {
     list.vtable = PtrListVtable();
@@ -154,7 +152,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
             for (int i = 0; i < items->size; ++i) AddTail(taken, ItemAt(items, i));
             ItemArraySetSize(items, nullptr, 0, -1);
         } else {
-            TakeZoneQuestItemsAt(this, nullptr, items, &taken);
+            TakeZoneQuestItems(items, &taken);
         }
         if (player) {
             // Each item is given back as a fresh copy (world slot 24) keeping its count; the old

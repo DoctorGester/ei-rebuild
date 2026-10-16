@@ -20,12 +20,8 @@ namespace {
 __declspec(naked) void __fastcall MoveSound(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/) EI_ORIGINAL(0x006B92F0)
 // 006B94A0: stops a sound.
 // 006BA5E0 / 006BA7C0: moves / stops a sound sequence.
-__declspec(naked) void __fastcall MoveSequence(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int) EI_ORIGINAL(0x006BA5E0)
-__declspec(naked) void __fastcall StopSequence(void*, void*, int /*sound*/) EI_ORIGINAL(0x006BA7C0)
 // 006B9950 / 006B9A30: starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
 // returns the handle to keep (-1).
-__declspec(naked) int __fastcall PlayAmbient(void*, void*, mfc::CStringArray* /*names*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9950)
-__declspec(naked) void __fastcall MoveAmbient(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9A30)
 
 // What every Reset (slot 18) does to the base part first: position, field streams, start tick,
 // velocity, moving flag and stamp.
@@ -201,7 +197,7 @@ double CEffectSound::Radius() { return radius_; }
 
 void CEffectSoundSeq::Reset() {
     ClearBase(this);
-    if (sound_ != -1) StopSequence(SoundSystem(), nullptr, sound_);
+    if (sound_ != -1) static_cast<CSoundManager*>(SoundSystem())->RemoveSequence(sound_);
     sound_ = -1;
     volume_ = 0.0f;
     radius_ = 0.0f;
@@ -214,7 +210,7 @@ int CEffectSoundSeq::Tick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         if (sound_ != 0)
-            MoveSequence(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_), -1);
+            static_cast<CSoundManager*>(SoundSystem())->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
     }
     return 1;
 }
@@ -275,11 +271,11 @@ void CEffectAmbientSound::Reset() {
 
 void CEffectAmbientSound::Start(int update) {
     if (update == 0) {
-        sound_ = PlayAmbient(SoundSystem(), nullptr, &names_, &localPosition_, Bits(volume_), Bits(radius_),
+        sound_ = static_cast<CSoundManager*>(SoundSystem())->AddEmitter(&names_, &localPosition_.x, volume_, radius_,
                              minInterval_, maxInterval_);
         return;
     }
-    MoveAmbient(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_), minInterval_,
+    static_cast<CSoundManager*>(SoundSystem())->MoveEmitter(sound_, &localPosition_.x, volume_, radius_, minInterval_,
                 maxInterval_);
 }
 

@@ -2,6 +2,7 @@
 // EnterZone). See world.h and docs/notes/world.md.
 #include "ai_map.h"
 #include "object_diplomacy.h"
+#include "player_messages.h"
 #include "world.h"
 #include "game_strings.h"
 
@@ -28,8 +29,6 @@ __declspec(naked) void __fastcall AIMapReset(void*, void*) EI_ORIGINAL(0x005B5E1
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
-// 005B1180 (RET 4). The AI layer (+0x2468) reads its state from the graph stream (AL).
-__declspec(naked) bool __fastcall AILayerLoad(void*, void*, CStream* /*stream*/) EI_ORIGINAL(0x005B1180)
 // 0059D7A0. The timed-object map's clear (nodes freed, buckets kept).
 __declspec(naked) void __fastcall TimedMapClear(void*, void*) EI_ORIGINAL(0x0059D7A0)
 // 0040A3A0. CRefObject::Release (the missiles).
@@ -73,7 +72,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
     }
     graph->Seek(0);
-    if (graph->Size() != 0 && !AILayerLoad(aiLayer_, nullptr, graph)) return 0;
+    if (graph->Size() != 0 && !reinterpret_cast<CRegionMap*>(aiLayer_)->LoadBlocks(graph)) return 0;
 
     if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(mobName_), reinterpret_cast<const unsigned char*>(mob)) == 0) {
         // The same zone again: start over.
@@ -131,7 +130,6 @@ namespace {
 
 // 0059DDE0 (RET 4) / 0059DD90 (RET 4). Destructors of a shared-object element and of a missile's
 // counted pointer (flags 0: in place).
-__declspec(naked) void* __fastcall SharedObjectDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DDE0)
 __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
@@ -151,7 +149,7 @@ void ClearMissilePointers(CWorldServer* world) {
 
 void CWorldServer::ResetZone() {
     SharedObjectList& shared = sharedObjects_;
-    for (auto* node = shared.head; node; node = node->next) SharedObjectDestruct(&node->data, nullptr, 0);
+    for (auto* node = shared.head; node; node = node->next) static_cast<SharedObject*>(&node->data)->DeletingDestruct(0);
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     TweenArrayRemoveAllOriginal(countdowns_);
@@ -259,7 +257,6 @@ __declspec(naked) void __fastcall AlignedArraySetAtGrow(lib::AlignedArray<CEngin
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
-__declspec(naked) void __fastcall StateSendHeader(void*, void*, void* /*stream*/) EI_ORIGINAL(0x0066D230)
 
 } // namespace
 
@@ -307,7 +304,7 @@ void CWorldServer::SendFreshObjects() {
         node = next;
     }
     StateObjectsAddedOriginal(state, nullptr, &objects);
-    StateSendHeader(state, nullptr, header);
+    static_cast<CPlayerServer*>(state)->WriteTo(header);
     PlayerListRelease(PlayerList(), nullptr, temporary);
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
     fresh.vtable = ObjectPtrListVtable();

@@ -307,7 +307,7 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
 
 Vector3* CWorldClient::PickGround(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
-        return TerrainHeightAtOriginal(terrain_, nullptr, px, py, 0);
+        return terrain_->HeightAt(px, py, 0);
     });
 }
 

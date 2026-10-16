@@ -2,6 +2,7 @@
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
 #include "object_tables.h"
+#include "ui.h"
 #include "world.h"
 #include "game_strings.h"
 
@@ -258,8 +259,8 @@ void GameFlow::OnVariableChanged(const void* event) {
                                 reinterpret_cast<const unsigned char*>(game::Text(flowdata::kQuestVariablePrefix))) == 0;
     }
     if (quest) {
-        QuestLogUpdateOriginal(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);
-        ClientQuestUpdateOriginal(reinterpret_cast<void*>(0x007AF5B8), nullptr, name, value);
+        static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->OnQuestVariable(name, std::bit_cast<float>(value));
+        static_cast<CWorldClient*>(reinterpret_cast<void*>(0x007AF5B8))->OnQuestVariable(name, std::bit_cast<float>(value));
     }
 }
 

@@ -37,7 +37,6 @@ __declspec(naked) void __fastcall CountedRemoveAt(mfc::CTypedPtrList<CEngineObje
                                                   mfc::CTypedPtrList<CEngineObject>::Node*) EI_ORIGINAL(0x0059A050)
 // 005935C0. Removes object `id` from the server (Rebirth's FixRemoveMapObject patches it).
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
-__declspec(naked) void __fastcall ServerReplace60(CWorldServer*, void*) EI_ORIGINAL(0x0055F410)
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
 __declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
 // 006D44E0. Counts every countdown (+0x70) down; true (AL) when one was still running.
@@ -222,7 +221,7 @@ void CWorldServer::SetGameResult(int result) {
     if (gameResult_ != 0) return;
     gameResult_ = result;
     if (result == 2 || result == 3) {
-        ServerReplace60(this, nullptr);
+        OpenSession();
         static_cast<CPlayerSource*>(netSession_)->Query();   // the new session's slot 4 (result unused)
     }
 }

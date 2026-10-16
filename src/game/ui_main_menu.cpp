@@ -114,7 +114,7 @@ EI_REPLACE_METHOD(0x006335E0, CMainMenu::AddVersionLine);
 
 void CMainMenu::Create() {
     interface_->ResetSavedState();
-    FlowPartyStepOriginal(Flow(), nullptr, 0);
+    Flow()->UseResources(false);
     UiInputSide* inert = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
     if (inert) {
         inert->vtable_ = InertInputVtable();
@@ -187,7 +187,7 @@ EI_REPLACE_METHOD(0x00632910, CMainMenu::Close);
 // --- 00632940: a message box's answer (slot 27) -----------------------------------------------
 
 void CMainMenu::OnMessageResult(int result) {
-    FlowPartyStepOriginal(Flow(), nullptr, 0);
+    Flow()->UseResources(false);
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {

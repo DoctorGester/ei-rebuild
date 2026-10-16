@@ -80,7 +80,6 @@ static RawString* RawStringInit(RawString* s, void*, const char* text, void* all
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
 // The unit's AI brain (CUnitServer::brain, controller + 0x980).
-__declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
 // Placement on the maps.
 // The unit's setup.
@@ -337,7 +336,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             CEngineObject* controller = AsUnit(unit)->controller;
             if (record->leaderId <= 0) continue;
             void* brain = &static_cast<CUnitServer*>(controller)->brain;
-            void* follow = BrainFindFollowMode(brain, nullptr);
+            void* follow = static_cast<AIBrain*>(brain)->FindPlayerMode();
             if (!follow) continue;
             FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->leaderId));
         }
@@ -356,14 +355,12 @@ constexpr int kQuickEffectType = 9;
 constexpr std::uint32_t kQuickEffectFlags = 0x3010;
 constexpr std::uint32_t kFlagsNewEffect = 0x180000;            // 00529D20
 
-__declspec(naked) void* __fastcall BaseMessageConstruct(void*, void*) EI_ORIGINAL(0x0046A5C0)
-
 } // namespace
 
 void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     alignas(4) std::uint8_t storage[sizeof(ObjectSpec)];
     auto* message = reinterpret_cast<ObjectSpec*>(storage);
-    BaseMessageConstruct(message, nullptr);
+    message->ObjectSpecConstruct();
     *reinterpret_cast<std::uintptr_t*>(message) = worlddata::kQuickEffectSpecVtable;
     message->base.kind = kQuickEffectType;
     message->texture = worlddata::QuickEffectPrototype();
@@ -388,7 +385,6 @@ namespace {
 void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { static_cast<CMapObject*>((void*)a0)->WriteFullState(); }
 void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { static_cast<CMapObject*>(a0)->WriteChangedState(); }
 void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { static_cast<CObject3D*>((void*)a0)->SetUpAnimatedFigure(a2); }
-__declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x0050F150)
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 __declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
@@ -556,7 +552,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         base.object = object;
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
         CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
-        ObjectSetSecondName(object, nullptr, spec->model);
+        object->SetSecondName(spec->model);
         companionTexts(companion);
         race(object);
         ObjectSlots(object)->ScaleEffectChanged(0);

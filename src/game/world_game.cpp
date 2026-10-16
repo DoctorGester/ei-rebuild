@@ -1,7 +1,9 @@
 // The game flow object (007AFE20; the state machine 0057C700 runs on it, Rebirth patches that one):
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
+#include "camera.h"
 #include "item_db.h"
 #include "item_db_text.h"
+#include "record_arrays.h"
 #include "ui.h"
 #include "world.h"
 #include "game_flow_data.h"
@@ -104,15 +106,8 @@ __declspec(naked) void __fastcall StartZoneAt(GameFlow*, void*, const char*, int
 // The scenario.sav parts: the party (004A8560), the input state (005F85C0 save), the
 // scripts (004A54D0 reset, 004A5250 save into a stream), the globals (00410C10).
 __declspec(naked) void __fastcall PartySave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x004A8560)
-__declspec(naked) void __fastcall InputSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F85C0)
 void ScriptsReset(void* scripts) { reinterpret_cast<CMemoryStream*>(scripts)->Resize(0); }
 void __fastcall StreamSaveScripts(CMemoryStream* a0, void*, void* a2) { StreamWriteSizedOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall GlobalsSave(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410C10)
-// 00579B80 (RET 8). Writes `data` to the file stream (ECX) under a header (magic in EDX, version).
-__declspec(naked) void __fastcall WriteSaveFile(FileStream*, unsigned /*magic*/, int /*version*/, CMemoryStream*)
-    EI_ORIGINAL(0x00579B80)
-// 00597BD0. CWorldServer::SaveWorld (world_save.cpp), through its address.
-__declspec(naked) void __fastcall SaveWorldAt(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00597BD0)
 // The console's ostream.
 
 // The CString fields of the records the flow copies as CStrings (MFC's shared assignment).
@@ -249,13 +244,13 @@ int GameFlow::SaveGame(const char* slot) {
         }
     } scenarioOwner{&scenario};
     PartySave(kParty, nullptr, &scenario);
-    InputSave(kInput, nullptr, &scenario);
+    static_cast<CInterface3D*>(kInput)->SaveState(&scenario);
     ScriptsReset(kScripts);
     static_cast<CInterface3D*>(kInput)->SaveWindowState();
     StreamSaveScripts(&scenario, nullptr, kScripts);
     ScriptsReset(kScripts);
-    GlobalsSave(kGlobals, nullptr, &scenario);
-    WriteSaveFile(&file.stream, kMagicScenario, SaveVersion(), &scenario);
+    static_cast<CCamera*>(kGlobals)->SaveState(&scenario);
+    SaveFileWrite(&file.stream, kMagicScenario, SaveVersion(), &scenario);
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
@@ -274,8 +269,8 @@ int GameFlow::SaveGame(const char* slot) {
         mission.data_ = nullptr;
         mission.Reset();
         mission.version_ = static_cast<std::uint32_t>(SaveVersion());
-        SaveWorldAt(reinterpret_cast<void*>(0x007AFF60), nullptr, &mission);
-        WriteSaveFile(&file.stream, kMagicMission, SaveVersion(), &mission);
+        static_cast<CWorldServer*>(reinterpret_cast<void*>(0x007AFF60))->SaveWorld(&mission);
+        SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &mission);
         ei::SetVtable(&mission, kMemoryStreamVtable);
         if (mission.data_) gamecrt::operator_delete(mission.data_);
         file.Close();
@@ -306,8 +301,6 @@ const mfc::CString& MoviesFolder() { return *reinterpret_cast<const mfc::CString
 // 00460DB0 (RET 4). Named float table Remove.
 // 00579830 (RET 0xC). Reads a save file through the file stream into `out` (ECX), checking the
 // header (magic in EDX, version, minimum version); false when it is corrupt.
-__declspec(naked) bool __fastcall ReadSaveFile(CMemoryStream* /*out*/, unsigned /*magic*/, int /*version*/,
-                                               int /*minimum*/, FileStream*) EI_ORIGINAL(0x00579830)
 // 00596E70 / 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::LoadSave, WakeUnitsAround, Tick and
 // SetZoneExits, through their addresses (rewritten in world_save / world_tick / world_zone).
 __declspec(naked) int __fastcall LoadSaveAt(CWorldServer*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
@@ -352,7 +345,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
             ei::SetVtable(s, kStreamVtable);
         }
     } owner{&data};
-    if (!ReadSaveFile(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
+    if (!SaveFileRead(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
         game::FatalError(game::Text(kCorruptSave), static_cast<const char*>(fileName));
         failed = true;
         return 0;
@@ -471,8 +464,6 @@ int& SpectatorFlag() { return *reinterpret_cast<int*>(0x0079BE6C); }
 
 // 0056FFE0. CArray<ZoneExit> constructor (empty, base vtable 0073C3F4).
 __declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0x0056FFE0)
-// 00584EA0 (RET 8). CArray<ZoneExit>::GetAt by value into `out`; returns out.
-__declspec(naked) ZoneExit* __fastcall ExitArrayGetAt(const void*, void*, ZoneExit* /*out*/, int) EI_ORIGINAL(0x00584EA0)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
@@ -547,7 +538,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         ei::SetVtable(&data, kMemoryStreamVtable);
         data.data_ = nullptr;
         data.Reset();
-        bool loaded = ReadSaveFile(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268),
+        bool loaded = SaveFileRead(&data, kMagicMission, SaveVersion(), *reinterpret_cast<const int*>(0x00790268),
                                    &file.stream) &&
                       LoadSaveAt(World(), nullptr, &data, nullptr) != 0;
         if (loaded) file.Close();
@@ -576,7 +567,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     ZoneExitsSetSizeOriginal(&exits, nullptr, source->size, -1);
     for (int i = 0; i < source->size; ++i) {
         alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
-        ZoneExit* exit = ExitArrayGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
+        ZoneExit* exit = recordarrays::ExitGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
         exits.data[i].Assign(exit);
         reinterpret_cast<mfc::CString*>(&reinterpret_cast<ZoneExit*>(copy)->target)->~CString();
     }
@@ -611,7 +602,6 @@ namespace {
 
 
 // 00410860 (RET 4). The globals (0079B2A8) note the campaign's progress.
-__declspec(naked) void __fastcall GlobalsSetStage(void*, void*, int) EI_ORIGINAL(0x00410860)
 // 0057AA80 (RET 4). CWorldServer::ZoneNameInto (rewritten below), through its address.
 __declspec(naked) mfc::CString* __fastcall ZoneNameAt(CWorldServer*, void*, mfc::CString*) EI_ORIGINAL(0x0057AA80)
 // 00460BC0 (RET 8). Named float table Set.
@@ -639,8 +629,8 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     } zoneOwner{&zone};
     // `path` must be destroyed after `zone`, as the original does: it is declared first.
 
-    if (Campaign() == 1) GlobalsSetStage(kGlobals, nullptr, 7);
-    else if (Campaign() == 3) GlobalsSetStage(kGlobals, nullptr, 6);
+    if (Campaign() == 1) static_cast<CCamera*>(kGlobals)->SaveView(7);
+    else if (Campaign() == 3) static_cast<CCamera*>(kGlobals)->SaveView(6);
     path.Format(game::Text(kCurrentFolder), GameFolder());
     {
         mfc::CString fileName = zone + game::Text(kSaveExtension);
@@ -659,8 +649,8 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     data.data_ = nullptr;
     data.Reset();
     data.version_ = static_cast<std::uint32_t>(SaveVersion());
-    SaveWorldAt(World(), nullptr, &data);
-    WriteSaveFile(&file.stream, kMagicMission, SaveVersion(), &data);
+    World()->SaveWorld(&data);
+    SaveFileWrite(&file.stream, kMagicMission, SaveVersion(), &data);
     file.Close();
 
     NamedFloatTable* variables = &records->variables;
@@ -1111,8 +1101,6 @@ constexpr std::size_t kPasswordSize = 0x14;
 // 0057F560 / 0057EB10 (patched by Rebirth): the flow before / after starting the sessions.
 __declspec(naked) void __fastcall FlowBeforeServer(GameFlow*, void*) EI_ORIGINAL(0x0057F560)
 __declspec(naked) void __fastcall FlowAfterServer(GameFlow*, void*) EI_ORIGINAL(0x0057EB10)
-// 00412D80 (RET 4). The game server session's constructor (game type).
-__declspec(naked) net::ServerSession* __fastcall ServerSessionConstruct(void*, void*, int) EI_ORIGINAL(0x00412D80)
 // 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
 // 00440440 (RET 8). A 16-byte network address from a host name and a port.
 __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
@@ -1120,8 +1108,6 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 __declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int) EI_ORIGINAL(0x00436C60)
 // 00442980 (RET 8). The client connects to an address with a hello buffer.
 __declspec(naked) void __fastcall ClientConnect(void*, void*, void*, GameBuffer*) EI_ORIGINAL(0x00442980)
-// 00417E10 (RET 4). Whether the server is listed.
-__declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
 
 } // namespace
 
@@ -1131,7 +1117,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     net::NetLog() = reinterpret_cast<net::LogStream*>(kNetLogStream);
     {
         void* memory = net::NewRefObject(sizeof(net::ServerSession));
-        net::ServerSession* server = memory ? ServerSessionConstruct(memory, nullptr, gameType) : nullptr;
+        net::ServerSession* server = memory ? static_cast<net::ServerSession*>(memory)->Construct(gameType) : nullptr;
         RefPtrAssign(&net::GameServer(), nullptr, server);
     }
     {
@@ -1156,7 +1142,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     StringAssignRangeOriginal(&net::GameServer()->name_, nullptr, shown, shown + std::strlen(shown));
     net::GameServer()->maxPlayers_ = value25E0;
     if (password && *password) net::GameServer()->SetPassword(password);
-    ServerSetPublic(net::GameServer(), nullptr, unlisted == 0);
+    net::GameServer()->SetPublic(unlisted == 0);
     net::GameClient()->gameType_ = gameType;
     net::GameServer()->masterKey_ = value25FC;
     FlowAfterServer(this, nullptr);
@@ -1320,9 +1306,6 @@ constexpr unsigned kMagicMissionFile = 0x102;
 constexpr int kVersionGlobalsInMission = 0x52;   // below: the globals (0079B2A8) come from mission.sav
 constexpr int kVersionInputInMission = 0x47;     // below: the input state (007C7D50) too
 
-// 00410AB0 (RET 4) / 005F8420 (RET 4). The globals / the input state read from a stream.
-__declspec(naked) void __fastcall GlobalsLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x00410AB0)
-__declspec(naked) void __fastcall InputLoad(void*, void*, CMemoryStream*) EI_ORIGINAL(0x005F8420)
 // 004A51C0 (RET 4). A memory stream copies its remaining data into another.
 void __fastcall StreamCopyRest(CMemoryStream* a0, void*, void* a2) { StreamReadSizedOriginal((void*)a0, nullptr, a2); }
 // 00596E70 (RET 8). CWorldServer::LoadSave through its address.
@@ -1337,11 +1320,11 @@ int __stdcall LoadMission(void* file) {
                       *reinterpret_cast<const int*>(0x00790268), file))
         return 0;
     int version = static_cast<int>(mission.s.version_);
-    if (version < kVersionGlobalsInMission) GlobalsLoad(reinterpret_cast<void*>(0x0079B2A8), nullptr, &mission.s);
+    if (version < kVersionGlobalsInMission) static_cast<CCamera*>(reinterpret_cast<void*>(0x0079B2A8))->LoadState(&mission.s);
     if (static_cast<int>(mission.s.version_) < kVersionInputInMission) {
         // Old saves: the input state, then the rest goes to the stream at 007AFDF8.
         GameSaveStream()->Resize(0);
-        InputLoad(reinterpret_cast<void*>(0x007C7D50), nullptr, &mission.s);
+        static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->LoadState(&mission.s);
         StreamCopyRest(&mission.s, nullptr, GameSaveStream());
         *reinterpret_cast<std::uint32_t*>(0x007AFE00) = mission.s.version_;
     }
@@ -1732,7 +1715,7 @@ int GameFlow::LoadGame(const char* slot) {
             ei::SetVtable(s, kStreamVtable);
         }
     } scenarioOwner{&scenario};
-    if (!ReadSaveFile(&scenario, kMagicScenario, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
+    if (!SaveFileRead(&scenario, kMagicScenario, SaveVersion(), *reinterpret_cast<const int*>(0x00790268), &file.stream)) {
         ToMainMenu() = 1;
         StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
         return 0;
@@ -1741,12 +1724,12 @@ int GameFlow::LoadGame(const char* slot) {
     int version = static_cast<int>(scenario.version_);
     if (version >= kScenarioScriptsVersion) {
         ScriptsReset(kScripts);
-        InputLoad(kInput, nullptr, &scenario);
+        static_cast<CInterface3D*>(kInput)->LoadState(&scenario);
         StreamLoadScripts(&scenario, nullptr, kScripts);
         version = static_cast<int>(scenario.version_);
         LoadedScriptsVersion() = version;
     }
-    if (version >= kScenarioGlobalsVersion) GlobalsLoad(kGlobals, nullptr, &scenario);
+    if (version >= kScenarioGlobalsVersion) static_cast<CCamera*>(kGlobals)->LoadState(&scenario);
     file.Close();
 
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
@@ -1857,7 +1840,7 @@ EI_REPLACE(0x0057BC30, CurrentSaveSize);
 namespace {
 
 // 0057DEE0 (RET 4). The flow's party setup step (1 here).
-void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { FlowPartyStepOriginal(flow, nullptr, step); }
+void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { flow->UseResources(step != 0); }
 
 void AssignText(net::StringRep* field, const char* text) { StringAssignRangeOriginal(field, nullptr, text, text + std::strlen(text)); }
 

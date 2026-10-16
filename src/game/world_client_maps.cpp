@@ -30,6 +30,7 @@
 #include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world_deleting_destructors.h"
 #include "world_effect.h"
 #include "originals_engine.h"
 #include "mod_folders.h"
@@ -585,7 +586,7 @@ void CWorldClient::ClearMaps() {
     PlainList& heroes = heroes_;
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
         SectorListNode* next = node->next;
-        CountedRelease(&node->data, nullptr, 0);
+        ObjectHolderDelete(&node->data, nullptr, 0);
         NodeFree12Fast(node, 1);
         node = next;
     }
@@ -955,13 +956,10 @@ __declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*
 // The lists' element destructors [00575560 / 00575580 (node + 8, flags)] and
 // node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
 __declspec(naked) void __fastcall Node1B8Free(void*, int) EI_ORIGINAL(0x0056FB80)
-__declspec(naked) void __fastcall Element1BCDestroy(void*, void*, int) EI_ORIGINAL(0x00575560)
-__declspec(naked) void __fastcall Element1C0Destroy(void*, void*, int) EI_ORIGINAL(0x00575580)
 __declspec(naked) void __fastcall Node7BCFree(void*, int) EI_ORIGINAL(0x00498C40)
 __declspec(naked) void __fastcall NodeB8Free(void*, int) EI_ORIGINAL(0x0056FB00)
 // The platform list's RemoveAll [0056FDA0]; the base world's teardown [0055F8E0].
 __declspec(naked) void __fastcall PlatformRemoveAll(PlatformList*) EI_ORIGINAL(0x0056FDA0)
-__declspec(naked) void __fastcall WorldTeardown(CWorldClient*) EI_ORIGINAL(0x0055F8E0)
 
 // The list's nodes walked from the head's next, each given to `free` after the next is read; the
 // list is left empty.
@@ -985,11 +983,11 @@ void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& fee
         Node1B8Free(node, 1);
     });
     EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
-        Element1BCDestroy(&node->data, nullptr, 0);
+        static_cast<GroundPrint*>(&node->data)->DeletingDestruct(0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
     EmptyList(scorch, [](stlp::list<GroundPrint>::Node* node) {
-        Element1C0Destroy(&node->data, nullptr, 0);
+        static_cast<GroundPrint*>(&node->data)->DeletingDestruct(0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
 }
@@ -1040,7 +1038,7 @@ void CWorldClient::Teardown() {
             CellOps::Clear(&grid.rows_[y][x]);
     EmptyList(list7BC_, [](stlp::list<void*>::Node* node) { Node7BCFree(node, 1); });
     EmptyList(heroes_, [](SectorListNode* node) {
-        CountedRelease(&node->data, nullptr, 0);
+        ObjectHolderDelete(&node->data, nullptr, 0);
         NodeFree12Fast(node, 1);
     });
     PlainList& objects = objects_;
@@ -1058,7 +1056,7 @@ void CWorldClient::Teardown() {
         handle_.ptr->Release();
         handle_.Share(nullptr);
     }
-    WorldTeardown(this);
+    DestroyManagers();
     DeleteOwned(listManager_);
     DeleteOwned(arrayManager_);
     DropAndDelete(particleManager_);
@@ -1617,7 +1615,6 @@ namespace {
 // when this rewrite is installed (the vanilla launch).
 __declspec(naked) void __fastcall FlowUpdateAndAcknowledgeAt(GameFlow*) EI_ORIGINAL(0x0057F150)
 __declspec(naked) void __fastcall ExitReadAt(ZoneExit*, void*, CStream*) EI_ORIGINAL(0x004E5750)
-__declspec(naked) void __fastcall ReadUnitLooksAt(CStream*, void* /*figured*/, void* /*dressed*/) EI_ORIGINAL(0x0055A190)
 __declspec(naked) void __fastcall CreateExitMarkersAt(CWorldClient*) EI_ORIGINAL(0x00567500)
 __declspec(naked) void __fastcall ViewAppendReceivedAt(CPlayerClient*, void*, void* /*source*/) EI_ORIGINAL(0x00667B40)
 __declspec(naked) void __fastcall BuildUnitSkinsAt(CWorldClient*, void*, const void* /*figured*/, const void* /*dressed*/)
@@ -1691,7 +1688,7 @@ int CWorldClient::LoadZone(CStream* block) {
     int cave;
     block->Read(&cave, 4);
     UnitLooks looks;
-    ReadUnitLooksAt(block, &looks.figured, &looks.dressed);
+    ReadUnitLooks(block, &looks.figured, &looks.dressed);
     cave_ = cave;
     GameEnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);

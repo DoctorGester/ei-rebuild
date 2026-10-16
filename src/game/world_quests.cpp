@@ -367,7 +367,6 @@ __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGI
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
-__declspec(naked) void __fastcall StatePartyExperience(CPlayerServer*, void*, float) EI_ORIGINAL(0x0066F280)
 
 // The unit's controller (CUnit + 0x240), a CUnitServer on the server.
 CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller); }
@@ -464,7 +463,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
                 if (static_cast<int>(record.unitId) == heroes.data[i]) reinterpret_cast<UnitStats*>(record.stats)->AddScaledExperience(share);
             }
         }
-        StatePartyExperience(player->server, nullptr, share);
+        player->server->SendValue15(std::bit_cast<std::uint32_t>(share));
     }
     heroes.vtable = mfc::DWordArrayVtable();
     if (heroes.data) gamecrt::operator_delete(heroes.data);
@@ -613,7 +612,6 @@ using PlacementArray = mfc::CArray<UnitPlacement>;
 __declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, CParty*, void*) EI_ORIGINAL(0x0058FD90)
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
@@ -711,7 +709,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
         RecordArraySetSizeOriginal(&list, nullptr, index + 1, -1);
         list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
     }
-    StorePartyAt(this, nullptr, &list, PartyOf(player), placements);
+    StoreParty(&list, PartyOf(player), placements);
     list.vtable = reinterpret_cast<void*>(worlddata::kRecordArrayVtable);
     if (list.data) gamecrt::operator_delete(list.data);
 }

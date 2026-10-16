@@ -35,7 +35,6 @@ __declspec(naked) inline CUnit* __fastcall HoverObjectAt(void*, void*, const int
 __declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*world*/, void*, int* /*point*/)
     EI_ORIGINAL(0x00565E40)
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
-__declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
 // 00512030 (library: STLport list<id>::erase(iterator), the client's selection list +0x7BC; thiscall, RET 8: the result
 // slot, the node).
 __declspec(naked) inline void __fastcall IdListEraseOriginal(void* /*list*/, void*, void** /*result*/, void* /*node*/)
@@ -104,7 +103,6 @@ __declspec(naked) inline int __fastcall WorldNewZoneOriginal(void* /*world*/, vo
                                                              const char* /*zone*/) EI_ORIGINAL(0x00595480)
 
 // 0057DEE0 (thiscall on the game flow 007AFE20, RET 4): the flow's party setup step (the unit database rebuilt).
-__declspec(naked) inline void __fastcall FlowPartyStepOriginal(void* /*flow*/, void*, int /*step*/) EI_ORIGINAL(0x0057DEE0)
 // 00578E30 (rewritten as ShowBolt, world_weather.cpp; RET 0x18): the client glue (007AFEA4) shows a lightning bolt
 // from (fromX, fromY, fromZ) to (toX, toY, toZ) (two Vector3 by value).
 __declspec(naked) inline void __fastcall ShowBoltOriginal(void* /*glue*/, void*, float /*fromX*/, float /*fromY*/,
@@ -117,10 +115,6 @@ __declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/
 
 // A quest variable ("q." prefix) changed: 005F7FC0 tells the quest log (007C7D50), 00565380 the client world (007AF5B8)
 // (both RET 8: name, value bits; EAX not a result).
-__declspec(naked) inline void __fastcall QuestLogUpdateOriginal(void* /*log*/, void*, const char* /*name*/,
-                                                                std::uint32_t /*value*/) EI_ORIGINAL(0x005F7FC0)
-__declspec(naked) inline void __fastcall ClientQuestUpdateOriginal(void* /*world*/, void*, const char* /*name*/,
-                                                                   std::uint32_t /*value*/) EI_ORIGINAL(0x00565380)
 
 // A-I10. 00578A40: the client glue (007AFEA5, not read) names the zone exit `exit` leads to (thiscall, RET 4; a C string,
 // "none" for none).
@@ -227,6 +221,4 @@ __declspec(naked) inline CEngineObject* __fastcall WorldFindObjectOriginal(void*
 // C3n batch 5. 006C8680 (rewritten as Terrain::HeightAt; thiscall, RET 0xC): the ground height at (x, y) on `layer`, in ST0 and used
 // unrounded. 006D43E0 (TweenArray::RemoveAll, an mfc::CArray of tween entries; plain RET): frees the array, size and capacity 0
 // (the world countdown list at +0x70 is one).
-__declspec(naked) inline double __fastcall TerrainHeightAtOriginal(Terrain* /*terrain*/, void*, float /*x*/, float /*y*/,
-                                                                  int /*layer*/) EI_ORIGINAL(0x006C8680)
 __declspec(naked) inline void __fastcall TweenArrayRemoveAllOriginal(void* /*tweens*/) EI_ORIGINAL(0x006D43E0)
