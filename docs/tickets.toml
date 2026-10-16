@@ -1503,6 +1503,13 @@ size = 0.5
 depends = ["S21"]
 note = "User 2026-10-16: standalone runs look cheaper than hooked ones (vanilla suite 604 s standalone vs 1,537 s hooked), so more may run at once; investigate. The 16-game cap exists because 24 hooked games (and 16 with 8x AA) crashed Windows with NVIDIA TDR storms (memory gpu-game-limit; ~640 MB VRAM per game under dgVoodoo). Measure per-game VRAM, GPU and CPU load for standalone runs with the renderer they use, step up carefully (e.g. 16 -> 20 -> 24) while watching for TDR events (System log 4101 / 153), and recommend a number with evidence. Changing EI_HARNESS_SLOTS beyond 16 needs the user's OK."
 
+[[ticket]]
+id = "WB12a"
+title = "Hooked and --no-hooks harness runs out of sight too"
+group = "harness"
+depends = ["WB12"]
+note = "WB12 cloaks windows only in standalone runs (ei::Standalone()). Hooked/--no-hooks runs present through dgVoodoo into the game window; check that cloaking (noforeground::Conceal) leaves dgVoodoo's presents and captures alone, then drop the Standalone() condition. Low value once the hook builds retire (S21)."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
