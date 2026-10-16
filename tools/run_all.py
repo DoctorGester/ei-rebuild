@@ -102,10 +102,10 @@ def _unlock(f):
 
 
 @contextlib.contextmanager
-def machine_slot(alone=False):
-    """One of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all), or all of
-    them (alone): for a game that sets the display mode, which takes the surfaces of every other
-    game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
+def machine_slot(alone=False, count=1):
+    """count of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all; 2 for a pair's
+    run, games_of()), or all of them (alone): for a game that sets the display mode, which takes the surfaces
+    of every other game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
     Games that want all the slots queue on one more lock, so two of them never split the slots; while
     one holds it, no other game takes a slot (a suite's next game would take each slot as it frees,
     and the one that wants them all waited for the end of every other suite on the machine)."""
@@ -128,13 +128,18 @@ def machine_slot(alone=False):
             for i in range(MACHINE_SLOTS):
                 if alone and i in [h[0] for h in held]:
                     continue
+                if not alone and len(held) == count:
+                    break
                 f = _lock(os.path.join(SLOT_DIR, f'slot{i:02}'))
                 if f:
                     held.append((i, f))
-                    if not alone:
-                        break
-            if len(held) == (MACHINE_SLOTS if alone else 1):
+            if len(held) == (MACHINE_SLOTS if alone else count):
                 break
+            if not alone:
+                # A pair's run takes its slots together: none held while waiting, or two pairs could each hold one.
+                for _, f in held:
+                    _unlock(f)
+                held = []
             time.sleep(0.5)
         yield
     finally:
@@ -200,7 +205,24 @@ def runs_alone(scenario, install):
 # what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_RENDER, EI_VECTORS, EI_COVER, ...) is read by a
 # game.
 NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_NO_HOOKS', 'EI_REFERENCE_DIR',
-                'EI_WIDESCREEN_DIR')
+                'EI_WIDESCREEN_DIR', 'EI_PAIR', 'EI_PAIR_SLOT_HELD')
+
+
+def peer_scenario(scenario):
+    """The peer's scenario of a pair (SV5d): a scenario's "peer <name>" line makes ei_launch start a second game on
+    tests/scenarios/peer/<name>.txt beside it (tests/verify/harness_pair.h); None without one."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                words = text.split()
+                if words[:1] == ['peer'] and len(words) > 1:
+                    return os.path.join(os.path.dirname(scenario), 'peer', words[1] + '.txt')
+    return None
+
+
+def games_of(scenario):
+    """The games a run of the scenario plays at once, and so the machine slots it takes: 2 for a pair, else 1."""
+    return 2 if peer_scenario(scenario) else 1
 
 
 def game_environment(environ=None):
@@ -260,11 +282,14 @@ def no_original(scenario):
     return installs
 
 
-def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, fresh=False):
-    """One game of a scenario on an install: the image on standalone / standalone-rebirth, the original code
+def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None, fresh=False,
+        held=1):
+    """One game of a scenario on an install (a pair's two games for a scenario with a "peer" line, the peer's in
+    the run folder's peer\\): the image on standalone / standalone-rebirth, the original code
     (game.exe, ei_launch --no-hooks) on vanilla / rebirth. root: the checkout whose tests/scenarios and run/ it uses;
     build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
-    take_slot False: the caller already holds a machine slot for it (tools/work_sched.py).
+    take_slot False: the caller already holds held machine slots for it (tools/work_sched.py); a pair whose caller
+    holds one has ei_launch take the second.
     clock overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace',
     ',randtrace').
     game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
@@ -280,7 +305,8 @@ def run(name, install, folder=None, root=ROOT, build=BUILD, take_slot=True, cloc
         cached = reference_from_cache(name, install, key, os.path.join(build, 'runs', folder))
         if cached:
             return cached
-    result, seconds, failures, counts, notes = run_once(name, install, folder, root, build, take_slot, clock, game_env)
+    result, seconds, failures, counts, notes = run_once(name, install, folder, root, build, take_slot, clock, game_env,
+                                                        held)
     frame_store.pack_folder(os.path.join(build, 'runs', folder))      # WB11: 4K frames stored compressed
     if key and result == 'PASS':
         store_reference(name, install, key, os.path.join(build, 'runs', folder), (result, seconds, failures, counts, notes))
@@ -329,7 +355,7 @@ def crash_stack_note(out, build, cmd, root=ROOT):
         return f'stack: not resolved ({type(e).__name__}: {e})'
 
 
-def run_once(name, install, folder, root, build, take_slot, clock, game_env):
+def run_once(name, install, folder, root, build, take_slot, clock, game_env, held=1):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     if install not in STANDALONE_INSTALLS + ORIGINAL_INSTALLS:
@@ -368,7 +394,10 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env):
             env = {k: v for k, v in environ.items() if k != 'EI_RENDER'}
     if clock:
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
-    with machine_slot(alone=runs_alone(scenario, install)) if take_slot else contextlib.nullcontext():
+    games = games_of(scenario)
+    if games > 1 and (take_slot or held >= games):
+        env = dict(os.environ if env is None else env, EI_PAIR_SLOT_HELD='1')   # ei_launch takes no slot itself
+    with machine_slot(alone=runs_alone(scenario, install), count=games) if take_slot else contextlib.nullcontext():
         start = time.time()
         # ei_launch ends a game at the limit plus its margin; this is for ei_launch itself (its job object
         # takes the game down with it).
@@ -469,8 +498,12 @@ def reference_key(name, install, root, clock, environ):
     for source in sorted(glob.glob(os.path.join(root, 'tests', 'verify', 'harness*'))):
         with contextlib.suppress(OSError), open(source, 'rb') as f:
             h.update(f.read())
+    scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
+    if peer := peer_scenario(scenario):          # a pair: the peer's steps decide the run too
+        with contextlib.suppress(OSError), open(peer, 'rb') as f:
+            h.update(f.read())
     with contextlib.suppress(OSError):
-        with open(os.path.join(root, 'tests', 'scenarios', name + '.txt'), encoding='utf-8', errors='replace') as f:
+        with open(scenario, encoding='utf-8', errors='replace') as f:
             for text in f:
                 if text.startswith(prepare_scenario.PREFIX):
                     tool = text[len(prepare_scenario.PREFIX):].split()[:1]

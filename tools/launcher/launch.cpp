@@ -281,6 +281,179 @@ static int InjectDll(HANDLE process, const std::wstring& dll) {
     return 0;
 }
 
+// ---- A pair of games (SV5d; tests/verify/harness_pair.h) ------------------------------------------------
+//
+// A scenario's "peer <name>" line makes this launch start a second game beside the scenario's own, on
+// tests/scenarios/peer/<name>.txt (next to the scenario's folder), the same program, writing to <out>\peer.
+// Each gets EI_PAIR=<pair name>,<side> (0 the scenario's game, 1 the peer): the harness puts the two in
+// lockstep on a network of their own. Both are in this launch's job object and are ended together when either
+// passes its limit or never starts its harness. The peer's result goes into the scenario's report (a failed
+// peer fails the run, as "FAILED: peer: ..." lines), so run_all reads one result per pair.
+//
+// A pair is two games against the machine's game slots (run_all.py MACHINE_SLOTS, byte locks on files in
+// <temp>\ei_harness_slots): unless the caller says it holds both (EI_PAIR_SLOT_HELD=1, run_all.py since SV5d),
+// the launch takes a second slot itself before starting either game, as run_all's machine_slot() does.
+
+// The scenario's "peer <name>" line: the peer's scenario path, "" without one.
+static std::wstring PeerScenario(const wchar_t* scenario) {
+    FILE* f = nullptr;
+    if (_wfopen_s(&f, scenario, L"r") != 0 || !f) return L"";
+    char line[1024];
+    std::string name;
+    while (std::fgets(line, sizeof(line), f)) {
+        const char* p = line + std::strspn(line, " \t");
+        if (std::strncmp(p, "peer", 4) != 0 || (p[4] != ' ' && p[4] != '\t')) continue;
+        name = p + 5;
+        name.erase(0, name.find_first_not_of(" \t"));
+        while (!name.empty() && (name.back() == '\n' || name.back() == '\r' || name.back() == ' ')) name.pop_back();
+    }
+    std::fclose(f);
+    if (name.empty()) return L"";
+    return Dir(scenario) + L"\\peer\\" + std::wstring(name.begin(), name.end()) + L".txt";
+}
+
+// The one-byte lock on a slot file (as run_all.py's _lock: byte 0, without waiting), or nullptr.
+static HANDLE LockSlotFile(const std::wstring& path) {
+    HANDLE h = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return nullptr;
+    OVERLAPPED at{};
+    if (!LockFileEx(h, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &at)) {
+        CloseHandle(h);
+        return nullptr;
+    }
+    return h;
+}
+
+// run_all.py's SLOT_DIR: Python's tempfile.gettempdir() (TMPDIR, TEMP, TMP) plus ei_harness_slots.
+static std::wstring SlotDir() {
+    wchar_t value[MAX_PATH];
+    for (const wchar_t* name : {L"TMPDIR", L"TEMP", L"TMP"}) {
+        const DWORD n = GetEnvironmentVariableW(name, value, MAX_PATH);
+        if (n > 0 && n < MAX_PATH) return std::wstring(value) + L"\\ei_harness_slots";
+    }
+    GetTempPathW(MAX_PATH, value);
+    return std::wstring(value) + L"ei_harness_slots";
+}
+
+// One of the machine's game slots for the peer game, waiting up to 90 s for one (a game that wants every slot
+// holds the "alone" gate: no slot is taken meanwhile, as in machine_slot()). The lock is held until the
+// handle closes (at exit). nullptr when none came.
+static HANDLE TakeMachineSlot() {
+    const std::wstring dir = SlotDir();
+    CreateDirectoryW(dir.c_str(), nullptr);
+    wchar_t value[16];
+    int slots = 16;
+    if (GetEnvironmentVariableW(L"EI_HARNESS_SLOTS", value, 16) > 0) slots = _wtoi(value);
+    const ULONGLONG start = GetTickCount64();
+    while (GetTickCount64() - start < 90000) {
+        if (HANDLE gate = LockSlotFile(dir + L"\\alone")) {
+            CloseHandle(gate);
+            for (int i = 0; i < slots; ++i) {
+                wchar_t file[32];
+                std::swprintf(file, 32, L"\\slot%02d", i);
+                if (HANDLE slot = LockSlotFile(dir + file)) {
+                    std::wprintf(L"ei_launch: machine slot %d taken for the peer game\n", i);
+                    return slot;
+                }
+            }
+        }
+        Sleep(500);
+    }
+    return nullptr;
+}
+
+// One game of a run: the scenario's own, or the peer.
+struct Game {
+    std::wstring scenario, outDir, label;
+    PROCESS_INFORMATION pi{};
+    ULONGLONG limit = 0;
+    ULONGLONG quitSeen = 0;
+    bool running = false;
+    DWORD code = 0;
+};
+
+// The report's lines (empty when there is none).
+static bool ReadReport(const std::wstring& path, std::vector<std::string>& lines) {
+    FILE* report = nullptr;
+    if (_wfopen_s(&report, path.c_str(), L"r") != 0 || !report) return false;
+    char line[512];
+    while (std::fgets(line, sizeof(line), report)) lines.push_back(line);
+    std::fclose(report);
+    return true;
+}
+
+static void WriteReport(const std::wstring& path, const std::vector<std::string>& lines) {
+    FILE* rewrite = nullptr;
+    if (_wfopen_s(&rewrite, path.c_str(), L"w") != 0 || !rewrite) return;
+    for (const std::string& r : lines) std::fputs(r.c_str(), rewrite);
+    std::fclose(rewrite);
+}
+
+// A game that ended by itself while its report still says RUNNING died before the harness could write a result
+// (an INT3 of the standalone image before the missing-code report, a crash the harness did not see): the report
+// gets the reason instead of a silent RUNNING (S16c).
+static void ReportSilentEnd(const Game& game, bool standalone) {
+    const std::wstring path = game.outDir + L"\\harness_report.txt";
+    std::vector<std::string> lines;
+    if (!ReadReport(path, lines)) return;
+    for (std::string& l : lines) {
+        if (l.compare(0, 15, "RESULT: RUNNING") != 0) continue;
+        char why[256];
+        if (game.code == static_cast<DWORD>(EXCEPTION_BREAKPOINT))
+            std::snprintf(why, sizeof(why), "FAILED: the game ended on a breakpoint (exit code %08lX) before the harness "
+                                            "wrote its result%s\n", game.code,
+                          standalone ? ": an INT3 of the standalone image with no code there (ei_hook.log, the run notes)" : "");
+        else
+            std::snprintf(why, sizeof(why), "FAILED: the game ended (exit code %lu, %08lX) before the harness wrote its "
+                                            "result\n", game.code, game.code);
+        l = std::string(why) + "RESULT: FAIL\n";
+        std::fwprintf(stderr, L"ei_launch: %s%hs", game.label.c_str(), why);
+        WriteReport(path, lines);
+        break;
+    }
+}
+
+// The peer's result in the scenario's report: a peer that did not pass (or whose windows or network checks saw
+// something) adds "FAILED: peer: ..." lines and makes the result FAIL.
+static void MergePeerReport(const std::wstring& reportPath, const std::wstring& peerPath) {
+    std::vector<std::string> peer, failures;
+    if (!ReadReport(peerPath, peer)) {
+        failures.push_back("FAILED: peer: no report (peer\\harness_report.txt)\n");
+    } else {
+        bool passed = false;
+        for (const std::string& l : peer) {
+            if (l.compare(0, 8, "FAILED: ") == 0) failures.push_back("FAILED: peer: " + l.substr(8));
+            if (l.compare(0, 12, "RESULT: PASS") == 0) passed = true;
+            if (l.compare(0, 8, "WINDOW: ") == 0 && l.compare(0, 20, "WINDOW: out of sight") != 0)
+                failures.push_back("FAILED: peer: " + l);
+            if (l.compare(0, 5, "NET: ") == 0 && l.compare(0, 18, "NET: loopback only") != 0)
+                failures.push_back("FAILED: peer: " + l);
+        }
+        if (!passed && failures.empty()) failures.push_back("FAILED: peer: did not pass (peer\\harness_report.txt)\n");
+    }
+    std::wprintf(L"ei_launch: peer: %hs\n", failures.empty() ? "passed" : "did not pass");
+    if (failures.empty()) return;
+    std::vector<std::string> lines;
+    ReadReport(reportPath, lines);
+    std::vector<std::string> merged;
+    bool resulted = false;
+    for (const std::string& l : lines) {
+        if (l.compare(0, 8, "RESULT: ") == 0) {
+            merged.insert(merged.end(), failures.begin(), failures.end());
+            merged.push_back("RESULT: FAIL\n");
+            resulted = true;
+        } else {
+            merged.push_back(l);
+        }
+    }
+    if (!resulted) {
+        merged.insert(merged.end(), failures.begin(), failures.end());
+        merged.push_back("RESULT: FAIL\n");
+    }
+    WriteReport(reportPath, merged);
+}
+
 int wmain(int argc, wchar_t** argv) {
     wchar_t self[MAX_PATH];
     GetModuleFileNameW(nullptr, self, MAX_PATH);
@@ -340,9 +513,41 @@ int wmain(int argc, wchar_t** argv) {
         SetEnvironmentVariableW(L"EI_HARNESS", scenario);
         wait = true;
     }
+    // The games: the scenario's own, and with a "peer" line the pair's other game (above).
+    std::vector<Game> games(1);
+    games[0].outDir = outDir;
+    if (!harness.empty()) {
+        wchar_t scenario[MAX_PATH];
+        GetFullPathNameW(harness.c_str(), MAX_PATH, scenario, nullptr);
+        games[0].scenario = scenario;
+        if (const std::wstring peer = PeerScenario(scenario); !peer.empty()) {
+            if (GetFileAttributesW(peer.c_str()) == INVALID_FILE_ATTRIBUTES) {
+                std::fwprintf(stderr, L"ei_launch: the peer's scenario %s not found\n", peer.c_str());
+                return 2;
+            }
+            Game other;
+            other.scenario = peer;
+            other.outDir = outDir + L"\\peer";
+            other.label = L"peer: ";
+            CreateDirectoryW(other.outDir.c_str(), nullptr);
+            games.push_back(other);
+        }
+    }
+    for (Game& game : games) game.limit = game.scenario.empty() ? kDefaultTimeLimitMs : ScenarioTimeLimitMs(game.scenario.c_str());
+    HANDLE peerSlot = nullptr;
+    if (games.size() > 1) {
+        wchar_t held[4];
+        if (!(GetEnvironmentVariableW(L"EI_PAIR_SLOT_HELD", held, 4) == 1 && held[0] == L'1') &&
+            !(peerSlot = TakeMachineSlot())) {
+            std::fwprintf(stderr, L"ei_launch: no machine slot for the peer game in 90 s; not started\n");
+            return 2;
+        }
+    }
     // A report left over from an earlier run must not pass for this one.
-    DeleteFileW((outDir + L"\\harness_quit").c_str());
-    if (!harness.empty()) DeleteFileW((outDir + L"\\harness_report.txt").c_str());
+    for (const Game& game : games) {
+        DeleteFileW((game.outDir + L"\\harness_quit").c_str());
+        if (!harness.empty()) DeleteFileW((game.outDir + L"\\harness_report.txt").c_str());
+    }
     std::wstring cmd = L"\"" + exe + L"\"" + gameArgs;
     std::wstring program = exe;
     STARTUPINFOW si{sizeof(si)};
@@ -365,11 +570,6 @@ int wmain(int argc, wchar_t** argv) {
     // image never has it.
     SetEnvironmentVariableW(L"EI_NO_HOOKS", standalone ? nullptr : L"1");
 
-    PROCESS_INFORMATION pi{};
-    if (!CreateProcessW(program.c_str(), cmd.data(), nullptr, nullptr, inherit, CREATE_SUSPENDED, nullptr,
-                        gameDir.c_str(), &si, &pi))
-        return Fail(L"CreateProcess");
-
     // A run that waits for the game puts it in a job that dies with ei_launch (also when ei_launch is
     // killed): no game outlives its launcher. A launch without --wait leaves the game running.
     HANDLE job = nullptr;
@@ -377,25 +577,51 @@ int wmain(int argc, wchar_t** argv) {
         job = CreateJobObjectW(nullptr, nullptr);
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
         limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        if (!job || !SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)) ||
-            !AssignProcessToJobObject(job, pi.hProcess)) {
-            std::fwprintf(stderr, L"ei_launch: warning: the game could not be put in a job object (error %lu)\n", GetLastError());
+        if (!job || !SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits))) {
+            std::fwprintf(stderr, L"ei_launch: warning: no job object for the game (error %lu)\n", GetLastError());
             if (job) CloseHandle(job);
             job = nullptr;
         }
     }
 
-    // The standalone host loads ei_hook.dll itself; game.exe gets it before its own code runs.
-    if (!standalone) {
-        if (const int failed = InjectDll(pi.hProcess, dll)) return failed;
+    // A pair's name: unique on the machine (the launch's process id and start time).
+    wchar_t pairName[64];
+    std::swprintf(pairName, 64, L"ei_pair_%lu_%llu", GetCurrentProcessId(), GetTickCount64());
+    for (std::size_t side = 0; side < games.size(); ++side) {
+        Game& game = games[side];
+        if (games.size() > 1) {
+            SetEnvironmentVariableW(L"EI_PAIR", (std::wstring(pairName) + L"," + std::to_wstring(side)).c_str());
+            SetEnvironmentVariableW(L"EI_HARNESS", game.scenario.c_str());
+            if (side > 0) SetEnvironmentVariableW(L"EI_OUT_DIR", game.outDir.c_str());
+        }
+        std::wstring line = cmd;
+        if (!CreateProcessW(program.c_str(), line.data(), nullptr, nullptr, inherit, CREATE_SUSPENDED, nullptr,
+                            gameDir.c_str(), &si, &game.pi)) {
+            for (Game& started : games)
+                if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
+            return Fail(L"CreateProcess");
+        }
+        game.running = true;
+        if (job && !AssignProcessToJobObject(job, game.pi.hProcess))
+            std::fwprintf(stderr, L"ei_launch: warning: the game could not be put in the job object (error %lu)\n",
+                          GetLastError());
+        // The standalone host loads ei_hook.dll itself; game.exe gets it before its own code runs.
+        if (!standalone) {
+            if (const int failed = InjectDll(game.pi.hProcess, dll)) {
+                for (Game& started : games)
+                    if (started.running) EndGame(started.pi.hProcess, job, started.pi.dwProcessId, 1);
+                return failed;
+            }
+        }
     }
-
-    ResumeThread(pi.hThread);
-    std::wprintf(L"ei_launch: started %s (pid %lu) with %s\n", standalone ? L"ei_standalone.exe" : L"game.exe",
-                 pi.dwProcessId, dll.c_str());
-    CloseHandle(pi.hThread);
+    for (Game& game : games) {
+        ResumeThread(game.pi.hThread);
+        std::wprintf(L"ei_launch: started %s%s (pid %lu) with %s\n", game.label.c_str(),
+                     standalone ? L"ei_standalone.exe" : L"game.exe", game.pi.dwProcessId, dll.c_str());
+        CloseHandle(game.pi.hThread);
+    }
     if (!wait) {
-        CloseHandle(pi.hProcess);
+        for (Game& game : games) CloseHandle(game.pi.hProcess);
         return 0;
     }
 
@@ -405,88 +631,88 @@ int wmain(int argc, wchar_t** argv) {
     // goes to exit_hang.txt first. The vanilla game exits within 0.4 s (2.5 s at most, 16 games at once).
     // Rebirth runs hung in addon.dll's DLL_PROCESS_DETACH (restarting CTFMon.exe) until the harness turned
     // its CtfMon switch off (S3e, tests/verify/harness_starter.cpp).
-    std::wstring quitMarker = outDir + L"\\harness_quit";
-    ULONGLONG quitSeen = 0;
+    // A pair's games are watched alike; a game past its limit, or whose harness never started, ends both
+    // (the other would only wait for it).
     const ULONGLONG started = GetTickCount64();
-    ULONGLONG limit = kDefaultTimeLimitMs;
-    if (!harness.empty()) {
-        wchar_t scenario[MAX_PATH];
-        GetFullPathNameW(harness.c_str(), MAX_PATH, scenario, nullptr);
-        limit = ScenarioTimeLimitMs(scenario);
-    }
     bool timedOut = false;
     bool unkillable = false;
-    std::wstring reportFile = outDir + L"\\harness_report.txt";
-    while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
-        if (harness.empty()) continue;
-        // Backstop for the harness's own time limit (the scenario's "timeout", default 60 s): the game's
-        // watchdog thread ends the game at the limit; if it has not, because the game is hung so badly
-        // that it cannot run, the limit plus a margin has passed and the game is ended from here.
-        if (GetTickCount64() - started >= limit + kTimeoutMarginMs) {
-            std::fwprintf(stderr, L"ei_launch: TIMEOUT: the game is still running %llu s after its start (the scenario's "
-                                  L"time limit is %llu s); terminating it\n", (GetTickCount64() - started) / 1000, limit / 1000);
-            timedOut = true;
-            unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 3);
-            break;
-        }
-        // The harness writes its report as soon as it loads; none after 30 s means it never started
-        // (the game would otherwise sit in the main menu until someone closes it).
-        if (GetTickCount64() - started >= 30000 &&
-            GetFileAttributesW(reportFile.c_str()) == INVALID_FILE_ATTRIBUTES) {
-            std::fwprintf(stderr, L"ei_launch: the harness did not start in the game; terminating it\n");
-            unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 2);
-            break;
-        }
-        if (GetFileAttributesW(quitMarker.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
-        if (!quitSeen) quitSeen = GetTickCount64();
-        if (GetTickCount64() - quitSeen >= 3000) {
-            WriteThreadStacks(pi.hProcess, pi.dwProcessId, outDir + L"\\exit_hang.txt");
-            std::wprintf(L"ei_launch: game still running 3 s after the scenario quit (its threads: exit_hang.txt); "
-                         L"terminating it\n");
-            unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 0);
-            break;
+    auto endAll = [&](UINT code) {
+        for (Game& other : games)
+            if (other.running) {
+                unkillable = !EndGame(other.pi.hProcess, job, other.pi.dwProcessId, code) || unkillable;
+                other.running = false;
+            }
+    };
+    for (;;) {
+        std::vector<HANDLE> alive;
+        for (Game& game : games)
+            if (game.running) alive.push_back(game.pi.hProcess);
+        if (alive.empty()) break;
+        WaitForMultipleObjects(static_cast<DWORD>(alive.size()), alive.data(), FALSE, 500);
+        for (Game& game : games) {
+            if (!game.running) continue;
+            if (WaitForSingleObject(game.pi.hProcess, 0) == WAIT_OBJECT_0) {
+                game.running = false;
+                continue;
+            }
+            if (harness.empty()) continue;
+            // Backstop for the harness's own time limit (the scenario's "timeout", default 60 s): the game's
+            // watchdog thread ends the game at the limit; if it has not, because the game is hung so badly
+            // that it cannot run, the limit plus a margin has passed and the game is ended from here.
+            if (GetTickCount64() - started >= game.limit + kTimeoutMarginMs) {
+                std::fwprintf(stderr, L"ei_launch: TIMEOUT: the %sgame is still running %llu s after its start (the "
+                                      L"scenario's time limit is %llu s); terminating it%s\n", game.label.c_str(),
+                              (GetTickCount64() - started) / 1000, game.limit / 1000, games.size() > 1 ? L" and the other" : L"");
+                timedOut = true;
+                endAll(3);
+                break;
+            }
+            // The harness writes its report as soon as it loads; none after 30 s means it never started
+            // (the game would otherwise sit in the main menu until someone closes it).
+            if (GetTickCount64() - started >= 30000 &&
+                GetFileAttributesW((game.outDir + L"\\harness_report.txt").c_str()) == INVALID_FILE_ATTRIBUTES) {
+                std::fwprintf(stderr, L"ei_launch: the harness did not start in the %sgame; terminating it%s\n",
+                              game.label.c_str(), games.size() > 1 ? L" and the other" : L"");
+                endAll(2);
+                break;
+            }
+            // The harness writes harness_quit when its scenario quits, after its report; a game still running 3 s
+            // after that is hung on exit and is terminated, so no run needs Task Manager; where its threads were
+            // goes to exit_hang.txt first. The vanilla game exits within 0.4 s (2.5 s at most, 16 games at once).
+            // Rebirth runs hung in addon.dll's DLL_PROCESS_DETACH (restarting CTFMon.exe) until the harness turned
+            // its CtfMon switch off (S3e, tests/verify/harness_starter.cpp).
+            if (GetFileAttributesW((game.outDir + L"\\harness_quit").c_str()) == INVALID_FILE_ATTRIBUTES) continue;
+            if (!game.quitSeen) game.quitSeen = GetTickCount64();
+            if (GetTickCount64() - game.quitSeen >= 3000) {
+                WriteThreadStacks(game.pi.hProcess, game.pi.dwProcessId, game.outDir + L"\\exit_hang.txt");
+                std::wprintf(L"ei_launch: %sgame still running 3 s after the scenario quit (its threads: exit_hang.txt); "
+                             L"terminating it\n", game.label.c_str());
+                unkillable = !EndGame(game.pi.hProcess, games.size() > 1 ? nullptr : job, game.pi.dwProcessId, 0) || unkillable;
+                game.running = false;
+            }
         }
     }
-    DeleteFileW(quitMarker.c_str());
-    DWORD code = 0;
-    GetExitCodeProcess(pi.hProcess, &code);
-    CloseHandle(pi.hProcess);
-    if (job) CloseHandle(job);   // ends whatever the game left running
+    for (Game& game : games) {
+        DeleteFileW((game.outDir + L"\\harness_quit").c_str());
+        GetExitCodeProcess(game.pi.hProcess, &game.code);
+        CloseHandle(game.pi.hProcess);
+    }
+    if (job) CloseHandle(job);   // ends whatever the games left running
+    if (peerSlot) CloseHandle(peerSlot);
+    DWORD code = games[0].code;
     if (harness.empty()) return static_cast<int>(code);
-    std::wstring reportPath = outDir + L"\\harness_report.txt";
-    FILE* report = nullptr;
-    if (_wfopen_s(&report, reportPath.c_str(), L"r") != 0 || !report) {
+    if (!timedOut && !unkillable)
+        for (const Game& game : games)
+            if (!game.quitSeen) ReportSilentEnd(game, standalone);
+    const std::wstring reportPath = outDir + L"\\harness_report.txt";
+    if (GetFileAttributesW(reportPath.c_str()) == INVALID_FILE_ATTRIBUTES) {
         std::fwprintf(stderr, L"ei_launch: game exited (code %lu) without a harness report\n", code);
         return 2;
     }
-    char line[512];
+    if (games.size() > 1) MergePeerReport(reportPath, games[1].outDir + L"\\harness_report.txt");
     bool pass = false;
     std::vector<std::string> lines;
-    while (std::fgets(line, sizeof(line), report)) lines.push_back(line);
-    std::fclose(report);
-    // A game that ended by itself while its report still says RUNNING died before the harness could
-    // write a result (an INT3 of the standalone image before the missing-code report, a crash the
-    // harness did not see): the report gets the reason instead of a silent RUNNING (S16c).
-    if (!timedOut && !unkillable && !quitSeen) {
-        for (std::string& l : lines) {
-            if (l.compare(0, 15, "RESULT: RUNNING") != 0) continue;
-            char why[256];
-            if (code == static_cast<DWORD>(EXCEPTION_BREAKPOINT))
-                std::snprintf(why, sizeof(why), "FAILED: the game ended on a breakpoint (exit code %08lX) before the harness "
-                                                "wrote its result%s\n", code,
-                              standalone ? ": an INT3 of the standalone image with no code there (ei_hook.log, the run notes)" : "");
-            else
-                std::snprintf(why, sizeof(why), "FAILED: the game ended (exit code %lu, %08lX) before the harness wrote its "
-                                                "result\n", code, code);
-            l = std::string(why) + "RESULT: FAIL\n";
-            std::fwprintf(stderr, L"ei_launch: %hs", why);
-            if (FILE* rewrite = nullptr; _wfopen_s(&rewrite, reportPath.c_str(), L"w") == 0 && rewrite) {
-                for (const std::string& r : lines) std::fputs(r.c_str(), rewrite);
-                std::fclose(rewrite);
-            }
-            break;
-        }
-    }
+    ReadReport(reportPath, lines);
     for (const std::string& l : lines) {
         std::fputs(l.c_str(), stdout);
         if (l.compare(0, 12, "RESULT: PASS") == 0) pass = true;

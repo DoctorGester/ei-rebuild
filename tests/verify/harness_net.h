@@ -25,6 +25,11 @@
 // which reaches the same game's server as the broadcast did. Nothing leaves the machine. A check of
 // the process's endpoints (every second and at the report) finds a bind outside loopback whoever made
 // it; the report's NET: line says what it saw (run_all lists the runs with one).
+//
+// The two games of a pair (harness_pair.h, SV5d) keep 8888 and play over the pair's own network: their
+// UDP binds, sendto, recvfrom and closesocket go to harness_pair.cpp's virtual ports (the real sockets
+// are still bound on 127.0.0.1, so the checks above see the same). A pair's games need no port of their
+// own: none is written to 00783E30.
 
 namespace ei::verify::netlocal {
 

@@ -5,6 +5,7 @@
 #include <iphlpapi.h>
 
 #include "harness_net.h"
+#include "harness_pair.h"
 
 #include "../../src/hook/log.h"
 
@@ -27,11 +28,17 @@ constexpr int kPortCount = 20000;
 // WSOCK32's import slots in game.exe (the thunks 006E6124 and 006E6130; src/lib/crt.cpp).
 constexpr std::uintptr_t kBindSlot = 0x0073B6DC;     // bind, ordinal 2
 constexpr std::uintptr_t kSendToSlot = 0x0073B70C;   // sendto, ordinal 20
+constexpr std::uintptr_t kRecvFromSlot = 0x0073B6CC;      // recvfrom, ordinal 17 (a pair's games only)
+constexpr std::uintptr_t kCloseSocketSlot = 0x0073B6E4;   // closesocket, ordinal 3 (a pair's games only)
 
 using BindFn = int(WINAPI*)(SOCKET, const sockaddr*, int);
 using SendToFn = int(WINAPI*)(SOCKET, const char*, int, int, const sockaddr*, int);
+using RecvFromFn = int(WINAPI*)(SOCKET, char*, int, int, sockaddr*, int*);
+using CloseSocketFn = int(WINAPI*)(SOCKET);
 BindFn g_bind;
 SendToFn g_sendTo;
+RecvFromFn g_recvFrom;
+CloseSocketFn g_closeSocket;
 
 // What the binds and the endpoint checks saw (the game's thread binds, the watchdog's checks).
 SRWLOCK g_lock = SRWLOCK_INIT;
@@ -66,6 +73,12 @@ const char* Kind(SOCKET s) {
     return type == SOCK_DGRAM ? "UDP" : type == SOCK_STREAM ? "TCP" : "socket";
 }
 
+bool IsUdp(SOCKET s) {
+    int type = 0;
+    int length = sizeof(type);
+    return getsockopt(s, SOL_SOCKET, SO_TYPE, reinterpret_cast<char*>(&type), &length) == 0 && type == SOCK_DGRAM;
+}
+
 // The address a bind gave the socket, logged (every bind: a game makes a few).
 void LogBind(SOCKET s, const char* why, int result) {
     sockaddr_in bound{};
@@ -86,6 +99,24 @@ void LogBind(SOCKET s, const char* why, int result) {
 int WINAPI LoopbackBind(SOCKET s, const sockaddr* name, int length) {
     sockaddr_in local{};
     const char* why = "the game's";
+    if (pair::Active() && name && length == sizeof(local) && name->sa_family == AF_INET && IsUdp(s)) {
+        // A pair's game: the port asked is a virtual port on the pair's network (harness_pair.h); the socket
+        // itself is bound on 127.0.0.1, any port.
+        std::memcpy(&local, name, sizeof(local));
+        if (!pair::Bind(s, ntohs(local.sin_port))) {
+            WSASetLastError(WSAEADDRINUSE);
+            return SOCKET_ERROR;
+        }
+        sockaddr_in loopback{};
+        loopback.sin_family = AF_INET;
+        loopback.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        const int result = g_bind(s, reinterpret_cast<const sockaddr*>(&loopback), sizeof(loopback));
+        const int error = WSAGetLastError();
+        LogBind(s, "the game's, on the pair's network", result);
+        if (result != 0) pair::Close(s);
+        WSASetLastError(error);
+        return result;
+    }
     if (name && length == sizeof(local) && name->sa_family == AF_INET) {
         std::memcpy(&local, name, sizeof(local));
         if (local.sin_addr.s_addr == htonl(INADDR_ANY)) {
@@ -114,6 +145,10 @@ int WINAPI LoopbackSendTo(SOCKET s, const char* data, int length, int flags, con
                 g_bind(s, reinterpret_cast<const sockaddr*>(&loopback), sizeof(loopback)));
     }
     sockaddr_in destination{};
+    if (pair::Active() && to && toLength == sizeof(destination) && to->sa_family == AF_INET && IsUdp(s)) {
+        std::memcpy(&destination, to, sizeof(destination));
+        return pair::SendTo(s, data, length, ntohs(destination.sin_port));   // the pair's network
+    }
     if (to && toLength == sizeof(destination) && to->sa_family == AF_INET) {
         std::memcpy(&destination, to, sizeof(destination));
         const std::uint32_t address = destination.sin_addr.s_addr;
@@ -131,6 +166,17 @@ int WINAPI LoopbackSendTo(SOCKET s, const char* data, int length, int flags, con
         }
     }
     return g_sendTo(s, data, length, flags, to, toLength);
+}
+
+// recvfrom and closesocket of a pair's game: its UDP sockets read the pair's mailbox.
+int WINAPI PairRecvFrom(SOCKET s, char* data, int length, int flags, sockaddr* from, int* fromLength) {
+    if (!IsUdp(s)) return g_recvFrom(s, data, length, flags, from, fromLength);
+    return pair::RecvFrom(s, data, length, from, fromLength);
+}
+
+int WINAPI PairCloseSocket(SOCKET s) {
+    pair::Close(s);
+    return g_closeSocket(s);
 }
 
 template <class T>
@@ -200,7 +246,13 @@ bool Table(std::vector<std::uint8_t>& buffer, Get get) {
 } // namespace
 
 void Install() {
-    InstallPort();
+    if (pair::Install()) {
+        // The pair's network has ports of its own: the game keeps its 8888 (harness_pair.h).
+        PatchSlot(kRecvFromSlot, &PairRecvFrom, g_recvFrom);
+        PatchSlot(kCloseSocketSlot, &PairCloseSocket, g_closeSocket);
+    } else {
+        InstallPort();
+    }
     PatchSlot(kBindSlot, &LoopbackBind, g_bind);
     PatchSlot(kSendToSlot, &LoopbackSendTo, g_sendTo);
     Log("harness: net: the game's binds and datagrams stay on 127.0.0.1 (import slots 0073B6DC, 0073B70C)");

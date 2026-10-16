@@ -84,6 +84,11 @@
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
+//   peer <name>               ei_launch's: start a second game beside this one on tests/scenarios/peer/<name>.txt,
+//                             the two in lockstep on a network of their own (harness_pair.h; net_pair_*.txt)
+//   peersignal <tag>, peerwait <seconds> <tag>
+//                             in a pair's game: mark <tag> as reached; wait until the other game has marked
+//                             <tag> (fails after <seconds>)
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -229,6 +234,7 @@
 #include "harness_starter.h"
 #include "harness_input.h"
 #include "harness_net.h"
+#include "harness_pair.h"
 #include "ui_census.h"
 #include "../vectors/vectors.h"
 
@@ -439,6 +445,10 @@ unsigned g_waitWindowReadyFrom = kNotReady;
 bool g_waitingUnit = false;
 std::string g_waitUnitName;
 Deadline g_waitUnitDeadline;
+// A pending "peerwait": the other game's signal and when to give up (harness_pair.h).
+bool g_waitingPeer = false;
+std::string g_waitPeerTag;
+Deadline g_waitPeerDeadline;
 // A pending "capture": its name and when to give up (real time); the frames written so far.
 bool g_capturing = false;
 std::string g_captureName;
@@ -957,11 +967,13 @@ void WriteReport() {
     if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
     noforeground::Report(f);
     netlocal::Report(f);
+    pair::Report(f);
     input::Report(f);
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     std::vector<std::string> failures = g_failures;
     if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
+    if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -2176,6 +2188,20 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingPeer) {
+        if (pair::Signaled(g_waitPeerTag)) {
+            Log("harness: peerwait %s done after %lu ms (frame %u)", g_waitPeerTag.c_str(), Now() - g_waitPeerDeadline.start,
+                g_frames);
+            g_waitingPeer = false;
+        } else if (g_waitPeerDeadline.Passed()) {
+            std::string what = "peerwait " + g_waitPeerTag + " timed out" + g_waitPeerDeadline.Why();
+            Log("harness: %s", what.c_str());
+            g_failures.push_back(what);
+            g_waitingPeer = false;
+        } else {
+            return;
+        }
+    }
     if (g_waitingUnit) {
         // Checked in input loop passes: the pick list is the last frame's, and clickunit follows.
         POINT at{};
@@ -2339,6 +2365,21 @@ void RunSteps() {
             } else {
                 ui->root_->SetOpen(false);
             }
+        } else if (s.verb == "peersignal") {
+            if (!pair::Active()) g_failures.push_back("peersignal: not a pair's game (a \"peer\" line starts the other)");
+            pair::Signal(s.argument);
+        } else if (s.verb == "peerwait") {
+            char* rest = nullptr;
+            unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            while (rest && *rest == ' ') ++rest;
+            if (!pair::Active()) {
+                g_failures.push_back("peerwait: not a pair's game (a \"peer\" line starts the other)");
+                continue;
+            }
+            g_waitingPeer = true;
+            g_waitPeerTag = rest ? rest : "";
+            g_waitPeerDeadline.Set(seconds * 1000);
+            return;
         } else if (s.verb == "masterhost") {
             options::TheOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "zone") {
@@ -2911,6 +2952,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     if (afterFrame) {
         ++g_frames;
         if (census::Enabled()) census::Frame();
+        pair::FrameDone(g_frames);   // a pair's games take turns a frame at a time (harness_pair.h)
     }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
     // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that
@@ -2973,6 +3015,10 @@ bool LoadScenario(const char* path) {
             // The original code draws through dgVoodoo; our renderer runs only in the image.
             if (ei::Standalone()) render::Configure(g_steps.back().argument.c_str());
             else ei::Log("harness: 'render %s' ignored: a run of the original code", g_steps.back().argument.c_str());
+            g_steps.pop_back();
+            continue;
+        }
+        if (g_steps.back().verb == "peer") {   // ei_launch's: the other game of a pair (harness_pair.h)
             g_steps.pop_back();
             continue;
         }

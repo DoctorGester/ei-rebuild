@@ -1,0 +1,6737 @@
+# ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
+# compact (tools/golden.py): objects as hashes of their fields
+@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
++ world world
+world tick 20
+world updates 20
+world paused 0
+world timeBase 12.0
+world secondsPerTick 0.00111111114
+world wind.x 0.0
+world wind.y 1.0
+world wind.z 0.0
+world windStrength 0x00000000
+world nightLevel 0x00000000
+world weatherFactor 0x3F800000
+world alarm0.active 0
+world alarm0.time 0
+world alarm0.x 0.0
+world alarm0.y 0.0
+world alarm1.active 0
+world alarm1.time 0
+world alarm1.x 0.0
+world alarm1.y 0.0
+world alarm2.active 0
+world alarm2.time 0
+world alarm2.x 0.0
+world alarm2.y 0.0
+world alarm3.active 0
+world alarm3.time 0
+world alarm3.x 0.0
+world alarm3.y 0.0
+world alarm4.active 0
+world alarm4.time 0
+world alarm4.x 0.0
+world alarm4.y 0.0
+world climate 1
+world cave 0
+world weather 0
+world weatherStrength 0.0
+world exits 0
+world gameResult 4
+world lastRainBoltTick 0
+world zoneLoaded 1
+world scriptsActive 1
+world start.x 0.0
+world start.y 0.0
+world start.z 0.0
+world occluderReplanTime 0
+world sessionKind 2
+world objects 150
+world mapObjects 6
+world sentObjects 144
+world timedObjects 10
+world updateMap 1
+world projectiles 1
+world counted 0
+world sharedObjects 0
+world allied0 0x00000001
+world hostile0 0x00000000
+world allied1 0x00000002
+world hostile1 0x00000000
+world allied2 0x00000004
+world hostile2 0x00000000
+world allied3 0x00000008
+world hostile3 0x00000000
+world allied4 0x00000010
+world hostile4 0x00000000
+world allied5 0x00000020
+world hostile5 0x00000000
+world allied6 0x00000040
+world hostile6 0x00000000
+world allied7 0x00000080
+world hostile7 0x00000000
+world allied8 0x00000100
+world hostile8 0x00000000
+world allied9 0x00000200
+world hostile9 0x00000000
+world allied10 0x00000400
+world hostile10 0x00000000
+world allied11 0x00000800
+world hostile11 0x00000000
+world allied12 0x00001000
+world hostile12 0x00000000
+world allied13 0x00002000
+world hostile13 0x00000000
+world allied14 0x00004000
+world hostile14 0x00000000
+world allied15 0x00008000
+world hostile15 0x00000000
+world allied16 0x00010000
+world hostile16 0x00000000
+world allied17 0x00020000
+world hostile17 0x00000000
+world allied18 0x00040000
+world hostile18 0x00000000
+world allied19 0x00080000
+world hostile19 0x00000000
+world allied20 0x00100000
+world hostile20 0x00000000
+world allied21 0x00200000
+world hostile21 0x00000000
+world allied22 0x00400000
+world hostile22 0x00000000
+world allied23 0x00800000
+world hostile23 0x00000000
+world allied24 0x01000000
+world hostile24 0x00000000
+world allied25 0x02000000
+world hostile25 0x00000000
+world allied26 0x04000000
+world hostile26 0x00000000
+world allied27 0x08000000
+world hostile27 0x00000000
+world allied28 0x10000000
+world hostile28 0x00000000
+world allied29 0x20000000
+world hostile29 0x00000000
+world allied30 0x40000000
+world hostile30 0x00000000
+world allied31 0x80000000
+world hostile31 0x00000000
++ random random
+random isaac.seeded 1
+random isaac.count 132
+random isaac.a 0x04FD013A
+random isaac.b 0x133CFE05
+random isaac.c 0x0000000F
+random isaac.results 0xEA891960
+random isaac.memory 0x85371991
+random crt.rand 0x4D254E1B
++ player0 player
+player0 id 0
+player0 partyId 0
+player0 sessionKind 2
+player0 lastScreen 0
+player0 godMode 0
+player0 lastTick -1
+player0 items 0
+player0 ids 0
+player0 units 0
+player0 objects 6
+player0 money 0
+player0 partyItems 0
+player0 members 0
+player0 entrance 0
++ obj2 80 unmoco2 ""
+obj2 #ai 713079FE
+obj2 #place 784FE175
+obj2 #unit 807D16EC
+obj2 #vitals CB4D8108
++ obj3 82 nafltr59
+obj3 # 85B0C8E0
++ obj4 82 nafltr59
+obj4 # 0580918E
++ obj5 82 nafltr59
+obj5 # BFF09181
++ obj6 82 nafltr59
+obj6 # AD662917
++ obj7 82 nafltr59
+obj7 # E8C41297
++ obj8 82 nafltr59
+obj8 # 6A2302B0
++ obj9 82 nafltr59
+obj9 # 7A827A09
++ obj129 80 unanwibo ""
+obj129 #ai 56D9E491
+obj129 #place ED6A0B50
+obj129 #unit 068D0078
+obj129 #vitals 9438E29B
++ obj132 84 stst9
+obj132 # 1C6F0FA9
++ obj148 80 unanwiwo ""
+obj148 #ai A28A7880
+obj148 #place B11668C7
+obj148 #unit E45FFE92
+obj148 #vitals F38E5BC2
++ obj150 82 nafltr59
+obj150 # A117EB5B
++ obj160 82 nafltr76
+obj160 # 3E912C6E
++ obj163 82 nafltr59
+obj163 # 3093E005
++ obj172 82 naflbu6
+obj172 # 5AC59A0C
++ obj173 82 naflbu6
+obj173 # 156C3AEB
++ obj177 83 nast7
+obj177 # 68F6799B
++ obj181 83 nast7
+obj181 # 3B7934FF
++ obj182 82 naflbu6
+obj182 # 3DBCFE8D
++ obj183 82 naflbu6
+obj183 # 67A5BF69
++ obj187 80 unmoog1 ""
+obj187 #ai A4E18502
+obj187 #place 98BB6A8D
+obj187 #unit 143908FC
+obj187 #vitals FF33FEF4
++ obj188 82 nafltr59
+obj188 # 81844D3C
++ obj189 82 nafltr59
+obj189 # 84BC5215
++ obj190 82 nafltr59
+obj190 # 1BBDAF8C
++ obj192 82 nafltr59
+obj192 # D473B9AA
++ obj194 82 nafltr59
+obj194 # 8C811CBA
++ obj195 82 nafltr59
+obj195 # 9B62D7B2
++ obj212 82 nafltr21
+obj212 # 818FD1DE
++ obj213 82 nafltr21
+obj213 # 2826E7DB
++ obj214 82 nafltr21
+obj214 # 051A603A
++ obj215 82 nafltr59
+obj215 # 11D5F196
++ obj216 82 nafltr59
+obj216 # 02221955
++ obj218 82 nafltr70
+obj218 # 79C5EEBA
++ obj219 82 nafltr20
+obj219 # 14D5CA55
++ obj220 82 nafltr59
+obj220 # 56073A03
++ obj221 84 stbr7
+obj221 # B35DCE67
++ obj222 84 stst36
+obj222 # AE8E01ED
++ obj228 84 stst146
+obj228 # 3D28C1F9
++ obj231 84 stst149
+obj231 # 65542B34
++ obj232 82 nafltr59
+obj232 # 58530397
++ obj233 82 nafltr59
+obj233 # C0334A48
++ obj234 82 nafltr59
+obj234 # 7AC8CD92
++ obj235 82 nafltr59
+obj235 # 4FB0C13E
++ obj237 82 nafltr59
+obj237 # 74981FD0
++ obj241 82 nafltr59
+obj241 # FAE4CFF6
++ obj242 84 stbuho3
+obj242 # DACDE7B9
++ obj243 84 stbr1
+obj243 # 3CE2E31C
++ obj250 82 naflbu6
+obj250 # B4E1A9A6
++ obj253 87 stto8
+obj253 # 48DC1FAC
++ obj254 82 naflbu6
+obj254 # 680E30AF
++ obj255 82 naflbu6
+obj255 # 78CB1F87
++ obj261 82 nafltr59
+obj261 # 57DB9983
++ obj262 82 naflbu8
+obj262 # 067C8FE8
++ obj263 82 naflbu8
+obj263 # 771922E6
++ obj265 82 naflbu8
+obj265 # 741BE9E1
++ obj266 82 nafltr59
+obj266 # 19A9C2DC
++ obj267 82 nafltr20
+obj267 # 0850ACC2
++ obj268 82 naflbu8
+obj268 # A0F90040
++ obj269 82 naflbu8
+obj269 # BDE9F4F9
++ obj270 82 naflbu8
+obj270 # 384F4B15
++ obj272 82 naflbu8
+obj272 # C543D3CB
++ obj273 83 nast7
+obj273 # 388A48E5
++ obj274 82 nafltr59
+obj274 # 6E9669F0
++ obj275 82 nafltr59
+obj275 # DFC7F5B1
++ obj276 82 nafltr59
+obj276 # 864F37D6
++ obj277 82 nafltr59
+obj277 # 03DD1321
++ obj278 82 nafltr59
+obj278 # 552F1776
++ obj279 82 nafltr59
+obj279 # 237B9AA7
++ obj280 82 nafltr59
+obj280 # 5881D608
++ obj281 82 nafltr59
+obj281 # 04E8BAA1
++ obj282 82 nafltr59
+obj282 # 70164780
++ obj283 82 nafltr59
+obj283 # 142E94E7
++ obj284 82 nafltr59
+obj284 # 0F78EDF4
++ obj285 82 nafltr59
+obj285 # 3F9E9ED2
++ obj286 82 nafltr59
+obj286 # 88639585
++ obj287 82 nafltr59
+obj287 # 778AAA4A
++ obj288 82 nafltr59
+obj288 # 7DB353DD
++ obj289 82 nafltr59
+obj289 # 8ECDA921
++ obj290 82 nafltr59
+obj290 # D6F98DEB
++ obj291 82 nafltr59
+obj291 # 8AE82F75
++ obj292 82 nafltr59
+obj292 # 7F609259
++ obj293 82 nafltr77
+obj293 # B23D3A8C
++ obj295 82 nafltr78
+obj295 # 359B2C18
++ obj296 82 nafltr78
+obj296 # 72B0411E
++ obj297 82 nafltr77
+obj297 # 6FFDCE96
++ obj298 82 nafltr77
+obj298 # C349C6AC
++ obj299 82 nafltr77
+obj299 # F86AEA7A
++ obj300 82 nafltr22
+obj300 # 7A1FD1EB
++ obj301 82 nafltr22
+obj301 # 866A4322
++ obj302 82 nafltr22
+obj302 # EC98C02C
++ obj303 82 nafltr22
+obj303 # 0B8084D1
++ obj304 82 nafltr22
+obj304 # 8B90424C
++ obj305 82 nafltr22
+obj305 # DD0C302D
++ obj306 82 nafltr22
+obj306 # F75FFA40
++ obj307 82 nafltr22
+obj307 # 988B38C6
++ obj308 82 nafltr22
+obj308 # 923F3110
++ obj309 82 nafltr68
+obj309 # 754E26AD
++ obj310 82 nafltr59
+obj310 # E81BC56D
++ obj311 82 nafltr68
+obj311 # 8ECE47CD
++ obj312 82 nafltr68
+obj312 # 80F477D8
++ obj313 82 nafltr68
+obj313 # 28825619
++ obj314 82 nafltr68
+obj314 # F250B27F
++ obj315 82 nafltr22
+obj315 # 81F22BF4
++ obj316 82 nafltr22
+obj316 # 90F841DB
++ obj317 82 nafltr59
+obj317 # FB52E4EF
++ obj318 82 nafltr59
+obj318 # A87CF704
++ obj319 82 nafltr59
+obj319 # A49EBC30
++ obj320 82 nafltr59
+obj320 # 1DCA14C3
++ obj321 82 nafltr59
+obj321 # 0AFA6E0C
++ obj322 82 nafltr59
+obj322 # 8DE7D049
++ obj324 82 naflbu8
+obj324 # 36434634
++ obj325 82 nafltr59
+obj325 # 32D3B2E5
++ obj326 82 nafltr59
+obj326 # 3A84F818
++ obj328 82 naflbu7
+obj328 # D3A793CA
++ obj329 82 naflbu7
+obj329 # E2CFC048
++ obj330 82 naflbu7
+obj330 # EFFDF992
++ obj331 82 naflbu17
+obj331 # B6924A4F
++ obj332 82 naflbu17
+obj332 # 1D191D0C
++ obj333 82 naflbu18
+obj333 # 5C390AAF
++ obj334 82 naflbu18
+obj334 # 5354F28D
++ obj335 82 naflbu18
+obj335 # 8A3486D1
++ obj336 82 naflbu18
+obj336 # 3960667C
++ obj337 82 naflbu18
+obj337 # 2B2F31E2
++ obj338 82 naflbu18
+obj338 # DC07FE80
++ obj339 82 naflbu18
+obj339 # 87AEF109
++ obj340 82 naflbu18
+obj340 # 11248FCF
++ obj341 82 naflbu18
+obj341 # 0641FD4B
++ obj346 83 nast7
+obj346 # F06D5C80
++ obj347 83 nast7
+obj347 # D2187567
++ obj348 82 naflbu8
+obj348 # 70D32337
++ obj349 82 naflbu8
+obj349 # 5B5C5078
++ obj350 82 naflbu8
+obj350 # 1D09EE91
++ obj351 82 naflbu8
+obj351 # 91C85242
++ obj352 82 naflbu8
+obj352 # A6B1DDAB
++ obj353 82 nafltr78
+obj353 # DB93A6CE
++ obj368 82 naflbu8
+obj368 # CD1EA28B
++ obj379 82 naflbu8
+obj379 # 14471782
++ obj380 82 naflbu8
+obj380 # 49D66792
++ obj381 82 naflbu8
+obj381 # 07C684F9
++ obj382 82 naflbu8
+obj382 # AC7A02D1
++ obj388 80 unmoto ""
+obj388 #ai 619103C9
+obj388 #place AC91BBB2
+obj388 #unit FFB0D0A2
+obj388 #vitals 295BF584
++ obj5147051 82 stst4disc
+obj5147051 # 3859677E
++ obj5147352 82 stst4disc
+obj5147352 # F7474DF9
++ obj5147353 82 stst4disc
+obj5147353 # F7474DF9
++ obj5147354 82 stst4disc
+obj5147354 # F7474DF9
++ obj5147355 82 stst4disc
+obj5147355 # F7474DF9
++ obj5147356 82 stst4disc
+obj5147356 # F7474DF9
++ obj5147357 82 stst4disc
+obj5147357 # F7474DF9
++ obj5147358 82 stst4disc
+obj5147358 # F7474DF9
++ obj5147359 82 stst4disc
+obj5147359 # F7474DF9
++ timed157 75 CEffectPointLight
+timed157 # F9D74287
++ timed251 75 CEffectPointLight
+timed251 # 275513C7
++ timed257 75 CEffectPointLight
+timed257 # 1DEC7753
++ timed259 75 CEffectPointLight
+timed259 # DC6D7850
++ timed260 75 CEffectPointLight
+timed260 # 72979814
++ timed323 75 CEffectPointLight
+timed323 # 5D2F3740
++ timed343 75 CEffectPointLight
+timed343 # 9D7A7092
++ timed358 75 CEffectPointLight
+timed358 # 9EFA4315
++ timed387 75 CEffectPointLight
+timed387 # 7505AFA0
++ timed5147050 75 CEffectPointLight
+timed5147050 # 2E28BE64
++ missile0 spell 39
+missile0 # FEC14634
++ aievents events
+aievents tick 20
+aievents width 9
+aievents height 9
+aievents count 0
+aievents side0.count 0
+aievents side0.hash 0x811C9DC5
+aievents side1.count 0
+aievents side1.hash 0x811C9DC5
+aievents side2.count 0
+aievents side2.hash 0x811C9DC5
+aievents side3.count 0
+aievents side3.hash 0x811C9DC5
+aievents side4.count 0
+aievents side4.hash 0x811C9DC5
+aievents side5.count 0
+aievents side5.hash 0x811C9DC5
+aievents side6.count 0
+aievents side6.hash 0x811C9DC5
+aievents side7.count 0
+aievents side7.hash 0x811C9DC5
+aievents side8.count 0
+aievents side8.hash 0x811C9DC5
+aievents side9.count 0
+aievents side9.hash 0x811C9DC5
+aievents side10.count 0
+aievents side10.hash 0x811C9DC5
+aievents side11.count 0
+aievents side11.hash 0x811C9DC5
+aievents side12.count 0
+aievents side12.hash 0x811C9DC5
+aievents side13.count 0
+aievents side13.hash 0x811C9DC5
+aievents side14.count 0
+aievents side14.hash 0x811C9DC5
+aievents side15.count 0
+aievents side15.hash 0x811C9DC5
++ script script
+script #files 982697DF
+script #globals 33E544A3
+script #gobject DFB99406
+script #instances 46BBAC38
+script #lightning 6A354D7C
+script #loaded B7FE1BB6
+script #nextFxId CC37E54D
+script #nextParticleId EA2DC23B
+script #runs F80920E1
++ client client
+client tick 20
+client paused 0
+client ticksRun 17
+client tickFraction 0.0
+client partyDanger 0
+client objects 150
+client units 5
+client synchronised 6
++ cunit2 80 unmoco2 ""
+cunit2 #place 05174B21
+cunit2 #unit CA7CD47D
+cunit2 #vitals 02033E21
++ cunit129 80 unanwibo ""
+cunit129 #place CC95DED6
+cunit129 #unit F0D31922
+cunit129 #vitals B073BCC9
++ cunit148 80 unanwiwo ""
+cunit148 #place CE270717
+cunit148 #unit 41270B60
+cunit148 #vitals C17C1FEE
++ cunit187 80 unmoog1 ""
+cunit187 #place F3DF9084
+cunit187 #unit 1A3C50C2
+cunit187 #vitals 1DDF30F4
++ cunit388 80 unmoto ""
+cunit388 #place 22FE5018
+cunit388 #unit 88A27EBC
+cunit388 #vitals 1F5A7471
+@ 1 update 40 frame 7 tick 20 zone - hash 2A30A40E n 173
+world updates 40
+world paused 1
+random isaac.count 168
+random isaac.a 0xAD54DD2B
+random isaac.b 0xA8A4A46F
+random isaac.c 0x00000010
+random isaac.results 0xEDE387CF
+random isaac.memory 0x679D48CE
+client tick 21
+client paused 1
+client ticksRun 37
+client objects 151
+client units 6
+client synchronised 7
+cunit2 #place 85C53A26
+cunit129 #place 3A9D2F98
+cunit129 #unit 4AE175BE
+cunit148 #place EC5D6FDB
+cunit148 #unit A13719CF
+cunit187 #place B7CE4832
+cunit388 #place C2155DED
++ cunit1000011214 80 unhuma ""
+cunit1000011214 #place 125B38F9
+cunit1000011214 #unit A8700ED8
+cunit1000011214 #vitals 68D49C6E
+@ 2 update 60 frame 11 tick 20 zone - hash 384D4F9D n 173
+world updates 60
+random isaac.count 122
+client ticksRun 57
++ cunit1000011214 80 unhuma "Human Gipath Brigand Deputy -1"
+cunit1000011214 #place 125B38F9
+cunit1000011214 #unit 43512FC8
+cunit1000011214 #vitals A7CF3098
+@ 3 update 80 frame 15 tick 20 zone - hash 3BA7B81A n 173
+world updates 80
+random isaac.count 42
+client ticksRun 77
+@ 4 update 100 frame 19 tick 20 zone - hash EFCCF3F0 n 173
+world updates 100
+random isaac.count 207
+random isaac.a 0x59688C84
+random isaac.b 0x05C0F64A
+random isaac.c 0x00000011
+random isaac.results 0x3985745C
+random isaac.memory 0xD598B619
+client ticksRun 97
+cunit1000011214 #unit 11E5BC72
+@ 5 update 120 frame 23 tick 20 zone - hash B0079E1C n 173
+world updates 120
+random isaac.count 118
+client ticksRun 117
+cunit1000011214 #unit E811D611
+@ 6 update 140 frame 27 tick 20 zone - hash 4E0AE555 n 173
+world updates 140
+random isaac.count 38
+client ticksRun 137
+@ 7 update 160 frame 31 tick 20 zone - hash 74AB7243 n 173
+world updates 160
+random isaac.count 236
+random isaac.a 0xD3ACD48C
+random isaac.b 0x46F61B65
+random isaac.c 0x00000012
+random isaac.results 0x51AB37E7
+random isaac.memory 0x07E2A63C
+client ticksRun 157
+@ 8 update 180 frame 35 tick 20 zone - hash FD500162 n 173
+world updates 180
+random isaac.count 108
+client ticksRun 177
+@ 9 update 200 frame 39 tick 20 zone - hash 5E15ED94 n 173
+world updates 200
+random isaac.count 42
+client ticksRun 197
+@ 10 update 220 frame 43 tick 20 zone - hash D44D5517 n 173
+world updates 220
+random isaac.count 204
+random isaac.a 0xCCD97F13
+random isaac.b 0x06F752A7
+random isaac.c 0x00000013
+random isaac.results 0xA3299F22
+random isaac.memory 0xFA47C019
+client ticksRun 217
+@ 11 update 240 frame 47 tick 20 zone - hash D3BDFC9D n 173
+world updates 240
+random isaac.count 131
+client ticksRun 237
+@ 12 update 260 frame 51 tick 20 zone - hash 8F344A8E n 173
+world updates 260
+random isaac.count 224
+random isaac.a 0xCB716B85
+random isaac.b 0xB251CB1E
+random isaac.c 0x00000014
+random isaac.results 0xD229851C
+random isaac.memory 0x6EB4C603
+client ticksRun 257
++ cunit1000011214 80 unhuma "hhoosstt"
+cunit1000011214 #place 125B38F9
+cunit1000011214 #unit BC639295
+cunit1000011214 #vitals A7CF3098
+@ 13 update 280 frame 55 tick 20 zone - hash 2061DA44 n 173
+world updates 280
+random isaac.count 173
+client ticksRun 277
+@ 14 update 300 frame 59 tick 20 zone - hash 02B21D2F n 173
+world updates 300
+random isaac.count 126
+client ticksRun 297
+@ 15 update 320 frame 63 tick 20 zone - hash D2F47E00 n 173
+world updates 320
+random isaac.count 223
+random isaac.a 0xEC8B18DA
+random isaac.b 0xC00D1120
+random isaac.c 0x00000015
+random isaac.results 0x7F188E8D
+random isaac.memory 0x117C2EA1
+client ticksRun 317
+@ 16 update 340 frame 67 tick 22 zone bz1mpg hash D15A945B n 400
+world tick 22
+world updates 340
+world paused 0
+world timeBase -0.0222222228
+world nightLevel 0x3F800000
+world exits 1
+world gameResult 1
+world sessionKind 3
+world objects 359
+world mapObjects 23
+world sentObjects 336
+world timedObjects 12
+world updateMap 23
+random isaac.count 91
+random isaac.a 0x3AF7E16C
+random isaac.b 0x77995D55
+random isaac.c 0x00000026
+random isaac.results 0x1884BD62
+random isaac.memory 0xA134CC2D
+random crt.rand 0x41610497
+player0 sessionKind 3
+player0 lastTick 20
+player0 items 1
+player0 units 1
+player0 objects 12
+player0 money 500
+player0 members 1
+player0 member0.unit 1000011214
+player0 var.b.merc1.n11_1 1.0
+player0 var.b.merc10.n11_10 1.0
+player0 var.b.merc2.n11_2 1.0
+player0 var.b.merc3.n11_3 1.0
+player0 var.b.merc4.n11_4 1.0
+player0 var.b.merc5.n11_5 1.0
+player0 var.b.merc6.n11_6 1.0
+player0 var.b.merc7.n11_7 1.0
+player0 var.b.merc8.n11_8 1.0
+player0 var.b.merc9.n11_9 1.0
+player0 var.z.MPGame1 1.0
+- obj2
+- obj3
+- obj4
+- obj5
+- obj6
+- obj7
+- obj8
+- obj9
+- obj129
+- obj132
+- obj148
+- obj150
+- obj160
+- obj163
+- obj172
+- obj173
+- obj177
+- obj181
+- obj182
+- obj183
+- obj187
+- obj188
+- obj189
+- obj190
+- obj192
+- obj194
+- obj195
+- obj212
+- obj213
+- obj214
+- obj215
+- obj216
+- obj218
+- obj219
+- obj220
+- obj221
+- obj222
+- obj228
+- obj231
+- obj232
+- obj233
+- obj234
+- obj235
+- obj237
+- obj241
+- obj242
+- obj243
+- obj250
+- obj253
+- obj254
+- obj255
+- obj261
+- obj262
+- obj263
+- obj265
+- obj266
+- obj267
+- obj268
+- obj269
+- obj270
+- obj272
+- obj273
+- obj274
+- obj275
+- obj276
+- obj277
+- obj278
+- obj279
+- obj280
+- obj281
+- obj282
+- obj283
+- obj284
+- obj285
+- obj286
+- obj287
+- obj288
+- obj289
+- obj290
+- obj291
+- obj292
+- obj293
+- obj295
+- obj296
+- obj297
+- obj298
++ obj299 84 stbr1
+obj299 # 44FA1913
+- obj300
+- obj301
+- obj302
+- obj303
+- obj304
+- obj305
+- obj306
+- obj307
+- obj308
+- obj309
+- obj310
+- obj311
+- obj312
+- obj313
+- obj314
+- obj315
+- obj316
+- obj317
+- obj318
+- obj319
+- obj320
+- obj321
+- obj322
+- obj324
+- obj325
+- obj326
+- obj328
+- obj329
+- obj330
+- obj331
+- obj332
+- obj333
+- obj334
+- obj335
+- obj336
+- obj337
+- obj338
+- obj339
+- obj340
+- obj341
+- obj346
+- obj347
+- obj348
+- obj349
+- obj350
+- obj351
+- obj352
+- obj353
+- obj368
+- obj379
+- obj380
+- obj381
+- obj382
+- obj388
++ obj476 84 stbr4
+obj476 # 22148C93
++ obj477 84 stst13
+obj477 # 7A1EAC75
++ obj708 84 stbuho6
+obj708 # 2072989E
++ obj709 84 stst14
+obj709 # 71072C27
++ obj710 84 stst4
+obj710 # AFBC809F
++ obj711 84 stwe3
+obj711 # BE5450F2
++ obj776 84 stga1
+obj776 # 92079C1E
++ obj819 84 stst4
+obj819 # 060A8C18
++ obj891 82 nafltr56
+obj891 # F6F7421B
++ obj893 82 nafltr57
+obj893 # 0BE911CF
++ obj895 82 nafltr59
+obj895 # 3F2ACC0C
++ obj896 82 nafltr59
+obj896 # 9C4B1CF8
++ obj916 82 nafltr57
+obj916 # 1CF1E769
++ obj917 82 nafltr56
+obj917 # 3D0D0CC4
++ obj929 84 stbuho5
+obj929 # 901A7DD3
++ obj931 84 stbuho7
+obj931 # 4B5F1977
++ obj933 84 stbuho7
+obj933 # C3151C32
++ obj945 84 stwame1
+obj945 # 1D47CE43
++ obj947 84 stwame1
+obj947 # 47EA4081
++ obj950 84 stwame1
+obj950 # 2F0E8E30
++ obj951 84 stwame1
+obj951 # A31289B2
++ obj952 84 stwame1
+obj952 # 09359558
++ obj953 84 stwame1
+obj953 # 9CEBD2BD
++ obj954 84 stwame1
+obj954 # F0436094
++ obj955 84 stwame1
+obj955 # 7618DB31
++ obj963 84 stwame1
+obj963 # C50681FB
++ obj964 84 stwame1
+obj964 # BDC799A3
++ obj965 84 stwame1
+obj965 # 6D2F5655
++ obj966 84 stwame1
+obj966 # B4443AD9
++ obj967 84 stwame1
+obj967 # AC0298C0
++ obj968 84 stwame1
+obj968 # 4B90170C
++ obj969 84 stwame1
+obj969 # 0F6235BB
++ obj970 84 stwame1
+obj970 # 511AC107
++ obj971 84 stwame1
+obj971 # A25B1023
++ obj972 84 stwame1
+obj972 # 65BAD8FE
++ obj973 84 stwame1
+obj973 # 93777921
++ obj974 84 stwame1
+obj974 # 521DB39B
++ obj975 84 stwame1
+obj975 # 3E0B9FB1
++ obj976 84 stwame1
+obj976 # 50284E76
++ obj977 84 stwame1
+obj977 # 926884DD
++ obj978 84 stwame1
+obj978 # 1766B80E
++ obj979 84 stwame1
+obj979 # 2956D40D
++ obj980 84 stwame1
+obj980 # B08CA48A
++ obj981 84 stwame1
+obj981 # 69BEF842
++ obj982 84 stwame1
+obj982 # C9EAE978
++ obj984 84 stwame1
+obj984 # 31691F74
++ obj985 84 stwame1
+obj985 # 13F36EEB
++ obj986 84 stwame1
+obj986 # 5FBCB347
++ obj1238 82 nafltr56
+obj1238 # DF163AFB
++ obj1239 82 nafltr56
+obj1239 # 4AA8067C
++ obj1240 82 nafltr59
+obj1240 # CB011FFB
++ obj1241 82 naflbu6
+obj1241 # D08499A1
++ obj1242 82 naflbu6
+obj1242 # 5EE0D386
++ obj1243 82 naflbu6
+obj1243 # 1FD9EC96
++ obj1244 82 nafltr56
+obj1244 # 380E244B
++ obj1245 82 nafltr57
+obj1245 # E56D35C4
++ obj1246 82 nafltr56
+obj1246 # 4D557AC6
++ obj1247 82 naflbu6
+obj1247 # 009E320A
++ obj1248 82 naflbu6
+obj1248 # 448E0947
++ obj1249 82 naflbu6
+obj1249 # E46CCD70
++ obj1250 82 nafltr59
+obj1250 # 3B39E3DC
++ obj1252 82 naflbu6
+obj1252 # CD5358E1
++ obj1253 82 naflbu6
+obj1253 # A000FCC5
++ obj1254 82 nafltr56
+obj1254 # 9CA1657D
++ obj1256 82 nafltr57
+obj1256 # 7CD7380B
++ obj1257 82 nafltr56
+obj1257 # 26BFE79F
++ obj1258 82 nafltr56
+obj1258 # 1811E994
++ obj1259 82 nafltr59
+obj1259 # B9C05ED6
++ obj1260 82 nafltr59
+obj1260 # 370ACD8E
++ obj1261 82 nafltr59
+obj1261 # B15E4EF4
++ obj1262 82 naflbu6
+obj1262 # 5C6B7854
++ obj1263 82 naflbu6
+obj1263 # 6E500C93
++ obj1264 82 naflbu6
+obj1264 # 13C0D201
++ obj1265 82 naflbu6
+obj1265 # 52D65CBA
++ obj1266 82 naflbu6
+obj1266 # 85A24C52
++ obj1267 82 naflbu6
+obj1267 # E508B73F
++ obj1268 82 naflbu6
+obj1268 # 98FFC896
++ obj1269 82 naflbu6
+obj1269 # D486071B
++ obj1270 82 nafltr59
+obj1270 # DD12B234
++ obj1271 82 nafltr59
+obj1271 # C8E6526B
++ obj1272 82 nafltr59
+obj1272 # B2A24F3A
++ obj1273 82 nafltr59
+obj1273 # B41B77BA
++ obj1275 82 nafltr56
+obj1275 # BFAB0463
++ obj1276 82 nafltr57
+obj1276 # FDE0C607
++ obj1277 82 nafltr56
+obj1277 # B9089D53
++ obj1278 82 naflbu6
+obj1278 # 0D716B8B
++ obj1279 82 naflbu6
+obj1279 # A9CDC3D7
++ obj1280 82 naflbu6
+obj1280 # 6C7771DD
++ obj1281 82 naflbu6
+obj1281 # 9386E516
++ obj1282 82 naflbu6
+obj1282 # 5655E294
++ obj1283 82 naflbu6
+obj1283 # 1B62B51C
++ obj1284 82 naflbu6
+obj1284 # 157A62B5
++ obj1285 82 naflbu6
+obj1285 # 34BD58F4
++ obj1286 82 nafltr20
+obj1286 # 571CD69A
++ obj1287 82 nafltr20
+obj1287 # A55F534F
++ obj1288 82 nafltr21
+obj1288 # 01DF2623
++ obj1289 82 nafltr22
+obj1289 # A87F3D44
++ obj1290 82 nafltr22
+obj1290 # E76C8851
++ obj1291 82 nafltr22
+obj1291 # AD7BAE75
++ obj1292 82 nafltr23
+obj1292 # 4F0BF5F5
++ obj1293 82 nafltr23
+obj1293 # 2E6EE88F
++ obj1294 82 nafltr21
+obj1294 # C4257D6C
++ obj1295 82 nafltr21
+obj1295 # E0A2FFAA
++ obj1296 82 nafltr22
+obj1296 # 7D9CC637
++ obj1297 82 nafltr22
+obj1297 # 3593C843
++ obj1298 82 nafltr22
+obj1298 # C2B7B645
++ obj1300 82 nafltr23
+obj1300 # B2BCC6EC
++ obj1301 82 nafltr23
+obj1301 # F614257F
++ obj1302 82 nafltr20
+obj1302 # C7A573D3
++ obj1303 82 nafltr21
+obj1303 # 2DDFD975
++ obj1304 82 nafltr21
+obj1304 # A35E4690
++ obj1305 82 nafltr22
+obj1305 # 657FC0A8
++ obj1306 82 nafltr22
+obj1306 # 798850E4
++ obj1307 82 nafltr22
+obj1307 # B45B8DD7
++ obj1308 82 nafltr20
+obj1308 # 13C8F02D
++ obj1309 82 nafltr20
+obj1309 # CFEF0AE5
++ obj1310 82 naflbu6
+obj1310 # C24067BD
++ obj1311 82 naflbu6
+obj1311 # 8A41BDBC
++ obj1312 82 naflbu6
+obj1312 # 06599511
++ obj1313 82 naflbu6
+obj1313 # 4A87053B
++ obj1314 82 naflbu6
+obj1314 # 2945517C
++ obj1315 82 nafltr21
+obj1315 # 10CEB8DD
++ obj1316 82 nafltr22
+obj1316 # C55A1133
++ obj1317 82 nafltr22
+obj1317 # C339315D
++ obj1318 82 nafltr23
+obj1318 # E887A285
++ obj1319 82 nafltr23
+obj1319 # 954E11D7
++ obj1320 82 nafltr20
+obj1320 # 8FE10997
++ obj1322 82 naflbu6
+obj1322 # 5E50B4E2
++ obj1323 82 naflbu6
+obj1323 # B9D0FC6A
++ obj1324 82 naflbu6
+obj1324 # 5CB85058
++ obj1325 82 nafltr56
+obj1325 # 66B57151
++ obj1326 82 nafltr22
+obj1326 # 839603AC
++ obj1327 82 nafltr22
+obj1327 # C300B0C8
++ obj1328 82 nafltr22
+obj1328 # C11D9623
++ obj1329 82 nafltr22
+obj1329 # F53A1503
++ obj1330 82 naflbu6
+obj1330 # EE661B90
++ obj1331 82 naflbu6
+obj1331 # 86D78AE7
++ obj1332 82 naflbu6
+obj1332 # 942F3A9B
++ obj1333 82 naflbu6
+obj1333 # E1200804
++ obj1334 82 naflbu6
+obj1334 # 020860F5
++ obj1336 83 nast16
+obj1336 # E4704109
++ obj1337 83 nast8
+obj1337 # 2BAA6C9C
++ obj1344 84 stwame1
+obj1344 # 3A061C1C
++ obj1346 84 stwame1
+obj1346 # 453F59F6
++ obj1347 84 stwame1
+obj1347 # E5B771D8
++ obj1349 84 stwame1
+obj1349 # 1989EE3F
++ obj1350 84 stwame1
+obj1350 # 95C952D4
++ obj1353 84 stwame1
+obj1353 # B869CFB1
++ obj1354 84 stwame1
+obj1354 # D219CB38
++ obj1355 84 stwame1
+obj1355 # 759E8E19
++ obj1356 84 stwame1
+obj1356 # 95584D40
++ obj1357 84 stwame1
+obj1357 # 5F540CA5
++ obj1358 84 stwame1
+obj1358 # B9F3F274
++ obj1359 84 stwame1
+obj1359 # 22F55B0F
++ obj1360 84 stwame1
+obj1360 # FC585B05
++ obj1363 84 stst14
+obj1363 # 4778F425
++ obj1364 84 stwali1
+obj1364 # 3FECCDB7
++ obj1367 84 stwali1
+obj1367 # 11682B9B
++ obj1368 84 stwali1
+obj1368 # A74F6D0E
++ obj1372 84 stwali1
+obj1372 # 7C969E04
++ obj1374 84 stwali1
+obj1374 # F3DAEDBC
++ obj1376 84 stwali1
+obj1376 # 249C7A03
++ obj1379 84 stwali1
+obj1379 # B02C1B61
++ obj1380 84 stwali1
+obj1380 # 0E8ECF5E
++ obj1383 84 stwali1
+obj1383 # 2289EA49
++ obj1385 84 stwali1
+obj1385 # 359F92C3
++ obj1387 84 stwali1
+obj1387 # B430BF36
++ obj1391 84 stwali1
+obj1391 # 349E597B
++ obj1392 84 stwali1
+obj1392 # FB398ED6
++ obj1443 84 stwali1
+obj1443 # 715C62B3
++ obj1445 84 stwali1
+obj1445 # D6664EB7
++ obj1494 82 nafltr59
+obj1494 # A0523D1F
++ obj1495 82 nafltr59
+obj1495 # 9306135F
++ obj1500 84 stto6
+obj1500 # 72B94DF2
++ obj1505 83 nast8
+obj1505 # 815D9707
++ obj1506 83 nast13
+obj1506 # E976D0CC
++ obj1508 82 nafltr59
+obj1508 # FDBD842C
++ obj1509 82 nafltr59
+obj1509 # 6B760C1C
++ obj1511 84 stbuho7
+obj1511 # 7F2E3C1D
++ obj1513 84 stbuho7
+obj1513 # 3B619DBC
++ obj1515 84 stbuho7
+obj1515 # C77B437D
++ obj1519 82 nafltr59
+obj1519 # 8B06B329
++ obj1520 82 nafltr59
+obj1520 # C5737EF0
++ obj1521 82 nafltr59
+obj1521 # 802AAF48
++ obj1522 82 nafltr59
+obj1522 # B1DA7018
++ obj1523 82 nafltr59
+obj1523 # 69C693C9
++ obj1524 82 nafltr59
+obj1524 # 59E1FEF4
++ obj1525 82 nafltr59
+obj1525 # 32F70B6B
++ obj1527 82 nafltr56
+obj1527 # 281F4B3D
++ obj1528 82 nafltr59
+obj1528 # 63E66411
++ obj1529 82 nafltr59
+obj1529 # DE34DF84
++ obj1530 82 nafltr59
+obj1530 # B65DA513
++ obj1531 82 nafltr59
+obj1531 # F058EAD5
++ obj1532 82 nafltr59
+obj1532 # A008CFCF
++ obj1533 82 nafltr59
+obj1533 # FBC9EE83
++ obj1534 82 nafltr59
+obj1534 # D2D6FD36
++ obj1535 82 nafltr59
+obj1535 # 720C3196
++ obj1536 82 nafltr59
+obj1536 # 99E834AF
++ obj1537 82 nafltr59
+obj1537 # CB969D70
++ obj1538 82 nafltr59
+obj1538 # 4BBC9193
++ obj1539 82 nafltr59
+obj1539 # 04D28E72
++ obj1541 82 nafltr59
+obj1541 # FE7CED86
++ obj1542 82 nafltr59
+obj1542 # 5111AA3A
++ obj1543 82 nafltr59
+obj1543 # 2AB953A9
++ obj1544 82 nafltr23
+obj1544 # 0870D632
++ obj1548 82 naflbu6
+obj1548 # F5F32DDF
++ obj1549 82 naflbu6
+obj1549 # 43A5A0EE
++ obj1550 82 naflbu6
+obj1550 # 4AFBEDB4
++ obj1552 82 nafltr56
+obj1552 # 2238BF64
++ obj1553 82 naflbu6
+obj1553 # 43E52070
++ obj1554 82 naflbu6
+obj1554 # 7FD94FFD
++ obj1555 82 naflbu6
+obj1555 # D0114A38
++ obj1556 82 naflbu6
+obj1556 # 30B3325A
++ obj1557 82 naflbu6
+obj1557 # 1DE30337
++ obj1558 82 naflbu6
+obj1558 # 96E01623
++ obj1559 82 naflbu6
+obj1559 # 44854226
++ obj1560 82 naflbu6
+obj1560 # 4A5CA81C
++ obj1561 82 naflbu6
+obj1561 # 4A37059F
++ obj1562 82 naflbu6
+obj1562 # CC1F02CE
++ obj1563 82 naflbu6
+obj1563 # D83BDEAF
++ obj1564 82 naflbu6
+obj1564 # 7109787D
++ obj1565 82 naflbu6
+obj1565 # 976B189F
++ obj1566 82 naflbu6
+obj1566 # 18129F51
++ obj1567 82 naflbu6
+obj1567 # 10F9BE78
++ obj1568 82 naflbu6
+obj1568 # 7BCBC837
++ obj1569 82 naflbu6
+obj1569 # 6E463950
++ obj1570 82 naflbu6
+obj1570 # B7FD35DC
++ obj1571 82 naflbu6
+obj1571 # 61496B37
++ obj1572 82 naflbu6
+obj1572 # F1C87294
++ obj1573 82 naflbu6
+obj1573 # D16508C8
++ obj1574 82 naflbu6
+obj1574 # 4827AD5E
++ obj1575 82 naflbu6
+obj1575 # 8765BE66
++ obj1576 82 naflbu6
+obj1576 # F07B4693
++ obj1577 82 naflbu6
+obj1577 # 4D21F537
++ obj1578 82 naflbu6
+obj1578 # 927870BA
++ obj1579 82 naflbu6
+obj1579 # 962143EE
++ obj1580 82 naflbu6
+obj1580 # BCBDB959
++ obj1581 82 naflbu6
+obj1581 # 90198DE4
++ obj1582 82 naflbu6
+obj1582 # A1C5DB81
++ obj1583 82 naflbu6
+obj1583 # 63BBDBD1
++ obj1584 82 naflbu6
+obj1584 # 78E64ECF
++ obj1585 82 nafltr59
+obj1585 # 2D7D717E
++ obj1586 82 nafltr56
+obj1586 # 2EF9B9CE
++ obj1587 82 nafltr59
+obj1587 # B46CA39F
++ obj1588 82 naflbu6
+obj1588 # 182861DE
++ obj1589 82 naflbu6
+obj1589 # 7242939A
++ obj1590 82 naflbu6
+obj1590 # 6601439B
++ obj1591 82 naflbu6
+obj1591 # A770B828
++ obj1592 82 naflbu6
+obj1592 # 7D36364C
++ obj1593 82 naflbu6
+obj1593 # E711704F
++ obj1594 82 naflbu6
+obj1594 # A505736D
++ obj1595 82 naflbu6
+obj1595 # E5C60745
++ obj1596 82 naflbu6
+obj1596 # A4106A34
++ obj1597 82 naflbu6
+obj1597 # 3DB58DFA
++ obj1598 82 naflbu6
+obj1598 # 2C39C17F
++ obj1599 82 naflbu6
+obj1599 # 1A6016B2
++ obj1600 82 naflbu6
+obj1600 # 4ADAB8B0
++ obj1601 82 nafltr59
+obj1601 # 299FFBA2
++ obj1602 82 naflbu6
+obj1602 # F3130387
++ obj1603 82 naflbu6
+obj1603 # C32293F8
++ obj1604 82 naflbu6
+obj1604 # C0F18E78
++ obj1605 82 naflbu6
+obj1605 # A8B167FB
++ obj1606 82 naflbu6
+obj1606 # 9EFAB9D8
++ obj1607 82 naflbu6
+obj1607 # D69CBB93
++ obj1608 82 naflbu6
+obj1608 # 50E14B78
++ obj1609 82 naflbu6
+obj1609 # 9A7D59EE
++ obj1610 82 naflbu6
+obj1610 # C55FC451
++ obj1611 82 naflbu6
+obj1611 # C3164691
++ obj1612 82 naflbu6
+obj1612 # F75A905C
++ obj1613 82 nafltr59
+obj1613 # C1882788
++ obj1614 82 nafltr59
+obj1614 # 3563DAD6
++ obj1615 82 nafltr59
+obj1615 # 33FEBF18
++ obj1616 82 nafltr59
+obj1616 # ABF134BE
++ obj1617 82 nafltr59
+obj1617 # A8D38D3F
++ obj1618 82 nafltr59
+obj1618 # D0E58793
++ obj1619 82 nafltr59
+obj1619 # F1B7D470
++ obj1620 82 nafltr59
+obj1620 # 177BFA24
++ obj1621 82 nafltr59
+obj1621 # 472472CC
++ obj1622 82 naflbu6
+obj1622 # 510732F5
++ obj1623 82 naflbu6
+obj1623 # 9C802996
++ obj1624 82 naflbu6
+obj1624 # F1011CBC
++ obj1625 82 naflbu6
+obj1625 # 427B1332
++ obj1626 82 naflbu6
+obj1626 # BFFA1365
++ obj1627 82 naflbu6
+obj1627 # 2C928FEE
++ obj1628 82 naflbu6
+obj1628 # C0F18322
++ obj1629 82 naflbu6
+obj1629 # 34640214
++ obj1630 82 naflbu6
+obj1630 # 3B05945A
++ obj1631 82 naflbu6
+obj1631 # A390942B
++ obj1633 82 nafltr59
+obj1633 # 30821A12
++ obj1634 82 nafltr59
+obj1634 # 7467793F
++ obj1645 84 stbuho7
+obj1645 # F07A4EE1
++ obj1646 87 stto5
+obj1646 # 547A9656
++ obj20766 82 naflbu17
+obj20766 # 31B1A2FE
++ obj38072 82 naflbu19
+obj38072 # 4FBA13D5
++ obj44799 82 nafltr86
+obj44799 # E6021811
++ obj46787 82 naflbu18
+obj46787 # E6F73F21
++ obj46954 84 stto6
+obj46954 # AABEB6F7
++ obj63480 84 stst155
+obj63480 # 0D31B2C7
++ obj81882 84 stst155
+obj81882 # 53DC0715
++ obj87817 84 stto6
+obj87817 # BC750E40
++ obj143005 80 unhufe ""
+obj143005 #ai 83E34814
+obj143005 #place 3166EA7A
+obj143005 #unit 7362F63C
+obj143005 #vitals 0A5C7738
++ obj182595 80 unanhopi ""
+obj182595 #ai 9905C8A4
+obj182595 #place C4DA9A73
+obj182595 #unit 3B6ED700
+obj182595 #vitals E3648479
++ obj183332 80 unanhodo ""
+obj183332 #ai D6B0ECA8
+obj183332 #place 38316EBB
+obj183332 #unit EC938A76
+obj183332 #vitals C2055F7E
++ obj196568 80 unhuma ""
+obj196568 #ai E56B7430
+obj196568 #place 74AF8BF3
+obj196568 #unit 9FC1EA0A
+obj196568 #vitals D24F3FD0
++ obj202800 82 naflbu19
+obj202800 # B275C404
++ obj204361 84 stst151
+obj204361 # 85D41822
++ obj224966 84 stst151
+obj224966 # AE384E18
++ obj270777 82 naflbu18
+obj270777 # 158D6D0D
++ obj305677 82 nafltr20
+obj305677 # 86E15276
++ obj326331 80 unhuma ""
+obj326331 #ai E09537D6
+obj326331 #place B8C15E51
+obj326331 #unit DFD15904
+obj326331 #vitals D24F3FD0
++ obj337572 84 stst56
+obj337572 # 0A5EB219
++ obj370619 82 naflbu18
+obj370619 # 8F38DB5A
++ obj385984 82 naflbu18
+obj385984 # A6450486
++ obj386717 80 unhuma ""
+obj386717 #ai 26996F43
+obj386717 #place 46DA4DCD
+obj386717 #unit 8861B9D7
+obj386717 #vitals D24F3FD0
++ obj388258 84 stst151
+obj388258 # E6D88D29
++ obj399469 80 unanhopi ""
+obj399469 #ai C08A91A2
+obj399469 #place AC44C638
+obj399469 #unit 742F41C7
+obj399469 #vitals E3648479
++ obj420372 82 naflbu18
+obj420372 # 1F4ED2E6
++ obj424136 84 stst56
+obj424136 # 9C349BE2
++ obj442326 84 stst151
+obj442326 # EA968CD1
++ obj469697 80 unhufe ""
+obj469697 #ai 26996F43
+obj469697 #place 6943C412
+obj469697 #unit D537835C
+obj469697 #vitals D24F3FD0
++ obj471277 84 stto6
+obj471277 # 69417B55
++ obj481569 80 unhuma ""
+obj481569 #ai 83E34814
+obj481569 #place 8249FBAB
+obj481569 #unit 8CB4D051
+obj481569 #vitals D24F3FD0
++ obj486564 84 stst56
+obj486564 # FDE770A3
++ obj534153 80 unhufe ""
+obj534153 #ai 861D0BF2
+obj534153 #place 9BD0B2D6
+obj534153 #unit DA9D5EF3
+obj534153 #vitals D24F3FD0
++ obj540220 84 stst30
+obj540220 # 56A6544B
++ obj552568 82 naflbu19
+obj552568 # B833CC0F
++ obj576954 84 stst56
+obj576954 # 617A5E3C
++ obj577836 82 naflbu19
+obj577836 # 3AF1AEF4
++ obj590720 84 stst30
+obj590720 # 8518083E
++ obj601927 80 unhufe ""
+obj601927 #ai E09537D6
+obj601927 #place FF190F9D
+obj601927 #unit 4FCC4CEA
+obj601927 #vitals D24F3FD0
++ obj603850 84 stst151
+obj603850 # ECFCF422
++ obj686200 80 unhuma ""
+obj686200 #ai 287B0C78
+obj686200 #place 352AAABA
+obj686200 #unit 200F8682
+obj686200 #vitals D24F3FD0
++ obj732495 80 unhuma ""
+obj732495 #ai 83E34814
+obj732495 #place 983E3BDC
+obj732495 #unit D91DBAA7
+obj732495 #vitals D24F3FD0
++ obj740054 82 naflbu17
+obj740054 # F553D1F3
++ obj746631 84 stwali1
+obj746631 # E7CC1267
++ obj758343 82 naflbu18
+obj758343 # 15FCBC04
++ obj784212 82 naflbu18
+obj784212 # 5809D530
++ obj801744 84 stwali1
+obj801744 # 63AFC310
++ obj812970 80 unhuma ""
+obj812970 #ai 26996F43
+obj812970 #place 298649B9
+obj812970 #unit 746B1F4C
+obj812970 #vitals D24F3FD0
++ obj831510 80 unanhodo ""
+obj831510 #ai 71710199
+obj831510 #place 38C8B5EA
+obj831510 #unit 2D1D0740
+obj831510 #vitals 56DBFB28
++ obj848411 80 unanhopi ""
+obj848411 #ai CDBCF113
+obj848411 #place 53673B9C
+obj848411 #unit 35B55F32
+obj848411 #vitals E3648479
++ obj868303 82 naflbu17
+obj868303 # 6C398E1A
++ obj868623 84 stst30
+obj868623 # 39412B82
++ obj909750 82 nafltr83
+obj909750 # 2038135E
++ obj914074 82 nafltr20
+obj914074 # 19FC5595
++ obj917455 82 naflbu18
+obj917455 # A2F8D2ED
++ obj927062 80 unhuma ""
+obj927062 #ai 537B9D42
+obj927062 #place 74168A08
+obj927062 #unit 35801DEE
+obj927062 #vitals D24F3FD0
++ obj927689 82 naflbu16
+obj927689 # B00FE408
++ obj939085 82 nafltr20
+obj939085 # 662457B7
++ obj941236 84 stst56
+obj941236 # E9937CBD
++ obj941984 82 nafltr20
+obj941984 # DFB99E45
++ obj982882 82 naflbu17
+obj982882 # 215B0C98
++ obj990046 82 naflbu18
+obj990046 # 31A4AC9A
++ obj999742 80 unhuma ""
+obj999742 #ai 861D0BF2
+obj999742 #place D467C54F
+obj999742 #unit 12E3F90F
+obj999742 #vitals D24F3FD0
+- obj5147051
+- obj5147352
+- obj5147353
+- obj5147354
+- obj5147355
+- obj5147356
+- obj5147357
+- obj5147358
+- obj5147359
++ obj1000002436 80 unanhopi ""
+obj1000002436 #ai D928D6A1
+obj1000002436 #place 7ADE84FC
+obj1000002436 #unit F85EA83C
+obj1000002436 #vitals 552914AB
++ obj1000011214 80 unhuma "hhoosstt"
+obj1000011214 #ai B27BCA8B
+obj1000011214 #place C11FB6CA
+obj1000011214 #unit 95F954EE
+obj1000011214 #vitals 181CED13
++ obj1000063817 80 unhuma ""
+obj1000063817 #ai BFA0EA85
+obj1000063817 #place 292BE3D1
+obj1000063817 #unit B4E1C875
+obj1000063817 #vitals 552914AB
++ obj1007671245 80 unhuma ""
+obj1007671245 #ai 537B9D42
+obj1007671245 #place DE094C20
+obj1007671245 #unit CBB233FE
+obj1007671245 #vitals 552914AB
+- timed157
+- timed251
+- timed257
+- timed259
+- timed260
+- timed323
+- timed343
+- timed358
+- timed387
++ timed56299 72 CEffectSound
+timed56299 # FD76A968
++ timed128022 74 CEffectParticle
+timed128022 # 31584C06
++ timed301731 74 CEffectParticle
+timed301731 # BA97E716
++ timed363092 72 CEffectSound
+timed363092 # 3333901D
++ timed378382 74 CEffectParticle
+timed378382 # 13F7BB8D
++ timed476139 75 CEffectPointLight
+timed476139 # AA29628B
++ timed633453 72 CEffectSound
+timed633453 # 49AD5778
++ timed634452 75 CEffectPointLight
+timed634452 # 5329FD80
++ timed894878 74 CEffectParticle
+timed894878 # 53B4127E
++ timed898250 72 CEffectSound
+timed898250 # 6E231123
++ timed924345 75 CEffectPointLight
+timed924345 # D8584AFD
++ timed935039 75 CEffectPointLight
+timed935039 # 8E80B369
+- timed5147050
+missile0 # 4583D555
+aievents tick 22
+aievents width 17
+aievents height 17
+script #ggroup B986B70A
+script #globals A22CF976
+script #gobject D2AAE1FE
+script #inst CC96B042
+script #instances 4860240A
+script #run 297674EC
+script #runs 34EEBD9C
+client paused 0
+client ticksRun 2
+client objects 359
+client units 22
+client synchronised 23
+- cunit2
+- cunit129
+- cunit148
+- cunit187
+- cunit388
++ cunit143005 80 unhufe ""
+cunit143005 #place 9A14FAF3
+cunit143005 #unit 0FE95422
+cunit143005 #vitals B073BCC9
++ cunit182595 80 unanhopi ""
+cunit182595 #place 402C269D
+cunit182595 #unit 46E19806
+cunit182595 #vitals ED40ECA3
++ cunit183332 80 unanhodo ""
+cunit183332 #place A8381DB3
+cunit183332 #unit 10AE0F17
+cunit183332 #vitals 9F2C8950
++ cunit196568 80 unhuma ""
+cunit196568 #place 73AA3F72
+cunit196568 #unit 610D9585
+cunit196568 #vitals 368D5CFB
++ cunit326331 80 unhuma ""
+cunit326331 #place 2665941C
+cunit326331 #unit E35EAD75
+cunit326331 #vitals 368D5CFB
++ cunit386717 80 unhuma ""
+cunit386717 #place B7E7365F
+cunit386717 #unit 0FE95422
+cunit386717 #vitals 368D5CFB
++ cunit399469 80 unanhopi ""
+cunit399469 #place 00752D6C
+cunit399469 #unit BD094BEB
+cunit399469 #vitals ED40ECA3
++ cunit469697 80 unhufe ""
+cunit469697 #place A5BDC9A0
+cunit469697 #unit BA4A3B10
+cunit469697 #vitals 368D5CFB
++ cunit481569 80 unhuma ""
+cunit481569 #place 388236A4
+cunit481569 #unit 5BCBBFE0
+cunit481569 #vitals 368D5CFB
++ cunit534153 80 unhufe ""
+cunit534153 #place C26BF21C
+cunit534153 #unit 12123F0B
+cunit534153 #vitals 368D5CFB
++ cunit601927 80 unhufe ""
+cunit601927 #place F7577B46
+cunit601927 #unit D5937279
+cunit601927 #vitals 368D5CFB
++ cunit686200 80 unhuma ""
+cunit686200 #place 62BA002B
+cunit686200 #unit 10878FAF
+cunit686200 #vitals 368D5CFB
++ cunit732495 80 unhuma ""
+cunit732495 #place E3D02205
+cunit732495 #unit FF984E92
+cunit732495 #vitals 368D5CFB
++ cunit812970 80 unhuma ""
+cunit812970 #place 63F669C5
+cunit812970 #unit 00DC0EF5
+cunit812970 #vitals 368D5CFB
++ cunit831510 80 unanhodo ""
+cunit831510 #place BD249DD0
+cunit831510 #unit 05E0D340
+cunit831510 #vitals 0F819E5B
++ cunit848411 80 unanhopi ""
+cunit848411 #place 545D86B4
+cunit848411 #unit E70C4440
+cunit848411 #vitals ED40ECA3
++ cunit927062 80 unhuma ""
+cunit927062 #place 0E7B920A
+cunit927062 #unit EB6B8AAD
+cunit927062 #vitals 368D5CFB
++ cunit999742 80 unhuma ""
+cunit999742 #place C2D7263E
+cunit999742 #unit CD95D759
+cunit999742 #vitals 368D5CFB
++ cunit1000002436 80 unanhopi ""
+cunit1000002436 #place E20B7DAC
+cunit1000002436 #unit 49058E1E
+cunit1000002436 #vitals 8FC93AF9
+cunit1000011214 #place F7AD650E
+cunit1000011214 #unit 1FFD090B
+cunit1000011214 #vitals 68C46754
++ cunit1000063817 80 unhuma ""
+cunit1000063817 #place 94535255
+cunit1000063817 #unit 2D461BBB
+cunit1000063817 #vitals 8FC93AF9
++ cunit1007671245 80 unhuma ""
+cunit1007671245 #place E4C12CEE
+cunit1007671245 #unit 6CAD7FF6
+cunit1007671245 #vitals 8FC93AF9
+@ 17 update 360 frame 71 tick 42 zone bz1mpg hash FF5A5BE7 n 389
+world tick 42
+world updates 360
+random isaac.count 155
+random isaac.a 0x6303E388
+random isaac.b 0xCEC4F047
+random isaac.c 0x0000003B
+random isaac.results 0x85268DAF
+random isaac.memory 0xCB772AB9
+random crt.rand 0x1963D962
+obj143005 #unit 8BFE9179
+obj143005 #vitals 7A3683B7
+obj182595 #ai 0A27D860
+obj182595 #place 31CA3440
+obj182595 #vitals 930E70F6
+obj183332 #ai 9753967A
+obj183332 #place 6115B23A
+obj183332 #vitals B26FABF1
+obj196568 #unit 6108C6D7
+obj196568 #vitals A225CB5F
+obj326331 #unit 274D3E41
+obj326331 #vitals A225CB5F
+obj386717 #unit 76A8950A
+obj386717 #vitals A225CB5F
+obj399469 #ai CA32D9D9
+obj399469 #place A77B0407
+obj399469 #vitals 930E70F6
+obj469697 #unit 2BFEAF81
+obj469697 #vitals A225CB5F
+obj481569 #unit 727DFC8C
+obj481569 #vitals A225CB5F
+obj534153 #unit 220139B6
+obj534153 #vitals A225CB5F
+obj601927 #unit B7502BAF
+obj601927 #vitals A225CB5F
+obj686200 #unit DEC6AA5F
+obj686200 #vitals A225CB5F
+obj732495 #unit 27D4967A
+obj732495 #vitals A225CB5F
+obj812970 #unit 8CF77809
+obj812970 #vitals A225CB5F
+obj831510 #ai 859AC221
+obj831510 #place 0360F463
+obj831510 #vitals 26B10FA7
+obj848411 #ai 35739FFF
+obj848411 #place D061EC24
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # A9B84BCA
+aievents tick 42
+script #run C95F1521
+client tick 41
+client ticksRun 22
+client objects 348
+client units 11
+client synchronised 12
+- cunit143005
+cunit182595 #place 4715C325
+cunit183332 #place 488DE4FE
+cunit183332 #unit 3582378B
+- cunit196568
+- cunit326331
+- cunit386717
+cunit399469 #place 2FF76FA4
+cunit399469 #unit A4248DDB
+- cunit469697
+- cunit481569
+- cunit534153
+- cunit601927
+- cunit686200
+- cunit732495
+- cunit812970
+cunit831510 #place D3E63A99
+cunit831510 #unit 0D72B933
+cunit848411 #place 6A69CC4F
+cunit848411 #unit FE218270
+cunit927062 #place 52D3854D
+cunit927062 #unit 129FE0CE
+cunit999742 #place A0DD9F02
+cunit1000002436 #place 846BB123
+cunit1000011214 #place 3A199381
+cunit1000011214 #unit D43F01EA
+cunit1000063817 #place 046D355C
+cunit1000063817 #unit D5701BEF
+cunit1007671245 #place 1EA75E93
+cunit1007671245 #unit 6D6F15C1
+@ 18 update 380 frame 75 tick 62 zone bz1mpg hash 581F442A n 389
+world tick 62
+world updates 380
+random isaac.count 175
+random isaac.a 0x966BB535
+random isaac.b 0xDE781508
+random isaac.c 0x00000054
+random isaac.results 0x2EDF94DC
+random isaac.memory 0xA6AF88C1
+random crt.rand 0x8AD720F5
+obj143005 #vitals 19F00927
+obj182595 #ai 4EFF32E0
+obj182595 #place E7905DC1
+obj182595 #vitals 18C240D2
+obj183332 #ai D53F2A44
+obj183332 #place 5C6D843B
+obj183332 #vitals 8687B4AA
+obj196568 #ai 83E34814
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai A2517D46
+obj399469 #place AE4CBA01
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #ai 287B0C78
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #ai 287B0C78
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 85D3D336
+obj831510 #place D2F1E455
+obj831510 #vitals 041B9ECF
+obj848411 #ai C4DE75D3
+obj848411 #place E762F669
+obj848411 #unit 1AFF762F
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 408998D4
+aievents tick 62
+script #run 52BEC436
+client tick 61
+client ticksRun 42
+cunit182595 #place 1CB97E88
+cunit183332 #place DE7D392F
+cunit183332 #unit 0983C927
+cunit399469 #place CF871B9D
+cunit831510 #place A1BDEEB5
+cunit831510 #unit 145F7F03
+cunit848411 #place 7A7E2821
+cunit848411 #unit 905A7D76
+cunit927062 #place 82CFA275
+cunit999742 #place AC8D8578
+cunit1000063817 #place 477631BA
+cunit1007671245 #place 0C405F48
+@ 19 update 400 frame 79 tick 82 zone bz1mpg hash 787F5AD5 n 389
+world tick 82
+world updates 400
+random isaac.count 123
+random isaac.a 0x9B56B7BC
+random isaac.b 0x163CEF37
+random isaac.c 0x0000006D
+random isaac.results 0x5119A4E5
+random isaac.memory 0x1B5B1773
+random crt.rand 0x321841DC
+player0 lastTick 67
+player0 var.gtime 0.0522222221
+obj143005 #vitals 0A5C7738
+obj182595 #ai B4152D40
+obj182595 #place F1439E58
+obj182595 #unit 0E5B7E0C
+obj182595 #vitals E3648479
+obj183332 #ai 6822904C
+obj183332 #place E3E0672B
+obj183332 #unit E5E0C324
+obj183332 #vitals C2055F7E
+obj196568 #ai E56B7430
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 4B2E0CCB
+obj399469 #place B49C1342
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #ai 83E34814
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #ai 83E34814
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai D03AF75B
+obj831510 #place B86F7EC8
+obj831510 #vitals 56DBFB28
+obj848411 #ai 266ABEB0
+obj848411 #place 203B4491
+obj848411 #unit 0968EBE3
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 54642368
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # FB4F82E4
+aievents tick 82
+script #run BCC2196B
+client tick 81
+client ticksRun 62
+cunit182595 #place 3E657BD1
+cunit182595 #unit B466DC7B
+cunit183332 #place 6629AD0A
+cunit183332 #unit A6A8ED85
+cunit399469 #place 513E1A2B
+cunit831510 #place 332C6E73
+cunit848411 #place 171565ED
+cunit999742 #unit E9B20CD9
+@ 20 update 420 frame 83 tick 102 zone bz1mpg hash ACDA278C n 389
+world tick 102
+world updates 420
+random isaac.count 90
+random isaac.a 0x551B9874
+random isaac.b 0x48DED6C3
+random isaac.c 0x00000087
+random isaac.results 0x931A57CC
+random isaac.memory 0xCC6D299F
+random crt.rand 0x22B3C447
+obj143005 #vitals 7A3683B7
+obj182595 #ai F518D9CA
+obj182595 #vitals 930E70F6
+obj183332 #ai 5906D47D
+obj183332 #place 6AFFC70D
+obj183332 #unit 0B18D069
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai 5096F25D
+obj399469 #place 80D0A910
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai E696390E
+obj831510 #place B7522685
+obj831510 #vitals 26B10FA7
+obj848411 #ai 95A12228
+obj848411 #place E48CF7AC
+obj848411 #unit D23E052D
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 17741C7B
+aievents tick 102
+script #run A083EDEE
+client tick 101
+client ticksRun 82
+cunit182595 #place AAC9012B
+cunit183332 #place 74A6E61A
+cunit183332 #unit E707E874
+cunit399469 #place C39F7AE8
+cunit831510 #place 4AB60CC8
+cunit831510 #unit 0D72B933
+cunit848411 #place 4247CCA2
+cunit848411 #unit C2304572
+@ 21 update 440 frame 87 tick 122 zone bz1mpg hash FBC67C29 n 389
+world tick 122
+world updates 440
+random isaac.count 148
+random isaac.a 0x4F57AC59
+random isaac.b 0xCD56AB86
+random isaac.c 0x000000A1
+random isaac.results 0xABDE47C1
+random isaac.memory 0x519FEAC0
+random crt.rand 0xEAD494CC
+obj143005 #vitals 19F00927
+obj182595 #ai 3BB08671
+obj182595 #place 608844C4
+obj182595 #unit 1DFDE682
+obj182595 #vitals 18C240D2
+obj183332 #ai 627B5A6E
+obj183332 #place 7E13A6C4
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai 5767CF95
+obj399469 #place 3A37462A
+obj399469 #unit 0591FD3C
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai EBDFBBF7
+obj831510 #place 195CF0C8
+obj831510 #vitals 041B9ECF
+obj848411 #ai 086B79EB
+obj848411 #place 118ECE99
+obj848411 #vitals 18C240D2
+obj927062 #unit D937F6ED
+obj927062 #vitals B7F97025
+obj999742 #unit 8CBA739E
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # F849B99B
+aievents tick 122
+script #run 04E6A0DA
+client tick 121
+client ticksRun 102
+cunit182595 #place FC90A46A
+cunit182595 #unit 51D97D90
+cunit183332 #place 97399301
+cunit183332 #unit EC31B45F
+cunit399469 #place 885004C7
+cunit831510 #place F6B731C7
+cunit831510 #unit 145F7F03
+cunit848411 #place D0C3460C
+@ 22 update 460 frame 91 tick 142 zone bz1mpg hash 70B674F0 n 389
+world tick 142
+world updates 460
+random isaac.count 152
+random isaac.a 0xCC3494F8
+random isaac.b 0xD552B0FA
+random isaac.c 0x000000BB
+random isaac.results 0x244DFC8F
+random isaac.memory 0xA52C1B8E
+random crt.rand 0x8613DFA9
+player0 lastTick 131
+player0 var.gtime 0.123333335
+obj143005 #vitals 0A5C7738
+obj182595 #ai B8567526
+obj182595 #place 5A0B326A
+obj182595 #vitals E3648479
+obj183332 #ai BE452819
+obj183332 #place 93D45E98
+obj183332 #vitals C2055F7E
+obj196568 #ai 0FA2C68D
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 6E8F8B98
+obj399469 #place 650AA486
+obj399469 #unit DC13184E
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #ai E56B7430
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #ai 40115367
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #ai E56B7430
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai A50442A8
+obj831510 #place F074D6B0
+obj831510 #vitals 56DBFB28
+obj848411 #ai 363E09B8
+obj848411 #place 469F399D
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 66CF0B96
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 14722704
+aievents tick 142
+script #run C57507D0
+client tick 141
+client ticksRun 122
+cunit182595 #place 3BC2BF52
+cunit182595 #unit D1D906AE
+cunit183332 #place 88D168F0
+cunit183332 #unit 090D16BA
+cunit399469 #place 65E05574
+cunit399469 #unit 70C5D16A
+cunit831510 #place 08EAD314
+cunit848411 #place 6B1D1EE6
+cunit848411 #unit DB1D8342
+cunit999742 #unit 49406741
+@ 23 update 480 frame 95 tick 162 zone bz1mpg hash 425EC5CA n 389
+world tick 162
+world updates 480
+random isaac.count 68
+random isaac.a 0x0114BF6B
+random isaac.b 0xC6BD227E
+random isaac.c 0x000000D5
+random isaac.results 0x238CE616
+random isaac.memory 0x6E062130
+random crt.rand 0x9789C816
+obj143005 #vitals 7A3683B7
+obj182595 #ai 53533820
+obj182595 #place 3CD530F9
+obj182595 #vitals 930E70F6
+obj183332 #ai 8B7A2959
+obj183332 #place D6CAB201
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai A78A9ECB
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai EDC98EBC
+obj831510 #place 7CC8B170
+obj831510 #vitals 26B10FA7
+obj848411 #ai 4F33E49C
+obj848411 #place 3B415B50
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # FD43F41A
+aievents tick 162
+script #run 5E94D6C7
+client tick 161
+client ticksRun 142
+cunit182595 #place 50F725E9
+cunit183332 #place B1BEF871
+cunit183332 #unit 0993F089
+cunit399469 #place 690E4AA2
+cunit831510 #place 4225164F
+cunit831510 #unit 0D72B933
+cunit848411 #place BDF9BF28
+cunit848411 #unit C2304572
+@ 24 update 500 frame 99 tick 182 zone bz1mpg hash F811A751 n 389
+world tick 182
+world updates 500
+random isaac.count 130
+random isaac.a 0x712C51DC
+random isaac.b 0xF1F76B9E
+random isaac.c 0x000000EF
+random isaac.results 0xA4CBA48A
+random isaac.memory 0xA8C4BC90
+random crt.rand 0xB86DD659
+obj143005 #vitals 19F00927
+obj182595 #ai 96B3C5F5
+obj182595 #place 79AC6B92
+obj182595 #vitals 18C240D2
+obj183332 #ai A69C8073
+obj183332 #place 364F7221
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai 5A22FFD1
+obj399469 #place D58C62D3
+obj399469 #unit 118C23E6
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 3240F9C4
+obj831510 #place 751BBED0
+obj831510 #vitals 041B9ECF
+obj848411 #ai AD734BB5
+obj848411 #place CF0C9E87
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 9F86BD79
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 26D95B61
+aievents tick 182
+script #run A2B61B3F
+client tick 181
+client ticksRun 162
+cunit182595 #place 27D3BBEB
+cunit182595 #unit A047F941
+cunit183332 #place 6DF1DF4F
+cunit183332 #unit 4523D57D
+cunit399469 #place A955C43A
+cunit399469 #unit 9C0CC2F1
+cunit831510 #place A1B7BF44
+cunit831510 #unit 145F7F03
+cunit848411 #place 17BD02D5
+cunit848411 #unit AEF34361
+cunit999742 #unit 1CEDA6EB
+@ 25 update 520 frame 103 tick 202 zone bz1mpg hash 6119AA14 n 389
+world tick 202
+world updates 520
+random isaac.count 166
+random isaac.a 0x1B92F8C2
+random isaac.b 0x7FE43895
+random isaac.c 0x00000109
+random isaac.results 0x5B2DA1A6
+random isaac.memory 0xF0E4CA25
+random crt.rand 0x053A1745
+player0 lastTick 195
+player0 var.gtime 0.194444448
+obj143005 #vitals 0A5C7738
+obj182595 #ai 62B29F85
+obj182595 #place 540C297B
+obj182595 #unit 8BCD9D55
+obj182595 #vitals E3648479
+obj183332 #ai AB66DCBC
+obj183332 #place 5059155D
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai D89E1797
+obj399469 #place BBF15B68
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai 18198FE6
+obj831510 #place 8A1901A4
+obj831510 #vitals 56DBFB28
+obj848411 #ai 77387BFB
+obj848411 #place A8091066
+obj848411 #unit 13F786D1
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # CAE2C5FE
+aievents tick 202
+script #run BEF7EFBA
+client tick 201
+client ticksRun 182
+cunit182595 #place 03EBE85E
+cunit182595 #unit C767FE26
+cunit183332 #place 042CE412
+cunit183332 #unit CD0B78DF
+cunit399469 #place D0549351
+cunit399469 #unit 82809C97
+cunit831510 #place 1A5345F2
+cunit848411 #place 0F62D1ED
+cunit848411 #unit 0E78F699
+@ 26 update 540 frame 107 tick 222 zone bz1mpg hash 9F61EDD3 n 389
+world tick 222
+world updates 540
+random isaac.count 64
+random isaac.a 0x4A7BC090
+random isaac.b 0x1ACC7A78
+random isaac.c 0x00000123
+random isaac.results 0xBE3CE465
+random isaac.memory 0x33AA0439
+random crt.rand 0x5EEDBB62
+obj143005 #vitals 7A3683B7
+obj182595 #ai F78E73B1
+obj182595 #place 951B9109
+obj182595 #unit 7A8FBC05
+obj182595 #vitals 930E70F6
+obj183332 #ai B735C33F
+obj183332 #place 9EC0D243
+obj183332 #unit 1F81B05A
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai B48457F7
+obj399469 #place A7103212
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai FBADFC35
+obj831510 #place FC9BBDFA
+obj831510 #vitals 26B10FA7
+obj848411 #ai 8A58E1E7
+obj848411 #vitals 930E70F6
+obj927062 #unit 96B2A086
+obj927062 #vitals A225CB5F
+obj999742 #unit 7331567A
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 25DF601E
+aievents tick 222
+script #inst 3A4F2B6E
+script #instances 3F67149C
+script #run 7DDFF9EE
+script #runs 43E98D0A
+client tick 221
+client ticksRun 202
+cunit182595 #place 31C8E2B7
+cunit182595 #unit AE8521CF
+cunit183332 #place EFE2FEC9
+cunit183332 #unit 5AAD3F3D
+cunit399469 #place 2435FE2C
+cunit831510 #place 1EB86ADB
+cunit831510 #unit 0D72B933
+cunit848411 #place 4BBCB4AF
+cunit927062 #unit 202A2B2D
+@ 27 update 560 frame 111 tick 242 zone bz1mpg hash 0708AE4B n 389
+world tick 242
+world updates 560
+random isaac.count 148
+random isaac.a 0x2DC7C1E6
+random isaac.b 0xCFC55DC0
+random isaac.c 0x0000013D
+random isaac.results 0xAE3CF70E
+random isaac.memory 0x526DD4FC
+random crt.rand 0x66E301E4
+obj143005 #vitals 19F00927
+obj182595 #ai A98D506E
+obj182595 #place 1B7DE64B
+obj182595 #vitals 18C240D2
+obj183332 #ai F3EB823E
+obj183332 #place 7A6B9486
+obj183332 #unit E698ED9C
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai C3F269B4
+obj399469 #place AD233CB0
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 50BE9E3F
+obj831510 #place 068ED495
+obj831510 #vitals 041B9ECF
+obj848411 #ai 1A710210
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 1D26323A
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # C9E4FE81
+aievents tick 242
+script #inst CC96B042
+script #instances 4860240A
+script #run F5B71189
+script #runs 34EEBD9C
+client tick 241
+client ticksRun 222
+cunit182595 #place 8A1C6EB9
+cunit183332 #place AA60B66A
+cunit183332 #unit 6C524672
+cunit399469 #place 26117C41
+cunit831510 #place EDC16FD5
+cunit831510 #unit 4F6E04CF
+cunit848411 #place 74E5FA66
+cunit999742 #unit 6D898324
+@ 28 update 580 frame 115 tick 262 zone bz1mpg hash D3843569 n 389
+world tick 262
+world updates 580
+random isaac.count 39
+random isaac.a 0x001540F7
+random isaac.b 0x022538EF
+random isaac.c 0x00000156
+random isaac.results 0x43FE68EF
+random isaac.memory 0x5B89B1DA
+random crt.rand 0x798F3321
+player0 lastTick 259
+player0 var.gtime 0.265555561
+obj143005 #vitals 0A5C7738
+obj182595 #ai BB26A909
+obj182595 #place 03CF743F
+obj182595 #vitals E3648479
+obj183332 #ai 96973AE1
+obj183332 #place 70B84D88
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 55D870F2
+obj399469 #place 3D89741A
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai E5223F4D
+obj831510 #place 426AC790
+obj831510 #vitals 56DBFB28
+obj848411 #ai 1A41B2AA
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 20D52D9F
+aievents tick 262
+script #run 6E56C09E
+client tick 261
+client ticksRun 242
+cunit182595 #place A91B6AF4
+cunit183332 #place DC00E437
+cunit183332 #unit 4A925B18
+cunit399469 #place EA3F8DAD
+cunit399469 #unit 9900C090
+cunit831510 #place 66DF9BFE
+cunit831510 #unit C1AFC076
+cunit848411 #place 5A6FF0BE
+@ 29 update 600 frame 119 tick 282 zone bz1mpg hash 580AED76 n 389
+world tick 282
+world updates 600
+random isaac.count 35
+random isaac.a 0x34DC6377
+random isaac.b 0xA2BA85B3
+random isaac.c 0x00000170
+random isaac.results 0xB312F039
+random isaac.memory 0x13F1FF1D
+random crt.rand 0xDF20258D
+obj143005 #vitals 7A3683B7
+obj182595 #ai 3C814441
+obj182595 #place 256AA0CC
+obj182595 #vitals 930E70F6
+obj183332 #ai 06996D85
+obj183332 #place 6A83373E
+obj183332 #unit 705D14E9
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai ACD774E4
+obj399469 #place 742CA457
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai 1E4E0A12
+obj831510 #place 670C670F
+obj831510 #unit 0D859731
+obj831510 #vitals 26B10FA7
+obj848411 #ai 77EC0B2D
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit 5BA1E85D
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 5BAA5D39
+aievents tick 282
+script #run FA4C725F
+client tick 281
+client ticksRun 262
+cunit182595 #place 432F75AA
+cunit183332 #place FA02CC1C
+cunit183332 #unit 24868F1A
+cunit399469 #place 9410A7B4
+cunit399469 #unit 82809C97
+cunit831510 #place 8FF7AF00
+cunit831510 #unit 48EEE39A
+cunit999742 #place D1FA713D
+cunit999742 #unit 49AE58A4
+@ 30 update 620 frame 123 tick 302 zone bz1mpg hash 320449B4 n 389
+world tick 302
+world updates 620
+random isaac.count 153
+random isaac.a 0x8EFAA272
+random isaac.b 0xCFA7EB5E
+random isaac.c 0x0000018A
+random isaac.results 0x80977A2C
+random isaac.memory 0x1426ECA5
+random crt.rand 0x5D938750
+obj143005 #vitals 19F00927
+obj182595 #ai DC8F40BA
+obj182595 #place 17215A7B
+obj182595 #unit 819929D0
+obj182595 #vitals 18C240D2
+obj183332 #ai 5BB2C39E
+obj183332 #place AF3D80FF
+obj183332 #unit A2951EA6
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai C285137B
+obj399469 #place E8BB2CD9
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 673A6635
+obj831510 #place 037F7586
+obj831510 #unit 9B28A3B6
+obj831510 #vitals 041B9ECF
+obj848411 #ai CF90CAF9
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # B791C3A6
+aievents tick 302
+script #run FCD11336
+client tick 301
+client ticksRun 282
+cunit182595 #place A527C6B9
+cunit182595 #unit 12741FE9
+cunit183332 #place B7F7D8FA
+cunit183332 #unit 0CAE05C8
+cunit399469 #place A03FB369
+cunit399469 #unit A44081FD
+cunit831510 #place 3EEB484E
+cunit831510 #unit 2F6472D0
+@ 31 update 640 frame 127 tick 322 zone bz1mpg hash 62766203 n 389
+world tick 322
+world updates 640
+random isaac.count 234
+random isaac.a 0x2445DA74
+random isaac.b 0xC8C8109A
+random isaac.c 0x000001A4
+random isaac.results 0x39C2E2AF
+random isaac.memory 0x5462B60B
+random crt.rand 0x45705D7A
+obj143005 #vitals 0A5C7738
+obj182595 #ai 58FB9F4F
+obj182595 #place 2C2C64DB
+obj182595 #unit 4F2E82AE
+obj182595 #vitals E3648479
+obj183332 #ai 9B7D7C98
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 8E1D7979
+obj399469 #place C7BD2FDE
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai 00C57C5B
+obj831510 #place A4BFE930
+obj831510 #vitals 56DBFB28
+obj848411 #ai 3EDB8214
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 58AC6646
+aievents tick 322
+script #run ABB81E1E
+client tick 321
+client ticksRun 302
+cunit182595 #place 75B32CB0
+cunit182595 #unit A00C4C12
+cunit183332 #place C0564E2F
+cunit399469 #place 51E3A5A4
+cunit399469 #unit F7FA55D4
+cunit831510 #place 9C99FDA5
+cunit831510 #unit 4F4AFD2A
+@ 32 update 660 frame 131 tick 342 zone bz1mpg hash E020318E n 389
+world tick 342
+world updates 660
+random isaac.count 171
+random isaac.a 0x3472E228
+random isaac.b 0xE68ADF99
+random isaac.c 0x000001BE
+random isaac.results 0x74F6155A
+random isaac.memory 0xA856CBAF
+random crt.rand 0x5CD961AD
+player0 lastTick 323
+player0 var.gtime 0.336666673
+obj143005 #vitals 7A3683B7
+obj182595 #ai 4272DBD3
+obj182595 #place 2688FA15
+obj182595 #vitals 930E70F6
+obj183332 #ai 848F9FF7
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai 1D2BB0B9
+obj399469 #place B346D0CD
+obj399469 #unit F99227F9
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai E3E130F8
+obj831510 #place DB944BE6
+obj831510 #vitals 26B10FA7
+obj848411 #ai 2A6CDA8E
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit 82AE2761
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # B497F8D9
+aievents tick 342
+script #run 27C87E93
+client tick 341
+client ticksRun 322
+cunit182595 #place B495E3D7
+cunit183332 #place E24E0DD1
+cunit399469 #place 817DFE34
+cunit399469 #unit 467CF4CA
+cunit831510 #place 7C022C21
+cunit831510 #unit 2EF159E6
+cunit999742 #unit 71CEDF07
+@ 33 update 680 frame 135 tick 362 zone bz1mpg hash DFA5F021 n 389
+world tick 362
+world updates 680
+random isaac.count 223
+random isaac.a 0x6B3C8343
+random isaac.b 0x2C3D4B26
+random isaac.c 0x000001D8
+random isaac.results 0xA5573EF8
+random isaac.memory 0x75E69240
+random crt.rand 0x60CA71F1
+obj143005 #vitals 19F00927
+obj182595 #place E491F517
+obj182595 #vitals 18C240D2
+obj183332 #ai 86126645
+obj183332 #unit A531B5B9
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai F83BEBA2
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai D17F00C6
+obj831510 #place 01F10BF6
+obj831510 #vitals 041B9ECF
+obj848411 #ai 43193542
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 5DA62BC7
+aievents tick 362
+script #run 1A87A6F3
+client tick 361
+client ticksRun 342
+cunit182595 #place 701D239F
+cunit183332 #unit B7373FE5
+cunit399469 #place D8707B22
+cunit831510 #place EDE57A79
+@ 34 update 700 frame 139 tick 382 zone bz1mpg hash 7B2099E2 n 389
+world tick 382
+world updates 700
+random isaac.count 160
+random isaac.a 0x5556FD9D
+random isaac.b 0x2BF2DC45
+random isaac.c 0x000001F1
+random isaac.results 0x3D48C177
+random isaac.memory 0x6C12AAF3
+random crt.rand 0xBA08C764
+obj143005 #vitals 0A5C7738
+obj182595 #place F7B6E14E
+obj182595 #vitals E3648479
+obj183332 #ai CBE0FA32
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 1F738146
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place B1D7E968
+obj831510 #vitals 56DBFB28
+obj848411 #ai 7F21A8E1
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit DF0A4EDF
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 863C84BC
+aievents tick 382
+script #run D2DA41E4
+client tick 381
+client ticksRun 362
+cunit182595 #place E9FFEACE
+cunit399469 #place 717D4C52
+cunit831510 #place 9222F53A
+cunit999742 #unit C7772AF9
+@ 35 update 720 frame 143 tick 402 zone bz1mpg hash 57D2BAC4 n 389
+world tick 402
+world updates 720
+random isaac.count 104
+random isaac.a 0x8D306A82
+random isaac.b 0xC26215D0
+random isaac.c 0x0000020B
+random isaac.results 0x3B1117A6
+random isaac.memory 0xEF53FAC3
+random crt.rand 0x9BF71118
+player0 lastTick 387
+player0 var.gtime 0.407777786
+obj143005 #vitals 7A3683B7
+obj182595 #place 21BF0501
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 19CD96A6
+obj831510 #vitals 26B10FA7
+obj848411 #ai B19C6461
+obj848411 #unit 59500A07
+obj848411 #vitals 930E70F6
+obj927062 #unit 473D7EA3
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 6A071A23
+aievents tick 402
+script #run D447208D
+client tick 401
+client ticksRun 382
+cunit182595 #place 2AFC5B8A
+cunit399469 #place 9DD55BB9
+cunit831510 #place C71C88B1
+cunit927062 #unit 3DFB40E5
+cunit999742 #place AC8D8578
+@ 36 update 740 frame 147 tick 422 zone bz1mpg hash 8D5FFA82 n 389
+world tick 422
+world updates 740
+random isaac.count 20
+random isaac.a 0xF06BF581
+random isaac.b 0xFA366655
+random isaac.c 0x00000224
+random isaac.results 0xEE8D9FC2
+random isaac.memory 0x1635A618
+random crt.rand 0xD306E290
+obj143005 #vitals 19F00927
+obj182595 #ai 04D97A57
+obj182595 #place F1439E58
+obj182595 #unit 4DDAA965
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 2E677B9D
+obj831510 #vitals 041B9ECF
+obj848411 #place DAD61D43
+obj848411 #unit 96010923
+obj848411 #vitals 18C240D2
+obj927062 #unit AB8A95A0
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 853ABFC3
+aievents tick 422
+script #run 5E19A893
+client tick 421
+client ticksRun 402
+cunit182595 #place ED0BCDF0
+cunit182595 #unit D41662AE
+cunit831510 #place 06E3A3CD
+cunit848411 #place 54700427
+cunit848411 #unit 72BDE0C2
+@ 37 update 760 frame 151 tick 442 zone bz1mpg hash 20528965 n 389
+world tick 442
+world updates 760
+random isaac.count 56
+random isaac.a 0xE3DD3EA5
+random isaac.b 0xFA689227
+random isaac.c 0x0000023E
+random isaac.results 0xB6BE6EBF
+random isaac.memory 0xA2F22DDE
+random crt.rand 0x2FEF8908
+obj143005 #vitals 0A5C7738
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place FE9012CF
+obj831510 #vitals 56DBFB28
+obj848411 #place 60C2915B
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit EAF44162
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 6901215C
+aievents tick 442
+script #run C65C210B
+client tick 441
+client ticksRun 422
+cunit182595 #place 8A68FFF4
+cunit831510 #place 23CFBE80
+cunit848411 #place FAEC1D76
+cunit848411 #unit 33B8AE83
+cunit999742 #unit 241A4BEE
+@ 38 update 780 frame 155 tick 462 zone bz1mpg hash 5C421A49 n 389
+world tick 462
+world updates 780
+random isaac.count 211
+random isaac.a 0x1986156C
+random isaac.b 0xCD25D173
+random isaac.c 0x00000259
+random isaac.results 0x55391851
+random isaac.memory 0xF65FCFE6
+random crt.rand 0xB2F72FCF
+player0 lastTick 451
+player0 var.gtime 0.478888899
+obj143005 #ai 287B0C78
+obj143005 #vitals 7A3683B7
+obj182595 #ai 041AD4F2
+obj182595 #place 89B3DF4E
+obj182595 #unit 3AA4908F
+obj182595 #vitals 930E70F6
+obj183332 #ai 351FEDE7
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 6AE9C82E
+obj831510 #vitals 26B10FA7
+obj848411 #ai 871F2276
+obj848411 #place F7C0B0F3
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 8030F242
+aievents tick 462
+script #run FB13F96B
+client tick 461
+client ticksRun 442
+cunit182595 #place 08B14C29
+cunit182595 #unit 840D3927
+cunit831510 #place 8D1C8643
+cunit831510 #unit D22F158D
+cunit848411 #place 403BC4FA
+cunit848411 #unit C690077F
+@ 39 update 800 frame 159 tick 482 zone bz1mpg hash B6488D2F n 389
+world tick 482
+world updates 800
+random isaac.count 239
+random isaac.a 0xE1E7172E
+random isaac.b 0x120ED51E
+random isaac.c 0x00000273
+random isaac.results 0xD803F70D
+random isaac.memory 0xDD2028CE
+random crt.rand 0x39FFF7F4
+obj143005 #vitals 19F00927
+obj182595 #place 59D42EFF
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place F5943FFA
+obj831510 #vitals 041B9ECF
+obj848411 #place 4A00E153
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 0CCCEB13
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 3BF6E872
+aievents tick 482
+script #run 05AC2F93
+client tick 481
+client ticksRun 462
+cunit182595 #place 6B60F657
+cunit182595 #unit 7593BDF6
+cunit831510 #place A5EDE39C
+cunit831510 #unit 9EABFF9F
+cunit848411 #place F0F4322B
+cunit848411 #unit A78FD809
+cunit999742 #unit 37D4DA2F
+@ 40 update 820 frame 163 tick 502 zone bz1mpg hash FF806B44 n 389
+world tick 502
+world updates 820
+random isaac.count 139
+random isaac.a 0xA04C5E03
+random isaac.b 0x2254E843
+random isaac.c 0x0000028C
+random isaac.results 0x0DFD9F49
+random isaac.memory 0x4A7E8DD0
+random crt.rand 0x9ECB6AA8
+obj143005 #vitals 0A5C7738
+obj182595 #place 73CD4D1C
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 01E8852D
+obj831510 #vitals 56DBFB28
+obj848411 #place 12C9B360
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # D7CD76ED
+aievents tick 502
+script #run 03314EFA
+client tick 501
+client ticksRun 482
+cunit182595 #place BAD31B12
+cunit831510 #place B3A57918
+cunit831510 #unit 0831448C
+cunit848411 #place 0731F4D7
+cunit848411 #unit D57C3916
+@ 41 update 840 frame 167 tick 522 zone bz1mpg hash 92138D63 n 389
+world tick 522
+world updates 840
+random isaac.count 69
+random isaac.a 0x9101A18F
+random isaac.b 0xC10EDA00
+random isaac.c 0x000002A6
+random isaac.results 0x993C05A4
+random isaac.memory 0x2E5E5E46
+random crt.rand 0x068FC220
+player0 lastTick 515
+player0 var.gtime 0.550000012
+obj143005 #vitals 7A3683B7
+obj182595 #place A79A7164
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai 3734B676
+obj831510 #place 1FB0542F
+obj831510 #vitals 26B10FA7
+obj848411 #ai 67D4925D
+obj848411 #place 2BC8E395
+obj848411 #unit AA07B05E
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #ai 1F248E34
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 38F0D30D
+aievents tick 522
+script #run C260FC73
+client tick 521
+client ticksRun 502
+cunit182595 #place 93671073
+cunit182595 #unit 040D4219
+cunit831510 #place F24775D8
+cunit831510 #unit 2EF159E6
+cunit848411 #place E40ED9AF
+cunit848411 #unit 0F79ABD4
+@ 42 update 860 frame 171 tick 542 zone bz1mpg hash 9C1D4CC4 n 389
+world tick 542
+world updates 860
+random isaac.count 145
+random isaac.a 0xC54FB1F0
+random isaac.b 0xF2EF1E08
+random isaac.c 0x000002C0
+random isaac.results 0x54FA8163
+random isaac.memory 0xD6CACFA6
+random crt.rand 0xF0217ACA
+obj143005 #vitals 19F00927
+obj182595 #ai EF66762F
+obj182595 #place 540C297B
+obj182595 #unit 098F2C0D
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #ai E56B7430
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai 878D43FA
+obj399469 #unit B335AB2F
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #ai 83E34814
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #ai 83E34814
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai B256B462
+obj831510 #place A02F08BA
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 5B390F53
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #ai BFA0EA85
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # D4CB4D92
+aievents tick 542
+script #run D828235F
+client tick 541
+client ticksRun 522
+cunit182595 #place 0F3257B9
+cunit182595 #unit D43E0541
+cunit831510 #place BD25D1B2
+cunit831510 #unit D22F158D
+cunit848411 #place B75E10F3
+cunit999742 #place D1FA713D
+cunit999742 #unit D57EBE7F
+@ 43 update 880 frame 175 tick 562 zone bz1mpg hash ED73CD37 n 389
+world tick 562
+world updates 880
+random isaac.count 190
+random isaac.a 0x4F4DACFA
+random isaac.b 0x94755E18
+random isaac.c 0x000002DA
+random isaac.results 0xBD6FDADA
+random isaac.memory 0x2294C77C
+random crt.rand 0x88805BF7
+obj143005 #vitals 0A5C7738
+obj182595 #ai 20F88F6F
+obj182595 #place 094F2B0C
+obj182595 #unit F011E7E7
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 8AE0AEF8
+obj399469 #unit 5102AF8E
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 02C1D4C5
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 3DFA9E8C
+aievents tick 562
+script #run E567FB3F
+client tick 561
+client ticksRun 542
+cunit182595 #place 5EA47707
+cunit182595 #unit E984FE55
+cunit831510 #place 4CA40E92
+cunit848411 #place 1B8F64C8
+@ 44 update 900 frame 179 tick 582 zone bz1mpg hash 6A3FCC98 n 389
+world tick 582
+world updates 900
+random isaac.count 144
+random isaac.a 0xBBE78CD1
+random isaac.b 0xD2068D60
+random isaac.c 0x000002F4
+random isaac.results 0x69641C1E
+random isaac.memory 0xCA4520A6
+random crt.rand 0x9D489215
+player0 lastTick 579
+player0 var.gtime 0.621111155
+obj143005 #vitals 7A3683B7
+obj182595 #place FB9654B2
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place CEE8E3E1
+obj831510 #vitals 26B10FA7
+obj848411 #ai B8C8B60C
+obj848411 #place BB861517
+obj848411 #unit 3757886B
+obj848411 #vitals 930E70F6
+obj927062 #unit 5FF0F6F7
+obj927062 #vitals A225CB5F
+obj999742 #unit 7DEDC50C
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # E66031F7
+aievents tick 582
+script #run 09863D62
+client tick 581
+client ticksRun 562
+cunit182595 #place 22269461
+cunit831510 #place F529CD39
+cunit831510 #unit 0831448C
+cunit848411 #place DCBC8E2A
+cunit848411 #unit 5230C1F5
+@ 45 update 920 frame 183 tick 602 zone bz1mpg hash 9211DC39 n 389
+world tick 602
+world updates 920
+random isaac.count 213
+random isaac.a 0x1E59C2DF
+random isaac.b 0x0335E512
+random isaac.c 0x0000030E
+random isaac.results 0xB47D3719
+random isaac.memory 0xF4C02321
+random crt.rand 0xAE93F8D9
+obj143005 #vitals 19F00927
+obj182595 #place B67DF803
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 4402C971
+obj831510 #vitals 041B9ECF
+obj848411 #place 85EB3670
+obj848411 #vitals 18C240D2
+obj927062 #unit B159CDB3
+obj927062 #vitals B7F97025
+obj999742 #unit 9344FE48
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 0A5BAF68
+aievents tick 602
+script #run 0F1B5C0B
+client tick 601
+client ticksRun 582
+cunit182595 #place 2C800EFF
+cunit831510 #place 6DFCA197
+cunit831510 #unit 3BAE70D2
+cunit848411 #place 91C96E5F
+cunit848411 #unit 8FF7DE4E
+cunit927062 #unit 68912437
+cunit999742 #unit 2B93860C
+@ 46 update 940 frame 187 tick 622 zone bz1mpg hash BA882478 n 389
+world tick 622
+world updates 940
+random isaac.count 5
+random isaac.a 0xC1AE2030
+random isaac.b 0xC5DAC326
+random isaac.c 0x00000327
+random isaac.results 0xA6247AFA
+random isaac.memory 0xA9937776
+random crt.rand 0x85B15BA2
+obj143005 #vitals 0A5C7738
+obj182595 #place A20B8C56
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 9279BEBB
+obj831510 #vitals 56DBFB28
+obj848411 #place DD2F93F3
+obj848411 #vitals E3648479
+obj927062 #unit 5DEE26B0
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # E5660A88
+aievents tick 622
+script #run FBE7BFC8
+client tick 621
+client ticksRun 602
+cunit182595 #place 2A1A2DD6
+cunit831510 #place B2A3BF9A
+cunit831510 #unit 5F6285DA
+cunit848411 #place 830B8D51
+cunit848411 #unit 95DFF228
+@ 47 update 960 frame 191 tick 642 zone bz1mpg hash 01A24128 n 389
+world tick 642
+world updates 960
+random isaac.count 52
+random isaac.a 0x2F98C6A1
+random isaac.b 0xB3960E23
+random isaac.c 0x00000342
+random isaac.results 0x31B1C1FB
+random isaac.memory 0x1C40D9D3
+random crt.rand 0xCAEAE6DA
+obj143005 #vitals 7A3683B7
+obj182595 #ai 8A551F3D
+obj182595 #place 17215A7B
+obj182595 #unit 3CA0F254
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai 44CA5979
+obj831510 #place 489120C5
+obj831510 #unit A71483EA
+obj831510 #vitals 26B10FA7
+obj848411 #place 37D9C31C
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit 9F1E5A77
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 095D9417
+aievents tick 642
+script #run BC2D07EE
+client tick 641
+client ticksRun 622
+cunit182595 #place 3DC8CDF4
+cunit182595 #unit A5415A03
+cunit831510 #place 99D4B622
+cunit831510 #unit B9B8F61B
+cunit848411 #place BB874162
+cunit848411 #unit 5230C1F5
+cunit999742 #place AC8D8578
+cunit999742 #unit 803D4030
+@ 48 update 980 frame 195 tick 662 zone bz1mpg hash C2F26590 n 389
+world tick 662
+world updates 980
+random isaac.count 210
+random isaac.a 0x0C123723
+random isaac.b 0xD3AF8B66
+random isaac.c 0x0000035D
+random isaac.results 0x90700B71
+random isaac.memory 0x2A4B7AAD
+random crt.rand 0xFA5C093B
+player0 lastTick 643
+player0 var.gtime 0.692222238
+obj143005 #ai 83E34814
+obj143005 #vitals 19F00927
+obj182595 #ai 4272DBD3
+obj182595 #place F5A4C756
+obj182595 #unit 8BAB31DD
+obj182595 #vitals 18C240D2
+obj183332 #ai CBE0FA32
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 31D6035A
+obj831510 #place BD49E03C
+obj831510 #unit D628340E
+obj831510 #vitals 041B9ECF
+obj848411 #ai 8E4BF01B
+obj848411 #place 94B08365
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # E06C4709
+aievents tick 662
+script #run 8162DF8E
+client tick 661
+client ticksRun 642
+cunit182595 #place 6EE4C097
+cunit182595 #unit 0452128F
+cunit831510 #place 73C35A60
+cunit831510 #unit CCFF4A72
+cunit848411 #place 784FE3BD
+@ 49 update 1000 frame 199 tick 682 zone bz1mpg hash B2780FE0 n 389
+world tick 682
+world updates 1000
+random isaac.count 97
+random isaac.a 0x7217ED96
+random isaac.b 0x726DC820
+random isaac.c 0x00000376
+random isaac.results 0xF494191A
+random isaac.memory 0xEE7F9D13
+random crt.rand 0x42B2AB50
+obj143005 #vitals 0A5C7738
+obj182595 #place 0EC2D08B
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 78F86F9C
+obj831510 #vitals 56DBFB28
+obj848411 #ai 9B84CF87
+obj848411 #place 203B4491
+obj848411 #unit 6F11223B
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 73A9B174
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # C110E4C2
+aievents tick 682
+script #run 147634FE
+client tick 681
+client ticksRun 662
+cunit182595 #place FF1BFAD6
+cunit182595 #unit 75CCED60
+cunit831510 #place 74AD9A2B
+cunit831510 #unit 487E97CC
+cunit848411 #place CC02E639
+cunit848411 #unit 2B3DA2E8
+@ 50 update 1020 frame 203 tick 702 zone bz1mpg hash 4D545547 n 389
+world tick 702
+world updates 1020
+random isaac.count 57
+random isaac.a 0x2DEAB08C
+random isaac.b 0xB79467AD
+random isaac.c 0x00000390
+random isaac.results 0x83A1E014
+random isaac.memory 0x3E93EB35
+random crt.rand 0xED414B77
+obj143005 #vitals 7A3683B7
+obj182595 #place 45575715
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place C9BD86EB
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit E8ADC7E4
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 2D2B7A5D
+aievents tick 702
+script #run 7940681F
+client tick 701
+client ticksRun 682
+cunit182595 #place 6F2D246A
+cunit182595 #unit 0452128F
+cunit831510 #place AC1F851B
+cunit831510 #unit CCFF4A72
+cunit848411 #place 1227FD67
+cunit999742 #unit 0F5A6269
+@ 51 update 1040 frame 207 tick 722 zone bz1mpg hash DBA90C63 n 389
+world tick 722
+world updates 1040
+random isaac.count 138
+random isaac.a 0x45A5DE9D
+random isaac.b 0x42F06B0E
+random isaac.c 0x000003AA
+random isaac.results 0x18832CF1
+random isaac.memory 0xB4F76B0D
+random crt.rand 0xCED31B78
+player0 lastTick 707
+player0 var.gtime 0.763333321
+obj143005 #vitals 19F00927
+obj182595 #place BC40A890
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place C420D9EF
+obj831510 #vitals 041B9ECF
+obj848411 #ai 2123228D
+obj848411 #place 3272FCE9
+obj848411 #unit CE083978
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # C216DFBD
+aievents tick 722
+script #run 679EEB28
+client tick 721
+client ticksRun 702
+cunit182595 #place 13CCACA4
+cunit831510 #place 94A7527A
+cunit848411 #place CBD4F45C
+cunit848411 #unit 5CC10419
+@ 52 update 1060 frame 211 tick 742 zone bz1mpg hash 7D68C3DD n 389
+world tick 742
+world updates 1060
+random isaac.count 225
+random isaac.a 0x2A02AA85
+random isaac.b 0xDD363DBA
+random isaac.c 0x000003C4
+random isaac.results 0xDD9D1587
+random isaac.memory 0x25A864C6
+random crt.rand 0x20DF65F1
+obj143005 #vitals 0A5C7738
+obj182595 #place FDAB5252
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 001172C0
+obj831510 #vitals 56DBFB28
+obj848411 #place 47611556
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit BF5823A4
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 2E2D4122
+aievents tick 742
+script #run A25905BA
+client tick 741
+client ticksRun 722
+cunit182595 #place CBF41A35
+cunit831510 #place 8B38362B
+cunit831510 #unit 487E97CC
+cunit848411 #place ED34DE2B
+cunit848411 #unit 7A011973
+cunit999742 #unit EDF00639
+@ 53 update 1080 frame 215 tick 762 zone bz1mpg hash FC56707C n 389
+world tick 762
+world updates 1080
+random isaac.count 205
+random isaac.a 0xB56E67E7
+random isaac.b 0x717F5A3A
+random isaac.c 0x000003DE
+random isaac.results 0x2B8598A3
+random isaac.memory 0xB3C55857
+random crt.rand 0x900DB4FE
+obj143005 #vitals 7A3683B7
+obj182595 #ai A0001CE8
+obj182595 #place F1439E58
+obj182595 #unit F0D09D1E
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai AC1F5D69
+obj399469 #place C3EAFD9E
+obj399469 #unit 9C6D77B3
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place D78D7B6B
+obj831510 #vitals 26B10FA7
+obj848411 #place 5CE901DB
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # C71C923C
+aievents tick 762
+script #run 9F16DDDA
+client tick 761
+client ticksRun 742
+cunit182595 #place 7F810F47
+cunit182595 #unit DACFC0AD
+cunit399469 #place 99BFA8BF
+cunit399469 #unit 07D26990
+cunit831510 #place 4BD0C6DD
+cunit831510 #unit CCFF4A72
+cunit848411 #place C4B4C181
+cunit848411 #unit 5CC10419
+@ 54 update 1100 frame 219 tick 782 zone bz1mpg hash D626C12C n 389
+world tick 782
+world updates 1100
+random isaac.count 106
+random isaac.a 0x66A8AFC4
+random isaac.b 0x9D3F717E
+random isaac.c 0x000003F7
+random isaac.results 0x05B4C711
+random isaac.memory 0x35F076DB
+random crt.rand 0x67D0605A
+player0 lastTick 771
+player0 var.gtime 0.834444404
+obj143005 #vitals 19F00927
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #ai 0FA2C68D
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place 91A1C513
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #ai E56B7430
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #ai E56B7430
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 52FFB7FE
+obj831510 #place A7114434
+obj831510 #vitals 041B9ECF
+obj848411 #place 7F2EDDF6
+obj848411 #vitals 18C240D2
+obj927062 #unit B0F5D487
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 1C863D47
+aievents tick 782
+script #run F9C8999F
+client tick 781
+client ticksRun 762
+cunit182595 #place 8F15049A
+cunit399469 #place F3E8AF4F
+cunit399469 #unit D5E62290
+cunit831510 #place 78CBD69B
+cunit848411 #place 67B09349
+cunit927062 #unit D1545943
+@ 55 update 1120 frame 223 tick 802 zone bz1mpg hash 3D7C14A8 n 389
+world tick 802
+world updates 1120
+random isaac.count 222
+random isaac.a 0x42BB3B90
+random isaac.b 0x9FF513AD
+random isaac.c 0x00000411
+random isaac.results 0xCCA5987C
+random isaac.memory 0xB0EDD47E
+random crt.rand 0x9F7CB892
+obj143005 #vitals 0A5C7738
+obj182595 #ai 041AD4F2
+obj182595 #place 979C3683
+obj182595 #unit 0D19C995
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place 4018F338
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 3ECAAE39
+obj831510 #vitals 56DBFB28
+obj848411 #place D39780F8
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 7725D2BF
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # F0BDA3D8
+aievents tick 802
+script #run AB3F0705
+client tick 801
+client ticksRun 782
+cunit182595 #place 72B4A747
+cunit182595 #unit 425DA470
+cunit399469 #place 0717D5F2
+cunit399469 #unit 813DA46E
+cunit831510 #place 61331239
+cunit831510 #unit BD6C964E
+cunit848411 #place D30F0FAE
+cunit848411 #unit 7A011973
+cunit999742 #place D1FA713D
+cunit999742 #unit 131D3E4A
+@ 56 update 1140 frame 227 tick 822 zone bz1mpg hash 2A6BF6E1 n 389
+world tick 822
+world updates 1140
+random isaac.count 140
+random isaac.a 0xD49C40B7
+random isaac.b 0xABE28CC3
+random isaac.c 0x0000042B
+random isaac.results 0xC5FA4907
+random isaac.memory 0x6E814E2F
+random crt.rand 0xDD8B5453
+obj143005 #vitals 7A3683B7
+obj182595 #place 47784C10
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place C029271E
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place BEA94636
+obj831510 #vitals 26B10FA7
+obj848411 #ai 6D08B35B
+obj848411 #place A8091066
+obj848411 #unit 89FA2F6B
+obj848411 #vitals 930E70F6
+obj927062 #unit 5C423F84
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 1F800638
+aievents tick 822
+script #run 803145E5
+client tick 821
+client ticksRun 802
+cunit182595 #place 965633C6
+cunit182595 #unit B3C320A1
+cunit399469 #place B75D4A61
+cunit399469 #unit 298A2D6F
+cunit831510 #place 740EA763
+cunit831510 #unit D9A06346
+cunit848411 #place 1A52F48C
+cunit848411 #unit 1D10170A
+@ 57 update 1160 frame 231 tick 842 zone bz1mpg hash 2FB2B4C0 n 389
+world tick 842
+world updates 1160
+random isaac.count 19
+random isaac.a 0xACB5C08C
+random isaac.b 0xC21C0041
+random isaac.c 0x00000444
+random isaac.results 0x441D07F0
+random isaac.memory 0xE23834F8
+random crt.rand 0xFEE8F8EB
+player0 lastTick 835
+player0 var.gtime 0.905555487
+obj143005 #vitals 19F00927
+obj182595 #place D64ED1E4
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place DCA28BFE
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 4F44A094
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 79EDF1C3
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # F3BB98A7
+aievents tick 842
+script #run FAA36CDA
+client tick 841
+client ticksRun 822
+cunit182595 #place 288EEDA5
+cunit399469 #place 69CCA332
+cunit831510 #place 74E26C94
+cunit831510 #unit CCFF4A72
+cunit848411 #place 62DF956F
+cunit999742 #unit D5D9335F
+@ 58 update 1180 frame 235 tick 862 zone bz1mpg hash D89D4940 n 389
+world tick 862
+world updates 1180
+random isaac.count 103
+random isaac.a 0x50682A93
+random isaac.b 0xA03DCF1D
+random isaac.c 0x0000045E
+random isaac.results 0x0130DC98
+random isaac.memory 0xB56CF476
+random crt.rand 0x714CEF3A
+obj143005 #vitals 0A5C7738
+obj182595 #place D8BF7581
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place E68F44A5
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 04118371
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 1A8A4BB9
+aievents tick 862
+script #run DD302156
+client tick 861
+client ticksRun 842
+cunit182595 #place 012C57A0
+cunit399469 #place C06B63AD
+cunit399469 #unit 320A7168
+cunit831510 #place DE65FCD4
+cunit848411 #place 17201968
+@ 59 update 1200 frame 239 tick 882 zone bz1mpg hash AA6C833A n 389
+world tick 882
+world updates 1200
+random isaac.count 108
+random isaac.a 0x4C61665B
+random isaac.b 0x91446F40
+random isaac.c 0x00000478
+random isaac.results 0xA8D7C177
+random isaac.memory 0xBAB29159
+random crt.rand 0x4241F46D
+obj143005 #vitals 7A3683B7
+obj182595 #ai 633C33AD
+obj182595 #place 540C297B
+obj182595 #unit 786F9C48
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 5AD3B6DA
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 59476EFD
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 2E9D5F7B
+aievents tick 882
+script #run BBEE6513
+client tick 881
+client ticksRun 862
+cunit182595 #place 8D7CB9A4
+cunit182595 #unit 8F03D42D
+cunit399469 #place EE5A77CE
+cunit831510 #place 05527470
+cunit848411 #place 5A6FF0BE
+@ 60 update 1220 frame 243 tick 902 zone bz1mpg hash FD440178 n 389
+world tick 902
+world updates 1220
+random isaac.count 244
+random isaac.a 0x9666D766
+random isaac.b 0xD025C17D
+random isaac.c 0x00000492
+random isaac.results 0x22BEF659
+random isaac.memory 0xEEF83A00
+random crt.rand 0x87FF90B0
+player0 lastTick 899
+player0 var.gtime 0.97666657
+obj143005 #vitals 19F00927
+obj182595 #ai 20F88F6F
+obj182595 #place 5EBD9CFE
+obj182595 #unit D7E19561
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place 5FBDCCA5
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 02DCB4A9
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit AAB3B301
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # C2A6C1E4
+aievents tick 902
+script #run AD1F20B3
+client tick 901
+client ticksRun 882
+cunit182595 #place A736FB72
+cunit182595 #unit AFD6B4CA
+cunit399469 #place C0129AAA
+cunit399469 #unit 298A2D6F
+cunit831510 #place 1AA12120
+cunit999742 #place AC8D8578
+cunit999742 #unit B9AA2552
+@ 61 update 1240 frame 247 tick 922 zone bz1mpg hash 4DBBF5EA n 389
+world tick 922
+world updates 1240
+random isaac.count 133
+random isaac.a 0x886C48DF
+random isaac.b 0xB73AD573
+random isaac.c 0x000004AC
+random isaac.results 0xAA6901EC
+random isaac.memory 0x95A045CC
+random crt.rand 0xE6208A89
+obj143005 #vitals 0A5C7738
+obj182595 #place E690EF85
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai B387DF68
+obj399469 #place 650AA486
+obj399469 #unit 75A44EB9
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place C518D88E
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 2D9B6404
+aievents tick 922
+script #run FBFC692B
+client tick 921
+client ticksRun 902
+cunit182595 #place 439DB192
+cunit182595 #unit DE484B25
+cunit399469 #place 3698AF66
+cunit399469 #unit 5AD66DE8
+cunit831510 #place C2E70CE2
+@ 62 update 1260 frame 251 tick 942 zone bz1mpg hash A0AEFBE3 n 389
+world tick 942
+world updates 1260
+random isaac.count 142
+random isaac.a 0x3218F16D
+random isaac.b 0x06C7CE50
+random isaac.c 0x000004C6
+random isaac.results 0x9280D54F
+random isaac.memory 0x4B1AB75A
+random crt.rand 0x052D7B6F
+obj143005 #vitals 7A3683B7
+obj182595 #place FAD120B2
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 54156581
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit FD465741
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # C1A0FA9B
+aievents tick 942
+script #run D2355F61
+client tick 941
+client ticksRun 922
+cunit182595 #place 92B0E79B
+cunit182595 #unit AFD6B4CA
+cunit399469 #place 25645B89
+cunit831510 #place CDFF974A
+cunit831510 #unit C00C9A68
+cunit999742 #unit 5B004102
+@ 63 update 1280 frame 255 tick 962 zone bz1mpg hash 1CF35E75 n 389
+world tick 962
+world updates 1280
+random isaac.count 241
+random isaac.a 0x9D025F69
+random isaac.b 0xD4FECDD0
+random isaac.c 0x000004E0
+random isaac.results 0x25018B1B
+random isaac.memory 0x119F3EC6
+random crt.rand 0xB61C0650
+obj143005 #vitals 19F00927
+obj182595 #place C7771B9E
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai AB7098E6
+obj399469 #place E37F55B0
+obj399469 #unit 289B5593
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 38E0FB19
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #unit 265EDDC4
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 28912985
+aievents tick 962
+script #run F5A612ED
+client tick 961
+client ticksRun 942
+cunit182595 #place 85B0DFA1
+cunit182595 #unit DE484B25
+cunit399469 #place 93B605AB
+cunit399469 #unit A582FA70
+cunit831510 #place DE1E7D02
+cunit831510 #unit CCFF4A72
+cunit927062 #unit F5ACA7D2
+@ 64 update 1300 frame 259 tick 982 zone bz1mpg hash 6236548E n 389
+world tick 982
+world updates 1300
+random isaac.count 63
+random isaac.a 0x114B806B
+random isaac.b 0x1C9DF6FF
+random isaac.c 0x000004F9
+random isaac.results 0x49A55716
+random isaac.memory 0x8C306DF9
+random crt.rand 0xC86C54C8
+player0 lastTick 963
+player0 var.gtime 1.04777765
+obj143005 #vitals 0A5C7738
+obj182595 #ai 36B3516D
+obj182595 #place 17215A7B
+obj182595 #unit 035BAA80
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place 50B15CBF
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 2313BF6B
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # F30B86FE
+aievents tick 982
+script #run 937856A8
+client tick 981
+client ticksRun 962
+cunit182595 #place 58355205
+cunit182595 #unit 1D230A68
+cunit399469 #place E956913E
+cunit399469 #unit 56F3F53F
+cunit831510 #place F441DACA
+cunit831510 #unit D52BB395
+@ 65 update 1320 frame 263 tick 1002 zone bz1mpg hash 8D8C1E47 n 389
+world tick 1002
+world updates 1320
+random isaac.count 203
+random isaac.a 0x3B8A8FE0
+random isaac.b 0x40801AC8
+random isaac.c 0x00000514
+random isaac.results 0x70BECAEB
+random isaac.memory 0xF864A8AA
+random crt.rand 0xB8ABA8BA
+obj143005 #vitals 7A3683B7
+obj182595 #ai 4272DBD3
+obj182595 #place 601352C6
+obj182595 #unit ACD5A3A9
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 08759B1A
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place E1ED825B
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit 1B7EFD30
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 1F301861
+aievents tick 1002
+script #run B36B22E7
+client tick 1001
+client ticksRun 982
+cunit182595 #place A685D72A
+cunit182595 #unit 3DF66A8F
+cunit399469 #place 8C33A374
+cunit399469 #unit 7033E855
+cunit831510 #place 2B9A0A5C
+cunit831510 #unit 487E97CC
+cunit999742 #unit 48CED0C3
+@ 66 update 1340 frame 267 tick 1022 zone bz1mpg hash F315CA07 n 389
+world tick 1022
+world updates 1340
+random isaac.count 80
+random isaac.a 0x14BB0DD0
+random isaac.b 0xEA99616F
+random isaac.c 0x0000052D
+random isaac.results 0xFD1C6256
+random isaac.memory 0x5217EB10
+random crt.rand 0xC96013CE
+obj143005 #vitals 19F00927
+obj182595 #place DBED9627
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place F0E123C3
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai 8206EEBB
+obj831510 #place 295190AF
+obj831510 #unit 471177CB
+obj831510 #vitals 041B9ECF
+obj848411 #ai B19C6461
+obj848411 #place A12D3EF6
+obj848411 #unit 16E73E21
+obj848411 #vitals 18C240D2
+obj927062 #unit CAE936C7
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # F00DBD81
+aievents tick 1022
+script #run 7FC4B327
+client tick 1021
+client ticksRun 1002
+cunit182595 #place 11FB446A
+cunit399469 #place 619A5DCF
+cunit399469 #unit 56F3F53F
+cunit831510 #place 8F5BFE1D
+cunit831510 #unit 51A9A334
+cunit848411 #place 061AF246
+cunit848411 #unit 43D83853
+@ 67 update 1360 frame 271 tick 1042 zone bz1mpg hash E8D0A38E n 389
+world tick 1042
+world updates 1360
+random isaac.count 19
+random isaac.a 0x34B0D28A
+random isaac.b 0xED8E121D
+random isaac.c 0x00000546
+random isaac.results 0x7978B447
+random isaac.memory 0xA8FACC3E
+random crt.rand 0xFDC88C31
+player0 lastTick 1027
+player0 var.gtime 1.11888874
+obj143005 #vitals 0A5C7738
+obj182595 #place 6120C664
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place 07676C90
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 781B8965
+obj831510 #vitals 56DBFB28
+obj848411 #place 8650A254
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 933CDCA1
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 1C36231E
+aievents tick 1042
+script #run BF9B6122
+client tick 1041
+client ticksRun 1022
+cunit182595 #place 78B64005
+cunit399469 #place F3342E0E
+cunit399469 #unit 7033E855
+cunit831510 #place DF2955F3
+cunit831510 #unit 6EB0B634
+cunit848411 #place 28B19E75
+cunit999742 #unit 9D253548
+@ 68 update 1380 frame 275 tick 1062 zone bz1mpg hash E0F42484 n 389
+world tick 1062
+world updates 1380
+random isaac.count 198
+random isaac.a 0x05DBB83D
+random isaac.b 0x4F297484
+random isaac.c 0x00000561
+random isaac.results 0x1910D190
+random isaac.memory 0xE1827D68
+random crt.rand 0x9EBE099D
+obj143005 #ai 287B0C78
+obj143005 #vitals 7A3683B7
+obj182595 #place ADB5E843
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 3666CDED
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 578C7598
+obj831510 #vitals 26B10FA7
+obj848411 #ai 871F2276
+obj848411 #place E09DFD4F
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # F507F000
+aievents tick 1062
+script #run 98082CAE
+client tick 1061
+client ticksRun 1042
+cunit182595 #place 8997590A
+cunit399469 #place 34581A5B
+cunit399469 #unit CEA557C1
+cunit831510 #place 475353E8
+cunit831510 #unit 41833B4C
+cunit848411 #place 4693CF70
+cunit848411 #unit 4FBB1153
+cunit999742 #place D1FA713D
+@ 69 update 1400 frame 279 tick 1082 zone bz1mpg hash 5F0C896B n 389
+world tick 1082
+world updates 1400
+random isaac.count 239
+random isaac.a 0xADC5F9C8
+random isaac.b 0xD2CB2C3D
+random isaac.c 0x0000057B
+random isaac.results 0xE55F4E4E
+random isaac.memory 0xA47C36FA
+random crt.rand 0x3C6D4617
+obj143005 #vitals 19F00927
+obj182595 #place 7AFC0C9A
+obj182595 #vitals 18C240D2
+obj183332 #ai 351FEDE7
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai DF377D66
+obj399469 #place BE1871F0
+obj399469 #unit B9F83BE6
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 0BE3EA0E
+obj831510 #vitals 041B9ECF
+obj848411 #place 3199210C
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 4EC1EA30
+aievents tick 1082
+script #run FED668EB
+client tick 1081
+client ticksRun 1062
+cunit182595 #place 93CE5CC3
+cunit399469 #place 36CCB1F2
+cunit399469 #unit 868F8BAB
+cunit831510 #place 5A82671C
+cunit831510 #unit A10BB686
+cunit848411 #place 9E816671
+cunit848411 #unit 43D83853
+@ 70 update 1420 frame 283 tick 1102 zone bz1mpg hash AB129F7E n 389
+world tick 1102
+world updates 1420
+random isaac.count 49
+random isaac.a 0x59AEB455
+random isaac.b 0x2CD68885
+random isaac.c 0x00000594
+random isaac.results 0xF2897512
+random isaac.memory 0xF6B09660
+random crt.rand 0xD889F02F
+player0 lastTick 1091
+player0 var.gtime 1.18999982
+obj143005 #vitals 0A5C7738
+obj182595 #ai 18EA886A
+obj182595 #place F1439E58
+obj182595 #unit F9E6BC50
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai E4FD616B
+obj399469 #place 430DC7F5
+obj399469 #unit AA6FA62A
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place C736019E
+obj831510 #vitals 56DBFB28
+obj848411 #place 9E8CF3AD
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit C9738A7B
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # A2FA74AF
+aievents tick 1102
+script #run CC9B0C01
+client tick 1101
+client ticksRun 1082
+cunit182595 #place BCCC25BB
+cunit182595 #unit 659BBFFF
+cunit399469 #place 1BCB7D2B
+cunit831510 #place 87B9631E
+cunit848411 #place 4465B11C
+cunit848411 #unit A8B08A2F
+cunit999742 #unit D5E76F11
+@ 71 update 1440 frame 287 tick 1122 zone bz1mpg hash 8A1BC0F1 n 389
+world tick 1122
+world updates 1440
+random isaac.count 17
+random isaac.a 0xEFE5A6CA
+random isaac.b 0x348362BE
+random isaac.c 0x000005AE
+random isaac.results 0xA84CFDF9
+random isaac.memory 0xB8AA7C98
+random crt.rand 0xC1DB850A
+obj143005 #vitals 7A3683B7
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai F487C8E6
+obj399469 #place CB5DD37E
+obj399469 #unit 02FF2E5D
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 2FD2E0FA
+obj831510 #vitals 26B10FA7
+obj848411 #place 145DC7B6
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 4DC7D14F
+aievents tick 1122
+script #run BED1CFDD
+client tick 1121
+client ticksRun 1102
+cunit182595 #place 3B54CFDC
+cunit399469 #place 13BC5DCB
+cunit831510 #place FE73ABA2
+cunit848411 #place AB11984C
+cunit848411 #unit 4116D508
+@ 72 update 1460 frame 291 tick 1142 zone bz1mpg hash 5AC3DF71 n 389
+world tick 1142
+world updates 1460
+random isaac.count 50
+random isaac.a 0xB8A17B96
+random isaac.b 0x75FEE03C
+random isaac.c 0x000005C8
+random isaac.results 0xE8629858
+random isaac.memory 0x456032EA
+random crt.rand 0x55A9BC88
+obj143005 #vitals 19F00927
+obj182595 #ai 041AD4F2
+obj182595 #place 1C3B0337
+obj182595 #unit DB7B05DA
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 5181C14D
+obj831510 #vitals 041B9ECF
+obj848411 #ai F8EC28E1
+obj848411 #place E71744CE
+obj848411 #unit 6B8258B5
+obj848411 #vitals 18C240D2
+obj927062 #unit FE808D32
+obj927062 #vitals B7F97025
+obj999742 #unit 11ADDA8D
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # A1FC4FD0
+aievents tick 1142
+script #run FDFCBE64
+client tick 1141
+client ticksRun 1122
+cunit182595 #place AC0FF59E
+cunit182595 #unit 6C5D822F
+cunit399469 #place 2740B968
+cunit831510 #place 555A292A
+cunit848411 #place 8FA29468
+cunit848411 #unit D2876088
+@ 73 update 1480 frame 295 tick 1162 zone bz1mpg hash 3936E608 n 389
+world tick 1162
+world updates 1480
+random isaac.count 168
+random isaac.a 0x7993FF0A
+random isaac.b 0xAA4427B8
+random isaac.c 0x000005E2
+random isaac.results 0xCA28D9A8
+random isaac.memory 0xF4407C7E
+random crt.rand 0x7A463B6D
+player0 lastTick 1155
+player0 var.gtime 1.2611109
+obj143005 #vitals 0A5C7738
+obj182595 #place C8700836
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai AC1F5D69
+obj399469 #place 3675D9EA
+obj399469 #unit 1C05A043
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place AFC9C194
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #unit D3CE7DAC
+obj927062 #vitals D24F3FD0
+obj999742 #unit 0CB4C9FA
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 48CD9CCE
+aievents tick 1162
+script #run 94223E5F
+client tick 1161
+client ticksRun 1142
+cunit182595 #place 65FE2550
+cunit399469 #place F05DAC32
+cunit399469 #unit 4F196743
+cunit831510 #place D7C51BD8
+cunit848411 #place 8F04D06C
+cunit927062 #unit 1D9C2C06
+cunit999742 #place AC8D8578
+cunit999742 #unit 8162696B
+@ 74 update 1500 frame 299 tick 1182 zone bz1mpg hash 62BD330F n 389
+world tick 1182
+world updates 1500
+random isaac.count 222
+random isaac.a 0x970B860B
+random isaac.b 0x718E818B
+random isaac.c 0x000005FD
+random isaac.results 0x096D7DF7
+random isaac.memory 0x9D604A29
+random crt.rand 0xC5C76BB0
+obj143005 #vitals 7A3683B7
+obj182595 #place 02FC7764
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 635506FC
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place D66B2064
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 935733B5
+aievents tick 1182
+script #run F2FC7A1A
+client tick 1181
+client ticksRun 1162
+cunit182595 #place 1AD1B758
+cunit182595 #unit 5C99E339
+cunit399469 #place C95FBCE1
+cunit399469 #unit 51F872FC
+cunit831510 #place 0348E5CD
+cunit848411 #place 72BFCEE7
+@ 75 update 1520 frame 303 tick 1202 zone bz1mpg hash 17E925DE n 389
+world tick 1202
+world updates 1520
+random isaac.count 111
+random isaac.a 0xC03D8988
+random isaac.b 0xD4664E30
+random isaac.c 0x00000616
+random isaac.results 0xA00A9A97
+random isaac.memory 0x3CEBAED6
+random crt.rand 0x8FE35E28
+obj143005 #vitals 19F00927
+obj182595 #place 8853F4A1
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place 80D1E645
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 5470DCD6
+obj831510 #vitals 041B9ECF
+obj848411 #ai B8C8B60C
+obj848411 #place 02659A0F
+obj848411 #unit 18702C4B
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit E935F3A8
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 7F6CAD2A
+aievents tick 1202
+script #run D2EF0E55
+client tick 1201
+client ticksRun 1182
+cunit182595 #place 0B1782B8
+cunit182595 #unit 6C5D822F
+cunit399469 #place CCDD0AD8
+cunit399469 #unit FB4C35C5
+cunit831510 #place D55CE1B9
+cunit848411 #place 401DD31D
+cunit848411 #unit 77CA9382
+cunit999742 #unit B82A2918
+@ 76 update 1540 frame 307 tick 1222 zone bz1mpg hash 4C5D15B4 n 389
+world tick 1222
+world updates 1540
+random isaac.count 144
+random isaac.a 0xF00762A4
+random isaac.b 0xB181A95D
+random isaac.c 0x00000630
+random isaac.results 0x5849E3A8
+random isaac.memory 0x34CE905F
+random crt.rand 0x8398411A
+player0 lastTick 1219
+player0 var.gtime 1.33222198
+obj143005 #vitals 0A5C7738
+obj182595 #ai 77E36D6D
+obj182595 #place 540C297B
+obj182595 #unit 0231537C
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place 8852CC91
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place D3D4B80D
+obj831510 #vitals 56DBFB28
+obj848411 #place A1C7E46B
+obj848411 #vitals E3648479
+obj927062 #unit 3F7996AF
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 905108CA
+aievents tick 1222
+script #run 9C471CA6
+client tick 1221
+client ticksRun 1202
+cunit182595 #place FE46DA0D
+cunit182595 #unit EA21BF21
+cunit399469 #place A24EFB22
+cunit399469 #unit 78AC1473
+cunit831510 #place 93BD03F7
+cunit848411 #place EB70EAF0
+cunit848411 #unit CB254E4A
+@ 77 update 1560 frame 311 tick 1242 zone bz1mpg hash F147B430 n 389
+world tick 1242
+world updates 1560
+random isaac.count 96
+random isaac.a 0x0D7E0DB2
+random isaac.b 0x117111AE
+random isaac.c 0x0000064A
+random isaac.results 0xC2AB1DB5
+random isaac.memory 0xEFD4E38E
+random crt.rand 0x7A380A5C
+obj143005 #vitals 7A3683B7
+obj182595 #ai 20F88F6F
+obj182595 #place 2CD9432E
+obj182595 #unit CDE73DE2
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #ai E56B7430
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place B926E23C
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #ai 83E34814
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #ai 83E34814
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai E12F5A1F
+obj831510 #place 10878B3A
+obj831510 #vitals 26B10FA7
+obj848411 #place 6084B8FD
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit 058218AB
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 7C6A9655
+aievents tick 1242
+script #inst 3A4F2B6E
+script #instances 3F67149C
+script #run 6675738D
+script #runs 43E98D0A
+client tick 1241
+client ticksRun 1222
+cunit182595 #place B17597A4
+cunit182595 #unit 5A5A57B4
+cunit399469 #place EC912E0B
+cunit399469 #unit 16F6AFD6
+cunit831510 #place 43714DB5
+cunit848411 #place 404079ED
+cunit848411 #unit AB3616DB
+@ 78 update 1580 frame 315 tick 1262 zone bz1mpg hash 981DBA3D n 389
+world tick 1262
+world updates 1580
+random isaac.count 187
+random isaac.a 0x215446C3
+random isaac.b 0x3EA98537
+random isaac.c 0x00000664
+random isaac.results 0xCA387063
+random isaac.memory 0x00E7B19E
+random crt.rand 0xFB646B25
+obj143005 #vitals 19F00927
+obj182595 #place 110C7A26
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place D99D268D
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 9B5C0B43
+obj831510 #vitals 041B9ECF
+obj848411 #place CD86DE7F
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 775DF056
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 955B454B
+aievents tick 1262
+script #inst CC96B042
+script #instances 4860240A
+script #run A4E02806
+script #runs 34EEBD9C
+client tick 1261
+client ticksRun 1242
+cunit182595 #place 36B7C33B
+cunit399469 #place A7734A82
+cunit399469 #unit 7CD4C535
+cunit831510 #place 3D5019BD
+cunit848411 #place F3428864
+cunit848411 #unit 03637F58
+cunit999742 #unit A5AB8D0E
+@ 79 update 1600 frame 319 tick 1282 zone bz1mpg hash A45E3A6D n 389
+world tick 1282
+world updates 1600
+random isaac.count 206
+random isaac.a 0xB8BCA189
+random isaac.b 0xB17C251A
+random isaac.c 0x0000067E
+random isaac.results 0x9B34CD36
+random isaac.memory 0x2F27DF04
+random crt.rand 0xE7CA7451
+obj143005 #ai 83E34814
+obj143005 #vitals 0A5C7738
+obj182595 #place 63702D40
+obj182595 #vitals E3648479
+obj183332 #ai CBE0FA32
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai D858B8E9
+obj399469 #place 650AA486
+obj399469 #unit 5E3043C9
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai 173973FA
+obj831510 #place EB15B515
+obj831510 #unit 96A8273D
+obj831510 #vitals 56DBFB28
+obj848411 #ai 8E4BF01B
+obj848411 #place BE96248B
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # EE2435ED
+aievents tick 1282
+script #run C23E6C43
+client tick 1281
+client ticksRun 1262
+cunit182595 #place BD89C69C
+cunit399469 #place 9882F070
+cunit399469 #unit 3E512C6D
+cunit831510 #place 2852B7A6
+cunit831510 #unit 317D6B39
+cunit848411 #place B30CAA67
+cunit848411 #unit AE223703
+@ 80 update 1620 frame 323 tick 1302 zone bz1mpg hash 0F5CD0DB n 389
+world tick 1302
+world updates 1620
+random isaac.count 158
+random isaac.a 0x2A8A643A
+random isaac.b 0xD2CBFE6D
+random isaac.c 0x00000698
+random isaac.results 0x2BAF299F
+random isaac.memory 0xA620CB99
+random crt.rand 0xC69803F7
+player0 lastTick 1283
+player0 var.gtime 1.40333307
+obj143005 #vitals 7A3683B7
+obj182595 #place 5875C1DF
+obj182595 #unit B96A46AB
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai 3A7D4089
+obj399469 #unit BFC1D7B8
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #vitals 26B10FA7
+obj848411 #ai E30189C6
+obj848411 #place 203B4491
+obj848411 #unit 7949FFEC
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit 2D12A68C
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 021FAB72
+aievents tick 1302
+script #run 8A156735
+client tick 1301
+client ticksRun 1282
+cunit182595 #place 88A873A8
+cunit182595 #unit B7D3A1A7
+cunit399469 #place 76FBD973
+cunit831510 #place 448A216D
+cunit848411 #place 648BA1B9
+cunit848411 #unit B036AE0B
+cunit999742 #place D1FA713D
+cunit999742 #unit ED69D757
+@ 81 update 1640 frame 327 tick 1322 zone bz1mpg hash 76389953 n 389
+world tick 1322
+world updates 1640
+random isaac.count 254
+random isaac.a 0x376DC5E0
+random isaac.b 0x1E43E16C
+random isaac.c 0x000006B2
+random isaac.results 0x4730B71C
+random isaac.memory 0x38233B5B
+random crt.rand 0xA04C8432
+obj143005 #vitals 19F00927
+obj182595 #ai DD62A439
+obj182595 #place 17215A7B
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai EFB3E78E
+obj831510 #unit 3E38AF4A
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # ED220E92
+aievents tick 1322
+script #run 46A76A0B
+client tick 1321
+client ticksRun 1302
+cunit182595 #place F2567321
+cunit182595 #unit 4EF3F197
+cunit399469 #place ADF0B7FB
+cunit831510 #place D5A21793
+cunit848411 #place 32816FD4
+@ 82 update 1660 frame 331 tick 1342 zone bz1mpg hash 7CBB6091 n 389
+world tick 1342
+world updates 1660
+random isaac.count 73
+random isaac.a 0xF13209DB
+random isaac.b 0xF4729BE1
+random isaac.c 0x000006CB
+random isaac.results 0x064C72C6
+random isaac.memory 0x93FA5DBF
+random crt.rand 0x735EFC73
+obj143005 #vitals 0A5C7738
+obj182595 #ai 4272DBD3
+obj182595 #place 4DF15C86
+obj182595 #unit 6A74A488
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai 878D43FA
+obj399469 #place FCDF6707
+obj399469 #unit 41FBC190
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai 31D6035A
+obj831510 #place D016B311
+obj831510 #unit 6704E18E
+obj831510 #vitals 56DBFB28
+obj848411 #ai 2123228D
+obj848411 #place 7F0BD5F9
+obj848411 #unit A4C00FA5
+obj848411 #vitals E3648479
+obj927062 #unit BF08850B
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 0119900D
+aievents tick 1342
+script #run A26490BB
+client tick 1341
+client ticksRun 1322
+cunit182595 #place C697AAD4
+cunit182595 #unit 1D9C2D56
+cunit399469 #place B4D6E876
+cunit399469 #unit 1FF54055
+cunit831510 #place AE428E02
+cunit831510 #unit 0CD60D32
+cunit848411 #place 74F7CB63
+cunit848411 #unit 02286A34
+cunit927062 #unit 1D5A740C
+@ 83 update 1680 frame 335 tick 1362 zone bz1mpg hash D9CD5D40 n 389
+world tick 1362
+world updates 1680
+random isaac.count 11
+random isaac.a 0x689A3BEC
+random isaac.b 0x50956E9D
+random isaac.c 0x000006E5
+random isaac.results 0xA742BF72
+random isaac.memory 0xF9D694E6
+random crt.rand 0xFDE0E3A2
+player0 lastTick 1347
+player0 var.gtime 1.47444415
+obj143005 #vitals 7A3683B7
+obj182595 #place 79636ED5
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 884229D7
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 1CF5A8C0
+obj831510 #vitals 26B10FA7
+obj848411 #place 91AB8320
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit E8D5E50D
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # E8284313
+aievents tick 1362
+script #run 769F471C
+client tick 1361
+client ticksRun 1342
+cunit182595 #place 01AE6873
+cunit399469 #place B7A85803
+cunit399469 #unit BB3A0866
+cunit831510 #place 304C766D
+cunit831510 #unit 21387BBA
+cunit848411 #place 8687D31C
+cunit999742 #unit B9ECD12D
+@ 84 update 1700 frame 339 tick 1382 zone bz1mpg hash BB657F35 n 389
+world tick 1382
+world updates 1700
+random isaac.count 27
+random isaac.a 0x2F4826E7
+random isaac.b 0xDC6AC207
+random isaac.c 0x000006FF
+random isaac.results 0x3138D8BC
+random isaac.memory 0xEC6F2B87
+random crt.rand 0x5A990424
+obj143005 #vitals 19F00927
+obj182595 #place D6B225AD
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place 4D2C11BF
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place EF04A2BF
+obj831510 #vitals 041B9ECF
+obj848411 #place 7B3CCE5E
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 33B2EC68
+aievents tick 1382
+script #run B6EF0A2E
+client tick 1381
+client ticksRun 1362
+cunit182595 #place 57DD05B0
+cunit399469 #place BDC1A5EE
+cunit831510 #place BBF7E8A0
+cunit848411 #place 75C92182
+@ 85 update 1720 frame 343 tick 1402 zone bz1mpg hash 7B88F364 n 389
+world tick 1402
+world updates 1720
+random isaac.count 68
+random isaac.a 0x3B684187
+random isaac.b 0x5BB41BDA
+random isaac.c 0x00000719
+random isaac.results 0x6EFDBF15
+random isaac.memory 0x2993FD8D
+random crt.rand 0x93DFEE61
+obj143005 #vitals 0A5C7738
+obj182595 #place 22224B65
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #ai 0FA2C68D
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place 0621ED39
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #ai E56B7430
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #ai E56B7430
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #ai 52FFB7FE
+obj831510 #place 47666CA0
+obj831510 #vitals 56DBFB28
+obj848411 #place 8FC03062
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit A9B9000E
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # DF8972F7
+aievents tick 1402
+script #run A283548E
+client tick 1401
+client ticksRun 1382
+cunit182595 #place 39496D40
+cunit399469 #place D7C806EF
+cunit399469 #unit 1FF54055
+cunit831510 #place 03639A16
+cunit848411 #place E28D2E7D
+cunit999742 #unit 63B0A50A
+@ 86 update 1740 frame 347 tick 1422 zone bz1mpg hash 14A2569B n 389
+world tick 1422
+world updates 1740
+random isaac.count 107
+random isaac.a 0x2C5C00BC
+random isaac.b 0x05537F0E
+random isaac.c 0x00000733
+random isaac.results 0x6F1356AC
+random isaac.memory 0x988C8058
+random crt.rand 0x79BBB42E
+player0 lastTick 1411
+player0 var.gtime 1.54555523
+obj143005 #vitals 7A3683B7
+obj182595 #place 0BA402E1
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 211E4273
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 8E914019
+obj831510 #vitals 26B10FA7
+obj848411 #place 03BDC2C5
+obj848411 #vitals 930E70F6
+obj927062 #unit 53BF6E08
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 30B4D717
+aievents tick 1422
+script #run B306DC86
+client tick 1421
+client ticksRun 1402
+cunit182595 #place 2A9A54CA
+cunit399469 #place E5BF5236
+cunit399469 #unit 00BAC88C
+cunit831510 #place 12C446E6
+cunit848411 #place FF492402
+cunit999742 #place AC8D8578
+@ 87 update 1760 frame 351 tick 1442 zone bz1mpg hash 0FC5E9B9 n 389
+world tick 1442
+world updates 1760
+random isaac.count 222
+random isaac.a 0xBA1A11BA
+random isaac.b 0x9AFF0053
+random isaac.c 0x0000074D
+random isaac.results 0xEEBD155E
+random isaac.memory 0xC7A22997
+random crt.rand 0x043B510C
+obj143005 #vitals 19F00927
+obj182595 #ai A99E11FE
+obj182595 #place F1439E58
+obj182595 #unit 1682E30A
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #place 80ACDC50
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 70A397F1
+obj831510 #vitals 041B9ECF
+obj848411 #ai 5DCE155E
+obj848411 #place A8091066
+obj848411 #unit D22867E2
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # DC8F4988
+aievents tick 1442
+script #run 57C52636
+client tick 1441
+client ticksRun 1422
+cunit182595 #place 7C3DFE9E
+cunit182595 #unit AD137DD9
+cunit399469 #place F4619423
+cunit399469 #unit 64A9A4BE
+cunit831510 #place 8E31324F
+cunit831510 #unit 8C7933E1
+cunit848411 #place 66589140
+cunit848411 #unit 2374FFBF
+@ 88 update 1780 frame 355 tick 1462 zone bz1mpg hash C2F77BE6 n 389
+world tick 1462
+world updates 1780
+random isaac.count 25
+random isaac.a 0x57ACF572
+random isaac.b 0x53685823
+random isaac.c 0x00000766
+random isaac.results 0x3A9B41A2
+random isaac.memory 0x2C49AC8F
+random crt.rand 0xF54B8F03
+obj143005 #vitals 0A5C7738
+obj182595 #ai A7891ABF
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #place 95E31B68
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place CAE6C98A
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 808F830E
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 35BE9A96
+aievents tick 1462
+script #run 970B1884
+client tick 1461
+client ticksRun 1442
+cunit182595 #place A2ED8B0C
+cunit399469 #place 11BFE191
+cunit399469 #unit BB3A0866
+cunit831510 #place B953CBCB
+cunit831510 #unit 21387BBA
+cunit848411 #place 4580F02E
+cunit999742 #unit EC3845C4
+@ 89 update 1800 frame 359 tick 1482 zone bz1mpg hash F0F4C8C8 n 389
+world tick 1482
+world updates 1800
+random isaac.count 248
+random isaac.a 0x57D27550
+random isaac.b 0x02BB13A5
+random isaac.c 0x00000781
+random isaac.results 0xB6F6F88F
+random isaac.memory 0xF0455CEB
+random crt.rand 0xD84F80A7
+player0 lastTick 1475
+player0 var.gtime 1.61666632
+obj143005 #vitals 7A3683B7
+obj182595 #ai 041AD4F2
+obj182595 #place 23ED17C4
+obj182595 #unit 8DCC1168
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #place 66F9DF06
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 30E061B2
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 8E7880A6
+aievents tick 1482
+script #run 577B55B6
+client tick 1481
+client ticksRun 1462
+cunit182595 #place FA9DAF03
+cunit182595 #unit 814CCB8D
+cunit399469 #place E69EC484
+cunit399469 #unit E1A781DF
+cunit831510 #place 3524A093
+cunit848411 #place 2BB99F08
+@ 90 update 1820 frame 363 tick 1502 zone bz1mpg hash 8F129C8E n 389
+world tick 1502
+world updates 1820
+random isaac.count 111
+random isaac.a 0xCE6074C2
+random isaac.b 0x6AE2F0B6
+random isaac.c 0x0000079A
+random isaac.results 0xCFDAB3BD
+random isaac.memory 0x6DA6B7BF
+random crt.rand 0xA9944D45
+obj143005 #vitals 19F00927
+obj182595 #place F4522C2B
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai A0631FEA
+obj399469 #place B346D0CD
+obj399469 #unit 7DF6DAAC
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 35FC7076
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 2822211C
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 62431E39
+aievents tick 1502
+script #run 75F53AF9
+client tick 1501
+client ticksRun 1482
+cunit182595 #place 4F169744
+cunit399469 #place 6BC969E6
+cunit399469 #unit EB6B573F
+cunit831510 #place 110BC213
+cunit848411 #place 5A6FF0BE
+cunit999742 #unit 01BE66C0
+@ 91 update 1840 frame 367 tick 1522 zone bz1mpg hash F0270DE8 n 389
+world tick 1522
+world updates 1840
+random isaac.count 173
+random isaac.a 0x27A534E6
+random isaac.b 0x26CAE550
+random isaac.c 0x000007B4
+random isaac.results 0xC257EC62
+random isaac.memory 0x23631973
+random crt.rand 0x1BCA35CB
+obj143005 #vitals 0A5C7738
+obj182595 #place 0F570D08
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 8F18022E
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #unit EDCDE6DB
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 8D7EBBD9
+aievents tick 1522
+script #run 2F7F8866
+client tick 1521
+client ticksRun 1502
+cunit182595 #place AD16AD4A
+cunit399469 #place FE6042C6
+cunit831510 #place 71182C48
+cunit927062 #unit 1327A1CB
+@ 92 update 1860 frame 371 tick 1542 zone bz1mpg hash 76C53414 n 389
+world tick 1542
+world updates 1860
+random isaac.count 37
+random isaac.a 0x30495211
+random isaac.b 0x3EE95EB6
+random isaac.c 0x000007CE
+random isaac.results 0x53B55812
+random isaac.memory 0xAB0CCB33
+random crt.rand 0xFE16AF63
+player0 lastTick 1539
+player0 var.gtime 1.6877774
+obj143005 #vitals 7A3683B7
+obj182595 #place 003F0928
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 4FEE0D38
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 61452546
+aievents tick 1542
+script #run CBBC72D6
+client tick 1541
+client ticksRun 1522
+cunit182595 #place 40FDAE39
+cunit399469 #place 2274DDE8
+cunit831510 #place BF6517E9
+@ 93 update 1880 frame 375 tick 1562 zone bz1mpg hash 6E04B4E4 n 389
+world tick 1562
+world updates 1880
+random isaac.count 99
+random isaac.a 0x7C708146
+random isaac.b 0x00CE172F
+random isaac.c 0x000007E8
+random isaac.results 0xA2054E78
+random isaac.memory 0xBDEC14B9
+random crt.rand 0x3C9505B9
+obj143005 #vitals 19F00927
+obj182595 #ai F729473D
+obj182595 #place 540C297B
+obj182595 #unit 065523E2
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place FB081B01
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 3142CD3F
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 8874F658
+aievents tick 1562
+script #run 897F1AD0
+client tick 1561
+client ticksRun 1542
+cunit182595 #place A8D594AF
+cunit182595 #unit 077B43D0
+cunit399469 #place 9DD55BB9
+cunit831510 #place FB4C140D
+cunit831510 #unit 81A0107D
+cunit999742 #place D1FA713D
+cunit999742 #unit 1D5CB055
+@ 94 update 1900 frame 379 tick 1582 zone bz1mpg hash 0E5643CF n 389
+world tick 1582
+world updates 1900
+random isaac.count 221
+random isaac.a 0xAEC89378
+random isaac.b 0x54D4EE6B
+random isaac.c 0x00000802
+random isaac.results 0x1260E414
+random isaac.memory 0x390DDC6F
+random crt.rand 0x15C2FB1F
+obj143005 #vitals 0A5C7738
+obj182595 #ai 20F88F6F
+obj182595 #place DFB91FA1
+obj182595 #unit 369704BF
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place CAF2DF08
+obj831510 #vitals 56DBFB28
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 53EE5923
+aievents tick 1582
+script #run 490F57E2
+client tick 1581
+client ticksRun 1562
+cunit182595 #place C5F0F9FB
+cunit182595 #unit 259E853B
+cunit831510 #place 85E4AC77
+cunit831510 #unit 28AE8DE4
+@ 95 update 1920 frame 383 tick 1602 zone bz1mpg hash ED742BEF n 389
+world tick 1602
+world updates 1920
+random isaac.count 190
+random isaac.a 0x62C19C1A
+random isaac.b 0xA2DEA1FB
+random isaac.c 0x0000081C
+random isaac.results 0x39317C98
+random isaac.memory 0x70ED3D21
+random crt.rand 0xCBE3773A
+obj143005 #vitals 7A3683B7
+obj182595 #place 5FBABE44
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai A90D3883
+obj831510 #place 670C670F
+obj831510 #unit F2553B1D
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #unit 017A0DD8
+obj927062 #vitals A225CB5F
+obj999742 #unit 02AC4F7C
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # BFD5C7BC
+aievents tick 1602
+script #inst EF648356
+script #instances 3F67149C
+script #run 2F48B046
+script #runs 43E98D0A
+client tick 1601
+client ticksRun 1582
+cunit182595 #place 9B18B435
+cunit831510 #place 6FBE23B4
+cunit831510 #unit 777C149C
+@ 96 update 1940 frame 387 tick 1622 zone bz1mpg hash F9C0D27A n 389
+world tick 1622
+world updates 1940
+random isaac.count 84
+random isaac.a 0x6E9F0F17
+random isaac.b 0x25E34EE3
+random isaac.c 0x00000835
+random isaac.results 0x51861972
+random isaac.memory 0x5BCBA062
+random crt.rand 0x4C99CA4E
+player0 lastTick 1603
+player0 var.gtime 1.75888848
+obj143005 #vitals 19F00927
+obj182595 #place E7B119AF
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai D17F00C6
+obj831510 #place A582AF17
+obj831510 #unit 1D2D16A2
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit EC057438
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 50E8625C
+aievents tick 1622
+script #inst CC96B042
+script #instances 4860240A
+script #run C12D14FD
+script #runs 34EEBD9C
+client tick 1621
+client ticksRun 1602
+cunit182595 #place 9B6A5FAE
+cunit831510 #place 3D2C4C82
+cunit831510 #unit 834FC073
+cunit999742 #unit 54FD988F
+@ 97 update 1960 frame 391 tick 1642 zone bz1mpg hash 70592E32 n 389
+world tick 1642
+world updates 1960
+random isaac.count 157
+random isaac.a 0x57990B79
+random isaac.b 0x2BB5484B
+random isaac.c 0x0000084F
+random isaac.results 0xC7B100E7
+random isaac.memory 0x7C6A012D
+random crt.rand 0x810CB6A2
+obj143005 #vitals 0A5C7738
+obj182595 #ai D6CF95EC
+obj182595 #place 17215A7B
+obj182595 #unit 4DB99AFB
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 298C4312
+obj831510 #vitals 56DBFB28
+obj848411 #ai B19C6461
+obj848411 #place C3EAC30D
+obj848411 #unit 59E11754
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # BCD3FCC3
+aievents tick 1642
+script #run EB29A4DB
+client tick 1641
+client ticksRun 1622
+cunit182595 #place EE40423B
+cunit182595 #unit 89646987
+cunit831510 #place 947B33EF
+cunit831510 #unit DE47F5FE
+cunit848411 #place 061AF246
+cunit848411 #unit 5F6BDC6A
+@ 98 update 1980 frame 395 tick 1662 zone bz1mpg hash BDF3D629 n 389
+world tick 1662
+world updates 1980
+random isaac.count 137
+random isaac.a 0x0C91E638
+random isaac.b 0xC2AA8934
+random isaac.c 0x00000869
+random isaac.results 0x966B66DB
+random isaac.memory 0xC63B2756
+random crt.rand 0x5763EE2F
+obj143005 #vitals 7A3683B7
+obj182595 #ai 4272DBD3
+obj182595 #place 4B3EC2A5
+obj182595 #unit 3CC3B03A
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 1AA99307
+obj831510 #vitals 26B10FA7
+obj848411 #place 3CE25F2F
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #unit F565981B
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 55E22FDD
+aievents tick 1662
+script #run 93E5F4C8
+client tick 1661
+client ticksRun 1642
+cunit182595 #place 895D401E
+cunit182595 #unit C04905E2
+cunit831510 #place 9BD7CAC1
+cunit831510 #unit 4CF4C0C1
+cunit848411 #place FD5B9FB3
+cunit999742 #place AC8D8578
+cunit999742 #unit 481F4E1A
+@ 99 update 2000 frame 399 tick 1682 zone bz1mpg hash 6F67A956 n 389
+world tick 1682
+world updates 2000
+random isaac.count 216
+random isaac.a 0xEF678F0A
+random isaac.b 0x50976A4C
+random isaac.c 0x00000883
+random isaac.results 0xC6D8A35B
+random isaac.memory 0x6D4EE8A5
+random crt.rand 0x50084947
+player0 lastTick 1667
+player0 var.gtime 1.82999957
+obj143005 #vitals 19F00927
+obj182595 #place 2F552AFC
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place BE04B2AD
+obj831510 #vitals 041B9ECF
+obj848411 #place 304274F2
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 749E8C16
+aievents tick 1682
+script #run 8FA4004D
+client tick 1681
+client ticksRun 1662
+cunit182595 #place D08B0F2C
+cunit831510 #place 5F3EB5D1
+cunit831510 #unit E1B5889A
+cunit848411 #place 54A19D60
+cunit848411 #unit 5308F56A
+@ 100 update 2020 frame 403 tick 1702 zone bz1mpg hash 4755677C n 389
+world tick 1702
+world updates 2020
+random isaac.count 143
+random isaac.a 0x6C903EFC
+random isaac.b 0xCC1745E3
+random isaac.c 0x0000089C
+random isaac.results 0xB3922B66
+random isaac.memory 0x6E75246B
+random crt.rand 0xB2BB7AA6
+obj143005 #ai 287B0C78
+obj143005 #vitals 0A5C7738
+obj182595 #place 7F6CE32F
+obj182595 #vitals E3648479
+obj183332 #ai 351FEDE7
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #ai F3CAA67A
+obj399469 #unit DD72C868
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place 8AAC1D34
+obj831510 #vitals 56DBFB28
+obj848411 #ai 871F2276
+obj848411 #place F5DE58A4
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 19D27318
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 98A51289
+aievents tick 1702
+script #run 60C7FF9F
+client tick 1701
+client ticksRun 1682
+cunit182595 #place 61AFD95A
+cunit182595 #unit F08D64F4
+cunit831510 #place 8C55F853
+cunit831510 #unit 4CF4C0C1
+cunit848411 #place EB208BFE
+@ 101 update 2040 frame 407 tick 1722 zone bz1mpg hash C24400EA n 389
+world tick 1722
+world updates 2040
+random isaac.count 110
+random isaac.a 0x38178CFF
+random isaac.b 0x585702A8
+random isaac.c 0x000008B6
+random isaac.results 0x678A0C1C
+random isaac.memory 0xFAEBCF60
+random crt.rand 0xA7FD9EC4
+obj143005 #vitals 7A3683B7
+obj182595 #place EBAE0219
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #ai DC7F7FFE
+obj399469 #unit D56652DB
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 9797E056
+obj831510 #vitals 26B10FA7
+obj848411 #place 45B3169B
+obj848411 #vitals 930E70F6
+obj927062 #unit 1339B9BD
+obj927062 #vitals A225CB5F
+obj999742 #unit CC430DEB
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 7798B769
+aievents tick 1722
+script #run 5D54401D
+client tick 1721
+client ticksRun 1702
+cunit182595 #place 88BE9A34
+cunit831510 #place 6F61C402
+cunit848411 #place 027E82B5
+cunit927062 #unit A5CE9BEB
+cunit999742 #unit 3930DE86
+@ 102 update 2060 frame 411 tick 1742 zone bz1mpg hash 0EA876DE n 389
+world tick 1742
+world updates 2060
+random isaac.count 36
+random isaac.a 0x46A5DBF5
+random isaac.b 0x4927D6E5
+random isaac.c 0x000008CF
+random isaac.results 0x9221413E
+random isaac.memory 0x0C1E26AC
+random crt.rand 0x2E5A44BC
+player0 lastTick 1731
+player0 var.gtime 1.90111065
+obj143005 #vitals 19F00927
+obj182595 #place 20DA0C0B
+obj182595 #vitals 18C240D2
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 117E9B7B
+obj831510 #vitals 041B9ECF
+obj848411 #place 27843390
+obj848411 #unit 5A5DCFFC
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 9BA329F6
+aievents tick 1742
+script #run 7750F03B
+client tick 1741
+client ticksRun 1722
+cunit182595 #place EF19B19C
+cunit831510 #place 6FACE059
+cunit848411 #place 6122BD94
+cunit848411 #unit D509D260
+@ 103 update 2080 frame 415 tick 1762 zone bz1mpg hash 80437AAF n 389
+world tick 1762
+world updates 2080
+random isaac.count 64
+random isaac.a 0x8B0763B8
+random isaac.b 0x2FC85D2D
+random isaac.c 0x000008E9
+random isaac.results 0x86E99F0F
+random isaac.memory 0x193737DB
+random crt.rand 0xC05F1BCE
+obj143005 #vitals 0A5C7738
+obj182595 #place 2D76E91B
+obj182595 #unit 4D7D0CC1
+obj182595 #vitals E3648479
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place A24FC0D7
+obj831510 #vitals 56DBFB28
+obj848411 #ai DB7134B5
+obj848411 #place 2BC8E395
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit D523E1C8
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 7292FAE8
+aievents tick 1762
+script #run 8D91F69C
+client tick 1761
+client ticksRun 1742
+cunit182595 #place 81B2EBEF
+cunit831510 #place C255226E
+cunit848411 #place 338F806F
+cunit848411 #unit 0730F683
+cunit999742 #unit 25D20813
+@ 104 update 2100 frame 419 tick 1782 zone bz1mpg hash 1154A3A0 n 389
+world tick 1782
+world updates 2100
+random isaac.count 241
+random isaac.a 0xA434312C
+random isaac.b 0xBE01A9FF
+random isaac.c 0x00000904
+random isaac.results 0x73004AE1
+random isaac.memory 0x955D2A3B
+random crt.rand 0xC0E22022
+obj143005 #vitals 7A3683B7
+obj182595 #ai 692E9CA8
+obj182595 #place F1439E58
+obj182595 #unit DA66B5CE
+obj182595 #vitals 930E70F6
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 4855275B
+obj831510 #vitals 26B10FA7
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # A9085593
+aievents tick 1782
+script #run 91D00219
+client tick 1781
+client ticksRun 1762
+cunit182595 #place 2BFF1DD7
+cunit182595 #unit 9B0FD2CF
+cunit831510 #place 86CCAE4D
+cunit831510 #unit 9668A65D
+cunit848411 #place 232FCBE0
+@ 105 update 2120 frame 423 tick 1802 zone bz1mpg hash 2C34F371 n 389
+world tick 1802
+world updates 2120
+random isaac.count 251
+random isaac.a 0x00A4BAE9
+random isaac.b 0xAAAB84C1
+random isaac.c 0x0000091E
+random isaac.results 0x997432D3
+random isaac.memory 0x79FEC141
+random crt.rand 0x8E9D90CD
+player0 lastTick 1795
+player0 var.gtime 1.97222173
+obj143005 #vitals 19F00927
+obj182595 #ai 041AD4F2
+obj182595 #place 0DDFC370
+obj182595 #unit 2A4B8384
+obj182595 #vitals 18C240D2
+obj183332 #ai 24AB8545
+obj183332 #unit C06B4F43
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place D09E702D
+obj831510 #vitals 041B9ECF
+obj848411 #vitals 18C240D2
+obj927062 #unit FF8E52BE
+obj927062 #vitals B7F97025
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 4533CB0C
+aievents tick 1802
+script #run 2CF39370
+client tick 1801
+client ticksRun 1782
+cunit182595 #place FC246749
+cunit182595 #unit 623316F7
+cunit183332 #unit C1BFFC3E
+cunit831510 #place E2DA7D51
+cunit831510 #unit 60A9DF97
+cunit848411 #place EFD6B0F5
+@ 106 update 2140 frame 427 tick 1822 zone bz1mpg hash F4E51A88 n 389
+world tick 1822
+world updates 2140
+random isaac.count 44
+random isaac.a 0xC95CD3ED
+random isaac.b 0xE8555714
+random isaac.c 0x00000937
+random isaac.results 0x3405AB42
+random isaac.memory 0x66E0D270
+random crt.rand 0x307AC579
+obj143005 #vitals 0A5C7738
+obj182595 #place 3D682655
+obj182595 #vitals E3648479
+obj183332 #place AAAF961C
+obj183332 #unit 827BB86B
+obj183332 #vitals C2055F7E
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place F3C91F0E
+obj831510 #vitals 56DBFB28
+obj848411 #ai B8C8B60C
+obj848411 #place 9D647959
+obj848411 #unit ED173574
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #unit 0AF6DF8C
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # AA0E6EEC
+aievents tick 1822
+script #run F20C1A16
+client tick 1821
+client ticksRun 1802
+cunit182595 #place ED943491
+cunit182595 #unit A3D20B27
+cunit183332 #place 566DDEEE
+cunit183332 #unit 79C123AE
+cunit831510 #place 83F8878B
+cunit831510 #unit 4CF4C0C1
+cunit848411 #place 01FA28B3
+cunit848411 #unit A89E8C5E
+cunit999742 #place D1FA713D
+cunit999742 #unit 0119EBE0
+@ 107 update 2160 frame 431 tick 1842 zone bz1mpg hash E102AE1E n 389
+world tick 1842
+world updates 2160
+random isaac.count 223
+random isaac.a 0x9CAC8764
+random isaac.b 0x2A4EDF98
+random isaac.c 0x00000952
+random isaac.results 0xEBDC9514
+random isaac.memory 0x92535A3E
+random crt.rand 0xC556E251
+obj143005 #vitals 7A3683B7
+obj182595 #place 8D39028C
+obj182595 #vitals 930E70F6
+obj183332 #place 8736EF28
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #ai 3734B676
+obj831510 #place 449A490F
+obj831510 #vitals 26B10FA7
+obj848411 #place 2B6E7E8D
+obj848411 #vitals 930E70F6
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #ai 12FFAE3A
+obj1000011214 #vitals 6876199C
+obj1000063817 #ai 1F248E34
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # 4635F073
+aievents tick 1842
+script #run CF43C276
+client tick 1841
+client ticksRun 1822
+cunit182595 #place 48199C8A
+cunit182595 #unit 93166A31
+cunit183332 #place D22BC8D7
+cunit183332 #unit 4D97AAB8
+cunit831510 #place F035C12C
+cunit848411 #place 8D75B2A3
+cunit848411 #unit 2A18F976
+@ 108 update 2180 frame 435 tick 1862 zone bz1mpg hash AD7CC748 n 389
+world tick 1862
+world updates 2180
+random isaac.count 253
+random isaac.a 0xD69A8313
+random isaac.b 0x0A2F771E
+random isaac.c 0x0000096C
+random isaac.results 0x59285B6D
+random isaac.memory 0xE9532742
+random crt.rand 0x971BF4DE
+player0 lastTick 1859
+player0 var.gtime 2.04333282
+obj143005 #vitals 19F00927
+obj182595 #ai 67336056
+obj182595 #place 9428BBD9
+obj182595 #vitals 18C240D2
+obj183332 #ai F46375E2
+obj183332 #place 7D2D6E58
+obj183332 #vitals 8687B4AA
+obj196568 #ai E56B7430
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #ai 287B0C78
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #ai E09537D6
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #ai 287B0C78
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #ai B256B462
+obj831510 #place 3A59F6A5
+obj831510 #vitals 041B9ECF
+obj848411 #place 20E09551
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 139633AF
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #ai B27BCA8B
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #ai BFA0EA85
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # AF04236D
+aievents tick 1862
+script #run D56B9FFC
+client tick 1861
+client ticksRun 1842
+cunit182595 #place B92583CE
+cunit183332 #place 88309E02
+cunit831510 #place 3085C638
+cunit831510 #unit 9668A65D
+cunit848411 #place C5878E2C
+cunit848411 #unit 503BCD04
+cunit999742 #unit 1DFB3D75
+@ 109 update 2200 frame 439 tick 1882 zone bz1mpg hash 858A23C5 n 389
+world tick 1882
+world updates 2200
+random isaac.count 51
+random isaac.a 0x977D4ACC
+random isaac.b 0x651779F0
+random isaac.c 0x00000984
+random isaac.results 0xB3988717
+random isaac.memory 0x3CF77988
+random crt.rand 0xBEB5EA3A
+obj143005 #vitals 0A5C7738
+obj182595 #ai 91047AD5
+obj182595 #place B273622B
+obj182595 #unit 43DCAE17
+obj182595 #vitals E3648479
+obj183332 #ai 9D8BDB3E
+obj183332 #place E3E0672B
+obj183332 #unit F7EDD8AF
+obj183332 #vitals C2055F7E
+obj196568 #ai 83E34814
+obj196568 #vitals D24F3FD0
+obj326331 #vitals D24F3FD0
+obj386717 #vitals D24F3FD0
+obj399469 #vitals E3648479
+obj469697 #vitals D24F3FD0
+obj481569 #vitals D24F3FD0
+obj534153 #vitals D24F3FD0
+obj601927 #vitals D24F3FD0
+obj686200 #vitals D24F3FD0
+obj732495 #vitals D24F3FD0
+obj812970 #vitals D24F3FD0
+obj831510 #place E8115FB3
+obj831510 #vitals 56DBFB28
+obj848411 #place F978D406
+obj848411 #vitals E3648479
+obj927062 #vitals D24F3FD0
+obj999742 #vitals D24F3FD0
+obj1000002436 #vitals 552914AB
+obj1000011214 #vitals 181CED13
+obj1000063817 #vitals 552914AB
+obj1007671245 #vitals 552914AB
+missile0 # 52FC7AA0
+aievents tick 1882
+script #run D3F6FE95
+client tick 1881
+client ticksRun 1862
+cunit182595 #place 75263F6E
+cunit182595 #unit 79EC045A
+cunit183332 #place 4477EA85
+cunit183332 #unit 76C0430E
+cunit831510 #place FBA0AD89
+cunit848411 #place 30891991
+cunit848411 #unit A89E8C5E
+@ 110 update 2220 frame 443 tick 1902 zone bz1mpg hash 2462EAE6 n 389
+world tick 1902
+world updates 2220
+random isaac.count 42
+random isaac.a 0xFF26B184
+random isaac.b 0x12A05A33
+random isaac.c 0x0000099E
+random isaac.results 0xED0CF5F2
+random isaac.memory 0x9CC0DD62
+random crt.rand 0xC488DAD6
+obj143005 #ai 83E34814
+obj143005 #vitals 7A3683B7
+obj182595 #ai 82C8A13A
+obj182595 #place 540C297B
+obj182595 #unit 504B33DB
+obj182595 #vitals 930E70F6
+obj183332 #ai 0B0F0046
+obj183332 #vitals B26FABF1
+obj196568 #vitals A225CB5F
+obj326331 #vitals A225CB5F
+obj386717 #vitals A225CB5F
+obj399469 #vitals 930E70F6
+obj469697 #vitals A225CB5F
+obj481569 #vitals A225CB5F
+obj534153 #vitals A225CB5F
+obj601927 #vitals A225CB5F
+obj686200 #vitals A225CB5F
+obj732495 #vitals A225CB5F
+obj812970 #vitals A225CB5F
+obj831510 #place 585B8525
+obj831510 #vitals 26B10FA7
+obj848411 #ai ED6244BF
+obj848411 #place DC2BA2DF
+obj848411 #vitals 930E70F6
+obj927062 #unit 3F667FF5
+obj927062 #vitals A225CB5F
+obj999742 #vitals A225CB5F
+obj1000002436 #vitals 2543E024
+obj1000011214 #vitals 6876199C
+obj1000063817 #vitals 2543E024
+obj1007671245 #vitals 2543E024
+missile0 # BEC7E43F
+aievents tick 1902
+script #run F7F59E4F
+client tick 1901
+client ticksRun 1882
+cunit182595 #place B08BD121
+cunit183332 #place 352DBD78
+cunit831510 #place C70DB227
+cunit831510 #unit 4CF4C0C1
+cunit848411 #place DE8B3F9C
+cunit927062 #unit 7F65AD32
+@ 111 update 2240 frame 447 tick 1922 zone bz1mpg hash 6E918C48 n 389
+world tick 1922
+world updates 2240
+random isaac.count 63
+random isaac.a 0xD862AB54
+random isaac.b 0x88E24329
+random isaac.c 0x000009B8
+random isaac.results 0x08E7C97B
+random isaac.memory 0x1FD0763C
+random crt.rand 0x57DB7C67
+obj143005 #vitals 19F00927
+obj182595 #ai 43D13BCB
+obj182595 #place B1B20E88
+obj182595 #unit 03223192
+obj182595 #vitals 18C240D2
+obj183332 #ai 32412255
+obj183332 #place 449EBE37
+obj183332 #unit AB120A7D
+obj183332 #vitals 8687B4AA
+obj196568 #vitals B7F97025
+obj326331 #vitals B7F97025
+obj386717 #vitals B7F97025
+obj399469 #ai AC1F5D69
+obj399469 #place AEEE52E6
+obj399469 #unit F40AFB28
+obj399469 #vitals 18C240D2
+obj469697 #vitals B7F97025
+obj481569 #vitals B7F97025
+obj534153 #vitals B7F97025
+obj601927 #vitals B7F97025
+obj686200 #vitals B7F97025
+obj732495 #vitals B7F97025
+obj812970 #vitals B7F97025
+obj831510 #place 8F12F600
+obj831510 #vitals 041B9ECF
+obj848411 #ai D0616F7B
+obj848411 #place 203B4491
+obj848411 #unit A6FBFD9D
+obj848411 #vitals 18C240D2
+obj927062 #vitals B7F97025
+obj999742 #unit 8E5D790E
+obj999742 #vitals B7F97025
+obj1000002436 #vitals 70A9BEBA
+obj1000011214 #vitals B55EB0FD
+obj1000063817 #vitals 70A9BEBA
+obj1007671245 #vitals 70A9BEBA
+missile0 # 51FA41DF
+aievents tick 1922
+script #run DA9A29AD
+client tick 1921
+client ticksRun 1902
+cunit182595 #place 78E3DA3D
+cunit182595 #unit 7E8B33B8
+cunit183332 #place F071C192
+cunit183332 #unit 945C7A27
+cunit399469 #place 7F499D51
+cunit399469 #unit 37F349AA
+cunit831510 #place 1649AEDD
+cunit831510 #unit BC56D573
+cunit848411 #place 4641CB29
+cunit848411 #unit 07794446
+cunit999742 #place AC8D8578
+cunit999742 #unit 8FC099BD

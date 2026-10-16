@@ -228,7 +228,7 @@ def real_runner(batch, run, retries, on_attempt):
     def one(name, install, folder):
         on_attempt(next(attempts))
         return run_all.run(name, install, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
-                           clock=clock, game_env=env, fresh=fresh)
+                           clock=clock, game_env=env, fresh=fresh, held=run['slots_held'] if 'slots_held' in run.keys() else 1)
     return run_all.run_with_retries(run['scenario'], install, retries, os.path.basename(run['folder']), runner=one,
                                     keep=lambda folder, attempt: run_all.keep_attempt(folder, attempt, build=batch['build']))
 
@@ -384,10 +384,15 @@ class Scheduler:
                     continue
                 if not self.pool.gate_free():
                     return False                             # a plain run_all gathers for a display-mode game
-                slot = self.pool.take_one()
-                if slot is None:
+                # A pair's run (a "peer" line, SV5d) plays two games: two slots, taken together.
+                need = run_all.games_of(os.path.join(b['worktree'], 'tests', 'scenarios', r['scenario'] + '.txt'))
+                slots = []
+                while len(slots) < need and (slot := self.pool.take_one()) is not None:
+                    slots.append(slot)
+                if len(slots) < need:
+                    self.pool.release(slots)
                     return False                             # the machine is full
-                if self.start(b, r, args, [slot]):
+                if self.start(b, r, args, slots):
                     busy.add(r['folder'])
             alone = [r for r in runs if r['alone'] and r['folder'] not in busy]
             if b['id'] == head and alone and not plain:     # its other runs have all started
@@ -409,7 +414,8 @@ class Scheduler:
         if not started:
             self.pool.release(slots)
             return False
-        thread = threading.Thread(target=self.play, args=(dict(batch), dict(run), args.retries), daemon=True)
+        thread = threading.Thread(target=self.play, args=(dict(batch), dict(run, slots_held=len(slots)), args.retries),
+                                  daemon=True)
         self.games[run['id']] = {'batch': batch['id'], 'slots': slots, 'folder': run['folder'],
                                  'alone': bool(run['alone']), 'thread': thread, 'scenario': run['scenario'],
                                  'install': run['install'], 'root': batch['worktree']}

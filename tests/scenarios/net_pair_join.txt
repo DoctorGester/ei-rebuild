@@ -1,0 +1,60 @@
+# SV5d: two games over the network. ei_launch starts a second game beside this one (the "peer" line:
+# tests/scenarios/peer/net_pair_join.txt); the two run in lockstep on a network of their own (harness_pair.h:
+# virtual UDP ports, this game's server on the game's own 8888). This game makes a hero and hosts a new game as
+# ui_mp_host does (GameFlow::StartServer, the multiplayer start zone and its base screen); the peer makes its
+# own hero, finds this game in the connection screen's list (the lobby's ping on 8888, answered by this game's
+# server), joins it (GameFlow::JoinServer: the join request, Admit, the login, ClientSession::OnJoined ->
+# BeginMultiplayerGame) and enters the same zone as a network client. Both then stay on the base screen with
+# two players, each says a line (the peer first: the Say from a remote client); the peer leaves first and
+# this game sees its player go.
+timeout 180
+peer net_pair_join
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+# Row 0 (the new game), host.
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+# The peer joins and enters the zone, and says a line (its Say to this game's server, the server's Line to
+# both clients); this game answers with a line of its own. Both stay a while, then the peer leaves.
+peerwait 90 joined
+peerwait 60 said
+frames 10
+key enter
+frames 5
+key o
+key k
+frames 5
+key enterchar
+frames 20
+peersignal answered
+peerwait 60 leaving
+frames 200
+waitwindow 3 briefing
+report
+quit

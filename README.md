@@ -103,6 +103,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   frame_preview read both forms).
   `render <spec>` sets the renderer spec for a run of the image (ignored in a run of the original code;
   `docs/notes/renderer.md`).
+- `peer <name>` makes a pair (`tests/verify/harness_pair.h`, `net_pair_join.txt`): ei_launch starts a second game
+  on `tests\scenarios\peer\<name>.txt` beside this one, the two in lockstep on a network of their own (the second
+  joins the first's hosted game over virtual UDP ports); `peersignal <tag>` / `peerwait <seconds> <tag>` order the
+  two scenarios. The peer's report and logs are in the run folder's `peer\`; a pair takes two of run_all's slots.
 - Harness runs use a virtual clock (`tests/verify/harness_clock.h`): each main-loop frame is five
   world updates, the main thread's sleeps and timed waits take no real time, sample ends come on
   virtual time, the date and the random seeds are fixed, and frames present without waiting for
@@ -160,7 +164,7 @@ need no clicks and leave the install alone: startup movies are skipped, the tuto
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
 its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
 `mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
-registry, every game hosts and joins on a UDP port of its own instead of 8888 (`tests/verify/harness_net.h`: games run
+registry, every game hosts and joins on a UDP port of its own instead of 8888 (but a pair's two games; `tests/verify/harness_net.h`: games run
 side by side otherwise join each other's servers) and binds on 127.0.0.1 only, its datagrams going nowhere else (so Windows
 Firewall never asks; the report's `NET:` line, run_all's `network:` summary), the user's real mouse never reaches the game
 (no client mouse messages from the cursor over its window, no DirectInput motion or buttons: `tests/verify/harness_input.h`,

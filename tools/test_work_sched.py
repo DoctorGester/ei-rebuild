@@ -253,6 +253,28 @@ class SchedTest(unittest.TestCase):
         self.assertLessEqual(max(e for _, n, s, e in fake.spans if n in ('b1', 'b2')), w0 + 0.01)   # its other runs first
         self.assertEqual(self.runs(b)['w']['state'], 'finished')
 
+    def test_pair_takes_two_slots(self):
+        # SV5d: a scenario with a "peer" line plays two games, so it takes two of the machine's slots together.
+        scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
+        os.makedirs(scenarios)
+        with open(os.path.join(scenarios, 'p.txt'), 'w') as f:
+            f.write('peer p\nwaitmenu\n')
+        held = {}
+        fake = Fake({'p': .5, 'q1': .3, 'q2': .3, 'q3': .3})
+        call = fake.__call__
+
+        class Recording(Fake):
+            def __call__(self, batch, run, retries, on_attempt):
+                held[run['scenario']] = run['slots_held']
+                return call(batch, run, retries, on_attempt)
+        recording = Recording()
+        recording.__dict__ = fake.__dict__
+        self.submit(['p', 'q1', 'q2', 'q3'])
+        self.drive(self.sched(recording, count=3))
+        self.assertEqual(held, {'p': 2, 'q1': 1, 'q2': 1, 'q3': 1})
+        (p0,), (p1,) = fake.starts(names=['p']), [e for _, n, s, e in fake.spans if n == 'p']
+        self.assertEqual(fake.most_at_once(p0 + 0.01, p1 - 0.01), 2, 'the pair and more than one other game on 3 slots')
+
     def hold(self, *names):
         """A process holding the named slot files (or the alone gate) until the test kills it."""
         ready = os.path.join(self.slots, 'ready')
