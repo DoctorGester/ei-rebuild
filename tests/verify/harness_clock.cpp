@@ -755,8 +755,8 @@ CRITICAL_SECTION g_randomLock;
 
 // One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>] #<where>". <where> is the
 // generator's state after the draw: ISAAC's position in its stream (c_ * 256 + 255 - count_; c_
-// counts the refills), rand()'s seed. Verify wrappers that run both sides put the generators back
-// between them, so one draw can show up twice; the position tells a repeat from a new draw
+// counts the refills), rand()'s seed. Where a function ran the original on live state besides ours (the verify
+// wrappers until S21d), the generators were put back between them, so one draw could show up twice; the position tells a repeat from a new draw
 // (tools/randtrace.py, SV1g).
 void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std::uint32_t where) {
     const bool ours = caller >= g_selfBase && caller < g_selfEnd;

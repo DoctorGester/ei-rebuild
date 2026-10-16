@@ -1,8 +1,8 @@
 """The coverage list (SV5, docs/notes/standalone-verification.md): which rewritten functions the suite
 reaches, and whether a golden run (SV3) or function vectors (SV4) check them without the original exe.
 
-Reach (tests/coverage/reach.txt) came from the hook build's coverage: with `EI_COVER=hooks` every installed
-hook address and the first byte of its plain replacement (our function) got a one-shot INT3 (src/hook/cover.cpp),
+Reach (tests/coverage/reach.txt) came from coverage runs of game.exe with our hooks (retired): with
+`EI_COVER=hooks` every installed hook address and the first byte of its plain replacement (our function) got a one-shot INT3 (src/hook/cover.cpp),
 and the run's ei_hook.log named each game address the run executed (game code calling a rewrite, our code calling
 it directly; not a call the compiler inlined, so "reached" is a lower bound for small functions). Those runs were
 game.exe with our hooks, which no tool starts since S21c (docs/notes/standalone.md section 5): reach.txt keeps
@@ -150,11 +150,11 @@ def golden_scenarios():
 # ---- reach.txt ------------------------------------------------------------------------------------
 # "# scenarios: a b c ..." then one line per installed hook address: "ADDRESS NAME BITS", BITS a hex
 # bitset over the scenarios in that order (bit i = scenario i reaches it). NAME is the installed
-# entry's name from the log (a verify wrapper's, where the hook build had one).
+# entry's name from the log (a verify wrapper's, where that build had one).
 
 def read_reach():
     if not os.path.exists(REACH):
-        sys.exit(f'{rel(REACH)} is missing (git checkout it: the hook build that collected it is gone, S21c)')
+        sys.exit(f'{rel(REACH)} is missing (git checkout it: the build that collected it is gone, S21c)')
     scenarios, rows = [], {}
     for line in open(REACH, encoding='utf-8'):
         if line.startswith('# scenarios:'):

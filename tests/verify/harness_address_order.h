@@ -10,8 +10,8 @@
 //     SetSun's comparator 006C8E90 to one that compares the sectors it was meant to, and the draw
 //     lists' sorts 005740D0 / 00574390 to ours (by texture and figure name; SV7b6).
 //
-// Patched at the first message loop pass, after InstallHooks: an entry ours has hooked (0047ADF0 in
-// hooked runs) is left alone, ours runs there.
+// Patched at the first message loop pass, after InstallHooks: an entry ours has replaced (0047ADF0 in
+// the image) is left alone, ours runs there.
 
 namespace ei::verify::address_order {
 

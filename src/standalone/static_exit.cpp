@@ -4,8 +4,8 @@
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand:
 // src/game/atexit_400.cpp) and the function-local statics' ("atexit at" the call; S16a): 98 destructor, 46 free, 17 guarded destructor, 12 nothing, 8 two destructors, 4 guarded free, 1 release, 1 wait, then call, 1 import, 1 stdcall, 1 guarded release.
 // Each is decoded from its instructions as a whole-function pattern; ExitFunction states its body over
-// static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit,
-// in the hook build too. A library type's destructor is called at its address in the image (a library
+// static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
+// A library type's destructor is called at its address in the image (a library
 // port, S4-S12; the standalone check logs the callees with no code yet).
 // tools/check_static_init.py (build.cmd) checks this file and the functions' sizes against game.exe.
 #include "static_init.h"

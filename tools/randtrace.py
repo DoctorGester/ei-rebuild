@@ -6,18 +6,17 @@ usage: python tools/randtrace.py A B [--context N]
     code), B the run to check (the standalone image).
 
 Each traced draw carries the generator's state after it: ISAAC's position in its stream, rand()'s seed.
-A verify wrapper that runs both sides puts the generators back in between, so B draws some positions
-twice (ours, then the original, or the other way round) and its lines cannot be compared one by one.
+A trace of B that ran both sides of a function (a verify wrapper, until S21d) put the generators back in
+between, so B drew some positions twice and its lines could not be compared one by one.
 This walks A's draws of the main thread in order and looks for each among B's draws of the same
 generator position: the first that B makes in no frame or in another frame than A ("frame"), or only
-from other callers ("caller", game.exe callers are the originals the wrappers run, so only ei_hook
-callers count there), is printed with B's draws around it. ISAAC and rand() are walked separately.
+from other callers ("caller"; game.exe callers are originals, so only ei_hook callers count there), is printed with B's draws around it. ISAAC and rand() are walked separately.
 exit code: 0 the same, 1 a difference, 2 a trace missing
 
 usage: python tools/randtrace.py --kept B [A]
-    Draws of a verify run that only an original made and that stayed: game.exe callers whose draw the
+    Draws that only an original made and that stayed: game.exe callers whose draw the
     generator went on from (the next draw continues the stream) while no rewrite (ei_hook caller) drew
-    the same position. Those are originals a verify wrapper ran on live state after (or instead of)
+    the same position. Those were originals a verify wrapper (until S21d) ran on live state after (or instead of)
     ours with the generators left as the original moved them (SV1a: 005301B0 from 0052EF90's re-read).
     Callers that A (the plain run) also draws from (originals not rewritten) are left out. One line per
     caller: how many draws stayed, the first frame and position.

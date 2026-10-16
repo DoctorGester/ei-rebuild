@@ -1416,7 +1416,7 @@ void RefreshSurfaces(State& s) {
 // Rgb565Copy, Greyscale, PixelAt or SwapContents. They go through a Lock, a Blt or the new renderer's
 // memory, often on a surface made in the same frame or one no window keeps (the global map's pick
 // picture, Rgb565Copy's temporary copy), which the DirectDraw hooks cannot place; and our callers
-// call them directly, past their verify wrappers. Counted as a "read" or "write" row of the surface.
+// call them directly, past the DirectDraw hooks. Counted as a "read" or "write" row of the surface.
 void OnPixels(const CUiSurface* surface, const char* what, bool writes, void* const* frame) {
     State& s = S();
     std::lock_guard<std::mutex> hold(s.lock);

@@ -214,7 +214,7 @@ void ReadRandom(Builder& b) {
     b.Bits("isaac.c", r.c_);
     b.Bits("isaac.results", HashWords(r.results_, 256));
     b.Bits("isaac.memory", HashWords(r.memory_, 256));
-    // rand()'s state (the CRT's _holdrand, _getptd 006F00D1 +0x14 in the hook build; ours in the
+    // rand()'s state (the CRT's _holdrand, _getptd 006F00D1 +0x14 in game.exe; ours in the
     // image). The game's main thread is the only one that draws.
     b.Bits("crt.rand", libcrt::RandState());
 }
@@ -315,8 +315,8 @@ void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
     b.Int("motion.waypoints", m->waypoints.GetSize());
     b.Int("motion.segment", m->segment);
     // The trajectory only while the unit has one: a unit that never moved keeps the bytes its
-    // allocation left there (zero in a run of the original code alone, heap leftovers with our
-    // hooks, whose verify wrappers allocate too); a path start sets them (assumed: not checked
+    // allocation left there (zero in a run of the original code alone, heap leftovers in the
+    // image, whose allocations differ); a path start sets them (assumed: not checked
     // that nothing reads them before).
     if (m->points.GetSize() == 0 && m->segment < 0) {
         ReadController(u, b);

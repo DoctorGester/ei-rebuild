@@ -6,13 +6,13 @@ handlers) holds INT3. Three ways our code can get there:
   literals     code addresses written in src/ (callbacks, function pointers handed to the game's tables:
                particle callbacks, qsort comparators, network handlers, actionDone, ...); the five
                code-byte reads of S14 (CALL targets, the keyword table's immediate) are among them and
-               are read only in the hook build
+               are read only by game.exe's own code (not in the image)
   data         function starts (config/functions.csv) that game.exe's data sections point at: vtable slots
                and pointer tables the image keeps (library code mostly: MFC's vtables, the CRT's tables).
                The compiler's exception funclets (kind "eh") and config/dead_code.csv are left out: the
                image runs none of game.exe's own exception tables.
-A listed address is not necessarily reachable: a forwarder may run in the hook build only (behind
-ei::Standalone()), a vtable may belong to a class the game never makes. config/standalone_unreachable.csv
+A listed address is not necessarily reachable: a forwarder may be behind a branch the image never takes
+(ei::Standalone()), a vtable may belong to a class the game never makes. config/standalone_unreachable.csv
 names what the image can never run, with the reason (S16d): a whole vtable, data words or ranges, or an
 address wherever it is listed. Each kind's line counts those as "listed unreachable" and prints the rest
 (open). library.csv rows named "not a function" (strings Ghidra read as code pointers) are no function

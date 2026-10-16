@@ -211,7 +211,7 @@ def batch_env(batch):
 
 def real_runner(batch, run, retries, on_attempt):
     """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold. A row of our
-    code in game.exe (a hooked run, submitted by a checkout from before S21c) fails without a game."""
+    code in game.exe (a submission from a checkout from before S21c) fails without a game."""
     install = run_all.launch_install(run['install'])
     if bool(run['hooks']) != run_all.our_code(install):
         on_attempt(0)
@@ -475,7 +475,7 @@ class Scheduler:
         with work.transaction(self.db):
             self.db.execute("UPDATE batch SET state = CASE state WHEN 'cancelled' THEN 'cancelled' ELSE 'finished' END, "
                             "finished = ?, exit_code = ?, summary = ? WHERE id = ?", (work.now(), code, text, batch_id))
-            # The per-function counts of the verify wrappers (76 KB a run; empty since S21d): nothing reads them.
+            # The per-function counts (76 KB a run, from the verify wrappers; empty since S21d): nothing reads them.
             self.db.execute('UPDATE run SET counts = NULL WHERE batch = ? AND counts IS NOT NULL', (batch_id,))
         self.args.pop(batch_id, None)
         self.arg_errors.pop(batch_id, None)
