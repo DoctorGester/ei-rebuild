@@ -36,14 +36,6 @@ struct Vertex {
 static_assert(sizeof(Vertex) == 28);
 using TerrainVertex = Vertex;
 
-struct TerrainBatch {
-    const void* texture;      // the game's CTexture
-    bool water;               // the water pass (blended over what is drawn)
-    int matrix;               // index into Frame::matrices
-    int firstIndex;
-    int indexCount;
-};
-
 // One texture stage of the old device for a pass (D3DTEXTURESTAGESTATETYPE values).
 struct StageState {
     std::uint8_t colourOp = 1, colourArg1 = 2, colourArg2 = 1;   // D3DTOP_DISABLE, TEXTURE, CURRENT
@@ -76,6 +68,23 @@ struct PassState {
                (depthWrite ? 1u << 10 : 0u) | (static_cast<std::uint32_t>(depthFunc & 15) << 11) |
                (static_cast<std::uint32_t>(cull & 3) << 15);
     }
+};
+
+// The old device's state for the pass about to be drawn (the state the game code fed, render_state.h;
+// render_mesh.cpp). `device`: the device object whose bound surfaces become the stages' textures;
+// null leaves the stages without textures.
+PassState ReadPassState(char* device);
+// Culling, depth test and write, blending and the colour target of a pipeline as the old device
+// draws with `s` (render_mesh.cpp).
+void ApplyPassState(sg_pipeline_desc& p, const PassState& s);
+
+struct TerrainBatch {
+    const void* texture;      // the game's CTexture
+    bool water;               // the water pass (alpha from the vertex colour)
+    int matrix;               // index into Frame::matrices
+    int firstIndex;
+    int indexCount;
+    PassState state;          // the old device's state for the page (its textures not read)
 };
 
 struct MeshBatch {
@@ -239,8 +248,9 @@ private:
     int vertexOffset_ = -1, indexOffset_ = -1;
 };
 
-// The terrain pipelines and draws, inside EndFrame's off-screen pass (render_terrain.cpp).
-bool CreateTerrainPipelines();
+// The terrain shader and draws, inside EndFrame's off-screen pass (render_terrain.cpp; the pipelines
+// are made per pass state as they are needed).
+bool CreateTerrainShader();
 void UploadTerrain(const Frame& frame);
 void DrawTerrainBatch(const Frame& frame, const TerrainBatch& batch);
 void DestroyTerrain();

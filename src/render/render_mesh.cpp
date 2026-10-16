@@ -94,85 +94,6 @@ bool Build(Frame& f, Pending& p) {
     return true;
 }
 
-// The old device's state for the pass about to be drawn.
-PassState ReadPassState(char* device) {
-    static const std::uint32_t kStates[] = {
-        27,   // ALPHABLENDENABLE
-        19,   // SRCBLEND
-        20,   // DESTBLEND
-        15,   // ALPHATESTENABLE
-        25,   // ALPHAFUNC
-        24,   // ALPHAREF
-        7,    // ZENABLE
-        14,   // ZWRITEENABLE
-        23,   // ZFUNC
-        22,   // CULLMODE
-        29,   // SPECULARENABLE
-        28,   // FOGENABLE
-        34,   // FOGCOLOR
-        60,   // TEXTUREFACTOR
-    };
-    constexpr int kStateCount = static_cast<int>(sizeof(kStates) / sizeof(kStates[0]));
-    std::uint32_t v[kStateCount];
-    RenderValues(kStates, v, kStateCount);
-    PassState s;
-    s.blend = v[0] != 0;
-    s.sourceBlend = static_cast<std::uint8_t>(v[1]);
-    s.destBlend = static_cast<std::uint8_t>(v[2]);
-    s.alphaTest = v[3] != 0;
-    s.alphaFunc = static_cast<std::uint8_t>(v[4]);
-    s.alphaReference = static_cast<std::uint8_t>(v[5]);
-    s.depthTest = v[6] != 0;
-    s.depthWrite = v[7] != 0;
-    s.depthFunc = static_cast<std::uint8_t>(v[8]);
-    s.cull = static_cast<std::uint8_t>(v[9]);
-    s.specular = v[10] != 0;
-    s.fog = v[11] != 0;
-    s.fogColour = v[12];
-    s.textureFactor = v[13];
-
-    static const std::uint32_t kStageStates[] = {
-        1, 2, 3,      // COLOROP, COLORARG1, COLORARG2
-        4, 5, 6,      // ALPHAOP, ALPHAARG1, ALPHAARG2
-        16, 17, 18,   // MAGFILTER, MINFILTER, MIPFILTER
-        13, 14,       // ADDRESSU, ADDRESSV
-    };
-    constexpr int kStageCount = static_cast<int>(sizeof(kStageStates) / sizeof(kStageStates[0]));
-    for (int stage = 0; stage < 2; ++stage) {
-        std::uint32_t t[kStageCount];
-        if (stage == 1) {   // stage 1 only when it is on (COLOROP not D3DTOP_DISABLE)
-            const std::uint32_t op = 1;
-            std::uint32_t value = 0;
-            StageValues(1, &op, &value, 1);
-            if (value <= 1) {
-                s.stages[1].colourOp = static_cast<std::uint8_t>(value);
-                break;
-            }
-        }
-        StageValues(stage, kStageStates, t, kStageCount);
-        StageState& st = s.stages[stage];
-        st.colourOp = static_cast<std::uint8_t>(t[0]);
-        st.colourArg1 = static_cast<std::uint8_t>(t[1]);
-        st.colourArg2 = static_cast<std::uint8_t>(t[2]);
-        st.alphaOp = static_cast<std::uint8_t>(t[3]);
-        st.alphaArg1 = static_cast<std::uint8_t>(t[4]);
-        st.alphaArg2 = static_cast<std::uint8_t>(t[5]);
-        st.magFilter = static_cast<std::uint8_t>(t[6]);
-        st.minFilter = static_cast<std::uint8_t>(t[7]);
-        st.mipFilter = static_cast<std::uint8_t>(t[8]);
-        st.addressU = static_cast<std::uint8_t>(t[9]);
-        st.addressV = static_cast<std::uint8_t>(t[10]);
-        if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
-        // The surface holder the old path bound to the stage (device +0x12C + stage * 4, set by
-        // 004EB300 / 004EBAF0).
-        const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
-        st.hasTexture = holder != nullptr;
-        st.texture = SurfaceView(holder);
-    }
-    PassDone();
-    return s;
-}
-
 // --- GPU side ------------------------------------------------------------------------------------------------
 
 // The fixed-function texture stages of the old device as the game sets them (D3DTEXTUREOP and
@@ -307,6 +228,116 @@ sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh");
 
+sg_pipeline Pipeline(const PassState& s, bool lines) {
+    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u);
+    auto it = g_pipelines.find(key);
+    if (it != g_pipelines.end()) return it->second;
+    sg_pipeline_desc p{};
+    p.shader = g_shader;
+    p.layout.buffers[0].stride = sizeof(Vertex);
+    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
+    p.layout.attrs[0].offset = 0;
+    p.layout.attrs[1].format = SG_VERTEXFORMAT_UBYTE4N;
+    p.layout.attrs[1].offset = 12;
+    p.layout.attrs[2].format = SG_VERTEXFORMAT_UBYTE4N;
+    p.layout.attrs[2].offset = 16;
+    p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
+    p.layout.attrs[3].offset = 20;
+    p.index_type = SG_INDEXTYPE_UINT32;
+    p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
+    ApplyPassState(p, s);
+    p.sample_count = 1;
+    p.label = "ei-mesh";
+    sg_pipeline pipeline = sg_make_pipeline(&p);
+    g_pipelines.emplace(key, pipeline);
+    return pipeline;
+}
+
+} // namespace
+
+namespace detail {
+
+PassState ReadPassState(char* device) {
+    static const std::uint32_t kStates[] = {
+        27,   // ALPHABLENDENABLE
+        19,   // SRCBLEND
+        20,   // DESTBLEND
+        15,   // ALPHATESTENABLE
+        25,   // ALPHAFUNC
+        24,   // ALPHAREF
+        7,    // ZENABLE
+        14,   // ZWRITEENABLE
+        23,   // ZFUNC
+        22,   // CULLMODE
+        29,   // SPECULARENABLE
+        28,   // FOGENABLE
+        34,   // FOGCOLOR
+        60,   // TEXTUREFACTOR
+    };
+    constexpr int kStateCount = static_cast<int>(sizeof(kStates) / sizeof(kStates[0]));
+    std::uint32_t v[kStateCount];
+    RenderValues(kStates, v, kStateCount);
+    PassState s;
+    s.blend = v[0] != 0;
+    s.sourceBlend = static_cast<std::uint8_t>(v[1]);
+    s.destBlend = static_cast<std::uint8_t>(v[2]);
+    s.alphaTest = v[3] != 0;
+    s.alphaFunc = static_cast<std::uint8_t>(v[4]);
+    s.alphaReference = static_cast<std::uint8_t>(v[5]);
+    s.depthTest = v[6] != 0;
+    s.depthWrite = v[7] != 0;
+    s.depthFunc = static_cast<std::uint8_t>(v[8]);
+    s.cull = static_cast<std::uint8_t>(v[9]);
+    s.specular = v[10] != 0;
+    s.fog = v[11] != 0;
+    s.fogColour = v[12];
+    s.textureFactor = v[13];
+
+    static const std::uint32_t kStageStates[] = {
+        1, 2, 3,      // COLOROP, COLORARG1, COLORARG2
+        4, 5, 6,      // ALPHAOP, ALPHAARG1, ALPHAARG2
+        16, 17, 18,   // MAGFILTER, MINFILTER, MIPFILTER
+        13, 14,       // ADDRESSU, ADDRESSV
+    };
+    constexpr int kStageCount = static_cast<int>(sizeof(kStageStates) / sizeof(kStageStates[0]));
+    for (int stage = 0; stage < 2; ++stage) {
+        std::uint32_t t[kStageCount];
+        if (stage == 1) {   // stage 1 only when it is on (COLOROP not D3DTOP_DISABLE)
+            const std::uint32_t op = 1;
+            std::uint32_t value = 0;
+            StageValues(1, &op, &value, 1);
+            if (value <= 1) {
+                s.stages[1].colourOp = static_cast<std::uint8_t>(value);
+                break;
+            }
+        }
+        StageValues(stage, kStageStates, t, kStageCount);
+        StageState& st = s.stages[stage];
+        st.colourOp = static_cast<std::uint8_t>(t[0]);
+        st.colourArg1 = static_cast<std::uint8_t>(t[1]);
+        st.colourArg2 = static_cast<std::uint8_t>(t[2]);
+        st.alphaOp = static_cast<std::uint8_t>(t[3]);
+        st.alphaArg1 = static_cast<std::uint8_t>(t[4]);
+        st.alphaArg2 = static_cast<std::uint8_t>(t[5]);
+        st.magFilter = static_cast<std::uint8_t>(t[6]);
+        st.minFilter = static_cast<std::uint8_t>(t[7]);
+        st.mipFilter = static_cast<std::uint8_t>(t[8]);
+        st.addressU = static_cast<std::uint8_t>(t[9]);
+        st.addressV = static_cast<std::uint8_t>(t[10]);
+        if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
+        // The surface holder the old path bound to the stage (device +0x12C + stage * 4, set by
+        // 004EB300 / 004EBAF0).
+        if (!device) continue;
+        const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
+        st.hasTexture = holder != nullptr;
+        st.texture = SurfaceView(holder);
+    }
+    PassDone();
+    return s;
+}
+
+namespace {
+
 sg_blend_factor Factor(std::uint8_t d3d) {
     switch (d3d) {   // D3DBLEND
     case 1: return SG_BLENDFACTOR_ZERO;
@@ -337,23 +368,9 @@ sg_compare_func Compare(std::uint8_t d3d) {
     }
 }
 
-sg_pipeline Pipeline(const PassState& s, bool lines) {
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u);
-    auto it = g_pipelines.find(key);
-    if (it != g_pipelines.end()) return it->second;
-    sg_pipeline_desc p{};
-    p.shader = g_shader;
-    p.layout.buffers[0].stride = sizeof(Vertex);
-    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[0].offset = 0;
-    p.layout.attrs[1].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[1].offset = 12;
-    p.layout.attrs[2].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[2].offset = 16;
-    p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
-    p.layout.attrs[3].offset = 20;
-    p.index_type = SG_INDEXTYPE_UINT32;
-    p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
+} // namespace
+
+void ApplyPassState(sg_pipeline_desc& p, const PassState& s) {
     // D3DCULL_CW culls triangles clockwise on screen, D3DCULL_CCW counter-clockwise ones (screen y
     // down in both APIs).
     if (s.cull == 2) {
@@ -387,16 +404,7 @@ sg_pipeline Pipeline(const PassState& s, bool lines) {
         p.colors[0].blend.src_factor_alpha = source;
         p.colors[0].blend.dst_factor_alpha = dest;
     }
-    p.sample_count = 1;
-    p.label = "ei-mesh";
-    sg_pipeline pipeline = sg_make_pipeline(&p);
-    g_pipelines.emplace(key, pipeline);
-    return pipeline;
 }
-
-} // namespace
-
-namespace detail {
 
 bool CreateMeshShader() {
     sg_shader_desc s{};

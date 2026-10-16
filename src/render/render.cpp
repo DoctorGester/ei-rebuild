@@ -443,7 +443,7 @@ bool EnsureStarted() {
     if (!g_active || g_failed) return false;
     if (g_started) return true;
     FpuGuard fpu;
-    if (!CreateDevice() || !CreateTerrainPipelines() || !CreateMeshShader() || !CreateBlitPipeline()) {
+    if (!CreateDevice() || !CreateTerrainShader() || !CreateMeshShader() || !CreateBlitPipeline()) {
         g_failed = true;
         return false;
     }
@@ -495,7 +495,7 @@ bool RecreateDevice() {
         if (attempt) Sleep(200);
         made = CreateDevice();
     }
-    if (!made || !CreateTerrainPipelines() || !CreateMeshShader() || !CreateBlitPipeline()) {
+    if (!made || !CreateTerrainShader() || !CreateMeshShader() || !CreateBlitPipeline()) {
         ei::Log("render: no new Direct3D 11 device; the new renderer is off");
         g_failed = true;
         return false;
