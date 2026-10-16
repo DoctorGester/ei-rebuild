@@ -279,9 +279,6 @@ come first, then what holds for the present path (the subsection names are cited
   0060C870) are covered.
 - A desktop display mode change while the game runs is not exercised: no run may switch the display mode (R9c4
   below). R9c covers a window resized from outside, which is what such a change does to the game window.
-- **R9c5** (ready): a lost-device test through a real removal (a test-only device made through D3D11On12CreateDevice
-  whose ID3D12Device5::RemoveDevice removes it, Windows 10 1809+; check the swap chain works with an 11on12 device
-  first). R9c1 tests the recreation with `render::LoseDevice` only.
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
   the global map's clouds on the GPU.
@@ -443,7 +440,30 @@ is what to read it for.
   DXGI_ERROR_DEVICE_REMOVED without calling it; the rest is the real path. The step waits until the device is made
   again and a frame presented on it. Scenario render_device_lost (vanilla and Rebirth): at one frozen moment in the
   main menu, in zone1 and in the camp (textures loaded after the first loss), the frame before and after the loss match
-  (samecapture: 0 pixels over 8). A real removal is R9c5.
+  (samecapture: 0 pixels over 8). A real removal: R9c5 below.
+
+### R9c5: a real removal of the device (harness build only)
+
+- `removable` in EI_RENDER (the scenario's `render new,present,removable`; known only to the harness build,
+  `EI_RENDER_VALIDATION`) makes the Direct3D 11 device through `D3D11On12CreateDevice` on a Direct3D 12 device of the
+  default adapter and a direct queue (d3d12.dll loaded at run time from System32; nothing installed). The swap chain,
+  the gamma ramp check, the cursor's deferred context and every frame work on it as on the hardware device.
+- `render::RemoveDevice` (harness step `removedevice [seconds]`) asks for a removal; it happens right before the
+  next swap chain Present (`RemoveIfAsked`; without a swap chain at the end of the frame): the GPU is let finish
+  (an event query, at most 2 s), then `ID3D12Device5::RemoveDevice` removes the Direct3D 12 device, so Present and
+  `GetDeviceRemovedReason` report DXGI_ERROR_DEVICE_REMOVED for real, in this process only (no driver reset, no TDR;
+  other processes and the desktop are not touched). R9c1's path then releases everything (0 references left; the
+  Direct3D 12 device and queue too, so the next `D3D12CreateDevice` gives a new device and not the removed one:
+  Direct3D 12 devices are one per adapter while one lives) and makes a new removable device.
+- The step checks that the loss seen was that removal (not simulated, `GetDeviceRemovedReason` 887A0005) and that the
+  new device is removable again; `WindowPresents()` gives the last loss's result and reason.
+- Rule from a real bug: removed with GPU work in flight, the old device's teardown crashed in a thread of
+  d3d11on12.dll (a null fence in its command list manager) or of DXGI / the driver's user-mode part (nvwgf2um.dll), also
+  in a small program that presented on its own (cloaked) window and released everything in order (10 runs of 10); with
+  the GPU idle first it never did (the game's runs, that program 10 of 10). So the removal waits for the GPU; a real TDR goes through the kernel
+  and not through this teardown.
+- Scenario `render_device_removed` (image golden, vanilla; also runs on Rebirth): render_device_lost's three moments
+  (main menu, zone1, the camp) with `removedevice`: the frame before and after each removal match (0 pixels over 8).
 
 ### R9c2: the software cursor between frames
 

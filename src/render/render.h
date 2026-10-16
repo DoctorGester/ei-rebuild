@@ -241,6 +241,11 @@ struct WindowPresentInfo {
     int deviceLosses = 0;       // Direct3D 11 devices lost (or LoseDevice) ...
     int deviceRecoveries = 0;   // ... and made again with everything on them
     std::uint32_t presentsAtRecovery = 0;   // `presents` when the last new device was made
+    long lastLossResult = 0;   // the last loss: the DXGI error that reported it ...
+    long lastLossReason = 0;   // ... and GetDeviceRemovedReason then (S_OK: LoseDevice's, not a real loss)
+    bool lastLossSimulated = false;   // the last loss was LoseDevice's
+    bool removable = false;   // harness build: the device is "removable" (RemoveDevice can remove it)
+    int removals = 0;         // RemoveDevice calls
 };
 WindowPresentInfo WindowPresents();
 // Acts as if the Direct3D 11 device were lost at the next present (the harness's "losedevice"):
@@ -249,6 +254,12 @@ WindowPresentInfo WindowPresents();
 // the device, sokol, the swap chain and every image are made again and textures uploaded again
 // from what they were decoded from.
 void LoseDevice();
+// Harness build only (EI_RENDER "removable", R9c5): the device was made through D3D11On12 on a
+// Direct3D 12 device, and this removes that device for real (ID3D12Device5::RemoveDevice, this
+// process only: no driver reset) right before the next present, which sees DXGI_ERROR_DEVICE_REMOVED;
+// everything is made again as for any lost device (on a new removable device). False when the
+// device is not removable.
+bool RemoveDevice();
 // Where the frame shows in the game window's client area: the frame's size and its rectangle there
 // (aspect kept, centred; the rest black). False when the new renderer does not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);
