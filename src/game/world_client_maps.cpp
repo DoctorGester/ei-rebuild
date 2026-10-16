@@ -23,6 +23,7 @@
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "material.h"
 #include "model.h"
 #include "sound.h"
 #include "spell.h"
@@ -1166,13 +1167,8 @@ __declspec(naked) void __fastcall Construct570E70(void*) EI_ORIGINAL(0x00570E70)
 __declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
 __declspec(naked) void __fastcall Construct570DE0(void*) EI_ORIGINAL(0x00570DE0)
 __declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
-__declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690)
-__declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
-__declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
-__declspec(naked) void* __fastcall Construct68D850(void*) EI_ORIGINAL(0x0068D850)
 __declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
 __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
-__declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 // vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
@@ -1325,13 +1321,13 @@ int CWorldClient::Setup() {
     ++terrain->refCount_;
     CStringAssignTextOriginal(&zoneName_, nullptr, worlddata::GipathText());
 
-    manager44_ = MakeCounted<CBaseManager>(0xB0, Construct42D690);
+    manager44_ = MakeCounted<CBaseManager>(0xB0, ConstructOn<CClientSpecificManager, &CClientSpecificManager::Construct>);
     static_cast<CBaseManager*>(manager44_)->Init(this);
-    textureManager_ = MakeCounted<CTextureManager>(0xF0, Construct691140);
+    textureManager_ = MakeCounted<CTextureManager>(0xF0, ConstructOn<CTextureManager, &CTextureManager::Construct>);
     textureManager_->CBaseManager::InitImpl(this);   // 004031B0 called directly
-    manager188_ = MakeCounted<CBaseManager>(0xD0, Construct68E3F0);
+    manager188_ = MakeCounted<CBaseManager>(0xD0, ConstructOn<CMaterialManager, &CMaterialManager::Construct>);
     manager188_->Init(this);
-    manager190_ = MakeCounted<CBaseManager>(0xD8, Construct68D850);
+    manager190_ = MakeCounted<CBaseManager>(0xD8, ConstructOn<CLightFactory, &CLightFactory::Construct>);
     manager190_->Init(this);
 
     auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
@@ -1341,7 +1337,7 @@ int CWorldClient::Setup() {
         Construct5725E0(&manager->held_);
         manager->maxHeldId_ = 0;
         ei::SetVtable(manager, worlddata::kParticleManagerVtable);
-        Construct4981A0(manager);
+        ParticleManagerClearQuietStart(manager);   // 004981A0
     }
     particleManager_ = manager;
     ++manager->refCount_;

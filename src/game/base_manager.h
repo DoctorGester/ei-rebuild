@@ -149,9 +149,18 @@ static_assert(sizeof(ObjectListIterator) == 8);
 class CClientSpecificManager : public CBaseManager {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BECC);
+    // 0042D690 (misc_400.cpp): the base manager constructed, then this class's vtable. Returns this.
+    CClientSpecificManager* Construct();
     // Body of the slot at 0042D700 (registered by member pointer).
     CEngineObject* NewObjectImpl(int type);
 };
+
+// A constructor member of T (thiscall, no arguments, returns this) as the plain `void* (__fastcall*)(void*)`
+// the object factories take (misc_400.cpp, world_create.cpp, world_client_maps.cpp).
+template <typename T, T* (T::*Construct)()>
+void* __fastcall ConstructOn(void* memory) {
+    return (static_cast<T*>(memory)->*Construct)();
+}
 
 // The effect manager (class of the effects; world_effect_lifetime.cpp / world_managers.cpp).
 class CEffectManager : public CBaseManager {

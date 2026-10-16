@@ -70,6 +70,11 @@ class CObject3D;
 // tail), and holds one reference on every source made through CreateSource (`held_`, by id) until
 // the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
 // particle_manager.cpp; the pool in particle_tick.cpp, DrawAll in particle_draw.cpp.
+// 004981A0 (small_accessors.cpp): the particle manager's own part of its constructor (the client
+// world's manager set-up calls it after the base manager's): quietStart cleared.
+class CParticleManager;
+void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
+
 class CParticleManager : public CBaseManager {
 public:
     using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;

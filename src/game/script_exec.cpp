@@ -106,9 +106,6 @@ using LightningList = mfc::CList<ScriptLightning>;
 __declspec(naked) void __fastcall ParticleRemoveAt(ParticleList*, void*, ParticleList::Node*) EI_ORIGINAL(0x004C6040)
 __declspec(naked) void __fastcall FxSourceRemoveAt(FxSourceList*, void*, FxSourceList::Node*) EI_ORIGINAL(0x004C6370)
 __declspec(naked) void __fastcall LightningRemoveAt(LightningList*, void*, LightningList::Node*) EI_ORIGINAL(0x004C6680)
-// Areas (FindArea's result): add a rectangle / a circle.
-__declspec(naked) void __fastcall AreaAddRect(void*, void*, float, float, float, float) EI_ORIGINAL(0x004B1ED0)
-__declspec(naked) void __fastcall AreaAddRound(void*, void*, float, float, float) EI_ORIGINAL(0x004B2070)
 // The party records of `player` for a "party name" string (ECX player, EDX string).
 // Object id of a name (ECX = name).
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
@@ -721,13 +718,13 @@ BOOL ScriptRun::Execute(CScript* script) {
             (console::Out() << Text(cmd, 0)).Apply(EndLine());
             break;
         case 0xC3: {   // AddRectToArea(area, x1, y1, x2, y2)
-            void* area = script->FindArea(Round(f[0]));
-            AreaAddRect(area, nullptr, f[1], f[2], f[3], f[4]);
+            auto* area = static_cast<mfc::CArray<ScriptAreaPart>*>(script->FindArea(Round(f[0])));
+            ScriptAreaAddRect(area, nullptr, f[1], f[2], f[3], f[4]);
             break;
         }
         case 0xC4: {   // AddRoundToArea(area, x, y, radius)
-            void* area = script->FindArea(Round(f[0]));
-            AreaAddRound(area, nullptr, f[1], f[2], f[3]);
+            auto* area = static_cast<mfc::CArray<ScriptAreaPart>*>(script->FindArea(Round(f[0])));
+            ScriptAreaAddRound(area, nullptr, f[1], f[2], f[3]);
             break;
         }
         case 0xC6:   // DeleteArea(area)

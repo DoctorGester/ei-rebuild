@@ -23,20 +23,11 @@ namespace {
 
 // ---- Original code ------------------------------------------------------------------------------
 
-// CList::RemoveHead / RemoveTail instantiations (__thiscall, the element returned through a
-// hidden pointer: copy-constructed into `out`, the node freed).
-__declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C69B0)
+// 004CD690: the lightning list's DestructElements (__stdcall (first, count); ScriptLightningElementsDestruct,
+// script_effects, which ei_vectors does not link).
+__declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
-// Node element destructors (__thiscall (flags), 0 = in place): WorldScript block (0x18), FX
-// source (0x34), particle source (0x24); lightning DestructElements (__stdcall (first, count)).
-__declspec(naked) void __fastcall ParticleDestroy(void*, void*, int) EI_ORIGINAL(0x004CE270)
-__declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
-// CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
-__declspec(naked) void __fastcall FloatsClear(void*) EI_ORIGINAL(0x004C1650)
-__declspec(naked) void __fastcall StringsClear(void*) EI_ORIGINAL(0x004C16B0)
-__declspec(naked) void __fastcall ObjectsClear(void*) EI_ORIGINAL(0x004C1700)
-__declspec(naked) void __fastcall GroupsClear(void*) EI_ORIGINAL(0x004C1760)
 
 // The world (007AFF60): timed objects.
 struct World {
@@ -81,10 +72,10 @@ void __fastcall ScriptReset(CScript* script) {
     RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { ScriptWorldBlockDestroy(block, nullptr, 0); });
 
     ScriptVars* globals = script->Globals();
-    FloatsClear(&globals->floats);
-    StringsClear(&globals->strings);
-    ObjectsClear(&globals->objects);
-    GroupsClear(&globals->groups);
+    ScriptFloatsClear(reinterpret_cast<ScriptNamedValues<float>*>(&globals->floats));
+    ScriptStringsClear(reinterpret_cast<ScriptNamedValues<mfc::CString>*>(&globals->strings));
+    ScriptObjectsClear(reinterpret_cast<ScriptNamedValues<ScriptObjectRef>*>(&globals->objects));
+    ScriptGroupsClear(reinterpret_cast<ScriptNamedValues<ScriptGroup>*>(&globals->groups));
     script->forDepth_ = 0;
 
     // Temporaries: every entry but one dropped, the last one emptied.
@@ -114,7 +105,7 @@ void __fastcall ScriptReset(CScript* script) {
     std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 
     RemoveAll(script->fxSources_, [](ScriptFxSource* source) { ScriptFxSourceDestroy(source, nullptr, 0); });
-    RemoveAll(script->particles_, [](ScriptParticleSource* source) { ParticleDestroy(source, nullptr, 0); });
+    RemoveAll(script->particles_, [](ScriptParticleSource* source) { ScriptParticleDestroy(&source->object, nullptr, 0); });
     RemoveAll(script->lightning_, [](ScriptLightning* bolt) { LightningElementsDestruct(bolt, 1); });
 
     AreasSetSize(&script->areas_, nullptr, 0, -1);
@@ -124,7 +115,8 @@ void __fastcall ScriptReset(CScript* script) {
 
     // Command blocks, removed from the head.
     while (script->blocks_.count != 0) {
-        BlocksRemoveHead(&script->blocks_, nullptr, element);
+        gamelists::DeclRemoveHead(reinterpret_cast<gamelists::Decls::List*>(&script->blocks_), nullptr,   // 004C69B0
+                                  reinterpret_cast<ScriptDecl*>(element));
         ScriptDeclDestruct(reinterpret_cast<ScriptDecl*>(element));
     }
 }

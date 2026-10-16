@@ -31,13 +31,11 @@ using dbfile::LocalResource;
 using dbfile::LocalStream;
 using dbfile::SerializeFn;
 
-// The tables' vector serialisers (RET 0xC: id, vector, unused; rewritten in unit_db.cpp) and the
-// skill level's chunk (RET 8: id, record), through their addresses so that their verify wrappers
-// run.
-__declspec(naked) void __fastcall SerializeLevelsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053E1B0)
-__declspec(naked) void __fastcall SerializeModelsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DF50)
-__declspec(naked) void __fastcall SerializePrototypesAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DC10)
-__declspec(naked) void __fastcall SerializeNpcsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DD00)
+// The tables' vector serialisers (RET 0xC: id, vector, unused; ChunkArchive::SerializeUnitLevels /
+// SerializeModels / SerializePrototypes / SerializeNpcs, unit_db.cpp: 0053E1B0, 0053DF50, 0053DC10,
+// 0053DD00).
+template <typename Record>
+using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*);
 // STLport instantiations: hash_map<string, record*>::operator[] of the NPC and the level tables
 // (RET 4: the key; EAX the value's address; those of the prototypes and the models are shared
 // forwarders), and vector<SkillLevelRecord>::clear.
@@ -59,12 +57,12 @@ void IndexNames(Record* begin, Record* const& end, void* index, At at) {
 // chunk `id` and, after the archive is closed, entered into the name index. `levels` is the
 // serialisers' unused third argument, as the original passes it.
 template <typename Record, typename At>
-void LoadTable(CMemoryStream* stream, int id, SerializeFn serialize, void* table, void* levels, Record*& begin,
+void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, void* table, void* levels, Record*& begin,
                Record*& end, void* index, At at) {
     ChunkArchive archive;
     archive.Construct();
     archive.Open(stream, 1, 1);
-    serialize(&archive, nullptr, id, table, levels);
+    (archive.*serialize)(id, static_cast<stlp::vector<Record>*>(table), levels);
     archive.Close(stream);
     IndexNames(begin, end, index, at);
     archive.Destruct();
@@ -112,13 +110,13 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     CMemoryStream* stream = &local.stream;
     FillStream(*stream, data, size);
 
-    LoadTable(stream, kLevelsChunk, SerializeLevelsAt, &levels, &levels, levels.begin, levels.end, &levels.byName,
+    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, &levels, &levels, levels.begin, levels.end, &levels.byName,
               LevelMapAt);
-    LoadTable(stream, kModelsChunk, SerializeModelsAt, &models, &levels, models.begin, models.end, &models.byName,
+    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, &models, &levels, models.begin, models.end, &models.byName,
               FigureMapAtOriginal);
-    LoadTable(stream, kPrototypesChunk, SerializePrototypesAt, &prototypes, &levels, Begin(prototypes), End(prototypes),
+    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, &prototypes, &levels, Begin(prototypes), End(prototypes),
               &prototypes.byName, PrototypeMapAtOriginal);
-    LoadTable(stream, kNpcsChunk, SerializeNpcsAt, &npcs, &levels, Begin(npcs), End(npcs), &npcs.byName, NpcMapAt);
+    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, &npcs, &levels, Begin(npcs), End(npcs), &npcs.byName, NpcMapAt);
 
     resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();

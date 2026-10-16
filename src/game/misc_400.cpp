@@ -1,9 +1,14 @@
 // Small pieces of 00400000-00440000 without a better home: the CBaseManager subclass 0073BECC
 // (constructed by 005620D9; its deleting destructor and slot 14, the object factory, differ), a
 // cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/core.md.
+#include "torch_client_spec.h"   // before windows.h (GetClassName)
 #include "base_manager.h"
 #include "link_figure.h"
+#include "map_object_shadow.h"
 #include "net_coder.h"
+#include "player_client.h"
+#include "unit.h"
+#include "unit_client_models.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -14,27 +19,12 @@
 
 namespace misc400 {
 
-// The constructors of the objects 0042D700 makes (outside this range; each returns this). Named by
-// the vtable each one sets.
-// 005A7010 (rewritten, figure_drawer.cpp): the figure drawer, CFigureClientSpecific.
-void* __fastcall Construct73FB10(void* memory) { return static_cast<FigureMeshDrawer*>(memory)->Construct(); }
-__declspec(naked) void* __fastcall Construct73DE90(void* /*memory*/) EI_ORIGINAL(0x0051AB00)
-__declspec(naked) void* __fastcall ConstructMapObjectClientSpecific(void* /*memory*/) EI_ORIGINAL(0x00510450)
-__declspec(naked) void* __fastcall Construct73ECD8(void* /*memory*/) EI_ORIGINAL(0x00533AD0)
-__declspec(naked) void* __fastcall Construct743180(void* /*memory*/) EI_ORIGINAL(0x00666D10)
-__declspec(naked) void* __fastcall Construct73E954(void* /*memory*/) EI_ORIGINAL(0x0052D0D0)
 
 CEngineObject* New(std::size_t size, void* (__fastcall* construct)(void*)) {
     void* memory = gamecrt::operator_new(size);
     return memory ? static_cast<CEngineObject*>(construct(memory)) : nullptr;
 }
 
-// 0042D690: the base manager constructed, then this class's vtable. Returns this.
-CBaseManager* __fastcall ManagerConstruct(CBaseManager* self) {
-    self->ConstructBase();
-    ei::SetVtable(self, CClientSpecificManager::kVtableAddress);
-    return self;
-}
 
 // 0042D6F0: the destructor body: this class's vtable, then the base manager's body (a tail call).
 void __fastcall ManagerDestruct(CBaseManager* self) {
@@ -48,16 +38,23 @@ int __fastcall ManagerClassId(const CBaseManager*) { return 0x30; }
 
 } // namespace misc400
 
+CClientSpecificManager* CClientSpecificManager::Construct() {
+    ConstructBase();
+    ei::SetVtable(this, kVtableAddress);
+    return this;
+}
+
 // 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
-// failed allocation.
+// failed allocation. The constructors (005A7010 the figure drawer, 0051AB00, 00510450, 00533AD0,
+// 00666D10, 0052D0D0) each return this.
 CEngineObject* CClientSpecificManager::NewObjectImpl(int type) {
     switch (type) {
-    case 'E': return misc400::New(0x3C, misc400::Construct73FB10);
-    case 'F': return misc400::New(0xFC, misc400::Construct73DE90);
-    case 'G': return misc400::New(0x58, misc400::ConstructMapObjectClientSpecific);
-    case 'H': return misc400::New(0xDC, misc400::Construct73ECD8);
-    case 'I': return misc400::New(0x50F8, misc400::Construct743180);
-    case 'K': return misc400::New(0x64, misc400::Construct73E954);
+    case 'E': return misc400::New(0x3C, ConstructOn<FigureMeshDrawer, &FigureMeshDrawer::Construct>);
+    case 'F': return misc400::New(0xFC, ConstructOn<CObject3DClientSpecific, &CObject3DClientSpecific::Construct>);
+    case 'G': return misc400::New(0x58, ConstructOn<CMapObjectClientSpecific, &CMapObjectClientSpecific::Construct>);
+    case 'H': return misc400::New(0xDC, ConstructOn<CUnitClientSpecific, &CUnitClientSpecific::ConstructClient>);
+    case 'I': return misc400::New(0x50F8, ConstructOn<CPlayerClient, &CPlayerClient::Construct>);
+    case 'K': return misc400::New(0x64, ConstructOn<CTorchObjectClientSpec, &CTorchObjectClientSpec::Construct>);
     default: return nullptr;
     }
 }
@@ -90,7 +87,7 @@ std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint3
     return 0;
 }
 
-EI_REPLACE(0x0042D690, misc400::ManagerConstruct);
+EI_REPLACE_METHOD(0x0042D690, CClientSpecificManager::Construct);
 EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
 EI_REPLACE(0x0042D6B0, misc400::ManagerClassName);
 EI_REPLACE(0x0042D6C0, misc400::ManagerClassId);
