@@ -91,19 +91,22 @@ Notes on the inventory:
 - **CALCRECT.** right = left + widest line, bottom = top + lines·height. With DT_WORDBREAK and a widest line wider than the rectangle, DrawText lays out again at that width, and the second layout's lines are the answer.
 - **Prefixes.** "&&" draws '&', and a trailing '&' draws nothing. The last prefix character of a tab segment is underlined: 1 px at top + ascent + 1, from the character to the next character's kerned position. A prefixed expanded tab is underlined from the pen to its stop, one pixel higher. A prefixed non-expanded tab removes the segment's underline.
 
-**Exactness test** (`ei_text_check --gdi`). It compares our layout and composition, fed GDI's own advances and kerning through a GDI-backed `Font` in the tool, against DrawTextA.
-- **Corpus.** 12101 unique strings from texts.res plus 1044 synthetic ones, run across 16 fonts: 5 resolutions × 3 interface fonts, plus the console. Each string × font is laid out in 8 formats × 3 widths, so the return value and CALCRECT rectangle are checked for 5,047,680 layouts. Of these, 471 differ (0.009%).
-- **Pixels.** Non-antialiased, every 50th game string and every synthetic one, each at 3 rectangle heights: 2,060,563 cases, of which 2,059,035 are exact and 1,528 differ.
-- **Font 0 (800x600, 13 px).** 315,480 layouts with 18 differing; 62,184 pixel cases with 40 differing.
-- **What still differs.** Every remaining difference is a synthetic string with '&'; the game's texts contain none. Every game string is exact in every font, format and width. One quirk is not modelled: an overflowing first word that holds a prefix and ends in '&' / "&&" sometimes keeps the following space on its line.
-- **Debugging tool.** `--explain <text> <width> <format> [font]` prints both layouts and an ASCII diff of the two drawings. It reads the text from the wide command line and accepts \r, \n and \t.
-- **Control characters.** The tool's GDI font takes their widths from DrawText (Uniscribe), not from GetTextExtentPoint32. The stb font gives them zero width.
+**Exactness test** (`ei_text_check --gdi`) compares our layout and composition, fed GDI's own advances and kerning through a
+GDI-backed `Font` in the tool, against DrawTextA: 12101 unique strings from texts.res plus 1044 synthetic ones across 16 fonts (5
+resolutions x 3 interface fonts, plus the console), 8 formats x 3 widths (return value and CALCRECT rectangle: 471 of 5,047,680
+layouts differ, 0.009%), pixels non-antialiased on every 50th game string and every synthetic one (1,528 of 2,060,563 differ).
+Every remaining difference is a synthetic string with '&'; the game's texts contain none, and every game string is exact in every
+font, format and width. One quirk is not modelled: an overflowing first word that holds a prefix and ends in '&' / "&&" sometimes
+keeps the following space on its line. `--explain <text> <width> <format> [font]` prints both layouts and an ASCII diff of the two
+drawings (reads \r, \n and \t from the wide command line). The tool's GDI font takes control characters' widths from DrawText
+(Uniscribe), not from GetTextExtentPoint32; the stb font gives them zero width.
 
-**Liberation versus GDI** (`ei_text_check --report`, game strings only; information, not a gate):
-- **Height, ascent and average width.** Average width now matches on all 16 fonts. Height and ascent match at 800x600 font0 (13 px) and 1024x768 font0. Elsewhere GDI's hinted Times New Roman is 1–3 px taller (for example 16 vs 15 at 14 px, and 75 vs 73 at 66 px). The console is 15 vs 14.
-- **Line breaks.** 4,646,784 layouts, of which 268,495 (5.8%) break differently and 3,237,347 have a different height. Most of those height differences are just the line height. At font 0, where heights agree, 27,951 of 290,424 layouts (9.6%) break differently.
-- **Extents.** Of 148,752 single-line extents, 110,834 differ, with a mean |difference| of 5.9 px and a worst of 174 px. Overall Liberation is +0.67% wider (+1.5% at 13 px). GDI uses hinted advances, while stb_truetype scales unhinted ones.
-- **What P2 should take from this.** Wrapping through our own metrics everywhere (extent and DrawText alike) keeps text consistent with itself, but about one string in ten wraps at a different word than today's GDI at 800x600.
+**Liberation versus GDI** (`ei_text_check --report`, game strings only; information, not a gate): average width matches on all 16
+fonts; height and ascent match at 800x600 font0 (13 px) and 1024x768 font0, elsewhere GDI's hinted Times New Roman is 1-3 px taller
+(the console 15 vs 14). 5.8% of 4,646,784 layouts break differently (9.6% at font 0, where heights agree); single-line extents
+differ on 110,834 of 148,752 (mean 5.9 px, worst 174 px; Liberation +0.67% wider, +1.5% at 13 px, because GDI uses hinted advances
+and stb_truetype unhinted ones). So wrapping through our own metrics everywhere keeps text consistent with itself, but about one
+string in ten wraps at a different word than today's GDI at 800x600.
 
 **For P2 and later:**
 - **The key test.** The CPU path keys on the composed colour, not on coverage. A near-black composed pixel (for example the 0x080808 shadow at low coverage) is keyed out or quantised in 16-bit mode, so the GPU path should use "composed colour != key" rather than "coverage > 0" when it must match the CPU look.
@@ -152,51 +155,33 @@ Notes on the inventory:
 
 ## 4. Tickets
 
-Prefix "N" (the "U" prefix is taken by the UTF-8 tickets). Sizes are in Opus sessions.
-
-**Preparation (can start now):**
-
-| # | Ticket | Files | Size | Depends / conflicts |
-|---|---|---|---|---|
-| N0 | Instrumentation: per window and surface, which primitives, how often (redraw per frame or not), readers, and GDI changes that were not intercepted (DIB checksum around GetDC/ReleaseDC). Done by hooking game.exe's and addon.dll's gdi32/user32 import slots (DrawTextA, FillRect, FrameRect, LineTo, SetPixel, ExtTextOutA, BitBlt, EM_FORMATRANGE) and mapping HDC → surface through `g_memoryDcs`. Output: a CSV per scenario | new `tests/verify/ui_census.cpp`; a 3-line accessor in `ui_surface_dc.cpp`; `ui_window.cpp` (owner map) | 1 | none; it does not touch W2's files |
-| | **N0c status (2026-10-15): review.** The "disconnect" box in ui_mp_host was not Rebirth's and not our code's: every game hosts on UDP 8888 (00783E30) and ignores a failed bind (00412D80), so a harness game run beside another hosting game joined that game's server and lost it when that game quit. Seen before the fix in vanilla and Rebirth, with hooks and `--no-hooks`, with and without the chat line (probe scenarios, 25 runs on 4 installs/configurations: the box in at least 14; ei_hook.log: "UDP port 8888 is taken", then "the client lost its connection" at the same moment in every affected game). Fix: the harness gives each game a free port of its own (`tests/verify/harness_net.{h,cpp}`); the same 20 probe runs then had no box. ui_mp_host now ends with `waitwindow 3 briefing`. Diagnostic log lines in `SocketDriver::Open` (bind failure), `ClientBase::RemoveClient` (connection lost) and the frame's disconnect box | `tests/verify/harness_net.cpp`, `tests/scenarios/ui_mp_host.txt` | 0.5 | |
-| | **N0d status (2026-10-15): review.** The census's call chains named stale callers (return addresses left in the unwritten slots of live frames, even whole old call paths): Rebirth's greyscale rows `[in verify]`, SwapContents rows `by` Connection::SendUpdate / CastSpell. `Chain()` now keeps a scanned address only when its call leads into the function holding the frame before it (direct calls checked against function starts found in the code; virtual calls only when the callee's address is stored somewhere and a later call proves them). The remaining wrong names were the report's: a bare-named lambda `Send` resolved to `SessionBase::Send`. Rerun of the 29 census scenarios (58 runs): none of those rows remain; method in ui-census.md "How it was measured" | `tests/verify/ui_census.cpp`, `tools/ui_census_report.py`, `docs/notes/ui-census.md` | 0.25 | |
-| | **N0 status (2026-10-14): done.** Results in ui-census.md: no uncaught drawing; addon.dll draws only through game functions; corrections to section 1 (SetPixel is the 24x18 HUD map marker, SwapContents runs on every window show and hide, tooltips are not every frame, the version line draws before AddSurface) | | | |
-| N1 | 2D canvas layer: render targets, command queue, fill / frame / line / pixel / glyph-run / copy-frame / greyscale / readback, a `Canvas` command in the frame, hoisting and pass split, 16-bit quantise | new `src/render/render_ui.{h,cpp}`; a few lines in `render.cpp` (dispatch) and `render_internal.h` (Command kind) | 2 | V3g and SV1 edit `render.cpp` / `render.h` / `render_internal.h`: keep those hunks to a few lines and rebase after them |
-| N2 | Glyph atlas and DrawText layout library, plus the offline exactness test against GDI (corpus × fonts × resolutions) | new `src/render/render_text.{h,cpp}`; a test tool under `tools/` or a start-up check | 2 | none |
-| N3 | Comparison harness: `uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask capture, `compare_frames.py --mask-file` | new `tests/verify/harness_ui.cpp` (one registration line in `harness.cpp`), `tools/compare_frames.py`, `render_ui.cpp` | 1.5 | N1 for (a); `harness.cpp` conflicts with SV1 and W2, so add only the registration after they merge |
-| N4 | `ui_gallery` scenario: every window family captured frozen (menu, options, save/load, message box, escape menu, HUD and tooltips, camp pages, hero screen, objectives, help, console, briefing, global map, credits) | `tests/scenarios/` | 1 | SV1 (virtual clock, for the stable clock and FPS text) |
-| N5 | Cursor and per-frame images cached (no `sg_make_image` each frame) | `render_blit.cpp` | 0.5 | none |
-
-**Porting:**
-
-| # | Ticket | Files | Size | Depends |
-|---|---|---|---|---|
-| P1 | Surface plumbing: canvas per native surface, blit, Get/ReleaseDC (metrics DC), Fill / Clear / FrameRect, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale on the GPU. First native surfaces: backdrop, FPS, status | `ui_surface_{create,blit,dc,frame,pixels}.cpp`, `dx_surface.cpp`, new `ui_native.cpp` | 2 | N1, N3 |
-| P2 | Text: 005FDE20 records glyph runs (GDI on the metrics DC for the return value); 005FDFA0 unchanged | `ui_text_draw.cpp` | 1 | N2, P1, **W2 merged** (same file; W2 also makes it hookable under Rebirth) |
-| P3a | Menus and dialogs (main menu, message box, difficulty, options, objectives, credits text without RichEdit, escape-menu backdrop and save picture). Mostly native-table entries plus fixes the diff finds | `ui_native.cpp`, `ui_layouts.cpp`, `ui_menus.cpp`, `ui_options.cpp`, `ui_objectives.cpp` | 1 | P2 |
-| P3b | HUD: unit-panel name, top panel and message log (`ui_scroll_text.cpp`), tooltips, quick strip, clock | `ui_hud*.cpp`, `ui_tooltip.cpp`, `ui_scroll_text.cpp` | 1 | P2; the tooltip (W2) and 006462A0 (W3) are ours under Rebirth too |
-| P3c | Camp, hero, trade and item info (stats rows, trade lists, item strip, describe panel, exchange) | `ui_camp*.cpp`, `ui_hero*.cpp`, `ui_trade_*.cpp`, `ui_item_*.cpp`, `ui_stats_rows.cpp`, `ui_exchange.cpp` | 1.5 | P2; under Rebirth the camp and the hero screen's mode are ours since W4; the hero screen's Create 00613EA0 is ours too since W4a |
-| P3d | Briefing, global map titles, help page, chat window | `ui_briefing*.cpp`, `ui_global_map*.cpp`, `ui_help_page.cpp`, `ui_chat_window.cpp` | 1 | P2; the help page 00659420 and the global map's input are ours under Rebirth since W4 |
-| P4 | Console and debug panel: direct FillSolidRect / DrawText, own fonts, the 2-pixel pen caret | `ui_console_window.cpp`, `string_map.cpp` | 1 | P1, N2 |
-| P5 | Controls with lines and carets: edit field 0065C2E0, chat typed line 005E3700, connect list 0061D780, save/load list 006567A0 | `ui_edit_field.cpp`, `ui_chat_overlay.cpp`, `ui_connect_list.cpp`, `ui_saveload_list.cpp` | 1 | P1, **W2 merged** (same four files) |
-| P6 | Global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy, readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4 | `ui_global_map_places.cpp`, `ui_global_map_input.cpp` | 0.5 | P1 |
-| P7 (optional) | CPU-written textures: `CopyImage` / `ItemFigureTexture` as GPU sub-image uploads from decoded .mmp; clouds 00499F10 as a shader | `ui_item_view.cpp`, `global_map_clouds.cpp`, `render_textures.cpp` | 1.5 | none |
-| P8 | Make `uinative` the default under `present`; drop the DIB and memcmp for native surfaces (keep a 1x1 metrics DC); docs (renderer.md section 6, ui.md) | `dx_surface.cpp`, `render_textures.cpp` | 1 | everything above |
-
-**Running in parallel.**
-- N0, N2, N4 and N5 can run alongside each other and alongside W2 / SV1 / V3g / F*. N1 has small conflicts in `render.cpp` with V3g and SV1.
-- After P2, P3a–P3d and P4 touch disjoint files. Each one's only shared edit is a line in `ui_native.cpp`, which is trivial to merge, so 3–4 can run at once.
-- P5 and P6 can run alongside the P3 tickets.
-
-**Conflicts with running tickets.**
-- **W2** (`ui_text_draw.cpp`, `ui_edit_field.cpp`, `ui_chat_overlay.cpp`, `ui_connect_list.cpp`, `ui_saveload_list.cpp`, `ui_tooltip.cpp`, `ui_mesh_shapes.cpp`, `ui_widescreen.*`, `ui.h`, `harness.cpp`, the text and pixel verify headers): P2, P5 and the tooltip part of P3b wait for its merge.
-- **W3 / W4** only decide when Rebirth launches can go native; vanilla is not blocked.
-- **F3** (renames in `ui.h` / `ui_*`): porting tickets add no fields (side maps) and leave `ui.h` alone, so expect only rename merges.
-- **SV1** (`harness.cpp`, `harness_clock.*`, `render.cpp` / `render.h`, `run_all.py`) and **V3g** (`render.cpp`, `render.h`, `render_internal.h`, `render_mesh.cpp`, `render_terrain.cpp`): N1 and N3 keep their edits to new files plus a few lines.
-- **F1 / F2 / F4 / F5**: no overlap.
-
-Total: about 7 sessions of preparation and about 10–11 of porting, P7 included.
+The tickets (N0-N5 preparation, P1-P8 porting) are in docs/tickets.toml (`python tools/tickets.py show N1`); this note keeps what
+they depend on.
+- **N0** (done): instrumentation; results in ui-census.md (no uncaught drawing; addon.dll draws only through game functions;
+  SetPixel is the 24x18 HUD map marker, SwapContents runs on every window show and hide, tooltips are not every frame, the version
+  line draws before AddSurface). Lesson from its multiplayer probes: every game hosts on UDP 8888 (00783E30) and ignores a failed
+  bind (00412D80), so a harness game run beside another hosting game joined that game's server and lost it when that game quit (a
+  "disconnect" box in ui_mp_host); the harness now gives each game a free port of its own (`tests/verify/harness_net.{h,cpp}`).
+  The census's call chains keep a scanned stack address only when its call leads into the function holding the frame before it
+  (method in ui-census.md "How it was measured").
+- **N1** the 2D canvas layer (`src/render/render_ui.{h,cpp}`: render targets, command queue, fill / frame / line / pixel /
+  glyph-run / copy-frame / greyscale / readback, a `Canvas` command in the frame, hoisting and pass split, 16-bit quantise); a few
+  lines in `render.cpp` (dispatch) and `render_internal.h` (Command kind). **N2** glyph atlas and DrawText layout (done, section 2).
+  **N3** comparison harness (`uinative` / `uiboth` / `uipath`, the per-surface diff (a), UI mask capture, `compare_frames.py
+  --mask-file`; `tests/verify/harness_ui.cpp`). **N4** `ui_gallery` scenario (every window family captured frozen; needs the virtual
+  clock). **N5** cursor and per-frame images cached (`render_blit.cpp`).
+- **P1** surface plumbing (canvas per native surface, blit, Get/ReleaseDC as the metrics DC, Fill / Clear / FrameRect, readback for
+  PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale; first native surfaces: backdrop, FPS, status; needs
+  N1, N3). **P2** text (005FDE20 records glyph runs, GDI on the metrics DC for the return value; 005FDFA0 unchanged; needs N2, P1).
+  **P3a-d** windows by family (menus and dialogs; HUD; camp, hero, trade and item info; briefing, global map titles, help page, chat
+  window), mostly native-table entries plus fixes the diff finds; **P4** console and debug panel (direct FillSolidRect / DrawText,
+  own fonts, the 2-pixel pen caret); **P5** controls with lines and carets (edit field 0065C2E0, chat typed line 005E3700, connect
+  list 0061D780, save/load list 006567A0); **P6** the global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy,
+  readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4; **P7** (optional) CPU-written
+  textures as GPU sub-image uploads, clouds 00499F10 as a shader; **P8** make `uinative` the default under `present`, drop the DIB
+  and memcmp for native surfaces (keep a 1x1 metrics DC), docs (renderer.md section 6, ui.md).
+- After P2, P3a-d and P4 touch disjoint files; each one's only shared edit is a line in `ui_native.cpp`. W3 / W4 only decide when
+  Rebirth launches can go native; vanilla is not blocked. Porting tickets add no fields (side maps) and leave `ui.h` alone.
 
 ## 5. Risks and open questions
 
