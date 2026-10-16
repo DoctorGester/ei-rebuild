@@ -2061,6 +2061,8 @@ malloc & co.); the host CRT's heap keeps the host's own (std containers, FILE bu
 | EI_HEAP_JITTER=3,fill | ALL PASS, 168 the same |
 | EI_HEAP_FILL=r7 (seeded bytes in every new block, no jitter) | ALL PASS, 168 the same |
 
+After merging main (WB12, light.cpp, harness_leftovers): `3,fill` again, ALL PASS, 168 the same.
+
 `EI_HEAP_FILL=0xCC,1000,1010` on combat: blocks 1000..1009 at 0x8001xxxx (the reservation), so the image's main
 thread's blocks are the ones jittered. Nothing was canonicalised and no golden re-recorded.
 
