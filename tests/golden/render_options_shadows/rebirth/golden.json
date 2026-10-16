@@ -1,0 +1,12 @@
+{
+  "scenario": "render_options_shadows",
+  "install": "rebirth",
+  "recorded": "2026-10-16",
+  "commit": "27af2f32",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "R9c4: options shadow switches applied and back",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+}

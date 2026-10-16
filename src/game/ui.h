@@ -2983,7 +2983,8 @@ public:
     // filled row selected (or row 0), the key wait cleared; RefreshRows.
     void ShowGroup(int group);
     // 006524A0. OK: the key table and every setting stored into the game's option globals (the
-    // difficulty only outside a multiplayer client; a changed display mode applied, 0056D7A0).
+    // difficulty only outside a multiplayer client); with a shadow switch (settings 7-9) changed,
+    // the shadows the switches turned off are dropped (0056D7A0). The options have no resolution.
     void Apply();
     // 00651940. The 26 settings made again from their definitions: the shown name ("option_" +
     // name), and a slider (kind 0) or an on / off spin control (kind 1; the difficulty's texts
@@ -3034,13 +3035,13 @@ public:
     std::uint8_t unused_3F6[2];
     float slide_;                    // +0x3F8
     mfc::CStringArray groupNames_;   // +0x3FC the option groups' titles
-    bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
+    bool shadowsChanged_;            // +0x410 a shadow switch (settings 7-9: units, buildings, flora) changed
     std::uint8_t unused_411[3];
     const UiKeyName* pressedKey_;    // +0x414 the key pressed for a binding row (OnKeyDown; Build
                                      //        clears it)
 };
 static_assert(offsetof(COptionsWindow, settings_) == 0x378);
-static_assert(offsetof(COptionsWindow, displayModeChanged_) == 0x410);
+static_assert(offsetof(COptionsWindow, shadowsChanged_) == 0x410);
 static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
 static_assert(offsetof(COptionsWindow, bindings_) == 0x36C);
 static_assert(offsetof(COptionsWindow, groupNames_) == 0x3FC);

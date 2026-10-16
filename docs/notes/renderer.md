@@ -277,8 +277,8 @@ come first, then what holds for the present path (the subsection names are cited
   stand-ins; `app_main.cpp`'s rewrite runs only in a launch without the harness. Let the rewrite run under the harness
   (freeze hook in app_main.cpp); the COM stand-ins can go after that, once Rebirth's patched originals (006462A0,
   0060C870) are covered.
-- **R9c4** (ready): the game's own device re-creation on a resolution change in the options, and a desktop mode change
-  while running, are not exercised by any scenario (R9c covers a window resized from outside).
+- A desktop display mode change while the game runs is not exercised: no run may switch the display mode (R9c4
+  below). R9c covers a window resized from outside, which is what such a change does to the game window.
 - **R9c5** (ready): a lost-device test through a real removal (a test-only device made through D3D11On12CreateDevice
   whose ID3D12Device5::RemoveDevice removes it, Windows 10 1809+; check the swap chain works with an 11on12 device
   first). R9c1 tests the recreation with `render::LoseDevice` only.
@@ -390,6 +390,26 @@ object, display mode, primary, render target, depth buffer, Direct3D object or d
   through the mapped clicks) and render_present_fullscreen (full screen at 800x600 on the desktop's monitor: menus and
   battle screen through the mapping, focus lost and given back, the window resized from outside and covering the
   monitor again). Both set a resolution; they run beside others (our renderer changes no display mode).
+
+### R9c4: no resolution change inside the game
+
+The game never changes its resolution or makes its device again while running, so the new renderer's frame target
+keeps the size it was made with and only the swap chain follows the window (R9c):
+- The resolution is the registry's `VideoResolution` (with `FullScreen`, `VideoColorDepthInBits`), read once by the
+  options load (0045B210, `options.cpp`; 0045C560 writes it back) before WinMain makes the window at that size (the
+  other two functions naming the strings, 00459100 and 0045A380, have no caller); WinMain creates the renderer
+  once (00500B70 through slot 2 of 0073D93C; its only caller) and ShutDown destroys it (slot 3). 004EDD70 (the device
+  object) is called only from 004E5E50, which only 00500B70 calls; 004EEBC0 (SetDisplayMode) only from 00504780, the
+  restore after focus returns in full screen, with the same mode (the stand-in answers it).
+- The options window has no resolution: its 26 settings (table 00787430) are volumes, keyboard and mouse speeds,
+  border scroll, rubber band, three shadow switches (7-9: units, buildings, flora; globals 0079BD14 / 18 / 1C), marks,
+  footprints, selection type, path, brightness / contrast / gamma (applied at once through 00504A60, R9c), flying HP,
+  tutorial, autosave, tooltip time, filters, camera axes, stereo and difficulty. What our code once called the
+  "display mode" settings (COptionsWindow +0x410) are the shadow switches: OK (Apply 006524A0) with one changed
+  drops the shadows the switches turned off (0056D7A0); switched on again they are rasterised and uploaded anew.
+- Scenario `render_options_shadows` (vanilla and Rebirth, golden from the original): in zone1 the three switches
+  stepped and applied through the Esc menu's options and OK, then back; the captures show the ruins' shadows gone and
+  back. A desktop mode change is left out (no run may change the display mode).
 
 ### PF3 (R9b1): no DirectDraw probes at startup
 

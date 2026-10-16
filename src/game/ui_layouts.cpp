@@ -245,7 +245,7 @@ void COptionsWindow::Build() {
     BuildSettings();
     LoadSettings();
     BuildBindings();
-    displayModeChanged_ = false;
+    shadowsChanged_ = false;
     ShowGroup(0);
     if (!sliding_) interface_->ShowHelp(0);
 }
