@@ -56,7 +56,6 @@ CursorLock CursorLockAtCallSite() {
     if (code[0] != 0xE8) return direct;
     return reinterpret_cast<CursorLock>(kCall + 5 + rel);
 }
-__declspec(naked) void __fastcall ScreenDraw(void*) EI_ORIGINAL(0x005E54A0)
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
@@ -101,8 +100,8 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (cursor) InterfaceDrawCursor(Interface());
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());
-    ScreenDraw(Screen());
-    if (DevicePresentOriginal(RenderDeviceObject())) game::FatalError(game::Text(0x00784A30));   // "Can't flip render surface"
+    CursorDrawFrame(static_cast<CCursor*>(Screen()));   // 005E54A0
+    if (DevicePresent(RenderDeviceObject())) game::FatalError(game::Text(0x00784A30));   // 004EF610: "Can't flip render surface"
     static_cast<CCursor*>(Screen())->ReleaseLock();
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];

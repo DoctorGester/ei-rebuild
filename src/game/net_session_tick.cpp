@@ -278,7 +278,7 @@ namespace net {
 namespace {
 // CRT eh vector destructor iterator (ptr, element size, count, destructor), the handler vector's
 // destructor.
-void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // The handler vectors' destructor (the vector base's: the storage freed).
 constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
 // The type registry's tables: clear and bucket-vector destruction of byType and byVtable.

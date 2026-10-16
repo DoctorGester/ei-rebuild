@@ -26,7 +26,7 @@ using AttachedMap = stlp::map<CRefObject*, AttachedId>;
 
 // CRT eh vector constructor / destructor iterators (stdcall).
 void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
-void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 }  // namespace
 IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
 namespace {

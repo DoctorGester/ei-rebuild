@@ -35,9 +35,6 @@ __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, 
 // C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
 __declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
     EI_ORIGINAL(0x004D9AA0)
-// 004EF610 (rewritten as DevicePresent, device_present.cpp): the device object's present (ECX = device object
-// 007AF080, plain RET, the DirectDraw result).
-__declspec(naked) inline int __fastcall DevicePresentOriginal(void* /*device*/) EI_ORIGINAL(0x004EF610)
 
 // 004D9B80: pushes a scene matrix into slot `index` of the cache (RET 8: matrix, index; no result).
 __declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/, void*, const float* /*matrix*/, int /*index*/)

@@ -170,6 +170,8 @@ public:
     int stop_;                       // +0x9C asks the cursor thread to end
     CRITICAL_SECTION lock_;          // +0xA0
 };
+// 005E54A0 (ui_cursor_frame.cpp): the software cursor drawn into the render target before the present.
+void __fastcall CursorDrawFrame(CCursor* self);
 static_assert(offsetof(CCursor, imageShown_) == 0x0C);
 static_assert(offsetof(CCursor, shape_) == 0x18);
 static_assert(offsetof(CCursor, stopped_) == 0x1C);

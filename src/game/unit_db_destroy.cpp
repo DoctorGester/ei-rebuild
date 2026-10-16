@@ -15,6 +15,7 @@
 #include <cstdint>
 #include "originals_library.h"
 #include "originals_units.h"
+#include "lib/crt.h"
 
 namespace unitdb {
 
@@ -260,7 +261,7 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
 namespace {
 // The CRT's `eh vector destructor iterator` (array, element size, count, destructor; last to
 // first) [006E859F, library]; the model slot's destructor, a jump to CString::~CString [0053F010].
-void __stdcall VectorDestructor(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+void __stdcall VectorDestructor(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 
 // The record's inline ~vector<CString> with the storage freed by the node pool (00404D70 when
 // begin is set; 00520F60 for the sound names does the same test itself), the end read once.

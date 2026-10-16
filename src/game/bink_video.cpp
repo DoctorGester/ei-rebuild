@@ -169,7 +169,7 @@ CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the
 // present (004EF610).
-void PresentMovieFrame() { DevicePresentOriginal(DeviceObject()); }
+void PresentMovieFrame() { DevicePresent(DeviceObject()); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 

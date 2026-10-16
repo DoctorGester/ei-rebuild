@@ -264,6 +264,9 @@ static_assert(offsetof(CTextureDevice, batch_) == 0xD4 && offsetof(CTextureDevic
 
 // The renderer's device object (the global pointer at 007AF080).
 inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
+// 004EF610 (device_present.cpp): the device object's present, once a frame. Returns the DirectDraw
+// result: 0.
+long __fastcall DevicePresent(CTextureDevice* device);
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
 static_assert(offsetof(CTextureDevice, converter_) == 0x4C);
 static_assert(offsetof(CTextureDevice, primary_) == 0x14);

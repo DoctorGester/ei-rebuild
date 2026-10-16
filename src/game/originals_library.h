@@ -131,10 +131,6 @@ __declspec(naked) inline void* __fastcall StringEndOfStorageOriginal(void* /*pro
                                                                      const void* /*value*/) EI_ORIGINAL(0x00425080)
 // The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET (src/lib/stlp.cpp uses it too).
 __declspec(naked) inline void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
-// The CRT's `eh vector destructor iterator` (array, element size, count, destructor called with ECX = element, last
-// to first): __stdcall, RET 0x10, EAX not a result.
-__declspec(naked) inline void __stdcall EhVectorDestructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
-                                                                   void* /*destructor*/) EI_ORIGINAL(0x006E859F)
 // MFC CStringArray::SetAtGrow(index, const char*) 006FEBCE / (index, const CString&) 006FEBFA (both RET 8, EAX not a
 // result). CString::operator=(const CString&) 00700AA9 (RET 4, returns this). src/lib/mfc.cpp keeps its member.
 inline void __fastcall StringArraySetAtGrowTextOriginal(void* array, void*, int index, const char* text) {

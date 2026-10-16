@@ -17,6 +17,7 @@
 // with no Lock (DirectPixels). Without the option everything is as the original.
 #include "app.h"
 #include "app_helpers.h"
+#include "lib/mfc_time.h"
 #include "core_streams.h"
 #include "stl_sorts.h"
 #include "ui.h"
@@ -85,8 +86,6 @@ int __fastcall CursorSetShape(void* a0, void*, int a2) { return static_cast<CCur
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top.
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)static_cast<CMessageBox*>(a0)->Construct(a2, a3, a4, a5, a6, a7); }
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
-// 006FE508: CTime::GetCurrentTime (time(), returned through `out`).
-__declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_ORIGINAL(0x006FE508)
 // 006E80D8: atoi.
 // 006FE925: CStringArray's constructor.
 
@@ -352,8 +351,8 @@ void CSaveLoadWindow::SaveGame() {
         Str(entriesBegin_->title_).Empty();
     else
         Str(entriesBegin_->title_) = Str(entry->title_);
-    std::int32_t now;
-    entriesBegin_->savedAt_ = *CurrentTime(&now);
+    mfc::impl::CTime now;
+    entriesBegin_->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
     SaveEntry* first = entriesBegin_;
     StreamWriteHeader(&info.s, nullptr, kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
@@ -570,8 +569,8 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString title;
     mfc::CString map;
     mfc::CString zone;
-    std::int32_t now;
-    const std::int32_t savedAt = *CurrentTime(&now);
+    mfc::impl::CTime now;
+    const std::int32_t savedAt = mfc::impl::CTime::CurrentTime(&now)->time;   // 006FE508
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];

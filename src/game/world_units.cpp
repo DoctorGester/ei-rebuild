@@ -66,7 +66,7 @@ using PlacementArray = mfc::CArray<Placement>;
 
 __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
-void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
 // The prototype table's name map (007AF364): an STLport string key (0040C5A0 / 0040C720), the
 // pair (005729D0 builds {key, value}) and the insert (00514880, returns the stored pair).

@@ -25,6 +25,7 @@
 #include "object.h"
 #include "object_tables.h"
 #include "party.h"
+#include "player_client.h"
 #include "ui_cursor.h"
 #include "player_messages.h"
 #include "unit.h"
@@ -466,8 +467,6 @@ __declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
 // 0073BCA0; counted pointer at server + 0x25A0: 00413270 release, 00418BE0 share; 00426A80
 // assigns a string from a range) and the message 0041A500(8, zone).
-__declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
-__declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
 
 // A session or a replicated record is usable: there, and not detached by its owner.
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
@@ -476,11 +475,11 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 void AnnounceHost(const char* zone) {
     char host[100];
     if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
-    std::uint32_t address[4] = {0, 0, 0, 0};
-    AddressInit(address, nullptr, host, kHostPort);
-    alignas(4) std::uint8_t text[12];
-    mfc::CString formatted(*AddressFormat(address, nullptr, text));
-    StringBufferFree(text);
+    net::NetAddress address{};
+    address.Parse(host, kHostPort);   // 00440440
+    net::StringRep text;
+    mfc::CString formatted(address.ToString(&text)->start);   // 00435010
+    StringBufferFree(&text);
     // (the count cleared before the null test)
     auto* memory = static_cast<net::HostMessage*>(net::NewRefObject(sizeof(net::HostMessage)));
     net::HostMessage* record = nullptr;
@@ -808,8 +807,6 @@ void GameFlow::RecreateClientSession() {
 namespace {
 
 __declspec(naked) int __fastcall SaveGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057B3B0)
-// 0066B1B0 (RET 8). The local view asks to go to a zone (name, entrance).
-__declspec(naked) int __fastcall ViewRequestZone(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
 } // namespace
 
@@ -817,7 +814,8 @@ int GameFlow::SaveGameThunk(const char* slot) { return SaveGameAt(this, nullptr,
 
 int __stdcall RequestZone(const char* zone, int entrance) {
     *reinterpret_cast<char*>(0x007C7D94) = 1;
-    return ViewRequestZone(WorldClient()->LocalView(), nullptr, zone, entrance);
+    // 0066B1B0: the local view asks to go to a zone (name, entrance).
+    return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView())->RequestZone(zone, entrance);
 }
 
 void GameFlow::DropSessions() {
@@ -1009,7 +1007,6 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
 
 namespace {
 
-__declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
 constexpr int kServerDropClient = 9;
 
@@ -1030,7 +1027,7 @@ void GameFlow::SwitchMultiplayerZone() {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
             mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
             ToMainMenu() = 1;
-            ViewRequestZoneAt(WorldClient()->LocalView(), nullptr, *zone, 0);
+            reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView())->RequestZone(*zone, 0);   // 0066B1B0
             zone->~CString();
         }
         if (host) {
@@ -1509,8 +1506,6 @@ int __fastcall ClientSegmentAt(void* client) { return ClientSegmentOriginal(clie
 int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOriginal(server); }
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
-__declspec(naked) void __fastcall ViewAutoplayOn(void*, void*, const char*) EI_ORIGINAL(0x00669710)
-__declspec(naked) void __fastcall ViewAutoplayOff(void*) EI_ORIGINAL(0x00669750)
 
 mfc::CString& LastResources() { return *reinterpret_cast<mfc::CString*>(0x007AFDEC); }
 std::uint8_t& LastResourcesGuard() { return *reinterpret_cast<std::uint8_t*>(0x007AFDF0); }
@@ -1600,10 +1595,10 @@ void GameFlow::ProcessRequest() {
         if (requestArg_) {
             const char* autoplay = game::Text(kAutoplay);
             if (autoplay) {
-                ViewAutoplayOn(ClientWorldLocalView(clientWorld), nullptr, autoplay);
+                reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StartRecording(autoplay);
                 AutoplayOn() = 1;
             } else {
-                ViewAutoplayOff(ClientWorldLocalView(clientWorld));
+                reinterpret_cast<CPlayerClient*>(ClientWorldLocalView(clientWorld))->StopRecording();
                 AutoplayOn() = 0;
             }
         }
@@ -1872,7 +1867,9 @@ __declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const N
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
 inline void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-__declspec(naked) void __fastcall FlowVariableChanged(void*, void*, const void*) EI_ORIGINAL(0x00580840)
+// 00580840 (GameFlow::OnVariableChanged): the original passes the variable node as ECX and as the
+// event (the method reads only the event).
+void VariableChanged(const void* node) { reinterpret_cast<GameFlow*>(const_cast<void*>(node))->OnVariableChanged(node); }
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
@@ -2024,14 +2021,14 @@ void GameFlow::UpdateFromServer() {
             StampIntroSort(changed.begin(), changed.end(), 0, depth * 2, variables);
             StampInsertionSort(changed.begin(), changed.end(), variables);
         }
-        for (void** it = changed.begin(); it != changed.end(); ++it) FlowVariableChanged(*it, nullptr, *it);
+        for (void** it = changed.begin(); it != changed.end(); ++it) VariableChanged(*it);
         bool settled;
         do {
             settled = true;
             for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
                 if (NodeStamp(node) > AppliedStamp()) continue;
                 if (NodeStamp(node) == AppliedStamp()) {
-                    FlowVariableChanged(node, nullptr, node);
+                    VariableChanged(node);
                     ++AppliedStamp();
                     settled = false;
                 }
@@ -2071,12 +2068,9 @@ namespace {
 // insert overflow (00619920) are in originals_gameplay.h.
 __declspec(naked) SavedPartyEntry* __fastcall PartyEntriesCopy(SavedPartyEntry*, SavedPartyEntry*, SavedPartyEntry*) EI_ORIGINAL(0x00664410)
 __declspec(naked) void __fastcall PartyEntryDestroy(SavedPartyEntry*, void*, int) EI_ORIGINAL(0x00664AE0)
-// 00662DD0 (RET 4): the records read a party file from `folder` (their +0x68 names the file).
-__declspec(naked) bool __fastcall PartyRecordsLoad(void*, void*, const char*) EI_ORIGINAL(0x00662DD0)
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
 // zone name, the variables (00663330), the array at +0x40 (006643F0), 00664160 (+0x2C), the base
 // (00455930).
-__declspec(naked) void __fastcall RecordsPart661640(void*) EI_ORIGINAL(0x00661640)
 __declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
 // 004616A0 (RET 4, FloatTableDeleteNodeOriginal): the variables table frees one node (what the original's inlined clear does).
 
@@ -2085,7 +2079,7 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
     AsCString(entry->fileName).~CString();
     ei::SetVtable(records, kRecordsVtable);
     PartyResetOriginal(records, nullptr, 1, 1);
-    RecordsPart661640(records);
+    AsParty(records)->DestroyParty();   // 00661640
     AsCString(records->zone).~CString();
     RecordsVariablesDestroy(&records->variables);
     reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(records->array40)->FreeData();   // 006643F0
@@ -2116,7 +2110,7 @@ void SavedParties::Reload() {
         reinterpret_cast<CParty*>(&entry->records)->Construct();
         new (&entry->fileName) mfc::CString();
         AsCString(entry->fileName) = found.cFileName;
-        if (PartyRecordsLoad(&entry->records, nullptr, folder_)) {
+        if (reinterpret_cast<MpHeroRecord*>(&entry->records)->ReadFile(folder_)) {   // 00662DD0
             NamedFloatTable* variables = &entry->records.variables;
             if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars)) {
                 // Rebirth's PersistentGlobalVars: the JNE at 00663083 skips the inlined clear and

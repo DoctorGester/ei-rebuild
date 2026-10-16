@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include "originals_library.h"
@@ -33,7 +34,7 @@ __declspec(naked) void __fastcall DestroyBridgeMap(void*, void*) EI_ORIGINAL(0x0
 __declspec(naked) void __fastcall DestroyClimbTable(void*, void*) EI_ORIGINAL(0x004600D0)
 // 006E859F: the CRT's `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestroy(void* a0, unsigned a1, int a2, std::uintptr_t a3) {
-    EhVectorDestructorIterator(a0, a1, a2, reinterpret_cast<void*>(a3));
+    libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3));
 }
 
 constexpr std::uint32_t kArrayVtable = 0x0073C3D0;      // climbLarge, climbSmall

@@ -262,8 +262,8 @@ void CSoundManager::DestructBody() {
     cacheList.vtable = reinterpret_cast<void*>(kCacheListVtable);
     for (WaveNode* node = cacheList.head; node; node = node->next) WaveRecordsDestruct(&node->data, 1);
     cacheList.RemoveAll();
-    EhVectorDestructorIterator(sequences, sizeof(SoundSequence), 8, reinterpret_cast<void*>(kSequenceDestruct));
-    EhVectorDestructorIterator(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<void*>(kEmitterDestruct));
+    libcrt::DestroyElements(sequences, sizeof(SoundSequence), 8, reinterpret_cast<libcrt::ElementFunction>(kSequenceDestruct));
+    libcrt::DestroyElements(emitters, sizeof(SoundEmitter), 16, reinterpret_cast<libcrt::ElementFunction>(kEmitterDestruct));
     gameapi::DeleteCriticalSection(Lock(midiLock));
     midiArray1F4.FreeData();
     midiArray1E4.FreeData();
@@ -778,7 +778,7 @@ void CSoundManager::Close() {
         }
         // operator delete[]: the count stands before the voices.
         std::int32_t* block = reinterpret_cast<std::int32_t*>(slots) - 1;
-        EhVectorDestructorIterator(slots, sizeof(SoundSlot), *block, reinterpret_cast<void*>(kVoiceDestruct));
+        libcrt::DestroyElements(slots, sizeof(SoundSlot), *block, reinterpret_cast<libcrt::ElementFunction>(kVoiceDestruct));
         gamecrt::operator_delete(block);
     }
     DeleteDeferred();

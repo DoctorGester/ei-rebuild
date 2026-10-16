@@ -134,7 +134,7 @@ namespace {
 // destructor); the segment's element constructor 00468900 and destructor 00468920; the engine
 // object's destructor body 00455930.
 void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
-void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // The segment's element constructor and destructor as the iterators call them (ECX the element).
 void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct(); }
 void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
