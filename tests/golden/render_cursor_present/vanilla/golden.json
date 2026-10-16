@@ -1,0 +1,13 @@
+{
+  "scenario": "render_cursor_present",
+  "install": "vanilla",
+  "recorded": "2026-10-16",
+  "commit": "1cbb8c63",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 7,
+  "reason": "S20a: image-only golden (the original cannot run it: renderer-only checks); 7 agreeing image runs: plain x3, EI_HEAP_JITTER 1 (x2), 2,fill, 3,fill",
+  "source": "image",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 7 runs"
+}

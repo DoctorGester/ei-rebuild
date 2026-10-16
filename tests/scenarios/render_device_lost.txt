@@ -7,7 +7,8 @@
 # frame after it must match, in the main menu (window surfaces, the cursor) and in the world
 # (terrain, figures, objects, the interface's textures); then the game goes on to the camp, whose
 # textures are loaded on the new device, and the device is lost once more there.
-# no original: vanilla rebirth (losedevice needs our renderer; S20a, S21a)
+# no original: vanilla rebirth (losedevice needs our renderer; S21a)
+# Its golden is the image's own (golden.py record --image, S20a): the world it plays does not follow the renderer.
 render new,present
 reject Script error
 waitmenu

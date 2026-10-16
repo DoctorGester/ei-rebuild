@@ -36,10 +36,11 @@ usage:
       SV1b) are left out unless --all-fields.
   python tools/golden.py state A [--record N] [--key REGEX]
       The whole state at record N (default: the last) of one digest, or the entities whose key matches.
-  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth]
+  python tools/golden.py snapshot DEST [SCENARIO...] [--install vanilla|rebirth] [--image]
       Copies the run folders build\verify\runs\<scenario>-<install> (default: every one with a digest) to
       DEST\<scenario>-<install>: the report, the digest, the dumps and harness_saves. For a second run of the
-      same scenarios, to check that they repeat (record --runs).
+      same scenarios, to check that they repeat (record --runs). --image: the standalone image's run folders
+      (<scenario>-standalone, <scenario>-standalone-rebirth), as record --image reads them.
   python tools/golden.py record [SCENARIO...] --reason TEXT [--install vanilla|rebirth] [--runs DIR...]
       Keeps runs of the original code as goldens. DIR (default build\verify\runs) holds run folders
       <scenario>-<install>; the first DIR's must have passed with --no-hooks and a digest, and the run
@@ -51,6 +52,16 @@ usage:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
                                                                                 whose runs may hold an older digest)
         python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with --hooked)
+      --image (S20a): a golden of the standalone image, for the scenarios the original cannot run on that install
+      (their "# no original:" line names it: renderer-only checks). The runs are the image's (DIR\<scenario>-
+      standalone or -standalone-rebirth, snapshot --image), at least IMAGE_RUNS of them, and must all agree, so
+      give runs under different heap layouts: plain twice or more, EI_HEAP_JITTER=1 and EI_HEAP_JITTER=2,fill.
+      Only where the digest, the console and the saves do not follow the renderer's timing (presents, the
+      cursor thread); golden.json says "source": "image". Such a golden checks that the image keeps doing what
+      it did, not that it does what the original does. E.g.:
+        set EI_HEAP_JITTER=1 & python tools\work.py test <ID> --golden --jobs 4 <scenario>...
+        python tools\golden.py snapshot <scratch>\jit1 <scenario> --install vanilla --image
+        python tools\golden.py record <scenario> --install vanilla --image --runs <scratch>\plain1 ... --reason TEXT
   python tools/golden.py saves [SCENARIO...] --runs DIR... [--install vanilla|rebirth]
       Adds the decoded saves to existing goldens without recording them again (SV7d): every DIR's run folder
       must match the golden (console, digest, dumps) and the runs' saves must decode to the same fields.
@@ -629,10 +640,21 @@ def commit():
 
 # ---- commands
 
+IMAGE_FOLDER = {'vanilla': 'standalone', 'rebirth': 'standalone-rebirth'}   # record --image: the image's run folders
+IMAGE_RUNS = 4   # record --image: the fewest agreeing runs (plain twice, two heap jitters)
+
+
+def folder_install(args):
+    """The run folders' suffix: the install, or with --image the image's run on that install."""
+    return IMAGE_FOLDER[args.install] if getattr(args, 'image', False) else args.install
+
+
 def snapshot(args):
     source = os.path.join(run_all.BUILD, 'runs')
-    names = [f'{n}-{args.install}' for n in args.scenarios] if args.scenarios else \
-        sorted(d for d in os.listdir(source) if os.path.exists(os.path.join(source, d, 'digest.txt')))
+    suffix = folder_install(args)
+    names = [f'{n}-{suffix}' for n in args.scenarios] if args.scenarios else \
+        sorted(d for d in os.listdir(source) if (not args.image or d.endswith('-' + suffix))
+               and os.path.exists(os.path.join(source, d, 'digest.txt')))
     for name in names:
         src, dst = os.path.join(source, name), os.path.join(args.dest, name)
         if not os.path.isdir(src):
@@ -658,22 +680,36 @@ def flagged(name, root=ROOT):
         return any(line.split()[:1] == ['rebirthflags'] for line in f)
 
 
+def no_original(name, install, root=ROOT):
+    """Whether the scenario's "# no original:" line names the install (the original cannot run it there)."""
+    return install in run_all.no_original(os.path.join(root, 'tests', 'scenarios', name + '.txt'))
+
+
 def record(args):
     dirs = args.runs or [os.path.join(run_all.BUILD, 'runs')]
-    names = args.scenarios or sorted(d[:-len(args.install) - 1] for d in os.listdir(dirs[0])
-                                     if d.endswith('-' + args.install) and os.path.exists(os.path.join(dirs[0], d, 'digest.txt')))
+    suffix = folder_install(args)
+    names = args.scenarios or sorted(d[:-len(suffix) - 1] for d in os.listdir(dirs[0])
+                                     if d.endswith('-' + suffix) and os.path.exists(os.path.join(dirs[0], d, 'digest.txt')))
     code = 0
     recorded = 0
     for name in names:
-        folders = [os.path.join(d, f'{name}-{args.install}') for d in dirs]
+        folders = [os.path.join(d, f'{name}-{suffix}') for d in dirs]
         digest = os.path.join(folders[0], 'digest.txt')
         problem = []
         if report_result(folders[0]) != 'PASS':
             problem = [f'{folders[0]} did not pass ({report_result(folders[0]) or "no report"})']
         elif not os.path.exists(digest):
             problem = [f'{folders[0]} has no digest.txt (run it with EI_DIGEST=<N>)']
-        elif 'hooks off' not in Digest(digest).title:
-            problem = [f'{folders[0]} ran with our hooks; a golden is the original code (--no-hooks)']
+        elif args.image and not no_original(name, args.install):
+            problem = [f'the original runs it on {args.install}, so its golden is the original\'s (--no-hooks); --image '
+                       f'is for scenarios whose "{run_all.NO_ORIGINAL_PREFIX}" line names the install']
+        elif args.image and len(folders) < IMAGE_RUNS:
+            problem = [f'{len(folders)} runs of the image; an image golden needs {IMAGE_RUNS} that agree (plain twice, '
+                       'EI_HEAP_JITTER=1, EI_HEAP_JITTER=2,fill)']
+        elif not args.image and 'hooks off' not in Digest(digest).title:
+            problem = [f'{folders[0]} ran with our hooks; a golden is the original code (--no-hooks)'
+                       + (', or for this scenario, whose "no original" line names the install, the image\'s (--image)'
+                          if no_original(name, args.install) else '')]
         elif args.install == 'vanilla' and flagged(name):
             problem = ['its rebirthflags line turns on in our code what the vanilla original does not have, so '
                        'hooked vanilla runs never match a vanilla golden (SV7b8a); Rebirth goldens only']
@@ -705,6 +741,8 @@ def record(args):
         meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
                 'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
                 'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
+        if args.image:
+            meta['source'] = 'image'   # the standalone image's runs: the original cannot run it (S20a)
         keep_saves(target, folders, meta)
         with open(os.path.join(target, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
             json.dump(meta, f, indent=2)
@@ -869,9 +907,11 @@ def main():
     p.add_argument('dest')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
+    p.add_argument('--image', action='store_true')
     p = sub.add_parser('record')
     p.add_argument('scenarios', nargs='*')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
+    p.add_argument('--image', action='store_true')
     p.add_argument('--runs', nargs='+')
     p.add_argument('--reason', required=True)
     p.add_argument('--fields', type=int, default=12)
