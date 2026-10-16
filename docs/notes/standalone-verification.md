@@ -312,7 +312,7 @@ python tools\golden.py record --install rebirth --runs ...            (the same 
 ```
 `record` keeps a scenario only when the second run of the original and both of ours agree with the first run of the
 original in the console, every digest record and every dump (but the fields left out and the known differences).
-Without our hooks render_present_fullscreen is not run at all (it would switch the display mode; run_all.plan), and
+Without our hooks render_present_fullscreen is not run at all (it would switch the display mode; run_all.plan; since S20b also by its `# no original:` line), and
 rebirth_flags (vanilla), render_device_lost and render_present_shot fail.
 
 **Checking:** `python tools\work.py test <ID> --golden [run_all args]` (or `run_all.py --golden`) runs the games with
@@ -1809,7 +1809,7 @@ Without a golden (20 runs), by cause:
 - by rule: the `rebirthflags` scenarios on vanilla (net_second_master, rebirth_flags, the four ui_widescreen*; SV7b8a);
   watchdog_main / _dump / _ei_launch (meant to time out).
 - renderer-only scenarios the original cannot pass (render_cursor_present V+R, render_device_lost, render_present_shot V+R,
-  render_present_window): S20a; render_present_fullscreen (no run of the original): S20b.
+  render_present_window): S20a; render_present_fullscreen (vanilla; no run of the original): S20b.
 - ui_mp_host V+R, net_second_master (Rebirth), rebirth_flags (Rebirth): golden recorded, standalone matches, hooked runs differ
   the same way every run; withheld, recordings in commit 4f6afaef: S20c.
 - Saves left out of three goldens (zone_gz3g, zone_gz15h_tornado V+R: brain memory call0 point.z is a heap leftover): S20d.
@@ -2200,3 +2200,28 @@ The scenario headers say where their golden comes from.
 V+R, net_second_master and rebirth_flags on vanilla, the four ui_widescreen* on vanilla; render_present_fullscreen
 on vanilla, S20b). Scratch: render_present_shot's run folders keep its 4K screenshots in harness_saves (65 MB a run),
 so the snapshots took 1.1 GB; removed after the recording.
+
+## S20b: render_present_fullscreen gets the image's own golden (2026-10-16)
+
+render_present_fullscreen has run only on our renderer since S20 (800x600 full screen: the original's DirectDraw would
+switch the display mode, which the user forbids; run_all's `switches_display` special case leaves its runs without our
+renderer out). It now carries `# no original: vanilla (...)` and an "image's own golden" line like the S20a scenarios, so
+`--no-hooks` plans leave it out through the marker as well. The special case stays and is harmless: both leave out the
+same runs (checked with `run_all.plan` only, no game: `--no-hooks` plans none; `--hooked` and the default plan it as
+before; with the name given the default also plans standalone-rebirth, which has no golden, as in S20a). run_all.py is
+unchanged (S21c edits it). The scenario was never run with `--no-hooks`, hooked without the renderer, or `--dgvoodoo`.
+
+**State does not follow the renderer** (S20a's reasoning): on the virtual clock `wait 500` and `frames 5` count frames
+(Deadline uses the harness clock; the real-time limit only fails a run), `waitpresent` ends on the main thread's next
+present, `focus off|on` and `windowsize` are window messages and a SetWindowPos delivered at a step, so the game's
+deactivate / reactivate and the cursor rebuild (005DAE70) happen at a fixed frame; the cursor thread only reads. The
+captures and the screen step write images, not console text or digest records.
+
+**Recording** (`work.py test S20b --golden --jobs 4 --vanilla-only render_present_fullscreen`, snapshotted with
+`golden.py snapshot --image`, scratch driver build\S20b\passes.py): plain x3, `EI_HEAP_JITTER=1`, `2,fill`, `3,fill`:
+every pass PASS, the final digest hash C4BCAC7F (10 records, the last after world update 205) the same in all 6 (and in
+a seventh `2,fill` pass, whose log has the "heap jitter, seed 2" line). `golden.py record --image --install vanilla`
+over the 6: recorded, 2 entries added to the saves store. Vanilla only (config/rebirth_scenarios.csv has it 0).
+**Suite** (`work.py test S20b --golden --jobs 4`, the image, both installs): 186 runs ALL PASS, 175 goldens the same
+(174 + the new one), 0 differ, 11 runs without a golden (by rule or S20c). Scratch (8.6 MB of snapshots) removed after
+the recording.
