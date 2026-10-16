@@ -32,8 +32,8 @@ Rules:
   It queues behind other workers' batches on the machine's 16 game slots and runs to completion, also
   for one scenario (the board shows it); don't call tools/run_all.py directly, it skips the queue.
   The runs are the standalone image's (installs standalone / standalone-rebirth, checked with `--golden`);
-  `--no-hooks` runs the original (golden recording; with `EI_VECTORS=1`, vector recording). game.exe only ever runs
-  as the original game (S21e: ei_launch always sets EI_NO_HOOKS for it; the vector recorders are its only hooks). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
+  `--no-hooks` runs game.exe, always the original game (golden recording; with `EI_VECTORS=1`, vector recording:
+  docs/notes/standalone-verification.md). Never leave a game running. Your worktree has no run\ folder: `cmd //c mklink /J run
   E:\workspace\ei\run`, and `cmd //c rmdir run` before you finish (never delete through the junction).
 - Plain C++ float maths (rule 7).
 - Say how each rewrite is checked (rewrite guide, "Verification"): which scenario with a golden
@@ -47,7 +47,8 @@ Rules:
   what the runs use) and `build.cmd release` (the product) (your worktree's, by full path) with no errors
   or warnings; `python tools/check_x87.py`, `tools\check_signatures.cmd`, `python tools/check_stolen.py`
   (vector recorders) and the checks build.cmd runs at 0 problems.
-- Notes: append what you did to the ticket's notes file.
+- Notes: update the ticket's notes file in place: current facts, how-tos, rules from real bugs and open questions,
+  no log (the commit history keeps that; docs/notes/README.md).
 - Board notes: `python tools/work.py note <ID> "<text>"` at milestones (short: what changed, what is
   running, what blocks), e.g. after a green build, before a suite, when stuck. The coordinator ends
   your assignment (`work.py done`) at merge; you only start and note.
