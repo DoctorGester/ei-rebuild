@@ -6,7 +6,6 @@
 #include <windows.h>
 
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <algorithm>
 #include <iterator>
@@ -18,8 +17,8 @@ namespace ei {
 
 static HookEntry* g_hooks = nullptr;
 
-// Every address InstallHooks patched, in install order, with the plain replacement registered for
-// it (nullptr when there is none): EI_COVER=hooks (cover.cpp) watches both.
+// Every address InstallHooks patched, in install order, with what its jump leads to (the replacement,
+// or a recorder in game.exe): the standalone image checks the jumps (standalone.cpp CheckJumps).
 static std::vector<std::pair<std::uintptr_t, void*>> g_installed;
 const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks() { return g_installed; }
 
@@ -40,31 +39,6 @@ StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) 
     g_startupActions = &entry;
 }
 
-// Functions listed in disabled.txt (next to the DLL, from tests/verify/disabled.txt) are not hooked
-// at all: the original runs. For rewrites found broken in game, until they are fixed.
-static std::unordered_set<std::uintptr_t> g_disabled;
-
-static void LoadDisabledList() {
-    char path[MAX_PATH];
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&LoadDisabledList), &self);
-    GetModuleFileNameA(self, path, MAX_PATH);
-    if (char* slash = std::strrchr(path, '\\')) strcpy_s(slash + 1, path + MAX_PATH - (slash + 1), "disabled.txt");
-    FILE* f = nullptr;
-    if (fopen_s(&f, path, "r") != 0 || !f) return;
-    char line[256];
-    while (std::fgets(line, sizeof(line), f)) {
-        unsigned long a = std::strtoul(line, nullptr, 16);
-        if (a) g_disabled.insert(a);
-    }
-    std::fclose(f);
-}
-
-static bool IsDisabled(std::uintptr_t address) {
-    return g_disabled.count(address) != 0;
-}
-
 // The registered hooks by address, each address's entries in list order (the order the list is
 // walked in), so the lookups below do not scan the whole list per hook.
 static std::unordered_map<std::uintptr_t, std::vector<HookEntry*>> g_hooksByAddress;
@@ -72,56 +46,6 @@ static std::unordered_map<std::uintptr_t, std::vector<HookEntry*>> g_hooksByAddr
 static void IndexHooks() {
     g_hooksByAddress.clear();
     for (HookEntry* h = g_hooks; h; h = h->next) g_hooksByAddress[h->address].push_back(h);
-}
-
-// Our replacement registered for `address` (EI_REPLACE), or nullptr.
-static void* PlainReplacement(std::uintptr_t address) {
-    auto it = g_hooksByAddress.find(address);
-    if (it == g_hooksByAddress.end()) return nullptr;
-    for (HookEntry* h : it->second)
-        if (!h->record) return h->replacement;
-    return nullptr;
-}
-
-// Whether a vector recorder (EI_RECORD) is registered for `address`.
-static bool HasRecorder(std::uintptr_t address) {
-    auto it = g_hooksByAddress.find(address);
-    if (it == g_hooksByAddress.end()) return false;
-    for (HookEntry* h : it->second)
-        if (h->record) return true;
-    return false;
-}
-
-// The body behind `code`'s incremental-link jump stubs (JMP rel32).
-static unsigned char* FollowJumpStubs(void* code) {
-    auto* p = static_cast<unsigned char*>(code);
-    for (int hops = 0; p[0] == 0xE9 && hops < 4; ++hops) p += 5 + *reinterpret_cast<const std::int32_t*>(p + 1);
-    return p;
-}
-
-// EI_RECORD_OURS in record mode: our replacement for the recorder's address starts with a JMP to the
-// recorder, so calls from our code (which never pass the game's address) run the original and are
-// recorded. Refused when another address's replacement has the same body (a folded function).
-static void RedirectOurs(const HookEntry* recorder) {
-    void* ours = PlainReplacement(recorder->address);
-    if (!ours) return;
-    unsigned char* body = FollowJumpStubs(ours);
-    for (HookEntry* h = g_hooks; h; h = h->next) {
-        if (h->address == recorder->address || h->record || !h->replacement) continue;
-        if (FollowJumpStubs(h->replacement) == body) {
-            Log("recording %s: our replacement is shared with %s, our calls are not recorded", recorder->name, h->name);
-            return;
-        }
-    }
-    DWORD old = 0;
-    VirtualProtect(body, 5, PAGE_EXECUTE_READWRITE, &old);
-    body[0] = 0xE9;
-    std::int32_t rel = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(recorder->replacement) -
-                                                 (reinterpret_cast<std::uintptr_t>(body) + 5));
-    std::memcpy(body + 1, &rel, 4);
-    VirtualProtect(body, 5, old, &old);
-    FlushInstructionCache(GetCurrentProcess(), body, 5);
-    Log("recording %s: our calls too (%p)", recorder->name, static_cast<void*>(body));
 }
 
 // Whether `code` (following incremental-link jump stubs) is MSVC's virtual-call thunk:
@@ -144,7 +68,7 @@ static bool SameDispatch(const void* replacement, const unsigned char* original)
     return original && std::memcmp(code, original, size) == 0;
 }
 
-// The first entry registered for `address` whose replacement or wrapper is such a thunk
+// The first entry registered for `address` whose replacement or recorder is such a thunk
 // (EI_REPLACE_DISPATCH entries are meant to be).
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
     auto it = g_hooksByAddress.find(address);
@@ -270,46 +194,10 @@ static std::uintptr_t RoomAt(std::uintptr_t address) {
     return it == end ? 16 : it->address - address;
 }
 
-// Whether the bytes of a function under five bytes, from its end to the fifth, are padding (NOP or
-// INT3) on disk and in memory, before the next known function: room for the jump, where nothing runs.
-static bool PaddingAfter(std::uintptr_t address, std::uint32_t size, const unsigned char* orig) {
-    if (RoomAt(address) < 5) return false;
-    const auto* live = reinterpret_cast<const unsigned char*>(address);
-    for (std::uint32_t i = size; i < 5; ++i)
-        if ((orig[i] != 0x90 && orig[i] != 0xCC) || live[i] != orig[i]) return false;
-    return true;
-}
-
 // The .text section has identical file and virtual layout (raw 0x1000 == VA 0x1000).
 static const unsigned char* FileBytesAt(const std::vector<unsigned char>& file, std::uintptr_t va) {
     std::uintptr_t off = va - kImageBase;
     return off + 16 <= file.size() ? file.data() + off : nullptr;
-}
-
-// Writes patched_functions.txt next to the DLL: every game function whose code in memory differs
-// from game.exe on disk when hooks are installed, i.e. what other mods (Rebirth's addon.dll) patch.
-// Rewritten code must call those through their original addresses (rewrite-guide rule 9).
-static void DumpPatchedFunctions(const std::vector<unsigned char>& file) {
-    char path[MAX_PATH];
-    OutputPath("patched_functions.txt", path);
-    FILE* f = nullptr;
-    if (fopen_s(&f, path, "w") != 0 || !f) return;
-    std::fprintf(f, "# game functions whose code differs from game.exe on disk at WinMain (address, size, first differing offset)\n");
-    int count = 0;
-    for (const FunctionSize& fn : kFunctionSizes) {
-        const unsigned char* orig = FileBytesAt(file, fn.address);
-        if (!orig || fn.address + fn.size - kImageBase > file.size()) continue;
-        const auto* live = reinterpret_cast<const unsigned char*>(fn.address);
-        for (std::uint32_t i = 0; i < fn.size; ++i) {
-            if (live[i] != orig[i]) {
-                std::fprintf(f, "%08X %u +0x%X\n", static_cast<unsigned>(fn.address), fn.size, i);
-                ++count;
-                break;
-            }
-        }
-    }
-    std::fclose(f);
-    Log("%d game function(s) differ from game.exe on disk (patched_functions.txt)", count);
 }
 
 // Makes the image's code section(s) writable for the whole installation (one VirtualProtect per
@@ -360,24 +248,43 @@ private:
     std::vector<Region> m_regions;
 };
 
+// The Rebirth flags in the standalone image: ei_rebirth.ini next to the DLL, EI_REBIRTH and the harness's
+// specs (rebirth::LoadSettings); no addon.dll or EI_Plugin.asi to follow (rebirth_hook::SettingsOnly).
+static void LoadRebirthSettings() {
+    char ini[MAX_PATH];
+    HMODULE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&LoadRebirthSettings), &self);
+    GetModuleFileNameA(self, ini, MAX_PATH);
+    if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
+    rebirth::LoadSettings(ini);
+    if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
+    rebirth_hook::SettingsOnly(ini);
+}
+
 int InstallHooks() {
-    // In the standalone image there is no original to run, compare with or detect patches in: plain
-    // replacements only, no Rebirth detection, no start-up checks.
+    // The standalone image: every plain replacement goes in (there is no original code to run). game.exe
+    // runs only as the original game (the original's harness: ei_launch sets EI_NO_HOOKS=1 for it), so
+    // nothing of ours is installed there, except with EI_VECTORS=1 the vector recorders (tests/vectors):
+    // each runs the original through its trampoline and samples its calls. Since S21e there is no mode
+    // that runs our rewrites inside game.exe.
     const bool standalone = Standalone();
-    // EI_NO_HOOKS=1 (ei_launch --no-hooks): run the original code only, as a baseline for harness runs.
-    // EI_VECTORS=1: record mode (tests/vectors): each function with a recorder runs the original
-    // through it, and its calls are sampled as test vectors. With EI_NO_HOOKS the recorders are the
-    // only hooks (since S21c no tool runs our code inside game.exe).
-    char noHooksValue[4], vectorsValue[4];
-    const bool noHooks = !standalone && GetEnvironmentVariableA("EI_NO_HOOKS", noHooksValue, sizeof(noHooksValue)) &&
-                         noHooksValue[0] == '1';
-    const bool recording = !standalone && GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) &&
-                           vectorsValue[0] == '1';
-    if (noHooks && !recording) {
-        Log("EI_NO_HOOKS set: running the original game code");
-        return 0;
+    if (!standalone) {
+        char noHooksValue[4], vectorsValue[4];
+        if (!GetEnvironmentVariableA("EI_NO_HOOKS", noHooksValue, sizeof(noHooksValue)) || noHooksValue[0] != '1')
+            Log("game.exe without EI_NO_HOOKS=1: the original game code all the same (the harness's leftover patches "
+                "follow EI_NO_HOOKS; ei_launch sets it)");
+        if (!GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) || vectorsValue[0] != '1') {
+            Log("game.exe: running the original game code");
+            return 0;
+        }
+        // The recordings are the vanilla code's: addon.dll's patches would be recorded with it.
+        if (GetModuleHandleA("addon.dll")) {
+            Log("EI_VECTORS set in a Rebirth launch (addon.dll): nothing recorded, the original game code runs");
+            return 0;
+        }
+        Log("EI_VECTORS set: the original game code with the vector recorders only");
     }
-    if (noHooks) Log("EI_NO_HOOKS and EI_VECTORS set: the original game code with the vector recorders only");
     auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(kImageBase);
     auto* nt = reinterpret_cast<IMAGE_NT_HEADERS32*>(kImageBase + dos->e_lfanew);
     if (nt->FileHeader.TimeDateStamp != kExpectedTimestamp) {
@@ -392,63 +299,35 @@ int InstallHooks() {
         return 0;
     }
 
-    if (!standalone) DumpPatchedFunctions(file);
-    // The standalone image has no original to fall back on: a disabled rewrite runs there (S16a).
-    if (standalone) Log("standalone: disabled.txt not applied (no original to run)");
-    else LoadDisabledList();
-    if (!g_disabled.empty()) Log("%u function(s) disabled (disabled.txt): the original runs", unsigned(g_disabled.size()));
-
-    // Rebirth's patches: the flags (ei_rebirth.ini, EI_REBIRTH, the harness), then what addon.dll
-    // has applied (and EI_Plugin.asi will), which the flags follow in a Rebirth launch.
-    {
-        char ini[MAX_PATH];
-        HMODULE self = nullptr;
-        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(&InstallHooks), &self);
-        GetModuleFileNameA(self, ini, MAX_PATH);
-        if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
-        rebirth::LoadSettings(ini);
-        if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
-        if (standalone) rebirth_hook::SettingsOnly(ini);
-        else rebirth_hook::Detect(file);
+    if (standalone) {
+        LoadRebirthSettings();
         unsigned short cw;
         __asm fnstcw cw
         Log("FPU control word at WinMain: %04X", cw);
-    }
-    for (StartupAction* action = noHooks ? nullptr : g_startupActions; action; action = action->next) {
-        Log("startup action %s", action->name);
-        action->run();
+        for (StartupAction* action = g_startupActions; action; action = action->next) {
+            Log("startup action %s", action->name);
+            action->run();
+        }
     }
 
-    if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
     // In the standalone image the code section is INT3 until the jumps go in: a registered address that
-    // already holds something else was patched by the harness (its fixed ISAAC seed at 0049F660), which in
-    // the hook build keeps it the same way (rebirth_hook::Check skips a patched start).
+    // already holds something else was patched by the harness (its fixed ISAAC seed at 0049F660).
     std::unordered_set<std::uintptr_t> patchedBefore;
     if (standalone)
         for (const HookEntry* h = g_hooks; h; h = h->next)
             if (*reinterpret_cast<const unsigned char*>(h->address) != 0xCC) patchedBefore.insert(h->address);
     TextUnprotect text(nt);
-    int installed = 0, shortLeft = 0, runtimeLeft = 0;
+    int installed = 0;
     g_unexpectedSkips = 0;
     std::unordered_map<std::uintptr_t, const char*> hookedBy;   // address -> the entry installed there
     for (HookEntry* h = g_hooks; h; h = h->next) {
-        if (IsDisabled(h->address) || (noHooks && !h->record)) continue;
+        // The image takes the replacements, game.exe (recording) the recorders.
+        if (h->record == standalone) continue;
         if (patchedBefore.count(h->address)) {
             LogSkip(h, true, "patched before the hooks (the harness)");
             continue;
         }
-        if (h->shortFunction && !standalone) {
-            ++shortLeft;
-            continue;
-        }
-        if (h->standaloneOnly && !standalone) {
-            ++runtimeLeft;
-            continue;
-        }
-        // In record mode a recorder is the only hook at its address; otherwise recorders are left out.
-        if (h->record != (recording && HasRecorder(h->address))) continue;
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
         std::uint32_t size = FunctionSizeAt(h->address);
@@ -461,49 +340,22 @@ int InstallHooks() {
             continue;
         }
         // The standalone image has no original code to keep: a short function, or a start the size
-        // table does not know, gets its jump when the next known function leaves room for it. In
-        // game.exe a function under five bytes gets it when padding follows it up to the fifth byte.
-        if (!orig || (size < 5 && !(standalone ? RoomAt(h->address) >= 5 : size && PaddingAfter(h->address, size, orig)))) {
-            LogSkip(h, false, size ? "under five bytes with no padding after it" : "not a known function start");
+        // table does not know, gets its jump when the next known function leaves room for it. A
+        // recorder's function needs its own five bytes.
+        if (!orig || (size < 5 && !(standalone && RoomAt(h->address) >= 5))) {
+            LogSkip(h, false, size ? "under five bytes with no room after it" : "not a known function start");
             continue;
         }
-        const std::uint32_t span = (std::max)(size, 5u);   // the bytes the jump and the original's body cover
         // A recorder runs the original's body, harness patches included: only its stolen bytes count.
-        const std::uint32_t replaced = h->record ? (std::max)(static_cast<std::uint32_t>(h->stolen), 5u) : span;
-        if (const HarnessPatch* patch = standalone ? nullptr : HarnessPatchIn(h->address, replaced)) {
+        if (const HarnessPatch* patch = standalone ? nullptr : HarnessPatchIn(h->address, static_cast<std::size_t>((std::max)(h->stolen, 5)))) {
             std::snprintf(why, sizeof(why), "the harness patches +0x%X (%s)",
                           static_cast<unsigned>((std::max)(patch->address, h->address) - h->address), patch->what);
             LogSkip(h, true, why);
             continue;
         }
-        // Another mod (Rebirth's addon.dll) may have patched code anywhere in the body; replacing
-        // the function would silently drop that patch, unless the rewrite reproduces it (behind its
-        // flag, which must be on). EI_Plugin.asi patches after this point; its sites are known too.
-        // A patch outside every known site is expected only in a launch with Rebirth's mods.
-        // A recorder's body may hold the harness's own patches (above): those bytes count as the original's.
-        std::vector<unsigned char> withHarness;
-        if (!standalone && HarnessPatchIn(h->address, span)) {
-            withHarness.assign(orig, orig + span);
-            for (int i = 0; i < g_harnessPatchCount; ++i) {
-                const HarnessPatch& p = g_harnessPatches[i];
-                for (std::uintptr_t a = p.address; a < p.address + p.size; ++a)
-                    if (a >= h->address && a < h->address + span)
-                        withHarness[a - h->address] = *reinterpret_cast<const unsigned char*>(a);
-            }
-        }
-        rebirth_hook::Verdict verdict = standalone ? rebirth_hook::Verdict::Unpatched
-            : rebirth_hook::Check(h->address, span, withHarness.empty() ? orig : withHarness.data(),
-                                  h->record ? h->stolen : 0, why, sizeof(why));
-        if (verdict == rebirth_hook::Verdict::Skip || verdict == rebirth_hook::Verdict::Unknown) {
-            LogSkip(h, verdict == rebirth_hook::Verdict::Skip || rebirth_hook::RebirthLaunch(), why);
-            continue;
-        }
-        if (verdict == rebirth_hook::Verdict::Implemented)
-            Log("Rebirth-patched %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
         // A pointer to a virtual member function is a dispatch thunk (MOV EAX,[ECX]; JMP [EAX+n]),
         // which would jump back into the hooked function forever. Every entry for the address is
-        // checked: a second registration of a method through a thunk calls the same dispatch
-        // (CWorldClient::Create's verify wrapper, 00561E50, overflowed the stack that way).
+        // checked: a second registration of a method through a thunk calls the same dispatch.
         if (const HookEntry* thunk = ThunkEntryAt(h->address)) {
             std::snprintf(why, sizeof(why), "%s is a virtual-call thunk (register a non-virtual shim instead)", thunk->name);
             LogSkip(h, false, why);
@@ -514,13 +366,8 @@ int InstallHooks() {
             continue;
         }
         if (h->stolen > 0) {
-            // In a patched function the stolen bytes may hold addon's JMP to its code: the
-            // trampoline gets it re-targeted, so calling it still runs the patched original.
-            bool patchedStart = verdict == rebirth_hook::Verdict::Implemented;
-            if (h->stolen < 5 || (!patchedStart && std::memcmp(target, orig, h->stolen) != 0) ||
-                !(*h->original = MakeTrampoline(h->address, h->stolen)) ||
-                (patchedStart && !rebirth_hook::RelocateStolen(h->address, h->stolen,
-                                                               static_cast<unsigned char*>(*h->original)))) {
+            if (h->stolen < 5 || std::memcmp(target, orig, h->stolen) != 0 ||
+                !(*h->original = MakeTrampoline(h->address, h->stolen))) {
                 LogSkip(h, false, "cannot build trampoline");
                 continue;
             }
@@ -536,20 +383,19 @@ int InstallHooks() {
         FlushInstructionCache(GetCurrentProcess(), target, 5);
         Log(h->record ? "recording %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
             static_cast<unsigned>(h->address), h->replacement);
-        g_installed.emplace_back(h->address, PlainReplacement(h->address));
+        g_installed.emplace_back(h->address, h->replacement);
         hookedBy.emplace(h->address, h->name);
-        if (h->recordOurs) RedirectOurs(h);
         ++installed;
     }
     text.Restore();
-    if (shortLeft) Log("%d function(s) under 5 bytes left to the original (EI_REPLACE_SHORT)", shortLeft);
-    if (runtimeLeft) Log("%d runtime function(s) left to the original (EI_REPLACE_STANDALONE)", runtimeLeft);
     if (g_unexpectedSkips) Log("%d unexpected SKIP(s) above: those rewrites never run", g_unexpectedSkips);
     return installed;
 }
 
-// Hooks are installed when WinMain starts, not when the DLL loads: Rebirth's addon applies its own
-// patches from a hook on the WinMain call, and they must be in place before we compare bytes.
+// game.exe (the original game's harness): the recorders (EI_VECTORS), the coverage breakpoints (EI_COVER)
+// and the profiler (EI_PROFILE) go in when WinMain starts, not when the DLL loads, after Rebirth's addon
+// has applied its own patches from a hook on the WinMain call. The standalone image calls InstallHooks
+// from EiStandaloneMain (standalone.cpp).
 static constexpr std::uintptr_t kWinMain = 0x00456440;
 void InstallCoverage();   // cover.cpp
 void InstallProfiler();   // profile.cpp
@@ -557,9 +403,8 @@ static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {
     // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
-    // run/vanilla and run/rebirth already makes it. Without it, at 200% scaling Windows stretches the
-    // window while our own swap chain (`present`, run/native) sizes itself in physical pixels, so
-    // only a quarter of the frame shows.
+    // run/vanilla and run/rebirth already makes it (the standalone host does the same in
+    // EiStandaloneMain).
     SetProcessDPIAware();
     DWORD old;
     auto* p = reinterpret_cast<unsigned char*>(kWinMain);

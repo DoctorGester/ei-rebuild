@@ -1,6 +1,12 @@
 @echo off
-rem Builds ei_hook.dll and ei_launch.exe (32-bit) with the VS 2022 Build Tools.
+rem Builds the standalone image (ei_standalone.exe, ei_hook.dll), ei_launch.exe and the tools (32-bit) with
+rem the VS 2022 Build Tools.
 rem usage: build.cmd [release|verify|debug]
+rem   release  the product: the standalone image
+rem   verify   the harness build: the same image plus the harness (tests/verify) and the vector recorders
+rem            (tests/vectors), for run_all / work.py test (the image's runs, and the original game.exe's
+rem            with --no-hooks for goldens and EI_VECTORS recording)
+rem   debug    the release build unoptimised
 setlocal
 set VSROOT=E:\bin\vs\buildtools
 set CFG=%~1
@@ -9,12 +15,12 @@ if "%CFG%"=="" set CFG=release
 call "%VSROOT%\VC\Auxiliary\Build\vcvars32.bat" >nul || exit /b 1
 set PATH=%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;%VSROOT%\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%
 
-set VERIFY=OFF
+set HARNESS=OFF
 set BUILDTYPE=RelWithDebInfo
-if /i "%CFG%"=="verify" set VERIFY=ON
+if /i "%CFG%"=="verify" set HARNESS=ON
 if /i "%CFG%"=="debug" set BUILDTYPE=Debug
 
-cmake -S "%~dp0." -B "%~dp0build\%CFG%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_VERIFY=%VERIFY% || exit /b 1
+cmake -S "%~dp0." -B "%~dp0build\%CFG%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% || exit /b 1
 cmake --build "%~dp0build\%CFG%" || exit /b 1
 rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide rule 4).
 python "%~dp0tools\check_thunks.py" || exit /b 1

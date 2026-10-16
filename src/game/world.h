@@ -2084,10 +2084,6 @@ enum class FrameList {
 inline stlp::vector<CEngineObject*>& FrameObjects(FrameList list) {
     return *reinterpret_cast<stlp::vector<CEngineObject*>*>(std::uintptr_t(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
 }
-// Checker of the draw list sorts (null in normal builds): DrawPass calls it with each list it is
-// about to sort with UnitOrderLess. verify_world_client.cpp installed one that logged elements
-// the ordering cannot take (null, no model, a NaN view depth); nothing does since S21d.
-extern void (*g_drawSortCheck)(FrameList list, CEngineObject** first, CEngineObject** last);
 inline stlp::list<CEngineObject*>* FrameDeferredUnits() {
     return reinterpret_cast<stlp::list<CEngineObject*>*>(std::uintptr_t(0x007AF5B4));
 }

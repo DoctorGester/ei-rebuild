@@ -1,7 +1,7 @@
 // Record mode for the script loader's records of the "script" family (script_load_vectors.h). The
 // original loader calls these through their addresses (Load calls ExpectLexeme and LoadCommands,
-// LoadCommands calls LoadFunction, LoadFunction itself), so every level is recorded; our rewritten
-// callers (the zone and mission loaders) call ours, hence EI_RECORD_OURS. script_parse reaches every
+// LoadCommands calls LoadFunction, LoadFunction itself), so every level is recorded, and so are the
+// original zone and mission loaders' calls (recording runs the original game). script_parse reaches every
 // parser message through console lines; the zones load their mission scripts.
 #include "script_load_vectors.h"
 #include "script_vectors.h"
@@ -150,7 +150,7 @@ BOOL __fastcall LoadRecord(CScript* self, void*, mfc::CString* text, BOOL runWor
 
 } // namespace
 
-EI_RECORD_OURS(0x004CF4D0, ExpectRecord, 6, s_expect);
-EI_RECORD_OURS(0x004CFBC0, LoadFunctionRecord, 7, s_loadFunction);
-EI_RECORD_OURS(0x004D1330, LoadCommandsRecord, 7, s_loadCommands);
-EI_RECORD_OURS(0x004D23A0, LoadRecord, 7, s_load);
+EI_RECORD(0x004CF4D0, ExpectRecord, 6, s_expect);
+EI_RECORD(0x004CFBC0, LoadFunctionRecord, 7, s_loadFunction);
+EI_RECORD(0x004D1330, LoadCommandsRecord, 7, s_loadCommands);
+EI_RECORD(0x004D23A0, LoadRecord, 7, s_load);

@@ -120,7 +120,6 @@ int __fastcall ScalePointFromScreenCopyEntry(const CInterface3D* self, void*, PO
 }
 EI_REPLACE(0x005F7E30, ScalePointFromScreenCopyEntry);
 EI_REBIRTH_IMPLEMENTS(0x005F7E30, ei::rebirth::Patch::WideScreen);
-EI_REBIRTH_LIVE_STOLEN(0x005F7E30);
 
 int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* rect) {
     if (!self && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
@@ -128,7 +127,6 @@ int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* r
 }
 EI_REPLACE(0x005F7DA0, ScaleRectFromScreenEntry);
 EI_REBIRTH_IMPLEMENTS(0x005F7DA0, ei::rebirth::Patch::WideScreen);
-EI_REBIRTH_LIVE_STOLEN(0x005F7DA0);
 
 int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT* point) {
     if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
@@ -136,7 +134,6 @@ int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT*
 }
 EI_REPLACE(0x005F7E00, ScalePointFromScreenEntry);
 EI_REBIRTH_IMPLEMENTS(0x005F7E00, ei::rebirth::Patch::WideScreen);
-EI_REBIRTH_LIVE_STOLEN(0x005F7E00);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
     return stackBegin_ != stackEnd_ ? stackEnd_[-1] : nullptr;

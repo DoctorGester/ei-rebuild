@@ -59,10 +59,7 @@ inline bool Active() { return Get().active; }
 // addon's panel offset (100BD0A0): added to the x of every region rectangle and point and every
 // sprite placed or shaped while one of the battle screen's panel builders runs (they set it to
 // -extra or +extra and back to 0: EnterLeftPanel / EnterRightPanel / LeavePanel). 0 outside them.
-// Our builders are its only writers in a launch with our hooks (addon's code wrote it nowhere else).
-// In a Rebirth launch the storage is still addon's variable (found at hook time): the verify
-// build's side-by-side runs of addon's builders set that one, and our callees then read what they
-// set.
+// Our builders are its only writers (addon's code wrote it nowhere else).
 int PanelOffset();
 void SetPanelOffset(int offset);
 
@@ -119,10 +116,5 @@ void ShowHeroCurtains(CUiWindow* window, int mode);
 // The layout's right edge with the wide layout, 800 + extra: addon's operands at 0065E7C3 / 0065E7CA
 // (the tooltip kept on the layout, 0065E580).
 int LayoutRight();
-
-// What 00742B08 and 007428AC held when Startup ran (before it wrote ours): in a Rebirth launch,
-// addon's values (the verify build compares them with ours).
-float FoundLayoutWidth();
-float FoundPanelRight();
 
 } // namespace widescreen

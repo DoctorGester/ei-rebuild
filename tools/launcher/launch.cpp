@@ -1,19 +1,22 @@
-// ei_launch: starts the original game.exe the same way the Rebirth starter does (exe from
-// starter\Engine, working directory = game root), or <game>\game.exe for a plain install, and loads
-// ei_hook.dll into it before the game's own code runs. Nothing in the game folder is modified.
+// ei_launch: starts the standalone image (--standalone: ei_standalone.exe, our code) or the original
+// game.exe the same way the Rebirth starter does (exe from starter\Engine, working directory = game
+// root), or <game>\game.exe for a plain install. Nothing in the game folder is modified.
 //
 // usage: ei_launch [--game <dir>] [--exe <game.exe outside the game dir>] [--dll <ei_hook.dll>]
 //                  [--harness <scenario.txt>] [--wait] [--no-hooks] [--rebirth <spec>] [--out <dir>]
 //                  [--standalone] [game args...]
 // --out puts what the run writes (ei_hook.log, the harness report and saves, ...) in <dir> instead
 // of next to ei_hook.dll (EI_OUT_DIR), so several runs can go at once.
-// --no-hooks loads ei_hook.dll (so the harness still runs) but installs none of the rewritten
-// functions: a baseline run of the original code.
+// game.exe is always the original game (the original's harness: goldens, EI_VECTORS recording, addon's
+// WideScreen frames): ei_hook.dll is loaded into it before the game's own code runs, so the harness
+// runs, with EI_NO_HOOKS=1, so none of the rewritten functions is installed (InstallHooks installs
+// only the vector recorders there, with EI_VECTORS=1). --no-hooks says the same and is kept for the
+// tools' command lines; since S21e nothing starts game.exe with our rewrites.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
 // --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
 // it lays out game.exe's data without its code and loads ei_hook.dll itself (--run), with the same
-// environment, working directory, output folder, job object and time limits as a hooked run. Its own
+// environment, working directory, output folder, job object and time limits as a game.exe run. Its own
 // output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
 // game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
 // environment reaches ei_launch when the scheduler's run_all does not know the install yet; S19).
@@ -297,7 +300,7 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--exe" && i + 1 < argc) exeOverride = argv[++i];
         else if (a == L"--harness" && i + 1 < argc) harness = argv[++i];
         else if (a == L"--wait") wait = true;
-        else if (a == L"--no-hooks") SetEnvironmentVariableW(L"EI_NO_HOOKS", L"1");
+        else if (a == L"--no-hooks") continue;   // game.exe always runs without hooks (below)
         else if (a == L"--rebirth" && i + 1 < argc) SetEnvironmentVariableW(L"EI_REBIRTH", argv[++i]);
         else if (a == L"--out" && i + 1 < argc) outDir = argv[++i];
         else if (a == L"--standalone") standalone = true;
@@ -358,6 +361,10 @@ int wmain(int argc, wchar_t** argv) {
         inherit = TRUE;
     }
 
+    // game.exe runs the original code only (the harness's leftover patches follow EI_NO_HOOKS too); the
+    // image never has it.
+    SetEnvironmentVariableW(L"EI_NO_HOOKS", standalone ? nullptr : L"1");
+
     PROCESS_INFORMATION pi{};
     if (!CreateProcessW(program.c_str(), cmd.data(), nullptr, nullptr, inherit, CREATE_SUSPENDED, nullptr,
                         gameDir.c_str(), &si, &pi))
@@ -378,7 +385,7 @@ int wmain(int argc, wchar_t** argv) {
         }
     }
 
-    // The standalone host loads ei_hook.dll itself.
+    // The standalone host loads ei_hook.dll itself; game.exe gets it before its own code runs.
     if (!standalone) {
         if (const int failed = InjectDll(pi.hProcess, dll)) return failed;
     }

@@ -199,7 +199,8 @@ def runs_alone(scenario, install):
 # EI_* variables that are not settings of a game: where the build and the references are, the machine's slots, and
 # what ei_launch sets itself. Every other EI_* variable (EI_PROFILE, EI_RENDER, EI_VECTORS, EI_COVER, ...) is read by a
 # game.
-NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_REFERENCE_DIR', 'EI_WIDESCREEN_DIR')
+NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS', 'EI_NO_HOOKS', 'EI_REFERENCE_DIR',
+                'EI_WIDESCREEN_DIR')
 
 
 def game_environment(environ=None):
@@ -833,7 +834,7 @@ def standalone_rebirth_flags(root=ROOT):
     with open(os.path.join(root, 'config', 'ei_rebirth_standalone.ini'), encoding='utf-8') as f:
         for text in f:
             m = re.match(r'\s*(\w+)\s*=\s*1\s*$', text)
-            if m and m.group(1) not in ('Default', 'FollowAddon', 'NPlayers', 'Pause'):
+            if m and m.group(1) not in ('Default', 'NPlayers', 'Pause'):
                 names.append(m.group(1))
     return ','.join(names)
 

@@ -298,15 +298,6 @@ void SetSpecular(int on) {
 
 // --- 005ECA10 -----------------------------------------------------------------------------------------
 
-std::uint8_t* CItemScreen::CachedModel(CItem* item) {
-    mfc::CString name;
-    ItemName(item, 20, &name);
-    ItemObjectCache::Node* node;
-    stlp::string key(static_cast<const char*>(name));
-    CacheFind(&models_, nullptr, &node, &key);
-    return node != models_.header ? static_cast<std::uint8_t*>(node->object) : nullptr;
-}
-
 void CItemScreen::DrawItem(int pass, ItemCell* cell) {
     CItem* item = cell->item;
     std::uint8_t* model;
@@ -533,13 +524,6 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
         sex = game::Text(0x0078BBD8);                                   // "f"
     model->Format(game::Text(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
     texture->Format(game::Text(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
-}
-
-std::uint8_t* CItemScreen::CachedModelNamed(const char* name) {
-    ItemObjectCache::Node* node;
-    stlp::string key(name);
-    CacheFind(&models_, nullptr, &node, &key);
-    return node != models_.header ? static_cast<std::uint8_t*>(node->object) : nullptr;
 }
 
 void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
