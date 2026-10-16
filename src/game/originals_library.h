@@ -119,27 +119,12 @@ __declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFil
                                                                   mfc::CString* /*out*/) EI_ORIGINAL(0x006E67BA)
 __declspec(naked) inline void __fastcall CFileWrite(mfc::CFile* /*file*/, void*, const void* /*buffer*/,
                                                     unsigned /*count*/) EI_ORIGINAL(0x0070133F)
-// The CRT's x87 intrinsics: _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
-// exponent in ST0), called here with ordinary double arguments.
-__declspec(naked) inline double __cdecl CIacos(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E7320
-    __asm call eax
-    __asm ret
-}
-__declspec(naked) inline double __cdecl CIasin(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E83C0
-    __asm call eax
-    __asm ret
-}
-__declspec(naked) inline double __cdecl CIpow(double, double) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm mov eax, 0x006E81A0
-    __asm call eax
-    __asm ret
-}
+// The CRT's x87 intrinsics _CIacos / _CIasin (argument and result in ST0) and _CIpow (base in ST1,
+// exponent in ST0), here with ordinary double arguments: the same bodies as acos 006E7334 / asin
+// 006E83D4 and libcrt::CiPow.
+inline double CIacos(double c) { return gamecrt::acos(c); }
+inline double CIasin(double s) { return gamecrt::asin(s); }
+inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
 __declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)

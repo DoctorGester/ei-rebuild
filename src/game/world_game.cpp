@@ -296,15 +296,6 @@ constexpr int kMaxCatchUpTicks = 1000;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The game's _ftol (006E853C): truncation, on the value as the FPU holds it.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 CWorldServer* World() { return reinterpret_cast<CWorldServer*>(0x007AFF60); }
 const mfc::CString& MoviesFolder() { return *reinterpret_cast<const mfc::CString*>(0x007AF458); }
 
@@ -378,7 +369,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
             mfc::CString variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
-        int ticks = GameFtol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime));
+        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime)));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
@@ -411,7 +402,7 @@ int __stdcall EnterZone(std::uint8_t* recordsBytes) {
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables;
-    if (GameFtol(VariableGet(variables, game::Text(kMovieVariable))) == 1) {
+    if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, game::Text(kMovieVariable)))) == 1) {
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
                             reinterpret_cast<const unsigned char*>(game::Text(kMovieZone))) != 0) {
             {

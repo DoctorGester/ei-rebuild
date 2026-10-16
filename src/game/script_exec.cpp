@@ -44,48 +44,19 @@
 #include <cstring>
 #include <bit>
 
-#pragma warning(disable : 4740) // inline assembly: no optimisation across it
-
 namespace {
 
 // ---- x87 helpers --------------------------------------------------------------------------------
 
 // The game's _ftol (006E853C): truncating conversion, low 32 bits of the 64-bit result.
-__declspec(naked) int __cdecl Ftol(float) {
-    __asm {
-        fld dword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
+int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 // FCOMP against the constant 0.0 at 0073B858; true when C3 is set (equal or unordered), the test
 // every command uses for "flag argument is zero".
-bool ZeroOrNaN(float value) {
-    int status;
-    __asm {
-        fld value
-        fcomp dword ptr ds:[0x0073B858]
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return (status & 0x40) != 0;
-}
+bool ZeroOrNaN(float value) { return (x87::CompareStatus(value, 0.0) & x87::kC3) != 0; }
 
 // FCOM a, b: the status bits C0 (0x01, less or unordered) and C3 (0x40, equal or unordered).
-int FcomStatus(float a, float b) {
-    int status;
-    __asm {
-        fld a
-        fcomp b
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return status;
-}
+int FcomStatus(float a, float b) { return x87::CompareStatus(a, b); }
 
 int Round(float value) { return x87::fistp(value); }
 

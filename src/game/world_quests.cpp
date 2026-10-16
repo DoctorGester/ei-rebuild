@@ -160,16 +160,6 @@ static RawString* RawStringInit(RawString* s, void*, const char* text, void* all
 __declspec(naked) void __fastcall RequestBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FB60)
 // 00591DE0 (RET 8). CWorldServer: the player's part of completing a briefing.
 __declspec(naked) void __fastcall BriefingNotify(CWorldServer*, void*, WorldPlayer*, const char*) EI_ORIGINAL(0x00591DE0)
-// 005911C0 (RET 8). CWorldServer: experience for `player` (float bits): WorldAwardExperienceOriginal.
-// The game's _ftol (006E853C).
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
@@ -203,7 +193,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         std::memcpy(&bits, &experience, 4);
         WorldAwardExperienceOriginal(world, nullptr, player, bits);
     }
-    PartyOf(player)->Money() += GameFtol(record->gold);
+    PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->gold));
 
     mfc::CTypedPtrList<CEngineObject> items;
     items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);

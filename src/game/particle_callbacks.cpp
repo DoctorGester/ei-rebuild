@@ -9,6 +9,8 @@
 #include "unit.h"
 
 #include "lib/vecmath.h"
+#include "lib/crt.h"
+#include "ei/x87.h"
 
 #include <concepts>
 
@@ -1059,7 +1061,7 @@ int CParticleSource::UpdateLink(Particle* p) {
     std::uint32_t absBits = Bits(&hr) & 0x7FFFFFFFu;
     float offCentre;
     std::memcpy(&offCentre, &absBits, sizeof(float));
-    std::uint32_t fade = static_cast<std::uint32_t>(GameFtol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA)));
+    std::uint32_t fade = gamecrt::Ftol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA));
     std::uint32_t cap = static_cast<std::uint32_t>(*ElementInt(elements, 0x34));
     if (cap < fade) fade = cap;
     p->color = (fade << 24) | 0xFFFFFF;
@@ -1299,7 +1301,7 @@ namespace {
 int CParticleSource::EmitPoisonFog(Particle*, int) {
     if (particles.count != 0) return 0;
     float radius = size;
-    int n = GameFtol((D(size) + D(EI_P_ONE)) / D(EI_FOG_CELL));
+    int n = static_cast<int>(gamecrt::Ftol((D(size) + D(EI_P_ONE)) / D(EI_FOG_CELL)));
     for (int i = -n; i <= n; ++i) {
         float row = static_cast<float>(static_cast<double>(i));
         float radiusSquared = static_cast<float>(D(radius) * D(radius));
@@ -1912,7 +1914,7 @@ int CParticleSource::EmitMushroom(Particle* p, int) {
         SetElementCount(this, 1);
         ParticleElement* e = elements;
         e->ticks = 0;
-        e->pos.x = static_cast<float>(Ln(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * D(size));
+        e->pos.x = static_cast<float>(x87::flog(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * D(size));
         SetBits(&elements[0].pos.z, 0);
         std::memcpy(ElementFloat(elements, 0x18), &origin, sizeof(Vector3));
     }
@@ -2029,7 +2031,7 @@ int CParticleSource::EmitStench(Particle* p, int) {
         std::memcpy(&elements[0].pos, &offset, sizeof(Vector3));
         *ElementFloat(elements, 0x18) = gasRadius;
         *ElementFloat(elements, 0x20) = carrierHeight;
-        int rate = GameFtol(D(size) * D(EI_GAS_RATE) + D(EI_GAS_ROUND));
+        int rate = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_GAS_RATE) + D(EI_GAS_ROUND)));
         emitCount = rate < 1 ? 1 : rate;
     }
     float radius = *ElementFloat(elements, 0x18);
@@ -2130,7 +2132,7 @@ namespace {
 // The funnel's centre at height h (0..1): between ring k and k+1 (h * 5 rings), with the x and y
 // blends in the original's two orders; y is returned unrounded.
 double FunnelCentre(const CParticleSource* s, double h, float& x) {
-    int k = GameFtol(h);
+    int k = static_cast<int>(gamecrt::Ftol(h));
     if (k >= s->elementCount - 2) k = s->elementCount - 2;
     float f = static_cast<float>(h - static_cast<double>(k));
     float t = PickIfLess(f, 1.0f);
@@ -3175,7 +3177,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(elementCount)];
     const float* g = &gust.value[0];
     float reach = static_cast<float>(D(g[0]) * D(EI_FALL_HALF));
-    int spread = GameFtol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TEN);
+    int spread = static_cast<int>(gamecrt::Ftol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TEN));
     float turn = static_cast<float>(static_cast<double>(spread) * D(g[1]));
     float lowReach = static_cast<float>(-D(reach));
     float x = static_cast<float>(Unsigned(Next()) * (D(reach) - D(lowReach)) * EI_P_SCALE_1 + D(g[0]) + D(lowReach));
@@ -3198,7 +3200,7 @@ void CParticleSource::TickFalling(ParticleElement* e) {
     int age = *ElementInt(e, 0x30);
     if (age == 0) {
         *ElementFloat(e, 0x0C) = static_cast<float>(Unsigned(Next()) * EI_FALL_REACH_SCALE + D(EI_FALL_SIZE_BASE));
-        float whole = static_cast<float>(static_cast<double>(GameFtol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN)));
+        float whole = static_cast<float>(static_cast<double>(static_cast<int>(gamecrt::Ftol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TURN))));
         *ElementFloat(e, 0x10) = static_cast<float>(Unsigned(Next()) * D(whole) * EI_P_SCALE_1);
         age = *ElementInt(e, 0x30);
     }
@@ -4135,26 +4137,7 @@ namespace {
 
 // base ^ exponent as VC6 inlines pow for this call: FLDLN2; FLD base; FYL2X; FIMUL exponent;
 // FLDL2E; FMULP; then 2^x by FRNDINT / F2XM1 / FSCALE (left unrounded in ST0).
-__declspec(naked) double __cdecl PowInline(double /*base*/, int /*exponent*/) {
-    __asm {
-        fldln2
-        fld qword ptr [esp + 4]
-        fyl2x
-        fimul dword ptr [esp + 12]
-        fldl2e
-        fmulp st(1), st
-        fld st(0)
-        frndint
-        fxch st(1)
-        fsub st, st(1)
-        f2xm1
-        fld1
-        faddp st(1), st
-        fscale
-        fstp st(1)
-        ret
-    }
-}
+double PowInline(double base, int exponent) { return x87::fexp(x87::flog(base) * exponent); }
 
 } // namespace
 
@@ -4182,7 +4165,7 @@ int CParticleSource::EmitNuke(Particle* p, int) {
     p->life = rise + 30;
     p->frame = elements[0].ticks / 3;
     std::uint32_t a = static_cast<std::uint32_t>(
-        GameFtol(PowInline(D(GameFloat(0x0073CB24)), elements[0].ticks) * GameDouble(0x0073CCE8)));
+        static_cast<int>(gamecrt::Ftol(PowInline(D(GameFloat(0x0073CB24)), elements[0].ticks) * GameDouble(0x0073CCE8))));
     if (a > 0xFF) a = 0xFF;
     p->state = 0;
     p->color = (a << 24) | 0xFFFFFF;

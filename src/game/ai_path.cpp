@@ -40,14 +40,6 @@ __declspec(naked) void __fastcall SteerAlong(CAIMap*, void*, CUnit*, PathCellLis
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
 
-// FPATAN: atan2(y, x), unrounded.
-__declspec(naked) double __cdecl Fpatan(double, double) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm fpatan
-    __asm ret
-}
-
 const Vector3& PositionOf(const CUnit* unit) { return *&unit->position; }
 
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
@@ -350,7 +342,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)
         std::uint32_t fractionBits;
         std::memcpy(&fractionBits, &fraction, 4);
-        int octant = x87::fistp(static_cast<float>(Fpatan(by, bx) * 1.273239605931458));
+        int octant = x87::fistp(static_cast<float>(x87::fpatan(by, bx) * 1.273239605931458));
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);

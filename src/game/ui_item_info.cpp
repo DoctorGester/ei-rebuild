@@ -58,16 +58,7 @@ template <std::floating_point T> float FloatOf(T) = delete;
 
 const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record); }
 
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-int FtolOf(float value) { return GameFtol(D(value)); }
+int FtolOf(float value) { return static_cast<int>(gamecrt::Ftol(D(value))); }
 
 int MbsICmp(const char* a, const char* b) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));

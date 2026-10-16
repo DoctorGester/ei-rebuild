@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "lib/crt.h"
 
 namespace {
 
@@ -44,16 +45,6 @@ IsaacRandom* Random() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
-
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;           // 0073D734
@@ -207,7 +198,7 @@ void CHudPortraits::Update() {
         CEngineObject* flash = object(5);
         if (slot.flash_ > 0.0f) {
             Sprite(flash)->visible_ = 1;
-            int alpha = GameFtol(D(slot.flash_) * kFlashAlpha);
+            int alpha = static_cast<int>(gamecrt::Ftol(D(slot.flash_) * kFlashAlpha));
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
             Sprite(flash)->flatColour_ = colour;
         } else {

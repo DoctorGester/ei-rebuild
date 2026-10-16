@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_core.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
@@ -30,21 +31,6 @@ double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volat
 #define EI_MIN_AXIS GameDouble(0x0073B860)    // 1e-5: shorter rotation axes count as none
 #define EI_PI GameDouble(0x0073B840)          // pi
 #define EI_HEADING_OFFSET GameFloat(0x0079B1B8)   // 0.0f (a .data float nothing writes)
-
-// _CIacos (006E7320): argument and result in ST0.
-__declspec(naked) double __cdecl CIacos(double) {
-    __asm fld qword ptr [esp + 4]
-    __asm mov eax, 0x006E7320
-    __asm call eax
-    __asm ret
-}
-// FPATAN of (y, x): atan2(y, x) unrounded.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm fpatan
-    __asm ret
-}
 
 // The vector helpers as the original calls them, results unrounded in ST0.
 
@@ -105,7 +91,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
 
 // acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
 float AngleBetween(const Vector3& a, const Vector3& b) {
-    return static_cast<float>(CIacos(ClampUnit(static_cast<float>(DotRaw(&a, &b)))));
+    return static_cast<float>(gamecrt::acos(ClampUnit(static_cast<float>(DotRaw(&a, &b)))));
 }
 
 } // namespace
@@ -171,7 +157,7 @@ void CTransformObject::TiltTowards(const Vector3& target) {
         if (dot > D(EI_ONE)) dot = EI_ONE;
         else if (!(dot >= D(EI_MINUS_ONE))) dot = EI_MINUS_ONE;
         // The original clamps a second time while storing the float; the value is in range by now.
-        angle = CIacos(static_cast<float>(dot));
+        angle = gamecrt::acos(static_cast<float>(dot));
     }
     Quaternion turn;
     turn.SetAngleAxis(static_cast<float>(angle * D(EI_TILT_STEP)), axis);
@@ -206,7 +192,7 @@ void CTransformObject::TurnTowards(const Vector3& target) {
         float clamped = static_cast<float>(dot);
         if (dot > D(EI_ONE)) clamped = 1.0f;
         else if (!(D(clamped) >= D(EI_MINUS_ONE))) clamped = -1.0f;
-        angle = static_cast<float>(CIacos(clamped));
+        angle = static_cast<float>(gamecrt::acos(clamped));
     }
     Quaternion turn;
     turn.SetAngleAxis(angle, axis);
@@ -277,7 +263,7 @@ void CTransformObject::TurnUpTowards(const Vector3& dir, int reduced) {
 void CTransformObject::SetHeading(const float* dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
     Quaternion heading;
-    const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(Fpatan(dir[1], dir[0]) + D(EI_HEADING_OFFSET)));
+    const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(x87::fpatan(dir[1], dir[0]) + D(EI_HEADING_OFFSET)));
     std::memcpy(&localRotation_, r, sizeof(Quaternion));
 }
 

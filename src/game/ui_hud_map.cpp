@@ -354,14 +354,6 @@ EI_REPLACE_METHOD(0x00643DC0, CHudMap::BuildMarkers);
 
 namespace {
 
-// FPATAN: atan2(y, x) left unrounded in ST0.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm fpatan
-    __asm ret
-}
-
 // The camera (global 007AF7C8; its rotation at +0x34) and the ground point it looks at.
 const CTransformObject* Camera() { return *reinterpret_cast<CTransformObject* const*>(0x007AF7C8); }
 std::uint32_t CameraTargetXBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079B388); }
@@ -432,7 +424,7 @@ void CHudMap::UpdateView() {
         facingY_ = 1.0f;
     }
     // The compass needle (scene object 10) turns about z.
-    float angle = static_cast<float>(Fpatan(-D(facingX_), -D(facingY_)));
+    float angle = static_cast<float>(x87::fpatan(-D(facingX_), -D(facingY_)));
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);

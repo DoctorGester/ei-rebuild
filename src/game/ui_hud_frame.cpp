@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
+#include "lib/crt.h"
 
 namespace {
 
@@ -93,16 +94,6 @@ std::uint32_t Bits(float f) {
     std::uint32_t u;
     std::memcpy(&u, &f, sizeof(u));
     return u;
-}
-
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
 }
 
 } // namespace
@@ -212,7 +203,7 @@ void CHudTopPanel::Update() {
             double r2 = r * r;
             eased = 1.0f - (r2 + r2);
         }
-        offset_ = GameFtol(static_cast<double>(travel_) * eased);
+        offset_ = static_cast<int>(gamecrt::Ftol(static_cast<double>(travel_) * eased));
         if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f || x87::IsNaN(slide_)) sliding_ = 0;
         CallLayout();
         CEngineObject* sling = sceneObjects_.data[2];

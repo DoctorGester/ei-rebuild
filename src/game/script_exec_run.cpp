@@ -9,16 +9,16 @@
 #include "world_effect.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_effects.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
-
-#pragma warning(disable : 4740) // inline assembly: no optimisation across it
 
 namespace {
 
@@ -36,17 +36,7 @@ const char* const kWrongGroupCount = reinterpret_cast<const char*>(0x0078BB1C);
 constexpr int kClassSound = 0x48;   // CEffectSound
 
 // FCOMP against 0.0 (0073B858): C3, equal or unordered.
-bool ZeroOrNaN(float value) {
-    int status;
-    __asm {
-        fld value
-        fcomp dword ptr ds:[0x0073B858]
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return (status & 0x40) != 0;
-}
+bool ZeroOrNaN(float value) { return (x87::CompareStatus(value, 0.0) & x87::kC3) != 0; }
 
 // ---- Original code ------------------------------------------------------------------------------
 
@@ -85,45 +75,19 @@ CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()-
 // 00675CA0: an effect object took a new position.
 void EffectMoved(CEngineObject* object) { ObjectMarkNewOriginal(object); }
 
+// 0073C468: 1 / (2^32 - 1).
+constexpr std::uint64_t kRandomScaleBits = 0x3DF0000000100000ull;
+
 // FX source position: (r - (-r)) * random * (1 / (2^32 - 1)) + (-r), with the random value loaded
 // as a 64-bit integer; for x the source's x is added before rounding, for y the rounded offset is
 // added to the source's y afterwards (as the original does).
 float FxOffset(float radius, std::uint32_t random) {
-    std::uint32_t wide[2] = {random, 0};
-    float negative;
-    float result;
-    __asm {
-        fld radius
-        fchs
-        fstp negative
-        fild qword ptr [wide]
-        fld radius
-        fsub negative
-        fmulp st(1), st
-        fmul qword ptr ds:[0x0073C468]
-        fadd negative
-        fstp result
-    }
-    return result;
+    const float negative = -radius;
+    return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative);
 }
 float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
-    std::uint32_t wide[2] = {random, 0};
-    float negative;
-    float result;
-    __asm {
-        fld radius
-        fchs
-        fstp negative
-        fild qword ptr [wide]
-        fld radius
-        fsub negative
-        fmulp st(1), st
-        fmul qword ptr ds:[0x0073C468]
-        fadd negative
-        fadd origin
-        fstp result
-    }
-    return result;
+    const float negative = -radius;
+    return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative + origin);
 }
 
 // The particle source list as the tick's inlined RemoveAt sees it: destroying an element drops its

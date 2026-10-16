@@ -17,6 +17,7 @@
 #include "originals_core.h"
 #include "lib/mfc_list.h"
 #include "game_slots.h"
+#include "lib/crt.h"
 
 #include <cstring>
 
@@ -38,16 +39,6 @@ void __fastcall PlayerRemoveItem(void* player, void*, int index) { PlayerRemoveI
 ObjectList::Node* __fastcall CountedNewNode(ObjectList* a0, void*, ObjectList::Node* a2, ObjectList::Node* a3) { return (ObjectList::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
 inline void __fastcall PtrListRemoveAll(ObjectList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
-
-// The game's _ftol (006E853C) on a value loaded from a float.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
 
 constexpr int kClassQuestItem = 0x14;
 
@@ -93,7 +84,7 @@ void ClientSession::ApplyAwards() {
         case 1: {
             ObjectList none;
             InitList(none, mfc::impl::ItemListClass::Vtable());
-            player->Party()->Money() += GameFtol(award->value_);
+            player->Party()->Money() += static_cast<int>(gamecrt::Ftol(award->value_));
             PlayerGiveItems(player, nullptr, &none, 0);
             none.vtable = mfc::impl::ItemListClass::Vtable();
             PtrListRemoveAll(&none);

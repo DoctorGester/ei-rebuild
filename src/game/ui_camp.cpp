@@ -262,15 +262,6 @@ const std::uint8_t* PartRecord(const std::uint8_t* item, int recordType) {
 int ItemType(std::uint8_t* item) { return AsObject(item)->type_; }
 
 double D(float f) { return f; }
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 } // namespace
 
 // 0060FAB0: prices (slot 54); CanEquip follows.
@@ -312,7 +303,7 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
         if (kind == 8) {
             if (!(worn < kPriceZero || worn > kPriceZero)) return 0;                // FCOMP; TEST AH,0x40
             if (!(multipliers[8] < kPriceZero || multipliers[8] > kPriceZero)) return 0;
-            int price = GameFtol(D(repair));
+            int price = static_cast<int>(gamecrt::Ftol(D(repair)));
             return price > 0 ? price : 1;
         }
     }
@@ -321,10 +312,10 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
         // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
         // wear is added instead of subtracted.
         if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-            return GameFtol(ItemPrice(item) * multipliers[kind] + repair);
-        return GameFtol(ItemPrice(item) * multipliers[kind] - repair);
+            return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind] + repair));
+        return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind] - repair));
     }
-    return GameFtol(ItemPrice(item) * multipliers[kind]);
+    return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind]));
 }
 
 EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
@@ -354,7 +345,7 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
             const std::uint8_t* record = SpellRecord(item);
             int skill = 0, mana = 0;
             VirtualBestPartySkill(Read<int>(record, 0x14), &skill, &mana);
-            if (mana < GameFtol(D(Read<float>(record, 0x18)))) return false;
+            if (mana < static_cast<int>(gamecrt::Ftol(D(Read<float>(record, 0x18))))) return false;
             return skill >= Read<int>(record, 0x44);
         }
         if (!IsModifier(item)) return false;
@@ -387,7 +378,7 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
         int skill = 0, mana = 0;
         VirtualBestPartySkill(school, &skill, &mana);
         if (skill < skillTotal) return false;
-        return mana >= GameFtol(D(manaTotal));
+        return mana >= static_cast<int>(gamecrt::Ftol(D(manaTotal)));
     }
     case 4:     // the item constructor: anything but quest items and magic
         if (ItemType(item) == 0x3009) return false;
@@ -740,7 +731,7 @@ bool CCampPages::CanMakeSpell() {
     int skill = 0, mana = 0;
     VirtualBestPartySkill(Read<int>(spell, 0x14), &skill, &mana);
     const auto* madeSpell = reinterpret_cast<const std::uint8_t*>(made);
-    if (mana < GameFtol(D(Read<float>(madeSpell, 0x40)))) return false;
+    if (mana < static_cast<int>(gamecrt::Ftol(D(Read<float>(madeSpell, 0x40))))) return false;
     return skill >= Read<int>(madeSpell, 0x50);
 }
 EI_REPLACE_METHOD(0x00612290, CCampPages::CanMakeSpell);

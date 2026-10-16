@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
+#include "lib/crt.h"
 
 #include <bit>
 #include <cstring>
@@ -56,26 +57,6 @@ float Load(const float& f) { return *static_cast<const volatile float*>(&f); }
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
-}
-
-// The game's _ftol (006E853C): truncation.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
-// FLDLN2; FILD n; FYL2X: ln(n), left in ST0.
-__declspec(naked) double __cdecl LnOfInt(int) {
-    __asm {
-        fldln2
-        fild dword ptr [esp + 4]
-        fyl2x
-        ret
-    }
 }
 
 // 004113A0: the camera's shake around a point (the camera object is 0079B2A8).
@@ -265,7 +246,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
     float oldRise = p->drift.z;
     p->drift.z = kDebrisDamping * oldRise - kDebrisGravity;
     p->pos.z = (kDebrisDamping * oldRise - kDebrisGravity) + p->pos.z;
-    std::uint32_t a = static_cast<std::uint32_t>(GameFtol(Unsigned(p->color >> 24) * kDebrisFadeIn));
+    std::uint32_t a = gamecrt::Ftol(Unsigned(p->color >> 24) * kDebrisFadeIn);
     if (a > 0xFF) a = 0xFF;
     p->color = (a << 24) | 0xFFFFFF;
     if (LessOrUnordered(p->drift.z, kZero) && size * kHalfDouble + origin.z > p->pos.z) {
@@ -347,7 +328,7 @@ EI_REPLACE_METHOD(0x004892E0, CParticleSource::TickNuke);
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
 void CParticleSource::TickTendril(ParticleElement*) {
-    int n = GameFtol(LengthXYZ(extent) * kTendrilDensity);
+    int n = static_cast<int>(gamecrt::Ftol(LengthXYZ(extent) * kTendrilDensity));
     emitCount = n;
     int count = n < 6 ? 6 : n;
     int cap = maxParticles / 16;
@@ -361,7 +342,7 @@ void CParticleSource::TickMushroom(ParticleElement* e) {
     if (type_ == kTypeMushroom && e->ticks == 0 && e == elements)
         CameraShakeOriginal(TheCamera(), nullptr, &origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
-    e->pos.x = static_cast<float>(LnOfInt(ticks + 1) * size * kMushroomWidth);
+    e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;
     if (ticks == 30) flags_ &= ~1u;
 }

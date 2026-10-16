@@ -21,12 +21,11 @@
 #include "unit.h"
 #include "lib/crt.h"
 
+#include <cstdint>
 #include <cstring>
 #include <new>
 #include <type_traits>
 #include <vector>
-
-#pragma warning(disable : 4740) // inline assembly
 
 namespace scriptaddon {
 
@@ -207,65 +206,24 @@ void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
 
 // ---- Helpers for the handlers -------------------------------------------------------------------
 
+// CVTTSD2SI (addon.dll's conversion): truncation; NaN and values outside the int range give INT_MIN.
 int Ftol(float value) {
-    double wide = value;
-    int result;
-    __asm {
-        cvttsd2si eax, qword ptr [wide]
-        mov result, eax
-    }
-    return result;
+    const double wide = value;
+    if (!(wide > -2147483649.0 && wide < 2147483648.0)) return INT32_MIN;
+    return static_cast<int>(wide);
 }
 
-int Status(float a, float b) {
-    int status;
-    __asm {
-        fld a
-        fcomp b
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return status;
-}
+int Status(float a, float b) { return x87::CompareStatus(a, b); }
 
-void Store(float* dst, float value) {
-    __asm {
-        fld value
-        mov eax, dst
-        fstp dword ptr [eax]
-    }
-}
+void Store(float* dst, float value) { x87::CopyFloat(dst, &value); }
 
-int TruncateX87(float value) {
-    int result;
-    __asm {
-        fld value
-        mov eax, 0x006E853C   // the game's _ftol: truncating FISTP of the 64-bit value
-        call eax
-        mov result, eax
-    }
-    return result;
-}
+// The game's _ftol: truncation of the 64-bit value, its low 32 bits.
+int TruncateX87(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
 
 float Distance(float x0, float y0, float x1, float y1) {
-    float deltaX, deltaY, squared;
-    __asm {
-        fld x1
-        fsub x0
-        fstp deltaX
-        fld y1
-        fsub y0
-        fstp deltaY
-        fld deltaY
-        fld deltaX
-        fld st(0)
-        fmulp st(1), st
-        fld st(1)
-        fmulp st(2), st
-        faddp st(1), st
-        fstp squared
-    }
+    const float deltaX = x1 - x0;
+    const float deltaY = y1 - y0;
+    const float squared = static_cast<float>(LengthSquared2DUnrounded<double>(deltaY, deltaX));
     return static_cast<float>(x87::fsqrt(squared));
 }
 

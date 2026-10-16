@@ -67,16 +67,6 @@ __declspec(naked) void __fastcall FpuCopy2(float* /*a*/, float* /*b*/, const flo
     }
 }
 
-// The game's _ftol (006E853C) of a float: truncation, low byte kept.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
 // Not rewritten / rewritten elsewhere, through their game addresses:
@@ -135,7 +125,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
     stats->attributes[0] = RoundToByte(prototype->attributes01);
     stats->attributes[1] = RoundToByte(prototype->attributes01);
     stats->attributes[2] = RoundToByte(prototype->attribute2);
-    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(GameFtol(prototype->skills3to5[i]));
+    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(gamecrt::Ftol(prototype->skills3to5[i]));
 }
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask

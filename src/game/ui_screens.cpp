@@ -33,16 +33,6 @@ constexpr int kTypeArmor = 0x3006;
 constexpr int kTypeQuick = 0x3007;
 constexpr int kTypeSpellContainer = 0x3008;
 
-// The game's _ftol (006E853C): truncation of the value in ST0.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 // Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
 __declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
@@ -151,7 +141,7 @@ UiItemKinds* KindsOf(CUiWindow* owner) { return reinterpret_cast<UiItemKinds*>(o
 
 void CUiItemStrip::SetTab(int tab) {
     float& position = position_[tab_];
-    position = static_cast<float>(GameFtol(static_cast<double>(pending_) + position));
+    position = static_cast<float>(static_cast<int>(gamecrt::Ftol(static_cast<double>(pending_) + position)));
     tab_ = tab;
     for (int i = 0; i < 6; ++i) {
         float shade = i == tab ? 1.0f : 0.5f;
@@ -341,7 +331,7 @@ char* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
     window.interface_->CallScalePointFromScreen(&point);
     // A hundred pixels per slot from x 50, plus the tab's scroll position.
     constexpr float kSlotsPerPixel = 0.01f;
-    int index = GameFtol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);
+    int index = static_cast<int>(gamecrt::Ftol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]));
     CallRebuildList();
     if (index < 0 || index >= list_.size) return nullptr;
     return list_.data[index];
@@ -353,11 +343,11 @@ void CUiItemStrip::SettleScroll() {
     // slot and gains a whole slot when that fraction is under half.
     float pending = pending_;
     if (!(pending >= 0.0f)) {
-        float fraction = static_cast<float>(pending - static_cast<double>(GameFtol(pending)));
+        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(gamecrt::Ftol(pending))));
         pending_ = fraction;
         if (fraction > -0.5f) pending_ = fraction - 1.0f;
     } else if (pending > 0.0f) {
-        float fraction = static_cast<float>(pending - static_cast<double>(GameFtol(pending)));
+        float fraction = static_cast<float>(pending - static_cast<double>(static_cast<int>(gamecrt::Ftol(pending))));
         pending_ = fraction;
         if (!(fraction >= 0.5f)) pending_ = fraction + 1.0f;
     }
@@ -432,7 +422,7 @@ int HeroSchoolSkill(void* stats, int school) {
 int HeroManaUnits(void* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
     float maximum = static_cast<float>(UnitStatsManaCurve(static_cast<UnitStats*>(stats)));
-    return GameFtol(maximum / StatsPeriod(stats));
+    return static_cast<int>(gamecrt::Ftol(maximum / StatsPeriod(stats)));
 }
 
 bool HeroCanUseSpell(void* stats, char* spell) {
@@ -442,7 +432,7 @@ bool HeroCanUseSpell(void* stats, char* spell) {
     if (HeroSchoolSkill(stats, *reinterpret_cast<const int*>(prototype + 0x14)) < required) ok = false;
     float cost = *reinterpret_cast<float*>(spell + 0x40);
     int units = HeroManaUnits(stats);
-    if (units < GameFtol(cost)) ok = false;
+    if (units < static_cast<int>(gamecrt::Ftol(cost))) ok = false;
     return ok;
 }
 

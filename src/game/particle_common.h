@@ -51,24 +51,6 @@ inline std::uint32_t Next() { return GlobalRandom().Next(); }
 // 00488970 IsaacRandom::Range: leaves the result unrounded in ST0.
 inline double Range(float min, float max) { return RandomRange(&GlobalRandom(), nullptr, min, max); }
 
-// 006E853C, the game's _ftol: truncation of ST0.
-__declspec(naked) inline int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
-// The CRT's log as inlined by VC6: FLDLN2; FLD x; FYL2X (left unrounded in ST0).
-__declspec(naked) inline double __cdecl Ln(double) {
-    __asm fldln2
-    __asm fld qword ptr [esp + 4]
-    __asm fyl2x
-    __asm ret
-}
-
 // 00564070 TerrainOwner::SurfaceHeightRaw(x, y) on the terrain owner 007AF5B8; leaves ST0 unrounded.
 inline double GroundHeight(float x, float y) { return SurfaceHeightRaw(reinterpret_cast<void*>(0x007AF5B8), nullptr, x, y); }
 

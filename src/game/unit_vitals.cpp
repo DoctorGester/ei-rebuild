@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "originals_units.h"
 #include "logic_settings.h"
+#include "lib/crt.h"
 
 #include <bit>
 #include <cstring>
@@ -525,16 +526,6 @@ __declspec(naked) double __cdecl LevelWorth(int /*level*/) {
     }
 }
 
-// The game's _ftol (006E853C): truncation to 64 bits, low dword in EAX.
-__declspec(naked) int __cdecl GameFtol(double) {
-    __asm {
-        fld qword ptr [esp + 4]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
-
 // Raises `levels[index]` by `amount` (a byte) and books what the new level is worth over the old
 // one as experience (into the spent experience too). Then the maxima and a recomputation.
 bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, CUnit* unit) {
@@ -546,7 +537,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
     float worthNew = static_cast<float>(LevelWorth(raised));
     double worthOld = LevelWorth(old);
     levels[index] = static_cast<std::uint8_t>(old + amount);
-    int cost = GameFtol(worthNew - worthOld);
+    int cost = static_cast<int>(gamecrt::Ftol(worthNew - worthOld));
     double total = static_cast<double>(cost) + stats->pendingExperience;
     stats->pendingExperience = static_cast<float>(total);
     if (total > kZero) {

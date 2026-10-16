@@ -24,6 +24,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "ei/x87.h"
 
 namespace {
 
@@ -71,14 +72,6 @@ __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const V
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
 __declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
-
-// FPATAN: atan2(y, x) as the x87 computes it.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm fld qword ptr [esp + 4]
-    __asm fld qword ptr [esp + 12]
-    __asm fpatan
-    __asm ret
-}
 
 void InitList(ObjectList& list) {
     list.vtable = PtrListVtable();
@@ -228,7 +221,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
         start.z = 0.0f;
         std::memcpy(&startValue, &exit->view, 4);
     }
-    float angle = static_cast<float>(Fpatan(static_cast<double>(start.y) - centreY,
+    float angle = static_cast<float>(x87::fpatan(static_cast<double>(start.y) - centreY,
                                                        static_cast<double>(start.x) - centreX) - FacingOffset());
     if (exit && *reinterpret_cast<const std::uint8_t*>(&exit->hasDeployAngle)) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
     Vector3 up{0.0f, 0.0f, 1.0f};

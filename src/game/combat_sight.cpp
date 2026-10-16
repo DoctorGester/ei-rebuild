@@ -77,43 +77,14 @@ bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kC
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 
-// FPATAN with ST1 = y, ST0 = x.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fld qword ptr [esp + 12]
-        fpatan
-        ret
-    }
-}
-
-// _ftol (006E853C) of a / b with the quotient left unrounded in ST0, as the original divides
-// and truncates (storing the quotient as a double first can round it up to the next integer).
-__declspec(naked) int __cdecl FtolQuotient(double /*a*/, double /*b*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fdiv qword ptr [esp + 12]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
-}
+// _ftol (006E853C) of a / b, the quotient as the FPU leaves it (at the game's 24- or 53-bit
+// precision a double holds it exactly).
+int FtolQuotient(double a, double b) { return static_cast<int>(gamecrt::Ftol(a / b)); }
 
 // The missile spell's delay in ticks: _ftol(sqrt(distanceSq) * 15.0 / flight - 3.0), on the FPU
 // stack throughout (the double constants at 0073F0A8 / 0073F0A0).
-__declspec(naked) int __cdecl CastDelayTicks(double /*distanceSq*/, double /*flight*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fsqrt
-        mov eax, 0x0073F0A8
-        fmul qword ptr [eax]
-        fdiv qword ptr [esp + 12]
-        mov eax, 0x0073F0A0
-        fsub qword ptr [eax]
-        mov eax, 0x006E853C
-        call eax
-        ret
-    }
+int CastDelayTicks(double distanceSq, double flight) {
+    return static_cast<int>(gamecrt::Ftol(x87::fsqrt(distanceSq) * 15.0 / flight - 3.0));
 }
 
 // The spell a cast order's source names: a quick item's spell (+0x44), or the unit's own. The
@@ -376,7 +347,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     Vector3 axis;
     unit->orientation.AxisY(&axis);
     Vector3 facing = {-axis.x, -axis.y, -axis.z};
-    float heading = static_cast<float>(Fpatan(facing.y, facing.x));
+    float heading = static_cast<float>(x87::fpatan(facing.y, facing.x));
     float forward, turnSpeed;
     unit->GetMoveSpeeds(&forward, &turnSpeed);
     float halfTurn = kPi / turnSpeed;
@@ -465,7 +436,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                             (targetUnit && targetUnit->id_ == unit->id_);
             int turnTicks = -1;
             if (!facingIt) {
-                float turn = static_cast<float>(Fpatan(delta.y, delta.x) - heading);
+                float turn = static_cast<float>(x87::fpatan(delta.y, delta.x) - heading);
                 turn = std::bit_cast<float>(Bits(turn) & 0x7FFFFFFFu);
                 double angle = turn;
                 if (Greater(turn, kPi)) angle = static_cast<double>(kPi) + kPi - turn;

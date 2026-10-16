@@ -20,6 +20,8 @@
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
+#include "ei/x87.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "render/render.h"
@@ -29,6 +31,7 @@
 
 #include <windows.h>
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "originals_render.h"
@@ -171,69 +174,22 @@ int GameMode() { return *reinterpret_cast<const int*>(0x0079BE64); }
 const char* MarkerPartName() { return reinterpret_cast<const char*>(0x007900E4); }
 
 // FLD a; FADD/FSUB b; FSTP: the result rounded to float.
-float AddRounded(float a, float b) {
-    float r;
-    __asm {
-        fld a
-        fadd b
-        fstp r
-    }
-    return r;
-}
-float SubRounded(float a, float b) {
-    float r;
-    __asm {
-        fld a
-        fsub b
-        fstp r
-    }
-    return r;
-}
+float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
+float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
 // FLD a; FCOMP b: whether C0 is set (a < b, or unordered).
-bool LessOrUnordered(float a, float b) {
-    int status;
-    __asm {
-        fld a
-        fcomp b
-        fnstsw ax
-        movzx eax, ah
-        mov status, eax
-    }
-    return (status & 1) != 0;
-}
+bool LessOrUnordered(float a, float b) { return (x87::CompareStatus(a, b) & x87::kC0) != 0; }
 // The original's mask selects: C0 picks a's bits, else b's (the smaller one) ...
 float SelectLess(float a, float b) { return LessOrUnordered(a, b) ? a : b; }
 // ... and, with FLD 0; FCOMP t, t when 0 < t (or unordered), else 0 (the larger one).
 float ClampToZero(float t) { return LessOrUnordered(0.0f, t) ? t : 0.0f; }
 // Copies a float through the FPU.
-float Reload(float v) {
-    float r;
-    __asm {
-        fld v
-        fstp r
-    }
-    return r;
-}
+float Reload(float v) { return std::bit_cast<float>(x87::LoadStoreBits(&v)); }
 // The game's _ftol of a float.
-int Ftol(float v) {
-    int r;
-    __asm {
-        fld v
-        mov eax, 0x006E853C
-        call eax
-        mov r, eax
-    }
-    return r;
-}
-// (float)(int)[007AF61C] + [007AFCA8], rounded once (FILD, FADD, FSTP).
+int Ftol(float v) { return static_cast<int>(gamecrt::Ftol(v)); }
+// The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
 float AnimationTime() {
-    float r;
-    __asm {
-        fild dword ptr ds:[0x007AF61C]
-        fadd dword ptr ds:[0x007AFCA8]
-        fstp r
-    }
-    return r;
+    const CWorldClient* world = UiClientWorld();
+    return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
 // floor(log2(n)) as the original counts it (n >= 1).
