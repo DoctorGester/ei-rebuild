@@ -61,7 +61,6 @@ __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*
 __declspec(naked) QueryList* __fastcall QueriesAssign(QueryList*, void*, const QueryList* /*from*/) EI_ORIGINAL(0x00443BF0)
 __declspec(naked) Query* __fastcall QueriesErase(QueryList*, void*, Query* /*first*/, Query* /*last*/) EI_ORIGINAL(0x004442B0)
 __declspec(naked) void __fastcall QueriesResize(QueryList*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
-__declspec(naked) std::int32_t __fastcall BufferLengthAt(GameBuffer*) EI_ORIGINAL(0x00441640)
 __declspec(naked) void __fastcall ClientSendJoinAt(ClientBase*, void*, const NetAddress*, const GameBuffer*) EI_ORIGINAL(0x00441740)
 // The session's receive step, through its address (rewritten in net_session_tick.cpp).
 __declspec(naked) void __fastcall SessionTickAt(SessionBase*, void*, double) EI_ORIGINAL(0x00437370)
@@ -820,7 +819,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
                 r.high = r.begin + length;
                 if (r.high > r.end) static_cast<GameBuffer*>(&r)->Grow(length);
             } else {
-                length = static_cast<std::uint32_t>(BufferLengthAt(&q->reply));
+                length = static_cast<std::uint32_t>(BufferLength(&q->reply));
                 archive->Field(2, &length, 4);
             }
             archive->Field(3, q->reply.begin, length);

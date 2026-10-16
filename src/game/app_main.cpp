@@ -26,6 +26,7 @@
 #include "console.h"
 #include "logic_settings.h"
 #include "model.h"
+#include "net_session.h"
 #include "object_tables.h"
 #include "options.h"
 #include "sound.h"
@@ -574,14 +575,14 @@ bool RunWorlds() {
             settled = false;
             if (!ServerUpdate()(Server(), nullptr)) return false;
             ServerBacklog() -= TickLength();
-            NetworkTimers();
+            net::Pump();
         }
         if (ClientBacklog() >= TickLength() && (Client()->PumpHasIncoming() || !Client()->IsLocalViewMode2())) {
             if (!ClientSegment()(Client(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             ClientBacklog() -= tick;
             CameraUpdateAt(Camera(), nullptr, CameraSeconds(tick));
-            NetworkTimers();
+            net::Pump();
             continue;
         }
         if (settled) return true;
@@ -632,7 +633,7 @@ bool RunPass() {
         else TheGameFlow()->CloseSessions();
     }
     if (elapsed > 0x80000000u) elapsed = 0;
-    NetworkTimers();
+    net::Pump();
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (RecordingFrames()) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.

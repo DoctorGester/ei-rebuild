@@ -8,6 +8,7 @@
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
+#include "net_session.h"
 #include "world.h"
 
 #include "camera.h"
@@ -294,7 +295,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 29, 0);
         SetRenderState(renderer, 14, 1);
     }
-    NetworkTimers();
+    net::Pump();
     if ((flags_ & 0x100) && terrain_) {
         char frame[12];
         CameraFrame(camera_, nullptr, frame);
@@ -305,7 +306,7 @@ int CWorldClient::Render() {
         Flush(renderer);
     }
     DrawPassAt(this);
-    NetworkTimers();
+    net::Pump();
     if ((flags_ & 0x100) && terrain_) {
         char frame[12];
         CameraFrame(camera_, nullptr, frame);
@@ -317,7 +318,7 @@ int CWorldClient::Render() {
         TerrainDrawSecond(terrain_, nullptr, SceneContext());
         Flush(renderer);
     }
-    NetworkTimers();
+    net::Pump();
     if (flags_ & 0x400) {
         Flush(renderer);
         ApplyStateBlock(renderer, StateBlockAlpha());
@@ -345,7 +346,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 14, 1);
     }
     ApplyStateBlock(renderer, StateBlockScene());
-    NetworkTimers();
+    net::Pump();
     DrawLineLists();
     PopMatrix(device->stacks_[kStackWorld]);
     PopMatrix(device->stacks_[kStackScene2]);

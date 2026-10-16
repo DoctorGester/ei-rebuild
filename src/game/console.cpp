@@ -71,10 +71,6 @@ bool NetworkGame() { return IsNetworkClientOriginal(); }
 // address, so its verify wrapper runs.
 __declspec(naked) int __stdcall RunScriptTextAt(mfc::CString*, int /*run*/, ScriptLoadError*) EI_ORIGINAL(0x005785D0)
 
-// Calls between the console functions go through the original addresses, so that each runs
-// through its own verify wrapper in verify builds (and through any other mod's patch).
-__declspec(naked) int __fastcall TokenizeAt(const char*, CStringArray*) EI_ORIGINAL(0x004DC200)
-
 void* const kFlush = reinterpret_cast<void*>(0x00435000);   // ostream& flush(ostream&)
 
 } // namespace
@@ -180,7 +176,7 @@ void __fastcall Execute(const char* text) {
 
     mfc::CString command;
     CStringArray args;
-    TokenizeAt(text, &args);
+    Tokenize(text, &args);
     if (args.GetSize() == 0) return;
     command = args[0];
     args.RemoveAt(0, 1);

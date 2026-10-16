@@ -20,26 +20,6 @@ namespace net {
 
 namespace {
 
-// Winsock through the import thunks (006E60E2 ...).
-__declspec(naked) std::uint16_t __stdcall WsHtons(std::uint16_t) EI_ORIGINAL(0x006E60E2)
-__declspec(naked) void* __stdcall WsGetHostByName(const char*) EI_ORIGINAL(0x006E60E8)
-__declspec(naked) std::uint32_t __stdcall WsInetAddr(const char*) EI_ORIGINAL(0x006E60EE)
-__declspec(naked) std::uint16_t __stdcall WsNtohs(std::uint16_t) EI_ORIGINAL(0x006E60F4)
-__declspec(naked) void* __stdcall WsGetHostByAddr(const void*, int, int) EI_ORIGINAL(0x006E60FA)
-__declspec(naked) int __stdcall WsStartup(std::uint16_t, void*) EI_ORIGINAL(0x006E6106)
-__declspec(naked) int __stdcall WsCleanup() EI_ORIGINAL(0x006E610C)
-__declspec(naked) int __stdcall WsCloseSocket(std::uint32_t) EI_ORIGINAL(0x006E6112)
-__declspec(naked) int __stdcall WsSetSockOpt(std::uint32_t, int, int, const void*, int) EI_ORIGINAL(0x006E6118)
-__declspec(naked) int __stdcall WsIoctlSocket(std::uint32_t, long, std::uint32_t*) EI_ORIGINAL(0x006E611E)
-__declspec(naked) int __stdcall WsBind(std::uint32_t, const void*, int) EI_ORIGINAL(0x006E6124)
-__declspec(naked) std::uint32_t __stdcall WsSocket(int, int, int) EI_ORIGINAL(0x006E612A)
-__declspec(naked) int __stdcall WsSendTo(std::uint32_t, const void*, int, int, const void*, int) EI_ORIGINAL(0x006E6130)
-__declspec(naked) int __stdcall WsRecvFrom(std::uint32_t, void*, int, int, void*, int*) EI_ORIGINAL(0x006E6136)
-__declspec(naked) int __stdcall WsConnect(std::uint32_t, const void*, int) EI_ORIGINAL(0x006E613C)
-__declspec(naked) int __stdcall WsRecv(std::uint32_t, void*, int, int) EI_ORIGINAL(0x006E6142)
-__declspec(naked) int __stdcall WsSend(std::uint32_t, const void*, int, int) EI_ORIGINAL(0x006E6148)
-__declspec(naked) int __stdcall WsSelect(int, void*, void*, void*, const void*) EI_ORIGINAL(0x006E614E)
-
 constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 const void* SelectTimeout() { return reinterpret_cast<const void*>(0x0079B928); }
@@ -93,13 +73,13 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         stlp::string host(s.data(), s.data() + m);
         s.Assign(host.data(), host.data() + host.size());
     }
-    ip = WsInetAddr(s.data());
+    ip = libcrt::imports::InetAddr(s.data());
     if (ip == 0xFFFFFFFFu) {
-        void* h = WsGetHostByName(s.data());
+        void* h = libcrt::imports::GetHostByName(s.data());
         if (!h) return false;
         ip = FirstAddress(h);
     }
-    port = WsHtons(static_cast<std::uint16_t>(number));
+    port = libcrt::imports::Htons(static_cast<std::uint16_t>(number));
     return true;
 }
 EI_REPLACE_METHOD(0x00440440, NetAddress::Parse);
@@ -109,15 +89,15 @@ StringRep* NetAddress::Format(StringRep* out, int resolve) const {
     char text[0x400];
     bool named = false;
     if (static_cast<std::uint8_t>(resolve)) {
-        void* h = WsGetHostByAddr(this, 0x10, 2);
+        void* h = libcrt::imports::GetHostByAddr(this, 0x10, 2);
         if (h && *static_cast<char**>(h)) {
-            std::uint16_t value = WsNtohs(port);
+            std::uint16_t value = libcrt::imports::Ntohs(port);
             gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784054), *static_cast<char**>(h), value & 0xFFFF);
             named = true;
         }
     }
     if (!named) {
-        std::uint16_t value = WsNtohs(port);
+        std::uint16_t value = libcrt::imports::Ntohs(port);
         auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
         gamecrt::sprintf(text, reinterpret_cast<const char*>(0x00784044), bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
@@ -145,11 +125,11 @@ SocketDriver* SocketDriver::Construct() {
     addressesEnd = nullptr;
     addressesEos = nullptr;
     alignas(4) std::uint8_t wsa[0x190];
-    WsStartup(0x101, wsa);
+    libcrt::imports::WsaStartup(0x101, wsa);
     socket = kNoSocket;
     char name[1000];
-    if (WsGetHostName(name, 1000) != 0) return this;
-    void* h = WsGetHostByName(name);
+    if (libcrt::imports::GetHostName(name, 1000) != 0) return this;
+    void* h = libcrt::imports::GetHostByName(name);
     if (!h) return this;
     NetAddress a{};
     a.family = 2;
@@ -172,33 +152,33 @@ SocketDriver* SocketDriver::Construct() {
 EI_REPLACE_METHOD(0x004407F0, SocketDriver::Construct);
 
 void SocketDriver::Destruct() {
-    if (socket != kNoSocket) WsCloseSocket(socket);
+    if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
     socket = kNoSocket;
-    WsCleanup();
+    libcrt::imports::WsaCleanup();
     if (addresses) stlp::deallocate(addresses, static_cast<std::size_t>(addressesEos - addresses) * sizeof(NetAddress));
 }
 EI_REPLACE_METHOD(0x00440940, SocketDriver::Destruct);
 
 bool SocketDriver::Open(int port) {
-    if (socket != kNoSocket) WsCloseSocket(socket);
+    if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
     socket = kNoSocket;
-    socket = WsSocket(2, 2, 0x11);
+    socket = libcrt::imports::Socket(2, 2, 0x11);
     if (socket == kNoSocket) return false;
     NetAddress a{};
     a.family = 2;
-    a.port = WsHtons(static_cast<std::uint16_t>(port));
-    if (port > 0 && WsBind(socket, &a, 0x10) != 0) {
+    a.port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
+    if (port > 0 && libcrt::imports::Bind(socket, &a, 0x10) != 0) {
         // Not the game's: a second game on the machine holding the port leaves this session without a
         // socket, and its local client then talks to that game's server (N0c). The verify build's
         // check of the server's constructor builds a second server, which always gets this.
         ei::Log("net: UDP port %d is taken (bind failed): this session gets no socket", port);
-        WsCloseSocket(socket);
+        libcrt::imports::CloseSocket(socket);
         socket = kNoSocket;
         return false;
     }
     std::uint32_t one = 1;
-    WsIoctlSocket(socket, kNonBlocking, &one);
-    WsSetSockOpt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
+    libcrt::imports::IoctlSocket(socket, kNonBlocking, &one);
+    libcrt::imports::SetSockOpt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
     return true;
 }
 EI_REPLACE_METHOD(0x004409A0, SocketDriver::Open);
@@ -206,7 +186,7 @@ EI_REPLACE_METHOD(0x004409A0, SocketDriver::Open);
 bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     if (index >= AddressCount(this)) return false;
     *out = addresses[index];
-    out->port = WsHtons(static_cast<std::uint16_t>(port));
+    out->port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
     return true;
 }
 EI_REPLACE_METHOD(0x00440A90, SocketDriver::Broadcast);
@@ -233,7 +213,7 @@ EI_REPLACE_METHOD(0x00440AF0, SocketDriver::IsLocal);
 
 bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
     std::int32_t length = Length(buffer);
-    return WsSendTo(socket, buffer->begin, length, 0, address, 0x10) == length;
+    return libcrt::imports::SendTo(socket, buffer->begin, length, 0, address, 0x10) == length;
 }
 EI_REPLACE_METHOD(0x00440B90, SocketDriver::SendTo);
 
@@ -241,7 +221,7 @@ EI_REPLACE_METHOD(0x00440B90, SocketDriver::SendTo);
 bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
     buffer->Seek(0x800);
     int fromLength = 0x10;
-    int n = WsRecvFrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
+    int n = libcrt::imports::RecvFrom(socket, buffer->begin, 0x800, 0, from, &fromLength);
     if (n >= 0) {
         from->family = 2;
         std::memset(from->zero, 0, sizeof(from->zero));
@@ -259,22 +239,22 @@ EI_REPLACE_METHOD(0x00440BE0, SocketDriver::Receive);
 MasterLink* MasterLink::Construct(const void* address) {
     GrowingBufferConstruct(&out);
     GrowingBufferConstruct(&in);
-    socket = WsSocket(2, 1, 6);
+    socket = libcrt::imports::Socket(2, 1, 6);
     if (socket == kNoSocket) {
         state = 0;
         return this;
     }
     std::uint8_t any[16] = {};
     any[0] = 2;
-    if (WsBind(socket, any, 0x10) != 0) {
-        if (socket != kNoSocket) WsCloseSocket(socket);
+    if (libcrt::imports::Bind(socket, any, 0x10) != 0) {
+        if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
         socket = kNoSocket;
         state = 0;
         return this;
     }
     std::uint32_t one = 1;
-    WsIoctlSocket(socket, kNonBlocking, &one);
-    WsConnect(socket, address, 0x10);
+    libcrt::imports::IoctlSocket(socket, kNonBlocking, &one);
+    libcrt::imports::Connect(socket, address, 0x10);
     state = 1;
     return this;
 }
@@ -282,7 +262,7 @@ EI_REPLACE_METHOD(0x00440C60, MasterLink::Construct);
 
 // 00440D40: closes the socket (left as it is) and destroys the buffers.
 void __fastcall MasterLinkDestruct(MasterLink* self) {
-    if (self->socket != kNoSocket) WsCloseSocket(self->socket);
+    if (self->socket != kNoSocket) libcrt::imports::CloseSocket(self->socket);
     GrowingBufferDestruct(&self->in);
     GrowingBufferDestruct(&self->out);
 }
@@ -298,25 +278,25 @@ int __fastcall MasterLinkTick(MasterLink* self) {
         std::uint32_t sockets[1];
     } set = {1, {self->socket}};
     auto close = [self](std::int32_t state) {
-        if (self->socket != kNoSocket) WsCloseSocket(self->socket);
+        if (self->socket != kNoSocket) libcrt::imports::CloseSocket(self->socket);
         self->socket = kNoSocket;
         self->state = state;
     };
     switch (self->state) {
     case 1:
-        if (WsSelect(0, nullptr, &set, nullptr, SelectTimeout()) == 1) {
+        if (libcrt::imports::Select(0, nullptr, &set, nullptr, SelectTimeout()) == 1) {
             self->state = 4;
             return self->state;
         }
-        if (WsSelect(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
+        if (libcrt::imports::Select(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
         return self->state;
     case 2: {
-        if (WsSelect(0, &set, nullptr, nullptr, SelectTimeout()) != 1) {
-            if (WsSelect(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
+        if (libcrt::imports::Select(0, &set, nullptr, nullptr, SelectTimeout()) != 1) {
+            if (libcrt::imports::Select(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
             return self->state;
         }
         std::uint8_t data[0x800];
-        int n = WsRecv(self->socket, data, 0x800, 0);
+        int n = libcrt::imports::Recv(self->socket, data, 0x800, 0);
         if (n == -1) {
             close(0);
             return self->state;
@@ -345,16 +325,16 @@ int __fastcall MasterLinkTick(MasterLink* self) {
         return self->state;
     }
     case 4: {
-        if (WsSelect(0, nullptr, &set, nullptr, SelectTimeout()) != 1) {
-            if (WsSelect(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
+        if (libcrt::imports::Select(0, nullptr, &set, nullptr, SelectTimeout()) != 1) {
+            if (libcrt::imports::Select(0, nullptr, nullptr, &set, SelectTimeout()) == 1) close(0);
             return self->state;
         }
         self->state = 2;
         std::uint32_t mode = 0;
-        WsIoctlSocket(self->socket, kNonBlocking, &mode);
-        int sent = WsSend(self->socket, self->out.begin, Length(&self->out), 0);
+        libcrt::imports::IoctlSocket(self->socket, kNonBlocking, &mode);
+        int sent = libcrt::imports::Send(self->socket, self->out.begin, Length(&self->out), 0);
         mode = 1;
-        WsIoctlSocket(self->socket, kNonBlocking, &mode);
+        libcrt::imports::IoctlSocket(self->socket, kNonBlocking, &mode);
         if (sent != Length(&self->out)) close(0);
         return self->state;
     }

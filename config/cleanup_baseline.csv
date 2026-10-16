@@ -1,5 +1,5 @@
 file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control pragma,raw game address (0x004..0x007 literal),*At view struct,placeholder virtual (SlotNN),byte offset arithmetic,per-file container struct,per-file vector/map/set struct,hand-written vector maths,unknown field,unused field accessed,EI_ORIGINAL forwarder
-src/game/acks_db.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/game/acks_db.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/ai_alarm.cpp,0,0,0,0,10,0,0,0,0,0,0,0,0,1
 src/game/ai_area_lists.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,2
 src/game/ai_bridges.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
@@ -37,7 +37,7 @@ src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_taming.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
-src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0,0,0,13
+src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0,0,0,12
 src/game/console.h,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/console_commands.cpp,0,0,0,0,34,0,0,0,0,0,0,0,0,0
 src/game/cursor_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -101,7 +101,7 @@ src/game/net_connection_life.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,44
 src/game/net_connection_tick.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,11
 src/game/net_game_info.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/net_link.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
-src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,15
+src/game/net_lobby.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,14
 src/game/net_messages.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/net_server.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/net_server_awards.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
@@ -117,19 +117,19 @@ src/game/net_server_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
 src/game/net_server_trade.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/net_server_vars.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0,7
-src/game/net_session_pump.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
+src/game/net_session_pump.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/net_session_tick.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,12
-src/game/net_socket_driver.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,19
+src/game/net_socket_driver.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/object3d_animations.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/object3d_figure_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,4
 src/game/options.cpp,0,0,0,0,124,0,0,0,0,0,0,0,0,12
 src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,53
-src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
+src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,29
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,57
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,194
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,192
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,25
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,165
@@ -151,7 +151,7 @@ src/game/random.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/registry.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/render_helper.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/renderer_init.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,4
-src/game/renderer_sprites.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/game/renderer_sprites.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/renderer_strip.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/resource.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/scene_bones.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,8
@@ -206,7 +206,7 @@ src/game/ui_briefing_create.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_briefing_people.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_camp.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0,9
 src/game/ui_chat_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
+src/game/ui_connect_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/ui_console_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_create_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,18

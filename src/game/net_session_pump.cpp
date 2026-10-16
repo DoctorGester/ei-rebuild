@@ -32,8 +32,6 @@ __declspec(naked) void __fastcall NodeDeallocate(DriverNode*, int /*count*/) EI_
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 // The holder's deleting destructor (0047A6D0, refptr_copies.cpp), called with 0 as the original does.
 __declspec(naked) void* __fastcall HolderDelete(RefPtr*, void*, unsigned) EI_ORIGINAL(0x0047A6D0)
-// 00419CC0: raises a reliable stream's high-water mark.
-__declspec(naked) void __fastcall BufferUpdateHigh(GameBuffer*) EI_ORIGINAL(0x00419CC0)
 // 00417E40 (thiscall on the game server, RET 4): whether the connection is one of its players.
 __declspec(naked) bool __fastcall ServerHasConnection(net::ServerSession*, void*, net::Connection*) EI_ORIGINAL(0x00417E40)
 
@@ -68,7 +66,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         }
         if (known) continue;
         GameBuffer* in = &node->connection->reliableIn_;
-        BufferUpdateHigh(in);
+        net::BufferUpdateHigh(in);
         if (in->base - Addr(in->begin) + Addr(in->high) <= 0) continue;
         net::ServerSession* server = net::GameServer();
         if (!IsLive(server)) continue;

@@ -317,7 +317,10 @@ def registrations(sources, library):
             kind = m.group(1) or ''
             if kind == '_STANDALONE' and not library:
                 continue
-            regs[int(m.group(2), 16)].append((m.group(3).replace(' ', ''), s))
+            name = m.group(3).replace(' ', '')
+            # A registration inside a namespace names a function of it: tried first (then the name as written).
+            chain = [n for n in s.namespaces_at(m.start()) if n != "`anonymous namespace'"]
+            regs[int(m.group(2), 16)].append(('::'.join(chain + [name]) if chain else name, s, name))
     return regs
 
 
@@ -870,7 +873,7 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
         if len(regs[f.address]) != 1:
             f.reason = 'several registrations'
             continue
-        f.target_name, tsrc = regs[f.address][0]
+        f.target_name, tsrc, plain = regs[f.address][0]
         if f.template or not f.name:
             f.reason = 'template forwarder'
             continue
@@ -886,6 +889,10 @@ def analyse(sources, decls, library=False, scope=None, tiers=None):
                 f.reason = why or 'not in the map (overloaded or not compiled) but called'
             continue
         t, why = resolve_target(f.target_name, decls, simple_index)
+        if t is None and plain != f.target_name and why == 'target not found in the map':
+            t, why = resolve_target(plain, decls, simple_index)
+            if t is not None:
+                f.target_name = plain
         if t is None:
             f.reason = why
             continue

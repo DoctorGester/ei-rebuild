@@ -2,6 +2,7 @@
 // saving a game into saves\<slot>, entering a zone. See docs/notes/world.md.
 #include "item_db.h"
 #include "item_db_text.h"
+#include "net_session.h"
 #include "ui.h"
 #include "world.h"
 #include "game_flow_data.h"
@@ -486,7 +487,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
     char host[100];
-    if (WsGetHostName(host, sizeof(host)) != 0) return;
+    if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
     std::uint32_t address[4] = {0, 0, 0, 0};
     AddressInit(address, nullptr, host, kHostPort);
     alignas(4) std::uint8_t text[12];
@@ -1670,7 +1671,7 @@ void GameFlow::ProcessRequest() {
         break;
     }
     state = 0;
-    NetworkTimers();
+    net::Pump();
 }
 
 // ---- LoadGame (0057ABA0) ------------------------------------------------------------------------

@@ -60,7 +60,6 @@ __declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const 
 __declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
 __declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
-__declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
@@ -496,11 +495,6 @@ __declspec(naked) inline void __fastcall FloatTableDeleteNodeOriginal(void* /*ta
 __declspec(naked) inline void __fastcall FloatTableBeginOriginal(void* /*table*/, void*, void* /*iterator*/)
     EI_ORIGINAL(0x004614C0)
 __declspec(naked) inline void __fastcall BucketVectorDestroyOriginal(void* /*vector*/) EI_ORIGINAL(0x00609F50)
-// dinput.lib's DirectInputCreateEx (import thunk 006E61F0; __stdcall): instance, version, interface id, the
-// interface out, outer unknown.
-__declspec(naked) inline long __stdcall DirectInputCreateExOriginal(void* /*instance*/, unsigned long /*version*/,
-                                                                    const void* /*iid*/, void** /*out*/, void* /*outer*/)
-    EI_ORIGINAL(0x006E61F0)
 // MFC CFont::CreatePointFont(tenths of a point, face, CDC* or null) (0070BBE5, thiscall, RET 0xC): nonzero on success.
 __declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, void*, int /*size*/, const char* /*face*/,
                                                                 void* /*dc*/) EI_ORIGINAL(0x0070BBE5)

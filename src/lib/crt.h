@@ -327,6 +327,33 @@ int Fileno(const gamecrt::CrtFile* file);
 
 } // namespace libcrt
 
+// The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same
+// import slot.
+namespace libcrt::imports {
+
+std::uint16_t __stdcall Htons(std::uint16_t v);                                      // 006E60E2
+void* __stdcall GetHostByName(const char* name);                                     // 006E60E8
+std::uint32_t __stdcall InetAddr(const char* text);                                  // 006E60EE
+std::uint16_t __stdcall Ntohs(std::uint16_t v);                                      // 006E60F4
+void* __stdcall GetHostByAddr(const void* address, int length, int type);            // 006E60FA
+int __stdcall GetHostName(char* name, int length);                                   // 006E6100
+int __stdcall WsaStartup(std::uint16_t version, void* data);                         // 006E6106
+int __stdcall WsaCleanup();                                                          // 006E610C
+int __stdcall CloseSocket(std::uint32_t s);                                          // 006E6112
+int __stdcall SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length); // 006E6118
+int __stdcall IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument);   // 006E611E
+int __stdcall Bind(std::uint32_t s, const void* address, int length);                // 006E6124
+std::uint32_t __stdcall Socket(int family, int type, int protocol);                  // 006E612A
+int __stdcall SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength); // 006E6130
+int __stdcall RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength); // 006E6136
+int __stdcall Connect(std::uint32_t s, const void* address, int length);             // 006E613C
+int __stdcall Recv(std::uint32_t s, void* data, int length, int flags);              // 006E6142
+int __stdcall Send(std::uint32_t s, const void* data, int length, int flags);        // 006E6148
+int __stdcall Select(int count, void* read, void* write, void* except, const void* timeout); // 006E614E
+long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer); // 006E61F0
+
+} // namespace libcrt::imports
+
 namespace game {
 
 // 00480080. Reports a fatal error (printf-style) and normally exits the game.
