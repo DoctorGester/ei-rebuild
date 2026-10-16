@@ -160,13 +160,9 @@
 //                             checks of the composed frames must have found no difference, and its
 //                             rectangle must sit at the mouse less the cursor's hot spot (within the
 //                             distance the mouse covers in two steps of the cursor thread)
-//   render <spec>             the new renderer for this run (src/render/render.h; the format of
-//                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
-//                             With it, "capture" also writes frames\<name>.new.bmp
-//   oldterrain on|off         the old Direct3D path draws the terrain or not (for a terrain mask:
-//                             capture with and without it at one frozen moment)
-//   oldobjects on|off         ... the world's meshes and shadows (with "render new")
-//   oldinterface on|off       ... the interface: window surfaces, sprites, 3D previews
+//   render <spec>             the new renderer for a run of the image (src/render/render.h; the
+//                             format of EI_RENDER, e.g. "new,present"). Read before the game starts.
+//                             Ignored in a run of the original code (game.exe), which never runs it
 //   samecapture <a> <b> [tolerance] [fraction]
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
@@ -2367,12 +2363,6 @@ void RunSteps() {
             if (differing > limit) g_failures.push_back(text);
         } else if (s.verb == "record") {
             *reinterpret_cast<unsigned char*>(0x0079BC54) = s.argument == "on" ? 1 : 0;
-        } else if (s.verb == "oldterrain") {
-            render::SetDrawOldTerrain(s.argument != "off");
-        } else if (s.verb == "oldobjects") {
-            render::SetDrawOldObjects(s.argument != "off");
-        } else if (s.verb == "oldinterface") {
-            render::SetDrawOldInterface(s.argument != "off");
         } else if (s.verb == "waitpresent") {
             int seconds = 10;
             char what[16] = "";
@@ -2858,7 +2848,9 @@ bool LoadScenario(const char* path) {
             continue;
         }
         if (g_steps.back().verb == "render") {
-            render::Configure(g_steps.back().argument.c_str());
+            // The original code draws through dgVoodoo; our renderer runs only in the image.
+            if (ei::Standalone()) render::Configure(g_steps.back().argument.c_str());
+            else ei::Log("harness: 'render %s' ignored: a run of the original code", g_steps.back().argument.c_str());
             g_steps.pop_back();
             continue;
         }

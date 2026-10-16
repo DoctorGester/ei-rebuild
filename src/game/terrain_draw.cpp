@@ -227,10 +227,10 @@ int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int
     if (clipMode == 2) return 1;
     EnsureStatics();
     if (hasWater) ApplyWaterLevels();
-    // The new renderer (src/render) takes the page; with "noterrain" the old path stops here. The
-    // water levels above stay: they move the water surface that height queries read.
+    // The new renderer (src/render) takes the page and the old path stops here. The water levels
+    // above stay: they move the water surface that height queries read.
     if (render::Active()) render::TerrainPage(this, context, page);
-    if (!render::DrawOldTerrain()) return 1;
+    if (render::Presenting()) return 1;
 
     for (int quarter = 0; quarter < 4; ++quarter) {
         int mode = quarterMode[quarter];

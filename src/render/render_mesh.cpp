@@ -574,7 +574,7 @@ bool MeshPass(void* device) {
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
-    return DrawOldMeshes();
+    return false;   // taken: the old path draws nothing
 }
 
 void EndMesh() { g_pending = Pending{}; }
@@ -649,7 +649,7 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     } else {
         f.meshVertices.resize(base);
     }
-    return DrawOldMeshes();
+    return false;   // taken: the old path draws nothing
 }
 
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
@@ -690,7 +690,7 @@ bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
-    return DrawOldMeshes();
+    return false;   // taken: the old path draws nothing
 }
 
 } // namespace render

@@ -1,13 +1,10 @@
-# frames_basic with the interface windows' surfaces in game-owned memory ("render new,cpuwindows",
-# docs/notes/renderer.md, "Interface windows and holders on game memory"). Both frames are
-# written (old <name>.bmp, new <name>.new.bmp); the windows must look the same in both and as in a
-# plain frames_basic run:
-#   python tools\compare_frames.py <run>\frames\camp.new.bmp <run>\frames\camp.bmp
+# frames_basic with the interface windows' surfaces in memory the new renderer owns ("render
+# new,cpuwindows", docs/notes/renderer.md, "Interface windows and holders on game memory"); the
+# windows must look as in a plain frames_basic run:
 #   python tools\compare_frames.py <frames_basic run>\frames\camp.bmp <run>\frames\camp.bmp
-# ei_hook.log says "cpuwindows: client-memory surface ... refused" if DirectDraw (dgVoodoo) does not
-# take the memory (then plain surfaces are used). world / world_again must match.
-# On the standalone image (always "present") only the new frame is written, as in
-# render_present_cpuwindows; this run keeps its own walk (the camp, the global map) and golden.
+# world / world_again must match. The same frames as render_present_cpuwindows; this run keeps its
+# own walk (the camp, the global map) and golden. A run of the original code captures dgVoodoo's
+# frames.
 render new,cpuwindows
 reject Script error
 waitmenu

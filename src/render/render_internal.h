@@ -165,8 +165,6 @@ void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* value
 void RenderValues(const std::uint32_t* states, std::uint32_t* values, int count);
 void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
 void PassDone();
-// Inside the world view's draw (render::BeginWorld .. EndWorld).
-bool InWorld();
 // The device object (007AF080) and its render target's size.
 CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);

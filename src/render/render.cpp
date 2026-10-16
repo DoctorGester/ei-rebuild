@@ -1,6 +1,5 @@
 // The new renderer's frame: the switch, the Direct3D 11 device behind sokol_gfx, the off-screen
-// target the frame is drawn into (the game's resolution), the child window that can show it, and
-// reading it back for captures. See render.h and docs/notes/renderer.md.
+// target the frame is drawn into (the game's resolution) and reading it back for captures. See render.h and docs/notes/renderer.md.
 #include "render.h"
 #include "render_game.h"
 #include "render_internal.h"
@@ -13,7 +12,6 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <ddraw.h>
-#include <dxgi1_2.h>
 #include <float.h>
 
 #include "../game/device_switchover.h"   // device::WithoutDirectDraw, SwitchOverRenderState
@@ -33,74 +31,36 @@ using namespace detail;
 // --- The switch ------------------------------------------------------------------------------------
 
 bool g_configured = false;
-bool g_active = false;
-bool g_show = false;
-bool g_split = false;
-bool g_present = false;
-bool g_cpuWindows = false;
-bool g_oldTerrain = true;
-bool g_oldObjects = true;
-bool g_oldInterface = true;
-bool g_inWorld = false;
+bool g_active = false;   // "new": the new renderer draws and presents every frame
 bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 
 void ParseSpec(const char* spec) {
-    g_active = g_show = g_split = g_present = g_cpuWindows = false;
-    g_oldTerrain = g_oldObjects = g_oldInterface = true;
+    g_active = false;
     std::string s = spec ? spec : "";
     std::size_t start = 0;
-    bool noCpuWindows = false;
     while (start <= s.size()) {
         std::size_t comma = s.find(',', start);
         std::string word = s.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
         while (!word.empty() && word.front() == ' ') word.erase(word.begin());
         while (!word.empty() && word.back() == ' ') word.pop_back();
         if (word == "new") g_active = true;
-        else if (word == "show") g_show = true;
-        else if (word == "split") g_show = g_split = true;
-        else if (word == "noterrain") g_oldTerrain = false;
-        else if (word == "noobjects") g_oldObjects = false;
-        else if (word == "nointerface") g_oldInterface = false;
-        else if (word == "present") g_present = true;
-        else if (word == "cpuwindows") g_cpuWindows = true;
-        else if (word == "nocpuwindows") noCpuWindows = true;
+        else if (word == "present" || word == "cpuwindows") {}   // what "new" means (run_all, the scenarios name them)
         else if (!word.empty()) ei::Log("render: unknown option '%s' in EI_RENDER", word.c_str());
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
-    if (g_present) {
-        // No child window: a second swap chain over dgVoodoo's full-screen one deactivated the game
-        // (WM_ACTIVATE inactive: the game stops drawing and minimises itself). The frame is copied
-        // into the game's render target and the old present shows it.
-        g_show = g_split = false;
-        g_oldTerrain = g_oldObjects = g_oldInterface = false;
-        // The windows' pixels in game-owned memory (render_present_cpuwindows passes on both
-        // installs); "nocpuwindows" keeps DirectDraw's own surfaces.
-        g_cpuWindows = true;
-    }
-    if (noCpuWindows) g_cpuWindows = false;
-    if (!g_active) {
-        g_show = g_split = g_present = g_cpuWindows = false;
-        g_oldTerrain = g_oldObjects = g_oldInterface = true;
-    }
-    if (g_presentsItself && !(g_active && g_present && g_cpuWindows)) {
+    if (g_presentsItself && !g_active) {
         // The game was built without DirectDraw (StartPresenting): only the new renderer can draw.
-        ei::Log("render: '%s' asks for the old path, but the game has no DirectDraw device: 'new,present' stays on",
-                spec ? spec : "");
-        g_active = g_present = g_cpuWindows = true;
-        g_show = g_split = false;
-        g_oldTerrain = g_oldObjects = g_oldInterface = false;
+        ei::Log("render: '%s' asks for the old path, but the game has no DirectDraw device: 'new' stays on", spec ? spec : "");
+        g_active = true;
     }
     g_configured = true;
-    if (g_active)
-        ei::Log("render: new renderer on (%s%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
-                g_oldTerrain ? "" : ", old terrain off", g_oldObjects ? "" : ", old objects off",
-                g_oldInterface ? "" : ", old interface off", g_cpuWindows ? ", windows in game memory" : "");
+    if (g_active) ei::Log("render: new renderer on (presenting, windows in game memory)");
 }
 
-// EI_RENDER; without it "" (the old path), in the standalone image "new,present": it has no dgVoodoo to
-// count on and the new renderer presents by itself.
+// EI_RENDER; without it "" (off), in the standalone image "new,present": it has no dgVoodoo to count on
+// and the new renderer presents by itself.
 std::string EnvironmentSpec() {
     char spec[256];
     DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
@@ -241,194 +201,6 @@ bool EnsureTarget(int width, int height) {
     return true;
 }
 
-// --- The child window that shows the frame ("show", "split") --------------------------------------------
-
-HWND g_view = nullptr;
-IDXGISwapChain* g_swapChain = nullptr;
-ID3D11RenderTargetView* g_swapView = nullptr;
-int g_viewWidth = 0, g_viewHeight = 0;
-sg_shader g_blitShader{};
-sg_pipeline g_blitPipeline{};
-bool g_viewFailed = false;
-
-LRESULT CALLBACK ViewProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == WM_NCHITTEST) return HTTRANSPARENT;   // the game gets the mouse
-    if (message == WM_ERASEBKGND) return 1;
-    return DefWindowProcA(window, message, wParam, lParam);
-}
-
-const char* const kShowSource = R"(
-cbuffer params : register(b0) { float4 source; };
-struct vs_out { float2 uv : TEXCOORD0; float4 pos : SV_Position; };
-vs_out vs_main(uint id : SV_VertexID) {
-    float2 p = float2((id << 1) & 2, id & 2);
-    vs_out o;
-    o.pos = float4(p.x * 2.0 - 1.0, 1.0 - p.y * 2.0, 0.0, 1.0);
-    o.uv = lerp(source.xy, source.zw, p);
-    return o;
-}
-Texture2D<float4> tex : register(t0);
-SamplerState smp : register(s0);
-float4 ps_main(vs_out i) : SV_Target0 { return float4(tex.Sample(smp, i.uv).rgb, 1.0); }
-)";
-
-bool CreateShowPipeline() {
-    sg_shader_desc s{};
-    s.vertex_func.source = kShowSource;
-    s.vertex_func.entry = "vs_main";
-    s.fragment_func.source = kShowSource;
-    s.fragment_func.entry = "ps_main";
-    s.uniform_blocks[0].stage = SG_SHADERSTAGE_VERTEX;
-    s.uniform_blocks[0].size = 16;
-    s.uniform_blocks[0].hlsl_register_b_n = 0;
-    s.views[0].texture.stage = SG_SHADERSTAGE_FRAGMENT;
-    s.views[0].texture.image_type = SG_IMAGETYPE_2D;
-    s.views[0].texture.sample_type = SG_IMAGESAMPLETYPE_FLOAT;
-    s.views[0].texture.hlsl_register_t_n = 0;
-    s.samplers[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.samplers[0].sampler_type = SG_SAMPLERTYPE_FILTERING;
-    s.samplers[0].hlsl_register_s_n = 0;
-    s.texture_sampler_pairs[0].stage = SG_SHADERSTAGE_FRAGMENT;
-    s.texture_sampler_pairs[0].view_slot = 0;
-    s.texture_sampler_pairs[0].sampler_slot = 0;
-    s.label = "ei-show";
-    g_blitShader = sg_make_shader(&s);
-    sg_pipeline_desc p{};
-    p.shader = g_blitShader;
-    p.colors[0].pixel_format = SG_PIXELFORMAT_BGRA8;
-    p.depth.pixel_format = SG_PIXELFORMAT_NONE;
-    p.sample_count = 1;
-    p.label = "ei-show";
-    g_blitPipeline = sg_make_pipeline(&p);
-    return sg_query_pipeline_state(g_blitPipeline) == SG_RESOURCESTATE_VALID;
-}
-
-void ReleaseSwapView() {
-    if (g_swapView) g_swapView->Release();
-    g_swapView = nullptr;
-}
-
-bool CreateSwapView() {
-    ID3D11Texture2D* buffer = nullptr;
-    if (FAILED(g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&buffer)))) return false;
-    HRESULT hr = g_device->CreateRenderTargetView(buffer, nullptr, &g_swapView);
-    buffer->Release();
-    return SUCCEEDED(hr);
-}
-
-bool CreateView(int width, int height) {
-    HINSTANCE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&ViewProc), &self);
-    WNDCLASSA wc{};
-    wc.lpfnWndProc = &ViewProc;
-    wc.hInstance = self;
-    wc.lpszClassName = "EiNewRendererView";
-    RegisterClassA(&wc);
-    g_view = CreateWindowExA(0, wc.lpszClassName, "", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, 0, 0, width, height,
-                             GameWindow(), nullptr, self, nullptr);
-    if (!g_view) return false;
-    IDXGIDevice* dxgiDevice = nullptr;
-    IDXGIAdapter* adapter = nullptr;
-    IDXGIFactory* factory = nullptr;
-    bool ok = SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
-              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
-              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&factory)));
-    if (ok) {
-        DXGI_SWAP_CHAIN_DESC sd{};
-        sd.BufferDesc.Width = static_cast<UINT>(width);
-        sd.BufferDesc.Height = static_cast<UINT>(height);
-        sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        sd.SampleDesc.Count = 1;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.BufferCount = 1;
-        sd.OutputWindow = g_view;
-        sd.Windowed = TRUE;
-        sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-        ok = SUCCEEDED(factory->CreateSwapChain(g_device, &sd, &g_swapChain));
-        if (ok) factory->MakeWindowAssociation(g_view, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
-    }
-    if (factory) factory->Release();
-    if (adapter) adapter->Release();
-    if (dxgiDevice) dxgiDevice->Release();
-    ok = ok && CreateSwapView() && (g_blitPipeline.id || CreateShowPipeline());
-    if (!ok) return false;
-    g_viewWidth = width;
-    g_viewHeight = height;
-    return true;
-}
-
-// Draws the frame's `source` part (texture coordinates: left, top, right, bottom) over the whole
-// of `view` (`width` x `height`, BGRA8).
-void DrawFrameInto(ID3D11RenderTargetView* view, int width, int height, const float source[4]) {
-    sg_pass pass{};
-    pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
-    pass.swapchain.width = width;
-    pass.swapchain.height = height;
-    pass.swapchain.sample_count = 1;
-    pass.swapchain.color_format = SG_PIXELFORMAT_BGRA8;
-    pass.swapchain.depth_format = SG_PIXELFORMAT_NONE;
-    pass.swapchain.d3d11.render_view = view;
-    pass.label = "ei-show";
-    sg_begin_pass(&pass);
-    sg_apply_pipeline(g_blitPipeline);
-    sg_bindings b{};
-    b.views[0] = g_colourTexture;
-    b.samplers[0] = LinearSampler();
-    sg_apply_bindings(&b);
-    float uniforms[4] = {source[0], source[1], source[2], source[3]};
-    sg_range range{uniforms, sizeof(uniforms)};
-    sg_apply_uniforms(0, &range);
-    sg_draw(0, 3, 1);
-    sg_end_pass();
-}
-
-// Shows the frame in the child window: the whole client area, or its right half for "split" (the
-// same half of the frame, so the two halves line up with the old frame's).
-void ShowFrame() {
-    if (!g_show || g_viewFailed || !g_colour.id) return;
-    RECT client{};
-    if (!GetClientRect(GameWindow(), &client)) return;
-    int clientWidth = client.right - client.left, clientHeight = client.bottom - client.top;
-    if (clientWidth <= 0 || clientHeight <= 0) return;
-    int x = g_split ? clientWidth / 2 : 0;
-    int width = clientWidth - x;
-    if (!g_view) {
-        if (!CreateView(width, clientHeight)) {
-            ei::Log("render: cannot create the window that shows the new frame");
-            g_viewFailed = true;
-            return;
-        }
-    }
-    if (width != g_viewWidth || clientHeight != g_viewHeight) {
-        ReleaseSwapView();
-        if (FAILED(g_swapChain->ResizeBuffers(1, static_cast<UINT>(width), static_cast<UINT>(clientHeight),
-                                              DXGI_FORMAT_B8G8R8A8_UNORM, 0)) ||
-            !CreateSwapView()) {
-            g_viewFailed = true;
-            return;
-        }
-        g_viewWidth = width;
-        g_viewHeight = clientHeight;
-    }
-    SetWindowPos(g_view, HWND_TOP, x, 0, width, clientHeight, SWP_NOACTIVATE);
-    const float source[4] = {g_split ? 0.5f : 0.0f, 0.0f, 1.0f, 1.0f};
-    DrawFrameInto(g_swapView, width, clientHeight, source);
-}
-
-void DropShowWindow() {
-    ReleaseSwapView();
-    if (g_swapChain) g_swapChain->Release();
-    g_swapChain = nullptr;
-    if (g_blitPipeline.id) sg_destroy_pipeline(g_blitPipeline);
-    if (g_blitShader.id) sg_destroy_shader(g_blitShader);
-    g_blitPipeline = sg_pipeline{};
-    g_blitShader = sg_shader{};
-    if (g_view) DestroyWindow(g_view);   // made again with a swap chain of the new device
-    g_view = nullptr;
-    g_viewWidth = g_viewHeight = 0;
-}
-
 // --- The frame -----------------------------------------------------------------------------------------
 
 Frame g_frame;
@@ -436,7 +208,6 @@ bool g_frameDrawn = false;
 bool g_started = false;
 std::uint32_t g_frameNumber = 0;
 std::uint32_t g_commits = 0;
-int g_presentFailures = 0;
 
 bool EnsureStarted() {
     EnsureConfigured();
@@ -470,7 +241,6 @@ bool RecreateDevice() {
     std::size_t kept = 0, keptBytes = 0;
     DropCursorPresents();
     DropWindow();
-    DropShowWindow();
     DestroyTarget();
     if (g_staging) g_staging->Release();
     g_staging = nullptr;
@@ -660,8 +430,6 @@ void ReadFog(Frame& f) {
     f.fogColour = values[1];
 }
 
-bool InWorld() { return g_inWorld; }
-
 } // namespace detail
 
 namespace game {
@@ -686,67 +454,20 @@ bool Active() {
 
 bool CpuWindows() {
     EnsureConfigured();
-    return g_cpuWindows && g_active;
+    return g_active;
 }
 
-bool Presenting() {
-    EnsureConfigured();
-    return g_present && Active();
-}
+bool Presenting() { return Active(); }
 
 bool StartPresenting() {
     if (g_presentsItself) return true;
     if (!Presenting() || !EnsureStarted()) return false;
     g_presentsItself = true;
-    // No DirectDraw surfaces for the windows either.
-    if (!g_cpuWindows) ei::Log("render: 'nocpuwindows' needs DirectDraw: the windows' pixels stay in game memory");
-    g_cpuWindows = true;
     ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
     return true;
 }
 
 bool PresentsItself() { return g_presentsItself; }
-
-bool DrawOldTerrain() {
-    EnsureConfigured();
-    return g_oldTerrain || !Active();
-}
-
-// The harness's oldterrain / oldobjects / oldinterface steps. With `present` the old path stays off: it has no
-// device to draw into (or its frame is replaced by the new one), and running it anyway changed the new frame
-// (render_scene's world / world_again in a native run: the terrain darker and the water's phase after "on").
-namespace {
-bool OldPathSwitchable(const char* step, bool on) {
-    if (!on || !g_present) return true;
-    ei::Log("render: '%s on' ignored: with 'present' the old path stays off", step);
-    return false;
-}
-} // namespace
-
-void SetDrawOldTerrain(bool on) {
-    EnsureConfigured();
-    if (OldPathSwitchable("oldterrain", on)) g_oldTerrain = on;
-}
-
-bool DrawOldMeshes() {
-    EnsureConfigured();
-    return (g_inWorld ? g_oldObjects : g_oldInterface) || !Active();
-}
-
-bool DrawOldInterface() {
-    EnsureConfigured();
-    return g_oldInterface || !Active();
-}
-
-void SetDrawOldObjects(bool on) {
-    EnsureConfigured();
-    if (OldPathSwitchable("oldobjects", on)) g_oldObjects = on;
-}
-
-void SetDrawOldInterface(bool on) {
-    EnsureConfigured();
-    if (OldPathSwitchable("oldinterface", on)) g_oldInterface = on;
-}
 
 void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
                    std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
@@ -754,9 +475,6 @@ void TexturePixels(const void* holder, const void* pixels, int width, int height
     FpuGuard fpu;
     TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
 }
-
-void BeginWorld() { g_inWorld = true; }
-void EndWorld() { g_inWorld = false; }
 
 void ClearDepth(float z, const Rect* rects, int count) {
     if (!Active()) return;
@@ -895,7 +613,7 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     // In the switch-over a surface with memory of the renderer's is written there directly (no
     // DirectDraw); a holder made in the switch-over has nothing else.
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
-    bool direct = memory && (g_present || !dd);
+    bool direct = memory != nullptr;
     if (!dd && !direct) return false;
     FpuGuard fpu;
     if (!g_frameDrawn && !DrawPending()) return false;
@@ -975,7 +693,6 @@ void EndFrame() {
     g_frameDrawn = true;
     FpuGuard fpu;
     if (!DrawPending()) return;
-    ShowFrame();
     // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
     // turn with the cursor thread's presents (render_cursor.cpp), which take the frame as it was
     // before its cursor.
@@ -988,18 +705,9 @@ void EndFrame() {
     }
     sg_commit();
     ++g_commits;
-    if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
     if (toWindow) PresentWindow();
     if (g_presentsItself) EndWindowPresent(toWindow && !g_deviceLost);
     g_haveFrame = true;
-    // "present" turned on after the DirectDraw device was made: into the game's render target,
-    // which the old present then flips or copies to the screen.
-    if (g_present && !g_presentsItself) {
-        CTextureDevice* device = DeviceObject();
-        const CDXSurface* target = device ? device->renderTarget_ : nullptr;
-        if (target && !CopyFrameTo(target, Rect{0, 0, g_width, g_height}) && g_presentFailures++ < 10)
-            ei::Log("render: cannot copy the frame into the game's render target");
-    }
 }
 
 void Present() {
