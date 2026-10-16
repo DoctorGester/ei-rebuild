@@ -122,6 +122,8 @@ class CWorldClient;
 struct ClientArrayManager;
 struct ClientListManager;
 void __fastcall VisFogManagerDestroy(ClientArrayManager* /*manager*/);
+// 004E28D0 (vis_fog_manager.cpp): a new fog object, counted, at the array manager's list end.
+CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* manager);
 struct PlatformSet;
 // A-E2: called by WinMain's main loop (app_main.cpp) and by the zone change (world_game.cpp) through their
 // addresses so that their wrappers run. 005641F0: the client world's tick (CWorldClient::Segment; EAX 0 when the

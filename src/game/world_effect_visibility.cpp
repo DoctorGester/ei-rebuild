@@ -6,6 +6,8 @@
 #include "originals_engine.h"
 #include "originals_world.h"
 #include "world.h"
+#include "unit.h"
+#include "unit_ai.h"
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
@@ -17,14 +19,9 @@ using ei::SetVtable;
 
 namespace {
 
-// The fog manager (*007AF75C); 004E28D0 (thiscall) makes a fog object, already counted once by
-// the manager's list.
-void* FogManager() { return *reinterpret_cast<void**>(0x007AF75C); }
-__declspec(naked) CEngineObject* __fastcall CreateFog(void* /*manager*/) EI_ORIGINAL(0x004E28D0)
-
-// 005CD210 (fastcall, RET 4): the squares `seer` sees, with `observer`'s skills, into `grid`.
-__declspec(naked) void __fastcall ComputeSight(CEngineObject* /*seer*/, CEngineObject* /*observer*/, FogGrid* /*grid*/)
-    EI_ORIGINAL(0x005CD210)
+// The fog manager (*007AF75C); VisFogManagerAdd (004E28D0) makes a fog object, already counted once
+// by the manager's list.
+ClientArrayManager* FogManager() { return *reinterpret_cast<ClientArrayManager**>(0x007AF75C); }
 
 // A memory stream on the stack, as the original builds and destroys it inline.
 struct TempStream {
@@ -90,7 +87,7 @@ void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
 
 void CEffectShowVisibility::Start(int update) {
     if (update == 0) {
-        CEngineObject* created = CreateFog(FogManager());
+        CEngineObject* created = VisFogManagerAdd(FogManager());
         CEngineObject* old = fog_;
         fog_ = created;
         if (created != nullptr) ++created->refCount_;
@@ -119,7 +116,8 @@ int CEffectShowVisibility::Tick() {
     CEngineObject* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
     std::memcpy(&localPosition_, &static_cast<CMapObject*>(seer)->position.x, sizeof(Vector3));
-    ComputeSight(seer, observer, &grid_);
+    // 005CD210: the squares `seer` sees, with `observer`'s skills (the fog grid is a VisibilityGrid).
+    MarkSightCells(static_cast<CUnit*>(seer), static_cast<CUnit*>(observer), reinterpret_cast<VisibilityGrid*>(&grid_));
     MarkChanged();
     return 1;
 }

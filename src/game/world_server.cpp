@@ -7,6 +7,8 @@
 #include "ai_map.h"
 #include "core_maths.h"
 #include "map_object.h"
+#include "net_classes.h"
+#include "spell.h"
 #include "script.h"
 #include "world_effect.h"
 
@@ -20,21 +22,17 @@
 
 namespace {
 
-// The game server object of a multiplayer session (null or flagged inactive otherwise).
-struct GameServer {
-    void* FindPlayer(int id);   // 0041A2E0: player record with +0x2C == id, or null
-};
-__declspec(naked) void* GameServer::FindPlayer(int) EI_ORIGINAL(0x0041A2E0)
-
-GameServer* ActiveGameServer() {
+// The game server object of a multiplayer session (null or flagged inactive otherwise); its
+// FindPlayer (0041A2E0) is the player record with +0x2C == id, or null.
+net::ServerSession* ActiveGameServer() {
     auto* server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
     if (!server || (*reinterpret_cast<std::uint32_t*>(server + 4) & 0x80000000u)) return nullptr;
-    return reinterpret_cast<GameServer*>(server);
+    return reinterpret_cast<net::ServerSession*>(server);
 }
 
 // Player index used by the shared-object list: -1 when not in a multiplayer game or unknown.
 int SharedListPlayer(int playerId) {
-    if (GameServer* server = ActiveGameServer()) {
+    if (net::ServerSession* server = ActiveGameServer()) {
         if (auto* record = static_cast<std::uint8_t*>(server->FindPlayer(playerId)))
             return *reinterpret_cast<int*>(record + 0x30);
     }
@@ -58,11 +56,6 @@ CEngineObject* WorldBase::FindUnit(unsigned id) { return ::WorldFindUnit(this, n
 // 005C1010 (RET 4). CSectorMap::Remove on the server's sector map (+0x294).
 // 005300D0 (RET 4). The unit's controller is replaced (here by none).
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { static_cast<CUnit*>(a0)->SetPlayer(static_cast<char*>(a2)); }
-// 004BED90. A script command queue (+0x12874, +0x12A6C) drops what refers to removed objects.
-__declspec(naked) void __fastcall CommandQueuePurge(void*, void*) EI_ORIGINAL(0x004BED90)
-// 0067EF00 (RET 4). A missile forgets `object`: 0 when it is the missile's owner (+0x1C; the missile
-// is then dropped), else its target (+0x20) is released and cleared if it is `object`; 1.
-__declspec(naked) int __fastcall ProjectileForget(Projectile*, void*, CEngineObject*) EI_ORIGINAL(0x0067EF00)
 // 00599CC0 (RET 4). The missile list's RemoveAt (releases the missile, frees the node).
 __declspec(naked) void __fastcall ProjectileRemoveAt(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x00599CC0)
 
@@ -240,8 +233,8 @@ void CWorldServer::RemoveObject(unsigned id) {
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
     if (unit) UnitSetController(object, nullptr, nullptr);
     object->flags_ |= 1;
-    CommandQueuePurge(commandsA_, nullptr);
-    CommandQueuePurge(commandsB_, nullptr);
+    ScriptPurgeDeletedObjects(MainScript());     // 004BED90: what refers to removed objects dropped
+    ScriptPurgeDeletedObjects(SecondScript());
 
     // Every world object forgets it (the walk stops at an entry without an object).
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
@@ -250,7 +243,9 @@ void CWorldServer::RemoveObject(unsigned id) {
     for (auto* node = projectiles_.head; node;) {
         auto* current = node;
         node = node->next;
-        if (!ProjectileForget(current->data, nullptr, object)) ProjectileRemoveAt(&projectiles_, nullptr, current);
+        // 0067EF00: 0 when the missile's owner left (the missile is then dropped).
+        if (!reinterpret_cast<CSpellEffect*>(current->data)->Forget(object))
+            ProjectileRemoveAt(&projectiles_, nullptr, current);
     }
     {
         PlayerIterator players;

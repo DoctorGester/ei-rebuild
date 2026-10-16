@@ -7,6 +7,8 @@
 
 #include "chunk_stream.h"
 #include "object_tables.h"
+#include "game_arrays.h"
+#include "world_deleting_destructors.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -56,9 +58,6 @@ Quaternion DefaultRotation() {
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0040A3A0. CRefObject::Release (16-bit count at +4): the missiles.
-// 0059DDB0 (RET 4). Destructor of a counted pointer (releases through slot 4; flags & 1 frees it).
-__declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, unsigned /*flags*/)
-    EI_ORIGINAL(0x0059DDB0)
 // 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
 static char** UnitPrototype(CEngineObject* object, void*) { return static_cast<char**>(::UnitPrototypeOf(object)); }
 
@@ -79,7 +78,6 @@ struct UnitRecordBuilder {
 
 } // namespace
 
-__declspec(naked) ZoneExit* ZoneExit::DeletingDestructor(unsigned) EI_ORIGINAL(0x004608B0)
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
@@ -87,7 +85,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
     auto* exits = reinterpret_cast<ZoneExitArray*>(&exitsVtable_);
     if (exits->data) {
         ZoneExit* exit = exits->data;
-        for (int n = exits->size; n != 0; --n, ++exit) exit->DeletingDestructor(0);
+        for (int n = exits->size; n != 0; --n, ++exit) zone::ExitDelete(exit, nullptr, 0);   // 004608B0
         gamecrt::operator_delete(exits->data);
         exits->data = nullptr;
     }
@@ -210,7 +208,7 @@ void CWorldServer::ClearMapObjects() {
     projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)
-        CountedPtrDestroy(reinterpret_cast<void**>(&node->data), nullptr, 0);
+        ObjectHolderDelete(reinterpret_cast<CEngineObject**>(&node->data), nullptr, 0);   // 0059DDB0
     counted_.RemoveAll();
 
     TweenArrayRemoveAllOriginal(countdowns_);

@@ -25,8 +25,6 @@ namespace {
 
 using FogNode = mfc::CList<CEngineObject*>::Node;
 
-// 004E1EB0 (thiscall, RET 4): a fog's cells drawn through the scene renderer.
-__declspec(naked) void __fastcall FogDrawOriginal(CEngineObject* /*fog*/, void*, CSceneRenderer*) EI_ORIGINAL(0x004E1EB0)
 
 constexpr int kFogTextureKind = 6;
 const char* FogTextureName() { return reinterpret_cast<const char*>(0x0078ADAC); }   // "VisionFog"
@@ -122,7 +120,7 @@ int ClientArrayManager::DrawImpl(CSceneRenderer* renderer) {
     for (FogNode* node = list.head; node;) {
         CEngineObject* fog = node->data;
         node = node->next;
-        FogDrawOriginal(fog, nullptr, renderer);
+        reinterpret_cast<CVisibilityFog*>(fog)->Draw(renderer);   // 004E1EB0 (its result not read)
     }
     return 1;
 }

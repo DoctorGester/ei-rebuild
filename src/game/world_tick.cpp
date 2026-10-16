@@ -8,6 +8,7 @@
 
 #include "core_maths.h"
 #include "map_object.h"
+#include "model.h"
 #include "sector_map.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -40,8 +41,6 @@ __declspec(naked) void __fastcall CountedRemoveAt(mfc::CTypedPtrList<CEngineObje
 // 0055F410. Replaces the object at +0x60 with a new one (vtable 0073F3A8).
 // 005C9530. The time wheel (+0x2838): moves to `tick`, emptying that tick's 16 slots.
 __declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
-// 006D44E0. Counts every countdown (+0x70) down; true (AL) when one was still running.
-__declspec(naked) bool __fastcall CountdownsTick(void*, void*) EI_ORIGINAL(0x006D44E0)
 // 005D5940. An AI brain (unit controller + 0x980) hears alarm `index`.
 void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBrain*>(brain)->HearAlarm(index); }
 // The game's atexit (006E727B).
@@ -143,7 +142,8 @@ void CWorldServer::Tick(char force) {
     finished.Clear();
 
     TimeWheelAdvance(timeWheel_, nullptr, tick_);
-    if (CountdownsTick(countdowns_, nullptr)) MarkPlayersDirty(0x20);
+    // 006D44E0: every countdown (+0x70) counted down; true while one still runs.
+    if (TweenTick(reinterpret_cast<TweenArray*>(countdowns_))) MarkPlayersDirty(0x20);
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
     auto& missiles = projectiles_;

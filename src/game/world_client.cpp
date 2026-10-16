@@ -343,10 +343,7 @@ namespace {
 // 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 // 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
-__declspec(naked) int __fastcall PendingLookup(PendingMap*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
-// 0068D730 CLight::GetIntensityAt (spell.h), unrounded in ST0.
-__declspec(naked) double __fastcall LightIntensityAt(CLight*, void*, const void*) EI_ORIGINAL(0x0068D730)
 
 bool NaN(double v) {
     std::uint64_t bits;
@@ -454,7 +451,7 @@ int CWorldClient::Segment() {
             if (done != 0) continue;
             int key = object->id_;
             void* position = nullptr;
-            if (PendingLookup(&dynamicNodes_, nullptr, &key, &position)) {
+            if (PendingMapLookup(&dynamicNodes_, nullptr, reinterpret_cast<const std::uint32_t*>(&key), &position)) {
                 PendingListRemoveAt(&dynamicObjects_, nullptr, position);
                 IdMapRemoveKeyOriginal(&dynamicNodes_, nullptr, &key);
             }
@@ -489,7 +486,7 @@ int CWorldClient::Segment() {
                 CLight* sun = worlddata::SceneSun();
                 for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
                     BloodPrint& effect = node->data;
-                    float level = static_cast<float>(LightIntensityAt(sun, nullptr, worlddata::LightReferencePoint()));
+                    float level = sun->GetIntensityAt(static_cast<const Vector3*>(worlddata::LightReferencePoint()));
                     ObjectListIterator lights{nullptr, nullptr};   // [ebp-0x60]
                     for (auto* light = static_cast<CLight*>(lights.First(ClientLightManager())); light;
                          light = static_cast<CLight*>(lights.Next())) {
@@ -502,7 +499,7 @@ int CWorldClient::Segment() {
                         if (!NaN(squared) && !NaN(radius) && squared > radius) continue;
                         Vector3 point = {nodeX, nodeY, 0.0f};
                         point.z = static_cast<float>(terrain_->HeightAt(nodeX, nodeY, 0));
-                        float intensity = static_cast<float>(LightIntensityAt(light, nullptr, &point));
+                        float intensity = light->GetIntensityAt(&point);
                         level = SelectLess(level, intensity, intensity, level);
                     }
                     float clamped = SelectLess(1.0f, level, 1.0f, level);

@@ -67,10 +67,9 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // --- Forwarders ----------------------------------------------------------------------------------
 
 // An item's texture name [006A3480: out, material index; armour index] and a weapon's [006A0BF0:
-// out, weapon record; material record]; the weapon and material records [0056E440 on 007C86F8,
-// 0056E400 on 007C86D8].
-__declspec(naked) const char* __fastcall WeaponRecord(const RecordTable*, void*, std::uint32_t) EI_ORIGINAL(0x0056E440)
-__declspec(naked) const char* __fastcall MaterialRecord(const RecordTable*, void*, std::uint32_t) EI_ORIGINAL(0x0056E400)
+// out, weapon record; material record]; the weapon and material records are RecordAtB4 (0056E440,
+// on 007C86F8) and RecordAt50 (0056E400, on 007C86D8; world.h), on the tables' vectors.
+const RecordVector* Records(const RecordTable* table) { return reinterpret_cast<const RecordVector*>(table); }
 // The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
 // constructor [0056F570, allocator] and destructor [0056F590].
 __declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0056F570)
@@ -179,9 +178,9 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
     if (id == kNone) return;
     char buffer[0x100];
     {
-        const char* weapon = WeaponRecord(&itemdb::Weapons(), nullptr, id >> 16);
+        const std::uint8_t* weapon = RecordAtB4(Records(&itemdb::Weapons()), nullptr, id >> 16);
         mfc::CString name;
-        const char* material = MaterialRecord(&itemdb::Materials(), nullptr, id & 0xFFFF);
+        const std::uint8_t* material = RecordAt50(Records(&itemdb::Materials()), nullptr, id & 0xFFFF);
         WeaponRecordModelName(&name, reinterpret_cast<const itemdb::WeaponRecord*>(weapon),   // 006A0BF0
                               reinterpret_cast<const itemdb::MaterialRecordHead*>(material));
         AppendName(model, name, buffer);

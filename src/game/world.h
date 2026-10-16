@@ -201,8 +201,7 @@ struct ZoneExit {
     // angle; Read takes the last three only from version 0x68 on (else 0).
     void Read(class CStream* stream);
     void Write(class CStream* stream) const;
-    // 004608B0. Scalar deleting destructor (flags & 1: free the record too); returns this.
-    ZoneExit* DeletingDestructor(unsigned flags);
+    // (004608B0, zone::ExitDelete in game_arrays.h: the scalar deleting destructor.)
     // 00583B50 (RET 4; S13, exit_area.cpp; the compiler's operator=): +0x00..+0x24 as dwords,
     // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
     ZoneExit* Assign(const ZoneExit* from);

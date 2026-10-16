@@ -19,6 +19,7 @@ void __fastcall ArrayAt4Free(void* self);   // 004543C0
 namespace zone {
 void __fastcall ExitDestruct(MapExit* self);           // 00460460 (zone_records.cpp)
 void __fastcall ZoneRecordDestruct(MapRecord* self);   // 00460970
+void* __fastcall ExitDelete(void* self, void*, unsigned flags);   // 004608B0: scalar deleting destructor
 } // namespace zone
 
 namespace gamearrays {

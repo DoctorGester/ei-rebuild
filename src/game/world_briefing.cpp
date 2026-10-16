@@ -10,6 +10,7 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
+#include "quest_records.h"
 #include "mod_folders.h"
 #include "world_map_files.h"
 
@@ -269,8 +270,6 @@ namespace {
 
 // 005809D0 (RET 4, AL; patched by Rebirth). The flow loads the quests of a folder.
 inline bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char* a2) { return FlowLoadQuestsOriginal(a2); }
-// 006AE8E0 (RET 4). The quest table (007C87A8) reads the texts' current file (+0x20).
-__declspec(naked) void __fastcall QuestTableLoad(void*, void*, void*) EI_ORIGINAL(0x006AE8E0)
 // 004DF8D0 (RET 8). The texts read the current line into a CString.
 void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { static_cast<CTextManager*>(a0)->ReadLine(a2, a3); }
 
@@ -302,8 +301,8 @@ void GameFlow::RegisterQuests(const char* folder) {
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    QuestTableLoad(reinterpret_cast<void*>(0x007C87A8), nullptr,
-                   const_cast<char*>(static_cast<CTextManager*>(texts)->cursor_));
+    QuestDatabaseLoad(reinterpret_cast<char*>(0x007C87A8), nullptr,   // 006AE8E0 (its result not read)
+                      static_cast<CTextManager*>(texts)->cursor_);
     {
         mfc::CString base(folder);
         mfc::CString path = base + game::briefingwords::MapList();

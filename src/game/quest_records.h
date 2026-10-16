@@ -106,6 +106,10 @@ struct QuestDatabase {
 };
 static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase) == 0x40);
 
+// 006AE8E0 (thiscall on the database, RET 4; quest_database.cpp). The quests of a registry file in
+// memory (`image`) filed into the database; false when it is not a registry.
+bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image);
+
 class CFileRegistry;   // registry.h
 // 006AE740 (__fastcall registry, section; key and list on the stack, RET 8; quest_database.cpp,
 // A-H19). The registry's string list `section` / `key` into `list`: the list emptied, reserved for

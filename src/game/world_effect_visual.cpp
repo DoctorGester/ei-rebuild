@@ -9,6 +9,7 @@
 #include "script.h"
 #include "spell.h"
 #include "terrain.h"
+#include "texture.h"
 #include "world.h"
 #include "world_effect_internal.h"
 #include "originals_effects.h"
@@ -23,8 +24,6 @@ using namespace effect;
 
 namespace {
 
-// 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
-__declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
 // CParticleSource (effects.cpp, through the game addresses).
 inline void* __fastcall CreateSource(void* manager, void*, int type) { return static_cast<CParticleManager*>(manager)->CreateSource(type); }
@@ -336,7 +335,8 @@ void CEffectParticle::Spawn() {
         return;
     }
 
-    AssignSource(&source_, nullptr, CreateSource(ParticleManager(), nullptr, type_));
+    TexturePointerAssign(reinterpret_cast<CEngineObject**>(&source_), nullptr,   // 0056F1A0
+                         static_cast<CEngineObject*>(CreateSource(ParticleManager(), nullptr, type_)));
     std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);

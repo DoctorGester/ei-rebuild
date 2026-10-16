@@ -1061,6 +1061,8 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self);
 // 0058A450 (thiscall; ai_map_construct.cpp; the world server's destructor 0058AAD0). Every member
 // destroyed in reverse order (the reset 005B5E10 without the constructor after).
 void __fastcall DestructAIMap(CAIMap* self);
+// 005B5E10 (thiscall; ai_map_construct.cpp). The map forgotten: destroyed and constructed again.
+void __fastcall ResetAIMap(CAIMap* self);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

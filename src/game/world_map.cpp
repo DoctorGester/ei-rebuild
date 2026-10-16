@@ -25,8 +25,6 @@
 namespace {
 
 
-// 005B5E10. CAIMap: forget the map (005B8B30, CAIMap::BeginRefresh: start collecting refreshes).
-__declspec(naked) void __fastcall AIMapReset(void*, void*) EI_ORIGINAL(0x005B5E10)
 // 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
@@ -60,7 +58,7 @@ void ClearMissiles(CWorldServer* world) {
 int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     void* aiMap = aiMap_;
     if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(mapName_), reinterpret_cast<const unsigned char*>(map)) != 0) {
-        AIMapReset(aiMap, nullptr);
+        ResetAIMap(static_cast<CAIMap*>(aiMap));   // 005B5E10
         static_cast<CAIMap*>(aiMap)->BeginRefresh();
         bool failed;
         {
@@ -317,7 +315,7 @@ void CWorldServer::ResetState() {
     diplomacy_.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    AIMapReset(aiMap_, nullptr);
+    ResetAIMap(reinterpret_cast<CAIMap*>(aiMap_));
     zoneLoaded_ = 0;
     nightLevel_ = 0;
     for (WorldAlarm& alarm : alarms_) {

@@ -78,8 +78,6 @@ AtExitFunction RemovedDestructor() { return reinterpret_cast<AtExitFunction>(0x0
 // The game's atexit (006E727B).
 // 0055FBD0 (RET 8). The time of day and the time speed.
 // The player state's (CPlayerServer) messages and updates.
-__declspec(naked) int __fastcall StateSendWind(CPlayerServer*, void*, Vector3 /*direction*/, std::uint32_t /*strength*/)
-    EI_ORIGINAL(0x0066ECD0)
 void __fastcall StateObjectsAdded(CPlayerServer* a0, void*, StaticPtrArray* a2) { static_cast<CPlayerServer*>(a0)->SendObjectsAdded(a2); }
 void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServer*>(a0)->ResendParty(); }
 __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
@@ -270,7 +268,9 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         if (player->dirty & kDirtyWind) {
             Vector3 direction;
             std::memcpy(&direction, windDirection_, sizeof(direction));
-            if (!StateSendWind(state, nullptr, direction, windStrength_)) return 0;
+            if (!state->SendState72(std::bit_cast<std::uint32_t>(direction.x), std::bit_cast<std::uint32_t>(direction.y),
+                                    std::bit_cast<std::uint32_t>(direction.z), windStrength_))
+                return 0;
         }
         if (player->dirty & kDirtyCountdowns) state->SendState73(countdowns_);
 

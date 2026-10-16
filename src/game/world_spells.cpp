@@ -40,15 +40,8 @@ const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spe
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-// 0054BBC0 (RET 0x10). Whether the spell (EDX) may hit `target` (ECX = the world).
-__declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
-                                               const Vector3* /*from*/, CEngineObject* /*target*/,
-                                               const Vector3* /*at*/) EI_ORIGINAL(0x0054BBC0)
-// The missile: constructor 0067E510 (returns this), Init 0067ECB0 (RET 0x1C), Update 0067E6D0.
-__declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*, const void* /*spell*/,
-                                              CEngineObject* /*caster*/, const Vector3* /*from*/,
-                                              CEngineObject* /*target*/, const Vector3* /*to*/, int)
-    EI_ORIGINAL(0x0067ECB0)
+// SpellHasLineOfSight (0054BBC0, combat.h): whether the spell may hit a target. The missile:
+// constructor 0067E510 (returns this), CSpellEffect::Init 0067ECB0, Update 0067E6D0.
 // 005D7E90 (AIBrain::SetSeen, RET 4). The target's AI brain is attacked by `caster`.
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
 
@@ -96,7 +89,8 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
     // (Projectile is the missile's view of the spell effect CSpellEffect::Construct builds.)
     auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
-    MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
+    reinterpret_cast<CSpellEffect*>(missile)->Init(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), caster,
+                                                   &from, target, &end, static_cast<std::uint8_t>(extra));
     if (reinterpret_cast<CSpellEffect*>(missile)->Update()) {
         auto& list = projectiles_;
         ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
@@ -222,7 +216,9 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         }
         if (!hit) continue;
         Vector3* at = &static_cast<CUnit*>(best)->position;
-        if (!SpellReaches(this, spell, caster, from, best, at)) continue;
+        if (!SpellHasLineOfSight(this, const_cast<CSpell*>(static_cast<const CSpell*>(spell)), static_cast<CUnit*>(caster),
+                                 from, static_cast<CUnit*>(best), at))
+            continue;
         if (!static_cast<const CSpell*>(spell)->CanAffect(caster, best)) continue;
         CreateMissile(spell, caster, *from, best, at, extra);
         --targets;
