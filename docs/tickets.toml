@@ -1689,6 +1689,26 @@ model = "sonnet"
 files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
 note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check (address casts go with S18 anyway)."
 
+[[ticket]]
+id = "C12a"
+title = "Long x87 transcriptions into plain C++ (C12 follow-up)"
+group = "cleanup"
+size = 1
+model = "opus"
+depends = ["C12"]
+files = ["src/game/figure_part_draw.cpp", "src/game/renderer_strip.cpp"]
+note = "The four __asm transcriptions C12 left: InvertModelMatrix and CrownBlend (figure_part_draw.cpp), EmitFirstSection and EmitSection (renderer_strip.cpp). Follow the C12 rules in docs/notes/cleanup-tooling.md (double = unrounded register, x87:: helpers inside the expression, NaN-aware comparisons for FCOM tests); compare the object code of each function, then the golden suite (--golden --jobs 4) and ei_vectors."
+
+[[ticket]]
+id = "C12b"
+title = "Register and stack shims left by C12"
+group = "cleanup"
+size = 0.5
+model = "opus"
+depends = ["C13"]
+files = ["src/game/renderer_init.cpp", "src/game/sound_manager.cpp", "src/game/unit_motion_tick.cpp"]
+note = "NewKeepingEdx (renderer_init: an allocation that must keep EDX), CallWithOne (sound_manager) and UpdateMotion (unit_motion_tick: reads the caller's frame at [esp-98h]) are naked because of the original's register / stack conventions at their call sites. They go when those callers call our code directly (C13) or the caller's frame value becomes an argument."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]

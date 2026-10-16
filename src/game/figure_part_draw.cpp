@@ -201,88 +201,24 @@ __declspec(naked) int __fastcall InvertModelMatrix(const float* /*m*/, float* /*
     }
 }
 
-// A light's position into the mesh's space: each row ((r2*z + r1*y) + r0*x) + r3, rounded once.
-// __fastcall: the inverse rows in ECX, the point in EDX, out on the stack (RET 4).
-__declspec(naked) void __fastcall TransformPoint(const float* /*rows*/, const float* /*point*/, float* /*out*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [ecx + 28h]
-        fmul dword ptr [edx + 8]
-        fld dword ptr [ecx + 24h]
-        fmul dword ptr [edx + 4]
-        faddp st(1), st
-        fld dword ptr [ecx + 20h]
-        fmul dword ptr [edx]
-        faddp st(1), st
-        fadd dword ptr [ecx + 2Ch]
-        fstp dword ptr [eax + 8]
-        fld dword ptr [ecx + 18h]
-        fmul dword ptr [edx + 8]
-        fld dword ptr [ecx + 14h]
-        fmul dword ptr [edx + 4]
-        faddp st(1), st
-        fld dword ptr [ecx + 10h]
-        fmul dword ptr [edx]
-        faddp st(1), st
-        fadd dword ptr [ecx + 1Ch]
-        fstp dword ptr [eax + 4]
-        fld dword ptr [ecx + 8]
-        fmul dword ptr [edx + 8]
-        fld dword ptr [ecx + 4]
-        fmul dword ptr [edx + 4]
-        faddp st(1), st
-        fld dword ptr [ecx]
-        fmul dword ptr [edx]
-        faddp st(1), st
-        fadd dword ptr [ecx + 0Ch]
-        fstp dword ptr [eax]
-        ret 4
+// A light's position into the mesh's space: each row ((r2*z + r1*y) + r0*x) + r3, rounded once
+// (rows of four floats; the original writes z, y, x in that order).
+void TransformPoint(const float* rows, const float* point, float* out) {
+    for (int row = 2; row >= 0; --row) {
+        const float* r = rows + 4 * row;
+        out[row] = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(r[0], r[1], r[2], point[0], point[1], point[2]) + r[3]);
     }
 }
 
 // The sun's direction into the mesh's space: the direction negated, no translation, with the
-// original's operand order per row. __fastcall: rows in ECX, direction in EDX, out (RET 4).
-__declspec(naked) void __fastcall TransformSun(const float* /*rows*/, const float* /*direction*/, float* /*out*/) {
-    __asm {
-        mov eax, dword ptr [esp + 4]
-        fld dword ptr [edx]
-        fchs
-        fld dword ptr [edx + 4]
-        fchs
-        fld dword ptr [edx + 8]
-        fchs
-        fld st(0)
-        fmul dword ptr [ecx + 28h]
-        fld st(2)
-        fmul dword ptr [ecx + 24h]
-        faddp st(1), st
-        fld st(3)
-        fmul dword ptr [ecx + 20h]
-        faddp st(1), st
-        fstp dword ptr [eax + 8]
-        fld st(0)
-        fmul dword ptr [ecx + 18h]
-        fld st(2)
-        fmul dword ptr [ecx + 14h]
-        faddp st(1), st
-        fld dword ptr [ecx + 10h]
-        fmul st, st(4)
-        faddp st(1), st
-        fstp dword ptr [eax + 4]
-        fxch st(2)
-        fmul dword ptr [ecx]
-        fld dword ptr [ecx + 8]
-        fmul st, st(3)
-        faddp st(1), st
-        fld dword ptr [ecx + 4]
-        fmul st, st(2)
-        faddp st(1), st
-        fstp dword ptr [eax]
-        fxch st(1)
-        fstp st(0)
-        fstp st(0)
-        ret 4
-    }
+// original's order per row: (z + y) + x for the z and y rows, (x + z) + y for the x row.
+void TransformSun(const float* rows, const float* direction, float* out) {
+    const double x = -static_cast<double>(direction[0]);
+    const double y = -static_cast<double>(direction[1]);
+    const double z = -static_cast<double>(direction[2]);
+    out[2] = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(x, y, z, rows[8], rows[9], rows[10]));
+    out[1] = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(x, y, z, rows[4], rows[5], rows[6]));
+    out[0] = static_cast<float>(DotUnrounded<Sum3::ZXY, double>(x, y, z, rows[0], rows[1], rows[2]));
 }
 
 // The "crown" mesh: every colour's channels pulled halfway (0073CDE0) to the average colour; the
