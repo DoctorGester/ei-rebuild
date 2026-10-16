@@ -1619,3 +1619,7 @@ switch every scenario without a golden ran on the image too:
 net_second_master, render_cursor_present, render_device_lost, render_present_fullscreen / _shot / _window,
 harness_disk_full, the three watchdogs, the four ui_widescreen*): 32 runs, all pass. The default suite is 190 runs
 (107 vanilla, 83 Rebirth); `--hooked` keeps the old 146.
+After the switch (main merged): `work.py test S21 --golden --jobs 4` (the default, all standalone): 190 runs ALL PASS,
+168 goldens the same, 0 differ. `--no-hooks --golden`: 124 goldens the same; 7 runs fail as before (S20a's renderer-only
+scenarios render_cursor_present V+R, render_device_lost, render_present_shot V+R, render_present_window, and rebirth_flags
+on the vanilla data, whose flags the original lacks): S21a can leave these out of `--no-hooks` plans.
