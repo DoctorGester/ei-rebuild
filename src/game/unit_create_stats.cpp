@@ -75,8 +75,6 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
 }
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
 // This file's functions through their addresses, so their verify wrappers stay in the path.
-__declspec(naked) char* __fastcall FindNpcAt(NpcPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005145D0)
-__declspec(naked) int __fastcall SetDefaultsAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*) EI_ORIGINAL(0x005134F0)
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
 // CUnit::SetPrototype23C, rewritten elsewhere.
 __declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
@@ -86,7 +84,7 @@ __declspec(naked) std::uint32_t __fastcall SetPrototype23CAt(CEngineObject*, voi
 const Prototype* FindPrototype(const char* name) {
     return reinterpret_cast<const Prototype*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
 }
-const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(FindNpcAt(&unitdb::NpcTable(), nullptr, name)); }
+const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(unitdb::NpcTable().FindByName(name)); }
 
 // The prototype's model; its index is read even from a null prototype (the original faults there).
 const Model* ModelOf(const Prototype* prototype) {
@@ -238,7 +236,7 @@ EI_REPLACE_METHOD(0x005134F0, UnitStatsBuilder::SetDefaults);
 int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
-        SetDefaultsAt(this, nullptr, vitals, stats);
+        SetDefaults(vitals, stats);
         return 1;
     }
     const Model* model = ModelOf(prototype);
@@ -597,11 +595,11 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     if (!prototype) {
         UnitVitalsReset(&vitals);
         if (object->GetClassId() != kClassUnit) {
-            SetDefaultsAt(this, nullptr, &vitals, nullptr);
+            SetDefaults(&vitals, nullptr);
             mapObject->SetServerData(&vitals);
         } else {
             UnitStatsResetOriginal(&stats);
-            SetDefaultsAt(this, nullptr, &vitals, &stats);
+            SetDefaults(&vitals, &stats);
             mapObject->SetStats(&stats);
         }
         mapObject->ScaleEffectChanged(0);

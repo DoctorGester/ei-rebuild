@@ -63,13 +63,6 @@ constexpr HitPart kHitParts[6] = {{"hd", 1}, {"bd", 7}, {"lh2", 3}, {"rh2", 4}, 
 // The particle type of each blood kind (1..8).
 constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x2031, 0x2032, 0x2033};
 
-// Not rewritten (forwarders):
-// 0056CE90 (RET 0x18). The client world adds a decal at (x, y) of `size` x `length`; kind:
-// variant | (blood kind - 1) << 16; `fresh` 1 for a hit, 0 for a death.
-__declspec(naked) void __fastcall AddBloodDecal(CWorldClient*, void*, float /*x*/, float /*y*/, float /*size*/,
-                                                float /*length*/, std::uint32_t /*kind*/, int /*fresh*/)
-    EI_ORIGINAL(0x0056CE90)
-
 // The party light (0079BEA0: r, g, b; 0079BEAC: radius).
 const float* PartyLightColour() { return reinterpret_cast<const float*>(0x0079BEA0); }
 float PartyLightRadius() { return *reinterpret_cast<const float*>(0x0079BEAC); }
@@ -193,7 +186,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     offset = RandomBelow(x87::fistp(spread));
     at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
     std::uint32_t variant = DecalVariant();
-    AddBloodDecal(WorldClient(), nullptr, at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
+    WorldClient()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
@@ -228,7 +221,7 @@ void CUnitClientSpecific::DeathEffect() {
         at.z = unit->position.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
-    AddBloodDecal(WorldClient(), nullptr, at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
+    WorldClient()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
 EI_REPLACE_METHOD(0x005373D0, CUnitClientSpecific::DeathEffect);
 

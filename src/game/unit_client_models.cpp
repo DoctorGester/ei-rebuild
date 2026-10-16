@@ -1,5 +1,6 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
+#include "item.h"
 #include "unit_client_models.h"
 #include "game_strings.h"
 
@@ -73,11 +74,6 @@ CEngineObject* __fastcall AddPart(CUnit* unit, void*, const char* name, void* mo
 __declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x005167E0)
 // 00539580. SkinLayerArray::SetSize.
 __declspec(naked) void __fastcall SetLayerCount(SkinLayerArray*, void*, int, int) EI_ORIGINAL(0x00539580)
-// 006A3480 / 006A0AA0. The texture name of an armour / weapon by type and number, into `out`.
-__declspec(naked) void __fastcall WeaponTexture(mfc::CString*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006A0AA0)
-// Rewritten elsewhere, through their game addresses: 006A3200 ArmorFieldB8, 006A1780 AppendWeaponModelParts.
-__declspec(naked) int __fastcall ArmourDrawOrder(std::uint32_t) EI_ORIGINAL(0x006A3200)
-__declspec(naked) void __fastcall AppendWeaponParts(std::uint32_t, stlp::vector<stlp::string>*) EI_ORIGINAL(0x006A1780)
 
 std::uint32_t FiguresFlag(const CUnit* unit) { return unit->flags_ & kFiguresDetached; }
 } // namespace
@@ -203,7 +199,6 @@ __declspec(naked) void* __fastcall AnimateNewPart(CUnit*, void*, CEngineObject*)
 // Rewritten in item_parts.cpp / item.cpp, called through their addresses: 006A0FF0 the figure part
 // names of a weapon prototype (replacing the array's contents), 006A2B80 a weapon's type by
 // packed id.
-__declspec(naked) void __fastcall WeaponPartNames(std::uint32_t, console::CStringArray*) EI_ORIGINAL(0x006A0FF0)
 __declspec(naked) int __fastcall WeaponTypeOf(std::uint32_t) EI_ORIGINAL(0x006A2B80)
 
 constexpr int kWeaponBow = 5;
@@ -225,13 +220,13 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
         model = FigureManagerFindModelOriginal(FigureManager(), nullptr, &name);
     }
     if (previous != kNone) {
-        WeaponPartNames(previous >> 16, &names);
+        WeaponModelParts(previous >> 16, &names);
         for (int i = 0; i < names.GetSize(); ++i) RemovePartNamed(unit, nullptr, names[i]);
     }
     unit->activeWeapon = slot;
     weaponHidden = 0;
     if (next != kNone) {
-        WeaponPartNames(next >> 16, &names);
+        WeaponModelParts(next >> 16, &names);
         for (int i = 0; i < names.GetSize(); ++i) {
             CEngineObject* part = AddPart(unit, nullptr, names[i], model, FiguresFlag(unit));
             if (part) AnimateNewPart(unit, nullptr, part);
@@ -257,7 +252,7 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     if (weaponHidden == static_cast<std::uint8_t>(hidden)) return;
     std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
     console::CStringArray names;
-    if (hand != kNone) WeaponPartNames(hand >> 16, &names);
+    if (hand != kNone) WeaponModelParts(hand >> 16, &names);
     for (int i = 0; i < names.GetSize(); ++i) {
         if (CEngineObject* part = FindAnyPart(unit, nullptr, names[i])) {
             if (hidden) part->flags_ |= kArrowPartFlag;
@@ -333,7 +328,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
             names->push_back(name);
         }
     }
-    for (const std::uint32_t* id = weaponIds->begin(); id != weaponIds->end(); ++id) AppendWeaponParts(*id, names);
+    for (const std::uint32_t* id = weaponIds->begin(); id != weaponIds->end(); ++id) AppendWeaponModelParts(*id, names);
 
     // Every plain part of the three rows. The original walks all seven names of each row (the
     // test on the name's address never fails), so the empty names of the helmet row go in too.
@@ -473,7 +468,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
         if (hand < 4 && self->weaponIds[hand] != kNone) {
-            WeaponTexture(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
+            WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
             AddPrototypePrefix(unit, texture);
             AddTexture(request, texture);
         }
@@ -498,8 +493,8 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         if (only != kNone) AddArmourTexture(request, unit, texture, only);
         return;
     }
-    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmourDrawOrder(body >> 16));
-    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmourDrawOrder(legs >> 16));
+    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmorFieldB8(body >> 16));
+    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmorFieldB8(legs >> 16));
     if (legsOrder < bodyOrder) {
         AddArmourTexture(request, unit, texture, legs);
         AddArmourTexture(request, unit, texture, body);

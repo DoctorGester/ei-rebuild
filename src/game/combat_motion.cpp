@@ -90,12 +90,6 @@ void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, std::uint32_t a7) {
     PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7);
 }
-// The controller's functions rewritten elsewhere, through their game addresses (combat_update.cpp,
-// combat_steps.cpp, combat_tick.cpp).
-__declspec(naked) std::uint32_t __fastcall CtlWeaponTypeMask(CUnitServer*) EI_ORIGINAL(0x00550050)
-__declspec(naked) std::uint32_t __fastcall CtlMoveModeMask(CUnitServer*, void*, const MoveModeState*) EI_ORIGINAL(0x005500A0)
-// And the functions of this file.
-__declspec(naked) void __fastcall CtlBuildIdle(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00550D90)
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
@@ -104,7 +98,6 @@ AnimationSteps* __fastcall StepsCopyConstruct(AnimationSteps* a0, void*, const A
 AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
-__declspec(naked) AnimationStep* __fastcall StepBlank(AnimationStep*) EI_ORIGINAL(0x00550A60)
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
@@ -418,7 +411,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             StepsEmote(&steps, nullptr, value);
         } else if (step.variant == 0xFF) {
             AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
-            StepsAdd(&steps, nullptr, StepBlank(&blank));
+            StepsAdd(&steps, nullptr, blank.Construct());
             AnimationStep& last = steps.steps[steps.count - 1];
             last.animation = step.animation;
             last.duration = step.duration;
@@ -438,12 +431,12 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = Plan(this);
     for (int i = 0; i < plan.animation.count; ++i) plan.animation.steps[i].flags = static_cast<std::uint8_t>(stepFlags);
     if (state < 0 || (state > 1 && state != kStateTurning)) {
-        std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
+        std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
         if (IdleKey(this) == key) {
             IdleTime(this) = -1;
         } else {
             IdleKey(this) = key;
-            CtlBuildIdle(this, nullptr, &IdleSteps(this));
+            BuildIdle(&IdleSteps(this));
         }
         CtlPlaySteps(this, nullptr, &IdleSteps(this));
     }
@@ -555,7 +548,7 @@ bool CUnitServer::ChangeMoveMode() {
         if (modeChanged) FaceAndStop(this);
         if (state == kStateIdle && !modeChanged) {
             UnitUpdateSizeClass(unit);
-            if (action2.kind == kOrderNone) action2.CallAssign(&action);
+            if (action2.kind == kOrderNone) action2.Assign(&action);
             return true;
         }
     }
@@ -579,7 +572,7 @@ bool CUnitServer::ChangeMoveMode() {
         if (transition.steps) gamecrt::operator_delete(transition.steps);
     }
     UnitUpdateSizeClass(unit);
-    if (action2.kind == kOrderNone) action2.CallAssign(&action);
+    if (action2.kind == kOrderNone) action2.Assign(&action);
     return true;
 }
 EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
@@ -790,12 +783,12 @@ void CUnitServer::ResyncWithUnit() {
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));   // slot 25
     if (state == kStateTurning) return;
-    std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
+    std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
     if (IdleKey(this) == key) {
         IdleTime(this) = -1;
     } else {
         IdleKey(this) = key;
-        CtlBuildIdle(this, nullptr, &IdleSteps(this));
+        BuildIdle(&IdleSteps(this));
     }
     if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.

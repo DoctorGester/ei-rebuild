@@ -66,10 +66,6 @@ void NoticeAt(AIBrain* brain, CUnit* at, int level, int kind) {
     brain->noticedKind = kind;
 }
 
-// The callees through their addresses so their verify wrappers see these calls.
-__declspec(naked) void __fastcall RefreshThroughAddress(AIViewer*, void*, CUnit*, std::uint8_t*) EI_ORIGINAL(0x005CA1D0)
-__declspec(naked) void __fastcall SeeThroughAddress(AIViewer*, void*, CUnit*, std::uint8_t*) EI_ORIGINAL(0x005CA5A0)
-__declspec(naked) void __fastcall PrepareThroughAddress(AIViewer*, void*, CUnit*) EI_ORIGINAL(0x005CA410)
 } // namespace
 
 void AIViewer::Prepare(CUnit* self) {
@@ -134,7 +130,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
             if (!seesAll && !hostile) continue;
             if (brain->visible.Find(other)) continue;
         }
-        if (!ready) PrepareThroughAddress(this, nullptr, self);
+        if (!ready) Prepare(self);
         Vector3 theirEye;
         static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
         Vector3 d = theirEye - eye;
@@ -198,7 +194,7 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
     cellX = static_cast<int>(std::lrint(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf)));
     cellY = static_cast<int>(std::lrint(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf)));
     std::uint8_t* memory = brain->memory;
-    RefreshThroughAddress(this, nullptr, self, memory);
+    RefreshHook(this, nullptr, self, memory);
     for (auto* node = brain->visible.head; node;) {
         auto* current = node;
         node = node->next;
@@ -235,7 +231,7 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
         current->data = nullptr;
         brain->visible.RemoveAt(current);
     }
-    SeeThroughAddress(this, nullptr, self, memory);
+    SeeHook(this, nullptr, self, memory);
 }
 
 void __fastcall UpdateHook(AIViewer* self, void*, UnitController* owner, std::uint8_t* memory) {

@@ -32,8 +32,6 @@
 // 005683D0 (__fastcall: CL `body`, EDX the dressed unit record; RET 4 the record list). Defined below;
 // DressUnit calls it through its address so that its verify wrapper sees the calls.
 void __fastcall UnitTextureRecords(char body, const void* record, void* list);
-__declspec(naked) void __fastcall UnitTextureRecordsAt(char /*body*/, const void* /*record*/, void* /*list*/)
-    EI_ORIGINAL(0x005683D0)
 
 namespace {
 
@@ -213,7 +211,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const std::uint32_t* items = record->items.Start();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
         mfc::CString built;
-        UnitTextureRecordsAt(1, record, &list);
+        UnitTextureRecords(1, record, &list);
         CopyRecords(set, list);
         mfc::CString skin;
         StringArraySetSize(&set.names, nullptr, 0, -1);
@@ -236,7 +234,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         }
         Compose(self, built, set, name, 0x100, 1);
 
-        UnitTextureRecordsAt(0, record, &list);
+        UnitTextureRecords(0, record, &list);
         CopyRecords(set, list);
         StringArraySetSize(&set.names, nullptr, 0, -1);
         if (items[0] != kNone) AddItem(set, model, items[0]);

@@ -111,9 +111,6 @@ CMapObjectServer* ServerHalf(CEngineObject* object) {
 // as the original left it.
 double UnitGroundHeight(CEngineObject* unit, float x, float y) { return UnitGroundHeightOriginal(unit, nullptr, x, y); }
 
-// 00665640 (RET 4): CPlayer::HasLoot, called through its address.
-__declspec(naked) BOOL __fastcall PlayerHasLoot(CPlayer*, void*, int) EI_ORIGINAL(0x00665640)
-
 // The game server session when one runs and is not shut down.
 net::ServerSession* ActiveServer() {
     net::ServerSession* server = net::GameServer();
@@ -453,7 +450,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x7C: { // HaveItem(player, item)
         StoreBits(result, kZero);
         auto* player = reinterpret_cast<CPlayer*>(WorldServer()->GetPlayer(Ftol(f[0])));
-        if (player && PlayerHasLoot(player, nullptr, Ftol(f[1]))) StoreBits(result, kOne);
+        if (player && player->HasLoot(Ftol(f[1]))) StoreBits(result, kOne);
         return;
     }
     case 0xB1:   // IsPlayerInDanger

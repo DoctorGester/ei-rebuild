@@ -42,9 +42,6 @@ constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 // call; RET 8). Places the unit on its path at `time`, turning by `rate`.
 __declspec(naked) void __fastcall CallPlaceOnPath(CUnitClientSpecific*, void*, float /*time*/, float /*rate*/)
     EI_ORIGINAL(0x00535850)
-// 0051CC20 / 0051CCD0 (rewritten below; through their game addresses).
-__declspec(naked) void __fastcall CallInvisiblePulse(CObject3DClientSpecific*, void*, float) EI_ORIGINAL(0x0051CC20)
-__declspec(naked) void __fastcall CallStunnedPulse(CObject3DClientSpecific*, void*, float) EI_ORIGINAL(0x0051CCD0)
 
 CObject3DClientSpecific* ClientHalf(CUnit* unit) {
     return static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
@@ -91,8 +88,8 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     }
     if (step > kLongStep) step = static_cast<float>(IsaacRandom::Global().Next() % kLongStepSpread + 500u);
     lastTime = time;
-    if (ObjectSlots(unit)->InvisibleSlot()) CallInvisiblePulse(ClientHalf(unit), nullptr, step);
-    if (unit->MapObject()->IsStunned()) CallStunnedPulse(ClientHalf(unit), nullptr, step);
+    if (ObjectSlots(unit)->InvisibleSlot()) ClientHalf(unit)->InvisiblePulse(step);
+    if (unit->MapObject()->IsStunned()) ClientHalf(unit)->StunnedPulse(step);
     if (unit->pathTimeShift == 0) CallPlaceOnPath(this, nullptr, time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {

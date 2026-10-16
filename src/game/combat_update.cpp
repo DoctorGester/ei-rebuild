@@ -15,6 +15,7 @@
 #include "map_object.h"
 #include "player_messages.h"
 #include "random.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
@@ -72,8 +73,6 @@ constexpr int kRemarkBored = 0x29;
 // (+0x254..+0x256, time +0x258), 0052EAD0 / 0052EAF0 the dwords +0x25C / +0x260, 00530570 the
 // size class, 00530970 the prototype's model record, 005300D0 SetPlayer, 0052E9D0 the path
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
-__declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
-__declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
@@ -98,17 +97,8 @@ __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINA
 // PropagateHostility, 00549EC0 FinishAction, 00552C60 UseItemCharge (combat_actions.cpp),
 // 00550A80 BuildDeathAnimation (combat_steps.cpp), 0054B880 SpellOfSource (combat.cpp), and the
 // ones not rewritten: 00548700 plan a path to a point.
-__declspec(naked) void __fastcall CtlUpdateOrders(CUnitServer*) EI_ORIGINAL(0x0054B390)
 __declspec(naked) void __fastcall CtlMovementTick(CUnitServer*) EI_ORIGINAL(0x00547890)
 __declspec(naked) void __fastcall CtlFinishAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x00549EC0)
-__declspec(naked) void* __fastcall CtlSpellOfSource(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B880)
-// The functions of this file, through their game addresses (for the verify build's wrappers).
-__declspec(naked) void __fastcall CtlUpdateState(CUnitServer*) EI_ORIGINAL(0x005499F0)
-__declspec(naked) void __fastcall CtlAdvanceAnimation(CUnitServer*) EI_ORIGINAL(0x00546F30)
-__declspec(naked) void __fastcall CtlTickItemSpells(CUnitServer*) EI_ORIGINAL(0x00552B90)
-__declspec(naked) bool __fastcall CtlActionInReach(CUnitServer*) EI_ORIGINAL(0x00549D40)
-__declspec(naked) void __fastcall CtlPlayHitReaction(CUnitServer*) EI_ORIGINAL(0x00547100)
-__declspec(naked) void __fastcall CtlTickAction(CUnitServer*) EI_ORIGINAL(0x00549160)
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
@@ -244,7 +234,7 @@ int CUnitServer::UpdateServer() {
             }
             presence = static_cast<AIEventPresence*>(EventsPresence(WorldServer()->timeWheel_, nullptr, &unit->position.x, this));
         }
-        CtlTickItemSpells(this);
+        TickItemSpells();
         if (unit->player != nullptr) {   // 005301A0
             // A party unit: its perception memory, and now and then a bored remark.
             MemoryUpdate(Brain()->memory, nullptr, this, unit->levels4C8);
@@ -267,14 +257,14 @@ int CUnitServer::UpdateServer() {
         CtlPropagateHostility(this);
         if ((unit->flags_ & kFlagFrozen) == 0 && keepHitDirection == 0 && state >= 0 &&
             (state <= kStateTurning || state == kStateChasing)) {
-            CtlUpdateOrders(this);
-            CtlUpdateState(this);
-            CtlAdvanceAnimation(this);
+            UpdateOrders();
+            UpdateState();
+            AdvanceAnimation();
             return 1;
         }
         if (state == kStateActing && action2.kind == kOrderMove) TickOrderDone(this, nullptr, 1);
-        CtlUpdateState(this);
-        CtlAdvanceAnimation(this);
+        UpdateState();
+        AdvanceAnimation();
         return 1;
     }
 
@@ -304,7 +294,7 @@ int CUnitServer::UpdateServer() {
         EmptyAction(&action);
         EmptyAction(&action2);
     }
-    CtlAdvanceAnimation(this);
+    AdvanceAnimation();
     return 1;
 }
 EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
@@ -314,7 +304,7 @@ EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
 void CUnitServer::UpdateState() {
     animationHeld = 0;
     frozen = 0;
-    if (state == kStateActing && !CtlActionInReach(this)) TickOrderDone(this, nullptr, 0);
+    if (state == kStateActing && !ActionInReach()) TickOrderDone(this, nullptr, 0);
     if (unit->flags_ & kFlagFrozen) {
         frozen = 1;
         hitDirection = 0xFFFFFFFFu;
@@ -351,7 +341,7 @@ void CUnitServer::UpdateState() {
     case kStateTurning:
     case kStateWaiting:
         SwitchWeaponIfWanted(unit);
-        if (hitDirection != 0xFFFFFFFFu) CtlPlayHitReaction(this);
+        if (hitDirection != 0xFFFFFFFFu) PlayHitReaction();
         break;
     case kStateRecovering:
         if (Queue(this).count == 0) {
@@ -361,12 +351,12 @@ void CUnitServer::UpdateState() {
             using Callback = void(__fastcall*)(CUnit*);
             if (auto callback = reinterpret_cast<Callback>(actionDone)) {
                 callback(unit);
-                CtlUpdateOrders(this);
+                UpdateOrders();
             }
         }
         break;
     case kStateActing:
-        CtlTickAction(this);
+        TickAction();
         break;
     default:
         break;
@@ -380,8 +370,8 @@ EI_REPLACE_METHOD(0x005499F0, CUnitServer::UpdateState);
 void CUnitServer::AdvanceAnimation() {
     if (frozen != 0) {
         // Frozen: everything waits one more update.
-        UnitSet260(unit, nullptr, 1);
-        UnitSet25C(unit, nullptr, 1);
+        unit->SetPathTimeShift(1);
+        unit->SetMotionMode(1);
         PathShiftTime(Motion(this), nullptr, 1);
         ++QueueTime(this);
         ++SavedQueueTime(this);
@@ -397,10 +387,10 @@ void CUnitServer::AdvanceAnimation() {
         ++Plan(this).startTime;
         ++Plan(this).endTime;
     }
-    UnitSet260(unit, nullptr, held ? 1 : 0);
+    unit->SetPathTimeShift(held ? 1 : 0);
     if (CtlPopFinishedSteps(this)) {
         if (queue.count == 0) {
-            UnitSet25C(unit, nullptr, 0);
+            unit->SetMotionMode(0);
             return;
         }
         const AnimationStep& head = queue.steps[0];
@@ -408,7 +398,7 @@ void CUnitServer::AdvanceAnimation() {
             UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
     }
     if (queue.count == 0) {
-        UnitSet25C(unit, nullptr, 0);
+        unit->SetMotionMode(0);
         return;
     }
     int kind = queue.steps[0].kind;
@@ -416,7 +406,7 @@ void CUnitServer::AdvanceAnimation() {
         ++QueueTime(this);
         if (queue.count != 0) --queue.steps[0].duration;
     }
-    UnitSet25C(unit, nullptr, kind);
+    unit->SetMotionMode(kind);
 }
 EI_REPLACE_METHOD(0x00546F30, CUnitServer::AdvanceAnimation);
 
@@ -652,7 +642,7 @@ bool CUnitServer::ActionInReach() {
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
         if (!cast) return false;
-        auto* spell = static_cast<CSpell*>(CtlSpellOfSource(this, nullptr, action.source));
+        auto* spell = static_cast<CSpell*>(SpellOfSource(action.source));
         if (!spell) return false;
         if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
@@ -719,7 +709,6 @@ inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOri
 __declspec(naked) SpellEntry* __fastcall SpellNewNode(ArmourSpellList*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
     EI_ORIGINAL(0x00558B10)
 __declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
-__declspec(naked) ArmourSpell* __fastcall SpellElementAssign(ArmourSpell*, void*, const ArmourSpell*) EI_ORIGINAL(0x00558840)
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
@@ -763,7 +752,7 @@ void CUnitServer::RefreshItemSpells() {
         }
         ArmourSpell blank{};
         SpellEntry* added = SpellNewNode(list, nullptr, tail, nullptr);
-        SpellElementAssign(&added->data, nullptr, &blank);
+        added->data.Assign(&blank);
         if (tail) tail->next = added;
         else head = added;
         tail = added;

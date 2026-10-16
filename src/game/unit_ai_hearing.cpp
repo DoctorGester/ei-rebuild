@@ -48,10 +48,6 @@ void AppendCall(AICallArray* calls, const Vector3& point, int kind, std::uint32_
 UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 
-// 005CCD40 / 005CCEA0 at their addresses (the memory's entry points call them; the verify build's
-// wrappers see the calls).
-__declspec(naked) void __fastcall CallsHearAt(AICallArray*, void*, const Vector3*, int, const char*) EI_ORIGINAL(0x005CCD40)
-__declspec(naked) void __fastcall CallsAddClaimAt(AICallArray*, void*, std::uint32_t, int, const char*) EI_ORIGINAL(0x005CCEA0)
 } // namespace
 
 void __fastcall CallsHear(AICallArray* calls, void*, const Vector3* point, int kind, const char* text) {
@@ -82,11 +78,11 @@ EI_REPLACE(0x005CCBF0, CallsRemoveClaims);
 
 // 005CBBA0 / 005CBBC0 (RET 0xC, thiscall on the memory, brain + 0xD0): its calls (+0xA8) hear.
 void __fastcall MemoryHearCall(std::uint8_t* memory, void*, const Vector3* point, int kind, const char* text) {
-    CallsHearAt(&BrainOfMemory(memory)->calls, nullptr, point, kind, text);
+    CallsHear(&BrainOfMemory(memory)->calls, nullptr, point, kind, text);
 }
 EI_REPLACE(0x005CBBA0, MemoryHearCall);
 void __fastcall MemoryAddClaim(std::uint8_t* memory, void*, std::uint32_t mask, int kind, const char* text) {
-    CallsAddClaimAt(&BrainOfMemory(memory)->calls, nullptr, mask, kind, text);
+    CallsAddClaim(&BrainOfMemory(memory)->calls, nullptr, mask, kind, text);
 }
 EI_REPLACE(0x005CBBC0, MemoryAddClaim);
 

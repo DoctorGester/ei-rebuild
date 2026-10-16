@@ -29,8 +29,6 @@ __declspec(naked) void __fastcall DeclDestruct(void*) EI_ORIGINAL(0x004C54A0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // Node element destructors (__thiscall (flags), 0 = in place): WorldScript block (0x18), FX
 // source (0x34), particle source (0x24); lightning DestructElements (__stdcall (first, count)).
-__declspec(naked) void __fastcall WorldBlockDestroy(void*, void*, int) EI_ORIGINAL(0x004CE2D0)
-__declspec(naked) void __fastcall FxSourceDestroy(void*, void*, int) EI_ORIGINAL(0x004CE2B0)
 __declspec(naked) void __fastcall ParticleDestroy(void*, void*, int) EI_ORIGINAL(0x004CE270)
 __declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
@@ -79,7 +77,7 @@ void __fastcall ScriptReset(CScript* script) {
         VarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
-    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { WorldBlockDestroy(block, nullptr, 0); });
+    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { ScriptWorldBlockDestroy(block, nullptr, 0); });
 
     ScriptVars* globals = script->Globals();
     FloatsClear(&globals->floats);
@@ -112,7 +110,7 @@ void __fastcall ScriptReset(CScript* script) {
     }
     std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 
-    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { FxSourceDestroy(source, nullptr, 0); });
+    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { ScriptFxSourceDestroy(source, nullptr, 0); });
     RemoveAll(script->particles_, [](ScriptParticleSource* source) { ParticleDestroy(source, nullptr, 0); });
     RemoveAll(script->lightning_, [](ScriptLightning* bolt) { LightningElementsDestruct(bolt, 1); });
 

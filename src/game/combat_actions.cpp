@@ -131,17 +131,6 @@ AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const An
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
 
-// Calls between the rewritten functions go through the game's addresses (which jump to the
-// rewrites) so that the verify build's wrappers see them: most of these have no other callers.
-__declspec(naked) void CUnitServer::CallDeliverAttack(CEngineObject*, DamageInfo*) EI_ORIGINAL(0x0054F450)
-__declspec(naked) void CUnitServer::CallTriggerWeaponSpell(CEngineObject*) EI_ORIGINAL(0x0054F850)
-__declspec(naked) void CUnitServer::CallTriggerItemSpells(char) EI_ORIGINAL(0x0054F8E0)
-__declspec(naked) void CUnitServer::CallOnDamaged(CUnit*, int) EI_ORIGINAL(0x00553AC0)
-__declspec(naked) void CUnitServer::CallWitnessMurder(void*, CUnit*, CUnit*) EI_ORIGINAL(0x005538D0)
-__declspec(naked) std::uint32_t CUnitServer::CallHitDirection(CUnit*, int) EI_ORIGINAL(0x005518F0)
-__declspec(naked) void CUnitServer::CallUseSkill(CEngineObject*) EI_ORIGINAL(0x0054F000)
-__declspec(naked) void CUnitServer::CallSetDead(int) EI_ORIGINAL(0x00546720)
-
 void CUnitServer::DropQueuedOrder() {
     action2.kind = 9;
     if (action2.target) action2.target->Release();
@@ -160,7 +149,7 @@ void CUnitServer::DropQueuedOrder() {
 void CUnitServer::FinishAction(int location, char) {
     switch (action.kind) {
     case 3: {
-        CallDeliverAttack(action.target, &pendingHit);
+        DeliverAttack(action.target, &pendingHit);
         CEngineObject* target = action.target;
         if (!target || target->GetClassId() != kClassUnit) return;
         if (location >= 6) return;
@@ -174,10 +163,10 @@ void CUnitServer::FinishAction(int location, char) {
     }
     case 4:
     case 5:
-        CallFinishCast();
+        FinishCast();
         break;
     case 6:
-        CallUseSkill(action.target);
+        UseSkill(action.target);
         break;
     case 10: {
         std::uint32_t slot = action.source;
@@ -226,7 +215,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
     } else {
         ObjectSlots(target)->ReceiveHit(hit, unit, unit);
     }
-    CallTriggerWeaponSpell(target);
+    TriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -398,12 +387,12 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         return;
     }
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
-        CallTriggerItemSpells(0);
+        TriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
         BrainSetSeenOriginal(&brain, nullptr, attacker);
         unit->flags_ |= 0x80000;
         CtlPropagateHostility(this);
-        std::uint32_t direction = CallHitDirection(attacker, hitKind);
+        std::uint32_t direction = HitDirection(attacker, hitKind);
         if (!keepHitDirection) hitDirection = direction;
         return;
     }
@@ -420,18 +409,18 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
             CUnitServer* theirs = ControllerOf(attacker);
-            CallWitnessMurder(&brain.nearby, unit, attacker);
-            CallWitnessMurder(&theirs->brain.nearby, attacker, attacker);
+            WitnessMurder(&brain.nearby, unit, attacker);
+            WitnessMurder(&theirs->brain.nearby, attacker, attacker);
         }
     }
     MapObjectClearEffectsOriginal(unit);
-    CallSetDead(1);
+    SetDead(1);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
 
     AnimationSteps animation;
     AnimationListConstruct(&animation);
     animation.vtable = kAnimationStepsVtable;
-    std::uint32_t direction = CallHitDirection(attacker, hitKind);
+    std::uint32_t direction = HitDirection(attacker, hitKind);
     CtlBuildDeathAnimation(this, nullptr, &animation, direction, 1, 0);
     animationHeld = 0;
     frozen = 0;

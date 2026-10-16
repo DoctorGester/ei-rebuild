@@ -39,14 +39,12 @@ namespace {
 // 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
 // played now, 00546C40 play steps, 005511A0 the current animation as steps, 00550F30 the idle
 // animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
-__declspec(naked) bool __fastcall CanPlayFor(CUnitServer*, void*, int /*ticks*/) EI_ORIGINAL(0x00549D00)
 // 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
 // Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
 // the copy +0x148), 00556950 append, 00544E40 total duration (-1 if a step is open-ended), 00558920
 // GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
 __declspec(naked) AnimationSteps* __fastcall StepsConstruct(AnimationSteps*) EI_ORIGINAL(0x00556850)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
-__declspec(naked) int __fastcall StepsDuration(const AnimationSteps*) EI_ORIGINAL(0x00544E40)
 __declspec(naked) void __fastcall StepsGetAt(const AnimationSteps*, void*, AnimationStep* /*out*/, int) EI_ORIGINAL(0x00558920)
 void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsEmoteOriginal((void*)a0, nullptr, (int)a2); }
 void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, (int)a2, a3); }
@@ -179,7 +177,7 @@ void HitWhileTurning(CUnitServer* c) {
     StepsConstruct(&steps);
     if (c->moveMode.mode != 0 || c->state != 0) {
         CtlBuildDeathAnimation(c, nullptr, &steps, c->hitDirection, 0, 0);
-        if (CanPlayFor(c, nullptr, StepsDuration(&steps))) {
+        if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
             StepsCopyB(&c->savedQueue, nullptr, Queue(c));
             CtlPlaySteps(c, nullptr, &steps);

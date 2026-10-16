@@ -19,7 +19,6 @@ namespace {
 // Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
 // as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
 __declspec(naked) void __fastcall FourDwords(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
-__declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6F0)
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
@@ -118,7 +117,7 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     ArchiveField(ar, nullptr, 11, damageWeights, sizeof(damageWeights));
     for (int i = 0; i < 6; ++i) {
         if (ArchiveEnter(ar, nullptr, 0x0C + i)) {
-            ModelSlot(&slots[i], nullptr, ar);
+            slots[i].Serialize(ar);
             ArchiveLeave(ar);
         }
     }
@@ -261,9 +260,6 @@ EI_REPLACE_METHOD(0x0053E1B0, ChunkArchive::SerializeUnitLevels);
 namespace {
 constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
-// Rewritten below, called through their game addresses so their verify wrappers stay in the path.
-__declspec(naked) void __fastcall SkillSerializeAt(SkillRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0051F3A0)
-__declspec(naked) void __fastcall SkillLevelSerializeAt(SkillLevelRecord*, void*, ChunkArchive*) EI_ORIGINAL(0x0051F480)
 
 bool SameName(const mfc::CString& name, const char* other) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
@@ -331,7 +327,7 @@ void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, vo
         Current()->occurrence = i + 1;
         SkillRecord* first = skills->begin();
         if (ArchiveEnter(this, nullptr, 1)) {
-            SkillSerializeAt(first + i, nullptr, this);
+            (first + i)->Serialize(this);
             ArchiveLeave(this);
         }
     }
@@ -354,7 +350,7 @@ void ChunkArchive::SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* 
         Current()->occurrence = i + 1;
         SkillLevelRecord* first = levels->begin();
         if (ArchiveEnter(this, nullptr, 1)) {
-            SkillLevelSerializeAt(first + i, nullptr, this);
+            (first + i)->Serialize(this);
             ArchiveLeave(this);
         }
     }
@@ -364,7 +360,7 @@ EI_REPLACE_METHOD(0x005208C0, ChunkArchive::SerializeSkillLevels);
 
 void ChunkArchive::SkillLevelChunk(int id, SkillLevelRecord* record) {
     if (!ArchiveEnter(this, nullptr, id)) return;
-    SkillLevelSerializeAt(record, nullptr, this);
+    record->Serialize(this);
     ArchiveLeave(this);
 }
 EI_REPLACE_METHOD(0x00521480, ChunkArchive::SkillLevelChunk);

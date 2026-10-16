@@ -41,10 +41,6 @@ bool ZeroOrNaN(float value) { return (x87::CompareStatus(value, 0.0) & x87::kC3)
 // ---- Original code ------------------------------------------------------------------------------
 
 __declspec(naked) void __fastcall CalcFloatOrig(SSCCmd*, void*, CScript*, ScriptVars*, float*) EI_ORIGINAL(0x004B41E0)
-__declspec(naked) void __fastcall RunCommandsOrig(CScript*, void*, ScriptDecl*, ScriptDefinition*) EI_ORIGINAL(0x004BC420)
-__declspec(naked) void __fastcall IfThenRunOrig(const ScriptIfThen*, void*, CScript*, ScriptDefinition*) EI_ORIGINAL(0x004BB520)
-__declspec(naked) void __fastcall ReleaseIfDeletedOrig(ScriptObjectRef*) EI_ORIGINAL(0x004B2570)
-__declspec(naked) void __fastcall GroupRemoveDeletedOrig(ScriptGroup*) EI_ORIGINAL(0x004B3110)
 inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
@@ -57,8 +53,6 @@ ScriptObjectRef* TempObjectsRemoveTail(mfc::CList<ScriptObjectRef>* list, Script
 }
 // ScriptVars constructor / destructor and the value arrays' Copy.
 __declspec(naked) void __fastcall FloatsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1A80)
-// ScriptRun's operator=.
-__declspec(naked) void __fastcall RunAssign(ScriptRun*, void*, const ScriptRun*) EI_ORIGINAL(0x004CB570)
 // FreeNode of the run list and of the instance list (each destroys the element).
 __declspec(naked) void __fastcall RunListFreeNode(RunList*, void*, RunList::Node*) EI_ORIGINAL(0x004CDAB0)
 __declspec(naked) void __fastcall InstanceListFreeNode(InstanceList*, void*, InstanceList::Node*) EI_ORIGINAL(0x004CD9B0)
@@ -241,7 +235,7 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
         FreeTemporariesOrig(script);
         if (ZeroOrNaN(result)) return;
     }
-    RunCommandsOrig(script, nullptr, commands, instance);
+    script->RunCommands(commands, instance);
 }
 EI_REPLACE_METHOD(0x004BB520, ScriptIfThen::Run);
 
@@ -273,7 +267,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
         run->killFlag = nullptr;
         RunList& runs = runs_;
         RunList::Node* node = RunListNewNode(&runs, nullptr, runs.head);
-        RunAssign(&node->data, nullptr, run);
+        node->data.ScriptRunAssign(run);
         if (runs.head) runs.head->prev = node;
         else runs.tail = node;
         runs.head = node;
@@ -363,7 +357,7 @@ void __fastcall ScriptTick(CScript* script) {
         ScriptDefinition* instance = &node->data;
         RemoveDeletedOrig(&instance->vars);
         for (int i = 0; i < instance->ifThen.size; ++i) {
-            IfThenRunOrig(&instance->ifThen.data[i], nullptr, script, instance);
+            instance->ifThen.data[i].Run(script, instance);
             if (instance->index != 0) break;
         }
         if (instance->index == 0) continue;
@@ -373,8 +367,8 @@ void __fastcall ScriptTick(CScript* script) {
 
     // Global variables: drop deleted objects.
     ScriptVars* globals = script->Globals();
-    for (int i = 0; i < globals->objects.size; ++i) ReleaseIfDeletedOrig(&globals->objects.data[i]);
-    for (int i = 0; i < globals->groups.size; ++i) GroupRemoveDeletedOrig(&globals->groups.data[i]);
+    for (int i = 0; i < globals->objects.size; ++i) globals->objects.data[i].ReleaseIfDeleted();
+    for (int i = 0; i < globals->groups.size; ++i) globals->groups.data[i].RemoveDeleted();
 
     RespawnFxSources(script);
     UpdatePointLights(script);

@@ -37,8 +37,6 @@ struct UnitAction {
     UnitAction* Assign(const UnitAction* from);
     // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
     void Reset();
-    UnitAction* CallAssign(const UnitAction* from);
-    void CallReset();
     // The inlined counted-reference assignment of the target (the order setters): the old one
     // released, the new one referenced; nothing when it is the same.
     void Retarget(CEngineObject* object) {
@@ -61,7 +59,7 @@ struct AnimationStep {
     std::uint8_t flags;         // +0x02 UnitSetAnimation's flags (StartAction's stepFlags)
     std::uint8_t padding;       // +0x03 0 (not initialised by the original)
     int duration;               // +0x04 game ticks
-    int kind;                   // +0x08 1 holds the queue time, 2 lying (a fall); passed to the unit (UnitSet25C)
+    int kind;                   // +0x08 1 holds the queue time, 2 lying (a fall); passed to the unit (CUnit::SetMotionMode)
 
     // 00550A60 (combat_server_slots.cpp): the blank step above. Returns this.
     AnimationStep* Construct();
@@ -515,20 +513,8 @@ public:
     // (slot 19; only CUnitServer's vtable has it), whose 1 it returns.
     BOOL AddExperience(float amount);
 
-    // The same functions called through the game's addresses (EI_ORIGINAL), so that the verify
-    // build's wrappers see the calls between the rewrites.
-    void CallDeliverAttack(CEngineObject* target, DamageInfo* hit);
-    void CallTriggerWeaponSpell(CEngineObject* target);
-    void CallTriggerItemSpells(char onHit);
-    void CallOnDamaged(CUnit* attacker, int hitKind);
-    void CallWitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer);
-    std::uint32_t CallHitDirection(CUnit* attacker, int hitKind);
-    void CallUseSkill(CEngineObject* target);
-    void CallSetDead(int dead);
     // The queued order's reset that Idle and FinishAction share: kind 9 and cleared, then kind 0.
     void DropQueuedOrder();
-
-    void CallFinishCast();
 
     // combat_save.cpp.
     // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
@@ -561,9 +547,6 @@ public:
     bool CanReachAndPlan(const UnitAction* order);
     // 0054C960 (RET 8). The same, planning with the unit placed at `point` meanwhile.
     bool CanReachAndPlanFrom(const UnitAction* order, const Vector3* point);
-    // The same through the game's addresses (for the verify build's wrappers).
-    bool CallCanActFrom(const UnitAction* order, const float* point, int time);
-    bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
 
     // combat_steps.cpp: the animation steps of an order. The unit's animation
     // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
@@ -584,10 +567,6 @@ public:
     // 0054F970. The steps of an attack on `target`: the hit location (plan +0x2C) and the height of
     // the blow from both units' heights and the distance. Draws random numbers. Returns 1.
     bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
-    // The same through the game's addresses.
-    bool CallBuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
-    void CallBuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
-    int CallAnimationMoment(std::uint32_t index);
 
     // combat_tick.cpp: the per-tick order machine.
     // 0054B390. Every tick: takes over the queued order, else follows the path and continues the
@@ -613,13 +592,7 @@ public:
     void TakeQueuedOrder();
     // 00546830. The unit's second movement mode, marking it changed.
     void SetUnitMoveMode2(int mode);
-    bool CallStartQueuedOrder();
-    void CallSyncMoveModes();
     void CallExecuteOrder();
-    void CallApproachTarget();
-    void CallContinueAction();
-    void CallTakeQueuedOrder();
-    void CallSetUnitMoveMode2(int mode);
 
     // combat_update.cpp: the update and the animation queue.
     // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI

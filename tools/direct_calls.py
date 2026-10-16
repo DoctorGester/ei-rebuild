@@ -367,7 +367,8 @@ def resolve_target(name, decls, simple_index):
 
 
 def match(fsig, tsig):
-    """How a call of the forwarder becomes a call of the target: 'rename', 'this' or None. A forwarder
+    """How a call of the forwarder becomes a call of the target: 'rename', 'this', 'cast' (the object is
+    passed as void*: `static_cast<T*>(self)->M(...)`, see rewrite_site) or None. A forwarder
     declared void may stand for a function with a result (the callers cannot read it); a parameter the
     target declares const where the forwarder does not is the same pointer."""
     if tsig.ret != fsig.ret and fsig.ret != 'void':
@@ -384,10 +385,10 @@ def match(fsig, tsig):
     if fsig.cc != '__fastcall' or tsig.cc != '__thiscall' or not fsig.params:
         return None
     self_t = fsig.params[0]
-    if self_t == tsig.scope + '*':
-        pass
-    elif self_t == tsig.scope + ' const*' and tsig.const:
-        pass
+    if self_t == tsig.scope + '*' or (self_t == tsig.scope + ' const*' and tsig.const):
+        kind = 'this'
+    elif self_t == 'void*' or (self_t == 'void const*' and tsig.const):
+        kind = 'cast'
     else:
         return None
     rest = fsig.params[1:]
@@ -395,7 +396,7 @@ def match(fsig, tsig):
         if rest[0] not in DUMMY_TYPES:
             return None
         rest = rest[1:]
-    return 'this' if same_params(rest, tsig.params) else None
+    return kind if same_params(rest, tsig.params) else None
 
 
 def same_params(fparams, tparams):
@@ -416,10 +417,13 @@ class Classes:
     def __init__(self, sources):
         self.bodies = defaultdict(list)       # simple name -> [(src, open, close)]
         self.derived = defaultdict(set)       # base simple name -> derived simple names
+        self.owners = defaultdict(set)        # name followed by ( in a class body -> class simple names
         for s in sources:
             for o, c, k, n in s.scopes:
                 if k in ('class', 'template class'):
                     self.bodies[n].append((s, o, c))
+                    for m in re.finditer(r'\b([A-Za-z_]\w*)\s*\(', s.bare[o:c]):
+                        self.owners[m.group(1)].add(n)
                     i = max(s.bare.rfind(';', 0, o), s.bare.rfind('{', 0, o), s.bare.rfind('}', 0, o)) + 1
                     head = _CLASS_HEAD.search(s.bare[i:o])
                     if head and head.group('bases'):
@@ -509,49 +513,55 @@ def parse_args(bare, open_paren):
 
 
 def find_sites(f, sources, decl_spans):
-    """Every use of the forwarder's name, or a reason it cannot be rewritten."""
-    local = f.src.path.endswith('.cpp') and '::' not in f.name and not f.in_class
+    """Every use of the forwarder's name, or a reason it cannot be rewritten. A declaration of the
+    forwarder elsewhere (the class body's for an out-of-class definition, a header's prototype of a
+    free one) goes into f.extra, to be deleted with it."""
+    chain = f.src.scope_at(f.start)
+    local = not f.in_class and '::' not in f.name and (
+        any(n == "`anonymous namespace'" for _, n in chain) or re.match(r'\s*static\b', f.text))
+    namespaces = [n for k, n in chain if k == 'ns']
     sites = []
     for s, a, b in _WORDS.get(f.simple, ()):
         if local and s is not f.src:
             continue
-        if True:
-            if any(sa <= a < sb for sa, sb in decl_spans.get(s.path, ())):
+        if any(sa <= a < sb for sa, sb in decl_spans.get(s.path, ())):
+            continue
+        j = b
+        while j < len(s.bare) and s.bare[j] in ' \t\r\n':
+            j += 1
+        is_call = j < len(s.bare) and s.bare[j] == '('
+        tok, at = prev_token(s.bare, a)
+        qstart, qual = (a, '')
+        if tok == '::':
+            qstart, qual = qualifier_before(s.bare, a)
+            tok, at = prev_token(s.bare, qstart)
+        obj = tok if tok in ('.', '->') else ''
+        declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
+                                   or tok in ('*', '&', '>', '~'))
+        if declaration and is_call and not qual and not f.in_class and not s.in_body(a):
+            close, _ = parse_args(s.bare, j)
+            mm = re.match(r'\s*(?:const\s*)?;', s.bare[close + 1:close + 40]) if close else None
+            here = s.scope_at(a)
+            classes = [n for k, n in here if k == 'class']
+            if '::' in f.name:
+                same = bool(classes) and classes[-1] == f.name.split('::')[-2]
+            else:
+                same = not classes and [n for k, n in here if k == 'ns'] == namespaces
+            if mm and same:
+                f.extra.append((s, statement_start(s, at), close + 1 + mm.end()))
                 continue
-            j = b
-            while j < len(s.bare) and s.bare[j] in ' \t\r\n':
-                j += 1
-            is_call = j < len(s.bare) and s.bare[j] == '('
-            tok, at = prev_token(s.bare, a)
-            qstart, qual = (a, '')
-            if tok == '::':
-                qstart, qual = qualifier_before(s.bare, a)
-                tok, at = prev_token(s.bare, qstart)
-            obj = tok if tok in ('.', '->') else ''
-            declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
-                                       or tok in ('*', '&', '>', '~'))
-            if declaration and '::' in f.name and not s.in_body(a) and is_call and not f.in_class and not f.extra:
-                # the class body's declaration of an out-of-class forwarder definition
-                k_open, _ = parse_args(s.bare, j)
-                end = k_open + 1 if k_open else b
-                rest = s.bare[end:end + 40]
-                mm = re.match(r'\s*(?:const\s*)?;', rest)
-                cls = [n for k, n in s.scope_at(a) if k == 'class']
-                if mm and cls and cls[-1] == f.name.split('::')[-2]:
-                    f.extra.append((s, statement_start(s, at if tok else a), end + mm.end()))
-                    continue
-            if declaration:
-                return None, f'another declaration of the name ({f.simple}; {s.path}:{s.line_of(a)})'
-            if not is_call:
-                return None, f'used other than in a call ({f.simple}; {s.path}:{s.line_of(a)})'
-            if s.path.startswith('tests/vectors/'):
-                return None, f'called from the vector replay ({s.path}:{s.line_of(a)})'
-            site = Site(s, qstart, a, b, qual, obj)
-            close, args = parse_args(s.bare, j)
-            if close is None:
-                return None, f'unbalanced call ({s.path}:{s.line_of(a)})'
-            site.args = (j, close, args)
-            sites.append(site)
+        if declaration:
+            return None, f'another declaration of the name ({f.simple}; {s.path}:{s.line_of(a)})'
+        if not is_call:
+            return None, f'used other than in a call ({f.simple}; {s.path}:{s.line_of(a)})'
+        if s.path.startswith('tests/vectors/'):
+            return None, f'called from the vector replay ({s.path}:{s.line_of(a)})'
+        site = Site(s, qstart, a, b, qual, obj)
+        close, args = parse_args(s.bare, j)
+        if close is None:
+            return None, f'unbalanced call ({s.path}:{s.line_of(a)})'
+        site.args = (j, close, args)
+        sites.append(site)
     return sites, ''
 
 
@@ -608,6 +618,19 @@ def is_postfix(expr):
                     return False
         i += 1
     return depth == 0
+
+
+CAST_SITES = set()    # (path, line) of calls that need static_cast<T*> (--cast-sites)
+
+
+def spelled_type(qname, site_src, site_offset):
+    """A class's name as written at a call site: qualified past the namespaces the site is in."""
+    parts = split_qualified(qname)
+    here = site_src.namespaces_at(site_offset)
+    k = 0
+    while k < len(parts) - 1 and k < len(here) and parts[k] == here[k]:
+        k += 1
+    return '::'.join(parts[k:])
 
 
 def spelled_target(tsig, site_src, site_offset):
@@ -668,7 +691,16 @@ def rewrite_site(f, site):
             return None, f'EDX argument with an effect ({dummy})'
     rest = [_trimmed(s.code, args[2][0], close)[0], close] if nparams > 2 else None
     m = f.target.simple
-    if self_code == 'this':
+    site.uncast = f.kind == 'cast' and not (not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES)
+    if f.kind == 'cast' and (not f.unique or (s.path, s.line_of(site.start)) in CAST_SITES):
+        cls = spelled_type(f.target.scope, s, site.start)
+        if '<' in cls:
+            return None, 'object passed as void* to a member of a class template'
+        const = 'const ' if f.sig.params[0] == 'void const*' else ''
+        head = [f'static_cast<{const}{cls}*>(', (sa, sb), ')->' + m]
+    elif f.kind == 'cast' and self_code == 'this':
+        return None, 'this passed as void*'
+    elif self_code == 'this':
         head = [m]
     elif self_code.startswith('&') and not self_code.startswith('&&') and is_postfix(self_code[1:]):
         head = [_trimmed(s.code, sa + 1, sb), '.' + m]
@@ -730,7 +762,8 @@ def add_include(src, inc):
 
 # ------------------------------------------------------------------------------------------- driver
 
-def analyse(sources, decls, library=False, scope=None):
+def analyse(sources, decls, library=False, scope=None, tiers=None):
+    tiers = tiers or {}
     simple_index = by_simple(decls)
     regs = registrations(sources, library)
     kept = kept_shims(sources)
@@ -788,6 +821,13 @@ def analyse(sources, decls, library=False, scope=None):
         if not f.kind:
             f.reason = 'types differ'
             continue
+        if f.kind == 'cast' and not tiers.get('cast'):
+            f.reason = 'object passed as void* (--cast)'
+            continue
+        # Without a cast `p->M(...)` reaches T::M only when no other class has an M: then a call
+        # through any other type does not compile.
+        f.unique = simple_index.get(t.simple, set()) <= {t.qname} and \
+            classes.owners.get(t.simple, set()) <= {split_qualified(t.scope)[-1].split('<')[0]}
         others = simple_index.get(t.simple, set()) - {t.qname}
         if t.member:
             cls = split_qualified(t.scope)[-1].split('<')[0]
@@ -825,6 +865,9 @@ def plan(fwds, classes):
                 break
             mine.append((site.src, e))
             if site.src.path == f.target_src_path:
+                if not f.target.member and not declared_before(site.src, f.target.simple, site.start):
+                    why = f'target declared after the call ({site.src.path}:{site.src.line_of(site.start)})'
+                    break
                 continue
             t = f.target
             if t.member or t.static:
@@ -850,6 +893,9 @@ def plan(fwds, classes):
             continue
         for src, e in mine:
             edits[src].append(e)
+        for site in f.sites:
+            if getattr(site, 'uncast', False):
+                MARKERS[site.src].append(site.start)
         for src, inc in incs:
             includes[src].add(inc)
         edits[f.src].append(('delete', f.start, f.end, f.address))
@@ -860,6 +906,15 @@ def plan(fwds, classes):
 
 
 _FREE_DECLS = {}
+
+
+def declared_before(src, name, offset):
+    """Whether `src` declares free function `name` (a type before the name) before `offset`."""
+    for m in re.finditer(r'\b' + re.escape(name) + r'\s*\(', src.bare[:offset]):
+        tok, _ = prev_token(src.bare, m.start())
+        if tok and (tok[0].isalnum() or tok[0] == '_' or tok in ('*', '&')) and tok not in KEYWORDS_BEFORE_EXPR:
+            return True
+    return False
 
 
 _WORDS = {}
@@ -954,6 +1009,27 @@ def apply(edits, includes, deleted_by_file):
     return sorted(out)
 
 
+MARKERS = defaultdict(list)   # src -> offsets of calls written without a cast that may need one
+LINE_MAP = {}                 # (path, line after --apply) -> 'path:line' before (for --cast-sites)
+
+
+def map_lines(src, ops):
+    """Where the calls in MARKERS land after the edits: their lines before and after, in LINE_MAP."""
+    raw = src.raw
+    top, pos = [], 0
+    for o in sorted(ops, key=lambda o: (o[0], -o[1])):
+        if o[0] >= pos or o[0] == o[1]:
+            top.append(o)
+            pos = max(pos, o[1])
+    for m in MARKERS.get(src, ()):
+        delta = 0
+        for a, b, _ in top:
+            if b <= m and not (a == b == m):
+                delta += render(raw, a, b, ops).count('\n') - raw.count('\n', a, b)
+        old = raw.count('\n', 0, m) + 1
+        LINE_MAP[(src.path, old + delta)] = f'{src.path}:{old}'
+
+
 def rewritten(edits, includes, deleted_by_file):
     """path -> new text of every file the edits change."""
     changed = {}
@@ -981,7 +1057,13 @@ def rewritten(edits, includes, deleted_by_file):
             e = add_include(src, inc)
             if e:
                 ops.append((e[0], e[1], [e[2]]))
-        changed[src.path] = render(raw, 0, len(raw), ops)
+        new = render(raw, 0, len(raw), ops)
+        map_lines(src, ops)
+        # A namespace whose forwarders all went goes too.
+        empty = re.compile(r'\n\n?namespace(?: \w+)? \{\n\}(?: *//[^\n]*)?\n')
+        if len(empty.findall(new)) > len(empty.findall(raw)):
+            new = empty.sub('\n', new)
+        changed[src.path] = new
     return changed
 
 
@@ -1012,6 +1094,8 @@ def main(argv):
     ap.add_argument('--scope', nargs='*')
     ap.add_argument('--library', action='store_true', help='also forwarders to EI_REPLACE_STANDALONE code')
     ap.add_argument('--verbose', '-v', action='store_true')
+    ap.add_argument('--cast', action='store_true', help='also forwarders taking the object as void*')
+    ap.add_argument('--cast-sites', help='file of path:line calls that need static_cast<T*> (compile errors)')
     ap.add_argument('--map', default=MAP)
     args = ap.parse_args(argv)
     sources = load_sources()
@@ -1022,7 +1106,12 @@ def main(argv):
         print(f'{len(fwds)} forwarders, {sum(1 for f in fwds if f.address in regs)} to rewritten code')
         return 0
     decls = load_map(args.map)
-    fwds, classes = analyse(sources, decls, args.library, args.scope)
+    if args.cast_sites:
+        for line in open(args.cast_sites, encoding='utf-8'):
+            m = re.match(r'(.+):(\d+)\s*$', line.strip())
+            if m:
+                CAST_SITES.add((m.group(1).replace('\\', '/'), int(m.group(2))))
+    fwds, classes = analyse(sources, decls, args.library, args.scope, {'cast': args.cast})
     edits, includes, done = plan(fwds, classes) if (args.apply or args.report) else ({}, {}, [])
     scoped = [f for f in fwds if f.in_scope]
     reasons = Counter(re.sub(r' \(.*', '', f.reason) for f in scoped if f.reason)
@@ -1043,6 +1132,13 @@ def main(argv):
                 deleted[src.path].add(f.address)
         changed = apply(edits, includes, deleted)
         print(f'{len(changed)} files changed')
+        if LINE_MAP:
+            out = os.path.join(ROOT, 'build', 'C13', 'uncast_calls.txt')
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            with open(out, 'w', encoding='utf-8') as fh:
+                fh.writelines(f'{p}:{n} {old}\n' for (p, n), old in sorted(LINE_MAP.items()))
+            print(f'{len(LINE_MAP)} calls through void* written without a cast: {os.path.relpath(out, ROOT)} '
+                  '(a compile error at one: add its "before" place to --cast-sites)')
         review(done)
     return 0
 

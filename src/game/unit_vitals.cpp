@@ -106,11 +106,6 @@ double EffectScale(CUnit* unit, float k);
 // Called through their game addresses so their verify wrappers see the calls (rewritten here).
 // 0050F690. CMapObject::EffectValue (map_object.cpp): the largest value of the effects of a type.
 __declspec(naked) double __fastcall CallEffectValue(const CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x0050F690)
-// 00525800 / 00525A70.
-__declspec(naked) void __fastcall CallScaleSlotMaxima(UnitStats*, void*, float) EI_ORIGINAL(0x00525A70)
-// 00524560 / 00523F50 / 00523DB0 / 005282D0.
-__declspec(naked) double __stdcall CallHitPointEffectScale(CUnit*) EI_ORIGINAL(0x00523DB0)
-__declspec(naked) double __fastcall CallSkillLevelValueCopy(UnitStats*, void*, int) EI_ORIGINAL(0x005282D0)
 
 namespace {
 double EffectScale(CUnit* unit, float k) {
@@ -331,7 +326,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     }
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
     vitals->maxHitPoints = limit;
-    CallScaleSlotMaxima(this, nullptr, limit);
+    ScaleSlotMaxima(limit);
     double hitPoints = Reduce(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(hitPoints);
     if (hitPoints > kZero) flags |= 8;
@@ -477,7 +472,7 @@ void RefreshMaxima(UnitStats* stats, UnitVitals* vitals, CUnit* unit) {
                             &GameLogicSettings().mpVal[4]);
     scaled = curve * (stats->stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]);
     vitals->maxMana = static_cast<float>((LevelValueOf(stats, kSkillMana) * kPercent + kOne) * scaled);
-    CallScaleSlotMaxima(stats, nullptr, limit);
+    stats->ScaleSlotMaxima(limit);
     vitals->hitPoints = static_cast<float>(stats->Reduce(vitals->maxHitPoints));
 }
 
@@ -542,7 +537,7 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
         static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
     vitals->maxMana = static_cast<float>(UnitStatsManaCurve(this));
-    CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
+    ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     unit->baseScale.x = unit->baseScale.x + kPointTwo;
     unit->scale.x = unit->scale.x + kPointTwo;
@@ -561,16 +556,16 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     double curve = ExperienceCurve(&GameLogicSettings().hpVal[3], &experience, &GameLogicSettings().hpVal[2], &GameLogicSettings().hpVal[4]);
     float scaled = static_cast<float>(curve * (stat10 / GameLogicSettings().hpVal[0] * GameLogicSettings().hpVal[1]));
     float maxHitPoints =
-        static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillHitPoints) * kPercent + kOne) * scaled);
-    float boosted = static_cast<float>(CallHitPointEffectScale(unit) * maxHitPoints);
+        static_cast<float>((SkillLevelValueCopy(kSkillHitPoints) * kPercent + kOne) * scaled);
+    float boosted = static_cast<float>(HitPointEffectScale(unit) * maxHitPoints);
     float one = kOne;
     float b = boosted;
     vitals->maxHitPoints = LessOrUnordered(one, b, b, one);
     curve = ExperienceCurve(&GameLogicSettings().mpVal[3], &experience, &GameLogicSettings().mpVal[2], &GameLogicSettings().mpVal[4]);
     scaled = static_cast<float>(curve * (stat18 / GameLogicSettings().mpVal[0] * GameLogicSettings().mpVal[1]));
     vitals->maxMana =
-        static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillMana) * kPercent + kOne) * scaled);
-    CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
+        static_cast<float>((SkillLevelValueCopy(kSkillMana) * kPercent + kOne) * scaled);
+    ScaleSlotMaxima(vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     float lowered = unit->baseScale.y - kPointTwo;
     float l = lowered;

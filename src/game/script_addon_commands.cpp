@@ -35,8 +35,6 @@ namespace scriptaddon {
 
 namespace {
 
-// 00566330 on the client world: the pause request through the client's session.
-__declspec(naked) void __fastcall ClientPause(CWorldClient*, void*, int) EI_ORIGINAL(0x00566330)
 // The camera script player (the client glue object, not read): start (005787F0) and stop
 // (005787D0) saving a camera path.
 __declspec(naked) void __fastcall CameraStartSave(void*, void*, const char*) EI_ORIGINAL(0x005787F0)
@@ -333,7 +331,7 @@ bool ShowAllUnits(Call* call) {
 
 // PauseGame(value): outside network games, the client's pause request with (value == 0).
 bool PauseGame(Call* call) {
-    if (!IsNetworkClientOriginal()) ClientPause(WorldClient(), nullptr, Equals(0.0f, Floats(call)[0]) ? 1 : 0);
+    if (!IsNetworkClientOriginal()) WorldClient()->SendFlag10(Equals(0.0f, Floats(call)[0]) ? 1 : 0);
     return true;
 }
 

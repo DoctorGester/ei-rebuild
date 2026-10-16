@@ -14,6 +14,7 @@
 #include "item_db.h"
 #include "map_object.h"
 #include "player_messages.h"
+#include "unit.h"
 #include "world.h"
 
 #include "lib/crt.h"
@@ -52,7 +53,6 @@ void AimPointInto(CEngineObject* object, Vector3* out) { Slots(object)->AimPoint
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
 inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00531A10)
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
@@ -65,10 +65,6 @@ __declspec(naked) Vector3* __fastcall MotionDestination(void*, void*, Vector3* /
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
 // 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
-__declspec(naked) CItem* __fastcall CtlSpellCarrier(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B7C0)
-__declspec(naked) bool __fastcall CtlFindUseSpot(CUnitServer*, void*, UnitAction*, void*) EI_ORIGINAL(0x0054DF50)
-__declspec(naked) double __fastcall CtlTimeUntilAction(CUnitServer*, void*, const UnitAction*, void*)
-    EI_ORIGINAL(0x0054E250)
 // 0066D490: the player's message about a path (combat_motion.cpp).
 void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, float a7) {
     PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, std::bit_cast<std::uint32_t>(a7));
@@ -288,7 +284,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     if (!order->target) std::memcpy(&point, &order->point, sizeof(point));
     else AimPointInto(order->target, &point);
     bool ok;
-    if (!CtlFindUseSpot(this, nullptr, order, route.bytes())) {
+    if (!FindUseSpot(order, route.bytes())) {
         PathMessage(unit, route.bytes(), &point.x, 3, 1, kFar);
         ok = false;
     } else {
@@ -306,11 +302,11 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             void* spell = nullptr;
             bool skip = false;
             if (source & kQuickItemSource) {
-                CItem* carrier = CtlSpellCarrier(this, nullptr, source);
+                CItem* carrier = SpellCarrier(source);
                 if (!carrier) skip = true;
                 else spell = carrier->spell_;
             } else {
-                spell = UnitSpellObject(unit, nullptr, source);
+                spell = unit->GetSpellObject(source);
             }
             if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)))->castType == 0) kind = 2;
         }
@@ -351,7 +347,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             }
             PathToMotionOrder(path.bytes, nullptr, route.bytes());
             ok = actsFromDestination();
-            if (ok) best = static_cast<float>(CtlTimeUntilAction(this, nullptr, order, route.bytes()));
+            if (ok) best = static_cast<float>(TimeUntilAction(order, route.bytes()));
         } else {
             ok = actsFromDestination();
         }

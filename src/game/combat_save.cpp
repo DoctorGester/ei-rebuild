@@ -169,18 +169,11 @@ void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
 }
 EI_REPLACE(0x005585F0, LoadArmourSpells);
 
-namespace {
-// The loads through their game addresses, so that the verify build's wrappers see them (LoadServer
-// is checked by running ours only).
-__declspec(naked) void __fastcall CallLoadStepList(AnimationSteps*, CStream*) EI_ORIGINAL(0x005582A0)
-__declspec(naked) void __fastcall CallLoadArmourSpells(ArmourSpellList*, CStream*) EI_ORIGINAL(0x005585F0)
-} // namespace
-
 void CUnitServer::LoadServer(CStream* stream) {
     aiPresence = nullptr;
     stream->Read(&frozen, 1);
     stream->Read(&animationHeld, 1);
-    CallLoadStepList(&queue, stream);
+    LoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
     MotionLoad(&motion, nullptr, stream);
     PlanLoad(&currentPlan, nullptr, stream);
@@ -189,7 +182,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     stream->Read(&stoodBlocked, 1);
     stream->Read(&motionChanged, 1);
     stream->Read(&movingAnimation, 1);
-    CallLoadStepList(&savedQueue, stream);
+    LoadStepList(&savedQueue, stream);
     stream->Read(&savedQueue.extra, 4);
     stream->Read(&hitDirection, 4);
     stream->Read(&state, 4);
@@ -218,7 +211,7 @@ void CUnitServer::LoadServer(CStream* stream) {
     // The context's (the world's) slot 14: the timed objects.
     void* effects = static_cast<CWorld*>(ManagerContext())->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
-    CallLoadArmourSpells(&armourSpells, stream);
+    LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
     void* units = UnitManager();
     AssignCounted(followedLeader, ReadObject(stream, units));

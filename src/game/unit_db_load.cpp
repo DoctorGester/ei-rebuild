@@ -2,6 +2,7 @@
 // 00520220) and the model and level tables' name lookups (0053D240 / 0053D650). A-U12.
 // Rebirth patches both loads (it redirects their file lookup to a mod folder's copy): these are the
 // vanilla functions and install in the vanilla launch only (rule 9). See docs/notes/units.md.
+#include "chunk_archive.h"
 #include "unit_db.h"
 
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
@@ -38,7 +39,6 @@ __declspec(naked) void __fastcall SerializeModelsAt(ChunkArchive*, void*, int, v
 __declspec(naked) void __fastcall SerializePrototypesAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DC10)
 __declspec(naked) void __fastcall SerializeNpcsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x0053DD00)
 __declspec(naked) void __fastcall SerializeSkillsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x005207D0)
-__declspec(naked) void __fastcall SkillLevelChunkAt(ChunkArchive*, void*, int, SkillLevelRecord*) EI_ORIGINAL(0x00521480)
 // STLport instantiations: hash_map<string, record*>::operator[] of the NPC and the level tables
 // (RET 4: the key; EAX the value's address; those of the prototypes and the models are shared
 // forwarders), and vector<SkillLevelRecord>::clear.
@@ -175,7 +175,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
             }
             for (int i = 0; i < count; ++i) {
                 ar.Current()->occurrence = i + 1;
-                SkillLevelChunkAt(&ar, nullptr, kRecordChunk, levels.begin() + i);
+                ar.SkillLevelChunk(kRecordChunk, levels.begin() + i);
             }
             ar.LeaveChunk();
         }

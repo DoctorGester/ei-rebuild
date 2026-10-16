@@ -7,6 +7,7 @@
 #include "item.h"
 #include "maths.h"
 #include "spell.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -109,15 +110,8 @@ namespace {
 inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
 // 00557B80. CArray::SetSize of an AnimationSteps list.
 // 00455950. The world an object lives in.
-// Rewritten elsewhere, called through their game addresses (ST0 results kept unrounded):
-// 00530370 CUnit::BaseSpeed (the eye height here), 005302F0 CUnit::ModeSpeed, 0054C070
-// CUnitServer::ActionDistance, 005BC3E0 CAIMap::LineOfSight.
-__declspec(naked) double __fastcall UnitEyeHeight(CUnit*) EI_ORIGINAL(0x00530370)
 
 } // namespace
-
-__declspec(naked) bool CUnitServer::CallCanActFrom(const UnitAction*, const float*, int) EI_ORIGINAL(0x0054C2F0)
-__declspec(naked) bool CUnitServer::CallPlanAction(const UnitAction*, OrderPlan*) EI_ORIGINAL(0x0054CA40)
 
 // --- What must be seen -----------------------------------------------------------------------
 
@@ -138,13 +132,13 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
             out->unit = other;
             double reach = static_cast<double>(unit->standingHeight) + other->standingHeight + kPointThree;
             out->minDistanceSq = static_cast<float>(reach * reach);
-            out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
+            out->eyeHeight = static_cast<float>(unit->BaseSpeed());
             return true;
         }
         std::memcpy(&out->point, &order->point, sizeof(out->point));
         out->point.z = static_cast<float>(
             static_cast<CWorld*>(world)->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
-        out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
+        out->eyeHeight = static_cast<float>(unit->BaseSpeed());
         return true;
     }
 
@@ -152,7 +146,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
     out->point.x = out->point.y = out->point.z = 0.0f;
     out->minDistanceSq = kNearSq;
     out->unit = static_cast<CUnit*>(target);
-    out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
+    out->eyeHeight = static_cast<float>(unit->BaseSpeed());
     return true;
 }
 EI_REPLACE_METHOD(0x0054BCB0, CUnitServer::FindSightTarget);
@@ -329,14 +323,14 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     int duration = 0;
     int kind = order->kind;
     if (kind == kOrderAttack) {
-        CallBuildAttackSteps(plan, &steps, &duration, order->target);
+        BuildAttackSteps(plan, &steps, &duration, order->target);
     } else if (kind < kOrderCast || kind > kOrderCastAt) {
         CtlBuildOrderSteps(this, nullptr, &steps, &duration, kind, order->source);
     } else {
         spell = SpellOfSource(order->source);
         int value = 0;
         if (spell) value = CastValue(this, spell);
-        CallBuildCastSteps(&steps, &duration, order->kind, value);
+        BuildCastSteps(&steps, &duration, order->kind, value);
     }
     if (duration <= 0) duration = 1;
 
@@ -448,7 +442,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 }
             }
             if (facingIt) {
-                if (!CallCanActFrom(order, &aim.x, tick + duration + now)) break;
+                if (!CanActFrom(order, &aim.x, tick + duration + now)) break;
                 plan->targetId = order->target ? order->target->id_ : -1;
                 plan->startTime = tick + now;
                 plan->endTime = tick + now + duration;
@@ -477,7 +471,7 @@ bool CUnitServer::CanPlanAction(const UnitAction* order) {
     plan.animation.vtable = kAnimationStepsVtable;
     CEngineObject* target = order->target;
     if (IsUnit(target)) target->flags_ |= kFlagPlanned;
-    bool result = CallPlanAction(order, &plan);
+    bool result = PlanAction(order, &plan);
     if (IsUnit(target)) target->flags_ &= ~kFlagPlanned;
     DestroySteps(&plan.animation);
     return result;

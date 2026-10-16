@@ -5,6 +5,7 @@
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "map_object.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
 
@@ -27,7 +28,6 @@ constexpr int kStatTaming = 2;
 // Forwarders (thiscall as __fastcall with the unused EDX).
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
-__declspec(naked) void __fastcall UnitSetRelationsB(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530180)
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 // 00665D20 the player: prepares to take a unit in (no arguments).
 __declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
@@ -38,15 +38,13 @@ void __fastcall BrainRemoveMode(void* a0, void*, int a2) { BrainRemoveModeOrigin
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
-// This file's functions through their game addresses.
-__declspec(naked) void __fastcall CtlUndoTaming(CUnitServer*) EI_ORIGINAL(0x00552280)
 
 int& Stage(CUnitServer* self) { return self->tameStage; }
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
 void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
     int side = Stage(self) == 0 ? -1 : self->tamerSide;
-    if (side == tamer->side) CtlUndoTaming(self);
+    if (side == tamer->side) self->UndoTaming();
 }
 
 // An empty reference list of the brain (CList of one reference per node): each released, then
@@ -84,7 +82,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     char* tamerPlayer = tamer->player;
     switch (Stage(this)) {
     case 0:
-        UnitSetRelationsB(unit, nullptr, ~(1u << (tamer->side & 31)));
+        unit->SetRelationsB(~(1u << (tamer->side & 31)));
         Stage(this) = 1;
         break;
     case 1:
@@ -136,7 +134,7 @@ void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
     BrainRemoveMode(&brain, nullptr, kModeTamed);   // unit_ai.h: the tamed mode (8)
     UnitSetPlayer(unit, nullptr, nullptr);
-    UnitSetRelationsB(unit, nullptr, 0xFFFFFFFFu);
+    unit->SetRelationsB(0xFFFFFFFFu);
     if (Stage(this) > 1) UnitSetSide(unit, nullptr, ownSide);
     Stage(this) = 0;
 }

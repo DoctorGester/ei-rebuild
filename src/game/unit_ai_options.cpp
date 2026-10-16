@@ -26,15 +26,6 @@ constexpr int kSpellKinds[42] = {1, 1, 1, 2, 2, 2, 3, 3, 3, 5, 5, 5, 6, 6, 6, 6,
 // 00522B20 (fastcall, AX): the largest of damage[1..7] (units area, not rewritten).
 __declspec(naked) std::uint16_t __fastcall MaxDamage(const std::uint16_t*) EI_ORIGINAL(0x00522B20)
 
-// The helpers through their addresses, so the verify build's wrappers see Build's calls (Build is
-// their only caller; all rewritten below).
-__declspec(naked) void __fastcall InitOptionAt(AIAttention*, void*, AIAttackOption*, int, int, float, int, float, int)
-    EI_ORIGINAL(0x005CEA30)
-__declspec(naked) std::uint16_t* __fastcall AddWeaponOptionAt(AIAttention*, void*, int, int, float, int, float, int)
-    EI_ORIGINAL(0x005CEA60)
-__declspec(naked) std::uint16_t* __fastcall AddSpellOptionAt(AIAttention*, void*, int, int, float, int, float, int)
-    EI_ORIGINAL(0x005CEBD0)
-__declspec(naked) int __fastcall SpellKindAt(AIAttention*, void*, const CSpell*) EI_ORIGINAL(0x005CEDC0)
 __declspec(naked) double __fastcall WeightAt(const AIAttackOption*) EI_ORIGINAL(0x005CE9B0)
 __declspec(naked) void __fastcall OptionsSetSizeAt(AIAttackOptions*, void*, int, int) EI_ORIGINAL(0x005D9250)
 
@@ -132,13 +123,13 @@ void AIAttention::Build(CUnit* unit) {
             float range = server->AttackRange();
             OptionsSetSizeAt(&weapons, nullptr, weapons.size + 1, -1);
             AIAttackOption& option = weapons.data[weapons.size - 1];
-            InitOptionAt(this, nullptr, &option, 0, -1, range, 0, 0.0f, 0);
+            InitOption(&option, 0, -1, range, 0, 0.0f, 0);
             server->GetDamageByType(reinterpret_cast<std::int16_t*>(option.damage));
         }
         for (std::uint32_t slot = 0; slot < 8; ++slot) {
             auto* spell = static_cast<const CSpell*>(unit->GetSpellObject(slot));
             if (!spell) continue;
-            int kind = SpellKindAt(this, nullptr, spell);
+            int kind = SpellKind(spell);
             if (kind == kNoKind) continue;
             float range = std::bit_cast<float>(spell->range_);
             if (server->Combat().naturalWeapon == kNaturalSpellsOnly) range = server->Combat().reach;
@@ -173,17 +164,17 @@ void AIAttention::Build(CUnit* unit) {
             case 3: {
                 OptionsSetSizeAt(&weapons, nullptr, weapons.size + 1, -1);
                 AIAttackOption& option = weapons.data[weapons.size - 1];
-                InitOptionAt(this, nullptr, &option, kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
+                InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
                 server->GetSpellDamage(slot, reinterpret_cast<std::int16_t*>(option.damage));
                 break;
             }
             case 4:
-                AddWeaponOptionAt(this, nullptr, 4, static_cast<int>(slot), range, maxCount, radiusValue, effect);
+                AddWeaponOption(4, static_cast<int>(slot), range, maxCount, radiusValue, effect);
                 break;
             case 5:
             case 6:
             case 7:
-                AddSpellOptionAt(this, nullptr, kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
+                AddSpellOption(kind, static_cast<int>(slot), range, maxCount, radiusValue, effect);
                 break;
             default:
                 break;
@@ -191,7 +182,7 @@ void AIAttention::Build(CUnit* unit) {
         }
     } else {
         float range = server->AttackRange();
-        std::uint16_t* damage = AddWeaponOptionAt(this, nullptr, 0, -1, range, 0, 0.0f, 0);
+        std::uint16_t* damage = AddWeaponOption(0, -1, range, 0, 0.0f, 0);
         server->GetDamageByType(reinterpret_cast<std::int16_t*>(damage));
     }
     healWeight = 0.0f;
@@ -201,17 +192,13 @@ void AIAttention::Build(CUnit* unit) {
     }
 }
 
-namespace {
-__declspec(naked) void __fastcall OptionLoadAt(AIAttackOption*, void*, CStream*) EI_ORIGINAL(0x005CE860)
-} // namespace
-
 // 005D9B80 (fastcall, plain RET): the count, the array sized to it (SetSize inlined), then each
 // option (005CE860, through its address).
 void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     options->SetSize(count, -1);
-    for (int i = 0; i < options->size; ++i) OptionLoadAt(&options->data[i], nullptr, stream);
+    for (int i = 0; i < options->size; ++i) options->data[i].Load(stream);
 }
 EI_REPLACE(0x005D9B80, LoadAttackOptions);
 

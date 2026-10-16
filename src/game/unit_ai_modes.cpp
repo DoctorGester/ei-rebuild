@@ -80,7 +80,7 @@ void MaybeRemark(AIBrain* brain, int what) {
 
 // An order on the stack: the looks array is constructed and given its derived vtable.
 void ConstructOrder(AIMoveOrder* order) {
-    LooksConstructAt(&order->looks);
+    LooksInit(&order->looks);
     order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
 }
 
@@ -245,7 +245,7 @@ void PatrolMode::Execute(AIBrain* brain) {
     LooksSetSizeAt(&order.looks, nullptr, next->looks.size, -1);
     for (int i = 0; i < next->looks.size; ++i) {
         AILook look;
-        LooksGetAt(&next->looks, nullptr, &look, i);
+        LooksElementAt(&next->looks, nullptr, &look, i);
         std::memcpy(&order.looks.data[i], &look, sizeof(AILook));
     }
     if (order.looks.size <= 0) {

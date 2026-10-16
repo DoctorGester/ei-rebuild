@@ -83,7 +83,6 @@ void TellParty(CUnit* unit, int message) {
 __declspec(naked) void __fastcall WorldUseScroll(void*, void*, CUnit*, CItem*) EI_ORIGINAL(0x00595020)
 
 __declspec(naked) bool CUnitServer::PlanOrder(UnitAction*, int) EI_ORIGINAL(0x0054E600)
-__declspec(naked) void CUnitServer::CallFinishCast() EI_ORIGINAL(0x0054EE10)
 
 void CUnitServer::FinishCast() {
     void* world = ManagerContext();

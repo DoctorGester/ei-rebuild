@@ -11,6 +11,7 @@
 #include "maths.h"
 #include "player_messages.h"
 #include "random.h"
+#include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
@@ -116,17 +117,12 @@ namespace {
 // motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
 // into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
 // (taken by value), 00549690 the end of an order.
-__declspec(naked) bool __fastcall TickFollowPath(CUnitServer*) EI_ORIGINAL(0x0054A150)
-__declspec(naked) void __fastcall TickMotion5474B0(CUnitServer*) EI_ORIGINAL(0x005474B0)
 __declspec(naked) void __fastcall TickStartAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x005494D0)
-__declspec(naked) void __fastcall TickPlayEmote(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548FA0)
-__declspec(naked) bool __fastcall TickTalkTargetBusy(CUnitServer*, void*, CEngineObject*) EI_ORIGINAL(0x0054C760)
 bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { return UnitCheckOrderOriginal((void*)a0, nullptr, (const void*)a2); }
 // Containers: 00544E70 the animation queue (+0x24) holds a list; 00544D50 an emote's steps;
 // 00545110 the plan takes a list (by value), its start and duration; 0054B260 / 00557E70 copy /
 // destroy a list; 00557B80 SetSize; 00544CE0 AddStep; 0052CA10 a CPtrList's RemoveAll.
 void __fastcall StepsEmote(AnimationSteps* a0, void*, int a2) { StepsEmoteOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall PlanTake(OrderPlan*, void*, AnimationSteps, int, int) EI_ORIGINAL(0x00545110)
 __declspec(naked) AnimationSteps* __fastcall StepsCopy(AnimationSteps*, void*, const AnimationSteps*) EI_ORIGINAL(0x0054B260)
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, a2, a3); }
@@ -135,28 +131,14 @@ inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); 
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
-__declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORIGINAL(0x0052FBC0)
 // The AI map's cell flag 0x80 under a point (005BBC70), the sector map (CSectorMap::Remove /
 // Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
-// Rewritten elsewhere (combat*.cpp), through their game addresses: ActionDistance, CanReachTarget,
-// CanCast, BuildAttackHit, ResolveHit, AnimationDuration, BuildOrderSteps.
-__declspec(naked) bool __fastcall TickCanCast(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054BF80)
-__declspec(naked) BOOL __fastcall TickBuildHit(CUnitServer*, void*, DamageInfo*, int, int, char) EI_ORIGINAL(0x0054F630)
-__declspec(naked) BOOL __fastcall TickResolveHit(CUnitServer*, void*, DamageInfo*, CUnit*) EI_ORIGINAL(0x00553DF0)
 } // namespace
 
-__declspec(naked) bool CUnitServer::CallStartQueuedOrder() EI_ORIGINAL(0x0054A900)
-__declspec(naked) void CUnitServer::CallSyncMoveModes() EI_ORIGINAL(0x0054A620)
 __declspec(naked) void CUnitServer::CallExecuteOrder() EI_ORIGINAL(0x0054D960)
-__declspec(naked) void CUnitServer::CallApproachTarget() EI_ORIGINAL(0x0054D140)
-__declspec(naked) void CUnitServer::CallContinueAction() EI_ORIGINAL(0x0054DD70)
-__declspec(naked) void CUnitServer::CallTakeQueuedOrder() EI_ORIGINAL(0x0054A6E0)
-__declspec(naked) void CUnitServer::CallSetUnitMoveMode2(int) EI_ORIGINAL(0x00546830)
-__declspec(naked) UnitAction* UnitAction::CallAssign(const UnitAction*) EI_ORIGINAL(0x0054B320)
-__declspec(naked) void UnitAction::CallReset() EI_ORIGINAL(0x0054B230)
 
 namespace {
 void TellParty(CUnit* unit, int message) {
@@ -277,7 +259,7 @@ void CUnitServer::TakeQueuedOrder() {
             unit->MarkChanged(kPartMoveModes);
         }
     }
-    CallSyncMoveModes();
+    SyncMoveModes();
     waitFrame = WorldServer()->tick_;
 }
 EI_REPLACE_METHOD(0x0054A6E0, CUnitServer::TakeQueuedOrder);
@@ -291,9 +273,9 @@ void LeaveMoveMode(CUnitServer* self) {
     UnitAction* order = &self->action;
     if (order->modifier && self->moveMode.mode != kModeRun) {
         int kind = order->kind;
-        if (!(IsActionKind(kind) && TickCheckOrder(self, nullptr, order))) self->CallSetUnitMoveMode2(kModeRun);
+        if (!(IsActionKind(kind) && TickCheckOrder(self, nullptr, order))) self->SetUnitMoveMode2(kModeRun);
     }
-    self->CallSyncMoveModes();
+    self->SyncMoveModes();
     self->waitFrame = WorldServer()->tick_;
 }
 
@@ -314,8 +296,8 @@ void StandIdle(CUnitServer* self) {
 
 // The queued order replaces the current one (0054B320 then 0054B230 on the queued order).
 void TakeOver(CUnitServer* self) {
-    self->action.CallAssign(&self->action2);
-    self->action2.CallReset();
+    self->action.Assign(&self->action2);
+    self->action2.Reset();
 }
 
 void InitPtrList(UnitPtrList* list) {
@@ -337,7 +319,7 @@ bool CUnitServer::StartMove() {
     orderStopped = 0;
     TakeOver(this);
     LeaveMoveMode(this);
-    if (TickFollowPath(this)) {
+    if (ChangeMoveMode()) {
         DestroyPtrList(&lifted);
         return true;
     }
@@ -348,9 +330,9 @@ bool CUnitServer::StartMove() {
     offset.z = unit->position.z - action.point.z;
     double lengthSq = LengthSquaredZYX(offset);
     if (LessOrUnordered(lengthSq, kArrived)) {
-        action.CallReset();
+        action.Reset();
         if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
-        bool result = CallStartQueuedOrder();
+        bool result = StartQueuedOrder();
         DestroyPtrList(&lifted);
         return result;
     }
@@ -381,9 +363,9 @@ bool CUnitServer::StartMove() {
         return true;
     }
     orderStopped = 1;
-    action.CallReset();
+    action.Reset();
     if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
-    CallStartQueuedOrder();
+    StartQueuedOrder();
     DestroyPtrList(&lifted);
     return false;
 }
@@ -393,11 +375,11 @@ bool CUnitServer::StartQueuedOrder() {
     if (action2.kind != kOrderStop && moveMode.mode == kModeStop) {
         moveMode2.mode = kModeRun;
         unit->moveMode2 = kModeRun;
-        if (TickFollowPath(this)) return true;
+        if (ChangeMoveMode()) return true;
     }
     switch (action2.kind) {
     case kOrderNone:
-        action.CallAssign(&action2);
+        action.Assign(&action2);
         ClearAction(&action2);
         LeaveMoveMode(this);
         if (state != kStateTurning) StandIdle(this);
@@ -413,7 +395,7 @@ bool CUnitServer::StartQueuedOrder() {
         int now = static_cast<CWorld*>(ManagerContext())->tick_;
         MotionTurn(&motion, nullptr, now, unit, &action.point.x, time);
         UnitPathSpeeds(unit);
-        TickMotion5474B0(this);
+        PlayIdle();
         CtlSetState(this, nullptr, 1);
         return true;
     }
@@ -448,7 +430,7 @@ bool CUnitServer::StartQueuedOrder() {
     }
 
     case kOrderEmote: {
-        CallTakeQueuedOrder();
+        TakeQueuedOrder();
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
@@ -457,13 +439,13 @@ bool CUnitServer::StartQueuedOrder() {
         StepsEmote(&steps, nullptr, static_cast<std::uint8_t>(action.param));
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
-        TickPlayEmote(this, nullptr, copy);
+        PlayEmoteOrder(copy);
         StepsDestroy(&steps);
         return true;
     }
 
     case kOrderUse: {
-        CallTakeQueuedOrder();
+        TakeQueuedOrder();
         AnimationSteps steps;
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
@@ -472,7 +454,7 @@ bool CUnitServer::StartQueuedOrder() {
         int now = WorldTick(this);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
-        PlanTake(&currentPlan, nullptr, copy, now, duration);
+        currentPlan.TakeSteps(copy, now, duration);
         TickStartAction(this, nullptr, 1, 0);
         StepsDestroy(&steps);
         return true;
@@ -482,9 +464,9 @@ bool CUnitServer::StartQueuedOrder() {
         if (moveMode.mode != kModeStop) {
             moveMode2.mode = kModeStop;
             unit->moveMode2 = kModeStop;
-            if (TickFollowPath(this)) return true;
+            if (ChangeMoveMode()) return true;
             TellParty(unit, kMessageStopped);
-            action.CallReset();
+            action.Reset();
             if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
             return false;
         }
@@ -502,12 +484,12 @@ EI_REPLACE_METHOD(0x0054A900, CUnitServer::StartQueuedOrder);
 // --- Every tick ----------------------------------------------------------------------------------
 
 void CUnitServer::UpdateOrders() {
-    if (CallStartQueuedOrder()) {
+    if (StartQueuedOrder()) {
         boredTicks = 0;
         return;
     }
-    CallSyncMoveModes();
-    if (TickFollowPath(this)) return;
+    SyncMoveModes();
+    if (ChangeMoveMode()) return;
     switch (action.kind) {
     case kOrderMove:
     case kOrderTurn:
@@ -523,7 +505,7 @@ void CUnitServer::UpdateOrders() {
     case kOrderCast:
     case kOrderCastAt:
     case kOrderSkill:
-        CallContinueAction();
+        ContinueAction();
         return;
     case kOrderAnimation:
         if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
@@ -532,7 +514,7 @@ void CUnitServer::UpdateOrders() {
     default:
         return;
     }
-    CallStartQueuedOrder();
+    StartQueuedOrder();
 }
 EI_REPLACE_METHOD(0x0054B390, CUnitServer::UpdateOrders);
 
@@ -648,19 +630,19 @@ void CUnitServer::ExecuteOrder() {
     int now = WorldTick(this);
     searchingTarget = 0;
     if (nextAttackTime > now && action.kind == kOrderAttack) {
-        CallApproachTarget();
+        ApproachTarget();
         return;
     }
     if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
         ServerSlots(unit->controller)->TakeUpWeapon(unit->pendingWeapon);
     OrderPlan* plan = &currentPlan;
-    if (!CallPlanAction(&action, plan)) {
-        CallApproachTarget();
+    if (!PlanAction(&action, plan)) {
+        ApproachTarget();
         return;
     }
     bool clear = false;
     bool stop = false;
-    if (action.kind == kOrderSkill && action.source == kSkillOnTarget && TickTalkTargetBusy(this, nullptr, action.target)) {
+    if (action.kind == kOrderSkill && action.source == kSkillOnTarget && TargetBusy(action.target)) {
         clear = true;
     } else {
         if (action.kind != kOrderSkill) {
@@ -674,8 +656,8 @@ void CUnitServer::ExecuteOrder() {
                 stop = true;
             }
         }
-        CallSyncMoveModes();
-        if (TickFollowPath(this)) {
+        SyncMoveModes();
+        if (ChangeMoveMode()) {
             searchingTarget = 1;
             return;
         }
@@ -691,7 +673,7 @@ void CUnitServer::ExecuteOrder() {
         int& nextAttack = nextAttackTime;
         if (nextAttack > plan->startTime) {
             if (action.kind == kOrderAttack) {
-                CallApproachTarget();
+                ApproachTarget();
                 return;
             }
         } else if (action.kind == kOrderAttack) {
@@ -700,7 +682,7 @@ void CUnitServer::ExecuteOrder() {
             if (nextAttack > next) next = nextAttack;
             nextAttack = next;
         }
-        if (IsCastKind(action.kind) && !TickCanCast(this, nullptr, &action)) {
+        if (IsCastKind(action.kind) && !CanCast(&action)) {
             TellParty(unit, (action.source & kQuickItemSource) ? kMessageNoCharge : kMessageNoMana);
             stop = true;
         } else {
@@ -723,8 +705,8 @@ void CUnitServer::ExecuteOrder() {
                 if (victim->GetClassId() == kClassUnit && defender->NoBackstab()) backstab = 0;
                 CItemWeapon* weapon = ActiveWeapon(unit);
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
-                TickBuildHit(this, nullptr, &pendingHit, backstab, location, calledShot);
-                if (!TickResolveHit(defender, nullptr, &pendingHit, unit)) missed = true;
+                BuildAttackHit(&pendingHit, backstab, location, calledShot);
+                if (!defender->ResolveHit(&pendingHit, unit)) missed = true;
             }
             TickStartAction(this, nullptr, fresh, missed);
             return;
@@ -775,7 +757,7 @@ void CUnitServer::ApproachTarget() {
             }
         }
         ControllerShout(this, nullptr, action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
-        action.CallReset();
+        action.Reset();
         if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
         orderStopped = 1;
         return;
@@ -786,7 +768,7 @@ void CUnitServer::ApproachTarget() {
     Slots(target)->AimPoint(&aim);
     if (!IsMoving(target)) {
         if (!LessOrUnordered(static_cast<double>(reach) * reach, DistanceSquaredXYUnrounded<double>(aim, unit->position)) &&
-            CallCanActFrom(&action, &aim.x, now)) {
+            CanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
             if (state != kStateTurning) StandIdle(this);
             return;
@@ -880,11 +862,11 @@ void CUnitServer::ApproachTarget() {
         double close = (static_cast<double>(distance) + kOne) * kPointOne;
         if (close * close > DistanceSquaredXYUnrounded<double>(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
-            motion.goal.z = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
+            motion.goal.z = static_cast<float>(unit->ScaledValue(distance) + kFive);
             return;
         }
     }
-    float patience = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
+    float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
     CAIMap* aiMap = WorldServer()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;

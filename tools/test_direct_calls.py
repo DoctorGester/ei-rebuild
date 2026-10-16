@@ -46,9 +46,9 @@ MAP = {
 }
 
 
-def run(sources, decls=MAP):
+def run(sources, decls=MAP, tiers=None):
     dc._FREE_DECLS['all'] = sources
-    fwds, classes = dc.analyse(sources, decls)
+    fwds, classes = dc.analyse(sources, decls, tiers=tiers)
     edits, includes, done = dc.plan(fwds, classes)
     deleted = {}
     for f in done:
@@ -72,7 +72,8 @@ class DirectCallsTest(unittest.TestCase):
         member = dc.Sig('public: int __thiscall Foo::Bar(int)', 'x')
         self.assertEqual(dc.match(dc.Sig('int __fastcall F(struct Foo *,void *,int)', 'x'), member), 'this')
         self.assertEqual(dc.match(dc.Sig('void __fastcall F(struct Foo *,void *,int)', 'x'), member), 'this')
-        self.assertIsNone(dc.match(dc.Sig('int __fastcall F(void *,void *,int)', 'x'), member))
+        self.assertEqual(dc.match(dc.Sig('int __fastcall F(void *,void *,int)', 'x'), member), 'cast')
+        self.assertIsNone(dc.match(dc.Sig('int __fastcall F(class Other *,void *,int)', 'x'), member))
         self.assertIsNone(dc.match(dc.Sig('int __fastcall F(struct Foo *,void *,unsigned int)', 'x'), member))
         self.assertIsNone(dc.match(dc.Sig('char __fastcall F(struct Foo *,void *,int)', 'x'), member))
         free = dc.Sig('void __stdcall G(struct Foo const *,int)', 'x')
@@ -100,6 +101,23 @@ class DirectCallsTest(unittest.TestCase):
         self.assertNotIn('BarOld', out['src/game/foo.h'])
         self.assertNotIn('The old way in', out['src/game/foo.h'])
         self.assertIn('return Bar(x);', out['src/game/foo.cpp'])
+
+    def test_cast(self):
+        # An object passed as void*: through static_cast where a call needs it (the compiler's errors),
+        # plainly where Foo is the only class with a Bar.
+        user = USER.replace('Foo*, void*, int) EI_ORIGINAL', 'void*, void*, int) EI_ORIGINAL')
+        decls = dict(MAP, BarAt=[dc.Sig("int __fastcall `anonymous namespace'::BarAt(void *,void *,int)", 'user.cpp.obj')])
+        sources = [dc.Source('src/game/foo.h', HEADER), dc.Source('src/game/foo.cpp', DEFINITION),
+                   dc.Source('src/game/user.cpp', user)]
+        fwds, _ = run(sources, decls)
+        self.assertEqual({f.name: f.reason for f in fwds}['BarAt'], 'object passed as void* (--cast)')
+        dc.CAST_SITES.add(('src/game/user.cpp', 12))
+        try:
+            fwds, out = run(sources, decls, {'cast': True})
+        finally:
+            dc.CAST_SITES.clear()
+        self.assertIn('int a = foo.Bar(1) + p->Bar(q->Bar(2));', out['src/game/user.cpp'])
+        self.assertIn('return a + static_cast<Foo*>(Pick(p, q))->Bar(3);', out['src/game/user.cpp'])
 
     def test_reindent(self):
         self.assertEqual(dc.reindent('a,\n       b,\n   c)', 7, -3), 'a,\n    b,\n   c)')
