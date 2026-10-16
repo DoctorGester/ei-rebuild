@@ -395,7 +395,7 @@ int CPlayerClient::OnItemsReceived() {
         if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
     }
     if (result != 0) {
-        PlayerGiveItemsOriginal(Owner(), nullptr, &items, flag);
+        Owner()->GiveItems(&items, flag);
         static_cast<CInterface3D*>(QuestLog())->OnItemsPicked(&items, money - before, flag);
     }
     items.RemoveAll();   // the list's inlined destructor

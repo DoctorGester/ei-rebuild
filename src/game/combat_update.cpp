@@ -285,7 +285,7 @@ int CUnitServer::UpdateServer() {
         static_cast<CWorldServer*>(world)->TellPartiesGone(unit);
         char* player = unit->player;
         UnitSetPlayer(unit, nullptr, nullptr);
-        if (player && PlayerOwnsUnitOriginal(player, nullptr, unit) != 0) {
+        if (player && reinterpret_cast<CPlayer*>(player)->IsLeader(unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {
             static_cast<AIBrain*>(&brain)->Reset();

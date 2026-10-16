@@ -7,6 +7,7 @@
 #include "base_manager.h"
 #include "game_strings.h"
 #include "object.h"
+#include "player_manager.h"
 #include "registry.h"
 #include "server_specific_manager.h"
 
@@ -76,7 +77,7 @@ void CWorldServer::Teardown() {
     if (PlayerList()) {
         for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
             PlayerDisconnectOriginal(player);
-            PlayerListRelease(PlayerList(), nullptr, player);
+            static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
         }
     }
     if (it) {

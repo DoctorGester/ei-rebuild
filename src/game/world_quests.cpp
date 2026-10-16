@@ -62,7 +62,7 @@ void CWorldServer::UpdateMercBriefings() {
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->server;
         int otherMercs = CountLivingMercs(player->id);
-        auto set = [&](const mfc::CString& name, float value) { PlayerStateSetVariableOriginal(state, nullptr, name, value); };
+        auto set = [&](const mfc::CString& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             mfc::CString merc;
@@ -165,7 +165,9 @@ static RawString* RawStringInit(RawString* s, void*, const char* text, void* all
 __declspec(naked) void __fastcall TempListConstruct(mfc::CTypedPtrList<void>*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
 __declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, void*) EI_ORIGINAL(0x00405130)
 inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
+void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) {
+    reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3);
+}
 void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
 // 004D23A0 (RET 8). The first command queue: add a line (the scripts' run runs it once).
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
@@ -224,11 +226,11 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     for (const mfc::CString* name = record->giveQuests.begin(); name != record->giveQuests.end(); ++name)
         PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
     for (const mfc::CString* name = record->completeQuests.begin(); name != record->completeQuests.end(); ++name)
-        PlayerStateSetVariableOriginal(state, nullptr, *name, 2.0f);
+        state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
     for (const mfc::CString* name = record->availableZones.begin(); name != record->availableZones.end(); ++name)
         PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
     for (const mfc::CString* name = record->completeZones.begin(); name != record->completeZones.end(); ++name)
-        PlayerStateSetVariableOriginal(state, nullptr, *name, 2.0f);
+        state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
 
     // The list's inlined destructor (its nodes are dropped, the items stay with the player).
     items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);
@@ -325,7 +327,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         v.hired.Format(worlddata::MercHiredFormat(), slot);
         CEngineObject* unit = WorldFindUnit(this, nullptr, key);
 
-        if (is(v.n8)) PlayerStateSetVariableOriginal(state, nullptr, v.n8, 0.0f);
+        if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
             PartyRemoveMember(party, nullptr, key);
@@ -334,7 +336,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         if (is(v.n2)) PartyRemoveMember(party, nullptr, key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
-            PlayerStateSetVariableOriginal(state, nullptr, v.hired, 2.0f);
+            state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? *UnitPrototype(unit, nullptr) : worlddata::HumanHeroText();
             PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
         }

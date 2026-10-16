@@ -23,16 +23,10 @@ __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORI
 // 004A91B0 (library, RET 4): the party manager's hash_map<int, CParty>::operator[] (a new key gets a
 // default party).
 __declspec(naked) inline void* __fastcall PartyMapAtOriginal(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x004A91B0)
-__declspec(naked) inline void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*)
-    EI_ORIGINAL(0x0066C1D0)
-__declspec(naked) inline Projectile* __fastcall ProjectileConstruct(void*, void*) EI_ORIGINAL(0x0067E510)
 // 006AC970 (patched by Rebirth, so always through its address): the item manager's item by name (RET 4; EAX the item, or
 // null).
 __declspec(naked) inline CEngineObject* __fastcall ItemManagerCreateItemOriginal(void* /*manager*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x006AC970)
-// 00665470: Player::GiveItems(list, flag) (RET 8, EAX not a result).
-__declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*/, void*, void* /*items*/, int /*flag*/)
-    EI_ORIGINAL(0x00665470)
 
 // C3h. 00661700: party Reset(a, b) (RET 8, EAX not a result); 00661DB0: party AddItem(item, flag1, flag2) (RET 0xC; the
 // two flags are read as bytes; EAX is the item, or null).
@@ -77,20 +71,11 @@ __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /
 // 00661F30: takes an item out of the party's item list (RET 8: item, flag read as a byte; when the stack count at +0x48 is above
 // 1 and the flag is clear it only lowers the count and EAX is the item, otherwise the item is released and removed and EAX is
 // 0; no caller reads it). 006620F0: removes the member record (0x784 bytes) whose key at +0x1C equals the argument (RET 4; EAX 1
-// when found, else 0). 00665440 (rewritten as CPlayer::IsLeader, which compares the unit with the first party member; callers read it as "the player has the unit"; RET 4; EAX 0/1). 00665780: erases the quest item (type 0x3009)
+// when found, else 0). 00665780: erases the quest item (type 0x3009)
 // with a number (RET 4; EAX 1 when found, else 0). 00665A70 / 00665B50: add / remove a unit of the player (RET 4, EAX is not a
 // result).
-__declspec(naked) inline int __fastcall PlayerOwnsUnitOriginal(const void* /*player*/, void*, const void* /*unit*/)
-    EI_ORIGINAL(0x00665440)
 __declspec(naked) inline int __fastcall PlayerEraseQuestItemOriginal(void* /*player*/, void*, int /*number*/)
     EI_ORIGINAL(0x00665780)
-// 0066D490: writes a path message about a unit to the message stream in ECX (the member at the player's +0x20; RET 0x18: unit,
-// motion order, point, kind, flag, limit; the limit is copied as a dword; EAX is not a result). 0066D7F0: StateObjectsAdded,
-// walks the pointer array it is given (data at +0, count at +4) (RET 4; EAX is always 1, no caller reads it).
-__declspec(naked) inline void __fastcall PlayerPathMessageOriginal(void* /*sink*/, void*, void* /*unit*/,
-                                                                   const void* /*motionOrder*/, const float* /*point*/,
-                                                                   int /*kind*/, int /*flag*/, std::uint32_t /*limitBits*/)
-    EI_ORIGINAL(0x0066D490)
 
 // 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
 // C3m. 0069D290: a record of the material table by name; 0069D380: the class-0x15 prototype table's record by name
@@ -109,8 +94,6 @@ __declspec(naked) inline mfc::CTypedPtrList<Projectile>::Node* __fastcall Projec
 __declspec(naked) inline void __fastcall PlayerTickOriginal(void* /*player*/) EI_ORIGINAL(0x00665DE0)
 __declspec(naked) inline void __fastcall PlayerSendObject0BOriginal(void* /*messages*/, void*, const void* /*object*/,
                                                                     std::uint32_t /*value*/) EI_ORIGINAL(0x0066D6E0)
-__declspec(naked) inline void __fastcall PlayerStateSetVariableOriginal(void* /*state*/, void*, const char* /*name*/,
-                                                                        float /*value*/) EI_ORIGINAL(0x0066EE10)
 __declspec(naked) inline void __fastcall PlayerStateSetVariableMaxOriginal(void* /*state*/, void*, const char* /*name*/,
                                                                            float /*value*/) EI_ORIGINAL(0x0066EE80)
 

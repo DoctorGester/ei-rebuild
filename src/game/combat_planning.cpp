@@ -68,7 +68,7 @@ __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGIN
 // 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
 // 0066D490: the player's message about a path (combat_motion.cpp).
 void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, float a7) {
-    PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, std::bit_cast<std::uint32_t>(a7));
+    static_cast<CPlayerServer*>(a0)->SendPathMessage(a2, const_cast<void*>(a3), a4, a5, a6, std::bit_cast<std::uint32_t>(a7));
 }
 // Containers: 00545750 a path cell list's constructor (blocks of 0x80), 00539890 its destructor,
 // 00557230 / 00557250 a point array's, the UnitMotion members' 00556D70 / 00556810 / 004D5990 /

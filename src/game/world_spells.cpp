@@ -94,7 +94,8 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
 
     void* memory = gamecrt::operator_new(0xA8);
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
-    Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
+    // (Projectile is the missile's view of the spell effect CSpellEffect::Construct builds.)
+    auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
     MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
     if (reinterpret_cast<CSpellEffect*>(missile)->Update()) {
         auto& list = projectiles_;

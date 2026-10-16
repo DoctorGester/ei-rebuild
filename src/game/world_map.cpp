@@ -3,6 +3,7 @@
 #include "ai_map.h"
 #include "base_manager.h"
 #include "object_diplomacy.h"
+#include "player_manager.h"
 #include "player_messages.h"
 #include "world.h"
 #include "game_strings.h"
@@ -204,7 +205,7 @@ void CWorldServer::TeardownZone() {
     for (WorldPlayer* player = it.First(PlayerList()); player;
          player = it.First(PlayerList())) {
         PlayerDisconnect(player, nullptr);
-        PlayerListRelease(PlayerList(), nullptr, player);
+        static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
         if (it.manager) --it.manager->refCount_;
         it.manager = nullptr;
     }
@@ -304,7 +305,7 @@ void CWorldServer::SendFreshObjects() {
     }
     state->SendObjectsAdded(&objects);
     static_cast<CPlayerServer*>(state)->WriteTo(header);
-    PlayerListRelease(PlayerList(), nullptr, temporary);
+    static_cast<CPlayerManager*>(PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(temporary));
     if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
     fresh.vtable = ObjectPtrListVtable();
     ObjectListRemoveAll(&fresh, nullptr);

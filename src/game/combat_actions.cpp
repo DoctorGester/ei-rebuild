@@ -14,6 +14,7 @@
 #include "maths.h"
 #include "object_diplomacy.h"
 #include "party.h"
+#include "player_messages.h"
 #include "resource_manager.h"
 #include "unit.h"
 #include "unit_ai.h"
@@ -100,7 +101,9 @@ void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
 // 00665BE0. Player: an inventory item changed.
 __declspec(naked) void __fastcall PlayerItemChanged(WorldPlayer*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
 // 00665470. Player: receives the items in `list` (a CPtrList).
-void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) {
+    reinterpret_cast<CPlayer*>(a0)->GiveItems(static_cast<const mfc::CTypedPtrList<CEngineObject>*>(a2), a3);
+}
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
 void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code) {
     PlayerSendObject0BOriginal(messages, nullptr, unit, code);

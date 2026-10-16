@@ -3,6 +3,7 @@
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
 #include "item.h"
+#include "player_messages.h"
 #include "game_strings.h"
 #include "item_db_text.h"
 #include "map_object.h"
@@ -119,7 +120,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     // The local player's own unit also shows up to four of the player's 0x3009 items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
     std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
-    if (!PlayerOwnsUnitOriginal(player, nullptr, unit_)) return;
+    if (!reinterpret_cast<CPlayer*>(player)->IsLeader(unit_)) return;
     player = *reinterpret_cast<std::uint8_t**>(GameLocalView() + 0x1C);
     std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(player + 0xE8);
     if (!node) return;

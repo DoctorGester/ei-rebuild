@@ -226,7 +226,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
         if (elapsed < 0) elapsed = 0;
         double current = VariableGet(player->variables, nullptr, name);
         float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
-        PlayerStateSetVariableOriginal(player->server, nullptr, name, value);
+        player->server->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
 }
 
@@ -477,7 +477,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (!more) break;
                 void* memory = gamecrt::operator_new(kMissileSize);
                 static_cast<Projectile*>(memory)->references = 0;   // written before the null test
-                Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
+                // (Projectile is the missile's view of the spell effect CSpellEffect::Construct builds.)
+                auto* missile = memory ? reinterpret_cast<Projectile*>(static_cast<CSpellEffect*>(memory)->Construct()) : nullptr;
                 ProjectileLoad(missile, nullptr, stream);
                 auto& list = projectiles_;
                 ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);

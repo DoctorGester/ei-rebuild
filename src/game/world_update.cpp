@@ -7,6 +7,7 @@
 #include "game_flow_data.h"
 #include "net_classes.h"
 #include "net_link.h"
+#include "player_manager.h"
 #include "player_messages.h"
 #include "script.h"
 #include "unit.h"
@@ -48,7 +49,7 @@ void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestr
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, WorldPlayer* player) {
     PlayerDisconnect(player, nullptr);
-    PlayerListRelease(world->PlayerList(), nullptr, player);
+    static_cast<CPlayerManager*>(world->PlayerList())->ReleasePlayer(reinterpret_cast<CEngineObject*>(player));
     void* log = OstreamPutString(NetworkLog(), nullptr, worlddata::DisconnectingPlayerText());
     log = OstreamPutLongOriginal(log, nullptr, player->id);
     OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, worlddata::FlushManipulator());

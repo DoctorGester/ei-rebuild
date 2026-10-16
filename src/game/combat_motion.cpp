@@ -89,7 +89,7 @@ void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
 void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, std::uint32_t a7) {
-    PlayerPathMessageOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7);
+    static_cast<CPlayerServer*>(a0)->SendPathMessage(a2, const_cast<void*>(a3), a4, a5, a6, a7);
 }
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,

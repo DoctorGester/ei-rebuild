@@ -63,7 +63,7 @@ __declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI
 __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) EI_ORIGINAL(0x0059CB50)
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
-void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
+void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 0045E850 (RET 4). The map database's zone record by name.
 const MapRecord* FindZone(const char* name) {
     return GameMapDatabase()->FindMap(name);

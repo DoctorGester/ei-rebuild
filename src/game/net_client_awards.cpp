@@ -34,7 +34,7 @@ __declspec(naked) void __fastcall ClientBaseTick(ClientBase* /*self*/, void*, do
 __declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004246E0)
 
 // The world (0x7AFF60) and its players (outside this range).
-void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal(a0, nullptr, (void*)a2, a3); }
+void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { static_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 void __fastcall PlayerRemoveItem(void* player, void*, int index) { static_cast<CPlayer*>(player)->TakeItem(index); }
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.

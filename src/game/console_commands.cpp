@@ -249,7 +249,7 @@ void __fastcall LoadVar(CStringArray* args) {
         if (parts.GetSize() > 1) {
             const char* name = parts[0];
             float value = static_cast<float>(GameAtof(parts[1]));
-            PlayerStateSetVariableOriginal(state, nullptr, name, value);
+            state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
         }
     }
     file.Close();

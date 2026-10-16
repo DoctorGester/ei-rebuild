@@ -4,6 +4,7 @@
 #include "world.h"
 
 #include "map_object.h"
+#include "player_messages.h"
 #include "party.h"
 
 #include "lib/crt.h"
@@ -31,7 +32,7 @@ __declspec(naked) CEngineObject** __fastcall PtrListGetNext(ObjectList*, void*, 
 // 0059CAD0 (RET 4). Frees a node of the shared-object list (+0x12E60).
 __declspec(naked) void __fastcall SharedListFreeNode(void*, void*, void* /*node*/) EI_ORIGINAL(0x0059CAD0)
 // 00665470 (RET 8). The player receives the objects of a list.
-void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
+void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { reinterpret_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
 // world's hoover); 0 when there is nothing to take.
 __declspec(naked) int __fastcall CollectLoot(void*, void*, CWorldServer*, CEngineObject*, ObjectList* /*items*/,
