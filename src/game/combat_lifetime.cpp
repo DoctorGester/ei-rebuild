@@ -55,7 +55,7 @@ void InitAction(UnitAction& action) {
     action.target = nullptr;
     action.kind = 9;
     action.flag18 = 0;
-    ActionClear(&action);
+    action.ClearOrder();
     action.param = 0;
     action.modifier = 0;
 }

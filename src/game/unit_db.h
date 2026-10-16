@@ -363,7 +363,7 @@ struct SkillDatabase {
     // 0051FE00 (RET 4). The level record named `levelName` (_mbsicmp), or null.
     SkillLevelRecord* FindLevel(const char* levelName);
     // 0051FE80 (RET 4). The index of the level record named `levelName` (_mbsicmp), or -1.
-    int IndexOf(const char* levelName);
+    int IndexOf(const char* levelName) const;
     // 0051FF00 (RET 4). The index of `record` among the level records, or -1.
     int IndexOfLevel(const SkillLevelRecord* record);
     // unit_stat_small.cpp (A-U12). 00526FF0 / 00524FA0 (RET 4): skill / level record `index`, or

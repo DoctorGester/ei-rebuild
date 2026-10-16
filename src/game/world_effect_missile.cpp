@@ -347,7 +347,7 @@ void CEffectArrowFigure::Start(int update) {
     console::CStringArray parts;
     static_cast<CObject3D*>(figure)->MakeFigure(model, &parts, 1);
     static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
-    Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
+    figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
     static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
     WorldClient()->AddObject(figure_);

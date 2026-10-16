@@ -13,6 +13,7 @@
 #include "unit.h"
 
 #include "console.h"
+#include "game_lists.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_effects.h"
@@ -439,7 +440,7 @@ EI_REPLACE_METHOD(0x00511950, CMapObjectClientSpecific::ShowLight);
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
-    CountedRefStoreOriginal(&light, nullptr, TheLightFactory()->CreateObject(kPointLight, -1));
+    ObjectHolderAssign(&light, nullptr, TheLightFactory()->CreateObject(kPointLight, -1));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
     static_cast<CLight*>(light)->SetPoint(&rgb, &rgb);
     CMapObject* mapObject = CompanionOwner(this);
@@ -461,7 +462,7 @@ void CMapObjectClientSpecific::ApplyLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
-            CompanionCreateLightOriginal(this, nullptr, colour, DefaultLightRadius(), 1);
+            CreateLight(colour, DefaultLightRadius(), true);
         } else {
             light->flags_ &= ~kLightHeld;
             ShowLight();

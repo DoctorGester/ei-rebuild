@@ -601,7 +601,7 @@ int CWorldClient::DrawPass() {
                     std::memcpy(&point, &object->position, sizeof(point));
                     if (void* part = static_cast<CObject3D*>(object)->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
-                        const float* at = ObjectPartPositionOriginal(object, nullptr, &scratch.x, part);
+                        const float* at = object->PartWorldPosition(&scratch.x, static_cast<const CFigureMesh*>(part));
                         std::memcpy(&point, at, sizeof(point));
                         point.z = Reload(object->position.z);
                     }

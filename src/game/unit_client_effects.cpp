@@ -178,7 +178,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     float sizeStored = (part->bounds_.boxMax.y + part->bounds_.boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
     Vector3 at;
-    ObjectPartPositionOriginal(unit, nullptr, &at.x, part);
+    unit->PartWorldPosition(&at.x, part);
     float spreadStored = reach * kSpreadUnits;
     float spread = spreadStored;
     int offset = RandomBelow(x87::fistp(spread));
@@ -212,7 +212,7 @@ void CUnitClientSpecific::DeathEffect() {
     if (auto* body = static_cast<CFigureMesh*>(static_cast<CObject3D*>(unit)->FindPartByPrefix("bd"))) {
         float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
         size = stored;
-        ObjectPartPositionOriginal(unit, nullptr, &at.x, body);
+        unit->PartWorldPosition(&at.x, body);
     } else {
         float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
         size = stored;
@@ -229,6 +229,6 @@ void CUnitClientSpecific::OwnerPlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    CompanionCreateLightOriginal(unit->MapObject()->companion, nullptr, colour, PartyLightRadius(), 0);
+    static_cast<CMapObjectClientSpecific*>(unit->MapObject()->companion)->CreateLight(colour, PartyLightRadius(), false);
 }
 EI_REPLACE_METHOD(0x00534140, CUnitClientSpecific::OwnerPlayerChanged);

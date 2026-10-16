@@ -174,7 +174,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             break;
         }
         Vector3 at = unitPosition(unit);
-        if (!first || UnitCanCastSpell(first, nullptr, pendingSlot_, &at.x) != 0) {
+        if (!first || first->CanCastSpell(pendingSlot_, &at.x) != 0) {
             shape = kCursorCantCast;
             break;
         }
@@ -188,8 +188,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = pendingAction_ == 2 ? UnitCanCastSpell(first, nullptr, pendingSlot_, &at.x)
-                                                    : UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x);
+        int refused = pendingAction_ == 2 ? first->CanCastSpell(pendingSlot_, &at.x)
+                                          : first->CanUseQuickItem(pendingSlot_, &at.x);
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
@@ -197,7 +197,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
         Vector3 at = unitPosition(unit);
-        if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x) != 0) break;
+        if (!first || first->CanUseQuickItem(pendingSlot_, &at.x) != 0) break;
         void* item = first->GetQuickItem(pendingSlot_);
         if (item && reinterpret_cast<CItem*>(item)->GetCategory() == kCategoryWand && unit != first) break;
         shape = kCursorCast;

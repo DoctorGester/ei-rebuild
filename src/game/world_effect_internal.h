@@ -5,6 +5,7 @@
 // replicated-field operations, and the x87 details the effects repeat.
 
 #include "world_effect.h"
+#include "map_object.h"
 #include "game_strings.h"
 #include "world.h"
 #include "world_data.h"
@@ -25,7 +26,7 @@ namespace effect {
 // --- Globals -------------------------------------------------------------------------------------
 
 inline void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
-inline void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
+// The light manager: ::LightManager (map_object.h).
 inline CLightFactory* LightFactory() { return *reinterpret_cast<CLightFactory**>(0x007AF748); }   // CreateObject makes lights
 inline void* ParticleManager() { return *reinterpret_cast<void**>(0x007AF754); }
 inline CLightningManager* BoltFactory() { return *reinterpret_cast<CLightningManager**>(0x007AF758); }   // CreateObject makes bolts

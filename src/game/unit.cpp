@@ -278,7 +278,7 @@ double CUnit::TotalItemWeight() {
 }
 EI_REPLACE_METHOD(0x005307B0, CUnit::TotalItemWeight);
 
-int CUnit::CanCastSpell(std::uint32_t slot, int) {
+int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     if (slot >= 8) return 3;
     if (HasEffect(0x20)) return 4;
     void* spell = GetSpellObject(slot);
@@ -290,7 +290,7 @@ int CUnit::CanCastSpell(std::uint32_t slot, int) {
 }
 EI_REPLACE_METHOD(0x0052F820, CUnit::CanCastSpell);
 
-int CUnit::CanUseQuickItem(std::uint32_t slot, int) {
+int CUnit::CanUseQuickItem(std::uint32_t slot, const float*) {
     CEngineObject* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != kClassQuickItem) return 3;
     CItem* item = static_cast<CItem*>(object);

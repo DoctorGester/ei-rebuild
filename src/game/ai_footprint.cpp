@@ -139,7 +139,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     bool hasBridge = false;
     for (int n = 0; n < names->size; ++n) {
         char* name;
-        int index = ObjectFindPartIndexOriginal(object, nullptr, *StringArrayGetAt(names, nullptr, &name, n));
+        int index = mapObject->FindPartIndex(*StringArrayGetAt(names, nullptr, &name, n));
         DestroyString(&name);
         if (index < 0) {
             const char* objectName = mapObject->name;

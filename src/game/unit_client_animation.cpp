@@ -114,10 +114,11 @@ void CUnitClientSpecific::RestartAnimation(float time) {
             first = unit->AnimationEntry(static_cast<std::uint8_t>(unit->animationEntry));
         if (unit->secondEntry != kNoEntry)
             second = unit->AnimationEntry(static_cast<std::uint8_t>(unit->secondEntry));
-        if (first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, first);
+        // (The entries are the figure's animations, FigureAnimation.)
+        if (first) unit->Object3D()->animation->Play(reinterpret_cast<FigureAnimation*>(first));
         if (second) {
-            if (!first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, second);
-            else FigureQueueOriginal(unit->Object3D()->animation, nullptr, second);
+            if (!first) unit->Object3D()->animation->Play(reinterpret_cast<FigureAnimation*>(second));
+            else unit->Object3D()->animation->Queue(reinterpret_cast<FigureAnimation*>(second));
         }
     }
     double start = unit->animationStart;
@@ -155,7 +156,7 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
     char* animation = unit->FindAnimation(key, 1);
     if (!animation) return;
-    if (play) FigurePlayOriginal(unit->Object3D()->animation, nullptr, animation);
-    else FigureQueueOriginal(unit->Object3D()->animation, nullptr, animation);
+    if (play) unit->Object3D()->animation->Play(reinterpret_cast<FigureAnimation*>(animation));
+    else unit->Object3D()->animation->Queue(reinterpret_cast<FigureAnimation*>(animation));
 }
 EI_REPLACE_METHOD(0x00535480, CUnitClientSpecific::StartIdleAnimation);

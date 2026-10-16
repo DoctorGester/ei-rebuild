@@ -64,10 +64,10 @@ EI_REPLACE(0x005D91B0, SaveLooks);
 
 void AIBrain::LoadMemory(CStream* stream) {
     noticedKind = -1;
-    CountedListLoadOriginal(&nearby, stream, WorldServer());
-    CountedListLoadOriginal(&visible, stream, WorldServer());
-    CountedListLoadOriginal(&seenCorpses, stream, WorldServer());
-    CountedListLoadOriginal(&corpses, stream, WorldServer());
+    CountedListLoad(&nearby, stream, WorldServer());
+    CountedListLoad(&visible, stream, WorldServer());
+    CountedListLoad(&seenCorpses, stream, WorldServer());
+    CountedListLoad(&corpses, stream, WorldServer());
     stream->Read(&noticedX, 8);         // x and y
     stream->Read(&noticedLevel, 4);
     stream->Read(&nearbyCountdown, 4);

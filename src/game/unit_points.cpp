@@ -85,7 +85,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     }
     auto index = static_cast<std::uint8_t>(unit->animationEntry);
     Vector3 offset = {0.0f, 0.0f, 0.0f};
-    auto* entry = reinterpret_cast<const FigureAnimation*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
+    const FigureAnimation* entry = unit->AnimationAt(index);
     if (!entry) {
         game::DebugLog(kNoEntry, static_cast<unsigned>(index), unit->name);
     } else if ((entry->key & 0x3C0000) == 0x1C0000) {

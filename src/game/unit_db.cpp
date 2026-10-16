@@ -372,7 +372,7 @@ SkillLevelRecord* SkillDatabase::FindLevel(const char* levelName) {
 }
 EI_REPLACE_METHOD(0x0051FE00, SkillDatabase::FindLevel);
 
-int SkillDatabase::IndexOf(const char* levelName) {
+int SkillDatabase::IndexOf(const char* levelName) const {
     for (std::uint32_t i = 0; i < levels.size(); ++i)
         if (SameName(levels[i].name, levelName)) return static_cast<int>(i);
     return -1;

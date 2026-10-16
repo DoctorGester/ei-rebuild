@@ -37,6 +37,9 @@ struct UnitAction {
     UnitAction* Assign(const UnitAction* from);
     // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
     void Reset();
+    // 00545F40: the first 0x1C bytes are an AIOrder (unit_ai.h), cleared by its Clear (kind 9, the target
+    // released, flag18 clear).
+    void ClearOrder() { reinterpret_cast<AIOrder*>(this)->Clear(); }
     // The inlined counted-reference assignment of the target (the order setters): the old one
     // released, the new one referenced; nothing when it is the same.
     void Retarget(CEngineObject* object) {

@@ -715,7 +715,6 @@ struct NamePair {
 int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringArray* a3, int a4) {
     return static_cast<CObject3D*>(a0)->MakeFigure(a2, a3, a4);
 }
-void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
 void __fastcall Unit518860(void* a0) { static_cast<CObject3D*>(a0)->RestartPose(); }
 void __fastcall Unit50EA40(void* a0) { static_cast<CMapObject*>(a0)->WriteFullState(); }
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
@@ -769,7 +768,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         if (!UnitMakeFigure(unit, nullptr, record->texts[2], &parts, 1)) return;
         CEngineObject* figure = unit->Object3D()->attached;
         Figure51C970(figure);
-        Unit518840(unit, nullptr, record->texts[2], 0);
+        unit->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
         Unit518860(unit);
         const char* skin = record->texts[4];
         static_cast<CObject3DClientSpecific*>(figure)->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));

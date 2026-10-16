@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "core_streams.h"
 #include "core_transform.h"
+#include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -77,8 +78,6 @@ __declspec(naked) void* __fastcall ConstructUnit2CC(float*) EI_ORIGINAL(0x0052E2
 inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
-// 00511B90. A counted reference: assign.
-void __fastcall AssignReference(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefStoreOriginal(a0, nullptr, a2); }
 // The server unit controller's members (00546230).
 __declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
 __declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410)
@@ -436,7 +435,7 @@ void CMapObjectClientSpecific::DestructBody() {
         }
         int id = light->id_;
         stlp::ListRemoveInt(&TheLightFactory()->litIds_, nullptr, &id);
-        AssignReference(&light, nullptr, nullptr);
+        ObjectHolderAssign(&light, nullptr, nullptr);
     }
     owner = nullptr;
     if (light) light->Release();

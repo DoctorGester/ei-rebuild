@@ -129,7 +129,7 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     console::CStringArray parts;
     static_cast<CObject3D*>(object)->MakeFigure(name, &parts, 1);
     static_cast<CObject3DClientSpecific*>(specific)->RegisterPartMaterials();
-    Object3DSetAnimationsOriginal(object, nullptr, name, 0);
+    object->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     object->RestartPose();
     static_cast<CObject3DClientSpecific*>(specific)->SetSkins(from, to);
 }

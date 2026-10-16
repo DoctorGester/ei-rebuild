@@ -239,11 +239,11 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
         int refused;
         if (quick == 0) {
             LocalView(kWorld)->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
-            refused = UnitCanCastSpell(unitAt(i), nullptr, pendingSlot_, &position.x);
+            refused = unitAt(i)->CanCastSpell(pendingSlot_, &position.x);
         } else {
             LocalView(kWorld)->SendItemOnUnit(pendingSlot_, member, target, ctrl & 0xFF);
             quickItems_->SetUnit(unitAt(i));
-            refused = UnitCanUseQuickItem(unitAt(i), nullptr, pendingSlot_, &position.x);
+            refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &position.x);
         }
         if (refused == 0) NodPortrait(this, i);
     }
@@ -271,10 +271,10 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
         if (quick != 0) {
             ViewQuickAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), &point, 0);
             quickItems_->SetUnit(unitAt(i));
-            refused = UnitCanUseQuickItem(unitAt(i), nullptr, pendingSlot_, &point.x);
+            refused = unitAt(i)->CanUseQuickItem(pendingSlot_, &point.x);
         } else {
             ViewSpellAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), &point, 0);
-            refused = UnitCanCastSpell(unitAt(i), nullptr, pendingSlot_, &point.x);
+            refused = unitAt(i)->CanCastSpell(pendingSlot_, &point.x);
         }
         if (refused == 0) NodPortrait(this, i);
     }

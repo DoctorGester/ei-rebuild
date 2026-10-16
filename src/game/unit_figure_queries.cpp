@@ -84,16 +84,16 @@ char* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
 EI_REPLACE_METHOD(0x005301B0, CUnit::FindAnimation);
 
 char* CUnit::AnimationEntry(std::uint32_t key) {
-    char* entry = ObjectAnimationEntryOriginal(this, nullptr, key);
+    char* entry = reinterpret_cast<char*>(AnimationAt(key));
     if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name);
     return entry;
 }
 EI_REPLACE_METHOD(0x00530240, CUnit::AnimationEntry);
 
 double CUnit::BodyExtent() {
-    int part = ObjectFindPartIndexOriginal(this, nullptr, kBodyPart);
+    int part = FindPartIndex(kBodyPart);
     if (part < 0) {
-        part = ObjectFindPartIndexOriginal(this, nullptr, kChestPart);
+        part = FindPartIndex(kChestPart);
         if (part < 0) return kNoExtent;
     }
     float extentScale = kExtentScale;
@@ -122,7 +122,7 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
         if (type_ == kUnitTypeHero) {
             if (CEngineObject* hand = static_cast<CObject3D*>(this)->FindPartByPrefix(kRightHand)) {
                 Vector3 at;
-                ObjectPartPositionOriginal(this, nullptr, &at.x, hand);
+                PartWorldPosition(&at.x, static_cast<CFigureMesh*>(hand));
                 out->x = at.x;
                 out->y = at.y;
                 out->z = at.z;

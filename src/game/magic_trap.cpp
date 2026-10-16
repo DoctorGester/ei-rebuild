@@ -384,7 +384,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
     stream->Read(&value, 4);
     Array12SetSizeOriginal(&area, nullptr, value, -1);
     for (int i = 0; i < area.count; ++i) stream->Read(&area.circles[i], sizeof(TrapCircle));
-    CountedListLoadOriginal(&inside, stream, ManagerContextOf(this));
+    CountedListLoad(&inside, stream, ManagerContextOf(this));
     stream->Read(&value, 4);
     PointsSetSize(&points, nullptr, value, -1);
     for (int i = 0; i < points.count; ++i) stream->Read(&points.points[2 * i], 2 * sizeof(float));

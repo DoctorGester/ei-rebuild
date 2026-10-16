@@ -540,8 +540,6 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
 EI_REPLACE_METHOD(0x00526C70, UnitStats::WeaponSkillBonus);
 
 namespace {
-// 0051FE80. Skill database: the index of the level record named `name` by _mbsicmp, or -1.
-int __fastcall SkillRecordIndexByName(const void* a0, void*, const char* a2) { return SkillIndexOfOriginal(a0, nullptr, a2); }
 
 // A CString field of a record: is it set, and not "none"?
 bool NamesRequirement(const mfc::CString& text) {
@@ -566,7 +564,7 @@ BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
     if (NamesRequirement(record->requiredLevelName)) {
-        int required = SkillRecordIndexByName(database, nullptr, record->requiredLevelName);
+        int required = static_cast<const SkillDatabase*>(database)->IndexOf(record->requiredLevelName);
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     // No level of the same skill id may be known in another skill.
@@ -578,7 +576,7 @@ BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
         if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
     }
-    int own = SkillRecordIndexByName(database, nullptr, record->name);
+    int own = static_cast<const SkillDatabase*>(database)->IndexOf(record->name);
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);

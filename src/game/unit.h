@@ -318,10 +318,10 @@ public:
 
     // 0052F820. Can the unit cast the spell in slot `slot` (0..7)? 0 yes, 1 not enough mana, 3 no
     // spell, 4 an effect of type 0x20 prevents it. The second argument is not used.
-    int CanCastSpell(std::uint32_t slot, int unused);
+    int CanCastSpell(std::uint32_t slot, const float* unused);
     // 0052F8B0. Can the quick item in slot `slot` be used? 3 none or not a spell carrier, 1 a
     // category 5 item with too little charge, else 0. The second argument is not used.
-    int CanUseQuickItem(std::uint32_t slot, int unused);
+    int CanUseQuickItem(std::uint32_t slot, const float* unused);
 
     // 0052F920. Movement speeds for the current movement mode (+0x264): `forward` and `backward`
     // (the latter scaled by the global 007C5438).

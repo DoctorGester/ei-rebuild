@@ -599,6 +599,10 @@ struct AIRef {
     CEngineObject* object;
 };
 
+// 0052AF20 (counted_ref.cpp; fastcall, RET 4): a count read from `stream`, then that many counted
+// references appended to `list`, each loaded in `context` (the trap's units, the brain's lists).
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, CStream* stream, void* context);
+
 // The brain's corpse list (+0x148; its elements are counted references). 005D8D50 (RET 4,
 // unit_ai.cpp; CorpseWatcherMode::Evaluate through AIBrain::PopCorpse): RemoveHead, the head's
 // object handed to `out` with a reference (the list's own reference released). Returns `out`.

@@ -256,7 +256,7 @@ void CEffectMoshka::Follow(int objectId) {
     console::CStringArray parts;
     static_cast<CObject3D*>(bird)->MakeFigure(model, &parts, 1);
     static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
-    Object3DSetAnimationsOriginal(bird, nullptr, model, 0);
+    bird->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     bird->RestartPose();
     static_cast<CObject3DClientSpecific*>(attached)->SetSkins(texture, game::EmptyText());
     WorldClient()->AddObject(bird_);

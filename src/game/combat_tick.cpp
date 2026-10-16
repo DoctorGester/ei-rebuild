@@ -145,7 +145,7 @@ void TellParty(CUnit* unit, int message) {
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.
 void ClearAction(UnitAction* order) {
-    ActionClear(order);
+    order->ClearOrder();
     order->param = 0;
     order->modifier = 0;
 }

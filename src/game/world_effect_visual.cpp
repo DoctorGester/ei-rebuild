@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "effects.h"
+#include "game_lists.h"
 #include "lightning.h"
 #include "net_delta.h"
 #include "script.h"
@@ -24,8 +25,7 @@ namespace {
 
 // The light manager (*007AF738), thiscall.
 void __fastcall MoveLight(void* a0, void*, CEngineObject* a2, const Vector3* a3) { LightMoveOriginal(a0, nullptr, a2, (const float*)a3); }
-// 00511B90 / 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
-void __fastcall AssignLight(CLight** a0, void*, void* a2) { CountedRefStoreOriginal((void*)a0, nullptr, a2); }
+// 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
 __declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
 // CParticleSource (effects.cpp, through the game addresses).
@@ -160,7 +160,7 @@ int CEffectPointLight::Tick() {
 void CEffectPointLight::Start(int update) {
     if (update == 0) {
         CEngineObject* created = LightFactory()->CreateObject(0x31, -1);
-        AssignLight(&light_, nullptr, created);
+        ObjectHolderAssign(reinterpret_cast<CEngineObject**>(&light_), nullptr, created);
         Vector3 position;
         x87::CopyFloat(&position.x, &localPosition_.x);
         x87::CopyFloat(&position.y, &localPosition_.y);

@@ -34,7 +34,6 @@ __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
 __declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
-__declspec(naked) inline void __fastcall ActionClear(UnitAction*) EI_ORIGINAL(0x00545F40)
 __declspec(naked) inline void __fastcall StepsCopyB(AnimationSteps*, void*, const AnimationSteps*)
     EI_ORIGINAL(0x005483C0)
 __declspec(naked) inline void __fastcall StepsAppend(AnimationSteps*, void*, const AnimationSteps*)
@@ -56,56 +55,23 @@ __declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list
     EI_ORIGINAL(0x00556D10)
 
 // C3k. A counted reference is a pointer slot whose object keeps a count at +4 and has Release as virtual slot 4.
-// 0052B030 releases the object and clears the slot (plain RET); 0052A8F0 assigns an object unless it is the one
-// already held (RET 4); 00511B90 stores the object, adds a reference and then releases the old one (RET 4). None of
-// them leaves a result in EAX.
+// 0052B030 releases the object and clears the slot (plain RET; no result in EAX).
 __declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/) EI_ORIGINAL(0x0052B030)
-__declspec(naked) inline void __fastcall CountedRefStoreOriginal(void* /*slot*/, void*, void* /*object*/)
-    EI_ORIGINAL(0x00511B90)
-// 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4): reads a count, then appends that many counted references to
-// the CList of objects, each loaded with 0050E220 in `context`. EAX is not a result.
-__declspec(naked) inline void __fastcall CountedListLoadOriginal(void* /*list*/, void* /*stream*/, void* /*context*/)
-    EI_ORIGINAL(0x0052AF20)
 // 0054B580 (rewritten as CUnitServer::IsFighting; Rebirth patches it, so callers go through the address): whether the
 // controller's order counts as fighting (plain RET, AL).
 __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*controller*/) EI_ORIGINAL(0x0054B580)
-// A 3D object's figure (thiscall on the object): 00516DA0 builds it from model `model` and the part names `parts` (a
-// CStringArray; RET 0xC, nonzero on success); 00518840 gives its animation state (+0x98) the model's animations (RET 8,
-// returns 1).
-__declspec(naked) inline void __fastcall Object3DSetAnimationsOriginal(void* /*object*/, void*, const char* /*model*/,
-                                                                       int /*flag*/) EI_ORIGINAL(0x00518840)
 // 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10). 00557B60: AnimationSteps
 // constructor (plain RET, returns `this`).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 __declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)
 
 // C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
-// inserting an entry for a missing name). 0051FE80: SkillDatabase::IndexOf(name) over the 0x44-byte records between +0x0C and +0x10
-// (RET 4; EAX = the index, or -1).
+// inserting an entry for a missing name).
 __declspec(naked) inline void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
     EI_ORIGINAL(0x005335E0)
-__declspec(naked) inline int __fastcall SkillIndexOfOriginal(const void* /*database*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x0051FE80)
-// U11. Figure methods of map objects (the 3D object base). 00518F80: animation entry `key & 0xFF` of the figure's
-// animation set (0x58-byte entries from set + 0x2C, the set loaded on first use by 00518CA0; RET 4, EAX the entry or
-// null). 00517990: the index of the part named `name` (_mbscmp, the names at +0x114 / +0x118; RET 4, -1 when
-// none); it indexes the part boxes at +0x160. 005188B0: a part's position in the world (RET 8: out, part; returns out).
-__declspec(naked) inline char* __fastcall ObjectAnimationEntryOriginal(const void* /*object*/, void*, std::uint32_t /*key*/)
-    EI_ORIGINAL(0x00518F80)
-__declspec(naked) inline int __fastcall ObjectFindPartIndexOriginal(const void* /*object*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00517990)
-__declspec(naked) inline float* __fastcall ObjectPartPositionOriginal(const void* /*object*/, void*, float* /*out*/,
-                                                                      void* /*part*/) EI_ORIGINAL(0x005188B0)
-// A-U2. The figure's animation state (map_object_animation_state.cpp, rewritten): 0050CA50 plays an animation entry
-// (RET 4), 0050CBA0 queues one (RET 4; EAX the list node). 00535480: the client controller starts the unit's idle
-// animation (RET 4: play (byte) or queue; unit_client_animation.cpp). No results unless noted.
 class CFigureAnimationState;
 class CUnitClientSpecific;
 struct FigureAnimation;
-__declspec(naked) inline void __fastcall FigurePlayOriginal(CFigureAnimationState* /*state*/, void*,
-                                                            const void* /*animation*/) EI_ORIGINAL(0x0050CA50)
-__declspec(naked) inline void* __fastcall FigureQueueOriginal(CFigureAnimationState* /*state*/, void*,
-                                                              const void* /*animation*/) EI_ORIGINAL(0x0050CBA0)
 class CObject3DClientSpecific;
 // 005392F0 (library: STLport list::erase of the speech
 // queue): removes `at`, the next node to *out (RET 8).
@@ -122,12 +88,6 @@ __declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void*
 // growBy) (RET 8, no result).
 __declspec(naked) inline void __fastcall CompanionSoundsSetSizeOriginal(void* /*array*/, void*, int /*count*/,
                                                                        int /*growBy*/) EI_ORIGINAL(0x00512330)
-// 00511830 (map_object_client_effects.cpp, rewritten): the map object's client companion makes a light of `colour`
-// (rgba) and `radius` (RET 0xC; `flag` adds flags_ 0x40). No result.
-__declspec(naked) inline void __fastcall CompanionCreateLightOriginal(void* /*companion*/, void*, const float* /*colour*/,
-                                                                      float /*radius*/, int /*flag*/) EI_ORIGINAL(0x00511830)
-
-// 0051FE00: the skill database (007AF268) finds the skill level named `name` by _mbsicmp (thiscall, RET 4), or null.
 
 // A-U11 (unit_db.cpp, unit_db_destroy.cpp). The unit database's records: 0053EBC0 / 0053ED30 / 0053EE70 destroy a
 // prototype / NPC / model record (rewritten in unit_db_destroy.cpp; thiscall, plain RET); 0053E2A0 / 0053E520 / 0053E730 /
@@ -146,10 +106,6 @@ __declspec(naked) inline void __fastcall SkillVectorResizeOriginal(void* /*vecto
     EI_ORIGINAL(0x005209D0)
 __declspec(naked) inline void __fastcall SkillLevelVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x00520B20)
-// A-U10 (map_object_animation_bones.cpp). 0050AAF0 (thiscall on an animation track, RET 4): loads its key frames from
-// *data (an entry of a figure model part; advanced past it). No result.
-__declspec(naked) inline void __fastcall AnimationTrackLoadOriginal(void* /*track*/, void*, void** /*data*/)
-    EI_ORIGINAL(0x0050AAF0)
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).
@@ -179,12 +135,6 @@ struct DeltaField;        // net_delta.h
 // C3m. 0050E660 (rewritten as CMapObject::DestructBody): the map object's destructor body.
 __declspec(naked) inline void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 
-// C3n. 0052F820 / 0052F8B0 (rewritten as CUnit::CanCastSpell / CanUseQuickItem; thiscall, RET 8): whether the unit can
-// cast the spell / use the quick item of a slot at `point` (0 when it can).
-__declspec(naked) inline int __fastcall UnitCanCastSpell(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
-    EI_ORIGINAL(0x0052F820)
-__declspec(naked) inline int __fastcall UnitCanUseQuickItem(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
-    EI_ORIGINAL(0x0052F8B0)
 
 // C3o. Map object / unit statistics originals whose copies differed in their return type.
 // 0050E2D0 (rewritten as CMapObject::Construct; thiscall, plain RET): the map object base constructor; returns this.

@@ -285,7 +285,7 @@ EI_REPLACE_METHOD(0x0050D450, CFigureAnimationState::UpdatePose);
 
 void CFigureAnimationState::Stop() {
     queue.RemoveAll();
-    FigurePlayOriginal(this, nullptr, nullptr);
+    Play(nullptr);
     changed = 1;
 }
 EI_REPLACE_METHOD(0x0050D5A0, CFigureAnimationState::Stop);
@@ -338,9 +338,9 @@ int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAn
     for (auto* node = bones.head; node;) {
         FigureBone* bone = node->data;
         node = node->next;
-        void* data = part->ReadEntry(bone->name, nullptr);
+        auto* data = static_cast<std::uint8_t*>(part->ReadEntry(bone->name, nullptr));
         if (!data) ClearTrack(bone->pose);
-        else AnimationTrackLoadOriginal(bone->pose, nullptr, &data);
+        else bone->pose->LoadKeyFrames(&data);
         bone->pose->animation = animation;
     }
     return 1;

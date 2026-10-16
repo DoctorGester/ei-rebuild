@@ -678,7 +678,7 @@ int CPlayerClient::OnNewObject() {
     CEngineObject* attached = figure->attached;
     static_cast<CObject3DClientSpecific*>(attached)->RegisterPartMaterials();
     // (The client world's 00566310 and 00566320 around the texture swap are empty.)
-    Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
+    figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
     const char* to = textureTo;
     if (created->type_ == kTypeHumanoid) {
