@@ -1,8 +1,8 @@
 """Function vectors (tests/vectors/vectors.h): merge recorded runs into tests/vectors/data, show files.
 
-Record mode: run scenarios with EI_VECTORS=1 in the environment (the verify build; e.g.
-`set EI_VECTORS=1` then `python tools/work.py test <ID> units sandbox_actions --vanilla-only`). Each run
-writes <run folder>/vectors/<family>/<function>.vec.
+Record mode: run scenarios on the original game.exe with EI_VECTORS=1 in the environment (the verify
+build; e.g. `set EI_VECTORS=1` then `python tools/work.py test <ID> units sandbox_actions --no-hooks
+--vanilla-only`; the recorders are game.exe's only hooks). Each run writes <run folder>/vectors/<family>/<function>.vec.
 
 usage:
   python tools/vectors.py merge <run folder>... [--out tests/vectors/data] [--add] [--cap N]

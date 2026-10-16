@@ -2338,6 +2338,25 @@ title = "Original-code goldens no longer repeat (--no-hooks --golden)"
 group = "standalone"
 note = "S21c (2026-10-16): work.py test --no-hooks --golden: 6 goldens differ (combat, ground_prints, sandbox_actions, unit_ai, zone_gz15h_tornado vanilla; effects_bow Rebirth: random counts / unit fields from world update 60-840), a --fresh rerun of those six: 2 others differ (zone_gz15h_tornado R, effects_bow R); effects_bow R also failed clickunit twice. 0 hooks installed, so not S21c. S21a's --no-hooks run at ~04:00 had 0 differ; WB14 (loopback binds, merged 04:18) changed the harness since. Find what makes the original's runs vary (the digest's first difference, randtrace between two fresh runs); the image's suite is unaffected (168 the same). docs/notes/standalone.md, S21c."
 
+[[ticket]]
+id = "S21f"
+title = "EI_PROFILE in the standalone image"
+group = "standalone"
+note = "From S21e: InstallProfiler (src/hook/profile.cpp) is called only from game.exe's WinMain hook (hook.cpp OnWinMain), so EI_PROFILE=1 samples nothing in the image (EiStandaloneMain never calls it) since the default suite became the image's (S21). Call it from EiStandaloneMain before WinMain and check tools/profile_report.py on an image run (InCode's exe range is the image's)."
+
+[[ticket]]
+id = "S21g"
+title = "harness_heap.cpp: order observer and heap::Aside out"
+group = "standalone"
+depends = ["S21c1"]
+note = "From S21d/S21e: harness_heap.cpp's SetOrderObserver and heap::Aside served harness_heap_order.cpp (deleted in S21d) and are unused; take them out once S21c1 (which works in harness_heap.cpp) has merged."
+
+[[ticket]]
+id = "S21h"
+title = "EI_REBIRTH_IMPLEMENTS: documentation only since S21e"
+group = "standalone"
+note = "From S21e: nothing reads the 125 EI_REBIRTH_IMPLEMENTS declarations at run time any more (the installer's Rebirth check went with game.exe's mode). Decide: drop them (config/rebirth_patches.csv already says where each patch is implemented) or turn them into a build check against that csv's status column."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
