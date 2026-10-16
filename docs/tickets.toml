@@ -257,6 +257,36 @@ depends = ["R11b"]
 files = ["src/game/app_frame.cpp src/game/surface_capture.cpp src/game/unit_client_blink.cpp src/game/renderer_lifetime.cpp src/game/device_binds.cpp src/game/device_draw.cpp src/game/ui_saveload.cpp"]
 note = "From R11b: no holder has a DirectDraw surface (CDXSurface::surface always null). Left: the render target / primary surface tests that always take the no-surface branch (app_frame.cpp 81, surface_capture.cpp 95, unit_client_blink.cpp, renderer_lifetime.cpp 44), device::Surface in the binds and draws (always null to SetTexture), the DDSURFACEDESC2 layout of DirectPixels' desc, GivePictureMemory / AttachTextureMemory in ui_saveload.cpp (the textures already have memory from 00691D80). The COM stand-ins and device.h's wrappers wait for R9b2. Keep goldens the same; renderer.md section 9 Open items."
 
+[[ticket]]
+id = "R12"
+title = "Visible seams on the terrain while the camera moves"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-10-16, playing the standalone image (vanilla): visible seams between terrain pieces when moving the camera. Compare with the original on dgVoodoo (a frame capture of the same camera move on both); likely the new renderer's terrain pipelines (R10d) or texel / half-pixel rules. Most important of the user's play notes."
+
+[[ticket]]
+id = "R13"
+title = "Save game screenshot shows plain blue in the save / load window"
+group = "renderer"
+size = 1
+model = "opus"
+note = "User 2026-10-16: after a quick save the save's picture showed plain blue. Check against the original, and whether R11a / R11b's removal of the DirectDraw surface paths (ui_saveload's GivePictureMemory / AttachTextureMemory, CaptureScreen's Blt branch) broke the capture into the save. Add a golden that reaches it (save, then the load window)."
+
+[[ticket]]
+id = "R14"
+title = "Option: stay on screen when focus is lost in borderless full screen"
+group = "renderer"
+size = 1
+note = "User 2026-10-16: on Alt+Tab the game's own OnActivate (app.cpp) pauses and minimises the window, which suits exclusive full screen but not our borderless window (a borderless game normally stays on the primary display). New option, default off (original behaviour); decide with the user whether the pause stays."
+
+[[ticket]]
+id = "R15"
+title = "Options: confine the cursor to the window; no edge pan with the cursor outside"
+group = "renderer"
+size = 1
+note = "User 2026-10-16: camera edge pan works but the cursor is not confined to the window (ClipCursor), and the camera pans while the cursor is outside the window. New options, default off (original behaviour)."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -1289,6 +1319,13 @@ depends = ["SV5d2"]
 files = ["tests/scenarios/net_pair_*.txt", "tests/scenarios/peer/", "tools/"]
 note = "SV5d2's net_pair_leave reaches shared files (File / FileRequest / FileChunk), a client lost in the game zone (harness netcut: ReportDeparture 4), the zone left back to the base (SwitchMultiplayerZone's second call), the reject topic (LeaveZone 00418CC0, AwardHost with the final award, QueueAward, ClientOnAward). Not reached: CompleteZone 00418ED0 (and its kind 0 / 1 awards): the zone's quest must finish (generated quest script -> QuestComplete -> FinishQuestMap 0057FB90 -> FinishMap queues '<zone>_3', then the sheriff's '_3' topic on the base). Every offered quest (z3q1 chest by five level 2 bandits, z3q2 level 5 toad, z6q1 level 7 shaman, z9q1 crypt by level 8 skeletons, ...) needs a fight a new level 1 hero loses, and '@' console commands are refused in a network game. Ideas: a prepared strong multiplayer hero (a '# prepare:' tool writing mp\\<hero>.mp into harness_saves, its format first), or mercenaries bought on the base (b.merc topics). Also unreached: the master server's answer (OnMaster 0041ACA0, needs a fake master on 127.0.0.1), GameInfoRecord::Read, bad updates."
 
+[[ticket]]
+id = "SV8"
+title = "Key remapping in the options did not work in the standalone image"
+group = "verification"
+size = 1
+note = "User 2026-10-16: remapping hotkeys did not seem to work, possibly from their local UTF-8 test patch (key_bindings.cpp was among its files). Recheck on a clean build against the original; if the image differs, a scenario that remaps a key and uses it, with goldens."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
@@ -1866,7 +1903,7 @@ title = "UTF-8 inside, cp1251 assets converted when read"
 group = "standalone"
 depends = ["S"]
 size = 5.5
-note = "U1-U5, behind a switch in the standalone build."
+note = "User 2026-10-16 prototyped the UTF-8 conversion locally to play-test (uncommitted, in the main checkout); they called it sloppy and it is to be reverted, not merged."
 
 [[ticket]]
 id = "S1"
