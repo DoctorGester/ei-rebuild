@@ -261,7 +261,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         } else if (state == 0) {
             state = 1;
         }
-        if (IsLeadByte(static_cast<signed char>(*p))) {
+        if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
             Ops(character).AssignChar(p[0]);
             Ops(character).AppendChar(p[1]);
         } else {

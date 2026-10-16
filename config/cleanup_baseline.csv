@@ -63,7 +63,7 @@ src/game/ini_file.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/item_constructor.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,4
 src/game/item_db_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,44
 src/game/item_db_open.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
-src/game/item_db_text.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
+src/game/item_db_text.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0,0
 src/game/item_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,38
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,0
@@ -124,15 +124,15 @@ src/game/object3d_animations.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/object3d_figure_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,4
 src/game/options.cpp,0,0,0,0,124,0,0,0,0,0,0,0,0,12
-src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,53
+src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,52
 src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,29
 src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,57
-src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,192
-src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,25
+src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,188
+src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,24
 src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,32
-src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,156
+src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,155
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,104
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,63
 src/game/particle_callbacks.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,0
@@ -235,7 +235,7 @@ src/game/ui_interface_save.cpp,0,0,0,0,13,0,0,0,0,0,0,0,0,0
 src/game/ui_item_info.cpp,0,0,0,0,29,0,0,0,0,0,0,0,0,3
 src/game/ui_item_screen.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
 src/game/ui_item_strip_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/ui_item_view.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,7
+src/game/ui_item_view.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,6
 src/game/ui_layouts.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0,17
 src/game/ui_menus.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_objectives.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
@@ -287,7 +287,7 @@ src/game/world_effect.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_effect_internal.h,0,0,0,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_effect_visibility.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_effect_visual.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
-src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,62
+src/game/world_game.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,61
 src/game/world_loot.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/world_map.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,12
 src/game/world_map_files.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1

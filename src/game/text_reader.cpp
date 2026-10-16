@@ -51,7 +51,7 @@ int CharCode(const char* p) {
 // Appends the character at `p` (one or two bytes, by isleadbyte on the signed byte) to `out`
 // through the temporary `tmp`.
 void AppendCharAt(mfc::CString* out, mfc::CString& tmp, const char* p) {
-    if (IsLeadByte(static_cast<signed char>(*p))) {
+    if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
         Ops(tmp).AssignChar(p[0]);
         Ops(tmp).AppendChar(p[1]);
     } else {

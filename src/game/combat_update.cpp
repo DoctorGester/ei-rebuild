@@ -483,7 +483,7 @@ void CUnitServer::SetStanding(int standing) { SetStandingFlag(this, standing); }
 EI_REPLACE_METHOD(0x005467B0, CUnitServer::SetStanding);
 
 void CUnitServer::StandStill() {
-    PathClear(Motion(this));
+    static_cast<AIPath*>(Motion(this))->Clear();
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->orientation);
@@ -621,7 +621,7 @@ void CUnitServer::TickAction() {
         unit->UpdateSizeClass();
         DropEffectObject(this);
     }
-    PathClear(Motion(this));
+    static_cast<AIPath*>(Motion(this))->Clear();
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
     QuaternionAxisY(&unit->orientation, nullptr, &axis);

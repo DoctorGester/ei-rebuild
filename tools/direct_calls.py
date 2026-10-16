@@ -534,6 +534,30 @@ def parse_args(bare, open_paren):
     return None, None
 
 
+_INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*"([^"]+)"', re.M)
+_SEES = {}
+
+
+def sees(a, b):
+    """Whether file `a` (a Source) includes file `b`, directly or through other src / tests files."""
+    if not _SEES:
+        srcs = _FREE_DECLS.get('all', ())
+        by_base = defaultdict(list)
+        for x in srcs:
+            by_base[os.path.basename(x.path)].append(x.path)
+        graph = {x.path: {p for inc in _INCLUDE.findall(x.raw) for p in by_base.get(os.path.basename(inc), ())}
+                 for x in srcs}
+        for x in srcs:
+            seen, todo = set(), list(graph[x.path])
+            while todo:
+                p = todo.pop()
+                if p not in seen:
+                    seen.add(p)
+                    todo += graph.get(p, ())
+            _SEES[x.path] = seen
+    return b.path in _SEES.get(a.path, ())
+
+
 def find_sites(f, sources, decl_spans):
     """Every use of the forwarder's name, or a reason it cannot be rewritten. A declaration of the
     forwarder elsewhere (the class body's for an out-of-class definition, a header's prototype of a
@@ -546,6 +570,8 @@ def find_sites(f, sources, decl_spans):
     for s, a, b in _WORDS.get(f.simple, ()):
         if local and s is not f.src:
             continue
+        if f.src.path.endswith('.h') and s is not f.src and not sees(s, f.src) and not sees(f.src, s):
+            continue        # a file that cannot see the forwarder's header: the name is another function's there
         if any(sa <= a < sb for sa, sb in decl_spans.get(s.path, ())):
             continue
         j = b
@@ -564,6 +590,13 @@ def find_sites(f, sources, decl_spans):
         obj = tok if tok in ('.', '->') else ''
         if obj and not f.in_class and '::' not in f.name:
             continue        # a member of that name, not the free forwarder
+        # A word in the target's own namespace is the target's (or hides the forwarder there).
+        if f.target is not None and not qual and not obj and not f.target.member:
+            tchain = [n for n in split_qualified(f.target.raw_name)[:-1] if n != "`anonymous namespace'"]
+            site_named = [n for k, n in s.scope_at(a) if k == 'ns' and n != "`anonymous namespace'"]
+            fchain = [n for n in namespaces if n != "`anonymous namespace'"]
+            if tchain and tchain != fchain and site_named[:len(tchain)] == tchain:
+                continue
         # An unqualified call outside the forwarder's namespace is another function (hook.cpp's
         # fseek is the host CRT's, not gamecrt::fseek), unless a using-directive brings it in.
         named = [n for n in namespaces if n != "`anonymous namespace'"]
@@ -575,6 +608,12 @@ def find_sites(f, sources, decl_spans):
                     continue    # another function; with a using-directive the call is the forwarder's
         declaration = not obj and (tok and (tok[0].isalnum() or tok[0] == '_') and tok not in KEYWORDS_BEFORE_EXPR
                                    or tok in ('*', '&', '>', '~'))
+        if declaration and tok in ('*', '&'):
+            # `*Name(...)` / `&Name` after an operator, an opening bracket or a keyword is an expression: a
+            # declarator has a type before its * or &.
+            before, _ = prev_token(s.bare, at)
+            if not before or not (before[0].isalnum() or before[0] == '_' or before in ('>', '*', '&', '::', ')'))                     or before in KEYWORDS_BEFORE_EXPR:
+                declaration = False
         if declaration and is_call and not qual and not f.in_class and not s.in_body(a):
             close, _ = parse_args(s.bare, j)
             mm = re.match(r'\s*(?:const\s*)?;', s.bare[close + 1:close + 40]) if close else None
@@ -587,6 +626,14 @@ def find_sites(f, sources, decl_spans):
             if mm and same:
                 f.extra.append((s, statement_start(s, at), close + 1 + mm.end()))
                 continue
+        if declaration and not obj and not qual:
+            here = s.scope_at(a)
+            classes = [n for k, n in here if k == 'class']
+            site_named = [n for k, n in here if k == 'ns' and n != "`anonymous namespace'"]
+            # (A member forwarder stays: a call through an object of another class with that member name cannot be
+            # told from its own, and renaming it breaks the other class's code.)
+            if not f.in_class and '::' not in f.name and site_named and site_named != named:
+                continue        # a function of that name in another namespace
         if declaration:
             return None, f'another declaration of the name ({f.simple}; {s.path}:{s.line_of(a)})'
         if not is_call:

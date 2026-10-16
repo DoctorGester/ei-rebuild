@@ -88,7 +88,7 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
     const float dx = static_cast<float>(static_cast<double>(next->x) - first->x);
     const float dy = static_cast<float>(static_cast<double>(next->y) - first->y);
     const float scale = static_cast<float>(static_cast<double>(std::bit_cast<float>(widthBits)) * first->rhw * kWidthScale);
-    const double k = scale / Hypot(dx, dy);
+    const double k = scale / libcrt::Hypot(dx, dy);
     TLVertex* top = *array + (*count)++;
     *top = *first;
     const double acrossX = dy * k;
@@ -131,7 +131,7 @@ TLVertex** RibbonData() { return &Ribbon().data; }
 void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVertex** array, int* count, float width) {
     TLVertex* top = *array + (*count)++;
     const float scale = static_cast<float>(static_cast<double>(width) * src->rhw * kWidthScale);
-    const double k = scale / Hypot(direction[0], direction[1]);
+    const double k = scale / libcrt::Hypot(direction[0], direction[1]);
     *top = *src;
     top->x = static_cast<float>(k * direction[1] + top->x);
     top->y = static_cast<float>(top->y - k * direction[0]);

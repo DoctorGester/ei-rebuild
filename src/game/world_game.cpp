@@ -611,8 +611,6 @@ namespace {
 
 // 00410860 (RET 4). The globals (0079B2A8) note the campaign's progress.
 __declspec(naked) void __fastcall GlobalsSetStage(void*, void*, int) EI_ORIGINAL(0x00410860)
-// 0057AA80 (RET 4). CWorldServer::ZoneNameInto (rewritten below), through its address.
-__declspec(naked) mfc::CString* __fastcall ZoneNameAt(CWorldServer*, void*, mfc::CString*) EI_ORIGINAL(0x0057AA80)
 // 00460BC0 (RET 8). Named float table Set.
 
 } // namespace
@@ -631,7 +629,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
     LocalFileStream file;
     mfc::CString path;   // [0x04]
     alignas(4) unsigned char zoneStorage[sizeof(mfc::CString)];
-    mfc::CString& zone = *ZoneNameAt(World(), nullptr, reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
+    mfc::CString& zone = *World()->ZoneNameInto(reinterpret_cast<mfc::CString*>(zoneStorage));   // [0x08]
     struct ZoneOwner {
         mfc::CString* s;
         ~ZoneOwner() { s->~CString(); }

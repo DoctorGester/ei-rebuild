@@ -525,7 +525,7 @@ const char* NoFunctionText() { return reinterpret_cast<const char*>(0x0078EB5C);
     folder.reset();
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
     ei::SetVtable(self, 0x0073D768);
-    CxxThrowException(&error, GameErrorThrowInfo());
+    libcrt::CxxThrowException(&error, GameErrorThrowInfo());
     for (;;) {
     }
 }

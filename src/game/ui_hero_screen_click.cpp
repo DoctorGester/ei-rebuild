@@ -117,7 +117,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
 void BackToMainMenu(CInterface3D* ui) {
     mfc::CString text;
     TextsGetString(reinterpret_cast<TextGlue*>(0x007AFEA4)->Table(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
-    ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
+    static_cast<CInterface3D*>(reinterpret_cast<void*>(0x007C7D50))->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     static_cast<GameFlow*>(reinterpret_cast<void*>(0x007AFE20))->EndSession();
     ui->SetPendingValue(0);

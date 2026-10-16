@@ -127,7 +127,7 @@ int CLightning::DrawImpl(void* device) {
     EnsureTextureLoaded(holder);
     auto* renderer = static_cast<CSceneRenderer*>(device);
     if (!renderer->SetTexture(0, *holder)) return 0;
-    int visibility = ClipTest(renderer->pipeline_, nullptr, reinterpret_cast<const ClipBounds*>(&boundsKind_));
+    int visibility = renderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&boundsKind_));
     if (visibility == 2) return 1;
     const float zero = GameFloat(0x0073B858);
     if (power_ >= zero) Animate();

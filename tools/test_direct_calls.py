@@ -49,6 +49,7 @@ MAP = {
 def run(sources, decls=MAP, tiers=None):
     dc._FREE_DECLS['all'] = sources
     dc._HEADERS.clear()
+    dc._SEES.clear()
     fwds, classes = dc.analyse(sources, decls, tiers=tiers)
     edits, includes, done = dc.plan(fwds, classes)
     deleted = {}

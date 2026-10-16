@@ -99,7 +99,7 @@ struct LocalPath {
         CellListConstruct(&Path()->steps);
         CellListConstruct(&Path()->cells);
         PointArrayConstruct(&Path()->excludedBlocks);
-        PathClear(bytes);
+        reinterpret_cast<AIPath*>(bytes)->Clear();
     }
     ~LocalPath() {
         PointArrayDestroy(&Path()->excludedBlocks);
@@ -189,7 +189,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
         CAIMap* map = MapOf(world);
         for (int i = 0; i < spots.size; ++i) {
             std::memcpy(&spot, spots.data[i], sizeof(spot));
-            PathClear(path.bytes);
+            reinterpret_cast<AIPath*>(path.bytes)->Clear();
             if (!MapFindPath(map, nullptr, unit, &spot, path.bytes, kFar, 0.0f)) continue;
             // The path must end within 0073EF28 of the spot.
             float half = HalfCell();

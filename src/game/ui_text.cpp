@@ -64,7 +64,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the rectangle starts a new line (a newline then also ends the word's line).
     for (const char* p = source; CharAt(p) != 0; p = MbsInc(p)) {
-        if (IsLeadByte(static_cast<signed char>(*p))) {
+        if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
             console::Ops(ch).AssignChar(p[0]);
             console::Ops(ch).AppendChar(p[1]);
         } else {

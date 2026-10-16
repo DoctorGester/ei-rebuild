@@ -398,7 +398,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(kFreeMovedPositions));
     }
 
-    int visibility = ClipTest(device->pipeline_, nullptr, &part.Mesh()->bounds_);
+    int visibility = device->pipeline_->ClipTest(&part.Mesh()->bounds_);
     if (visibility == 2) return 1;
     int type = static_cast<int>(part.Mesh()->meshType_);
     if (type >= 13 && type <= 16) {

@@ -423,15 +423,12 @@ EI_REPLACE_METHOD(0x005EE5C0, CItemInfoPanel::Draw);
 
 // --- 005ED7B0: a hero's face ------------------------------------------------------------------------
 
+Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 namespace {
 
 // hash_map<string, record*>::operator[] of the unit prototypes (007AF364, 005335E0) and of the
 // figure prototypes (007AF3A4, 0053C780); both insert a null entry for an unknown name.
 char** FigurePrototypeAt(void* map, void*, const stlp::string* key) { return FigureMapAtOriginal(map, nullptr, key); }
-
-// 00506C70 (__fastcall, RET 4): out = a * b.
-__declspec(naked) Quaternion* __fastcall QuaternionProduct(Quaternion*, const Quaternion*, const Quaternion*)
-    EI_ORIGINAL(0x00506C70)
 
 
 // The inlined strcmp(a, b) == 0.
@@ -486,7 +483,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Quaternion tilt;
     QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, static_cast<float>((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
     Quaternion orientation;
-    SetOrientation(model, *QuaternionProduct(&orientation, &tilt, &turn));
+    SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 
     // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.
     float frameDepth = static_cast<float>(D(cell->depth) * D(GameFloat(0x0073FF20)));
