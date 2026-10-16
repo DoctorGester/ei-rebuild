@@ -2251,6 +2251,51 @@ size = 0.5
 model = "sonnet"
 note = "From S19b: no scenario covers StreamPatch, MoviesPatch, the extra figure / texture archives, archives a mod switches off ('-' entries), or the zone-table and quest Maps sites. Rebirth's own override folders and a mod's [CONFIG] / [DEV] sections are not reproduced."
 
+[[ticket]]
+id = "S21a"
+title = "Scenarios that only mean something hooked: drop or rewrite for the image"
+group = "standalone"
+size = 1
+depends = ["S21"]
+files = ["tests/scenarios", "config/rebirth_scenarios.csv"]
+note = "Plan: docs/notes/standalone.md section 5. All 107 scenarios pass on the image (S21), but some were written for hooked runs: rebirth_flags on the vanilla data (its header is about UNVERIFIED wrappers; on the image it is a flags smoke test without a golden), the other rebirthflags scenarios on the vanilla data (net_second_master, ui_widescreen*: no golden by rule, SV7b8a), rebirth_mod_folders' header, scenarios that exist for verify-wrapper counts or for a render step without present (needs_old_device). Per scenario: keep with a golden, keep as an image smoke test with its header rewritten, or drop. config/rebirth_scenarios.csv (hooked Rebirth coverage) can go once S21c lands: the image's Rebirth runs follow the Rebirth goldens."
+
+[[ticket]]
+id = "S21b"
+title = "--widescreen: Rebirth's WideScreen against the image's frames"
+group = "standalone"
+size = 1
+depends = ["S21"]
+files = ["tools/run_all.py", "tools/compare_frames.py"]
+note = "Plan: standalone.md section 5. --widescreen compares hooked Rebirth runs (dgVoodoo) with addon's own (rebirth-nohooks) pixel by pixel. The image draws only with our renderer, which differs from dgVoodoo by 0.2-1% of a 4K interface frame (R10). Compare standalone-rebirth with rebirth-nohooks with a cross-renderer tolerance or masks, or keep addon's frames as recorded references; then the hooked side goes (S21c)."
+
+[[ticket]]
+id = "S21c"
+title = "The hooked mode out of the tools"
+group = "standalone"
+size = 1
+depends = ["S21a", "S21b", "SV7c2", "S20c"]
+files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "harness.cmd", "tools/coverage.py", "README.md"]
+note = "Plan: standalone.md section 5. After SV7c2 (jitter on the image's heap) and S20c. run_all: --hooked, --native, --dgvoodoo and the hooked install names out (the alone slot rule stays for --no-hooks runs that set a mode); compare.py's ours side and harness.cmd run the image; coverage's EI_COVER=hooks reach (tests/coverage) from the image's stubs or frozen; EI_PLAIN out; README's harness section. Keep --no-hooks, the reference cache and EI_VECTORS record runs of the original."
+
+[[ticket]]
+id = "S21d"
+title = "The verify wrappers out"
+group = "standalone"
+size = 2
+depends = ["S21c"]
+files = ["tests/verify", "include/ei/hook.h", "tools/check_stolen.py", "tools/check_patched_calls.py", "tools/check_returns.py", "docs/worker-brief.md", "docs/rewrite-guide.md"]
+note = "Plan: standalone.md section 5. Needs the user's go-ahead: deletes the 640 tests/verify/verify_*.cpp (7 MB) and their helper headers, verify.cpp's twin / compare machinery, verified.txt, disabled.txt, EI_VERIFY registrations and the stolen-byte counts, and the checks that only guard hooked runs (check_stolen, check_patched_calls, check_returns). The harness*.cpp files stay (move them to tests/harness). The worker brief's and rewrite guide's verify-wrapper rules become: a golden scenario or a vector reaches each change."
+
+[[ticket]]
+id = "S21e"
+title = "InstallHooks' game.exe mode out; verify becomes the harness build"
+group = "standalone"
+size = 2
+depends = ["S21d"]
+files = ["src/hook", "build.cmd", "CMakeLists.txt", "tools/launcher"]
+note = "Plan: standalone.md section 5. src/hook keeps what the image needs (registrations, the stub writer, SettingsOnly for the Rebirth flags, the log, profile) and the original's harness modes (EI_NO_HOOKS; EI_VECTORS recorders' trampolines). Out: replacement trampolines into game.exe, Rebirth detection (Detect / Check, rebirth_sites.inc, gen_rebirth_sites.py, DumpPatchedFunctions, FollowAddon). build.cmd: verify = harness build (harness and recorders), release = ei_standalone.exe and its DLL. Keep the Rebirth flags as they are (include/ei/rebirth.h, ei_rebirth.ini). Then C13, C15, S18."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

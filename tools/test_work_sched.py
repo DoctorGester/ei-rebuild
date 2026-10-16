@@ -550,7 +550,7 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(seen[5][1]['EI_PLAIN'], '1')
 
     def test_standalone(self):
-        """--standalone: the boot scenario by default, install "standalone", ei_launch --standalone on run\\vanilla's
+        """--standalone (the default since S21): every scenario, install "standalone", ei_launch --standalone on run\\vanilla's
         game.exe, always our renderer (never the display mode), not with the original code."""
         seen = []
 
@@ -562,8 +562,26 @@ class SchedTest(unittest.TestCase):
                                                'ei_standalone: the game returned 0\n', '')
         self.scenario('boot', 'waitmenu\nquit\n')
         wide = self.scenario('wide', 'render new\nresolution 800x600\nfullscreen 1\n')
-        both = [('boot', 'standalone'), ('boot', 'standalone-rebirth')]
+        both = [('boot', 'standalone'), ('boot', 'standalone-rebirth'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')]
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone']), root=self.tmp), both)
+        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp), both)     # the default since S21
+        self.assertEqual(run_all.plan(run_all.parse_args(['--hooked', 'boot']), root=self.tmp),
+                         [('boot', 'vanilla'), ('boot', 'rebirth')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--no-hooks', '--vanilla-only', 'boot']), root=self.tmp),
+                         [('boot', 'vanilla')])
+        # Without names the Rebirth data takes the scenarios config/rebirth_scenarios.csv marks, and any with a
+        # Rebirth golden
+        os.makedirs(os.path.join(self.tmp, 'config'), exist_ok=True)
+        with open(os.path.join(self.tmp, 'config', 'rebirth_scenarios.csv'), 'w') as f:
+            f.write('boot,0\nwide,0\n')
+        os.makedirs(os.path.join(self.tmp, 'tests', 'golden', 'wide', 'rebirth'))
+        open(os.path.join(self.tmp, 'tests', 'golden', 'wide', 'rebirth', 'golden.json'), 'w').close()
+        self.assertEqual(run_all.plan(run_all.parse_args([]), root=self.tmp),
+                         [('boot', 'standalone'), ('wide', 'standalone'), ('wide', 'standalone-rebirth')])
+        self.assertEqual(run_all.plan(run_all.parse_args(['--hooked']), root=self.tmp), [('boot', 'vanilla')])   # wide: dgVoodoo's mode
+        os.remove(os.path.join(self.tmp, 'config', 'rebirth_scenarios.csv'))
+        with self.assertRaises(SystemExit):
+            run_all.plan(run_all.parse_args(['--standalone', '--hooked']), root=self.tmp)
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--vanilla-only', 'wide']), root=self.tmp),
                          [('wide', 'standalone')])
         self.assertEqual(run_all.plan(run_all.parse_args(['--standalone', '--rebirth-only', 'wide']), root=self.tmp),

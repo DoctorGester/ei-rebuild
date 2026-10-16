@@ -1,5 +1,5 @@
 # Boot (S15): the main menu comes up and takes input, the game quits. The standalone image's first goal
-# (run_all --standalone runs this one by default; S16). No capture: the harness's frame capture patches a
+# (S16; the quickest standalone check: run_all boot). No capture: the harness's frame capture patches a
 # call site in the original code, which the image does not have (S15a).
 timeout 40
 reject Script error
