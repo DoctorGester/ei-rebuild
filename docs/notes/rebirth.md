@@ -219,21 +219,12 @@ import slots count only when they point into addon.dll) or EI_Plugin.asi will ap
 
 ### Installing and verifying flagged rewrites
 
-A rewrite declares the patches it reproduces: `EI_REPLACE_METHOD(0x00522A80, LockKey::Opens);` then
-`EI_REBIRTH_IMPLEMENTS(0x00522A80, ei::rebirth::Patch::FixLeversActivate);`. The installer decides per function:
-- **Rebirth launch, function patched by addon.dll**: every differing byte must lie in a site of a patch the rewrite declares and that
-  patch's flag must be on; then the function is hooked ("Rebirth-patched ... implements ...") and its verify wrapper compares ours, flag on,
-  with the patched original; otherwise it is skipped with the reason.
-- **Stolen bytes**: when an addon site lies in the wrapper's stolen bytes (addon's JMP at a function start: FixSpellSelfCasting #0,
-  FixMoveObject, FixSpellEffectsOverflow #1, the WideScreen replacements) the stolen count must end at or after the site's end and the
-  trampoline re-targets the copied JMP / CALL rel32 so calling it still runs addon's code.
-- **EI_Plugin.asi** patches later: a function containing a site of an active plugin feature is not hooked unless the rewrite declares that
-  feature and its flag is on.
-- **Vanilla launch, flag on**: the original has no patched behaviour to compare with, so a comparing wrapper is not installed and the plain
-  replacement runs ("UNVERIFIED ... the original does not have it"); wrappers that run ours only keep running. A Rebirth run is therefore
-  needed only to verify a function whose rewrite reproduces a Rebirth patch: once when written or changed (then `verified.txt`), plus an
-  occasional smoke run for a new addon / EI_Plugin version (`rebirth_flags.txt` runs the flagged functions). Functions Rebirth patches that
-  our rewrite does not reproduce stay skipped.
+Which rewrite carries which Rebirth patch is the status column of `config/rebirth_patches.csv` ("implemented: <function> (<file>)"); the
+flag is on or off for the whole process (`Patch::X`, `ei_rebirth.ini`, `EI_REBIRTH`, a scenario's `rebirthflags`). There is no per-function
+declaration in the code: the standalone image has no addon-patched original to compare with and nothing installs or skips a function by
+its patches. A rewrite that reproduces a Rebirth patch is verified in the image with the flag on (`rebirth_flags.txt` and the scenarios
+that set `rebirthflags`) against goldens recorded from the original game.exe run with the same flag on; Rebirth's own behaviour is
+checked from the addon's patched original only when a patch is written or changed (`verified.txt`).
 
 ### Implemented patches: exact details
 
@@ -257,7 +248,7 @@ layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-e
 the battle screen's panels at the screen's edges.
 
 All of it is rewritten (W1-W4b, W2a/b) behind `Patch::WideScreen` (`src/game/ui_widescreen.{h,cpp}` and the files named below), each
-function declaring `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`; WideScreen has no leftovers.
+function named in the csv's WideScreen rows; WideScreen has no leftovers.
 
 **Layout and scaling (W1).** The layout is computed from the same settings (read through the game's own RegQueryValueExA import, so
 harness runs can answer them); the two widths are written at hook time (an `EI_STARTUP_ACTION`, `include/ei/hook.h`: runs after the Rebirth

@@ -52,7 +52,6 @@ int CUnitClientSpecific::RefreshSkins() {
     return 1;
 }
 EI_REPLACE_METHOD(0x00536100, CUnitClientSpecific::RefreshSkins);
-EI_REBIRTH_IMPLEMENTS(0x00536100, ei::rebirth::Patch::EiPluginFixes);
 
 int CUnitClientSpecific::RefreshSimpleSkin() {
     if (unit->type_ != kUnitTypeHero) return 1;

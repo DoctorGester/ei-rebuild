@@ -332,4 +332,3 @@ void CHelpWindow::ShowPageVanilla() {
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
 }
 EI_REPLACE_METHOD(0x00659420, CHelpWindow::ShowPageVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00659420, ei::rebirth::Patch::WideScreen);

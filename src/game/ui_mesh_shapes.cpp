@@ -150,7 +150,6 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     Commit();
 }
 EI_REPLACE_METHOD(0x005E70E0, CUiMesh::SetRectangleVanilla);
-EI_REBIRTH_IMPLEMENTS(0x005E70E0, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
@@ -206,7 +205,6 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     Commit();
 }
 EI_REPLACE_METHOD(0x005E7680, CUiMesh::SetGridVanilla);
-EI_REBIRTH_IMPLEMENTS(0x005E7680, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
@@ -259,7 +257,6 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     Commit();
 }
 EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrameVanilla);
-EI_REBIRTH_IMPLEMENTS(0x005E7D60, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
@@ -301,4 +298,3 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     Commit();
 }
 EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangleVanilla);
-EI_REBIRTH_IMPLEMENTS(0x005E99D0, ei::rebirth::Patch::WideScreen);

@@ -523,7 +523,6 @@ int CWorldClient::Segment() {
     return 1;
 }
 EI_REPLACE_METHOD(0x005641F0, CWorldClient::Segment);
-EI_REBIRTH_IMPLEMENTS(0x005641F0, ei::rebirth::Patch::DisableExitOnCrashReport);
 
 EI_REPLACE_METHOD(0x00563F70, CWorldClient::ClampedGroundHeight);
 EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);

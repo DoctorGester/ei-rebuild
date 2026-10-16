@@ -483,4 +483,3 @@ void CCampPages::BuildPages() {
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x0060C870, CCampPages::Create);
-EI_REBIRTH_IMPLEMENTS(0x0060C870, ei::rebirth::Patch::WideScreen);

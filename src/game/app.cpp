@@ -390,7 +390,6 @@ int __cdecl FatalError(const char* format, ...) {
     return 0;
 }
 EI_REPLACE(0x00480080, FatalError);
-EI_REBIRTH_IMPLEMENTS(0x00480080, ei::rebirth::Patch::DisableExitOnCrashReport);
 
 // ---- FatalErrorCode (004800E0) -----------------------------------------------------------------
 

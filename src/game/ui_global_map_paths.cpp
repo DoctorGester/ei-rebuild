@@ -202,4 +202,3 @@ void __fastcall GlobalMapLeftDown(void* input, void*, int buttons, int x, int y)
 }
 } // namespace
 EI_REPLACE(0x0062F950, GlobalMapLeftDown);
-EI_REBIRTH_IMPLEMENTS(0x0062F950, ei::rebirth::Patch::WideScreen);

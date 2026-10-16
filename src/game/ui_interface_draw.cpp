@@ -193,4 +193,3 @@ void CInterface3D::DrawOverlays() {
     if (console_ && console_->shown_) console_->Blit();
 }
 EI_REPLACE_METHOD(0x005F5320, CInterface3D::DrawOverlays);
-EI_REBIRTH_IMPLEMENTS(0x005F5320, ei::rebirth::Patch::WideScreen);

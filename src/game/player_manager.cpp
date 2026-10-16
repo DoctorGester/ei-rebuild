@@ -95,7 +95,6 @@ void CPlayerManager::SendTextToAll(int unused, const char* text) {
 EI_REPLACE_METHOD(0x0066C0F0, CPlayerManager::CreatePlayers);
 EI_REPLACE_METHOD(0x0066C110, CPlayerManager::NewPlayer);
 EI_REPLACE_METHOD(0x0066C180, CPlayerManager::CreateSessionPlayer);
-EI_REBIRTH_IMPLEMENTS(0x0066C180, ei::rebirth::Patch::PlayerNumbers);
 EI_REPLACE_METHOD(0x0066C1D0, CPlayerManager::ReleasePlayer);
 EI_REPLACE_METHOD(0x0066C1E0, CPlayerManager::ChangeId);
 EI_REPLACE_METHOD(0x0066C340, CPlayerManager::SendValueToAll);

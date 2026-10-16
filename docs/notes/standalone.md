@@ -265,7 +265,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 ### Open
 
 S2a (short getters as named members), S5a (unreached MFC pieces), S11b, S16e (`find_vtables.py` should take only
-function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d, S21g, S21h. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
+function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
 CWorldClient::DisconnectLocalPlayer 00566E00, S16c) cannot be a scenario: in net_lobby's lobby the client's next
 segment then ends the game in its "packet parsing error" box, the original's too. Multiplayer client paths and many container members are reached by no
 scenario (tests/coverage/coverage.csv).
@@ -334,8 +334,10 @@ User 2026-10-15: the standalone image is the only product, checked by the golden
 - How verification works now: docs/notes/standalone-verification.md section 1.
 - EI_PROFILE=1 samples the image (S21f): EiStandaloneMain calls InstallProfiler before WinMain; the game's code range is
   the image headers' SizeOfImage from 0x400000 (the host exe sits below), and profile_report names the image's functions `ours:`.
-- Left: `harness_heap.cpp`'s order observer and heap::Aside (S21g),
-  EI_REBIRTH_IMPLEMENTS as documentation only (S21h), 173 src/ comments that call through an address "so the verify
+- S21g: `harness_heap.cpp`'s order observer and heap::Aside are gone. S21h: the EI_REBIRTH_IMPLEMENTS declarations are gone
+  (they disagreed with config/rebirth_patches.csv: 23 declarations named patches the csv does not have, the Eip* plugin features and three WideScreen
+  functions, and 37 "implemented" csv rows had none; the csv's status column is the record).
+- Left: 173 src/ comments that call through an address "so the verify
   wrapper sees it" (C13 makes those calls direct), tests/coverage/reach.txt (the last hook build's reach, kept).
 
 **S21c1 (2026-10-16): the original's goldens repeat again; the cause was the user's real mouse.** Two fresh

@@ -161,4 +161,3 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     widescreen::ShowHeroCurtains(&window, mode);
 }
 EI_REPLACE_METHOD(0x00615D30, CMpHeroScreen::SetModeVanilla);
-EI_REBIRTH_IMPLEMENTS(0x00615D30, ei::rebirth::Patch::WideScreen);

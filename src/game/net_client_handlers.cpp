@@ -413,7 +413,6 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     chunks.FreeStorage();
 }
 EI_REPLACE(0x0041ECC0, ClientOnFileChunk);
-EI_REBIRTH_IMPLEMENTS(0x0041ECC0, ei::rebirth::Patch::MQClient);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->chunks_, ObjectsErase, message); }   // 0041EF10
 // The awards on +0x2608 (applied by the tick).
 void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->awards_, AwardsEnd, AwardsInsert, message); }   // 0041EF90

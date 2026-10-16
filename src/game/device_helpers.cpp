@@ -205,4 +205,3 @@ Matrix4* __stdcall AxisSwapMatrix(Matrix4* out) {
     return out;
 }
 EI_REPLACE(0x004F1330, AxisSwapMatrix);
-EI_REBIRTH_IMPLEMENTS(0x004F1330, ei::rebirth::Patch::WideScreen);

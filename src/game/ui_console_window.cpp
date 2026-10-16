@@ -322,7 +322,6 @@ void ConsoleWindow::OnChar(int key, int, int) {
     ConsoleDrawInputOriginal(this);
 }
 EI_REPLACE_METHOD(0x005E44A0, ConsoleWindow::OnChar);
-EI_REBIRTH_IMPLEMENTS(0x005E44A0, ei::rebirth::Patch::ImproveConsole);
 
 // 005E4800: keeps the scroll position within the lines, then (with a surface and a font) fills
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a

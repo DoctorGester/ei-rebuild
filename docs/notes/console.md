@@ -18,7 +18,7 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   area and the character into the line when the category is shown (category 0, or its bit in the mask `007C7B68`; a hidden
   category keeps its put area and later characters are dropped); sync (slot 1) hands the line to the console window through the
   interface manager `007C7D50` (`005F7EB0`, checks the window at `+0x14`) and empties it; underflow (slot 8, `005DC230`) returns EOF.
-- **Executor** `005DC620` (text in ECX; Rebirth patches it, hooked in a Rebirth launch via `EI_REBIRTH_IMPLEMENTS`). Every call
+- **Executor** `005DC620` (text in ECX; Rebirth patches it). Every call
   re-registers all 27 commands in two STLport `map<CString, handler>`: `007C7B28` (public) and `007C7B38` (after the cheat word);
   `operator[]` is `005E0B20`. The line is split by the tokenizer (`004DC200`: quotes toggle and stay in the token, spaces end a token
   only outside quotes, double-byte lead bytes are taken with their trail byte); the first token is the command. `@x`, `#x`, `$x`

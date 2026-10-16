@@ -273,7 +273,6 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
     }
 }
 EI_REPLACE_METHOD(0x004B4030, SSCCmd::CalcParameters);
-EI_REBIRTH_IMPLEMENTS(0x004B4030, ei::rebirth::Patch::AddNewScriptCommands);
 
 void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     PrepareArguments(script, vars);
@@ -649,7 +648,6 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
 }
 EI_REPLACE_METHOD(0x004B41E0, SSCCmd::CalcFloat);
-EI_REBIRTH_IMPLEMENTS(0x004B41E0, ei::rebirth::Patch::AddNewScriptCommands);
 
 void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** result) {
     PrepareArguments(script, vars);
@@ -715,7 +713,6 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
     }
 }
 EI_REPLACE_METHOD(0x004B56C0, SSCCmd::CalcObject);
-EI_REBIRTH_IMPLEMENTS(0x004B56C0, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- CalcGroup ----------------------------------------------------------------------------------
 
@@ -836,4 +833,3 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     if (objects.manager) --objects.manager->refCount_;   // the iterator's destructor
 }
 EI_REPLACE_METHOD(0x004B5B00, SSCCmd::CalcGroup);
-EI_REBIRTH_IMPLEMENTS(0x004B5B00, ei::rebirth::Patch::AddNewScriptCommands);

@@ -327,7 +327,6 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     out->SetAtGrow(out->GetSize(), below);
 }
 EI_REPLACE(0x005F13A0, ItemDamageLists);
-EI_REBIRTH_IMPLEMENTS(0x005F13A0, ei::rebirth::Patch::EiPluginFixes);
 
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }

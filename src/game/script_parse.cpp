@@ -105,7 +105,6 @@ int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const 
 }
 EI_REPLACE(0x004CF470, ScriptError);
 // AddNewScriptCommands hooks 004CF4A2 only to copy the error to addon.log (not reproduced).
-EI_REBIRTH_IMPLEMENTS(0x004CF470, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Keyword table ------------------------------------------------------------------------------
 
@@ -171,7 +170,6 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     }
 }
 EI_REPLACE(0x004CF600, ClassifyToken);
-EI_REBIRTH_IMPLEMENTS(0x004CF600, ei::rebirth::Patch::AddNewScriptCommands);
 
 const char* __fastcall FunctionSignature(int id, int type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
@@ -194,7 +192,6 @@ const char* __fastcall FunctionSignature(int id, int type) {
     return nullptr;
 }
 EI_REPLACE(0x004D0B10, FunctionSignature);
-EI_REBIRTH_IMPLEMENTS(0x004D0B10, ei::rebirth::Patch::AddNewScriptCommands);
 
 const char* __fastcall KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
@@ -202,7 +199,6 @@ const char* __fastcall KeywordName(int id) {
     return game::Text(0x0078D848);   // "Unknown command"
 }
 EI_REPLACE(0x004D0BA0, KeywordName);
-EI_REBIRTH_IMPLEMENTS(0x004D0BA0, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Tokens -------------------------------------------------------------------------------------
 

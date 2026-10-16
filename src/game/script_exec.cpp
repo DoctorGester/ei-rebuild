@@ -1599,4 +1599,3 @@ BOOL ScriptRun::Execute(CScript* script) {
     return 1;
 }
 EI_REPLACE_METHOD(0x004B6760, ScriptRun::Execute);
-EI_REBIRTH_IMPLEMENTS(0x004B6760, ei::rebirth::Patch::AddNewScriptCommands);

@@ -345,4 +345,3 @@ BOOL CBattleScreen::Draw(void* target) {
 
 EI_REPLACE_METHOD(0x00635250, CBattleScreen::Create);
 EI_REPLACE_METHOD(0x00636020, CBattleScreen::Draw);
-EI_REBIRTH_IMPLEMENTS(0x00636020, ei::rebirth::Patch::AddNewConsoleCommands);

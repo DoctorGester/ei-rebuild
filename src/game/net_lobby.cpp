@@ -798,7 +798,6 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 EI_REPLACE_METHOD(0x00443080, ServerBase::OnLoginImpl);
-EI_REBIRTH_IMPLEMENTS(0x00443080, ei::rebirth::Patch::FixProcessLogin);
 EI_REPLACE_METHOD(0x00443060, ServerBase::OnGetInfoImpl);
 EI_REPLACE_METHOD(0x00443050, ServerBase::AdmitImpl);
 EI_REPLACE_METHOD(0x004434F0, ServerBase::OnUpdateImpl);

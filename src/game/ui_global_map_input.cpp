@@ -230,5 +230,4 @@ EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
 EI_REPLACE_METHOD(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
 EI_REPLACE_METHOD(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
 EI_REPLACE(0x00630010, GlobalMapMouseMove);
-EI_REBIRTH_IMPLEMENTS(0x00630010, ei::rebirth::Patch::WideScreen);
 EI_REPLACE_METHOD(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);

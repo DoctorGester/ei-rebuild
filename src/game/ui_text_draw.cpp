@@ -53,7 +53,6 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     return extent.y;
 }
 EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);
-EI_REBIRTH_IMPLEMENTS(0x005FDE20, ei::rebirth::Patch::WideScreen);
 
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
@@ -75,4 +74,3 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     return out;
 }
 EI_REPLACE_METHOD(0x005F8340, CInterface3D::TextExtent);
-EI_REBIRTH_IMPLEMENTS(0x005F8340, ei::rebirth::Patch::WideScreen);

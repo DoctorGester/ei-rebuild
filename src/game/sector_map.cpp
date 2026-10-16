@@ -369,4 +369,3 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
     return true;
 }
 EI_REPLACE_METHOD(0x005C11D0, CSectorMap::Move);
-EI_REBIRTH_IMPLEMENTS(0x005C11D0, ei::rebirth::Patch::FixMoveObject);

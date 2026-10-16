@@ -476,7 +476,6 @@ void CWorldClient::HideWorldData() {
     RemoveDebugLine("World Time");
 }
 EI_REPLACE_METHOD(0x00569B20, CWorldClient::HideWorldData);
-EI_REBIRTH_IMPLEMENTS(0x00569E40, ei::rebirth::Patch::LandscapeDrawRadius);
 
 // ---- DrawPass (0056AFE0) ------------------------------------------------------------------------
 
@@ -703,4 +702,3 @@ int CWorldClient::DrawPass() {
     return 1;
 }
 EI_REPLACE_METHOD(0x0056AFE0, CWorldClient::DrawPass);
-EI_REBIRTH_IMPLEMENTS(0x0056AFE0, ei::rebirth::Patch::ObjectsDrawRadius);

@@ -522,7 +522,6 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     return result;
 }
 EI_REPLACE_METHOD(0x004CFBC0, CScript::LoadFunction);
-EI_REBIRTH_IMPLEMENTS(0x004CFBC0, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Sections -----------------------------------------------------------------------------------
 
@@ -769,8 +768,6 @@ EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
 // AddNewScriptCommands also patches this function: the keyword table (sites #19, #20) and a hook
 // at 004D15D4 that would parse a body after commands whose record has flag 1 (no record has), so
 // For and ForIf stay the only ones.
-EI_REBIRTH_IMPLEMENTS(0x004D1330, ei::rebirth::Patch::AllowScriptArgsInLoops,
-                      ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Load ---------------------------------------------------------------------------------------
 

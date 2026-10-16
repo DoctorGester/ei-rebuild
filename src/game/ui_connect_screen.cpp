@@ -587,7 +587,6 @@ void CMpConnectScreen::MasterRequest() {
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
 EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
-EI_REBIRTH_IMPLEMENTS(0x0061D0D0, ei::rebirth::Patch::EiPluginNewMaster);
 
 // --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
 
@@ -860,7 +859,6 @@ void CMpConnectScreen::Create() {
 EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
 // Rebirth's patches in Create: addon's ExtendedServerName sites (0061B5CE, 0061BB51, 0061BC09, 0061BC0B,
 // 0061BC0E) and EI_Plugin's NPlayers (0061BAF7, 0061BB82).
-EI_REBIRTH_IMPLEMENTS(0x0061B2C0, ei::rebirth::Patch::ExtendedServerName, ei::rebirth::Patch::EiPluginNPlayers);
 
 // --- 0061E2F0 / 0061E4E0: the master request box --------------------------------------------------
 

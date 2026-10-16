@@ -284,7 +284,6 @@ void CChatOverlay::DrawTyped() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x005E3700, CChatOverlay::DrawTyped);
-EI_REBIRTH_IMPLEMENTS(0x005E3700, ei::rebirth::Patch::WideScreen);
 
 // --- 005E3230 / 005E3550: the chat line's keys (input slots 9 and 10) ---------------------------------
 

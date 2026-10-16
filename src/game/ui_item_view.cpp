@@ -561,7 +561,6 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 // EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
-EI_REBIRTH_IMPLEMENTS(0x005ED7B0, ei::rebirth::Patch::EiPluginFixes);
 
 // --- 005EC020: an item's figure texture -------------------------------------------------------------
 

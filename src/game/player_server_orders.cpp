@@ -211,7 +211,6 @@ int CPlayerServer::OnLastPosition() {
 EI_REPLACE_METHOD(0x0066FA90, CPlayerServer::OnLeave);
 EI_REPLACE_METHOD(0x00670CE0, CPlayerServer::OnGameStateRequest);
 EI_REPLACE_METHOD(0x0066FAC0, CPlayerServer::OnPause);
-EI_REBIRTH_IMPLEMENTS(0x0066FAC0, ei::rebirth::Patch::EiPluginPause);
 EI_REPLACE_METHOD(0x00670820, CPlayerServer::OnCastAtObject);
 EI_REPLACE_METHOD(0x006708D0, CPlayerServer::OnCastAtPoint);
 EI_REPLACE_METHOD(0x00670960, CPlayerServer::OnWantedWeapon);

@@ -324,7 +324,6 @@ bool CUnitServer::IsFighting() {
     return action.kind == 3;
 }
 EI_REPLACE_METHOD(0x0054B580, CUnitServer::IsFighting);
-EI_REBIRTH_IMPLEMENTS(0x0054B580, ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic);
 
 bool CUnitServer::CanCast(const UnitAction* order) {
     std::uint32_t source = order->source;
