@@ -4,6 +4,7 @@
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
 // (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
+#include "ai_motion.h"
 #include "core_transform.h"
 #include "map_object_figures.h"
 #include "unit.h"
@@ -59,8 +60,8 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     int cellX, cellY;
     bool turning;
     void* world = ObjectWorld(controller);
-    MotionSample(unit->motion, nullptr, world, self->motionOrder, time, &turning, &position, &direction, &speed, &cellX,
-                 &cellY);
+    unit->Motion()->Sample(static_cast<CWorld*>(world), OrderOf(self->MotionPath()), time, &turning, &position.x,
+                           &direction.x, &speed, &cellX, &cellY);
     float toWorld = kCellScale * kHalf;
     position.x = toWorld * position.x;
     position.y = toWorld * position.y;

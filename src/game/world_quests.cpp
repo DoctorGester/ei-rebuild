@@ -429,9 +429,9 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         for (ShareNode* node = list.head; node; node = node->next)
             state->SendPair18(node->data.controller->unit->id_, std::bit_cast<std::uint32_t>(node->data.share));
     }
-    if (it.list) {
-        --it.list->refCount_;
-        it.list = nullptr;
+    if (it.manager) {
+        --it.manager->refCount_;
+        it.manager = nullptr;
     }
     list.vtable = reinterpret_cast<void*>(worlddata::kShareListVtable);
     ShareListRemoveAll(&list, nullptr);

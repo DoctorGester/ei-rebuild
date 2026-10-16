@@ -34,7 +34,7 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
-using ObjectList = mfc::CList<void*>;
+using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 } // namespace
 
@@ -105,13 +105,13 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     double halfH = static_cast<double>(oy1 - oy0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
     float scale = static_cast<float>(static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
     float radius = static_cast<float>(x87::fsqrt(halfW * halfW + halfH * halfH) * scale);
-    float centre[2];
+    Vector3 centre;   // x and y (FindUnitsInRadius reads no more)
     float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * GameFloat(0x0073B86C));
     float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * GameFloat(0x0073B86C));
-    centre[0] = cx;
-    centre[1] = cy;
+    centre.x = cx;
+    centre.y = cy;
     CSectorMap* sectors = &sectorMap;
-    SectorMapFindUnitsInRadius(sectors, nullptr, centre, &objects, radius);
+    sectors->FindUnitsInRadius(&centre, &objects, radius);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
         SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));

@@ -70,10 +70,10 @@ void Lever::SetState(int wanted, float duration) {
     // Only on the server (the world's slot 26).
     auto* world = static_cast<CWorldServer*>(ObjectWorld(this));
     if (!world->IsServer()) return;
-    mfc::CTypedPtrList<void> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
+    mfc::CTypedPtrList<CEngineObject> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     CSectorMap* sectors = world->Sectors();
     float reach = radius + 0.5f;
-    SectorMapFindUnitsInRadius(sectors, nullptr, &position.x, &around, reach);
+    sectors->FindUnitsInRadius(&position, &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));

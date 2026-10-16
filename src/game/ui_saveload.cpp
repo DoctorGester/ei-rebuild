@@ -61,7 +61,7 @@ const char* GameFolder() { return *reinterpret_cast<char* const*>(0x007AF460); }
 CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
 
 void* const kFlow = reinterpret_cast<void*>(0x007AFE20);         // the game flow (world_game.cpp)
-void* const kMapDatabase = reinterpret_cast<void*>(0x0079BF00);
+CMapDatabase* const kMapDatabase = reinterpret_cast<CMapDatabase*>(0x0079BF00);
 void* const kCursor = reinterpret_cast<void*>(0x007C7BD8);
 void* const kInterface = reinterpret_cast<void*>(0x007C7D50);
 
@@ -489,7 +489,7 @@ void CSaveLoadWindow::FillEntries() {
             Str(entry->zone_) = *zone;
             zone->~CString();
         }
-        if (auto* record = reinterpret_cast<MapRecord*>(MapDatabaseFind(kMapDatabase, nullptr, entry->zone_)))
+        if (MapRecord* record = kMapDatabase->FindMap(entry->zone_))
             Str(entry->map_) = Str(record->allod);
         entry->MakeTitle(1);
         entry->broken_ = false;
@@ -579,7 +579,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         zone = *current;
         current->~CString();
     }
-    if (auto* record = reinterpret_cast<const MapRecord*>(MapDatabaseFind(kMapDatabase, nullptr, zone)))
+    if (const MapRecord* record = kMapDatabase->FindMap(zone))
         map = *reinterpret_cast<const mfc::CString*>(&record->allod);
     mfc::CString folder = SlotFolder(slot);
     LocalFileStream info;

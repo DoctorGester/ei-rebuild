@@ -72,7 +72,7 @@ int CWorldServer::Setup() {
 void CWorldServer::Teardown() {
     // Every player disconnected and released (a heap iterator, as the original allocates it).
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
-    if (it) it->list = nullptr;
+    if (it) it->manager = nullptr;
     if (PlayerList()) {
         for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next()) {
             PlayerDisconnectOriginal(player);
@@ -80,9 +80,9 @@ void CWorldServer::Teardown() {
         }
     }
     if (it) {
-        if (it->list) {
-            --it->list->refCount_;
-            it->list = nullptr;
+        if (it->manager) {
+            --it->manager->refCount_;
+            it->manager = nullptr;
         }
         gamecrt::operator_delete(it);
     }

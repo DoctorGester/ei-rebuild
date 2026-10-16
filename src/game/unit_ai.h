@@ -724,6 +724,8 @@ static_assert(sizeof(AIAttackOption) == 0x28);
 // the template (unit_ai_options.cpp).
 using AIAttackOptions = mfc::CArray<AIAttackOption>;
 static_assert(sizeof(AIAttackOptions) == 0x14);
+// 005D9B80 (unit_ai_options.cpp; fastcall, plain RET): the count, the array sized to it, then each option.
+void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 
 
 // The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target

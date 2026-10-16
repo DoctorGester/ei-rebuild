@@ -3,6 +3,7 @@
 //
 // The builders call the sprite placement functions (005E70E0, 005E7D60) and CUiRegion::SetRect
 // through their original addresses: Rebirth patches them for its widescreen layout.
+#include "app_helpers.h"
 #include "bink_video.h"
 #include "library_trees.h"
 #include "sound.h"
@@ -426,7 +427,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             mfc::CString path = *GameBasePathString() + game::Text(0x0079422C);   // "Movies\Exit.bik"
             PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
         }
-        QuitGame(0);
+        app::QuitGame(0);
         break;
     }
     case 3: {

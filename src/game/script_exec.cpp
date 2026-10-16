@@ -209,10 +209,7 @@ struct PartySlot {
 using PartyArray = mfc::CArray<PartySlot>;
 __declspec(naked) PartyArray* __fastcall PartySlotsConstruct(PartyArray*) EI_ORIGINAL(0x004BB000)
 __declspec(naked) void __fastcall PartySlotsDestruct(PartyArray*) EI_ORIGINAL(0x004BB020)
-struct ObjectIterator : ObjectIteratorOriginals {   // ObjectListIterator through the original addresses
-    CBaseManager* list;
-    void* node;
-};
+using ObjectIterator = ObjectListIterator;
 
 // Damage description for KillUnit (vtable +0x7C; 0x34 bytes used, the original reserves 0x4C).
 __declspec(naked) void __fastcall ResetDamageInfoAt(void*) EI_ORIGINAL(0x00522B40)
@@ -1243,11 +1240,11 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xDF: {   // FixItems: every object of the world's list (+0x54) copies +0x24 to +0x20
             auto* list = static_cast<CBaseManager*>(WorldServer()->itemManager_);
             ObjectIterator it;
-            it.list = nullptr;
+            it.manager = nullptr;
             for (CEngineObject* object = it.First(list); object; object = it.Next()) static_cast<CItem*>(object)->Repair();
-            if (it.list) {   // destructor (004BB050)
-                --it.list->refCount_;
-                it.list = nullptr;
+            if (it.manager) {   // destructor (004BB050)
+                --it.manager->refCount_;
+                it.manager = nullptr;
             }
             break;
         }

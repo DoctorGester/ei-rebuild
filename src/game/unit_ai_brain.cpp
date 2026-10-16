@@ -312,7 +312,7 @@ void AIBrain::CallAllies(const Vector3* point) {
     units.vtable = kPtrListVtable;
     units.blockSize = 10;
     CUnit* self = owner->unit;
-    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, PositionOf(self), &units, callRadius);
+    WorldServer()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);
     for (auto* node = units.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;
@@ -669,9 +669,9 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&alwaysUpdated, 1);
     if (stream->version_ < 0x4B) return;
     attention.healWeight = 0.0f;
-    AttackOptionsLoadOriginal(&attention.weapons, stream);
+    LoadAttackOptions(&attention.weapons, stream);
     if (stream->version_ >= 0x5A) {
-        AttackOptionsLoadOriginal(&attention.spells, stream);
+        LoadAttackOptions(&attention.spells, stream);
         stream->Read(&attention.healWeight, 4);
     }
     if (stream->version_ < 0x71) return;

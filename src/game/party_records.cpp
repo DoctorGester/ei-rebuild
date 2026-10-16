@@ -31,7 +31,9 @@ void* __fastcall PartyConstruct(void* a0) { return static_cast<CParty*>(a0)->Con
 __declspec(naked) PartyRecord** __fastcall RecordCopy(PartyRecord**, PartyRecord**, PartyRecord**) EI_ORIGINAL(0x004AB910)
 __declspec(naked) void __fastcall RecordPtrDestroy(PartyRecord**, void*, int) EI_ORIGINAL(0x004AB960)
 __declspec(naked) void __fastcall RecordPtrRelease(PartyRecord**) EI_ORIGINAL(0x004A5D70)
-void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) { CountedPtrCopyOriginal((void*)a0, nullptr, (void* const*)a2); }
+void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) {
+    reinterpret_cast<RefPtr*>(a0)->CopyCounted(reinterpret_cast<const RefPtr*>(a2));
+}
 __declspec(naked) void __fastcall RecordInsertOverflow(NamedPartyRecords*, void*, PartyRecord**, PartyRecord* const*,
                                                        unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named

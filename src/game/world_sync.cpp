@@ -213,7 +213,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the original's branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
-        SectorMapFindUnitsInRadius(world->sectorMap_, nullptr, PositionOf(unit), &heard, radius);
+        world->Sectors()->FindUnitsInRadius(&MapObject(unit)->position, &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::PtrListVtable();
         PtrListRemoveAllOriginal(&heard);

@@ -23,10 +23,6 @@ inline void* ParticleManagerObject() { return *reinterpret_cast<void* const*>(0x
 // 006CA5D0: the light manager (*007AF738) adds a light (RET 4, no result).
 // 00511FB0: the light factory's (*007AF748) list of lit ids (+0xD4): removes every entry equal to *id (RET 4).
 
-// C3l. 006CA830: the light manager updates a light for a displacement (RET 8: light, delta vector or null; reads the position at
-// the light's +0x1C; EAX is not a result).
-__declspec(naked) inline void __fastcall LightMoveOriginal(void* /*lights*/, void*, CEngineObject* /*light*/,
-                                                           const float* /*delta*/) EI_ORIGINAL(0x006CA830)
 
 // 0049A010: the weather object's alpha ramp (thiscall, RET 0xC: start and width as ints, an exponent; stores them at
 // +4..+0xC and fills its 256-entry table at +0x10; no result).
@@ -35,8 +31,3 @@ __declspec(naked) inline void __fastcall WeatherSetRampOriginal(void* /*weather*
 
 class CRainSnow;
 
-// C3n batch 4. Spell effects and spells at their addresses (thiscall, so the verify wrappers and Rebirth's patches run):
-// 00679280 (rewritten as CEffectParticle::SetAttachedTo; RET 4) the particle follows the object with the id;
-// 0068B4C0 (CSpell::CanAffect; RET 8) whether the spell affects `target` cast by `caster`.
-__declspec(naked) inline bool __fastcall SpellCanAffectOriginal(const CSpell* /*spell*/, void*, const CEngineObject* /*caster*/,
-                                                                CEngineObject* /*target*/) EI_ORIGINAL(0x0068B4C0)

@@ -240,8 +240,8 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         float speed;
         int cellX;
         int cellY;
-        MotionSample(&simulated.motion, nullptr, nullptr, motionOrder, time, &turning, &position, &direction, &speed, &cellX,
-                     &cellY);
+        static_cast<UnitMotion*>(&simulated.motion)->Sample(nullptr, OrderOf(static_cast<AIPath*>(motionOrder)), time, &turning,
+                                                             &position.x, &direction.x, &speed, &cellX, &cellY);
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
         std::memcpy(&previous, &position, sizeof(previous));
         float half = HalfCell();

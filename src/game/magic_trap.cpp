@@ -138,7 +138,7 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
     for (int i = 0; i < area->count; ++i) {
         const TrapCircle& circle = area->circles[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
-        SectorMapFindUnitsInRadius(sectors, nullptr, &point, &found, circle.radius);
+        sectors->FindUnitsInRadius(&point, &found, circle.radius);
         for (UnitList::Node* node = found.head; node;) {
             CEngineObject* unit = node->data;
             node = node->next;

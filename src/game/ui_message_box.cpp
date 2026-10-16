@@ -1,6 +1,7 @@
 // The message box's and the difficulty question's input handlers (CMessageBox / CDifficultyBox,
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
+#include "app_helpers.h"
 #include "world_glue.h"
 #include "game_strings.h"
 
@@ -29,7 +30,7 @@ void PlayExitMovieAndQuit() {
         mfc::CString path = *GameBasePathString() + ExitMovie();
         PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
     }
-    QuitGame(0);
+    app::QuitGame(0);
 }
 
 } // namespace

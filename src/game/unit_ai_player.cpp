@@ -169,7 +169,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     AIObjectList nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
-    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, PositionOf(unit), &nearby,
+    WorldServer()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
                                GameLogicSettings().playerCallForHelp);
     for (auto* node = nearby.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);

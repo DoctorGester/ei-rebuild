@@ -311,7 +311,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     PtrListConstruct(&units, nullptr, kPtrListBlockSize);
     DamageInfo hit;
     e->GetDamage(&hit);
-    SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
+    e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->radius);
     for (auto* node = units.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;

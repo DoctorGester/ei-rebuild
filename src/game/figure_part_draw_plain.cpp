@@ -92,9 +92,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
         float time;
         TickTime(&time);
         flags_ |= AnimatedDrawerFlags();
-        std::uint32_t bits;
-        std::memcpy(&bits, &time, 4);
-        AnimateOriginal(reinterpret_cast<char*>(this), nullptr, bits);
+        Animate(time);
     }
 
     std::uint32_t meshFlags = mesh_->flags_;

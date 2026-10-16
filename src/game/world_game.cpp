@@ -84,8 +84,8 @@ void* const kFlush = reinterpret_cast<void*>(0x00435000);
 // The map database's zone records (MapRecord, object_tables.h).
 MapRecord* ZoneRecords() { return GameMapDatabase()->maps.data; }
 int ZoneRecordCount() { return GameMapDatabase()->maps.size; }
-// CMapDatabase::FindMap (0045E850) through its address.
-MapRecord* FindZone(const char* name) { return reinterpret_cast<MapRecord*>(MapDatabaseFind(GameMapDatabase(), nullptr, name)); }
+// CMapDatabase::FindMap (0045E850).
+MapRecord* FindZone(const char* name) { return GameMapDatabase()->FindMap(name); }
 
 // A CStream over a file (net_link.h).
 using netlink::FileStream;

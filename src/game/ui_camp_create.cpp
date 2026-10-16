@@ -467,7 +467,7 @@ void CCampPages::BuildPages() {
     const MapRecord* zone;
     {
         BriefingPlayerName name;
-        zone = reinterpret_cast<const MapRecord*>(MapDatabaseFind(GameMapDatabase(), nullptr, name));
+        zone = GameMapDatabase()->FindMap(name);
     }
     Music()->PlayConstructor(zone ? zone->allod : game::Text(0x0079014C));   // "gipat"
 

@@ -16,11 +16,9 @@ struct DeltaField;
 struct DeltaState;
 struct ParticleElement;
 
-__declspec(naked) inline char __fastcall QuitGame(int) EI_ORIGINAL(0x00455F20)
 // 00455940 (rewritten as CEngineObject::ManagerContext): the object's manager context (+0x14 -> +0xAC, the world).
 __declspec(naked) inline void* __fastcall ManagerContextOf(const void* /*object*/) EI_ORIGINAL(0x00455940)
 __declspec(naked) inline void* __fastcall ObjectWorld(const void* /*object*/) EI_ORIGINAL(0x00455950)
-__declspec(naked) inline std::uint8_t* __fastcall MapDatabaseFind(void*, void*, const char*) EI_ORIGINAL(0x0045E850)
 __declspec(naked) inline void __fastcall VariableRemove(void*, void*, const char*) EI_ORIGINAL(0x00460DB0)
 // Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
 // 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
@@ -48,8 +46,6 @@ __declspec(naked) inline void* __fastcall ModifierMapFindOrInsertOriginal(void* 
 // C3j. 004849F0: particle source attaches to an object (RET 4, no result).
 __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
     EI_ORIGINAL(0x004849F0)
-// 004A5D50: copies a counted pointer (RET 4, returns this).
-__declspec(naked) inline void* __fastcall CountedPtrCopyOriginal(void* /*to*/, void*, void* const* /*from*/) EI_ORIGINAL(0x004A5D50)
 
 // C3k. 004ABBD0: the quick-item map's operator[](name) (RET 4: the key; EAX the address of the value slot, a new node is
 // added when the name is missing). ECX is the map.

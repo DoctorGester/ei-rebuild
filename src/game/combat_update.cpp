@@ -8,6 +8,7 @@
 // OrderPlan at +0xC4; the motion (an AIPath) is at +0x3C.
 #include "ai_alarm.h"
 #include "ai_map.h"
+#include "ai_motion.h"
 #include "combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
@@ -596,8 +597,8 @@ void CUnitServer::TickAction() {
         int cellX;
         int cellY;
         bool turning;
-        MotionSample(unit->motion, nullptr, context, Motion(this),
-                     static_cast<float>(TickOf(context)), &turning, &position, &direction, &speed, &cellX, &cellY);
+        unit->Motion()->Sample(static_cast<CWorld*>(context), OrderOf(MotionPath()), static_cast<float>(TickOf(context)),
+                               &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         reinterpret_cast<CTransformObject*>(unit)->TurnUpTowards(direction, 0);
         return;

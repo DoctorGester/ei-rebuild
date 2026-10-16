@@ -95,15 +95,15 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     PlayerIterator it;
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty = 0xFFFFFFFFu;
-    if (it.list) --it.list->refCount_;
+    if (it.manager) --it.manager->refCount_;
     zoneLoaded_ = 1;
     weather_ = 0;
     weatherStrength_ = 0.0f;
-    it.list = nullptr;
+    it.manager = nullptr;
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= 2;
-    if (it.list) {
-        --it.list->refCount_;
-        it.list = nullptr;
+    if (it.manager) {
+        --it.manager->refCount_;
+        it.manager = nullptr;
     }
 
     if (keepsState_ || loadedFresh_) {
@@ -161,13 +161,13 @@ void CWorldServer::ResetZone() {
 
     if (PlayerList()) {
         auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
-        if (it) it->list = nullptr;
+        if (it) it->manager = nullptr;
         for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next())
             PlayerClear(player, nullptr);
         if (it) {
-            if (it->list) {
-                --it->list->refCount_;
-                it->list = nullptr;
+            if (it->manager) {
+                --it->manager->refCount_;
+                it->manager = nullptr;
             }
             gamecrt::operator_delete(it);
         }
@@ -205,11 +205,11 @@ void CWorldServer::TeardownZone() {
          player = it.First(PlayerList())) {
         PlayerDisconnect(player, nullptr);
         PlayerListRelease(PlayerList(), nullptr, player);
-        if (it.list) --it.list->refCount_;
-        it.list = nullptr;
+        if (it.manager) --it.manager->refCount_;
+        it.manager = nullptr;
     }
-    if (it.list) --it.list->refCount_;
-    it.list = nullptr;
+    if (it.manager) --it.manager->refCount_;
+    it.manager = nullptr;
     zoneLoaded_ = 0;
 
     SharedObjectList& shared = sharedObjects_;

@@ -23,8 +23,6 @@ using namespace effect;
 
 namespace {
 
-// The light manager (*007AF738), thiscall.
-void __fastcall MoveLight(void* a0, void*, CEngineObject* a2, const Vector3* a3) { LightMoveOriginal(a0, nullptr, a2, (const float*)a3); }
 // 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
 __declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
@@ -152,7 +150,7 @@ int CEffectPointLight::Tick() {
         static_cast<Terrain*>(LightManager())->AddLight(light_);
         return 1;
     }
-    MoveLight(LightManager(), nullptr, light_, &delta);
+    static_cast<Terrain*>(LightManager())->MoveLight(light_, &delta);
     std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
     return 1;
 }
@@ -189,7 +187,7 @@ void CEffectPointLight::Start(int update) {
             delta.z = static_cast<float>(localPosition_.z - at.z);
             delta.y = static_cast<float>(localPosition_.y - at.y);
             delta.x = static_cast<float>(localPosition_.x - at.x);
-            MoveLight(LightManager(), nullptr, light_, &delta);
+            static_cast<Terrain*>(LightManager())->MoveLight(light_, &delta);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
         } else {
             static_cast<Terrain*>(LightManager())->RemoveLight(light_);

@@ -405,9 +405,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
         float time;
         TickTime(&time);
         flags_ |= AnimatedDrawerFlags();
-        std::uint32_t bits;
-        std::memcpy(&bits, &time, 4);
-        AnimateOriginal(reinterpret_cast<char*>(this), nullptr, bits);
+        Animate(time);
     }
 
     std::uint32_t meshFlags = part.Mesh()->flags_;

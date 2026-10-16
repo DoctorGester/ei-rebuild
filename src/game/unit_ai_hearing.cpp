@@ -93,7 +93,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
     units.blockSize = 10;
     CUnit* unit = source->unit;
     const Vector3* point = at ? at : &unit->position;
-    SectorMapFindUnitsInRadius(map->SectorMap(), nullptr, point, &units, kNoiseRadius);
+    map->SectorMap()->FindUnitsInRadius(point, &units, kNoiseRadius);
     for (auto* node = units.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;

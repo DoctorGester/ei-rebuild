@@ -2390,7 +2390,7 @@ void RunSteps() {
                 g_failures.push_back("zone needs <name> [exit]");
                 continue;
             }
-            const std::uint8_t* record = MapDatabaseFind(reinterpret_cast<void*>(kMapDatabase), nullptr, name);
+            const auto* record = reinterpret_cast<const std::uint8_t*>(reinterpret_cast<CMapDatabase*>(kMapDatabase)->FindMap(name));
             void* connection = LocalConnection();
             Log("harness: zone %s: %s", name, DescribeLocalPlayer().c_str());
             if (!record) {

@@ -53,7 +53,7 @@ bool AcceptsAreaSpells(CEngineObject* object) {
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
 void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
-    if (effect->caster && !SpellCanAffectOriginal(effect->Spell(), nullptr, effect->caster, unit)) return;
+    if (effect->caster && !effect->Spell()->CanAffect(effect->caster, unit)) return;
     CEngineObject* attacker = (effect->flags & 1) ? nullptr : effect->caster;
     ObjectSlots(unit)->ReceiveHit(hit, attacker, effect->caster);
 }
@@ -72,7 +72,7 @@ void CSpellEffect::HitUnitsInRadius() {
     InitList(list);
     DamageInfo hit;
     CallGetDamage(&hit);
-    SectorMapFindUnitsInRadius(SectorMapOf(this), nullptr, &position, &list, radius);
+    SectorMapOf(this)->FindUnitsInRadius(&position, &list, radius);
     for (UnitList::Node* node = list.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;
@@ -99,7 +99,7 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     float normalY = scale * x;
     float normalZ = 0.0f;
 
-    SectorMapFindUnitsInRadius(SectorMapOf(this), nullptr, &position, &list, radius);
+    SectorMapOf(this)->FindUnitsInRadius(&position, &list, radius);
     for (UnitList::Node* node = list.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;

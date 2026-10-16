@@ -7,6 +7,7 @@
 #include "random.h"
 #include "sound.h"
 #include "spell.h"    // CLight
+#include "terrain.h"  // Terrain::MoveLight (the light manager)
 #include "unit.h"
 
 #include "lib/mfc.h"
@@ -38,8 +39,6 @@ CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion)
 
 // The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
-// 006CA830. Points a light along `direction`.
-void __fastcall AimLight(void* a0, void*, CEngineObject* a2, const float* a3) { LightMoveOriginal(a0, nullptr, a2, a3); }
 
 // The light's position (a point light of the light factory, class 0x31).
 float* PositionOf(CEngineObject* light) { return &static_cast<CLight*>(light)->position_.x; }
@@ -151,7 +150,7 @@ int CMapObjectClientSpecific::Update() {
             direction.x = followed->position.x - lightPosition.x;
             direction.y = followed->position.y - lightPosition.y;
             direction.z = followed->position.z - lightZ;
-            AimLight(LightManager(), nullptr, lamp, &direction.x);
+            static_cast<Terrain*>(LightManager())->MoveLight(static_cast<CLight*>(lamp), &direction);   // 006CA830
             followed = OwnerOf(this);
             float* position = PositionOf(light);
             std::memcpy(position, &followed->position.x, 2 * sizeof(float));

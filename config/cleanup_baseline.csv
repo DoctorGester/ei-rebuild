@@ -115,10 +115,10 @@ src/game/object3d_animations.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/object3d_figure_setup.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,4
 src/game/options.cpp,0,0,0,0,124,0,0,0,0,0,0,0,0,0
-src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,23
-src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,26
-src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,3
-src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,23
+src/game/originals_ai.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
+src/game/originals_core.h,0,0,0,0,0,0,0,0,0,0,0,0,0,24
+src/game/originals_effects.h,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,20
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,25
 src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,177
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,12

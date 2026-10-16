@@ -331,7 +331,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
 void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
-    if (it) it->list = nullptr;
+    if (it) it->manager = nullptr;
     for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         CPlayerServer* state = player->server;
         stream->Read(&player->partyId, 4);
@@ -370,9 +370,9 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         state->SetFlag70(1);
     }
     if (it) {
-        if (it->list) {
-            --it->list->refCount_;
-            it->list = nullptr;
+        if (it->manager) {
+            --it->manager->refCount_;
+            it->manager = nullptr;
         }
         gamecrt::operator_delete(it);
     }
@@ -597,7 +597,7 @@ namespace {
 void SavePlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
-    if (it) it->list = nullptr;
+    if (it) it->manager = nullptr;
     for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         stream->Write(&player->partyId, 4);
         PlayerRecordsSave(player->party, nullptr, stream, 1);
@@ -618,9 +618,9 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
         }
     }
     if (it) {
-        if (it->list) {
-            --it->list->refCount_;
-            it->list = nullptr;
+        if (it->manager) {
+            --it->manager->refCount_;
+            it->manager = nullptr;
         }
         gamecrt::operator_delete(it);
     }

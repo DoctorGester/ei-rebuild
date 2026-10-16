@@ -38,7 +38,7 @@ namespace {
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
 void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
-void* MapDatabase() { return reinterpret_cast<void*>(0x0079BF00); }
+CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
 CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
 float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
@@ -90,7 +90,7 @@ int Compare(const char* a, const char* b) {
 
 MapRecord* FindLocalMap() {
     BriefingPlayerName name;
-    return reinterpret_cast<MapRecord*>(MapDatabaseFind(MapDatabase(), nullptr, name));
+    return MapDatabase()->FindMap(name);
 }
 
 WorldPlayer* LocalViewPlayer() {

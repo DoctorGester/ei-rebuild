@@ -31,7 +31,7 @@ void* GetPlayer(int number) { return reinterpret_cast<CWorldServer*>(0x007AFF60)
 // The sector map (007B01F4): every object within `radius` of `point` (005C0BD0), into a pointer
 // list (vtable 0073D454, block size 10; destructor 00427830).
 inline void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObject>* a0) { PtrListDestructOriginal((void*)a0); }
-void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
+CSectorMap* const kSectorMap = reinterpret_cast<CSectorMap*>(0x007B01F4);
 
 // A unit's prototype record (00530930): its name and, at +4, its model name (the race).
 static const UnitPrototypeRecord* UnitPrototype(void* unit) { return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit)); }
@@ -63,7 +63,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
     list.vtable = reinterpret_cast<void*>(0x0073D454);
     list.blockSize = 10;
     Vector3 point = {x, y, 0.0f};
-    SectorMapFindUnitsInRadius(kSectorMap, nullptr, &point, &list, radius);
+    kSectorMap->FindUnitsInRadius(&point, &list, radius);
     for (auto* node = list.head; node; node = node->next) visit(node->data);
     PtrListDestruct(&list);
 }

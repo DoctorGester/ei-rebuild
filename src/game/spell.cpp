@@ -127,7 +127,7 @@ bool CSpell::IsOffensive() {
 EI_REPLACE_METHOD(0x0068B770, CSpell::IsOffensive);
 // Site #0 of FixSpellSelfCasting; site #1 is in CBattleScreen::SelectUnit (00638EF0, original).
 
-bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) {
+bool CSpell::CanAffect(const CEngineObject* caster, CEngineObject* target) const {
     std::uint32_t flags = targetFlags_ & 0xFFFF;
     if (flags == 0) return true;
     if (!target || target->GetClassId() != kClassUnit) return false;

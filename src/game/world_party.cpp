@@ -66,7 +66,7 @@ __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) 
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0045E850 (RET 4). The map database's zone record by name.
 const MapRecord* FindZone(const char* name) {
-    return reinterpret_cast<const MapRecord*>(MapDatabaseFind(GameMapDatabase(), nullptr, name));
+    return GameMapDatabase()->FindMap(name);
 }
 // 0049ECC0 (RET 8). Quaternion from an axis and an angle.
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)

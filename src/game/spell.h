@@ -52,7 +52,7 @@ public:
 
     // 0068B4C0. Whether the spell may affect `target` when cast by `caster` (either may be null),
     // according to the target flags in the low 16 bits of flags_ (+0x3C).
-    bool CanAffect(const CEngineObject* caster, CEngineObject* target);
+    bool CanAffect(const CEngineObject* caster, CEngineObject* target) const;
 
     // 0068B350. Virtual slot 3 (Destroy; not named so to stay non-virtual): calls slot 5 and
     // clears the modifier list.

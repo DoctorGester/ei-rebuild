@@ -19,9 +19,6 @@ struct AIPath;
 struct DeltaField;
 struct Vector3;
 
-__declspec(naked) inline void __fastcall AnimateOriginal(char*, void*, std::uint32_t) EI_ORIGINAL(0x005A7160)
-__declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, Vector3* /*position*/, Vector3* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
-    EI_ORIGINAL(0x005C7430)
 // 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility
 // mask (+0x10), destroying each (00558D00). Plain RET.
 // 005CBBC0 (thiscall on the brain's memory, brain + 0xD0; RET 0xC): the memory's calls (+0xA8) hear a call of `kind`
@@ -37,11 +34,6 @@ __declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const
 // The sector map of a world / AI map held as raw memory.
 inline CSectorMap* AsSectorMap(void* map) { return static_cast<CSectorMap*>(map); }
 inline CEngineObject* AsEngineObject(const void* object) { return static_cast<CEngineObject*>(const_cast<void*>(object)); }
-// 005C0BD0 (rewritten as CSectorMap::FindUnitsInRadius; RET 0xC): appends the units within the radius of the
-// point to the list (EAX on return is not a result).
-__declspec(naked) inline void __fastcall SectorMapFindUnitsInRadius(void* /*sectors*/, void*, const void* /*center*/,
-                                                                    void* /*list*/, float /*radius*/)
-    EI_ORIGINAL(0x005C0BD0)
 __declspec(naked) inline bool __fastcall SectorMapAdd(CSectorMap*, void*, CEngineObject*) EI_ORIGINAL(0x005C0DF0)
 // 005C11D0 CSectorMap::Move (patched by Rebirth's FixMoveObject, so called through its address; RET 8, AL).
 __declspec(naked) inline bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)
@@ -78,7 +70,6 @@ __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*
 // returns a result.
 __declspec(naked) inline void __fastcall MemoryLoadOriginal(void* /*memory*/, void*, void* /*stream*/) EI_ORIGINAL(0x005CC1E0)
 __declspec(naked) inline void __fastcall MemorySaveOriginal(void* /*memory*/, void*, void* /*stream*/) EI_ORIGINAL(0x005CC350)
-__declspec(naked) inline void __fastcall AttackOptionsLoadOriginal(void* /*options*/, void* /*stream*/) EI_ORIGINAL(0x005D9B80)
 __declspec(naked) inline void __fastcall AlarmRecordsSetSizeOriginal(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
 
 // The Player mode's fighting and party code (rewritten in unit_ai_player.cpp), called through their

@@ -1,6 +1,7 @@
 // The developer console: output streambuf, command executor, tokenizer and script lines.
 // game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
 #include "console.h"
+#include "app_helpers.h"
 #include "world.h"
 #include "world_glue.h"
 #include "game_strings.h"
@@ -198,7 +199,7 @@ void __fastcall Execute(const char* text) {
     Ops(command).MakeLower();
     for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeLower();
     if (Mbscmp(command, game::Text(0x0079239C)) == 0 || Mbscmp(command, game::Text(0x00792394)) == 0) {   // quit, exit
-        QuitGame(0);
+        app::QuitGame(0);
         return;
     }
     if (*CommandIndex(PublicCommands(), nullptr, command)) {
