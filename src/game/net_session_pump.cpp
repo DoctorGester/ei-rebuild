@@ -30,12 +30,8 @@ __declspec(naked) DriverNode** __fastcall HoldersInsert(DriverNode** /*list*/, v
 __declspec(naked) DriverNode** __fastcall DriversErase(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/) EI_ORIGINAL(0x0047A380)
 __declspec(naked) void __fastcall NodeDeallocate(DriverNode*, int /*count*/) EI_ORIGINAL(0x0047A650)
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
-// The holder's deleting destructor (0047A6D0, refptr_copies.cpp), called with 0 as the original does.
-__declspec(naked) void* __fastcall HolderDelete(RefPtr*, void*, unsigned) EI_ORIGINAL(0x0047A6D0)
 // 00419CC0: raises a reliable stream's high-water mark.
 __declspec(naked) void __fastcall BufferUpdateHigh(GameBuffer*) EI_ORIGINAL(0x00419CC0)
-// 00417E40 (thiscall on the game server, RET 4): whether the connection is one of its players.
-__declspec(naked) bool __fastcall ServerHasConnection(net::ServerSession*, void*, net::Connection*) EI_ORIGINAL(0x00417E40)
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
 
@@ -72,7 +68,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
         if (in->base - Addr(in->begin) + Addr(in->high) <= 0) continue;
         net::ServerSession* server = net::GameServer();
         if (!IsLive(server)) continue;
-        if (!ServerHasConnection(server, nullptr, node->connection)) continue;
+        if (!server->PlayerStateIs3(node->connection)) continue;
         player = node->connection;
         DriverLink* driver = NewDriver(this, player, net::NewRefObject(sizeof(DriverLink)));
         // The original then destroys the emptied temporary holder (00413270 on null: nothing).
@@ -105,7 +101,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
     drivers_->prev = drivers_;
     for (DriverNode* node = holders_->next; node != holders_;) {
         DriverNode* next = node->next;
-        HolderDelete(&node->value, nullptr, 0);
+        node->value.DeleteReleased(0);
         if (node) NodeFree(node, 0xC);
         node = next;
     }

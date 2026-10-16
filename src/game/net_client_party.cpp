@@ -1,6 +1,7 @@
 // The client's trade offer (0041DA50, called by the party screens after a change): one member
 // message per party member, kept in our PartyMessage at +0x260C. See net_messages.h and
 // docs/notes/network.md.
+#include "core_streams.h"
 #include "library_containers.h"
 #include "net_messages.h"
 #include "core_refcount.h"
@@ -27,7 +28,6 @@ __declspec(naked) RefPtr* __fastcall VectorErase(RefVector* /*vector*/, void*, R
 __declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
 __declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
-__declspec(naked) void* __fastcall MemoryStreamConstructAt(CMemoryStream* /*stream*/) EI_ORIGINAL(0x0041DD70)
 
 // vector<CEngineObject*> with counted elements (library), the +0x2614 list erase, the party's
 // reset and add (00661050 class, outside this range).
@@ -100,7 +100,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         auto* message = NewMessageMemory<PartyMemberMessage>();
         if (message) {
             MessageConstructBase(message);
-            MemoryStreamConstructAt(&message->stream_);
+            message->stream_.Construct();
             ei::SetVtable(message, PartyMemberMessage::kVtableAddress);
         }
         RefPtr ref;

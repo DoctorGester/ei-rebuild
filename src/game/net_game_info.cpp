@@ -16,7 +16,6 @@ namespace {
 // The growing buffer's out-of-line string and overflow handling (outside the range):
 // 004DA200 reads a length-prefixed string (at most `maxLength` bytes),
 // 004DA170 reads past the end (zeroes the target, sets error bit 3, takes what is left).
-__declspec(naked) int __fastcall BufferReadString(GameBuffer* /*buffer*/, void*, StringRep* /*s*/, int /*maxLength*/) EI_ORIGINAL(0x004DA200)
 
 // A value written the way the record writer inlines it: in place (marking the buffer written)
 // when it fits before `end`, otherwise through slot 4.
@@ -86,8 +85,8 @@ void GameInfoRecord::Write(GameBuffer* buffer) const {
 int GameInfoRecord::Read(GameBuffer* buffer) {
     buffer->ReadBytes(&masterKey, 4);
     buffer->ReadBytes(&masterToken, 4);
-    BufferReadString(buffer, nullptr, &name, 0x100);
-    BufferReadString(buffer, nullptr, &description, 0x100);
+    buffer->ReadString(&name, 0x100);
+    buffer->ReadString(&description, 0x100);
     buffer->ReadBytes(&players, 1);
     buffer->ReadBytes(&maxPlayers, 1);
     buffer->ReadBytes(&hasPassword, 1);

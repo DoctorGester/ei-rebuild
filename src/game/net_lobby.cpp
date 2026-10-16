@@ -62,7 +62,6 @@ __declspec(naked) Query* __fastcall QueriesErase(QueryList*, void*, Query* /*fir
 __declspec(naked) void __fastcall QueriesResize(QueryList*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
 __declspec(naked) RefPtr* __fastcall HolderInitAt(RefPtr*, CRefObject*) EI_ORIGINAL(0x00443E20)
 __declspec(naked) std::int32_t __fastcall BufferLengthAt(GameBuffer*) EI_ORIGINAL(0x00441640)
-__declspec(naked) void __fastcall ClientSendJoinAt(ClientBase*, void*, const NetAddress*, const GameBuffer*) EI_ORIGINAL(0x00441740)
 // The session's receive step, through its address (rewritten in net_session_tick.cpp).
 __declspec(naked) void __fastcall SessionTickAt(SessionBase*, void*, double) EI_ORIGINAL(0x00437370)
 
@@ -614,7 +613,7 @@ void ClientBase::TickImpl(double dt) {
         joinState_ = kNotJoined;
         return;
     }
-    ClientSendJoinAt(this, nullptr, &host_, &joinData_);
+    SendJoin(&host_, &joinData_);
     retryInterval_ = retryInterval_ + retryInterval_;
     retryTimer_ = retryInterval_;
 }

@@ -63,8 +63,6 @@ __declspec(naked) void** __fastcall ChunksInsert(void*, void*, void**, void*, co
 // std::sort of the chunk pointers by index, as the instantiation splits it: the introsort loop
 // (RET 0xC: a null type tag, twice the size's log2, the empty comparator) and the final insertion
 // sort (RET 4: the comparator).
-__declspec(naked) void __fastcall ChunksIntrosort(FileChunkMessage** /*first*/, FileChunkMessage** /*last*/, FileChunkMessage** /*tag*/,
-                                                  int /*depthLimit*/, int /*compare*/) EI_ORIGINAL(0x0042A020)
 // The game flow's map file writer (patched by Rebirth: through its address).
 __declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const char* /*name*/, GameBuffer* /*buffer*/)
     EI_ORIGINAL(0x005813A0)
@@ -384,7 +382,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         if (chunks.begin() != chunks.end()) {
             int depth = 0;
             for (int n = static_cast<int>(chunks.size()); n != 1; n >>= 1) ++depth;
-            ChunksIntrosort(chunks.begin(), chunks.end(), nullptr, depth * 2, 0);
+            stl_sorts::ChunkIntroSort(chunks.begin(), chunks.end(), nullptr, depth * 2, 0);
             stl_sorts::ChunkFinalSort(chunks.begin(), chunks.end(), 0);
         }
         for (FileChunkMessage** chunk = chunks.begin(); chunk != chunks.end(); ++chunk) {
