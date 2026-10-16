@@ -91,6 +91,9 @@ HRESULT WINAPI RoutedCreate(HINSTANCE instance, DWORD version, REFIID iid, void*
 } // namespace
 
 void Install() {
+    static bool installed = false;
+    if (installed) return;
+    installed = true;
     PatchSlot(reinterpret_cast<void*>(kDirectInputCreateExSlot), &RoutedCreate, g_create);
 }
 

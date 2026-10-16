@@ -573,6 +573,7 @@ BOOL WINAPI ShowWithoutActivating(HWND window, int command) {
 HWND WINAPI CreateWithoutActivating(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h,
                                     HWND parent, HMENU menu, HINSTANCE instance, LPVOID param) {
     if (!parent) exStyle |= WS_EX_NOACTIVATE;
+    input::Install();   // the harness's mouse the game's only one, before the game's DirectInput mouse (harness_input.h)
     return g_createWindowEx(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
 }
 LSTATUS WINAPI SmallVideoResolution(HKEY key, LPCSTR name, LPDWORD reserved, LPDWORD type, LPBYTE data, LPDWORD size) {
@@ -2957,7 +2958,6 @@ struct Harness {
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
-        input::Install();      // the harness's mouse the game's only one (harness_input.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
         leftovers::Install();   // never-set blocks zeroed in the original too (harness_leftovers.h, SV7b3, SV7b2)
