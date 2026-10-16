@@ -14,9 +14,14 @@
 
 class CTextureDevice;
 struct CDXSurface;
+namespace mfc::impl { struct WinThread; }
 
 struct IDirectInput7A;
 struct IDirectInputDevice7A;
+
+// 005E52A0 (cdecl; ui_cursor_frame.cpp): the drawing thread's procedure (the cursor; runs 005E5690),
+// started by AfxBeginThread.
+unsigned __cdecl CursorThreadEntry(void* cursor);
 
 // The DirectInput mouse (*0079BA08, vtable 0073C350; made by the application's start 00456440,
 // which also sets it up). 0x20 bytes. input_mouse.cpp (A-H25).
@@ -161,7 +166,7 @@ public:
     std::uint8_t enabled_;           // +0x91 the cursor exists (created)
     std::uint8_t unused_92[2];
     DWORD frameTime_;                // +0x94 when the image's frame last stepped
-    void* thread_;                   // +0x98 the drawing thread (a CWinThread), or null
+    mfc::impl::WinThread* thread_;   // +0x98 the drawing thread, or null
     int stop_;                       // +0x9C asks the cursor thread to end
     CRITICAL_SECTION lock_;          // +0xA0
 };

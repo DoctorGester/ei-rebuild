@@ -148,7 +148,7 @@ public:
     // "lmp_player_connected" .. "reserved_02"; others an empty key) from the text table,
     // formatted with `value` when it is not 0, constructed into `out`; returns `out`
     // (ui_interface_save.cpp).
-    void* MessageText(void* out, int id, int value);
+    void* MessageText(void* out, int id, const char* value);
     // 005F8A80 (RET 4). Without `force`, takes the next queued message (the list at +0x84) into
     // +0xA4 (+0xA8 = 0), or returns when there is none. A non-empty +0xA4 then opens the message
     // window (0x194 bytes, vtables 00740E28 / 00740DF4) over the others, unless the option
@@ -501,8 +501,12 @@ public:
     // it with `restore` set keeps the contents in memory and releases the surface (005FD7A0 with 0).
     void Freeze(int frozen, int restore);
     // 005FCC00 (ui_surface_create.cpp). Constructor: a surface of the layout rectangle (left, top,
-    // right, bottom) with format `format`; returns this.
+    // right, bottom) with format `format`, scaled to the screen when the low byte of `flag` is set;
+    // returns this.
     CUiSurface* Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag);
+    // 005FCDD0 (RET 0xC; ui_surface_create.cpp). Constructor over the layout rectangle `rect` (always
+    // scaled) with format `format`; returns this.
+    CUiSurface* ConstructOnRect(CInterface3D* ui, const RECT* rect, int format);
     // 005FD3D0. Copies the screen's rect_ into the surface (nothing when it is the screen).
     // 005FD440 (vtable slot 4, RET 8). A new[] block of width * height 5:6:5 pixels: the surface
     // stretched to that size through a temporary surface. 005FE440. Greys the surface in place
@@ -841,7 +845,7 @@ public:
     // by `turn` radians about y and places it by `depth` (`wide`'s low byte: six rectangles of the
     // camp layout, else one), draws it lit through `pass` and puts its transform back
     // (ui_hero_preview.cpp).
-    void DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide);
+    void DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide);
     // 005FFFB0 (RET 0x28). Writes image "<name>.mmp" (decoded as imageWidth x imageHeight by the
     // device's decoder) into `texture`'s 256-wide 1:5:5:5 surface: its top-left width x height at
     // (x, y), or white there when there is no such image. Returns whether the image exists (0 also
@@ -1594,7 +1598,7 @@ public:
     void SetScale(float scale);
     // 005E6D70 (vtable slot 3; ui_small_members.cpp). The material and the texture forgotten (not
     // released), then the figure's own slot 3 (005A6C80), whose EAX is returned.
-    int DestroySprite();
+    void DestroySprite();
     // 005E7090 (RET 4). The y scale alone (scaleMatrix_[5]) = `bits` (copied as bits); the quick
     // items' bar (006462A0) calls it.
     void SetScaleYBits(std::uint32_t bits);

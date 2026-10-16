@@ -30,7 +30,7 @@ CUiSpin* CUiSpin::Construct(CInterface3D* ui, RECT rect, const char* text) {
     inputVtable_ = reinterpret_cast<void**>(kSpinInputVtable);
     rect_ = rect;
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, ui, &rect, kSurfaceFormat) : nullptr);
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui, &rect, kSurfaceFormat) : nullptr);
     texts_.SetAtGrow(texts_.size, text ? text : EmptyText());
     changed_ = false;
     layout_ = rect;

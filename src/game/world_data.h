@@ -9,6 +9,7 @@
 #include "engine_object.h"
 #include "lib/stlp.h"
 
+class CInterface3D;   // ui.h
 class CLight;   // spell.h
 
 namespace worlddata {
@@ -143,7 +144,7 @@ constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
 // ---- The client's Segment (005641F0) ------------------------------------------------------------
 
 // The interface manager (007C7D50; script string events go to it).
-inline void* InterfaceManager() { return reinterpret_cast<void*>(std::uintptr_t(0x007C7D50)); }
+inline CInterface3D* InterfaceManager() { return reinterpret_cast<CInterface3D*>(std::uintptr_t(0x007C7D50)); }
 inline const char* AutosaveEventText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00787704)); }   // "autosave"
 // "CWorldClient::Segment(): ..." (the lost connection's FatalError).
 inline const char* SegmentDisconnectedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790084)); }

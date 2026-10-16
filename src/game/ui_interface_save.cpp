@@ -80,12 +80,12 @@ const std::uintptr_t kMessageKeys[13] = {
 };
 } // namespace
 
-void* CInterface3D::MessageText(void* out, int id, int value) {
+void* CInterface3D::MessageText(void* out, int id, const char* value) {
     mfc::CString key, text;
     if (static_cast<unsigned>(id) <= 12) key = reinterpret_cast<const char*>(kMessageKeys[id]);
     void* table = *reinterpret_cast<void* const*>(0x007AF788);
     TextsGetString(table, nullptr, key, &key);
-    if (value != 0)
+    if (value)
         text.Format(key, value);
     else
         text = key;

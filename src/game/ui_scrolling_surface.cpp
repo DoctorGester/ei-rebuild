@@ -54,7 +54,7 @@ int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) 
 } // namespace
 
 CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT* rect) {
-    SurfaceConstructOnRectOriginal(this, nullptr, ui, rect, kSurfaceFormat);
+    ConstructOnRect(ui, rect, kSurfaceFormat);
     vtable_ = reinterpret_cast<void*>(kScrollingVtableAddress);
     richEditLibrary_ = nullptr;
     richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);

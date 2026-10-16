@@ -109,29 +109,27 @@ CUiSurface* AsSurface(char* self) { return reinterpret_cast<CUiSurface*>(self); 
 
 } // namespace
 
-// 005FD120 (thiscall). The destructor body (CUiSurface::ReleaseContents): frees the kept bytes
-// (total 007C7E74), takes the surface's height * pitch off 007C7E78, drops the holder and empties
-// the screen rectangle.
-void __fastcall UiSurfaceRelease(char* raw) {
-    CUiSurface* self = AsSurface(raw);
-    self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
-    if (std::uint8_t* kept = self->kept_) {
+// 005FD120. The destructor body: frees the kept bytes (total 007C7E74), takes the surface's
+// height * pitch off 007C7E78, drops the holder and empties the screen rectangle.
+void CUiSurface::ReleaseContents() {
+    vtable_ = reinterpret_cast<void*>(kVtableAddress);
+    if (std::uint8_t* kept = kept_) {
         gamecrt::operator_delete(kept);
-        self->kept_ = nullptr;
-        UiSurfaceKeptBytes() -= self->keptSize_;
+        kept_ = nullptr;
+        UiSurfaceKeptBytes() -= keptSize_;
     }
-    if (CDXSurface* holder = self->holder_) {
+    if (CDXSurface* holder = holder_) {
         DDSURFACEDESC2 desc = {};
         desc.dwSize = sizeof(desc);
         Describe(holder, &desc);
         UiSurfaceBytes() -= SurfaceBytes(desc);
     }
-    CDXSurface* holder = self->holder_;
-    self->holder_ = nullptr;
+    CDXSurface* holder = holder_;
+    holder_ = nullptr;
     if (holder) holder->Release();
-    gameapi::SetRectEmpty(&self->rect_);
+    gameapi::SetRectEmpty(&rect_);
 }
-EI_REPLACE(0x005FD120, UiSurfaceRelease);
+EI_REPLACE_METHOD(0x005FD120, CUiSurface::ReleaseContents);
 
 // 005FCF80 (thiscall: interface, picture name by value; RET 8). A window showing the picture
 // "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
@@ -172,26 +170,23 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
 }
 EI_REPLACE(0x005FCF80, UiSurfaceFromPicture);
 
-// 005FCC00.
-char* __fastcall UiSurfaceConstruct(char* raw, void*, void* ui, int left, int top, int right, int bottom, int format,
-                                    char scale) {
-    CUiSurface* self = AsSurface(raw);
-    Begin(self, static_cast<CInterface3D*>(ui), format);
-    self->rect_.left = left;
-    self->rect_.top = top;
-    self->rect_.right = right;
-    self->rect_.bottom = bottom;
-    Finish(self, scale != 0);
-    return raw;
+// 005FCC00 (the scale flag is a byte).
+CUiSurface* CUiSurface::Construct(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {
+    Begin(this, ui, format);
+    rect_.left = left;
+    rect_.top = top;
+    rect_.right = right;
+    rect_.bottom = bottom;
+    Finish(this, static_cast<char>(flag) != 0);
+    return this;
 }
-EI_REPLACE(0x005FCC00, UiSurfaceConstruct);
+EI_REPLACE_METHOD(0x005FCC00, CUiSurface::Construct);
 
 // 005FCDD0.
-char* __fastcall UiSurfaceConstructRect(char* raw, void*, void* ui, const int* rect, int format) {
-    CUiSurface* self = AsSurface(raw);
-    Begin(self, static_cast<CInterface3D*>(ui), format);
-    std::memcpy(&self->rect_, rect, sizeof(RECT));
-    Finish(self, true);
-    return raw;
+CUiSurface* CUiSurface::ConstructOnRect(CInterface3D* ui, const RECT* rect, int format) {
+    Begin(this, ui, format);
+    rect_ = *rect;
+    Finish(this, true);
+    return this;
 }
-EI_REPLACE(0x005FCDD0, UiSurfaceConstructRect);
+EI_REPLACE_METHOD(0x005FCDD0, CUiSurface::ConstructOnRect);

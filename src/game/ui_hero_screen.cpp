@@ -130,9 +130,9 @@ BOOL CMpHeroScreen::Draw(int pass) {
 
     reinterpret_cast<CUiContainer*>(&window)->DrawContainer(pass);
     if (mode_ == kModeList && heroIndex_ >= 0)
-        WindowDrawHeroPreviewOriginal(&window, nullptr, pass, previewModel_, turn_, kListDepth, 0);
+        window.DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kListDepth, 0);
     else if (mode_ == kModeNewHero)
-        WindowDrawHeroPreviewOriginal(&window, nullptr, pass, previewModel_, turn_, kNewHeroDepth, 0);
+        window.DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), previewModel_, turn_, kNewHeroDepth, 0);
     return 1;
 }
 EI_REPLACE_METHOD(0x006159E0, CMpHeroScreen::Draw);
@@ -359,7 +359,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     GameCreatePartyUnits(&records, flag);
     auto* unit = static_cast<CUnit*>(GameFindClientUnit(player->members_.data->unitId));
     unit->SetPrototype23C(unit->GetPrototype());
-    previewModel_ = reinterpret_cast<std::uint8_t*>(unit);
+    previewModel_ = unit;
     if (unit) {
         FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kPreviewAnimation);
         if (animation) {

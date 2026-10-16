@@ -14,6 +14,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "ui.h"
 #include "world.h"
 #include "world_data.h"
 
@@ -182,7 +183,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-        void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 7, *static_cast<const char**>(titleOut));
+        void* textOut = worlddata::InterfaceManager()->MessageText(&text, 7, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);
@@ -256,7 +257,7 @@ void ServerSession::LeaveZone() {
     if (Live(holder->ptr)) {
         std::uint32_t title = 0, text = 0;   // CStrings
         void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-        void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 6, *static_cast<const char**>(titleOut));
+        void* textOut = worlddata::InterfaceManager()->MessageText(&text, 6, *static_cast<const char**>(titleOut));
         Announce(*static_cast<const char**>(textOut), nullptr);
         CStringDestroy(&text);
         CStringDestroy(&title);

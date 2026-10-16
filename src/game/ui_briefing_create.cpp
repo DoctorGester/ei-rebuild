@@ -220,8 +220,7 @@ void CBriefingScreen::Create() {
                        : nullptr;
     AddChild(topicBar_);
     memory = gamecrt::operator_new(0x1C8);
-    text_ = memory ? static_cast<CUiScrollText*>(
-                         ScrollTextConstructOriginal(memory, nullptr, interface_, EmptyText(), 165, 426, 635, 570, 10.0f))
+    text_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, EmptyText(), RECT{165, 426, 635, 570}, 10.0f)
                    : nullptr;
     AddChild(text_);
 

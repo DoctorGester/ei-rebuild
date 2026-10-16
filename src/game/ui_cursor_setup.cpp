@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/mfc_thread.h"
 #include "originals_render.h"
 
 namespace {
@@ -84,8 +85,6 @@ EI_REPLACE_METHOD(0x005E63F0, CCursor::AddShape);
 
 namespace {
 
-// 005E52A0: the drawing thread's procedure (cdecl: the cursor; runs 005E5690).
-void* CursorThreadProcedure() { return reinterpret_cast<void*>(0x005E52A0); }
 constexpr int kThreadPriority = 2;          // THREAD_PRIORITY_HIGHEST
 constexpr int kModeNoThread = 1;
 constexpr int kModeLocked = 2;              // the thread draws to the primary: the lock is used
@@ -188,7 +187,7 @@ void CCursor::Start() {
     gameapi::LeaveCriticalSection(&lock_);
     if (!enabled_ || mode_ == kModeNoThread) return;
     stop_ = 0;
-    thread_ = AfxBeginThreadOriginal(CursorThreadProcedure(), this, kThreadPriority, 0, 0, nullptr);
+    thread_ = mfc::impl::AfxBeginThread(CursorThreadEntry, this, kThreadPriority, 0, 0, nullptr);
 }
 EI_REPLACE_METHOD(0x005E6260, CCursor::Start);
 

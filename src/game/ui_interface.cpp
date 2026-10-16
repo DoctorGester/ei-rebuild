@@ -143,7 +143,6 @@ EI_REPLACE_METHOD(0x005F74E0, CInterface3D::SetPendingValue);
 
 // --- CUiSurface ------------------------------------------------------------------------------
 
-void CUiSurface::ReleaseContents() { SurfaceReleaseContentsOriginal(this); }
 
 void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.left = left;

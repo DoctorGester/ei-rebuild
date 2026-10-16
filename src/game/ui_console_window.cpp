@@ -3,6 +3,7 @@
 // ("Console window").
 #include "console.h"
 #include "game_strings.h"
+#include "ui.h"
 #include "ui_gdi.h"
 
 #include "lib/crt.h"
@@ -62,8 +63,8 @@ void ConsoleWindow::Show(bool shown) {
     if (shown) {
         if (!surface_) {
             void* memory = gamecrt::operator_new(0x38);
-            surface_ = memory ? SurfaceConstructOnRectOriginal(memory, nullptr, reinterpret_cast<CInterface3D*>(screen_),
-                                                                reinterpret_cast<const tagRECT*>(rect_), 4)
+            surface_ = memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(reinterpret_cast<CInterface3D*>(screen_),
+                                                                                  reinterpret_cast<const RECT*>(rect_), 4)
                               : nullptr;
         }
         DrawLines();
@@ -71,7 +72,7 @@ void ConsoleWindow::Show(bool shown) {
         return;
     }
     if (CUiSurface* surface = static_cast<CUiSurface*>(surface_)) {
-        SurfaceReleaseContentsOriginal(surface);
+        surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
     surface_ = nullptr;

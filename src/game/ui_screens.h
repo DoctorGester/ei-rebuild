@@ -516,7 +516,7 @@ public:
     int heroIndex_;             // +0x194 selected hero
     CUiScrollbar* heroScroll_;  // +0x198 scroll bar of the hero list
     int heroTop_;               // +0x19C first row shown
-    std::uint8_t* previewModel_;// +0x1A0 the hero's figure shown by the preview (005EC300)
+    CUnit* previewModel_;       // +0x1A0 the hero's figure shown by the preview (005EC300)
     CItem* weapon_;             // +0x1A4
     CItem* armor_;              // +0x1A8
     CItem* spellContainer_;     // +0x1AC

@@ -42,7 +42,7 @@ void* Session() { return reinterpret_cast<void*>(0x007AFE20); }
 
 void ReleaseBackdrop(CUiSurface* surface) {
     if (!surface) return;
-    SurfaceReleaseContentsOriginal(surface);
+    surface->ReleaseContents();
     gamecrt::operator_delete(surface);
 }
 

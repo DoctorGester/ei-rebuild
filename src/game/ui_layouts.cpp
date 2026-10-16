@@ -42,7 +42,6 @@ __declspec(naked) void CUiRegion::CallSetRect(int, int, int, int) EI_ORIGINAL(0x
 __declspec(naked) void CUiRegion::CallAddPoint(int, int) EI_ORIGINAL(0x005FCA70)
 __declspec(naked) void CUiMesh::SetTriangle(float, float, float, float, float, float, float, float, float, float, float,
                                             float, float, float) EI_ORIGINAL(0x005E99D0)
-__declspec(naked) CUiSurface* CUiSurface::Construct(CInterface3D*, int, int, int, int, int, int) EI_ORIGINAL(0x005FCC00)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
@@ -519,7 +518,7 @@ SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
 }
 
 CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
-    return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));
+    return static_cast<CUiEditField*>(memory)->Construct(ui, r);
 }
 void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF text, COLORREF caret) {
     static_cast<CUiEditField*>(edit)->SetLook(a, static_cast<char>(b), font, c, text, caret);
@@ -750,7 +749,7 @@ void CCreditsScreen::Build() {
     {
         void* memory = gamecrt::operator_new(0x38);
         RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = window.AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, ui, &rect, 5) : nullptr);
+        headerSurface_ = window.AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(ui, &rect, 5) : nullptr);
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);

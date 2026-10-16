@@ -323,8 +323,7 @@ CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* di
 EI_REPLACE_METHOD(0x005FEF20, CUiWindow::LoadTexture);
 
 CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
-    auto* texture = reinterpret_cast<CEngineObject*>(
-        NewManagedTextureOriginal(UiTextureManager(), nullptr, width, height, kind));
+    CEngineObject* texture = static_cast<CTextureManager*>(UiTextureManager())->NewTexture(width, height, kind);
     if (!texture) return nullptr;
     int index = objects_.size;
     objects_.SetSize(index + 1, -1);

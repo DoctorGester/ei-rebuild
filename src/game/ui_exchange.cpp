@@ -234,9 +234,7 @@ void CExchangeScreen::Create() {
 
     // The money offered.
     memory = gamecrt::operator_new(sizeof(CUiEditField));
-    moneyField_ = memory ? static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, interface_, 0, 0x15E, 200,
-                                                                                 0x16E))
-                         : nullptr;
+    moneyField_ = memory ? static_cast<CUiEditField*>(memory)->Construct(interface_, RECT{0, 0x15E, 200, 0x16E}) : nullptr;
     AsContainer(this)->AddChild(moneyField_);
     moneyField_->SetLook(1, static_cast<char>(1), 1, 9, 0xFFFFFF, 0x31B3FF);
     static_cast<CUiEditField*>(moneyField_)->SetText(game::Text(0x0079B298));   // ""

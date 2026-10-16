@@ -36,44 +36,30 @@ namespace {
 
 // --- Not rewritten -------------------------------------------------------------------------------
 
-// The panel constructors and builders, called on the panel (all thiscall).
-struct RawPanel : WindowConstructOriginal {
+// The Rebirth-patched panel constructors and builders, called on the panel (all thiscall; kept as
+// forwarders so Rebirth's patches run in a Rebirth launch).
+struct RawPanel {
     // Constructors (owner = the battle screen); each returns the panel.
-    CHudWeaponBar* ConstructWeaponBar(CInterface3D* ui, CUiWindow* owner);      // 0063BAB0 (Rebirth)
-    CHudQuickItems* ConstructQuickItems(CInterface3D* ui, CUiWindow* owner);     // 0063C800 (Rebirth)
-    CHudSpellColumn* ConstructSpellColumn(CInterface3D* ui, CUiWindow* owner);    // 0063E2A0 (Rebirth)
-    CHudActionColumn* ConstructActionColumn(CInterface3D* ui, CUiWindow* owner);   // 0063F300 (Rebirth)
-    CHudPortraits* ConstructPortraits(CInterface3D* ui, CUiWindow* owner);      // 0063FE70
-    // 0065CC00: the message log (a scrolling text over `rect`, by value).
-    CUiWindow* ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed);
+    CHudWeaponBar* ConstructWeaponBar(CInterface3D* ui, CUiWindow* owner);      // 0063BAB0
+    CHudQuickItems* ConstructQuickItems(CInterface3D* ui, CUiWindow* owner);     // 0063C800
+    CHudSpellColumn* ConstructSpellColumn(CInterface3D* ui, CUiWindow* owner);    // 0063E2A0
+    CHudActionColumn* ConstructActionColumn(CInterface3D* ui, CUiWindow* owner);   // 0063F300
     // Builders of the inline-constructed panels.
-    void BuildUnitPanel(int page, std::uint8_t shown);   // 006456E0 (Rebirth)
-    void BuildMap(float zoom, std::uint8_t view);        // 00641F20 (Rebirth)
-    void BuildClock(int fast);                           // 00648520 (Rebirth)
-    void BuildTopPanel(int page, std::uint8_t shown);    // 00649AF0
-    void ShowTopPanelPage();                             // 0064A7A0
-    void AddLogText(const char* text);                   // 0065CF30 (the message log)
-    // 005EACB0: the battle view's camera and pick input (0x2C bytes).
-    void* ConstructViewInput(CInterface3D* ui);
+    void BuildUnitPanel(int page, std::uint8_t shown);   // 006456E0
+    void BuildMap(float zoom, std::uint8_t view);        // 00641F20
+    void BuildClock(int fast);                           // 00648520
 };
 __declspec(naked) CHudWeaponBar* RawPanel::ConstructWeaponBar(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063BAB0)
 __declspec(naked) CHudQuickItems* RawPanel::ConstructQuickItems(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063C800)
 __declspec(naked) CHudSpellColumn* RawPanel::ConstructSpellColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063E2A0)
 __declspec(naked) CHudActionColumn* RawPanel::ConstructActionColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063F300)
-__declspec(naked) CHudPortraits* RawPanel::ConstructPortraits(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063FE70)
-CUiWindow* RawPanel::ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed) {
-    return static_cast<CUiWindow*>(ScrollTextConstructOriginal(this, nullptr, ui, static_cast<const char*>(font), rect.left,
-                                                               rect.top, rect.right, rect.bottom, speed));
-}
 __declspec(naked) void RawPanel::BuildUnitPanel(int, std::uint8_t) EI_ORIGINAL(0x006456E0)
 __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x00641F20)
 __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
-__declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
-void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
-void RawPanel::AddLogText(const char* a0) { static_cast<CUiScrollText*>((void*)this)->AddText(a0); }
-void* RawPanel::ConstructViewInput(CInterface3D* ui) { return reinterpret_cast<CCameraInput*>(this)->Construct(ui); }
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
+// The window base constructed in fresh memory (005FE700).
+CUiWindow* NewWindowBase(void* memory, CInterface3D* ui) { return static_cast<CUiWindow*>(memory)->Construct(ui); }
 
 // The screens' extra input handlers (CUiContainer +0x158 vector).
 struct ContainerInputs {
@@ -93,7 +79,7 @@ Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner, s
                      std::uintptr_t inputVtable) {
     void* memory = gamecrt::operator_new(size);
     if (!memory) return nullptr;
-    auto* panel = static_cast<Panel*>(Raw(memory)->Construct(ui));
+    auto* panel = static_cast<Panel*>(NewWindowBase(memory, ui));
     panel->owner_ = owner;
     panel->vtable_ = reinterpret_cast<void**>(vtable);
     panel->inputVtable_ = reinterpret_cast<void**>(inputVtable);
@@ -187,7 +173,7 @@ void CBattleScreen::Create() {
     actionColumn_->AddObject(objects_.data[1]);
 
     memory = gamecrt::operator_new(0x164);
-    portraits_ = memory ? Raw(memory)->ConstructPortraits(interface_, this) : nullptr;
+    portraits_ = memory ? static_cast<CHudPortraits*>(memory)->Construct(interface_, this) : nullptr;
     AddChild(portraits_);
     portraits_->AddObject(objects_.data[2]);
 
@@ -195,7 +181,7 @@ void CBattleScreen::Create() {
     {
         CHudUnitPanel* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x1C4)) {
-            panel = static_cast<CHudUnitPanel*>(Raw(p)->Construct(interface_));
+            panel = static_cast<CHudUnitPanel*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
             panel->strings_[0] = EmptyStringData();
             panel->strings_[1] = EmptyStringData();
@@ -215,7 +201,7 @@ void CBattleScreen::Create() {
     {
         CHudMap* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x1B4)) {
-            panel = static_cast<CHudMap*>(Raw(p)->Construct(interface_));
+            panel = static_cast<CHudMap*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
             for (UiPointArray* points : {&panel->viewPolygon_, &panel->visibleArea_}) {
                 points->data = nullptr;
@@ -244,8 +230,8 @@ void CBattleScreen::Create() {
     reinterpret_cast<CreateFn>(movePanel_->vtable_[18])(movePanel_);   // slot 18 (+0x48)
 
     memory = gamecrt::operator_new(0x1C8);
-    messageLog_ = memory ? Raw(memory)->ConstructTextLog(interface_, const_cast<char*>(game::EmptyText()),
-                                                         RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
+    messageLog_ = memory ? static_cast<CUiScrollText*>(memory)->Construct(interface_, game::EmptyText(),
+                                                                          RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f)
                          : nullptr;
     AddChild(messageLog_);
     static_cast<CUiScrollText*>(messageLog_)->align_ = 1;
@@ -253,7 +239,7 @@ void CBattleScreen::Create() {
     {
         CHudTopPanel* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x16C)) {
-            panel = static_cast<CHudTopPanel*>(Raw(p)->Construct(interface_));
+            panel = static_cast<CHudTopPanel*>(NewWindowBase(p, interface_));
             panel->owner_ = this;
             panel->pageTexts_[0] = EmptyStringData();
             panel->pageTexts_[1] = EmptyStringData();
@@ -264,7 +250,7 @@ void CBattleScreen::Create() {
     }
     AddChild(topPanel_);
     topPanel_->AddObject(objects_.data[2]);
-    Raw(topPanel_)->BuildTopPanel(interface_->hudTopPage_, interface_->hudPanelsIn_[1]);
+    topPanel_->Build(interface_->hudTopPage_, interface_->hudPanelsIn_[1]);
     {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
         auto* top = static_cast<CHudTopPanel*>(topPanel_);
@@ -274,13 +260,13 @@ void CBattleScreen::Create() {
         if (top->page_ == 0) {
             // The owner is this screen (a container; CBattleScreen declares it as a window).
             auto* owner = top->owner_;
-            Raw(owner->children_.data[9])->AddLogText(text);
+            static_cast<CUiScrollText*>(owner->children_.data[9])->AddText(text);
         }
     }
-    Raw(topPanel_)->ShowTopPanelPage();
+    TopPanelShowPageOriginal(topPanel_);
 
     memory = gamecrt::operator_new(0x2C);
-    reinterpret_cast<ContainerInputs*>(this)->AddInput(memory ? Raw(memory)->ConstructViewInput(interface_) : nullptr);
+    reinterpret_cast<ContainerInputs*>(this)->AddInput(memory ? static_cast<CCameraInput*>(memory)->Construct(interface_) : nullptr);
 
     *reinterpret_cast<std::uint32_t*>(0x0079B2B0) &= ~0x40u;
     pendingAction_ = 0;

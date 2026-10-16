@@ -152,10 +152,10 @@ CInterface3D* CInterface3D::Construct() {
 }
 EI_REPLACE_METHOD(0x005F46A0, CInterface3D::Construct);
 
-int CUiMesh::DestroySprite() {
+void CUiMesh::DestroySprite() {
     material_ = nullptr;
     texture_ = nullptr;
-    return FigureDestroyOriginal(this);
+    ClearMesh();
 }
 EI_REPLACE_METHOD(0x005E6D70, CUiMesh::DestroySprite);
 

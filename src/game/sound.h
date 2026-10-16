@@ -22,6 +22,8 @@
 // A volume envelope (0x1C bytes): the music stream's (CSoundManager + 0x144) and the MIDI
 // sequence's (+0x20C). `level` is the Miles volume 0..127 derived from `volume` (0..100) and the
 // fade `factor`.
+namespace mfc::impl { struct WinThread; }
+
 struct SoundFader {
     std::int32_t volume;        // +0x00 0..100
     std::int32_t level;         // +0x04 0..127, round(volume * factor * 127 * 0.01)
@@ -206,7 +208,7 @@ struct CSoundManager : CEngineObject {
     std::int32_t streamReadPosition;    // +0x1A8
     void* streamDecoder;                // +0x1AC HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
     std::uint8_t streamLock[0x18];      // +0x1B0 CRITICAL_SECTION guarding the stream and musicFader
-    mfc::CWinThread* streamThread;      // +0x1C8 006BB910's thread (Open), when the MP3 stream opened
+    mfc::impl::WinThread* streamThread; // +0x1C8 006BB910's thread (Open), when the MP3 stream opened
     // The MIDI sequence (+0x1CC; 006BBA00-006BBDF0).
     std::int32_t midiState;             // +0x1CC
     void* midiData1D0;                  // +0x1D0 Miles memory (AIL_mem_alloc_lock)
@@ -220,7 +222,7 @@ struct CSoundManager : CEngineObject {
     SoundFader midiFader;               // +0x20C
     std::uint8_t unused_228[4];
     std::uint8_t midiLock[0x18];        // +0x22C CRITICAL_SECTION
-    mfc::CWinThread* midiThread;        // +0x244 006BBCB0's thread
+    mfc::impl::WinThread* midiThread;   // +0x244 006BBCB0's thread
     volatile std::int32_t threadsQuit;  // +0x248 set by Close; both threads end on it
     SoundSlot* slots;                   // +0x24C 15 voices (an operator new[] block: the count before them)
     Vector3 listener;                   // +0x250 listener position (z: camera height)

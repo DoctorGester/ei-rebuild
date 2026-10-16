@@ -286,7 +286,7 @@ CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT
     vtable_ = reinterpret_cast<void**>(kScrollTextVtable);
     inputVtable_ = reinterpret_cast<void**>(kScrollTextInputVtable);
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, interface_, &rect, kSurfaceFormat) : nullptr);
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(interface_, &rect, kSurfaceFormat) : nullptr);
     CUiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();

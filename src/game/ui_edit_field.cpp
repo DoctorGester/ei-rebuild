@@ -135,7 +135,7 @@ CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     ClearSurfaces();
     area_ = rect;
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, interface_, &area_, kSurfaceFormat) : nullptr);
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(interface_, &area_, kSurfaceFormat) : nullptr);
     DrawContents();
     focused_ = true;
     return this;

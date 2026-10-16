@@ -34,8 +34,6 @@ __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x0
 __declspec(naked) inline void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int)
     EI_ORIGINAL(0x005DB3F0)
 __declspec(naked) inline void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
-__declspec(naked) inline void* __fastcall TextFormat(void* /*table*/, void*, void* /*out CString*/, int /*kind*/, const char* /*text*/)
-    EI_ORIGINAL(0x005F8C90)
 __declspec(naked) inline void __fastcall EmptyModelMap(void*) EI_ORIGINAL(0x005FA400)
 __declspec(naked) inline void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x005FA610)
 // CUiSurface::GetDC / ReleaseDC (rewritten as UiSurfaceGetDC / UiSurfaceReleaseDC): the surface's CDC (null
@@ -50,12 +48,6 @@ __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*
 __declspec(naked) inline void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
 __declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
-// The edit field (CUiEditField, ui.h): 0065C010 constructor (RET 0x14: the interface and a RECT by value, passed here
-// as its four ints; returns this), 0065C1A0 its look (RET 0x18: two ints, the font, an int, the text and caret
-// colours), 0065C290 its text (RET 4).
-__declspec(naked) inline void* __fastcall EditFieldConstructOriginal(void* /*memory*/, void*, CInterface3D*, int /*left*/,
-                                                                     int /*top*/, int /*right*/, int /*bottom*/)
-    EI_ORIGINAL(0x0065C010)
 // 00634650: constructs a message box window in `memory` (RET 0x18, returns it).
 __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                       const char*, const char*, int, int, int)
@@ -111,12 +103,6 @@ __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface
 // 005F7E30 (Rebirth-patched; the second copy of the screen-to-layout point scaling; thiscall, RET 4): returns the new y.
 __declspec(naked) inline int __fastcall InterfacePointFromScreenCopyOriginal(const CInterface3D*, void*, tagPOINT* /*point*/)
     EI_ORIGINAL(0x005F7E30)
-// 005FCDD0: CUiSurface constructor in `memory` over the layout rectangle `rect` with format `format` (thiscall, RET 0xC,
-// returns `memory`; string_map.cpp and ui_console_window.cpp still have their own forwarders).
-__declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(void* /*memory*/, void*,
-                                                                                    CInterface3D* /*ui*/,
-                                                                                    const tagRECT* /*rect*/,
-                                                                                    int /*format*/) EI_ORIGINAL(0x005FCDD0)
 // 005FDA80: CUiSurface's own draw (slot 0; rewritten as UiSurfaceBlit), for the classes that draw over it.
 __declspec(naked) inline void __fastcall SurfaceBlitOriginal(void* /*surface*/) EI_ORIGINAL(0x005FDA80)
 // 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
@@ -130,20 +116,9 @@ __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/)
 // texture (width, height, kind; RET 0xC).
 // 00692D30 (RET 8): the registered texture of `kind` named `name` (a byte compare), else the cached one (00691BF0);
 // null when neither has it.
-__declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,
-                                                                            int /*height*/, int /*kind*/)
-    EI_ORIGINAL(0x00691D80)
 
 // 005A6C70 (a jump to 0059F210): the figure's Create (vtable slot 2; thiscall, plain RET; the result is not used).
 __declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C70)
-// 005A6C80: the figure's slot 3 (its three arrays emptied, the parts' storage freed, then 0059F2B0, whose EAX is left;
-// thiscall, plain RET).
-__declspec(naked) inline int __fastcall FigureDestroyOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C80)
-// 007022A0: MFC's AfxBeginThread(procedure, parameter, priority, stack size, flags, security) (__stdcall; returns the
-// CWinThread).
-__declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedure*/, void* /*parameter*/, int /*priority*/,
-                                                                unsigned /*stack*/, unsigned long /*flags*/,
-                                                                void* /*security*/) EI_ORIGINAL(0x007022A0)
 // 0068B770 (rewritten as CSpell::IsOffensive; Rebirth's FixSpellSelfCasting patches it): an attack spell (thiscall on
 // the spell, plain RET, AL).
 __declspec(naked) inline bool __fastcall SpellIsOffensiveOriginal(void* /*spell*/) EI_ORIGINAL(0x0068B770)
@@ -166,11 +141,6 @@ __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*nam
 
 // A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp): 005EE6C0
 // Describe(item), 005F1590 DescribeStats(info) (each RET 4).
-// 005EC300 (rewritten as CUiWindow::DrawHeroPreview): the hero preview (RET 0x14: pass, model, turn, depth, wide).
-__declspec(naked) inline void __fastcall WindowDrawHeroPreviewOriginal(void* /*window*/, void*, int /*pass*/,
-                                                                       void* /*model*/, float /*turn*/,
-                                                                       float /*depth*/, int /*wide*/)
-    EI_ORIGINAL(0x005EC300)
 // The multiplayer hero screen (thiscall, plain RET): 006167C0 draws the hero list, 00616560 the voice list.
 __declspec(naked) inline void __fastcall HeroScreenDrawListOriginal(void* /*screen*/) EI_ORIGINAL(0x006167C0)
 // 0065A770 (library, RET 4): the interface's help topics (map<CString, int>, CInterface3D +0x98) operator[]: the
@@ -219,13 +189,6 @@ __declspec(naked) inline void __fastcall HeroScreenSetModeOriginal(void* /*scree
 // 00607A60 (rewritten as CBriefingScreen::PlaySpeakerAnimation; RET 0xC).
 __declspec(naked) inline void __fastcall WorldCompleteBriefingOriginal(void* /*world*/, void*, int /*playerId*/,
                                                                       const char* /*name*/) EI_ORIGINAL(0x00592090)
-// A-I13. 0065CC00: the scrolling text's constructor (CUiScrollText; RET 0x1C, returns this): the interface, a string
-// (the exe's empty text), the layout rectangle by value (left, top, right, bottom) and the sprites' depth (A-H20: the
-// scroll bar's depth, not a line height). 005EACB0: the
-// battle view's camera and pick input side (0x2C bytes, vtable 00740208; RET 4, returns this).
-__declspec(naked) inline void* __fastcall ScrollTextConstructOriginal(void* /*memory*/, void*, CInterface3D*, const char* /*text*/,
-                                                                      int /*left*/, int /*top*/, int /*right*/, int /*bottom*/,
-                                                                      float /*depth*/) EI_ORIGINAL(0x0065CC00)
 
 // A-I15. The client world (007AF5B8, thiscall, RET 4): 00565D00 the unit drawn at a screen point (the point's x, y; EAX
 // the object or null); 00566100 selects `unit` (null: clears the selection; no result).
@@ -284,12 +247,6 @@ void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCurso
 // 005DAE70 (fastcall, RET 8; cursor_setup.cpp): the cursor shut down and set up again.
 void __fastcall ResetCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 
-// C3m. Thiscall members of game objects, called through these views (cast the object's pointer).
-// 005FE700 (rewritten as CUiWindow::Construct): the window base constructor (returns this). Base of the views.
-struct WindowConstructOriginal {
-    CUiWindow* Construct(CInterface3D* ui);
-};
-__declspec(naked) inline CUiWindow* WindowConstructOriginal::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)
 
 // C3o. 004DF030 (rewritten as TextFindLine; thiscall on the text reader, RET 4): moves to the line that starts with
 // `key`; a null key finds the next "#..." header. 1 when found, else 0 (the cursor at the end).
@@ -302,8 +259,6 @@ __declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, vo
 __declspec(naked) inline CUiWindow* __fastcall InterfaceActiveWindowOriginal(CInterface3D* /*interface*/) EI_ORIGINAL(0x005F7590)
 __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(const CInterface3D* /*interface*/, void*,
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
-// 005FD120 (rewritten as UiSurfaceRelease; plain RET): the CUiSurface's destructor body (releases its DC and surface).
-__declspec(naked) inline void __fastcall SurfaceReleaseContentsOriginal(CUiSurface* /*surface*/) EI_ORIGINAL(0x005FD120)
 // 005F8F10: the constructor of CBattleScreen's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
 __declspec(naked) inline void __fastcall IdVectorConstructOriginal(void* /*vector*/, void*, const void* /*allocator*/)
     EI_ORIGINAL(0x005F8F10)

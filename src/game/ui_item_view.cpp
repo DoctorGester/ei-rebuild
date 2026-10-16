@@ -495,11 +495,6 @@ namespace {
 CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
 void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
 
-// The texture manager (thiscall): 00691D80 makes a texture (width, height, format), 00691CF0 finds
-// a loaded image by file name.
-std::uint8_t* NewManagedTexture(void* manager, void*, int width, int height, int kind) {
-    return NewManagedTextureOriginal(manager, nullptr, width, height, kind);
-}
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.
 
@@ -544,8 +539,8 @@ long UnlockTexture(TextureSurface* holder, bool direct) {
 } // namespace
 
 void* __fastcall ItemFigureTexture(const char* name) {
-    void* manager = TextureManager();
-    std::uint8_t* texture = NewManagedTexture(manager, nullptr, 0x100, 0x100, 0x20);
+    CTextureManager* manager = TextureManager();
+    auto* texture = reinterpret_cast<std::uint8_t*>(manager->NewTexture(0x100, 0x100, 0x20));
     if (!texture) return nullptr;
     Set(texture, 4, Get<int>(texture, 4) + 1);
     auto* holder = Get<TextureSurface*>(texture, 0x5C);
@@ -553,7 +548,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     {
         mfc::CString base(name);
         mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
-        image = static_cast<unsigned char*>(static_cast<CTextureManager*>(manager)->GetFileData(file));
+        image = static_cast<unsigned char*>(manager->GetFileData(file));
     }
     int width, height;
     if (!image) {

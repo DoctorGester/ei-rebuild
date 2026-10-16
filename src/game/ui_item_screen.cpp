@@ -131,7 +131,7 @@ void CItemScreen::CreateBase() {
     void* memory = gamecrt::operator_new(0x148);
     CUiWindow* icons = nullptr;
     if (memory) {
-        icons = reinterpret_cast<WindowConstructOriginal*>(memory)->Construct(interface_);
+        icons = static_cast<CUiWindow*>(memory)->Construct(interface_);
         icons->vtable_ = reinterpret_cast<void**>(0x00740444);
         icons->inputVtable_ = reinterpret_cast<void**>(0x00740410);
     }

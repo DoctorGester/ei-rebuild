@@ -597,11 +597,6 @@ static_assert(sizeof(CStringArray) == 0x14);
 template <typename T>
 using CTypedPtrList = CList<T*>;
 
-// CWinThread (AfxBeginThread's result, 007022A0); only m_hThread is named.
-struct CWinThread {
-    std::uint8_t unused_00[0x28];
-    void* thread;   // +0x28 m_hThread
-};
 
 CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
 CString __stdcall operator+(const char* a, const CString& b);   // 00700C79

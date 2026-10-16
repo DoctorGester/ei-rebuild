@@ -183,8 +183,7 @@ int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std
 
 // 0065CC00 (not rewritten): the scrolling text window (a scroll bar subclass) over `rect`.
 CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, const void* font, RECT rect, float lineHeight) {
-    return static_cast<CUiWindow*>(ScrollTextConstructOriginal(memory, nullptr, ui, static_cast<const char*>(font), rect.left,
-                                                               rect.top, rect.right, rect.bottom, lineHeight));
+    return static_cast<CUiScrollText*>(memory)->Construct(ui, static_cast<const char*>(font), rect, lineHeight);
 }
 
 // Sprite fields the builder sets directly.

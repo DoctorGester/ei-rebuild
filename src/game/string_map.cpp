@@ -206,7 +206,7 @@ EI_REPLACE(0x00444A70, PanelInit);
 void __fastcall PanelRelease(void* self) {
     CDebugPanel* panel = Panel(self);
     if (CUiSurface* surface = panel->surface_) {
-        SurfaceReleaseContentsOriginal(surface);
+        surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
     panel->surface_ = nullptr;
@@ -301,14 +301,14 @@ void __fastcall PanelShow(void* self, void*, std::uint8_t show) {
     if (show) {
         if (!panel->surface_) {
             void* memory = gamecrt::operator_new(0x38);
-            panel->surface_ = memory ? SurfaceConstructOnRectOriginal(memory, nullptr, panel->ui_, &panel->shown_, 5) : nullptr;
+            panel->surface_ = memory ? static_cast<CUiSurface*>(memory)->ConstructOnRect(panel->ui_, &panel->shown_, 5) : nullptr;
         }
         panel->lastDraw_ = gameapi::timeGetTime();
         PanelRedraw(self);
         return;
     }
     if (CUiSurface* surface = panel->surface_) {
-        SurfaceReleaseContentsOriginal(surface);
+        surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
     panel->surface_ = nullptr;

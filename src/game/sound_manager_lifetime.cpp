@@ -347,7 +347,6 @@ int SoundOption() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BC
 constexpr std::uintptr_t kVoiceConstruct = std::uintptr_t(0x006B6CC0);
 constexpr std::uintptr_t kVoiceDestruct = std::uintptr_t(0x006B6D30);
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
-constexpr std::uintptr_t kStreamThreadEntry = std::uintptr_t(0x006B6A10);
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
 using EnumerateFn = long(__stdcall*)(void*, void*);
@@ -428,7 +427,7 @@ struct PcmFormat {
 #pragma pack(pop)
 static_assert(sizeof(PcmFormat) == 0x10);
 
-void WaitForThread(const mfc::CWinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }
+void WaitForThread(const mfc::impl::WinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }
 
 } // namespace
 
@@ -730,8 +729,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     }
     AilSetDirectSoundWindow()(waveDriver, window);
     if (SoundOpenStream(StreamOf(this), nullptr, waveDriver) != 0)
-        streamThread = static_cast<mfc::CWinThread*>(AfxBeginThreadOriginal(reinterpret_cast<void*>(kStreamThreadEntry),
-                                                                            this, kStreamThreadPriority, 0, 0, nullptr));
+        streamThread = mfc::impl::AfxBeginThread(StreamThreadEntry, this, kStreamThreadPriority, 0, 0, nullptr);
     // operator new[]: the count, then the voices.
     auto* block = static_cast<std::int32_t*>(gamecrt::operator_new(sizeof(std::int32_t) + kVoiceCount * sizeof(SoundSlot)));
     SoundSlot* voices = nullptr;

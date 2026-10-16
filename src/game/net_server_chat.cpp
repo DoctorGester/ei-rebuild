@@ -9,6 +9,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "ui.h"
 #include "world_data.h"
 
 #include <cstring>
@@ -81,7 +82,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 // 0041A490: Announce with text `kind` of the text table formatted with `text`.
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::uint32_t line = 0;   // CString
-    void* formatted = TextFormat(worlddata::InterfaceManager(), nullptr, &line, kind, text);
+    void* formatted = worlddata::InterfaceManager()->MessageText(&line, kind, text);
     Announce(*static_cast<const char**>(formatted), player);
     CStringDestroy(&line);
 }

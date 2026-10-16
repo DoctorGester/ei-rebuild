@@ -11,6 +11,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "ui.h"
 #include "world.h"
 #include "world_data.h"
 #include "game_flow_data.h"
@@ -104,7 +105,7 @@ void ServerSession::SetMap(const StringRep* name) {
     WorldPrepareMap(world, nullptr, name->start);
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = SessionMapNameInto(reinterpret_cast<mfc::CString*>(&title));
-    void* textOut = TextFormat(worlddata::InterfaceManager(), nullptr, &text, 5, *static_cast<const char**>(titleOut));
+    void* textOut = worlddata::InterfaceManager()->MessageText(&text, 5, *static_cast<const char**>(titleOut));
     Announce(*static_cast<const char**>(textOut), nullptr);
     CStringDestroy(&text);
     CStringDestroy(&title);

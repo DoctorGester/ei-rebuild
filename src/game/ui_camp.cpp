@@ -658,7 +658,7 @@ BOOL CCampPages::Draw(int pass) {
     if (page_ == 0) {
         float turn;
         std::memcpy(&turn, &heroTurn_, sizeof turn);
-        WindowDrawHeroPreviewOriginal(this, nullptr, pass, heroes_[hero_], turn, 400.0f, 1);
+        DrawHeroPreview(reinterpret_cast<CSceneRenderer*>(pass), heroes_[hero_], turn, 400.0f, 1);
     }
     return 1;
 }

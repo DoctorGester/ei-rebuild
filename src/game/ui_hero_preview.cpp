@@ -99,7 +99,8 @@ void ClearDepth(UiRenderer* renderer, unsigned long count, RECT* rects, float z)
 
 } // namespace
 
-void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide) {
+void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide) {
+    auto* model = reinterpret_cast<std::uint8_t*>(hero);
     if (!model) return;
     auto deviceOf = [this] { return interface_->renderer_; };
     FlushAndRestore(deviceOf());
@@ -140,7 +141,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     std::uint8_t savedPosition[12], savedOrientation[16];
     std::memcpy(savedPosition, model + 0x1C, 12);
     std::memcpy(savedOrientation, model + 0x34, 16);
-    auto* renderer = static_cast<CSceneRenderer*>(pass);
+    CSceneRenderer* renderer = pass;
     std::uint32_t savedColour = renderer->colour_;
     // White: three FISTPs of 255.0 packed as 0xFF rr gg bb.
     renderer->SetColour(0xFFFFFFFFu);
