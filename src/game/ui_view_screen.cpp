@@ -5,6 +5,7 @@
 
 #include "camera.h"
 #include "maths.h"
+#include "player_client.h"
 #include "ui_cursor.h"
 #include "world.h"
 
@@ -135,14 +136,14 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
             auto* member = static_cast<CUnit*>(GameFindClientUnit(picked_.data[i]));
             if (!member) continue;
             OneUnit order(member);
-            LocalViewSendWalkOriginal(world->LocalView(), nullptr, &order.units, &ground.x, 0);
+            reinterpret_cast<CPlayerClient*>(world->LocalView())->SendWalk(&order.units, &ground, 0);
         }
     } else if (unit) {
         for (int i = 0; i < picked_.size; ++i) {
             auto* member = static_cast<CUnit*>(GameFindClientUnit(picked_.data[i]));
             if (!member) continue;
             OneUnit order(member);
-            LocalViewSendAttackOriginal(world->LocalView(), nullptr, &order.units, unit, kAttackHow, 0);
+            reinterpret_cast<CPlayerClient*>(world->LocalView())->SendAttack(&order.units, unit, kAttackHow, 0);
         }
     }
 }

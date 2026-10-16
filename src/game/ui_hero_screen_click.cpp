@@ -43,9 +43,8 @@ void __fastcall MpHeroRename(CMpHeroScreen*);
 void __fastcall MpHeroPlayVoice(CMpHeroScreen*);
 // 006167C0: the hero list drawn again (plain RET).
 // The panels: 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
-// container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
+// container (RET 4); 0065C290 an edit window's text (RET 4).
 void EditSetText(void* edit, void*, const void* text) { static_cast<CUiEditField*>(edit)->SetText(static_cast<const char*>(text)); }
-void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }   // 005FDC00
@@ -147,7 +146,7 @@ mfc::CString& MpHeroName(int index) {
 void CMpHeroScreen::CloseRenameEdit() {
     SurfaceFreeze(window.surfaces_.data[3], nullptr, 0, 0);
     renameEdit_->SetEnabled(0, 1);
-    EditActivate(renameEdit_, nullptr, 0);
+    renameEdit_->SetFocused(false);
 }
 
 void CMpHeroScreen::BackToNewHero() {
@@ -416,7 +415,7 @@ constexpr std::uint32_t kBright = 0xA7D7E4;
 void CMpHeroScreen::Rename() {
     if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
     renameEdit_->SetEnabled(1, 1);
-    EditActivate(renameEdit_, nullptr, 1);
+    renameEdit_->SetFocused(true);
     mfc::CString name(MpHeroName(heroIndex_));
     int bar = CStringFindTextOriginal(&name, nullptr, RenameBar());
     if (bar < 0) {

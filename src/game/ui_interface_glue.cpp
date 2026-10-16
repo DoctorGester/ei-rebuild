@@ -2,6 +2,7 @@
 // the console window and debug panel settings, the frame rate surface and quest variable news for
 // the top window (005F5700, 005F7E60-005F7FC0). See ui.h and docs/notes/ui.md, section 3.
 #include "ui.h"
+#include "app.h"
 
 #include "console.h"
 #include "sound.h"
@@ -144,7 +145,7 @@ void CInterface3D::ShowStatusText(const char* text) {
     RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
     SurfaceDrawText(statusSurface_, nullptr, text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched
     SurfaceReleaseDC(statusSurface_);
-    FrameStepOriginal(1, 1);
+    app::FrameStep(true, true);
     if (statusSurface_) {
         statusSurface_->ReleaseContents();
         gamecrt::operator_delete(statusSurface_);

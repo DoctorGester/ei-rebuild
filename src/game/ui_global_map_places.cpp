@@ -3,6 +3,7 @@
 // map's Create (0062D350, ui_global_map.cpp) calls them through their addresses. See
 // docs/notes/ui.md ("Camp, global map, hero screens").
 #include "model.h"
+#include "app.h"
 #include "ui_camp.h"
 
 #include "console.h"
@@ -163,7 +164,7 @@ void CGlobalMap::RefreshSelection() {
     SetRenderState(interface_->renderer_->device_, kDitherEnable, 0);
     std::uint32_t colour = SceneRenderer()->fogColour_;
     SceneRenderer()->fogColour_ = 0;
-    FrameStepOriginal(0, 0);
+    app::FrameStep(false, false);
     SceneRenderer()->fogColour_ = colour;
     SetRenderState(interface_->renderer_->device_, kShadeMode, 2);
     SetRenderState(interface_->renderer_->device_, kDitherEnable, 1);

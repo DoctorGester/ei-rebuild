@@ -70,8 +70,6 @@ __declspec(naked) inline void __fastcall PlayMoviesOriginal(const char* /*sectio
 // 00600270: CUiWindow's frame time in seconds, unrounded in ST0 (ECX = window, plain RET).
 __declspec(naked) inline double __fastcall WindowFrameTimeOriginal(void* /*window*/) EI_ORIGINAL(0x00600270)
 // 00578D00: the flag's byte (007AFFCC) in AL; plain RET, ECX not read.
-// 00458010 (__fastcall, two byte arguments in CL and DL; rewritten as FrameStep, app_frame.cpp): a frame step.
-__declspec(naked) inline void __fastcall FrameStepOriginal(char, char) EI_ORIGINAL(0x00458010)
 
 // C3i. 005E70E0: CUiMesh sprite SetRectangle(depth, scale, left, top, right, bottom, u0, v0, u1, v1) (RET 0x28, EAX not a result).
 __declspec(naked) inline void __fastcall UiMeshRectangleOriginal(void* /*mesh*/, void*, float /*depth*/, float /*scale*/,
@@ -79,9 +77,8 @@ __declspec(naked) inline void __fastcall UiMeshRectangleOriginal(void* /*mesh*/,
                                                                  float /*bottom*/, int /*u0*/, int /*v0*/, int /*u1*/,
                                                                  int /*v1*/) EI_ORIGINAL(0x005E70E0)
 
-// C3i part 2. 005E70B0: sprite scale, unrounded in ST0 (ECX = sprite, plain RET). 005E7680: CUiMesh sprite cells (depth, scale,
-// left, top, right, bottom, u0, v0, u1, v1, count, flag; RET 0x30, EAX not a result).
-__declspec(naked) inline double __fastcall SpriteScaleOriginal(const void* /*sprite*/) EI_ORIGINAL(0x005E70B0)
+// C3i part 2. 005E7680: CUiMesh sprite cells (depth, scale, left, top, right, bottom, u0, v0, u1, v1, count, flag; RET 0x30,
+// EAX not a result).
 __declspec(naked) inline void __fastcall UiMeshCellsOriginal(void* /*mesh*/, void*, float /*depth*/, float /*scale*/,
                                                              float /*left*/, float /*top*/, float /*right*/,
                                                              float /*bottom*/, int /*u0*/, int /*v0*/, int /*u1*/,
@@ -98,11 +95,6 @@ __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, vo
 // 006B71C0: CSoundManager::StopAll(stopStream) (thiscall on the sound manager [007AF784], RET 4;
 // rewritten in sound_manager.cpp; the name is historical).
 
-// C3j. 005E7060: sprite SetScale (RET 4; the float is only copied to three fields, so it is raw dword bits; no result).
-__declspec(naked) inline void __fastcall SpriteSetScaleOriginal(void* /*sprite*/, void*, std::uint32_t /*scaleBits*/)
-    EI_ORIGINAL(0x005E7060)
-// 005E6D90: a sprite (CUiMesh) draws itself (thiscall, RET 4: the draw pass; no result).
-__declspec(naked) inline void __fastcall SpriteDrawOriginal(void* /*sprite*/, void*, int /*pass*/) EI_ORIGINAL(0x005E6D90)
 // 005E6FA0: sprite Place(x, y, z) (RET 0xC, no result).
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
@@ -127,9 +119,6 @@ __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface
 // 005F7E30 (Rebirth-patched; the second copy of the screen-to-layout point scaling; thiscall, RET 4): returns the new y.
 __declspec(naked) inline int __fastcall InterfacePointFromScreenCopyOriginal(const CInterface3D*, void*, tagPOINT* /*point*/)
     EI_ORIGINAL(0x005F7E30)
-// 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).
-__declspec(naked) inline void __fastcall RegionSetRectFromOriginal(class CUiRegion*, void*, int /*left*/, int /*top*/,
-                                                                   int /*right*/, int /*bottom*/) EI_ORIGINAL(0x0062AC90)
 // 005FCDD0: CUiSurface constructor in `memory` over the layout rectangle `rect` with format `format` (thiscall, RET 0xC,
 // returns `memory`; string_map.cpp and ui_console_window.cpp still have their own forwarders).
 __declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(void* /*memory*/, void*,
@@ -235,9 +224,6 @@ __declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*in
 __declspec(naked) inline void** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, void** /*result*/,
                                                                        void* /*hint*/, const void* /*pair*/)
     EI_ORIGINAL(0x00609E70)
-// 0065C2D0 (thiscall on an edit window, RET 4): its editing switched on (1) or off (0). The multiplayer hero screen's
-// name and rename edit windows.
-__declspec(naked) inline void __fastcall EditFieldActivateOriginal(void* /*edit*/, void*, int /*on*/) EI_ORIGINAL(0x0065C2D0)
 // 00615D30 (thiscall on the multiplayer hero screen, RET 4; Rebirth-patched, the vanilla body is
 // CMpHeroScreen::SetModeVanilla): the screen laid out for mode 9, 10 or 11.
 __declspec(naked) inline void __fastcall HeroScreenSetModeOriginal(void* /*screen*/, void*, int /*mode*/) EI_ORIGINAL(0x00615D30)
@@ -320,11 +306,6 @@ void __fastcall SetUpCursors(bool /*modeTwo*/, int /*context*/, int /*smallCurso
 void __fastcall ResetCursors(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/);
 
 // C3m. Thiscall members of game objects, called through these views (cast the object's pointer).
-// 005E7010 (rewritten as CUiMesh::GetPlacement): a sprite's layout position (x, y) and depth. Base of the views.
-struct SpritePositionOriginal {
-    void Position(float* x, float* y, float* depth);
-};
-__declspec(naked) inline void SpritePositionOriginal::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
 // 005FE700 (rewritten as CUiWindow::Construct): the window base constructor (returns this). Base of the views.
 struct WindowConstructOriginal {
     CUiWindow* Construct(CInterface3D* ui);

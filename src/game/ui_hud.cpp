@@ -690,10 +690,9 @@ void __fastcall ActionPanelReset(void* a0) { static_cast<CHudActionColumn*>(a0)-
 // ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
 // The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
 // CPlayerClient::SendFollow, through its address).
-// CUnit::GetQuickItem, CItem::GetCategory and the sprite's SetScale, through their addresses
-// (the camera's SetTarget too: CameraSetTargetOriginal).
+// The sprite's SetScale with the scale's bits (CUiMesh::SetScale).
 void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
-    SpriteSetScaleOriginal(sprite, nullptr, scaleBits);
+    static_cast<CUiMesh*>(static_cast<CFigureMesh*>(sprite))->SetScale(std::bit_cast<float>(scaleBits));
 }
 
 constexpr int kCategoryWand = 8;
@@ -1074,7 +1073,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         if (static_cast<std::uint8_t>(mode) != 0)
             view->SendGoTo(&units, &point, ctrl & 0xFF);
         else
-            LocalViewSendWalkOriginal(view, nullptr, &units, &point.x, ctrl & 0xFF);
+            view->SendWalk(&units, &point, ctrl & 0xFF);
     }
     units.vtable = reinterpret_cast<void*>(kUnitPtrArrayVtable);
     units.FreeData();

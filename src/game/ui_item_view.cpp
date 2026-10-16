@@ -67,21 +67,9 @@ std::uint32_t PackColour(const float* rgb) {
     return (((r | 0xFFFFFF00u) << 8) | g) << 8 | b;
 }
 
-// A sprite of the interface (CUiMesh) as the model view uses it (thiscall).
-struct Sprite : SpritePositionOriginal {
-    void Place(float x, float y, float depth);   // 005E6FA0 (Rebirth-patched)
-    void SetScale(float scale);                  // 005E7060 (+0x23C, +0x250, +0x264)
-    double Scale();                              // 005E70B0 (+0x23C, in ST0)
-    void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
-                      int u1, int v1);           // 005E70E0 (Rebirth-patched)
-    void Draw(int pass);                         // 005E6D90
-};
-void Sprite::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
-void Sprite::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-double Sprite::Scale() { return SpriteScaleOriginal((void*)this); }
-void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
-void Sprite::Draw(int pass) { SpriteDrawOriginal(this, nullptr, pass); }
-Sprite* AsSprite(void* p) { return static_cast<Sprite*>(p); }
+// A sprite of the interface (CUiMesh); the draw pass is the scene renderer.
+CUiMesh* AsSprite(void* p) { return static_cast<CUiMesh*>(p); }
+CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
 // The caches' STLport map (thiscall on the cache; library code): find into `out` (RET 8; the
 // model and the texture cache's own instantiations) and operator[] (RET 4; the value {object,
@@ -336,22 +324,22 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                       static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
         Set(frame, 0x280, objects_.data[2]);
-        AsSprite(frame)->Draw(pass);
+        AsSprite(frame)->Draw(PassRenderer(pass));
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
     }
 
     Set(model, 0xD4, PackColour(reinterpret_cast<const float*>(model + 0x224)));
     Set(model, 0x08, Get<std::uint32_t>(model, 0x08) | 0x100);
     if (Get<void*>(itemBytes, 0x44)) SetSpecular(1);
-    AsSprite(model)->Draw(pass);
+    AsSprite(model)->Draw(PassRenderer(pass));
     if (Get<void*>(itemBytes, 0x44)) SetSpecular(0);
 
     // A spell container's modifiers: a mark per modifier around the model (eight places).
     void* spell = Get<void*>(itemBytes, 0x44);
     if (Get<int>(itemBytes, 0x10) == 0x3008 && spell && reinterpret_cast<CSpell*>(spell)->GetModifierCount() > 0) {
         float px, py, pz;
-        AsSprite(model)->Position(&px, &py, &pz);
-        float scale = static_cast<float>(AsSprite(model)->Scale());
+        AsSprite(model)->GetPlacement(&px, &py, &pz);
+        float scale = AsSprite(model)->GetScaleX();
         CUiMesh* mark = AddSprite(0);
         AsSprite(mark)->SetRectangle(static_cast<float>(D(pz) * D(GameFloat(0x0073CD70))), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                                      0x20, 0x20);
@@ -381,7 +369,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
                 dy = d;
             float depth = static_cast<float>(D(pz) * D(GameFloat(0x0073CD70)));
             AsSprite(mark)->Place(static_cast<float>(D(dx) + D(px)), static_cast<float>(dy + D(py)), depth);
-            AsSprite(mark)->Draw(pass);
+            AsSprite(mark)->Draw(PassRenderer(pass));
         }
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(mark));
     }
@@ -398,7 +386,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         Set<std::uint32_t>(shade, 0x280, 0);
         Set(shade, 0x08, Get<std::uint32_t>(shade, 0x08) | 0x100);
         Set<std::uint32_t>(shade, 0xD4, 0x82804040);
-        AsSprite(shade)->Draw(pass);
+        AsSprite(shade)->Draw(PassRenderer(pass));
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(shade));
     }
 }
@@ -493,9 +481,9 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     AsSprite(frame)->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                                   static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
     Set(frame, 0x280, objects_.data[2]);
-    AsSprite(frame)->Draw(pass);
+    AsSprite(frame)->Draw(PassRenderer(pass));
     RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
-    AsSprite(model)->Draw(pass);
+    AsSprite(model)->Draw(PassRenderer(pass));
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
 // EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.

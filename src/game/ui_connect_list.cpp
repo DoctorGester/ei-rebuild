@@ -95,7 +95,7 @@ void CMpConnectScreen::DrawListVanilla() {
     const int show = newGame ? 1 : 0;
     playersSlider_->SetEnabled(show, 1);
     nameEdit_->SetEnabled(show, 1);
-    EditFieldActivateOriginal(nameEdit_, nullptr, show);
+    nameEdit_->SetFocused(show != 0);
     sprite(kSpriteUnlisted)->visible_ = show;
     sprite(kSpritePassword)->visible_ = show;
     if (!newGame) {

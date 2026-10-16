@@ -109,7 +109,7 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     Sprite(this, kMoreMark)->visible_ = 0;
     // The background alone, before anything else.
     Sprite(this, kBackground)->visible_ = 1;
-    SpriteDrawOriginal(sceneObjects_.data[kBackground], nullptr, pass);
+    Sprite(this, kBackground)->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
     Sprite(this, kBackground)->visible_ = 0;
 
     // The unit shown while the panel is not slid away: the hover unit, else the selected one.

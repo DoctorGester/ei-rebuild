@@ -329,7 +329,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         float base = static_cast<float>(D(y) + kMarkerHeight);
         marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
-        markerScale_ = static_cast<float>(SpriteScaleOriginal(marker));   // the sprite's scale (005E70B0, left in ST0)
+        markerScale_ = marker->GetScaleX();
         RECT rect;
         rect.left = static_cast<int>(gamecrt::Ftol(D(x) - kExitHalf));
         rect.top = static_cast<int>(gamecrt::Ftol(D(y) - kExitHalf));

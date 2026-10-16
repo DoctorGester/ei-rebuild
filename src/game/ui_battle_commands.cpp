@@ -76,7 +76,7 @@ __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Ve
 void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudQuickItems*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall SpellPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudSpellColumn*>((void*)a0)->Highlight(a2, a3); }
 void __fastcall ActionPanelSet(CUiWindow* a0, void*, int a2, int a3) { static_cast<CHudActionColumn*>((void*)a0)->Highlight(a2, a3); }
-void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { SpriteSetScaleOriginal(a0, nullptr, a2); }
+void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { static_cast<CUiMesh*>(a0)->SetScale(std::bit_cast<float>(a2)); }
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;
@@ -201,7 +201,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
-    if (units.size != 0) LocalViewSendAttackOriginal(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);
+    if (units.size != 0) LocalView(kWorld)->SendAttack(&units, target, kind, ctrl & 0xFF);
     units.vtable = reinterpret_cast<void*>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }

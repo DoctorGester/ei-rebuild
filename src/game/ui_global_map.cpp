@@ -96,13 +96,6 @@ __declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, voi
 __declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00631FF0)
 
-// Sprites (CUiMesh) beyond ui.h.
-struct SpriteOps : SpritePositionOriginal {
-    void SetScale(float scale);                         // 005E7060
-};
-void SpriteOps::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
-
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
 int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
@@ -202,7 +195,7 @@ public:
         CUiMesh* sprite = AddFigure(map_, figure);
         SetPosition(sprite, ModelPoint(local));
         SetTexture(sprite, Texture(1));
-        Ops(sprite)->SetScale(scale);
+        sprite->SetScale(scale);
         Turn(sprite);
         return sprite;
     }
@@ -256,7 +249,7 @@ void AddTipRegion(CUiWindow* window, int left, int top, int right, int bottom, i
 // A region over a marker sprite (its layout position): 20 to each side, 25 above, 10 below.
 void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
     float x, y, depth;
-    Ops(sprite)->Position(&x, &y, &depth);
+    sprite->GetPlacement(&x, &y, &depth);
     int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
     int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
     int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));
@@ -395,11 +388,11 @@ void CGlobalMap::Create() {
                     Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
-                    Ops(sprite)->SetScale(GameFloat(0x007420D0));
+                    sprite->SetScale(GameFloat(0x007420D0));
                     builder.Turn(sprite);
                     SetWhite(sprite);
                     float x, y, depth;
-                    Ops(sprite)->Position(&x, &y, &depth);
+                    sprite->GetPlacement(&x, &y, &depth);
                     ++questCount_;
                 }
             }
@@ -443,7 +436,7 @@ void CGlobalMap::Create() {
             Vector3 local = links_.data[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
-            Ops(sprite)->SetScale(GameFloat(0x007420D0));
+            sprite->SetScale(GameFloat(0x007420D0));
             builder.Turn(sprite);
             SetWhite(sprite);
             AddMarkerRegion(this, sprite);
@@ -676,7 +669,7 @@ void CGlobalMap::Update() {
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
-            Ops(sprite)->Position(&x, &y, &depth);
+            sprite->GetPlacement(&x, &y, &depth);
         }
         for (int i = 0; i < linkCount_; ++i) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + questCount_ + zoneCount_ + i]);
@@ -684,7 +677,7 @@ void CGlobalMap::Update() {
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
-            Ops(sprite)->Position(&x, &y, &depth);
+            sprite->GetPlacement(&x, &y, &depth);
             int bottom = static_cast<int>(gamecrt::Ftol(D(y) + D(GameFloat(0x0073BAAC))));
             int right = static_cast<int>(gamecrt::Ftol(D(x) + D(GameFloat(0x0073CCF8))));
             int top = static_cast<int>(gamecrt::Ftol(D(y) - D(GameFloat(0x0073E124))));

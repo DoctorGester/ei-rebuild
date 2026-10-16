@@ -47,7 +47,7 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
 // the step). The original inlines the same code after each sprite.
 __declspec(naked) void __fastcall EntriesSetSize(void*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x0064B060)
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
-void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScaleOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
+void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { static_cast<CUiMesh*>(static_cast<CFigureMesh*>(a0))->SetScale(a2); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
 void __fastcall SpritePlace(CEngineObject* a0, void*, float a2, float a3, float a4) { SpritePlaceOriginal((void*)a0, nullptr, a2, a3, a4); }
 

@@ -552,7 +552,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     double space = app::DiskFreeSpace(GameFolder());
     // 0 means unknown: no check (the original tests C3 alone, so a NaN counts as 0).
     if ((space < 0.0 || space > 0.0) && static_cast<double>(SaveSpaceNeeded(kFlow)) > space) return;
-    if (stepFrame) FrameStepOriginal(0, 1);
+    if (stepFrame) app::FrameStep(false, true);
     // A null surface (no memory) is used all the same, as in the original.
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     CUiSurface* surface = memory != nullptr

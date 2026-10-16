@@ -128,7 +128,7 @@ void CMainMenu::Create() {
         CUiRegion* region = AddRegion();
         RECT rect;
         gameapi::CopyRect(&rect, &MenuRects()[i]);
-        RegionSetRectFromOriginal(region, nullptr, rect.left, rect.top, rect.right, rect.bottom);
+        region->SetRectFrom(rect);
     }
     GamePlayMusic(nullptr);
     savedEdgeFade_ = MapEdgeFade();

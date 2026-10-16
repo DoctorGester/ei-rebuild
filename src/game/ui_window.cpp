@@ -198,7 +198,8 @@ void CUiWindow::RedrawTips() {
 EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
-    for (int i = 0; i < sceneObjects_.size; ++i) SpriteDrawOriginal(sceneObjects_.data[i], nullptr, pass);
+    for (int i = 0; i < sceneObjects_.size; ++i)
+        static_cast<CUiMesh*>(sceneObjects_.data[i])->Draw(reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)));
     for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
@@ -421,9 +422,6 @@ CEngineObject* NewModelObject(const char* name) {
 }
 // 0059F3D0 (thiscall on the object): attaches it to the window.
 void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { static_cast<CFigureMesh*>(a0)->SetObject(reinterpret_cast<CObject3D*>(a2)); }   // the window as the owner (sic)
-// 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
-double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
-void __fastcall SetSpriteScale(void* a0, void*, float a2) { SpriteSetScaleOriginal(a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 
 } // namespace
 
@@ -443,8 +441,8 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         x87::CopyFloat(&sprite->textureOffsetV_, &old->textureOffsetV_);
         std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
         sprite->texture_ = old->texture_;
-        float scale = static_cast<float>(SpriteScale(old));
-        SetSpriteScale(made, nullptr, scale);
+        float scale = static_cast<CUiMesh*>(old)->GetScaleX();
+        static_cast<CUiMesh*>(made)->SetScale(scale);
         sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);
         reinterpret_cast<ReleaseFn>((*reinterpret_cast<void***>(object))[4])(object);

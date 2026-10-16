@@ -174,7 +174,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     bool second = static_cast<std::uint8_t>(b) != 0;
     if (first && !second) {
         backdropMode_ = 3;
-        FrameStepOriginal(0, 1);
+        app::FrameStep(false, true);
     }
     // One window open (the byte difference with its low two bits cleared is 4).
     std::uint32_t bytes = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stackEnd_) -
@@ -184,7 +184,7 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
         if (!IsMultiplayerClient()) GameSetServerPaused(1);
         if (first && second) {
             backdropMode_ = 1;
-            FrameStepOriginal(0, 1);
+            app::FrameStep(false, true);
         }
     }
     ctrlDown_ = false;

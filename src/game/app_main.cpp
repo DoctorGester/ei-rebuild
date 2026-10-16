@@ -661,7 +661,7 @@ bool RunPass() {
         }
     }
     Interface()->Update();
-    FrameStepOriginal(static_cast<char>(MovieModeFlag()), 1);
+    app::FrameStep(static_cast<char>(MovieModeFlag()) != 0, true);
     return true;
 }
 
