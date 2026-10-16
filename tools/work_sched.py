@@ -457,14 +457,9 @@ class Scheduler:
             jobs = [(r['scenario'], r['install']) for r in runs]
             results = {(r['scenario'], r['install']): (r['result'], r['seconds'], json.loads(r['failures']), json.loads(r['notes']))
                        for r in runs}
-            totals = collections.defaultdict(lambda: [0, 0])
-            for r in runs:
-                for fn, (calls, bad) in json.loads(r['counts'] or '{}').items():
-                    totals[fn][0] += calls
-                    totals[fn][1] += bad
             out = io.StringIO()
             try:
-                ok = run_all.summary(jobs, results, totals, args, seconds_since(b['started']), out,
+                ok = run_all.summary(jobs, results, args, seconds_since(b['started']), out,
                                      root=b['worktree'], build=b['build'])
             except Exception:
                 out.write('\n' + traceback.format_exc())
@@ -480,7 +475,7 @@ class Scheduler:
         with work.transaction(self.db):
             self.db.execute("UPDATE batch SET state = CASE state WHEN 'cancelled' THEN 'cancelled' ELSE 'finished' END, "
                             "finished = ?, exit_code = ?, summary = ? WHERE id = ?", (work.now(), code, text, batch_id))
-            # Only summarise() reads the per-function counts (76 KB a run); the summary above has what the board shows.
+            # The per-function counts of the verify wrappers (76 KB a run; empty since S21d): nothing reads them.
             self.db.execute('UPDATE run SET counts = NULL WHERE batch = ? AND counts IS NOT NULL', (batch_id,))
         self.args.pop(batch_id, None)
         self.arg_errors.pop(batch_id, None)

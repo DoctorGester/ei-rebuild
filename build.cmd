@@ -18,15 +18,10 @@ cmake -S "%~dp0." -B "%~dp0build\%CFG%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% 
 cmake --build "%~dp0build\%CFG%" || exit /b 1
 rem Hooks registered through a virtual-call thunk recurse forever (rewrite-guide rule 4).
 python "%~dp0tools\check_thunks.py" || exit /b 1
-rem One address, one registration per kind (replacement, verify wrapper, recorder), read from the built DLL (SV6d).
+rem One address, one registration per kind (replacement, recorder), read from the built DLL (SV6d).
 python "%~dp0tools\check_registrations.py" --dll "%~dp0build\%CFG%\ei_hook.dll" || exit /b 1
-rem No direct call to our rewrite of a Rebirth-patched function (rewrite-guide rule 9, SV3c1); not in the debug build,
-rem whose unoptimised code leaves calls the optimised builds inline.
-if /i not "%CFG%"=="debug" python "%~dp0tools\check_patched_calls.py" --dll "%~dp0build\%CFG%\ei_hook.dll" --map "%~dp0build\%CFG%\ei_hook.map" || exit /b 1
 rem Double constants folded from a product the original computes at 24 bits (SV7d1a); not in the debug build.
 if /i not "%CFG%"=="debug" python "%~dp0tools\check_fp_fold.py" --dll "%~dp0build\%CFG%\ei_hook.dll" || exit /b 1
-rem Replacements declared void whose game callers use EAX afterwards (UnitActionPoint, AddSurface).
-python "%~dp0tools\check_returns.py" --map "%~dp0build\%CFG%\ei_hook.map" || exit /b 1
 rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<area>.h (ticket C3).
 python "%~dp0tools\check_forwarders.py" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.

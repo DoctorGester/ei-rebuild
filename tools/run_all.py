@@ -381,11 +381,9 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env):
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
     failures = [l[8:] for l in report.splitlines() if l.startswith('FAILED: ')]
+    # The verify wrappers' per-function totals until S21d; the slot stays in the result (the reference cache
+    # and the work database's run rows keep its shape), always empty.
     counts = {}
-    for line in report.splitlines():
-        m = re.match(r'(.+?)\s+(\d+) calls\s+(\d+) mismatches$', line)
-        if m:
-            counts[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
     notes = [l for l in (proc.stdout + proc.stderr).splitlines()
              if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l
              or l.startswith('ei_standalone: ') and 'imports resolved, 0 missing' not in l]
@@ -588,7 +586,7 @@ def run_with_retries(name, install, retries, folder=None, runner=run, keep=None)
     first_failures = failures
     first_log = None
     for attempt in range(1, retries + 1):
-        if result == 'PASS' or any(bad for _, bad in counts.values()):   # never retry away a mismatch
+        if result == 'PASS':
             break
         kept = keep(folder or f'{name}-{install}', attempt) if keep else None
         if attempt == 1:
@@ -998,11 +996,10 @@ def line(name, install, result, seconds, failures, notes, root=ROOT, build=BUILD
     return text
 
 
-def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUILD):
-    """Prints what follows the table: runs not passed, message boxes after quit, verify mismatches and the
-    totals line (--widescreen's frames and --golden come after it). results:
-    {(scenario, install): (result, seconds, failures, notes)} for every job; totals: {function:
-    [calls, mismatches]}. True when every run passed."""
+def summary(jobs, results, args, elapsed, out=None, root=ROOT, build=BUILD):
+    """Prints what follows the table: runs not passed, message boxes after quit and the totals line
+    (--widescreen's frames and --golden come after it). results: {(scenario, install): (result, seconds,
+    failures, notes)} for every job. True when every run passed."""
     out = out or sys.stdout
     ok = all(r[0] in ('PASS', 'PASS*') for r in results.values())
     failed = [(n, i) for n, i in jobs if results[(n, i)][0] not in ('PASS', 'PASS*')]
@@ -1016,11 +1013,6 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
               + ', '.join(f'{n}-{i}' for n, i in exits), file=out)
     window_check(jobs, out, build)
     net_check(jobs, out, build)
-    bad = sorted((fn, c) for fn, c in totals.items() if c[1])
-    if bad:
-        print('\nverify mismatches:', file=out)
-        for fn, (calls, mismatches) in bad:
-            print(f'  {fn}: {mismatches} of {calls}', file=out)
     print(f'\n{len(jobs)} runs in {elapsed:.0f}s with {args.jobs} at once', file=out)
     print('ALL PASS' if ok else 'SOME RUNS FAILED', file=out)
     return ok
@@ -1101,7 +1093,6 @@ def main():
     times = expected_times(jobs, db=db)
     order = sorted(jobs, key=lambda j: -(times[j] if times[j] is not None else 1000))   # new scenarios first
 
-    totals = collections.defaultdict(lambda: [0, 0])
     results = {}
     lock = threading.Lock()
     started = time.time()
@@ -1115,18 +1106,15 @@ def main():
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
-            result, seconds, failures, counts, notes = future.result()
+            result, seconds, failures, _, notes = future.result()
             with lock:
                 results[(name, install)] = (result, seconds, failures, notes)
                 record_time(db, name, install, seconds, result, notes=notes)
-                for fn, (calls, bad) in counts.items():
-                    totals[fn][0] += calls
-                    totals[fn][1] += bad
                 print(line(name, install, result, seconds, failures, notes))
                 sys.stdout.flush()
 
     save_times({f'{n}-{i}': r[1] for (n, i), r in results.items()})
-    ok = summary(jobs, results, totals, args, time.time() - started)
+    ok = summary(jobs, results, args, time.time() - started)
     if args.widescreen:
         ok = widescreen_check(jobs, args.record) and ok
     if args.golden:

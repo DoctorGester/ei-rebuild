@@ -4,8 +4,8 @@
 // and AFX_EXCEPTION_LINK's chain (ticket S8, docs/notes/standalone.md section 2). The objects keep
 // the exe's layout and vtables, and a throw goes through the game's _CxxThrowException with the
 // exe's throw information, so a handler in original code and one in ours (mfc_try.h) catch it the
-// same way. Every body is registered at its library address (mfc_exception.cpp) and checked by
-// tests/verify/verify_mfc_exception.cpp.
+// same way. Every body is registered at its library address (mfc_exception.cpp) and checked in game by
+// verify_mfc_exception.cpp until S21d.
 
 #include "mfc_string.h"
 #include "mfc_try.h"

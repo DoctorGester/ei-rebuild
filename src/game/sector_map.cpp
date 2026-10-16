@@ -217,8 +217,8 @@ EI_REPLACE_METHOD(0x005BF5F0, RadiusTree::Build);
 // ---- The spiral's tables ------------------------------------------------------------------------
 //
 // Built by a static initialiser, before the hooks are installed: the builder is registered at the
-// original's addresses, but a running game never calls it. What it builds is compared with the
-// original's tables once at start-up (tests/verify/verify_ai_static_tables.cpp).
+// original's addresses, but a running game never calls it. What it builds was compared with the
+// original's tables once at start-up (verify_ai_static_tables.cpp until S21d).
 
 namespace {
 

@@ -8,7 +8,7 @@
 // ConstructElements builds a new one, how DestructElements destroys it). ListAbi / MapAbi turn the
 // members into the instantiations' calling conventions (__thiscall as __fastcall with EDX unused);
 // mfc_list.cpp registers the library-only instantiations, src/game/game_lists.cpp the ones whose
-// elements are game types. Checked by tests/verify/verify_mfc_list.cpp.
+// elements are game types. Checked in game by verify_mfc_list.cpp until S21d.
 
 #include "mfc_array.h"
 

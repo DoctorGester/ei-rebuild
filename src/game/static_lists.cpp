@@ -1,5 +1,5 @@
-// Static initialisers' list constructors (static_lists.h). Checked by
-// tests/verify/verify_static_lists.cpp.
+// Static initialisers' list constructors (static_lists.h). Checked in game by
+// verify_static_lists.cpp until S21d.
 #include "static_lists.h"
 
 #include "app_helpers.h"

@@ -137,7 +137,7 @@ __declspec(naked) inline void __fastcall AiMemoryNoticeOriginal(void* /*memory*/
 // C3k. 004CB770: destructor of the AI look array (vtable 0073D460; frees the buffer; plain RET, EAX not a result).
 __declspec(naked) inline void __fastcall AiLookArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004CB770)
 // 005CA050 (rewritten as CopyPoint2): called through its address where the UpdateMemory check counts
-// the inline notices (verify_unit_ai_brain.cpp).
+// the inline notices (verify_unit_ai_brain.cpp until S21d).
 __declspec(naked) inline float* __fastcall CopyPoint2Original(float* /*out*/, const float* /*point*/) EI_ORIGINAL(0x005CA050)
 // 00552CF0 (rewritten as UnitController::AddHostileMask), through its address so its wrapper sees the calls.
 __declspec(naked) inline std::uintptr_t __fastcall ControllerAddHostileMaskOriginal(void* /*controller*/, void*, std::uint32_t /*mask*/)

@@ -1,7 +1,7 @@
 // The two worlds' compiler-generated constructors (S3b): CWorldServer 00589ED0 (the global at
 // 007AFF60) and CWorldClient 005612F0 (007AF5B8). Only their static initialisers call them, before
 // the hooks are installed, so the hook build checks them at start-up against what the originals
-// built (tests/verify/verify_global_constructors.cpp); the standalone image runs them. Each is the
+// built (verify_global_constructors.cpp until S21d); the standalone image runs them. Each is the
 // base constructor, then the members' constructors in the original's order (the inlined ones written
 // out, the out-of-line ones the game's own registered rewrites), the vtable, and the fields set
 // after it.

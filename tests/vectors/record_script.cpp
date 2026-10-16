@@ -1,4 +1,4 @@
-// Record mode for the "script" family (script_vectors.h). Stolen bytes as in verify_script_parse.cpp.
+// Record mode for the "script" family (script_vectors.h). Stolen bytes as in verify_script_parse.cpp (S21d deleted it).
 // Every scenario loads scripts (the zone's and the interface's), so every one reaches the lexer.
 #include "crt_vectors.h"
 #include "script_vectors.h"

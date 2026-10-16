@@ -2,7 +2,7 @@
 
 // The STLport hashtable instantiations whose values are game objects (ticket S11a): lib/stlp_hash.h's
 // hashtable over traits of the game's ported types, registered in game_hashes.cpp at the
-// instantiations' addresses; checked by tests/verify/verify_stlp_hash.cpp.
+// instantiations' addresses; checked in game by verify_stlp_hash.cpp until S21d.
 
 #include "ai_shape_cache.h"
 #include "party.h"

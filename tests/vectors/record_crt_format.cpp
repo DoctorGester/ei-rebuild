@@ -1,5 +1,5 @@
 // Record mode for the game CRT's formatted text (crt_format_vectors.h): sprintf and vsprintf run the
-// original _output (006F17D4) as the originals do (as verify_crt_format.cpp does), atof its original
+// original _output (006F17D4) as the originals do (as verify_crt_format.cpp did), atof its original
 // through the trampoline. Every scenario reaches them (file names, interface text, the databases'
 // numbers).
 #include "crt_format_vectors.h"

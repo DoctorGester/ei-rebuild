@@ -4,7 +4,7 @@
 // afxwin1.inl): tickets S8 (the members that reach GDI without a handle map) and S8a (FromHandle,
 // SelectObject, CGdiObject's Attach / Detach / DeleteObject, CPen's constructor, CFont's point
 // fonts, the CDC slots the interface calls, docs/notes/standalone.md section 2). Registered at their
-// library addresses (mfc_gdi.cpp), checked by tests/verify/verify_mfc_gdi.cpp. The callers (ui_gdi.h's
+// library addresses (mfc_gdi.cpp), checked in game by verify_mfc_gdi.cpp until S21d. The callers (ui_gdi.h's
 // GameDC, GamePen, GameFont) keep going through the forwarders until C13.
 //
 // The handle maps are MFC's module thread state: the hook build uses the original's (afxMapHDC

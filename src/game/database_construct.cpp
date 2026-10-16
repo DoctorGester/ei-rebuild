@@ -1,7 +1,7 @@
 // The compiler-generated constructors of the resource databases (S3b). Only the static
 // initialisers call them, before the hooks are installed (the spell and item databases' also the
 // resource switch 0057CB50 and reload 0057DEE0 of a network game), so the hook build checks them at
-// start-up against what the originals built (tests/verify/verify_global_constructors.cpp); the
+// start-up against what the originals built (verify_global_constructors.cpp until S21d); the
 // standalone image runs them. Each is the members' constructors inlined: an STLport vector empty,
 // a hash_map with 100 buckets (STLport rounds it up to 193).
 #include "acks_db.h"

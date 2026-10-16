@@ -1,6 +1,6 @@
 // The game's STLport list<T> instantiations (stlp_list.h), registered at their own addresses so the
-// standalone image has them; the forwarders in src/game keep calling these addresses. Checked by
-// tests/verify/verify_stlp_list.cpp. Instantiations whose node holds the same kind of element share
+// standalone image has them; the forwarders in src/game keep calling these addresses. Checked in game by
+// verify_stlp_list.cpp until S21d. Instantiations whose node holds the same kind of element share
 // one shim; the groups were found by comparing the instructions of every instantiation our code
 // forwards to (addresses and jump targets masked).
 #include "stlp_list.h"

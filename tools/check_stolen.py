@@ -1,6 +1,7 @@
-"""Checks the stolen-byte counts of every EI_VERIFY and EI_RECORD registration against the original code.
+"""Checks the stolen-byte counts of every EI_RECORD / EI_RECORD_OURS registration against the original code.
 
-A verify wrapper calls the original through a trampoline holding the function's first N bytes.
+A vector recorder (tests/vectors/record_*.cpp; EI_VECTORS recording in the original game) calls the
+original through a trampoline holding the function's first N bytes.
 N must end on an instruction boundary, be at least 5, and the copied instructions must not be
 IP-relative (CALL/JMP/Jcc rel). A wrong N jumps into the middle of an instruction and crashes
 only when that function first runs, which can be deep into a harness run.
@@ -23,10 +24,9 @@ def main():
         r'\{0x([0-9A-F]+), (\d+)\}', open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')).read())}
     bad = 0
     total = 0
-    for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) +
-                       glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp'))):
+    for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp'))):
         text = open(path, encoding='utf-8').read()
-        for m in re.finditer(r'EI_(?:VERIFY|RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*[\w:<>]+\s*,\s*(\d+)\s*,', text):
+        for m in re.finditer(r'EI_(?:RECORD|RECORD_OURS)\(\s*0x([0-9A-Fa-f]+)\s*,\s*[\w:<>]+\s*,\s*(\d+)\s*,', text):
             address, stolen = int(m.group(1), 16), int(m.group(2))
             if stolen == 0:
                 continue
@@ -56,7 +56,7 @@ def main():
                         target = int(insn.op_str, 16)
                         if address < target < address + stolen:
                             problem = (f'the body jumps back into the stolen bytes ({insn.mnemonic} at '
-                                       f'{insn.address:08X} -> +{target - address}); verify ours only (0)')
+                                       f'{insn.address:08X} -> +{target - address})')
                             break
             if problem:
                 bad += 1

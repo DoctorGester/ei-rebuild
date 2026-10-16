@@ -2,7 +2,7 @@
 
 // The CList<T> instantiations whose elements the game destroys through its own code (ticket S7):
 // lib/mfc_list.h's templates over the game's element types, the element destructors ours (called
-// directly). Registered in game_lists.cpp; checked by tests/verify/verify_mfc_list.cpp.
+// directly). Registered in game_lists.cpp; checked in game by verify_mfc_list.cpp until S21d.
 
 #include "lib/mfc_list.h"
 #include "lib/stlp.h"

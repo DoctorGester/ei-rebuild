@@ -18,7 +18,7 @@
 // Evaluation. The helpers below the float_control line are compiled with precise semantics whatever
 // the including file's flags (the build is /fp:precise since SV7d1a; /fp:fast regrouped an inlined
 // sum with the caller's expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ...,
-// tests/verify/verify_vecmath.cpp checks it); precise keeps the grouping written here. Each
+// verify_vecmath.cpp caught it); precise keeps the grouping written here. Each
 // helper's float results are rounded to float when returned (as an FSTP to a float would round
 // them). On the game's main thread (x87 at 24-bit precision) every operation already rounds to a
 // float significand, so this gives the original's bits; on 53-bit threads it is plain float maths,

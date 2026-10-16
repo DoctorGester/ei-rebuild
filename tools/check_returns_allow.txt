@@ -1,3 +1,0 @@
-# Reviewed false positives of tools/check_returns.py (replacements declared void whose game call
-# sites seem to read EAX). One per line: <function address> <call site address, or *>  # reason
-006E7819 *  # _CxxThrowException does not return (RaiseException, not continuable): the code after the call is another path

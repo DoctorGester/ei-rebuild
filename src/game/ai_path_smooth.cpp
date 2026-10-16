@@ -6,8 +6,8 @@
 // Its transition tables (SmoothTables, 81 of them) are built once by a static initialiser, before
 // the hooks are installed: the builder at the end of this file is registered at the original's
 // addresses, but in a running game only its exit half (SmoothTable::Destruct) is ever called. What
-// it builds is compared with the original's tables once at start-up (tests/verify/
-// verify_ai_static_tables.cpp).
+// it builds was compared with the original's tables once at start-up (verify_ai_static_tables.cpp,
+// until S21d); the goldens check it now.
 #include "ai_map.h"
 
 #include "ei/hook.h"

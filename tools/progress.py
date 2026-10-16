@@ -1,4 +1,4 @@
-"""Reports rewrite progress: functions replaced in src/ and how many of them are verified.
+"""Reports rewrite progress: functions replaced in src/.
 
 Counts EI_REPLACE / EI_REPLACE_METHOD registrations against the game functions in
 config/functions.csv (sizes from src/hook/function_sizes.inc).
@@ -36,11 +36,6 @@ def main():
             if f.endswith('.cpp'):
                 text = open(os.path.join(dirpath, f), encoding='utf-8').read()
                 replaced |= {int(a, 16) for a in re.findall(r'(?:EI_REPLACE(?:_METHOD|_SHORT|_DISPATCH)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)', text)}
-    verified = set()
-    for line in open(os.path.join(ROOT, 'tests', 'verify', 'verified.txt')):
-        m = re.match(r'([0-9A-Fa-f]{8})\b', line)
-        if m:
-            verified.add(int(m.group(1), 16))
 
     # Only rewrites of counted game code count; hooks on library or dead code are listed separately.
     other = replaced - game
@@ -49,7 +44,6 @@ def main():
     print(f'game functions: {len(game)} ({game_bytes:,} bytes; excluded: library {lib_bytes:,}, dead {dead_bytes:,})')
     print(f'rewritten:      {len(replaced)} ({rb:,} bytes, {100 * rb / game_bytes:.2f}% of game code)'
           f' + {len(other)} library/dead/other')
-    print(f'verified:       {len(verified & replaced)} of them listed in tests/verify/verified.txt')
 
 
 # ---- cleanup artefacts (docs/cleanup-plan.md, "Hook-era leftovers the plan removes") -------------------------------------

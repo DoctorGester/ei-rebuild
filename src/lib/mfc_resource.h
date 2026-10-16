@@ -6,7 +6,7 @@
 // which is null in both builds (the game never runs AfxWinInit), through the exe's import slot. In
 // game.exe that is the process's own module; in the standalone image the host's LoadStringA wrapper
 // maps null to game.exe loaded as a data file (S14). Registered at the library addresses
-// (mfc_resource.cpp), checked by tests/verify/verify_mfc_resource.cpp.
+// (mfc_resource.cpp), checked in game by verify_mfc_resource.cpp until S21d.
 
 #include "mfc_string.h"
 

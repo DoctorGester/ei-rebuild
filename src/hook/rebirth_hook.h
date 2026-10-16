@@ -37,12 +37,6 @@ enum class Verdict {
 Verdict Check(std::uintptr_t address, std::uint32_t size, const unsigned char* orig, int stolen,
               char* why, std::size_t whySize);
 
-// A verify wrapper compares with the original in memory. True when the rewrite applies an
-// enabled patch that the original here does not have (a vanilla launch with the flag on): the
-// function then runs without its wrapper. Writes the patch to `why`.
-bool FlagWithoutOriginal(std::uintptr_t address, std::uint32_t size, const unsigned char* orig,
-                         char* why, std::size_t whySize);
-
 // After MakeTrampoline copied `stolen` live bytes of `address` to `trampoline`: re-targets the
 // CALL/JMP rel32 that addon.dll wrote at the start of a site in that range, so the trampoline
 // still reaches addon's code. Returns false if a site in the range cannot be moved.

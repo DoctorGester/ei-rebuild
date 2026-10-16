@@ -4,8 +4,8 @@
 // registers its destructor with atexit; the constructor (004DDD6F) calls Create, which collects
 // everything (004DDF28). All of that runs before the hooks install, so the game never reaches the
 // rewrites of the initialisers, the constructor, the collector and its helpers; a start-up check
-// compares what they build with what the original built
-// (tests/verify/verify_static_initialisers.cpp). The destructor (at exit) and the virtual slots
+// compared what they build with what the original built
+// (verify_static_initialisers.cpp until S21d). The destructor (at exit) and the virtual slots
 // can run later. The original is compiled without optimisation (every function keeps a frame and
 // spills ECX). See docs/notes/script.md (A-S11, A-E2).
 #include "sys_info.h"

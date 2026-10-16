@@ -1,8 +1,8 @@
 // The scalar deleting destructors the exe's vtables point at and the destructors they call, for the
 // instantiations whose elements need nothing of the game (mfc_slots.h, ticket S6a); the game-element
 // ones are in src/game/game_slots.cpp. Each deleting destructor calls its class's destructor directly
-// (the original calls it by address), the destructors are the S6 / S7 templates. Checked by
-// tests/verify/verify_mfc_slots.cpp.
+// (the original calls it by address), the destructors are the S6 / S7 templates. Checked in game by
+// verify_mfc_slots.cpp until S21d.
 #include "mfc_slots.h"
 
 #include "crt.h"

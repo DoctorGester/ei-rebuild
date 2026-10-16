@@ -3,7 +3,7 @@
 // Element policies (lib/stlp_vector.h) of the game's vector<T> instantiations whose elements are
 // game records with their own copy constructor, operator= and destructor (S10a), and the
 // VectorAbi types record_vectors.cpp registers at the instantiations' addresses
-// (tests/verify/verify_record_vectors.cpp checks them). docs/notes/standalone.md, S10a.
+// (verify_record_vectors.cpp checked them until S21d). docs/notes/standalone.md, S10a.
 
 #include "acks_db.h"
 #include "engine_object.h"

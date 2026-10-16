@@ -2,7 +2,7 @@
 
 // The scalar deleting destructors (and the destructors they call) of the MFC collections whose
 // elements the game destroys through its own code (ticket S6a; the library-only ones are
-// lib/mfc_slots.h's). Registered in game_slots.cpp; checked by tests/verify/verify_mfc_slots.cpp.
+// lib/mfc_slots.h's). Registered in game_slots.cpp; checked in game by verify_mfc_slots.cpp until S21d.
 
 #include "lib/mfc_slots.h"
 #include "game/game_arrays.h"

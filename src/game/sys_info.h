@@ -78,8 +78,8 @@ inline CSysInfo* TheSysInfo() { return reinterpret_cast<CSysInfo*>(0x007AB8F8); 
 // object's base destructor).
 void __fastcall SysInfoDestruct(CSysInfo* self);
 
-// The translation unit's static initialisers (they run before WinMain; a start-up check compares
-// what they left, tests/verify/verify_static_initialisers.cpp). The four constants: 2 pi at
+// The translation unit's static initialisers (they run before WinMain; a start-up check compared
+// what they left, verify_static_initialisers.cpp until S21d). The four constants: 2 pi at
 // 007AB8F0, pi / 2 at 007ABA00, pi / 4 at 007ABA04, 1 / pi at 007ABA08 (copies of a header's
 // constants; nothing found reading these).
 void __cdecl SysInfoInitTwoPi();       // 004DDCBA
