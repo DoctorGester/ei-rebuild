@@ -66,7 +66,7 @@ ones directly.
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 
-C12 took `__asm` blocks in `src/` from 221 to 7 and left one `float_control` pair. The build is `/fp:precise` on x87. The rules the
+C12 and C12a took `__asm` blocks in `src/` from 221 to 3 and left one `float_control` pair. The build is `/fp:precise` on x87. The rules the
 conversions follow (they keep the goldens and `ei_vectors` unchanged):
 
 - A `double` local or a `double` expression stands for an unrounded register: at 24-bit (main thread) and 53-bit precision control,
@@ -84,8 +84,13 @@ conversions follow (they keep the goldens and `ei_vectors` unchanged):
   `check_cleanup` asks for.
 
 `vecmath.h`'s `float_control(precise, on)` pair was redundant under `/fp:precise` (0 of 723 objects compiled differently without it)
-and is gone; the `precise, off` pair around the Unrounded helpers stays (39 objects differ without it). Left: the long transcriptions
-`InvertModelMatrix` and `CrownBlend` (figure_part_draw), `EmitFirstSection` and `EmitSection` (renderer_strip) (ticket C12a), and the
+and is gone; the `precise, off` pair around the Unrounded helpers stays (39 objects differ without it). The long transcriptions
+(`InvertModelMatrix`, `CrownBlend` in figure_part_draw, `EmitFirstSection`, `EmitSection` in renderer_strip; C12a) are C++ whose
+object code does the same operations with the same rounding points: a value the original keeps on the FPU stack across a loop or a
+reload is a `double` local (CrownBlend's unrounded red average for the first colour, `double redTarget = red` then the rounded one),
+and a float the original reloads after storing is read back from the float. Check a conversion by tracing the compiled x87 stack
+(`dumpbin /disasm` of the object, before and after): the compiler adds harmless qword stores of doubles and float stores/reloads
+for every `static_cast<float>`. Left: the
 register / stack shims `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick, reads
 the caller's frame), which go with the call-site work (C12b). `include/ei/x87.h` and `src/hook` (the hook framework) and
 `src/lib/crt_x87.cpp` (the CRT's register entries) keep theirs by design.

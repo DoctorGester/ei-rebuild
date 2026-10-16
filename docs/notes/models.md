@@ -88,7 +88,7 @@ Facts not in the code comments:
   (0051CE60), the renderer (00503A40) and 006CEDE0.
 - **Figure parts**: mesh +8 flags 0x40 drawn (cleared first), 0x80 hidden (nothing more, not even the finishing call), 0x10
   lit, 0x100 flat colours; +0x98 owner (CObject3D, its figure at +0xF0 draws the mesh when present), +0x15C mesh type
-  (13..16 animated), +0x188 clip bounds. With 0079BD28 set the mesh named "crown" has every colour pulled halfway to the
+  (13..16 animated), +0x188 clip bounds. With 0079BD28 set the mesh named "crown" has every colour pulled 0.6 of the way (0073CDE0) to the
   average. The plain variant (005A7640) clears the drawn flag only after the hidden test, has its own moved-positions static
   (007C2E60, guard 007C2E70, freed by 005A7A50) and sets the drawn flag whenever the draw did not return 2.
 - **Material draw**: the device's current material (+0x14C): +8 blend flag, +0xC / +0x10 source / destination blend, +0x14
