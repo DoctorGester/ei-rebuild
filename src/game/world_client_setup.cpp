@@ -1,5 +1,6 @@
 // The client world's set-up at startup: SetUpGraphics (00563710) and the light colours by hour
 // from the lights table (LoadLights, 00563930; config\LightsGipat.ini). See world.h.
+#include "material.h"
 #include "world.h"
 
 #include "model.h"
@@ -169,7 +170,7 @@ void CWorldClient::LoadSky() {
     object->LoadFromMemory(&data, 0.0f, 0.0f, 0.0f);
     object->flags_ |= kSkyObjectFlag;
     AssignCounted(skyDome_->object, object);
-    auto* material = reinterpret_cast<CEngineObject*>(MaterialCreateOriginal(MaterialManager(), nullptr, kSkyMaterialType));
+    auto* material = reinterpret_cast<CEngineObject*>(static_cast<CMaterialManager*>(MaterialManager())->NewMaterial(kSkyMaterialType));
     AssignCounted(skyDome_->material, material);
 }
 EI_REPLACE_METHOD(0x00562F70, CWorldClient::LoadSky);

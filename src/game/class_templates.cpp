@@ -10,6 +10,7 @@
 #include "core_refcount.h"
 #include "item.h"
 #include "item_db.h"
+#include "item_stock.h"
 #include "party.h"
 #include "party_manager.h"
 #include "lib/crt.h"
@@ -79,7 +80,6 @@ static RawString* StringFromChars(RawString* s, void*, const char* text, const v
 void AddArmor(void* list, void*, void* record) { StockAddArmorOriginal(list, nullptr, record); }
 void AddWeapon(void* list, void*, void* record) { StockAddWeaponOriginal(list, nullptr, record); }
 void AddQuickItem(void* list, void*, void* record) { StockAddQuickItemOriginal(list, nullptr, record); }
-__declspec(naked) void __fastcall AddFourthKind(void*, void*, void*, int, int) EI_ORIGINAL(0x00699260)
 void AddSpell(void* list, void*, void* record) { StockAddSpellOriginal(list, nullptr, record); }
 void AddModifier(void* list, void*, void* record) { StockAddModifierOriginal(list, nullptr, record); }
 
@@ -135,7 +135,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         StringFromChars(&key, nullptr, names.data[i], &alloc);
         void* record = *FourthKindAt(kFourthKindMap, nullptr, &key);
         StlStringDestroy(&key);
-        if (record && Allowed(t, static_cast<itemdb::MaterialRecordHead*>(record)->classMask)) AddFourthKind(AllList(t), nullptr, record, 0x14, 0x32);
+        if (record && Allowed(t, static_cast<itemdb::MaterialRecordHead*>(record)->classMask)) t->allowed.AddMaterial(static_cast<char*>(record), 0x14, 0x32);
     }
 
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.

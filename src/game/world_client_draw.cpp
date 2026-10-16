@@ -8,6 +8,7 @@
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
 #include "ground_print.h"
+#include "renderer_lines.h"
 #include "world.h"
 
 #include "camera.h"
@@ -365,7 +366,7 @@ EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
 // 00569D60 (A-W13).
 int CWorldClient::DrawLineLists() {
     for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
-        LineListDrawOriginal(node->value, nullptr, ScenePipeline(), RenderDeviceObject());
+        static_cast<LineBatch*>(node->value)->Draw(ScenePipeline(), RenderDeviceObject());
     return 1;
 }
 EI_REPLACE_METHOD(0x00569D60, CWorldClient::DrawLineLists);

@@ -89,7 +89,7 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp, 4);
     ar->Field(2, &money, 4);
-    ArchiveCStringsOriginal(ar, nullptr, 3, &lists[0], ar);
+    ar->SerializeCStrings(3, &lists[0], ar);
     ar->StringField(4, &text);
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
     ar->Field(10, &field10, 4);

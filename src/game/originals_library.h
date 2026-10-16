@@ -90,7 +90,6 @@ __declspec(naked) inline void __fastcall StringSplit(const char* /*text*/, void*
     EI_ORIGINAL(0x004DBE40)
 // The game's growing byte buffer (vtable 0073CA48 / 0073D624, 0x1C bytes): 004DA7F0 constructs it and returns
 // `this` (plain RET), 004DA910 destroys it (plain RET).
-__declspec(naked) inline void* __fastcall GrowingBufferConstruct(void* /*buffer*/) EI_ORIGINAL(0x004DA7F0)
 __declspec(naked) inline void __fastcall GrowingBufferDestruct(void* /*buffer*/) EI_ORIGINAL(0x004DA910)
 // STLport string (begin / end / capacity rep): 0040C5A0 constructs it from text and an allocator and returns
 // `this` (RET 8); 0040C770 frees the buffer back to the node allocator (plain RET).
@@ -212,8 +211,6 @@ __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*byt
 // 00421800: STLport string constructor with room for n bytes (RET 8: allocator, n; returns `this`).
 __declspec(naked) inline void* __fastcall StringReserveOriginal(void* /*string*/, void*, const void* /*alloc*/,
                                                                 std::size_t /*n*/) EI_ORIGINAL(0x00421800)
-// 00426450: the string allocator's deallocate(p, n) (RET 8; ECX and EDX are not read, so the dummies are dropped).
-__declspec(naked) inline void __stdcall StringDeallocateOriginal(char* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426450)
 // 00427830: CPtrList destructor (plain RET); 00429F10: CPtrList::RemoveAll (plain RET). EAX is not a result.
 __declspec(naked) inline void __fastcall PtrListDestructOriginal(void* /*list*/) EI_ORIGINAL(0x00427830)
 __declspec(naked) inline void __fastcall PtrListRemoveAllNodesOriginal(void* /*list*/) EI_ORIGINAL(0x00429F10)
@@ -389,10 +386,6 @@ __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, 
 __declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x0051F5B0)
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
-// 0052DF40 (thiscall on a ChunkArchive, RET 0xC, no result): a vector<CString> as chunk `id` (loading: the vector is
-// emptied and resized to the chunk's count of fields 1); the third argument, the archive again, is unused.
-__declspec(naked) inline void __fastcall ArchiveCStringsOriginal(void* /*archive*/, void*, int /*id*/, void* /*strings*/,
-                                                                 void* /*unused*/) EI_ORIGINAL(0x0052DF40)
 
 // C3l. MSVC 6 ostream members on the game's streams; all return the stream (`this`): 006FC14E operator<<(unsigned) (format "%u",
 // RET 4), 006FC91C operator<<(long) (format "%ld", RET 4; 006FC9C6 above is the "%d" one), 006FC7FA operator<<(double) (RET 8: the

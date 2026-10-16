@@ -191,12 +191,6 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
 EI_REPLACE_METHOD(0x005385A0, CUnitClientSpecific::RemoveArmourModel);
 
 namespace {
-// Not rewritten: 005168F0 (3D object: removes its first figure part named `name`, returning it),
-// 005169A0 (3D object: its first figure part named `name` in either part list, or null), 00518820
-// (3D object: a new part takes up the figure's current animation, when there is one).
-__declspec(naked) CEngineObject* __fastcall RemovePartNamed(CUnit*, void*, const char*) EI_ORIGINAL(0x005168F0)
-__declspec(naked) CEngineObject* __fastcall FindAnyPart(CUnit*, void*, const char*) EI_ORIGINAL(0x005169A0)
-__declspec(naked) void* __fastcall AnimateNewPart(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00518820)
 // Rewritten in item_parts.cpp / item.cpp, called through their addresses: 006A0FF0 the figure part
 // names of a weapon prototype (replacing the array's contents), 006A2B80 a weapon's type by
 // packed id.
@@ -222,7 +216,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);
-        for (int i = 0; i < names.GetSize(); ++i) RemovePartNamed(unit, nullptr, names[i]);
+        for (int i = 0; i < names.GetSize(); ++i) unit->RemovePartNamed(names[i]);
     }
     unit->activeWeapon = slot;
     weaponHidden = 0;
@@ -230,12 +224,12 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
         WeaponModelParts(next >> 16, &names);
         for (int i = 0; i < names.GetSize(); ++i) {
             CEngineObject* part = AddPart(unit, nullptr, names[i], model, FiguresFlag(unit));
-            if (part) AnimateNewPart(unit, nullptr, part);
+            if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
         if (hand != kNone && WeaponTypeOf(hand) == kWeaponBow) {
-            if (CEngineObject* arrow = FindAnyPart(unit, nullptr, kBowArrow)) {
+            if (CEngineObject* arrow = unit->FindPart(kBowArrow)) {
                 arrow->flags_ |= kArrowPartFlag;
                 arrowHidden = 1;
             }
@@ -255,7 +249,7 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     console::CStringArray names;
     if (hand != kNone) WeaponModelParts(hand >> 16, &names);
     for (int i = 0; i < names.GetSize(); ++i) {
-        if (CEngineObject* part = FindAnyPart(unit, nullptr, names[i])) {
+        if (CEngineObject* part = unit->FindPart(names[i])) {
             if (hidden) part->flags_ |= kArrowPartFlag;
             else part->flags_ &= ~kArrowPartFlag;
         }
@@ -270,7 +264,7 @@ namespace {
 CEngineObject* BowArrow(CUnitClientSpecific* self) {
     std::uint32_t hand = WeaponIdOf(self, self->unit->activeWeapon);
     if (hand == kNone || WeaponTypeOf(hand) != kWeaponBow) return nullptr;
-    return FindAnyPart(self->unit, nullptr, kBowArrow);
+    return self->unit->FindPart(kBowArrow);
 }
 
 // The original's x87 tests: `frame` was passed between the last update and now (not when the

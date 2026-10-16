@@ -178,7 +178,7 @@ EI_REPLACE_METHOD(0x00442570, BufferCursor::FlushBits);
 // growing buffer), destructor, deleting destructor and copy constructor.
 Query* __fastcall QueryConstruct(Query* self) {
     std::memset(&self->address, 0, sizeof(self->address));
-    GrowingBufferConstruct(&self->reply);
+    static_cast<GameBuffer*>(&self->reply)->ConstructGrowing();
     return self;
 }
 EI_REPLACE(0x00443770, QueryConstruct);
@@ -211,7 +211,7 @@ EI_REPLACE(0x00443760, HolderClear);
 
 void ClientBase::SendPing(const NetAddress* address) {
     GameBuffer b;
-    GrowingBufferConstruct(&b);
+    static_cast<GameBuffer*>(&b)->ConstructGrowing();
     std::uint8_t kind = 3;
     Put(&b, &kind, 1);
     float time = static_cast<float>(time_);
@@ -224,7 +224,7 @@ EI_REPLACE_METHOD(0x00441660, ClientBase::SendPing);
 void ClientBase::SendJoin(const NetAddress* address, GameBuffer* data) {
     std::uint32_t rate = RateFor(address);
     GameBuffer b;
-    GrowingBufferConstruct(&b);
+    static_cast<GameBuffer*>(&b)->ConstructGrowing();
     std::uint8_t kind = 4;
     Put(&b, &kind, 1);
     Put(&b, &magic_, 4);
@@ -479,7 +479,7 @@ void ClientBase::Ask(const NetAddress* address) {
         }
         v.back().address = *address;
         GameBuffer b;
-        GrowingBufferConstruct(&b);
+        static_cast<GameBuffer*>(&b)->ConstructGrowing();
         std::uint8_t kind = 3;
         b.BufferWrite(&kind, 1);
         float time = static_cast<float>(time_);
@@ -625,7 +625,7 @@ EI_REPLACE_METHOD(0x00442AD0, ClientBase::TickImpl);
 void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
     GameBuffer b;
     GameBuffer* buffer = &b;   // slot 4 through the vtable
-    GrowingBufferConstruct(&b);
+    static_cast<GameBuffer*>(&b)->ConstructGrowing();
     RefPtr entry{nullptr};
     Describe(&entry);
     if (entry.ptr) {
@@ -709,7 +709,7 @@ namespace {
 // "Accepted" (packet 6) with the join's id, to `to`.
 void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     GameBuffer b;
-    GrowingBufferConstruct(&b);
+    static_cast<GameBuffer*>(&b)->ConstructGrowing();
     std::uint8_t kind = 6;
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);
@@ -776,7 +776,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     }
 
     GameBuffer b;
-    GrowingBufferConstruct(&b);
+    static_cast<GameBuffer*>(&b)->ConstructGrowing();
     std::uint8_t kind = 7;
     b.BufferWrite(&kind, 1);
     b.BufferWrite(&id, 4);

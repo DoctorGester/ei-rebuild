@@ -41,7 +41,7 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 // A new surface for `desc`, or null when the allocation fails.
 CDXSurface* NewSurface(CTextureDevice* device, const std::uint32_t* desc) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    return memory ? static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc)) : nullptr;
+    return memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, desc)) : nullptr;
 }
 
 

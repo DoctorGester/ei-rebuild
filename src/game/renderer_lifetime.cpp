@@ -5,6 +5,7 @@
 // (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
 // (docs/notes/renderer.md). A-U11.
 #include "model.h"         // CSceneRenderer, CTransformPipeline
+#include "renderer_lines.h"
 #include "texture.h"       // CTextureDevice, CTexture, CDXSurface
 #include "device.h"        // device::WithoutDirectDraw
 
@@ -205,7 +206,7 @@ void CSceneRenderer::SetColourImpl(std::uint32_t colour) {
 }
 EI_REPLACE_METHOD(0x00501CC0, CSceneRenderer::SetColourImpl);
 
-void CSceneRenderer::DrawLineListImpl(void* lines) { LineListDrawOriginal(lines, nullptr, pipeline_, device_); }
+void CSceneRenderer::DrawLineListImpl(void* lines) { static_cast<LineBatch*>(lines)->Draw(pipeline_, device_); }
 EI_REPLACE_METHOD(0x00501CE0, CSceneRenderer::DrawLineListImpl);
 
 int CSceneRenderer::DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
@@ -240,7 +241,7 @@ bool CSceneRenderer::RestoreSurfaces() {
     if (device::WithoutDirectDraw()) return true;
     if (device_->flags_ & 1) {
         RECT screen = device_->screen_;
-        DeviceSetCooperativeLevelOriginal(device_, nullptr, 1, &screen);
+        static_cast<CTextureDevice*>(device_)->SetCooperativeLevel(1, &screen);
         CTextureDevice* device = device_;
         int width = 0, height = 0, bits = 0;
         if (device->primary_) {

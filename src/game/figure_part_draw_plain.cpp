@@ -128,7 +128,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
         }
     }
     if (result != 2) mesh_->flags_ |= 0x40;
-    FinishDraw(reinterpret_cast<char*>(this), nullptr, reinterpret_cast<void*>(0x007AF060));
+    DrawBounds(reinterpret_cast<CSceneRenderer*>(0x007AF060));
     return 1;
 }
 EI_REPLACE_METHOD(0x005A7640, FigureMeshDrawer::DrawPlain);

@@ -16,6 +16,7 @@
 #include "model.h"               // CTransformPipeline
 #include "originals_engine.h"
 #include "originals_render.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -64,7 +65,7 @@ CDXSurface* NewHolder(CTextureDevice* device, DDSURFACEDESC2* desc) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
     if (!memory) return nullptr;
     return static_cast<CDXSurface*>(
-        DXSurfaceFromDescOriginal(memory, nullptr, device, reinterpret_cast<const std::uint32_t*>(desc)));
+        static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, reinterpret_cast<const std::uint32_t*>(desc)));
 }
 
 // A depth buffer format of `depthBits` and `stencilBits` as FindDepthFormat takes it.
@@ -293,7 +294,7 @@ EI_REPLACE_METHOD(0x004E68A0, CTextureDevice::Destruct);
 // the z-buffer setting chosen from the device's W-buffer capability is overwritten with 1.
 CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
                                           int refreshRate, unsigned backBuffers, int depthBits, int stencilBits) {
-    DirectDrawBaseConstructOriginal(this, nullptr, window, driver, fullScreen, width, height, bitsPerPixel, refreshRate,
+    ConstructDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate,
                                     backBuffers, 1);
     depth_ = nullptr;
     depth2_ = nullptr;

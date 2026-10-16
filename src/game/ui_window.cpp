@@ -528,11 +528,11 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     localPosition_.y = 0.0f;
     localPosition_.z = 0.0f;
     void* materials = *reinterpret_cast<void* const*>(0x007AF740);
-    auto* white = reinterpret_cast<CMaterial*>(MaterialCreateOriginal(materials, nullptr, 0x16));
+    auto* white = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     whiteMaterial_ = white;
     MaterialRegisterOriginal(materials, nullptr, white, 0x16);
     PrepareMaterial(white, 1.0f);
-    auto* black = reinterpret_cast<CMaterial*>(MaterialCreateOriginal(materials, nullptr, 0x16));
+    auto* black = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(materials)->NewMaterial(0x16));
     blackMaterial_ = black;
     MaterialRegisterOriginal(materials, nullptr, black, 0x16);
     PrepareMaterial(black, 0.0f);

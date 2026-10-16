@@ -1,4 +1,5 @@
 // MFC 4.2's CStringArray and plain arrays, registered at their library addresses (mfc_coll.h).
+#include "mfc_archive.h"
 #include "mfc_coll.h"
 
 #include "ei/hook.h"
@@ -13,8 +14,6 @@ namespace mfc::impl {
 namespace {
 
 // CArchive's CString operators (MFC's arccore.cpp; S8).
-__declspec(naked) CArchive& __stdcall WriteString(CArchive&, const CString&) EI_ORIGINAL(0x00708447)
-__declspec(naked) CArchive& __stdcall ReadString(CArchive&, CString&) EI_ORIGINAL(0x00708517)
 
 // The growth when the allocation is outgrown: the step, or size / 8 clamped to 4..1024.
 int GrowthStep(int growBy, int size) {
@@ -219,10 +218,10 @@ void CStringArray::RemoveAt(int index, int count) {
 void CStringArray::Serialize(CArchive* ar) {
     if (!ar->IsLoading()) {
         ar->WriteCount(static_cast<unsigned long>(size));
-        for (int i = 0; i < size; ++i) WriteString(*ar, data[i]);
+        for (int i = 0; i < size; ++i) mfc::impl::StoreText(*ar, data[i]);
     } else {
         SetSize(static_cast<int>(ar->ReadCount()), -1);
-        for (int i = 0; i < size; ++i) ReadString(*ar, data[i]);
+        for (int i = 0; i < size; ++i) mfc::impl::LoadText(*ar, data[i]);
     }
 }
 

@@ -107,7 +107,7 @@ int CTexture::MakeBlank(CTextureDevice* device, const MmpHeader* header, bool me
                                          format_.words);
     if (!surface) {
         void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-        if (memory) surface = static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc));
+        if (memory) surface = static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, desc));
     }
     CDXSurface* previous = surface_;
     surface_ = surface;

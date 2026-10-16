@@ -192,7 +192,7 @@ void ServerSession::QueueMapList() {
         void* ref;
         List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
         RefClear(&ref);
-        StringDeallocateOriginal(key.start, static_cast<std::size_t>(key.eos - key.start));
+        libcrt::NodeDeallocateCheckedStd(key.start, static_cast<std::size_t>(key.eos - key.start));
         FlowLoadZoneQuests(flow, nullptr, zone->start);
     }
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) StringRepDestroy(zone);

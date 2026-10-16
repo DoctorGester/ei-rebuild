@@ -20,6 +20,7 @@
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
+#include "lib/stlp_string.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
 #include "unit_looks.h"
@@ -91,7 +92,6 @@ __declspec(naked) void __fastcall PrototypeTextures(const UnitPrototypeRecord*, 
 __declspec(naked) void __fastcall StringsConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053BB80)
 __declspec(naked) stlp::string* __fastcall StringsCopy(void*, void*, int, const stlp::string*, const stlp::string*)
     EI_ORIGINAL(0x0053D7F0)
-__declspec(naked) void __fastcall StringDestroyFlag(void*, void*, int) EI_ORIGINAL(0x004DDC90)
 void __fastcall StringsFree(stlp::string* a0, int a1) { NodeFree12Original(a0, static_cast<std::size_t>(a1)); }
 __declspec(naked) void __fastcall StringsDeallocate(void*, void*, stlp::string*, int) EI_ORIGINAL(0x0053BF40)
 __declspec(naked) void __fastcall StringCopyConstruct(stlp::string*, const void*) EI_ORIGINAL(0x004F5DF0)
@@ -266,7 +266,7 @@ void Reserve(StringList& list, int needed) {
     stlp::string* storage;
     if (list.Start()) {
         storage = StringsCopy(&list, nullptr, needed, list.Start(), list.Finish());
-        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) StringDestroyFlag(s, nullptr, 0);
+        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
         StringsFree(list.Start(), Capacity(list));
     } else {
         storage = needed ? reinterpret_cast<stlp::string*>(NodeAllocate(needed * static_cast<int>(sizeof(stlp::string)))) : nullptr;
@@ -321,7 +321,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) StlStringDestroy(s);
     StringsDeallocate(&second.EndOfStorage(), nullptr, second.Start(), Capacity(second));
-    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) StringDestroyFlag(s, nullptr, 0);
+    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) stlp::StringAbi::DeletingDestructor(s, nullptr, 0);
     StringsDeallocate(&first.EndOfStorage(), nullptr, first.Start(), Capacity(first));
 }
 

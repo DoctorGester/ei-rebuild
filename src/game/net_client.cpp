@@ -1,6 +1,7 @@
 // The game client session (vtable 0073BDEC, client base 0073BE30; pointer at 0079B5D8). See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_coder.h"
 #include "net_messages.h"
 #include "party.h"
 
@@ -60,7 +61,7 @@ ClientSession* ClientSession::Construct() {
     char allocator = 0;   // the lists' (empty) allocator argument
     SessionBase::Construct();
     host_ = NetAddress{};
-    GrowingBufferConstruct(&joinData_);
+    static_cast<GameBuffer*>(&joinData_)->ConstructGrowing();
     ListConstruct41F8B0(&servers_, nullptr, &allocator);
     ClientVectorConstruct(&queries_);
     ListConstruct41FB10(&waiting_, nullptr, &allocator);

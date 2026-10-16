@@ -65,10 +65,6 @@ __declspec(naked) inline char* __fastcall DXSurfaceConstructOriginal(void* /*mem
 __declspec(naked) inline void* __fastcall DXSurfaceFromPictureOriginal(void* /*memory*/, void*, void* /*device*/,
                                                                         const void* /*picture*/, int /*flag*/)
     EI_ORIGINAL(0x004EFC60)
-// 004EFA60: the CDXSurface constructor on `memory` from a DDSURFACEDESC2 (thiscall: device object, description;
-// RET 8; returns `memory`).
-__declspec(naked) inline void* __fastcall DXSurfaceFromDescOriginal(void* /*memory*/, void*, void* /*device*/,
-                                                                     const std::uint32_t* /*desc*/) EI_ORIGINAL(0x004EFA60)
 // 00501A40: the renderer's clear of the render target (and depth) with its colour +0x14 (ECX = the renderer
 // 007AF060, plain RET, EAX 1).
 __declspec(naked) inline int __fastcall RendererClearOriginal(void* /*renderer*/) EI_ORIGINAL(0x00501A40)
@@ -88,31 +84,6 @@ __declspec(naked) inline void __fastcall TextureEnsureLoadedOriginal(void* /*hol
 // to record +0x20 (RET 8: record, key; EAX 1, or 0 for a null record; no caller reads it).
 __declspec(naked) inline int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/,
                                                                  std::uint32_t /*key*/) EI_ORIGINAL(0x0068EAF0)
-// 0068E970: the material manager makes a material of `type` (its slot 23 with id -1, flag 8) and copies the stored value of
-// the material's key (+0x10) into it (RET 4; EAX the material, or 0).
-__declspec(naked) inline std::uint8_t* __fastcall MaterialCreateOriginal(void* /*manager*/, void*, int /*type*/)
-    EI_ORIGINAL(0x0068E970)
-
-// A-U11 (renderer_lifetime.cpp). 0049B780: draws a line list (thiscall on the list, RET 8: pipeline, device object).
-// 004EECF0: the device object's cooperative level (RET 8: full screen flag, screen rectangle).
-__declspec(naked) inline void __fastcall LineListDrawOriginal(void* /*lines*/, void*, void* /*pipeline*/, void* /*device*/)
-    EI_ORIGINAL(0x0049B780)
-__declspec(naked) inline void __fastcall DeviceSetCooperativeLevelOriginal(void* /*device*/, void*, int /*fullScreen*/,
-                                                                           const void* /*rect*/) EI_ORIGINAL(0x004EECF0)
-
-// A-S13 (directdraw_holder.cpp, device_object.cpp, dx_surface.cpp): the parts of the device object's start-up, called
-// through their addresses so each one's verify wrapper stays in the path. 004EDD70: the DirectDraw base's constructor
-// (RET 0x24: window, driver GUID, full screen, width, height, bits per pixel, refresh rate, back buffers, for 3D; returns
-// the object). 004EEA90: the DirectDraw object of a driver and its display modes (RET 4). 004EFEA0: a surface holder's size from its surface (plain RET; 1, or 0
-// when the report of a failure said stop).
-__declspec(naked) inline void* __fastcall DirectDrawBaseConstructOriginal(void* /*device*/, void*, void* /*window*/,
-                                                                         void* /*driver*/, int /*fullScreen*/,
-                                                                         int /*width*/, int /*height*/, int /*bits*/,
-                                                                         int /*refreshRate*/, unsigned /*backBuffers*/,
-                                                                         int /*for3D*/) EI_ORIGINAL(0x004EDD70)
-__declspec(naked) inline void __fastcall DeviceCreateDirectDrawOriginal(void* /*device*/, void*, void* /*driver*/)
-    EI_ORIGINAL(0x004EEA90)
-__declspec(naked) inline int __fastcall DXSurfaceDescribeOriginal(void* /*holder*/) EI_ORIGINAL(0x004EFEA0)
 
 // C3n. 004EB550 (rewritten as DeviceDrawIndexed; thiscall on the device, RET 0x1C): draws indexed primitives with the
 // current material (primitive type, FVF, vertices, vertex count, 16-bit indices, index count, flags); returns 1.

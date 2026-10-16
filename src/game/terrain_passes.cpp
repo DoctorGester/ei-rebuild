@@ -28,8 +28,6 @@ float DetailFar() { return *reinterpret_cast<const float*>(0x0079BD30); }
 
 __declspec(naked) void __fastcall ClipTestAt(SectorData*, void*, CSceneRenderer*) EI_ORIGINAL(0x006BFB20)
 __declspec(naked) void __fastcall FindSeamsAt(SectorData*) EI_ORIGINAL(0x006BFB80)
-__declspec(naked) int __fastcall DrawSectorPageAt(SectorData*, void*, CSceneRenderer*, Terrain*, int /*page*/,
-                                                  int /*unused*/) EI_ORIGINAL(0x006BFF40)
 
 // Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is
 // there once lit; a visit returning false ends the walk (false).
@@ -147,7 +145,7 @@ int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
                 renderer->SetTexture(0, pageTextures[page % (pages + 2)]);
                 bound = true;
             }
-            return DrawSectorPageAt(sector, nullptr, renderer, this, page, 0) != 0;
+            return sector->DrawPage(renderer, this, page, 0) != 0;
         });
         if (!drawn) return 0;
     }

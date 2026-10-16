@@ -226,7 +226,7 @@ CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
         desc[2] = static_cast<std::uint32_t>(height);
         desc[3] = static_cast<std::uint32_t>(width);
         desc[0x68 / 4] = 0x4040;           // DDSCAPS_VIDEOMEMORY | DDSCAPS_OFFSCREENPLAIN
-        if (memory) holder = static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc));
+        if (memory) holder = static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, desc));
     } else if (memory) {
         holder = reinterpret_cast<CDXSurface*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
     }

@@ -29,8 +29,6 @@ __declspec(naked) inline void __fastcall LightManagerAddOriginal(void*, void*, C
 __declspec(naked) inline void __fastcall SetLightColorPosition(CEngineObject* /*light*/, void*, const void* /*color*/,
                                                                const void* /*position*/) EI_ORIGINAL(0x0068D010)
 // 00511FB0: the light factory's (*007AF748) list of lit ids (+0xD4): removes every entry equal to *id (RET 4).
-__declspec(naked) inline void __fastcall LightIdsRemoveOriginal(void* /*list*/, void*, const int* /*id*/)
-    EI_ORIGINAL(0x00511FB0)
 
 // C3l. 006CA830: the light manager updates a light for a displacement (RET 8: light, delta vector or null; reads the position at
 // the light's +0x1C; EAX is not a result).

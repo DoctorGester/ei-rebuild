@@ -93,7 +93,6 @@ void __fastcall NpcRecordDestroy(char* record) { DestroyNpcRecord(reinterpret_ca
 __declspec(naked) void __fastcall NpcsFree(RawVector*) EI_ORIGINAL(0x0053B600)
 __declspec(naked) void __fastcall PrototypeNamesClear(NameTable*) EI_ORIGINAL(0x0053C0D0)
 __declspec(naked) void __fastcall PrototypeBucketsFree(HashNode***) EI_ORIGINAL(0x0053BE70)
-__declspec(naked) void __fastcall PrototypeRecordDestroy(char*, void*, int /*delete*/) EI_ORIGINAL(0x005407E0)
 __declspec(naked) void __fastcall PrototypesFree(RawVector*) EI_ORIGINAL(0x0053B460)
 
 // The NPC table's pieces: a node value's destructor (0053D990, RET 4, flag 0), the node
@@ -218,7 +217,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     PrototypeNamesClear(&prototypes.names);
     PrototypeBucketsFree(&prototypes.names.buckets);
     for (char *p = prototypes.records.begin(), *end = prototypes.records.end(); p != end; p += 0x120)
-        PrototypeRecordDestroy(p, nullptr, 0);
+        reinterpret_cast<UnitPrototypeRecord*>(p)->DeleteScalar(0);
     PrototypesFree(&prototypes.records);
 }
 

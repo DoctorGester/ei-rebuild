@@ -357,7 +357,7 @@ int Terrain::SetupPages(int count) {
         CTexture* texture = static_cast<CTexture*>(TextureNamedOriginal(Textures(), nullptr, kPageTexture, name));
         pageTextures[i] = texture;
         ++texture->refCount_;
-        CMaterial* material = reinterpret_cast<CMaterial*>(MaterialCreateOriginal(Materials(), nullptr, kPageMaterial));
+        CMaterial* material = reinterpret_cast<CMaterial*>(static_cast<CMaterialManager*>(Materials())->NewMaterial(kPageMaterial));
         pageMaterials[i] = material;
         ++material->refCount_;
         material->name = "Wood";

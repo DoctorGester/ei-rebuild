@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "item_db.h"
 #include "item_db_text.h"
+#include "net_coder.h"
 #include "record_arrays.h"
 #include "sound.h"
 #include "ui.h"
@@ -1131,7 +1132,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     AddressSet(address, nullptr, game::Text(kLocalHost), *reinterpret_cast<const int*>(0x00783E30));
     {
         GameBuffer hello;
-        GrowingBufferConstruct(&hello);
+        static_cast<GameBuffer*>(&hello)->ConstructGrowing();
         char secret[kPasswordSize] = {};
         if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
@@ -1161,7 +1162,7 @@ EI_REPLACE_METHOD(0x0057EA50, GameFlow::StartClient);
 
 void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
     GameBuffer hello;
-    GrowingBufferConstruct(&hello);
+    static_cast<GameBuffer*>(&hello)->ConstructGrowing();
     char secret[kPasswordSize] = {};
     if (password) gamecrt::strncpy(secret, password, kPasswordSize);
     BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));

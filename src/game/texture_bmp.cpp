@@ -91,7 +91,7 @@ void WritePixels(std::uint8_t* out, int pitch, int rows, int perRow, int maxRows
 // A texture holder from 004EFA60 for `desc`, counted once, or null when its allocation fails.
 CDXSurface* NewCountedSurface(CTextureDevice* device, const std::uint32_t* desc) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    auto* holder = memory ? static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc)) : nullptr;
+    auto* holder = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, desc)) : nullptr;
     if (holder) ++holder->refCount;
     return holder;
 }
@@ -167,7 +167,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     CDXSurface* staging = NewCountedSurface(device, desc);
     DescribeTexture(desc, format_, width_, height_, kCapsTexture, kCaps2Texture);
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
-    auto* texture = memory ? static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc)) : nullptr;
+    auto* texture = memory ? static_cast<CDXSurface*>(static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, desc)) : nullptr;
     CDXSurface* previous = surface_;
     surface_ = texture;
     if (texture) ++texture->refCount;

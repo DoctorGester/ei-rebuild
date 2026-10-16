@@ -59,7 +59,7 @@ std::uint32_t BufferLength(GameBuffer& b) {
 // (its base vtable) before the buffer.
 void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
     GameBuffer result;
-    GrowingBufferConstruct(&result);
+    static_cast<GameBuffer*>(&result)->ConstructGrowing();
     std::uint8_t* data = self->data_;
     std::uint8_t* last = data + self->Size();
     GameBuffer view;

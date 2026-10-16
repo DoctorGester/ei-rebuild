@@ -95,7 +95,7 @@ void SessionBase::TickImpl(double dt) {
                 StringRep address;
                 const char* text = connection->address_.ToString(&address)->start;
                 LogAddress(game::nettexts::Timeout(), text);
-                StringDeallocateOriginal(address.start, static_cast<std::size_t>(address.eos - address.start));
+                libcrt::NodeDeallocateCheckedStd(address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             OnClientLost(connection);
             RemoveClient(node);
@@ -247,7 +247,7 @@ EI_REPLACE_METHOD(0x00436F80, SessionBase::RateFor);
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
     auto* buffer = reinterpret_cast<GameBuffer*>(storage);
-    GrowingBufferConstruct(buffer);
+    static_cast<GameBuffer*>(buffer)->ConstructGrowing();
     std::uint8_t kind = 1;
     if (buffer->cur + 1 <= buffer->end) {
         buffer->flags |= 1;
@@ -299,7 +299,7 @@ void SessionBase::Destruct() {
         std::uint32_t id = connection->id_;
         alignas(4) std::uint8_t storage[sizeof(GameBuffer)];
         auto* buffer = reinterpret_cast<GameBuffer*>(storage);
-        GrowingBufferConstruct(buffer);
+        static_cast<GameBuffer*>(buffer)->ConstructGrowing();
         std::uint8_t kind = 1;
         buffer->BufferWrite(&kind, 1);
         if (buffer->cur + 4 <= buffer->end) {

@@ -53,14 +53,12 @@ void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOrigin
 __declspec(naked) mfc::CString* __fastcall CallGetString(const CIniFile*, void*, mfc::CString*, const char*, const char*,
                                                          const char*) EI_ORIGINAL(0x00696030)
 // WriteString takes its CString by value (the callee destroys it); passed here as its data pointer.
-__declspec(naked) BOOL __fastcall CallWriteString(CIniFile*, void*, const char*, const char*, char*)
-    EI_ORIGINAL(0x00696E60)
 
 // A copy of `value` handed to WriteString (which destroys it).
 BOOL WriteCopy(CIniFile* ini, const char* section, const char* key, const mfc::CString& value) {
     alignas(4) char copy[sizeof(mfc::CString)];
     new (copy) mfc::CString(value);
-    return CallWriteString(ini, nullptr, section, key, *reinterpret_cast<char**>(copy));
+    return ini->WriteString(section, key, *reinterpret_cast<char**>(copy));
 }
 
 // The value of `key` as a CString (through 00696030).

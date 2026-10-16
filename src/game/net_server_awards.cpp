@@ -270,7 +270,7 @@ void ServerSession::LeaveZone() {
         StringAssignSpan(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
         auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&lookup));
         StlStringDestroy(&lookup);
-        StringDeallocateOriginal(key.start, static_cast<std::size_t>(key.eos - key.start));
+        libcrt::NodeDeallocateCheckedStd(key.start, static_cast<std::size_t>(key.eos - key.start));
         if (entry) AwardHost(entry, true);
     }
 

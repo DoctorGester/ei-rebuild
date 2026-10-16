@@ -19,6 +19,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/stlp_list.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -433,7 +434,7 @@ void CMapObjectClientSpecific::DestructBody() {
             }
         }
         int id = light->id_;
-        LightIdsRemoveOriginal(&TheLightFactory()->litIds_, nullptr, &id);
+        stlp::ListRemoveInt(&TheLightFactory()->litIds_, nullptr, &id);
         AssignReference(&light, nullptr, nullptr);
     }
     owner = nullptr;

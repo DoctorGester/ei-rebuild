@@ -85,10 +85,10 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         FourDwords(&secondGold, nullptr, ar);
         ar->LeaveChunk();
     }
-    ArchiveCStringsOriginal(ar, nullptr, 0x1D, &lootItems, ar);
+    ar->SerializeCStrings(0x1D, &lootItems, ar);
     ar->Field(0x1E, skills3to5, sizeof(skills3to5));
-    ArchiveCStringsOriginal(ar, nullptr, 0x1F, &spellNames, ar);
-    ArchiveCStringsOriginal(ar, nullptr, 0x20, &armourNames, ar);
+    ar->SerializeCStrings(0x1F, &spellNames, ar);
+    ar->SerializeCStrings(0x20, &armourNames, ar);
     ar->CStringField(0x21, &weaponName);
     Dword(ar, 0x22, &panelViewSize);
     Dword(ar, 0x23, &height);
@@ -123,11 +123,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
         }
     }
     ar->CStringField(0x1E, &figureName);
-    ArchiveCStringsOriginal(ar, nullptr, 0x1F, &field1F, ar);
-    ArchiveCStringsOriginal(ar, nullptr, 0x20, &field20, ar);
+    ar->SerializeCStrings(0x1F, &field1F, ar);
+    ar->SerializeCStrings(0x20, &field20, ar);
     Dword(ar, 0x21, &height);
     ar->CStringField(0x22, &soundFolder);
-    ArchiveCStringsOriginal(ar, nullptr, 0x23, &soundNames, ar);
+    ar->SerializeCStrings(0x23, &soundNames, ar);
     ar->Field(0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
@@ -155,7 +155,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 5, &stats[2]);
     ar->Field(6, attributes, sizeof(attributes));
     ar->Field(7, skills, sizeof(skills));
-    ArchiveCStringsOriginal(ar, nullptr, 8, &skillNames, ar);
+    ar->SerializeCStrings(8, &skillNames, ar);
     InlineStrings(ar, 9, &startWeapons);
     InlineStrings(ar, 10, &startQuickItems);
     InlineStrings(ar, 11, &startSpells);

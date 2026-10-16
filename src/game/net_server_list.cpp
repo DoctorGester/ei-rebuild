@@ -48,7 +48,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
     StringInitEmpty(&record->name);
     StringInitEmpty(&record->description);
     GameBuffer buffer;
-    GrowingBufferConstruct(&buffer);
+    static_cast<GameBuffer*>(&buffer)->ConstructGrowing();
     alignas(4) std::uint8_t coder[kCoderSize];   // CoderState
     CoderConstruct(coder);
     auto* coderCursor = reinterpret_cast<BufferCursor*>(coder + 0x2800);

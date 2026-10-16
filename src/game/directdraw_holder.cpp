@@ -9,6 +9,7 @@
 // throw ends the game in WinMain.
 #include "app.h"
 #include "device.h"
+#include "dx_surface.h"
 #include "game_strings.h"
 
 #include "dx_errors.h"
@@ -16,6 +17,7 @@
 #include "originals_library.h"   // ExitGame
 #include "originals_render.h"
 #include "sys_info.h"   // ProcessorInfo
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -57,7 +59,7 @@ CDXSurface* NewHolder(CTextureDevice* device, DDSURFACEDESC2* desc) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
     if (!memory) return nullptr;
     return static_cast<CDXSurface*>(
-        DXSurfaceFromDescOriginal(memory, nullptr, device, reinterpret_cast<const std::uint32_t*>(desc)));
+        static_cast<CDXSurface*>(memory)->ConstructFromDesc(device, reinterpret_cast<const std::uint32_t*>(desc)));
 }
 
 // A holder of a surface that exists already (the constructor the original inlines): one more
@@ -76,7 +78,7 @@ CDXSurface* NewHolderOf(CTextureDevice* device, IDirectDrawSurface7* surface) {
     ei::SetVtable(holder, 0x0073D774);
     if (surface) {
         surface->AddRef();
-        DXSurfaceDescribeOriginal(holder);
+        DXSurfaceDescribe(holder);
         ++device::HolderCount();
     } else {
         game::FatalError(game::Text(0x0078E73C));   // "Creating DXDDSurface from empty DDSurface!\n"
@@ -369,7 +371,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         driver_ = driver;
         modes_.ClearWith([](DDSURFACEDESC2*) {});
         device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
-        DeviceSetCooperativeLevelOriginal(this, nullptr, fullScreen, &screen);
+        SetCooperativeLevel(fullScreen, &screen);
         device::AssignHolder(primary_, NewScreenHolder(this, width, height, bitsPerPixel));
         device::AssignHolder(renderTarget_, NewScreenHolder(this, width, height, bitsPerPixel));
         overlayFourCC_ = 0;
@@ -378,8 +380,8 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         return this;
     }
 
-    DeviceCreateDirectDrawOriginal(this, nullptr, driver);
-    DeviceSetCooperativeLevelOriginal(this, nullptr, fullScreen, &screen);
+    CreateDirectDraw(driver);
+    SetCooperativeLevel(fullScreen, &screen);
     if (fullScreen) {
         lastLoadResult_ = device::SetDisplayMode(device::DDraw(this), 
             static_cast<DWORD>(width), static_cast<DWORD>(height), static_cast<DWORD>(bitsPerPixel),

@@ -40,12 +40,6 @@ __declspec(naked) void __fastcall HelperDestructOriginal(void*) EI_ORIGINAL(0x00
 using State = RenderPresetRecord::State;
 using StateVector = stlp::vector<State>;
 
-// The helper's own call of its constructor (through its address): 004FD2A0 slot 1 without the
-// vtable (RET 0xC).
-__declspec(naked) CRenderPreset* __fastcall RecordOriginal(CRenderHelper*, void*, const StateVector* /*states*/,
-                                                           int /*index*/, std::uint32_t /*single stage (low byte)*/)
-    EI_ORIGINAL(0x004FD2A0)
-
 static_assert(sizeof(D3DDEVICEDESC7) == sizeof(CRenderHelper::caps_));
 D3DDEVICEDESC7& Caps(CRenderHelper* self) { return *reinterpret_cast<D3DDEVICEDESC7*>(self->caps_); }
 
@@ -377,7 +371,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     StateVector states;
     for (unsigned index = 0; index < CRenderHelper::kPresetCount; ++index) {
         if (RenderHelperBuiltInStateList(&states, index)) {
-            RecordOriginal(this, nullptr, &states, static_cast<int>(index), flag);
+            RecordImpl(&states, static_cast<int>(index), static_cast<std::uint8_t>(flag) != 0);
         }
     }
     states.FreeStorage();

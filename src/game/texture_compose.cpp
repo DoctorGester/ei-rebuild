@@ -35,9 +35,6 @@ constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeW
 std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
 const char* const kCantFindLayer = game::Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
 const char* const kWrongLayerSize = game::Text(0x00795F4C);   // "Texture \"%s\" dimentions are incorrect.\n"
-// 00693010 (CTextureManager::DrawLayers), called through its address so its wrapper runs.
-__declspec(naked) int __fastcall DrawLayers(void*, void*, std::uint32_t*, const console::CStringArray*, int)
-    EI_ORIGINAL(0x00693010)
 
 // A block from the game heap aligned to 32 bytes; the raw pointer is kept just before it.
 template <typename T>
@@ -210,7 +207,7 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     int width = request->flags;
     std::uint32_t* image = NewAligned<std::uint32_t>(static_cast<std::size_t>(width * width * 4));
     for (int i = 0; i < width * width; ++i) image[i] = fill;
-    if (DrawLayers(manager, nullptr, image, &request->textures, request->flags) == 0) {
+    if (static_cast<CTextureManager*>(manager)->DrawLayers(image, &request->textures, request->flags) == 0) {
         DeleteAligned(image);
         return 0;
     }

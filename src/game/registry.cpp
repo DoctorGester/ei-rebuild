@@ -16,8 +16,6 @@ namespace {
 const char* const kNotRegistry = game::Text(0x0079600C);   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = game::Text(0x00796044);     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
-// 006FD2F0 _memicmp (no terminator test; libcrt::Memicmp).
-__declspec(naked) int __cdecl MemICmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006FD2F0)
 // 006FD4DE CString::CString(LPCTSTR, int) on raw storage.
 void __fastcall ConstructString(void* a0, void*, const char* a2, int a3) { new (a0) mfc::CString(a2, a3); }
 // _ftol (006E853C) of a float: FLD, then the game's _ftol (truncates).
@@ -150,7 +148,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
         const std::uint8_t* entry = root + 6 + 6 * (slot & 0xFFFF);
         record = data_ + U32(entry + 2);
         if (U16(record + 2) == static_cast<std::uint16_t>(sectionLength) &&
-            MemICmp(reinterpret_cast<const char*>(record + 4), section, sectionLength & 0xFFFF) == 0)
+            libcrt::Memicmp(reinterpret_cast<const char*>(record + 4), section, sectionLength & 0xFFFF) == 0)
             break;
         slot = U16(entry);
         if (slot == 0xFFFF) return nullptr;
@@ -166,7 +164,7 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
         const std::uint8_t* entry = keyTable + 6 * (slot & 0xFFFF);
         value = record + U32(entry + 2);
         if (U16(value + 1) == static_cast<std::uint16_t>(keyLength) &&
-            MemICmp(reinterpret_cast<const char*>(value + 3), key, keyLength & 0xFFFF) == 0)
+            libcrt::Memicmp(reinterpret_cast<const char*>(value + 3), key, keyLength & 0xFFFF) == 0)
             break;
         slot = U16(entry);
         if (slot == 0xFFFF) return nullptr;

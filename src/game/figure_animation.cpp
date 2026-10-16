@@ -26,7 +26,7 @@ struct RawString {
 // STLport string members: the end-of-storage member from an allocator and a value (RET 8), range
 // initialisation (first, last, tag; RET 0xC), the allocator's deallocate (p, n; RET 8) and the
 // node allocator's deallocate (ECX p, EDX n).
-inline void __fastcall StringDeallocate(char**, void*, char* a2, int a3) { StringDeallocateOriginal(a2, (std::size_t)a3); }
+inline void __fastcall StringDeallocate(char**, void*, char* a2, int a3) { libcrt::NodeDeallocateCheckedStd(a2, (std::size_t)a3); }
 void __fastcall NodeDeallocate(char* a0, int a1) { libcrt::NodeDeallocateChecked((void*)a0, (std::size_t)a1); }
 // 005AA5F0: the manager's model of a name; 005A9EF0 (RET 4): the model's animation of a name.
 __declspec(naked) void* __fastcall FindAnimation(void*, void*, const RawString*) EI_ORIGINAL(0x005A9EF0)

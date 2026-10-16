@@ -425,7 +425,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     } else {
         DrawThroughDevice(part);
     }
-    FinishDraw(reinterpret_cast<char*>(this), nullptr, SceneContext());
+    DrawBounds(static_cast<CSceneRenderer*>(SceneContext()));
     return 1;
 }
 EI_REPLACE_METHOD(0x005A7A70, FigureMeshDrawer::DrawLit);

@@ -137,8 +137,8 @@ Connection* Connection::Construct(std::uint32_t id) {
     incoming_ = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    GrowingBufferConstruct(&reliableOut_);
-    GrowingBufferConstruct(&reliableIn_);
+    static_cast<GameBuffer*>(&reliableOut_)->ConstructGrowing();
+    static_cast<GameBuffer*>(&reliableIn_)->ConstructGrowing();
     ei::SetVtable(this, kVtableAddress);
     std::uint32_t tick = gameapi::GetTickCount();
     id_ = 0;

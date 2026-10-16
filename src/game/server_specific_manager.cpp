@@ -1,4 +1,5 @@
 // CServerSpecificManager and CTorchObjectSpec (A-S7, 004D6900-004D6BA0). See server_specific_manager.h.
+#include "combat.h"
 #include "server_specific_manager.h"
 
 #include "unit.h"   // CMapObjectServer
@@ -27,7 +28,6 @@ enum ServerObjectType {
 
 // Constructor bodies of the other server objects (not rewritten; each returns this).
 __declspec(naked) CEngineObject* __fastcall Object3DServerConstruct(void*) EI_ORIGINAL(0x0051F240)
-__declspec(naked) CEngineObject* __fastcall UnitServerConstruct(void*) EI_ORIGINAL(0x00545580)
 __declspec(naked) CEngineObject* __fastcall PlayerServerConstruct(void*) EI_ORIGINAL(0x0066C540)
 
 } // namespace
@@ -69,7 +69,7 @@ CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
             return static_cast<CMapObjectServer*>(p)->Construct();
         return nullptr;
     case kUnitServer:
-        if (void* p = gamecrt::operator_new_zeroed(0xB20)) return UnitServerConstruct(p);
+        if (void* p = gamecrt::operator_new_zeroed(0xB20)) return static_cast<CUnitServer*>(p)->Construct();
         return nullptr;
     case kPlayerServer:
         if (void* p = gamecrt::operator_new_zeroed(0x5128)) return PlayerServerConstruct(p);
