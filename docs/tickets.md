@@ -185,8 +185,8 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
+- **WB12a** Hooked and --no-hooks harness runs out of sight too (running since 2026-10-16; opus). WB12 cloaks windows only in standalone runs (ei::Standalone()). Hooked/--no-hooks runs present through dgVoodoo into the game window; check that cloaking (noforeground::Conceal) leaves dgVoodoo's presents and captures alone, then drop the Standalone() condition. Low value once the hook builds retire (S21). After: WB12.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
-- **WB12a** Hooked and --no-hooks harness runs out of sight too (ready). WB12 cloaks windows only in standalone runs (ei::Standalone()). Hooked/--no-hooks runs present through dgVoodoo into the game window; check that cloaking (noforeground::Conceal) leaves dgVoodoo's presents and captures alone, then drop the Standalone() condition. Low value once the hook builds retire (S21). After: WB12.
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
