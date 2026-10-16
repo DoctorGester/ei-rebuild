@@ -1,0 +1,115 @@
+# Clicks and keys with modifier keys held (harness steps hold / release and the <mods> words after
+# a step's arguments, docs/notes/ui.md section 10). The game takes Ctrl / Shift / Alt from the window
+# messages (CInterface3D +0x7C / +0x7D / +0x7E), so the real keyboard never matters.
+#   Shift + the hero's portrait toggles the member's selection (ToggleMember 006379E0).
+#   Ctrl + spell key 1 casts the hero's fireball at once (kActionSpell: CHudSpellColumn::ClickAlternate
+#   0063EF60) on the nearest wolf the hero sees; Alt + quick item key P uses the first wand at once
+#   (CHudQuickItems::UseNow 0063E020); the same with the modifier held by hold / release over frames.
+#   Shift + a unit click (SelectUnit with Shift down) and Ctrl + Shift together.
+# The setup is ui_quick_items': two wands in the hero's quick slots through the camp, the fireball
+# spell, two blocked wolves beside the hero. Coordinates are the 800x600 layout.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+console @GiveItem(0,"wand 3.iron[lightning]")
+frames 5
+console @GiveItem(0,"wand 3.iron[fireball]")
+frames 5
+
+# The camp (page 0): both wands on the hero, as clicks on them in the item strip do (the
+# strip's tab 3 holds class 0x3007, not the quick items: the first run's clicks put nothing on).
+screen 5
+waitwindow 15 camp
+campputon 3006 2
+frames 3
+key esc
+waitwindow 15 battle
+waitfor 15 IsGreater(HP(GetLeader()),0)
+
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @GiveUnitSpell(GetLeader(),"fireball")
+frames 5
+
+# The hero's portrait: selects it and shows its quick items and spells. hudstate logs the
+# selection and the quick item panel before and after; "hudstate 2" fails the run when the panel
+# does not show two of the hero's own quick items (the wands did not reach its quick slots).
+hudstate
+click 400 560
+frames 5
+hudstate 2
+check IsAlive(GetLeader())
+
+console @AddUnitToServer("QuickWolf0","WolfTutor","QuickWolf0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("QuickWolf1","WolfTutor","QuickWolf1",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
+waitfor 10 IsAlive(GetObjectByName("QuickWolf0"))
+waitfor 10 IsAlive(GetObjectByName("QuickWolf1"))
+console @BlockUnit(GetObjectByName("QuickWolf0"),1)
+console @BlockUnit(GetObjectByName("QuickWolf1"),1)
+waitunit 10 QuickWolf0
+waitunit 10 QuickWolf1
+
+
+# Shift + the portrait: the hero is deselected, a plain click selects it again.
+click 400 560 shift
+frames 5
+hudstate
+click 400 560
+frames 5
+hudstate 2
+
+# Ctrl + the spell key: the fireball at once on the nearest wolf (an attack spell), done in one key.
+key 1 ctrl
+frames 10
+hudstate
+check IsAlive(GetLeader())
+
+# Alt + the quick item key (P: item1, the first quick slot): the wand at once.
+click 400 560
+frames 5
+key p alt
+frames 10
+hudstate
+key o alt
+frames 10
+hudstate
+
+# The same with the modifier held over frames: Ctrl + the spell key and Alt + quick items.
+hold ctrl
+frames 2
+key 1
+frames 10
+hudstate
+release ctrl
+frames 2
+hold alt
+frames 2
+key i
+frames 5
+key u
+frames 5
+release alt
+frames 2
+hudstate
+
+# A plain key afterwards picks (no modifier is stuck); two modifiers on a unit click.
+key 1
+frames 5
+hudstate
+click 90 320
+frames 5
+clickunit QuickWolf1 l shift
+frames 10
+hudstate
+clickunit QuickWolf1 l ctrl+shift
+frames 10
+hudstate
+check IsAlive(GetLeader())
+report
+quit

@@ -11,7 +11,7 @@ Generated from docs/tickets.toml and the statuses in the work database by tools/
 Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with the cleanup; one Opus ticket at a time.
 
 - **R9b2** WinMain's original in harness runs: the last old-device calls (ready; opus). The harness patches the CALL at 00457595, so WinMain 00456440's original runs: GetAvailableVidMem x3 and RestoreAllSurfaces stay on the stand-in. Let the rewrite run under the harness (freeze hook in app_main.cpp), then the COM stand-ins can go once Rebirth's patched originals (006462A0, 0060C870) are covered. After: R9b.
-- **R11a** Game code's DirectDraw fallback behind !render::Presenting() (watch). Waiting on the user (asked 2026-10-16): keep the DirectDraw fallback for players without Direct3D 11, or remove it. Recommended: remove. After: R11.
+- **R11a** Game code's DirectDraw fallback behind !render::Presenting() (ready). Waiting on the user (asked 2026-10-16): keep the DirectDraw fallback for players without Direct3D 11, or remove it. Recommended: remove. After: R11.
 - **R8** Textures without DirectDraw in the switch-over (done). Textures work without DirectDraw in the switch-over (docs/notes/renderer.md).
 - **R9a** Device setup without DirectDraw and Present on a flip-model swap chain (done 2026-10-14). Device setup without DirectDraw and Present on a flip-model swap chain; the five present scenarios pass on vanilla and --native.
 - **R9b** Guard every old-device call for a device object without a device (done 2026-10-14; opus). Every old-device call is guarded for a device object without a device (73 calling places from the old-device log). After: R9a.
@@ -187,7 +187,7 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **I11** Harness step for clicks with modifier keys held (running since 2026-10-16; sonnet). 0063EF60 / 0063E020 need them (ui.md section 6).
+- **I11** Harness step for clicks with modifier keys held (review since 2026-10-16; sonnet). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
