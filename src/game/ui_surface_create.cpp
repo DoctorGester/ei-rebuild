@@ -6,14 +6,12 @@
 // (004EF7B0), add height * pitch to the surface-bytes total 007C7E78, clear the surface to 0 with a
 // colour-fill Blt and set flag 4 of +0x0C.
 //
-// With the new renderer's memory ("cpuwindows", dx_surface.cpp) the surface is already zero (a new
-// DIB section) and the colour fill is left out; in the switch-over ("present") its description comes
-// from that memory too, and the holder has no DirectDraw surface at all (ticket R7), so making a
-// window asks DirectDraw for nothing.
-// The surface descriptions 005FCF80 / 005FD120 take for the surface-bytes total come from that
-// memory too in the switch-over, for picture windows as well: their holders (004EFC60 -> 004F0060,
-// a system-memory picture surface) get game-owned memory like the others. (005FCF80 itself has
-// no caller in game.exe or the mods: config/dead_code.csv.)
+// The holder has no DirectDraw surface, only the new renderer's memory (dx_surface.cpp, ticket R7):
+// the surface is already zero (a new DIB section), so the colour fill is left out, and the
+// descriptions the surface-bytes total takes (here and in 005FCF80 / 005FD120) come from that
+// memory, for picture windows as well (their holders, 004EFC60 -> 004F0060, get such memory too).
+// Making a window asks DirectDraw for nothing. (005FCF80 itself has no caller in game.exe or the
+// mods: config/dead_code.csv.)
 // The original's unwinding when 004EF7B0 throws (freeing the holder's memory) is not reproduced:
 // that throw ends the game.
 #include "app.h"
@@ -29,7 +27,7 @@
 #include "lib/mfc.h"
 
 #include <windows.h>
-#include <ddraw.h>
+#include <ddraw.h>   // DDSURFACEDESC2 (the description's layout)
 
 #include <cstdint>
 #include <cstring>
@@ -38,21 +36,9 @@
 
 namespace {
 
-constexpr unsigned long kColourFillWait = DDBLT_COLORFILL | DDBLT_WAIT;   // 0x01000400
-
-IDirectDrawSurface7* DirectDrawSurfaceOf(const CDXSurface* holder) {
-    return static_cast<IDirectDrawSurface7*>(holder->surface);
-}
-
-// The surface's description: from its game-owned memory in the switch-over (DirectPixels: window
-// and picture holders alike), else GetSurfaceDesc (the result in the holder's result, reported).
-// `desc` must be zeroed with its size set.
-void Describe(CDXSurface* holder, DDSURFACEDESC2* desc) {
-    if (DirectPixels(holder, reinterpret_cast<std::uint32_t*>(desc))) return;
-    long hr = DirectDrawSurfaceOf(holder)->GetSurfaceDesc(desc);
-    holder->result = hr;
-    if (hr != 0) app::FatalErrorCode(hr, game::CantGetSurfaceDescriptionText());
-}
+// The surface's description from its memory (DirectPixels: window and picture holders alike; the
+// original's GetSurfaceDesc). `desc` must be zeroed with its size set; it stays so without memory.
+void Describe(CDXSurface* holder, DDSURFACEDESC2* desc) { DirectPixels(holder, reinterpret_cast<std::uint32_t*>(desc)); }
 
 // height * pitch of the surface's description.
 std::uint32_t SurfaceBytes(const DDSURFACEDESC2& desc) {
@@ -85,13 +71,6 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     desc.dwSize = sizeof(desc);   // 0x7C
     Describe(holder, &desc);
     UiSurfaceBytes() += SurfaceBytes(desc);
-    if (!ClientBitmap(holder)) {
-        DDBLTFX fx = {};   // fill colour 0
-        fx.dwSize = sizeof(fx);   // 100
-        gameapi::EnterCriticalSection(GameDeviceLock());
-        DirectDrawSurfaceOf(holder)->Blt(nullptr, nullptr, nullptr, kColourFillWait, &fx);
-        gameapi::LeaveCriticalSection(GameDeviceLock());
-    }
     self->kept_ = nullptr;
     self->flags_ |= CUiSurface::kShown;
     self->keptSize_ = 0;

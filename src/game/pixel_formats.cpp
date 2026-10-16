@@ -1,8 +1,8 @@
 // Pixel format helpers of the renderer's device object (A-S11): a DDPIXELFORMAT split into
 // channels and the pixel conversions through it (004EDAA0 / 004EDC00 / 004EDC70), and the device's
-// format lookups (004E7C40 / 004E7DA0 its texture formats, 004E6BC0 its depth formats). Pure:
-// none of them touches DirectDraw; the lists they read are filled once at device creation
-// (004E6C30 / 004E6EE0, not rewritten).
+// format lookups (004E7C40 / 004E7DA0 its texture formats). Pure: none of them touches DirectDraw;
+// the list they read is filled once at device creation (004E6EE0). (The depth format lookup
+// 004E6BC0 went with its only caller, the depth buffer 004E6C30, in R11b: config/dead_code.csv.)
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -14,14 +14,11 @@ namespace {
 
 // DDPIXELFORMAT, the fields read here (as dwords: PixelFormat::words).
 constexpr int kFormatFlags = 1;          // +0x04 dwFlags
-constexpr int kFormatDepthBits = 3;      // +0x0C dwZBufferBitDepth (dwRGBBitCount's union)
-constexpr int kFormatRed = 4;            // +0x10 dwRBitMask; a depth format's stencil bit depth
+constexpr int kFormatRed = 4;            // +0x10 dwRBitMask
 constexpr int kFormatGreen = 5;          // +0x14
 constexpr int kFormatBlue = 6;           // +0x18
 constexpr int kFormatAlpha = 7;          // +0x1C
 constexpr std::uint32_t kFormatRgb = 0x40;          // DDPF_RGB
-constexpr std::uint32_t kFormatZBuffer = 0x400;     // DDPF_ZBUFFER
-constexpr std::uint32_t kFormatStencil = 0x4000;    // DDPF_STENCILBUFFER
 
 constexpr std::uint32_t kMmpDxtMask = 0x00FFFFFF;
 constexpr std::uint32_t kMmpDxt = 'D' | ('X' << 8) | ('T' << 16);   // "DXT" (DXT1, DXT3, ...)
@@ -134,16 +131,4 @@ int CTextureDevice::ParseMmpHeader(const void* data, PixelFormat* format) {
 }
 EI_REPLACE_METHOD(0x004E7C40, CTextureDevice::ParseMmpHeader);
 
-int CTextureDevice::FindDepthFormat(PixelFormat* format) {
-    std::uint32_t flags = format->words[kFormatFlags];
-    if (!(flags & (kFormatZBuffer | kFormatStencil))) return 0;
-    for (auto* node = depthFormats_.First(); node != depthFormats_.End(); node = node->next) {
-        const PixelFormat& candidate = node->data;
-        if ((flags & kFormatZBuffer) && format->words[kFormatDepthBits] != candidate.words[kFormatDepthBits]) continue;
-        if ((flags & kFormatStencil) && format->words[kFormatRed] != candidate.words[kFormatRed]) continue;
-        *format = candidate;
-        return 1;
-    }
-    return 0;
-}
-EI_REPLACE_METHOD(0x004E6BC0, CTextureDevice::FindDepthFormat);
+

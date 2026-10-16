@@ -31,6 +31,9 @@
 //                             or esc, enter, space, tab, f1..f12, up, down, left, right, plus, minus,
 //                             grave (the console key), backspace, delete, home, end, pgup, pgdn, ctrl,
 //                             enterchar (Enter with its WM_CHAR, as text input such as the console needs).
+//                             A letter or digit is typed once (its WM_CHAR, lower case); the game's
+//                             TranslateMessage translates as the US layout with no key held, whatever the
+//                             user's own keyboard does (HarnessTranslateMessage).
 //                             Input steps (key and the mouse steps below) are posted from the game's
 //                             main loop only: the pump that window switches run drops waiting input
 //                             (see PeekMessageHook)
@@ -56,6 +59,10 @@
 //                             behind another object. "#<id>" names a map object by id instead (a
 //                             lever, "clickunit #1889"): found by the battle screen's object pick
 //                             (005659D0), as waitunit does
+//   clickground <x> <y> [click|dblclick|rclick|move] [mods]
+//                             that mouse step (default click) at the screen point where the game's ground
+//                             pick (0056C350, what a walk order asks) finds map point (x, y), searched over
+//                             the 800x600 layout; fails when no point comes within 1.5 units (off screen)
 //   hold <mods>, release <mods>
 //                             press / release the modifier keys <mods> (ctrl, shift, alt; separated by
 //                             spaces, "+" or ","), held over frames and further steps. The game takes
@@ -81,6 +88,11 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
+//   netcut                    in a pair's game: its network cable pulled from now on (harness_pair.h): nothing
+//                             it sends arrives, what the other game sends it is lost; both sessions time out
+//   hidefile <path>           an install file (relative to the game folder: maps\z6q1.mq) reads as missing in
+//                             this game until the game writes it (then its overlay copy is read): a player
+//                             who lacks a file the host has (the shared quest files, net_pair_leave)
 //   masterhost <host[:port]>  the options' Master Server Name (0079BED8) for this run, not saved: the
 //                             master the connection screen asks and a public game announces itself to
 //                             (net_second_master: 127.0.0.1 only)
@@ -268,6 +280,7 @@
 #include <intrin.h>
 
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -757,12 +770,32 @@ void LogInstallWrite(const char* path, const char* shadow) {
     if (logged++ < 200) Log("harness: install write redirected: %s -> %s", path, shadow);
 }
 
-// For a read: the overlay copy when it exists, else `path` (saves always redirect).
+// "hidefile <path>": install files (relative to the game folder, e.g. maps\z6q1.mq) this game reads
+// as missing until it writes them itself (the overlay copy is then read): a player who lacks a file
+// another has (SV5d2: the multiplayer quest files the server shares). Set by steps on the main
+// thread before the game looks for the files; read by the file hooks.
+constexpr int kHiddenFiles = 8;
+char g_hiddenFiles[kHiddenFiles][MAX_PATH];
+volatile LONG g_hiddenCount = 0;
+
+bool Hidden(const char* relative) {
+    for (LONG i = 0; i < g_hiddenCount; ++i)
+        if (_stricmp(relative, g_hiddenFiles[i]) == 0) return true;
+    return false;
+}
+
+// For a read: the overlay copy when it exists, else `path` (saves always redirect); a hidden file
+// without an overlay copy reads as the missing overlay path.
 const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
     const char* saves = SavesPath(path, buffer);
     if (saves != path) return saves;
     const char* shadow = ShadowOf(path, buffer);
     if (shadow && g_getFileAttributes(shadow) != INVALID_FILE_ATTRIBUTES) return shadow;
+    if (shadow && g_hiddenCount && Hidden(shadow + std::strlen(g_savesDir) + 1)) {
+        static int logged = 0;
+        if (logged++ < 20) Log("harness: hidden file read as missing: %s", path);
+        return shadow;
+    }
     return path;
 }
 
@@ -1154,6 +1187,49 @@ struct HeldModifiers {
     unsigned mods_ = 0;
 };
 
+// The game's TranslateMessage (import slot 0073B450; WinMain's loop and the movie loop call it). Windows makes a
+// WM_CHAR from a key message with the thread's keyboard layout and key state, which follow the user's own layout
+// switches and held keys even though the harness's game never has the focus: in pairs a typed hero name came out
+// "ppeEeErR" (Shift held) or "peerr" (a layout without Latin letters) as well as "ppeeeerr" (SV5d2). Harness runs
+// translate as the US layout with no key held: letters and digits make no WM_CHAR here (the "key" step posts
+// theirs, so a name comes out as typed), the other keys their fixed character (Enter 0x0D, Esc 0x1B, ...).
+constexpr std::uintptr_t kTranslateMessageSlot = 0x0073B450;   // game.exe import table
+decltype(&::TranslateMessage) g_translateMessage;
+
+char FixedKeyChar(WPARAM vk) {
+    switch (vk) {
+    case VK_BACK: return 0x08;
+    case VK_TAB: return 0x09;
+    case VK_RETURN: return 0x0D;
+    case VK_ESCAPE: return 0x1B;
+    case VK_SPACE: return ' ';
+    case VK_MULTIPLY: return '*';
+    case VK_ADD: return '+';
+    case VK_SUBTRACT: return '-';
+    case VK_DIVIDE: return '/';
+    case VK_OEM_1: return ';';
+    case VK_OEM_PLUS: return '=';
+    case VK_OEM_COMMA: return ',';
+    case VK_OEM_MINUS: return '-';
+    case VK_OEM_PERIOD: return '.';
+    case VK_OEM_2: return '/';
+    case VK_OEM_3: return '`';
+    case VK_OEM_4: return '[';
+    case VK_OEM_5: return '\\';
+    case VK_OEM_6: return ']';
+    case VK_OEM_7: return '\'';
+    default: return 0;
+    }
+}
+
+BOOL WINAPI HarnessTranslateMessage(const MSG* message) {
+    if (!message || message->message != WM_KEYDOWN) return FALSE;   // no Alt in the key state: no WM_SYSCHAR
+    const char c = FixedKeyChar(message->wParam);
+    if (!c) return FALSE;
+    PostMessageA(message->hwnd, WM_CHAR, static_cast<unsigned char>(c), message->lParam);
+    return TRUE;
+}
+
 void PostKey(const std::string& name) {
     UINT vk = 0;
     if (name.size() == 1 && std::isalnum(static_cast<unsigned char>(name[0]))) vk = std::toupper(static_cast<unsigned char>(name[0]));
@@ -1466,6 +1542,53 @@ std::string PostUnitMouse(const std::string& argument) {
     return "";
 }
 
+// --- clickground <x> <y> [click|dblclick|rclick|move] (SV5d1) -----------------------------------------
+// A mouse step on the ground point (x, y) of the map: the 800x600 layout point whose ground, as the
+// game's own pick finds it (CWorldClient::PickSurface 0056C350, what the briefing screen's walk and the
+// battle screen's orders ask with the message's coordinates), lies nearest to (x, y). Searched on a
+// 10-pixel grid, then pixel by pixel around the best; fails when no point comes within 1.5 units (the
+// point is off screen or hidden). The pick only reads the view and the terrain (its pick stack entry
+// is popped again), so the step is the plain mouse step at the point found.
+__declspec(naked) float* __fastcall HarnessPickSurface(void* /*client world*/, void*, float* /*out*/, int /*x*/, int /*y*/)
+    EI_ORIGINAL(0x0056C350)
+
+std::string PostGroundMouse(const std::string& argument) {
+    float wx = 0.0f, wy = 0.0f;
+    char verb[16] = "click";
+    if (sscanf_s(argument.c_str(), "%f %f %15s", &wx, &wy, verb, unsigned(sizeof(verb))) < 2)
+        return "clickground needs <x> <y> [click|dblclick|rclick|move]";
+    const std::string kind = verb;
+    if (kind != "click" && kind != "dblclick" && kind != "rclick" && kind != "move")
+        return "clickground: '" + kind + "' is no mouse step (click, dblclick, rclick, move)";
+    const RECT client = GameClient();
+    const int cw = client.right - client.left, ch = client.bottom - client.top;
+    auto distance = [&](int lx, int ly) {
+        float out[3] = {};
+        HarnessPickSurface(reinterpret_cast<void*>(kClientWorld), nullptr, out, lx * cw / 800, ly * ch / 600);
+        const double dx = double(out[0]) - wx, dy = double(out[1]) - wy;
+        return dx * dx + dy * dy;
+    };
+    int bestX = -1, bestY = -1;
+    double best = 1e30;
+    auto consider = [&](int lx, int ly) {
+        if (lx < 0 || ly < 0 || lx >= 800 || ly >= 600) return;
+        const double d = distance(lx, ly);
+        if (d < best) best = d, bestX = lx, bestY = ly;
+    };
+    for (int ly = 5; ly < 600; ly += 10)
+        for (int lx = 5; lx < 800; lx += 10) consider(lx, ly);
+    const int cx = bestX, cy = bestY;
+    for (int ly = cy - 10; ly <= cy + 10; ++ly)
+        for (int lx = cx - 10; lx <= cx + 10; ++lx) consider(lx, ly);
+    char text[200];
+    std::snprintf(text, sizeof(text), "clickground %.2f %.2f: layout (%d,%d), %.2f away", wx, wy, bestX, bestY,
+                  best < 1e29 ? std::sqrt(best) : -1.0);
+    Log("harness: %s", text);
+    if (!(best <= 1.5 * 1.5)) return std::string(text) + ": no screen point picks the ground there";
+    PostMouse(kind, bestX, bestY);
+    return "";
+}
+
 // --- hudstate [minquick] (ticket I9) ----------------------------------------------------------
 // Logs the battle screen's state (the window on top): the pending action (+0x17C, +0x180), each
 // party member's selection (flags_ 0x10) and quick items (CUnit::GetQuickItem 00531920, slots
@@ -1648,7 +1771,7 @@ bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" || verb == "rdown" || verb == "rup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit" ||
-           verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
+           verb == "clickground" || verb == "hold" || verb == "release" || verb == "focus" || verb == "windowsize";
 }
 
 // "expectcrash <text>": the crash the scenario is about (its failure line contains <text>).
@@ -2332,9 +2455,9 @@ void RunSteps() {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
             }
-        } else if (s.verb == "clickunit") {
+        } else if (s.verb == "clickunit" || s.verb == "clickground") {
             HeldModifiers held(&s.argument);
-            std::string error = PostUnitMouse(s.argument);
+            std::string error = s.verb == "clickunit" ? PostUnitMouse(s.argument) : PostGroundMouse(s.argument);
             if (!error.empty()) {
                 Log("harness: %s", error.c_str());
                 g_failures.push_back(error);
@@ -2380,6 +2503,19 @@ void RunSteps() {
             g_waitPeerTag = rest ? rest : "";
             g_waitPeerDeadline.Set(seconds * 1000);
             return;
+        } else if (s.verb == "netcut") {
+            if (!pair::Active()) g_failures.push_back("netcut: not a pair's game (a \"peer\" line starts the other)");
+            pair::Cut();
+        } else if (s.verb == "hidefile") {
+            if (g_hiddenCount >= kHiddenFiles || s.argument.empty() || s.argument.size() >= MAX_PATH) {
+                g_failures.push_back("hidefile: no room for " + s.argument);
+            } else {
+                strcpy_s(g_hiddenFiles[g_hiddenCount], s.argument.c_str());
+                for (char* p = g_hiddenFiles[g_hiddenCount]; *p; ++p)
+                    if (*p == '/') *p = '\\';
+                InterlockedIncrement(&g_hiddenCount);
+                Log("harness: %s reads as missing until this game writes it", s.argument.c_str());
+            }
         } else if (s.verb == "masterhost") {
             options::TheOptions()->masterServerName_ = s.argument.c_str();
         } else if (s.verb == "zone") {
@@ -3115,6 +3251,7 @@ struct Harness {
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
+        PatchSlot(kTranslateMessageSlot, &HarnessTranslateMessage, g_translateMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);
         PatchSlot(kConsoleStreambufSyncSlot, reinterpret_cast<SyncFn>(&ConsoleSync), g_sync);
         PatchSlot(kCreateFileASlot, &RedirectedCreateFile, g_createFile);

@@ -37,7 +37,6 @@
 #include "originals_ui.h"
 
 #include <concepts>
-#include <ddraw.h>
 
 #include <cstdint>
 #include <cstring>
@@ -698,29 +697,19 @@ void CGlobalMap::Update() {
     if (selectPending_ != 0) RefreshSelection();
     selectPending_ = 0;
 
-    // The weather is drawn straight into texture 4's surface; in the switch-over that texture has
-    // only the new renderer's memory (00691D80, ticket R8), drawn into directly (no Lock / Unlock).
+    // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
+    // (00691D80, ticket R8), drawn into directly (the original: between a Lock and an Unlock).
     if (objects_.size > 4) {
         CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
         auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
         std::uint32_t desc[0x1F] = {};
         desc[0] = 0x7C;
-        bool direct = DirectPixels(holder, desc);
-        if (!direct) {
-            long hr = static_cast<IDirectDrawSurface7*>(holder->surface)
-                          ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), DDLOCK_WAIT, nullptr);
-            holder->result = hr;
-            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
+        if (DirectPixels(holder, desc)) {   // (always: the texture has memory)
+            float seconds = static_cast<float>(FrameTime(this));
+            reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(desc[9]), seconds);   // lpSurface
         }
-        float seconds = static_cast<float>(FrameTime(this));
-        reinterpret_cast<CCloudNoise*>(weather_)->Draw(reinterpret_cast<std::uint16_t*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
-        if (!direct) {
-            long hr = static_cast<IDirectDrawSurface7*>(holder->surface)->Unlock(nullptr);
-            holder->result = hr;
-            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
-        }
     }
     static_cast<CCursor*>(reinterpret_cast<void*>(0x007C7BD8))->ChangeShape(dragging_ ? 0x16 : 0);
 }

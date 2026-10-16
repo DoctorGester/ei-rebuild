@@ -1,0 +1,107 @@
+# SV5d2: shared files, a client lost in the game zone, the zone left back to the base, its reject topic and the
+# award (a pair of games, harness_pair.h). This game hosts as net_pair_join does; the peer (peer/net_pair_leave.txt)
+# lacks z6q1.mq ("hidefile"), one of the quest files the server shares, and joins.
+# - Shared files: each queued zone's .mq is listed (QueueMapList -> LoadZoneQuests -> ShareFile 00419A00, File
+#   messages); the peer lacks one (ClientOnFile 0041EAC0: a FileRequest), the server lists the request
+#   (0041B690) and sends the chunks; vanilla writes the file (ClientOnFileChunk 0041ECC0 -> WriteMapFile 005813A0),
+#   Rebirth's MQClient only collects them.
+# - The map and the zone as in net_pair_zone (z3q2 vanilla, z3q1 Rebirth).
+# - The lost client: the peer's network is cut in the zone ("netcut"); after the session timeout (60 s) this
+#   game's server drops it (ReportDeparture 0041A700 text 4) and the peer shows the lost server box.
+# - Back to the base: the leader walks into exit 1 (remove rectangle 0 130 20 147, beside the deploy rectangle);
+#   the leave box's Enter answers yes (CBattleScreen::OnMessageResult -> 00578AC0 -> SwitchMultiplayerZone's
+#   second call, flag80_ set: the start zone again).
+# - The sheriff's middle topic is the map's reject briefing ("z3q2_2" / "z3q1_2"): command 1 -> LeaveZone 00418CC0
+#   (AwardHost 004191C0 with the final award, QueueAward 00419D90, the next zones queued and shared); 60 s later
+#   the Award message reaches this game's client (ClientOnAward 0041EF90).
+timeout 300
+peer net_pair_leave
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+peerwait 90 joined
+frames 20
+
+# The sheriff's second topic picks the map (as in net_pair_zone).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+
+# Out through the gate into the game zone; the peer follows.
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+vanilla waitzone 40 z3q2
+rebirth waitzone 40 z3q1
+frames 20
+peersignal entered
+peerwait 120 peerin
+peerwait 60 cut
+# The peer times out (60 s of session time).
+frames 300
+
+# Back out through exit 1 (remove rectangle 0 130 20 147, beside the deploy rectangle).
+clickground 15 138 dblclick
+frames 40
+clickground 8 138 dblclick
+waitwindow 30 msgbox
+key enter
+waitwindow 60 briefing
+frames 40
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+# The award goes out 60 s after LeaveZone queued it.
+frames 280
+report
+quit

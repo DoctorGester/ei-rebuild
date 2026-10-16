@@ -1,15 +1,10 @@
 // The texture manager's cache of released textures: a texture nobody references any more is kept
 // (00691B00, the manager's ReleaseObject) and taken back when the game asks for it again by type and
 // name (00691BF0, from 00692D30) or by name (00693C60, FindTexture: the material stages 004EB550,
-// the terrain decals, 00693F10, 004EB1D0). The cache lowers a cached texture's DirectDraw priority
-// to 0 and raises it to 100 when it is taken back.
-//
-// In the switch-over ("present" with "cpuwindows", ticket R8) a texture's holder may have no
-// DirectDraw surface at all (the .mmp textures, the CPU-written and the shadow textures): the
-// priority is then left out. The originals do not check the surface. See docs/notes/renderer.md (section 7).
+// the terrain decals, 00693F10, 004EB1D0). The original lowers a cached texture's DirectDraw
+// priority to 0 and raises it to 100 when it is taken back; no holder has a DirectDraw surface
+// (ticket R8), so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
-
-#include "device.h"
 
 #include "originals_library.h"
 
@@ -25,14 +20,6 @@ namespace {
 
 // Texture flags that make a released texture cacheable (8: loaded).
 constexpr std::uint32_t kCacheable = 0x38;
-constexpr unsigned kPriorityCached = 0, kPriorityInUse = 100;
-
-// The texture's surface priority (the managed texture's eviction order); nothing for a texture
-// without a holder, or with a holder that has no DirectDraw surface.
-void SetPriority(const CTexture* texture, unsigned priority) {
-    const CDXSurface* holder = texture->surface_;
-    if (holder && holder->surface) device::Surface(holder)->SetPriority(priority);
-}
 
 } // namespace
 
@@ -72,7 +59,6 @@ int CTextureManager::ReleaseObjectImpl(CEngineObject* object) {
         if (object->flags_ & kCacheable) {
             cache_.AddTail(texture);
             cachedBytes_ += texture->uploadResult_;
-            SetPriority(texture, kPriorityCached);
             return 0;
         }
     }
@@ -96,7 +82,6 @@ CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
             cache_.RemoveAt(node);
             cachedBytes_ -= texture->uploadResult_;
             RegisterInstant(texture);
-            SetPriority(texture, kPriorityInUse);
             return texture;
         }
         node = next;
@@ -125,7 +110,6 @@ CTexture* CTextureManager::FindTexture(const char* name) {
             if (std::strcmp(texture->GetName(), name) == 0) {
                 cache_.RemoveAt(node);
                 RegisterInstant(texture);
-                SetPriority(texture, kPriorityInUse);
                 found = texture;
                 break;
             }

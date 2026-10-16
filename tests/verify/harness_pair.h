@@ -23,6 +23,8 @@
 //   the socket's port, from 127.0.0.1:<sender's virtual port>. Every address is the pair's machine, so
 //   the lobby's broadcast ping on 8888 reaches the other game's server. A datagram to a port nobody
 //   holds is dropped (as UDP would). The real sockets are still bound, on 127.0.0.1 (WB14's checks).
+// - A cut ("netcut", SV5d2): from then on this game's datagrams go nowhere and those sent to it are taken
+//   off the mailbox and lost, as with a pulled network cable; the lockstep and the signals go on.
 // - Signals: "peersignal <tag>" marks a point reached; "peerwait <seconds> <tag>" waits until the other
 //   side has marked it. Both are seen at a turn's start, so the wait ends in the same frame every run.
 
@@ -53,6 +55,9 @@ int SendTo(std::uintptr_t s, const char* data, int length, std::uint16_t port);
 int RecvFrom(std::uintptr_t s, char* data, int length, struct sockaddr* from, int* fromLength);
 // The socket closes: its port is free again.
 void Close(std::uintptr_t s);
+
+// "netcut": this game's network is cut from now on.
+void Cut();
 
 // The report's PAIR: line.
 void Report(FILE* f);

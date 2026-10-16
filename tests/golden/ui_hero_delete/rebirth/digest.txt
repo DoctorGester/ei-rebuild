@@ -643,7 +643,7 @@ client ticksRun 217
 world updates 240
 random isaac.count 131
 client ticksRun 237
-@ 12 update 260 frame 51 tick 20 zone - hash B237A891 n 173
+@ 12 update 260 frame 51 tick 20 zone - hash A3BA6853 n 173
 world updates 260
 random isaac.count 224
 random isaac.a 0xCB716B85
@@ -652,19 +652,19 @@ random isaac.c 0x00000014
 random isaac.results 0xD229851C
 random isaac.memory 0x6EB4C603
 client ticksRun 257
-+ cunit1000011214 80 unhuma "tteesstt"
++ cunit1000011214 80 unhuma "test"
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit BC639295
 cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash 1D62385B n 173
+@ 13 update 280 frame 55 tick 20 zone - hash 0CEFF899 n 173
 world updates 280
 random isaac.count 173
 client ticksRun 277
-@ 14 update 300 frame 59 tick 20 zone - hash 48D7E333 n 173
+@ 14 update 300 frame 59 tick 20 zone - hash 595A23F1 n 173
 world updates 300
 random isaac.count 128
 client ticksRun 297
-@ 15 update 320 frame 63 tick 20 zone - hash 7F76C570 n 173
+@ 15 update 320 frame 63 tick 20 zone - hash 10B0A0BE n 173
 world updates 320
 random isaac.count 223
 random isaac.a 0xEC8B18DA
@@ -674,11 +674,11 @@ random isaac.results 0x7F188E8D
 random isaac.memory 0x117C2EA1
 client ticksRun 317
 cunit1000011214 #unit D7843BD1
-@ 16 update 340 frame 67 tick 20 zone - hash D71B3808 n 173
+@ 16 update 340 frame 67 tick 20 zone - hash B8DD5DC6 n 173
 world updates 340
 random isaac.count 159
 client ticksRun 337
-@ 17 update 360 frame 71 tick 20 zone - hash 98F91672 n 173
+@ 17 update 360 frame 71 tick 20 zone - hash F73F73BC n 173
 world updates 360
 random isaac.count 113
 client ticksRun 357

@@ -4,10 +4,9 @@
 // drawing (005F5320, Rebirth-patched) runs all three when the menu opens. See docs/notes/ui.md, "Item
 // descriptions, item view".
 //
-// In the switch-over ("present" with "cpuwindows") these work on the surfaces' memory (the new
-// renderer's; the holders have no DirectDraw surface then) directly (DirectPixels), without
-// DirectDraw: no Lock, the screen copy from the new renderer's frame only, the stretched copy on the
-// CPU.
+// These work on the surfaces' memory (the new renderer's; the holders have no DirectDraw surface)
+// directly (DirectPixels): no Lock, the screen copy from the new renderer's frame, the stretched
+// copy on the CPU. A holder without that memory (none is made) is left alone.
 #include "app.h"
 #include "ui.h"
 #include "game_strings.h"
@@ -36,25 +35,6 @@ SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-
-// 004800E0 (cdecl): a fatal DirectX error with its message.
-// 004F0B00 (cdecl): the copies' error report (an empty function in 1.06).
-
-// IDirectDrawSurface7 slots.
-long Blt(void* surface, RECT* to, void* from, RECT* fromRect, unsigned long flags, void* fx) {
-    using Fn = long(__stdcall*)(void*, RECT*, void*, RECT*, unsigned long, void*);
-    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[5])(surface, to, from, fromRect, flags, fx);
-}
-long LockSurface(void* surface, std::uint32_t* desc) {
-    using Fn = long(__stdcall*)(void*, RECT*, void*, unsigned long, void*);
-    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
-}
-long UnlockSurface(void* surface) {
-    using Fn = long(__stdcall*)(void*, RECT*);
-    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[32])(surface, nullptr);
-}
-
-constexpr unsigned long kBltWait = 0x01000000;   // DDBLT_WAIT
 
 // DDSURFACEDESC2 as dwords.
 constexpr int kDescHeight = 2;      // +0x08
@@ -141,15 +121,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     SurfaceHolder* from = HolderOf(this);
     SurfaceHolder* to = HolderOf(copy);
     std::uint32_t fromDesc[0x1F], toDesc[0x1F];
-    long hr = 0;
-    if (DirectPixels(from, fromDesc) && DirectPixels(to, toDesc)) {
-        StretchCopy(toDesc, fromDesc);
-    } else if (from->surface && to->surface) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        hr = Blt(to->surface, nullptr, from->surface, nullptr, kBltWait, nullptr);
-        gameapi::LeaveCriticalSection(DeviceLock());
-        // (On a failure the original calls its error report, 004F0B00, with the result and a text; it is empty.)
-    }
+    if (DirectPixels(from, fromDesc) && DirectPixels(to, toDesc)) StretchCopy(toDesc, fromDesc);
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
     auto* pixels = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 2));
@@ -160,17 +132,12 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     std::memset(desc, 0, sizeof(desc));
     desc[0] = 0x7C;
     bool direct = DirectPixels(holder, desc);
-    if (!direct) {
-        hr = LockSurface(holder->surface, desc);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
-    }
     int bytes = static_cast<int>(desc[kDescBits] >> 3);
     ChannelLayout converter;
     converter.Split(&desc[kDescFormat]);
     const std::uint8_t* source = reinterpret_cast<const std::uint8_t*>(desc[kDescSurface]);
     std::uint16_t* out = pixels;
-    if (count != 0) {
+    if (direct && count != 0) {
         std::uint32_t left = static_cast<std::uint32_t>(count);
         do {
             std::uint32_t rgb = converter.FromNative(ReadPixel(source, bytes));
@@ -179,13 +146,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
             source += bytes;
         } while (--left != 0);
     }
-    holder = HolderOf(copy);
     gameapi::LeaveCriticalSection(DeviceLock());
-    if (!direct) {
-        hr = UnlockSurface(holder->surface);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
-    }
     if (copy) {
         copy->ReleaseContents();
         gamecrt::operator_delete(copy);
@@ -200,12 +161,9 @@ void CUiSurface::Greyscale() {
     gameapi::EnterCriticalSection(DeviceLock());
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
-    bool direct = DirectPixels(holder, desc);
-    long hr = 0;
-    if (!direct) {
-        hr = LockSurface(holder->surface, desc);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
+    if (!DirectPixels(holder, desc)) {
+        gameapi::LeaveCriticalSection(DeviceLock());
+        return;
     }
     std::uint32_t count = desc[kDescWidth] * desc[kDescHeight];
     std::uint32_t bits = desc[kDescBits];
@@ -257,23 +215,13 @@ void CUiSurface::Greyscale() {
             } while (--count != 0);
         }
     }
-    holder = HolderOf(this);
     gameapi::LeaveCriticalSection(DeviceLock());
-    if (direct) return;
-    hr = UnlockSurface(holder->surface);
-    holder->result = hr;
-    if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
 namespace {
 
 // 004E6BA0 (thiscall): drops a holder reference.
 void ReleaseHolder(SurfaceHolder* holder) { holder->Release(); }
-
-long GetSurfaceDesc(void* surface, std::uint32_t* desc) {
-    using Fn = long(__stdcall*)(void*, void*);
-    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[22])(surface, desc);
-}
 
 std::uint32_t& KeptBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
 std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
@@ -300,11 +248,7 @@ void CUiSurface::SwapContents(int restore) {
             SurfaceHolder* holder = holder_;
             std::memset(desc, 0, sizeof(desc));
             desc[0] = 0x7C;
-            if (!DirectPixels(holder, desc)) {
-                long hr = GetSurfaceDesc(holder->surface, desc);
-                holder->result = hr;
-                if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E6C4));
-            }
+            DirectPixels(holder, desc);   // (no memory: the description stays empty)
             SurfaceBytesTotal() += desc[kDescHeight] * desc[kDescPitch];
         }
         if (!kept_) return;
@@ -312,21 +256,9 @@ void CUiSurface::SwapContents(int restore) {
         gameapi::EnterCriticalSection(DeviceLock());
         std::memset(desc, 0, sizeof(desc));
         desc[0] = 0x7C;
-        bool direct = DirectPixels(holder, desc);
-        if (!direct) {
-            long hr = LockSurface(holder->surface, desc);
-            holder->result = hr;
-            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
-        }
-        std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), kept_, keptSize_);
+        if (DirectPixels(holder, desc)) std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), kept_, keptSize_);
         KeptBytesTotal() -= keptSize_;
-        holder = holder_;
         gameapi::LeaveCriticalSection(DeviceLock());
-        if (!direct) {
-            long hr = UnlockSurface(holder->surface);
-            holder->result = hr;
-            if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
-        }
         gamecrt::operator_delete(kept_);
         kept_ = nullptr;
         keptSize_ = 0;
@@ -337,24 +269,13 @@ void CUiSurface::SwapContents(int restore) {
     gameapi::EnterCriticalSection(DeviceLock());
     std::memset(desc, 0, sizeof(desc));
     desc[0] = 0x7C;
-    bool direct = DirectPixels(holder, desc);
-    if (!direct) {
-        long hr = LockSurface(holder->surface, desc);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
-    }
+    bool direct = DirectPixels(holder, desc);   // (no memory: an empty copy)
     if (kept_) gamecrt::operator_delete(kept_);
     keptSize_ = desc[kDescHeight] * desc[kDescPitch];
     kept_ = static_cast<std::uint8_t*>(gamecrt::operator_new(keptSize_));
-    std::memcpy(kept_, reinterpret_cast<const void*>(desc[kDescSurface]), keptSize_);
+    if (direct) std::memcpy(kept_, reinterpret_cast<const void*>(desc[kDescSurface]), keptSize_);
     KeptBytesTotal() += keptSize_;
-    holder = holder_;
     gameapi::LeaveCriticalSection(DeviceLock());
-    if (!direct) {
-        long hr = UnlockSurface(holder->surface);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
-    }
     SurfaceBytesTotal() -= keptSize_;
     SurfaceHolder* released = holder_;
     holder_ = nullptr;
@@ -374,11 +295,9 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     gameapi::EnterCriticalSection(DeviceLock());
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
-    bool direct = DirectPixels(holder, desc);
-    if (!direct) {
-        long hr = LockSurface(holder->surface, desc);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E30C));   // "Can't lock surface"
+    if (!DirectPixels(holder, desc)) {
+        gameapi::LeaveCriticalSection(DeviceLock());
+        return 0;
     }
     int bytes = static_cast<int>(desc[kDescBits] >> 3);
     std::uint32_t at = desc[kDescSurface] + desc[kDescPitch] * static_cast<std::uint32_t>(y) +
@@ -387,13 +306,7 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     ChannelLayout converter;
     converter.Split(&desc[kDescFormat]);
     std::uint32_t rgb = converter.FromNative(value);
-    holder = HolderOf(this);
     gameapi::LeaveCriticalSection(DeviceLock());
-    if (!direct) {
-        long hr = UnlockSurface(holder->surface);
-        holder->result = hr;
-        if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
-    }
     return rgb;
 }
 EI_REPLACE_METHOD(0x005FD240, CUiSurface::PixelAt);

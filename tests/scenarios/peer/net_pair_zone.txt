@@ -1,0 +1,62 @@
+# The peer of net_pair_zone: joins the host's game (as in net_pair_join), offers the host an exchange (the
+# host's face, the left one here) and accepts the host's item; once the host has entered z3q2 it walks out of
+# its own base the same way and joins the host's zone as a remote player; then it quits.
+timeout 180
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key p
+frames 3
+key e
+frames 3
+key e
+frames 3
+key r
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+peerwait 90 hosted
+wait 4000
+clickregion 15
+frames 5
+clickregion 0
+waitwindow 40 briefing
+peersignal joined
+frames 10
+vanilla click 715 25
+rebirth click 635 36
+frames 30
+peersignal offered
+peerwait 60 accepted
+frames 30
+peerwait 60 hostok
+frames 10
+vanilla click 31 467
+rebirth click 123 469
+frames 30
+peersignal peerok
+frames 30
+
+peerwait 200 entered
+frames 20
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+waitwindow 60 battle
+frames 20
+peersignal peerin
+peerwait 120 done
+frames 2
+report
+quit

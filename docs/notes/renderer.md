@@ -167,12 +167,14 @@ size, bit count and channel masks. Made by the holder code, used by game code (`
 Change detection: the renderer keeps a copy of the memory each window texture was made from and converts again only
 when it differs (a memcmp at each blit).
 
-**Holders without a surface**: the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the
-cursor's background and composition surfaces 005E60B0, the movies' decode surfaces) and the system-memory picture
-holders of 004F0060 (cursor images via 004EFC60 from 005E4EB0; dead picture windows) have no DirectDraw surface:
-`CDXSurface::surface` stays null, the pixels are only the renderer's memory. The screen's pixel format comes from the
-display mode (`ReadScreenFormat`; the primary only if that fails). If the new renderer fails later (`Active()` turns
-false) nothing more is shown but nothing crashes.
+**Holders without a surface**: no holder has a DirectDraw surface (`CDXSurface::surface` is always null; R11b removed
+the code for one): the holders of 004EF7B0 (windows 005FCC00 / 005FCDD0 / 005FD7A0, the cursor's background and
+composition surfaces 005E60B0, the movies' decode surfaces), the picture holders of 004F0060 (cursor images via
+004EFC60 from 005E4EB0; dead picture windows) and the textures (section 7) have only the renderer's memory, written
+and read through `DirectPixels` (no Lock / Unlock, GetDC, Blt or colour fill). Without memory a holder is not made:
+the original's DDSurface error is thrown (`ThrowSurfaceNotMade`, device +8 = DDERR_UNSUPPORTED). The screen's pixel
+format comes from the display mode (`ReadScreenFormat`). If the new renderer fails later (`Active()` turns false)
+nothing more is shown but nothing crashes.
 
 | Address | Name / change |
 |---|---|
@@ -187,7 +189,8 @@ false) nothing more is shown but nothing crashes.
 
 Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present.
 Not reproduced: the unwinding when 004EFC60 / 004EF7B0 throw and the fallback to 004EF7B0 when 004EFA60's
-video-memory holder throws (only with 00784756 0). The original quirks kept (failed Locks returning with the device
+video-memory holder throws (only with 00784756 0; 004EFA60, the holder from a DirectDraw description, and 004EFEA0
+are not ported: config/dead_code.csv, R11b). The original quirks kept (failed Locks returning with the device
 lock held, the 24-bit clear ignoring the pitch, ...) are in the functions' comments.
 
 **Save / load screen's pictures** (`ui_saveload.cpp`): two 256x256 5:6:5 textures made by 005FF0B0 (-> 00691D80 ->
@@ -199,20 +202,20 @@ memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C).
 The new folder is "save<n>", n one more than the highest atoi(folder.Mid(4)) (006FD9B4 is Mid). Checked by scenario ui_saveload. The SavesPath Rebirth patch
 is disabled in this install and not reproduced.
 
-## 7. Textures without DirectDraw in the switch-over
+## 7. Textures without DirectDraw
 
-In `present` with `cpuwindows` CPU-written textures (00691D80), shadow textures and .bmp textures have only the
-renderer's memory; .mmp textures only its decoded copy.
+CPU-written textures (00691D80), shadow textures and .bmp textures have only the renderer's memory; .mmp textures only
+its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
 
 | Address | Name / change |
 |---|---|
-| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read), mipCount levels, caps by the kind flags (0x400 system memory else TEXTUREMANAGE; 0x40 OPAQUE, 0x80 HINTSTATIC, 0x100 / 0x200 / 0x400 HINTDYNAMIC); holder from 004EFA60; byte size +0x28 always 0 |
-| 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the device's 5650 / 5551 / 4444 (missing: FatalError "Can't find texture format %d."); in the switch-over the holder is `NewMemoryTextureHolder` (no CreateSurface; no memory -> DirectDraw texture, logged) |
+| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
+| 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the device's 5650 / 5551 / 4444 (missing: FatalError "Can't find texture format %d."); its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface` (`texture_shadow.cpp`) | 64x64 4:4:4:4 shadow texture and the shared render surface (manager +0xE0) |
-| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; a holder without a surface is described from its memory (`ClientPixels`); the shadow texture is filled from the render surface on the CPU |
-| 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | switch-over: no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format gets the DirectDraw texture (logged once) |
+| 00690FC0 `LockPixels`, 00691030 `UnlockPixels`; 0051CE60's copy -> `CTexture::LoadPixelsFrom` | device lock held between the two; the holder is described from its memory (`ClientPixels`); the shadow texture is filled from the render surface on the CPU |
+| 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
 | 0068FBF0 `LoadBmpFiles` (`texture_bmp.cpp`, RET 0xC) | loose textures\<name>.bmp (from 00690260) via the game's DIB reader (006D4AA0 / 006D5910 / 006D4D10 / 006D4CD0); not reached (no .bmp in the installs); loops over the width then the height (a non-square .bmp overruns the surface) |
-| 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; SetPriority only for a holder with a surface; 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
+| 00691B00 `ReleaseObject` (slot 24), 00691BF0 `TakeFromCache`, 00693C60 `FindTexture` (`texture_cache.cpp`) | cache list +0xBC, bytes +0xD8; no SetPriority (no surface); 00693C60 does not lower +0xD8 for a texture it takes from the cache (00691BF0 does) |
 
 Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
@@ -243,7 +246,7 @@ Movies and software cursor (the original draws them to the primary; its device c
 | Address | The original | Ours |
 |---|---|---|
 | 005DB3F0 `PlayMovie` (`bink_video.cpp`; fastcall name, frame time, 5 stack arguments (the fifth never read), RET 0x14) | blocking player (callers 00458270, 0057A060, 004B89B8, 00602190, 00632940, 00634D20, 00634E60): own message loop (Esc / Space end or skip a frame), letterboxed blit to the primary | each frame to `render::MovieFrame`, then `render::Fill` (black) + `MovieBlit`, presented through 004EF610; result 0 / 1 (1 with movies off), 00784751 set again |
-| 005DB9E0 `HolderFill`, 005E5640 `HolderBlt` | colour fill, Blt between holders under the device lock | kept, no caller of ours |
+| 005DB9E0 `HolderFill`, 005E5640 `HolderBlt`, 005E5C40 composition | colour fill, Blt between holders, cursor blend, under the device lock | not ported: no caller of ours (config/dead_code.csv, R11b) |
 | 005E6630 `CursorSaveBackground` | background copy under the device lock | does nothing |
 | 005DA400 `ShowLoadingMovie` (fastcall progress) | loading movie (progres*.bik per zone by 00595080, path 007AF460 + "Movies\" + name; state 007C5550 / holder 007C551C / type 007C5554 / rect 007C5520) stretched over the primary; hides the cursor (005E5270 0) on every call and never shows it again | last frame blitted and presented as above |
 | 005E5690 `CursorThread` (started through 005E52A0) | every 41 ms with the software cursor bit: restore background, save, compose (005E5C40), blit to the primary | the last frame presented again with the cursor moved (R9c2) |
@@ -282,13 +285,13 @@ come first, then what holds for the present path (the subsection names are cited
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
   the global map's clouds on the GPU.
-- **R11b**: R11a removed the fallback's switches and draws; what is left only runs for a holder with a DirectDraw
-  surface, which the stand-ins never make: the `!DirectPixels` Lock / Unlock branches (ui_surface_pixels.cpp,
-  dx_surface.cpp, texture_shadow.cpp, ui_cursor.cpp, ui_saveload.cpp, ui_item_view.cpp, ui_global_map.cpp), the
-  GetDC / ReleaseDC fallback (ui_surface_dc.cpp), CreateSurface in dx_surface.cpp, texture_bmp / texture_mmp's
-  DirectDraw upload, texture_cache's SetPriority, texture_fill, ui_surface_create's colour fill, and the ports kept
-  registered with no caller of ours (004EE4A0, 004EE5D0, 004ED610, 004EEA90, 004EEE30, 004EEBC0, 004E6C30, 004ED820,
-  005DB9E0, 005E5640).
+- **DirectDraw left after R11b** (R11c): R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only
+  ports no code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows,
+  so re-add them after a regeneration). Still there: the COM stand-ins and device.h's wrappers (R9b2), the render
+  target's DirectDraw surface tests (app_frame.cpp, surface_capture.cpp, unit_client_blink.cpp,
+  renderer_lifetime.cpp: always the no-surface branch), `device::Surface` in the binds and draws (always null), the
+  DirectDraw-description layout of the `DirectPixels` desc, and `GivePictureMemory` / `AttachTextureMemory`
+  (ui_saveload.cpp: the textures already have memory).
 - No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
@@ -318,14 +321,14 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   the chosen mode in `device::ScreenFormat` (16 bits 5:6:5, else X8R8G8B8: what dx_surface.cpp's ReadScreenFormat
   reads; the windows' colour keys, CUiSurface +0x34, are 0 or a COLORREF set without the format, so they agree),
   GetCaps with 3D / texture / mipmap capabilities and no gamma or FourCC, GetAvailableVidMem 256 MB, and refuses
-  CreateSurface (logged: a holder made through 004EFA60 then throws, as a failed DirectDraw call does). Every method
+  CreateSurface (logged; no code of ours calls it since R11b). Every method
   logs its first call from each calling place (`old device: IDirect3DDevice7::SetRenderState from game.exe 0050B22E`,
   at most 400 lines); `tools/old_device_calls.py [run folders]` lists that log by calling function (default: every
   `build/verify/runs/*present*`).
 - `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the rewritten code uses (GetCaps,
   EnumTextureFormats, Begin / EndScene, Clear, SetViewport, SetRenderTarget, Set / GetRenderState, Set /
   GetTextureStageState, state block calls, SetTexture, DrawPrimitive, DrawIndexedPrimitive; IDirectDraw7 GetCaps,
-  CreateSurface, GetDisplayMode, EnumDisplayModes, SetDisplayMode, RestoreDisplayMode, SetCooperativeLevel,
+  GetDisplayMode, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
   GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank). Each answers from `SwitchOverDevice`
   when the interface is the device object's stand-in (or null): draws, clears, mode changes and restores give D3D_OK.
   Every `->Method(` on the device in src/game goes through these; the interface's `UiD3DDevice` (ui.h) has declared
@@ -396,8 +399,8 @@ keeps the size it was made with and only the swap chain follows the window (R9c)
   options load (0045B210, `options.cpp`; 0045C560 writes it back) before WinMain makes the window at that size (the
   other two functions naming the strings, 00459100 and 0045A380, have no caller); WinMain creates the renderer
   once (00500B70 through slot 2 of 0073D93C; its only caller) and ShutDown destroys it (slot 3). 004EDD70 (the device
-  object) is called only from 004E5E50, which only 00500B70 calls; 004EEBC0 (SetDisplayMode) had its only caller in
-  00504780, the restore after focus returns in full screen, which in ours returns at once.
+  object) is called only from 004E5E50, which only 00500B70 calls; 004EEBC0 (SetDisplayMode, not ported) has its only
+  caller in 00504780, the restore after focus returns in full screen, which in ours returns at once.
 - The options window has no resolution: its 26 settings (table 00787430) are volumes, keyboard and mouse speeds,
   border scroll, rubber band, three shadow switches (7-9: units, buildings, flora; globals 0079BD14 / 18 / 1C), marks,
   footprints, selection type, path, brightness / contrast / gamma (applied at once through 00504A60, R9c), flying HP,
@@ -613,12 +616,12 @@ of 004EDD70); 0049F7B1 is the tail of `IsaacRandom::Seed`.
 File map of the device layer (all in `src/game`; the files' headers name the addresses):
 - `device_binds.cpp` (texture binds 004EB300 / 004EBAF0 / 004EB1D0: SetTexture when the stage's holder changes, the
   batch flushed first; batch flushes 004E7840 / 004E7A40: no vertex buffer is ever locked, so only their first test
-  runs); `directdraw_holder.cpp` (driver list 004EE4A0 / 004ED610 / 004EE5D0, the DirectDraw base 004EDD70, 004EEA90,
-  004EECF0, 004EEBC0, 004EEC60, 004EEE30, destructor body 004EE330; `dx_surface.cpp` 004EFA60 / 004EFEA0;
+  runs); `directdraw_holder.cpp` (the DirectDraw base 004EDD70, 004EECF0, 004EEC60, destructor body 004EE330; the
+  driver list 004EE4A0 / 004ED610 / 004EE5D0, 004EEA90, 004EEBC0, 004EEE30 are not ported: dead_code.csv, R11b);
   `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819); `device_object.cpp` (constructor
-  004E5E50, 004E6EE0 format table, 004E6C30 depth buffer, destructor body 004E68A0, the four state blocks of stage 0 at
-  007AEDD0..DC); `pixel_formats.cpp` (004EDAA0 / 004EDC00 / 004EDC70 and the format lookups 004E7DA0 / 004E7C40 /
-  004E6BC0); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
+  004E5E50, 004E6EE0 format table, destructor body 004E68A0, the four state blocks of stage 0 at 007AEDD0..DC; the
+  depth buffer 004E6C30 / 004E6BC0 and the device callback 004ED820 are not ported); `pixel_formats.cpp` (004EDAA0 /
+  004EDC00 / 004EDC70 and the format lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
   axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`
   slots and built-in presets, `CTransformPipeline` constructor 004F0B90 / destructor 004F0E10 / matrix stacks 004F0DB0,
   `DriverAt` 004EE6D0); `link_mesh_draw.cpp` (CLinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
@@ -634,8 +637,7 @@ File map of the device layer (all in `src/game`; the files' headers name the add
 Verification: the goldens (the weather draws' scenes: rain in many scenarios, snow in rebirth_flags via `SetWeather`)
 and the function vectors; these functions run in the image like the rest.
 
-Original details kept: GetAttachedSurface's reference to the back buffer is never released; 004EFA60 describes the
-surface twice; the depth buffer's W-buffer choice is overwritten with 1; the T&L HAL device is never used; the rain's
+Original details kept: the T&L HAL device is never used; the rain's
 and snow's vertex colours and packet w are never written (the buffer's old bytes are drawn, the fog pass only lowers
 the specular's alpha); the rain's height uses the snow's rise (007AEDA0, both 40); the helper's destructor walks on from
 a record it has just erased (reads freed nodes, so its walk over more than one record differs in ours); slot 1 tests a

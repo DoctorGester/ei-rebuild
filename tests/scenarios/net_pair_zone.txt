@@ -1,0 +1,101 @@
+# SV5d1: two games (a pair, harness_pair.h) from the multiplayer base into a game zone together, with an
+# exchange on the base first. This game hosts as net_pair_join does; the peer (peer/net_pair_zone.txt) joins.
+# - The exchange: the peer clicks this game's face in the base's chat window (CChatWindow::OnLButtonDown 006097E0
+#   -> ClientSession::StartParty 0041E270, a Party message); this game clicks the peer's face back, the
+#   exchange window opens on both; this game offers its item and both press accept (the Trade message, the
+#   client's RecordTrade 0041E0A0), and the window closes on both.
+# - The map: this game's leader walks to the sheriff (clickground: the screen point whose ground pick is that
+#   map point), takes his second topic, "z3q2_1" (the queued map messages the server announces become the
+#   sheriff's topics: ClientOnZone 0041E790 -> MarkBriefing), and clicks through its phrases; finishing it
+#   sends command 1 "z3q2_1" (CompleteBriefing -> RequestBriefing 0057FB60), so the server picks the map
+#   (ServerOnCommand 0041B2A0 -> SetMap 004186F0 -> SetNetworkZone 0057ED60) and every client gets its Map.
+# - The zone switch: the leader walks out through bz1mpg's gate into exit 1's remove rectangle; the briefing
+#   screen leaves through it (LeaveIfExitOpen -> 00578AC0 -> SwitchMultiplayerZone 0057EE10, state 6), the
+#   flow starts the network zone (StartNetworkZone 0057BDF0: the host message to the clients); the peer then
+#   leaves its own base the same way (state 5: JoinGameClient, a DriverSession link over its connection) and
+#   plays z3q2 as a remote player of this game's world. Then the peer quits while this game stays.
+timeout 180
+peer net_pair_zone
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key h
+frames 3
+key o
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+clickregion 14
+frames 5
+clickregion 0
+waitwindow 25 briefing
+peersignal hosted
+
+# The peer offers an exchange; this game answers it (the peer's face is the left one), offers its item (the
+# first of the strip) and accepts; the peer accepts.
+peerwait 90 joined
+frames 20
+peerwait 60 offered
+frames 10
+vanilla click 715 25
+rebirth click 635 36
+frames 30
+peersignal accepted
+frames 60
+vanilla click 100 558
+rebirth click 175 550
+frames 30
+vanilla click 31 467
+rebirth click 123 469
+frames 30
+peersignal hostok
+peerwait 60 peerok
+frames 30
+
+# The sheriff's second topic (z3q2_1: four phrases, then the end).
+clickground 63 64 dblclick
+frames 60
+waitunit 10 Nsheriff
+clickunit Nsheriff
+frames 10
+clickregion 1
+wait 4000
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+frames 40
+
+# Out through the gate into exit 1 (remove rectangle 56 39 62.5 45).
+clickground 61 50 dblclick
+frames 60
+clickground 59 43 dblclick
+vanilla waitzone 40 z3q2
+rebirth waitzone 40 z3q1
+frames 20
+peersignal entered
+peerwait 120 peerin
+frames 100
+peersignal done
+frames 100
+report
+quit

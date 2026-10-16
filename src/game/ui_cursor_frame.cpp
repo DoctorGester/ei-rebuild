@@ -3,21 +3,20 @@
 // display option's software cursor bit (the renderer's +4 bit 0) is set). The original copies the
 // cursor's screen rectangle (updated by 005E52E0) from the render target into the background
 // surface, combines the cursor image (the part `from_` of it) with it in the composition surface
-// (CCursor::Blit: (background & mask) | image) and copies that back to the render target; `drawn_`
+// (005E5C40: (background & mask) | image) and copies that back to the render target; `drawn_`
 // keeps the rectangle drawn. Ours hands the image and its mask for the same rectangle to the new
 // renderer (render::Cursor), which draws it in every frame it presents. See docs/notes/ui.md
 // ("Cursor") and docs/notes/renderer.md.
 //
 // Also the cursor's draws straight to the primary surface in the original (ticket R6): the cursor
-// thread 005E5690 (redraws the cursor on the primary every 41 ms between frames), the background
-// save 005E6630 and the holder blit 005E5640 they use. The cursor's holders have no DirectDraw
-// surface (ticket R7): the background saves and blits are left out (R11a removed them with the
-// DirectDraw fallback), and the cursor thread moves the cursor between frames by presenting the last
-// frame again (render::CursorBetweenFrames, ticket R9c2); as in the original, not while the image is
-// hidden (the movie players and the loading screen hide it).
+// thread 005E5690 (redraws the cursor on the primary every 41 ms between frames) and the background
+// save 005E6630. The cursor's holders have no DirectDraw surface (ticket R7): the background saves,
+// the composition 005E5C40 and the holder blits 005E5640 are left out (R11a; R11b removed the two
+// ports, which nothing of ours calls), and the cursor thread moves the cursor between frames by
+// presenting the last frame again (render::CursorBetweenFrames, ticket R9c2); as in the original,
+// not while the image is hidden (the movie players and the loading screen hide it).
 #include "model.h"
 #include "ui_cursor.h"
-#include "device.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -30,15 +29,7 @@
 
 namespace {
 
-constexpr int kBlt = 5;                              // IDirectDrawSurface7::Blt
 constexpr DWORD kThreadPeriod = 41;                  // ms between the thread's redraws
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // 00500960: the renderer object (007AF060); its flags' bit 0 is the software cursor display option.
 bool SoftwareCursor() { return (SceneRenderer()->flags_ & 1) != 0; }
@@ -61,16 +52,6 @@ void MoveBetweenFrames(CCursor* self) {
 }
 
 } // namespace
-
-// 005E5640 (thiscall on the destination holder, RET 0x14): Blt from `source`'s surface (rectangles,
-// flags, effects) under the device lock; Blt's result. No caller of ours.
-long CDXSurface::Blt(RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx) {
-    gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(surface, kBlt, to, source->surface, from, flags, fx);
-    gameapi::LeaveCriticalSection(DeviceLock());
-    return hr;
-}
-EI_REPLACE_METHOD(0x005E5640, CDXSurface::Blt);
 
 // 005E54A0. (Without an image shown the original saves the background from the primary in mode 2:
 // nothing here.)

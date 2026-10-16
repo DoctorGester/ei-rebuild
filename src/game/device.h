@@ -22,17 +22,9 @@ struct Direct3DDeviceRecord {
 };
 static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRecord, desc) == 0x18);
 
-// device_object.cpp. 004ED820 (stdcall, RET 0x10: IDirect3D7::EnumDevices's callback): appends the
-// device to the list `context` (a stlp::list<Direct3DDeviceRecord>). Returns 1 (go on).
-HRESULT CALLBACK Direct3DDeviceEnumCallback(char* description, char* name, D3DDEVICEDESC7* desc, void* context);
-
 namespace device {
 
-// DDRAW.dll through game.exe's import table (as lib/gameapi.h for the other libraries).
-inline auto& DirectDrawEnumerateExA = *reinterpret_cast<decltype(&::DirectDrawEnumerateExA)*>(0x0073B038);
-inline auto& DirectDrawCreateEx = *reinterpret_cast<decltype(&::DirectDrawCreateEx)*>(0x0073B03C);
 // The interface and device ids as game.exe has them.
-inline const GUID& IidDirectDraw7() { return *reinterpret_cast<const GUID*>(0x00745C90); }
 inline const GUID& IidDirect3D7() { return *reinterpret_cast<const GUID*>(0x00745A80); }
 inline const GUID& IidHalDevice() { return *reinterpret_cast<const GUID*>(0x00745A50); }
 inline const GUID& IidTnLHalDevice() { return *reinterpret_cast<const GUID*>(0x00745A10); }
@@ -124,12 +116,9 @@ HRESULT DrawPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, v
 HRESULT DrawIndexedPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
                              WORD* indices, DWORD indexCount, DWORD flags);
 HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated);
-// (Without DirectDraw refused: DDERR_UNSUPPORTED, no surface, logged.)
-HRESULT CreateSurface(IDirectDraw7* ddraw, DDSURFACEDESC2* desc, IDirectDrawSurface7** surface);
 HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc);
 HRESULT EnumDisplayModes(IDirectDraw7* ddraw, DWORD flags, DDSURFACEDESC2* filter, void* context,
                          LPDDENUMMODESCALLBACK2 callback);
-HRESULT SetDisplayMode(IDirectDraw7* ddraw, DWORD width, DWORD height, DWORD bits, DWORD refreshRate, DWORD flags);
 HRESULT RestoreDisplayMode(IDirectDraw7* ddraw);
 HRESULT SetCooperativeLevel(IDirectDraw7* ddraw, HWND window, DWORD flags);
 HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DWORD* free);

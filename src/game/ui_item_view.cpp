@@ -515,25 +515,12 @@ struct TextureSurface {
 
 constexpr std::uint32_t kPnt3 = 0x33544E50;   // "PNT3"
 
-// The texture's pixels for one fill into `desc` (a DDSURFACEDESC2 as dwords): in the switch-over
-// the texture manager's textures have only the new renderer's memory (00691D80, ticket R8), which
-// is written directly (DirectPixels, `direct` set: no Lock / Unlock, no result in the holder);
-// otherwise a Lock with flags 0 as the original, its result in the holder's +8.
-long LockTexture(TextureSurface* holder, std::uint32_t* desc, bool* direct) {
-    *direct = DirectPixels(holder, desc);
-    if (*direct) return 0;
-    using LockFn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
-    long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(holder->surface))[25])(holder->surface, nullptr, desc,
-                                                                                           0, nullptr);
-    holder->result = hr;
-    return hr;
-}
-long UnlockTexture(TextureSurface* holder, bool direct) {
-    if (direct) return 0;
-    using UnlockFn = long(__stdcall*)(void**, RECT*);
-    long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(holder->surface))[32])(holder->surface, nullptr);
-    holder->result = hr;
-    return hr;
+// The texture's pixels for one fill into `desc` (a DDSURFACEDESC2 as dwords): the texture manager's
+// textures have only the new renderer's memory (00691D80, ticket R8), written directly
+// (DirectPixels; the original: a Lock with flags 0 and the Unlock after). 0, or the error the
+// original's report gets when there is no memory (none is made without it).
+long LockTexture(TextureSurface* holder, std::uint32_t* desc) {
+    return DirectPixels(holder, desc) ? 0 : E_FAIL;
 }
 
 } // namespace
@@ -570,8 +557,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
-    bool direct;
-    long hr = LockTexture(holder, desc, &direct);
+    long hr = LockTexture(holder, desc);
     if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
@@ -599,11 +585,6 @@ void* __fastcall ItemFigureTexture(const char* name) {
     }
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
-    hr = UnlockTexture(holder, direct);
-    if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E2F4)) == 0) {   // "Can't unlock surface"
-        VirtualCall(texture, 4);
-        return nullptr;
-    }
     VirtualCall(manager, 22);
     return texture;
 }
@@ -633,8 +614,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     gameapi::EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;
-    bool direct;
-    long hr = LockTexture(holder, desc, &direct);
+    long hr = LockTexture(holder, desc);
     if (hr != 0 && app::FatalErrorCode(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
@@ -661,8 +641,6 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     }
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
-    hr = UnlockTexture(holder, direct);
-    if (hr != 0) app::FatalErrorCode(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     VirtualCall(TextureManager(), 22);
     return image != nullptr;
 }

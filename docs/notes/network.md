@@ -26,8 +26,67 @@ function does; this file keeps what is not visible in the code.
   collectors and the pump run every frame. `net_pair_join.txt` (SV5d, a pair of games): one hosts from
   the connect screen, the other finds it in the lobby list, joins and reaches the base screen, both
   say a chat line (the Say from a remote connection, the Line to both), then the joiner
-  leaves. Not reached by any scenario: the zone switch out of the multiplayer base (SV5d1), trades, kick / ban, awards, shared files, `GameInfoRecord::Read`, the drop
-  paths (timeouts, bad updates), recording and replay (no `.apl` file exists), the drivers.
+  leaves. `net_pair_zone.txt` (SV5d1): an exchange on the base, the host's map choice and both games into
+  the game zone (below). `net_pair_kick.txt` (SV5d1): kick by serial from the host's player pick, the
+  joiner back from the main menu with a new hero, ban by name, the third join refused by the ban list.
+  `net_pair_leave.txt` (SV5d2): shared files (the peer lacks a quest file), the peer lost in the game zone
+  (its network cut), the host back out to the base and the map's reject topic (LeaveZone, the award).
+  Not reached by any scenario: a quest completed in the zone (CompleteZone 00418ED0 and its kind 0 / 1
+  awards, SV5d3), `GameInfoRecord::Read`, bad updates, recording and replay (no `.apl` file exists), the
+  master server's answer (OnMaster 0041ACA0).
+
+## The multiplayer base and the zone switch (SV5d1)
+
+- The base (bz1mpg for game type 0) runs locally in each game (BeginMultiplayerGame: state 4); the other
+  players are faces in the briefing screen's chat window (CChatWindow), not units.
+- The maps on offer: the server queues a Zone message "<zone>_1" for each zone FlowPickZones (0057F850)
+  picks (QueueMapList 00418530, after the start and after each map); a client's ClientOnZone marks the
+  briefing "b.<speaker>.<zone>_1" (MarkBriefing), so the zones are the speaker's topics (Nsheriff on
+  bz1mpg; a network client's topics are sorted by _stricmp). Finishing one sends command 1 "<zone>_1"
+  (CompleteBriefing -> RequestBriefing); the host's server then runs SetMap: the queued "<zone>_2", the Map
+  message, SetNetworkZone (zone7C_). Which zones are offered differs by install (vanilla z3q2 first,
+  Rebirth z3q1).
+- Leaving: a client may leave while "z.MPGame1" is not 1 (UpdateMultiplayerVariable 0057F190: the host
+  once it has the Map, a joiner once it has the Host message); the leader walking into exit 1's remove
+  rectangle (bz1mpg: 56 39 62.5 45, through the gate) makes the briefing screen leave (LeaveIfExitOpen,
+  00578AC0 -> SwitchMultiplayerZone 0057EE10). The host: state 6, StartNetworkZone 0057BDF0 (its Host
+  message to the clients). A joiner: state 5, JoinGameClient: a DriverSession link over its session
+  connection to the host's world (no new socket; the Host message's "host:8000" address is not used).
+- Exchange: a click on another player's face sends a Party offer (StartParty 0041E270); the partner's
+  click on the offerer's face opens the exchange window on both; both accepting completes the Trade.
+- Kick / ban: console `kick` / `ban` without a name opens the host's player pick (chatActive_ 1 / 2; a
+  face click sends command 4 / 5 with the serial); with a name, command 2 / 3 (guests whose name starts
+  with it). The dropped game shows the lost server box; a banned address's join is refused (the
+  refusal box).
+- Port bug found (SV5d1): QueueMapList queued "<zone>_2" (the reject briefings) instead of "<zone>_1",
+  so the image's base offered no map and nobody could leave it.
+
+## Leaving the game zone, awards, shared files, a lost client (SV5d2)
+
+- Zones on offer: FlowPickZones picks one zone per map group (zone3Obr, zone6, zone7, zone9 for bz1mpg) with
+  one IsaacRandom draw each, so the offer depends on the run: in the pair scenarios vanilla offers z3q2 z6q1
+  z7q2 z9q3, Rebirth z3q1 z6q1 z7q1 z9q1; after LeaveZone the next offer leaves out the zone just played
+  (z3q3 on both). The sheriff's topics after the map choice: "about life in the village", the map's reject
+  briefing ("<zone>_2"), "talk later".
+- Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy
+  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, flag80_ set: the client
+  state 1 and the start zone again; the host also sends command 9 with the announced zone to its guests and
+  drops the Host message). The base is local again; the zone's map message stays held.
+- The reject topic sends command 1 "<zone>_2": LeaveZone (text 6 announced, AwardHost with the final award for
+  the "<zone>_1" briefing's give-items, the lists emptied, the next zones queued and their .mq files shared,
+  the world's map cleared). Awards wait 60 s on the server's timed list (+0x25B4) before the Award message goes
+  to the host's connection (ClientOnAward lists it).
+- CompleteZone ("<zone>_3") needs the zone's quest done (the generated quest script's QuestComplete ->
+  FinishQuestMap 0057FB90 -> FinishMap queues "<zone>_3"); every z3 / z6 / z7 / z9 quest needs a fight with
+  level 2-8 monsters (z3q1: a chest by five bandits; z3q2: a level 5 toad), which a new hero does not win, and the
+  console's "@" commands do nothing in a network game (console::Execute). Not reached (SV5d3).
+- Shared files: ShareFile lists each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
+  that lacks one (005812F0) answers with a FileRequest, which the server lists with the sender's connection
+  (0041B690); the chunks come back and vanilla writes the file into Maps (identical to the host's in the pair
+  run); Rebirth's MQClient keeps the chunks and writes nothing.
+- A client lost in the zone: with its network cut (harness "netcut"), the server drops it after the session
+  timeout (60 s; ReportDeparture text 4, both players' message lines) and its own game shows the lost
+  server box and returns to the main menu.
 
 ## Class map
 

@@ -424,7 +424,7 @@ client ticksRun 217
 world updates 240
 random isaac.count 3
 client ticksRun 237
-@ 12 update 260 frame 51 tick 20 zone - hash 4EE3D8D1 n 69
+@ 12 update 260 frame 51 tick 20 zone - hash 2D0B4690 n 69
 world updates 260
 random isaac.count 153
 random isaac.a 0xCCD97F13
@@ -433,15 +433,15 @@ random isaac.c 0x00000013
 random isaac.results 0xA3299F22
 random isaac.memory 0xFA47C019
 client ticksRun 257
-+ cunit1000011214 80 unhuma "tteesstt"
++ cunit1000011214 80 unhuma "test"
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 046017D4
 cunit1000011214 #vitals A7CF3098
-@ 13 update 280 frame 55 tick 20 zone - hash 0AE541E6 n 69
+@ 13 update 280 frame 55 tick 20 zone - hash 690DDFA7 n 69
 world updates 280
 random isaac.count 50
 client ticksRun 277
-@ 14 update 300 frame 59 tick 20 zone - hash 014AAE9C n 69
+@ 14 update 300 frame 59 tick 20 zone - hash 62A230DD n 69
 world updates 300
 random isaac.count 212
 random isaac.a 0xCB716B85

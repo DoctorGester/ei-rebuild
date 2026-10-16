@@ -163,9 +163,14 @@ until S21c); `EI_COVER=<addr,...>` on the original still watches single addresse
   magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`).
 - Multiplayer (SV5d): `net_pair_join` is a pair of games (section 6): a second game finds the first's hosted game in the
   lobby list, joins it (join request, admit, login, the client's BeginMultiplayerGame into bz1mpg), both say a chat
-  line, and the second leaves; goldens for both games. Still unreached there (SV5d1): the multiplayer zone switch out
-  of the base (exit 1 to "MPGame1" after the host's map choice; the console's `#` / `@` commands do nothing on the
-  multiplayer base), trades, kick / ban, awards, shared files, the master server.
+  line, and the second leaves; goldens for both games. SV5d1: `net_pair_zone` (an exchange on the base, the host's
+  map choice through the sheriff's topic, both games out through bz1mpg's gate into the game zone: the joiner as a
+  remote player of the host's world) and `net_pair_kick` (kick by serial, ban by name, a refused join); goldens for
+  both installs and both games. Walks use `clickground` (the console's `#` / `@` commands do nothing on the
+  multiplayer base). SV5d2: `net_pair_leave` (shared files to a peer that lacks one, the peer lost in the game zone,
+  the host back to the base and the map's reject topic: LeaveZone and its award). Still unreached (SV5d3): a quest
+  completed in the game zone (CompleteZone: every offered quest needs a fight a new hero loses), the master
+  server's answer.
 - Still unreached: TryTame (SV5a1), SuspectionMode
   Enter / Execute, patrol points, CTrapObject::UpdateTrap, PickEnvironmentSpeech (T2c: the bored remark, 1 in 1001 per
   update after 500 bored ticks).
@@ -249,9 +254,15 @@ happen (the harness logs "share id" if one does).
   ends both; the peer's report in the run folder's peer\, merged into the host's as `FAILED: peer: ...`). The two run
   in lockstep (turns a frame at a time through a shared mapping, so a datagram always arrives in the same frame) and
   their UDP sockets talk through a mailbox of virtual ports, not the loopback adapter (the real sockets are still
-  bound on 127.0.0.1; the `NET:` check is unchanged); `peersignal` / `peerwait` order the two scenarios. The report's
+  bound on 127.0.0.1; the `NET:` check is unchanged); `peersignal` / `peerwait` order the two scenarios. `netcut`
+  pulls one side's cable (its datagrams and those sent to it are lost; SV5d2), `hidefile <path>` makes an install
+  file read as missing in one game until it writes it (a peer without the host's quest file). The report's
   `PAIR:` line. A pair takes two machine slots (run_all's machine_slot(count=2), work_sched's games_of; ei_launch takes
   the second itself when its caller held only one). Goldens keep both games (golden.py: the golden's peer\).
+- **Typed text** (SV5d2): the game's TranslateMessage (slot 0073B450) is the harness's: the US layout with no key
+  held, and letters and digits make no WM_CHAR (the `key` step posts theirs). Windows' own translation followed the
+  user's keyboard layout and held keys, so typed hero names came out doubled ("hhoosstt"), with capitals or with
+  letters missing, differently per run.
 - **Starter answers** (harness_starter.cpp): resolution, widescreen, and CtfMon answered 0 (addon.dll otherwise closes
   the user's ctfmon at start and restarts it from DLL_PROCESS_DETACH, which hung every Rebirth exit; S3e). A game hung
   after quit is ended after 3 s with `exit_hang.txt` (each thread's EIP and return addresses).
@@ -317,5 +328,6 @@ happen (the harness logs "share id" if one does).
 - SV7b5: net replication ordered by pointer (Connection's maps keyed by ReplicaEntry* / CRefObject*; SendUpdate hands
   out net ids in address order; only multiplayer and the lobby reach it).
 - I13: a read-before-write detector for never-written heap bytes.
-- SV5d1: more multiplayer on the pair harness: the zone switch out of the base, trades, kick / ban, awards (section 4).
+- SV5d3: a quest completed in a multiplayer game zone (CompleteZone, the kind 0 / 1 awards), the master server's
+  answer (section 4).
 - WB12a: the original's runs are not cloaked.
