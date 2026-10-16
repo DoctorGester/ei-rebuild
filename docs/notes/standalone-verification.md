@@ -2186,8 +2186,8 @@ the image keeps doing what it did, not that it does what the original does. READ
 both installs), snapshotted with `golden.py snapshot --image` (scratch driver build\S20a\passes.py): plain three
 times, `EI_HEAP_JITTER=1` twice, `2,fill`, `3,fill`. Every pass ALL PASS (8 runs), and each run's final digest hash
 the same in all 7 passes (vanilla / Rebirth: cursor_present EFFBC343 / 7202629E, device_lost 444AF4D3 / 1A37B38E,
-present_shot 5B2E42D6 / 14A149B0, present_window D1ADD28A / AB59ABF3); the "heap jitter" line in all 8 logs of the
-passes checked for it (the second seed-1 pass and 3,fill). `golden.py record --image --runs` over the 7: recorded
+present_shot 5B2E42D6 / 14A149B0, present_window D1ADD28A / AB59ABF3); the "heap jitter" line in all 8 logs of each
+pass checked for it (the second seed-1 pass, 3,fill and the later 2,fill). `golden.py record --image --runs` over the 7: recorded
 render_cursor_present and render_present_shot on both installs, render_device_lost and render_present_window on
 vanilla only (config/rebirth_scenarios.csv has them 0, and a Rebirth golden would add them to the Rebirth suite).
 cursor_present, device_lost and present_shot keep 3 decoded saves each (the same in the 7 runs; 6 new entries in
@@ -2195,3 +2195,8 @@ the saves store), present_window none (it never leaves the menu). Then a fresh `
 against the new goldens: ALL PASS, 6 the same (the 2 without a golden: device_lost and present_window on Rebirth,
 which ran because the names were given).
 The scenario headers say where their golden comes from.
+**Suite** (`work.py test S20a --golden --jobs 4`, the image, both installs): 186 runs ALL PASS, 174 goldens the same
+(168 + the 6 new), 0 differ, 12 runs without a golden (by rule: the three watchdogs, harness_disk_full
+V+R, net_second_master and rebirth_flags on vanilla, the four ui_widescreen* on vanilla; render_present_fullscreen
+on vanilla, S20b). Scratch: render_present_shot's run folders keep its 4K screenshots in harness_saves (65 MB a run),
+so the snapshots took 1.1 GB; removed after the recording.
