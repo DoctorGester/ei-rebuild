@@ -367,7 +367,7 @@ game's and addon's registry reads of these settings for the run (addon reads the
 stub slot, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`). Scenarios use `desktop` (3840x2160 here):
 another mode makes dgVoodoo switch the display. Since S21b (2026-10-16) `python tools\run_all.py --widescreen` runs the widescreen scenarios
 (`ui_widescreen`, `ui_widescreen_more`, `ui_widescreen_hud`, `ui_widescreen_screens`) on the standalone image (Rebirth install) and compares
-its frames with addon's, recorded once (`--widescreen --record`; docs/notes/standalone.md, S21b). Before that it ran them under Rebirth with
+its frames with addon's, recorded once (`--widescreen --record`; docs/notes/standalone-verification.md, "WideScreen references"). Before that it ran them under Rebirth with
 our hooks (`<name>-rebirth`) and with `--no-hooks` (`-rebirth-nohooks`, addon's code alone) and compares the frames; the scenarios run on the virtual
 clock, and frames with a `_later` twin are compared without what moved between the two (the hero, his portrait, the menu's creatures); a
 pausing window's frame (the Save window) leaves out what moved in `<f>_moving` / `<f>_moving_later`, captured before it opened. The default

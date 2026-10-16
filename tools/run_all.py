@@ -617,8 +617,8 @@ COMPARE_JOBS = 8     # compare_frames.py processes at once (each one CPU core, ~
 
 WIDESCREEN_KEEP = 3
 WIDESCREEN_SIZE = (3840, 2160)      # the frame size WIDESCREEN_AREAS' rectangles are given at (scaled to others)
-# compare_frames.py's settings for our renderer against dgVoodoo (docs/notes/standalone.md, S21b: measured over
-# the four scenarios' 19 frames). A pixel differs when a channel lies more than 8 outside the range of the other
+# compare_frames.py's settings for our renderer against dgVoodoo (docs/notes/standalone-verification.md,
+# "WideScreen references", S21b: measured over the four scenarios' 19 frames). A pixel differs when a channel lies more than 8 outside the range of the other
 # frame's pixels around it (--shift 1: the renderers sample magnified textures a fraction of a texel apart and
 # rasterise lines, model and alpha-tested edges a pixel apart); a frame fails when more than 0.6% of its pixels
 # differ (the scene's edges: at most 0.39%, the menu's trees) or more than a quarter of a 64-pixel block does
