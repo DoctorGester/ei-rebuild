@@ -78,8 +78,8 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
     if (libcrt::Mbsicmp(reinterpret_cast<const unsigned char*>(mobName_), reinterpret_cast<const unsigned char*>(mob)) == 0) {
         // The same zone again: start over.
-        QueueReset(commandsA_, nullptr);
-        QueueReset(commandsB_, nullptr);
+        ScriptReset(MainScript());
+        ScriptReset(SecondScript());
         diplomacy_.Reset();
         ClearMapObjects();
         ClearMissiles(this);
@@ -112,7 +112,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         int loaded = LoadMapObjects(mob, loadedFresh_ == 0);
         if (!loaded) return loaded;
         if (!loadedFresh_) {
-            QueueReset(commandsA_, nullptr);
+            ScriptReset(MainScript());
             diplomacy_.Reset();
         }
         if (keepsState_) SendFreshObjects();
@@ -154,8 +154,8 @@ void CWorldServer::ResetZone() {
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     TweenArrayRemoveAllOriginal(countdowns_);
     ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
-    QueueReset(commandsA_, nullptr);
-    QueueReset(commandsB_, nullptr);
+    ScriptReset(MainScript());
+    ScriptReset(SecondScript());
     ClearMissilePointers(this);
     for (auto* node = counted_.head; node; node = node->next) CountedRangeRelease(&node->data, 1);
     counted_.RemoveAll();
@@ -219,8 +219,8 @@ void CWorldServer::TeardownZone() {
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
-    QueueReset(commandsA_, nullptr);
-    QueueReset(commandsB_, nullptr);
+    ScriptReset(MainScript());
+    ScriptReset(SecondScript());
     diplomacy_.Reset();
     ClearMapObjects();
 
@@ -315,8 +315,8 @@ void CWorldServer::ResetState() {
     ResetZone();
     *reinterpret_cast<mfc::CString*>(&mapName_) = game::EmptyText();
     diplomacy_.Reset();
-    QueueReset(commandsA_, nullptr);
-    QueueReset(commandsB_, nullptr);
+    ScriptReset(MainScript());
+    ScriptReset(SecondScript());
     AIMapReset(aiMap_, nullptr);
     zoneLoaded_ = 0;
     nightLevel_ = 0;

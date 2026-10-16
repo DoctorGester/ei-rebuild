@@ -8,6 +8,7 @@
 #include "ai_map.h"
 #include "object_tables.h"
 #include "script.h"
+#include "game_arrays.h"
 #include "game_strings.h"
 #include "script_addon.h"
 
@@ -89,7 +90,10 @@ int ConfiguredTimeSpeed() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
     EI_ORIGINAL(0x004B4030)
 // CArray<ScriptObjectRef> (groups): Copy 004C1290, RemoveAt 004C2200.
-inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
+inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) {
+    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
+}
 __declspec(naked) void __fastcall GroupRemoveAt(ScriptGroup*, void*, int, int) EI_ORIGINAL(0x004C2200)
 // CList<ScriptDefinition> AddHead (CScript::instances_; despite the AddTail-like shape it links the
 // new node before the head): returns the new node.

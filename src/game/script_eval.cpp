@@ -5,6 +5,7 @@
 // behave as in the original; the multi-step computations keep their intermediates unrounded
 // (double locals) as the original keeps them in registers.
 #include "script.h"
+#include "game_arrays.h"
 #include "world_glue.h"
 #include "script_addon.h"
 
@@ -632,7 +633,10 @@ using TempGroupList = mfc::CList<ScriptGroup>;
 // the node. 004C2290: group destructor. 004C1290: group assignment.
 __declspec(naked) TempGroupList::Node* __fastcall GroupTempsAddTail(TempGroupList*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C8D80)
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
-inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
+inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) {
+    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
+}
 
 // FNSTSW after FILD a, FCOMP b (AH).
 int CompareIntFloat(int a, float b) { return x87::CompareStatus(static_cast<double>(a), b); }

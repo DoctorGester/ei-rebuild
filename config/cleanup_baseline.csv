@@ -122,7 +122,7 @@ src/game/originals_engine.h,0,0,0,0,0,0,0,0,0,0,0,0,0,20
 src/game/originals_gameplay.h,0,0,0,0,0,0,0,0,0,0,0,0,0,19
 src/game/originals_library.h,0,0,0,0,0,0,0,0,0,0,0,0,0,177
 src/game/originals_render.h,0,0,0,0,0,0,0,0,0,0,0,0,0,7
-src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30
+src/game/originals_script.h,0,0,0,0,0,0,0,0,0,0,0,0,0,22
 src/game/originals_ui.h,0,0,0,0,0,0,0,0,0,0,0,0,0,61
 src/game/originals_units.h,0,0,0,0,0,0,0,0,0,0,0,0,0,34
 src/game/originals_world.h,0,0,0,0,0,0,0,0,0,0,0,0,0,30

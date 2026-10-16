@@ -20,28 +20,18 @@ struct ScriptRun;
 struct ScriptVars;
 
 __declspec(naked) inline int __fastcall ExecuteOrig(ScriptRun*, void*, CScript*) EI_ORIGINAL(0x004B6760)
-__declspec(naked) inline void __fastcall QueueReset(void*, void*) EI_ORIGINAL(0x004BE6E0)
 
 // 004D23A0 (RET 8, EAX 0/1): adds / loads a script line (CScript::Load, rewritten; called through its address).
 __declspec(naked) inline int __fastcall ScriptLoadLine(void* /*script*/, void*, const mfc::CString* /*line*/,
                                                        int /*flag*/) EI_ORIGINAL(0x004D23A0)
 
-// C3h. 004C1290: script group / reference array assignment (RET 4, EAX not a result); 004C2290: its destructor (plain RET).
-__declspec(naked) inline void __fastcall GroupAssignOriginal(void* /*group*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x004C1290)
+// C3h. 004C2290: a script group's destructor (plain RET).
 __declspec(naked) inline void __fastcall ScriptGroupDestructOriginal(void* /*group*/) EI_ORIGINAL(0x004C2290)
 
 // C3i. 004CC7D0: CArray<ScriptObjectRef> DestructElements, releasing each reference (RET 8: first, count; EAX not a result).
 __declspec(naked) inline void __stdcall ScriptRefElementsDestruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x004CC7D0)
 
-// C3i part 2. 004C21E0 / 004C2680 / 004C3B00: CArray GetAt(out, index) for references / strings / groups (RET 8, returns
-// out). 004C4FD0: CArray<SubCall>::SetSize(count, growBy) (RET 8).
-__declspec(naked) inline void* __fastcall ScriptRefAtOriginal(const void* /*array*/, void*, void* /*out*/, int /*index*/)
-    EI_ORIGINAL(0x004C21E0)
-__declspec(naked) inline void* __fastcall ScriptStringAtOriginal(const void* /*array*/, void*, void* /*out*/, int /*index*/)
-    EI_ORIGINAL(0x004C2680)
-__declspec(naked) inline void* __fastcall ScriptGroupAtOriginal(const void* /*array*/, void*, void* /*out*/, int /*index*/)
-    EI_ORIGINAL(0x004C3B00)
+// C3i part 2. 004C4FD0: CArray<SubCall>::SetSize(count, growBy) (RET 8).
 __declspec(naked) inline void __fastcall SubCallArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x004C4FD0)
 
@@ -52,12 +42,6 @@ __declspec(naked) inline void __fastcall IfThenArraySetSizeOriginal(void* /*arra
     EI_ORIGINAL(0x004C59C0)
 __declspec(naked) inline void __fastcall CmdArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x004CD2B0)
-// 004C8AF0 / 004C9100: RemoveTail of the script's temporary group / object lists; the removed value is copied to `out`
-// (RET 4, EAX = out).
-__declspec(naked) inline void* __fastcall TempGroupsRemoveTailOriginal(void* /*list*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x004C8AF0)
-__declspec(naked) inline void* __fastcall TempObjectsRemoveTailOriginal(void* /*list*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x004C9100)
 
 // The link figures' STLport map<string, ...> members (link_figure.h; library instantiations):
 // 004F4B90 the part headers' operator[] (RET 4, EAX = the value, a zeroed 0x50-byte header when new),
@@ -97,7 +81,3 @@ __declspec(naked) inline void __fastcall DefinitionsSetSize(void*, void*, int, i
 __declspec(naked) inline void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
 __declspec(naked) inline void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
 
-// C3o. 004CE1E0 (rewritten as ScriptRefDestroy; thiscall, RET 4): a script object reference's scalar deleting destructor
-// (the object released through its slot 4; the reference freed when flags & 1); returns the reference.
-__declspec(naked) inline void* __fastcall ScriptRefDestroyOriginal(void* /*ref*/, void*, int /*flags*/)
-    EI_ORIGINAL(0x004CE1E0)

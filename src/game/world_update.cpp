@@ -3,6 +3,7 @@
 #include "world.h"
 
 #include "combat.h"
+#include "game_arrays.h"
 #include "core_maths.h"
 #include "game_flow_data.h"
 #include "net_classes.h"
@@ -40,10 +41,20 @@ void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOrigi
 // destructor; 004C2050 SetSize.
 void __fastcall GroupConstruct(ScriptGroup* a0, void*) { ScriptGroupConstructOriginal((void*)a0); }
 inline void __fastcall GroupDestruct(ScriptGroup* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
-inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
-ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
-mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
-ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
+inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) {
+    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
+}
+ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) {
+    return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, a2, a3);
+}
+mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) {
+    return reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
+        static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr, reinterpret_cast<mfc::impl::CString*>(a2), a3));
+}
+ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) {
+    return gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr, a2, a3);
+}
 void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
 
 // A player that lost its connection leaves the game.
@@ -159,7 +170,7 @@ int CWorldServer::Update() {
     heroes.vtable = scriptvtable::kRefsBase;
     if (heroes.data) {
         ScriptObjectRef* ref = heroes.data;
-        for (int n = heroes.size; n != 0; --n) ScriptRefDestroyOriginal(ref++, nullptr, 0);
+        for (int n = heroes.size; n != 0; --n) ScriptRefDestroy(&(ref++)->object, nullptr, 0);
         gamecrt::operator_delete(heroes.data);
     }
 

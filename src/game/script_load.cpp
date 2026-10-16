@@ -58,7 +58,7 @@ __declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x004CC
 void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructCmds(void*, int) EI_ORIGINAL(0x004CE920)
 __declspec(naked) void __stdcall ConstructIfThen(void*, int) EI_ORIGINAL(0x004CD4A0)
-void __fastcall RefDestroy(void* ref, void*, int flags) { ScriptRefDestroyOriginal(ref, nullptr, flags); }
+void __fastcall RefDestroy(void* ref, void*, int flags) { ScriptRefDestroy(static_cast<CEngineObject**>(ref), nullptr, flags); }
 __declspec(naked) void __fastcall CmdDestroy(void*, void*, int) EI_ORIGINAL(0x004BF620)
 // 004CCA10: ConstructElements of the pointer arrays (zeroes).
 __declspec(naked) void __stdcall ZeroPointers(void*, int) EI_ORIGINAL(0x004CCA10)

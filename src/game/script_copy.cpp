@@ -5,6 +5,7 @@
 // 004CBDB0 / 004CBEF0 object / group values) and the by-value GetAt bodies of SSCCmd (004CE750)
 // and ScriptSubCall (004CCAA0). See script.h.
 #include "script.h"
+#include "game_arrays.h"
 
 #include "lib/crt.h"
 
@@ -42,7 +43,8 @@ void AssignVars(ScriptVars* to, const ScriptVars* from) {
     StringsCopyOriginal(&to->floatNames, nullptr, &from->floatNames);
     StringsCopyOriginal(&to->strings, nullptr, &from->strings);
     StringsCopyOriginal(&to->stringNames, nullptr, &from->stringNames);
-    GroupAssignOriginal((void*)&to->objects, nullptr, &from->objects);
+    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&to->objects), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&from->objects));
     StringsCopyOriginal(&to->objectNames, nullptr, &from->objectNames);
     GroupsCopy(&to->groups, nullptr, &from->groups);
     StringsCopyOriginal(&to->groupNames, nullptr, &from->groupNames);
@@ -114,9 +116,17 @@ namespace {
 
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
 // (004C3B00); __thiscall (out, index), returning out.
-void* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { return ScriptStringAtOriginal(a0, nullptr, a2, a3); }
-ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal(a0, nullptr, a2, a3); }
-ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
+void* __fastcall StringAt(const void* a0, void*, void* a2, int a3) {
+    return mfc::impl::StringArrayAbi::GetAt(static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr,
+                                            static_cast<mfc::impl::CString*>(a2), a3);
+}
+ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) {
+    return gamearrays::ObjectRefGetAt(static_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr,
+                                      static_cast<ScriptObjectRef*>(a2), a3);
+}
+ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) {
+    return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, static_cast<ScriptGroup*>(a2), a3);
+}
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
@@ -255,7 +265,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
         }
         copy.vtable = scriptvtable::kRefsBase;
         if (copy.data) {
-            for (int k = 0; k < copy.size; ++k) ScriptRefDestroyOriginal(&copy.data[k], nullptr, 0);
+            for (int k = 0; k < copy.size; ++k) ScriptRefDestroy(&copy.data[k].object, nullptr, 0);
             gamecrt::operator_delete(copy.data);
         }
     }
@@ -290,7 +300,8 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->groups, nullptr, &copy, i);
-        GroupAssignOriginal((void*)&groups.data[i], nullptr, &copy);
+        gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&groups.data[i]), nullptr,
+                                  reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&copy));
         GroupDestruct(&copy);
     }
     ScriptNamesCopyConstruct(&groupNames, nullptr, &other->groupNames);

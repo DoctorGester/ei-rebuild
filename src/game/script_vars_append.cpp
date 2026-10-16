@@ -7,6 +7,7 @@
 // to old size + the other set's name count, then copies, for every one of the other set's names,
 // the name and the value with the same index into the new slots.
 #include "script.h"
+#include "game_arrays.h"
 #include "script_array.h"
 
 #include "lib/crt.h"
@@ -25,9 +26,17 @@ namespace {
 // CArray members called out of line: 004C2510 CStringArray SetSize, 004C2680 GetAt (CString by
 // value; also on string values), 004C21E0 GetAt of a reference array (ScriptObjectRef by value,
 // referenced), 004C3B00 GetAt of a group array (ScriptGroup by value).
-mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal(a0, nullptr, a2, a3); }
-ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal(a0, nullptr, a2, a3); }
-ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
+mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) {
+    return reinterpret_cast<mfc::CString*>(mfc::impl::StringArrayAbi::GetAt(
+        static_cast<const mfc::impl::StringArrayAbi::Array*>(a0), nullptr, static_cast<mfc::impl::CString*>(a2), a3));
+}
+ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) {
+    return gamearrays::ObjectRefGetAt(static_cast<const gamearrays::ObjectRefs::Array*>(a0), nullptr,
+                                      static_cast<ScriptObjectRef*>(a2), a3);
+}
+ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) {
+    return gamearrays::GroupGetAt(static_cast<const gamearrays::Groups::Array*>(a0), nullptr, static_cast<ScriptGroup*>(a2), a3);
+}
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 
 void Release(CEngineObject* object) {
@@ -107,7 +116,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.
         copy.vtable = reinterpret_cast<void*>(0x0073D11C);
         if (copy.data) {
-            for (int k = 0; k < copy.size; ++k) ScriptRefDestroyOriginal(&copy.data[k], nullptr, 0);
+            for (int k = 0; k < copy.size; ++k) ScriptRefDestroy(&copy.data[k].object, nullptr, 0);
             gamecrt::operator_delete(copy.data);
         }
     }

@@ -93,8 +93,8 @@ void CWorldServer::Teardown() {
         if (hoover_) delete static_cast<CEngineObject*>(hoover_);
         hoover_ = nullptr;
     }
-    QueueReset(commandsA_, nullptr);
-    QueueReset(commandsB_, nullptr);
+    ScriptReset(MainScript());
+    ScriptReset(SecondScript());
     ResetState();
     Messages()->Close();
 

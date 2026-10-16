@@ -90,13 +90,15 @@ void __fastcall ScriptReset(CScript* script) {
     // Temporaries: every entry but one dropped, the last one emptied.
     auto& groups = script->tempGroups_;
     while (groups.count > 1) {
-        TempGroupsRemoveTailOriginal(&groups, nullptr, element);
+        gamelists::GroupRemoveTail(reinterpret_cast<gamelists::Groups::List*>(&groups), nullptr,
+                                   reinterpret_cast<ScriptGroup*>(element));
         GroupDestruct(element);
     }
     PtrArraySetSize(&groups.tail->data, nullptr, 0, -1);
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
-        TempObjectsRemoveTailOriginal(&objects, nullptr, element);
+        gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(&objects), nullptr,
+                                       reinterpret_cast<ScriptObjectRef*>(element));
         reinterpret_cast<ScriptObjectRef*>(element)->Reset();
     }
     objects.tail->data.Assign(nullptr);

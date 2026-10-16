@@ -2,6 +2,7 @@
 // instance's if-then pairs (004BB520), running a command block (004BC420), freeing evaluation
 // temporaries (004BEC80) and the per-tick driver (004BF000). See script.h and docs/notes/script.md.
 #include "script.h"
+#include "game_lists.h"
 
 #include "base_manager.h"
 #include "random.h"
@@ -41,15 +42,18 @@ bool ZeroOrNaN(float value) { return (x87::CompareStatus(value, 0.0) & x87::kC3)
 // ---- Original code ------------------------------------------------------------------------------
 
 __declspec(naked) void __fastcall CalcFloatOrig(SSCCmd*, void*, CScript*, ScriptVars*, float*) EI_ORIGINAL(0x004B41E0)
-inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
+inline void __fastcall GroupCopy(ScriptGroup* a0, void*, const ScriptGroup* a2) {
+    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(a0), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(a2));
+}
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
 void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
 // The temporaries lists' RemoveTail (values returned through a hidden pointer).
 ScriptGroup* TempGroupsRemoveTail(mfc::CList<ScriptGroup>* list, ScriptGroup* out) {
-    return static_cast<ScriptGroup*>(TempGroupsRemoveTailOriginal(list, nullptr, out));
+    return gamelists::GroupRemoveTail(reinterpret_cast<gamelists::Groups::List*>(list), nullptr, out);
 }
 ScriptObjectRef* TempObjectsRemoveTail(mfc::CList<ScriptObjectRef>* list, ScriptObjectRef* out) {
-    return static_cast<ScriptObjectRef*>(TempObjectsRemoveTailOriginal(list, nullptr, out));
+    return gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(list), nullptr, out);
 }
 // ScriptVars constructor / destructor and the value arrays' Copy.
 __declspec(naked) void __fastcall FloatsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1A80)

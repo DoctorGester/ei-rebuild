@@ -6,6 +6,7 @@
 
 #include "base_manager.h"
 #include "combat.h"
+#include "game_arrays.h"
 #include "map_object.h"
 #include "net_link.h"
 #include "originals_gameplay.h"
@@ -390,7 +391,8 @@ void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup party;
     ScriptGroupConstructOriginal(&party);
     party.vtable = scriptvtable::kRefs;
-    GroupAssignOriginal(&party, nullptr, &group50F8_);
+    gamearrays::ObjectRefCopy(reinterpret_cast<gamearrays::ObjectRefs::Array*>(&party), nullptr,
+                              reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&group50F8_));
     CPlayer::ObjectMap& units = Owner()->units_;
     if (possessedId_ == kNoPartyCopy) {
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
@@ -407,7 +409,7 @@ void CPlayerServer::UpdatePartyUnits() {
         PtrArraySetSize(&partyUnits_, nullptr, party.size, -1);
         for (int i = 0; i < party.size; ++i) {
             ScriptObjectRef copy;
-            ScriptRefAtOriginal(&party, nullptr, &copy, i);
+            gamearrays::ObjectRefGetAt(reinterpret_cast<const gamearrays::ObjectRefs::Array*>(&party), nullptr, &copy, i);
             partyUnits_.data[i].Reset();
             partyUnits_.data[i].Construct(copy);
             copy.Reset();

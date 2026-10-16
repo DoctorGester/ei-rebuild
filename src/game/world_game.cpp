@@ -999,7 +999,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         text.s.Write(&zero, 1u);
         script = reinterpret_cast<const char*>(text.s.data_);
     }
-    QueueReset(commandsA_, nullptr);
+    ScriptReset(MainScript());
     ScriptLoadLine(commandsA_, nullptr, &script, 1);
     EncodedFree(&decoder.input, nullptr);
     DecodedFree(&decoder.text, nullptr);
