@@ -300,6 +300,12 @@ title = "Bright green streaks in tree foliage that the original does not show"
 group = "renderer"
 note = "R12's captures (render_terrain_seams far, vanilla vs standalone, top right trees near (2950, 700) at 3840x2160): the image draws thin bright green leaf strips over the tree crowns that the original's frame lacks (largest channel difference about 190). Likely an alpha test / blend or texture state of the foliage meshes' pass (render_mesh.cpp ReadPassState); compare the pass state with the original's for those meshes."
 
+[[ticket]]
+id = "R12a1"
+title = "Smooth option: exercise the copy into the multisampled target"
+group = "renderer"
+note = "R12a draws the world view multisampled and copies the frame target's colour and depth into every sample when a world run follows other draws in a frame (render_smooth.cpp CopyIntoMultisampled). No scenario reaches that order (the world view is the frame's first draw), so the copy is only compiled, never drawn. Add a harness way to reach it (e.g. a verify-build switch that puts a depth clear or blit before the world range) and check the frame against one without it."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
