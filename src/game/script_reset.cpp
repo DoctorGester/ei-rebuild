@@ -9,10 +9,12 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_array.h"
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "record_arrays.h"
 
 #include <cstdint>
 #include <cstring>
@@ -85,7 +87,7 @@ void __fastcall ScriptReset(CScript* script) {
                                    reinterpret_cast<ScriptGroup*>(element));
         GroupDestruct(element);
     }
-    PtrArraySetSize(&groups.tail->data, nullptr, 0, -1);
+    groups.tail->data.SetSize(0, -1);
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
         gamelists::ObjectRefRemoveTail(reinterpret_cast<gamelists::ObjectRefs::List*>(&objects), nullptr,
@@ -108,10 +110,10 @@ void __fastcall ScriptReset(CScript* script) {
     RemoveAll(script->particles_, [](ScriptParticleSource* source) { ScriptParticleDestroy(&source->object, nullptr, 0); });
     RemoveAll(script->lightning_, [](ScriptLightning* bolt) { LightningElementsDestruct(bolt, 1); });
 
-    AreasSetSize(&script->areas_, nullptr, 0, -1);
+    mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(script->areas_).SetSize(0, -1);
     script->nextParticleId_ = -2;
     script->nextFxId_ = -2;
-    DefinitionsSetSize(&script->definitions_, nullptr, 0, -1);
+    mfc::impl::ArrayAs<recordarrays::Definitions>(script->definitions_).SetSize(0, -1);
 
     // Command blocks, removed from the head.
     while (script->blocks_.count != 0) {
@@ -134,14 +136,14 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     definition->ifThen.maxSize = 0;
     definition->ifThen.size = 0;
     ScriptVars& vars = definition->vars;
-    FloatsSetSize(&vars.floats, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.floatNames, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.strings, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.stringNames, nullptr, 0, -1);
-    PtrArraySetSize(&vars.objects, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.objectNames, nullptr, 0, -1);
-    GroupValuesSetSize(&vars.groups, nullptr, 0, -1);
-    NamesSetSizeOriginal(&vars.groupNames, nullptr, 0, -1);
+    vars.floats.SetSize(0, -1);
+    vars.floatNames.SetSize(0, -1);
+    vars.strings.SetSize(0, -1);
+    vars.stringNames.SetSize(0, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects).SetSize(0, -1);
+    vars.objectNames.SetSize(0, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups).SetSize(0, -1);
+    vars.groupNames.SetSize(0, -1);
     definition->index = 0;
     const char* empty = game::EmptyText();
     definition->params = empty;

@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <new>
 
 namespace mfc {
 
@@ -221,6 +222,19 @@ struct PlainElements {
         std::memset(static_cast<void*>(elements), 0, static_cast<std::size_t>(count) * sizeof(T));
     }
     static void Destruct(T*, int) {}
+};
+
+// CString elements: MFC 4.2's afxtempl.h specialises ConstructElements / DestructElements for
+// CString (006FE268 / 006FE296): each new element the empty string, each removed one released.
+// CArray<CString> takes them by default.
+template <>
+struct PlainElements<CString> {
+    static void Construct(CString* elements, int count) {
+        for (; count--; ++elements) ::new (static_cast<void*>(elements)) CString;
+    }
+    static void Destruct(CString* elements, int count) {
+        for (; count--; ++elements) elements->~CString();
+    }
 };
 
 // No construction at all: the engine's own arrays and the instantiations the game compiled without

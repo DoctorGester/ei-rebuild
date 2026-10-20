@@ -80,7 +80,6 @@ __declspec(naked) void* __fastcall PriorityMakePair(void* /*pair*/, void*, Repli
 // 0041DD50: a RefPtr from a raw pointer, adding a reference.
 // The static vector of 004346D0: constructor, erase of a range, introsort loop and final insertion
 // sort by object, atexit.
-__declspec(naked) void* __fastcall ReplicatedConstruct(ReplicatedVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439E10)
 __declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void*, Replicated* /*first*/, Replicated* /*last*/) EI_ORIGINAL(0x00439DD0)
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
@@ -566,8 +565,7 @@ void Connection::CollectChanges() {
     ReplicatedVector& items = StaticReplicated();
     if (!(StaticReplicatedGuard() & 1)) {
         StaticReplicatedGuard() |= 1;
-        char allocator = 0;
-        ReplicatedConstruct(&items, nullptr, &allocator);
+        items.ConstructEmpty();   // 00439E10
         GameAtExit(atexit400::DestroyGlobalVector);
     }
     ReplicatedErase(&items, nullptr, items.begin(), items.end());

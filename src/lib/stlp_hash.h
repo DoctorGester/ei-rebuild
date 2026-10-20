@@ -204,6 +204,14 @@ public:
         InitializeBuckets(n);
     }
 
+    // The constructor as an owner inlines it with the functor bytes left as they are (the item
+    // stock's maps, 004A66C0): an empty bucket vector, no elements, then _M_initialize_buckets(n).
+    void ConstructBuckets(std::size_t n) {
+        buckets_.ConstructEmpty();
+        count_ = 0;
+        InitializeBuckets(n);
+    }
+
     // _M_initialize_buckets(n) (e.g. 0040AA80): reserve(NextPrime(n)), insert that many nulls at
     // the end, no elements.
     void InitializeBuckets(std::size_t n) {
@@ -629,6 +637,16 @@ struct HashtableAbi {
 // __stl_hash_string of a string (004298D0; ECX the string) and of a C string (00460BA0; ECX the text).
 std::uint32_t __fastcall HashString(const string* s);
 std::uint32_t __fastcall HashText(const char* s);
+
+// hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.
+using NameMap = hashtable<StringKeyTraits<4>>;
+// operator[](name) (e.g. 004ABD00) and find_or_insert({name, null}) (e.g. 004ACC10): the slot of
+// `name`'s record, a null one inserted for a new name (from a copy of the name, freed after).
+template <typename T>
+T*& NamedSlot(NameMap& map, const string& name) {
+    NameMap::Value obj(name);
+    return *reinterpret_cast<T**>(map.FindOrInsert(obj).mapped);
+}
 
 // A vector of records (start, finish, end of storage) followed by the map from a record's name to it
 // (the item databases' weapon, armor, quick item, material and loot tables, the lever table).

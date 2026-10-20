@@ -201,7 +201,7 @@ EI_REPLACE_METHOD(0x0063CEE0, CHudQuickItems::ItemTip);
 void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     unit_ = unit;
     ClearSceneObjects();
-    DwordArraySetSizeOriginal(&actions_, nullptr, 0, -1);
+    actions_.SetSize(0, -1);
     count_ = 0;
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);

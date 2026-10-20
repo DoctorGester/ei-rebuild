@@ -768,6 +768,7 @@ void AddFrameStats() {
     s.sharedMeshes += f.sharedMeshes;
     s.handOverMs += f.handOverMs;
     s.textureMs += f.textureMs;
+    s.windowMs += f.windowMs;
     s.endFrameMs += f.endFrameMs;
     s.statsMs += f.statsMs;
     g_stats = FrameStats{};
@@ -1121,6 +1122,7 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
         }
     }
     UnmapTarget();
+    SurfaceWritten(holder, nullptr);
     return true;
 }
 

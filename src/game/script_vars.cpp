@@ -4,8 +4,10 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "game_arrays.h"
 #include "ei/x87.h"
 
 #include <cstdint>
@@ -102,7 +104,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.floatNames, text) >= 0) {
             result = 0;
         } else {
-            FloatsSetSize(&vars.floats, nullptr, vars.floats.size + 1, -1);
+            vars.floats.SetSize(vars.floats.size + 1, -1);
             mfc::CString temp(text);
             ScriptNamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
             result = 1;
@@ -113,7 +115,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.stringNames, text) >= 0) {
             result = 0;
         } else {
-            NamesSetSizeOriginal(&vars.strings, nullptr, vars.strings.size + 1, -1);
+            vars.strings.SetSize(vars.strings.size + 1, -1);
             mfc::CString temp(text);
             ScriptNamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
             result = 1;
@@ -124,7 +126,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.objectNames, text) >= 0) {
             result = 0;
         } else {
-            PtrArraySetSize(&vars.objects, nullptr, vars.objects.size + 1, -1);
+            mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects).SetSize(vars.objects.size + 1, -1);
             mfc::CString temp(text);
             ScriptNamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
             result = 1;
@@ -135,10 +137,10 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.groupNames, text) >= 0) {
             result = 0;
         } else {
-            GroupValuesSetSize(&vars.groups, nullptr, vars.groups.size + 1, -1);
+            mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups).SetSize(vars.groups.size + 1, -1);
             mfc::CString temp(text);
             int at = vars.groupNames.size;
-            NamesSetSizeOriginal(&vars.groupNames, nullptr, at + 1, -1);
+            vars.groupNames.SetSize(at + 1, -1);
             vars.groupNames.data[at] = temp;
             result = 1;
         }

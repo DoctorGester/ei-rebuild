@@ -79,7 +79,7 @@ void PatrolMode::AppendPoint(const Vector3* position) {
     float x = static_cast<float>((static_cast<float>(ix) + kHalf) * cell);
     float y = static_cast<float>((static_cast<float>(iy) + kHalf) * cell);
     int index = points.size;
-    PatrolPointArraySetSizeOriginal(&points, nullptr, index + 1, -1);
+    points.SetSize(index + 1, -1);
     PatrolPoint& added = points[index];
     added.position = Vector3{x, y, 0.0f};
     // The original copies an empty temporary look array into the new point.

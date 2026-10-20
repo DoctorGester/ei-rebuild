@@ -40,12 +40,7 @@ __declspec(naked) inline bool __fastcall SectorMapRemove(CSectorMap*, void*, CEn
 // matching protection word (negative differences count 0). Only the low 16 bits are meaningful.
 __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std::uint16_t* /*damage*/, void*,
                                                                       const std::uint16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
-// 004C9970: CArray<PatrolPoint>::SetSize(size, growBy) (RET 8; elements constructed / destroyed).
-__declspec(naked) inline void __fastcall PatrolPointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x004C9970)
 
-// C3k. 004CB770: destructor of the AI look array (vtable 0073D460; frees the buffer; plain RET, EAX not a result).
-__declspec(naked) inline void __fastcall AiLookArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004CB770)
 // An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)
 

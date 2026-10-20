@@ -24,32 +24,6 @@ namespace {
 inline double D(float f) { return f; }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The caches' map (STLport, library code): 005F3140 / 005F32A0 erase an entry of the model /
-// texture map (thiscall, iterator by value).
-__declspec(naked) void __fastcall EraseModel(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F3140)
-__declspec(naked) void __fastcall EraseTexture(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005F32A0)
-
-using EraseFn = void(__fastcall*)(ItemObjectCache*, void*, ItemObjectCache::Node*);
-
-// While the cache holds more than its limit: the least recently used entry (used before now) has
-// its object released (slot 4) and is erased. Spins while every entry was used at or after now.
-void Trim(ItemObjectCache* cache, EraseFn erase) {
-    while (cache->count > cache->limit) {
-        std::uint32_t oldestTime = gameapi::timeGetTime();
-        ItemObjectCache::Node* oldest = cache->header;
-        for (ItemObjectCache::Node* node = cache->header->left; node != cache->header; node = node->Next()) {
-            if (node->lastUse < oldestTime) {
-                oldestTime = node->lastUse;
-                oldest = node;
-            }
-        }
-        if (oldest != cache->header) {
-            using ReleaseFn = void(__thiscall*)(void*);
-            reinterpret_cast<ReleaseFn>((*static_cast<void***>(oldest->object))[4])(oldest->object);
-            erase(cache, nullptr, oldest);
-        }
-    }
-}
 
 // Sprite builders (CUiMesh, Rebirth-patched; called through their addresses): 005E70E0 a
 // rectangle, 005E7680 a strip of `count` framed cells.
@@ -67,10 +41,35 @@ std::uint8_t* __cdecl Display() { return (std::uint8_t*)SceneRenderer(); }
 
 } // namespace
 
-void __fastcall TrimItemModels(ItemObjectCache* cache) { Trim(cache, EraseModel); }
-void __fastcall TrimItemTextures(ItemObjectCache* cache) { Trim(cache, EraseTexture); }
-EI_REPLACE(0x005F2F20, TrimItemModels);
-EI_REPLACE(0x005F2F90, TrimItemTextures);
+void ItemObjectCache::Construct(std::uint8_t compare) {
+    map.Header() = static_cast<Node*>(stlp::allocate(sizeof(Node)));
+    map.Count() = 0;
+    map.Compare() = compare;
+    map.EmptyInitialize();
+    limit = 50;
+}
+
+// While the cache holds more than its limit: the least recently used entry (used before now) has
+// its object released (slot 4) and is erased (005F3140 / 005F32A0). Spins while every entry was
+// used at or after now.
+void __fastcall TrimItemCache(ItemObjectCache* cache) {
+    while (cache->map.size() > cache->limit) {
+        std::uint32_t oldestTime = gameapi::timeGetTime();
+        ItemObjectCache::Node* oldest = cache->map.end();
+        for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node)) {
+            if (node->second.lastUse < oldestTime) {
+                oldestTime = node->second.lastUse;
+                oldest = node;
+            }
+        }
+        if (oldest != cache->map.end()) {
+            static_cast<CEngineObject*>(oldest->second.object)->Release();
+            cache->map.Erase(oldest);
+        }
+    }
+}
+EI_REPLACE(0x005F2F20, TrimItemCache);
+EI_REPLACE(0x005F2F90, TrimItemCache);
 
 // --- 005F2A90: the icon window's frame -------------------------------------------------------------
 
@@ -148,14 +147,14 @@ void CItemScreen::CreateBase() {
     // The caches keep 30 entries (20 with 00784754 set).
     if (*reinterpret_cast<const volatile char*>(0x00784754) != 0) {
         textures_.limit = 20;
-        TrimItemTextures(&textures_);
+        TrimItemCache(&textures_);
         models_.limit = 20;
-        TrimItemModels(&models_);
+        TrimItemCache(&models_);
     } else {
         textures_.limit = 30;
-        TrimItemTextures(&textures_);
+        TrimItemCache(&textures_);
         models_.limit = 30;
-        TrimItemModels(&models_);
+        TrimItemCache(&models_);
     }
 }
 EI_REPLACE_METHOD(0x005EDD80, CItemScreen::CreateBase);
@@ -163,70 +162,19 @@ EI_REPLACE_METHOD(0x005EDD80, CItemScreen::CreateBase);
 // --- 005F6470 / 005F6620: the item screens' destructor bodies -----------------------------------
 
 namespace {
-
-// The caches' map (STLport, library code; thiscall): erase a subtree, destroy one node (RET 4),
-// and free the header node (__fastcall: header, 1).
-__declspec(naked) void __fastcall EraseTextures(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005FB040)
-__declspec(naked) void __fastcall DestroyTextureNode(ItemObjectCache*, void*, ItemObjectCache::Node*)
-    EI_ORIGINAL(0x005FB910)
-__declspec(naked) void __fastcall FreeTextureHeader(ItemObjectCache::Node*, int) EI_ORIGINAL(0x005FA960)
-__declspec(naked) void __fastcall EraseModels(ItemObjectCache*, void*, ItemObjectCache::Node*) EI_ORIGINAL(0x005FAFF0)
-__declspec(naked) void __fastcall DestroyModelNode(ItemObjectCache*, void*, ItemObjectCache::Node*)
-    EI_ORIGINAL(0x005FB8E0)
-__declspec(naked) void __fastcall FreeModelHeader(ItemObjectCache::Node*, int) EI_ORIGINAL(0x005FA920)
-// 00600BA0: the container base's destructor body. 006FE958: CStringArray's destructor.
-
-using EraseFn = void(__fastcall*)(ItemObjectCache*, void*, ItemObjectCache::Node*);
-using FreeHeaderFn = void(__fastcall*)(ItemObjectCache::Node*, int);
-
-ItemObjectCache::Node* Link(ItemObjectCache::Node* node, int offset) {
-    ItemObjectCache::Node* to;
-    std::memcpy(&to, reinterpret_cast<std::uint8_t*>(node) + offset, 4);
-    return to;
+// A cache's objects released (slot 4), in key order, then its map destroyed: the nodes erased
+// (the original's inlined loop over the left spine, or 005FAFF0 / 005FB040 on the root), the
+// header back to the pool (005FA920 / 005FA960, or 005FA060 / 005FA090).
+void DestroyCache(ItemObjectCache& cache) {
+    ReleaseCachedObjects(&cache);
+    cache.map.Destroy();
 }
-void SetLink(ItemObjectCache::Node* node, int offset, ItemObjectCache::Node* to) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(node) + offset, &to, 4);
-}
-
-// Releases every cached object (slot 4), in order.
-void ReleaseObjects(ItemObjectCache* cache) {
-    for (ItemObjectCache::Node* node = cache->header->left; node != cache->header; node = node->Next()) {
-        using ReleaseFn = void(__thiscall*)(void*);
-        reinterpret_cast<ReleaseFn>((*static_cast<void***>(node->object))[4])(node->object);
-    }
-}
-
-// The map's destructor: its nodes erased (`inlineErase`: the original's inlined loop over the
-// left spine, erasing each right subtree and destroying the node; else one erase of the root),
-// the header emptied, then freed.
-void DestroyCache(ItemObjectCache* cache, EraseFn erase, EraseFn destroyNode, FreeHeaderFn freeHeader,
-                  bool inlineErase) {
-    if (cache->count != 0) {
-        if (inlineErase) {
-            for (ItemObjectCache::Node* node = Link(cache->header, 4); node;) {
-                erase(cache, nullptr, Link(node, 0xC));
-                ItemObjectCache::Node* left = Link(node, 8);
-                destroyNode(cache, nullptr, node);
-                node = left;
-            }
-        } else {
-            erase(cache, nullptr, Link(cache->header, 4));
-        }
-        SetLink(cache->header, 8, cache->header);
-        SetLink(cache->header, 4, nullptr);
-        SetLink(cache->header, 0xC, cache->header);
-        cache->count = 0;
-    }
-    freeHeader(cache->header, 1);
-}
-
 } // namespace
 
+// 00600BA0: the container base's destructor body. 006FE958: CStringArray's destructor.
 void __fastcall ItemScreenDestroy(CItemScreen* self) {
-    ReleaseObjects(&self->textures_);
-    DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, true);
-    ReleaseObjects(&self->models_);
-    DestroyCache(&self->models_, EraseModels, DestroyModelNode, FreeModelHeader, true);
+    DestroyCache(self->textures_);
+    DestroyCache(self->models_);
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6470, ItemScreenDestroy);
@@ -237,10 +185,8 @@ void __fastcall CampScreenDestroy(CItemScreen* self) {
     // The heroes CArray (vtable 007402AC).
     camp->heroes_.vtable = reinterpret_cast<void*>(0x007402AC);
     if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
-    ReleaseObjects(&self->textures_);
-    DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, false);
-    ReleaseObjects(&self->models_);
-    DestroyCache(&self->models_, EraseModels, DestroyModelNode, FreeModelHeader, false);
+    DestroyCache(self->textures_);
+    DestroyCache(self->models_);
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6620, CampScreenDestroy);
@@ -248,11 +194,6 @@ EI_REPLACE(0x005F6620, CampScreenDestroy);
 // --- 005F7010: screen 9's destructor body (vtable 00740D18) ---------------------------------------
 
 namespace {
-// The maps' header deallocation in this screen's instantiation (thiscall on the map; the node
-// goes back to the allocator's free list 0079B234).
-__declspec(naked) void __fastcall FreeTextureHeaderAt(ItemObjectCache*) EI_ORIGINAL(0x005FA090)
-__declspec(naked) void __fastcall FreeModelHeaderAt(ItemObjectCache*) EI_ORIGINAL(0x005FA060)
-
 // STLport's node allocator for small blocks (free lists at 0079B224 by 8-byte size class; larger
 // blocks go back to the heap), inlined by the original.
 void DeallocateNodes(void* block, std::uint32_t bytes) {
@@ -264,15 +205,6 @@ void DeallocateNodes(void* block, std::uint32_t bytes) {
     std::uint32_t index = (bytes - 1) >> 3;
     *static_cast<void**>(block) = lists[index];
     lists[index] = block;
-}
-
-void ClearCacheWhole(ItemObjectCache* cache, EraseFn erase) {
-    if (cache->count == 0) return;
-    erase(cache, nullptr, Link(cache->header, 4));
-    SetLink(cache->header, 8, cache->header);
-    SetLink(cache->header, 4, nullptr);
-    SetLink(cache->header, 0xC, cache->header);
-    cache->count = 0;
 }
 } // namespace
 
@@ -289,12 +221,8 @@ void __fastcall Screen9Destroy(CItemScreen* self) {
     std::memcpy(&capacity, bytes + 0x1B4, 4);
     std::uint32_t entries = static_cast<std::uint32_t>(static_cast<int>(capacity - begin) >> 2);
     if (begin) DeallocateNodes(begin, entries * 4);
-    ReleaseObjects(&self->textures_);
-    ClearCacheWhole(&self->textures_, EraseTextures);
-    FreeTextureHeaderAt(&self->textures_);
-    ReleaseObjects(&self->models_);
-    ClearCacheWhole(&self->models_, EraseModels);
-    FreeModelHeaderAt(&self->models_);
+    DestroyCache(self->textures_);
+    DestroyCache(self->models_);
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F7010, Screen9Destroy);

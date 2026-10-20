@@ -16,33 +16,6 @@ namespace net {
 
 namespace {
 
-// STLport hashtable members of the two registry maps (library instantiations).
-__declspec(naked) TypeRegistry::ByVtable* __fastcall ByVtableConstruct(TypeRegistry::ByVtable* /*table*/, void*, std::size_t /*n*/,
-                                                                      const void*, const void*, const void*) EI_ORIGINAL(0x00438B70)
-__declspec(naked) TypeRegistry::ByType* __fastcall ByTypeConstruct(TypeRegistry::ByType* /*table*/, void*, std::size_t /*n*/,
-                                                                  const void*, const void*, const void*) EI_ORIGINAL(0x00439F20)
-void __fastcall ByVtableResize(TypeRegistry::ByVtable* a0, void*, std::size_t a2) { ByVtableResizeOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
-__declspec(naked) void __fastcall ByTypeResize(TypeRegistry::ByType* /*table*/, void*, std::size_t /*hint*/) EI_ORIGINAL(0x0042AA90)
-// _M_new_node(const pair&): a pool node {0, key, value}.
-TypeRegistry::ByVtable::Node* __fastcall ByVtableNewNode(TypeRegistry::ByVtable* a0, void*, const TypeRegistry::ByVtable::Pair* a2) { return (TypeRegistry::ByVtable::Node*)ByVtableNewNodeOriginal((void*)a0, nullptr, (const void*)a2); }
-__declspec(naked) TypeRegistry::ByType::Node* __fastcall ByTypeNewNode(TypeRegistry::ByType* /*table*/, void*,
-                                                                      const TypeRegistry::ByType::Pair* /*pair*/) EI_ORIGINAL(0x0042AA00)
-
-// The insert half of hash_map::operator[] as 0042A890 inlines it, through the game's own resize
-// and node allocation: the node of `key` (a new node {key, value()} at the head of its bucket when
-// missing).
-template <typename Map, typename Resize, typename NewNode>
-typename Map::Node* FindOrInsert(Map& table, std::uint32_t key, Resize resize, NewNode newNode) {
-    typename Map::Pair pair{key, {}};
-    resize(&table, nullptr, table.Size() + 1);
-    std::size_t bucket = key % table.BucketCount();
-    for (typename Map::Node* node = table.Bucket(bucket); node; node = node->next)
-        if (node->key == key) return node;
-    typename Map::Node* node = newNode(&table, nullptr, &pair);
-    table.LinkAtHead(bucket, node);
-    return node;
-}
-
 } // namespace
 
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
@@ -75,14 +48,16 @@ void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     if (prototype) ++prototype->refs_;
     std::uint32_t vtable;
     std::memcpy(&vtable, prototype, sizeof(vtable));   // the original reads it before any null check
-    FindOrInsert(byVtable, vtable, ByVtableResize, ByVtableNewNode)->value = type;
-    FindOrInsert(byType, type, ByTypeResize, ByTypeNewNode)->value = factory;
+    // operator[] as inlined: find_or_insert of {key, value()} (resize 0042B9C0 / 0042AA90, new
+    // node 0042B8A0 / 0042AA00).
+    byVtable.FindOrInsert({vtable, 0})->value = type;
+    byType.FindOrInsert({type, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
 EI_REPLACE_METHOD(0x0042A890, TypeRegistry::Register);
 
 Message* TypeRegistry::Create(std::uint32_t type) {
-    MessageFactory factory = FindOrInsert(byType, type, ByTypeResize, ByTypeNewNode)->value;
+    MessageFactory factory = byType.FindOrInsert({type, nullptr})->value;
     return factory ? factory() : nullptr;
 }
 EI_REPLACE_METHOD(0x00438930, TypeRegistry::Create);
@@ -94,9 +69,9 @@ SessionBase* SessionBase::Construct() {
     clients_ = sentinel;
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    char hash = 0, equal = 0, allocator = 0;   // the empty functors (passed by reference)
-    ByVtableConstruct(&types_.byVtable, nullptr, 100, &hash, &equal, &allocator);
-    ByTypeConstruct(&types_.byType, nullptr, 100, &hash, &equal, &allocator);
+    // hashtable(100, hash, equal, allocator): 00438B70, 00439F20 (the functors empty, 0 here).
+    types_.byVtable.Construct(100);
+    types_.byType.Construct(100);
     socket_.Construct();
     // 3 x 256 empty handler vectors (the element constructor 00436A30 only zeroes them).
     for (auto& channel : handlers_)

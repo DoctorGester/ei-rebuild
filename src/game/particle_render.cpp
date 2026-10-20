@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc_array.h"
 
 #include <cstdint>
 #include <cstring>
@@ -43,7 +44,7 @@ float TickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA
 
 constexpr int kReserve = 0x1000;
 
-void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { SpriteArrayConstructOriginal((void*)a0); }
+void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
 void __fastcall EnsureTextureLoaded(void** a0) { TextureHolderEnsureLoaded(reinterpret_cast<CTexture**>(a0)); }
 // The arrays are function-local statics in the original (guard bits 1 and 2 of 007A9BF4, the
 // destructors 00497D30 / 00497D10 registered with atexit).

@@ -80,6 +80,13 @@ struct ListHeader {
     }
 };
 
+// The CList constructor on a list inside an element or a layout: the vtable of `Class`, empty,
+// `blockSize` nodes a block. Returns the list.
+template <typename Class>
+CList<void*>* ConstructListHeader(void* at, int blockSize) {
+    return ListHeader<Class>::Construct(static_cast<CList<void*>*>(at), nullptr, blockSize);
+}
+
 // ---- CMap -----------------------------------------------------------------------------------------
 
 // MFC's HashKey for DWORD-sized keys: the key (its low dword for a 64-bit one) shifted right by 4.

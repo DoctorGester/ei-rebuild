@@ -68,13 +68,9 @@ void SexOf(const char* figure, mfc::CString& sex) {
         sex = game::Text(0x0078BBD8);                     // "f"
 }
 
-// A client player record in the client's list (stlp list node: next, prev, value).
-struct PlayerNode {
-    PlayerNode* next;
-    PlayerNode* prev;
-    net::PlayerMessage* player;
-};
-PlayerNode* PlayersHead() { return static_cast<PlayerNode*>(net::GameClient()->players_); }
+// The client's player records (a list of counted PlayerMessages).
+using PlayerNode = net::RefNode;
+PlayerNode* PlayersHead() { return net::GameClient()->players_.End(); }
 
 CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
 
@@ -246,7 +242,7 @@ void CHudPortraits::Rebuild(int wide) {
 
     if (!IsMultiplayerClient()) return;
     for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) {
-        net::PlayerMessage* player = node->player;
+        auto* player = static_cast<net::PlayerMessage*>(node->data.ptr);
         CEngineObject* unit = nullptr;
         if (player->id_ >= 0) unit = WorldFindUnit(ClientWorld(), nullptr, player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;

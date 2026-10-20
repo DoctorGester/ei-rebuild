@@ -28,7 +28,6 @@ bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CR
 __declspec(naked) DriverNode** __fastcall DriversInsert(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/, const RefPtr*) EI_ORIGINAL(0x0047A450)
 __declspec(naked) DriverNode** __fastcall HoldersInsert(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/, const RefPtr*) EI_ORIGINAL(0x0047A480)
 __declspec(naked) DriverNode** __fastcall DriversErase(DriverNode** /*list*/, void*, DriverNode** /*out*/, DriverNode* /*pos*/) EI_ORIGINAL(0x0047A380)
-__declspec(naked) void __fastcall NodeDeallocate(DriverNode*, int /*count*/) EI_ORIGINAL(0x0047A650)
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 
 std::int32_t Addr(const std::uint8_t* p) { return static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(p)); }
@@ -92,7 +91,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
     for (DriverNode* node = drivers_->next; node != drivers_;) {
         DriverNode* next = node->next;
         node->value.Destroy();
-        NodeDeallocate(node, 1);
+        stlp::deallocate(node, 12);   // 0047A650
         node = next;
     }
     drivers_->next = drivers_;

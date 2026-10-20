@@ -32,7 +32,8 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
 }
 EI_REPLACE_METHOD(0x005C5CC0, PathCell::Step);
 
-void PathCellElements::Construct(PathCell* cells, int count) { ConstructPathCells(cells, count); }
+// 00539980: the cells zero filled.
+void PathCellElements::Construct(PathCell* cells, int count) { mfc::PlainElements<PathCell>::Construct(cells, count); }
 
 // 005BD200 / 005BD2A0: CList<PathCell>::AddHead / AddTail (RET 4).
 EI_REPLACE_METHOD(0x005BD200, PathCellList::AddHead);

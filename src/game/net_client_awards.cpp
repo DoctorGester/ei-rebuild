@@ -29,9 +29,8 @@ namespace {
 
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
-// The client base tick (00442AD0) and the timers list erase (library).
+// The client base tick (00442AD0).
 __declspec(naked) void __fastcall ClientBaseTick(ClientBase* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00442AD0)
-__declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004246E0)
 
 // The world (0x7AFF60) and its players (outside this range).
 void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { static_cast<CPlayer*>(a0)->GiveItems(a2, a3); }
@@ -50,7 +49,6 @@ CPlayer* LocalPlayer() { return reinterpret_cast<CPlayer*>(static_cast<CWorldSer
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 std::int32_t GameMode() { return *reinterpret_cast<const std::int32_t*>(0x007C2CC4); }
 std::uint32_t Unknown7B00BC() { return *reinterpret_cast<const std::uint32_t*>(0x007B00BC); }
-void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
 
 void InitList(ObjectList& list, void* vtable) {
     list.vtable = vtable;
@@ -73,7 +71,7 @@ void ClientSession::ApplyAwards() {
     ClientSession* self = this;
     CPlayer* player = LocalPlayer();
     if (!player) return;
-    for (RefNode* node = static_cast<RefNode*>(self->awards_)->next; node != self->awards_; node = node->next) {
+    for (RefNode* node = self->awards_.First(); node != self->awards_.End(); node = node->next) {
         auto* award = static_cast<AwardMessage*>(node->data.ptr);
         const char* name = award->text_.data();
         switch (award->kind_) {
@@ -137,21 +135,7 @@ void ClientSession::ApplyAwards() {
     }
 
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    auto* sentinel = static_cast<RefNode*>(self->awards_);
-    for (RefNode* node = sentinel->next; node != self->awards_;) {
-        RefNode* current = node;
-        node = node->next;
-        if (CRefObject* award = current->data.ptr) {
-            --award->refs_;
-            if (award->refs_ == 0) delete award;
-        }
-        if (current) {
-            current->next = static_cast<RefNode*>(NodeFreeList());
-            NodeFreeList() = current;
-        }
-    }
-    static_cast<RefNode*>(self->awards_)->next = static_cast<RefNode*>(self->awards_);
-    static_cast<RefNode*>(self->awards_)->prev = static_cast<RefNode*>(self->awards_);
+    self->awards_.Clear();
 }
 EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 
@@ -161,8 +145,7 @@ EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 void ClientSession::TickImpl(double dt) {
     ClientSession* self = this;
     ClientBaseTick(self, nullptr, dt);
-    void* timers = &self->timers_;
-    auto* sentinel = static_cast<TimedNode*>(self->timers_);
+    TimedNode* sentinel = self->timers_.End();
     TimedNode* node = sentinel->next;
     if (node != sentinel) {
         const float step = static_cast<float>(dt);
@@ -172,20 +155,14 @@ void ClientSession::TickImpl(double dt) {
             float& seconds = current->data.seconds;
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
-            if (!(left >= GameFloat(0x0073B858))) {
-                void* erased;
-                TimersErase(timers, nullptr, &erased, current);
-            }
-        } while (node != self->timers_);
+            if (!(left >= GameFloat(0x0073B858))) self->timers_.Erase(current);
+        } while (node != sentinel);
     }
-    auto* awards = static_cast<RefNode*>(self->awards_);
-    if (awards->next == awards || GameMode() != 3) return;
+    if (self->awards_.First() == self->awards_.End() || GameMode() != 3) return;
     CPlayer* player = LocalPlayer();
     if (!player || player->connection_->state_ != 1 || !Unknown7B00BC()) return;
     ApplyAwards();
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x0041CCD0, ClientSession::TickImpl);
 
 } // namespace net

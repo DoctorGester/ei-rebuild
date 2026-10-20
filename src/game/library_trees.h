@@ -60,12 +60,7 @@ using MeshCache = PairTree<stlp::string, CountedMesh>;
 
 // The item screens' model and texture caches (ItemObjectCache, ui_item_info.h; 0x24-byte nodes):
 // the cached object and when it was last used.
-struct ItemCacheEntry {
-    void* object;
-    std::uint32_t lastUse;
-};
-using ItemCache = stlp::TreeAbi<stlp::map<stlp::string, ItemCacheEntry>>;
-static_assert(sizeof(ItemCache::Node) == 0x24);
+using ItemCache = stlp::TreeAbi<ItemObjectCache::Map>;
 
 // The console's command maps (console.h; 0x18-byte nodes, CString keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
@@ -80,14 +75,9 @@ using Arrivals = stlp::TreeAbi<ArrivalMap>;
 static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
               sizeof(Arrivals::Node) == 0x18);
 
-// The hero screen's item caches (ItemObjectCache, ui_item_info.h): the map, then how many entries
-// it keeps. Their constructors 00633F50 / 00633FF0 (S12e): map() (the header from the pool, empty),
-// then the limit 50.
-struct HeroItemCache {
-    ItemCache::Tree map;
-    std::uint32_t limit;
-};
-static_assert(sizeof(HeroItemCache) == 0x10);
+// The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors 00633F50 /
+// 00633FF0 (S12e): map() (the header from the pool, empty), then the limit 50.
+using HeroItemCache = ItemObjectCache;
 HeroItemCache* __fastcall ConstructHeroItemCache(HeroItemCache* self);
 
 // 004F4CD0: LinkPartHeader() as operator[]'s default value: the 0x50 bytes zeroed.

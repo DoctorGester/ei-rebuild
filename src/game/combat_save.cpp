@@ -122,7 +122,7 @@ void* ItemManager() { return WorldServer()->itemManager_; }
 void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {
     int count = 0;
     stream->Read(&count, 4);
-    StepsSetSize(steps, nullptr, count, -1);
+    steps->SetSize(count, -1);
     for (int i = 0; i < steps->count; ++i) stream->Read(&steps->steps[i], sizeof(AnimationStep));
 }
 EI_REPLACE(0x005582A0, LoadStepList);

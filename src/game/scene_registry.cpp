@@ -32,10 +32,8 @@ SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit
 // The figure's registry (registry.cpp); its integers are read with GetInt2 (00694BE0).
 using Registry = CFileRegistry;
 
-// 00450750: the helper `index` of the unit's helper array (thiscall).
-__declspec(naked) CMaterial* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
-// 00453A30: SetSize of the caller's (type, value) array (thiscall: size, growth or -1).
-__declspec(naked) void __fastcall LinksSetSize(VtArray*, void*, int, int) EI_ORIGINAL(0x00453A30)
+// The caller's (type, value) array (SetSize 00453A30).
+using LinkArray = mfc::CArray<TextureLinkRecord>;
 // The (type, name) array's elements: construct `count` at `p` (004553F0), destroy one (00454360,
 // the deleting destructor with flags 0).
 __declspec(naked) void __stdcall ConstructNamed(void* /*p*/, int /*count*/) EI_ORIGINAL(0x004553F0)
@@ -148,7 +146,7 @@ struct GroupStrings {
 
 void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
-    CMaterial* helperRecord = HelperAt(&unit->helpers, nullptr, helper);
+    CMaterial* helperRecord = &Typed<HelperArray>(unit->helpers).data[helper];   // ElementAt (00450750)
     alignas(mfc::CString) unsigned char found[sizeof(mfc::CString)];
     auto* foundString = reinterpret_cast<mfc::CString*>(found);
     // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name`.
@@ -220,7 +218,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& grou
         if (pairs[i * 2 + 1] == value && pairs[i * 2] == type) break;
     }
     if (i == count) {
-        LinksSetSize(links, nullptr, count + 1, -1);
+        Typed<LinkArray>(*links).SetSize(count + 1, -1);
         pairs = reinterpret_cast<int*>(links->data);
         pairs[count * 2] = type;
         pairs[count * 2 + 1] = value;

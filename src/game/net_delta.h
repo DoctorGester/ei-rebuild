@@ -154,6 +154,9 @@ struct DeltaState {
 
     // 0047FB70. Empties every field's four streams and the two headers; mode idle.
     void Reset();
+    // 0050FA30: the fields' SetSize(count, -1) (new fields constructed, dropped ones destroyed;
+    // recordarrays::DeltaFields).
+    void SetFieldCount(int count);
     // 0047FBF0. Prepares field `index` for the current mode; null when it is not in mask_.
     DeltaField* BeginField(int index);
     // 0047FD50. Writing: 0 writes every field (mask_ = 0xFFFF), anything else only the dirty ones.

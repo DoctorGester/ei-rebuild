@@ -208,7 +208,7 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
         node->prev = nullptr;
         node->next = oldHead;
         ++pathCells.count;
-        ConstructPathCells(&node->data, 1);
+        mfc::PlainElements<PathCell>::Construct(&node->data, 1);   // 00539980
         node->data = *last;
         if (pathCells.head) pathCells.head->prev = node;
         else pathCells.tail = node;

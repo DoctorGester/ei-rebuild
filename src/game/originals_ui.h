@@ -34,8 +34,6 @@ __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x0
 __declspec(naked) inline void __fastcall PlayMovieFile(const char*, int, int, int, int, int, int)
     EI_ORIGINAL(0x005DB3F0)
 __declspec(naked) inline void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
-__declspec(naked) inline void __fastcall EmptyModelMap(void*) EI_ORIGINAL(0x005FA400)
-__declspec(naked) inline void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x005FA610)
 // CUiSurface::DrawText (RET 0x18; the surface is `this`): text into a rectangle with a format, colour and
 // two more ints. Returns the DrawText result (0 without a DirectDraw surface). RECT is `tagRECT`.
 __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*, const char* /*text*/, tagRECT* /*rect*/,
@@ -43,7 +41,6 @@ __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*
     EI_ORIGINAL(0x005FDE20)
 __declspec(naked) inline void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
-__declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
 // 00458270 (__fastcall: ECX the section name, DL clears the screen first; then clear-after and two values on
 // the stack, RET 0xC): plays the movies listed under a section (the titles' "<name>fin" / "<name>fout").
 __declspec(naked) inline void __fastcall PlayMoviesOriginal(const char* /*section*/, int /*clearFirst*/, int, int, int)
@@ -114,9 +111,6 @@ __declspec(naked) inline bool __fastcall SpellIsOffensiveOriginal(void* /*spell*
 __declspec(naked) inline void __fastcall AutoSaveOriginal(const char* /*name*/, int /*flag*/) EI_ORIGINAL(0x006570E0)
 // 0040D3B0 (rewritten as CCamera::SetTarget; through its address so the wrapper runs): the camera follows `target`
 // (thiscall on 0079B2A8, RET 4).
-// 005EBDB0: the battle screen's party array (an MFC CArray of unit pointers) SetSize (RET 8; growBy -1 keeps the step).
-__declspec(naked) inline void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x005EBDB0)
 // 006407E0: the portraits rebuild their slots from the battle screen's party (RET 4: camera player first; no result).
 __declspec(naked) inline void __fastcall PortraitsRebuildOriginal(void* /*portraits*/, void*, int /*cameraFirst*/)
     EI_ORIGINAL(0x006407E0)
@@ -129,16 +123,6 @@ __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*nam
 
 // A-I7. The description panel (CItemInfoPanel, thiscall; rewritten in ui_item_info.cpp): 005EE6C0
 // Describe(item), 005F1590 DescribeStats(info) (each RET 4).
-// 0065A770 (library, RET 4): the interface's help topics (map<CString, int>, CInterface3D +0x98) operator[]: the
-// topic's value, a new entry with 0 when absent.
-__declspec(naked) inline int* __fastcall HelpTopicsAtOriginal(void* /*topics*/, void*, const mfc::CString* /*topic*/)
-    EI_ORIGINAL(0x0065A770)
-// STLport containers' storage (library code): 006344C0 / 00520F60 give `count` entries of 8 / 4 bytes back to the node
-// pool (__fastcall: block, count); 00520F20 the same for 4-byte entries through an allocator proxy (thiscall, RET 8: block,
-// count). 00634160 / 00634200: the hero screen's model / texture map destroyed (nodes erased, header freed; ECX).
-__declspec(naked) inline void __fastcall FreeBlock8Original(void* /*block*/, int /*count*/) EI_ORIGINAL(0x006344C0)
-__declspec(naked) inline void __fastcall DestroyModelMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634160)
-__declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634200)
 // 005F8070 (rewritten as CInterface3D::OnStringEvent; Rebirth's NewStringEvents patches it, so callers go through its
 // address): a script string event on the interface (007C7D50; RET 4, no result).
 __declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*interface*/, void*, const char* /*event*/)
@@ -197,8 +181,6 @@ void __cdecl LoadKeyBindings();
 namespace strmap {
 void __fastcall PanelInit(void* /*panel*/, void*, CInterface3D* /*ui*/);
 }
-__declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*/, void*, void** /*out*/, void* /*hint*/,
-                                                                    const void* /*pair*/) EI_ORIGINAL(0x005F9810)
 // 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
 // the chat is closed), the caret clamped to it.
 __declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)

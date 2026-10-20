@@ -21,9 +21,8 @@ namespace scene {
 void __fastcall MakeFrameRelative(CAnimationNode*, CAnimationNode*, int);
 namespace {
 
-// CArray<node*>::SetSize (00453790, library): the node's children (+0x10C).
-using ChildArray = mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>>;
-__declspec(naked) void __fastcall ChildrenSetSize(ChildArray*, void*, int, int) EI_ORIGINAL(0x00453790)
+// The node's children (+0x10C; CArray<node*>, SetSize 00453790).
+using ChildArray = mfc::CArray<SceneNode*>;
 
 // The node's pivot and rotation copied to their rest copies.
 void CopyRest(SceneNode* node) {
@@ -91,7 +90,7 @@ int __fastcall FindRootNode(VtArray* nodeArray) {
                 continue;
             ChildArray& children = Children(&nodes.data[i]);
             int n = children.size;
-            ChildrenSetSize(&children, nullptr, n + 1, -1);
+            children.SetSize(n + 1, -1);
             children.data[n] = child;
         }
     }

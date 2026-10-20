@@ -65,10 +65,7 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 
 // The camp screen as the hero screen builds it inline (the same fields as its constructor
 // 005F6240, with the texture cache's header node made by the tree's own allocator): container
-// base 00600B20 (RET 4), the model cache's map 005FA420 (RET 4) / 005FA400, the texture cache's
-// tree base 00619750 (RET 8), node allocation 00619770 (RET 8) and 005FA610, CStringArray 006FE925.
-__declspec(naked) void __fastcall TreeBaseConstruct(void*, void*, const void*, const void*) EI_ORIGINAL(0x00619750)
-__declspec(naked) void* __fastcall TreeAllocateNodes(void*, void*, int, const void*) EI_ORIGINAL(0x00619770)
+// base 00600B20 (RET 4), the caches (ItemObjectCache::Construct), CStringArray 006FE925.
 
 
 int HeroCount() {
@@ -89,20 +86,8 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     ConstructContainerAt(camp, nullptr, ui);
     camp->hoveredItem_ = nullptr;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
-    ItemObjectCache* models = &camp->models_;
-    ConstructModelMap(models, nullptr, flags);
-    models->count = 0;
-    models->compare = compare;
-    EmptyModelMap(models);
-    models->limit = 50;
-    ItemObjectCache* textures = &camp->textures_;
-    void* header = nullptr;
-    TreeBaseConstruct(textures, nullptr, &models, &header);
-    textures->header = static_cast<ItemObjectCache::Node*>(TreeAllocateNodes(textures, nullptr, 1, nullptr));
-    textures->count = 0;
-    textures->compare = compare;
-    EmptyTextureMap(textures);
-    textures->limit = 50;
+    camp->models_.Construct(compare);
+    camp->textures_.Construct(compare);
     camp->vtable_ = reinterpret_cast<void**>(0x00740A2C);
     camp->inputVtable_ = reinterpret_cast<void**>(0x007409F8);
     camp->fromHeroScreen_ = true;   // opened from the hero screen

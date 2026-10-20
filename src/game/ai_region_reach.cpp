@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_array.h"
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -56,12 +57,11 @@ int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
 const int* StepX() { return DirectionDx() + 1; }
 const int* StepY() { return DirectionDy() + 1; }
 
-// 005B1C70 (RET 8): ConstructElements of the {x, y, cost} records (zero-fills `count`).
-__declspec(naked) void __stdcall ConstructBlockCosts(void*, int) EI_ORIGINAL(0x005B1C70)
 
 } // namespace
 
-void BlockCostElements::Construct(BlockCost* elements, int count) { ConstructBlockCosts(elements, count); }
+// 005B1C70: the {x, y, cost} records zero filled.
+void BlockCostElements::Construct(BlockCost* elements, int count) { mfc::PlainElements<BlockCost>::Construct(elements, count); }
 
 namespace {
 // The region map's constructor helper: the CRT's `eh vector constructor iterator` (array, size,
@@ -137,7 +137,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     PointArray& blocks = Blocks();
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
-        PointArrayConstructOriginal(&blocks);
+        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&blocks);
         GameAtExit(BlocksDestructor());
     }
     if (blocks.data) {
@@ -151,7 +151,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
             int n = blocks.size;
-            PointArraySetSizeOriginal(&blocks, nullptr, n + 1, -1);
+            blocks.SetSize(n + 1, -1);
             blocks.data[n].x = xx;
             blocks.data[n].y = yy;
         }
@@ -204,15 +204,15 @@ void CRegionMap::LabelRegions() {
     PointArray& second = FloodSecond();
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
-        PointArrayConstructOriginal(&queue);
+        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&queue);
         GameAtExit(FloodQueueDestructor());
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
-        PointArrayConstructOriginal(&second);
+        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&second);
         GameAtExit(FloodSecondDestructor());
     }
-    PointArraySetSizeOriginal(&queue, nullptr, 0, -1);
+    queue.SetSize(0, -1);
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
         std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));
@@ -222,7 +222,7 @@ void CRegionMap::LabelRegions() {
                 if (grid.rows[by][bx] != 0) continue;
                 grid.rows[by][bx] = static_cast<std::uint16_t>(label);
                 int n = queue.size;
-                PointArraySetSizeOriginal(&queue, nullptr, n + 1, -1);
+                queue.SetSize(n + 1, -1);
                 queue.data[n].x = bx;
                 queue.data[n].y = by;
                 FloodRegionFrom(sizeClass, &queue, &second, label);
@@ -523,7 +523,7 @@ void __fastcall BlockSearchPathTo(BlockSearch* searchIn, void*, int x, int y, Pa
     node->prev = nullptr;
     node->next = path->head;
     ++path->count;
-    ConstructPathCells(&node->data, 1);
+    mfc::PlainElements<PathCell>::Construct(&node->data, 1);   // 00539980
     node->data = cellAt(x, y);
     if (path->head) path->head->prev = node;
     else path->tail = node;
@@ -674,7 +674,7 @@ void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, Block
                 if (region != 0) continue;
                 region = static_cast<std::uint16_t>(label);
                 int n = next->size;
-                PointArraySetSizeOriginal(next, nullptr, n + 1, -1);
+                next->SetSize(n + 1, -1);
                 next->data[n].x = nx;
                 next->data[n].y = ny;
             }

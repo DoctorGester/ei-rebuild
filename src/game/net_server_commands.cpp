@@ -18,10 +18,6 @@ namespace net {
 
 namespace {
 
-// STLport (library): the objects list (+0x259C) end / insert.
-__declspec(naked) void** __fastcall ObjectsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420610)
-__declspec(naked) void** __fastcall ObjectsInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004229B0)
-
 
 enum CommandKind : std::uint32_t {
     kPreviewMap = 0,       // the host shows a map
@@ -44,9 +40,8 @@ bool Is(const stlp::string& s, const char* t) {
 
 // 00419F90: whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(void* connection) {
-    void** bindings = static_cast<void**>(bindings_);
-    for (void** node = static_cast<void**>(bindings[0]); node != bindings; node = static_cast<void**>(node[0])) {
-        auto* binding = static_cast<BindingMessage*>(node[2]);
+    for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
+        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
         if (binding->ConnectionRef().ptr != connection) continue;
         auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
         if (player && !(player->flags7_ & CRefObject::kDetached) && player->host_) return true;
@@ -67,11 +62,7 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* mes
     }
     RefPtr raw;
     const RefPtr* value = RefPtrFromRaw(&raw, message);
-    void* objects = &self->fileRequests_;
-    void* end;
-    ObjectsEnd(objects, nullptr, &end);
-    void* inserted;
-    ObjectsInsert(objects, nullptr, &inserted, end, value);
+    self->fileRequests_.Insert(self->fileRequests_.End(), *value);
 }
 
 // 0041B2A0 (commands, from the connection being read). Kinds 0-2 need the host's
@@ -89,13 +80,12 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
-        void** queued = static_cast<void**>(self->queuedMaps_);
-        void** node = static_cast<void**>(queued[0]);
-        for (; node != self->queuedMaps_; node = static_cast<void**>(node[0])) {
-            auto* entry = static_cast<ZoneMessage*>(node[2]);
+        RefNode* node = self->queuedMaps_.First();
+        for (; node != self->queuedMaps_.End(); node = node->next) {
+            auto* entry = static_cast<ZoneMessage*>(node->data.ptr);
             if (entry->text_ == *text) break;
         }
-        if (node == self->queuedMaps_) return;
+        if (node == self->queuedMaps_.End()) return;
         const std::size_t cut = text->size() - 2;
         stlp::string suffix = text->substr(cut, StringNpos());
         stlp::string name = text->substr(0, text->size() - 2);

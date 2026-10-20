@@ -275,3 +275,7 @@ EI_REPLACE(0x005755C0, DestroyWaterLevel);
 EI_REPLACE(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 
 } // namespace recordarrays
+
+void DeltaState::SetFieldCount(int count) {
+    recordarrays::DeltaFields::SetSize(reinterpret_cast<recordarrays::DeltaFields::Array*>(this), nullptr, count, -1);
+}

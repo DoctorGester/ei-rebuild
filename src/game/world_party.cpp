@@ -189,7 +189,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     RecordArray records{RecordArrayVtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party->members_.size; ++i) {
         int index = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
+        records.SetSize(index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
     }
     // A lost game sends the party back to this zone's first exit.

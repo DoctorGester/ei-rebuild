@@ -53,7 +53,6 @@ __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const st
 __declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
 __declspec(naked) void __fastcall PairDelete(void*, void*, unsigned) EI_ORIGINAL(0x004457F0)
-__declspec(naked) void __fastcall NodeFree(Node*, std::size_t) EI_ORIGINAL(0x004452D0)
 
 CDebugPanel* Panel(void* self) { return static_cast<CDebugPanel*>(self); }
 
@@ -108,7 +107,7 @@ void __fastcall StringTableDestruct(void* self) {
             lib_trees::StringPairs::EraseSubtree(&map, nullptr, node->right);
             Node* left = node->left;
             PairDelete(&node->first, nullptr, 0);
-            NodeFree(node, 1);
+            stlp::deallocate(node, 40);   // 004452D0
             node = left;
         }
         map.ResetToEmpty();

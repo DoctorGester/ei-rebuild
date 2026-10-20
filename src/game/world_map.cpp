@@ -9,6 +9,7 @@
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
+#include "game_arrays.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -17,6 +18,7 @@
 #include "core_streams.h"
 #include "map_object.h"
 #include "lib/containers.h"
+#include "lib/mfc_array.h"
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "originals_world.h"
@@ -215,7 +217,7 @@ void CWorldServer::TeardownZone() {
 
     SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next)
-        CountedPtrArrayDestructOriginal(&node->data.objects);
+        mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(node->data.objects));
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off

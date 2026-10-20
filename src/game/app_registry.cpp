@@ -5,7 +5,7 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
-#include "originals_library.h"
+#include "lib/stlp.h"
 
 #include <unknwn.h>
 
@@ -16,47 +16,9 @@ namespace app {
 
 namespace {
 
-struct Node {
-    Node* next;
-    std::uint32_t key;
-    std::uint32_t value;
-};
-struct Table {                   // STLport hashtable<pair<const uint32, uint32>> (0x14 bytes)
-    std::uint32_t functors;
-    Node** buckets;
-    Node** bucketsEnd;
-    Node** bucketsEos;
-    std::uint32_t count;
-};
-struct Pair {
-    std::uint32_t key;
-    std::uint32_t value;
-};
-
-// The two instantiations' resize and node creation (library).
-void __fastcall ByVtableResize(Table* a0, void*, std::uint32_t a2) { ByVtableResizeOriginal((void*)a0, nullptr, a2); }
-Node* __fastcall ByVtableNewNode(Table* a0, void*, const Pair* a2) { return (Node*)ByVtableNewNodeOriginal((void*)a0, nullptr, (const void*)a2); }
-__declspec(naked) void __fastcall ByIdResize(Table*, void*, std::uint32_t) EI_ORIGINAL(0x0040BAC0)
-__declspec(naked) Node* __fastcall ByIdNewNode(Table*, void*, const Pair*) EI_ORIGINAL(0x0040B440)
-
-using Resize = void(__fastcall*)(Table*, void*, std::uint32_t);
-using NewNode = Node*(__fastcall*)(Table*, void*, const Pair*);
-
-// operator[] as inlined: the node with `key`, made (value 0) and put first in its bucket if
-// missing.
-Node* FindOrInsert(Table& t, std::uint32_t key, Resize resize, NewNode newNode) {
-    Pair pair{key, 0};
-    resize(&t, nullptr, t.count + 1);
-    std::uint32_t bucket = key % static_cast<std::uint32_t>(t.bucketsEnd - t.buckets);
-    Node* head = t.buckets[bucket];
-    for (Node* n = head; n; n = n->next)
-        if (n->key == key) return n;
-    Node* n = newNode(&t, nullptr, &pair);
-    n->next = head;
-    t.buckets[bucket] = n;
-    ++t.count;
-    return n;
-}
+// The two maps (STLport hash_map<uint32, uint32>, 0x14 bytes each): vtable -> id, id -> factory.
+using Table = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
+static_assert(sizeof(Table) == 0x14);
 
 } // namespace
 
@@ -66,8 +28,10 @@ void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* 
     std::uint32_t vtable;
     std::memcpy(&vtable, prototype, 4);
     auto* tables = static_cast<Table*>(self);
-    FindOrInsert(tables[0], vtable, ByVtableResize, ByVtableNewNode)->value = id;
-    FindOrInsert(tables[1], id, ByIdResize, ByIdNewNode)->value = reinterpret_cast<std::uint32_t>(factory);
+    // operator[] as inlined: find_or_insert of {key, 0} (resize 0042B9C0 / 0040BAC0, new node
+    // 0042B8A0 / 0040B440).
+    tables[0].FindOrInsert({vtable, 0})->value = id;
+    tables[1].FindOrInsert({id, 0})->value = reinterpret_cast<std::uint32_t>(factory);
     if (prototype && --prototype->refs_ == 0) delete prototype;   // slot 0 with 1
 }
 EI_REPLACE(0x00458570, TypeRegistryRegister);

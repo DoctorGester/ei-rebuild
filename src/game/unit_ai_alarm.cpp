@@ -63,7 +63,7 @@ AIMode* NewCorpseWatcher() {
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
 // waypoints as looks of that point (the direction from the start, the wait and the turning time).
 void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
-    PatrolPointArraySetSizeOriginal(&mode->points, nullptr, 0, -1);
+    mode->points.SetSize(0, -1);
     for (int i = 0; i < record->patrols.size; ++i) {
         const mapspec::Patrol& patrol = record->patrols.data[i];
         double cell = static_cast<double>(kOne) * kHalf;
@@ -95,8 +95,8 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
     if (record->loop != 0) return;
     // Not a loop: the points again in reverse order (room for them made first).
     int count = mode->points.size;
-    PatrolPointArraySetSizeOriginal(&mode->points, nullptr, count * 2, -1);
-    PatrolPointArraySetSizeOriginal(&mode->points, nullptr, count, -1);
+    mode->points.SetSize(count * 2, -1);
+    mode->points.SetSize(count, -1);
     for (int i = count - 1; i >= 0; --i) mode->points.SetAtGrow(mode->points.size, mode->points.data[i]);
 }
 } // namespace

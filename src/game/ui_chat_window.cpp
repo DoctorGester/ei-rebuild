@@ -81,7 +81,6 @@ void Assign(CRefObject** slot, CRefObject* object) {
 }
 
 net::PlayerMessage* PlayerOf(CRefObject* object) { return static_cast<net::PlayerMessage*>(object); }
-const stlp::list<CRefObject*>& ClientList(void* const& head) { return reinterpret_cast<const stlp::list<CRefObject*>&>(head); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // The inlined strcmp(a, b) == 0.
@@ -176,14 +175,14 @@ void CChatWindow::ShowPlayers() {
 
     // Our own player first, the others after it; none while the binding is gone.
     net::ClientSession* client = net::GameClient();
-    const stlp::list<CRefObject*>& players = ClientList(client->players_);
+    const stlp::CountedRefList& players = client->players_;
     for (auto* node = players.First(); node != players.End(); node = node->next) {
         if (!Live(client->binding_)) continue;
-        CRefObject* player = node->data;
+        CRefObject* player = node->data.ptr;
         bool own = static_cast<net::BindingMessage*>(client->binding_)->PlayerRef().ptr == player;
         CRefObject**& finish = players_.Finish();
         if (finish == players_.EndOfStorage()) {
-            PlayersInsertOverflow(&players_, nullptr, own ? players_.Start() : finish, &node->data, 1);
+            PlayersInsertOverflow(&players_, nullptr, own ? players_.Start() : finish, &node->data.ptr, 1);
         } else if (!own || players_.Start() == finish) {
             if (finish) {
                 *finish = player;
@@ -264,9 +263,9 @@ void CChatWindow::Update() {
         offer.Empty();
         auto* own = static_cast<net::PartyMessage*>(client->party_.ptr);
         if (own && own->partner_.ptr == *p) offer = texts_.data[kWeOffer];
-        const stlp::list<CRefObject*>& offers = ClientList(client->offers_);
+        const stlp::CountedRefList& offers = client->offers_;
         for (auto* node = offers.First(); node != offers.End(); node = node->next) {
-            if (static_cast<net::PartyMessage*>(node->data)->player_.ptr == *p) {
+            if (static_cast<net::PartyMessage*>(node->data.ptr)->player_.ptr == *p) {
                 offer = texts_.data[kTheyOffer];
                 break;
             }

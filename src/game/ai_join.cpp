@@ -129,7 +129,7 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     node->prev = nullptr;
     node->next = path->head;
     ++path->count;
-    ConstructPathCells(&node->data, 1);
+    mfc::PlainElements<PathCell>::Construct(&node->data, 1);   // 00539980
     node->data = cellAt(x, y);
     if (path->head) path->head->prev = node;
     else path->tail = node;

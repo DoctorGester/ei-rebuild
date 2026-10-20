@@ -71,18 +71,6 @@ std::uint32_t PackColour(const float* rgb) {
 CUiMesh* AsSprite(void* p) { return static_cast<CUiMesh*>(p); }
 CSceneRenderer* PassRenderer(int pass) { return reinterpret_cast<CSceneRenderer*>(static_cast<std::intptr_t>(pass)); }
 
-// The caches' STLport map (thiscall on the cache; library code): find into `out` (RET 8; the
-// model and the texture cache's own instantiations) and operator[] (RET 4; the value {object,
-// time}). Their trimming is game code, not rewritten.
-__declspec(naked) ItemObjectCache::Node** __fastcall CacheFind(ItemObjectCache*, void*, ItemObjectCache::Node** /*out*/,
-                                                               const stlp::string* /*key*/) EI_ORIGINAL(0x005F3730)
-__declspec(naked) ItemObjectCache::Node** __fastcall CacheFindTexture(ItemObjectCache*, void*,
-                                                                      ItemObjectCache::Node** /*out*/,
-                                                                      const stlp::string* /*key*/) EI_ORIGINAL(0x005F3B50)
-__declspec(naked) void** __fastcall CacheSlot(ItemObjectCache*, void*, const stlp::string* /*key*/) EI_ORIGINAL(0x005F3000)
-__declspec(naked) void** __fastcall CacheTextureSlot(ItemObjectCache*, void*, const stlp::string* /*key*/)
-    EI_ORIGINAL(0x005F3170)
-
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
 
 // The item's names (virtual slots 19 and 20; return a CString through the hidden pointer).
@@ -91,35 +79,29 @@ void ItemName(CItem* item, int slot, mfc::CString* out) {
     reinterpret_cast<NameFn>((*reinterpret_cast<void***>(item))[slot])(item, out);
 }
 
-// The cached object for `name` (its use time refreshed), or a new one put in the cache, which
-// then drops its least recently used entries beyond its limit. Null when it cannot be made.
-// `textures` picks the texture cache's own instantiations (they behave the same).
+// The cached object for `name` (its use time refreshed), or a new one put in the cache (find
+// 005F3730 / 005F3B50, operator[] 005F3000 / 005F3170), which then drops its least recently used
+// entries beyond its limit. Null when it cannot be made. `textures` picks the texture maker.
 void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     ItemObjectCache::Node* node;
     {
         stlp::string key(name);
-        if (textures)
-            CacheFindTexture(cache, nullptr, &node, &key);
-        else
-            CacheFind(cache, nullptr, &node, &key);
+        node = cache->map.find(key);
     }
-    if (node != cache->header) {
-        node->lastUse = gameapi::timeGetTime();
-        return node->object;
+    if (node != cache->map.end()) {
+        node->second.lastUse = gameapi::timeGetTime();
+        return node->second.object;
     }
     void* object = textures ? ItemFigureTexture(name) : ItemModel(name);
     if (!object) return nullptr;
     std::uint32_t time = gameapi::timeGetTime();
     {
         stlp::string key(name);
-        void** value = textures ? CacheTextureSlot(cache, nullptr, &key) : CacheSlot(cache, nullptr, &key);
-        value[0] = object;
-        value[1] = reinterpret_cast<void*>(static_cast<std::uintptr_t>(time));
+        ItemCacheEntry& value = cache->map.Subscript(key);
+        value.object = object;
+        value.lastUse = time;
     }
-    if (textures)
-        TrimItemTextures(cache);
-    else
-        TrimItemModels(cache);
+    TrimItemCache(cache);
     return object;
 }
 

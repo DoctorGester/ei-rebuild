@@ -21,6 +21,33 @@ void AnimationSteps::Assign(const AnimationSteps& source) {
     mfc::impl::AnimationStepListAbi::Assign(reinterpret_cast<mfc::impl::AnimationStepList*>(this), nullptr,
                                             reinterpret_cast<const mfc::impl::AnimationStepList*>(&source));
 }
+namespace {
+using StepArray = mfc::impl::AnimationSteps::Array;
+StepArray* Array(AnimationSteps* list) { return reinterpret_cast<StepArray*>(list); }
+const StepArray* Array(const AnimationSteps* list) { return reinterpret_cast<const StepArray*>(list); }
+const mfc::impl::AnimationStep12& Step(const AnimationStep& step) {
+    return reinterpret_cast<const mfc::impl::AnimationStep12&>(step);
+}
+} // namespace
+
+void AnimationSteps::SetSize(int newCount, int newGrowBy) { Array(this)->SetSize(newCount, newGrowBy); }
+int AnimationSteps::Add(const AnimationStep& step) { return Array(this)->Add(Step(step)); }
+void AnimationSteps::SetAtGrow(int index, const AnimationStep& step) { Array(this)->SetAtGrow(index, Step(step)); }
+void AnimationSteps::RemoveAt(int index, int removed) { Array(this)->RemoveAt(index, removed); }
+void AnimationSteps::CopySteps(const AnimationSteps& source) { Array(this)->Copy(*Array(&source)); }
+AnimationSteps* AnimationSteps::ConstructBase() {
+    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this));
+    return this;
+}
+AnimationSteps* AnimationSteps::ConstructOwn() {
+    mfc::impl::ConstructArrayOf<mfc::impl::AnimationStepsCopyClass>(*Array(this));
+    return this;
+}
+AnimationSteps* AnimationSteps::CopyConstructSteps(const AnimationSteps& source) {
+    mfc::impl::AnimationStepListAbi::CopyConstructSteps(Array(this), nullptr, Array(&source));
+    return this;
+}
+void AnimationSteps::DestructSteps() { mfc::impl::DestructArrayOf<mfc::impl::AnimationStepsClass>(*Array(this)); }
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)
@@ -29,7 +56,7 @@ constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of
 // Appends a blank step (00550A60's values) and returns it.
 AnimationStep& AppendBlank(AnimationSteps* list) {
     int index = list->count;
-    StepsSetSize(list, nullptr, index + 1, -1);
+    list->SetSize(index + 1, -1);
     AnimationStep& step = list->steps[index];
     step.animation = kNone;
     step.variant = kNone;
@@ -89,7 +116,7 @@ void AnimationSteps::Load(CStream* stream) {
     // The original reads the count over its stream argument on the stack.
     int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&newCount, sizeof(newCount));
-    StepsSetSize(this, nullptr, newCount, -1);
+    SetSize(newCount, -1);
     for (int i = 0; i < count; ++i) stream->Read(&steps[i], sizeof(AnimationStep));
     stream->Read(&extra, sizeof(extra));
 }

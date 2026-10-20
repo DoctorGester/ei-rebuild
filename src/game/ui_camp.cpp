@@ -812,7 +812,7 @@ void CCampPages::Close() {
         PartyUnitRecord* record = &player->members_.data[i];
         record->unitId += kRecordBias;
         int index = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
+        records.SetSize(index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
     }
     GameRemoveUnitsOf(&records);
@@ -850,13 +850,11 @@ namespace {
 
 // 00613630 (__fastcall: block, count): frees a vector's block of 0x3C-byte entries (STLport node
 // allocator for small blocks). 006135F0 (stdcall, RET 8): the same for 0x18-byte entries.
-__declspec(naked) void __fastcall FreeBlock3C(void*, int) EI_ORIGINAL(0x00613630)
-__declspec(naked) void __stdcall FreeBlock18(void*, int) EI_ORIGINAL(0x006135F0)
 
 // The rows' destructors, then the block (its capacity in rows).
 void DestroyRows(TradeRows& rows) {
     for (TradeRow* at = rows.begin; at != rows.end; ++at) at->Destroy();
-    FreeBlock18(rows.begin, static_cast<int>(rows.capacity - rows.begin));
+    stlp::deallocate(rows.begin, static_cast<std::size_t>(rows.capacity - rows.begin) * 24);   // 006135F0
 }
 
 } // namespace
@@ -864,7 +862,7 @@ void DestroyRows(TradeRows& rows) {
 void __fastcall TradePanelDestroy(CUiWindow* window) {
     auto* self = static_cast<CTradePanel*>(window);
     StringArrayDestruct(&self->texts_);
-    FreeBlock3C(self->records_.begin, static_cast<int>(self->records_.capacity - self->records_.begin));
+    stlp::deallocate(self->records_.begin, static_cast<std::size_t>(self->records_.capacity - self->records_.begin) * 60);   // 00613630
     DestroyRows(self->science_);
     DestroyRows(self->schools_);
     DestroyRows(self->perks_);
@@ -1263,32 +1261,13 @@ EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 
 // --- 005F6240: the constructor ----------------------------------------------------------------
 
-namespace {
-// The item caches' maps (STLport, thiscall): 005FA420 / 005FA630 construct the header node from
-// an allocator (RET 4; the byte they copy is overwritten), 005FA400 / 005FA610 empty it.
-__declspec(naked) void __fastcall ConstructTextureMap(void*, void*, const void*) EI_ORIGINAL(0x005FA630)
-
-// A cache: the map's header, an empty tree whose compare byte is `compare`, the limit 50.
-void ConstructCache(ItemObjectCache& cache, void(__fastcall* construct)(void*, void*, const void*),
-                    void(__fastcall* empty)(void*), const void* allocator, std::uint8_t compare) {
-    construct(&cache, nullptr, allocator);
-    cache.count = 0;
-    cache.compare = compare;
-    empty(&cache);
-    cache.limit = 50;
-}
-} // namespace
-
 CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     ConstructContainerAt(this, nullptr, ui);
     hoveredItem_ = nullptr;
-    // The original passes the address of its first argument (the models') and of a stack byte
-    // (the textures') as the allocators; the compare byte is the flag's low byte.
+    // The caches' compare byte is the flag's low byte.
     std::uint8_t compare = static_cast<std::uint8_t>(fromHeroScreen);
-    CInterface3D* slot = ui;
-    std::uint8_t junk = 0;
-    ConstructCache(models_, ConstructModelMap, EmptyModelMap, &slot, compare);
-    ConstructCache(textures_, ConstructTextureMap, EmptyTextureMap, &junk, compare);
+    models_.Construct(compare);
+    textures_.Construct(compare);
     vtable_ = reinterpret_cast<void**>(0x00740A2C);
     inputVtable_ = reinterpret_cast<void**>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is

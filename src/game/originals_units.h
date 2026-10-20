@@ -33,24 +33,6 @@ __declspec(naked) inline void __fastcall UnitParameterBlock(void*, void*, void*,
 __declspec(naked) inline void __fastcall UnitDestructBody(void*) EI_ORIGINAL(0x0052E310)
 // 00530930 (rewritten as CUnit::GetPrototype; plain RET): the unit's prototype record (0x120 bytes, name first), or null.
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
-__declspec(naked) inline void __stdcall ConstructPathCells(PathCell*, int) EI_ORIGINAL(0x00539980)
-__declspec(naked) inline void __fastcall StepsAppend(AnimationSteps*, void*, const AnimationSteps*)
-    EI_ORIGINAL(0x00556950)
-__declspec(naked) inline int __fastcall StepsAdd(AnimationSteps*, void*, const AnimationStep*) EI_ORIGINAL(0x00557CC0)
-__declspec(naked) inline void __fastcall StepsSetAtGrow(AnimationSteps*, void*, int, const AnimationStep*)
-    EI_ORIGINAL(0x00558950)
-
-// 00530730 / 00531070: equip armour (RET 4, returns the item it replaced or null) / add weapon (RET 4, slot index,
-// 1 when already there, -1 when full). 00554450: the unit controller resyncs with its unit (plain RET, no result).
-// 00557E70: destructor of the animation-step array / controller list (ECX = object, plain RET, no result).
-__declspec(naked) inline void __fastcall AnimationStepsDestroyOriginal(void* /*steps*/) EI_ORIGINAL(0x00557E70)
-
-// 00556870: AnimationSteps copy constructor (RET 4, returns this).
-__declspec(naked) inline void* __fastcall StepsCopyConstructOriginal(void* /*steps*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x00556870)
-// 00556D10: cell list constructor (block size; RET 4, returns this).
-__declspec(naked) inline void* __fastcall CellListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
-    EI_ORIGINAL(0x00556D10)
 
 // C3k. A counted reference is a pointer slot whose object keeps a count at +4 and has Release as virtual slot 4.
 // 0052B030 releases the object and clears the slot (plain RET; no result in EAX).
@@ -58,10 +40,8 @@ __declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/)
 // 0054B580 (rewritten as CUnitServer::IsFighting; Rebirth patches it, so callers go through the address): whether the
 // controller's order counts as fighting (plain RET, AL).
 __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*controller*/) EI_ORIGINAL(0x0054B580)
-// 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10). 00557B60: AnimationSteps
-// constructor (plain RET, returns `this`).
+// 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10).
 __declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
-__declspec(naked) inline void* __fastcall StepsConstructOriginal(void* /*steps*/) EI_ORIGINAL(0x00557B60)
 
 // C3l. 005335E0: the unit prototype map (a hash map keyed by a string; RET 4: key; EAX = the address of the value slot, after
 // inserting an entry for a missing name).
@@ -78,32 +58,7 @@ struct ClientSpeechNode;
 __declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** /*queue*/, void*,
                                                              ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
     EI_ORIGINAL(0x005392F0)
-// 005121B0: the client companion's particle array (CMapObjectClientSpecific +0x28): SetSize(count, growBy) (RET 8, no
-// result).
-__declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void* /*array*/, void*, int /*count*/,
-                                                                           int /*growBy*/) EI_ORIGINAL(0x005121B0)
-// 00512330 (library, MFC CArray::SetSize): the client companion's sound array (+0x3C; 0x14-byte records): SetSize(count,
-// growBy) (RET 8, no result).
-__declspec(naked) inline void __fastcall CompanionSoundsSetSizeOriginal(void* /*array*/, void*, int /*count*/,
-                                                                       int /*growBy*/) EI_ORIGINAL(0x00512330)
 
-// A-U11 (unit_db.cpp, unit_db_destroy.cpp). The unit database's records: 0053EBC0 / 0053ED30 / 0053EE70 destroy a
-// prototype / NPC / model record (rewritten in unit_db_destroy.cpp; thiscall, plain RET); 0053E2A0 / 0053E520 / 0053E730 /
-// 0053E9B0 resize the vectors of prototypes / NPCs / models / level records (STLport, RET 4: count). No results.
-__declspec(naked) inline void __fastcall UnitPrototypesResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E2A0)
-__declspec(naked) inline void __fastcall UnitNpcsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E520)
-__declspec(naked) inline void __fastcall UnitModelsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E730)
-__declspec(naked) inline void __fastcall UnitLevelsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E9B0)
-// A-U10 (unit_db.cpp). The skill database's STLport vectors: 005209D0 / 00520B20 resize the vector of skills / levels
-// (RET 4: count). No results.
-__declspec(naked) inline void __fastcall SkillVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x005209D0)
-__declspec(naked) inline void __fastcall SkillLevelVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x00520B20)
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).

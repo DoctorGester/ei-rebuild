@@ -159,8 +159,8 @@ void Loader::AddMap() {
         char* a = reinterpret_cast<char*>(db_->allods.data) + i * allod::kSize;
         if (libcrt::Mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
             continue;
-        void* mapList = a + allod::kMaps;
-        DwordArraySetAtGrowOriginal(mapList, nullptr, Body(mapList).size, static_cast<std::uint32_t>(map_));
+        auto* mapList = reinterpret_cast<mfc::CArray<std::uint32_t>*>(a + allod::kMaps);
+        mapList->SetAtGrow(mapList->size, static_cast<std::uint32_t>(map_));   // 00460500
         break;
     }
     if (Is(Word(3), game::mapwords::Game())) Set<int>(Map(), map::kKind, 0);

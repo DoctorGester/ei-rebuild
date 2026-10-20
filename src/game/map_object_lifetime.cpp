@@ -9,6 +9,8 @@
 #include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
+#include "game_arrays.h"
+#include "record_arrays.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
 #include "spell.h"         // CLightFactory
@@ -22,6 +24,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/stlp_list.h"
+#include "lib/mfc_array.h"
 #include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -73,18 +76,13 @@ __declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
 // 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
 // segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
-__declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
-inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // The server unit controller's members (00546230).
-__declspec(naked) void __fastcall BrainListDestroy(void*) EI_ORIGINAL(0x00557410)
-__declspec(naked) void __fastcall BrainList90Destroy(void*) EI_ORIGINAL(0x00557890)
 void __fastcall BrainObject8CDestroy(void* a0) { RefObjectRelease(a0); }
 __declspec(naked) void __fastcall BrainList70Destroy(void*) EI_ORIGINAL(0x005575F0)
 void __fastcall BrainArrayDestroy(void* a0) { CountedRefResetOriginal(a0); }
-void __fastcall Brain14Destroy(void* a0) { AiLookArrayDestructOriginal(a0); }
-inline void __fastcall ControllerListDestroy(void* list) { AnimationStepsDestroyOriginal(list); }
+void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
 // This file's 3D object constructor and destructor bodies, through their game addresses.
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
@@ -271,7 +269,7 @@ CUnit* CUnit::Construct() {
     m->waypoints.maxSize = 0;
     m->waypoints.size = 0;
     SetVtable(&m->waypoints, kMotionWaypointsVtable);
-    ConstructUnitArray(&m->stepSpeeds);
+    mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
     SetVtable(&m->stepSpeeds, kMotionSpeedsVtable);
     // (0052E230, the segment part's constructor at +0x50, only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
@@ -420,7 +418,7 @@ void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
     lightStateA = 0;
     lightStateB = 0;
-    SetParticleCount(&particles, nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
     if (light) {
         light->flags_ &= ~0x200u;
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
@@ -458,16 +456,16 @@ void CUnitServer::DestructBody() {
     AIBrain* b = Brain();
     static_cast<AIBrain*>(b)->Init();
     b->DestructMemory();   // 00545CB0
-    BrainListDestroy(&b->attention.spells);
-    BrainListDestroy(&b->attention.weapons);
-    BrainList90Destroy(&b->alarmRecords);
+    mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.spells);
+    mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
+    mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
     BrainList70Destroy(&b->modes);
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
     Brain14Destroy(&b->looks);
-    ControllerListDestroy(&idleAnimation);
-    ControllerListDestroy(&moveAnimation);
+    idleAnimation.DestructSteps();
+    moveAnimation.DestructSteps();
     SetVtable(&armourSpells, kArmourSpellListVtable);
     Controller91CDestroy(&armourSpells);
     if (CEngineObject* leader = followedLeader) leader->Release();

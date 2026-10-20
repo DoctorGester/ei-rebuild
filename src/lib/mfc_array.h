@@ -130,6 +130,36 @@ struct ArrayHeader {
     static void __fastcall Destruct(Array* self) { ArrayAbi<Bytes<1>>::Destruct<Class>(self); }
 };
 
+// An array declared with the default element policy seen as the instantiation `Abi` of the same
+// layout (its elements built and destroyed as that instantiation's out-of-line code does).
+template <typename Abi, typename T, typename E>
+typename Abi::Array& ArrayAs(CArray<T, E>& a) {
+    static_assert(sizeof(typename Abi::Element) == sizeof(T));
+    return reinterpret_cast<typename Abi::Array&>(a);
+}
+
+// The same constructor and destructor on a typed array: the vtable of `Class`; the elements
+// destroyed by the array's policy, the storage freed (ArrayAbi::Destruct).
+template <typename Class, typename T, typename E>
+CArray<T, E>* ConstructArrayOf(CArray<T, E>& a) {
+    return a.Construct(Class::Vtable());
+}
+template <typename Class, typename T, typename E>
+void DestructArrayOf(CArray<T, E>& a);
+
+// The destructor of an instantiation whose elements need nothing, on a header inside an element or
+// a layout (ConstructHeader's counterpart): the vtable of `Class`, the storage freed.
+template <typename Class>
+void DestructHeader(void* at) {
+    DestructArrayOf<Class>(*static_cast<CArray<Bytes<1>>*>(at));
+}
+
+template <typename Class, typename T, typename E>
+void DestructArrayOf(CArray<T, E>& a) {
+    a.vtable = Class::Vtable();
+    a.FreeData();
+}
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 //
 // One type per vtable, for the templates: Vtable() is the address of the instantiation's vtable.

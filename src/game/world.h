@@ -1100,9 +1100,8 @@ using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
 int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
 // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
 // The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
-// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens. Its SetSize
-// (005719B0) and SetAtGrow stay the instantiation's own (RecordArraySetSizeOriginal /
-// RecordArraySetAtGrowOriginal, originals_library.h).
+// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens (SetSize 005719B0,
+// SetAtGrow 0059D2E0: the plain CArray members).
 using RecordPtrArray = mfc::CArray<std::uint8_t*>;
 using RecordVector = stlp::vector<std::uint8_t>;
 static_assert(sizeof(RecordVector) == 12);

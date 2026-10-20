@@ -120,7 +120,6 @@ namespace {
 
 // The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
 // at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
-__declspec(naked) void __fastcall SpotsSetAtGrow(LeverSpots*, void*, int, const Vector3*) EI_ORIGINAL(0x0052CC50)
 
 void* const kLeverTable = reinterpret_cast<void*>(0x0079C1A0);
 
@@ -132,7 +131,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         gamecrt::operator_delete(out->data);
         out->data = nullptr;
     }
-    out->capacity = 0;
+    out->maxSize = 0;
     out->size = 0;
     const LeverRecord* record = static_cast<const LeverRecord*>(stlp::RecordNamed(static_cast<stlp::RecordsByName*>(kLeverTable), nullptr, name));
     if (!record || record->spotCount == 0) return;
@@ -160,7 +159,7 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         at.x = axis.x * across * distance + at.x;
         at.y = axis.y * across * distance + at.y;
         at.z = axis.z * across * distance + at.z;
-        SpotsSetAtGrow(out, nullptr, out->size, &at);
+        out->SetAtGrow(out->size, at);
     }
 }
 EI_REPLACE_METHOD(0x0052BBE0, Lever::CollectUseSpots);

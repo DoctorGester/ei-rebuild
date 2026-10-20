@@ -21,6 +21,7 @@
 #include "originals_units.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
+#include "lib/mfc_list.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -269,7 +270,7 @@ EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 void PatrolMode::Load(CStream* stream) {
     int count;
     ReadField(stream, &count);
-    PatrolPointArraySetSizeOriginal(&points, nullptr, count, -1);
+    points.SetSize(count, -1);
     for (int i = 0; i < points.size; ++i) {
         PatrolPoint& point = points.data[i];
         ReadField(stream, &point.position);
@@ -493,7 +494,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     auto* guard = reinterpret_cast<std::uint8_t*>(kCandidatesGuard);
     if (!(*guard & 1)) {
         *guard |= 1;
-        PtrListConstructOriginal(reinterpret_cast<mfc::CList<void*>*>(kCandidates), nullptr, 10);
+        mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(reinterpret_cast<mfc::CList<void*>*>(kCandidates), 10);
         GameAtExit(ei::static_init::Exit005D2570);
     }
     CUnit* self = brain->owner->unit;

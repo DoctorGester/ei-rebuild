@@ -11,36 +11,14 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-struct AnimationSteps;
 class CFileRegistry;
 class CStream;
-struct RefPtr;
 namespace lib { template <typename T> struct AlignedArray; }
 namespace console { class CStringArray; }
 namespace net { struct FreedBatch; struct HistoryNode; }
 namespace stlp { class string; }
 
-__declspec(naked) inline void** __fastcall PartiesEnd(void*, void*, void**) EI_ORIGINAL(0x004208A0)
-__declspec(naked) inline void __fastcall List25BCClear(void* /*list*/) EI_ORIGINAL(0x00421CD0)
-__declspec(naked) inline void __fastcall List25B0FreeNode(void* /*list*/, void*, void* /*node*/, int /*n*/)
-    EI_ORIGINAL(0x00422390)
-__declspec(naked) inline void* __fastcall ListConstruct4231C0(void* /*list*/, void*, const void* /*alloc*/)
-    EI_ORIGINAL(0x004231C0)
-__declspec(naked) inline void __fastcall List2610Destruct(void* /*list*/) EI_ORIGINAL(0x00423370)
-__declspec(naked) inline void __fastcall List25ACFree(void* /*list*/, void*, void* /*node*/, int /*n*/)
-    EI_ORIGINAL(0x00425A40)
-__declspec(naked) inline void __fastcall List25B0Clear(void* /*list*/) EI_ORIGINAL(0x00427100)
-__declspec(naked) inline void __fastcall List2598Clear(void* /*list*/) EI_ORIGINAL(0x004271C0)
-__declspec(naked) inline void** __fastcall PartiesErase(void*, void*, void**, void*) EI_ORIGINAL(0x004294D0)
-__declspec(naked) inline RefPtr* __fastcall UninitializedCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/)
-    EI_ORIGINAL(0x0042AF80)
-__declspec(naked) inline void __fastcall NamesSetSizeOriginal(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
-__declspec(naked) inline void __fastcall FloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
 __declspec(naked) inline void __fastcall CellListDestroy(void*) EI_ORIGINAL(0x00539890)
-__declspec(naked) inline void __fastcall FirstListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053F4F0)
-__declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557B80)
-__declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
-__declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 // The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
@@ -85,8 +63,6 @@ inline double CIasin(double s) { return libcrt::CiAsin(s); }
 inline double CIpow(double x, double y) { return libcrt::CiPow(x, y); }
 
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
-__declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
-    EI_ORIGINAL(0x004C2050)
 // CRT _mbscmp (plain RET, EAX: <0, 0, >0); src/lib/crt.cpp includes this header for gamecrt::mbscmp.
 __declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 // The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET (src/lib/stlp.cpp uses it too).
@@ -119,14 +95,6 @@ inline int __fastcall CStringFindTextOriginal(const void* string, void*, const c
 __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x004621A0)
 __declspec(naked) inline void __fastcall PtrListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x0052CA10)
-// MFC CArray::SetSize(size, growBy) instantiations (all RET 8, no result): records 005719B0, dwords 0059C660,
-// points 005B16D0.
-__declspec(naked) inline void __fastcall RecordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x005719B0)
-__declspec(naked) inline void __fastcall DwordArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0059C660)
-__declspec(naked) inline void __fastcall PointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x005B16D0)
 // MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
 __declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
 __declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
@@ -138,9 +106,6 @@ __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*byt
 // 00427830: CPtrList destructor (plain RET); 00429F10: CPtrList::RemoveAll (plain RET). EAX is not a result.
 __declspec(naked) inline void __fastcall PtrListDestructOriginal(void* /*list*/) EI_ORIGINAL(0x00427830)
 __declspec(naked) inline void __fastcall PtrListRemoveAllNodesOriginal(void* /*list*/) EI_ORIGINAL(0x00429F10)
-// 004297A0: hash_map<string, ...>::operator[](key) (RET 4): the address of the value slot (node + 4 or the new node + 0xC).
-__declspec(naked) inline void* __fastcall MapRegistryFindOriginal(void* /*map*/, void*, const void* /*key*/)
-    EI_ORIGINAL(0x004297A0)
 
 // C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 00700D73: CString::operator+=(char)
 // (RET 4, returns this). 006E8693: CRT `eh vector constructor iterator` (RET 0x14: array, size, count, ctor, dtor).
@@ -149,40 +114,20 @@ __declspec(naked) inline void __fastcall HashEraseOriginal(void* /*map*/, void*,
     EI_ORIGINAL(0x00405720)
 __declspec(naked) inline void __stdcall EhVectorConstructorIterator(void* /*array*/, unsigned /*size*/, int /*count*/,
                                                                     void* /*ctor*/, void* /*dtor*/) EI_ORIGINAL(0x006E8693)
-// 004CC980: DestructElements<ScriptGroup> (RET 8: first, count; the group's destructor body 004B5EF0 each). 004C26A0: CArray<CString>::~CArray
-// (vtable 0073D2F8; plain RET, EAX not a result).
-__declspec(naked) inline void __fastcall CStringArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C26A0)
-// 004C3B20 / 004C5AF0: CArray<ScriptGroup> / CArray<ScriptIfThen>::~CArray (plain RET).
-__declspec(naked) inline void __fastcall ScriptGroupArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C3B20)
-__declspec(naked) inline void __fastcall ScriptIfThenArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x004C5AF0)
 
 // C3i part 2. Containers and strings (STLport / MFC), all decided from the disassembly.
-// 004C96A0: pointer list constructor with a block size (RET 4,
-// returns this). 004C98F0: pointer list AddTail (RET 4, EAX not a result). 004DCE90: string vector insert overflow
+// 004C98F0: pointer list AddTail (RET 4, EAX not a result). 004DCE90: string vector insert overflow
 // (RET 0xC: pos, first, count). 0041FCD0: list end() iterator written to `out` (RET 4, returns out).
-__declspec(naked) inline void* __fastcall PtrListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
-    EI_ORIGINAL(0x004C96A0)
 __declspec(naked) inline void __fastcall PtrListAddTailOriginal(void* /*list*/, void*, void* /*element*/)
     EI_ORIGINAL(0x004C98F0)
 __declspec(naked) inline void __fastcall StringVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
                                                                             const void* /*first*/, unsigned /*count*/)
     EI_ORIGINAL(0x004DCE90)
-__declspec(naked) inline void** __fastcall ListEndIteratorOriginal(void* /*list*/, void*, void** /*out*/)
-    EI_ORIGINAL(0x0041FCD0)
 // 006FEB61: CStringArray::Copy(source) (RET 4, EAX not a result).
 inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
     static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
 }
-// The 0x4xxxxx hash tables (STLport hash_map instantiations): 00405620 erase(node, table) (RET 8), 00406640 / 00406D10 /
-// 004070B0 resize(hint) (RET 4), 00406E80 clear (plain RET), 00406590 deallocate(pointers, count) (ECX, EDX, plain RET).
-__declspec(naked) inline void __fastcall ObjectsEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)
-    EI_ORIGINAL(0x00405620)
-__declspec(naked) inline void __fastcall ObjectsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
-    EI_ORIGINAL(0x00406640)
-__declspec(naked) inline void __fastcall PositionsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
-    EI_ORIGINAL(0x00406D10)
-__declspec(naked) inline void __fastcall SpareCountsResizeOriginal(void* /*map*/, void*, std::uint32_t /*hint*/)
-    EI_ORIGINAL(0x004070B0)
+// The 0x4xxxxx hash tables (STLport hash_map instantiations): 00406E80 clear (plain RET).
 __declspec(naked) inline void __fastcall HashClearOriginal(void* /*map*/) EI_ORIGINAL(0x00406E80)
 // A-H17. hash_set<int> 007C8370 (the client's party ids, message 0x60), thiscall on the set: 0066B400
 // insert_unique (RET 8: the pair<iterator, bool> written to `out`, returned; resizes first), 0066B490 find (RET 8:
@@ -192,20 +137,9 @@ __declspec(naked) inline void* __fastcall IntSetInsertOriginal(void* /*set*/, vo
 __declspec(naked) inline void __fastcall IntSetFindOriginal(void* /*set*/, void*, void* /*out*/, const int* /*key*/)
     EI_ORIGINAL(0x0066B490)
 __declspec(naked) inline void __fastcall IntSetClearOriginal(void* /*set*/) EI_ORIGINAL(0x0066BA70)
-// A-H17. The item database's name indexes (hash_map<string, record*>), find_or_insert(pair) (thiscall, RET 4; EAX the
-// stored pair): 00613B70 quick items, 006A7870 loot, 0069E2A0 quest items.
-__declspec(naked) inline void* __fastcall QuickItemIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x00613B70)
-__declspec(naked) inline void* __fastcall LootIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x006A7870)
-__declspec(naked) inline void* __fastcall QuestItemIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x0069E2A0)
 
 // C3k. 004C96F0: destructor of the pointer list built by 004C96A0 (vtable 0073D454; plain RET, EAX not a result).
-// 004C98C0: constructor of the item pointer list (vtable 0073BE80) with a block size (RET 4, returns `this`).
 __declspec(naked) inline void __fastcall PtrListDestruct4C96F0Original(void* /*list*/) EI_ORIGINAL(0x004C96F0)
-__declspec(naked) inline void* __fastcall ItemListConstructOriginal(void* /*list*/, void*, int /*blockSize*/)
-    EI_ORIGINAL(0x004C98C0)
 // Container instantiations inside the exe, decided from the disassembly. CList / CPtrList NewNode(prev, next)
 // (all RET 8, EAX the new node): 0052CEF0 is CPtrList's (the node's data is cleared), 0052CDB0 / 00429EA0 / 004CD6D0
 // (0x20-byte nodes) / 004CDA30 (0xBC-byte nodes) construct the element through the template's ConstructElements.
@@ -235,35 +169,11 @@ __declspec(naked) inline void __fastcall ItemListRemoveAllOriginal(void* /*list*
 // 00421AF0 and 00423190 on the 12-byte node pool (NetAddress / uint list, RefPtr list), 0056E8A0 on the cell lists.
 __declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x0056E8A0)
-__declspec(naked) inline void** __fastcall ListInsert421AF0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x00421AF0)
-__declspec(naked) inline void** __fastcall ListInsert423190Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x00423190)
-// 00421EB0: vector<RefPtr>::get_allocator (RET 4: out; copies the allocator tag byte at +8 to *out, EAX = out).
 // 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).
-__declspec(naked) inline void* __fastcall VectorGetAllocatorOriginal(const void* /*vector*/, void*, void* /*out*/)
-    EI_ORIGINAL(0x00421EB0)
-__declspec(naked) inline void __fastcall NodeFree12Original(void* /*p*/, std::size_t /*count*/) EI_ORIGINAL(0x00426860)
-// The type registry's by-vtable hash_map: 0042B8A0 _M_new_node(pair) (RET 4, EAX the node; ECX is not read), 0042B9C0
-// resize(hint) (RET 4, no result).
-__declspec(naked) inline void* __fastcall ByVtableNewNodeOriginal(void* /*table*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x0042B8A0)
-__declspec(naked) inline void __fastcall ByVtableResizeOriginal(void* /*table*/, void*, std::uint32_t /*hint*/)
-    EI_ORIGINAL(0x0042B9C0)
-// CArray::SetSize(size, growBy) instantiations (RET 8, no result): 0044FCD0 the figure array (0x220-byte elements with a
-// virtual destructor), 0046EAD0 plain 12-byte elements, 0050FE70 the map object's effect array (20-byte elements).
-// 00468D60 / 00557230: sprite / point array constructors (vtables 0073C584 / 0073F07C; plain RET, return `this`).
-__declspec(naked) inline void __fastcall FigureArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0044FCD0)
-__declspec(naked) inline void __fastcall Array12SetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0046EAD0)
+// CArray::SetSize(size, growBy) instantiation (RET 8, no result): 0050FE70 the map object's effect array (20-byte
+// elements).
 __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x0050FE70)
-// 0050FA30: CArray<DeltaField>::SetSize(size, growBy) on a DeltaState (net_delta.h; growBy -1 keeps the step).
-__declspec(naked) inline void __fastcall NetFieldsSetSizeOriginal(void* /*state*/, void*, int /*size*/, int /*growBy*/)
-    EI_ORIGINAL(0x0050FA30)
-__declspec(naked) inline void* __fastcall SpriteArrayConstructOriginal(void* /*array*/) EI_ORIGINAL(0x00468D60)
-__declspec(naked) inline void* __fastcall PointArrayConstructOriginal(void* /*array*/) EI_ORIGINAL(0x00557230)
 // 00514880: hash_map<string, ...>::insert(pair) (RET 4: pair; EAX = node + 4, the stored pair). 005197B0: map find(key) writing
 // the iterator to `out` (RET 8: out, key; EAX = out).
 __declspec(naked) inline void* __fastcall NameMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
@@ -277,9 +187,7 @@ __declspec(naked) inline void* __fastcall FigureMapInsertOriginal(void* /*map*/,
     EI_ORIGINAL(0x0053D340)
 __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005197B0)
-// vector<CString>: 0051F5B0 resize(count) (RET 4), 0052E010 clear (destroys the elements, plain RET); no result.
-__declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0051F5B0)
+// vector<CString>: 0052E010 clear (destroys the elements, plain RET); no result.
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
 
 // (The game streams' ostream members are libcrt::Ostream's, lib/crt_iostream.h.)
@@ -303,12 +211,6 @@ __declspec(naked) inline void* __fastcall ListConstruct404A70Original(void* /*li
     EI_ORIGINAL(0x00404A70)
 __declspec(naked) inline void** __fastcall ListInsert68C560Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
                                                                     const void* /*value*/) EI_ORIGINAL(0x0068C560)
-// SetAtGrow(index, value) of two 4-byte element arrays (the same code, one copy per instantiation): 00460500 (dwords) and
-// 0059D2E0 (pointers to party member records); both RET 8, EAX is not a result.
-__declspec(naked) inline void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/,
-                                                                     std::uint32_t /*value*/) EI_ORIGINAL(0x00460500)
-__declspec(naked) inline void __fastcall RecordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, void* /*record*/)
-    EI_ORIGINAL(0x0059D2E0)
 // 004E2FA0: vector<dword>::_M_insert_overflow(position, value, count) on the node allocator (ECX = vector; RET 0xC; EAX is not a
 // result).
 __declspec(naked) inline void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/,
@@ -321,7 +223,6 @@ __declspec(naked) inline void __fastcall DwordVectorInsertOverflowOriginal(void*
 __declspec(naked) inline void __fastcall CountedListClearOriginal(void* /*list*/) EI_ORIGINAL(0x005703C0)
 __declspec(naked) inline void* __fastcall PtrListNewNode573290Original(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
     EI_ORIGINAL(0x00573290)
-__declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x0059A100)
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
@@ -374,9 +275,6 @@ inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return
 // C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).
 __declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
-// C3m. 00421F60: the counted-pointer vector's base constructor (n elements, allocator; plain RET).
-__declspec(naked) inline void __fastcall VectorBaseConstruct(void* /*vector*/, void*, std::size_t /*n*/,
-                                                           const void* /*allocator*/) EI_ORIGINAL(0x00421F60)
 // C3m. The net connection's history list (STLport list of HistoryNode): 00437F30 erase(pos).
 __declspec(naked) inline net::HistoryNode** __fastcall HistoryErase(net::HistoryNode** /*list*/, void*, net::HistoryNode** /*out*/,
                                                              net::HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)

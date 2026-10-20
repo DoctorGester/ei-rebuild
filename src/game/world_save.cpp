@@ -31,6 +31,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/mfc_array.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -80,7 +81,7 @@ constexpr int kSharedObjectNodeSize = 0x28;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660, DwordArraySetSizeOriginal).
+// MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660).
 using IdArray = mfc::CArray<int>;
 
 // MFC CArray of object pointers (SharedObject::objects, world.h).
@@ -183,8 +184,7 @@ void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) {
 } // namespace
 
 namespace {
-__declspec(naked) void __fastcall ObjectPtrArrayConstruct(ObjectPtrArray*) EI_ORIGINAL(0x005985C0)
-void ObjectPtrArrayDestruct(ObjectPtrArray* a) { CountedPtrArrayDestructOriginal(a); }
+void ObjectPtrArrayDestruct(ObjectPtrArray* a) { mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(*a)); }
 __declspec(naked) SharedObjectNode* __fastcall SharedObjectsNewNode(SharedObjectList*, void*, SharedObjectNode* /*prev*/,
                                                                      SharedObjectNode* /*next*/) EI_ORIGINAL(0x0059CA60)
 __declspec(naked) void __fastcall DwordListAddTail(DwordList*, void*, std::uint32_t) EI_ORIGINAL(0x0059CC60)
@@ -301,7 +301,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
         if (world->AIMap()->CanLeaveCell(static_cast<CUnit*>(object))) continue;
         int id = object->id_;
         int index = stranded.size;
-        DwordArraySetSizeOriginal(&stranded, nullptr, index + 1, -1);
+        stranded.SetSize(index + 1, -1);
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {
@@ -359,7 +359,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
         if (stream->version_ < kVersionPlayerGroup) {
             ScriptGroup group;
-            ScriptGroupConstructOriginal(&group);
+            mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&group);
             group.vtable = scriptvtable::kRefs;
             group.Load(stream);
             ScriptGroupDestructOriginal((void*)&group);
@@ -564,7 +564,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     empty.objectId = 0;
                     empty.player = 0;
                     empty.money = 0;
-                    ObjectPtrArrayConstruct(&empty.objects);
+                    mfc::impl::ConstructArrayOf<mfc::impl::ObjectPtrArrayClass>(empty.objects);
                     SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.tail, nullptr);
                     node->data.CopyFrom(&empty);
                     if (shared.tail) shared.tail->next = node;
@@ -797,7 +797,7 @@ SharedObject* SharedObject::CopyFrom(const SharedObject* from) {
 EI_REPLACE_METHOD(0x0059B510, SharedObject::CopyFrom);
 
 SharedObject* SharedObject::DeletingDestruct(unsigned flags) {
-    CountedPtrArrayDestructOriginal(&objects);
+    mfc::impl::DestructArrayOf<gamearrays::ObjectPtrArrayBaseClass>(mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(objects));
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

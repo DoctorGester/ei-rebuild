@@ -17,13 +17,6 @@
 namespace net {
 
 namespace {
-// STLport vector<RefPtr> (library): constructor with an allocator, erase(first, last),
-// insert(pos, n, value).
-__declspec(naked) void __fastcall ChunkVectorConstruct(RefVector* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x0041FF90)
-__declspec(naked) void __fastcall RefNull(RefPtr* /*ref*/) EI_ORIGINAL(0x0041FFC0)
-// The files list (+0x2598): end, insert (the counted pointer is RefPtrFromRaw, core_refcount.h).
-__declspec(naked) void** __fastcall FilesEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420550)
-__declspec(naked) void** __fastcall FilesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004227D0)
 
 constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::kDataSize);
 
@@ -35,17 +28,14 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 // first filled with one shared chunk (a copy per element when shared, as RefPtr copies are),
 // whose elements are then filled in turn.
 void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
-    void* files = &files_;
-    void** sentinel = static_cast<void**>(files_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
-        if (static_cast<FileMessage*>(node[2])->name_ == *name) return;
+    for (RefNode* node = files_.First(); node != files_.End(); node = node->next)
+        if (static_cast<FileMessage*>(node->data.ptr)->name_ == *name) return;
 
     auto* file = NewMessageMemory<FileMessage>();
     if (file) {
         MessageConstructBase(file);
         stlp::StringElement::Default(&file->name_);
-        std::uint8_t allocator = 0;
-        ChunkVectorConstruct(&file->chunks_, nullptr, &allocator);
+        file->chunks_.ConstructEmpty();
         ei::SetVtable(file, FileMessage::kVtableAddress);
     }
 
@@ -60,7 +50,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     auto* chunk = NewMessageMemory<FileChunkMessage>();
     if (chunk) {
         MessageConstructBase(chunk);
-        RefNull(&chunk->file_);
+        chunk->file_.ptr = nullptr;   // RefPtr() (0041FFC0)
         ei::SetVtable(chunk, FileChunkMessage::kVtableAddress);
     }
     RefPtr filler;
@@ -93,10 +83,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
 
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, file);   // 00427FE0
-    void* end;
-    FilesEnd(files, nullptr, &end);
-    void* inserted;
-    FilesInsert(files, nullptr, &inserted, end, value);
+    files_.Insert(files_.End(), *value);
     ref.ptr = nullptr;
     ref.Destroy();
 }

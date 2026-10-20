@@ -17,9 +17,6 @@ namespace {
 
 // The server base layer's tick (ServerBase::Tick), through its address.
 __declspec(naked) void __fastcall ServerBaseTickAt(ServerBase* /*self*/, void*, double /*dt*/) EI_ORIGINAL(0x00443590)
-// erase(position) of the timed lists +0x25C0 and +0x25B4 (library).
-__declspec(naked) void** __fastcall List25C0Erase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x004236C0)
-__declspec(naked) void** __fastcall List25B4Erase(void* /*list*/, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00422FA0)
 // 0041AA10: announces the game to the master server (patched by Rebirth at a call site; called
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
@@ -32,19 +29,16 @@ bool Live(const void* object) {
 
 // Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero (or
 // NaN) are erased. The end is read again after every entry, as the original does.
-template <typename Erase>
-void CountDown(void*& list, Erase erase, float dt) {
-    TimedNode* node = static_cast<TimedNode*>(list)->next;
-    while (node != list) {
+template <typename List>
+void CountDown(List& list, float dt) {
+    TimedNode* node = list.First();
+    while (node != list.End()) {
         TimedNode* current = node;
         node = node->next;
         float& seconds = current->data.seconds;
         float left = seconds - dt;
         seconds = left;
-        if (!(left >= worlddata::Zero())) {
-            void* next;
-            erase(&list, nullptr, &next, current);
-        }
+        if (!(left >= worlddata::Zero())) list.Erase(current);
     }
 }
 
@@ -58,8 +52,8 @@ void CountDown(void*& list, Erase erase, float dt) {
 void ServerSession::TickImpl(double dt) {
     ServerBaseTickAt(this, nullptr, dt);
     float step = static_cast<float>(dt);
-    CountDown(finishedTrades_, List25C0Erase, step);
-    CountDown(awards_, List25B4Erase, step);
+    CountDown(finishedTrades_, step);
+    CountDown(awards_, step);
     if (!public_) return;
     announceTimer_ = static_cast<float>(announceTimer_ - dt);
     if (!(announceTimer_ >= worlddata::Zero())) {   // run out (or NaN)
@@ -68,17 +62,14 @@ void ServerSession::TickImpl(double dt) {
         if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) ServerAnnounceToMaster(this);
     }
 }
-namespace {
-} // namespace
 EI_REPLACE_METHOD(0x004182E0, ServerSession::TickImpl);
 
 // 00417E40: whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(void* connection) {
     if (!Live(connection)) return false;
-    void** sentinel = static_cast<void**>(bindings_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {
-        auto* binding = static_cast<BindingMessage*>(node[2]);
+    for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
+        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
         if (binding->ConnectionRef().ptr != connection) continue;
         if (!Live(binding)) return false;
         auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);

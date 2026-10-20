@@ -130,11 +130,12 @@ PixelFormat SurfacePixels::Format() const {
     return format;
 }
 
-bool DirectPixels(const void* holder, SurfacePixels* pixels) {
+bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads) {
     *pixels = {};
     const render::SurfaceMemory* m = holder ? render::SurfaceMemoryOf(holder) : nullptr;
     if (!m) return false;
     ::GdiFlush();   // GDI may still hold drawing for the memory (not imported by the game)
+    if (!reads) render::SurfaceWritten(holder, nullptr);
     pixels->width = m->width;
     pixels->height = m->height;
     pixels->pitch = m->pitch;

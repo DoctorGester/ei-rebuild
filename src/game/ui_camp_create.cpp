@@ -382,7 +382,7 @@ void CCampPages::BuildPages() {
         if (PrototypeObjectClass(player->members_.data[i].texts[5]) != kHeroClass) continue;
         PartyUnitRecord* record = &player->members_.data[i];
         int size = records.size;
-        RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+        records.SetSize(size + 1, -1);
         records.data[size] = reinterpret_cast<std::uint8_t*>(record);
     }
     GameCreatePartyUnits(&records, 1);

@@ -1144,6 +1144,9 @@ void WriteReport() {
     if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (std::string written = install::Failure(); !written.empty()) failures.push_back(written);   // harness_install.h
     if (std::string patched = addon::Failure(); !patched.empty()) failures.push_back("addon: " + patched);   // harness_addon.h
+    const char* missed = "";
+    if (const int count = render::MissedSurfaceWrites(&missed))   // a window surface's writer without a mark (R16a)
+        failures.push_back(std::to_string(count) + " window surface change(s) without a SurfaceWritten mark, the first: " + missed);
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -3001,7 +3004,7 @@ void RunSteps() {
                 "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
                 "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
                 "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
-                "CPU ms hand-over %.3f, textures %.3f, end of frame %.3f (counting %.3f)",
+                "CPU ms hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f)",
                 s.argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
                 per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
                 per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -3016,7 +3019,7 @@ void RunSteps() {
                 kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
                 static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,
                 static_cast<double>(t.largestUpload[F::WindowSurface]) / 1024.0, kb(t.comparedBytes),
-                t.handOverMs / n, t.textureMs / n, t.endFrameMs / n, t.statsMs / n);
+                t.handOverMs / n, (t.textureMs + t.windowMs) / n, t.windowMs / n, t.endFrameMs / n, t.statsMs / n);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
         } else if (s.verb == "checkshot") {

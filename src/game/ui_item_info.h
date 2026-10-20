@@ -17,6 +17,7 @@
 #include "ui.h"
 
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -63,37 +64,36 @@ struct HeroFaceCell {
 };
 static_assert(sizeof(HeroFaceCell) == 0x14);
 
-// A cache of the item screens (0x10 bytes at +0x170 and +0x180): an STLport map from a name
-// (stlp::string) to {object, time of last use}, and how many entries it keeps (30; 20 when
-// 00784754 is set). 005F2F20 / 005F2F90 release the least recently used objects beyond that.
-struct ItemObjectCache {
-    struct Node {
-        // The in-order successor (STLport's _M_increment, as the original inlines it).
-        Node* Next();
-
-        int colour;
-        Node* parent;                    // +0x04 (the header's: the root)
-        Node* left;                      // +0x08 (the header's: the leftmost)
-        Node* right;                     // +0x0C (the header's: the rightmost)
-        std::uint8_t key[0x0C];          // +0x10 stlp::string
-        void* object;                    // +0x1C
-        std::uint32_t lastUse;           // +0x20 timeGetTime
-    };
-    Node* header;
-    std::uint32_t count;
-    std::uint8_t compare;            // +0x08 the map's compare object (a byte the constructors copy)
-    std::uint8_t unused_09[3];
-    std::uint32_t limit;             // +0x0C
+// A cached object and when it was last used (timeGetTime).
+struct ItemCacheEntry {
+    void* object;
+    std::uint32_t lastUse;
 };
-static_assert(sizeof(ItemObjectCache) == 0x10);
+
+// A cache of the item screens (0x10 bytes at +0x170 and +0x180): an STLport map from a name to
+// {object, time of last use} (0x24-byte nodes; lib_trees::ItemCache registers its members), and
+// how many entries it keeps (30; 20 when 00784754 is set). 005F2F20 / 005F2F90 release the least
+// recently used objects beyond that.
+struct ItemObjectCache {
+    using Map = stlp::map<stlp::string, ItemCacheEntry>;
+    using Node = Map::Node;
+
+    // The camp screen's constructor (005F6240, and the hero screen's copy of it): the map's header
+    // from the pool (005FA420 / 005FA630, or 00619750 and 00619770), emptied (005FA400 / 005FA610)
+    // with `compare` as its compare byte; the limit 50 (ui_item_screen.cpp).
+    void Construct(std::uint8_t compare);
+
+    Map map;
+    std::uint32_t limit;   // +0x0C
+};
+static_assert(sizeof(ItemObjectCache) == 0x10 && sizeof(ItemObjectCache::Node) == 0x24);
 // 00634500 / 00634560 (ui_hero_screen.cpp; thiscall on the cache). Every cached object released
 // (slot 4), in key order (the hero screen's model and texture caches).
 void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 
 // 005F2F20 / 005F2F90 (__fastcall on the cache). Release the least recently used entries of the
 // model / texture cache beyond its limit (ui_item_screen.cpp).
-void __fastcall TrimItemModels(ItemObjectCache* cache);
-void __fastcall TrimItemTextures(ItemObjectCache* cache);
+void __fastcall TrimItemCache(ItemObjectCache* cache);
 
 // An item's turning state (0x18 bytes, vtable 007403F8, a counted object at the item's +0x1C, its
 // count a 16-bit word): made by the item draw (005ECA10) and the moves (005EE1B0).

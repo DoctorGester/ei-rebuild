@@ -24,14 +24,6 @@ namespace net {
 
 namespace {
 
-// STLport lists (library instantiations).
-__declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219E0)
-__declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
-__declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
-__declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI_ORIGINAL(0x00426920)
-// The pending awards (+0x25B4): push_back of {delay, award}.
-__declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
-
 // The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
@@ -89,10 +81,10 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     RefPtr shared;
     shared.Share(award);
     TimedEntry entry;
-    entry.secondsBits = kAwardDelay;
-    entry.object.CopyShared(&shared);
-    AwardsPushBack(&awards_, nullptr, &entry);
-    entry.object.Destroy();
+    entry.key = kAwardDelay;
+    entry.ref.CopyShared(&shared);
+    awards_.PushBack(entry);
+    entry.ref.Destroy();
     DestroyInline(&shared);
 }
 
@@ -100,16 +92,16 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
 // when its connection is live, queues a kind 2 award for each item name of `entry` (+0x14..+0x18)
 // and, with `withFinal`, a kind 4 award with an empty text.
 void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
-    void** sentinel = static_cast<void**>(bindings_);
-    void** node = static_cast<void**>(sentinel[0]);
+    RefNode* sentinel = bindings_.End();
+    RefNode* node = sentinel->next;
     for (;;) {
         if (node == sentinel) return;
-        auto* binding = static_cast<BindingMessage*>(node[2]);
+        auto* binding = static_cast<BindingMessage*>(node->data.ptr);
         auto* player = static_cast<PlayerMessage*>(binding->PlayerRef().ptr);
         if (Live(player) && player->host_) break;
-        node = static_cast<void**>(node[0]);
+        node = node->next;
     }
-    CRefObject* connection = static_cast<BindingMessage*>(node[2])->ConnectionRef().ptr;
+    CRefObject* connection = static_cast<BindingMessage*>(node->data.ptr)->ConnectionRef().ptr;
     if (!Live(connection)) return;
 
     char** const* items = reinterpret_cast<char** const*>(entry + 0x14);   // start, finish
@@ -147,16 +139,11 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
     std::uint8_t* entry;
     {
         stlp::string key = stlp::Plus(*zone, game::ZoneSuffix3Text());
-        entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&key));
+        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), key);
     }
     if (entry) {
-        void* clients = &clients_;
         int count = 0;
-        void* last;
-        void* lastNode = *ClientsEnd(clients, nullptr, &last);
-        void* first;
-        void* firstNode = *ClientsBegin(clients, nullptr, &first);
-        CountClients(&count, nullptr, firstNode, lastNode);
+        for (ClientNode* node = clients_->next; node != clients_; node = node->next) ++count;
         int share = count < 1 ? 1 : count;
         float value0, value1;
         std::memcpy(&value0, entry + 0xC, 4);
@@ -181,18 +168,9 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
         DestroyInline(holder);
         holder->Share(nullptr);
     }
-    void** messages = static_cast<void**>(queuedMaps_);
-    for (void** node = static_cast<void**>(messages[0]); node != queuedMaps_;) {
-        void** next = static_cast<void**>(node[0]);
-        Element25ACDestroy(node + 2, nullptr, 0);
-        FreeNode(node, 1);
-        node = next;
-    }
-    messages = static_cast<void**>(queuedMaps_);
-    messages[0] = messages;
-    static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
-    List25B0Clear(&variables_);
-    List2598Clear(&files_);
+    queuedMaps_.Clear();
+    variables_.Clear();
+    files_.Clear();
     QueueMapList();
 }
 
@@ -215,7 +193,7 @@ void ServerSession::LeaveZone() {
         {
             stlp::string key = stlp::Plus(static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
             stlp::string lookup(key.data());
-            entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&lookup));
+            entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), lookup);
         }
         if (entry) AwardHost(entry, true);
     }
@@ -224,25 +202,9 @@ void ServerSession::LeaveZone() {
         DestroyInline(holder);
         holder->Share(nullptr);
     }
-    void** messages = static_cast<void**>(queuedMaps_);
-    for (void** node = static_cast<void**>(messages[0]); node != queuedMaps_;) {
-        void** next = static_cast<void**>(node[0]);
-        Element25ACDestroy(node + 2, nullptr, 0);
-        FreeNode(node, 1);
-        node = next;
-    }
-    static_cast<void**>(queuedMaps_)[0] = queuedMaps_;
-    static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
-    void** queued = static_cast<void**>(variables_);
-    for (void** node = static_cast<void**>(queued[0]); node != variables_;) {
-        void** next = static_cast<void**>(node[0]);
-        Element25B0Destroy(node + 2, nullptr, 0);
-        List25B0FreeNode(&variables_, nullptr, node, 1);
-        node = next;
-    }
-    static_cast<void**>(variables_)[0] = variables_;
-    static_cast<void**>(variables_)[1] = variables_;
-    List2598Clear(&files_);
+    queuedMaps_.Clear();
+    variables_.Clear();
+    files_.Clear();
     QueueMapList();
     WorldPrepareMap(TheGameFlow(), nullptr, nullptr);
 }

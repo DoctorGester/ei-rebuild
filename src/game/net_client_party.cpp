@@ -7,6 +7,7 @@
 #include "core_refcount.h"
 #include "item.h"
 #include "party.h"
+#include "record_lists.h"
 #include "spell.h"
 
 #include "ei/hook.h"
@@ -26,14 +27,10 @@ namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
-__declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
 
-// vector<CEngineObject*> with counted elements (library), the +0x2614 list erase, the party's
+// vector<CEngineObject*> with counted elements (library), the party's
 // reset and add (00661050 class, outside this range).
-__declspec(naked) void __fastcall ObjectVectorConstruct(void* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00424B40)
 __declspec(naked) void __fastcall ObjectVectorInsertOverflow(void* /*vector*/, void*, CEngineObject** /*pos*/, CEngineObject* const* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00428A20)
-__declspec(naked) void __fastcall ObjectVectorDeallocate(CEngineObject** /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004268A0)
-__declspec(naked) void** __fastcall List2614Erase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00429770)
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
 inline int __fastcall PartyAdd(void* a0, void*, void* a2, int a3, int a4) { return (int)static_cast<CParty*>(a0)->AddItem(static_cast<CItem*>(a2), a3, a4); }
 
@@ -86,11 +83,8 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     RefVector* messages = &state()->members_;
 
     // A copy of the old messages, then the list emptied.
-    std::uint8_t allocator = 0;
-    const void* allocatorCopy = VectorGetAllocatorOriginal(messages, nullptr, &allocator);
     RefVector previous;
-    VectorBaseConstruct(&previous, nullptr, static_cast<std::size_t>(messages->size()), allocatorCopy);
-    previous.Finish() = UninitializedCopy(messages->begin(), messages->end(), previous.begin(), 0);
+    previous.CopyConstruct<stlp::CountedRefElement>(*messages);
     state()->members_.EraseRange<stlp::CountedRefElement>(state()->members_.begin(), state()->members_.end());
     state()->money_ = static_cast<std::uint32_t>(party->Money());
 
@@ -138,7 +132,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     ++state()->version_;
     for (RefPtr* p = previous.begin(); p != previous.end(); ++p)
         if (p->ptr) p->ptr->Release();
-    VectorDeallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()));
+    stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);   // 00426490
 }
 EI_REPLACE(0x0041DA50, ClientPublishParty);
 
@@ -147,8 +141,7 @@ EI_REPLACE(0x0041DA50, ClientPublishParty);
 void* __fastcall ClientFindParty(ClientSession* self) {
     auto* ours = static_cast<PartyMessage*>(self->party_.ptr);
     if (!ours) return nullptr;
-    auto* sentinel = static_cast<OfferNode*>(self->offers_);
-    for (OfferNode* node = sentinel->next; node != sentinel; node = node->next) {
+    for (OfferNode* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
         auto* other = static_cast<PartyMessage*>(node->data.ptr);
         if (other->partner_.ptr != ours->player_.ptr || other->player_.ptr != ours->partner_.ptr) continue;
         if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
@@ -186,8 +179,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     PartyReset(party, nullptr, 1, 0);
     party->Money() = static_cast<int>(remote->money_);
     stlp::vector<CEngineObject*> items;
-    std::uint8_t allocator = 0;
-    ObjectVectorConstruct(&items, nullptr, &allocator);
+    items.ConstructEmpty();   // 00424B40
     for (std::uint32_t i = 0; i < count(); ++i) {
         CStream* stream = StreamOf(remote->members_.begin()[i].ptr);
         stream->Seek(0);
@@ -218,20 +210,17 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     }
     for (std::uint32_t i = 0; i < count(); ++i) PartyAdd(party, nullptr, items[i], 1, 1);
 
-    void* entries = &self->tradeRecords_;
     std::int32_t revision = static_cast<std::int32_t>(remote->revision_);
-    TradeRecordNode* sentinel = self->tradeRecords_;
+    TradeRecordNode* sentinel = self->tradeRecords_.End();
     for (TradeRecordNode* node = sentinel->next; node != sentinel;) {
         TradeRecordNode* next = node->next;
-        if (static_cast<std::int32_t>(node->acceptedRevision) < revision) {
-            void* erased;
-            List2614Erase(entries, nullptr, &erased, node);
-        }
+        if (static_cast<std::int32_t>(node->data.acceptedRevision) < revision)
+            stlp::list<TradeRecord>::Erase<recordlist::TradeElement>(node);
         node = next;
     }
     for (CEngineObject** p = items.begin(); p != items.end(); ++p)
         if (*p) (*p)->Release();
-    ObjectVectorDeallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()));
+    stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);   // 004268A0
 }
 EI_REPLACE(0x0041DDC0, ClientApplyParty);
 

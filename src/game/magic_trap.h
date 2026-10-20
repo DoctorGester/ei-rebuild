@@ -22,24 +22,18 @@ struct TrapCircle {
 };
 static_assert(sizeof(TrapCircle) == 0xC);
 
-// A trap's area (+0x240): an MFC CArray of circles.
-struct TrapArea {
-    void* vtable;
-    TrapCircle* circles;    // +0x04
-    int count;              // +0x08
-    int maxCount;
-    int growBy;
+// A point a trap casts at.
+struct TrapPoint {
+    float x;
+    float y;
 };
+
+// A trap's area (+0x240): an MFC CArray of circles (SetSize 0046EAD0).
+using TrapArea = mfc::CArray<TrapCircle>;
 static_assert(sizeof(TrapArea) == 0x14);
 
-// A trap's points (+0x254): an MFC CArray of {x, y} pairs.
-struct TrapPoints {
-    void* vtable;
-    float* points;          // +0x04, two floats each
-    int count;              // +0x08
-    int maxCount;
-    int growBy;
-};
+// A trap's points (+0x254): an MFC CArray of {x, y} pairs (SetSize 0052C8E0).
+using TrapPoints = mfc::CArray<TrapPoint>;
 static_assert(sizeof(TrapPoints) == 0x14);
 
 class MagicTrap : public CMapObject {

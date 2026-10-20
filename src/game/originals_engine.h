@@ -37,20 +37,9 @@ __declspec(naked) inline float __fastcall NamedTableGet(void* /*table*/, void*, 
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
-// C3i. 004ABD00: spell name map operator[](key) (RET 4; inserts a null record for a missing name; EAX is the address of the
-// value slot). 004ACC10: modifier map find_or_insert(pair) (RET 4; EAX is the address of the value slot, node + 4).
-__declspec(naked) inline void** __fastcall SpellMapAtOriginal(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x004ABD00)
-__declspec(naked) inline void* __fastcall ModifierMapFindOrInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x004ACC10)
-
 // C3j. 004849F0: particle source attaches to an object (RET 4, no result).
 __declspec(naked) inline void __fastcall ParticleSourceAttachOriginal(void* /*source*/, void*, void* /*object*/)
     EI_ORIGINAL(0x004849F0)
-
-// C3k. 004ABBD0: the quick-item map's operator[](name) (RET 4: the key; EAX the address of the value slot, a new node is
-// added when the name is missing). ECX is the map.
-__declspec(naked) inline void** __fastcall QuickItemMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
-    EI_ORIGINAL(0x004ABBD0)
 
 // C3l. 00581790: NamedFloatTable constructor (plain RET, returns `this`).
 __declspec(naked) inline void* __fastcall NamedTableConstructOriginal(void* /*table*/) EI_ORIGINAL(0x00581790)
