@@ -9,7 +9,8 @@
 #include "lib/crt.h"
 #include "originals_engine.h"    // game::FatalError
 #include "originals_library.h"   // FigureMapAtOriginal
-#include "originals_units.h"     // PrototypeMapAtOriginal, SkillLevelVectorResizeOriginal
+#include "originals_units.h"     // PrototypeMapAtOriginal
+#include "record_vectors.h"      // recordvec::SkillLevelVector
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -166,7 +167,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
             if (ar.loading_) {
                 SkillLevelsClear(&levels);
                 count = ar.CountChunks(kRecordChunk);
-                SkillLevelVectorResizeOriginal(&levels, nullptr, static_cast<std::uint32_t>(count));
+                recordvec::SkillLevelVector::ResizeDefault(&levels, nullptr, static_cast<std::uint32_t>(count));
             } else {
                 count = static_cast<int>(levels.size());
             }

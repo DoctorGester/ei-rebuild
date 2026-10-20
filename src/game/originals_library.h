@@ -187,9 +187,7 @@ __declspec(naked) inline void* __fastcall FigureMapInsertOriginal(void* /*map*/,
     EI_ORIGINAL(0x0053D340)
 __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005197B0)
-// vector<CString>: 0051F5B0 resize(count) (RET 4), 0052E010 clear (destroys the elements, plain RET); no result.
-__declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0051F5B0)
+// vector<CString>: 0052E010 clear (destroys the elements, plain RET); no result.
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
 
 // (The game streams' ostream members are libcrt::Ostream's, lib/crt_iostream.h.)

@@ -59,23 +59,6 @@ __declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** 
                                                              ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
     EI_ORIGINAL(0x005392F0)
 
-// A-U11 (unit_db.cpp, unit_db_destroy.cpp). The unit database's records: 0053EBC0 / 0053ED30 / 0053EE70 destroy a
-// prototype / NPC / model record (rewritten in unit_db_destroy.cpp; thiscall, plain RET); 0053E2A0 / 0053E520 / 0053E730 /
-// 0053E9B0 resize the vectors of prototypes / NPCs / models / level records (STLport, RET 4: count). No results.
-__declspec(naked) inline void __fastcall UnitPrototypesResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E2A0)
-__declspec(naked) inline void __fastcall UnitNpcsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E520)
-__declspec(naked) inline void __fastcall UnitModelsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E730)
-__declspec(naked) inline void __fastcall UnitLevelsResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x0053E9B0)
-// A-U10 (unit_db.cpp). The skill database's STLport vectors: 005209D0 / 00520B20 resize the vector of skills / levels
-// (RET 4: count). No results.
-__declspec(naked) inline void __fastcall SkillVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x005209D0)
-__declspec(naked) inline void __fastcall SkillLevelVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
-    EI_ORIGINAL(0x00520B20)
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).

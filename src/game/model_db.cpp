@@ -2,6 +2,7 @@
 // world's water level changes (006D4400).
 #include "acks_db.h"
 #include "model.h"
+#include "record_vectors.h"
 #include "terrain.h"
 
 #include "ei/hook.h"
@@ -22,17 +23,13 @@ using RecordFn = void(__fastcall*)(void* record, void*);                       /
 using ResizeFn = void(__fastcall*)(void* vector, void*, unsigned count);        // vector::resize
 using SerializeFn = void (*)(void* record, ChunkArchive* ar);
 
-// Element destructors (release the records' strings) and vector::resize of each record type.
+// Element destructors (release the records' strings); vector::resize of each record type is
+// recordvec::ResizeUntyped (006D26E0, 006D2830, 006DB9C0, 006DBBD0, 006DBE20).
 __declspec(naked) void __fastcall DestroyPrint(void*, void*) EI_ORIGINAL(0x006D29A0)
 __declspec(naked) void __fastcall DestroyPrint2(void*, void*) EI_ORIGINAL(0x006D29E0)
-__declspec(naked) void __fastcall ResizePrints(void*, void*, unsigned) EI_ORIGINAL(0x006D26E0)
-__declspec(naked) void __fastcall ResizePrints2(void*, void*, unsigned) EI_ORIGINAL(0x006D2830)
 __declspec(naked) void __fastcall DestroyAck(void*, void*) EI_ORIGINAL(0x006DC390)
 __declspec(naked) void __fastcall DestroyAck2(void*, void*) EI_ORIGINAL(0x006DC920)
 __declspec(naked) void __fastcall DestroyAck3(void*, void*) EI_ORIGINAL(0x006DCAF0)
-__declspec(naked) void __fastcall ResizeAcks(void*, void*, unsigned) EI_ORIGINAL(0x006DB9C0)
-__declspec(naked) void __fastcall ResizeAcks2(void*, void*, unsigned) EI_ORIGINAL(0x006DBBD0)
-__declspec(naked) void __fastcall ResizeAcks3(void*, void*, unsigned) EI_ORIGINAL(0x006DBE20)
 
 // How each instantiation serialises a record: prints.db records through their vtable, acks.db
 // records by a direct call.
@@ -84,21 +81,21 @@ void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
 } // namespace
 
 void ChunkArchive::SerializePrints(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord), DestroyPrint, ResizePrints,
+    SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord), DestroyPrint, recordvec::ResizeUntyped<recordvec::PrintVector>,
                    SerializePrint);
 }
 void ChunkArchive::SerializePrints2(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord2), DestroyPrint2, ResizePrints2,
+    SerializeArray(this, id, static_cast<RawVector*>(records), sizeof(PrintRecord2), DestroyPrint2, recordvec::ResizeUntyped<recordvec::Print2Vector>,
                    SerializePrint2);
 }
 void ChunkArchive::SerializeAcks(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x1C4, DestroyAck, ResizeAcks, SerializeAckRecord);
+    SerializeArray(this, id, static_cast<RawVector*>(records), 0x1C4, DestroyAck, recordvec::ResizeUntyped<recordvec::UnitAcksVector>, SerializeAckRecord);
 }
 void ChunkArchive::SerializeAcks2(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x5C, DestroyAck2, ResizeAcks2, SerializeAck2Record);
+    SerializeArray(this, id, static_cast<RawVector*>(records), 0x5C, DestroyAck2, recordvec::ResizeUntyped<recordvec::ModelAcksVector>, SerializeAck2Record);
 }
 void ChunkArchive::SerializeAcks3(int id, void* records, void*) {
-    SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, ResizeAcks3, SerializeAck3Record);
+    SerializeArray(this, id, static_cast<RawVector*>(records), 0x38, DestroyAck3, recordvec::ResizeUntyped<recordvec::ExtraAcksVector>, SerializeAck3Record);
 }
 EI_REPLACE_METHOD(0x006D23A0, ChunkArchive::SerializePrints);
 EI_REPLACE_METHOD(0x006D25F0, ChunkArchive::SerializePrints2);

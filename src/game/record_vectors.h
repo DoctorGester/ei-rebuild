@@ -42,6 +42,13 @@ inline void DefaultMember(UnitModelSlot& to) { UnitModelSlotMembers::Default(&to
 
 namespace recordvec {
 
+// resize(n) of instantiation `Abi` (its default record appended) for a caller that holds the vector
+// untyped: the record tables' serialisers take it as a function of (vector, -, count).
+template <typename Abi>
+void __fastcall ResizeUntyped(void* vector, void*, unsigned count) {
+    Abi::ResizeDefault(static_cast<typename Abi::Vector*>(vector), nullptr, count);
+}
+
 // The item records' destructors (item_db_records.cpp): the head's members, plus the quick item's
 // string and the quest item's zone list.
 inline void DestroyItem(itemdb::ItemRecordHead* record) { record->DestructHead(); }
