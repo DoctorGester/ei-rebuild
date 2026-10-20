@@ -320,7 +320,7 @@ group = "renderer"
 size = 1
 model = "opus"
 files = ["docs/notes/renderer.md src/render/"]
-note = "User 2026-10-20: stop call-matching the old renderer; modernise it. Examples from the user: no texture blits (composite in shaders), no constant buffer re-uploads, decals on the GPU without re-uploads. Research ticket, no game-code changes: measure what a frame uploads and copies today (vertex / index / constant / texture bytes, blits, per-draw state changes, draw count) on a few scenes (zone1 outdoors, a town, a big fight, the interface), then write a short plan in docs/notes/renderer.md: static meshes, figures and terrain pages in persistent GPU buffers (skinning / morphs on the GPU), dynamic data through one ring buffer, instancing for map objects and particles, texture arrays or atlases, ground decals (prints, shadows, blood, spell marks) as GPU decals instead of re-baked textures, the interface and face / blink overlays composited in shaders, fewer passes. Each item: what it replaces, expected gain, how frame captures check it (tolerance, not bit-exact). End with tickets filed in order (R16a ...)."
+note = "Also a candidate (user asked how lighting works, 2026-10-20): today all lighting is CPU per-vertex (terrain_lighting.cpp: ambient + sun + heightfield ray shadows + point lights registered per vertex, relit on the LightingFreq countdown; figures lit per draw in 3DfpFPU slots 39-44; object shadows 64x64 CPU-rasterised textures on ground quads). Plan GPU lighting (sun + point lights per pixel, shadow maps or GPU-rendered shadow textures) with the game's vertex colours as the fallback; it changes the look, so it waits for the user's go-ahead."
 
 # ---------------------------------------------------------------- native interface drawing
 
