@@ -320,7 +320,7 @@ group = "renderer"
 size = 1
 model = "opus"
 files = ["docs/notes/renderer.md src/render/"]
-note = "Also a candidate (user asked how lighting works, 2026-10-20): today all lighting is CPU per-vertex (terrain_lighting.cpp: ambient + sun + heightfield ray shadows + point lights registered per vertex, relit on the LightingFreq countdown; figures lit per draw in 3DfpFPU slots 39-44; object shadows 64x64 CPU-rasterised textures on ground quads). Plan GPU lighting (sun + point lights per pixel, shadow maps or GPU-rendered shadow textures) with the game's vertex colours as the fallback; it changes the look, so it waits for the user's go-ahead."
+note = "RenderDoc 1.43 is installed at E:\\bin\\renderdoc (x86 folder for the 32-bit standalone, in-app API renderdoc_app.h); usable for frame analysis behind an env var, captures under build\\, no registry or RenderDoc settings changes (user 2026-10-20)."
 
 # ---------------------------------------------------------------- native interface drawing
 
