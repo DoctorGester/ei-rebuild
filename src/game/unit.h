@@ -131,8 +131,8 @@ static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 // The player's list of party unit records (player + 0x70; 0x70 bytes, constructor 00661050,
 // destructor 006611D0; the party 007AA5A0 hands its records to / takes them from one).
 struct PartyRecords {
-    // 006621B0. The record of the unit with id `unitId`, or null (not rewritten).
-    PartyUnitRecord* Find(int unitId);
+    // 006621B0 (player_messages.cpp). The record of the unit with id `unitId`, or null.
+    PartyUnitRecord* Find(int unitId) const;
 
     std::uint8_t unused_00[0x2C];
     // +0x2C an MFC CArray of the unit records (its vtable here, records / count its data / size;

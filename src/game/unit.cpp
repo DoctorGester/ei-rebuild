@@ -68,8 +68,6 @@ std::uintptr_t RemoveFromSlots(CUnit* unit, CEngineObject** slots, std::uint32_t
 }
 } // namespace
 
-__declspec(naked) PartyUnitRecord* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
-
 // --- Sides -----------------------------------------------------------------------------------
 
 std::uintptr_t CUnit::AddHostileMask(std::uint32_t mask) {

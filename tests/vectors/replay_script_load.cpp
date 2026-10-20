@@ -335,10 +335,9 @@ EI_VECTOR_CHECK_BYTES("CScript::Load", CheckLoad);
 
 } // namespace
 
-// 004BCC60 CScript::RunWorldScript (it adds a run of the block; the runtime is not replayed): which
-// block Load handed it.
-void __fastcall ReplayRunWorldScript(CScript*, void*, ScriptDecl* block) {
+// 004BCC60 ScriptRunWorldScript (it adds a run of the block; the runtime, script_exec_run.cpp, is not
+// replayed): which block Load handed it.
+void __fastcall ScriptRunWorldScript(CScript*, void*, ScriptDecl* block) {
     g_ranWorld = true;
     g_ranWorldId = block->id;
 }
-EI_REPLACE(0x004BCC60, ReplayRunWorldScript);

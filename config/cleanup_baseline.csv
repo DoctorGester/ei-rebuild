@@ -7,7 +7,7 @@ src/game/ai_map_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_motion.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ai_path.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/app_frame.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0,4
-src/game/app_main.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,10
+src/game/app_main.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,9
 src/game/atexit_400.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/combat_save.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/combat_steps.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -53,7 +53,7 @@ src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0,0,0,0
 src/game/script_exec.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/script_exec_run.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_parse.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,3
-src/game/script_parse_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,7
+src/game/script_parse_load.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,6
 src/game/sound_manager.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0,0
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/terrain_animation.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
@@ -90,7 +90,6 @@ src/game/ui_screens.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_spell_column.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_trade_panel.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_window.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-src/game/unit.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_ai.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_modes.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0,0
 src/game/unit_ai_options.cpp,0,0,0,0,0,0,0,0,0,0,0,0,0,1
