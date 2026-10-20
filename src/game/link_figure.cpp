@@ -5,6 +5,7 @@
 #include "model.h"
 #include "originals_script.h"
 #include "texture.h"   // CTextureDevice
+#include "render/render.h"   // MeshChanged
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -109,6 +110,7 @@ CLinkMesh* CLinkMesh::Construct(CLinkFigureLoader* loader, const stlp::string* n
 EI_REPLACE_METHOD(0x004F2C00, CLinkMesh::Construct);
 
 void CLinkMesh::Destruct() {
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
     ei::SetVtable(this, kVtableAddress);
     ranges_.Destroy();
     indices_.FreeData();
@@ -147,6 +149,7 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
                         const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                         const std::uint16_t* indices, int indexCount) {
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
     if (ranges_.find(*name) != ranges_.end()) return false;
 
     LinkPartRanges ranges{};
@@ -293,6 +296,7 @@ bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* ve
     const LinkPartRanges& r = node->second;
     unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
     std::memcpy(vertices_.data + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
+    render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps (R16d)
     return true;
 }
 EI_REPLACE_METHOD(0x004F3800, CLinkMesh::SetPartVertices);
@@ -354,6 +358,7 @@ EI_REPLACE_METHOD(0x004F30D0, CLinkMesh::LoadPartImpl);
 bool CLinkMesh::RemovePartImpl(const stlp::string* name) {
     LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
+    render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps (R16d)
     LinkPartRanges removed = node->second;
     LinkRangeMapEraseOriginal(&ranges_, nullptr, node);
 

@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "model.h"
 #include "originals_render.h"
+#include "render/render.h"   // MeshChanged
 
 #include <cstring>
 
@@ -372,6 +373,7 @@ void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     LoadArray(corners_, cursor, header.cornerCount);
     LoadArray(words_, cursor, header.wordCount);
 
+    BuffersChanged();
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
@@ -425,6 +427,7 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     buffers_.wordCount = header.wordCount;
     *cursor += header.wordCount * 4;
 
+    BuffersChanged();
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
@@ -499,6 +502,7 @@ void CFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     LoadArray(words_, cursor, ReadCount(cursor));
     LoadArray(indices_, cursor, ReadCount(cursor));   // 0044FA90 with growBy -1
 
+    BuffersChanged();
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
@@ -535,6 +539,7 @@ void CFigureMesh::LoadOldShared(char** cursor, float s, float t, float u) {
     buffers_.indices = *cursor;
     *cursor += buffers_.indexCount * 2;
 
+    BuffersChanged();
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
@@ -616,6 +621,7 @@ void CFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);
     NegateBlock(normals_, 0);
     ReverseWinding(indices_);
+    BuffersChanged();
 }
 EI_REPLACE_METHOD(0x005A4B30, CFigureMesh::MirrorX);
 
@@ -628,12 +634,14 @@ void CFigureMesh::MirrorY() {
     NegateBlock(vertices_, 1);
     NegateBlock(normals_, 1);
     ReverseWinding(indices_);
+    BuffersChanged();
 }
 EI_REPLACE_METHOD(0x005A4BF0, CFigureMesh::MirrorY);
 
 EI_REPLACE_METHOD(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 
 void CFigureMesh::RefreshBuffers() {
+    BuffersChanged();
     buffers_.vertices = vertices_.data;
     buffers_.vertexCount = vertices_.size;
     buffers_.normals = normals_.data;
@@ -655,9 +663,16 @@ EI_REPLACE_METHOD(0x005A6D40, CFigureMesh::RefreshBuffers);
 EI_REPLACE_METHOD(0x005EA150, CFigureMesh::RefreshBuffers);   // byte-identical copy (the interface's meshes)
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
+    // The positions the new renderer keeps on the GPU move with new offsets (R16d): the animation's frame.
+    const bool same = offsets_.size == offsets->count &&
+                      (offsets->count == 0 ||
+                       std::memcmp(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3)) == 0);
     offsets_.SetSize(offsets->count);
     std::memcpy(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3));
+    if (!same) render::MeshChanged(this, render::MeshChange::Positions);
 }
+
+void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChange::Rebuilt); }
 EI_REPLACE_METHOD(0x005A0B10, CFigureMesh::SetOffsets);
 
 int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, float* points, float* bounds) {

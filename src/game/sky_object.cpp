@@ -6,6 +6,7 @@
 #undef GetClassName
 
 #include "originals_core.h"
+#include "render/render.h"   // MeshChanged
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -113,6 +114,7 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
         specular_.data[i] = specular;
         diffuse_.data[i] = lit;
     }
+    render::MeshChanged(this, render::MeshChange::Colours);   // the colours the new renderer keeps (R16d)
 }
 
 void CSky::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused) {

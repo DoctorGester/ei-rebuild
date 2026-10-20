@@ -54,6 +54,7 @@ void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
 }
 
 void CFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
+    BuffersChanged();
     int length = ReadCount(file);
     Read(file, name_.GetBufferSetLength(length), length);
     // The arrays the file fills (the renderer's descriptor is not updated here).
@@ -97,6 +98,7 @@ float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 } // namespace
 
 void CFigureMesh::CopyFigure(const CFigureMesh* other) {
+    BuffersChanged();
     CTransformObject::CopyTransformImpl(*other);   // 00401490: the transform base's copy
     name_ = other->name_;
     buffers_.corners = other->buffers_.corners;

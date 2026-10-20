@@ -18,6 +18,7 @@
 #include "spell.h"                // CLight
 #include "texture.h"              // CTextureDevice, CTexture
 #include "world_data.h"           // SceneSun
+#include "render/render.h"         // MeshSource
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -180,8 +181,13 @@ struct Part {
     CTexture* textureB;
     CLinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 material flag 0x10
+    bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
 
     CFigureMesh* Mesh() const { return node->mesh_; }
+    // The new renderer keeps the mesh on the GPU (R16d): what the device's draw below draws.
+    render::MeshSource Source(bool throughFigure) const {
+        return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, Mesh()->offsets_.size != 0, coloursWritten};
+    }
     ColourArray& Colours() const { return Mesh()->colorsA_; }
     ColourArray& Speculars() const { return Mesh()->colorsB_; }
     bool Textured() const { return textureA && textureB; }
@@ -195,6 +201,7 @@ std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpre
 // Flat meshes (flag 0x100): the figure fills the colours (its FlatColours), else every colour is
 // the mesh's flat colour and every specular its flat specular (both arrays sized 4 * normals first).
 void FlatColours(Part& part) {
+    part.coloursWritten = true;
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
         stlp::string s(name);
@@ -216,6 +223,7 @@ float g_lastInverse[12];
 // colours for the material, then the figure (LightPart) or the transform object (LightMesh) lights
 // the mesh; the crown blend; the speculars become the alpha unless the material keeps them.
 void Light(Part& part) {
+    part.coloursWritten = true;
     CTransformPipeline* pipeline = part.device->pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     InvertModelMatrix(pipeline->Top(3)->m, g_lastInverse);
@@ -279,6 +287,8 @@ void DrawThroughDevice(Part& part) {
     if (mesh->offsets_.size != 0) positions = MovedPositionsOf(mesh);
     mesh = part.Mesh();
     const MeshBuffers& b = mesh->buffers_;
+    const render::MeshSource source = part.Source(false);
+    render::SetMeshSource(&source);
     int result;
     if (part.Textured()) {
         result = DrawMesh2(part.device, nullptr, part.textureA->surface_, part.textureB->surface_, positions, blocks,
@@ -292,6 +302,7 @@ void DrawThroughDevice(Part& part) {
                           b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words), b.wordCount, Word(b.indices),
                           b.indexCount, OffsetBits(mesh->textureOffsetU_), OffsetBits(mesh->textureOffsetV_), part.alpha, part.drawFlags);
     }
+    render::SetMeshSource(nullptr);
     if (!part.rect) return;
     RECT* own = &part.node->screen_;
     if (result == 2) {
@@ -317,6 +328,8 @@ void DrawThroughFigure(Part& part) {
     ColourArray* colours = &part.Colours();
     ColourArray* speculars = &part.Speculars();
     lib::AlignedArray<Vector3>* offsets = &mesh->offsets_;
+    const render::MeshSource source = part.Source(true);
+    render::SetMeshSource(&source);
     int result;
     if (moved && part.Textured()) {
         result = part.figure->DrawPartMovedTextured(&s, part.drawFlags, part.textureA->surface_,
@@ -329,6 +342,7 @@ void DrawThroughFigure(Part& part) {
     } else {
         result = part.figure->DrawPart(&s, part.drawFlags, colours, speculars, u, v);
     }
+    render::SetMeshSource(nullptr);
 
     if (part.rect) {
         stlp::string key(MeshName(part.Mesh()));

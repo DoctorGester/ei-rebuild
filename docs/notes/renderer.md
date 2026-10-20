@@ -805,12 +805,35 @@ across runs; the goldens check the game state.
    before; render_scene, render_terrain_seams and render_smooth capture the frozen frame both ways (0 pixels differ),
    and the harness build compares every kept page with a fresh build every 16th frame (`terraincache check`, 0 stale
    in the render_* scenarios and render_stats).
-4. **R16d Meshes resident on the GPU.** Model-space corners (positions, texture coordinates) kept per mesh, the colours
-   streamed: map objects, the sky and interface sprites never upload again; figures upload colours when relit and
-   positions only when their frame changed. Needs a cheap change signal from the game (the figure's animation frame,
-   the object's lighting stamp) instead of hashing. Gain: mesh upload 0.3-2.3 MB to tens of KB a frame, the Build copy.
-   Risk: data the game changes in place without a signal; the harness build compares. Check: render_scene, models,
-   units, render_blink at 8 / 0.1%.
+4. **R16d Meshes resident on the GPU (done).** `render_mesh_cache.cpp`, the pool shared with the terrain in
+   `render_buffers.cpp` (`GpuPool`: default-usage buffers written with UpdateSubresource, a geometry stream, a colour
+   stream and absolute indices; placed in order, started again with the frame's entries when full). Each figure mesh
+   drawn through the figure part draws (DrawLit 005A7A70 and DrawPlain 005A7640, either through the device or a link
+   figure's part) is kept under the mesh: its corners' model-space positions and texture coordinates (20 bytes), the
+   colour and specular pair (8 bytes, a stream of its own) and the valid triangles; the draw binds the pool with the
+   mesh's first index, the texture offset (`textureOffsetU_` / `V_`, animated water and lava) a shader constant. The
+   game says what changed (`render::SetMeshSource` around the device's draw; `render::MeshChanged`): an entry is built
+   again when an array or count it was built from differs or the mesh or link figure was rebuilt (loaded, cleared,
+   mirrored, copied, a part added or removed: `MeshChange::Rebuilt`); its positions are read again when the
+   animation's per-vertex offsets changed (`SetOffsets` 005A0B10 compares them) or a link figure's part was morphed
+   again (004F3800) (`Positions`); its colours when the draw lit or filled them (Light, FlatColours, DrawPlain's fill,
+   the device's colour override, flag 4) or the sky lit itself (CSkyObject::Light, `Colours`). Only the changed range
+   of corners is uploaded. A mesh drawn again in the same frame with other data, interface sprites (CUiMesh::Draw
+   005E6D90: the interface rewrites its quads in place in many places, the original's and Rebirth's code among them;
+   `render::SetInterfaceDraw`) and mesh draws without a source are streamed as before. Entries not drawn for 600
+   frames are dropped. Measured (render_stats, vanilla 4K, per frame; before = the same scene with `meshcache off`,
+   as before R16d): mesh upload KB (vertices + indices) menu 324 + 139 / 35 + 2, zone1 114 + 51 / 42 + 17, fight
+   240 + 131 / 64 + 17, town 1648 + 286 / 339 + 6, camp 50 + 25 / 31 + 15, escape menu 73 + 32 / 0, the global map
+   106 + 75 unchanged (all interface sprites); with classic shadows (the flat decals still streamed) zone1 208 + 64 /
+   135 + 30, fight 350 + 147 / 185 + 34, town 1997 + 334 / 685 + 56. Hand-over CPU ms (same run, kept / streamed):
+   zone1 0.12 / 0.11, fight 0.27 / 0.26, town 0.24 / 0.46 (the colour comparisons cost what the copies saved in the
+   small scenes). What is still uploaded is relit colours (the town's 68 relit meshes a frame: its figures are lit
+   again every frame, about 40 K corners), moved figures and the streamed sprites; colours lit on the GPU (R16i) and
+   GPU animation (R16h) take the rest. Check: the harness's `meshcache on|off|check` (off: every mesh built and
+   streamed every frame); render_scene, render_blink, models and units capture the frozen frame both ways (0 pixels
+   differ at 8), and the harness build compares every kept mesh drawn with a fresh build every 16th frame (0 stale in
+   those and render_stats, 4352 checks). Risk: a writer of a mesh's arrays in place that sends no signal (found and
+   signalled: the sky's lighting; streamed: the interface's quads); `meshcache check` reports it.
 5. **R16e Ground decals on the GPU.** Footprints, blood, object shadows, selection markers, light pools and spell marks
    are projected on the CPU (ProjectDecal 0056C750) into flat meshes every frame (12-32 a frame, up to 344 KB in the
    town); instead a box per decal projects onto the depth of the ground and platforms in a shader (the game keeps its

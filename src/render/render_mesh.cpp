@@ -5,7 +5,9 @@
 // src/game/device_draw.cpp) becomes a batch with the old device's state of that moment (MeshPass):
 // blend, alpha test, depth, culling, fog, the two texture stages' operations, filters and textures.
 // The material's state blocks are opaque to us, so the state is read back from the old device
-// rather than decoded; later the materials will be read from the game's data.
+// rather than decoded; later the materials will be read from the game's data. A figure mesh drawn
+// through the figure part draws is kept on the GPU (render_mesh_cache.cpp, R16d) and its batches draw
+// from that pool; every other mesh is built into the frame's stream.
 #include "render.h"
 #include "render_internal.h"
 
@@ -35,6 +37,7 @@ struct Pending {
     float fogNear = 0.0f;
     float fogScale = 0.0f;
     const void* caster = nullptr;   // render::BeginCaster's object
+    CachedMesh* cached = nullptr;   // kept on the GPU (R16d), else built into the frame's stream
 };
 Pending g_pending;
 int g_dropped = 0;
@@ -106,6 +109,7 @@ cbuffer vs_params : register(b0) {
     float4 distance_fog;   // x: on, y: start, z: 1 / (end - start); w: keep z inside the depth range
     float4 shift;          // xy: the half-pixel shift (render_internal.h); z: depth scale
     float4 lrow0; float4 lrow1; float4 lrow2; float4 lrow3;   // model space to the shadow map (R16j)
+    float4 uv_offset;      // xy: added to the texture coordinates (a mesh kept on the GPU, R16d)
 };
 cbuffer fs_params : register(b0) {
     float4 fog_colour;     // rgb
@@ -140,7 +144,7 @@ vs_out vs_main(vs_in i) {
     // alpha falls from the start of the range, the smaller of it and the vertex's own is kept.
     if (distance_fog.x > 0.5 && o.pos.w >= distance_fog.y)
         o.spec.a = min(o.spec.a, 1.0 - min((o.pos.w - distance_fog.y) * distance_fog.z, 1.0));
-    o.uv = i.uv;
+    o.uv = i.uv + uv_offset.xy;
     o.shadow = float4(dot(lrow0, p), dot(lrow1, p), dot(lrow2, p), 1.0);
     return o;
 }
@@ -234,8 +238,9 @@ struct VsParams {
     float distanceFog[4];
     float shift[4];
     Matrix4 light;
+    float uvOffset[4];
 };
-static_assert(sizeof(VsParams) == 160);
+static_assert(sizeof(VsParams) == 176);
 struct FsParams {
     float fogColour[4];
     float factor[4];
@@ -255,22 +260,15 @@ sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;
 GeometryStream g_geometry("ei-mesh", false);
 
-sg_pipeline Pipeline(const PassState& s, bool lines) {
+sg_pipeline Pipeline(const PassState& s, bool lines, bool cached) {
     int samples = PassSampleCount();
-    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (static_cast<std::uint32_t>(samples) << 24);
+    std::uint32_t key = s.PipelineKey() | (lines ? 1u << 20 : 0u) | (cached ? 1u << 21 : 0u) |
+                        (static_cast<std::uint32_t>(samples) << 24);
     auto it = g_pipelines.find(key);
     if (it != g_pipelines.end()) return it->second;
     sg_pipeline_desc p{};
     p.shader = g_shader;
-    p.layout.buffers[0].stride = sizeof(Vertex);
-    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[0].offset = 0;
-    p.layout.attrs[1].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[1].offset = 12;
-    p.layout.attrs[2].format = SG_VERTEXFORMAT_UBYTE4N;
-    p.layout.attrs[2].offset = 16;
-    p.layout.attrs[3].format = SG_VERTEXFORMAT_FLOAT2;
-    p.layout.attrs[3].offset = 20;
+    MeshLayout(p, cached, false);
     p.index_type = SG_INDEXTYPE_UINT32;
     p.primitive_type = lines ? SG_PRIMITIVETYPE_LINES : SG_PRIMITIVETYPE_TRIANGLES;
     ApplyPassState(p, s);
@@ -477,16 +475,55 @@ bool CreateMeshShader() {
     return ok;
 }
 
+void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly) {
+    // The frame's stream: Vertex (position, colour, specular, texture coordinates) in buffer 0. A mesh
+    // kept on the GPU: position and texture coordinates in buffer 0, colour and specular in buffer 1.
+    const int uv = positionsOnly ? 1 : 3;
+    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
+    p.layout.attrs[0].offset = 0;
+    p.layout.attrs[uv].format = SG_VERTEXFORMAT_FLOAT2;
+    if (cached) {
+        p.layout.buffers[0].stride = static_cast<int>(kCachedVertexBytes);
+        p.layout.attrs[uv].offset = 12;
+    } else {
+        p.layout.buffers[0].stride = sizeof(Vertex);
+        p.layout.attrs[uv].offset = 20;
+    }
+    if (positionsOnly) return;
+    for (int k = 1; k <= 2; ++k) {
+        p.layout.attrs[k].format = SG_VERTEXFORMAT_UBYTE4N;
+        if (cached) {
+            p.layout.attrs[k].buffer_index = 1;
+            p.layout.attrs[k].offset = (k - 1) * 4;
+        } else {
+            p.layout.attrs[k].offset = 12 + (k - 1) * 4;
+        }
+    }
+    if (cached) p.layout.buffers[1].stride = static_cast<int>(kColourPairBytes);
+}
+
 void UploadMeshes(const Frame& f) {
     if (f.meshBatches.empty()) return;
-    g_geometry.Upload(f.meshVertices, f.meshIndices);
+    UploadCachedMeshes(f);
+    if (!f.meshVertices.empty()) g_geometry.Upload(f.meshVertices, f.meshIndices);
+}
+
+bool BindMeshBatch(const MeshBatch& batch, sg_bindings& b, int* firstIndex) {
+    if (batch.cached) {
+        if (!BindCachedMesh(*batch.cached, b, firstIndex)) return false;
+        *firstIndex += batch.firstIndex;
+        return true;
+    }
+    *firstIndex = batch.firstIndex;
+    return g_geometry.Bind(b);
 }
 
 void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     sg_bindings b{};
-    if (batch.indexCount <= 0 || !g_geometry.Bind(b)) return;
+    int first = 0;
+    if (batch.indexCount <= 0 || !BindMeshBatch(batch, b, &first)) return;
     const PassState& s = batch.state;
-    sg_pipeline pipeline = Pipeline(s, batch.lines);
+    sg_pipeline pipeline = Pipeline(s, batch.lines, batch.cached != nullptr);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
     CountPipeline(pipeline);
@@ -512,6 +549,8 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     vs.shift[1] = f.pixelShift[1];
     vs.shift[2] = batch.zScale;
     vs.light = batch.light >= 0 ? f.shadow.lights[static_cast<std::size_t>(batch.light)] : kIdentity;
+    vs.uvOffset[0] = batch.uOffset;
+    vs.uvOffset[1] = batch.vOffset;
     FsParams fs{};
     ShadowUniforms(f, batch.light >= 0, &fs.shadow);
     fs.fogColour[0] = static_cast<float>((s.fogColour >> 16) & 0xFF) / 255.0f;
@@ -550,14 +589,13 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch, bool anisotropic) {
     sg_apply_uniforms(0, &vr);
     sg_range fr{&fs, sizeof(fs)};
     sg_apply_uniforms(1, &fr);
-    sg_draw(batch.firstIndex, batch.indexCount, 1);
+    sg_draw(first, batch.indexCount, 1);
     CountDraw(sizeof(vs) + sizeof(fs));
 }
 
-bool BindMeshGeometry(sg_bindings& b) { return g_geometry.Bind(b); }
-
 void DestroyMeshes() {
     g_geometry.Destroy();
+    DropMeshCache();
     for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
     g_pipelines.clear();
     if (g_shader.id) sg_destroy_shader(g_shader);
@@ -610,15 +648,22 @@ bool MeshPass(void* device) {
     if (!g_pending.built) {
         g_pending.built = true;
         ++Stats().meshes;
-        std::size_t first = f.meshVertices.size();
-        if (!Build(f, g_pending)) {
-            g_pending.active = false;
-            return true;
-        }
-        CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
-        if (!g_pending.mesh.corners) {
-            ++Stats().flatMeshes;
-            Stats().flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
+        // A figure mesh kept on the GPU (R16d), else its vertices into the frame's stream.
+        g_pending.cached = KeepMesh(g_pending.mesh);
+        if (g_pending.cached) {
+            g_pending.firstIndex = 0;
+            g_pending.indexCount = CachedIndexCount(*g_pending.cached);
+        } else {
+            std::size_t first = f.meshVertices.size();
+            if (!Build(f, g_pending)) {
+                g_pending.active = false;
+                return true;
+            }
+            CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
+            if (!g_pending.mesh.corners) {
+                ++Stats().flatMeshes;
+                Stats().flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
+            }
         }
     }
     if (g_pending.indexCount > 0) {
@@ -636,6 +681,11 @@ bool MeshPass(void* device) {
         batch.model = true;
         batch.flat = !g_pending.mesh.corners;
         batch.caster = g_pending.caster;
+        batch.cached = g_pending.cached;
+        if (batch.cached && g_pending.mesh.moveUv) {   // the stream has them added (Build)
+            batch.uOffset = g_pending.mesh.uOffset;
+            batch.vOffset = g_pending.mesh.vOffset;
+        }
         ++Stats().meshPasses;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});

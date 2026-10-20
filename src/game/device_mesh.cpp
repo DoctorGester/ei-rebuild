@@ -193,6 +193,7 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     m.clipped = (a.flags & 2) != 0;
     m.distanceFog = device->distanceFog_ != 0;
     m.zScale = 1.0f;
+    m.coloursWritten = (a.flags & 4) != 0;   // OverrideColours
     render::BeginMesh(device, m);
 }
 

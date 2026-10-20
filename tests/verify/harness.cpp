@@ -242,6 +242,11 @@
 //                             frame; check requires that no check of a kept page against a fresh build
 //                             (every 16th frame, render::TerrainCacheState) found it stale. Ignored in
 //                             a run of the original code
+//   meshcache on|off|check    the image's figure meshes kept on the GPU (render::SetMeshCache, R16d; the
+//                             default) or built and uploaded every frame (off), from the next mesh
+//                             draw; check requires that no check of a kept mesh against a fresh build
+//                             (every 16th frame, render::MeshCacheState) found it stale. Ignored in a
+//                             run of the original code
 //   renderstats <label>|-     log (and add to the report) what the image's renderer did per frame since
 //                             the last renderstats (render::TakeFrameStats, R16: hand-over, GPU uploads,
 //                             draws and state changes, images made, CPU time); "-" only starts a new
@@ -3019,6 +3024,25 @@ void RunSteps() {
                 if (info.stale > 0) g_failures.push_back(text);
             } else {
                 g_failures.push_back("terraincache needs on, off or check");
+            }
+        } else if (s.verb == "meshcache") {
+            if (!render::Active()) {
+                Log("harness: meshcache %s: not the new renderer (the original code): ignored", s.argument.c_str());
+                continue;
+            }
+            if (s.argument == "on" || s.argument == "off") {
+                render::SetMeshCache(s.argument == "on");
+            } else if (s.argument == "check") {
+                render::MeshCacheInfo info = render::MeshCacheState();
+                char text[200];
+                std::snprintf(text, sizeof(text), "meshcache: %s, %zu meshes kept, %llu checks against a fresh build, %llu stale",
+                              info.on ? "on" : "off", info.meshes, static_cast<unsigned long long>(info.checks),
+                              static_cast<unsigned long long>(info.stale));
+                Log("harness: %s", text);
+                g_capturedFrames.push_back(text);
+                if (info.stale > 0) g_failures.push_back(text);
+            } else {
+                g_failures.push_back("meshcache needs on, off or check");
             }
         } else if (s.verb == "shadowcheck") {
             int least = 1;

@@ -208,6 +208,7 @@ struct MeshDraw {
                                        // not cut at the near and far planes)
     bool distanceFog;                  // the old path fogs the vertices by distance (device +0x158)
     float zScale;                      // the depth is multiplied by it (0 taken as 1)
+    bool coloursWritten;               // the draw set every colour to the device's (flag 4)
 };
 
 // A texture loaded from its .mmp file (00690430): `data` the file in memory, the levels from
@@ -334,6 +335,42 @@ struct TerrainCacheInfo {
     std::uint64_t checks = 0, stale = 0;
 };
 TerrainCacheInfo TerrainCacheState();
+
+// R16d: the figure mesh the next mesh draws (004E9010 / 004E9A50) draw. The new renderer keeps the
+// mesh's corners (positions and texture coordinates in model space, colours) on the GPU under `owner`
+// and builds and uploads again only what the game says changed: the colours when the draw wrote them,
+// the positions on MeshChanged. Set by the figure part draws (005A7A70, 005A7640) right before the
+// device's draw and cleared (null) right after it; a mesh draw without one is built and uploaded again
+// every frame.
+struct MeshSource {
+    const void* owner;     // the figure mesh (CFigureMesh) drawn
+    const void* shared;    // the link figure (CLinkMesh) whose part it draws, else null
+    bool moved;            // the positions handed over are a copy with the per-vertex offsets added
+    bool coloursWritten;   // this draw wrote the mesh's colour arrays (lit, flat colours)
+};
+void SetMeshSource(const MeshSource* source);
+// The game changed a figure mesh (CFigureMesh) or link figure (CLinkMesh) in place: its vertices'
+// positions (an animation's per-vertex offsets, a part morphed again), its colours outside its draw
+// (the sky's lighting), or its buffers (Rebuilt: loaded, cleared, mirrored, a part added or removed,
+// destroyed).
+enum class MeshChange { Positions, Colours, Rebuilt };
+void MeshChanged(const void* object, MeshChange change);
+// Mesh draws between SetInterfaceDraw(true) and SetInterfaceDraw(false) (an interface sprite's draw,
+// CUiMesh::Draw 005E6D90) are built and uploaded every frame: the interface rewrites its sprites'
+// corners in place in many places (bars, map markers, the original's and Rebirth's code), and they are
+// a few corners each.
+void SetInterfaceDraw(bool on);
+// Harness build only (the harness's "meshcache", R16d): the figure meshes kept on the GPU (on, the
+// default) or built and uploaded every frame (off: as before R16d, for frame comparisons); the meshes
+// kept, and the checks of kept meshes against a fresh build (every 16th frame) with how many found
+// one stale (a change the game did not tell of).
+void SetMeshCache(bool on);
+struct MeshCacheInfo {
+    bool on = true;
+    std::size_t meshes = 0;
+    std::uint64_t checks = 0, stale = 0;
+};
+MeshCacheInfo MeshCacheState();
 
 // Copies the new frame's `source` rectangle (screen pixels, as drawn so far this frame) into the
 // SurfaceMemory of `holder` (a CDXSurface), stretched to its size: the screen copies of 005FD3D0

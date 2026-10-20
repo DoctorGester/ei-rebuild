@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "render/render.h"   // SetInterfaceDraw
 #include "ui_widescreen.h"
 
 #include <cstdint>
@@ -96,7 +97,9 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     const std::uint32_t blue = ColourByte(tint_[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     const float origin[3] = {0.0f, 0.0f, 0.0f};
+    render::SetInterfaceDraw(true);   // the new renderer streams interface sprites (R16d)
     const int drawn = renderer->DrawFigure(this, &IdentityOrientation(), origin, material_, 0xFF, nullptr);
+    render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
     if (!drawn) return game::FatalError(DrawFailed());
 

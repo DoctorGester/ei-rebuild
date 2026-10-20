@@ -83,6 +83,7 @@ EI_REPLACE(0x005A6E00, CreateMeshJump);
 void CFigureMesh::Clear() {
     name_.Empty();
     directory_.Empty();
+    BuffersChanged();
     offsets_.SetSize(0);
     colorsA_.SetSize(0);
     colorsB_.SetSize(0);

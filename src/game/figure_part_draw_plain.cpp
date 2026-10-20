@@ -16,6 +16,7 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "render/render.h"   // MeshSource
 #include "texture.h"           // CTextureDevice
 #include "world.h"
 
@@ -110,12 +111,16 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, int, int, int, int alpha
     if (mesh_->offsets_.size != 0) positions = MovedPositionsOf(mesh_);
     CFigureMesh* m = mesh_;
     const MeshBuffers& b = m->buffers_;
+    // The new renderer keeps the mesh on the GPU (R16d): what the device's draw below draws.
+    const render::MeshSource source{m, nullptr, m->offsets_.size != 0, (meshFlags & 0x100) != 0};
+    render::SetMeshSource(&source);
     int result = DrawMesh(reinterpret_cast<char*>(device), nullptr, positions, blocks, Word(b.normals), b.normalCount,
                           Word(m->colorsA_.data), Word(m->colorsB_.data), Word(b.texCoords),
                           static_cast<std::uint32_t>(b.texCoordCount), Word(b.corners),
                           static_cast<std::uint32_t>(b.cornerCount), Word(b.words), static_cast<std::uint32_t>(b.wordCount),
                           Word(b.indices), static_cast<std::uint32_t>(b.indexCount), std::bit_cast<std::uint32_t>(m->textureOffsetU_),
                           std::bit_cast<std::uint32_t>(m->textureOffsetV_), alpha, drawFlags);
+    render::SetMeshSource(nullptr);
     if (rect) {
         RECT* own = &screen_;
         if (result == 2) {

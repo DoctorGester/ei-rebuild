@@ -5,7 +5,8 @@
 # (render::TexturePatch). On zone1 (the faces loaded as on entering a zone: `blink faces`), frozen:
 # open, closed and open again through the game's own blink (`blink`, forced, every unit with a face).
 # The two open frames match; the closed one differs from them only at the hero's mouth in the
-# portrait (top left, about 160 pixels of the 3840 x 2160 frame; the original's run the same).
+# portrait (top left, about 160 pixels of the 3840 x 2160 frame; the original's run the same). R16d:
+# the open frame with the figure meshes built and uploaded every frame matches the one kept on the GPU.
 reject Script error
 waitmenu
 console thingamabob
@@ -24,9 +25,14 @@ blink close
 capture closed
 blink open
 capture open_again
+meshcache off
+capture open_meshfresh
+meshcache on
 samecapture open open_again
+samecapture open open_meshfresh 8 0.001
 diffcapture open closed 0.000005 0.0002
 unfreeze
 frames 3
+meshcache check
 report
 quit

@@ -132,6 +132,9 @@ public:
     // 005A6D40: points the buffer descriptor at the mesh's own arrays and sizes the colour arrays
     // (one per normal).
     void RefreshBuffers();
+    // The mesh's buffers or vertices changed in place: the new renderer builds its copy kept on the GPU
+    // again (render::MeshChanged, R16d).
+    void BuffersChanged();
     // 005A0B10: copies `offsets` (any {Vector3* data; int count} pair) into offsets_. RET 4.
     struct OffsetSpan {
         const Vector3* data;

@@ -100,7 +100,6 @@ struct PageVertex {
     float u, v;
 };
 static_assert(sizeof(PageVertex) == 20);
-constexpr std::size_t kColourBytes = 2 * sizeof(std::uint32_t);
 
 // What a page was built from: when any of it differs, the page is built again.
 struct PageSource {
@@ -158,9 +157,7 @@ struct CachedPage {
     std::vector<const TileVertex*> entries;   // the tile entry each vertex reads its texture coordinates from
     std::vector<std::uint32_t> indices;    // relative to the page's first vertex
     QuarterRange quarters[4];
-    // In the pool: its generation when placed (0: not placed), where and how much room.
-    std::uint32_t placed = 0;
-    std::uint32_t firstVertex = 0, vertexRoom = 0, firstIndex = 0, indexRoom = 0;
+    PoolPlace place;                                 // in the pool
     bool geometryDirty = true;                       // all of it to upload
     std::uint32_t vertexFrom = 0, vertexTo = 0;      // vertices whose positions or texture coordinates to upload
     std::uint32_t colourFrom = 0, colourTo = 0;      // vertices whose colours to upload
@@ -300,56 +297,8 @@ std::uint64_t g_checks = 0, g_stale = 0;
 constexpr std::uint32_t kCheckEvery = 16;
 #endif
 
-// One buffer of the pool: a Direct3D 11 buffer of default usage (updated in place with
-// UpdateSubresource, which sokol has no call for) handed to sokol.
-struct PoolBuffer {
-    sg_buffer buffer{};
-    ID3D11Buffer* d3d = nullptr;   // sokol holds the reference
-
-    bool Make(std::size_t bytes, bool index, const char* label) {
-        D3D11_BUFFER_DESC d{};
-        d.ByteWidth = static_cast<UINT>(bytes);
-        d.Usage = D3D11_USAGE_DEFAULT;
-        d.BindFlags = index ? D3D11_BIND_INDEX_BUFFER : D3D11_BIND_VERTEX_BUFFER;
-        ID3D11Buffer* made = nullptr;
-        if (!D3DDevice() || FAILED(D3DDevice()->CreateBuffer(&d, nullptr, &made)) || !made) return false;
-        sg_buffer_desc s{};
-        s.size = bytes;
-        s.usage.vertex_buffer = !index;
-        s.usage.index_buffer = index;
-        s.d3d11_buffer = made;
-        s.label = label;
-        buffer = sg_make_buffer(&s);
-        made->Release();
-        if (sg_query_buffer_state(buffer) != SG_RESOURCESTATE_VALID) {
-            if (buffer.id) sg_destroy_buffer(buffer);
-            buffer = sg_buffer{};
-            return false;
-        }
-        d3d = made;
-        return true;
-    }
-    // Bytes [offset, offset + bytes) from `data`.
-    void Write(std::size_t offset, const void* data, std::size_t bytes) const {
-        if (!bytes) return;
-        D3D11_BOX box{static_cast<UINT>(offset), 0, 0, static_cast<UINT>(offset + bytes), 1, 1};
-        D3DContext()->UpdateSubresource(d3d, 0, &box, data, 0, 0);
-    }
-    // Destroyed after the frame's commit (passes drawn earlier in the frame may still use it).
-    void Retire();
-};
-
-// The pool: the pages' vertices (geometry and colours) and indices (absolute), placed one after the
-// other; when full it starts again with the pages of the frame (Restart).
-struct Pool {
-    PoolBuffer geometry, colours, indices;
-    std::uint32_t vertexCapacity = 0, indexCapacity = 0;
-    std::uint32_t vertices = 0, indexCount = 0;   // used
-    std::uint32_t generation = 1;
-};
-Pool g_pool;
-constexpr std::uint32_t kLeastPoolVertices = 1u << 17, kLeastPoolIndices = 3u << 17;
-std::vector<std::uint32_t> g_absolute;   // scratch: a page's indices made absolute
+// The pool: the pages' vertices (geometry and colours) and indices.
+GpuPool g_pool(sizeof(PageVertex), 1u << 17, 3u << 17, "ei-terrain");
 
 // --- GPU side ------------------------------------------------------------------------------------------
 
@@ -406,13 +355,6 @@ static_assert(sizeof(Params) == 208);
 
 sg_shader g_shader{};
 std::unordered_map<std::uint32_t, sg_pipeline> g_pipelines;   // by PassState::PipelineKey
-std::vector<sg_buffer> g_retiredBuffers;
-
-void PoolBuffer::Retire() {
-    if (buffer.id) g_retiredBuffers.push_back(buffer);
-    buffer = sg_buffer{};
-    d3d = nullptr;
-}
 
 // The pipeline drawing terrain as the old device does with `s`: culling, depth and blending from the
 // state the old path draws the page with. The ground pass (006C6230) runs under the terrain's state
@@ -428,7 +370,7 @@ sg_pipeline Pipeline(const PassState& s, [[maybe_unused]] bool water) {   // wat
     p.shader = g_shader;
     // Buffer 0 the pool's geometry (position, texture coordinates), buffer 1 its colours.
     p.layout.buffers[0].stride = sizeof(PageVertex);
-    p.layout.buffers[1].stride = kColourBytes;
+    p.layout.buffers[1].stride = kColourPairBytes;
     p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
     p.layout.attrs[0].offset = 0;
     p.layout.attrs[1].buffer_index = 1;
@@ -510,29 +452,14 @@ void DropLevelImages() {
 
 // --- The pool -------------------------------------------------------------------------------------------
 
-// Room for `p` in the pool: where it is when it still fits there, else at the pool's end (all of it to
-// upload). False when the pool is full.
+// Room for `p` in the pool (all of it to upload when placed anew). False when the pool is full.
 bool Place(CachedPage& p) {
-    auto vertices = static_cast<std::uint32_t>(p.vertices.size());
-    auto indices = static_cast<std::uint32_t>(p.indices.size());
-    if (p.placed == g_pool.generation && p.vertexRoom >= vertices && p.indexRoom >= indices) return true;
-    if (g_pool.vertices + vertices > g_pool.vertexCapacity || g_pool.indexCount + indices > g_pool.indexCapacity) return false;
-    p.firstVertex = g_pool.vertices;
-    p.vertexRoom = vertices;
-    p.firstIndex = g_pool.indexCount;
-    p.indexRoom = indices;
-    g_pool.vertices += vertices;
-    g_pool.indexCount += indices;
-    p.placed = g_pool.generation;
-    p.geometryDirty = true;
+    bool anew = false;
+    if (!g_pool.Place(p.place, static_cast<std::uint32_t>(p.vertices.size()), static_cast<std::uint32_t>(p.indices.size()),
+                      &anew))
+        return false;
+    if (anew) p.geometryDirty = true;
     return true;
-}
-
-void DropPool() {
-    g_pool.geometry.Retire();
-    g_pool.colours.Retire();
-    g_pool.indices.Retire();
-    g_pool.vertexCapacity = g_pool.indexCapacity = 0;
 }
 
 // The pool starts again with the pages of frame `f` (and the pending ones): they are placed again
@@ -551,28 +478,8 @@ void Restart(const Frame& f) {
     };
     for (const TerrainPiece& piece : f.terrainPieces) take(piece.page);
     for (CachedPage* p : g_pending) take(p);
-    std::uint64_t needVertices = std::max<std::uint64_t>(2 * vertices, kLeastPoolVertices);
-    std::uint64_t needIndices = std::max<std::uint64_t>(2 * indices, kLeastPoolIndices);
-    if (!g_pool.geometry.buffer.id || needVertices > g_pool.vertexCapacity || needIndices > g_pool.indexCapacity) {
-        needVertices = std::max<std::uint64_t>(needVertices, 2ull * g_pool.vertexCapacity);
-        needIndices = std::max<std::uint64_t>(needIndices, 2ull * g_pool.indexCapacity);
-        DropPool();
-        if (needVertices > 0x1000000 || needIndices > 0x3000000 ||
-            !g_pool.geometry.Make(static_cast<std::size_t>(needVertices) * sizeof(PageVertex), false, "ei-terrain-geometry") ||
-            !g_pool.colours.Make(static_cast<std::size_t>(needVertices) * kColourBytes, false, "ei-terrain-colours") ||
-            !g_pool.indices.Make(static_cast<std::size_t>(needIndices) * sizeof(std::uint32_t), true, "ei-terrain-indices")) {
-            ei::Log("render: the terrain pool (%llu vertices, %llu indices) could not be made",
-                    static_cast<unsigned long long>(needVertices), static_cast<unsigned long long>(needIndices));
-            DropPool();
-        } else {
-            g_pool.vertexCapacity = static_cast<std::uint32_t>(needVertices);
-            g_pool.indexCapacity = static_cast<std::uint32_t>(needIndices);
-        }
-    }
-    g_pool.vertices = g_pool.indexCount = 0;
-    ++g_pool.generation;
+    g_pool.Restart(vertices, indices);
     for (CachedPage* p : pages) {
-        p->placed = 0;
         if (!p->pending) {
             p->pending = true;
             g_pending.push_back(p);
@@ -584,24 +491,21 @@ void Restart(const Frame& f) {
 void Write(CachedPage& p) {
     FrameStats& stats = Stats();
     if (p.geometryDirty) {
-        g_pool.geometry.Write(p.firstVertex * sizeof(PageVertex), p.vertices.data(), p.vertices.size() * sizeof(PageVertex));
-        g_pool.colours.Write(p.firstVertex * kColourBytes, p.colours.data(), p.colours.size() * sizeof(std::uint32_t));
-        g_absolute.resize(p.indices.size());
-        for (std::size_t i = 0; i < p.indices.size(); ++i) g_absolute[i] = p.indices[i] + p.firstVertex;
-        g_pool.indices.Write(p.firstIndex * sizeof(std::uint32_t), g_absolute.data(), g_absolute.size() * sizeof(std::uint32_t));
-        stats.terrainVertexBytes += p.vertices.size() * (sizeof(PageVertex) + kColourBytes);
+        auto count = static_cast<std::uint32_t>(p.vertices.size());
+        g_pool.WriteGeometry(p.place, 0, count, p.vertices.data());
+        g_pool.WriteColours(p.place, 0, count, p.colours.data());
+        g_pool.WriteIndices(p.place, p.indices.data(), p.indices.size());
+        stats.terrainVertexBytes += p.vertices.size() * (sizeof(PageVertex) + kColourPairBytes);
         stats.terrainIndexBytes += p.indices.size() * sizeof(std::uint32_t);
     } else {
         if (p.vertexTo > p.vertexFrom) {
-            std::size_t bytes = (p.vertexTo - p.vertexFrom) * sizeof(PageVertex);
-            g_pool.geometry.Write((p.firstVertex + p.vertexFrom) * sizeof(PageVertex), &p.vertices[p.vertexFrom], bytes);
-            stats.terrainVertexBytes += bytes;
+            g_pool.WriteGeometry(p.place, p.vertexFrom, p.vertexTo - p.vertexFrom, &p.vertices[p.vertexFrom]);
+            stats.terrainVertexBytes += (p.vertexTo - p.vertexFrom) * sizeof(PageVertex);
         }
         if (p.colourTo > p.colourFrom) {
-            std::size_t bytes = (p.colourTo - p.colourFrom) * kColourBytes;
-            g_pool.colours.Write((p.firstVertex + p.colourFrom) * kColourBytes,
-                                 &p.colours[2 * static_cast<std::size_t>(p.colourFrom)], bytes);
-            stats.terrainVertexBytes += bytes;
+            g_pool.WriteColours(p.place, p.colourFrom, p.colourTo - p.colourFrom,
+                                &p.colours[2 * static_cast<std::size_t>(p.colourFrom)]);
+            stats.terrainVertexBytes += (p.colourTo - p.colourFrom) * kColourPairBytes;
         }
     }
     p.geometryDirty = false;
@@ -625,85 +529,6 @@ bool BuildAgain(const SectorData* s, int page, int lod, bool seams, CachedPage& 
 } // namespace
 
 namespace detail {
-
-int StreamBuffer::Append(const void* data, std::size_t bytes) {
-    if (bytes == 0) return 0;
-    std::size_t rounded = (bytes + 3) & ~static_cast<std::size_t>(3);   // sokol appends at multiples of 4
-    if (commit_ != CommitNumber()) {   // sokol starts appending from the start again after a commit
-        commit_ = CommitNumber();
-        used_ = 0;
-    }
-    if (!buffer_.id || used_ + rounded > capacity_) {
-        // Too small for this frame's data: a larger buffer; the old one is destroyed after the
-        // commit (passes drawn earlier in the frame still use it).
-        if (buffer_.id) g_retiredBuffers.push_back(buffer_);
-        buffer_ = sg_buffer{};
-        capacity_ = (capacity_ > rounded ? capacity_ : rounded) * 2 + 4096;
-        sg_buffer_desc d{};
-        d.size = capacity_;
-        d.usage.vertex_buffer = !index_;
-        d.usage.index_buffer = index_;
-        d.usage.immutable = false;
-        d.usage.dynamic_update = true;
-        d.label = label_;
-        buffer_ = sg_make_buffer(&d);
-        used_ = 0;
-        if (sg_query_buffer_state(buffer_) != SG_RESOURCESTATE_VALID) {
-            if (buffer_.id) sg_destroy_buffer(buffer_);
-            buffer_ = sg_buffer{};
-            capacity_ = 0;
-            return -1;
-        }
-    }
-    sg_range range{data, bytes};
-    int offset = sg_append_buffer(buffer_, &range);
-    used_ += rounded;
-    return sg_query_buffer_overflow(buffer_) ? -1 : offset;
-}
-
-void StreamBuffer::Destroy() {
-    if (buffer_.id) sg_destroy_buffer(buffer_);
-    buffer_ = sg_buffer{};
-    capacity_ = 0;
-}
-
-void RetireBuffers() {
-    for (sg_buffer b : g_retiredBuffers) sg_destroy_buffer(b);
-    g_retiredBuffers.clear();
-}
-
-bool GeometryStream::Upload(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices) {
-    if (frame_ == FrameNumber() && vertexCount_ == vertices.size() && indexCount_ == indices.size())
-        return vertexOffset_ >= 0 && indexOffset_ >= 0;
-    frame_ = FrameNumber();
-    vertexCount_ = vertices.size();
-    indexCount_ = indices.size();
-    vertexOffset_ = indexOffset_ = -1;
-    if (vertices.empty() || indices.empty()) return false;
-    std::size_t vertexBytes = vertices.size() * sizeof(Vertex), indexBytes = indices.size() * sizeof(std::uint32_t);
-    vertexOffset_ = vertices_.Append(vertices.data(), vertexBytes);
-    indexOffset_ = indices_.Append(indices.data(), indexBytes);
-    FrameStats& stats = Stats();
-    (terrain_ ? stats.terrainVertexBytes : stats.meshVertexBytes) += vertexBytes;
-    (terrain_ ? stats.terrainIndexBytes : stats.meshIndexBytes) += indexBytes;
-    return vertexOffset_ >= 0 && indexOffset_ >= 0;
-}
-
-bool GeometryStream::Bind(sg_bindings& b) const {
-    if (frame_ != FrameNumber() || vertexOffset_ < 0 || indexOffset_ < 0) return false;
-    b.vertex_buffers[0] = vertices_.Buffer();
-    b.vertex_buffer_offsets[0] = vertexOffset_;
-    b.index_buffer = indices_.Buffer();
-    b.index_buffer_offset = indexOffset_;
-    return true;
-}
-
-void GeometryStream::Destroy() {
-    vertices_.Destroy();
-    indices_.Destroy();
-    frame_ = 0xFFFFFFFFu;
-    vertexOffset_ = indexOffset_ = -1;
-}
 
 bool CreateTerrainShader() {
     // The receivers' shadow function first (R16j), then the terrain shader.
@@ -760,18 +585,17 @@ void UploadTerrain(const Frame& f) {
         for (CachedPage* p : g_pending) Place(*p);   // fits: the pool holds twice the frame's pages
     }
     for (CachedPage* p : g_pending) {
-        if (g_pool.geometry.buffer.id && p->placed == g_pool.generation) Write(*p);
+        if (g_pool.Placed(p->place)) Write(*p);
         p->pending = false;
     }
     g_pending.clear();
 }
 
 void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
-    if (!g_pool.geometry.buffer.id || batch.pieceCount <= 0) return;
+    if (batch.pieceCount <= 0) return;
     sg_bindings b{};
-    b.vertex_buffers[0] = g_pool.geometry.buffer;
-    b.vertex_buffers[1] = g_pool.colours.buffer;
-    b.index_buffer = g_pool.indices.buffer;
+    g_pool.Bind(b);
+    if (!b.vertex_buffers[0].id) return;
     sg_pipeline pipeline = Pipeline(batch.state, batch.water);
     if (sg_query_pipeline_state(pipeline) != SG_RESOURCESTATE_VALID) return;
     sg_apply_pipeline(pipeline);
@@ -821,8 +645,8 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
         const TerrainPiece& piece = f.terrainPieces[static_cast<std::size_t>(k)];
         const CachedPage& p = *piece.page;
         const QuarterRange& q = p.quarters[piece.quarter];
-        if (p.placed != g_pool.generation || q.indexCount == 0) continue;
-        std::uint32_t start = p.firstIndex + q.firstIndex;
+        if (!g_pool.Placed(p.place) || q.indexCount == 0) continue;
+        std::uint32_t start = p.place.firstIndex + q.firstIndex;
         if (count > 0 && first + count == start) {
             count += q.indexCount;
         } else {
@@ -859,9 +683,7 @@ void DestroyTerrain() {
     DropLevelImages();
 #endif
     // The pages keep what they were built from; they are placed in a new pool at their next draw.
-    DropPool();
-    ++g_pool.generation;
-    g_pool.vertices = g_pool.indexCount = 0;
+    g_pool.Drop();
     RetireBuffers();
     for (auto& p : g_pipelines) sg_destroy_pipeline(p.second);
     g_pipelines.clear();
@@ -970,7 +792,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
         }
         p.colourFrom = p.colourTo = 0;
     }
-    if (p.placed != g_pool.generation) p.geometryDirty = true;
+    if (!g_pool.Placed(p.place)) p.geometryDirty = true;
 
     // The quarters in view: their colours read again, their tiles drawn.
     bool relit = false;

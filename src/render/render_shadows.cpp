@@ -138,7 +138,7 @@ ShadowInfo g_info, g_lastInfo;
 // The casters into the map: positions through the light matrix; a pass with alpha test or blending
 // cut out where its stage-0 texel's alpha is below the reference.
 const char* const kCasterSource = R"(
-cbuffer vs_params : register(b0) { float4 row0; float4 row1; float4 row2; float4 row3; };
+cbuffer vs_params : register(b0) { float4 row0; float4 row1; float4 row2; float4 row3; float4 uv_offset; };
 cbuffer fs_params : register(b0) { float4 alpha; };   // x: cut out, y: the least alpha kept
 struct vs_in { float3 pos : POSITION; float2 uv : TEXCOORD0; };
 struct vs_out { float2 uv : TEXCOORD0; float4 pos : SV_Position; };
@@ -146,7 +146,7 @@ vs_out vs_main(vs_in i) {
     float4 p = float4(i.pos, 1.0);
     vs_out o;
     o.pos = float4(dot(row0, p), dot(row1, p), dot(row2, p), dot(row3, p));
-    o.uv = i.uv;
+    o.uv = i.uv + uv_offset.xy;
     return o;
 }
 Texture2D<float4> tex : register(t0);
@@ -195,20 +195,21 @@ float shadow_amount(Texture2D<float> map, SamplerComparisonState smp, float3 s, 
 
 struct CasterVs {
     Matrix4 light;
+    float uvOffset[4];   // a mesh kept on the GPU's texture offsets (MeshBatch::uOffset, vOffset)
 };
 struct CasterFs {
     float alpha[4];
 };
 
 sg_shader g_casterShader{};
-sg_pipeline g_casterPipeline{};
+sg_pipeline g_casterPipelines[2]{};   // the frame's stream, the meshes kept on the GPU (MeshLayout)
 sg_image g_map{}, g_dummy{};
 sg_view g_mapAttachment{}, g_mapTexture{}, g_dummyAttachment{}, g_dummyTexture{};
 sg_sampler g_compare{};
 bool g_dummyCleared = false;
 
-bool MakeCasterPipeline() {
-    if (g_casterPipeline.id) return sg_query_pipeline_state(g_casterPipeline) == SG_RESOURCESTATE_VALID;
+bool MakeCasterPipelines() {
+    if (g_casterShader.id) return sg_query_pipeline_state(g_casterPipelines[1]) == SG_RESOURCESTATE_VALID;
     sg_shader_desc s{};
     s.vertex_func.source = kCasterSource;
     s.vertex_func.entry = "vs_main";
@@ -240,25 +241,24 @@ bool MakeCasterPipeline() {
         ei::Log("render: the shadow casters' shader could not be created (see the sokol messages above)");
         return false;
     }
-    sg_pipeline_desc p{};
-    p.shader = g_casterShader;
-    p.layout.buffers[0].stride = sizeof(Vertex);
-    p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT3;
-    p.layout.attrs[0].offset = 0;
-    p.layout.attrs[1].format = SG_VERTEXFORMAT_FLOAT2;
-    p.layout.attrs[1].offset = 20;
-    p.index_type = SG_INDEXTYPE_UINT32;
-    p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
-    p.cull_mode = SG_CULLMODE_NONE;
-    p.colors[0].pixel_format = SG_PIXELFORMAT_NONE;   // depth only (sokol then takes no colour)
-    p.depth.pixel_format = kDepthFormat;
-    p.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
-    p.depth.write_enabled = true;
-    p.depth.bias_slope_scale = 1.5f;
-    p.sample_count = 1;
-    p.label = "ei-shadow-caster";
-    g_casterPipeline = sg_make_pipeline(&p);
-    bool ok = sg_query_pipeline_state(g_casterPipeline) == SG_RESOURCESTATE_VALID;
+    bool ok = true;
+    for (int cached = 0; cached < 2; ++cached) {   // the frame's stream, the meshes kept on the GPU
+        sg_pipeline_desc p{};
+        p.shader = g_casterShader;
+        MeshLayout(p, cached != 0, true);
+        p.index_type = SG_INDEXTYPE_UINT32;
+        p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
+        p.cull_mode = SG_CULLMODE_NONE;
+        p.colors[0].pixel_format = SG_PIXELFORMAT_NONE;   // depth only (sokol then takes no colour)
+        p.depth.pixel_format = kDepthFormat;
+        p.depth.compare = SG_COMPAREFUNC_LESS_EQUAL;
+        p.depth.write_enabled = true;
+        p.depth.bias_slope_scale = 1.5f;
+        p.sample_count = 1;
+        p.label = "ei-shadow-caster";
+        g_casterPipelines[cached] = sg_make_pipeline(&p);
+        ok = ok && sg_query_pipeline_state(g_casterPipelines[cached]) == SG_RESOURCESTATE_VALID;
+    }
     if (!ok) ei::Log("render: the shadow casters' pipeline could not be created (see the sokol messages above)");
     return ok;
 }
@@ -576,8 +576,7 @@ void DrawShadowMap(Frame& f) {
         StatsTimer timer(&FrameStats::shadowMs);
         std::unordered_map<const void*, float> casters;
         for (const auto& c : f.shadow.casters) casters[c.first] = c.second;
-        sg_bindings b{};
-        bool ok = MakeCasterPipeline() && BindMeshGeometry(b) &&
+        bool ok = MakeCasterPipelines() &&
                   (g_map.id || MakeDepth(kMapSize, "ei-shadow-map", &g_map, &g_mapAttachment, &g_mapTexture));
         if (!ok) {
             f.shadow.on = false;
@@ -591,15 +590,24 @@ void DrawShadowMap(Frame& f) {
             pass.label = "ei-shadow-map";
             sg_begin_pass(&pass);
             ++Stats().passes;
-            sg_apply_pipeline(g_casterPipeline);
             std::unordered_map<const void*, bool> counted;
-            int lastFirst = -1;
+            const CachedMesh* lastMesh = nullptr;
+            int lastFirst = -1, lastLayout = -1;
             for (const MeshBatch& batch : f.meshBatches) {
                 if (batch.light < 0 || !batch.caster || batch.indexCount <= 0) continue;
                 auto it = casters.find(batch.caster);
                 if (it == casters.end() || !(it->second >= kLeastStrength)) continue;
-                if (batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
+                if (batch.cached == lastMesh && batch.firstIndex == lastFirst) continue;   // a later pass of the same mesh
+                lastMesh = batch.cached;
                 lastFirst = batch.firstIndex;
+                sg_bindings b{};
+                int first = 0;
+                if (!BindMeshBatch(batch, b, &first)) continue;
+                int layout = batch.cached ? 1 : 0;
+                if (layout != lastLayout) {
+                    sg_apply_pipeline(g_casterPipelines[layout]);
+                    lastLayout = layout;
+                }
                 const PassState& s = batch.state;
                 const StageState& st = s.stages[0];
                 CasterFs fs{};
@@ -610,12 +618,12 @@ void DrawShadowMap(Frame& f) {
                 b.views[0] = st.texture.id ? st.texture : SurfaceView(nullptr);
                 b.samplers[0] = StageSampler(st);
                 sg_apply_bindings(&b);
-                CasterVs vs{f.shadow.lights[static_cast<std::size_t>(batch.light)]};
+                CasterVs vs{f.shadow.lights[static_cast<std::size_t>(batch.light)], {batch.uOffset, batch.vOffset, 0.0f, 0.0f}};
                 sg_range vr{&vs, sizeof(vs)};
                 sg_apply_uniforms(0, &vr);
                 sg_range fr{&fs, sizeof(fs)};
                 sg_apply_uniforms(1, &fr);
-                sg_draw(batch.firstIndex, batch.indexCount, 1);
+                sg_draw(first, batch.indexCount, 1);
                 ++Stats().shadowDraws;
                 ++g_info.casterDraws;
                 counted[batch.caster] = true;
@@ -672,8 +680,10 @@ void DestroyShadows() {
     g_dummyCleared = false;
     if (g_compare.id) sg_destroy_sampler(g_compare);
     g_compare = sg_sampler{};
-    if (g_casterPipeline.id) sg_destroy_pipeline(g_casterPipeline);
-    g_casterPipeline = sg_pipeline{};
+    for (sg_pipeline& p : g_casterPipelines) {
+        if (p.id) sg_destroy_pipeline(p);
+        p = sg_pipeline{};
+    }
     if (g_casterShader.id) sg_destroy_shader(g_casterShader);
     g_casterShader = sg_shader{};
 }

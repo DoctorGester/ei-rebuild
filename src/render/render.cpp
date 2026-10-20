@@ -1190,6 +1190,7 @@ void Present() {
     g_frame.terrainPieces.clear();
     g_frame.terrainBatches.clear();
     TerrainFrameDone();
+    MeshCacheFrameDone();
     g_frame.meshVertices.clear();
     g_frame.meshIndices.clear();
     g_frame.meshBatches.clear();

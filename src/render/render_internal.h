@@ -15,6 +15,7 @@
 #include <vector>
 
 class CTextureDevice;   // game/texture.h
+struct ID3D11Buffer;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11RenderTargetView;
@@ -107,9 +108,12 @@ struct TerrainBatch {
     PassState state;          // the old device's state for the page (its textures not read)
 };
 
+// A mesh kept on the GPU (render_mesh_cache.cpp).
+struct CachedMesh;
+
 struct MeshBatch {
     int matrix;
-    int firstIndex;
+    int firstIndex;           // into the frame's mesh stream, or (cached) the mesh's own indices
     int indexCount;
     PassState state;
     bool distanceFog;         // the old path fogged the vertices by distance (device +0x158)
@@ -122,6 +126,8 @@ struct MeshBatch {
     bool flat = false;        // the flat geometry (004EA4A0: decals, markers), no corners
     const void* caster = nullptr;   // the object drawing it (render::BeginCaster), if any
     int light = -1;           // index into Frame::shadow.lights: it samples the shadow map (render_shadows.cpp)
+    CachedMesh* cached = nullptr;   // the mesh kept on the GPU it draws (R16d), else the frame's stream
+    float uOffset = 0.0f, vOffset = 0.0f;   // added to a cached mesh's texture coordinates (MeshDraw::moveUv)
 };
 
 // A window surface's blit: the image read at the blit, the screen and source rectangles.
@@ -260,7 +266,7 @@ void DeviceLossCounts(WindowPresentInfo* info);
 
 // A vertex or index buffer filled with sg_append_buffer, so that a frame can be drawn in several
 // passes (a copy of the frame taken in its middle, CopyFrameTo); replaced by a larger one when an
-// append does not fit (render_terrain.cpp).
+// append does not fit (render_buffers.cpp).
 class StreamBuffer {
 public:
     StreamBuffer(bool index, const char* label) : index_(index), label_(label) {}
@@ -299,6 +305,59 @@ private:
     int vertexOffset_ = -1, indexOffset_ = -1;
 };
 
+// Where an item (a terrain page, a mesh) sits in a GpuPool: the pool's generation when it was placed
+// (0: never), its first vertex and index and the room it has there.
+struct PoolPlace {
+    std::uint32_t generation = 0;
+    std::uint32_t firstVertex = 0, vertexRoom = 0, firstIndex = 0, indexRoom = 0;
+};
+
+// Vertices and indices kept on the GPU across frames (R16c terrain pages, R16d meshes;
+// render_buffers.cpp): a geometry stream (`geometryStride` bytes a vertex), a colour stream (colour and
+// specular, kColourPairBytes a vertex) and absolute 32-bit indices, in Direct3D 11 buffers of default
+// usage written in place with UpdateSubresource (sokol has no partial update) and handed to sokol.
+// Items are placed one after the other; when one does not fit, the pool starts again (Restart) with
+// the items still needed, placed again from its start, and is made larger when they need more than
+// half of it.
+constexpr std::size_t kColourPairBytes = 2 * sizeof(std::uint32_t);
+class GpuPool {
+public:
+    GpuPool(std::size_t geometryStride, std::uint32_t leastVertices, std::uint32_t leastIndices, const char* label)
+        : geometryStride_(geometryStride), leastVertices_(leastVertices), leastIndices_(leastIndices), label_(label) {}
+    // Room for an item of `vertices` and `indices`: where it is when it is placed and still fits there,
+    // else at the pool's end (`anew`: all of it to write). False when the pool is full.
+    bool Place(PoolPlace& p, std::uint32_t vertices, std::uint32_t indices, bool* anew);
+    bool Placed(const PoolPlace& p) const { return p.generation == generation_ && geometry_.buffer.id != 0; }
+    // Every place made so far is given up: the items placed again need `vertices` and `indices` in all.
+    void Restart(std::uint64_t vertices, std::uint64_t indices);
+    // `count` vertices' geometry / colour pairs from vertex `first` of the item at `p`; its indices
+    // (relative to its first vertex) made absolute.
+    void WriteGeometry(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const void* data) const;
+    void WriteColours(const PoolPlace& p, std::uint32_t first, std::uint32_t count, const std::uint32_t* pairs) const;
+    void WriteIndices(const PoolPlace& p, const std::uint32_t* relative, std::size_t count);
+    // Vertex buffer 0 the geometry, 1 the colours, and the indices.
+    void Bind(sg_bindings& b) const;
+    // The buffers are retired (the device is lost, or the pool is made again); every place is given up.
+    void Drop();
+
+private:
+    struct Buffer {
+        sg_buffer buffer{};
+        ID3D11Buffer* d3d = nullptr;   // sokol holds the reference
+        bool Make(std::size_t bytes, bool index, const char* label);
+        void Write(std::size_t offset, const void* data, std::size_t bytes) const;
+        void Drop();   // destroyed after the frame's commit
+    };
+    std::size_t geometryStride_;
+    std::uint32_t leastVertices_, leastIndices_;
+    const char* label_;
+    Buffer geometry_, colours_, indices_;
+    std::uint32_t vertexCapacity_ = 0, indexCapacity_ = 0;
+    std::uint32_t usedVertices_ = 0, usedIndices_ = 0;
+    std::uint32_t generation_ = 1;
+    std::vector<std::uint32_t> absolute_;   // scratch: an item's indices made absolute
+};
+
 // The terrain shader and draws, inside EndFrame's off-screen pass (render_terrain.cpp; the pipelines
 // are made per pass state as they are needed).
 // UploadTerrain puts the pages handed over with changes into the pool (R16c); TerrainPositions gives
@@ -319,8 +378,27 @@ void UploadMeshes(const Frame& frame);
 void DrawMeshBatch(const Frame& frame, const MeshBatch& batch, bool anisotropic);
 void DestroyMeshes();
 
-// The mesh stream's vertex and index buffers of this frame (render_shadows.cpp draws the casters).
-bool BindMeshGeometry(sg_bindings& b);
+// The vertex and index buffers a mesh batch draws from (the frame's stream, or the pool of the meshes
+// kept on the GPU) and its first index there; false when it has none (render_shadows.cpp draws the
+// casters with it). MeshLayout: a pipeline's vertex layout for such a batch (`cached`); `positionsOnly`:
+// the position and texture coordinates alone (the casters).
+bool BindMeshBatch(const MeshBatch& batch, sg_bindings& b, int* firstIndex);
+void MeshLayout(sg_pipeline_desc& p, bool cached, bool positionsOnly);
+
+// Meshes kept on the GPU (R16d, render_mesh_cache.cpp; docs/notes/renderer.md section 13). KeepMesh:
+// the mesh being handed over (MeshPass's first) brought up to date as kept for the figure mesh of
+// render::SetMeshSource, or null: it is built into the frame's stream (no source, no corners, the cache
+// off in the harness build, or the mesh already drawn this frame with other data). UploadCachedMeshes
+// writes what changed into the pool (before a pass); BindCachedMesh binds the pool with the mesh's first
+// index. MeshCacheFrameDone (after a present) drops meshes not drawn for a long time; DropMeshCache
+// gives up the pool (the device is lost: the meshes are placed and written again at their next draw).
+constexpr std::size_t kCachedVertexBytes = 20;   // a kept corner's geometry: position, texture coordinates
+CachedMesh* KeepMesh(const MeshDraw& mesh);
+int CachedIndexCount(const CachedMesh& mesh);
+void UploadCachedMeshes(const Frame& frame);
+bool BindCachedMesh(const CachedMesh& mesh, sg_bindings& b, int* firstIndex);
+void MeshCacheFrameDone();
+void DropMeshCache();
 
 // Object shadows (R16j, render_shadows.cpp; docs/notes/renderer.md section 13). PrepareShadows, once a
 // frame before its first pass on the world: unless the classic option is on, fits the shadow map

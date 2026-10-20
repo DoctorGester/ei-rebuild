@@ -5,7 +5,8 @@
 # this scenario's first half, went with S21a; the old path's oldterrain / oldobjects / oldinterface
 # steps beside the new frame went with R11.) R16c: the image's frame with its terrain pages kept on the
 # GPU must match the frame with every page built and uploaded again (world_fresh), and no kept page
-# checked against a fresh build may have been stale.
+# checked against a fresh build may have been stale. R16d: the same for its figure meshes kept on the
+# GPU (world_meshfresh: every mesh built into the frame's stream).
 render new
 reject Script error
 waitmenu
@@ -23,9 +24,14 @@ capture world_again
 terraincache off
 capture world_fresh
 terraincache on
+meshcache off
+capture world_meshfresh
+meshcache on
 unfreeze
 samecapture world world_again
 samecapture world world_fresh
+samecapture world world_meshfresh 8 0.001
 terraincache check
+meshcache check
 report
 quit
