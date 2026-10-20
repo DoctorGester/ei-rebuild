@@ -343,8 +343,20 @@ bool UnderRoot(const wchar_t* path) {
     return false;
 }
 
-// The code addresses on the stack from `stack` (the guarded call's return address) up, outside ntdll,
-// kernelbase and kernel32 (the first five, "module+offset"): found by scanning for values that point into a
+// Whether the code before `address` (in the executable region `info`) is a call: E8 rel32, or FF /2 with a
+// register, [register], [register+disp8] or [disp32] / [register+disp32] operand.
+bool AfterCall(std::uintptr_t address, const MEMORY_BASIC_INFORMATION& info) {
+    const auto start = reinterpret_cast<std::uintptr_t>(info.BaseAddress);
+    if (address < start + 6) return false;
+    const auto* code = reinterpret_cast<const BYTE*>(address);
+    const auto callModrm = [](BYTE modrm) { return (modrm & 0x38) == 0x10; };
+    return code[-5] == 0xE8 || (code[-2] == 0xFF && callModrm(code[-1]) && (code[-1] & 0xC0) != 0x40) ||
+           (code[-3] == 0xFF && callModrm(code[-2]) && (code[-2] & 0xC0) == 0x40) ||
+           (code[-6] == 0xFF && callModrm(code[-5]) && ((code[-5] & 0xC0) == 0x80 || (code[-5] & 0xC7) == 0x05));
+}
+
+// The return addresses on the stack from `stack` (the guarded call's own) up, outside ntdll, kernelbase and
+// kernel32 (the first six, "module+offset"): found by scanning for values that point just after a call in a
 // module's executable code, since the system's frames keep no EBP chain (RtlCaptureStackBackTrace found none).
 std::string Callers(const void* stack) {
     const HMODULE system[] = {GetModuleHandleA("ntdll.dll"), GetModuleHandleA("kernelbase.dll"), GetModuleHandleA("kernel32.dll")};
@@ -352,11 +364,11 @@ std::string Callers(const void* stack) {
     const auto* end = static_cast<const std::uintptr_t*>(tib->StackBase);
     std::string text;
     int found = 0;
-    for (auto* p = static_cast<const std::uintptr_t*>(stack); p < end && found < 5; ++p) {
+    for (auto* p = static_cast<const std::uintptr_t*>(stack); p < end && found < 6; ++p) {
         MEMORY_BASIC_INFORMATION info;
         constexpr DWORD kExecutable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
         if (*p < 0x10000 || !VirtualQuery(reinterpret_cast<const void*>(*p), &info, sizeof(info)) || info.Type != MEM_IMAGE ||
-            !(info.Protect & kExecutable))
+            !(info.Protect & kExecutable) || !AfterCall(*p, info))
             continue;
         const auto module = static_cast<HMODULE>(info.AllocationBase);
         if (module == system[0] || module == system[1] || module == system[2]) continue;
