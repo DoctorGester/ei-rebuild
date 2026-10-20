@@ -203,6 +203,13 @@
 //                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
 //                             overlay) to exist and match frames\<frame>.bmp as
 //                             samecapture does (16 bits lose the low bits: use tolerance 8 or more)
+//   checksave <slot> <frame> [centre] [tolerance] [fraction]
+//                             require the save <slot>'s picture (shot.sav, 256x192 5:6:5) to match
+//                             frames\<frame>.bmp, both as averages of 8x8 blocks of the picture (the
+//                             save's two nearest-pixel stretches sample differently), counted as
+//                             samecapture does; catches a picture of nothing (a cleared frame, R13).
+//                             "centre": against the frame's centred 4:3 part (the 800x600 layout's
+//                             rectangle under Rebirth's WideScreen, which the screen copy takes)
 //   record on|off             the game's frame recorder (0079BC54: a "shotNNNN.bmp" of each presented
 //                             frame, nothing in the shipped game sets it)
 //   digest <N>|off, digest    a record of the game state (world, generators, players, every world
@@ -2659,6 +2666,37 @@ void RunSteps() {
             std::snprintf(text, sizeof(text), "checkshot %s%d %s: %sshot%.4d.bmp %s; %.3f%% of the pixels differ by more than %d (largest %d)",
                           recorder ? "recorder " : "", index, frame, recorder ? "capture\\" : "", index, how.c_str(),
                           100.0 * differing, tolerance, largest);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "checksave") {
+            int tolerance = 8;
+            char slot[64] = "", frame[64] = "";
+            double limit = 0.001;
+            int used = 0;
+            if (sscanf_s(s.argument.c_str(), "%63s %63s%n", slot, unsigned(sizeof(slot)), frame, unsigned(sizeof(frame)),
+                         &used) < 2) {
+                g_failures.push_back("checksave needs <slot> <frame>");
+                continue;
+            }
+            const char* rest = s.argument.c_str() + used;
+            while (*rest == ' ') ++rest;
+            bool centre = std::strncmp(rest, "centre", 6) == 0;
+            if (centre) rest += 6;
+            sscanf_s(rest, "%d %lf", &tolerance, &limit);
+            char path[MAX_PATH];
+            std::snprintf(path, sizeof(path), "%s\\%s\\shot.sav", g_savesDir, slot);
+            double differing = 0;
+            int largest = 0;
+            const char* why = "";
+            if (!capture::CompareSavePicture(path, frame, centre, tolerance, &differing, &largest, &why)) {
+                g_failures.push_back(std::string("checksave ") + slot + " " + frame + ": " + why);
+                Log("harness: checksave %s %s: %s (%s)", slot, frame, why, path);
+                continue;
+            }
+            char text[200];
+            std::snprintf(text, sizeof(text), "checksave %s %s: %.3f%% of the pixels differ by more than %d (largest %d)", slot,
+                          frame, 100.0 * differing, tolerance, largest);
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);

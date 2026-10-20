@@ -717,7 +717,11 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
     if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
     FpuGuard fpu;
-    if (!g_frameDrawn && !DrawPending()) return false;
+    // Nothing of this frame drawn or queued yet (a copy between frames: the quick save's key, 006570E0
+    // with DL 0, R13): the target still holds the last frame, as the original's render target did. A
+    // pass now would clear it to the clear colour first.
+    bool betweenFrames = g_haveFrame && g_passes == 0 && g_frame.commands.empty();
+    if (!g_frameDrawn && !betweenFrames && !DrawPending()) return false;
     if (!g_colour.id) return false;
     Rect r = source;
     if (r.left < 0) r.left = 0;

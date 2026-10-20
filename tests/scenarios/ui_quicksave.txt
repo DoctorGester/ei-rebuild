@@ -1,0 +1,49 @@
+# The quick save's picture (R13; docs/notes/renderer.md section 6, "Save / load screen's pictures"):
+# the battle screen's F5 (action 0x35) saves into "saveq" through 006570E0 with no frame drawn first (DL 0), so
+# CaptureScreen (005FD3D0) copies the screen between frames, before the next frame's draws: the last
+# frame, as the original's render target holds it (the image once cleared its frame there and saved
+# plain blue). checksave compares the save's shot.sav with a capture of the same frozen moment (on
+# Rebirth's data the copy is the 800x600 layout's centred 4:3 rectangle: WideScreen); then the Load
+# window shows the pictures (saveq selected, then savea).
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 20
+frames 5
+freeze
+capture world
+key f5
+waitline 15 Saved saveq
+vanilla checksave saveq world 32 0.02
+rebirth checksave saveq world centre 32 0.02
+unfreeze
+frames 5
+
+# Escape menu, Load (rectangles from menus.reg): the newest save is selected and its picture shown.
+key esc
+waitwindow 10 escmenu
+click 395 187
+waitwindow 10 saveload
+move 400 20
+frames 5
+freeze
+capture load
+unfreeze
+clickregion 4
+frames 10
+freeze
+capture load2
+unfreeze
+# Cancel (region 1), then Esc closes the menu.
+clickregion 1
+frames 10
+key esc
+frames 10
+check IsAlive(GetLeader())
+report
+quit

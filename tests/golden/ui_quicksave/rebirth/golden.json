@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_quicksave",
+  "install": "rebirth",
+  "recorded": "2026-10-20",
+  "commit": "62a67df0",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 4,
+  "reason": "R13: the quick save (F5 saveq) and the Load window showing its picture",
+  "saves": "6 decoded saves (tools/savefile.py), the same in 4 runs"
+}
