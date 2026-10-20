@@ -13,6 +13,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
+#include "lib/stlp_list_refs.h"
 
 #include <cstdint>
 
@@ -22,11 +23,11 @@ using netlink::DriverSession;
 namespace {
 
 // list<RefPtr>::insert(position, first, last) of the session's two lists (00560430 drivers: each
-// element shared, 0047A450; 00560460 holders: each counted, 0047A480). thiscall, RET 0xC.
-__declspec(naked) void __fastcall DriversInsertRange(DriverNode** /*list*/, void*, DriverNode* /*position*/,
-                                                     DriverNode* /*first*/, DriverNode* /*last*/) EI_ORIGINAL(0x00560430)
-__declspec(naked) void __fastcall HoldersInsertRange(DriverNode** /*list*/, void*, DriverNode* /*position*/,
-                                                     DriverNode* /*first*/, DriverNode* /*last*/) EI_ORIGINAL(0x00560460)
+// element shared, 0047A450; 00560460 holders: each counted, 0047A480).
+template <typename Policy>
+void InsertRange(DriverNode* position, DriverNode* first, DriverNode* last) {
+    stlp::list<RefPtr>::InsertRange<Policy>(stlp::AsRefNode(position), stlp::AsRefNode(first), stlp::AsRefNode(last));
+}
 
 // An empty list's sentinel from the node pool (the lists' constructors, inlined).
 DriverNode* NewSentinel() {
@@ -180,9 +181,9 @@ DriverSession* DriverSession::Clone() {   // 0055F550
     copy->flags7_ = 0;
     ei::SetVtable(copy, CPlayerSource::kVtableAddress);
     copy->drivers_ = NewSentinel();
-    DriversInsertRange(&copy->drivers_, nullptr, copy->drivers_->next, drivers_->next, drivers_);
+    InsertRange<stlp::SharedRef>(copy->drivers_->next, drivers_->next, drivers_);
     copy->holders_ = NewSentinel();
-    HoldersInsertRange(&copy->holders_, nullptr, copy->holders_->next, holders_->next, holders_);
+    InsertRange<stlp::CountedRef>(copy->holders_->next, holders_->next, holders_);
     ei::SetVtable(copy, kVtableAddress);
     return copy;
 }

@@ -237,6 +237,15 @@ struct ListAbi {
 // The element policies of the instantiations that hold the engine's reference holders are in
 // stlp_list_refs.h.
 
+// A node declared by its own struct with list<T>::Node's layout (next, prev, then the element: the
+// speech queue's, the spell modifiers', the sessions' driver and client nodes) seen as list<T>'s,
+// for the statics above.
+template <typename T, typename Node>
+typename list<T>::Node* AsNode(Node* node) {
+    static_assert(sizeof(Node) == sizeof(typename list<T>::Node));
+    return reinterpret_cast<typename list<T>::Node*>(node);
+}
+
 // The members that never touch an element, one body for all instantiations (stlp_list.cpp).
 using AnyList = OpaqueList<16>;
 // begin() (e.g. 0040A9F0) and end() (e.g. 004049D0; RET 4).

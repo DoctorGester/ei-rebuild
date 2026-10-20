@@ -35,6 +35,7 @@
 #include "originals_ui.h"
 #include "world.h"
 #include "world_glue.h"
+#include "lib/mfc_array.h"
 
 // --- 0063D2B0: the quick item panel's unit ----------------------------------------------------
 
@@ -47,7 +48,9 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
     EI_ORIGINAL(0x0063CAE0)
 // 0064B060 (thiscall, RET 8): the entries' CArray SetSize (zeroed new entries; `growBy` -1 keeps
 // the step). The original inlines the same code after each sprite.
-__declspec(naked) void __fastcall EntriesSetSize(void*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x0064B060)
+void EntriesSetSize(void* entries, int size) {
+    mfc::impl::Plain12::SetSize(static_cast<mfc::impl::Plain12::Array*>(entries), nullptr, size, -1);
+}
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
 void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { static_cast<CUiMesh*>(static_cast<CFigureMesh*>(a0))->SetScale(a2); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
@@ -72,12 +75,12 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    EntriesSetSize(&entriesVtable_, nullptr, 0, -1);
+    EntriesSetSize(&entriesVtable_, 0);
     if (!unit_) return;
 
     // The entry of the sprite just added.
     auto finish = [&](CEngineObject* item, bool own) {
-        EntriesSetSize(&entriesVtable_, nullptr, shownCount_, -1);
+        EntriesSetSize(&entriesVtable_, shownCount_);
         Entry& entry = entries_[shownCount_ - 1];
         entry.own = own;
         entry.id = item->id_;
@@ -367,19 +370,15 @@ void CBattleScreen::Update() {
     // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
-        std::uint8_t allocator = 0;
         List units;
-        ListConstruct411850(&units, nullptr, &allocator);
+        units.Construct();   // 00411850
         UiClientWorld()->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_), reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
         List inside;
-        ListConstruct404A70Original(&inside, nullptr, &allocator);
+        inside.Construct();   // 00404A70
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (reinterpret_cast<std::uintptr_t>(party->data[i]) != node->data) continue;
-                ListNode* end;
-                ListEnd4049D0Original(&inside, nullptr, reinterpret_cast<void**>(&end));
-                ListNode* inserted;
-                ListInsert404A40Original(&inside, nullptr, reinterpret_cast<void**>(&inserted), end, &i);
+                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
             }
         }
         using MarkFn = void(__thiscall*)(void*, int);
@@ -475,21 +474,17 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     auto* party = &party_;
     auto unitAt = [&](int i) { return party->data[i]; };
     int first = -1;
-    std::uint8_t allocator = 0;
     List units;
-    ListConstruct411850(&units, nullptr, &allocator);
+    units.Construct();   // 00411850
     static_cast<CWorldClient*>(world)->UnitsInBox(reinterpret_cast<const long*>(&selectionBox_),
                                                   reinterpret_cast<stlp::list<CEngineObject*>*>(&units));
     List inside;
-    ListConstruct404A70Original(&inside, nullptr, &allocator);
+    inside.Construct();   // 00404A70
     if (units.head->next != units.head) {
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (reinterpret_cast<std::uintptr_t>(party->data[i]) != node->data) continue;
-                ListNode* end;
-                ListEnd4049D0Original(&inside, nullptr, reinterpret_cast<void**>(&end));
-                ListNode* inserted;
-                ListInsert404A40Original(&inside, nullptr, reinterpret_cast<void**>(&inserted), end, &i);
+                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // 004049D0 end, 00404A40 insert
                 if (first < 0) first = i;
             }
         }

@@ -46,9 +46,6 @@ inline void CStringDestroy(void* s) { static_cast<mfc::CString*>(s)->~CString();
 // (mfc::impl::CWnd, src/lib/mfc_window.cpp) on a window still attached; no game window is a CWnd.
 __declspec(naked) inline int __fastcall CWndDestroyWindow(void* /*wnd*/) EI_ORIGINAL(0x007051A1)
 
-// STLport std::list constructor for a list of pointers on the 12-byte node allocator (RET 4).
-__declspec(naked) inline void __fastcall ListConstruct411850(void* /*list*/, void*, const void* /*alloc*/)
-    EI_ORIGINAL(0x00411850)
 // MFC: CFileFind::FindNextFile / GetFileTitle, CFile::Write (CString::Mid(first) is a member of mfc::CString).
 __declspec(naked) inline int __fastcall CFileFindNext(mfc::CFileFind* /*find*/) EI_ORIGINAL(0x006E6653)
 __declspec(naked) inline mfc::CString* __fastcall CFileFindTitle(const mfc::CFileFind* /*find*/, void*,
@@ -108,10 +105,6 @@ inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* s
 }
 
 // Container instantiations inside the exe, decided from the disassembly.
-// STLport list insert(position, value) writing the new iterator to `out` (RET 0xC: out, position, value; EAX = out):
-// 00421AF0 and 00423190 on the 12-byte node pool (NetAddress / uint list, RefPtr list), 0056E8A0 on the cell lists.
-__declspec(naked) inline void** __fastcall ListInsert56E8A0Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x0056E8A0)
 // 00426860: node allocator deallocate(p, count) of 12-byte elements (ECX p, EDX count, plain RET).
 // CArray::SetSize(size, growBy) instantiation (RET 8, no result): 0050FE70 the map object's effect array (20-byte
 // elements).
@@ -131,23 +124,6 @@ inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* out, const mf
 inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, const mfc::CString* left, const char* right) {
     return ::new (out) mfc::CString(*left + right);
 }
-// Instances of std::list<int> on the node pool (the list's head node is at +0): 004049D0 end() (RET 4: out; *out = the head
-// node; EAX = out), 00404A40 insert(out, pos, value) (RET 0xC; EAX = out), 00404A70 constructor (RET 4: the allocator tag;
-// returns this). 0068C560 is insert(out, pos, value) of a list of pointers (RET 0xC; EAX = out).
-__declspec(naked) inline void** __fastcall ListEnd4049D0Original(const void* /*list*/, void*, void** /*out*/)
-    EI_ORIGINAL(0x004049D0)
-__declspec(naked) inline void** __fastcall ListInsert404A40Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x00404A40)
-__declspec(naked) inline void* __fastcall ListConstruct404A70Original(void* /*list*/, void*, const void* /*alloc*/)
-    EI_ORIGINAL(0x00404A70)
-__declspec(naked) inline void** __fastcall ListInsert68C560Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/,
-                                                                    const void* /*value*/) EI_ORIGINAL(0x0068C560)
-// Counted objects (virtual slot 4 releases): 005703C0 clear() of their list (ECX = list; each node's object is released and the
-// node goes back to the node pool; plain RET, no result); 00573290 the same list's NewNode(prev, next) (RET 8, EAX = the node,
-// its data cleared; a CPtrList instance); 0059A100 the pointer array's destructor (releases every element, frees the buffer;
-// plain RET, no result); 0059C890 releases `count` elements from `first` (stdcall, RET 8, no result).
-__declspec(naked) inline void __fastcall CountedListClearOriginal(void* /*list*/) EI_ORIGINAL(0x005703C0)
-__declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
 // 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's
@@ -181,9 +157,6 @@ inline void __fastcall CStringConstructTextOriginal(void* where, void*, const ch
 }
 // C3m. 006E9180: CRT strncmp (gamecrt::strncmp).
 inline int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return gamecrt::strncmp(a, b, n); }
-// C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).
-__declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
-__declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
 
 #include "string_arg.h"   // StringArg
 // C3n. The engine's aligned arrays (lib::AlignedArray<T>, thiscall on the array): 004513A0 (rewritten as

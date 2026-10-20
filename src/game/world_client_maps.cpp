@@ -59,6 +59,7 @@
 #include "ui_flying_hit_points.h"
 #include "unit_client_models.h"
 #include "unit_create.h"
+#include "game_arrays.h"
 
 #include <windows.h>
 
@@ -86,9 +87,10 @@ struct GridOpsA {
 __declspec(naked) SectorListNode** __fastcall GridOpsA::Erase(SectorList*, void*, SectorListNode**, SectorListNode*)
     EI_ORIGINAL(0x00572270)
 __declspec(naked) SectorListNode** __fastcall GridOpsA::End(SectorList*, void*, SectorListNode**) EI_ORIGINAL(0x0056DEC0)
-SectorListNode** __fastcall GridOpsA::Insert(SectorList* list, void*, SectorListNode** out, SectorListNode* position,
+SectorListNode** __fastcall GridOpsA::Insert(SectorList* /*list*/, void*, SectorListNode** out, SectorListNode* position,
                                              CEngineObject* const& value) {
-    return reinterpret_cast<SectorListNode**>(ListInsert56E8A0Original(list, nullptr, reinterpret_cast<void**>(out), position, &value));
+    *out = SectorList::Insert<stlp::HeldObject>(position, value);   // 0056E8A0
+    return out;
 }
 
 struct GridOpsB {
@@ -185,7 +187,11 @@ float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::
 }
 
 
-__declspec(naked) void ScreenHits::InsertOverflow(ScreenEntry*, const ScreenEntry*, int) EI_ORIGINAL(0x00573350)
+// 00573350: vector<ScreenEntry>::_M_insert_overflow (plain elements).
+void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count) {
+    reinterpret_cast<stlp::vector<ScreenEntry>*>(this)->InsertOverflow<stlp::PlainElement<ScreenEntry>>(
+        position, *value, static_cast<std::size_t>(count));
+}
 
 namespace {
 
@@ -272,7 +278,7 @@ __declspec(naked) SectorListNode** __fastcall PlainOps::Erase(PlainList*, void*,
 struct CellOps {
     static void __fastcall Remove(SectorList*, void*, CEngineObject* const* value);
     static void __fastcall PushBack(SectorList*, void*, CEngineObject* const* value);
-    static void __fastcall Clear(SectorList* list) { CountedListClearOriginal(list); }
+    static void __fastcall Clear(SectorList* list) { list->Clear<stlp::HeldObject>(); }
     static void __fastcall Clear2(SectorList*);
 };
 __declspec(naked) void __fastcall CellOps::Remove(SectorList*, void*, CEngineObject* const*) EI_ORIGINAL(0x00570400)
@@ -283,7 +289,6 @@ __declspec(naked) void __fastcall CellOps::Clear2(SectorList*) EI_ORIGINAL(0x005
 // platform list's RemoveAt [0056FDD0] (on the platform set's list, +0x1F0).
 using DynamicList = mfc::CList<CEngineObject*>;
 using DynamicNode = DynamicList::Node;
-__declspec(naked) void __fastcall PlatformRemoveAt(PlatformList*, void*, PlatformNode*) EI_ORIGINAL(0x0056FDD0)
 
 // The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
@@ -496,7 +501,7 @@ void CWorldClient::RemoveObject(int id) {
     PlatformList& platforms = platforms_.list;
     for (PlatformNode* node = platforms.head; node;) {
         PlatformNode* next = node->next;
-        if (node->data.id == id) PlatformRemoveAt(&platforms, nullptr, node);
+        if (node->data.id == id) platforms.RemoveAt(node);
         node = next;
     }
     PendingMap& ids = dynamicNodes_;
@@ -935,12 +940,9 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 namespace {
 
 __declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
-// The counted array +0xA0's SetSize (its own instantiation: dropped elements released).
-__declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*>*, void*, int, int) EI_ORIGINAL(0x00570000)
 // The lists' element destructors [00575560 / 00575580 (node + 8, flags)] and
 // node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
 // The platform list's RemoveAll [0056FDA0]; the base world's teardown [0055F8E0].
-__declspec(naked) void __fastcall PlatformRemoveAll(PlatformList*) EI_ORIGINAL(0x0056FDA0)
 
 // The list's nodes walked from the head's next, each given to `free` after the next is read; the
 // list is left empty.
@@ -1008,11 +1010,11 @@ void CWorldClient::Teardown() {
     }
     DeleteOwned(owned1B0_);
     ReleaseItemsAndSpells();
-    CountedArraySetSize(&countedA0_, nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // 00570000: the dropped ones released
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
     RainSnow()->Destroy();
     platforms_.Engine()->Destroy();
-    PlatformRemoveAll(&platforms_.list);
+    platforms_.list.RemoveAll();
     SectorGrid& grid = objectGrid_;
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
@@ -1053,7 +1055,7 @@ void CWorldClient::Teardown() {
 // ---- Zone reset (00565090) -----------------------------------------------------------------------
 
 void CWorldClient::ResetZoneObjects() {
-    CountedArraySetSize(&countedA0_, nullptr, 0, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectPtrs>(countedA0_).SetSize(0, -1);   // 00570000: the dropped ones released
     // The second grid's cells: each element released (005768A0, flags 0), its node freed (00572FC0),
     // the cell linked to itself.
     SectorGrid& second = secondGrid_;
@@ -1099,8 +1101,7 @@ void CWorldClient::Deselect(CEngineObject* object) {
     Node* node = selected.head->next;
     while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
     if (node == selected.head) return;
-    void* unused;
-    IdListEraseOriginal(&selected, nullptr, &unused, node);
+    stlp::list<void*>::Erase(node);   // 00512030
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
@@ -1120,8 +1121,7 @@ void CWorldClient::Select(CEngineObject* object) {
     Node* node = selected.head->next;
     while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
     if (node != selected.head) return;
-    void* unused;
-    ListInsert404A40Original(&selected, nullptr, &unused, selected.head, &id);
+    stlp::list<void*>::Insert(selected.head, id);   // 00404A40
 }
 EI_REPLACE_METHOD(0x00566030, CWorldClient::Select);
 
@@ -1141,9 +1141,6 @@ __declspec(naked) void __fastcall Construct562A80(void*) EI_ORIGINAL(0x00562A80)
 __declspec(naked) void __fastcall Construct4DED20(void*) EI_ORIGINAL(0x004DED20)
 __declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453400)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
-// vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
-__declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
-    EI_ORIGINAL(0x00573520)
 
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
 
@@ -1394,7 +1391,8 @@ int CWorldClient::Setup() {
         int count = static_cast<int>(entries.finish - entries.start);
         ScreenEntry* block;
         if (entries.start) {
-            block = EntriesAllocateCopy(&entries, nullptr, 400, entries.start, entries.finish);
+            block = stlp::vector<ScreenEntry>::AllocateAndCopy<stlp::PlainElement<ScreenEntry>>(   // 00573520
+                400, entries.start, entries.finish);
             if (ScreenEntry* old = entries.start)
                 stlp::deallocate(old, static_cast<std::size_t>(entries.eos - old) * sizeof(ScreenEntry));
         } else {
@@ -1646,7 +1644,7 @@ int CWorldClient::LoadZone(CStream* block) {
     block->ReadInto(&mob);
     int exitCount;
     block->Read(&exitCount, 4);
-    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, exitCount, -1);
+    gamearrays::ExitsSetSize(&exitsVtable_, exitCount);
     for (int i = 0; i < exitCount_; ++i) ExitReadAt(&exits_[i], nullptr, block);
     int cave;
     block->Read(&cave, 4);

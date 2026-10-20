@@ -15,6 +15,8 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "ei/x87.h"
+#include "lib/stlp_list.h"
+#include "lib/stlp_string.h"
 
 #include <cstring>
 
@@ -38,8 +40,8 @@ SpellModifierNode*& NodeFreeList16() { return *reinterpret_cast<SpellModifierNod
 void* const kSpellTableHolder = reinterpret_cast<void*>(0x007C8510);
 void* const kModifierTableHolder = reinterpret_cast<void*>(0x007C8530);
 
-// 0068C680 (not rewritten). STLport string reserve(n) on the container's code string.
-__declspec(naked) void __fastcall CodesReserve(char**, void*, unsigned) EI_ORIGINAL(0x0068C680)
+// 0068C680: STLport string reserve(n) on the container's code string (stlp::StringAbi's).
+void CodesReserve(char** codes, unsigned n) { stlp::StringAbi::Reserve(reinterpret_cast<stlp::string*>(codes), nullptr, n); }
 
 // _ftol (006E853C) of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
 // FMUL dword, CALL _ftol).
@@ -155,8 +157,7 @@ EI_REPLACE_METHOD(0x0068BC00, CSpellContainer::NameField);
 
 BOOL CSpellContainer::AddModifier(char* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
-    SpellModifierNode* inserted;
-    ListInsert68C560Original(&modifiers_, nullptr, (void**)&inserted, modifiers_, &modifier);
+    stlp::list<char*>::Insert(stlp::AsNode<char*>(modifiers_), modifier);   // 0068C560
     return 1;
 }
 EI_REPLACE_METHOD(0x0068BE30, CSpellContainer::AddModifier);
@@ -263,7 +264,7 @@ BOOL CSpellContainer::Build() {
         // push_back on the STLport string: grow to size + max(size, 1) when full.
         if (codesEnd_ + 1 == codesCapacity_) {
             unsigned size = static_cast<unsigned>(codesEnd_ - codes_);
-            CodesReserve(&codes_, nullptr, size + (size < 1 ? 1u : size));
+            CodesReserve(&codes_, size + (size < 1 ? 1u : size));
         }
         codesEnd_[1] = 0;
         *codesEnd_ = code;

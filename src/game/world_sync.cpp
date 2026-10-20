@@ -23,6 +23,7 @@
 #include "originals_units.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
+#include "game_hashes.h"
 
 #include <cstring>
 
@@ -85,10 +86,8 @@ void __fastcall StateRefresh(CPlayerServer* a0, void*) { static_cast<CPlayerServ
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
                                                  StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
-// groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860), the unit added with
-// 005593D0 and the set written with 00559E60.
-__declspec(naked) void __fastcall FiguredGroupsDestruct(void*, void*) EI_ORIGINAL(0x005986B0)
-__declspec(naked) void __fastcall DressedMapDestruct(void*, void*) EI_ORIGINAL(0x00598860)
+// groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860: gamehash's tables), the unit
+// added with 005593D0 and the set written with 00559E60.
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
@@ -338,8 +337,8 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
             if (node->value->GetClassId() == world::kClassUnit) units.Add(static_cast<CUnit*>(node->value));
         units.Write(&message);
-        DressedMapDestruct(&units.dressed, nullptr);
-        FiguredGroupsDestruct(&units.figured, nullptr);
+        gamehash::DressedAbi::Destroy(reinterpret_cast<gamehash::DressedTable*>(&units.dressed));
+        gamehash::FiguredGroupsAbi::Destroy(reinterpret_cast<gamehash::FiguredGroupsTable*>(&units.figured));
 
         result = state->SendState02(&message);   // 0066EBD0
         if (result != 0 && sendsStartPosition_ != 0) {

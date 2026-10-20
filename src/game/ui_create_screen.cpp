@@ -134,9 +134,7 @@ CCursor* Cursor() { return GameCursor(); }   // 005E5200 SetShape (RET 4)
 // 0057F440 (on 007AFE20): a multiplayer client session; returns AL.
 // The game state's server flag (007AFEA4; 00578D00 reads it, 00578D10 sets it; neither reads ECX).
 
-// 005FA9A0 (thiscall on the window stack, RET 0xC): the vector's insert when it is full.
-__declspec(naked) void __fastcall StackInsertOverflow(void*, void*, CUiWindow** /*at*/, CUiWindow* const* /*value*/,
-                                                      int /*count*/) EI_ORIGINAL(0x005FA9A0)
+// 005FA9A0: the window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
 // IDirect3DDevice7::SetRenderState (COM, slot 20).
 void SetRenderState(UiD3DDevice* device, unsigned long state, unsigned long value) {
@@ -151,7 +149,8 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
         if (ui->stackEnd_) *ui->stackEnd_ = window;
         ++ui->stackEnd_;
     } else {
-        StackInsertOverflow(&ui->stackBegin_, nullptr, ui->stackEnd_, &window, 1);
+        reinterpret_cast<stlp::vector<CUiWindow*>*>(&ui->stackBegin_)
+            ->InsertOverflow<stlp::PlainElement<CUiWindow*>>(ui->stackEnd_, window, 1);
     }
     static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
     for (const auto& state : kStates) {

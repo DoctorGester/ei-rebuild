@@ -24,11 +24,8 @@ constexpr std::uint32_t kRepeatAfter = 5000;          // ms before the same spee
 constexpr int kSpeechPriority = 1;
 constexpr int kSpeechVolume = 100;
 
-// 005392C0 (library: STLport list::insert): a copy of `value` before `position`; the node to *out
-// (RET 0xC).
-__declspec(naked) ClientSpeechNode** __fastcall SpeechInsert(ClientSpeechNode** /*queue*/, void*, ClientSpeechNode** /*out*/,
-                                                             ClientSpeechNode* /*position*/, const ClientSpeech* /*value*/)
-    EI_ORIGINAL(0x005392C0)
+// The queue is list<ClientSpeech>: 005392C0 its insert, 005392F0 its erase.
+using SpeechList = stlp::list<ClientSpeech>;
 
 // The kinds a queued speech gives way to: (new kind, queued kind).
 bool Replaces(int kind, int queued) {
@@ -72,8 +69,7 @@ void EraseWhere(ClientSpeechNode*& queue, Pick pick) {
     for (ClientSpeechNode* node = end->next; node != end;) {
         ClientSpeechNode* next = node->next;
         if (pick(&node->value)) {
-            ClientSpeechNode* after;
-            SpeechEraseOriginal(&queue, nullptr, &after, node);
+            SpeechList::Erase(stlp::AsNode<ClientSpeech>(node));
         }
         node = next;
     }
@@ -115,8 +111,7 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
             speechSound = said.sound;
         }
     }
-    ClientSpeechNode* added;
-    SpeechInsert(&speech, nullptr, &added, speech, &said);
+    SpeechList::Insert(stlp::AsNode<ClientSpeech>(speech), said);
 }
 EI_REPLACE_METHOD(0x00537D80, CUnitClientSpecific::Say);
 

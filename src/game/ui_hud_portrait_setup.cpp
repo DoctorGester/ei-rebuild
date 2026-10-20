@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "record_vectors.h"
 
 #include <cstdint>
 
@@ -37,10 +38,8 @@ const Quaternion& Identity() { return *reinterpret_cast<const Quaternion*>(0x007
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
 
 // The slots' STLport vector (CHudPortraits +0x158): 0064AB20 appends a default slot (identity
-// orientations, empty strings; plain RET), 0064AD40 erases [first, last) (RET 8, returns first).
-__declspec(naked) void __fastcall SlotsPushDefault(HudPortraitSlot** /*vector*/) EI_ORIGINAL(0x0064AB20)
-__declspec(naked) HudPortraitSlot* __fastcall SlotsErase(HudPortraitSlot** /*vector*/, void*, HudPortraitSlot* /*first*/,
-                                                         HudPortraitSlot* /*last*/) EI_ORIGINAL(0x0064AD40)
+// orientations, empty strings), 0064AD40 erases [first, last): recordvec::HudPortraitSlotVector's.
+stlp::vector<HudPortraitSlot>* Slots(HudPortraitSlot** vector) { return reinterpret_cast<stlp::vector<HudPortraitSlot>*>(vector); }
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
@@ -109,7 +108,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
     CopyImage(objects_.data[objects_.size - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
-    SlotsPushDefault(&slots_);
+    recordvec::HudPortraitSlotVector::PushDefault(Slots(&slots_));
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);
 
@@ -195,7 +194,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString picture;
     mfc::CString model;
     mfc::CString tip;
-    SlotsErase(&slots_, nullptr, slots_, slotsEnd_);
+    recordvec::HudPortraitSlotVector::EraseRange(Slots(&slots_), nullptr, slots_, slotsEnd_);
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];

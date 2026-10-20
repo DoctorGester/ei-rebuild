@@ -32,6 +32,7 @@
 #include "originals_render.h"
 #include "originals_world.h"
 #include "world_glue.h"
+#include "record_lists.h"
 
 #include <cstdint>
 #include <cstring>
@@ -384,7 +385,6 @@ namespace {
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
-__declspec(naked) void __fastcall MenuTitlesVector(void*, void*, const void*) EI_ORIGINAL(0x00634300)
 
 // The empty CString's data pointer (00796E48), stored as a CString member is.
 const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
@@ -444,8 +444,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
             MappedResourceConstructOriginal(w->archive_);
-            char allocator = 0;
-            MenuTitlesVector(&w->lines_, nullptr, &allocator);
+            w->lines_.Construct();   // 00634300
             new (static_cast<void*>(&w->name_)) mfc::CString(game::Text(0x00794250));   // "Titles"
             Screen8Member1D8(&w->player_);
             w->fromGame_ = true;
@@ -665,7 +664,6 @@ struct TitlesTokenizer : TextTokenizer {
     // The current word, or null past the end (the original's `position != -1 ? word : 0`).
     const char* WordOrNull() const { return position != -1 ? static_cast<const char*>(word) : nullptr; }
 };
-__declspec(naked) void** __stdcall TitlesInsertLine(void**, void*, const TitleLine*) EI_ORIGINAL(0x0062C090)
 
 mfc::CString* LineString(const char** field) { return reinterpret_cast<mfc::CString*>(field); }
 } // namespace
@@ -720,8 +718,7 @@ void CCreditsScreen::Build() {
             *LineString(&record.style) = words.WordOrNull();
             words.Next();
             *LineString(&record.text) = words.WordOrNull();
-            void* inserted;
-            TitlesInsertLine(&inserted, lines_.End(), &record);   // push_back
+            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);   // push_back (0062C090)
             LineString(&record.style)->~CString();
             LineString(&record.text)->~CString();
             lines.Next();

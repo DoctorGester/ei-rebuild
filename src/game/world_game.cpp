@@ -51,6 +51,9 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "party_records.h"
+#include "game_lists.h"
+#include "record_vectors.h"
+#include "game_arrays.h"
 
 #include <cstring>
 #include <new>
@@ -556,7 +559,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     mfc::impl::ConstructArrayOf<mfc::impl::ExitArrayClass>(exits);
     exits.vtable = reinterpret_cast<void*>(kExitArrayVtable);
     const auto* source = reinterpret_cast<const ZoneExitArray*>(&zoneRecord->exits);
-    ZoneExitsSetSizeOriginal(&exits, nullptr, source->size, -1);
+    gamearrays::ExitsSetSize(&exits, source->size);
     for (int i = 0; i < source->size; ++i) {
         alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
         ZoneExit* exit = recordarrays::ExitGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);
@@ -702,7 +705,7 @@ namespace {
 // The party manager (007AA5A0): 004A88C0 resets it (PartyManagerNewGameFour), 004A8890 (originals_world.h)
 // begins a redeploy of a party.
 
-void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
+void* GlobalPartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
 // The party outside a game (007C82B0, the party records as WorldPlayer::Party has them).
 PartyRecords* GlobalParty() { return reinterpret_cast<PartyRecords*>(0x007C82B0); }
 // A CParty seen as its records (PartyRecords) or through an untyped pointer; Assign / CopyConstruct
@@ -719,7 +722,7 @@ mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
 }
 
 void GameFlow::BeginMultiplayerGame() {
-    PartyManagerNewGameFour(PartyManager());
+    PartyManagerNewGameFour(GlobalPartyManager());
     if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
@@ -728,7 +731,7 @@ void GameFlow::BeginMultiplayerGame() {
         zone->~CString();
     }
     VariableSet(&GlobalParty()->variables, game::Text(kMultiplayerVariable), 1.0f);
-    PartyManagerBeginRedeploy(PartyManager(), nullptr, GlobalParty());
+    PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, GlobalParty());
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* zone = MultiplayerZoneInto(reinterpret_cast<mfc::CString*>(storage));
@@ -760,7 +763,7 @@ void GameFlow::ReturnLocalParty() {
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
     CParty* party = player->Party();
     AsParty(GlobalParty())->Assign(party);
-    PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
+    PartyManagerBeginRedeploy(GlobalPartyManager(), nullptr, party);
     // 00662AC0: the global party record (007C82B0) written into the heroes' folder (007C82A0).
     reinterpret_cast<MpHeroRecord*>(GlobalParty())->WriteFile(*reinterpret_cast<const char* const*>(0x007C82A0));
     FlowUpdateFromServerOriginal(this);
@@ -935,11 +938,9 @@ constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script te
 constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
 
 // The decoder (mob_script_decoder.h): 00598940 constructs an empty vector<char> (allocator by
-// pointer); 0042D2C0 / 00598D80 free them; 004D8E10 (RET 4) decodes `input` into `text` and the
+// pointer); 0042D2C0 / 00598D80 free them (FreeStorage); 004D8E10 (RET 4) decodes `input` into `text` and the
 // CString, called through its address so its verify wrapper sees the zone's scripts.
 using CharVector = stlp::vector<char>;
-__declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
-__declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 
 // A CMemoryStream on the stack, as the original builds it (limit, ok, no data, Reset) and frees it.
@@ -994,8 +995,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     }
     ScriptReset(MainScript());
     ScriptLoadLine(commandsA_, nullptr, &script, 1);
-    EncodedFree(&decoder.input, nullptr);
-    DecodedFree(&decoder.text, nullptr);
+    decoder.input.FreeStorage();
+    decoder.text.FreeStorage();
 }
 
 // ---- SwitchMultiplayerZone ------------------------------------------------------------------------
@@ -1159,8 +1160,6 @@ namespace {
 
 libcrt::Ostream* const kNetLog = reinterpret_cast<libcrt::Ostream*>(0x007C56B0);   // the network log's ostream
 
-// 00598EF0. The connection list's destructor.
-__declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(0x00598EF0)
 // 0066C180. The player list makes a new player. 00665990 (CPlayer::Connect): the player takes a connection.
 
 } // namespace
@@ -1175,7 +1174,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
     joined.blocks = nullptr;
     joined.blockSize = 10;
     if (gameResult_ == 0) {
-        SessionListDestruct(&joined, nullptr);
+        mfc::impl::ListAs<gamelists::Refs>(&joined)->RemoveAll();   // 00598EF0: the connections released
         return;
     }
     static_cast<CPlayerSource*>(lobby)->TakeNew(&joined);   // the new connections
@@ -1847,8 +1846,7 @@ namespace {
 unsigned& ServerStamp() { return *reinterpret_cast<unsigned*>(0x007AFED0); }   // the newest variable stamp seen
 unsigned& AppliedStamp() { return *reinterpret_cast<unsigned*>(0x007AFED4); }  // the stamp applied up to
 
-// The quest text files (007AFDD0, 12-byte strings) and the briefing texts (007AF788).
-__declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
+// The quest text files (007AFDD0, a vector of strings) and the briefing texts (007AF788).
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { static_cast<NamedFloatTable*>(table)->Set(name, std::bit_cast<float>(bits)); }
 // The flow's methods, through their addresses.
@@ -1891,7 +1889,7 @@ void GameFlow::UpdateFromServer() {
         auto* files = reinterpret_cast<std::uint8_t**>(0x007AFDD0);
         for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
             static_cast<CTextManager*>(texts)->RemoveSource(*reinterpret_cast<const char**>(file));
-        QuestFilesClear(files);
+        stlp::VectorAbi<stlp::string, stlp::StringElement>::Clear(reinterpret_cast<stlp::vector<stlp::string>*>(files));   // 00581860
     }
     auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);
     WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
@@ -2106,9 +2104,12 @@ constexpr std::uintptr_t kIngosMaps = std::uintptr_t(0x00790298);       // zone1
 constexpr std::uintptr_t kSuslangerMaps = std::uintptr_t(0x007902C0);   // zone17, zone18
 const char* const* NameList(std::uintptr_t address) { return reinterpret_cast<const char* const*>(address); }
 
-// 00587480 (RET 0xC). The zone table's _M_insert_overflow(pos, value, count).
-__declspec(naked) void __fastcall ZoneTableInsertOverflow(ZoneTable*, void*, ZoneEntry* /*pos*/, const ZoneEntry* /*value*/,
-                                                         unsigned /*count*/) EI_ORIGINAL(0x00587480)
+// 00587480. The zone table's _M_insert_overflow(pos, value, count) (recordvec::ZoneTableVector's).
+void ZoneTableInsertOverflow(ZoneTable* table, ZoneEntry* pos, const ZoneEntry* value, unsigned count) {
+    recordvec::ZoneTableVector::InsertOverflow(reinterpret_cast<stlp::vector<recordvec::ZoneTableEntry>*>(table), nullptr,
+                                               reinterpret_cast<recordvec::ZoneTableEntry*>(pos),
+                                               reinterpret_cast<const recordvec::ZoneTableEntry*>(value), count);
+}
 
 mfc::CString& EntryText(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 
@@ -2132,7 +2133,7 @@ void AppendEmptyEntry(ZoneTable& table) {
     ZoneEntry empty{};
     new (&EntryText(empty.first)) mfc::CString();
     new (&EntryText(empty.second)) mfc::CString();
-    ZoneTableInsertOverflow(&table, nullptr, table.finish, &empty, 1);
+    ZoneTableInsertOverflow(&table, table.finish, &empty, 1);
     EntryText(empty.second).~CString();
     EntryText(empty.first).~CString();
 }

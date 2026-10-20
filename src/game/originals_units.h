@@ -41,19 +41,11 @@ __declspec(naked) inline void __fastcall CountedRefResetOriginal(void* /*slot*/)
 // controller's order counts as fighting (plain RET, AL).
 __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*controller*/) EI_ORIGINAL(0x0054B580)
 // 00556D40: the cell list's RemoveAll (plain RET; next to its constructor 00556D10).
-__declspec(naked) inline void __fastcall CellListRemoveAllOriginal(void* /*list*/) EI_ORIGINAL(0x00556D40)
 
 class CFigureAnimationState;
 class CUnitClientSpecific;
 struct FigureAnimation;
 class CObject3DClientSpecific;
-// 005392F0 (library: STLport list::erase of the speech
-// queue): removes `at`, the next node to *out (RET 8).
-struct ClientSpeech;
-struct ClientSpeechNode;
-__declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** /*queue*/, void*,
-                                                             ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
-    EI_ORIGINAL(0x005392F0)
 
 // A-U10 (map_object_animation_bones.cpp). Rewritten: 0050C230 FigureBone::Place (RET 4),
 // 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;

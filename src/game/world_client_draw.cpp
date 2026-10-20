@@ -46,6 +46,7 @@
 #include "ui.h"
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
+#include "lib/stlp_list_refs.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
 
@@ -423,7 +424,7 @@ int CWorldClient::DrawPass() {
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
-    CountedListClearOriginal(FrameDeferredUnits());
+    FrameDeferredUnits()->Clear<stlp::HeldObject>();   // 005703C0
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
                                          FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
@@ -612,8 +613,7 @@ int CWorldClient::DrawPass() {
                         static_cast<CObject3DSpecific*>(object->attached)->Unused25(0);
                         static_cast<CObject3DSpecific*>(object->attached)->SetLit(0);
                     }
-                    void* unused;
-                    IdListEraseOriginal(&selected, nullptr, &unused, node);
+                    stlp::list<void*>::Erase(node);   // 00512030
                 }
             }
             node = next;
