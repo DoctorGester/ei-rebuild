@@ -13,7 +13,7 @@
 #include "../lib/mfc.h"
 #include "ei/hook.h"
 #include "originals_library.h"
-#include "originals_ui.h"
+#include "record_vectors.h"
 #include "text_split.h"
 
 #include <cstdint>
@@ -31,55 +31,28 @@ constexpr std::size_t kBriefingSize = sizeof(QuestBriefingRecord);
 // The quest registry (registry.cpp).
 using Registry = CFileRegistry;
 
-// The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
-// position, value, count].
-__declspec(naked) void __fastcall PlacesConstruct(void*, void*, const void*) EI_ORIGINAL(0x006AFB00)
-__declspec(naked) void __fastcall PlacesInsertOverflow(void*, void*, float*, const float*, int) EI_ORIGINAL(0x006ADD50)
-// The briefing lists: constructors [0053F4F0 for the first, 0055A3E0 for the others; allocator],
-// erase a range [006AFB60], clear [0052E010], reserve [006B02B0], push_back from a CString
-// [006AF790], and the reader of a registry string list into one [006AE740: registry, section; key,
-// list].
-__declspec(naked) void __fastcall ListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0055A3E0)
-__declspec(naked) void __fastcall ListErase(void*, void*, void*, void*) EI_ORIGINAL(0x006AFB60)
-void __fastcall ListClear(void* a0) { CStringVectorClearOriginal(a0); }
-__declspec(naked) void __fastcall ListReserve(void*, void*, int) EI_ORIGINAL(0x006B02B0)
-__declspec(naked) void __fastcall ListPushBack(void*, void*, const mfc::CString*) EI_ORIGINAL(0x006AF790)
-// Called through its address so the wrapper of the rewrite below (ReadStringList) runs.
+// The quest places: vector<float> (constructor 006AFB00, insert-overflow 006ADD50).
+using PlaceElement = stlp::PlainElement<float>;
+// The briefing lists: vector<CString> (constructors 0053F4F0 for the first, 0055A3E0 for the
+// others; erase a range 006AFB60, clear 0052E010, reserve 006B02B0, push_back from a CString
+// 006AF790).
+using ListElement = stlp::ObjectElement<mfc::CString>;
+// The quest and briefing vectors' push_back (006B0710 / 006B0780).
+using QuestElement = recordvec::QuestVector::Element;
+using BriefingElement = recordvec::BriefingVector::Element;
 // The record destructors [quest 006AF4D0, briefing 006AF5A0].
 void __fastcall QuestDestroy(void* record) { static_cast<QuestRecord*>(record)->Destruct(); }
 void __fastcall BriefingDestroy(void* record) { static_cast<QuestBriefingRecord*>(record)->Destruct(); }
-// The quest index: find by the record's name [006B0870: out iterator, record], the end iterator
-// [006B0B10: node, map], push_back [006B0710], clear [006B0520], operator[] [0064EE90: the record,
-// returns the value slot]. The briefing index: 006B07C0, 006B0B30, 006B0780, 006B0590, 004297A0,
-// and the add-unless-present used for the later briefings [006B0600].
-__declspec(naked) void __fastcall QuestFind(void*, void*, void**, const void*) EI_ORIGINAL(0x006B0870)
-__declspec(naked) void __fastcall QuestIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B10)
-__declspec(naked) void __fastcall QuestPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0710)
-__declspec(naked) void __fastcall QuestIndexClear(void*) EI_ORIGINAL(0x006B0520)
-__declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*) EI_ORIGINAL(0x006B07C0)
-__declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
-__declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
-__declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
-// The briefing index's find by a record's name [006B0930, RET 8: out iterator (node, table), key].
-__declspec(naked) void __fastcall BriefingFindNode(void*, void*, void**, const void*) EI_ORIGINAL(0x006B0930)
-
-// An allocator argument: the members read at most a byte through it.
-const std::uint8_t kAllocator = 0;
+// The quest index: find by the record's name (006B0870), clear (006B0520), operator[] (0064EE90).
+// The briefing index: find 006B07C0 / 006B0930, clear 006B0590, operator[] 004297A0; the
+// add-unless-present used for the later briefings 006B0600.
 
 CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
 // path when the vector is full.
-void PushPlace(QuestRecord* quest, float value) {
-    float*& finish = quest->places.Finish();
-    if (finish == quest->places.EndOfStorage()) {
-        PlacesInsertOverflow(&quest->places, nullptr, finish, &value, 1);
-        return;
-    }
-    if (finish) std::memcpy(finish, &value, 4);
-    ++finish;
-}
+void PushPlace(QuestRecord* quest, float value) { quest->places.PushBack<PlaceElement>(value); }
 
 // The "quest" section into the quest record.
 void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
@@ -112,32 +85,22 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
 // Adds the quest unless its name is indexed with a record already; the index is rebuilt over the
 // whole vector after the push_back (it may have moved the records).
 void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
-    void* map = &db->questsByName;
-    void* found[2];
-    QuestFind(map, nullptr, found, quest);
-    void* end[2];
-    QuestIterator(end, nullptr, nullptr, map);
-    if (found[0] != end[0] && static_cast<const QuestDatabase::QuestIndex::Node*>(found[0])->value != nullptr) return;
-    QuestPushBack(&db->quests, nullptr, quest);
-    QuestIndexClear(map);
-    for (QuestRecord* r = db->quests.begin(); r != db->quests.end(); ++r) {
-        *QuestIndexAt(map, nullptr, r) = r;
-    }
+    QuestDatabase::QuestIndex& map = db->questsByName;
+    const QuestDatabase::QuestIndex::Node* found = map.Find(quest->name);
+    if (found && found->value != nullptr) return;
+    db->quests.PushBack<QuestElement>(*quest);
+    map.Clear();
+    for (QuestRecord* r = db->quests.begin(); r != db->quests.end(); ++r) map.Subscript(r->name) = r;
 }
 
 void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) {
     QuestBriefingTable* briefings = &db->briefings;
-    void* map = &briefings->index;
-    void* found[2];
-    BriefingFind(map, nullptr, found, briefing);
-    void* end[2];
-    BriefingIterator(end, nullptr, nullptr, map);
-    if (found[0] != end[0] && static_cast<const QuestBriefingTable::Index::Node*>(found[0])->value != nullptr) return;
-    BriefingPushBack(&briefings->records, nullptr, briefing);
-    BriefingIndexClear(map);
-    for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) {
-        *(void**)MapRegistryFindOriginal((void*)map, nullptr, r) = r;
-    }
+    QuestBriefingTable::Index& map = briefings->index;
+    const QuestBriefingTable::Index::Node* found = map.Find(briefing->name);
+    if (found && found->value != nullptr) return;
+    briefings->records.PushBack<BriefingElement>(*briefing);
+    map.Clear();
+    for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) map.Subscript(r->name) = r;
 }
 
 // A briefing's name, exp and money (the original assigns the "complete" briefing's name with the
@@ -157,21 +120,16 @@ void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingR
     console::CStringArray strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
     CStringVector* v = List(briefing, list);
-    if (erase) {
-        ListErase(v, nullptr, v->begin(), v->end());
-    } else {
-        ListClear(v);
-    }
-    ListReserve(v, nullptr, strings.GetSize());
+    v->EraseRange<ListElement>(v->begin(), v->end());   // erase(begin, end) or clear(): the same
+    v->Reserve<ListElement>(strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
-        if (Length(strings[i]) != 0) ListPushBack(v, nullptr, &strings[i]);
+        if (Length(strings[i]) != 0) v->PushBack<ListElement>(strings[i]);
     }
 }
 
 void ConstructBriefing(QuestBriefingRecord* briefing) {
     stlp::StringElement::Default(&briefing->name);
-    FirstListConstruct(List(briefing, 0), nullptr, &kAllocator);
-    for (int i = 1; i < 6; ++i) ListConstruct(List(briefing, i), nullptr, &kAllocator);
+    for (int i = 0; i < 6; ++i) List(briefing, i)->ConstructEmpty();
     stlp::StringElement::Default(&briefing->text);
 }
 
@@ -217,7 +175,7 @@ bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image) {
     alignas(4) char questStorage[kQuestSize];
     auto* quest = reinterpret_cast<QuestRecord*>(questStorage);
     stlp::StringElement::Default(&quest->name);
-    PlacesConstruct(&quest->places, nullptr, &kAllocator);
+    quest->places.ConstructEmpty();
     stlp::StringElement::Default(&quest->text);
     {
         console::CStringArray places;
@@ -243,10 +201,10 @@ EI_REPLACE(0x006AE8E0, QuestDatabaseLoad);
 void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
     console::CStringArray strings;
     registry->GetStringArray(section, key, &strings);
-    ListErase(list, nullptr, list->begin(), list->end());
-    ListReserve(list, nullptr, strings.GetSize());
+    list->EraseRange<ListElement>(list->begin(), list->end());
+    list->Reserve<ListElement>(strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
-        if (Length(strings[i]) != 0) ListPushBack(list, nullptr, &strings[i]);
+        if (Length(strings[i]) != 0) list->PushBack<ListElement>(strings[i]);
     }
 }
 EI_REPLACE(0x006AE740, ReadStringList);
@@ -255,15 +213,11 @@ EI_REPLACE(0x006AE740, ReadStringList);
 
 bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     if (!record) return false;
-    void* iterator[2];
-    BriefingFindNode(&index, nullptr, iterator, record);
-    const Index::Node* node = static_cast<const Index::Node*>(iterator[0]);
+    const Index::Node* node = index.Find(record->name);
     if (node && node->value) return false;
-    BriefingPushBack(&records, nullptr, record);
-    BriefingIndexClear(&index);
-    for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) {
-        *(void**)MapRegistryFindOriginal((void*)&index, nullptr, r) = r;
-    }
+    records.PushBack<BriefingElement>(*record);
+    index.Clear();
+    for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) index.Subscript(r->name) = r;
     return true;
 }
 EI_REPLACE_METHOD(0x006B0600, QuestBriefingTable::Add);

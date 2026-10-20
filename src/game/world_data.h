@@ -8,6 +8,7 @@
 
 #include "engine_object.h"
 #include "lib/stlp.h"
+#include "lib/stlp_hash.h"
 
 class CInterface3D;   // ui.h
 class CLight;   // spell.h
@@ -185,8 +186,9 @@ inline const char* MercHiredFormat() { return reinterpret_cast<const char*>(std:
 // "WorldScript( GSSetVar( %i,"%s",2 ) #OnBriefingComplete( %i, "%s" ) )"
 inline const char* BriefingCompleteScript() { return reinterpret_cast<const char*>(std::uintptr_t(0x007909EC)); }
 inline const char* HumanHeroText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078B0FC)); }   // "Human Hero"
-// The quest database's briefings by name (an STLport hash_map<string, BriefingRecord*>, ui_briefing.h).
-inline void* QuestBriefings() { return reinterpret_cast<void*>(std::uintptr_t(0x007C87D4)); }
+// The quest database's briefings by name (an STLport hash_map<string, BriefingRecord*>, ui_briefing.h;
+// operator[] 004297A0: stlp::NamedSlot).
+inline stlp::NameMap& QuestBriefings() { return *reinterpret_cast<stlp::NameMap*>(std::uintptr_t(0x007C87D4)); }
 // The vtables of the lists and arrays the world server builds on the stack: CPtrList of items
 // (0073BE80), CList of experience shares (0073FAB0), CArray of unit record pointers (0073FAA4).
 constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);

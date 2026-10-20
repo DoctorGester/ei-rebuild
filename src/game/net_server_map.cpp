@@ -81,7 +81,7 @@ void ServerSession::SetMap(const stlp::string* name) {
     std::uint8_t* entry;
     {
         stlp::string registryName = stlp::Plus(*name, game::ZoneSuffix1Text());
-        entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&registryName));
+        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), registryName);
     }
     if (!entry) return;
 

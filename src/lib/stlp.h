@@ -226,6 +226,14 @@ public:
         return n->value;
     }
 
+    // operator[] as STLport writes it for a key with a copy constructor (e.g. 004297A0): a
+    // temporary {key, Value()} for find_or_insert (copied into a new node when the key is
+    // missing), destroyed after.
+    Value& Subscript(const Key& key) {
+        Pair obj{key, Value()};
+        return FindOrInsert(obj)->value;
+    }
+
     // Visits nodes in iterator order: buckets in order, each chain from its head.
     template <typename F> void ForEach(F f) const {
         for (std::size_t i = 0; i < BucketCount(); ++i)

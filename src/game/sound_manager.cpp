@@ -102,25 +102,18 @@ __declspec(naked) void __stdcall CallWithOne(void* /*fn*/, void* /*arg*/) {
     }
 }
 
-// Not rewritten.
-// hash_map<string, cached wave>::operator[] on the slot's wave name (CSoundManager + 0x870);
-// returns the value: a pointer to the cache list node, whose +0x20 is the use count.
-__declspec(naked) std::uint8_t** __fastcall CacheEntry(void* /*map*/, void*, const SoundSlot*) EI_ORIGINAL(0x006BBDF0)
-// hash_map<int, DeferredSound*>::erase(key) (CSoundManager + 0x884).
-__declspec(naked) int __fastcall DeferredErase(DeferredMap*, void*, const std::int32_t*) EI_ORIGINAL(0x006BD060)
-// Frees an STLport string's storage on the node allocator (the DeferredSound's name).
-__declspec(naked) void __fastcall FreeStringStorage(void*) EI_ORIGINAL(0x006B72E0)
-// The deferred map's STLport iteration: begin(), the next node in a later bucket, operator[]
-// (which may rehash first), erase(key).
-struct DeferredIter {
-    DeferredNode* node;
-    DeferredMap* map;
-};
-__declspec(naked) DeferredIter* __fastcall DeferredBegin(DeferredMap*, void*, DeferredIter*) EI_ORIGINAL(0x006BC3E0)
-__declspec(naked) DeferredNode* __fastcall DeferredNextBucket(DeferredIter*) EI_ORIGINAL(0x006BCFB0)
-// Returns the address of the {key, value} pair.
-__declspec(naked) std::int32_t* __fastcall DeferredIndex(DeferredMap*, void*, const std::int32_t* /*pair*/)
-    EI_ORIGINAL(0x006BCFF0)
+// The cache's operator[] on the slot's wave name (006BBDF0): the slot of the wave's cache list
+// node, whose +0x20 is the use count.
+std::uint8_t*& CacheEntry(stlp::NameMap& cache, const SoundSlot* slot) { return stlp::NamedSlot<std::uint8_t>(cache, slot->name); }
+// The deferred record of `handle` set (find_or_insert 006BCFF0, which may rehash first).
+void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
+    deferred.FindOrInsert({handle, nullptr})->value = rec;
+}
+// A deferred record freed: its name's storage (006B72E0), then the record.
+void FreeDeferred(DeferredSound* rec) {
+    rec->name.~string();
+    gamecrt::operator_delete(rec);
+}
 
 int ClampLevel(int v) { return v < 0 ? 0 : (v > 0x7F ? 0x7F : v); }
 
@@ -157,8 +150,8 @@ void CSoundManager::ApplyVolumePan(SoundSlot* slot) const {
 
 // Ends a voice: releases its cached wave, stops the sample and frees the slot.
 void CSoundManager::EndSlot(SoundSlot* slot) {
-    std::uint8_t** entry = CacheEntry(cache, nullptr, slot);
-    --*reinterpret_cast<std::int32_t*>(*entry + 0x20);
+    std::uint8_t* entry = CacheEntry(cache, slot);
+    --*reinterpret_cast<std::int32_t*>(entry + 0x20);
     AilEndSample()(slot->sample);
     slot->playing = 0;
     slot->finished = 0;
@@ -409,9 +402,8 @@ void DropDeferred(CSoundManager* m, int handle) {
     if (node == nullptr) return;
     DeferredSound* rec = node->value;
     if (rec == nullptr) return;
-    DeferredErase(&m->deferred, nullptr, &rec->handle);
-    FreeStringStorage(rec);
-    gamecrt::operator_delete(rec);
+    m->deferred.EraseKey(rec->handle);   // 006BD060
+    FreeDeferred(rec);
 }
 } // namespace
 
@@ -646,8 +638,8 @@ void CSoundManager::Tick() {
     for (int i = 0; i < 15; ++i) {
         SoundSlot* slot = &slots[i];
         if (slot->finished == 0 || slot->playing == 0) continue;
-        std::uint8_t** entry = CacheEntry(cache, nullptr, slot);
-        --*reinterpret_cast<std::int32_t*>(*entry + 0x20);
+        std::uint8_t* entry = CacheEntry(cache, slot);
+        --*reinterpret_cast<std::int32_t*>(entry + 0x20);
         AilEndSample()(slot->sample);
         slot->handle = -1;
         slot->playing = 0;
@@ -657,26 +649,19 @@ void CSoundManager::Tick() {
     for (int i = 0; i < 15; ++i) {
         if (deferred.Size() == 0) break;
         if (slots[i].playing != 0) continue;
-        // The highest priority (the first one met on ties).
-        DeferredIter it;
-        DeferredBegin(&deferred, nullptr, &it);
-        std::int32_t best = it.node->value->priority;
-        DeferredBegin(&deferred, nullptr, &it);
-        std::int32_t key = it.node->value->handle;
-        DeferredBegin(&deferred, nullptr, &it);
-        while (it.node != nullptr) {
-            DeferredSound* candidate = it.node->value;
+        // The highest priority (the first one met on ties; begin() 006BC3E0, the next bucket
+        // 006BCFB0).
+        std::int32_t best = deferred.First()->value->priority;
+        std::int32_t key = deferred.First()->value->handle;
+        for (DeferredNode* node = deferred.First(); node != nullptr; node = deferred.After(node)) {
+            DeferredSound* candidate = node->value;
             if (candidate->priority > best) {
                 best = candidate->priority;
                 key = candidate->handle;
             }
-            DeferredNode* next = it.node->next;
-            if (next == nullptr) next = DeferredNextBucket(&it);
-            it.node = next;
         }
-        std::int32_t pair[2] = {key, 0};
-        DeferredSound* rec = reinterpret_cast<DeferredSound*>(DeferredIndex(&deferred, nullptr, pair)[1]);
-        DeferredErase(&deferred, nullptr, &key);
+        DeferredSound* rec = deferred.FindOrInsert({key, nullptr})->value;
+        deferred.EraseKey(key);
 
         SoundSlot* slot = &slots[i];
         slot->volume = rec->volume;
@@ -704,10 +689,7 @@ void CSoundManager::Tick() {
             AilSetSamplePosition()(slot->sample, rec->samplePosition);
             AilStartSample()(slot->sample);
         }
-        if (rec != nullptr) {
-            FreeStringStorage(rec);
-            gamecrt::operator_delete(rec);
-        }
+        if (rec != nullptr) FreeDeferred(rec);
     }
 
     for (int k = 0; k < 8; ++k) {
@@ -941,17 +923,9 @@ EI_REPLACE_METHOD(0x006B71C0, CSoundManager::StopAll);
 
 // StopAll's loop (Close's is the same with the map's clear() out of line, 006BD100).
 void CSoundManager::DeleteDeferred() {
-    DeferredIter it;
-    DeferredBegin(&deferred, nullptr, &it);
-    while (it.node != nullptr) {
-        DeferredSound* rec = it.node->value;
-        if (rec != nullptr) {
-            FreeStringStorage(rec);
-            gamecrt::operator_delete(rec);
-        }
-        DeferredNode* next = it.node->next;
-        if (next == nullptr) next = DeferredNextBucket(&it);
-        it.node = next;
+    for (DeferredNode* node = deferred.First(); node != nullptr; node = deferred.After(node)) {
+        DeferredSound* rec = node->value;
+        if (rec != nullptr) FreeDeferred(rec);
     }
     deferred.Clear();
 }
@@ -1093,8 +1067,7 @@ int CSoundManager::AllocateVoice(int priority) {
         std::memcpy(&rec->farDistance, &slot->farDistance, 4);
         rec->handle = slot->handle;
         rec->samplePosition = AilSamplePosition()(slot->sample);
-        std::int32_t key = rec->handle;
-        reinterpret_cast<DeferredSound**>(DeferredIndex(&deferred, nullptr, &key))[1] = rec;
+        SetDeferred(deferred, rec->handle, rec);
     }
     if (slot->playing != 0) EndSlot(slot);
     return index;
@@ -1137,8 +1110,7 @@ int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, i
     rec->handle = m->nextHandle;
     ++m->nextHandle;
     rec->samplePosition = 0;
-    std::int32_t key = rec->handle;
-    reinterpret_cast<DeferredSound**>(DeferredIndex(&m->deferred, nullptr, &key))[1] = rec;
+    SetDeferred(m->deferred, rec->handle, rec);
     return rec->handle;
 }
 
@@ -1210,8 +1182,7 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
         rec->handle = nextHandle;
         ++nextHandle;
         rec->samplePosition = 0;
-        std::int32_t key = rec->handle;
-        reinterpret_cast<DeferredSound**>(DeferredIndex(&deferred, nullptr, &key))[1] = rec;
+        SetDeferred(deferred, rec->handle, rec);
         return rec->handle;
     }
     SoundSlot* slot = &slots[index];
@@ -1234,16 +1205,8 @@ EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 // --- 006B89F0: LoadSample ----------------------------------------------------------------------------
 
 namespace {
-// The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
-// [returns the pair], erase by key; the pair's constructor [key, value].
-struct CacheIter {
-    std::uint8_t* node;         // +0x10: the WaveNode*
-    void* map;
-};
-__declspec(naked) void __fastcall CacheFind(void*, void*, CacheIter*, const void*) EI_ORIGINAL(0x006BC0C0)
-__declspec(naked) std::uint8_t* __fastcall CacheInsert(void*, void*, const void*) EI_ORIGINAL(0x006BCC20)
-__declspec(naked) void __fastcall CacheErase(void*, void*, const void*) EI_ORIGINAL(0x006BCCD0)
-__declspec(naked) void* __fastcall PairConstruct(void*, void*, const void*, WaveNode* const*) EI_ORIGINAL(0x006BC140)
+// The cache map (CSoundManager + 0x870): find 006BC0C0, find-or-insert of a pair 006BCC20 (the
+// pair's constructor 006BC140), erase by key 006BCCD0.
 // The cache list: a new node [prev, next], the record's copy into it, a node freed.
 __declspec(naked) WaveNode* __fastcall ListNewNode(WaveList*, void*, WaveNode*, WaveNode*) EI_ORIGINAL(0x006BD4F0)
 __declspec(naked) void __fastcall ListFreeNode(WaveList*, void*, WaveNode*) EI_ORIGINAL(0x006BD560)
@@ -1284,15 +1247,8 @@ void PushBack(WaveList& list, const WaveRecord* record) {
     else list.head = node;
     list.tail = node;
 }
-// cache[key] = node (through a temporary pair {key, node}, as the original).
-void CacheSet(CSoundManager* m, const stlp::string* key, WaveNode* node) {
-    std::uint32_t pair[4];
-    WaveNode* none = nullptr;
-    PairConstruct(pair, nullptr, key, &none);
-    std::uint8_t* inserted = CacheInsert(m->cache, nullptr, pair);
-    reinterpret_cast<stlp::string*>(pair)->~string();
-    *reinterpret_cast<WaveNode**>(inserted + 0xC) = node;
-}
+// cache[key] = node (through a temporary pair {key, null}, as the original).
+void CacheSet(CSoundManager* m, const stlp::string* key, WaveNode* node) { stlp::NamedSlot<WaveNode>(m->cache, *key) = node; }
 // A record copied out of a node (its own copy of the name).
 void CopyOut(WaveRecord* out, const WaveNode* node) {
     out->data = node->data.data;
@@ -1303,8 +1259,8 @@ void CopyOut(WaveRecord* out, const WaveNode* node) {
 }
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const char* name, const CacheIter& it) {
-    WaveNode* node = *reinterpret_cast<WaveNode**>(it.node + 0x10);
+void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const char* name, const stlp::NameMap::Node* cached) {
+    WaveNode* node = *reinterpret_cast<WaveNode* const*>(cached->value.mapped);
     WaveRecord record;
     CopyOut(&record, node);
     Unlink(m->cacheList, node);
@@ -1332,7 +1288,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
         if (record.uses <= 0) {
             AilMemFreeLock()(record.data);
             m->cacheBytes -= record.size;
-            CacheErase(m->cache, nullptr, record.name);
+            m->cache.EraseKey(record.Name());
             Unlink(m->cacheList, node);
             ListFreeNode(&m->cacheList, nullptr, node);
         }
@@ -1349,10 +1305,9 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 // Returns 0 when no archive has the file or the decompression fails.
 int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
     stlp::string key(name);   // freed on each return
-    CacheIter it;
-    CacheFind(cache, nullptr, &it, &key);
-    if (it.node != nullptr) {
-        if (compressed == 0) UseCached(this, slot, &key, name, it);
+    const stlp::NameMap::Node* cached = cache.Find(key);
+    if (cached != nullptr) {
+        if (compressed == 0) UseCached(this, slot, &key, name, cached);
     } else {
         CMappedResource* source = nullptr;
         void* data = nullptr;

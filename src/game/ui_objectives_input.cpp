@@ -38,7 +38,7 @@ constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
 // The quest database's index (007C87B4; operator[] adds an empty slot for an unknown name).
-void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
+QuestDatabase::QuestIndex& QuestIndex() { return *reinterpret_cast<QuestDatabase::QuestIndex*>(0x007C87B4); }
 
 } // namespace
 
@@ -152,7 +152,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     places.clear();
     if (IsMultiplayerClient()) {
         stlp::string key(name);
-        auto* record = static_cast<QuestRecord*>(*QuestIndexAt(QuestIndex(), nullptr, &key));
+        QuestRecord* record = QuestIndex().Subscript(key);
         if (record == nullptr) return;
         for (std::uint32_t i = 1; i < record->places.size(); i += 2)
             places.push_back(UiPointF{record->places[i - 1], record->places[i]});

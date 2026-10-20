@@ -126,9 +126,6 @@ __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*byt
 // 00427830: CPtrList destructor (plain RET); 00429F10: CPtrList::RemoveAll (plain RET). EAX is not a result.
 __declspec(naked) inline void __fastcall PtrListDestructOriginal(void* /*list*/) EI_ORIGINAL(0x00427830)
 __declspec(naked) inline void __fastcall PtrListRemoveAllNodesOriginal(void* /*list*/) EI_ORIGINAL(0x00429F10)
-// 004297A0: hash_map<string, ...>::operator[](key) (RET 4): the address of the value slot (node + 4 or the new node + 0xC).
-__declspec(naked) inline void* __fastcall MapRegistryFindOriginal(void* /*map*/, void*, const void* /*key*/)
-    EI_ORIGINAL(0x004297A0)
 
 // C3i. 00405720: STLport hash_map erase(node) (RET 8: node, table; EAX not a result). 00700D73: CString::operator+=(char)
 // (RET 4, returns this). 006E8693: CRT `eh vector constructor iterator` (RET 0x14: array, size, count, ctor, dtor).
@@ -169,14 +166,6 @@ __declspec(naked) inline void* __fastcall IntSetInsertOriginal(void* /*set*/, vo
 __declspec(naked) inline void __fastcall IntSetFindOriginal(void* /*set*/, void*, void* /*out*/, const int* /*key*/)
     EI_ORIGINAL(0x0066B490)
 __declspec(naked) inline void __fastcall IntSetClearOriginal(void* /*set*/) EI_ORIGINAL(0x0066BA70)
-// A-H17. The item database's name indexes (hash_map<string, record*>), find_or_insert(pair) (thiscall, RET 4; EAX the
-// stored pair): 00613B70 quick items, 006A7870 loot, 0069E2A0 quest items.
-__declspec(naked) inline void* __fastcall QuickItemIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x00613B70)
-__declspec(naked) inline void* __fastcall LootIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x006A7870)
-__declspec(naked) inline void* __fastcall QuestItemIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
-    EI_ORIGINAL(0x0069E2A0)
 
 // C3k. 004C96F0: destructor of the pointer list built by 004C96A0 (vtable 0073D454; plain RET, EAX not a result).
 // 004C98C0: constructor of the item pointer list (vtable 0073BE80) with a block size (RET 4, returns `this`).

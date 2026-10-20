@@ -43,7 +43,6 @@ __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*
     EI_ORIGINAL(0x005FDE20)
 __declspec(naked) inline void __fastcall ConstructContainerAt(void*, void*, CInterface3D*) EI_ORIGINAL(0x00600B20)
 __declspec(naked) inline void __fastcall DestroyContainerBody(void*) EI_ORIGINAL(0x00600BA0)
-__declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
 // 00458270 (__fastcall: ECX the section name, DL clears the screen first; then clear-after and two values on
 // the stack, RET 0xC): plays the movies listed under a section (the titles' "<name>fin" / "<name>fout").
 __declspec(naked) inline void __fastcall PlayMoviesOriginal(const char* /*section*/, int /*clearFirst*/, int, int, int)

@@ -435,12 +435,12 @@ namespace {
 // [0065CFE0].
 // The quest database's index (007C87B4, map<string, record*>): operator[] [0064EE90], creating an
 // empty slot for a name it lacks.
-void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
+QuestDatabase::QuestIndex& QuestIndex() { return *reinterpret_cast<QuestDatabase::QuestIndex*>(0x007C87B4); }
 
 // The quest's record (its experience and money rewards), from the quest database.
 QuestRecord* FindQuestRecord(const char* name) {
     stlp::string key(name);
-    return static_cast<QuestRecord*>(*QuestIndexAt(QuestIndex(), nullptr, &key));
+    return QuestIndex().Subscript(key);
 }
 
 bool SameText(const char* a, const char* b) {

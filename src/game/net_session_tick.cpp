@@ -114,11 +114,9 @@ namespace net {
 
 namespace {
 
-// The clients list (STLport list<RefPtr<Connection>>, +0x28): end, begin, erase; the find by peer
-// address (0043D780, an instantiation of find_if over the nodes) is FindClientByAddress
-// (library_net_lists.h, over its ClientsNode of the same layout).
-__declspec(naked) ClientNode** __fastcall ClientsEnd(ClientNode** /*list*/, void*, ClientNode** /*out*/) EI_ORIGINAL(0x00438830)
-__declspec(naked) ClientNode** __fastcall ClientsBegin(ClientNode** /*list*/, void*, ClientNode** /*out*/) EI_ORIGINAL(0x00438820)
+// The clients list (STLport list<RefPtr<Connection>>, +0x28): end 00438830, begin 00438820,
+// erase; the find by peer address (0043D780, an instantiation of find_if over the nodes) is
+// FindClientByAddress (library_net_lists.h, over its ClientsNode of the same layout).
 __declspec(naked) ClientNode** __fastcall ClientsErase(ClientNode** /*list*/, void*, ClientNode** /*out*/, ClientNode* /*pos*/) EI_ORIGINAL(0x00438840)
 
 
@@ -139,10 +137,8 @@ void LogConnection(const char* before, Connection* connection, const char* after
 } // namespace
 
 ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address) {
-    ClientNode* last;
-    ClientsEnd(&clients_, nullptr, &last);
-    ClientNode* first;
-    ClientsBegin(&clients_, nullptr, &first);
+    ClientNode* last = clients_;
+    ClientNode* first = clients_->next;
     using netlists::ClientsNode;
     netlists::FindClientByAddress(reinterpret_cast<ClientsNode**>(out), nullptr, reinterpret_cast<ClientsNode*>(first),
                                   reinterpret_cast<ClientsNode*>(last), address);   // 0043D780
@@ -277,16 +273,9 @@ namespace {
 void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { libcrt::DestroyElements(a0, a1, a2, reinterpret_cast<libcrt::ElementFunction>(a3)); }
 // The handler vectors' destructor (the vector base's: the storage freed).
 constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
-// The type registry's tables: clear and bucket-vector destruction of byType and byVtable.
-__declspec(naked) void __fastcall ByTypeClear(TypeRegistry::ByType* /*table*/) EI_ORIGINAL(0x0043D590)
-__declspec(naked) void __fastcall ByTypeBucketsDestroy(void* /*buckets*/) EI_ORIGINAL(0x0043AAB0)
-__declspec(naked) void __fastcall ByVtableClear(TypeRegistry::ByVtable* /*table*/) EI_ORIGINAL(0x0043B4D0)
-__declspec(naked) void __fastcall ByVtableBucketsDestroy(void* /*buckets*/) EI_ORIGINAL(0x0043A2B0)
-// The clients list: release of a node's counted connection pointer, node deallocation, sentinel
-// deallocation (pointer in ECX, count in EDX).
+// The clients list: release of a node's counted connection pointer; its nodes and sentinel go
+// back to the pool (00439E60, 0043AB30).
 __declspec(naked) void __fastcall ClientRefRelease(Connection** /*ref*/, void*, int /*flag*/) EI_ORIGINAL(0x0043DCA0)
-__declspec(naked) void __fastcall ClientNodeFree(ClientNode** /*list*/, void*, ClientNode* /*node*/, int /*n*/) EI_ORIGINAL(0x00439E60)
-__declspec(naked) void __fastcall ClientSentinelFree(ClientNode* /*sentinel*/, int /*n*/) EI_ORIGINAL(0x0043AB30)
 } // namespace
 
 void SessionBase::Destruct() {
@@ -312,21 +301,19 @@ void SessionBase::Destruct() {
     VectorDestructorIterator(handlers_[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
     VectorDestructorIterator(handlers_[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
     socket_.Destruct();
-    ByTypeClear(&types_.byType);
-    ByTypeBucketsDestroy(types_.byType.BucketVector());
-    ByVtableClear(&types_.byVtable);
-    ByVtableBucketsDestroy(types_.byVtable.BucketVector());
+    types_.byType.Destroy();     // clear 0043D590, the buckets 0043AAB0
+    types_.byVtable.Destroy();   // clear 0043B4D0, the buckets 0043A2B0
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;
         ClientRefRelease(&node->connection, nullptr, 0);
-        ClientNodeFree(&clients_, nullptr, node, 1);
+        stlp::deallocate(node, sizeof(ClientNode));
         node = next;
         if (node == clients_) break;
     }
     clients_->next = clients_;
     clients_->prev = clients_;
-    ClientSentinelFree(clients_, 1);
+    stlp::deallocate(clients_, sizeof(ClientNode));
     ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x00436A50, SessionBase::Destruct);
@@ -363,10 +350,8 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     Connection* connection = memory ? memory->Construct(id) : nullptr;
     Connection* ref;
     netlists::InitClientRef(&ref, connection);
-    ClientNode* end;
-    ClientsEnd(&clients_, nullptr, &end);
     ClientNode* inserted;
-    ClientsInsert(&clients_, nullptr, &inserted, end, &ref);
+    ClientsInsert(&clients_, nullptr, &inserted, clients_, &ref);
     Connection* added = clients_->prev->connection;
     added->address_ = *address;
     if (rate <= 500) rate = 500;

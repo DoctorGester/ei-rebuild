@@ -252,7 +252,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     BriefingRecord* record = nullptr;
     if (parts.GetSize() == 3) {
         stlp::string key(parts[2]);
-        record = *(BriefingRecord**)MapRegistryFindOriginal(worlddata::QuestBriefings(), nullptr, &key);
+        record = stlp::NamedSlot<BriefingRecord>(worlddata::QuestBriefings(), key);
     }
     WorldPlayer* player = nullptr;
     {

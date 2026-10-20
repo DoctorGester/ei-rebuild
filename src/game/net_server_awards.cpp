@@ -139,7 +139,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
     std::uint8_t* entry;
     {
         stlp::string key = stlp::Plus(*zone, game::ZoneSuffix3Text());
-        entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&key));
+        entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), key);
     }
     if (entry) {
         int count = 0;
@@ -193,7 +193,7 @@ void ServerSession::LeaveZone() {
         {
             stlp::string key = stlp::Plus(static_cast<MapMessage*>(holder->ptr)->text_, game::ZoneSuffix1Text());
             stlp::string lookup(key.data());
-            entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&lookup));
+            entry = stlp::NamedSlot<std::uint8_t>(worlddata::QuestBriefings(), lookup);
         }
         if (entry) AwardHost(entry, true);
     }

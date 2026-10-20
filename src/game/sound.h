@@ -10,6 +10,7 @@
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
+#include "../lib/stlp_hash.h"
 #include "../lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
@@ -238,8 +239,7 @@ struct CSoundManager : CEngineObject {
     SoundSequence sequences[8];         // +0x5F0
     std::int32_t cacheBytes;            // +0x850 bytes held by the wave cache
     WaveList cacheList;                 // +0x854 the cached waves, most recently used first
-    std::uint8_t cache[4];              // +0x870 hash_map<string, cached wave> (006BBDF0): functor bytes
-    std::uint8_t cacheBuckets[0x10];    // +0x874 its bucket vector and element count
+    stlp::NameMap cache;                // +0x870 wave name -> its cache list node (WaveNode*)
     DeferredMap deferred;               // +0x884
     std::int32_t enabled;               // +0x898
     std::int32_t spare;                 // +0x89C 0 after Reset; nothing reads it
