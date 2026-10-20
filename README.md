@@ -158,7 +158,9 @@ run_all at another verify build.
 code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
 permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
 and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
-Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; `python tools\run_all.py
+Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; every other game setting a run
+reads comes from the committed snapshot `config/harness/`, never the user's registry or key bindings:
+`tests/verify/harness_settings.h`; `python tools\run_all.py
 --widescreen` compares the image's frames on the Rebirth install with addon's WideScreen, recorded once with
 `--widescreen --record` into `build\widescreen` of the main checkout by the scenario's steps, `docs/notes/rebirth.md`
 and docs/notes/standalone-verification.md, "WideScreen references"; `chat 1|0` opens and closes the

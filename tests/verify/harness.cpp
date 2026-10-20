@@ -265,6 +265,7 @@
 #include "harness_script_order.h"
 #include "harness_watch.h"
 #include "harness_hooks.h"
+#include "harness_settings.h"
 #include "harness_starter.h"
 #include "harness_input.h"
 #include "harness_net.h"
@@ -817,6 +818,12 @@ const char* ReadPath(const char* path, char (&buffer)[MAX_PATH]) {
         if (logged++ < 20) Log("harness: hidden file read as missing: %s", path);
         return shadow;
     }
+    // The user's key bindings and the like: the committed copy (harness_settings.h).
+    char pinned[MAX_PATH];
+    if (shadow && settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned)) {
+        strcpy_s(buffer, pinned);
+        return buffer;
+    }
     return path;
 }
 
@@ -828,9 +835,11 @@ const char* WritePath(const char* path, char (&buffer)[MAX_PATH], bool keep) {
     const char* shadow = ShadowOf(path, buffer);
     if (!shadow) return path;
     MakeParentDirs(shadow);
+    char pinned[MAX_PATH];
+    const char* original = settings::PinnedFile(shadow + std::strlen(g_savesDir) + 1, pinned) ? pinned : path;
     if (keep && g_getFileAttributes(shadow) == INVALID_FILE_ATTRIBUTES &&
-        g_getFileAttributes(path) != INVALID_FILE_ATTRIBUTES)
-        g_copyFile(path, shadow, TRUE);
+        g_getFileAttributes(original) != INVALID_FILE_ATTRIBUTES)
+        g_copyFile(original, shadow, TRUE);
     LogInstallWrite(path, shadow);
     return shadow;
 }
@@ -853,7 +862,8 @@ HANDLE WINAPI RedirectedCreateFile(LPCSTR name, DWORD access, DWORD share, LPSEC
     return file;
 }
 
-// Registry: harness runs never write the game's settings (it saves its options on exit).
+// Registry: harness runs never write the game's settings (it saves its options on exit). Its reads, and
+// everything else on its keys, are answered from the committed snapshot (harness_settings.h).
 constexpr std::uintptr_t kRegSetValueExASlot = 0x0073B018;   // game.exe import table
 decltype(&::RegSetValueExA) g_regSetValue;
 
@@ -1031,6 +1041,7 @@ void WriteReport() {
     std::vector<std::string> failures = g_failures;
     if (std::string write = crash::FailedWrite(); !write.empty()) failures.push_back(write);   // harness_crash.h
     if (std::string paired = pair::Failure(); !paired.empty()) failures.push_back(paired);    // harness_pair.h
+    if (std::string pinned = settings::Failure(); !pinned.empty()) failures.push_back(pinned);   // harness_settings.h
     if (const int skipped = ei::UnexpectedSkips())   // rewrites the run never reached (SV6)
         failures.push_back(std::to_string(skipped) + " registration(s) left out at hook install (\"(unexpected)\" in ei_hook.log)");
     for (const std::string& failure : failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -3353,6 +3364,7 @@ struct Harness {
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install(g_savesDir);
+        settings::Install();   // the registry snapshot and the pinned install files, never the user's (harness_settings.h)
         netlocal::Install();   // a UDP port of its own, sockets on 127.0.0.1 only (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)

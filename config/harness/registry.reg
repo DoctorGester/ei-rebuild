@@ -1,0 +1,381 @@
+Windows Registry Editor Version 5.00
+
+; The game settings every harness run reads (WB16), in place of the user's registry: tests/verify/harness_settings.h.
+; Both installs' trees: the original's (Nival Interactive) and Rebirth's (Gipat.Ru\EI_Starter: addon.dll and the
+; image's Rebirth mode read their game settings from its EvilIslands key, the starter's switches from Settings).
+; Taken from this machine's registry on 2026-10-20 (reg export), with the values that reproduce the goldens
+; recorded before the user's play test of 2026-10-16: the original's General Settings\AudioStreaming 0x1c (the play
+; set it 0: no streamed music, and the world's random draws differ), AudioSFX 0x1c and AudioSpeech 0x19 (as
+; Rebirth's), Game Specific Settings\ShowTutorial 0 (docs/notes/standalone-verification.md, "Install files and
+; registry"). A value or key a run reads that is not here fails the run; "name"=- and [-key] mark ones that are
+; read but absent on purpose (the game takes its default). Work path / CD-ROM Path are replaced by the run's game
+; folder (EI_GAME_ROOT, src/hook/paths.cpp); a scenario's resolution / widescreen / fullscreen / fpscursor /
+; addonpath lines and CtfMon (always 0) are answered before this file (harness_starter.h).
+
+[HKEY_CURRENT_USER\Software\Nival Interactive]
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands]
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Camera Settings]
+"CameraFlipXAxis"=dword:00000000
+"CameraFlipYAxis"=dword:00000000
+"CameraMinHeight"=hex:00,00,40,40
+"CameraMaxHeight"=hex:00,00,8c,42
+"CameraDefaultHeight"=hex:00,00,00,40
+"CameraDefaultXDeploy"=hex:00,00,f0,41
+"CameraDefaultYDeploy"=hex:00,00,f0,41
+"CameraMinDistanceToCarrier"=hex:00,00,20,41
+"CameraMaxDistanceToCarrier"=hex:00,00,48,42
+"CameraMinLimitDistanceToCarrier"=hex:00,00,40,40
+"CameraMaxLimitDistanceToCarrier"=hex:00,00,8c,42
+"CameraDefaultDistanceToCarrier"=hex:00,00,f0,41
+"NearClipDistance"=hex:00,00,00,40
+"FarClipDistance"=hex:00,00,c8,42
+"CameraDefaultMinPitch"=hex:00,00,f0,41
+"CameraDefaultMaxPitch"=hex:00,00,70,42
+"CameraBriefingMinDistanceToCarrier"=hex:00,00,c0,40
+"CameraBriefingMaxDistanceToCarrier"=hex:00,00,d8,41
+"CameraBriefingMinLimitDistanceToCarrier"=hex:00,00,40,40
+"CameraBriefingMaxLimitDistanceToCarrier"=hex:00,00,f0,41
+"CameraBriefingMinPitch"=hex:00,00,20,42
+"CameraBriefingMaxPitch"=hex:00,00,70,42
+"CameraBorderScrollArea"=dword:00000001
+"CameraFrameSelectionSensetiveArea"=dword:0000001e
+"CameraTerrainSensetiveArea"=hex:00,00,20,41
+"CameraDefaultScrollSpeed"=hex:00,00,c0,3f
+"CameraDefaultScrollPowerMouse"=hex:00,00,80,3f
+"CameraDefaultScrollPowerKeyboard"=hex:1e,85,eb,3e
+"CameraDefaultRotateSpeed"=hex:9a,99,19,3e
+"CameraDefaultRotatePowerMouse"=hex:00,00,80,3f
+"CameraDefaultRotatePowerKeyboard"=hex:1e,85,eb,3e
+"CameraDefaultPitchSpeed"=hex:a6,9b,c4,3a
+"CameraDefaultPitchPowerMouse"=hex:00,00,80,3f
+"CameraDefaultPitchPowerKeyboard"=hex:1e,85,eb,3e
+"CameraDefaultZoomSpeed"=hex:00,00,00,40
+"CameraDefaultZoomPowerMouse"=hex:00,00,80,3f
+"CameraDefaultZoomPowerKeyboard"=hex:1e,85,eb,3e
+"CameraShortcut 0 AxisX"=hex:00,00,00,00
+"CameraShortcut 0 AxisY"=hex:00,00,00,00
+"CameraShortcut 0 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 0 Angle"=hex:00,00,00,00
+"CameraShortcut 0 Distance"=hex:00,00,f0,41
+"CameraShortcut 0 Pitch"=hex:00,00,34,42
+"CameraShortcut 1 AxisX"=hex:00,00,00,00
+"CameraShortcut 1 AxisY"=hex:00,00,00,00
+"CameraShortcut 1 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 1 Angle"=hex:00,00,00,00
+"CameraShortcut 1 Distance"=hex:00,00,f0,41
+"CameraShortcut 1 Pitch"=hex:00,00,34,42
+"CameraShortcut 2 AxisX"=hex:00,00,00,00
+"CameraShortcut 2 AxisY"=hex:00,00,00,00
+"CameraShortcut 2 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 2 Angle"=hex:00,00,00,00
+"CameraShortcut 2 Distance"=hex:00,00,f0,41
+"CameraShortcut 2 Pitch"=hex:00,00,34,42
+"CameraShortcut 3 AxisX"=hex:00,00,00,00
+"CameraShortcut 3 AxisY"=hex:00,00,00,00
+"CameraShortcut 3 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 3 Angle"=hex:00,00,00,00
+"CameraShortcut 3 Distance"=hex:00,00,f0,41
+"CameraShortcut 3 Pitch"=hex:00,00,34,42
+"CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Game Specific Settings]
+"DefaultWindForce"=hex:cd,cc,cc,3e
+"DefaultTimeScale"=dword:0000003c
+"UseSWCursors"=dword:00000000
+"SelectionType"=dword:00000001
+"CornerSize"=hex:00,00,00,3f
+"DrawVisibleOnly"=dword:00000001
+"DrawPath"=dword:00000001
+"DrawFlyingHP"=dword:00000001
+"ShowTutorial"=dword:00000000
+"Autosave"=dword:00000001
+"ToolTip Time"=hex:00,00,00,3f
+"SwitchFilters"=dword:00000001
+"CD1 Label"="EICD1"
+"CD2 Label"="EICD2"
+"CD3 Label"="EICD3"
+"Font CharSet"="english"
+"Keyboard Layout"=dword:00000409
+"ObjectsLightingCoeff"=hex:00,00,00,40
+"Hero Light R"=dword:000000d8
+"Hero Light G"=dword:000000d8
+"Hero Light B"=dword:00000074
+"Hero Light Radius"=dword:00000005
+"Quest Light R"=dword:00000078
+"Quest Light G"=dword:00000048
+"Quest Light B"=dword:00000078
+"Quest Light Radius"=dword:00000005
+"Difficulty Level"=dword:00000000
+"DefaultMapName"="Zone1.mpr"
+"DefaultStreamingSound"="melody.mp3"
+"FogNightStartDistance"=hex:00,00,48,42
+"FogDayStartDistance"=hex:00,00,b4,42
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\General Settings]
+"DrawingTarget"=dword:00000000
+"VideoResolution"="3840x2160"
+"VideoColorDepthInBits"=dword:00000020
+"VideoZBufferDepthInBits"=dword:00000010
+"VideoRefreshRate"=dword:00000000
+"FullScreen"=dword:00000001
+"Joystick"=dword:00000000
+"Video"=dword:00000002
+"Audio"=dword:00000001
+"AudioStreaming"=dword:0000001c
+"AudioSFX"=dword:0000001c
+"AudioSpeech"=dword:00000019
+"Antialiasing"=dword:00000000
+"Dithering"=dword:00000000
+"Specular"=dword:00000000
+"TextureQuality"=dword:00000000
+"Mipmapping"=dword:00000001
+"Filtering"=dword:00000002
+"PerspectiveCorrection"=dword:00000001
+"ShowParticles"=dword:00000001
+"FPSIndependentCursor"=dword:00000000
+"AutomaticQuantization"=dword:00000000
+"MovieCapturingFPS"=dword:0000000f
+"Brightness"=hex:00,00,00,00
+"Contrast"=hex:00,00,00,00
+"Gamma"=hex:00,00,00,00
+"Reverse Stereo"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Network Settings]
+"Master Server Name"="a3master.nival.com"
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Path Settings]
+"Work path"="F:\\games\\EvilIslands\\"
+"Resources path"=".\\res\\"
+"CD-ROM Path"="F:\\games\\EvilIslands\\"
+"FIRSTSTART"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Shadow Settings]
+"ShadowQuality"=dword:00000002
+"HeroShadow"=dword:00000001
+"UnitShadow"=dword:00000001
+"BuildingShadow"=dword:00000001
+"FloraShadow"=dword:00000000
+"OtherShadow"=dword:00000000
+"LightingFreq"=dword:00002710
+"FloraSpecialLight"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Statistics Output Settings]
+"CreateOutputInfo"=dword:00000000
+"NumberOfFrames"=dword:ffffffff
+
+[HKEY_CURRENT_USER\Software\Nival Interactive\EvilIslands\Terrain Settings]
+"LOD1"=hex:00,00,b4,42
+"LOD2"=hex:00,00,02,43
+"BorderFogDistance"=hex:00,00,80,41
+"EnableWaterWaves"=dword:00000000
+"EnableDynamicLights"=dword:00000001
+"EnableSelfShadowing"=dword:00000000
+"LightingFreq"=dword:000003e8
+"ShadowingFreq"=dword:0000ea60
+"EnableFootprints"=dword:00000001
+"EnableBloodprints"=dword:00000001
+"EnableFireprints"=dword:00000001
+"EnableBloodprintsRelight"=dword:00000000
+
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru]
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter]
+; read by addon.dll, never set here (its defaults)
+"AddonPath"=-
+"path"="F:\\games\\Evil Islands (Rebirth)\\Starter"
+"ver"="1.46.0"
+"id"=dword:7f1fd7b8
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands]
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Camera Settings]
+"CAMERADEFAULTZOOMPOWERMOUSE"=hex:00,00,80,3f
+"CAMERABORDERSCROLLAREA"=dword:00000001
+"CAMERABRIEFINGMAXDISTANCETOCARRIER"=hex:00,00,d8,41
+"CameraShortcut 1 AxisY"=hex:00,00,00,00
+"CAMERABRIEFINGMAXPITCH"=hex:00,00,70,42
+"CameraFlipYAxis"=dword:00000000
+"CameraShortcut 0 AxisZ"=hex:00,00,80,3f
+"CAMERABRIEFINGMINDISTANCETOCARRIER"=hex:00,00,c0,40
+"CAMERABRIEFINGMINPITCH"=hex:00,00,20,42
+"CAMERADEFAULTDISTANCETOCARRIER"=hex:00,00,f0,41
+"CAMERADEFAULTHEIGHT"=hex:00,00,00,40
+"CameraShortcut 0 AxisX"=hex:00,00,00,00
+"CAMERAMINDISTANCETOCARRIER"=hex:00,00,20,41
+"CAMERADEFAULTMAXPITCH"=hex:00,00,70,42
+"CameraShortcut 0 Pitch"=hex:00,00,34,42
+"CAMERADEFAULTMINPITCH"=hex:00,00,f0,41
+"CAMERADEFAULTPITCHPOWERKEYBOARD"=hex:ae,47,e1,3e
+"CAMERADEFAULTZOOMPOWERKEYBOARD"=hex:ae,47,e1,3e
+"CAMERADEFAULTPITCHPOWERMOUSE"=hex:00,00,80,3f
+"CAMERADEFAULTPITCHSPEED"=hex:a6,9b,c4,3a
+"CameraFlipXAxis"=dword:00000000
+"CAMERADEFAULTROTATEPOWERKEYBOARD"=hex:ae,47,e1,3e
+"CAMERADEFAULTROTATEPOWERMOUSE"=hex:00,00,80,3f
+"CAMERADEFAULTROTATESPEED"=hex:9a,99,19,3e
+"CAMERADEFAULTSCROLLPOWERKEYBOARD"=hex:ae,47,e1,3e
+"CAMERADEFAULTSCROLLPOWERMOUSE"=hex:00,00,80,3f
+"CAMERADEFAULTZOOMSPEED"=hex:00,00,00,40
+"CAMERADEFAULTSCROLLSPEED"=hex:00,00,c0,3f
+"CAMERADEFAULTXDEPLOY"=hex:00,00,f0,41
+"CameraShortcut 0 AxisY"=hex:00,00,00,00
+"CAMERADEFAULTYDEPLOY"=hex:00,00,f0,41
+"CAMERAFRAMESELECTIONSENSETIVEAREA"=dword:0000001e
+"CAMERALIMITDISTANCETOCARRIER"=hex:00,00,40,40
+"CameraShortcut 1 Distance"=hex:00,00,f0,41
+"CAMERAMAXDISTANCETOCARRIER"=hex:00,00,48,42
+"CAMERAMAXHEIGHT"=hex:00,00,8c,42
+"CAMERAMAXLIMITDISTANCETOCARRIER"=hex:00,00,8c,42
+"CAMERAMINHEIGHT"=hex:00,00,40,40
+"CAMERAMINLIMITDISTANCETOCARRIER"=hex:00,00,40,40
+"CAMERATERRAINSENSETIVEAREA"=hex:00,00,20,41
+"CameraShortcut 0 Angle"=hex:00,00,00,00
+"CameraShortcut 0 Distance"=hex:00,00,f0,41
+"CameraShortcut 1 Angle"=hex:00,00,00,00
+"CameraShortcut 1 AxisX"=hex:00,00,00,00
+"CameraShortcut 1 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 1 Pitch"=hex:00,00,34,42
+"CameraShortcut 2 Angle"=hex:00,00,00,00
+"CameraShortcut 2 AxisX"=hex:00,00,00,00
+"CameraShortcut 2 AxisY"=hex:00,00,00,00
+"CameraShortcut 2 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 2 Distance"=hex:00,00,f0,41
+"CameraShortcut 2 Pitch"=hex:00,00,34,42
+"CameraShortcut 3 Angle"=hex:00,00,00,00
+"CameraShortcut 3 AxisX"=hex:00,00,00,00
+"CameraShortcut 3 AxisY"=hex:00,00,00,00
+"CameraShortcut 3 AxisZ"=hex:00,00,80,3f
+"CameraShortcut 3 Distance"=hex:00,00,f0,41
+"CameraShortcut 3 Pitch"=hex:00,00,34,42
+"FARCLIPDISTANCE"=hex:00,00,c8,42
+"NEARCLIPDISTANCE"=hex:00,00,00,40
+"CAMERABRIEFINGMAXLIMITDISTANCETOCARRIER"=hex:00,00,f0,41
+"CAMERABRIEFINGMINLIMITDISTANCETOCARRIER"=hex:00,00,40,40
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Game Specific Settings]
+"Autosave"=dword:00000001
+"SHOWTUTORIAL"=dword:00000000
+"QUEST LIGHT RADIUS"=dword:00000005
+"HERO LIGHT RADIUS"=dword:00000005
+"CD2 LABEL"="EICD2"
+"DEFAULTSTREAMINGSOUND"="melody.mp3"
+"FOGNIGHTSTARTDISTANCE"=hex:00,00,48,42
+"CD1 LABEL"="EICD1"
+"CD3 LABEL"="EICD3"
+"CORNERSIZE"=hex:00,00,00,3f
+"DEFAULTMAPNAME"="Zone1.mpr"
+"DEFAULTTIMESCALE"=dword:0000003c
+"DEFAULTWINDFORCE"=hex:cd,cc,cc,3e
+"DRAWFLYINGHP"=dword:00000001
+"DRAWPATH"=dword:00000001
+"DRAWVISIBLEONLY"=dword:00000001
+"Difficulty Level"=dword:00000000
+"FOGDAYSTARTDISTANCE"=hex:00,00,b4,42
+"Font CharSet"="english"
+"HERO LIGHT B"=dword:00000074
+"HERO LIGHT G"=dword:000000d8
+"HERO LIGHT R"=dword:000000d8
+"Keyboard Layout"=dword:00000409
+"OBJECTSLIGHTINGCOEFF"=hex:00,00,00,40
+"QUEST LIGHT B"=dword:00000078
+"QUEST LIGHT G"=dword:00000048
+"QUEST LIGHT R"=dword:00000078
+"SELECTIONTYPE"=dword:00000001
+"SwitchFilters"=dword:00000001
+"ToolTip Time"=hex:00,00,00,3f
+"USESWCURSORS"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\General Settings]
+"VIDEORESOLUTION"="3840x2160"
+"AUDIOSFX"=dword:0000001c
+"ANTIALIASING"=dword:00000000
+"AUTOMATICQUANTIZATION"=dword:00000000
+"AUDIO"=dword:00000001
+"AUDIOSPEECH"=dword:00000019
+"AUDIOSTREAMING"=dword:0000001c
+"BRIGHTNESS"=hex:00,00,00,00
+"Reverse Stereo"=dword:00000000
+"FULLSCREEN"=dword:00000001
+"SPECULAR"=dword:00000000
+"DITHERING"=dword:00000000
+"MOVIECAPTURINGFPS"=dword:0000000f
+"CONTRAST"=hex:00,00,00,00
+"TEXTUREQUALITY"=dword:00000000
+"DRAWINGTARGET"=dword:00000000
+"FILTERING"=dword:00000002
+"FPSINDEPENDENTCURSOR"=dword:00000000
+"GAMMA"=hex:00,00,00,00
+"JOYSTICK"=dword:00000000
+"MIPMAPPING"=dword:00000001
+"PERSPECTIVECORRECTION"=dword:00000001
+"SHOWPARTICLES"=dword:00000001
+"VIDEO"=dword:00000002
+"VIDEOCOLORDEPTHINBITS"=dword:00000020
+"VIDEOREFRESHRATE"=dword:00000000
+"VIDEOZBUFFERDEPTHINBITS"=dword:00000010
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Network Settings]
+"Master Server Name"="a3master.nival.com"
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Path Settings]
+"CD-ROM PATH"="F:\\games\\Evil Islands (Rebirth)\\"
+"WORK PATH"="F:\\games\\Evil Islands (Rebirth)\\"
+"RESOURCES PATH"=".\\res\\"
+"FIRSTSTART"=dword:00000000
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Shadow Settings]
+"BUILDINGSHADOW"=dword:00000001
+"UNITSHADOW"=dword:00000001
+"FLORASHADOW"=dword:00000000
+"FLORASPECIALLIGHT"=dword:00000000
+"HEROSHADOW"=dword:00000001
+"LIGHTINGFREQ"=dword:00002710
+"OTHERSHADOW"=dword:00000000
+"SHADOWQUALITY"=dword:00000002
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Statistics Output Settings]
+"CREATEOUTPUTINFO"=dword:00000000
+"NUMBEROFFRAMES"=dword:ffffffff
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\EvilIslands\Terrain Settings]
+"ENABLEFOOTPRINTS"=dword:00000001
+"SHADOWINGFREQ"=dword:0000ea60
+"BORDERFOGDISTANCE"=hex:00,00,80,41
+"LIGHTINGFREQ"=dword:000003e8
+"ENABLESELFSHADOWING"=dword:00000000
+"ENABLEBLOODPRINTS"=dword:00000001
+"ENABLEDYNAMICLIGHTS"=dword:00000001
+"ENABLEFIREPRINTS"=dword:00000001
+"ENABLEWATERWAVES"=dword:00000000
+"EnableBloodprintsRelight"=dword:00000000
+"LOD1"=hex:00,00,b4,42
+"LOD2"=hex:00,00,02,43
+
+[HKEY_CURRENT_USER\Software\Gipat.Ru\EI_Starter\Settings]
+; read by addon.dll and the image's console, never set here (their defaults)
+"Console AutoExec"=-
+"AntiCrash"=-
+"AutoRecover"=-
+"ConsoleLogLevel"=-
+"FullDump"=-
+"LogLevel"=-
+"Rate"=-
+"Tracer"=-
+"Saving MPD"=dword:00000000
+"SaveMPD Limit"=dword:00000005
+"ModesFiltration"=dword:00000000
+"MP console"=dword:00000000
+"MQ client"=dword:00000001
+"MP Speed-control"=dword:00000001
+"CD-ROM PATH"=""
+"Run"="1.046"
+"Default Master Server"="a3master.nival.com"
+"Xoptions Active"=dword:00000001
+"CtfMon"=dword:00000001
+"AddonPath"="F:\\games\\Evil Islands (Rebirth)\\starter\\MODS\\Standard"
+"ObjectsDrawRadius"=dword:00001500
+"LandscapeDrawRadius"=dword:00001500
+"WideScreen"=dword:00000001

@@ -292,7 +292,7 @@ id = "R12a"
 title = "World meshes and edges as the user's dgVoodoo draws the original: anisotropic filtering, 8x MSAA"
 group = "renderer"
 depends = ["R12"]
-note = "R12 found the user's original look: Rebirth's starter\\Engine\\dgVoodoo.conf forces Filtering 16 and Antialiasing 8x (the harness's run\\vanilla dgVoodoo is appdriven). R12 gave the terrain pages anisotropic sampling with linear mips; the meshes (figures, map objects, sky) still sample as the game's stage states say (point mips) and the frame has no MSAA. Decide with the user whether the image should match that look (an option or the default), then sample world meshes the same way and add MSAA to the frame target (interface sprites and window surfaces unchanged)."
+note = "User 2026-10-20: an option, off by default (the default keeps the game's own sampling request); on gives the Rebirth dgVoodoo look: anisotropic sampling for world meshes and 8x MSAA on the frame. Goldens and frame checks run with it off."
 
 [[ticket]]
 id = "R12b"
@@ -1680,6 +1680,14 @@ size = 1
 model = "opus"
 note = "SV8 (2026-10-20): key bindings live in <install>\\config\\keyboard.ini, read at start; harness writes go to harness_saves, but reads may come from F:\\games\\EvilIslands\\config\\keyboard.ini, which the user's remap rewrote: pin a committed keyboard.ini per install too. Also RegCreateKeyExA is not skipped (writes no values). Re-record ui_options_remap / ui_options_remap_load if the pinned settings change them."
 
+[[ticket]]
+id = "WB17"
+title = "Harness runs write Rebirth's addon.log into the install"
+group = "harness"
+size = 1
+model = "opus"
+note = "WB16 (2026-10-20): the Rebirth install's starter\\addon.log is 1.3 GB (1,305,260,835 bytes, last written 2026-10-20 15:55 while harness runs were going). Runs must never write into the game installs: send addon.dll's log writes (and any other write into an install) to the run's overlay, and add a check that a run wrote nothing in an install (log every CreateFile / MoveFile / DeleteFile for writing outside the run folder and fail the run). Don't delete or trim the existing log; that's the user's call."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
@@ -2582,6 +2590,14 @@ title = "Settings from a file instead of the registry"
 group = "standalone"
 size = 1
 note = "User wishlist 2026-10-20: the standalone game loads (and saves) its settings from a file instead of HKCU\\Software\\Nival Interactive\\EvilIslands. Import the registry values once if the file is missing. A file per run would also give the harness its pinned settings for free (WB16)."
+
+[[ticket]]
+id = "ST2"
+title = "In-game graphics options instead of the launcher"
+group = "standalone"
+size = 2
+depends = ["S18"]
+note = "User 2026-10-20: after the standalone exe, add graphics options to the game itself so no launcher is needed: display mode (windowed / borderless full screen; no exclusive mode change), resolution, antialiasing, anisotropic filtering and the like. R12a (the dgVoodoo look as an option, off by default), R14 (stay on screen on focus loss) and R15 (confine the cursor, no edge pan outside the window) supply switches it can show. Settings go to the settings file of ST1."
 
 # ---------------------------------------------------------------- Lua
 
