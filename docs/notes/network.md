@@ -31,9 +31,9 @@ function does; this file keeps what is not visible in the code.
   joiner back from the main menu with a new hero, ban by name, the third join refused by the ban list.
   `net_pair_leave.txt` (SV5d2): shared files (the peer lacks a quest file), the peer lost in the game zone
   (its network cut), the host back out to the base and the map's reject topic (LeaveZone, the award).
-  Not reached by any scenario: a quest completed in the zone (CompleteZone 00418ED0 and its kind 0 / 1
-  awards, SV5d3), `GameInfoRecord::Read`, bad updates, recording and replay (no `.apl` file exists), the
-  master server's answer (OnMaster 0041ACA0).
+  `net_pair_quest.txt` (SV5d3): a quest finished in the zone and CompleteZone with its awards, in a public
+  game whose (fake) master answers. Not reached by any scenario: `GameInfoRecord::Read`, bad updates,
+  recording and replay (no `.apl` file exists).
 
 ## The multiplayer base and the zone switch (SV5d1)
 
@@ -79,7 +79,16 @@ function does; this file keeps what is not visible in the code.
 - CompleteZone ("<zone>_3") needs the zone's quest done (the generated quest script's QuestComplete ->
   FinishQuestMap 0057FB90 -> FinishMap queues "<zone>_3"); every z3 / z6 / z7 / z9 quest needs a fight with
   level 2-8 monsters (z3q1: a chest by five bandits; z3q2: a level 5 toad), which a new hero does not win, and the
-  console's "@" commands do nothing in a network game (console::Execute). Not reached (SV5d3).
+  console's "@" commands do nothing in a network game (console::Execute).
+- SV5d3 `net_pair_quest.txt`: the host plays a prepared strong hero (tools/make_mp_hero.py writes mp\1.mp into
+  the run's overlay: strength 1000, a 300-damage axe, armour absorbing 100), takes z9q2 (the pair's offer is z3q2
+  z6q1 z7q1 z9q2 on both installs; ten undead at the old camp, around 8..55 x 266..309 of zone9), kills them,
+  goes back through exit 1 and takes the sheriff's "<zone>_3" topic. The original (EI_COVER) reaches 0057FB90,
+  004193F0, CompleteZone 00418ED0 and ClientOnAward 0041EF90 in both games, and OnMaster 0041ACA0 (the harness's
+  `fakemaster` answers each announcement on the pair's virtual port with the key and a new token).
+- Game bug (the original too): a guest joining while the host's briefing dialogue runs crashes the host in
+  CTextManager::PeekWord (CBriefingScreen::NextPhrase -> FindLine; the original at 004DF7F7). The scenario talks
+  to the sheriff after the join.
 - Shared files: ShareFile lists each queued zone's .mq (a File message, 64-byte FileChunk messages); a client
   that lacks one (005812F0) answers with a FileRequest, which the server lists with the sender's connection
   (0041B690); the chunks come back and vanilla writes the file into Maps (identical to the host's in the pair
@@ -283,8 +292,8 @@ messages inline.
   connection or binding.
 - Rebirth: EI_Plugin's NewMaster has sites in 0041AA10 (0041ABDA, the send) and 0041ACA0 (0041ACB7), addon's ChatLog one in 0041B1C0
   (0041B25B, disabled in this install). NewMaster's sites are reproduced behind its flag (net_second_master.cpp); ChatLog's is not, so
-  0041B1C0 is not hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1); nothing
-  reaches 0041ACA0 or 0041B1C0 (a master server's answer, or a second client's chat line, is needed).
+  0041B1C0 is not hooked where it is applied. `net_second_master` reaches 0041AA10 (a public game with `masterhost` on 127.0.0.1); `net_pair_quest`
+  reaches 0041ACA0 (the harness's fake master); nothing reaches 0041B1C0 where ChatLog is applied.
 - A-E2 (vanilla bodies, vanilla launch only; no scenario reaches them): 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`) collects a
   file's chunks, sorts and joins them and hands the file to the game flow (005813A0). 00443080 `ServerBase::OnLogin` (`net_lobby.cpp`): a
   wrong magic is ignored; the rate is cut to the address's limit; a connected client's login is ignored ("ERROR: Ignoring login..."); a
