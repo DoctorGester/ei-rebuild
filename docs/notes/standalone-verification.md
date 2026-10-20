@@ -268,6 +268,8 @@ happen (the harness logs "share id" if one does).
   letters missing, differently per run.
 - **Install files and registry** (harness.cpp, harness_settings.h; WB16): writes under the game folder
   (config\keyboard.ini on exit, the skin cache, mp\) go to the run's harness_saves overlay, read back from there.
+  mp\ (multiplayer heroes) is the overlay's only (SV5d3): before, its listing fell back to the install and showed the
+  user's own heroes; a run starts with none, or a prepare tool's (`make_mp_hero.py`).
   No run reads the user's settings: every registry call on HKCU / HKLM `Software\Nival Interactive` and
   `Software\Gipat.Ru` (the original's settings, Rebirth's game settings and starter switches) from any module
   (game, image, ei_hook.dll, addon.dll) is answered from the committed snapshot `config/harness/registry.reg`

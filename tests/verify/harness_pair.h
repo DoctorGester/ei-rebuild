@@ -59,6 +59,13 @@ void Close(std::uintptr_t s);
 // "netcut": this game's network is cut from now on.
 void Cut();
 
+// "fakemaster <port>" (SV5d3): a master server on virtual port <port> answers this game's datagrams
+// to it, a public game's announcements (ServerSession::AnnounceToMaster 0041AA10: the GameInfoRecord,
+// its first dword the session's master key), with a master packet (kind -1, the key, a token) from
+// that port, as the master's answer that OnMaster 0041ACA0 takes (the token goes back in the next
+// announcement). Only this game's datagrams are answered.
+void FakeMaster(std::uint16_t port);
+
 // The report's PAIR: line.
 void Report(FILE* f);
 
