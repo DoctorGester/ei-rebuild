@@ -1665,7 +1665,7 @@ title = "Harness runs read the user's real game settings: pin them"
 group = "harness"
 size = 1
 model = "opus"
-note = "Found 2026-10-20: after the user played (2026-10-16), 13 goldens differ in both the original (--no-hooks --fresh) and the image: ground_prints, hero_death, levers, magic_traps, net_pair_leave, net_pair_zone, script_fx, terrain_water_load, ui_saveload_delete, ui_view_screen, world_load, zone_gz15h_tornado, zone_gz2g_traps (random draw counts and unit AI differ). harness_starter.cpp answers only CtfMon, VideoResolution, FullScreen, FPSIndependentCursor, AddonPath and WideScreen; every other RegQueryValueEx goes to HKCU\\Software\\Nival Interactive\\EvilIslands (writes are already skipped, harness.cpp SkippedRegSetValue). Pin every value the game reads to a committed snapshot (config/, both installs), so the user's settings never reach a run. Find the values that reproduce the existing goldens (try the likely ones: Difficulty Level, DefaultTimeScale, Autosave, terrain / shadow switches) before re-recording any golden; re-record only what can't be matched, under the 4-pass rule. Never write the user's registry. Also check other per-user state a run can read (files the game writes in the install, e.g. the key bindings)."
+note = "User 2026-10-20: they changed volume, hotkeys and maybe the help tips (Game Specific Settings\\ShowTutorial is now 1, a prime suspect). Find where the hotkeys are stored (not among the registry values) and pin that too."
 
 # ---------------------------------------------------------------- cleanup
 
@@ -2562,6 +2562,13 @@ id = "S21h"
 title = "EI_REBIRTH_IMPLEMENTS: documentation only since S21e"
 group = "standalone"
 note = "From S21e: nothing reads the 125 EI_REBIRTH_IMPLEMENTS declarations at run time any more (the installer's Rebirth check went with game.exe's mode). Decide: drop them (config/rebirth_patches.csv already says where each patch is implemented) or turn them into a build check against that csv's status column."
+
+[[ticket]]
+id = "ST1"
+title = "Settings from a file instead of the registry"
+group = "standalone"
+size = 1
+note = "User wishlist 2026-10-20: the standalone game loads (and saves) its settings from a file instead of HKCU\\Software\\Nival Interactive\\EvilIslands. Import the registry values once if the file is missing. A file per run would also give the harness its pinned settings for free (WB16)."
 
 # ---------------------------------------------------------------- Lua
 
